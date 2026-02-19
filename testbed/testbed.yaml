@@ -1,0 +1,29 @@
+---
+# NetClaw pyATS Testbed
+# Define your network devices here.
+# Credentials use %ENV{} to pull from environment variables — never hardcode passwords.
+#
+# Set these in your .env file:
+#   NETCLAW_USERNAME=your_username
+#   NETCLAW_PASSWORD=your_password
+#   NETCLAW_ENABLE_PASSWORD=your_enable_password
+
+devices:
+  R1:
+    alias: "Router-1"
+    type: "router"
+    os: "iosxe"
+    platform: CSR1kv
+    credentials:
+      default:
+        username: "%ENV{NETCLAW_USERNAME}"
+        password: "%ENV{NETCLAW_PASSWORD}"
+      enable:
+        password: "%ENV{NETCLAW_ENABLE_PASSWORD}"
+    connections:
+      cli:
+        protocol: ssh
+        ip: devnetsandboxiosxec8k.cisco.com
+        port: 22
+        arguments:
+          connection_timeout: 360
