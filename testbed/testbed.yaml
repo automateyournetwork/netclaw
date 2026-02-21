@@ -1,29 +1,74 @@
 ---
-# NetClaw pyATS Testbed
-# Define your network devices here.
-# Credentials use %ENV{} to pull from environment variables — never hardcode passwords.
-#
-# Set these in your .env file:
-#   NETCLAW_USERNAME=your_username
-#   NETCLAW_PASSWORD=your_password
-#   NETCLAW_ENABLE_PASSWORD=your_enable_password
-
 devices:
   R1:
-    alias: "Router-1"
+    alias: "Sandbox Router01"
     type: "router"
     os: "iosxe"
     platform: CSR1kv
     credentials:
       default:
-        username: "%ENV{NETCLAW_USERNAME}"
-        password: "%ENV{NETCLAW_PASSWORD}"
+        username: cisco
+        password: cisco
       enable:
-        password: "%ENV{NETCLAW_ENABLE_PASSWORD}"
+        password: cisco
     connections:
       cli:
         protocol: ssh
-        ip: devnetsandboxiosxec8k.cisco.com
+        ip: 10.10.20.171
         port: 22
         arguments:
           connection_timeout: 360
+  R2:
+    alias: "Sandbox Router02"
+    type: "router"
+    os: "iosxe"
+    platform: CSR1kv
+    credentials:
+      default:
+        username: cisco
+        password: cisco
+      enable:
+        password: cisco
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.10.20.172
+        port: 22
+        arguments:
+          connection_timeout: 360
+  SW1:
+    alias: "Sandbox Switch01"
+    type: "switch"
+    os: "iosxe"
+    platform: CSR1kv
+    credentials:
+      default:
+        username: cisco
+        password: cisco
+      enable:
+        password: cisco
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.10.20.173
+        port: 22
+        arguments:
+          connection_timeout: 360
+  SW2:
+    alias: "Sandbox Switch02"
+    type: "switch"
+    os: "iosxe"
+    platform: CSR1kv
+    credentials:
+      default:
+        username: cisco
+        password: cisco
+      enable:
+        password: cisco
+    connections:
+      cli:
+        protocol: ssh
+        ip: 10.10.20.174
+        port: 22
+        arguments:
+          connection_timeout: 360                  

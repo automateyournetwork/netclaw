@@ -19,5 +19,8 @@ Hey, can you set up the following lab network for me?
 2. Generate a draw.io topology diagram
 3. Generate a Nana Banana topology file
 4. Document the final IP plan and device configs
+5. Add all assets R1, R2, SW1, SW2, to NetBox (all ips, interfaces, VLANs, etc.)
+6. Add all assets R1, R2, SW1, SW2, to ServiceNow CMDB (all ips, interfaces, VLANs, etc.)
+7. Provide links to all assets in NetBox and ServiceNow CMDB in the final documentation
 
 Let me know if you need any clarification before starting! 🙏
