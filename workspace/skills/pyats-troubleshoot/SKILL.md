@@ -24,7 +24,7 @@ Structured troubleshooting methodology for network issues. Follow the OSI model 
 ### Layer 1: Physical
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show interfaces"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show interfaces"}'
 ```
 
 **Check:**
@@ -39,7 +39,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Layer 2: Data Link
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show arp"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show arp"}'
 ```
 
 **Check:**
@@ -51,13 +51,13 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 
 ```bash
 # Check local interface has correct IP
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip interface brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip interface brief"}'
 
 # Check routing table for destination
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip route"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip route"}'
 
 # Ping the destination
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 10.0.0.1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 10.0.0.1"}'
 ```
 
 **L3 troubleshooting decision tree:**
@@ -71,23 +71,23 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping
 **Advanced ping options:**
 ```bash
 # Ping with specific source
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 10.0.0.1 source Loopback0"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 10.0.0.1 source Loopback0"}'
 
 # Ping with larger packet size (test MTU)
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 10.0.0.1 size 1500 df-bit"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 10.0.0.1 size 1500 df-bit"}'
 
 # Extended ping with repeat count
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 10.0.0.1 repeat 100 source Loopback0"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 10.0.0.1 repeat 100 source Loopback0"}'
 ```
 
 ### Layer 4+: ACLs and NAT
 
 ```bash
 # Check ACLs that might be blocking traffic
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip access-lists"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip access-lists"}'
 
 # Check NAT translations
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip nat translations"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip nat translations"}'
 ```
 
 **ACL troubleshooting:**
@@ -103,9 +103,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### OSPF Neighbor Down
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip ospf neighbor"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip ospf neighbor"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip ospf interface"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip ospf interface"}'
 ```
 
 **OSPF adjacency troubleshooting checklist:**
@@ -122,9 +122,9 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### BGP Peer Down
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip bgp summary"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip bgp summary"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip bgp neighbors"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip bgp neighbors"}'
 ```
 
 **BGP adjacency troubleshooting checklist:**
@@ -155,15 +155,15 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 1: Check Device Resources
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show processes cpu sorted"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show processes cpu sorted"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show processes memory sorted"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show processes memory sorted"}'
 ```
 
 ### Step 2: Check Interface Utilization and Errors
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show interfaces"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show interfaces"}'
 ```
 
 **Look for:**
@@ -175,7 +175,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 3: Check QoS Policy
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show policy-map interface"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show policy-map interface"}'
 ```
 
 **Check:** Class drops, queue depths, policing rates.
@@ -185,7 +185,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 Is traffic taking the expected path?
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip route 10.0.0.1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip route 10.0.0.1"}'
 ```
 
 Is traffic taking a suboptimal path through a slower link? Check metrics, AD values, and path selection.
@@ -196,7 +196,7 @@ Symptoms: incrementing TTL-exceeded counters, packets bouncing between two route
 
 ```bash
 # Check for TTL exceeded ICMP messages
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_logging","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"R1"}'
 ```
 
 Trace the route: check the next-hop for the destination on each router in the path. If router A points to B and B points back to A → routing loop.
@@ -206,9 +206,9 @@ Trace the route: check the next-hop for the destination on each router in the pa
 ## Symptom: "Interface Flapping"
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_logging","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"R1"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show interfaces"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show interfaces"}'
 ```
 
 **Common causes of interface flapping:**
@@ -224,6 +224,102 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 - `%LINEPROTO-5-UPDOWN` — interface state transitions with timestamps
 - `%LINK-3-UPDOWN` — physical link state changes
 - Frequency of flaps: every few seconds = likely physical; every few minutes = possible timer/keepalive issue
+
+---
+
+## NetBox Cross-Reference (MISSION02 Enhancement)
+
+When NetBox is available ($NETBOX_MCP_SCRIPT is set), query the source of truth during investigation to validate expected state vs reality:
+
+### Check Expected Interface State
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.interfaces","filters":{"device":"R1"},"brief":true}'
+```
+
+**Use during troubleshooting:**
+- Connectivity loss → Is the interface supposed to be up? What IP should it have?
+- Interface flapping → What cable/circuit is documented? What's the remote end?
+- Routing issues → What prefix/VLAN is assigned in NetBox vs what the device shows?
+
+### Check Expected Cables and Neighbors
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.cables","filters":{"device":"R1"}}'
+```
+
+**Compare:** If CDP/LLDP shows a different neighbor than NetBox documents, the physical topology may have changed without being updated — flag for investigation.
+
+### Check Expected IP Assignments
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.ip-addresses","filters":{"device":"R1"}}'
+```
+
+**Compare:** Flag IP_DRIFT if device IP differs from NetBox. This is often the root cause of "can't reach X" tickets when someone changed an IP without updating the source of truth.
+
+---
+
+## Multi-Hop Parallel State Collection (pCall)
+
+When troubleshooting spans multiple devices (e.g., connectivity between R1 and R4 traversing R2 and R3), collect state from ALL suspect hops simultaneously rather than one at a time:
+
+### Parallel State Gathering
+
+First, list all devices to identify the path:
+
+```bash
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_list_devices
+```
+
+Then run the same show commands on ALL hops concurrently. For example, for a connectivity loss between R1 and R4:
+
+Run these commands on R1, R2, R3, and R4 simultaneously:
+- `show ip interface brief` — interface state on every hop
+- `show ip route <destination>` — does each hop have a route?
+- `show ip arp` — is next-hop reachable at L2?
+- `show ip ospf neighbor` or `show ip bgp summary` — adjacency state
+
+**Benefit:** Instead of spending 4 sequential rounds (one per device), you get the complete picture in a single parallel pass. This lets you immediately identify where in the path the failure occurs.
+
+### Parallel Adjacency Check
+
+When an OSPF or BGP adjacency is down, always check BOTH ends simultaneously:
+
+```bash
+# Run on BOTH peers at the same time
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip ospf neighbor"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R2","command":"show ip ospf neighbor"}'
+```
+
+Compare: timer mismatches, area mismatches, authentication failures, and MTU issues require data from both ends to diagnose.
+
+### Severity-Sorted Results
+
+After collecting parallel state, sort findings by severity for triage:
+
+```
+┌──────────┬────────────────────────┬──────────┐
+│ Device   │ Finding                │ Severity │
+├──────────┼────────────────────────┼──────────┤
+│ R2       │ No route to 10.4.0.0/24│ CRITICAL │
+│ R3       │ Gi2 down/down          │ CRITICAL │
+│ R1       │ ARP incomplete for NH  │ HIGH     │
+│ R4       │ All interfaces up      │ HEALTHY  │
+└──────────┴────────────────────────┴──────────┘
+
+Root cause: R3 Gi2 is down → R2 lost its route via R3 → R1 can't ARP for an unreachable next-hop.
+```
+
+---
+
+## GAIT Audit Trail
+
+After completing a troubleshooting session, record findings and resolution in GAIT:
+
+```bash
+python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Troubleshooting: Connectivity loss R1→R4. Root cause: R3 Gi2 down/down (cable fault). Resolution: Escalated to field team for cable replacement. Verified routing reconverged via alternate path R1→R2→R5→R4.","artifacts":[]}}'
+```
 
 ---
 

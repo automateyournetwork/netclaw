@@ -23,7 +23,7 @@ Discover and map the physical and logical network topology using CDP, LLDP, ARP,
 ### Step 1: CDP Neighbors (Cisco-to-Cisco)
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show cdp neighbors detail"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show cdp neighbors detail"}'
 ```
 
 **Extract per neighbor:**
@@ -45,7 +45,7 @@ R1           | Gi0/0/1         | R2            | Gi0/0/0          | ISR4431
 ### Step 2: LLDP Neighbors (Multi-Vendor)
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show lldp neighbors detail"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show lldp neighbors detail"}'
 ```
 
 LLDP is IEEE 802.1AB — works with non-Cisco devices (Arista, Juniper, Linux hosts, IP phones, APs). Same adjacency table format as CDP but may include additional TLVs.
@@ -53,7 +53,7 @@ LLDP is IEEE 802.1AB — works with non-Cisco devices (Arista, Juniper, Linux ho
 ### Step 3: ARP Table (L3 Neighbor Discovery)
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show arp"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show arp"}'
 ```
 
 **Analysis:**
@@ -66,23 +66,23 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 
 **OSPF neighbors = L3 adjacent routers:**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip ospf neighbor"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip ospf neighbor"}'
 ```
 
 **BGP peers = logical connections (may be multi-hop):**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip bgp summary"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip bgp summary"}'
 ```
 
 **EIGRP neighbors:**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip eigrp neighbors"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip eigrp neighbors"}'
 ```
 
 ### Step 5: Interface-to-Subnet Mapping
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip interface brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip interface brief"}'
 ```
 
 **Build subnet map:**
@@ -96,7 +96,7 @@ Loopback0     | 1.1.1.1/32      | 1.1.1.1/32      | Router ID
 ### Step 6: VRF Topology
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show vrf"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show vrf"}'
 ```
 
 For each VRF, identify:
@@ -107,7 +107,7 @@ For each VRF, identify:
 ### Step 7: FHRP Group Mapping
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show standby brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show standby brief"}'
 ```
 
 Map virtual IPs, active/standby roles, group numbers, and tracking objects.
@@ -148,3 +148,56 @@ After discovery, use this data to generate:
 - **Draw.io diagrams** (via drawio-diagram skill) — for formal network documentation
 - **Markmap mind maps** (via markmap-viz skill) — for hierarchical protocol views
 - **NVD CVE audit** (via nvd-cve skill) — using discovered software versions
+
+## NetBox Cable Reconciliation (MISSION02 Enhancement)
+
+When NetBox is available ($NETBOX_MCP_SCRIPT is set), reconcile discovered topology against the source of truth:
+
+### Pull NetBox Cables
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.cables","filters":{},"limit":200}'
+```
+
+### Pull NetBox Devices
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.devices","filters":{},"brief":true}'
+```
+
+### Pull NetBox Interfaces
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.interfaces","filters":{"device":"R1"}}'
+```
+
+### Reconciliation Categories
+
+Compare CDP/LLDP discovered neighbors against NetBox cables:
+
+| Category | Meaning | Action |
+|---|---|---|
+| **DOCUMENTED** | Link exists in both discovery and NetBox | No action |
+| **UNDOCUMENTED** | Link found by CDP/LLDP but not in NetBox | Open ServiceNow incident to update NetBox |
+| **MISSING** | Cable in NetBox but not seen by CDP/LLDP | Investigate — may be physical disconnect |
+| **MISMATCH** | Endpoints differ between discovery and NetBox | Investigate — possible re-patching |
+
+### Color-Coded Draw.io Diagram
+
+Generate a Draw.io topology diagram with links color-coded by reconciliation status:
+- Green: DOCUMENTED
+- Yellow: UNDOCUMENTED
+- Red: MISSING
+- Orange: MISMATCH
+
+### Fleet-Wide Discovery (pCall)
+
+Run CDP/LLDP/ARP/routing peer collection across ALL devices simultaneously using multiple exec commands. Merge results to build the complete topology graph.
+
+## GAIT Audit Trail
+
+Record the topology discovery in GAIT:
+
+```bash
+python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Topology discovery completed: 5 devices, 12 links. NetBox reconciliation: 10 documented, 1 undocumented, 1 missing.","artifacts":[]}}'
+```

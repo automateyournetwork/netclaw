@@ -23,7 +23,7 @@ Capture the current state of everything the change might affect.
 #### 1A: Save Running Configuration
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_running_config","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
 ```
 
 Store this output — it is the rollback reference.
@@ -34,23 +34,23 @@ Depending on the change type, capture the appropriate state:
 
 **For interface changes:**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip interface brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip interface brief"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show interfaces"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show interfaces"}'
 ```
 
 **For routing changes:**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip route"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip route"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip ospf neighbor"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip ospf neighbor"}'
 
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip bgp summary"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip bgp summary"}'
 ```
 
 **For ACL/security changes:**
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip access-lists"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip access-lists"}'
 ```
 
 #### 1C: Connectivity Baseline
@@ -58,7 +58,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 Ping critical targets before the change:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 8.8.8.8 repeat 10"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 8.8.8.8 repeat 10"}'
 ```
 
 ### Phase 2: Plan the Change
@@ -74,7 +74,7 @@ Before applying any config, explicitly state:
 ### Phase 3: Apply Configuration
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_configure_device","arguments":{"device_name":"R1","config_commands":["interface Loopback99","ip address 99.99.99.99 255.255.255.255","description NetClaw-Managed","no shutdown"]}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_configure_device '{"device_name":"R1","config_commands":["interface Loopback99","ip address 99.99.99.99 255.255.255.255","description NetClaw-Managed","no shutdown"]}'
 ```
 
 **Configuration best practices:**
@@ -128,7 +128,7 @@ Immediately after applying config, verify:
 #### 4A: Check for Errors in Logs
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_logging","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"R1"}'
 ```
 
 Look for new error messages that appeared after the change timestamp.
@@ -136,7 +136,7 @@ Look for new error messages that appeared after the change timestamp.
 #### 4B: Verify the Config Was Applied
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_running_config","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
 ```
 
 Compare with the pre-change config to confirm only intended changes were made.
@@ -154,7 +154,7 @@ Re-run the same show commands from Phase 1B and compare:
 Re-ping all targets from Phase 1C:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 8.8.8.8 repeat 10"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 8.8.8.8 repeat 10"}'
 ```
 
 Compare success rate and RTT with baseline.
@@ -244,3 +244,76 @@ Rollback Required: No
   "login local"
 ]
 ```
+
+## ServiceNow Change Request Integration (MISSION02 Enhancement)
+
+When ServiceNow is available ($SERVICENOW_MCP_SCRIPT is set), every configuration change MUST be gated by an approved Change Request.
+
+### Pre-Change: Create CR
+
+Before any config push, create a Change Request:
+
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" create_change_request '{"short_description":"Configure SSH hardening on R1","description":"Apply VTY line hardening: SSH-only transport, exec timeout 15 min, login local. Affects R1 management plane.","category":"Network","priority":"3","risk":"low","impact":"low"}'
+```
+
+### Submit for Approval
+
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" submit_change_for_approval '{"change_number":"CHG0012345"}'
+```
+
+### Approval Gate
+
+Check if the CR is approved before proceeding:
+
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" get_change_request_details '{"change_number":"CHG0012345"}'
+```
+
+**STOP** if state is not "Approved". Inform the human and wait.
+
+### Pre-Change Check: No Open P1/P2
+
+Verify no open Priority 1 or 2 incidents on affected CIs:
+
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" list_incidents '{"urgency":"1","state":"open"}'
+```
+
+If P1/P2 incidents exist on affected devices, do NOT proceed. Escalate to human.
+
+### Post-Change: Close or Escalate CR
+
+If verification passes:
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" update_change_request '{"change_number":"CHG0012345","updates":{"state":"closed","close_code":"successful","close_notes":"Change applied and verified. Post-change baseline matches expected state."}}'
+```
+
+If verification fails:
+```bash
+python3 $MCP_CALL "python3 -u $SERVICENOW_MCP_SCRIPT" update_change_request '{"change_number":"CHG0012345","updates":{"state":"review","close_notes":"Post-change verification FAILED. Rollback initiated. Human review required."}}'
+```
+
+### Emergency Changes
+
+For emergency changes (network outage, security incident):
+1. Notify human immediately
+2. Create CR with category "Emergency"
+3. Proceed with change (approval gate bypassed)
+4. CR must be retroactively approved within 24 hours
+
+## GAIT Audit Trail
+
+Record every phase of the change in GAIT:
+
+```bash
+python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Config change on R1: Phase 1 baseline captured. Phase 2 plan approved. Phase 3 config applied. Phase 4 verification PASSED. ServiceNow CR CHG0012345 closed successful.","artifacts":[]}}'
+```
+
+The 5-phase workflow with GAIT creates an immutable record:
+1. **Baseline** → GAIT commit with pre-change state
+2. **Plan** → GAIT commit with change plan and CR number
+3. **Apply** → GAIT commit with exact commands pushed
+4. **Verify** → GAIT commit with post-change state and diff
+5. **Document** → GAIT commit with final summary and CR closure

@@ -25,7 +25,7 @@ Systematic security assessment for Cisco IOS-XE devices following industry best 
 Always start by capturing the full running config for analysis:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_running_config","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
 ```
 
 Scan the full config for the checks below.
@@ -51,7 +51,7 @@ Scan the full config for the checks below.
 ### Step 3: AAA Configuration
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show aaa servers"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show aaa servers"}'
 ```
 
 **AAA checks in running config:**
@@ -66,7 +66,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 4: Access Control Lists
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip access-lists"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip access-lists"}'
 ```
 
 **ACL analysis:**
@@ -85,7 +85,7 @@ Check in running config for:
 - Protection against: ICMP floods, TTL-expired floods, fragmentation attacks, ARP storms
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show policy-map control-plane"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show policy-map control-plane"}'
 ```
 
 ### Step 6: Routing Protocol Security
@@ -128,7 +128,7 @@ Check in running config:
 ### Step 8: Encryption & Credentials
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show crypto key mypubkey rsa"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show crypto key mypubkey rsa"}'
 ```
 
 **Check:**
@@ -142,7 +142,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 9: SNMP Security
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show snmp"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show snmp"}'
 ```
 
 **Checks:**
@@ -175,4 +175,59 @@ LOW / INFORMATIONAL:
   8. [I-001] CDP enabled globally (acceptable on internal interfaces)
 
 Summary: 2 Critical | 2 High | 2 Medium | 2 Low
+```
+
+## ISE Integration (MISSION02 Enhancement)
+
+When ISE is available ($ISE_MCP_SCRIPT is set), extend the security audit with identity verification:
+
+### Verify Device is Registered as NAD
+
+Check that the device is registered in ISE as a Network Access Device:
+
+```bash
+ISE_BASE=$ISE_BASE USERNAME=$ISE_USERNAME PASSWORD=$ISE_PASSWORD python3 $MCP_CALL "python3 -u $ISE_MCP_SCRIPT" network_devices '{}'
+```
+
+**Flags:**
+- Device not registered as NAD → CRITICAL: Not participating in ISE enforcement
+- Device registered but no RADIUS/TACACS config on device → HIGH: ISE configured but device not using it
+
+### Check Active Sessions on Device
+
+```bash
+ISE_BASE=$ISE_BASE USERNAME=$ISE_USERNAME PASSWORD=$ISE_PASSWORD python3 $MCP_CALL "python3 -u $ISE_MCP_SCRIPT" active_sessions '{}'
+```
+
+Filter sessions for this device's IP to see authenticated endpoints.
+
+## NVD CVE Vulnerability Scan
+
+After Step 1 (show version), extract the IOS-XE version and scan for known vulnerabilities:
+
+```bash
+python3 $MCP_CALL "npx -y nvd-cve-mcp-server" search_cves '{"keyword":"Cisco IOS XE 17.9.4","resultsPerPage":10}'
+```
+
+**For each CVE found:**
+1. Check CVSS score (flag CVSS >= 7.0)
+2. Cross-reference running config for exposure (e.g., CVE requires HTTP server → check if `ip http server` is configured)
+3. Produce exposure correlation: CVE + running-config = actual risk
+
+**Severity mapping:**
+- CVSS >= 9.0 → CRITICAL
+- CVSS >= 7.0 → HIGH
+- CVSS >= 4.0 → MEDIUM
+- CVSS < 4.0 → LOW
+
+## Fleet-Wide Security Audit (pCall)
+
+Run the full 9-step audit on ALL devices simultaneously using multiple exec commands. Aggregate findings across the fleet and sort by severity for prioritized remediation.
+
+## GAIT Audit Trail
+
+Record the security audit in GAIT:
+
+```bash
+python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Security audit on R1: 2 CRITICAL (no enable secret, telnet enabled), 2 HIGH, 2 MEDIUM, 2 LOW findings.","artifacts":[]}}'
 ```

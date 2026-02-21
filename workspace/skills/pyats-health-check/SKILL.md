@@ -27,7 +27,7 @@ Always run health checks in this exact order. Each section builds on the previou
 Run `show version` to establish baseline identity.
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show version"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show version"}'
 ```
 
 **Extract and report:**
@@ -46,7 +46,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 2: CPU Utilization
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show processes cpu sorted"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show processes cpu sorted"}'
 ```
 
 **Thresholds (5-second / 1-minute / 5-minute averages):**
@@ -66,12 +66,12 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 3: Memory Utilization
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show processes memory sorted"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show processes memory sorted"}'
 ```
 
 Also run:
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show platform resources"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show platform resources"}'
 ```
 
 **Thresholds:**
@@ -90,12 +90,12 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 4: Interface Status
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip interface brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip interface brief"}'
 ```
 
 Then for each active interface, get detailed counters:
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show interfaces"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show interfaces"}'
 ```
 
 **Report for each interface:**
@@ -118,11 +118,11 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 5: Hardware & Environment
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show inventory"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show inventory"}'
 ```
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show platform"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show platform"}'
 ```
 
 **Report:** Module status (ok/fail), serial numbers, PID, transceiver types and DOM readings.
@@ -130,11 +130,11 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 6: NTP Synchronization
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ntp associations"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ntp associations"}'
 ```
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show clock"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show clock"}'
 ```
 
 **Flags:**
@@ -146,7 +146,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_
 ### Step 7: System Logs
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_logging","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"R1"}'
 ```
 
 **Scan for these patterns:**
@@ -167,7 +167,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show
 Test reachability to critical infrastructure:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 8.8.8.8 repeat 5"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 8.8.8.8 repeat 5"}'
 ```
 
 **Thresholds:**
@@ -201,3 +201,61 @@ Overall: WARNING — 2 items need attention
 ```
 
 Severity order: CRITICAL > HIGH > WARNING > HEALTHY. Overall status = worst individual status.
+
+## NetBox Cross-Reference (MISSION02 Enhancement)
+
+When NetBox is available ($NETBOX_MCP_SCRIPT is set), cross-reference device state against the source of truth after Steps 1 and 4:
+
+### Interface State Validation
+
+Query NetBox for expected interface states:
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.interfaces","filters":{"device":"R1"},"brief":true}'
+```
+
+**Compare NetBox intent vs device reality:**
+- NetBox shows interface enabled but device shows down → CRITICAL: Unexpected outage
+- NetBox shows interface disabled but device shows up → WARNING: Undocumented activation
+- Interface exists on device but not in NetBox → WARNING: Undocumented interface
+- Interface in NetBox but not on device → WARNING: NetBox stale data
+
+### IP Address Validation
+
+Query NetBox for expected IP assignments:
+
+```bash
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.ip-addresses","filters":{"device":"R1"}}'
+```
+
+**Compare:** Flag any IP_DRIFT where the device IP differs from NetBox.
+
+## Fleet-Wide Health (pCall)
+
+To run health checks across ALL devices simultaneously, first list all devices:
+
+```bash
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_list_devices
+```
+
+Then run Steps 1-8 on each device concurrently using multiple exec commands. Collect all results and produce a fleet summary:
+
+```
+┌──────────┬──────────┬──────┬────────┬──────────┬─────────────┐
+│ Device   │ CPU      │ Mem  │ Intf   │ NTP      │ Overall     │
+├──────────┼──────────┼──────┼────────┼──────────┼─────────────┤
+│ R1       │ HEALTHY  │ WARN │ HEALTHY│ HEALTHY  │ WARNING     │
+│ R2       │ HEALTHY  │ OK   │ CRIT   │ HEALTHY  │ CRITICAL    │
+│ SW1      │ HIGH     │ OK   │ HEALTHY│ CRIT     │ CRITICAL    │
+└──────────┴──────────┴──────┴────────┴──────────┴─────────────┘
+```
+
+Sort devices by severity (CRITICAL first) for triage prioritization.
+
+## GAIT Audit Trail
+
+After completing a health check, record the session in GAIT:
+
+```bash
+python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Health check completed on R1: CPU HEALTHY (12%), Memory WARNING (78%), Interfaces HEALTHY, NTP HEALTHY. Overall: WARNING.","artifacts":[]}}'
+```

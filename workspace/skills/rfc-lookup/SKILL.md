@@ -12,24 +12,24 @@ You can search and retrieve RFC documents using the RFC MCP server.
 
 ## How to Use
 
-Send JSON-RPC requests to the RFC MCP server via exec:
+Send requests to the RFC MCP server via mcp-call:
 
 ### Get an RFC by number
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_rfc","arguments":{"number":"4271"}}}' | npx -y @mjpitz/mcp-rfc --oneshot
+python3 $MCP_CALL "npx -y @mjpitz/mcp-rfc" get_rfc '{"number":"4271"}'
 ```
 
 ### Search RFCs by keyword
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"search_rfcs","arguments":{"query":"BGP security"}}}' | npx -y @mjpitz/mcp-rfc --oneshot
+python3 $MCP_CALL "npx -y @mjpitz/mcp-rfc" search_rfcs '{"query":"BGP security"}'
 ```
 
 ### Get a specific section
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"get_rfc_section","arguments":{"number":"4271","section":"Security Considerations"}}}' | npx -y @mjpitz/mcp-rfc --oneshot
+python3 $MCP_CALL "npx -y @mjpitz/mcp-rfc" get_rfc_section '{"number":"4271","section":"Security Considerations"}'
 ```
 
 ## Available Tools

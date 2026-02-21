@@ -22,10 +22,10 @@ You have access to a pyATS MCP server that can interact with network devices def
 
 ## How to Call Tools
 
-Pipe a JSON-RPC request into the server in `--oneshot` mode:
+Use the `$MCP_CALL` protocol handler to invoke MCP tools:
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"TOOL_NAME","arguments":{...}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" TOOL_NAME 'ARGS_JSON'
 ```
 
 ## All 8 Available Tools
@@ -35,7 +35,7 @@ echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"TOOL_NAME"
 List all devices in the testbed with their properties: name, alias, type, OS, platform, connection types, credentials summary.
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_list_devices","arguments":{}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_list_devices '{}'
 ```
 
 **Use when:** Starting any session — always list devices first to confirm connectivity and inventory.
@@ -48,7 +48,7 @@ Execute any show command with automatic Genie structured parsing. Returns parsed
 - `command` (string): Show command — **must** start with "show"
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_show_command","arguments":{"device_name":"R1","command":"show ip interface brief"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip interface brief"}'
 ```
 
 **Validation rules:**
@@ -134,7 +134,7 @@ Apply configuration changes to a device. Automatically enters config mode and ex
 - `config_commands` (list of strings OR multiline string): Configuration lines
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_configure_device","arguments":{"device_name":"R1","config_commands":["interface Loopback99","ip address 99.99.99.99 255.255.255.255","description NetClaw-Test","no shutdown"]}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_configure_device '{"device_name":"R1","config_commands":["interface Loopback99","ip address 99.99.99.99 255.255.255.255","description NetClaw-Test","no shutdown"]}'
 ```
 
 **Rules:**
@@ -150,7 +150,7 @@ Retrieve the full running configuration from a device.
 - `device_name` (string): Target device
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_running_config","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
 ```
 
 **Use when:** Capturing configuration baselines, auditing config, pre/post change verification.
@@ -162,7 +162,7 @@ Fetch system logs (last 250 entries) from a device.
 - `device_name` (string): Target device
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_show_logging","arguments":{"device_name":"R1"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"R1"}'
 ```
 
 **Use when:** Checking for errors, tracebacks, interface flaps, protocol events after changes.
@@ -175,7 +175,7 @@ Execute ping from the network device itself (not from the MCP client).
 - `command` (string): Ping command (e.g., `ping 8.8.8.8`, `ping 10.0.0.1 repeat 100 source Loopback0`)
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_ping_from_network_device","arguments":{"device_name":"R1","command":"ping 8.8.8.8"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"R1","command":"ping 8.8.8.8"}'
 ```
 
 **Returns:** Structured JSON with success rate %, RTT stats, packet loss when Genie parsing succeeds.
@@ -196,7 +196,7 @@ Execute a complete pyATS AEtest validation script inline. The script runs in a s
 - `test_script_content` (string): Complete Python AEtest script
 
 ```bash
-echo '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"pyats_run_dynamic_test","arguments":{"test_script_content":"import logging\nfrom pyats import aetest\n\nlogger = logging.getLogger(__name__)\n\nTEST_DATA = {\"expected_interfaces\": [\"GigabitEthernet1\", \"Loopback0\"]}\n\nclass InterfaceTest(aetest.Testcase):\n    @aetest.test\n    def verify_interfaces(self):\n        for intf in TEST_DATA[\"expected_interfaces\"]:\n            logger.info(f\"Checking interface: {intf}\")\n            assert intf.startswith(\"Gi\") or intf.startswith(\"Loop\"), f\"Unexpected interface type: {intf}\"\n\nif __name__ == \"__main__\":\n    aetest.main()"}}}' | PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 -u $PYATS_MCP_SCRIPT --oneshot
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_dynamic_test '{"test_script_content":"import logging\nfrom pyats import aetest\n\nlogger = logging.getLogger(__name__)\n\nTEST_DATA = {\"expected_interfaces\": [\"GigabitEthernet1\", \"Loopback0\"]}\n\nclass InterfaceTest(aetest.Testcase):\n    @aetest.test\n    def verify_interfaces(self):\n        for intf in TEST_DATA[\"expected_interfaces\"]:\n            logger.info(f\"Checking interface: {intf}\")\n            assert intf.startswith(\"Gi\") or intf.startswith(\"Loop\"), f\"Unexpected interface type: {intf}\"\n\nif __name__ == \"__main__\":\n    aetest.main()"}'
 ```
 
 **Rules:**

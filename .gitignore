@@ -47,3 +47,5 @@ mcp-servers/
 # Traces
 trace.json
 trace.json.gz
+
+.claude
