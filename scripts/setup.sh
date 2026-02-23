@@ -269,6 +269,24 @@ else
 fi
 echo ""
 
+# --- GitHub ---
+if yesno "Do you have a GitHub account? (issues, PRs, config-as-code)"; then
+    echo ""
+    echo -e "  Create a Personal Access Token at: ${BOLD}https://github.com/settings/tokens${NC}"
+    echo -e "  Recommended scopes: ${DIM}repo, read:org, read:user, workflow${NC}"
+    echo ""
+    prompt_secret GH_PAT "GitHub Personal Access Token (ghp_...)"
+    if [ -n "$GH_PAT" ]; then
+        set_env "GITHUB_PERSONAL_ACCESS_TOKEN" "$GH_PAT"
+        ok "GitHub configured"
+    else
+        skip "GitHub PAT (no token provided)"
+    fi
+else
+    skip "GitHub"
+fi
+echo ""
+
 # ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
@@ -324,6 +342,7 @@ grep -q "^F5_IP_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "F5 BIG-IP" || skip 
 grep -q "^CCC_HOST=" "$OPENCLAW_ENV" 2>/dev/null && ok "Catalyst Center" || skip "Catalyst Center"
 grep -q "^NVD_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "NVD CVE Scanning" || skip "NVD CVE Scanning"
 grep -q "^AZURE_TENANT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Microsoft Graph (Office 365)" || skip "Microsoft Graph (Office 365)"
+grep -q "^GITHUB_PERSONAL_ACCESS_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "GitHub" || skip "GitHub"
 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"

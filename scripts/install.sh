@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=21
+TOTAL_STEPS=23
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -413,10 +413,69 @@ done
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 19: Deploy skills and set environment
+# Step 19: GitHub MCP Server
 # ═══════════════════════════════════════════
 
-log_step "19/$TOTAL_STEPS Deploying skills and configuration..."
+log_step "19/$TOTAL_STEPS Installing GitHub MCP Server..."
+echo "  Source: https://github.com/github/github-mcp-server"
+echo "  Auth: GitHub Personal Access Token (PAT)"
+
+GITHUB_MCP_IMAGE="ghcr.io/github/github-mcp-server"
+
+# Pull docker image if docker is available, otherwise note for manual setup
+if command -v docker &> /dev/null; then
+    log_info "Pulling GitHub MCP Server Docker image..."
+    docker pull "$GITHUB_MCP_IMAGE" 2>/dev/null || \
+        log_warn "Could not pull GitHub MCP image — will pull on first use"
+    log_info "GitHub MCP ready: docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
+else
+    log_warn "Docker not found — GitHub MCP server requires Docker"
+    log_info "Install Docker, then run: docker pull $GITHUB_MCP_IMAGE"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 20: Packet Buddy MCP Server (pcap analysis)
+# ═══════════════════════════════════════════
+
+log_step "20/$TOTAL_STEPS Installing Packet Buddy MCP Server..."
+echo "  Pcap analysis via tshark — upload pcaps via Slack or disk"
+
+PACKET_BUDDY_MCP_DIR="$MCP_DIR/packet-buddy-mcp"
+
+# Check for tshark
+if command -v tshark &> /dev/null; then
+    log_info "tshark found: $(tshark --version 2>/dev/null | head -1)"
+else
+    log_warn "tshark not found — installing wireshark-common..."
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y tshark 2>/dev/null || \
+        log_warn "Could not install tshark. Install manually: apt install tshark"
+fi
+
+# Check for capinfos
+if ! command -v capinfos &> /dev/null; then
+    log_warn "capinfos not found — pcap_summary will use fallback mode"
+fi
+
+log_info "Installing Packet Buddy MCP dependencies..."
+pip3 install fastmcp 2>/dev/null || log_warn "fastmcp install failed"
+
+# Create pcap upload directory
+mkdir -p /tmp/netclaw-pcaps
+log_info "Pcap upload directory: /tmp/netclaw-pcaps"
+
+[ -f "$PACKET_BUDDY_MCP_DIR/server.py" ] && \
+    log_info "Packet Buddy MCP ready: $PACKET_BUDDY_MCP_DIR/server.py" || \
+    log_error "packet-buddy-mcp/server.py not found"
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 21: Deploy skills and set environment
+# ═══════════════════════════════════════════
+
+log_step "21/$TOTAL_STEPS Deploying skills and configuration..."
 
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
@@ -480,6 +539,7 @@ declare -A ENV_VARS=(
     ["SUBNET_MCP_SCRIPT"]="$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py"
     ["F5_MCP_SCRIPT"]="$F5_MCP_DIR/F5MCPserver.py"
     ["CATC_MCP_SCRIPT"]="$CATC_MCP_DIR/catalyst-center-mcp.py"
+    ["PACKET_BUDDY_MCP_SCRIPT"]="$PACKET_BUDDY_MCP_DIR/server.py"
 )
 
 for key in "${!ENV_VARS[@]}"; do
@@ -520,10 +580,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 20: Verify installation
+# Step 22: Verify installation
 # ═══════════════════════════════════════════
 
-log_step "20/$TOTAL_STEPS Verifying installation..."
+log_step "22/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -552,6 +612,7 @@ verify_file "NVD CVE MCP" "$NVD_MCP_DIR/mcp_nvd/main.py"
 verify_file "Subnet Calculator MCP" "$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py"
 verify_file "F5 BIG-IP MCP" "$F5_MCP_DIR/F5MCPserver.py"
 verify_file "Catalyst Center MCP" "$CATC_MCP_DIR/catalyst-center-mcp.py"
+verify_file "Packet Buddy MCP" "$PACKET_BUDDY_MCP_DIR/server.py"
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -559,10 +620,10 @@ log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 21: Summary
+# Step 23: Summary
 # ═══════════════════════════════════════════
 
-log_step "21/$TOTAL_STEPS Installation Summary"
+log_step "23/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -571,7 +632,7 @@ echo ""
 
 SKILL_COUNT=$(ls -d "$NETCLAW_DIR/workspace/skills/"*/ 2>/dev/null | wc -l)
 
-echo "MCP Servers Installed (16):"
+echo "MCP Servers Installed (18):"
 echo "  ┌─────────────────────────────────────────────────────────────"
 echo "  │ NETWORK DEVICE AUTOMATION:"
 echo "  │   pyATS              Cisco device CLI, Genie parsers"
@@ -589,6 +650,12 @@ echo "  │   Microsoft Graph     OneDrive, SharePoint, Visio, Teams, Exchange"
 echo "  │"
 echo "  │ SECURITY & COMPLIANCE:"
 echo "  │   NVD CVE             NIST vulnerability database (Python)"
+echo "  │"
+echo "  │ VERSION CONTROL:"
+echo "  │   GitHub              Issues, PRs, code search, Actions (Docker)"
+echo "  │"
+echo "  │ PACKET ANALYSIS:"
+echo "  │   Packet Buddy        pcap/pcapng analysis via tshark"
 echo "  │"
 echo "  │ UTILITIES:"
 echo "  │   Subnet Calculator   IPv4 + IPv6 CIDR calculator"
@@ -637,6 +704,12 @@ echo "  │ Microsoft 365 Skills:"
 echo "  │   msgraph-files          OneDrive/SharePoint file operations"
 echo "  │   msgraph-visio          Visio diagram generation from network data"
 echo "  │   msgraph-teams          Teams notifications and channel delivery"
+echo "  │"
+echo "  │ GitHub Skills:"
+echo "  │   github-ops              Issues, PRs, config-as-code workflows"
+echo "  │"
+echo "  │ Packet Analysis Skills:"
+echo "  │   packet-analysis         pcap analysis + Slack upload support"
 echo "  │"
 echo "  │ Reference & Utility Skills:"
 echo "  │   nvd-cve                NVD vulnerability search (Python)"
