@@ -287,6 +287,30 @@ else
 fi
 echo ""
 
+# --- Cisco Modeling Labs (CML) ---
+if yesno "Do you have a Cisco Modeling Labs (CML) server?"; then
+    echo ""
+    echo -e "  CML MCP lets you build and manage network labs via natural language."
+    echo -e "  Requires CML 2.9+ with API access."
+    echo ""
+    prompt CML_URL "CML Server URL (https://cml.example.com)" ""
+    prompt CML_USER "CML Username" "admin"
+    prompt_secret CML_PASS "CML Password"
+    if yesno "Verify SSL certificate?" "y"; then
+        CML_VERIFY="true"
+    else
+        CML_VERIFY="false"
+    fi
+    [ -n "$CML_URL" ] && set_env "CML_URL" "$CML_URL"
+    [ -n "$CML_USER" ] && set_env "CML_USERNAME" "$CML_USER"
+    [ -n "$CML_PASS" ] && set_env "CML_PASSWORD" "$CML_PASS"
+    set_env "CML_VERIFY_SSL" "$CML_VERIFY"
+    ok "Cisco CML configured"
+else
+    skip "Cisco CML"
+fi
+echo ""
+
 # ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
@@ -343,6 +367,7 @@ grep -q "^CCC_HOST=" "$OPENCLAW_ENV" 2>/dev/null && ok "Catalyst Center" || skip
 grep -q "^NVD_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "NVD CVE Scanning" || skip "NVD CVE Scanning"
 grep -q "^AZURE_TENANT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Microsoft Graph (Office 365)" || skip "Microsoft Graph (Office 365)"
 grep -q "^GITHUB_PERSONAL_ACCESS_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "GitHub" || skip "GitHub"
+grep -q "^CML_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco CML" || skip "Cisco CML"
 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"

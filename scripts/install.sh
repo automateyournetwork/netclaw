@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=23
+TOTAL_STEPS=24
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -472,10 +472,56 @@ log_info "Pcap upload directory: /tmp/netclaw-pcaps"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 21: Deploy skills and set environment
+# Step 21: Cisco Modeling Labs (CML) MCP Server
 # ═══════════════════════════════════════════
 
-log_step "21/$TOTAL_STEPS Deploying skills and configuration..."
+log_step "21/$TOTAL_STEPS Installing Cisco CML MCP Server..."
+echo "  Source: https://github.com/xorrkaz/cml-mcp"
+echo "  Manage CML labs via natural language — create, wire, start, stop, capture"
+
+# Check Python version (CML MCP requires 3.12+)
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+if [ "$PY_MINOR" -ge 12 ]; then
+    log_info "Python 3.$PY_MINOR detected (3.12+ required for CML MCP)"
+
+    log_info "Installing CML MCP via pip..."
+    pip3 install cml-mcp 2>/dev/null || {
+        log_warn "pip install cml-mcp failed — trying with --break-system-packages"
+        pip3 install --break-system-packages cml-mcp 2>/dev/null || \
+            log_warn "CML MCP install failed. Install manually: pip3 install cml-mcp"
+    }
+
+    # Verify cml-mcp is importable
+    if python3 -c "import cml_mcp" 2>/dev/null; then
+        log_info "CML MCP installed successfully"
+        CML_MCP_CMD="cml-mcp"
+        if command -v cml-mcp &> /dev/null; then
+            log_info "CML MCP ready: cml-mcp (stdio transport)"
+        else
+            # Try finding via python module
+            CML_MCP_CMD="python3 -m cml_mcp"
+            log_info "CML MCP ready: python3 -m cml_mcp (stdio transport)"
+        fi
+    else
+        log_warn "CML MCP package not importable after install"
+    fi
+
+    # Optional: install with pyATS support for CLI execution
+    echo ""
+    log_info "Tip: For pyATS CLI execution on CML nodes, install with:"
+    echo "      pip3 install 'cml-mcp[pyats]'"
+else
+    log_warn "Python 3.12+ required for CML MCP (found 3.$PY_MINOR)"
+    log_info "CML MCP skipped — upgrade Python or install manually: pip3 install cml-mcp"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 22: Deploy skills and set environment
+# ═══════════════════════════════════════════
+
+log_step "22/$TOTAL_STEPS Deploying skills and configuration..."
 
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
@@ -580,10 +626,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 22: Verify installation
+# Step 23: Verify installation
 # ═══════════════════════════════════════════
 
-log_step "22/$TOTAL_STEPS Verifying installation..."
+log_step "23/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -613,6 +659,15 @@ verify_file "Subnet Calculator MCP" "$SUBNET_MCP_DIR/servers/subnetcalculator_mc
 verify_file "F5 BIG-IP MCP" "$F5_MCP_DIR/F5MCPserver.py"
 verify_file "Catalyst Center MCP" "$CATC_MCP_DIR/catalyst-center-mcp.py"
 verify_file "Packet Buddy MCP" "$PACKET_BUDDY_MCP_DIR/server.py"
+
+# CML MCP is pip-installed, check via import
+if python3 -c "import cml_mcp" 2>/dev/null; then
+    log_info "CML MCP: OK (pip package)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_warn "CML MCP: NOT INSTALLED (requires Python 3.12+, pip3 install cml-mcp)"
+fi
+
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -620,10 +675,10 @@ log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 23: Summary
+# Step 24: Summary
 # ═══════════════════════════════════════════
 
-log_step "23/$TOTAL_STEPS Installation Summary"
+log_step "24/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -632,7 +687,7 @@ echo ""
 
 SKILL_COUNT=$(ls -d "$NETCLAW_DIR/workspace/skills/"*/ 2>/dev/null | wc -l)
 
-echo "MCP Servers Installed (18):"
+echo "MCP Servers Installed (19):"
 echo "  ┌─────────────────────────────────────────────────────────────"
 echo "  │ NETWORK DEVICE AUTOMATION:"
 echo "  │   pyATS              Cisco device CLI, Genie parsers"
@@ -644,6 +699,9 @@ echo "  │   Cisco ACI           APIC / ACI fabric management"
 echo "  │   Cisco ISE           Identity, posture, TrustSec"
 echo "  │   NetBox              DCIM/IPAM source of truth (read-only)"
 echo "  │   ServiceNow          ITSM: incidents, changes, CMDB"
+echo "  │"
+echo "  │ LAB & SIMULATION:"
+echo "  │   Cisco CML           Lab lifecycle, node mgmt, topology, packet capture"
 echo "  │"
 echo "  │ OFFICE 365 / MICROSOFT:"
 echo "  │   Microsoft Graph     OneDrive, SharePoint, Visio, Teams, Exchange"
@@ -710,6 +768,13 @@ echo "  │   github-ops              Issues, PRs, config-as-code workflows"
 echo "  │"
 echo "  │ Packet Analysis Skills:"
 echo "  │   packet-analysis         pcap analysis + Slack upload support"
+echo "  │"
+echo "  │ Cisco CML Skills:"
+echo "  │   cml-lab-lifecycle       Create, start, stop, wipe, delete, clone labs"
+echo "  │   cml-topology-builder    Add nodes, interfaces, links, build topologies"
+echo "  │   cml-node-operations     Console, CLI exec, start/stop nodes, configs"
+echo "  │   cml-packet-capture      Start/stop/download pcap on CML links"
+echo "  │   cml-admin               Users, groups, system info, licensing"
 echo "  │"
 echo "  │ Reference & Utility Skills:"
 echo "  │   nvd-cve                NVD vulnerability search (Python)"
