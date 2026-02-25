@@ -4,7 +4,7 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 42 skills, and 19 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Slack-native operations, and Microsoft 365 integration.
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 44 skills, and 20 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Cisco NSO orchestration, Slack-native operations, and Microsoft 365 integration.
 
 ---
 
@@ -16,7 +16,7 @@ cd netclaw
 ./scripts/install.sh          # installs everything, then launches the setup wizard
 ```
 
-That's it. The installer clones 19 MCP servers, deploys 42 skills, then launches a two-phase setup:
+That's it. The installer clones 20 MCP servers, deploys 44 skills, then launches a two-phase setup:
 
 **Phase 1: `openclaw onboard`** (OpenClaw's built-in wizard)
 - Pick your AI provider (Anthropic, OpenAI, Bedrock, Vertex, 30+ options)
@@ -26,7 +26,7 @@ That's it. The installer clones 19 MCP servers, deploys 42 skills, then launches
 
 **Phase 2: `./scripts/setup.sh`** (NetClaw platform credentials)
 - Network devices (testbed.yaml editor)
-- Platform credentials (NetBox, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML)
+- Platform credentials (NetBox, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO)
 - Your identity (name, role, timezone for USER.md)
 
 After setup, start NetClaw:
@@ -68,6 +68,7 @@ NetClaw is an autonomous network engineering agent powered by Claude that can:
 - **Notify** via Microsoft Teams — health alerts, change updates, and report delivery to Teams channels
 - **Analyze** packet captures — upload a pcap to Slack and NetClaw runs deep tshark analysis: protocol hierarchy, conversations, endpoints, DNS/HTTP extraction, expert info, and filtered inspection
 - **Track** network changes in GitHub — create issues from findings, commit config backups, open PRs for changes, link to ServiceNow CRs
+- **Orchestrate** network services via Cisco NSO — retrieve device configs from NSO's CDB, check sync status, inspect operational state, discover service types and deployed instances, platform inventory, and NED management — all via RESTCONF from Slack
 - **Simulate** network topologies in Cisco CML — create labs, add nodes, wire links, start/stop labs, execute CLI commands, capture packets on lab links, and manage CML users — all from natural language via Slack
 - **Audit** every action in an immutable Git-based trail (GAIT) — there is always an answer to "what did the AI do and why"
 
@@ -100,6 +101,9 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |
                                 |-- PACKET ANALYSIS:
                                 |     MCP: Packet Buddy     --> pcap/pcapng deep analysis via tshark
+                                |
+                                |-- NETWORK ORCHESTRATION:
+                                |     MCP: Cisco NSO          --> Device config, sync, services via RESTCONF
                                 |
                                 |-- LAB & SIMULATION:
                                 |     MCP: Cisco CML         --> Lab lifecycle, topology, nodes, captures
@@ -134,7 +138,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (19)
+## MCP Servers (20)
 
 | # | MCP Server | Repository | Transport | Function |
 |---|------------|------------|-----------|----------|
@@ -149,19 +153,20 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 9 | GitHub | [github/github-mcp-server](https://github.com/github/github-mcp-server) | Docker (Go) | Issues, PRs, code search, Actions, config-as-code workflows |
 | 10 | Packet Buddy | Built-in | stdio (Python) | pcap/pcapng deep analysis via tshark — upload pcaps to Slack |
 | 11 | Cisco CML | [xorrkaz/cml-mcp](https://github.com/xorrkaz/cml-mcp) | stdio (Python) | Lab lifecycle, topology, nodes, links, captures, CLI exec, admin |
-| 12 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
-| 13 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
-| 14 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
-| 15 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
-| 16 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
-| 17 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
-| 18 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
+| 12 | Cisco NSO | [NSO-developer/cisco-nso-mcp-server](https://github.com/NSO-developer/cisco-nso-mcp-server) | stdio (Python) | Device config, state, sync, services, NED IDs via RESTCONF |
+| 13 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
+| 14 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
+| 15 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
+| 16 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
+| 17 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
+| 18 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
+| 19 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
 
-All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). No persistent connections, no port management.
+All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). No persistent connections, no port management.
 
 ---
 
-## Skills (42)
+## Skills (44)
 
 ### pyATS Device Skills (9)
 
@@ -234,6 +239,13 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **cml-node-operations** | Node operations: start/stop individual nodes, set startup configs (IOS, NX-OS, IOS-XR templates), execute CLI commands via pyATS, retrieve console logs for troubleshooting, download running configs, wipe and reconfigure nodes. |
 | **cml-packet-capture** | Capture packets on CML lab links: start/stop captures with BPF filters, download pcap files, and hand off to Packet Buddy for deep tshark analysis. Protocol-specific capture workflows for BGP, OSPF, STP, ICMP troubleshooting. |
 | **cml-admin** | CML server administration: user/group management, system info (CPU, RAM, disk), licensing status, resource usage monitoring, capacity planning for new labs. |
+
+### Cisco NSO Skills (2)
+
+| Skill | What It Does |
+|-------|-------------|
+| **nso-device-ops** | NSO device operations: retrieve full config from NSO's CDB, inspect operational state, check device sync status, sync-from-device to pull live config into NSO, get platform info (model, serial, OS), list NED IDs and device groups. RESTCONF API. |
+| **nso-service-mgmt** | NSO service management: discover available service types (L3VPN, ACL, QoS, etc.), list deployed service instances, service health checks via sync verification, pre-change impact analysis (which services touch a device), service inventory reporting. |
 
 ### Reference & Utility Skills (6)
 
@@ -402,6 +414,16 @@ packet-analysis
 --> AI analysis: plain-English summary of findings and recommendations
 ```
 
+### NSO Device Sync and Service Audit
+```
+nso-device-ops + nso-service-mgmt
+--> get_device_groups: list all managed device groups
+--> check_device_sync for each device: identify out-of-sync devices
+--> sync_from_device for out-of-sync devices: pull live config into NSO
+--> get_service_types + get_services: inventory of deployed services
+--> Report: "4 devices out of sync (re-synced), 12 L3VPN services healthy"
+```
+
 ### CML Lab Build (Natural Language)
 ```
 cml-lab-lifecycle + cml-topology-builder + cml-node-operations
@@ -485,9 +507,9 @@ netclaw/
 ├── TOOLS.md                              # Local infrastructure notes (edit this)
 ├── HEARTBEAT.md                          # Periodic health check checklist
 ├── MISSION01.md                          # Completed — core pyATS + 11 skills
-├── MISSION02.md                          # Completed — full platform, 42 skills, 19 MCP
+├── MISSION02.md                          # Completed — full platform, 44 skills, 19 MCP
 ├── workspace/
-│   └── skills/                           # 42 skill definitions (source of truth)
+│   └── skills/                           # 44 skill definitions (source of truth)
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
 │       ├── pyats-routing/                # OSPF, BGP, EIGRP, IS-IS analysis
@@ -526,6 +548,8 @@ netclaw/
 │       ├── cml-node-operations/        # CML node start/stop, configs, CLI exec
 │       ├── cml-packet-capture/         # CML link packet capture + Packet Buddy
 │       ├── cml-admin/                  # CML users, groups, system, licensing
+│       ├── nso-device-ops/             # NSO device config, state, sync, platform
+│       ├── nso-service-mgmt/           # NSO service types and instances
 │       ├── slack-network-alerts/         # Slack alert delivery
 │       ├── slack-report-delivery/        # Slack report formatting
 │       ├── slack-incident-workflow/      # Slack incident lifecycle
@@ -549,7 +573,7 @@ netclaw/
 │   ├── catalyst-center-mcp/              # Cisco Catalyst Center / DNA-C
 │   └── packet-buddy-mcp/                 # pcap analysis via tshark (built-in)
 ├── scripts/
-│   ├── install.sh                        # Full bootstrap installer (24 steps)
+│   ├── install.sh                        # Full bootstrap installer (25 steps)
 │   ├── setup.sh                          # Interactive setup wizard (API key, platforms, Slack)
 │   ├── mcp-call.py                       # MCP JSON-RPC protocol handler
 │   └── gait-stdio.py                     # GAIT server stdio wrapper
@@ -607,9 +631,10 @@ netclaw/
 19. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker)
 20. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
 21. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
-22. **Deploys skills + workspace files** — Copies 42 skills and 6 MD files to `~/.openclaw/workspace/`
-23. **Verifies installation** — Checks all MCP server scripts + core scripts exist
-24. **Prints summary** — Lists all 19 MCP servers by category and all 42 skills by domain
+22. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)
+23. **Deploys skills + workspace files** — Copies 44 skills and 6 MD files to `~/.openclaw/workspace/`
+24. **Verifies installation** — Checks all MCP server scripts + core scripts exist
+25. **Prints summary** — Lists all 20 MCP servers by category and all 44 skills by domain
 
 ---
 
@@ -659,6 +684,7 @@ Optional (for full feature set):
 - tshark / Wireshark (for Packet Buddy pcap analysis — `apt install tshark`)
 - GitHub PAT with repo scope (for GitHub MCP — https://github.com/settings/tokens)
 - Cisco CML 2.9+ with API access and Python 3.12+ (for CML lab management)
+- Cisco NSO with RESTCONF API enabled and Python 3.12+ (for NSO orchestration)
 - Microsoft 365 tenant with Azure AD app registration (for Graph/Visio/Teams skills)
 - Slack workspace with NetClaw bot installed (for Slack skills)
 
@@ -723,6 +749,18 @@ Ask NetClaw anything you'd ask a senior network engineer:
 "Commit R1's running config to the network-configs repo"
 --> github-ops: create branch, commit config file, open PR with change summary
 
+"Show me R1's config from NSO"
+--> nso-device-ops: get_device_config("R1"), formatted configuration output
+
+"Are all devices in sync with NSO?"
+--> nso-device-ops: check_device_sync for each device, sync_from_device for any out-of-sync
+
+"What services are deployed on NSO?"
+--> nso-service-mgmt: get_service_types, get_services for each type, inventory report
+
+"What platform is PE1 running?"
+--> nso-device-ops: get_device_platform("PE1") — model, serial, OS version, hardware
+
 "Build me a 4-router BGP lab with 2 ASes"
 --> cml-lab-lifecycle + cml-topology-builder + cml-node-operations: create lab, add 4 IOSv nodes, wire topology, apply BGP configs, start lab
 
@@ -748,4 +786,4 @@ See `examples/` for detailed workflow walkthroughs.
 | Mission | Status | Summary |
 |---|---|---|
 | MISSION01 | Complete | Core pyATS agent, 7 skills, Markmap, Draw.io, RFC, NVD CVE, SOUL v1 |
-| MISSION02 | Complete | Full platform — 19 MCP servers, 42 skills (9 pyATS, 7 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 6 utility, 4 Slack), 6 workspace files, SOUL v2 |
+| MISSION02 | Complete | Full platform — 20 MCP servers, 44 skills (9 pyATS, 7 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 2 NSO, 6 utility, 4 Slack), 6 workspace files, SOUL v2 |
