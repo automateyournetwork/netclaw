@@ -311,6 +311,33 @@ else
 fi
 echo ""
 
+# --- Cisco NSO ---
+if yesno "Do you have a Cisco NSO (Network Services Orchestrator) server?"; then
+    echo ""
+    echo -e "  NSO MCP connects via RESTCONF API for device config, sync, and services."
+    echo ""
+    prompt NSO_URL "NSO URL (e.g., https://sandbox-nso-1.cisco.com)" ""
+    prompt NSO_USER "NSO username" "admin"
+    prompt_secret NSO_PASS "NSO password"
+    if [ -n "$NSO_URL" ]; then
+        # Parse scheme, host, port from URL
+        NSO_SCHEME=$(echo "$NSO_URL" | sed -n 's|^\(https\?\)://.*|\1|p')
+        NSO_HOST=$(echo "$NSO_URL" | sed -n 's|^https\?://\([^:/]*\).*|\1|p')
+        NSO_PORT_NUM=$(echo "$NSO_URL" | sed -n 's|^https\?://[^:]*:\([0-9]*\).*|\1|p')
+        [ -z "$NSO_SCHEME" ] && NSO_SCHEME="https"
+        [ -z "$NSO_PORT_NUM" ] && { [ "$NSO_SCHEME" = "https" ] && NSO_PORT_NUM="443" || NSO_PORT_NUM="8080"; }
+        set_env "NSO_SCHEME" "$NSO_SCHEME"
+        set_env "NSO_ADDRESS" "$NSO_HOST"
+        set_env "NSO_PORT" "$NSO_PORT_NUM"
+    fi
+    [ -n "$NSO_USER" ] && set_env "NSO_USERNAME" "$NSO_USER"
+    [ -n "$NSO_PASS" ] && set_env "NSO_PASSWORD" "$NSO_PASS"
+    ok "Cisco NSO configured"
+else
+    skip "Cisco NSO"
+fi
+echo ""
+
 # ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
@@ -368,6 +395,7 @@ grep -q "^NVD_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "NVD CVE Scanning" || 
 grep -q "^AZURE_TENANT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Microsoft Graph (Office 365)" || skip "Microsoft Graph (Office 365)"
 grep -q "^GITHUB_PERSONAL_ACCESS_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "GitHub" || skip "GitHub"
 grep -q "^CML_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco CML" || skip "Cisco CML"
+grep -q "^NSO_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco NSO" || skip "Cisco NSO"
 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"

@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=24
+TOTAL_STEPS=25
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -518,10 +518,45 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 22: Deploy skills and set environment
+# Step 22: Cisco NSO MCP Server
 # ═══════════════════════════════════════════
 
-log_step "22/$TOTAL_STEPS Deploying skills and configuration..."
+log_step "22/$TOTAL_STEPS Installing Cisco NSO MCP Server..."
+echo "  Source: https://github.com/NSO-developer/cisco-nso-mcp-server"
+echo "  Network orchestration via natural language — device config, sync, services"
+
+# Check Python version (NSO MCP requires 3.12+)
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+if [ "$PY_MINOR" -ge 12 ]; then
+    log_info "Python 3.$PY_MINOR detected (3.12+ required for NSO MCP)"
+
+    log_info "Installing NSO MCP via pip..."
+    pip3 install cisco-nso-mcp-server 2>/dev/null || {
+        log_warn "pip install cisco-nso-mcp-server failed — trying with --break-system-packages"
+        pip3 install --break-system-packages cisco-nso-mcp-server 2>/dev/null || \
+            log_warn "NSO MCP install failed. Install manually: pip3 install cisco-nso-mcp-server"
+    }
+
+    # Verify cisco-nso-mcp-server is available
+    if command -v cisco-nso-mcp-server &> /dev/null; then
+        log_info "NSO MCP installed successfully: cisco-nso-mcp-server (stdio transport)"
+    elif python3 -c "import cisco_nso_mcp_server" 2>/dev/null; then
+        log_info "NSO MCP installed successfully (module importable)"
+    else
+        log_warn "NSO MCP package not found after install"
+    fi
+else
+    log_warn "Python 3.12+ required for NSO MCP (found 3.$PY_MINOR)"
+    log_info "NSO MCP skipped — upgrade Python or install manually: pip3 install cisco-nso-mcp-server"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 23: Deploy skills and set environment
+# ═══════════════════════════════════════════
+
+log_step "23/$TOTAL_STEPS Deploying skills and configuration..."
 
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
@@ -629,7 +664,7 @@ echo ""
 # Step 23: Verify installation
 # ═══════════════════════════════════════════
 
-log_step "23/$TOTAL_STEPS Verifying installation..."
+log_step "24/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -668,6 +703,17 @@ else
     log_warn "CML MCP: NOT INSTALLED (requires Python 3.12+, pip3 install cml-mcp)"
 fi
 
+# NSO MCP is pip-installed, check via command or import
+if command -v cisco-nso-mcp-server &> /dev/null; then
+    log_info "NSO MCP: OK (pip package)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+elif python3 -c "import cisco_nso_mcp_server" 2>/dev/null; then
+    log_info "NSO MCP: OK (pip package, module importable)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_warn "NSO MCP: NOT INSTALLED (requires Python 3.12+, pip3 install cisco-nso-mcp-server)"
+fi
+
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -678,7 +724,7 @@ echo ""
 # Step 24: Summary
 # ═══════════════════════════════════════════
 
-log_step "24/$TOTAL_STEPS Installation Summary"
+log_step "25/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -687,7 +733,7 @@ echo ""
 
 SKILL_COUNT=$(ls -d "$NETCLAW_DIR/workspace/skills/"*/ 2>/dev/null | wc -l)
 
-echo "MCP Servers Installed (19):"
+echo "MCP Servers Installed (20):"
 echo "  ┌─────────────────────────────────────────────────────────────"
 echo "  │ NETWORK DEVICE AUTOMATION:"
 echo "  │   pyATS              Cisco device CLI, Genie parsers"
@@ -699,6 +745,9 @@ echo "  │   Cisco ACI           APIC / ACI fabric management"
 echo "  │   Cisco ISE           Identity, posture, TrustSec"
 echo "  │   NetBox              DCIM/IPAM source of truth (read-only)"
 echo "  │   ServiceNow          ITSM: incidents, changes, CMDB"
+echo "  │"
+echo "  │ NETWORK ORCHESTRATION:"
+echo "  │   Cisco NSO           Device config, sync, services via RESTCONF"
 echo "  │"
 echo "  │ LAB & SIMULATION:"
 echo "  │   Cisco CML           Lab lifecycle, node mgmt, topology, packet capture"
@@ -768,6 +817,10 @@ echo "  │   github-ops              Issues, PRs, config-as-code workflows"
 echo "  │"
 echo "  │ Packet Analysis Skills:"
 echo "  │   packet-analysis         pcap analysis + Slack upload support"
+echo "  │"
+echo "  │ Cisco NSO Skills:"
+echo "  │   nso-device-ops          Device config, state, sync, platform, NED IDs"
+echo "  │   nso-service-mgmt        Service types, service instances, orchestration"
 echo "  │"
 echo "  │ Cisco CML Skills:"
 echo "  │   cml-lab-lifecycle       Create, start, stop, wipe, delete, clone labs"
