@@ -1,8 +1,7 @@
 ---
 name: clab-lab-management
 description: ContainerLab network lab lifecycle management — authenticate, list, deploy, inspect, execute commands on, and destroy containerized network labs via the ContainerLab API
-version: 1.0.0
-tags: [containerlab, labs, simulation, lifecycle, topology]
+user-invokable: true
 ---
 
 # ContainerLab Lab Management
@@ -76,13 +75,21 @@ ContainerLab topologies define nodes and links in a structured JSON format.
 
 ### Supported Node Kinds
 
+ContainerLab supports a wide range of network operating systems:
+
 | Kind | Platform | Example Image |
 |------|----------|---------------|
+| `cisco_iosxr` | Cisco IOS XR | `ios-xr/xrd-control-plane:latest` |
+| `cisco_iosxe` | Cisco IOS XE (Cat8000v) | `c8000v:latest` |
+| `cisco_nxos` | Cisco NX-OS (Nexus 9000v) | `n9kv:latest` |
+| `cisco_ftdv` | Cisco Firepower FTDv | `ftdv:latest` |
 | `nokia_srlinux` | Nokia SR Linux | `ghcr.io/nokia/srlinux:latest` |
 | `ceos` | Arista cEOS | `ceos:latest` |
-| `crpd` | Juniper cRPD | `crpd:latest` |
-| `linux` | Generic Linux | `alpine:latest` |
+| `juniper_crpd` | Juniper cRPD | `crpd:latest` |
 | `frr` | FRRouting | `frrouting/frr:latest` |
+| `linux` | Generic Linux | `alpine:latest` |
+
+For the full list, see the [ContainerLab documentation](https://containerlab.dev/manual/kinds/).
 
 ### Basic Topology Structure
 
