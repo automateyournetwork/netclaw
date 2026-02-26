@@ -338,6 +338,50 @@ else
 fi
 echo ""
 
+# --- AWS Cloud ---
+if yesno "Do you have an AWS account? (VPC, Transit GW, CloudWatch, IAM, costs)"; then
+    echo ""
+    echo -e "  AWS MCP servers connect via standard AWS credentials."
+    echo -e "  Create an access key at: ${BOLD}https://console.aws.amazon.com/iam/home#/security_credentials${NC}"
+    echo -e "  Required: IAM user or role with read access to EC2, VPC, CloudWatch, IAM, CloudTrail, Cost Explorer"
+    echo ""
+    prompt AWS_KEY "AWS Access Key ID (AKIA...)" ""
+    prompt_secret AWS_SECRET "AWS Secret Access Key"
+    prompt AWS_REGION_VAL "AWS Region (e.g., us-east-1)" "us-east-1"
+    [ -n "$AWS_KEY" ] && set_env "AWS_ACCESS_KEY_ID" "$AWS_KEY"
+    [ -n "$AWS_SECRET" ] && set_env "AWS_SECRET_ACCESS_KEY" "$AWS_SECRET"
+    [ -n "$AWS_REGION_VAL" ] && set_env "AWS_REGION" "$AWS_REGION_VAL"
+    ok "AWS configured"
+else
+    skip "AWS"
+fi
+echo ""
+
+# --- Google Cloud Platform ---
+if yesno "Do you have a GCP project? (Compute Engine, Cloud Monitoring, Cloud Logging)"; then
+    echo ""
+    echo -e "  GCP MCP servers are remote HTTP endpoints hosted by Google."
+    echo -e "  Auth via service account key or gcloud application-default credentials."
+    echo ""
+    prompt GCP_PROJECT "GCP Project ID (e.g., my-project-123)" ""
+    prompt GCP_SA_KEY "Path to service account key JSON (or leave blank for gcloud auth)" ""
+    [ -n "$GCP_PROJECT" ] && set_env "GCP_PROJECT_ID" "$GCP_PROJECT"
+    if [ -n "$GCP_SA_KEY" ]; then
+        if [ -f "$GCP_SA_KEY" ]; then
+            set_env "GOOGLE_APPLICATION_CREDENTIALS" "$GCP_SA_KEY"
+            ok "GCP configured (service account key)"
+        else
+            echo -e "  ${YELLOW}File not found: $GCP_SA_KEY${NC}"
+            ok "GCP project set — configure auth later"
+        fi
+    else
+        ok "GCP project set — using gcloud auth (run: gcloud auth application-default login)"
+    fi
+else
+    skip "GCP"
+fi
+echo ""
+
 # ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
@@ -396,6 +440,8 @@ grep -q "^AZURE_TENANT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Microsoft Graph (
 grep -q "^GITHUB_PERSONAL_ACCESS_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "GitHub" || skip "GitHub"
 grep -q "^CML_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco CML" || skip "Cisco CML"
 grep -q "^NSO_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco NSO" || skip "Cisco NSO"
+grep -q "^AWS_ACCESS_KEY_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "AWS Cloud" || skip "AWS Cloud"
+grep -q "^GCP_PROJECT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Google Cloud" || skip "Google Cloud"
 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"

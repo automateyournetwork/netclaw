@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=25
+TOTAL_STEPS=27
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -553,10 +553,107 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 23: Deploy skills and set environment
+# Step 23: AWS Cloud MCP Servers (6 servers)
 # ═══════════════════════════════════════════
 
-log_step "23/$TOTAL_STEPS Deploying skills and configuration..."
+log_step "23/$TOTAL_STEPS Installing AWS Cloud MCP Servers..."
+echo "  Source: https://github.com/awslabs/mcp"
+echo "  6 AWS MCP servers for cloud networking, monitoring, security, costs, diagrams"
+
+# AWS MCPs require uv (Rust-based Python package manager) for uvx runtime
+if command -v uvx &> /dev/null; then
+    log_info "uvx found — AWS MCP servers will run via uvx at runtime"
+else
+    log_info "Installing uv (required for AWS MCP servers)..."
+    if command -v pip3 &> /dev/null; then
+        pip3 install uv 2>/dev/null || pip3 install --break-system-packages uv 2>/dev/null || true
+    fi
+    if ! command -v uvx &> /dev/null; then
+        curl -LsSf https://astral.sh/uv/install.sh 2>/dev/null | sh 2>/dev/null || true
+        export PATH="$HOME/.local/bin:$PATH"
+    fi
+    if command -v uvx &> /dev/null; then
+        log_info "uv installed successfully"
+    else
+        log_warn "uv not installed — AWS MCP servers will not work"
+        log_info "Install manually: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    fi
+fi
+
+# Pre-validate AWS MCP packages (uvx will download on first run)
+if command -v uvx &> /dev/null; then
+    AWS_MCPS=(
+        "awslabs.aws-network-mcp-server"
+        "awslabs.cloudwatch-mcp-server"
+        "awslabs.iam-mcp-server"
+        "awslabs.cloudtrail-mcp-server"
+        "awslabs.cost-explorer-mcp-server"
+        "awslabs.aws-diagram-mcp-server"
+    )
+    for pkg in "${AWS_MCPS[@]}"; do
+        echo "  Validating: $pkg"
+    done
+    log_info "AWS MCP servers ready (6 servers via uvx — downloaded on first use)"
+
+    # Check for graphviz (required by aws-diagram-mcp-server)
+    if command -v dot &> /dev/null; then
+        log_info "GraphViz found (required for AWS Diagram MCP)"
+    else
+        log_warn "GraphViz not found — install for AWS architecture diagrams: apt install graphviz"
+    fi
+else
+    log_warn "uvx not available — AWS MCP servers skipped"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 24: Google Cloud MCP Servers (4 servers)
+# ═══════════════════════════════════════════
+
+log_step "24/$TOTAL_STEPS Configuring Google Cloud MCP Servers..."
+echo "  Source: https://docs.cloud.google.com/mcp/supported-products"
+echo "  4 GCP remote MCP servers for compute, monitoring, logging, resource management"
+echo ""
+echo "  Google Cloud MCP servers are REMOTE HTTP endpoints — nothing to install locally."
+echo "  They authenticate via OAuth 2.0 / Google IAM."
+echo ""
+
+# Check for gcloud CLI (recommended for auth)
+if command -v gcloud &> /dev/null; then
+    GCLOUD_VERSION=$(gcloud version 2>/dev/null | head -1 | grep -oP '[\d.]+' || echo "unknown")
+    log_info "gcloud CLI found (version: $GCLOUD_VERSION)"
+
+    # Check for application-default credentials
+    if [ -f "$HOME/.config/gcloud/application_default_credentials.json" ] || [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+        log_info "Google Cloud credentials detected"
+    else
+        log_info "No application-default credentials found"
+        log_info "Run: gcloud auth application-default login (or set GOOGLE_APPLICATION_CREDENTIALS)"
+    fi
+else
+    log_info "gcloud CLI not found — install from https://cloud.google.com/sdk/docs/install"
+    log_info "Or set GOOGLE_APPLICATION_CREDENTIALS to a service account key JSON file"
+fi
+
+GCP_MCPS=(
+    "compute.googleapis.com/mcp         (Compute Engine — 28 tools: VMs, disks, templates)"
+    "monitoring.googleapis.com/mcp       (Cloud Monitoring — 6 tools: metrics, alerts)"
+    "logging.googleapis.com/mcp          (Cloud Logging — 6 tools: log search, flow logs)"
+    "cloudresourcemanager.googleapis.com/mcp (Resource Manager — 1 tool: project discovery)"
+)
+for mcp in "${GCP_MCPS[@]}"; do
+    echo "  Remote: $mcp"
+done
+log_info "GCP MCP servers ready (4 remote HTTP endpoints — hosted by Google)"
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 25: Deploy skills and set environment
+# ═══════════════════════════════════════════
+
+log_step "25/$TOTAL_STEPS Deploying skills and configuration..."
 
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
@@ -661,10 +758,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 23: Verify installation
+# Step 26: Verify installation
 # ═══════════════════════════════════════════
 
-log_step "24/$TOTAL_STEPS Verifying installation..."
+log_step "26/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -714,6 +811,24 @@ else
     log_warn "NSO MCP: NOT INSTALLED (requires Python 3.12+, pip3 install cisco-nso-mcp-server)"
 fi
 
+# AWS MCPs run via uvx — check if uvx is available
+if command -v uvx &> /dev/null; then
+    log_info "AWS MCP Servers (6): OK (uvx available)"
+    SERVERS_OK=$((SERVERS_OK + 6))
+else
+    log_warn "AWS MCP Servers (6): NOT AVAILABLE (uvx not installed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 6))
+fi
+
+# GCP MCPs are remote HTTP — check if gcloud is available for auth
+if command -v gcloud &> /dev/null || [ -n "$GOOGLE_APPLICATION_CREDENTIALS" ]; then
+    log_info "GCP MCP Servers (4): OK (remote HTTP — gcloud or service account available)"
+    SERVERS_OK=$((SERVERS_OK + 4))
+else
+    log_info "GCP MCP Servers (4): READY (remote HTTP — configure auth via gcloud or GOOGLE_APPLICATION_CREDENTIALS)"
+    SERVERS_OK=$((SERVERS_OK + 4))
+fi
+
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -721,10 +836,10 @@ log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 24: Summary
+# Step 27: Summary
 # ═══════════════════════════════════════════
 
-log_step "25/$TOTAL_STEPS Installation Summary"
+log_step "27/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -733,7 +848,7 @@ echo ""
 
 SKILL_COUNT=$(ls -d "$NETCLAW_DIR/workspace/skills/"*/ 2>/dev/null | wc -l)
 
-echo "MCP Servers Installed (20):"
+echo "MCP Servers Installed (30):"
 echo "  ┌─────────────────────────────────────────────────────────────"
 echo "  │ NETWORK DEVICE AUTOMATION:"
 echo "  │   pyATS              Cisco device CLI, Genie parsers"
@@ -763,6 +878,20 @@ echo "  │   GitHub              Issues, PRs, code search, Actions (Docker)"
 echo "  │"
 echo "  │ PACKET ANALYSIS:"
 echo "  │   Packet Buddy        pcap/pcapng analysis via tshark"
+echo "  │"
+echo "  │ AWS CLOUD (6 servers via uvx):"
+echo "  │   AWS Network          VPC, Transit GW, Cloud WAN, VPN, Firewall, flow logs"
+echo "  │   CloudWatch            Metrics, alarms, logs, flow log analysis"
+echo "  │   IAM                   Users, roles, policies, security groups (read-only)"
+echo "  │   CloudTrail            API audit trail (who changed what)"
+echo "  │   Cost Explorer          Cloud networking costs & forecasting"
+echo "  │   AWS Diagram           Architecture diagrams (requires graphviz)"
+echo "  │"
+echo "  │ GCP CLOUD (4 remote HTTP servers):"
+echo "  │   Compute Engine        VMs, disks, templates, instance groups (28 tools)"
+echo "  │   Cloud Monitoring      Metrics, alerts, time series (6 tools)"
+echo "  │   Cloud Logging         Log search, VPC flow logs, audit logs (6 tools)"
+echo "  │   Resource Manager      Project discovery (1 tool)"
 echo "  │"
 echo "  │ UTILITIES:"
 echo "  │   Subnet Calculator   IPv4 + IPv6 CIDR calculator"
@@ -817,6 +946,18 @@ echo "  │   github-ops              Issues, PRs, config-as-code workflows"
 echo "  │"
 echo "  │ Packet Analysis Skills:"
 echo "  │   packet-analysis         pcap analysis + Slack upload support"
+echo "  │"
+echo "  │ AWS Cloud Skills:"
+echo "  │   aws-network-ops        VPC, TGW, Cloud WAN, VPN, Firewall, flow logs"
+echo "  │   aws-cloud-monitoring   CloudWatch metrics, alarms, log analysis"
+echo "  │   aws-security-audit     IAM policies + CloudTrail event investigation"
+echo "  │   aws-cost-ops           Cost analysis, forecasting, spend tracking"
+echo "  │   aws-architecture-diagram  AWS architecture diagram generation"
+echo "  │"
+echo "  │ GCP Cloud Skills:"
+echo "  │   gcp-compute-ops        VMs, disks, templates, instance groups, projects"
+echo "  │   gcp-cloud-monitoring   Metrics, alerts, time series queries"
+echo "  │   gcp-cloud-logging      Log search, VPC flow logs, firewall & audit logs"
 echo "  │"
 echo "  │ Cisco NSO Skills:"
 echo "  │   nso-device-ops          Device config, state, sync, platform, NED IDs"

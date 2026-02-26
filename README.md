@@ -4,7 +4,7 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 44 skills, and 20 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Cisco NSO orchestration, Slack-native operations, and Microsoft 365 integration.
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 52 skills, and 30 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Cisco NSO orchestration, AWS cloud networking, Slack-native operations, and Microsoft 365 integration.
 
 ---
 
@@ -16,7 +16,7 @@ cd netclaw
 ./scripts/install.sh          # installs everything, then launches the setup wizard
 ```
 
-That's it. The installer clones 20 MCP servers, deploys 44 skills, then launches a two-phase setup:
+That's it. The installer clones 30 MCP servers, deploys 52 skills, then launches a two-phase setup:
 
 **Phase 1: `openclaw onboard`** (OpenClaw's built-in wizard)
 - Pick your AI provider (Anthropic, OpenAI, Bedrock, Vertex, 30+ options)
@@ -26,7 +26,7 @@ That's it. The installer clones 20 MCP servers, deploys 44 skills, then launches
 
 **Phase 2: `./scripts/setup.sh`** (NetClaw platform credentials)
 - Network devices (testbed.yaml editor)
-- Platform credentials (NetBox, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO)
+- Platform credentials (NetBox, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO, AWS, GCP)
 - Your identity (name, role, timezone for USER.md)
 
 After setup, start NetClaw:
@@ -70,6 +70,11 @@ NetClaw is an autonomous network engineering agent powered by Claude that can:
 - **Track** network changes in GitHub — create issues from findings, commit config backups, open PRs for changes, link to ServiceNow CRs
 - **Orchestrate** network services via Cisco NSO — retrieve device configs from NSO's CDB, check sync status, inspect operational state, discover service types and deployed instances, platform inventory, and NED management — all via RESTCONF from Slack
 - **Simulate** network topologies in Cisco CML — create labs, add nodes, wire links, start/stop labs, execute CLI commands, capture packets on lab links, and manage CML users — all from natural language via Slack
+- **Inspect** AWS cloud networking — VPCs, Transit Gateways, Cloud WAN, VPN tunnels, Network Firewalls, flow logs, ENI details, and route tables via 27 read-only AWS Network tools
+- **Monitor** AWS CloudWatch — query metrics (VPN tunnel state, NAT GW drops, TGW traffic), check alarms, run Logs Insights queries, analyze VPC flow logs
+- **Audit** AWS security — IAM users/roles/policies (read-only), CloudTrail API event history, credential rotation compliance, MFA enforcement
+- **Analyze** AWS costs — service breakdowns, network cost drivers (NAT GW, TGW, VPN, data transfer), monthly trends, forecasts, anomaly investigation
+- **Diagram** AWS architecture — auto-discover and render VPCs, subnets, TGWs, load balancers as visual topology diagrams (requires graphviz)
 - **Audit** every action in an immutable Git-based trail (GAIT) — there is always an answer to "what did the AI do and why"
 
 ---
@@ -108,6 +113,20 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |-- LAB & SIMULATION:
                                 |     MCP: Cisco CML         --> Lab lifecycle, topology, nodes, captures
                                 |
+                                |-- AWS CLOUD:
+                                |     MCP: AWS Network        --> VPC, TGW, Cloud WAN, VPN, Firewall (27 tools)
+                                |     MCP: AWS CloudWatch     --> Metrics, alarms, logs, flow log analysis
+                                |     MCP: AWS IAM            --> Users, roles, policies (read-only)
+                                |     MCP: AWS CloudTrail     --> API event audit trail
+                                |     MCP: AWS Cost Explorer  --> Spending analysis, forecasts
+                                |     MCP: AWS Diagram        --> Architecture visualization (graphviz)
+                                |
+                                |-- GCP CLOUD (remote HTTP):
+                                |     MCP: Compute Engine     --> VMs, disks, templates (28 tools)
+                                |     MCP: Cloud Monitoring   --> Metrics, alerts, time series (6 tools)
+                                |     MCP: Cloud Logging      --> Log search, VPC flow logs, audit (6 tools)
+                                |     MCP: Resource Manager   --> Project discovery (1 tool)
+                                |
                                 |-- UTILITIES:
                                 |     MCP: Subnet Calc     --> IPv4 + IPv6 CIDR calculator
                                 |     MCP: GAIT            --> Git-based AI audit trail
@@ -138,7 +157,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (20)
+## MCP Servers (30)
 
 | # | MCP Server | Repository | Transport | Function |
 |---|------------|------------|-----------|----------|
@@ -154,19 +173,29 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 10 | Packet Buddy | Built-in | stdio (Python) | pcap/pcapng deep analysis via tshark — upload pcaps to Slack |
 | 11 | Cisco CML | [xorrkaz/cml-mcp](https://github.com/xorrkaz/cml-mcp) | stdio (Python) | Lab lifecycle, topology, nodes, links, captures, CLI exec, admin |
 | 12 | Cisco NSO | [NSO-developer/cisco-nso-mcp-server](https://github.com/NSO-developer/cisco-nso-mcp-server) | stdio (Python) | Device config, state, sync, services, NED IDs via RESTCONF |
-| 13 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
-| 14 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
-| 15 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
-| 16 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
-| 17 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
-| 18 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
-| 19 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
+| 13 | AWS Network | [awslabs/aws-network-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | VPC, TGW, Cloud WAN, VPN, Network Firewall, flow logs (27 tools) |
+| 14 | AWS CloudWatch | [awslabs/cloudwatch-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | CloudWatch metrics, alarms, Logs Insights queries |
+| 15 | AWS IAM | [awslabs/iam-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | IAM users, roles, policies (read-only mode) |
+| 16 | AWS CloudTrail | [awslabs/cloudtrail-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | API event audit trail, security investigation |
+| 17 | AWS Cost Explorer | [awslabs/cost-explorer-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Spending analysis, forecasts, anomaly detection |
+| 18 | AWS Diagram | [awslabs/aws-diagram-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Architecture diagrams from live infrastructure (graphviz) |
+| 19 | GCP Compute Engine | [Google Cloud](https://docs.cloud.google.com/compute/docs/reference/mcp) | Remote HTTP | VMs, disks, templates, instance groups, snapshots (28 tools) |
+| 20 | GCP Cloud Monitoring | [Google Cloud](https://docs.cloud.google.com/monitoring/api/ref_v3/mcp) | Remote HTTP | Time series metrics, alert policies, active alerts (6 tools) |
+| 21 | GCP Cloud Logging | [Google Cloud](https://docs.cloud.google.com/logging/docs/reference/v2/mcp) | Remote HTTP | Log search, VPC flow logs, firewall logs, audit logs (6 tools) |
+| 22 | GCP Resource Manager | [Google Cloud](https://docs.cloud.google.com/mcp/supported-products) | Remote HTTP | Project discovery (1 tool) |
+| 23 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
+| 24 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
+| 25 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
+| 26 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
+| 27 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
+| 28 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
+| 29 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
 
-All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). No persistent connections, no port management.
+All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). AWS MCPs run via `uvx` (uv tool runner). GCP MCPs are remote HTTP endpoints hosted by Google (OAuth 2.0 auth). No persistent connections, no port management.
 
 ---
 
-## Skills (44)
+## Skills (52)
 
 ### pyATS Device Skills (9)
 
@@ -247,6 +276,24 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **nso-device-ops** | NSO device operations: retrieve full config from NSO's CDB, inspect operational state, check device sync status, sync-from-device to pull live config into NSO, get platform info (model, serial, OS), list NED IDs and device groups. RESTCONF API. |
 | **nso-service-mgmt** | NSO service management: discover available service types (L3VPN, ACL, QoS, etc.), list deployed service instances, service health checks via sync verification, pre-change impact analysis (which services touch a device), service inventory reporting. |
 
+### AWS Cloud Skills (5)
+
+| Skill | What It Does |
+|-------|-------------|
+| **aws-network-ops** | AWS cloud networking via 27 read-only tools: list VPCs, get VPC details (subnets, route tables, NACLs, gateways), Transit Gateway details/routes/flow logs/peering/inspection, Cloud WAN core networks/routes/attachments/peering/logs/route simulation, VPN connections with tunnel status, Network Firewall rules and flow logs, ENI details, IP address lookup. Connectivity troubleshooting and VPC audit workflows. |
+| **aws-cloud-monitoring** | CloudWatch monitoring: query metrics for any AWS service (VPN TunnelState, NAT GW ActiveConnectionCount/PacketsDropCount, TGW BytesIn/Out, ELB HealthyHostCount/TargetResponseTime, EC2 NetworkIn/Out), check alarms in ALARM state, run Logs Insights queries across log groups, analyze VPC and TGW flow logs for traffic patterns and rejected connections. |
+| **aws-security-audit** | AWS security posture via IAM MCP (read-only) + CloudTrail MCP: IAM users/access keys/MFA status, roles/trust policies, overly permissive policies (`ec2:*`, `*:*`), CloudTrail API event search by user/service/resource/time, incident investigation timeline, compliance checks (root access, key rotation, unused credentials). |
+| **aws-cost-ops** | AWS spending analysis via Cost Explorer MCP: cost breakdown by service/account/region/tag, daily/monthly trends, forecasts, anomaly detection. Network cost focus: NAT GW data processing ($0.045/GB), TGW data processing ($0.02/GB), VPN hourly + data, ELB LCU, cross-AZ/cross-region/internet transfer. Optimization recommendations. |
+| **aws-architecture-diagram** | Generate visual AWS architecture diagrams from live infrastructure: auto-discover VPCs, subnets, TGWs, load balancers, render as PNG/SVG/PDF. Network topology, VPC detail, and multi-account hub-spoke diagram workflows. Requires graphviz. |
+
+### GCP Cloud Skills (3)
+
+| Skill | What It Does |
+|-------|-------------|
+| **gcp-compute-ops** | GCP Compute Engine (28 tools) + Resource Manager (1 tool): list/create/start/stop/delete VMs, inspect disks and templates, manage instance groups, discover machine types and images, check reservations and commitments, discover projects. Includes infrastructure audit, VM troubleshooting, and capacity planning workflows. |
+| **gcp-cloud-monitoring** | Cloud Monitoring (6 tools): query time series data (CPU, network, disk, firewall, VPN, load balancer metrics), list alert policies and active violations, discover available metric types. Network monitoring, alert investigation, and resource health check workflows. |
+| **gcp-cloud-logging** | Cloud Logging (6 tools): search log entries (VPC flow logs, firewall logs, admin activity audit, data access audit, DNS queries), discover available logs, inspect log buckets and views. VPC flow log analysis, firewall log investigation, audit trail, and troubleshooting workflows. |
+
 ### Reference & Utility Skills (6)
 
 | Skill | Tool Backend | Purpose |
@@ -266,6 +313,200 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **slack-report-delivery** | Rich Slack formatting for health checks, security audits, topology maps, reconciliation results, change reports |
 | **slack-incident-workflow** | Full incident lifecycle in Slack: declaration, triage, automated investigation, status updates, resolution, post-incident review |
 | **slack-user-context** | User-aware interactions: DND-respecting escalation, timezone-aware scheduling, role-based response depth, shift handoff summaries |
+
+---
+
+## Cloud
+
+NetClaw extends into public cloud infrastructure. Each cloud provider gets its own set of MCP servers and skills, all driven from the same Slack/chat interface as on-prem operations.
+
+### AWS
+
+**6 MCP servers, 5 skills** — networking, monitoring, security, cost, and architecture visualization.
+
+#### Credentials
+
+You need an IAM user with programmatic access. Three values:
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `AWS_ACCESS_KEY_ID` | `AKIAIOSFODNN7EXAMPLE` | IAM access key ID |
+| `AWS_SECRET_ACCESS_KEY` | `wJalrXUtnFEMI/K7MDENG/...` | IAM secret access key |
+| `AWS_REGION` | `us-east-1` | Default region for API calls |
+
+Or use a named AWS CLI profile instead: `AWS_PROFILE=my-profile`
+
+Run `./scripts/setup.sh` — the wizard prompts for all three values.
+
+#### IAM Policy (Minimum Permissions)
+
+Create an IAM policy with these permissions and attach it to your NetClaw IAM user:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "NetClawNetworkReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "ec2:GetTransitGateway*",
+        "ec2:SearchTransitGateway*",
+        "networkmanager:Get*",
+        "networkmanager:List*",
+        "networkmanager:Describe*",
+        "network-firewall:Describe*",
+        "network-firewall:List*",
+        "elasticloadbalancing:Describe*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NetClawCloudWatch",
+      "Effect": "Allow",
+      "Action": [
+        "cloudwatch:GetMetricData",
+        "cloudwatch:ListMetrics",
+        "cloudwatch:DescribeAlarms",
+        "logs:StartQuery",
+        "logs:GetQueryResults",
+        "logs:DescribeLogGroups"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NetClawIAMReadOnly",
+      "Effect": "Allow",
+      "Action": [
+        "iam:Get*",
+        "iam:List*"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NetClawCloudTrail",
+      "Effect": "Allow",
+      "Action": [
+        "cloudtrail:LookupEvents",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:DescribeTrails"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NetClawCostExplorer",
+      "Effect": "Allow",
+      "Action": [
+        "ce:GetCostAndUsage",
+        "ce:GetCostForecast",
+        "ce:GetDimensionValues"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "NetClawDiagram",
+      "Effect": "Allow",
+      "Action": [
+        "ec2:Describe*",
+        "elasticloadbalancing:Describe*",
+        "rds:Describe*",
+        "lambda:List*",
+        "ecs:Describe*",
+        "ecs:List*"
+      ],
+      "Resource": "*"
+    }
+  ]
+}
+```
+
+#### What You Can Do
+
+| Skill | Capabilities |
+|-------|-------------|
+| `aws-network-ops` | List VPCs, inspect subnets/route tables/NACLs, Transit Gateway routes/attachments/peering, Cloud WAN, VPN tunnel status, Network Firewall rules, flow logs, ENI lookup, IP search |
+| `aws-cloud-monitoring` | CloudWatch metrics (VPN tunnel state, NAT GW drops, TGW traffic, ELB health), alarms, Logs Insights queries, VPC/TGW flow log analysis |
+| `aws-security-audit` | IAM users/roles/policies (read-only), MFA compliance, access key rotation, CloudTrail API event history, incident investigation |
+| `aws-cost-ops` | Spending by service/region/tag, monthly trends, forecasts, anomaly detection, network cost drivers (NAT GW $0.045/GB, TGW $0.02/GB) |
+| `aws-architecture-diagram` | Auto-discover infrastructure, render VPC/subnet/TGW topology as PNG/SVG/PDF (requires `graphviz`) |
+
+#### Prerequisites
+
+- AWS account with IAM user (programmatic access)
+- `graphviz` for architecture diagrams: `apt install graphviz` or `brew install graphviz`
+- `uv` (installed automatically by `install.sh`) for running AWS MCP servers via `uvx`
+
+#### Cost Notes
+
+- **Cost Explorer API**: $0.01 per API request — NetClaw batches queries but be mindful of frequent polling
+- **CloudWatch Logs Insights**: Charged per GB scanned — use narrow time ranges
+- **All other operations**: Standard AWS API calls (no additional charge beyond normal AWS usage)
+
+### GCP (Google Cloud Platform)
+
+**4 remote MCP servers, 3 skills** — compute, monitoring, and logging.
+
+#### Key Difference: Remote HTTP Servers
+
+Google Cloud MCP servers are **remote HTTP endpoints hosted by Google** — nothing to install locally. They use Streamable HTTP transport and authenticate via OAuth 2.0 / Google IAM, not API keys.
+
+| MCP Server | Endpoint | Tools |
+|---|---|---|
+| Compute Engine | `https://compute.googleapis.com/mcp` | 28 tools — VMs, disks, templates, instance groups, snapshots, reservations |
+| Cloud Monitoring | `https://monitoring.googleapis.com/mcp` | 6 tools — time series metrics, alert policies, active alerts, metric discovery |
+| Cloud Logging | `https://logging.googleapis.com/mcp` | 6 tools — log search, VPC flow logs, firewall logs, audit logs, buckets |
+| Resource Manager | `https://cloudresourcemanager.googleapis.com/mcp` | 1 tool — project discovery (prerequisite for other servers) |
+
+#### Credentials
+
+You need a Google Cloud project and either a service account or user credentials:
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `GCP_PROJECT_ID` | `my-project-123` | Your Google Cloud project ID |
+| `GOOGLE_APPLICATION_CREDENTIALS` | `/path/to/key.json` | Path to service account key JSON file |
+
+Or use `gcloud` CLI for user-based auth: `gcloud auth application-default login`
+
+Run `./scripts/setup.sh` — the wizard prompts for project ID and optional service account key path.
+
+#### IAM Roles (Minimum Permissions)
+
+Grant these roles to your service account or user:
+
+| Role | What It Grants |
+|------|---------------|
+| `roles/compute.viewer` | Read-only access to all Compute Engine resources |
+| `roles/monitoring.viewer` | Read-only access to Cloud Monitoring metrics and alerts |
+| `roles/logging.viewer` | Read-only access to Cloud Logging log entries |
+| `roles/resourcemanager.projectViewer` | Read-only access to project metadata |
+
+For write operations (create/delete VMs via Compute Engine MCP), add `roles/compute.instanceAdmin.v1` — but use ServiceNow CR gating for any changes.
+
+#### What You Can Do
+
+| Skill | Capabilities |
+|-------|-------------|
+| `gcp-compute-ops` | List/create/start/stop/delete VMs, inspect disks and templates, manage instance groups, discover machine types and images, check reservations and commitments |
+| `gcp-cloud-monitoring` | Query time series metrics (CPU, network, disk), list alert policies and active violations, discover available metric types |
+| `gcp-cloud-logging` | Search log entries (VPC flow logs, firewall logs, audit logs), discover available logs, inspect log buckets and views |
+
+#### Prerequisites
+
+- Google Cloud project with APIs enabled (Compute Engine, Cloud Monitoring, Cloud Logging)
+- Service account key JSON file, or `gcloud` CLI installed and authenticated
+- No local install required — servers are hosted by Google
+
+#### Cost Notes
+
+- **Cloud Logging**: Charged per GB scanned beyond 50 GB/month free tier
+- **Cloud Monitoring**: Free for GCP metrics; custom metrics charged per time series
+- **Compute Engine API calls**: No additional charge
+
+#### Networking Gap
+
+GCP's MCP servers currently cover Compute Engine (VMs) but **not the VPC fabric** — there are no MCP tools for VPC subnets, firewall rules, Cloud VPN, Cloud Interconnect, or Cloud Router. Google is adding more MCP servers regularly, so VPC-specific tools may arrive soon.
 
 ---
 
@@ -448,6 +689,63 @@ cml-packet-capture + packet-analysis
 --> AI analysis: "BGP OPEN/KEEPALIVE exchange completed in 2.3s, no NOTIFICATION errors"
 ```
 
+### AWS VPC Network Audit
+```
+aws-network-ops
+--> list_vpcs: discover all VPCs in region
+--> get_vpc_network_details: subnets, route tables, IGW, NAT GW, NACLs per VPC
+--> list_transit_gateways: check cross-VPC connectivity
+--> list_vpn_connections: hybrid connectivity with tunnel state
+--> list_network_firewalls: security posture
+--> Report: formatted cloud network architecture summary
+```
+
+### AWS Connectivity Troubleshooting
+```
+aws-network-ops + aws-cloud-monitoring
+--> find_ip_address: locate source and destination in VPC/subnet/ENI
+--> get_eni_details: check security groups, subnet, route table
+--> get_vpc_flow_logs: check for REJECT entries
+--> get_firewall_rules: if traffic crosses Network Firewall
+--> get_tgw_routes: if traffic crosses Transit Gateway
+--> CloudWatch metrics: NAT GW drops, TGW blackhole routes
+--> Report: root cause analysis with fix recommendation
+```
+
+### AWS Cost Analysis
+```
+aws-cost-ops
+--> Network service spend: VPC, TGW, NAT GW, VPN, ELB, Direct Connect
+--> Monthly trend: 6-month network cost history
+--> Top drivers: rank by spend (NAT GW data processing usually #1)
+--> Per-region breakdown
+--> Forecast: projected next month
+--> Report: network cost dashboard with optimization tips
+```
+
+### GCP Infrastructure Audit
+```
+gcp-compute-ops + gcp-cloud-monitoring
+--> search_projects: discover all accessible GCP projects
+--> list_instances: VMs per project with status, zone, machine type, IPs
+--> list_instance_group_managers: autoscaled workloads
+--> list_disks: persistent disk inventory
+--> list_timeseries: CPU utilization, network throughput for flagged instances
+--> list_alerts: any active monitoring violations
+--> Report: GCP compute inventory with health status
+```
+
+### GCP Log Investigation
+```
+gcp-cloud-logging + gcp-cloud-monitoring
+--> list_log_names: discover available log sources
+--> list_log_entries: query VPC flow logs (denied traffic, top talkers)
+--> list_log_entries: query firewall logs (rule hits, blocked connections)
+--> list_log_entries: query audit logs (who changed what, when)
+--> list_alerts: correlate with monitoring alert violations
+--> Report: traffic analysis / security investigation with log evidence
+```
+
 ### Config-as-Code (GitHub)
 ```
 github-ops
@@ -509,7 +807,7 @@ netclaw/
 ├── MISSION01.md                          # Completed — core pyATS + 11 skills
 ├── MISSION02.md                          # Completed — full platform, 44 skills, 19 MCP
 ├── workspace/
-│   └── skills/                           # 44 skill definitions (source of truth)
+│   └── skills/                           # 52 skill definitions (source of truth)
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
 │       ├── pyats-routing/                # OSPF, BGP, EIGRP, IS-IS analysis
@@ -550,6 +848,14 @@ netclaw/
 │       ├── cml-admin/                  # CML users, groups, system, licensing
 │       ├── nso-device-ops/             # NSO device config, state, sync, platform
 │       ├── nso-service-mgmt/           # NSO service types and instances
+│       ├── aws-network-ops/           # AWS VPC, TGW, Cloud WAN, VPN, Firewall (27 tools)
+│       ├── aws-cloud-monitoring/      # AWS CloudWatch metrics, alarms, flow logs
+│       ├── aws-security-audit/        # AWS IAM + CloudTrail security posture
+│       ├── aws-cost-ops/              # AWS Cost Explorer spending analysis
+│       ├── aws-architecture-diagram/  # AWS architecture visualization (graphviz)
+│       ├── gcp-compute-ops/           # GCP VMs, disks, templates, instance groups
+│       ├── gcp-cloud-monitoring/      # GCP metrics, alerts, time series
+│       ├── gcp-cloud-logging/         # GCP log search, VPC flow logs, audit logs
 │       ├── slack-network-alerts/         # Slack alert delivery
 │       ├── slack-report-delivery/        # Slack report formatting
 │       ├── slack-incident-workflow/      # Slack incident lifecycle
@@ -573,7 +879,7 @@ netclaw/
 │   ├── catalyst-center-mcp/              # Cisco Catalyst Center / DNA-C
 │   └── packet-buddy-mcp/                 # pcap analysis via tshark (built-in)
 ├── scripts/
-│   ├── install.sh                        # Full bootstrap installer (25 steps)
+│   ├── install.sh                        # Full bootstrap installer (27 steps)
 │   ├── setup.sh                          # Interactive setup wizard (API key, platforms, Slack)
 │   ├── mcp-call.py                       # MCP JSON-RPC protocol handler
 │   └── gait-stdio.py                     # GAIT server stdio wrapper
@@ -632,9 +938,11 @@ netclaw/
 20. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
 21. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
 22. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)
-23. **Deploys skills + workspace files** — Copies 44 skills and 6 MD files to `~/.openclaw/workspace/`
-24. **Verifies installation** — Checks all MCP server scripts + core scripts exist
-25. **Prints summary** — Lists all 20 MCP servers by category and all 44 skills by domain
+23. **Installs AWS Cloud MCP Servers** — Installs `uv` (Astral), validates 6 AWS MCP packages via `uvx` (Network, CloudWatch, IAM, CloudTrail, Cost Explorer, Diagram)
+24. **Configures GCP Cloud MCP Servers** — Checks for `gcloud` CLI and credentials; 4 remote HTTP servers hosted by Google (Compute Engine, Cloud Monitoring, Cloud Logging, Resource Manager)
+25. **Deploys skills + workspace files** — Copies 52 skills and 6 MD files to `~/.openclaw/workspace/`
+26. **Verifies installation** — Checks all MCP server scripts + core scripts exist
+27. **Prints summary** — Lists all 30 MCP servers by category and all 52 skills by domain
 
 ---
 
@@ -685,6 +993,9 @@ Optional (for full feature set):
 - GitHub PAT with repo scope (for GitHub MCP — https://github.com/settings/tokens)
 - Cisco CML 2.9+ with API access and Python 3.12+ (for CML lab management)
 - Cisco NSO with RESTCONF API enabled and Python 3.12+ (for NSO orchestration)
+- AWS account with IAM credentials (`AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`) for AWS cloud skills
+- graphviz (`apt install graphviz` or `brew install graphviz`) for AWS architecture diagrams
+- Google Cloud project with service account or `gcloud` CLI (for GCP Compute, Monitoring, Logging skills)
 - Microsoft 365 tenant with Azure AD app registration (for Graph/Visio/Teams skills)
 - Slack workspace with NetClaw bot installed (for Slack skills)
 
@@ -775,6 +1086,39 @@ Ask NetClaw anything you'd ask a senior network engineer:
 
 "What's the CML server capacity?"
 --> cml-admin: get_system_info (CPU, RAM, disk), get_licensing (node count), resource planning report
+
+"Show me all our AWS VPCs"
+--> aws-network-ops: list_vpcs, get_vpc_network_details for each, formatted architecture summary
+
+"Why can't my EC2 instance reach the database?"
+--> aws-network-ops: find_ip_address (both IPs), get_eni_details, get_vpc_flow_logs (REJECT filter), route table analysis
+
+"Check the Transit Gateway health"
+--> aws-network-ops: list_transit_gateways, get_tgw_details, get_all_tgw_routes, detect_tgw_inspection + aws-cloud-monitoring: TGW metrics
+
+"Are any CloudWatch alarms firing?"
+--> aws-cloud-monitoring: list alarms in ALARM state, get metrics for affected resources, correlate with flow logs
+
+"How much is our AWS network costing?"
+--> aws-cost-ops: network service breakdown (NAT GW, TGW, VPN, ELB), monthly trend, forecast, optimization recommendations
+
+"Audit our AWS IAM security"
+--> aws-security-audit: users without MFA, stale access keys, overly permissive policies, CloudTrail suspicious events
+
+"Draw our AWS network architecture"
+--> aws-architecture-diagram: auto-discover VPCs/TGWs/subnets, generate PNG topology diagram
+
+"List all our GCP VMs"
+--> gcp-compute-ops: search_projects, list_instances per project, formatted inventory with status and IPs
+
+"Are any GCP alerts firing?"
+--> gcp-cloud-monitoring: list_alerts for active violations, get_alert_policy for details, list_timeseries for affected metrics
+
+"Show me the GCP firewall logs for denied traffic"
+--> gcp-cloud-logging: list_log_entries filtered for firewall DENIED, source/dest IP analysis
+
+"Who deleted VMs in GCP this week?"
+--> gcp-cloud-logging: list_log_entries for cloudaudit activity logs, filter compute.instances.delete
 ```
 
 See `examples/` for detailed workflow walkthroughs.
@@ -786,4 +1130,4 @@ See `examples/` for detailed workflow walkthroughs.
 | Mission | Status | Summary |
 |---|---|---|
 | MISSION01 | Complete | Core pyATS agent, 7 skills, Markmap, Draw.io, RFC, NVD CVE, SOUL v1 |
-| MISSION02 | Complete | Full platform — 20 MCP servers, 44 skills (9 pyATS, 7 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 2 NSO, 6 utility, 4 Slack), 6 workspace files, SOUL v2 |
+| MISSION02 | Complete | Full platform — 30 MCP servers, 52 skills (9 pyATS, 7 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 2 NSO, 5 AWS, 3 GCP, 6 utility, 4 Slack), 6 workspace files, SOUL v2 |
