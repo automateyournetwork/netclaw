@@ -83,6 +83,7 @@ NetClaw is an autonomous network engineering agent powered by Claude that can:
 - **Track** network changes in GitHub — create issues from findings, commit config backups, open PRs for changes, link to ServiceNow CRs
 - **Orchestrate** network services via Cisco NSO — retrieve device configs from NSO's CDB, check sync status, inspect operational state, discover service types and deployed instances, platform inventory, and NED management — all via RESTCONF from Slack
 - **Simulate** network topologies in Cisco CML — create labs, add nodes, wire links, start/stop labs, execute CLI commands, capture packets on lab links, and manage CML users — all from natural language via Slack
+- **Deploy** containerized network labs via ContainerLab — deploy multi-vendor topologies (SR Linux, cEOS, IOS XR, NX-OS, FRR, cRPD), inspect running labs, execute commands on nodes, and destroy labs when done — all through the ContainerLab API
 - **Inspect** AWS cloud networking — VPCs, Transit Gateways, Cloud WAN, VPN tunnels, Network Firewalls, flow logs, ENI details, and route tables via 27 read-only AWS Network tools
 - **Monitor** AWS CloudWatch — query metrics (VPN tunnel state, NAT GW drops, TGW traffic), check alarms, run Logs Insights queries, analyze VPC flow logs
 - **Audit** AWS security — IAM users/roles/policies (read-only), CloudTrail API event history, credential rotation compliance, MFA enforcement
@@ -154,6 +155,7 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |
                                 |-- LAB & SIMULATION:
                                 |     MCP: Cisco CML         --> Lab lifecycle, topology, nodes, captures
+                                |     MCP: ContainerLab      --> Containerized labs (SR Linux, cEOS, FRR) via API
                                 |
                                 |-- AWS CLOUD:
                                 |     MCP: AWS Network        --> VPC, TGW, Cloud WAN, VPN, Firewall (27 tools)
@@ -359,6 +361,12 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **cml-node-operations** | Node operations: start/stop individual nodes, set startup configs (IOS, NX-OS, IOS-XR templates), execute CLI commands via pyATS, retrieve console logs for troubleshooting, download running configs, wipe and reconfigure nodes. |
 | **cml-packet-capture** | Capture packets on CML lab links: start/stop captures with BPF filters, download pcap files, and hand off to Packet Buddy for deep tshark analysis. Protocol-specific capture workflows for BGP, OSPF, STP, ICMP troubleshooting. |
 | **cml-admin** | CML server administration: user/group management, system info (CPU, RAM, disk), licensing status, resource usage monitoring, capacity planning for new labs. |
+
+### ContainerLab Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **clab-lab-management** | Containerized network lab lifecycle via ContainerLab API (6 tools): authenticate with clab-api-server, list running labs, deploy multi-vendor topologies (SR Linux, cEOS, IOS XR, NX-OS, FTDv, FRR, cRPD, generic Linux), inspect lab details with management IPs, execute commands on individual or all nodes, and graceful lab destruction with cleanup. Supports spine-leaf fabrics, multi-vendor interop labs, and protocol testing topologies. Requires ContainerLab API server running (Docker or native). GAIT audit trail. |
 
 ### Cisco NSO Skills (2)
 
@@ -1358,9 +1366,9 @@ netclaw/
 ├── TOOLS.md                              # Local infrastructure notes (edit this)
 ├── HEARTBEAT.md                          # Periodic health check checklist
 ├── MISSION01.md                          # Completed — core pyATS + 11 skills
-├── MISSION02.md                          # Completed — full platform, 44 skills, 19 MCP
+├── MISSION02.md                          # Completed — full platform, 78 skills, 32 MCP
 ├── workspace/
-│   └── skills/                           # 79 skill definitions (source of truth)
+│   └── skills/                           # 82 skill definitions (source of truth)
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
 │       ├── pyats-routing/                # OSPF, BGP, EIGRP, IS-IS analysis
