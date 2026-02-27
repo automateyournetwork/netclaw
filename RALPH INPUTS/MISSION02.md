@@ -22,7 +22,7 @@ It holds CCIE R&S #AI-001. It has opinions about your OSPF area design. It will 
 Human ──► NetClaw (CCIE Agent)
                │
                ├── MCP: pyATS         ─► IOS-XE / NX-OS / IOS-XR devices
-               ├── MCP: NetBox        ─► DCIM/IPAM source of truth (read-only)
+               ├── MCP: NetBox        ─► DCIM/IPAM source of truth (read-write)
                ├── MCP: ServiceNow    ─► Incidents, Changes, CMDB
                ├── MCP: GAIT          ─► Git-based AI audit trail
                ├── MCP: Cisco ACI     ─► APIC / ACI fabric
@@ -41,7 +41,7 @@ Human ──► NetClaw (CCIE Agent)
 | MCP Server | Repository | Function |
 |---|---|---|
 | pyATS | *(internal)* | Device automation, Genie parsers, config push, dynamic test execution |
-| NetBox | `netboxlabs/netbox-mcp-server` | Read-only DCIM/IPAM source of truth |
+| NetBox | `netboxlabs/netbox-mcp-server` | Read-write DCIM/IPAM source of truth |
 | ServiceNow | `echelon-ai-labs/servicenow-mcp` | Incidents, change requests, CMDB |
 | GAIT | `automateyournetwork/gait_mcp` | Git-based AI tracking and audit |
 | Cisco ACI | `automateyournetwork/ACI_MCP` | APIC interaction, policy management, fabric health |
@@ -208,7 +208,7 @@ NetClaw enforces these non-negotiable constraints:
 
 **Never auto-quarantines an endpoint** — ISE endpoint group modification always requires explicit human confirmation.
 
-**Never writes to NetBox** — NetBox is read-only. Discrepancies are ticketed, not auto-corrected.
+**NetBox is read-write** — NetClaw has full API access to create and update NetBox objects. During reconciliation, discrepancies are reported and ticketed first. Updates to NetBox require explicit human authorization.
 
 **Always verifies after changes** — if post-change verification fails, the Change Request is not closed and the human is notified.
 

@@ -4,7 +4,7 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 53 skills, and 31 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Cisco NSO orchestration, AWS cloud networking, Cisco Secure Firewall policy auditing, Slack-native operations, and Microsoft 365 integration.
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 77 skills, and 42 MCP server backends for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, packet capture analysis, GitHub config-as-code, Cisco CML lab simulation, Cisco NSO orchestration, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS cloud networking, Cisco Secure Firewall policy auditing, Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, UML diagram generation, live BGP/OSPF control-plane participation, Slack-native operations, and Microsoft 365 integration.
 
 ---
 
@@ -16,7 +16,7 @@ cd netclaw
 ./scripts/install.sh          # installs everything, then launches the setup wizard
 ```
 
-That's it. The installer clones 31 MCP servers, deploys 53 skills, then launches a two-phase setup:
+That's it. The installer clones 42 MCP servers, deploys 77 skills, then launches a two-phase setup:
 
 **Phase 1: `openclaw onboard`** (OpenClaw's built-in wizard)
 - Pick your AI provider (Anthropic, OpenAI, Bedrock, Vertex, 30+ options)
@@ -26,7 +26,7 @@ That's it. The installer clones 31 MCP servers, deploys 53 skills, then launches
 
 **Phase 2: `./scripts/setup.sh`** (NetClaw platform credentials)
 - Network devices (testbed.yaml editor)
-- Platform credentials (NetBox, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO, FMC, AWS, GCP)
+- Platform credentials (NetBox, Nautobot, Infrahub, Itential, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO, Meraki, FMC, ThousandEyes, RADKit, AWS, GCP)
 - Your identity (name, role, timezone for USER.md)
 
 After setup, start NetClaw:
@@ -52,17 +52,25 @@ NetClaw is an autonomous network engineering agent powered by Claude that can:
 - **Audit** security posture — ACLs, AAA, CoPP, management plane hardening, CIS benchmarks, ISE NAD verification, NVD CVE scanning
 - **Discover** topology via CDP/LLDP, ARP, routing peers — reconcile against NetBox cables
 - **Configure** devices with full ITSM-gated change management — ServiceNow CR, baseline, apply, verify, rollback
-- **Reconcile** NetBox source of truth against live device state — flag IP drift, undocumented links, missing interfaces
+- **Reconcile** NetBox or Nautobot source of truth against live device state — flag IP drift, undocumented links, missing interfaces; query Nautobot IPAM for IP addresses, prefixes, VRF/tenant/site filtering when the org uses Nautobot instead of NetBox
 - **Manage** ACI fabric — health audits, policy analysis, safe tenant/VRF/BD/EPG changes with fault delta rollback
 - **Investigate** endpoints via ISE — auth history, posture, profiling, human-authorized quarantine
 - **Audit** Cisco Secure Firewall policies via FMC — search access rules by IP/FQDN, resolve FTD device policies, cross-FMC consistency checks, and SGT-based policy review
+- **Manage** Cisco Meraki infrastructure via Dashboard API (~804 endpoints) — org inventory, networks, devices, wireless SSIDs, RF profiles, switch ports, VLANs, MX firewall rules, site-to-site VPN, content filtering, security events, camera analytics, live diagnostics (ping, cable test), and configuration change audit
+- **Monitor** network paths via Cisco ThousandEyes — synthetic test results, agent health, hop-by-hop path visualization (latency, loss, MPLS labels per hop), BGP route analysis (AS path, reachability, origin validation), outage investigation, anomaly detection, instant on-demand tests, endpoint VPN diagnostics, and AI-powered views explanations — via both community (9 tools, local stdio) and official (~20 tools, remote HTTP) MCP servers
+- **Access** remote devices via Cisco RADKit cloud relay — discover device inventory, inspect device attributes and capabilities, execute CLI commands with timeout/truncation controls, and perform SNMP GET operations on air-gapped or cloud-unreachable devices without direct SSH/SNMP connectivity
+- **Automate** Juniper JunOS devices via PyEZ/NETCONF — CLI command execution, configuration management, Jinja2 template rendering, device facts collection, and batch operations across router fleets
+- **Monitor** Arista fabric via CloudVision Portal REST API — device inventory, event stream, connectivity monitor status, and device tag management for fleet-wide health assessment
+- **Participate** in BGP and OSPF as a live routing peer — inject/withdraw routes, query RIB/LSDB, adjust LOCAL_PREF and OSPF cost, peer with real routers over GRE tunnels via native protocol speakers (RFC 4271/5340)
 - **Scan** for CVE vulnerabilities against the NVD database with CVSS severity correlation and exposure confirmation
 - **Manage** F5 BIG-IP load balancers — virtual servers, pools, iRules, stats, and change management
+- **Audit** F5 BIG-IP via iControl REST API — LTM virtual servers, pools, nodes, 40+ monitor types, 60+ profile types, iRules, GTM wide IPs, system health (CPU, memory, disk), HA sync-status, certificates, analytics (HTTP, TCP, DNS, DoS), live-update signature freshness
 - **Operate** Catalyst Center — device inventory, client monitoring, site management, and troubleshooting
 - **Calculate** IPv4 and IPv6 subnets — VLSM planning, wildcard masks, allocation standards
 - **Alert** via Slack — severity-formatted notifications, incident workflows, and user-aware routing
 - **Diagram** your network with Draw.io topology maps (color-coded by reconciliation status)
 - **Visualize** protocol hierarchies as interactive Markmap mind maps
+- **Generate** UML and infrastructure diagrams via Kroki — 27+ types including network topology (nwdiag), rack layouts (rackdiag), packet headers (packetdiag), protocol state machines, sequence diagrams, C4 architecture, Mermaid, D2, Graphviz, ERD — output as SVG, PNG, PDF
 - **Reference** IETF RFCs and Wikipedia for standards-compliant configuration
 - **Store** reports, config backups, and diagrams on SharePoint via Microsoft Graph
 - **Generate** Visio topology diagrams from CDP/LLDP discovery and upload to SharePoint
@@ -87,13 +95,17 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |
                                 |-- DEVICE AUTOMATION:
                                 |     MCP: pyATS           --> IOS-XE / NX-OS / IOS-XR devices
+                                |     MCP: Juniper JunOS   --> PyEZ / NETCONF (CLI, config, templates)
                                 |     MCP: F5 BIG-IP       --> iControl REST (virtuals, pools, iRules)
                                 |     MCP: Catalyst Center --> DNA-C API (devices, clients, sites)
+                                |     MCP: Arista CVP      --> CloudVision REST API (inventory, events, tags)
                                 |
                                 |-- INFRASTRUCTURE:
                                 |     MCP: Cisco ACI       --> APIC / ACI fabric
                                 |     MCP: Cisco ISE       --> Identity, posture, TrustSec
                                 |     MCP: NetBox          --> DCIM/IPAM source of truth (read-write)
+                                |     MCP: Nautobot        --> IPAM source of truth (5 tools, alternative to NetBox)
+                                |     MCP: Infrahub        --> Schema-driven SoT, GraphQL, branches (10 tools)
                                 |     MCP: ServiceNow      --> Incidents, Changes, CMDB
                                 |
                                 |-- MICROSOFT 365:
@@ -110,9 +122,23 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |
                                 |-- NETWORK ORCHESTRATION:
                                 |     MCP: Cisco NSO          --> Device config, sync, services via RESTCONF
+                                |     MCP: Itential IAP       --> Config mgmt, compliance, workflows, lifecycle (65+ tools)
                                 |
                                 |-- FIREWALL SECURITY:
                                 |     MCP: Cisco FMC          --> Access policy search, FTD targeting, multi-FMC
+                                |
+                                |-- CLOUD-MANAGED NETWORKING:
+                                |     MCP: Cisco Meraki       --> Dashboard API (~804 endpoints): wireless, switching, security, cameras
+                                |
+                                |-- NETWORK INTELLIGENCE:
+                                |     MCP: ThousandEyes (community) --> Tests, agents, path vis, dashboards (9 tools, stdio)
+                                |     MCP: ThousandEyes (official)  --> Alerts, outages, BGP, instant tests, endpoints (~20 tools, remote HTTP)
+                                |
+                                |-- REMOTE DEVICE ACCESS:
+                                |     MCP: Cisco RADKit  --> Cloud-relayed CLI, SNMP, device inventory (5 tools, stdio)
+                                |
+                                |-- PROTOCOL PARTICIPATION:
+                                |     MCP: Protocol MCP      --> BGP/OSPF/GRE speakers (10 tools, scapy)
                                 |
                                 |-- LAB & SIMULATION:
                                 |     MCP: Cisco CML         --> Lab lifecycle, topology, nodes, captures
@@ -137,6 +163,7 @@ Human (Slack / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |     MCP: Wikipedia       --> Technology context
                                 |     MCP: Markmap         --> Mind map visualizations
                                 |     MCP: Draw.io         --> Network topology diagrams
+                                |     MCP: UML MCP         --> 27+ diagram types via Kroki
                                 '     MCP: RFC Lookup      --> IETF standards reference
 ```
 
@@ -161,7 +188,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (31)
+## MCP Servers (42)
 
 | # | MCP Server | Repository | Transport | Function |
 |---|------------|------------|-----------|----------|
@@ -171,36 +198,47 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 4 | Cisco ACI | [automateyournetwork/ACI_MCP](https://github.com/automateyournetwork/ACI_MCP) | stdio (Python) | APIC interaction, policy management, fabric health |
 | 5 | Cisco ISE | [automateyournetwork/ISE_MCP](https://github.com/automateyournetwork/ISE_MCP) | stdio (Python) | Identity policy, posture, TrustSec, endpoint control |
 | 6 | NetBox | [netboxlabs/netbox-mcp-server](https://github.com/netboxlabs/netbox-mcp-server) | stdio (Python) | Read-write DCIM/IPAM source of truth |
-| 7 | ServiceNow | [echelon-ai-labs/servicenow-mcp](https://github.com/echelon-ai-labs/servicenow-mcp) | stdio (Python) | Incidents, change requests, CMDB |
-| 8 | Microsoft Graph | [@anthropic-ai/microsoft-graph-mcp](https://www.npmjs.com/package/@anthropic-ai/microsoft-graph-mcp) | npx | OneDrive, SharePoint, Visio, Teams, Exchange via Graph API |
-| 9 | GitHub | [github/github-mcp-server](https://github.com/github/github-mcp-server) | Docker (Go) | Issues, PRs, code search, Actions, config-as-code workflows |
-| 10 | Packet Buddy | Built-in | stdio (Python) | pcap/pcapng deep analysis via tshark — upload pcaps to Slack |
-| 11 | Cisco CML | [xorrkaz/cml-mcp](https://github.com/xorrkaz/cml-mcp) | stdio (Python) | Lab lifecycle, topology, nodes, links, captures, CLI exec, admin |
-| 12 | Cisco NSO | [NSO-developer/cisco-nso-mcp-server](https://github.com/NSO-developer/cisco-nso-mcp-server) | stdio (Python) | Device config, state, sync, services, NED IDs via RESTCONF |
-| 13 | Cisco FMC | [CiscoDevNet/CiscoFMC-MCP-server-community](https://github.com/CiscoDevNet/CiscoFMC-MCP-server-community) | HTTP (Python) | Secure Firewall access policy search, FTD targeting, multi-FMC (4 tools) |
-| 14 | AWS Network | [awslabs/aws-network-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | VPC, TGW, Cloud WAN, VPN, Network Firewall, flow logs (27 tools) |
-| 15 | AWS CloudWatch | [awslabs/cloudwatch-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | CloudWatch metrics, alarms, Logs Insights queries |
-| 16 | AWS IAM | [awslabs/iam-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | IAM users, roles, policies (read-only mode) |
-| 17 | AWS CloudTrail | [awslabs/cloudtrail-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | API event audit trail, security investigation |
-| 18 | AWS Cost Explorer | [awslabs/cost-explorer-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Spending analysis, forecasts, anomaly detection |
-| 19 | AWS Diagram | [awslabs/aws-diagram-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Architecture diagrams from live infrastructure (graphviz) |
-| 20 | GCP Compute Engine | [Google Cloud](https://docs.cloud.google.com/compute/docs/reference/mcp) | Remote HTTP | VMs, disks, templates, instance groups, snapshots (28 tools) |
-| 21 | GCP Cloud Monitoring | [Google Cloud](https://docs.cloud.google.com/monitoring/api/ref_v3/mcp) | Remote HTTP | Time series metrics, alert policies, active alerts (6 tools) |
-| 22 | GCP Cloud Logging | [Google Cloud](https://docs.cloud.google.com/logging/docs/reference/v2/mcp) | Remote HTTP | Log search, VPC flow logs, firewall logs, audit logs (6 tools) |
-| 23 | GCP Resource Manager | [Google Cloud](https://docs.cloud.google.com/mcp/supported-products) | Remote HTTP | Project discovery (1 tool) |
-| 24 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
-| 25 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
-| 26 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
-| 27 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
-| 28 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
-| 29 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
-| 30 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
+| 7 | Nautobot | [aiopnet/mcp-nautobot](https://github.com/aiopnet/mcp-nautobot) | stdio (Python) | IPAM source of truth — IP addresses, prefixes, VRF/tenant/site filtering (5 tools, alternative to NetBox) |
+| 8 | OpsMill Infrahub | [opsmill/infrahub-mcp](https://github.com/opsmill/infrahub-mcp) | stdio (Python) | Schema-driven SoT: nodes, GraphQL queries, versioned branches (10 tools) | `INFRAHUB_ADDRESS`, `INFRAHUB_API_TOKEN` |
+| 9 | Itential IAP | [itential/itential-mcp](https://github.com/itential/itential-mcp) | stdio (Python) | Network automation orchestration: config mgmt, compliance, workflows, golden config, lifecycle (65+ tools) | `ITENTIAL_MCP_PLATFORM_HOST`, `ITENTIAL_MCP_PLATFORM_USER`, `ITENTIAL_MCP_PLATFORM_PASSWORD` |
+| 10 | ServiceNow | [echelon-ai-labs/servicenow-mcp](https://github.com/echelon-ai-labs/servicenow-mcp) | stdio (Python) | Incidents, change requests, CMDB |
+| 11 | Microsoft Graph | [@anthropic-ai/microsoft-graph-mcp](https://www.npmjs.com/package/@anthropic-ai/microsoft-graph-mcp) | npx | OneDrive, SharePoint, Visio, Teams, Exchange via Graph API |
+| 12 | GitHub | [github/github-mcp-server](https://github.com/github/github-mcp-server) | Docker (Go) | Issues, PRs, code search, Actions, config-as-code workflows |
+| 13 | Packet Buddy | Built-in | stdio (Python) | pcap/pcapng deep analysis via tshark — upload pcaps to Slack |
+| 14 | Cisco CML | [xorrkaz/cml-mcp](https://github.com/xorrkaz/cml-mcp) | stdio (Python) | Lab lifecycle, topology, nodes, links, captures, CLI exec, admin |
+| 15 | Cisco NSO | [NSO-developer/cisco-nso-mcp-server](https://github.com/NSO-developer/cisco-nso-mcp-server) | stdio (Python) | Device config, state, sync, services, NED IDs via RESTCONF |
+| 16 | Cisco FMC | [CiscoDevNet/CiscoFMC-MCP-server-community](https://github.com/CiscoDevNet/CiscoFMC-MCP-server-community) | HTTP (Python) | Secure Firewall access policy search, FTD targeting, multi-FMC (4 tools) |
+| 17 | Cisco Meraki | [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community) | stdio (Python) | Meraki Dashboard API — ~804 endpoints: orgs, networks, wireless, switching, security, cameras, diagnostics |
+| 18 | ThousandEyes (community) | [CiscoDevNet/thousandeyes-mcp-community](https://github.com/CiscoDevNet/thousandeyes-mcp-community) | stdio (Python) | Tests, agents, path visualization, dashboards, users, account groups (9 read-only tools) |
+| 19 | ThousandEyes (official) | [CiscoDevNet/ThousandEyes-MCP-Server-official](https://github.com/CiscoDevNet/ThousandEyes-MCP-Server-official) | Remote HTTP | Alerts, outages, BGP routes, instant tests, endpoint agents, anomalies, AI views (~20 tools) |
+| 20 | Cisco RADKit | [CiscoDevNet/radkit-mcp-server-community](https://github.com/CiscoDevNet/radkit-mcp-server-community) | stdio (Python) | Cloud-relayed remote device access — CLI exec, SNMP GET, device inventory, attribute inspection (5 tools) |
+| 21 | AWS Network | [awslabs/aws-network-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | VPC, TGW, Cloud WAN, VPN, Network Firewall, flow logs (27 tools) |
+| 22 | AWS CloudWatch | [awslabs/cloudwatch-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | CloudWatch metrics, alarms, Logs Insights queries |
+| 23 | AWS IAM | [awslabs/iam-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | IAM users, roles, policies (read-only mode) |
+| 24 | AWS CloudTrail | [awslabs/cloudtrail-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | API event audit trail, security investigation |
+| 25 | AWS Cost Explorer | [awslabs/cost-explorer-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Spending analysis, forecasts, anomaly detection |
+| 26 | AWS Diagram | [awslabs/aws-diagram-mcp-server](https://github.com/awslabs/mcp) | uvx (Python) | Architecture diagrams from live infrastructure (graphviz) |
+| 27 | GCP Compute Engine | [Google Cloud](https://docs.cloud.google.com/compute/docs/reference/mcp) | Remote HTTP | VMs, disks, templates, instance groups, snapshots (28 tools) |
+| 28 | GCP Cloud Monitoring | [Google Cloud](https://docs.cloud.google.com/monitoring/api/ref_v3/mcp) | Remote HTTP | Time series metrics, alert policies, active alerts (6 tools) |
+| 29 | GCP Cloud Logging | [Google Cloud](https://docs.cloud.google.com/logging/docs/reference/v2/mcp) | Remote HTTP | Log search, VPC flow logs, firewall logs, audit logs (6 tools) |
+| 30 | GCP Resource Manager | [Google Cloud](https://docs.cloud.google.com/mcp/supported-products) | Remote HTTP | Project discovery (1 tool) |
+| 31 | NVD CVE | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) | stdio (Python) | NIST NVD vulnerability database with CVSS scoring |
+| 32 | Subnet Calculator | [automateyournetwork/GeminiCLI_SubnetCalculator_Extension](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | stdio (Python) | IPv4 + IPv6 CIDR subnet calculator |
+| 33 | GAIT | [automateyournetwork/gait_mcp](https://github.com/automateyournetwork/gait_mcp) | stdio (Python) | Git-based AI tracking and audit |
+| 34 | Wikipedia | [automateyournetwork/Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | stdio (Python) | Standards and technology context |
+| 35 | Markmap | [automateyournetwork/markmap_mcp](https://github.com/automateyournetwork/markmap_mcp) | stdio (Node) | Hierarchical mind map generation |
+| 36 | Draw.io | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) | npx | Network topology diagram generation |
+| 37 | RFC Lookup | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) | npx | IETF RFC search and retrieval |
+| 38 | Juniper JunOS | [Juniper/junos-mcp-server](https://github.com/Juniper/junos-mcp-server) | stdio (Python) | PyEZ/NETCONF — CLI execution, config management, Jinja2 templates, device facts, batch operations (10 tools) |
+| 39 | Arista CVP | [noredistribution/mcp-cvp-fun](https://github.com/noredistribution/mcp-cvp-fun) | stdio (Python/uv) | CloudVision Portal REST API — device inventory, events, connectivity monitor, tag management (4 tools) |
+| 40 | UML MCP | [antoinebou12/uml-mcp](https://github.com/antoinebou12/uml-mcp) | stdio (Python) | 27+ UML/diagram types via Kroki — class, sequence, nwdiag, rackdiag, packetdiag, C4, Mermaid, D2, Graphviz, ERD, BPMN (2 tools) |
+| 41 | Protocol MCP | [automateyournetwork/WontYouBeMyNeighbour](https://github.com/automateyournetwork/WontYouBeMyNeighbour) | stdio (Python) | Live BGP/OSPF/GRE control-plane participation — peer with routers, inject/withdraw routes, query RIB/LSDB, adjust metrics (10 tools) |
 
-All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). FMC MCP runs as an HTTP server on port 8000. AWS MCPs run via `uvx` (uv tool runner). GCP MCPs are remote HTTP endpoints hosted by Google (OAuth 2.0 auth). No persistent connections, no port management.
+All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). FMC MCP runs as an HTTP server on port 8000. Meraki Magic MCP runs via FastMCP stdio (~804 Dashboard API endpoints). ThousandEyes community MCP runs via stdio (9 read-only tools); ThousandEyes official MCP is a remote HTTP endpoint hosted by Cisco at `https://api.thousandeyes.com/mcp` (~20 tools via `npx mcp-remote`). RADKit MCP runs via FastMCP stdio with certificate-based cloud relay auth (5 tools for remote device access). Nautobot MCP runs via MCP SDK stdio (5 IPAM tools, alternative to NetBox). Infrahub MCP runs via stdio (10 tools for schema-driven SoT, GraphQL queries, and versioned branches). Itential MCP is pip-installed (`itential-mcp`) and runs via stdio (65+ tools for network automation orchestration). JunOS MCP runs via stdio (10 tools for PyEZ/NETCONF device automation). Arista CVP MCP runs via uv/stdio (4 tools for CloudVision Portal device inventory, events, connectivity monitoring, and tag management). UML MCP runs via stdio (2 tools for 27+ diagram types via Kroki multi-engine rendering). Protocol MCP runs via stdio (10 tools for live BGP/OSPF/GRE control-plane participation using scapy-based protocol speakers). AWS MCPs run via `uvx` (uv tool runner). GCP MCPs are remote HTTP endpoints hosted by Google (OAuth 2.0 auth). No persistent connections, no port management.
 
 ---
 
-## Skills (53)
+## Skills (77)
 
 ### pyATS Device Skills (9)
 
@@ -216,11 +254,42 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **pyats-dynamic-test** | Generates and executes deterministic pyATS aetest scripts with embedded TEST_DATA. Sandboxed execution: no filesystem, network, or subprocess access. 300-second timeout. |
 | **pyats-parallel-ops** | Fleet-wide parallel operations. pCall grouping by role/site. Failure isolation (one device timeout doesn't block others). Result aggregation with severity sorting. Scaling guidelines from 1 to 50+ devices. |
 
-### Domain Skills (7)
+### pyATS Linux Host Skills (3)
+
+| Skill | Source | Description |
+|-------|--------|-------------|
+| **pyats-linux-system** | [pyATS MCP](https://github.com/automateyournetwork/pyATS_MCP) | Linux host system ops — process monitoring (ps -ef), Docker container stats (docker stats --no-stream), filesystem inspection (ls -l), tool verification (curl -V) |
+| **pyats-linux-network** | [pyATS MCP](https://github.com/automateyournetwork/pyATS_MCP) | Linux host network ops — interfaces (ifconfig), routing tables (ip route show table all), network connections (netstat -rn, route) |
+| **pyats-linux-vmware** | [pyATS MCP](https://github.com/automateyournetwork/pyATS_MCP) | VMware ESXi host ops — VM inventory (vim-cmd vmsvc/getallvms), snapshot inspection (vim-cmd vmsvc/snapshot.get) |
+
+### pyATS JunOS Skills (3)
+
+| Skill | MCP Server | Description |
+|-------|------------|-------------|
+| **pyats-junos-system** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | JunOS chassis health, hardware inventory, version, NTP, SNMP, files/logs, firewall counters, DDoS, services accounting |
+| **pyats-junos-interfaces** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | JunOS interfaces (terse/extensive/optics), LACP, CoS, LLDP, ARP, IPv6 NDP, BFD sessions, traffic monitoring |
+| **pyats-junos-routing** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | JunOS OSPF/v3, BGP, route table (by protocol/table/instance), MPLS/LDP/RSVP, TED, PFE, ping, traceroute |
+
+### pyATS ASA Firewall Skills (1)
+
+| Skill | MCP Server | Description |
+|-------|------------|-------------|
+| **pyats-asa-firewall** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | Cisco ASA firewalls — VPN sessions (AnyConnect, WebVPN, IKEv2), failover, interfaces, routing, ASP drops, service policies, resource usage |
+
+### pyATS F5 BIG-IP Skills (2)
+
+| Skill | MCP Server | Description |
+|-------|------------|-------------|
+| **pyats-f5-ltm** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | F5 BIG-IP LTM/GTM operations via pyATS iControl REST — virtual servers, pools, nodes, monitors, profiles, iRules, persistence, GTM wide IPs, DNS, data groups |
+| **pyats-f5-platform** | [pyATS MCP](https://github.com/automateyournetwork/pyats_mcp) (stdio) | F5 BIG-IP platform operations via pyATS iControl REST — system, networking, HA/CM, auth, analytics, security, APM, live-update, ADC certs, file management |
+
+### Domain Skills (9)
 
 | Skill | What It Does |
 |-------|-------------|
 | **netbox-reconcile** | Diffs NetBox intent vs device reality. Detects 7 discrepancy types: IP_DRIFT, MISSING_INTERFACE, UNDOCUMENTED_LINK, CABLE_MISMATCH, VLAN_MISMATCH, STATUS_MISMATCH, MTU_MISMATCH. Opens ServiceNow incidents for CRITICAL findings. Generates Markmap drift summary. GAIT audit. |
+| **nautobot-sot** | Nautobot IPAM source of truth (5 tools, alternative to NetBox): query IP addresses with filtering by status (active/reserved/deprecated), role (loopback/secondary/anycast), VRF, tenant; look up network prefixes by site and role; full-text search across all IP data; retrieve IP details by Nautobot UUID; verify API connectivity. Supports pagination (up to 1000 results). Integrates with pyATS topology for intended-vs-actual reconciliation. |
+| **infrahub-sot** | OpsMill Infrahub schema-driven source of truth (10 tools): get_schema_mapping for all available kinds, get_nodes/get_node_details for infrastructure objects (InfraDevice, InfraInterface, InfraIPAddress, InfraPrefix), get_related_nodes for relationship traversal, query_graphql for custom queries and mutations, get_branches/branch_create/branch_delete for versioned change management, branch_diff for change review. Supports GraphQL-based schema introspection and branch-based workflows for safe infrastructure changes. |
 | **aci-fabric-audit** | ACI fabric health: node status, firmware, policy tree walk (Tenant/VRF/BD/EPG), contract analysis, fault analysis with health scores, endpoint learning verification. Severity-rated consolidated report. GAIT audit. |
 | **aci-change-deploy** | Safe ACI policy changes: ServiceNow CR gating, pre-change fault baseline, dependency-ordered deployment (Tenant > VRF > BD > AP > EPG), post-change fault delta, automatic rollback on fault increase. GAIT audit. |
 | **ise-posture-audit** | ISE audit: authorization policy review (default-allow detection), posture compliance assessment, profiling coverage analysis, TrustSec SGT matrix analysis (permit-all detection), active session health. |
@@ -281,11 +350,58 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **nso-device-ops** | NSO device operations: retrieve full config from NSO's CDB, inspect operational state, check device sync status, sync-from-device to pull live config into NSO, get platform info (model, serial, OS), list NED IDs and device groups. RESTCONF API. |
 | **nso-service-mgmt** | NSO service management: discover available service types (L3VPN, ACL, QoS, etc.), list deployed service instances, service health checks via sync verification, pre-change impact analysis (which services touch a device), service inventory reporting. |
 
+### Itential IAP Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **itential-automation** | Itential Automation Platform network orchestration (65+ tools): platform health monitoring (get_health for adapters, applications, system status), device management (get_devices, get_device_configuration, backup_device_configuration, apply_device_configuration), compliance operations (get_compliance_plans, run_compliance_plan, describe_compliance_report), golden config management (get_golden_config_trees, render_template), workflow orchestration (get_workflows, start_workflow, describe_job, get_job_metrics_for_workflow), and lifecycle automation. Integrates with ServiceNow for change management gating. GAIT audit trail. |
+
 ### Cisco FMC Skills (1)
 
 | Skill | What It Does |
 |-------|-------------|
 | **fmc-firewall-ops** | Cisco Secure Firewall policy search via FMC REST API (4 tools): list FMC profiles for multi-FMC environments, search access rules by IP/FQDN within a policy, resolve FTD devices to their assigned policies and search, FMC-wide rule search with network indicators (IP, FQDN), identity indicators (SGT, realm users/groups), and policy name filters. Read-only firewall rule audit, connectivity verification ("can Host A reach Host B?"), SGT policy review, and cross-FMC consistency analysis. |
+
+### Cisco RADKit Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **radkit-remote-access** | Cloud-relayed remote device access via Cisco RADKit (5 tools): discover device inventory from RADKit service, inspect device attributes (type, platform, SNMP/NETCONF capabilities), execute CLI commands with timeout and line-limit controls through the cloud relay, perform SNMP GET operations for lightweight metric polling (uptime, interface counters, CPU), and structured command execution with status tracking. Bridges cloud-hosted agents to air-gapped or on-premises devices without direct SSH/SNMP connectivity — ideal for multi-site operations, secure environments requiring certificate-based auth, and hybrid cloud-to-on-prem workflows. |
+
+### Juniper JunOS Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **junos-network** | Juniper device automation via PyEZ/NETCONF — CLI execution, config management, Jinja2 templates, device facts, batch operations (10 tools) |
+
+### Arista CloudVision Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **arista-cvp** | CloudVision Portal — device inventory, events, connectivity monitoring, device tags (4 tools) |
+
+### Protocol Participation Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **protocol-participation** | Live BGP/OSPF/GRE control-plane participation (10 tools): BGP peer status, Loc-RIB query, route injection/withdrawal, LOCAL_PREF adjustment, OSPF neighbor listing, LSDB query, interface cost adjustment, GRE tunnel status, consolidated protocol summary. Peers with real routers over GRE tunnels using native BGP-4 (RFC 4271) and OSPFv3 (RFC 5340) speakers. Route mutations gated by ServiceNow CR (unless `NETCLAW_LAB_MODE=true`). Docker-based FRR lab testbed included for testing. GAIT audit trail. |
+
+### Cisco Meraki Skills (5)
+
+| Skill | What It Does |
+|-------|-------------|
+| **meraki-network-ops** | Meraki Dashboard organization and network management via ~804 API endpoints: list organizations, org inventory, license status, network CRUD, device lifecycle (claim, unclaim, reboot), client discovery with usage/policy, uplink status, config change audit, action batches for bulk operations, and generic `call_meraki_api` for any Dashboard endpoint. Built-in caching (50-90% API reduction), auto-retry, rate limit handling. |
+| **meraki-wireless-ops** | Meraki wireless management: list/update SSIDs (auth, VLAN, band, splash), RF profile creation with band selection and power settings, channel utilization analysis per AP, signal quality (SNR) monitoring, connection statistics (auth/DHCP success rates), per-client connectivity event investigation (roaming, deauth, failures). Workflows for wireless health, client troubleshooting, and RF optimization. |
+| **meraki-switch-ops** | Meraki MS switch operations: port configuration (VLAN, type, PoE, BPDU guard, RSTP), live port statuses (speed, duplex, CRC errors, traffic, PoE draw), VLAN management (list, create), switch ACLs, QoS rules, and port cycling for PoE resets. Workflows for port audit, VLAN provisioning, and port troubleshooting. |
+| **meraki-security-appliance** | Meraki MX security appliance: L3 outbound firewall rules (audit and modify), site-to-site Auto VPN (status, hub/spoke config), content filtering (URL categories, blocked/allowed lists), traffic shaping (global and per-rule bandwidth limits), IDS/IPS security event investigation. Workflows for firewall audit, VPN troubleshooting, content filter review, and security incident response. |
+| **meraki-monitoring** | Meraki live diagnostics and monitoring: ping from device (latency, loss, jitter), cable test on switch ports (OK/open/short/length), LED blink for physical identification, wake-on-LAN, MV camera analytics (live person/vehicle counts, zones, snapshots, Sense ML detection), config change tracking (who changed what, when), API request history, webhook delivery logs. |
+
+### ThousandEyes Skills (2)
+
+| Skill | What It Does |
+|-------|-------------|
+| **te-network-monitoring** | ThousandEyes network monitoring via two MCP servers — community (9 tools, local stdio) for core monitoring: list tests, agents, test results, path visualization, dashboards, dashboard widgets, users, account groups; and official (~20 tools, remote HTTP) for advanced analysis: alerts, events, outages, instant tests, anomalies, metrics, AI-powered views explanations, endpoint agents, BGP results, path visualization. Workflows for network performance assessment, path troubleshooting, outage investigation, endpoint experience, and BGP monitoring. |
+| **te-path-analysis** | Deep network path analysis and active troubleshooting via ThousandEyes — hop-by-hop path visualization (IP, DNS name, latency, packet loss, MPLS labels, network owner per hop), BGP route analysis (AS path, origin AS, prefix reachability, route stability from 300+ global BGP monitors), outage investigation (scope, timeline, affected services), instant on-demand tests (use judiciously — consumes test units), endpoint VPN diagnostics (WiFi signal, DNS, VPN latency), and anomaly detection. Workflows for "Why is site X slow?", internet outage triage, endpoint VPN troubleshooting, and BGP hijack/leak detection. |
 
 ### AWS Cloud Skills (5)
 
@@ -305,7 +421,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **gcp-cloud-monitoring** | Cloud Monitoring (6 tools): query time series data (CPU, network, disk, firewall, VPN, load balancer metrics), list alert policies and active violations, discover available metric types. Network monitoring, alert investigation, and resource health check workflows. |
 | **gcp-cloud-logging** | Cloud Logging (6 tools): search log entries (VPC flow logs, firewall logs, admin activity audit, data access audit, DNS queries), discover available logs, inspect log buckets and views. VPC flow log analysis, firewall log investigation, audit trail, and troubleshooting workflows. |
 
-### Reference & Utility Skills (6)
+### Reference & Utility Skills (7)
 
 | Skill | Tool Backend | Purpose |
 |-------|-------------|---------|
@@ -313,8 +429,9 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | **subnet-calculator** | [SubnetCalculator MCP](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | IPv4 + IPv6 subnet calculator — VLSM planning, wildcard masks, address classification, RFC 6164 /127 links |
 | **wikipedia-research** | [Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | Protocol history, standards evolution, technology context. 6 tools: search, summary, content, references, categories, exists check. |
 | **markmap-viz** | [markmap-mcp](https://github.com/automateyournetwork/markmap_mcp) (Node) | Interactive mind maps from markdown — OSPF area hierarchies, BGP peer trees, drift summaries |
-| **drawio-diagram** | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) (npx) | Network topology diagrams — Mermaid, XML, or CSV format. Color-coded by reconciliation status. |
+| **drawio-diagram** | [@drawio/mcp](https://github.com/jgraph/drawio-mcp) (npx + [official skill-cli](https://github.com/jgraph/drawio-mcp/tree/main/skill-cli)) | Network topology diagrams — native `.drawio` files with CLI export (PNG/SVG/PDF with embedded XML), plus browser-based Mermaid/XML/CSV via MCP server. Color-coded by reconciliation status. |
 | **rfc-lookup** | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) (npx) | IETF RFC search, retrieval, and section extraction — BGP (4271), OSPF (2328), NTP (5905) |
+| **uml-diagram** | [UML MCP](https://github.com/antoinebou12/uml-mcp) (stdio) | 27+ UML/diagram types via Kroki — class, sequence, nwdiag, rackdiag, packetdiag, C4, Mermaid, D2, Graphviz, ERD, BPMN |
 
 ### Slack Integration Skills (4)
 
@@ -519,6 +636,51 @@ For write operations (create/delete VMs via Compute Engine MCP), add `roles/comp
 
 GCP's MCP servers currently cover Compute Engine (VMs) but **not the VPC fabric** — there are no MCP tools for VPC subnets, firewall rules, Cloud VPN, Cloud Interconnect, or Cloud Router. Google is adding more MCP servers regularly, so VPC-specific tools may arrive soon.
 
+### Cisco ThousandEyes
+
+**2 MCP servers, 2 skills** — network monitoring and deep path analysis.
+
+#### Key Difference: Two Complementary MCP Servers
+
+ThousandEyes uses **two MCP servers** that share a single API token:
+
+| MCP Server | Transport | Tools | Strength |
+|---|---|---|---|
+| Community (`thousandeyes-mcp-community`) | stdio (Python, local) | 9 read-only tools | Core monitoring: tests, agents, path vis, dashboards |
+| Official (`api.thousandeyes.com/mcp`) | Remote HTTP (Cisco-hosted) | ~20 tools | Advanced: alerts, outages, BGP, instant tests, endpoint agents, AI |
+
+The community server runs locally via stdio. The official server is a remote HTTP endpoint hosted by Cisco — no local install, accessed via `npx mcp-remote` with Bearer token authentication.
+
+#### Credentials
+
+| Variable | Example | Description |
+|----------|---------|-------------|
+| `TE_TOKEN` | `eyJhbGci...` | ThousandEyes API v7 OAuth bearer token (used by both servers) |
+
+Get your token from: **ThousandEyes > Account Settings > Users & Roles > OAuth Bearer Token**
+
+Run `./scripts/setup.sh` — the wizard prompts for the token.
+
+#### What You Can Do
+
+| Skill | Capabilities |
+|-------|-------------|
+| `te-network-monitoring` | List tests/agents, query test results, path visualization, dashboard widgets, alerts, events, outages, endpoint agents, anomalies, AI views explanations |
+| `te-path-analysis` | Hop-by-hop path analysis (latency, loss, MPLS per hop), BGP route analysis (AS paths, prefix reachability from 300+ global monitors), outage investigation, instant on-demand tests, endpoint VPN diagnostics, BGP hijack/leak detection |
+
+#### Prerequisites
+
+- Cisco ThousandEyes account with API v7 access
+- Python 3.12+ (for community MCP server)
+- Node.js / npx (for official MCP server via `mcp-remote`)
+- Org must not be opted out of ThousandEyes AI features (for official server)
+
+#### Cost Notes
+
+- **Community server tools**: Read-only, no additional cost beyond normal API usage
+- **Instant Tests** (official server): Consume ThousandEyes test units — use judiciously
+- **API rate limits**: Queries count against your org's ThousandEyes API rate limit
+
 ---
 
 ## How Skills Work
@@ -561,7 +723,7 @@ pyats-health-check (+ pyats-parallel-ops for fleet)
 --> GAIT audit trail
 ```
 
-### Source of Truth Reconciliation
+### Source of Truth Reconciliation (NetBox)
 ```
 netbox-reconcile
 --> NetBox intent pull (devices, interfaces, IPs, VLANs, cables)
@@ -570,6 +732,76 @@ netbox-reconcile
 --> ServiceNow incident per CRITICAL discrepancy
 --> Markmap drift summary
 --> GAIT commit
+```
+
+### Nautobot IPAM Audit
+```
+nautobot-sot
+--> test_connection: verify Nautobot API reachability
+--> get_prefixes(site="Chicago-DC"): all subnets at site
+--> get_ip_addresses per prefix: utilization analysis
+--> get_ip_addresses(status="deprecated"): stale allocations
+--> search_ip_addresses: investigate specific IPs
+--> Report: IPAM utilization by site, prefix, VRF, tenant
+```
+
+### Infrahub Infrastructure Audit
+```
+infrahub-sot
+--> get_schema_mapping: discover all available schema kinds
+--> get_nodes(kind="InfraDevice"): retrieve full device inventory
+--> get_related_nodes per device: interfaces, IPs, connections
+--> branch_create("audit-2024"): isolated branch for analysis
+--> query_graphql: custom queries for cross-referencing relationships
+--> Report: infrastructure inventory with relationship completeness
+--> GAIT audit trail
+```
+
+### Infrahub Branch-Based Change
+```
+infrahub-sot
+--> get_branches: list existing branches and their status
+--> branch_create("vlan-changes"): create isolated change branch
+--> get_nodes(kind="InfraVLAN", branch="vlan-changes"): current VLAN state
+--> query_graphql: mutation to create/update VLANs on branch
+--> branch_diff: review all changes before merge
+--> Report: branch change summary with before/after comparison
+--> GAIT audit trail
+```
+
+### Itential Compliance Audit
+```
+itential-automation
+--> get_health: verify Itential platform status (adapters, applications, system)
+--> get_devices: discover managed device inventory
+--> get_compliance_plans: list available compliance plans
+--> run_compliance_plan: execute compliance check against target devices
+--> describe_compliance_report: review results (pass/fail per device, violation details)
+--> Report: compliance posture with remediation recommendations
+--> GAIT audit trail
+```
+
+### Itential Golden Config Deployment
+```
+itential-automation
+--> get_golden_config_trees: retrieve approved golden config templates
+--> render_template: generate device-specific config from template + variables
+--> backup_device_configuration: snapshot current config before changes
+--> apply_device_configuration: push rendered config to device
+--> get_device_configuration: verify applied config matches intent
+--> Report: deployment status with before/after diff
+--> GAIT audit trail
+```
+
+### Itential Workflow Orchestration
+```
+itential-automation
+--> get_workflows: list available automation workflows
+--> start_workflow: launch selected workflow with parameters
+--> describe_job: monitor job progress, status, and output
+--> get_job_metrics_for_workflow: execution statistics and performance
+--> Report: workflow execution summary with results and metrics
+--> GAIT audit trail
 ```
 
 ### Configuration Change
@@ -710,6 +942,184 @@ fmc-firewall-ops
 --> Report: formatted rule table with security assessment
 ```
 
+### Meraki Organization Inventory
+```
+meraki-network-ops
+--> getOrganizations: list all accessible Meraki orgs
+--> getOrganizationInventory: all claimed devices (model, serial, MAC, network)
+--> getOrganizationLicense: license status, expiration, device counts
+--> getDeviceStatus per key device: online/offline, last seen
+--> getDeviceUplink for MX appliances: WAN link health
+--> Report: org-wide inventory dashboard with status and license health
+```
+
+### Meraki Wireless Health
+```
+meraki-wireless-ops + meraki-monitoring
+--> getWirelessSSIDs: enabled SSIDs, auth types, VLANs
+--> getWirelessConnectionStats: auth/DHCP success rates
+--> getWirelessChannelUtilization: per-AP congestion hotspots
+--> getWirelessSignalQuality: SNR trends over time
+--> getWirelessRFProfiles: power and channel settings
+--> Report: wireless health dashboard with per-SSID metrics
+```
+
+### Meraki Switch Port Audit
+```
+meraki-switch-ops + meraki-monitoring
+--> getDeviceSwitchPorts: all port configs (VLAN, type, PoE, BPDU guard)
+--> getDeviceSwitchPortStatuses: live speed, duplex, errors, PoE draw
+--> getSwitchVlans: VLAN inventory
+--> createDeviceLiveToolsCableTest: cable diagnostics on suspect ports
+--> Report: port table with status, errors, and cable health
+```
+
+### Meraki MX Firewall + VPN Audit
+```
+meraki-security-appliance
+--> getNetworkSecurityFirewallRules: L3 outbound rules
+--> getNetworkVpnStatus: site-to-site VPN tunnel state
+--> getNetworkSecurityVpnSiteToSite: hub/spoke config, subnets
+--> getNetworkSecurityContentFiltering: blocked categories
+--> getNetworkSecuritySecurityEvents: IDS/IPS detections
+--> Report: MX security posture with VPN health and rule assessment
+```
+
+### RADKit Remote Device Health Check
+```
+radkit-remote-access
+--> get_device_inventory_names: discover all devices on RADKit service
+--> get_device_attributes per device: type, platform, capabilities
+--> snmp_get: sysUpTime, sysDescr for quick health baseline
+--> exec_cli_commands_in_device: "show processes cpu", "show memory statistics"
+--> Report: remote device inventory with health status across all sites
+```
+
+### RADKit Remote CLI Troubleshooting
+```
+radkit-remote-access
+--> get_device_inventory_names: find target device
+--> get_device_attributes: confirm CLI access available
+--> exec_cli_commands_in_device with timeout=60, max_lines=200:
+    "show ip interface brief", "show ip route summary",
+    "show logging last 50", "show ip ospf neighbor"
+--> exec_command: structured output for programmatic analysis
+--> Report: troubleshooting findings with device state from remote site
+```
+
+### JunOS Device Health Check
+```
+junos-network
+--> get_router_list: discover all Juniper routers
+--> execute_junos_command_batch(routers, "show chassis alarms"): check hardware alarms
+--> execute_junos_command_batch(routers, "show bgp summary"): verify BGP peer state
+--> Severity-sort findings (CRITICAL alarms first)
+--> GAIT audit trail
+```
+
+### Arista Network Health Check
+```
+arista-cvp
+--> get_inventory: retrieve all devices from CloudVision Portal
+--> get_events: pull recent events and alerts across the fabric
+--> get_connectivity_monitor: check connectivity monitor probe status
+--> Correlate events with connectivity monitor results
+--> Severity-sort findings (CRITICAL events first)
+--> GAIT audit trail
+```
+
+### Protocol Health Check (BGP + OSPF + GRE)
+```
+protocol-participation
+--> protocol_summary: consolidated BGP + OSPF + GRE state
+--> bgp_get_peers: verify all BGP sessions are Established
+--> ospf_get_neighbors: verify all OSPF adjacencies are Full
+--> gre_tunnel_status: verify all GRE tunnels are UP
+--> pyats-routing: cross-verify from device CLI side
+--> GAIT audit trail
+```
+
+### Route Injection with Change Control
+```
+servicenow-change-workflow + protocol-participation
+--> ServiceNow CR created and approved
+--> bgp_get_rib(prefix): verify route doesn't already exist
+--> bgp_inject_route(network, next_hop, local_pref)
+--> bgp_get_rib(prefix): verify route in RIB
+--> pyats-routing: verify route propagation on remote devices
+--> ServiceNow CR closed
+--> GAIT audit trail
+```
+
+### JunOS OSPF/BGP Health Check
+```
+pyats-junos-routing + pyats-junos-system
+--> show chassis alarms: check for hardware alarms
+--> show ospf neighbor: verify all OSPF adjacencies are Full
+--> show bgp summary: verify all BGP peers are Established
+--> show route summary: route table size and protocol breakdown
+--> Severity-sort findings (non-Full/non-Established first)
+--> GAIT audit trail
+```
+
+### ASA VPN Monitoring
+```
+pyats-asa-firewall
+--> show failover: verify active/standby state and failover health
+--> show vpn-sessiondb summary: total active VPN sessions by type
+--> show vpn-sessiondb anyconnect: detailed AnyConnect session list
+--> show ip local pool: VPN address pool utilization
+--> Flag pool exhaustion (>80% utilization)
+--> GAIT audit trail
+```
+
+### Linux Host Fleet Health Check
+```
+pyats-linux-system + pyats-linux-network
+--> pyats_list_devices: identify Linux hosts in testbed
+--> pyats_run_linux_command("ps -ef") per host: process inventory
+--> pyats_run_linux_command("docker stats --no-stream") per host: container CPU/memory
+--> pyats_run_linux_command("ifconfig") per host: interface state and IP addressing
+--> Severity-sort findings (CRITICAL container resource usage first)
+--> GAIT audit trail
+```
+
+### ThousandEyes Path Troubleshooting
+```
+te-network-monitoring + te-path-analysis
+--> te_list_tests: find tests targeting the slow site
+--> te_get_test_results: check latency, packet loss, jitter
+--> te_get_path_vis: hop-by-hop path from agent to target
+--> Get Full Path Visualization (official): all agents, compare paths
+--> Identify hop where latency spikes or loss appears
+--> Get BGP Route Details (official): is routing suboptimal?
+--> Get Anomalies (official): when did degradation start?
+--> Report: "Latency increase at hop 7 (ISP backbone), AS path changed at 14:32 UTC"
+```
+
+### ThousandEyes Outage Investigation
+```
+te-path-analysis
+--> Search Outages (official): scope — ISP, CDN, SaaS provider?
+--> List Events (official): which tests are affected?
+--> Get Event Details (official): impacted targets, severity, timeline
+--> te_get_path_vis (community): where does the path break?
+--> Get BGP Test Results (official): prefix still reachable? Route withdrawn?
+--> Instant Tests (official): verify from multiple cloud agents
+--> Report: outage scope, affected services, root cause, estimated recovery
+```
+
+### ThousandEyes Endpoint VPN Diagnostics
+```
+te-path-analysis
+--> List Endpoint Agents and Tests (official): find affected users
+--> Get Endpoint Agent Metrics (official): WiFi signal, DNS, VPN latency
+--> Get Path Visualization (official): user to VPN gateway path
+--> Compare with enterprise agent test: user-side vs network-side?
+--> Get Anomalies (official): when did metrics degrade?
+--> Report: "WiFi -72 dBm (poor), DNS 450ms (ISP slow), VPN 180ms — switch to 5 GHz, use corporate DNS"
+```
+
 ### AWS VPC Network Audit
 ```
 aws-network-ops
@@ -828,7 +1238,7 @@ netclaw/
 ├── MISSION01.md                          # Completed — core pyATS + 11 skills
 ├── MISSION02.md                          # Completed — full platform, 44 skills, 19 MCP
 ├── workspace/
-│   └── skills/                           # 52 skill definitions (source of truth)
+│   └── skills/                           # 77 skill definitions (source of truth)
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
 │       ├── pyats-routing/                # OSPF, BGP, EIGRP, IS-IS analysis
@@ -838,7 +1248,19 @@ netclaw/
 │       ├── pyats-troubleshoot/           # Troubleshooting + pCall + NetBox + GAIT
 │       ├── pyats-dynamic-test/           # pyATS aetest script generation
 │       ├── pyats-parallel-ops/           # Fleet-wide pCall operations
+│       ├── pyats-linux-system/          # Linux host system ops (ps, docker stats, ls, curl)
+│       ├── pyats-linux-network/         # Linux host network ops (ifconfig, ip route, netstat)
+│       ├── pyats-linux-vmware/          # VMware ESXi host ops (vim-cmd vmsvc)
+│       ├── pyats-junos-system/         # JunOS chassis health, hardware, NTP, SNMP, logs
+│       ├── pyats-junos-interfaces/     # JunOS interfaces, LACP, CoS, LLDP, ARP, BFD
+│       ├── pyats-junos-routing/        # JunOS OSPF/BGP, route table, MPLS/LDP/RSVP
+│       ├── pyats-asa-firewall/         # Cisco ASA VPN sessions, failover, ASP drops
+│       ├── pyats-f5-ltm/             # F5 BIG-IP LTM/GTM via pyATS iControl REST
+│       ├── pyats-f5-platform/        # F5 BIG-IP platform ops via pyATS iControl REST
 │       ├── netbox-reconcile/             # Source of truth drift detection
+│       ├── nautobot-sot/                # Nautobot IPAM — IPs, prefixes, VRF/tenant
+│       ├── infrahub-sot/               # Infrahub schema-driven SoT, GraphQL, branches
+│       ├── itential-automation/        # Itential IAP orchestration, compliance, golden config
 │       ├── aci-fabric-audit/             # ACI fabric health & policy audit
 │       ├── aci-change-deploy/            # Safe ACI policy changes
 │       ├── ise-posture-audit/            # ISE posture & TrustSec audit
@@ -859,6 +1281,7 @@ netclaw/
 │       ├── wikipedia-research/           # Protocol history & context
 │       ├── markmap-viz/                  # Mind map visualization
 │       ├── drawio-diagram/              # Draw.io network diagrams
+│       ├── uml-diagram/                 # 27+ UML/diagram types via Kroki
 │       ├── rfc-lookup/                   # IETF RFC search
 │       ├── github-ops/                  # GitHub issues, PRs, config-as-code
 │       ├── packet-analysis/             # pcap analysis via tshark + Slack upload
@@ -870,6 +1293,17 @@ netclaw/
 │       ├── nso-device-ops/             # NSO device config, state, sync, platform
 │       ├── nso-service-mgmt/           # NSO service types and instances
 │       ├── fmc-firewall-ops/          # FMC access policy search, FTD targeting
+│       ├── radkit-remote-access/     # RADKit cloud-relayed CLI, SNMP, device inventory
+│       ├── junos-network/           # Juniper JunOS PyEZ/NETCONF automation
+│       ├── arista-cvp/              # Arista CloudVision Portal inventory, events, tags
+│       ├── protocol-participation/ # Live BGP/OSPF/GRE control-plane participation (10 tools)
+│       ├── meraki-network-ops/       # Meraki org inventory, networks, devices, clients
+│       ├── meraki-wireless-ops/      # Meraki SSIDs, RF profiles, channel utilization
+│       ├── meraki-switch-ops/        # Meraki switch ports, VLANs, ACLs, QoS
+│       ├── meraki-security-appliance/ # Meraki MX firewall, VPN, content filtering
+│       ├── meraki-monitoring/        # Meraki diagnostics, cameras, config change audit
+│       ├── te-network-monitoring/   # ThousandEyes tests, agents, dashboards, alerts, events
+│       ├── te-path-analysis/        # ThousandEyes path vis, BGP, outages, instant tests
 │       ├── aws-network-ops/           # AWS VPC, TGW, Cloud WAN, VPN, Firewall (27 tools)
 │       ├── aws-cloud-monitoring/      # AWS CloudWatch metrics, alarms, flow logs
 │       ├── aws-security-audit/        # AWS IAM + CloudTrail security posture
@@ -900,9 +1334,21 @@ netclaw/
 │   ├── f5-mcp-server/                    # F5 BIG-IP iControl REST
 │   ├── catalyst-center-mcp/              # Cisco Catalyst Center / DNA-C
 │   ├── packet-buddy-mcp/                 # pcap analysis via tshark (built-in)
-│   └── CiscoFMC-MCP-server-community/   # Cisco FMC firewall policy search
+│   ├── CiscoFMC-MCP-server-community/   # Cisco FMC firewall policy search
+│   ├── meraki-magic-mcp-community/      # Cisco Meraki Dashboard (~804 API endpoints)
+│   ├── thousandeyes-mcp-community/     # ThousandEyes monitoring (9 read-only tools)
+│   ├── radkit-mcp-server-community/   # Cisco RADKit cloud-relayed device access (5 tools)
+│   ├── mcp-nautobot/                  # Nautobot IPAM source of truth (5 tools)
+│   ├── infrahub-mcp/                 # OpsMill Infrahub schema-driven SoT (10 tools)
+│   ├── itential-mcp/                 # Itential IAP network automation (65+ tools)
+│   ├── junos-mcp-server/            # Juniper JunOS PyEZ/NETCONF (10 tools)
+│   ├── mcp-cvp-fun/                # Arista CloudVision Portal (4 tools)
+│   ├── uml-mcp/                         # 27+ diagram types via Kroki (2 tools)
+│   └── protocol-mcp/                   # BGP/OSPF/GRE protocol speakers (10 tools)
+├── lab/
+│   └── frr-testbed/                     # Docker FRR 3-router lab for protocol testing
 ├── scripts/
-│   ├── install.sh                        # Full bootstrap installer (28 steps)
+│   ├── install.sh                        # Full bootstrap installer (40 steps)
 │   ├── setup.sh                          # Interactive setup wizard (API key, platforms, Slack)
 │   ├── mcp-call.py                       # MCP JSON-RPC protocol handler
 │   └── gait-stdio.py                     # GAIT server stdio wrapper
@@ -945,28 +1391,40 @@ netclaw/
 4. **Creates mcp-servers/** — directory for all cloned backends
 5. **Clones pyATS MCP** — `git clone` + `pip3 install -r requirements.txt`
 6. **Clones Markmap MCP** — `git clone` + `npm install` + `npm run build`
-7. **Clones GAIT MCP** — `git clone` + `pip3 install gait-ai fastmcp`
-8. **Clones NetBox MCP** — `git clone` + `pip3 install` dependencies
-9. **Clones ServiceNow MCP** — `git clone` + `pip3 install` dependencies
-10. **Clones ACI MCP** — `git clone` + `pip3 install` dependencies
-11. **Clones ISE MCP** — `git clone` + `pip3 install` dependencies
-12. **Clones Wikipedia MCP** — `git clone` + `pip3 install` dependencies
-13. **Clones NVD CVE MCP** — `git clone` + `pip3 install -e .`
-14. **Clones Subnet Calculator MCP** — `git clone` (enhanced with IPv6 support)
-15. **Clones F5 BIG-IP MCP** — `git clone` + `pip3 install` dependencies
-16. **Clones Catalyst Center MCP** — `git clone` + `pip3 install` dependencies
-17. **Caches Microsoft Graph MCP** — `npm cache add` for Graph API (OneDrive, SharePoint, Visio, Teams)
-18. **Caches npx packages** — `npm cache add` for Draw.io and RFC servers
-19. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker)
-20. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
-21. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
-22. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)
-23. **Installs FMC MCP** — `git clone` + `pip3 install -r requirements.txt` for Cisco Secure Firewall policy search (HTTP transport, port 8000)
-24. **Installs AWS Cloud MCP Servers** — Installs `uv` (Astral), validates 6 AWS MCP packages via `uvx` (Network, CloudWatch, IAM, CloudTrail, Cost Explorer, Diagram)
-25. **Configures GCP Cloud MCP Servers** — Checks for `gcloud` CLI and credentials; 4 remote HTTP servers hosted by Google (Compute Engine, Cloud Monitoring, Cloud Logging, Resource Manager)
-26. **Deploys skills + workspace files** — Copies 53 skills and 6 MD files to `~/.openclaw/workspace/`
-27. **Verifies installation** — Checks all MCP server scripts + core scripts exist
-28. **Prints summary** — Lists all 31 MCP servers by category and all 53 skills by domain
+7. **Clones Arista CVP MCP** — `git clone noredistribution/mcp-cvp-fun` + `uv` runtime deps for CloudVision Portal REST API (4 tools: device inventory, events, connectivity monitor, tag management). Requires CVP service account token.
+8. **Clones GAIT MCP** — `git clone` + `pip3 install gait-ai fastmcp`
+9. **Clones NetBox MCP** — `git clone` + `pip3 install` dependencies
+10. **Clones Nautobot MCP** — `git clone` + `pip3 install -e .` for Nautobot IPAM source of truth (5 tools: IP addresses, prefixes, VRF/tenant/site filtering, search, connection test). Python 3.13+ required; falls back to core deps on older Python. Alternative to NetBox.
+11. **Clones Infrahub MCP** — `git clone` + `pip3 install -e .` for OpsMill Infrahub schema-driven source of truth (10 tools: nodes, GraphQL queries, versioned branches). Requires Infrahub instance with API token.
+12. **Installs Itential MCP** — `pip3 install itential-mcp` (falls back to `git clone` + `pip3 install -e .`) for Itential Automation Platform network orchestration (65+ tools: config mgmt, compliance, workflows, golden config, lifecycle). Requires IAP instance with credentials.
+13. **Clones ServiceNow MCP** — `git clone` + `pip3 install` dependencies
+14. **Clones ACI MCP** — `git clone` + `pip3 install` dependencies
+15. **Clones ISE MCP** — `git clone` + `pip3 install` dependencies
+16. **Clones Wikipedia MCP** — `git clone` + `pip3 install` dependencies
+17. **Clones NVD CVE MCP** — `git clone` + `pip3 install -e .`
+18. **Clones Subnet Calculator MCP** — `git clone` (enhanced with IPv6 support)
+19. **Clones F5 BIG-IP MCP** — `git clone` + `pip3 install` dependencies
+20. **Clones Catalyst Center MCP** — `git clone` + `pip3 install` dependencies
+21. **Caches Microsoft Graph MCP** — `npm cache add` for Graph API (OneDrive, SharePoint, Visio, Teams)
+22. **Caches npx packages** — `npm cache add` for Draw.io and RFC servers
+23. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker)
+24. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
+25. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
+26. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)
+27. **Installs FMC MCP** — `git clone` + `pip3 install -r requirements.txt` for Cisco Secure Firewall policy search (HTTP transport, port 8000)
+28. **Installs Meraki Magic MCP** — `git clone` + `pip install -r requirements.txt` for Cisco Meraki Dashboard API (~804 endpoints: orgs, networks, wireless, switching, security, cameras, diagnostics). Python 3.13+ recommended; falls back to core deps on older Python.
+29. **Installs ThousandEyes Community MCP** — `git clone` + `pip install -r requirements.txt` for ThousandEyes monitoring (9 read-only tools: tests, agents, path vis, dashboards). Python 3.12+ required.
+30. **Configures ThousandEyes Official MCP** — Remote HTTP endpoint hosted by Cisco at `https://api.thousandeyes.com/mcp` (~20 tools: alerts, outages, BGP, instant tests, endpoint agents). Pre-caches `mcp-remote` via npm. No local install required.
+31. **Installs RADKit MCP** — `git clone` + `pip install -e .` for Cisco RADKit cloud-relayed remote device access (5 tools: device inventory, attributes, CLI exec, SNMP GET, structured exec). Python 3.10+ required. Certificate-based auth via RADKit service.
+32. **Installs AWS Cloud MCP Servers** — Installs `uv` (Astral), validates 6 AWS MCP packages via `uvx` (Network, CloudWatch, IAM, CloudTrail, Cost Explorer, Diagram)
+33. **Configures GCP Cloud MCP Servers** — Checks for `gcloud` CLI and credentials; 4 remote HTTP servers hosted by Google (Compute Engine, Cloud Monitoring, Cloud Logging, Resource Manager)
+34. **Installs JunOS MCP** — `git clone` + `pip3 install -r requirements.txt` for Juniper JunOS device automation via PyEZ/NETCONF (10 tools: CLI execution, config management, Jinja2 templates, device facts, batch operations). Python 3.10+ required.
+35. **Installs UML MCP** — `git clone` + `pip3 install -e .` for 27+ diagram types via Kroki multi-engine rendering (2 tools: generate_uml, generate_diagram_url). Python 3.10+ required. nwdiag (network), rackdiag (rack), packetdiag (protocol headers), sequence, state, class, C4, Mermaid, D2, Graphviz, ERD, BPMN.
+36. **Installs Protocol MCP** — `pip3 install -r requirements.txt` (scapy, networkx, mcp, fastmcp) for live BGP/OSPF/GRE control-plane participation (10 tools: peer with routers, inject/withdraw routes, query RIB/LSDB, adjust metrics). Protocol speakers from WontYouBeMyNeighbour.
+37. **Protocol Peering Wizard** — Optional interactive configuration: router ID, local AS, BGP peer IP/AS, OSPF areas, GRE tunnels, lab mode. Writes protocol environment variables to `~/.openclaw/.env`. Optionally creates GRE tunnel (requires sudo).
+38. **Deploys skills + workspace files** — Copies 77 skills and 6 MD files to `~/.openclaw/workspace/`
+39. **Verifies installation** — Checks all MCP server scripts + core scripts exist
+40. **Prints summary** — Lists all 42 MCP servers by category and all 77 skills by domain
 
 ---
 
@@ -1005,7 +1463,7 @@ The `%ENV{NETCLAW_PASSWORD}` syntax pulls credentials from environment variables
 - Anthropic API key
 
 Optional (for full feature set):
-- NetBox instance with API token
+- NetBox instance with API token (or Nautobot instance with API token — alternative source of truth)
 - ServiceNow instance with credentials
 - Cisco APIC with credentials (for ACI skills)
 - Cisco ISE with ERS API enabled (for ISE skills)
@@ -1018,10 +1476,20 @@ Optional (for full feature set):
 - Cisco CML 2.9+ with API access and Python 3.12+ (for CML lab management)
 - Cisco NSO with RESTCONF API enabled and Python 3.12+ (for NSO orchestration)
 - Cisco Secure Firewall Management Center (FMC) with API access (for firewall policy search)
+- Cisco Meraki Dashboard with API key and Organization ID (for Meraki wireless, switching, security, camera, and diagnostics skills — Python 3.13+ recommended)
+- Cisco ThousandEyes account with API v7 OAuth bearer token and Python 3.12+ (for network monitoring, path visualization, BGP analysis, and outage investigation skills)
+- Cisco RADKit service instance with onboarded devices and certificate-based identity, Python 3.10+ (for cloud-relayed remote device CLI/SNMP access)
+- Juniper devices with NETCONF enabled and Python 3.10+ with PyEZ (for JunOS device automation — CLI, config, templates, facts, batch ops)
+- Arista CloudVision Portal with service account token, Python 3.12+ and `uv` (for CVP device inventory, events, connectivity monitoring, tag management)
 - AWS account with IAM credentials (`AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`) for AWS cloud skills
 - graphviz (`apt install graphviz` or `brew install graphviz`) for AWS architecture diagrams
+- OpsMill Infrahub instance + API token (optional — schema-driven source of truth alternative)
+- Itential Automation Platform instance + credentials (optional — network orchestration, compliance, golden config)
 - Google Cloud project with service account or `gcloud` CLI (for GCP Compute, Monitoring, Logging skills)
 - Microsoft 365 tenant with Azure AD app registration (for Graph/Visio/Teams skills)
+- Docker for FRR lab testbed (optional — 3-router FRR topology for testing BGP/OSPF protocol participation)
+- Root/sudo access for GRE tunnel creation (optional — required for BGP/OSPF peering over GRE tunnels)
+- Kroki local instance (optional — public kroki.io used by default; local instance recommended for sensitive topology data)
 - Slack workspace with NetClaw bot installed (for Slack skills)
 
 ---
@@ -1121,6 +1589,82 @@ Ask NetClaw anything you'd ask a senior network engineer:
 "Audit SGT policies across all FMCs"
 --> fmc-firewall-ops: list_fmc_profiles, search_access_rules with SGT identity indicator per FMC, consistency report
 
+"Show me all our Meraki devices"
+--> meraki-network-ops: getOrganizations, getOrganizationInventory, device status summary
+
+"How's the WiFi at the branch office?"
+--> meraki-wireless-ops: getWirelessSSIDs, getWirelessConnectionStats, getWirelessChannelUtilization, signal quality report
+
+"What's connected to port 12 on the lobby switch?"
+--> meraki-switch-ops: getDeviceSwitchPorts (port 12 config), getDeviceSwitchPortStatuses (live state), getDeviceClients
+
+"Show me the firewall rules on the HQ MX appliance"
+--> meraki-security-appliance: getNetworkSecurityFirewallRules, rule analysis for overly permissive entries
+
+"Is the VPN tunnel to the warehouse up?"
+--> meraki-security-appliance: getNetworkVpnStatus, getNetworkSecurityVpnSiteToSite, tunnel state analysis
+
+"Run a cable test on ports 1-4 of switch MS-Floor2"
+--> meraki-monitoring: createDeviceLiveToolsCableTest, getDeviceLiveToolsCableTestResults (OK/open/short/length)
+
+"Who changed the SSID config last week?"
+--> meraki-monitoring: getOrganizationConfigurationChanges filtered by time/network, admin identity and change details
+
+"What IPs are assigned in the 10.1.0.0/16 prefix in Nautobot?"
+--> nautobot-sot: get_ip_addresses(prefix="10.1.0.0/16"), utilization summary with status and role breakdown
+
+"Show me all deprecated IPs in the production VRF from Nautobot"
+--> nautobot-sot: get_ip_addresses(status="deprecated", vrf="PROD-VRF"), stale allocation report
+
+"Search Nautobot for anything related to core-rtr-01"
+--> nautobot-sot: search_ip_addresses(query="core-rtr-01"), matching IPs with device assignment details
+
+"What schema kinds are available in Infrahub?"
+--> infrahub-sot: get_schema_mapping, list all available kinds with descriptions and relationships
+
+"Show me all devices in Infrahub"
+--> infrahub-sot: get_nodes(kind="InfraDevice"), device inventory with platform, role, site, and status
+
+"Create a branch for VLAN changes"
+--> infrahub-sot: branch_create("vlan-update"), query_graphql on branch to stage changes, branch_diff to review, GAIT audit
+
+"Check the health of our Itential platform"
+--> itential-automation: get_health, status of adapters, applications, system components, GAIT audit
+
+"Run a compliance check on all core routers"
+--> itential-automation: get_compliance_plans, run_compliance_plan targeting core routers, describe_compliance_report with pass/fail details, GAIT audit
+
+"Deploy the golden config to the new branch switch"
+--> itential-automation: get_golden_config_trees, render_template for target device, backup_device_configuration, apply_device_configuration, get_device_configuration to verify, GAIT audit
+
+"What devices are available on the RADKit service?"
+--> radkit-remote-access: get_device_inventory_names, get_device_attributes for each, inventory report
+
+"Run show commands on the remote branch router via RADKit"
+--> radkit-remote-access: exec_cli_commands_in_device("branch-rtr-01", ["show ip route", "show ip ospf neighbor"], timeout=60)
+
+"Check uptime on all RADKit devices via SNMP"
+--> radkit-remote-access: get_device_inventory_names, snmp_get(sysUpTime OID) per device, uptime summary table
+
+"Why is traffic to example.com slow from London?"
+--> te-network-monitoring: te_list_tests (find test), te_get_test_results (check latency)
+--> te-path-analysis: te_get_path_vis (hop-by-hop), Get BGP Route Details (AS path check)
+
+"Are there any network outages right now?"
+--> te-path-analysis: Search Outages (official), List Events, Get Event Details, scope and timeline report
+
+"Show me the path visualization for test 12345"
+--> te-path-analysis: te_get_path_vis (community) for hop-by-hop data, Get Full Path Visualization (official) for all agents
+
+"What BGP routes does ThousandEyes see for our prefix?"
+--> te-path-analysis: Get BGP Test Results, Get BGP Route Details — AS paths, reachability from 300+ global monitors
+
+"Run an instant test to 8.8.8.8 from our enterprise agents"
+--> te-path-analysis: Instant Tests (official) — on-demand test from selected agents (consumes test units)
+
+"Our VPN users in NYC are complaining about latency"
+--> te-path-analysis: List Endpoint Agents, Get Endpoint Agent Metrics (WiFi, DNS, VPN), path visualization to gateway
+
 "Show me all our AWS VPCs"
 --> aws-network-ops: list_vpcs, get_vpc_network_details for each, formatted architecture summary
 
@@ -1153,6 +1697,36 @@ Ask NetClaw anything you'd ask a senior network engineer:
 
 "Who deleted VMs in GCP this week?"
 --> gcp-cloud-logging: list_log_entries for cloudaudit activity logs, filter compute.instances.delete
+
+"Run a health check on all Juniper routers"
+--> junos-network: get_router_list, execute_junos_command_batch (show chassis alarms, show bgp summary), analyze alarms/BGP state, GAIT audit
+
+"Check the health of our Arista fabric"
+--> arista-cvp: get_inventory (all devices), get_events (recent alerts), get_connectivity_monitor (probe status), analyze and correlate events with connectivity, GAIT audit
+
+"Generate a network topology diagram"
+--> uml-diagram: generate_uml(type="nwdiag") with network zones, IP addressing, device placement
+
+"Document the BGP state machine"
+--> uml-diagram: generate_uml(type="state") with BGP FSM states and transitions
+
+"Show me the BGP peers and OSPF neighbors"
+--> protocol-participation: protocol_summary — consolidated BGP peer state, RIB size, OSPF neighbors, GRE tunnel status
+
+"Inject route 192.168.50.0/24 with local-pref 200"
+--> servicenow-change-workflow (CR) + protocol-participation: bgp_get_rib (pre-check), bgp_inject_route(network, local_pref=200), bgp_get_rib (verify), GAIT audit
+
+"Withdraw the blackhole route for 10.99.0.0/16"
+--> servicenow-change-workflow (CR) + protocol-participation: bgp_get_rib(prefix) (verify exists), bgp_withdraw_route(network), bgp_get_rib(prefix) (verify removed), GAIT audit
+
+"Check Docker container health across all Linux hosts"
+--> pyats-linux-system: pyats_list_devices (identify Linux hosts), pyats_run_linux_command("docker stats --no-stream") per host, analyze CPU/memory per container, GAIT audit
+
+"Check OSPF and BGP health on all Juniper routers"
+--> pyats-junos-routing: show ospf neighbor, show bgp summary per device, flag non-Full/non-Established, GAIT audit
+
+"How many AnyConnect sessions are active on the ASA?"
+--> pyats-asa-firewall: show vpn-sessiondb anyconnect, show vpn-sessiondb summary, show ip local pool, GAIT audit
 ```
 
 See `examples/` for detailed workflow walkthroughs.
@@ -1164,4 +1738,4 @@ See `examples/` for detailed workflow walkthroughs.
 | Mission | Status | Summary |
 |---|---|---|
 | MISSION01 | Complete | Core pyATS agent, 7 skills, Markmap, Draw.io, RFC, NVD CVE, SOUL v1 |
-| MISSION02 | Complete | Full platform — 31 MCP servers, 53 skills (9 pyATS, 7 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 2 NSO, 1 FMC, 5 AWS, 3 GCP, 6 utility, 4 Slack), 6 workspace files, SOUL v2 |
+| MISSION02 | Complete | Full platform — 42 MCP servers, 77 skills (18 pyATS, 9 domain, 3 F5, 3 CatC, 3 M365, 1 GitHub, 1 packet analysis, 5 CML, 2 NSO, 1 Itential, 1 FMC, 1 RADKit, 5 Meraki, 2 ThousandEyes, 5 AWS, 3 GCP, 1 JunOS, 1 Arista CVP, 1 UML, 1 protocol participation, 7 utility, 4 Slack), 6 workspace files, SOUL v2 |

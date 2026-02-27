@@ -150,6 +150,86 @@ else
 fi
 echo ""
 
+# --- Nautobot ---
+if yesno "Do you have a Nautobot instance? (alternative to NetBox for source of truth)"; then
+    echo ""
+    echo -e "  Nautobot MCP provides read-only IPAM queries — IP addresses, prefixes, VRF/tenant/site."
+    echo -e "  Get your API token from: ${BOLD}Nautobot → Admin → API Tokens${NC}"
+    echo ""
+    prompt NAUTOBOT_URL_VAL "Nautobot URL (https://nautobot.example.com)" ""
+    prompt_secret NAUTOBOT_KEY "Nautobot API Token (read permissions)"
+    [ -n "$NAUTOBOT_URL_VAL" ] && set_env "NAUTOBOT_URL" "$NAUTOBOT_URL_VAL"
+    [ -n "$NAUTOBOT_KEY" ] && set_env "NAUTOBOT_TOKEN" "$NAUTOBOT_KEY"
+    ok "Nautobot configured"
+else
+    skip "Nautobot"
+fi
+echo ""
+
+# --- OpsMill Infrahub ---
+if yesno "Do you have an OpsMill Infrahub instance? (schema-driven infrastructure source of truth)"; then
+    echo ""
+    echo -e "  Infrahub MCP provides schema-driven infrastructure queries with versioned branches."
+    echo -e "  10 tools: nodes, schemas, GraphQL, branches."
+    echo -e "  Get your API token from: ${BOLD}Infrahub UI → Settings → API Tokens${NC}"
+    echo ""
+    prompt INFRAHUB_ADDR "Infrahub URL (http://infrahub.example.com:8000)" ""
+    prompt_secret INFRAHUB_KEY "Infrahub API Token"
+    [ -n "$INFRAHUB_ADDR" ] && set_env "INFRAHUB_ADDRESS" "$INFRAHUB_ADDR"
+    [ -n "$INFRAHUB_KEY" ] && set_env "INFRAHUB_API_TOKEN" "$INFRAHUB_KEY"
+    ok "OpsMill Infrahub configured"
+else
+    skip "OpsMill Infrahub"
+fi
+echo ""
+
+# --- Itential Automation Platform ---
+if yesno "Do you have an Itential Automation Platform (IAP) instance? (network automation orchestration)"; then
+    echo ""
+    echo -e "  Itential MCP provides 65+ tools: config mgmt, compliance, workflows, golden config, lifecycle."
+    echo ""
+    prompt ITENTIAL_HOST "IAP hostname (itential.example.com)" ""
+    prompt ITENTIAL_USER "IAP Username" ""
+    prompt_secret ITENTIAL_PASS "IAP Password"
+    [ -n "$ITENTIAL_HOST" ] && set_env "ITENTIAL_MCP_PLATFORM_HOST" "$ITENTIAL_HOST"
+    [ -n "$ITENTIAL_USER" ] && set_env "ITENTIAL_MCP_PLATFORM_USER" "$ITENTIAL_USER"
+    [ -n "$ITENTIAL_PASS" ] && set_env "ITENTIAL_MCP_PLATFORM_PASSWORD" "$ITENTIAL_PASS"
+    ok "Itential IAP configured"
+else
+    skip "Itential IAP"
+fi
+echo ""
+
+# --- Juniper JunOS ---
+if yesno "Do you have Juniper JunOS devices? (PyEZ/NETCONF automation)"; then
+    echo ""
+    echo -e "  JunOS MCP provides 10 tools: CLI execution, config management, Jinja2 templates, device facts, batch operations."
+    echo -e "  Devices are defined in a JSON inventory file (not environment variables)."
+    echo ""
+    prompt JUNOS_DEVICES "Path to devices.json inventory file" "devices.json"
+    [ -n "$JUNOS_DEVICES" ] && set_env "JUNOS_DEVICES_FILE" "$JUNOS_DEVICES"
+    ok "Juniper JunOS configured"
+else
+    skip "Juniper JunOS"
+fi
+echo ""
+
+# --- Arista CloudVision ---
+if yesno "Do you have an Arista CloudVision Portal (CVP) instance? (Arista network management)"; then
+    echo ""
+    echo -e "  CVP MCP provides 4 tools: device inventory, events, connectivity monitoring, tag management."
+    echo -e "  Generate a service account token from: ${BOLD}CVP → Settings → Service Accounts${NC}"
+    echo ""
+    prompt CVP_HOST "CloudVision hostname (e.g., www.arista.io)" ""
+    prompt_secret CVP_TOKEN_VAL "CVP Service Account Token"
+    [ -n "$CVP_HOST" ] && set_env "CVP" "$CVP_HOST"
+    [ -n "$CVP_TOKEN_VAL" ] && set_env "CVPTOKEN" "$CVP_TOKEN_VAL"
+    ok "Arista CloudVision configured"
+else
+    skip "Arista CloudVision"
+fi
+echo ""
+
 # --- ServiceNow ---
 if yesno "Do you have a ServiceNow instance?"; then
     echo ""
@@ -382,6 +462,29 @@ else
 fi
 echo ""
 
+# --- Cisco Meraki ---
+if yesno "Do you have a Cisco Meraki Dashboard? (wireless, switching, security, cameras)"; then
+    echo ""
+    echo -e "  Meraki Magic MCP connects to the Meraki Dashboard API (~804 endpoints)."
+    echo -e "  Get your API key from: ${BOLD}Dashboard → Organization → Settings → Dashboard API access${NC}"
+    echo -e "  Get your Org ID from: ${BOLD}Dashboard → Organization → Overview (URL contains org ID)${NC}"
+    echo ""
+    prompt_secret MERAKI_KEY "Meraki Dashboard API Key"
+    prompt MERAKI_ORG "Meraki Organization ID" ""
+    if yesno "Enable read-only mode? (blocks all write operations)" "n"; then
+        MERAKI_RO="true"
+    else
+        MERAKI_RO="false"
+    fi
+    [ -n "$MERAKI_KEY" ] && set_env "MERAKI_API_KEY" "$MERAKI_KEY"
+    [ -n "$MERAKI_ORG" ] && set_env "MERAKI_ORG_ID" "$MERAKI_ORG"
+    set_env "READ_ONLY_MODE" "$MERAKI_RO"
+    ok "Cisco Meraki configured"
+else
+    skip "Cisco Meraki"
+fi
+echo ""
+
 # --- Cisco FMC (Secure Firewall) ---
 if yesno "Do you have a Cisco Secure Firewall Management Center (FMC)?"; then
     echo ""
@@ -403,6 +506,40 @@ if yesno "Do you have a Cisco Secure Firewall Management Center (FMC)?"; then
     ok "Cisco FMC configured"
 else
     skip "Cisco FMC"
+fi
+# --- Cisco ThousandEyes ---
+if yesno "Do you have a Cisco ThousandEyes account? (network monitoring, path visualization, BGP)"; then
+    echo ""
+    echo -e "  ThousandEyes uses two MCP servers:"
+    echo -e "    Community (local, 9 tools) — tests, agents, path vis, dashboards"
+    echo -e "    Official (remote, ~20 tools) — alerts, outages, BGP, instant tests, endpoint agents"
+    echo -e "  Both use the same API token."
+    echo -e "  Get your token from: ${BOLD}ThousandEyes → Account Settings → Users & Roles → OAuth Bearer Token${NC}"
+    echo ""
+    prompt_secret TE_KEY "ThousandEyes API v7 OAuth Bearer Token"
+    [ -n "$TE_KEY" ] && set_env "TE_TOKEN" "$TE_KEY"
+    ok "Cisco ThousandEyes configured (both community and official servers)"
+else
+    skip "Cisco ThousandEyes"
+fi
+echo ""
+
+# --- Cisco RADKit ---
+if yesno "Do you have a Cisco RADKit service instance? (cloud-relayed remote device access)"; then
+    echo ""
+    echo -e "  RADKit provides cloud-relayed access to on-premises network devices."
+    echo -e "  Your RADKit service must be running and devices onboarded."
+    echo -e "  Auth: certificate-based identity (generated during RADKit onboarding)."
+    echo ""
+    prompt RADKIT_ID "RADKit Identity (your email address)" ""
+    prompt RADKIT_SERIAL "RADKit Service Serial (service instance identifier)" ""
+    [ -n "$RADKIT_ID" ] && set_env "RADKIT_IDENTITY" "$RADKIT_ID"
+    [ -n "$RADKIT_SERIAL" ] && set_env "RADKIT_DEFAULT_SERVICE_SERIAL" "$RADKIT_SERIAL"
+    ok "Cisco RADKit configured"
+    echo -e "  ${DIM}Note: Certificate files are auto-detected from ~/.radkit/identities/${NC}"
+    echo -e "  ${DIM}For container deployment, set RADKIT_CERT_B64, RADKIT_KEY_B64, RADKIT_CA_B64${NC}"
+else
+    skip "Cisco RADKit"
 fi
 echo ""
 
@@ -454,6 +591,11 @@ echo ""
 echo "  What's configured:"
 
 grep -q "^NETBOX_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "NetBox" || skip "NetBox"
+grep -q "^NAUTOBOT_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Nautobot" || skip "Nautobot"
+grep -q "^INFRAHUB_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "OpsMill Infrahub" || skip "OpsMill Infrahub"
+grep -q "^ITENTIAL_MCP_PLATFORM_HOST=" "$OPENCLAW_ENV" 2>/dev/null && ok "Itential IAP" || skip "Itential IAP"
+grep -q "^JUNOS_DEVICES_FILE=" "$OPENCLAW_ENV" 2>/dev/null && ok "Juniper JunOS" || skip "Juniper JunOS"
+grep -q "^CVP=" "$OPENCLAW_ENV" 2>/dev/null && ok "Arista CloudVision" || skip "Arista CloudVision"
 grep -q "^SERVICENOW_INSTANCE_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "ServiceNow" || skip "ServiceNow"
 grep -q "^APIC_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco ACI" || skip "Cisco ACI"
 grep -q "^ISE_BASE=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco ISE" || skip "Cisco ISE"
@@ -466,7 +608,12 @@ grep -q "^CML_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco CML" || skip "Cisco
 grep -q "^NSO_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco NSO" || skip "Cisco NSO"
 grep -q "^AWS_ACCESS_KEY_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "AWS Cloud" || skip "AWS Cloud"
 grep -q "^GCP_PROJECT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Google Cloud" || skip "Google Cloud"
+grep -q "^MERAKI_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco Meraki" || skip "Cisco Meraki"
 grep -q "^FMC_BASE_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco FMC" || skip "Cisco FMC"
+grep -q "^TE_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco ThousandEyes" || skip "Cisco ThousandEyes"
+grep -q "^RADKIT_IDENTITY=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco RADKit" || skip "Cisco RADKit"
+[ -d "$NETCLAW_DIR/mcp-servers/uml-mcp" ] && ok "UML Diagrams (Kroki — no credentials required)" || skip "UML Diagrams"
+grep -q "^NETCLAW_ROUTER_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Protocol Participation (BGP/OSPF/GRE)" || skip "Protocol Participation"
 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"

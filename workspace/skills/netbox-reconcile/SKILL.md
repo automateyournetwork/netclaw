@@ -12,7 +12,7 @@ Compare NetBox (source of truth) intent against live device state collected via 
 
 ## Golden Rule
 
-**NetBox is READ-ONLY.** Discrepancies are reported and ticketed. They are NEVER auto-corrected. NetBox is the intended state. If reality differs from NetBox, either the network is wrong or NetBox needs a human to update it. NetClaw does not make that decision.
+**NetBox is READ-WRITE.** The MCP has full API access to create and update devices, IPs, interfaces, VLANs, and cables. However, during reconciliation, discrepancies are reported and ticketed first — they are NEVER auto-corrected without explicit human approval. NetBox is the intended state. If reality differs from NetBox, either the network is wrong or NetBox needs updating. NetClaw can update NetBox when explicitly authorized by the operator.
 
 ## How to Call the Tools
 

@@ -17,7 +17,7 @@
 
 - **Testbed:** Defined in `testbed/testbed.yaml`
 - **Platforms:** (list your platforms, e.g., IOS-XE, NX-OS, IOS-XR, ACI, F5)
-- **Source of Truth:** NetBox (read-only)
+- **Source of Truth:** NetBox (read-write)
 - **ITSM:** ServiceNow
 
 ## Notes

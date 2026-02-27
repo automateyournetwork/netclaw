@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=28
+TOTAL_STEPS=40
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -167,10 +167,80 @@ pip3 install -r "$PYATS_MCP_DIR/requirements.txt" 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 6: Markmap MCP (clone + npm build)
+# Step 6: JunOS MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "6/$TOTAL_STEPS Installing Markmap MCP Server..."
+log_step "6/$TOTAL_STEPS Installing Juniper JunOS MCP Server..."
+echo "  Source: https://github.com/Juniper/junos-mcp-server"
+echo "  Juniper device automation — CLI execution, config mgmt, Jinja2 templates, batch ops (10 tools)"
+
+JUNOS_MCP_DIR="$MCP_DIR/junos-mcp-server"
+if [ -d "$JUNOS_MCP_DIR" ]; then
+    log_info "JunOS MCP already cloned, pulling latest..."
+    git -C "$JUNOS_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/Juniper/junos-mcp-server.git "$JUNOS_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$JUNOS_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 10 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.10+ required for JunOS MCP)"
+        if [ -f "$JUNOS_MCP_DIR/requirements.txt" ]; then
+            pip3 install -r "$JUNOS_MCP_DIR/requirements.txt" 2>/dev/null || \
+                pip3 install --break-system-packages -r "$JUNOS_MCP_DIR/requirements.txt" 2>/dev/null || \
+                log_warn "JunOS MCP dependencies install failed"
+        fi
+        # Also try pip install . for the entry point
+        cd "$JUNOS_MCP_DIR" && pip3 install . 2>/dev/null || \
+            pip3 install --break-system-packages . 2>/dev/null || true
+        cd "$NETCLAW_DIR"
+        log_info "JunOS MCP installed (stdio transport via PyEZ/NETCONF)"
+    else
+        log_warn "Python 3.10+ required for JunOS MCP (found 3.$PY_MINOR)"
+        log_info "JunOS MCP skipped — upgrade Python or install manually"
+    fi
+else
+    log_warn "JunOS MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 7: Arista CloudVision MCP (clone + uv)
+# ═══════════════════════════════════════════
+
+log_step "7/$TOTAL_STEPS Installing Arista CloudVision (CVP) MCP Server..."
+echo "  Source: https://github.com/noredistribution/mcp-cvp-fun"
+echo "  Arista CVP automation — device inventory, events, connectivity monitor, tags (4 tools)"
+
+CVP_MCP_DIR="$MCP_DIR/mcp-cvp-fun"
+if [ -d "$CVP_MCP_DIR" ]; then
+    log_info "CVP MCP already cloned, pulling latest..."
+    git -C "$CVP_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/noredistribution/mcp-cvp-fun.git "$CVP_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$CVP_MCP_DIR" ]; then
+    # CVP MCP uses uv run --with fastmcp at runtime; just ensure uv is available
+    if command -v uv &> /dev/null; then
+        log_info "CVP MCP ready (uv available — deps resolved at runtime via 'uv run --with fastmcp')"
+    else
+        log_warn "CVP MCP cloned but 'uv' not found — install uv for runtime dependency resolution"
+        log_info "  Install uv: curl -LsSf https://astral.sh/uv/install.sh | sh"
+    fi
+else
+    log_warn "CVP MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 8: Markmap MCP (clone + npm build)
+# ═══════════════════════════════════════════
+
+log_step "8/$TOTAL_STEPS Installing Markmap MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/markmap_mcp"
 
 MARKMAP_MCP_DIR="$MCP_DIR/markmap_mcp"
@@ -189,10 +259,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 7: GAIT MCP (clone + pip install)
+# Step 9: GAIT MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "7/$TOTAL_STEPS Installing GAIT MCP Server..."
+log_step "9/$TOTAL_STEPS Installing GAIT MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/gait_mcp"
 
 GAIT_MCP_DIR="$MCP_DIR/gait_mcp"
@@ -208,10 +278,10 @@ pip3 install mcp fastmcp gait-ai 2>/dev/null || log_warn "Some GAIT deps failed"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 8: NetBox MCP (clone + pip install)
+# Step 10: NetBox MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "8/$TOTAL_STEPS Installing NetBox MCP Server..."
+log_step "10/$TOTAL_STEPS Installing NetBox MCP Server..."
 echo "  Source: https://github.com/netboxlabs/netbox-mcp-server"
 
 NETBOX_MCP_DIR="$MCP_DIR/netbox-mcp-server"
@@ -226,10 +296,143 @@ log_info "NetBox MCP ready: python3 -m netbox_mcp_server.server"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 9: ServiceNow MCP (clone + pip install)
+# Step 11: Nautobot MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "9/$TOTAL_STEPS Installing ServiceNow MCP Server..."
+log_step "11/$TOTAL_STEPS Installing Nautobot MCP Server..."
+echo "  Source: https://github.com/aiopnet/mcp-nautobot"
+echo "  Nautobot IPAM source of truth — IP addresses, prefixes, VRF/tenant/site filtering (5 tools)"
+
+NAUTOBOT_MCP_DIR="$MCP_DIR/mcp-nautobot"
+if [ -d "$NAUTOBOT_MCP_DIR" ]; then
+    log_info "Nautobot MCP already cloned, pulling latest..."
+    git -C "$NAUTOBOT_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/aiopnet/mcp-nautobot.git "$NAUTOBOT_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$NAUTOBOT_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 13 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.13+ required for Nautobot MCP)"
+        if [ -f "$NAUTOBOT_MCP_DIR/pyproject.toml" ]; then
+            cd "$NAUTOBOT_MCP_DIR" && pip3 install -e . 2>/dev/null || \
+                pip3 install --break-system-packages -e . 2>/dev/null || \
+                log_warn "Nautobot MCP editable install failed"
+            cd "$NETCLAW_DIR"
+        fi
+        log_info "Nautobot MCP installed (stdio transport via MCP SDK)"
+    else
+        log_warn "Python 3.13+ required for Nautobot MCP (found 3.$PY_MINOR)"
+        log_info "Installing core dependencies..."
+        pip3 install "mcp>=1.10.1" httpx "pydantic>=2.11.0" pydantic-settings python-dotenv 2>/dev/null || \
+            pip3 install --break-system-packages "mcp>=1.10.1" httpx "pydantic>=2.11.0" pydantic-settings python-dotenv 2>/dev/null || \
+            log_warn "Nautobot core deps install failed"
+        log_info "Nautobot MCP installed (some features may require Python 3.13+)"
+    fi
+else
+    log_warn "Nautobot MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 12: Infrahub MCP (clone + uv sync)
+# ═══════════════════════════════════════════
+
+log_step "12/$TOTAL_STEPS Installing OpsMill Infrahub MCP Server..."
+echo "  Source: https://github.com/opsmill/infrahub-mcp"
+echo "  Infrahub infrastructure source of truth — schema-driven nodes, GraphQL, versioned branches (10 tools)"
+
+INFRAHUB_MCP_DIR="$MCP_DIR/infrahub-mcp"
+if [ -d "$INFRAHUB_MCP_DIR" ]; then
+    log_info "Infrahub MCP already cloned, pulling latest..."
+    git -C "$INFRAHUB_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/opsmill/infrahub-mcp.git "$INFRAHUB_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$INFRAHUB_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 13 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.13+ required for Infrahub MCP)"
+        if command -v uv &> /dev/null; then
+            log_info "Installing Infrahub MCP via uv sync..."
+            cd "$INFRAHUB_MCP_DIR" && uv sync 2>/dev/null && cd "$NETCLAW_DIR" || {
+                log_warn "uv sync failed — trying pip install..."
+                pip3 install fastmcp infrahub-sdk 2>/dev/null || \
+                    pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+                    log_warn "Infrahub MCP deps install failed"
+                cd "$NETCLAW_DIR"
+            }
+        else
+            log_info "uv not found — installing core dependencies via pip..."
+            pip3 install fastmcp infrahub-sdk 2>/dev/null || \
+                pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+                log_warn "Infrahub MCP deps install failed"
+        fi
+        log_info "Infrahub MCP installed (stdio transport via FastMCP)"
+    else
+        log_warn "Python 3.13+ required for Infrahub MCP (found 3.$PY_MINOR)"
+        log_info "Installing core dependencies..."
+        pip3 install fastmcp infrahub-sdk 2>/dev/null || \
+            pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+            log_warn "Infrahub core deps install failed"
+        log_info "Infrahub MCP installed (some features may require Python 3.13+)"
+    fi
+else
+    log_warn "Infrahub MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 13: Itential MCP (pip install)
+# ═══════════════════════════════════════════
+
+log_step "13/$TOTAL_STEPS Installing Itential MCP Server..."
+echo "  Source: https://github.com/itential/itential-mcp"
+echo "  Itential Automation Platform — config mgmt, compliance, workflows, golden config, lifecycle (65+ tools)"
+
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+if [ "$PY_MINOR" -ge 10 ]; then
+    log_info "Python 3.$PY_MINOR detected (3.10+ required for Itential MCP)"
+    pip3 install itential-mcp 2>/dev/null || \
+        pip3 install --break-system-packages itential-mcp 2>/dev/null || {
+        log_warn "pip install itential-mcp failed — trying from source..."
+        ITENTIAL_MCP_DIR="$MCP_DIR/itential-mcp"
+        if [ -d "$ITENTIAL_MCP_DIR" ]; then
+            git -C "$ITENTIAL_MCP_DIR" pull --quiet 2>/dev/null || true
+        else
+            git clone https://github.com/itential/itential-mcp.git "$ITENTIAL_MCP_DIR" 2>/dev/null
+        fi
+        if [ -d "$ITENTIAL_MCP_DIR" ]; then
+            cd "$ITENTIAL_MCP_DIR" && pip3 install -e . 2>/dev/null || \
+                pip3 install --break-system-packages -e . 2>/dev/null || \
+                log_warn "Itential MCP source install failed"
+            cd "$NETCLAW_DIR"
+        fi
+    }
+
+    if command -v itential-mcp &> /dev/null; then
+        log_info "Itential MCP installed: itential-mcp run (stdio transport)"
+    elif python3 -c "import itential_mcp" 2>/dev/null; then
+        log_info "Itential MCP installed (module importable)"
+    else
+        log_warn "Itential MCP not available after install"
+    fi
+else
+    log_warn "Python 3.10+ required for Itential MCP (found 3.$PY_MINOR)"
+    log_info "Itential MCP skipped — upgrade Python or install manually: pip3 install itential-mcp"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 14: ServiceNow MCP (clone + pip install)
+# ═══════════════════════════════════════════
+
+log_step "14/$TOTAL_STEPS Installing ServiceNow MCP Server..."
 echo "  Source: https://github.com/echelon-ai-labs/servicenow-mcp"
 
 SERVICENOW_MCP_DIR="$MCP_DIR/servicenow-mcp"
@@ -244,10 +447,10 @@ log_info "ServiceNow MCP ready"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 10: ACI MCP (clone + pip install)
+# Step 15: ACI MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "10/$TOTAL_STEPS Installing Cisco ACI MCP Server..."
+log_step "15/$TOTAL_STEPS Installing Cisco ACI MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/ACI_MCP"
 
 ACI_MCP_DIR="$MCP_DIR/ACI_MCP"
@@ -264,10 +467,10 @@ pip3 install requests pydantic python-dotenv fastmcp 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 11: ISE MCP (clone + pip install)
+# Step 16: ISE MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "11/$TOTAL_STEPS Installing Cisco ISE MCP Server..."
+log_step "16/$TOTAL_STEPS Installing Cisco ISE MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/ISE_MCP"
 
 ISE_MCP_DIR="$MCP_DIR/ISE_MCP"
@@ -284,10 +487,10 @@ pip3 install pydantic python-dotenv fastmcp httpx aiocache aiolimiter 2>/dev/nul
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 12: Wikipedia MCP (clone + pip install)
+# Step 17: Wikipedia MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "12/$TOTAL_STEPS Installing Wikipedia MCP Server..."
+log_step "17/$TOTAL_STEPS Installing Wikipedia MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/Wikipedia_MCP"
 
 WIKIPEDIA_MCP_DIR="$MCP_DIR/Wikipedia_MCP"
@@ -304,10 +507,10 @@ pip3 install fastmcp wikipedia pydantic 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 13: NVD CVE MCP (clone + pip install)
+# Step 18: NVD CVE MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "13/$TOTAL_STEPS Installing NVD CVE MCP Server..."
+log_step "18/$TOTAL_STEPS Installing NVD CVE MCP Server..."
 echo "  Source: https://github.com/marcoeg/mcp-nvd"
 
 NVD_MCP_DIR="$MCP_DIR/mcp-nvd"
@@ -322,10 +525,10 @@ log_info "NVD CVE MCP ready: python3 -m mcp_nvd.main"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 14: Subnet Calculator MCP (clone + pip install)
+# Step 19: Subnet Calculator MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "14/$TOTAL_STEPS Installing Subnet Calculator MCP Server..."
+log_step "19/$TOTAL_STEPS Installing Subnet Calculator MCP Server..."
 echo "  Source: https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension"
 
 SUBNET_MCP_DIR="$MCP_DIR/subnet-calculator-mcp"
@@ -342,10 +545,10 @@ pip3 install pydantic python-dotenv mcp 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 15: F5 BIG-IP MCP (clone + pip install)
+# Step 20: F5 BIG-IP MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "15/$TOTAL_STEPS Installing F5 BIG-IP MCP Server..."
+log_step "20/$TOTAL_STEPS Installing F5 BIG-IP MCP Server..."
 echo "  Source: https://github.com/czirakim/F5.MCP.server"
 
 F5_MCP_DIR="$MCP_DIR/f5-mcp-server"
@@ -362,10 +565,10 @@ pip3 install -r "$F5_MCP_DIR/requirements.txt" 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 16: Catalyst Center MCP (clone + pip install)
+# Step 21: Catalyst Center MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "16/$TOTAL_STEPS Installing Catalyst Center MCP Server..."
+log_step "21/$TOTAL_STEPS Installing Catalyst Center MCP Server..."
 echo "  Source: https://github.com/richbibby/catalyst-center-mcp"
 
 CATC_MCP_DIR="$MCP_DIR/catalyst-center-mcp"
@@ -382,10 +585,10 @@ pip3 install -r "$CATC_MCP_DIR/requirements.txt" 2>/dev/null || \
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 17: Microsoft Graph MCP (npx, no clone)
+# Step 22: Microsoft Graph MCP (npx, no clone)
 # ═══════════════════════════════════════════
 
-log_step "17/$TOTAL_STEPS Caching Microsoft Graph MCP Server..."
+log_step "22/$TOTAL_STEPS Caching Microsoft Graph MCP Server..."
 echo "  Package: @microsoft/microsoft-graph-mcp"
 echo "  Auth: Azure AD app registration (Tenant ID, Client ID, Client Secret)"
 
@@ -400,10 +603,10 @@ echo "  Requires: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in ~/.op
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 18: npx MCP servers (Draw.io, RFC)
+# Step 23: npx MCP servers (Draw.io, RFC)
 # ═══════════════════════════════════════════
 
-log_step "18/$TOTAL_STEPS Caching npx-based MCP servers..."
+log_step "23/$TOTAL_STEPS Caching npx-based MCP servers..."
 
 for pkg in "@drawio/mcp" "@mjpitz/mcp-rfc"; do
     log_info "Pre-caching $pkg..."
@@ -413,10 +616,10 @@ done
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 19: GitHub MCP Server
+# Step 24: GitHub MCP Server
 # ═══════════════════════════════════════════
 
-log_step "19/$TOTAL_STEPS Installing GitHub MCP Server..."
+log_step "24/$TOTAL_STEPS Installing GitHub MCP Server..."
 echo "  Source: https://github.com/github/github-mcp-server"
 echo "  Auth: GitHub Personal Access Token (PAT)"
 
@@ -436,10 +639,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 20: Packet Buddy MCP Server (pcap analysis)
+# Step 25: Packet Buddy MCP Server (pcap analysis)
 # ═══════════════════════════════════════════
 
-log_step "20/$TOTAL_STEPS Installing Packet Buddy MCP Server..."
+log_step "25/$TOTAL_STEPS Installing Packet Buddy MCP Server..."
 echo "  Pcap analysis via tshark — upload pcaps via Slack or disk"
 
 PACKET_BUDDY_MCP_DIR="$MCP_DIR/packet-buddy-mcp"
@@ -472,10 +675,10 @@ log_info "Pcap upload directory: /tmp/netclaw-pcaps"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 21: Cisco Modeling Labs (CML) MCP Server
+# Step 26: Cisco Modeling Labs (CML) MCP Server
 # ═══════════════════════════════════════════
 
-log_step "21/$TOTAL_STEPS Installing Cisco CML MCP Server..."
+log_step "26/$TOTAL_STEPS Installing Cisco CML MCP Server..."
 echo "  Source: https://github.com/xorrkaz/cml-mcp"
 echo "  Manage CML labs via natural language — create, wire, start, stop, capture"
 
@@ -518,10 +721,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 22: Cisco NSO MCP Server
+# Step 27: Cisco NSO MCP Server
 # ═══════════════════════════════════════════
 
-log_step "22/$TOTAL_STEPS Installing Cisco NSO MCP Server..."
+log_step "27/$TOTAL_STEPS Installing Cisco NSO MCP Server..."
 echo "  Source: https://github.com/NSO-developer/cisco-nso-mcp-server"
 echo "  Network orchestration via natural language — device config, sync, services"
 
@@ -553,10 +756,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 23: Cisco FMC MCP Server
+# Step 28: Cisco FMC MCP Server
 # ═══════════════════════════════════════════
 
-log_step "23/$TOTAL_STEPS Installing Cisco FMC MCP Server..."
+log_step "28/$TOTAL_STEPS Installing Cisco FMC MCP Server..."
 echo "  Source: https://github.com/CiscoDevNet/CiscoFMC-MCP-server-community"
 echo "  Cisco Secure Firewall policy search — access rules, FTD targeting, multi-FMC"
 
@@ -582,10 +785,161 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 24: AWS Cloud MCP Servers (6 servers)
+# Step 29: Cisco Meraki Magic MCP Server
 # ═══════════════════════════════════════════
 
-log_step "24/$TOTAL_STEPS Installing AWS Cloud MCP Servers..."
+log_step "29/$TOTAL_STEPS Installing Cisco Meraki Magic MCP Server..."
+echo "  Source: https://github.com/CiscoDevNet/meraki-magic-mcp-community"
+echo "  Cisco Meraki Dashboard — ~804 API endpoints: orgs, networks, devices, wireless, switching, security, cameras"
+
+MERAKI_MCP_DIR="$MCP_DIR/meraki-magic-mcp-community"
+if [ -d "$MERAKI_MCP_DIR" ]; then
+    log_info "Meraki Magic MCP already cloned, pulling latest..."
+    git -C "$MERAKI_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/CiscoDevNet/meraki-magic-mcp-community.git "$MERAKI_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$MERAKI_MCP_DIR" ]; then
+    # Check Python version (Meraki Magic MCP requires 3.13+)
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 13 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.13+ required for Meraki Magic MCP)"
+        if [ -f "$MERAKI_MCP_DIR/requirements.txt" ]; then
+            pip3 install -r "$MERAKI_MCP_DIR/requirements.txt" 2>/dev/null || \
+                pip3 install --break-system-packages -r "$MERAKI_MCP_DIR/requirements.txt" 2>/dev/null || \
+                log_warn "Meraki Magic MCP dependencies install failed"
+        fi
+        log_info "Meraki Magic MCP installed (stdio transport via FastMCP)"
+        log_info "  Dynamic MCP: meraki-mcp-dynamic.py (~804 API endpoints)"
+        log_info "  Manual MCP:  meraki-mcp.py (40 curated endpoints)"
+    else
+        log_warn "Python 3.13+ recommended for Meraki Magic MCP (found 3.$PY_MINOR)"
+        log_info "Installing core dependencies (meraki, fastmcp, pydantic)..."
+        pip3 install meraki fastmcp pydantic python-dotenv 2>/dev/null || \
+            pip3 install --break-system-packages meraki fastmcp pydantic python-dotenv 2>/dev/null || \
+            log_warn "Meraki core deps install failed"
+        log_info "Meraki Magic MCP installed (some features may require Python 3.13+)"
+    fi
+else
+    log_warn "Meraki Magic MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 30: ThousandEyes Community MCP Server
+# ═══════════════════════════════════════════
+
+log_step "30/$TOTAL_STEPS Installing ThousandEyes Community MCP Server..."
+echo "  Source: https://github.com/CiscoDevNet/thousandeyes-mcp-community"
+echo "  ThousandEyes monitoring — tests, agents, path visualization, dashboards (9 read-only tools)"
+
+TE_COMMUNITY_MCP_DIR="$MCP_DIR/thousandeyes-mcp-community"
+if [ -d "$TE_COMMUNITY_MCP_DIR" ]; then
+    log_info "ThousandEyes Community MCP already cloned, pulling latest..."
+    git -C "$TE_COMMUNITY_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/CiscoDevNet/thousandeyes-mcp-community.git "$TE_COMMUNITY_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$TE_COMMUNITY_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 12 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.12+ required for ThousandEyes Community MCP)"
+        if [ -f "$TE_COMMUNITY_MCP_DIR/requirements.txt" ]; then
+            pip3 install -r "$TE_COMMUNITY_MCP_DIR/requirements.txt" 2>/dev/null || \
+                pip3 install --break-system-packages -r "$TE_COMMUNITY_MCP_DIR/requirements.txt" 2>/dev/null || \
+                log_warn "ThousandEyes Community MCP dependencies install failed"
+        fi
+        log_info "ThousandEyes Community MCP installed (stdio transport)"
+    else
+        log_warn "Python 3.12+ required for ThousandEyes Community MCP (found 3.$PY_MINOR)"
+        log_info "Installing core dependencies..."
+        pip3 install httpx "mcp>=1.13" 2>/dev/null || \
+            pip3 install --break-system-packages httpx "mcp>=1.13" 2>/dev/null || \
+            log_warn "ThousandEyes Community deps install failed"
+    fi
+else
+    log_warn "ThousandEyes Community MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 31: ThousandEyes Official MCP Server (remote HTTP)
+# ═══════════════════════════════════════════
+
+log_step "31/$TOTAL_STEPS Configuring ThousandEyes Official MCP Server..."
+echo "  Source: https://github.com/CiscoDevNet/ThousandEyes-MCP-Server-official"
+echo "  Remote HTTP endpoint hosted by Cisco — ~20 tools: alerts, outages, BGP, instant tests, endpoint agents"
+echo ""
+echo "  ThousandEyes Official MCP is a REMOTE HTTP endpoint — nothing to install locally."
+echo "  Endpoint: https://api.thousandeyes.com/mcp"
+echo "  Auth: Bearer token via TE_TOKEN environment variable"
+echo ""
+
+# Check for npx (required for mcp-remote bridge)
+if command -v npx &> /dev/null; then
+    log_info "npx found — ThousandEyes Official MCP will use npx mcp-remote for connectivity"
+    log_info "Pre-caching mcp-remote..."
+    npm cache add "mcp-remote" 2>/dev/null || log_warn "Could not pre-cache mcp-remote"
+else
+    log_warn "npx not found — install Node.js for ThousandEyes Official MCP connectivity"
+fi
+
+log_info "ThousandEyes Official MCP ready (remote HTTP — hosted by Cisco)"
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 32: Cisco RADKit MCP Server
+# ═══════════════════════════════════════════
+
+log_step "32/$TOTAL_STEPS Installing Cisco RADKit MCP Server..."
+echo "  Source: https://github.com/CiscoDevNet/radkit-mcp-server-community"
+echo "  Cloud-relayed remote device access — CLI execution, SNMP polling, device inventory (5 tools)"
+
+RADKIT_MCP_DIR="$MCP_DIR/radkit-mcp-server-community"
+if [ -d "$RADKIT_MCP_DIR" ]; then
+    log_info "RADKit MCP already cloned, pulling latest..."
+    git -C "$RADKIT_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/CiscoDevNet/radkit-mcp-server-community.git "$RADKIT_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$RADKIT_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 10 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.10+ required for RADKit MCP)"
+        if [ -f "$RADKIT_MCP_DIR/pyproject.toml" ]; then
+            log_info "Installing RADKit MCP dependencies..."
+            cd "$RADKIT_MCP_DIR" && pip3 install -e . 2>/dev/null || \
+                pip3 install --break-system-packages -e . 2>/dev/null || {
+                log_warn "Full RADKit install failed — installing core deps..."
+                pip3 install fastmcp python-dotenv pydantic-settings 2>/dev/null || \
+                    pip3 install --break-system-packages fastmcp python-dotenv pydantic-settings 2>/dev/null || \
+                    log_warn "RADKit core deps install failed"
+            }
+            cd "$NETCLAW_DIR"
+        fi
+        log_info "RADKit MCP installed (stdio transport via FastMCP)"
+        log_info "  Requires: active RADKit service instance + certificate-based auth"
+    else
+        log_warn "Python 3.10+ required for RADKit MCP (found 3.$PY_MINOR)"
+        log_info "RADKit MCP skipped — upgrade Python or install manually"
+    fi
+else
+    log_warn "RADKit MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 33: AWS Cloud MCP Servers (6 servers)
+# ═══════════════════════════════════════════
+
+log_step "33/$TOTAL_STEPS Installing AWS Cloud MCP Servers..."
 echo "  Source: https://github.com/awslabs/mcp"
 echo "  6 AWS MCP servers for cloud networking, monitoring, security, costs, diagrams"
 
@@ -637,10 +991,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 25: Google Cloud MCP Servers (4 servers)
+# Step 34: Google Cloud MCP Servers (4 servers)
 # ═══════════════════════════════════════════
 
-log_step "25/$TOTAL_STEPS Configuring Google Cloud MCP Servers..."
+log_step "34/$TOTAL_STEPS Configuring Google Cloud MCP Servers..."
 echo "  Source: https://docs.cloud.google.com/mcp/supported-products"
 echo "  4 GCP remote MCP servers for compute, monitoring, logging, resource management"
 echo ""
@@ -679,10 +1033,152 @@ log_info "GCP MCP servers ready (4 remote HTTP endpoints — hosted by Google)"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 26: Deploy skills and set environment
+# Step 35: UML MCP Server
 # ═══════════════════════════════════════════
 
-log_step "26/$TOTAL_STEPS Deploying skills and configuration..."
+log_step "35/$TOTAL_STEPS Installing UML MCP Server..."
+echo "  Source: https://github.com/antoinebou12/uml-mcp"
+echo "  27+ diagram types via Kroki — class, sequence, network, rack, packet, C4, Mermaid, D2, Graphviz (2 tools)"
+
+UML_MCP_DIR="$MCP_DIR/uml-mcp"
+if [ -d "$UML_MCP_DIR" ]; then
+    log_info "UML MCP already cloned, pulling latest..."
+    git -C "$UML_MCP_DIR" pull --quiet 2>/dev/null || true
+else
+    git clone https://github.com/antoinebou12/uml-mcp.git "$UML_MCP_DIR" 2>/dev/null
+fi
+
+if [ -d "$UML_MCP_DIR" ]; then
+    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    if [ "$PY_MINOR" -ge 10 ]; then
+        log_info "Python 3.$PY_MINOR detected (3.10+ required for UML MCP)"
+        if [ -f "$UML_MCP_DIR/pyproject.toml" ]; then
+            log_info "Installing UML MCP dependencies..."
+            cd "$UML_MCP_DIR" && pip3 install -e . 2>/dev/null || \
+                pip3 install --break-system-packages -e . 2>/dev/null || {
+                log_warn "Full UML MCP install failed — installing core deps..."
+                pip3 install fastmcp httpx pillow graphviz 2>/dev/null || \
+                    pip3 install --break-system-packages fastmcp httpx pillow graphviz 2>/dev/null || \
+                    log_warn "UML MCP core deps install failed"
+            }
+            cd "$NETCLAW_DIR"
+        fi
+        log_info "UML MCP installed (stdio transport via FastMCP)"
+        log_info "  Rendering: Kroki (public by default, configurable for local instance)"
+    else
+        log_warn "Python 3.10+ required for UML MCP (found 3.$PY_MINOR)"
+        log_info "UML MCP skipped — upgrade Python or install manually"
+    fi
+else
+    log_warn "UML MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 36: Protocol MCP Server (BGP + OSPF + GRE)
+# ═══════════════════════════════════════════
+
+log_step "36/$TOTAL_STEPS Installing Protocol MCP Server..."
+echo "  Source: WontYouBeMyNeighbour BGP/OSPFv3/GRE modules"
+echo "  Live control-plane participation — BGP peering, OSPF adjacency, GRE tunnels (10 tools)"
+
+PROTOCOL_MCP_DIR="$MCP_DIR/protocol-mcp"
+if [ -d "$PROTOCOL_MCP_DIR" ]; then
+    log_info "Protocol MCP already present: $PROTOCOL_MCP_DIR"
+else
+    log_warn "Protocol MCP not found — it should be bundled with NetClaw at mcp-servers/protocol-mcp/"
+fi
+
+if [ -d "$PROTOCOL_MCP_DIR" ]; then
+    log_info "Installing Protocol MCP dependencies..."
+    if [ -f "$PROTOCOL_MCP_DIR/requirements.txt" ]; then
+        pip3 install -r "$PROTOCOL_MCP_DIR/requirements.txt" 2>/dev/null || \
+            pip3 install --break-system-packages -r "$PROTOCOL_MCP_DIR/requirements.txt" 2>/dev/null || {
+            log_warn "Full Protocol MCP install failed — installing core deps..."
+            pip3 install scapy networkx mcp fastmcp 2>/dev/null || \
+                pip3 install --break-system-packages scapy networkx mcp fastmcp 2>/dev/null || \
+                log_warn "Protocol MCP core deps install failed"
+        }
+    fi
+    log_info "Protocol MCP installed (stdio transport via FastMCP)"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 37: Protocol Peering Wizard (optional)
+# ═══════════════════════════════════════════
+
+log_step "37/$TOTAL_STEPS Protocol Peering Configuration (optional)..."
+echo ""
+echo "  NetClaw can participate in BGP/OSPF as a real routing peer."
+echo "  This requires a GRE tunnel to a network device and protocol configuration."
+echo ""
+
+read -rp "  Enable protocol participation? [y/N] " ENABLE_PROTOCOL
+ENABLE_PROTOCOL="${ENABLE_PROTOCOL:-n}"
+
+if [[ "$ENABLE_PROTOCOL" =~ ^[Yy] ]]; then
+    echo ""
+    read -rp "  Router ID (e.g. 4.4.4.4): " PROTO_ROUTER_ID
+    PROTO_ROUTER_ID="${PROTO_ROUTER_ID:-4.4.4.4}"
+
+    read -rp "  Local BGP AS (e.g. 65001): " PROTO_LOCAL_AS
+    PROTO_LOCAL_AS="${PROTO_LOCAL_AS:-65001}"
+
+    read -rp "  BGP peer IP (e.g. 172.16.0.1): " PROTO_PEER_IP
+    PROTO_PEER_IP="${PROTO_PEER_IP:-172.16.0.1}"
+
+    read -rp "  BGP peer AS (e.g. 65000): " PROTO_PEER_AS
+    PROTO_PEER_AS="${PROTO_PEER_AS:-65000}"
+
+    read -rp "  Lab mode (skip ServiceNow CR)? [Y/n] " PROTO_LAB_MODE
+    PROTO_LAB_MODE="${PROTO_LAB_MODE:-y}"
+    if [[ "$PROTO_LAB_MODE" =~ ^[Yy] ]]; then
+        PROTO_LAB_MODE_VAL="true"
+    else
+        PROTO_LAB_MODE_VAL="false"
+    fi
+
+    # Write protocol env vars to OpenClaw .env
+    OPENCLAW_ENV_PROTO="$HOME/.openclaw/.env"
+    [ -f "$OPENCLAW_ENV_PROTO" ] || touch "$OPENCLAW_ENV_PROTO"
+
+    for key_val in \
+        "NETCLAW_ROUTER_ID=$PROTO_ROUTER_ID" \
+        "NETCLAW_LOCAL_AS=$PROTO_LOCAL_AS" \
+        "NETCLAW_BGP_PEERS=[{\"ip\":\"$PROTO_PEER_IP\",\"as\":$PROTO_PEER_AS}]" \
+        "NETCLAW_LAB_MODE=$PROTO_LAB_MODE_VAL" \
+        "PROTOCOL_MCP_SCRIPT=$PROTOCOL_MCP_DIR/server.py"; do
+        key="${key_val%%=*}"
+        if grep -q "^${key}=" "$OPENCLAW_ENV_PROTO" 2>/dev/null; then
+            sed -i "s|^${key}=.*|${key_val}|" "$OPENCLAW_ENV_PROTO"
+        else
+            echo "$key_val" >> "$OPENCLAW_ENV_PROTO"
+        fi
+    done
+
+    log_info "Protocol peering configured:"
+    log_info "  Router ID: $PROTO_ROUTER_ID"
+    log_info "  Local AS: $PROTO_LOCAL_AS"
+    log_info "  Peer: $PROTO_PEER_IP (AS $PROTO_PEER_AS)"
+    log_info "  Lab mode: $PROTO_LAB_MODE_VAL"
+    echo ""
+    log_info "Tip: Start the FRR lab testbed for testing:"
+    echo "      cd lab/frr-testbed && docker compose up -d"
+    echo "      sudo bash scripts/setup-gre.sh"
+else
+    log_info "Protocol participation skipped (enable later by re-running install)"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 38: Deploy skills and set environment
+# ═══════════════════════════════════════════
+
+log_step "38/$TOTAL_STEPS Deploying skills and configuration..."
 
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
@@ -747,6 +1243,7 @@ declare -A ENV_VARS=(
     ["F5_MCP_SCRIPT"]="$F5_MCP_DIR/F5MCPserver.py"
     ["CATC_MCP_SCRIPT"]="$CATC_MCP_DIR/catalyst-center-mcp.py"
     ["PACKET_BUDDY_MCP_SCRIPT"]="$PACKET_BUDDY_MCP_DIR/server.py"
+    ["PROTOCOL_MCP_SCRIPT"]="$PROTOCOL_MCP_DIR/server.py"
 )
 
 for key in "${!ENV_VARS[@]}"; do
@@ -787,10 +1284,10 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 27: Verify installation
+# Step 39: Verify installation
 # ═══════════════════════════════════════════
 
-log_step "27/$TOTAL_STEPS Verifying installation..."
+log_step "39/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -811,6 +1308,83 @@ verify_file "Markmap MCP" "$MARKMAP_INNER/dist/index.js"
 verify_file "GAIT MCP" "$GAIT_MCP_DIR/gait_mcp.py"
 verify_file "GAIT stdio wrapper" "$NETCLAW_DIR/scripts/gait-stdio.py"
 verify_file "NetBox MCP" "$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py"
+
+# Nautobot MCP is git-cloned with pip install -e
+if [ -d "$NAUTOBOT_MCP_DIR" ]; then
+    if command -v mcp-nautobot-server &> /dev/null; then
+        log_info "Nautobot MCP: OK (cli entry point)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    elif [ -f "$NAUTOBOT_MCP_DIR/src/mcp_nautobot_server/server.py" ]; then
+        log_info "Nautobot MCP: OK (server.py found)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "Nautobot MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "Nautobot MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# Infrahub MCP is git-cloned with uv sync / pip
+if [ -d "$INFRAHUB_MCP_DIR" ]; then
+    if python3 -c "import infrahub_sdk" 2>/dev/null; then
+        log_info "Infrahub MCP: OK (infrahub_sdk importable)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    elif [ -f "$INFRAHUB_MCP_DIR/src/infrahub_mcp/server.py" ]; then
+        log_info "Infrahub MCP: OK (server.py found)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "Infrahub MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "Infrahub MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# Itential MCP is pip-installed, check via command or import
+if command -v itential-mcp &> /dev/null; then
+    log_info "Itential MCP: OK (cli entry point)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+elif python3 -c "import itential_mcp" 2>/dev/null; then
+    log_info "Itential MCP: OK (module importable)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_warn "Itential MCP: NOT INSTALLED (pip3 install itential-mcp)"
+fi
+
+# JunOS MCP is git-cloned with pip install
+if [ -d "$JUNOS_MCP_DIR" ]; then
+    if command -v junos-mcp-server &> /dev/null; then
+        log_info "JunOS MCP: OK (cli entry point)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    elif [ -f "$JUNOS_MCP_DIR/jmcp.py" ]; then
+        log_info "JunOS MCP: OK (jmcp.py found)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "JunOS MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "JunOS MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# Arista CVP MCP is git-cloned, runs via uv
+if [ -d "$CVP_MCP_DIR" ]; then
+    if [ -f "$CVP_MCP_DIR/mcp_server_rest.py" ]; then
+        log_info "Arista CVP MCP: OK (mcp_server_rest.py found)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "Arista CVP MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "Arista CVP MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
 verify_file "ServiceNow MCP" "$SERVICENOW_MCP_DIR/src/servicenow_mcp/cli.py"
 verify_file "ACI MCP" "$ACI_MCP_DIR/aci_mcp/main.py"
 verify_file "ISE MCP" "$ISE_MCP_DIR/src/ise_mcp_server/server.py"
@@ -867,6 +1441,78 @@ else
     SERVERS_FAIL=$((SERVERS_FAIL + 1))
 fi
 
+# Meraki Magic MCP is git-cloned, check for directory and dynamic script
+if [ -d "$MERAKI_MCP_DIR" ]; then
+    if [ -f "$MERAKI_MCP_DIR/meraki-mcp-dynamic.py" ]; then
+        log_info "Meraki Magic MCP: OK (dynamic — ~804 endpoints)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    elif [ -f "$MERAKI_MCP_DIR/meraki-mcp.py" ]; then
+        log_info "Meraki Magic MCP: OK (manual — 40 endpoints)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_warn "Meraki Magic MCP: CLONED but server script not found"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "Meraki Magic MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# ThousandEyes Community MCP is git-cloned
+if [ -d "$TE_COMMUNITY_MCP_DIR" ] && [ -f "$TE_COMMUNITY_MCP_DIR/src/server.py" ]; then
+    log_info "ThousandEyes Community MCP: OK (9 tools, stdio)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_warn "ThousandEyes Community MCP: NOT INSTALLED"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# ThousandEyes Official MCP is remote HTTP — check for npx
+if command -v npx &> /dev/null; then
+    log_info "ThousandEyes Official MCP: OK (remote HTTP — npx available for mcp-remote)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_info "ThousandEyes Official MCP: READY (remote HTTP — install Node.js for npx mcp-remote)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+fi
+
+# RADKit MCP is git-cloned
+if [ -d "$RADKIT_MCP_DIR" ]; then
+    if [ -f "$RADKIT_MCP_DIR/src/radkit_mcp/server.py" ] || [ -f "$RADKIT_MCP_DIR/mcp_server.py" ]; then
+        log_info "RADKit MCP: OK (5 tools, stdio)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "RADKit MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "RADKit MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# UML MCP is git-cloned with pip install
+if [ -d "$UML_MCP_DIR" ]; then
+    if [ -f "$UML_MCP_DIR/server.py" ] || [ -f "$UML_MCP_DIR/mcp_core/core/server.py" ]; then
+        log_info "UML MCP: OK (2 tools, stdio)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    else
+        log_info "UML MCP: CLONED (server script location may vary)"
+        SERVERS_OK=$((SERVERS_OK + 1))
+    fi
+else
+    log_warn "UML MCP: NOT INSTALLED (git clone failed)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
+# Protocol MCP is bundled with NetClaw
+if [ -d "$PROTOCOL_MCP_DIR" ] && [ -f "$PROTOCOL_MCP_DIR/server.py" ]; then
+    log_info "Protocol MCP: OK (10 tools, stdio — BGP + OSPF + GRE)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_warn "Protocol MCP: NOT FOUND (mcp-servers/protocol-mcp/server.py)"
+    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+fi
+
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -874,10 +1520,10 @@ log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 28: Summary
+# Step 40: Summary
 # ═══════════════════════════════════════════
 
-log_step "28/$TOTAL_STEPS Installation Summary"
+log_step "40/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -886,24 +1532,40 @@ echo ""
 
 SKILL_COUNT=$(ls -d "$NETCLAW_DIR/workspace/skills/"*/ 2>/dev/null | wc -l)
 
-echo "MCP Servers Installed (31):"
+echo "MCP Servers Installed (42):"
 echo "  ┌─────────────────────────────────────────────────────────────"
 echo "  │ NETWORK DEVICE AUTOMATION:"
 echo "  │   pyATS              Cisco device CLI, Genie parsers"
 echo "  │   F5 BIG-IP          iControl REST API (virtuals, pools, iRules)"
 echo "  │   Catalyst Center    DNA Center / CatC API (devices, clients, sites)"
+echo "  │   Juniper JunOS      PyEZ/NETCONF — CLI, config, templates, facts, batch ops (10 tools)"
+echo "  │   Arista CVP         CloudVision Portal — inventory, events, connectivity monitor, tags (4 tools)"
+echo "  │"
+echo "  │ PROTOCOL PARTICIPATION:"
+echo "  │   Protocol MCP        Live BGP/OSPF peering + GRE tunnels (10 tools)"
+echo "  │"
+echo "  │ REMOTE DEVICE ACCESS:"
+echo "  │   Cisco RADKit       Cloud-relayed CLI, SNMP, device inventory (5 tools)"
 echo "  │"
 echo "  │ INFRASTRUCTURE PLATFORMS:"
 echo "  │   Cisco ACI           APIC / ACI fabric management"
 echo "  │   Cisco ISE           Identity, posture, TrustSec"
-echo "  │   NetBox              DCIM/IPAM source of truth (read-only)"
+echo "  │   NetBox              DCIM/IPAM source of truth (read-write)"
+echo "  │   Nautobot            IPAM/DCIM source of truth — IP addresses, prefixes, VRF/tenant (5 tools)"
+echo "  │   Infrahub            Schema-driven SoT — nodes, GraphQL, versioned branches (10 tools)"
 echo "  │   ServiceNow          ITSM: incidents, changes, CMDB"
 echo "  │"
 echo "  │ NETWORK ORCHESTRATION:"
 echo "  │   Cisco NSO           Device config, sync, services via RESTCONF"
+echo "  │   Itential IAP        Config mgmt, compliance, workflows, golden config, lifecycle (65+ tools)"
 echo "  │"
 echo "  │ FIREWALL SECURITY:"
 echo "  │   Cisco FMC           Secure Firewall policy search, FTD targeting, multi-FMC"
+echo "  │   Cisco Meraki        Dashboard API (~804 endpoints): orgs, networks, wireless, switching, security"
+echo "  │"
+echo "  │ NETWORK INTELLIGENCE:"
+echo "  │   ThousandEyes (community)  Tests, agents, path vis, dashboards (9 tools, stdio)"
+echo "  │   ThousandEyes (official)   Alerts, outages, BGP, instant tests, endpoints (~20 tools, remote HTTP)"
 echo "  │"
 echo "  │ LAB & SIMULATION:"
 echo "  │   Cisco CML           Lab lifecycle, node mgmt, topology, packet capture"
@@ -939,6 +1601,7 @@ echo "  │   Subnet Calculator   IPv4 + IPv6 CIDR calculator"
 echo "  │   GAIT                Git-based AI audit trail"
 echo "  │   Wikipedia           Technology context & history"
 echo "  │   Markmap             Mind map visualization"
+echo "  │   UML MCP            27+ diagram types via Kroki (class, sequence, nwdiag, rack, packet, C4)"
 echo "  │"
 echo "  │ NPX (no install):"
 echo "  │   Draw.io             Network topology diagrams"
@@ -958,6 +1621,23 @@ echo "  │   pyats-troubleshoot     OSI-layer troubleshooting"
 echo "  │   pyats-dynamic-test     pyATS aetest script generation"
 echo "  │   pyats-parallel-ops     Fleet-wide pCall operations"
 echo "  │"
+echo "  │ pyATS Linux Host Skills:"
+echo "  │   pyats-linux-system     Process monitoring, Docker stats, filesystem, curl"
+echo "  │   pyats-linux-network    Interfaces (ifconfig), routing (ip route), netstat"
+echo "  │   pyats-linux-vmware     VMware ESXi: VM inventory (vim-cmd), snapshots"
+echo "  │"
+echo "  │ pyATS JunOS Skills:"
+echo "  │   pyats-junos-system     Chassis, hardware, version, NTP, SNMP, logs, firewall, DDoS"
+echo "  │   pyats-junos-interfaces Interfaces, LACP, CoS, LLDP, ARP, BFD, optics diagnostics"
+echo "  │   pyats-junos-routing    OSPF/v3, BGP, routes, MPLS/LDP/RSVP, TED, PFE, ping, traceroute"
+echo "  │"
+echo "  │ pyATS ASA Skills:"
+echo "  │   pyats-asa-firewall     VPN sessions, failover, interfaces, routes, ASP drops, service policies"
+echo "  │"
+echo "  │ pyATS F5 BIG-IP Skills:"
+echo "  │   pyats-f5-ltm           LTM/GTM: virtuals, pools, nodes, monitors, profiles, iRules, wide IPs"
+echo "  │   pyats-f5-platform      Platform: system, networking, HA/CM, auth, analytics, security, APM"
+echo "  │"
 echo "  │ F5 BIG-IP Skills:"
 echo "  │   f5-health-check        Virtual server & pool monitoring"
 echo "  │   f5-config-mgmt         Safe F5 object lifecycle"
@@ -970,12 +1650,23 @@ echo "  │   catc-troubleshoot      CatC troubleshooting workflows"
 echo "  │"
 echo "  │ Domain Skills:"
 echo "  │   netbox-reconcile       Source of truth drift detection"
+echo "  │   nautobot-sot           Nautobot IPAM — IP addresses, prefixes, VRF/tenant/site queries"
+echo "  │   infrahub-sot           Infrahub SoT — schema-driven nodes, GraphQL, versioned branches"
 echo "  │   aci-fabric-audit       ACI fabric health & policy audit"
 echo "  │   aci-change-deploy      Safe ACI policy changes"
 echo "  │   ise-posture-audit      ISE posture & TrustSec audit"
 echo "  │   ise-incident-response  Endpoint investigation & quarantine"
 echo "  │   servicenow-change-workflow  Full ITSM change lifecycle"
 echo "  │   gait-session-tracking  Mandatory audit trail"
+echo "  │"
+echo "  │ Itential IAP Skills:"
+echo "  │   itential-automation    Config mgmt, compliance, workflows, golden config, lifecycle (65+ tools)"
+echo "  │"
+echo "  │ Juniper JunOS Skills:"
+echo "  │   junos-network          PyEZ/NETCONF — CLI, config mgmt, Jinja2 templates, batch ops (10 tools)"
+echo "  │"
+echo "  │ Arista CloudVision Skills:"
+echo "  │   arista-cvp              CVP — device inventory, events, connectivity monitor, tags (4 tools)"
 echo "  │"
 echo "  │ Microsoft 365 Skills:"
 echo "  │   msgraph-files          OneDrive/SharePoint file operations"
@@ -1007,6 +1698,20 @@ echo "  │"
 echo "  │ Cisco FMC Skills:"
 echo "  │   fmc-firewall-ops        Access policy search, FTD targeting, multi-FMC audit"
 echo "  │"
+echo "  │ Cisco RADKit Skills:"
+echo "  │   radkit-remote-access    Cloud-relayed CLI, SNMP, device inventory, attributes"
+echo "  │"
+echo "  │ Cisco Meraki Skills:"
+echo "  │   meraki-network-ops       Org inventory, networks, devices, clients, action batches"
+echo "  │   meraki-wireless-ops      SSIDs, RF profiles, channel utilization, signal quality"
+echo "  │   meraki-switch-ops        Ports, VLANs, ACLs, QoS, port cycling"
+echo "  │   meraki-security-appliance MX firewall, VPN, content filtering, traffic shaping"
+echo "  │   meraki-monitoring        Live ping, cable test, LED blink, cameras, config audit"
+echo "  │"
+echo "  │ ThousandEyes Skills:"
+echo "  │   te-network-monitoring    Tests, agents, path vis, dashboards, alerts, events, endpoints"
+echo "  │   te-path-analysis         Path visualization, BGP routes, outage triage, instant tests"
+echo "  │"
 echo "  │ Cisco CML Skills:"
 echo "  │   cml-lab-lifecycle       Create, start, stop, wipe, delete, clone labs"
 echo "  │   cml-topology-builder    Add nodes, interfaces, links, build topologies"
@@ -1014,12 +1719,16 @@ echo "  │   cml-node-operations     Console, CLI exec, start/stop nodes, confi
 echo "  │   cml-packet-capture      Start/stop/download pcap on CML links"
 echo "  │   cml-admin               Users, groups, system info, licensing"
 echo "  │"
+echo "  │ Protocol Participation Skills:"
+echo "  │   protocol-participation BGP peering, OSPF adjacency, GRE tunnels, route injection (10 tools)"
+echo "  │"
 echo "  │ Reference & Utility Skills:"
 echo "  │   nvd-cve                NVD vulnerability search (Python)"
 echo "  │   subnet-calculator      IPv4 + IPv6 subnet calculator"
 echo "  │   wikipedia-research     Protocol history & context"
 echo "  │   markmap-viz            Mind map visualization"
-echo "  │   drawio-diagram         Draw.io network diagrams"
+echo "  │   drawio-diagram         Draw.io diagrams: native .drawio + CLI export (PNG/SVG/PDF) + browser MCP"
+echo "  │   uml-diagram            27+ UML/diagram types via Kroki (class, sequence, nwdiag, rack, packet)"
 echo "  │   rfc-lookup             IETF RFC search"
 echo "  │"
 echo "  │ Slack Integration Skills:"

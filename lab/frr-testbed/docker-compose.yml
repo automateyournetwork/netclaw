@@ -1,0 +1,93 @@
+# NetClaw FRR Lab Testbed
+# 3-router topology for testing protocol participation
+#
+# Topology:
+#   NetClaw (AS 65001)  ──GRE──  Edge1 (AS 65000)  ──OSPF──  Core (RR)  ──OSPF──  Edge2
+#   host/WSL                     10.0.12.1                    10.0.12.2            10.0.23.3
+#   172.16.0.2                   172.16.0.1                   2.2.2.2              3.3.3.3
+#   4.4.4.4                      1.1.1.1                      iBGP RR              iBGP client
+#                                eBGP to NetClaw              iBGP hub
+#
+# Networks:
+#   edge1-core:  10.0.12.0/24    (Edge1 <-> Core)
+#   core-edge2:  10.0.23.0/24    (Core <-> Edge2)
+#   peering:     10.0.100.0/24   (Edge1 exposed to host for GRE)
+#   GRE tunnel:  172.16.0.0/30   (Edge1 <-> NetClaw host)
+
+services:
+  edge1:
+    image: frrouting/frr:latest
+    container_name: netclaw-edge1
+    hostname: edge1
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+      - net.ipv4.conf.all.rp_filter=0
+      - net.ipv4.conf.default.rp_filter=0
+    volumes:
+      - ./configs/edge1/frr.conf:/etc/frr/frr.conf
+      - ./configs/edge1/daemons:/etc/frr/daemons
+    networks:
+      edge1-core:
+        ipv4_address: 10.0.12.1
+      peering:
+        ipv4_address: 10.0.100.1
+    restart: unless-stopped
+
+  core:
+    image: frrouting/frr:latest
+    container_name: netclaw-core
+    hostname: core
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    volumes:
+      - ./configs/core/frr.conf:/etc/frr/frr.conf
+      - ./configs/core/daemons:/etc/frr/daemons
+    networks:
+      edge1-core:
+        ipv4_address: 10.0.12.2
+      core-edge2:
+        ipv4_address: 10.0.23.2
+    restart: unless-stopped
+
+  edge2:
+    image: frrouting/frr:latest
+    container_name: netclaw-edge2
+    hostname: edge2
+    privileged: true
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+    sysctls:
+      - net.ipv4.ip_forward=1
+    volumes:
+      - ./configs/edge2/frr.conf:/etc/frr/frr.conf
+      - ./configs/edge2/daemons:/etc/frr/daemons
+    networks:
+      core-edge2:
+        ipv4_address: 10.0.23.3
+    restart: unless-stopped
+
+networks:
+  edge1-core:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.12.0/24
+  core-edge2:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.23.0/24
+  peering:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.0.100.0/24
