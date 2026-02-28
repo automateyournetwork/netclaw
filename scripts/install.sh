@@ -1287,7 +1287,7 @@ if [[ "$ENABLE_PROTOCOL" =~ ^[Yy] ]]; then
         "PROTOCOL_MCP_SCRIPT=$PROTOCOL_MCP_DIR/server.py"; do
         key="${key_val%%=*}"
         if grep -q "^${key}=" "$OPENCLAW_ENV_PROTO" 2>/dev/null; then
-            sed -i "s|^${key}=.*|${key_val}|" "$OPENCLAW_ENV_PROTO"
+            sed -i.bak "s|^${key}=.*|${key_val}|" "$OPENCLAW_ENV_PROTO" && rm -f "$OPENCLAW_ENV_PROTO.bak"
         else
             echo "$key_val" >> "$OPENCLAW_ENV_PROTO"
         fi
@@ -1365,7 +1365,7 @@ if [[ "$ENABLE_PROTOCOL" =~ ^[Yy] ]]; then
             "NETCLAW_MESH_ACCEPT_INBOUND=$MESH_ACCEPT_ANY"; do
             key="${key_val%%=*}"
             if grep -q "^${key}=" "$OPENCLAW_ENV_PROTO" 2>/dev/null; then
-                sed -i "s|^${key}=.*|${key_val}|" "$OPENCLAW_ENV_PROTO"
+                sed -i.bak "s|^${key}=.*|${key_val}|" "$OPENCLAW_ENV_PROTO" && rm -f "$OPENCLAW_ENV_PROTO.bak"
             else
                 echo "$key_val" >> "$OPENCLAW_ENV_PROTO"
             fi
@@ -1373,7 +1373,7 @@ if [[ "$ENABLE_PROTOCOL" =~ ^[Yy] ]]; then
 
         # Overwrite NETCLAW_BGP_PEERS with the combined local + mesh peers
         if grep -q "^NETCLAW_BGP_PEERS=" "$OPENCLAW_ENV_PROTO" 2>/dev/null; then
-            sed -i "s|^NETCLAW_BGP_PEERS=.*|NETCLAW_BGP_PEERS=$MESH_PEERS_JSON|" "$OPENCLAW_ENV_PROTO"
+            sed -i.bak "s|^NETCLAW_BGP_PEERS=.*|NETCLAW_BGP_PEERS=$MESH_PEERS_JSON|" "$OPENCLAW_ENV_PROTO" && rm -f "$OPENCLAW_ENV_PROTO.bak"
         else
             echo "NETCLAW_BGP_PEERS=$MESH_PEERS_JSON" >> "$OPENCLAW_ENV_PROTO"
         fi
@@ -1455,34 +1455,34 @@ log_info "Symlinked testbed.yaml into workspace"
 OPENCLAW_ENV="$OPENCLAW_DIR/.env"
 [ -f "$OPENCLAW_ENV" ] || touch "$OPENCLAW_ENV"
 
-declare -A ENV_VARS=(
-    ["PYATS_TESTBED_PATH"]="$TESTBED_PATH"
-    ["PYATS_MCP_SCRIPT"]="$PYATS_SCRIPT"
-    ["MCP_CALL"]="$NETCLAW_DIR/scripts/mcp-call.py"
-    ["MARKMAP_MCP_SCRIPT"]="$MARKMAP_INNER/dist/index.js"
-    ["GAIT_MCP_SCRIPT"]="$NETCLAW_DIR/scripts/gait-stdio.py"
-    ["NETBOX_MCP_SCRIPT"]="$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py"
-    ["SERVICENOW_MCP_SCRIPT"]="$SERVICENOW_MCP_DIR/src/servicenow_mcp/cli.py"
-    ["ACI_MCP_SCRIPT"]="$ACI_MCP_DIR/aci_mcp/main.py"
-    ["ISE_MCP_SCRIPT"]="$ISE_MCP_DIR/src/ise_mcp_server/server.py"
-    ["WIKIPEDIA_MCP_SCRIPT"]="$WIKIPEDIA_MCP_DIR/main.py"
-    ["NVD_MCP_SCRIPT"]="$NVD_MCP_DIR/mcp_nvd/main.py"
-    ["SUBNET_MCP_SCRIPT"]="$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py"
-    ["F5_MCP_SCRIPT"]="$F5_MCP_DIR/F5MCPserver.py"
-    ["CATC_MCP_SCRIPT"]="$CATC_MCP_DIR/catalyst-center-mcp.py"
-    ["PACKET_BUDDY_MCP_SCRIPT"]="$PACKET_BUDDY_MCP_DIR/server.py"
-    ["PROTOCOL_MCP_SCRIPT"]="$PROTOCOL_MCP_DIR/server.py"
-    ["CLAB_MCP_SCRIPT"]="$CLAB_MCP_DIR/clab_mcp_server.py"
-    ["SDWAN_MCP_SCRIPT"]="$SDWAN_MCP_DIR/sdwan_mcp_server.py"
-)
-
-for key in "${!ENV_VARS[@]}"; do
+# Write env vars to OpenClaw .env (portable — no associative arrays for macOS bash 3.2)
+_set_env_var() {
+    local key="$1" val="$2"
     if grep -q "^${key}=" "$OPENCLAW_ENV" 2>/dev/null; then
-        sed -i "s|^${key}=.*|${key}=${ENV_VARS[$key]}|" "$OPENCLAW_ENV"
+        sed -i.bak "s|^${key}=.*|${key}=${val}|" "$OPENCLAW_ENV" && rm -f "$OPENCLAW_ENV.bak"
     else
-        echo "${key}=${ENV_VARS[$key]}" >> "$OPENCLAW_ENV"
+        echo "${key}=${val}" >> "$OPENCLAW_ENV"
     fi
-done
+}
+
+_set_env_var "PYATS_TESTBED_PATH"       "$TESTBED_PATH"
+_set_env_var "PYATS_MCP_SCRIPT"         "$PYATS_SCRIPT"
+_set_env_var "MCP_CALL"                 "$NETCLAW_DIR/scripts/mcp-call.py"
+_set_env_var "MARKMAP_MCP_SCRIPT"       "$MARKMAP_INNER/dist/index.js"
+_set_env_var "GAIT_MCP_SCRIPT"          "$NETCLAW_DIR/scripts/gait-stdio.py"
+_set_env_var "NETBOX_MCP_SCRIPT"        "$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py"
+_set_env_var "SERVICENOW_MCP_SCRIPT"    "$SERVICENOW_MCP_DIR/src/servicenow_mcp/cli.py"
+_set_env_var "ACI_MCP_SCRIPT"           "$ACI_MCP_DIR/aci_mcp/main.py"
+_set_env_var "ISE_MCP_SCRIPT"           "$ISE_MCP_DIR/src/ise_mcp_server/server.py"
+_set_env_var "WIKIPEDIA_MCP_SCRIPT"     "$WIKIPEDIA_MCP_DIR/main.py"
+_set_env_var "NVD_MCP_SCRIPT"           "$NVD_MCP_DIR/mcp_nvd/main.py"
+_set_env_var "SUBNET_MCP_SCRIPT"        "$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py"
+_set_env_var "F5_MCP_SCRIPT"            "$F5_MCP_DIR/F5MCPserver.py"
+_set_env_var "CATC_MCP_SCRIPT"          "$CATC_MCP_DIR/catalyst-center-mcp.py"
+_set_env_var "PACKET_BUDDY_MCP_SCRIPT"  "$PACKET_BUDDY_MCP_DIR/server.py"
+_set_env_var "PROTOCOL_MCP_SCRIPT"      "$PROTOCOL_MCP_DIR/server.py"
+_set_env_var "CLAB_MCP_SCRIPT"          "$CLAB_MCP_DIR/clab_mcp_server.py"
+_set_env_var "SDWAN_MCP_SCRIPT"         "$SDWAN_MCP_DIR/sdwan_mcp_server.py"
 
 # Remind user about API key if not set
 if ! grep -q "^ANTHROPIC_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && [ -z "${ANTHROPIC_API_KEY:-}" ]; then
