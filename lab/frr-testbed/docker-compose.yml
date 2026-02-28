@@ -9,9 +9,9 @@
 #                                eBGP to NetClaw              iBGP hub
 #
 # Networks:
-#   edge1-core:  10.0.12.0/24    (Edge1 <-> Core)
-#   core-edge2:  10.0.23.0/24    (Core <-> Edge2)
-#   peering:     10.0.100.0/24   (Edge1 exposed to host for GRE)
+#   edge1-core:  10.0.12.0/24    (Edge1 <-> Core)       gateway .254
+#   core-edge2:  10.0.23.0/24    (Core <-> Edge2)        gateway .254
+#   peering:     10.0.100.0/24   (Edge1 exposed to host for GRE) gateway .254
 #   GRE tunnel:  172.16.0.0/30   (Edge1 <-> NetClaw host)
 
 services:
@@ -19,10 +19,10 @@ services:
     image: frrouting/frr:latest
     container_name: netclaw-edge1
     hostname: edge1
-    privileged: true
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+      - NET_RAW
     sysctls:
       - net.ipv4.ip_forward=1
       - net.ipv4.conf.all.rp_filter=0
@@ -41,10 +41,10 @@ services:
     image: frrouting/frr:latest
     container_name: netclaw-core
     hostname: core
-    privileged: true
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+      - NET_RAW
     sysctls:
       - net.ipv4.ip_forward=1
     volumes:
@@ -61,10 +61,10 @@ services:
     image: frrouting/frr:latest
     container_name: netclaw-edge2
     hostname: edge2
-    privileged: true
     cap_add:
       - NET_ADMIN
       - SYS_ADMIN
+      - NET_RAW
     sysctls:
       - net.ipv4.ip_forward=1
     volumes:
@@ -81,13 +81,16 @@ networks:
     ipam:
       config:
         - subnet: 10.0.12.0/24
+          gateway: 10.0.12.254
   core-edge2:
     driver: bridge
     ipam:
       config:
         - subnet: 10.0.23.0/24
+          gateway: 10.0.23.254
   peering:
     driver: bridge
     ipam:
       config:
         - subnet: 10.0.100.0/24
+          gateway: 10.0.100.254
