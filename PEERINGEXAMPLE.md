@@ -36,3 +36,72 @@ Step 1: Bring up the 3 FRR routers
                                                                                                                                                                                                                     
   Step 6: Verify everything end-to-end                                                                                                                                                                              
   sudo bash lab/frr-testbed/scripts/verify.sh    
+
+
+
+
+  Here's your concrete next steps:                                                                                                                                                                                  
+                                                                                                                                                                                                                    
+  Your Steps (You're Person A — first mover)                                                                                                                                                                        
+                                                                                                                                                                                                                    
+  Step 1 — Your .env is already set. FRR lab is running. No re-install needed.                                                                                                                                      
+                                                                                                                                                                                                                    
+  Step 2 — Start ngrok on port 1179 (not 179 — that's privileged):                                                                                                                                                  
+  ngrok tcp 1179                                                                                                                                                                                                    
+                                                                                                                                                                                                                    
+  This will give you an endpoint like 0.tcp.ngrok.io:XXXXX. Write that down — that's what Person B needs.                                                                                                           
+
+tcp://0.tcp.ngrok.io:14027                                                                                                                                                                                                         
+  Step 3 — Start openclaw gateway as normal. When the BGP daemon starts, it will:                                                                                                                                   
+  - Peer with your local FRR Edge1 at 172.16.0.1 (existing)                                                                                                                                                         
+  - Listen on 0.0.0.0:1179 for inbound mesh connections (ngrok forwards here)                                                                                                                                       
+  - Auto-advertise 4.4.4.4/32 as your identity route                                                                                                                                                                
+                                                                                                                                                                                                                    
+  That's it for you right now. You're live and accepting connections.                                                                                                                                               
+                                                                                                                                                                                                                    
+  ---                                                                                                                                                                                                               
+  What Person B Needs (the other NetClaw operator)                                                                                                                                                                  
+                                                                                                                                                                                                                    
+  They run install.sh and at Step 42:                                                                                                                                                                               
+                                                                                                                                                                                                                    
+  Enable protocol participation? [y/N] y                                                                                                                                                                            
+    Router ID: 5.5.5.5              ← unique, their choice                                                                                                                                                          
+    Local AS: 65002                  ← different from yours (65001)                                                                                                                                                 
+    BGP peer IP: 172.16.0.1         ← their own local FRR (if they have lab)                                                                                                                                        
+    BGP peer AS: 65000                                                                                                                                                                                              
+    Lab mode: Y                                                                                                                                                                                                     
+                                                                                                                                                                                                                    
+  Enable NetClaw Mesh peering? [y/N] y                                                                                                                                                                              
+    BGP listen port: 1179                                                                                                                                                                                           
+    Add a remote NetClaw peer? [y/N] y                                                                                                                                                                              
+      Remote ngrok hostname: 0.tcp.ngrok.io     ← YOUR ngrok hostname                                                                                                                                               
+      Remote ngrok port: XXXXX                   ← YOUR ngrok port number                                                                                                                                           
+      Remote AS number: 65001                    ← YOUR AS                                                                                                                                                          
+    Add another? N                                                                                                                                                                                                  
+    Accept inbound mesh connections? Y                                                                                                                                                                              
+                                                                                                                                                                                                                    
+  Then they run:                                                                                                                                                                                                    
+  ngrok tcp 1179                                                                                                                                                                                                    
+                                                                                                                                                                                                                    
+  And share their ngrok endpoint back with you.                                                                                                                                                                     
+                                                                                                                                                                                                                    
+  You Add Person B (runtime, no restart)                                                                                                                                                                            
+                                                                                                                                                                                                                    
+  Once they give you their endpoint:                                                                                                                                                                                
+  curl -X POST http://127.0.0.1:8179/add_peer \                                                                                                                                                                     
+    -d '{"ip":"THEIR.tcp.ngrok.io","as":65002,"port":YYYYY,"hostname":true}'                                                                                                                                        
+                                                                                                                                                                                                                    
+  And add an inbound entry so they can connect to you:                                                                                                                                                              
+  curl -X POST http://127.0.0.1:8179/add_peer \                                                                                                                                                                     
+    -d '{"as":65002,"accept_any_source":true}'                                                                                                                                                                      
+                                                                                                                                                                                                                    
+  Both sides establish. Routes flow.                                                                                                                                                                                
+                                                                                                                                                                                                                    
+  ---                                                                                                                                                                                                               
+  Quick summary of what they need from you:                                                                                                                                                                         
+                                                                                                                                                                                                                    
+  1. Your ngrok endpoint (hostname + port)                                                                                                                                                                          
+  2. Your AS number (65001)                                                                                                                                                                                         
+  3. These instructions                                                                                                                                                                                             
+                                                                                                                                                                                                                    
+  Want to start ngrok now?                            
