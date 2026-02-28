@@ -18,12 +18,13 @@ echo ""
 # --- Host side ---
 echo "[1/4] Adding host IP to peering network..."
 # Find the Docker bridge for the peering network
-PEERING_BRIDGE=$(docker network inspect netclaw-frr-testbed_peering \
-  -f '{{.Options.com.docker.network.bridge.name}}' 2>/dev/null || \
-  docker network inspect frr-testbed_peering \
-  -f '{{.Options.com.docker.network.bridge.name}}' 2>/dev/null || echo "")
+# Find the Docker bridge for the peering network by ID (br-<short-id>)
+PEERING_NET_ID=$(docker network inspect frr-testbed_peering -f '{{.Id}}' 2>/dev/null | cut -c1-12 || echo "")
+if [ -n "$PEERING_NET_ID" ]; then
+  PEERING_BRIDGE="br-${PEERING_NET_ID}"
+fi
 
-if [ -z "$PEERING_BRIDGE" ]; then
+if [ -z "$PEERING_BRIDGE" ] || ! ip link show "$PEERING_BRIDGE" &>/dev/null; then
   # Fallback: find bridge by subnet
   PEERING_BRIDGE=$(ip route show 10.0.100.0/24 2>/dev/null | awk '{print $3}' || echo "")
 fi
@@ -52,7 +53,10 @@ docker exec netclaw-edge1 ip tunnel add gre-netclaw mode gre \
   local "$EDGE1_PEERING_IP" \
   remote "$HOST_PEERING_IP" \
   ttl 255
-docker exec netclaw-edge1 ip addr add "$TUNNEL_REMOTE/30" dev gre-netclaw
+# FRR zebra assigns the address from frr.conf once the interface exists;
+# only add it manually if zebra hasn't already done so.
+docker exec netclaw-edge1 ip addr add "$TUNNEL_REMOTE/30" dev gre-netclaw 2>/dev/null || \
+  echo "  (address already assigned by FRR — OK)"
 docker exec netclaw-edge1 ip link set gre-netclaw up
 
 echo "[4/4] Adding host route to lab networks via GRE..."
