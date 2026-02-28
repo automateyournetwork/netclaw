@@ -1492,7 +1492,7 @@ if ! grep -q "^ANTHROPIC_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && [ -z "${ANTHRO
     log_warn "ANTHROPIC_API_KEY not set. Add it to $OPENCLAW_ENV or export it in your shell."
 fi
 
-log_info "Set ${#ENV_VARS[@]} environment variables in $OPENCLAW_ENV"
+log_info "Environment variables written to $OPENCLAW_ENV"
 
 # Verify the config is correct
 if [ -f "$OPENCLAW_DIR/openclaw.json" ]; then
