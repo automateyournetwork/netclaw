@@ -1,0 +1,5 @@
+# Protocol MCP Server — core dependencies
+scapy>=2.5.0
+networkx>=3.0
+mcp>=1.0.0
+fastmcp>=0.1.0
