@@ -293,14 +293,8 @@ class BGPAgent:
                     await writer.wait_closed()
                 return  # Done — tunnel connections don't continue as BGP
 
-            # BGP connection: replay the peeked byte via a wrapper StreamReader
-            if first_byte == b'\xff':
-                replay_reader = asyncio.StreamReader()
-                replay_reader.feed_data(first_byte)
-                # Splice remaining data from original reader into replay_reader
-                asyncio.ensure_future(self._splice_readers(reader, replay_reader))
-                reader = replay_reader
-            else:
+            # BGP connection: put the peeked byte back
+            if first_byte != b'\xff':
                 self.logger.warning(f"Unknown protocol byte from {peer_ip}: {first_byte!r}")
                 writer.close()
                 await writer.wait_closed()
@@ -309,14 +303,44 @@ class BGPAgent:
             # Find session for this peer — first try exact IP match (local FRR peers)
             self.logger.debug(f"Looking for session for {peer_ip} in {list(self.sessions.keys())}")
             session = self.sessions.get(peer_ip)
+
+            if session:
+                # Known peer by IP — but we consumed 1 byte. Replay it for the session.
+                replay_reader = asyncio.StreamReader()
+                replay_reader.feed_data(first_byte)
+                asyncio.ensure_future(self._splice_readers(reader, replay_reader))
+                reader = replay_reader
+
             mesh_identified = False
 
             if not session and (self.mesh_sessions or self.mesh_open):
                 # No IP match — try OPEN-based identification for mesh peers
-                # Read the BGP OPEN to extract AS number and router-ID
+                # We already consumed the first 0xFF byte; prepend it before reading the OPEN
                 self.logger.info(f"No IP match for {peer_ip}, attempting mesh OPEN-based identification "
                                 f"({len(self.mesh_sessions)} mesh peer(s) configured, mesh_open={self.mesh_open})")
-                open_msg = await self._read_open_message(reader)
+
+                # Build a replay reader with the peeked byte + rest of stream for OPEN parsing
+                open_reader = asyncio.StreamReader()
+                open_reader.feed_data(first_byte)
+                # Read the rest of the OPEN from the original reader and feed it
+                try:
+                    # OPEN header is 19 bytes, we have 1, need 18 more + body
+                    remaining_header = await asyncio.wait_for(reader.readexactly(18), timeout=30.0)
+                    open_reader.feed_data(remaining_header)
+                    # Parse length from header to get body size
+                    length = struct.unpack('!H', (first_byte + remaining_header)[16:18])[0]
+                    body_length = length - 19  # BGP_HEADER_SIZE = 19
+                    if body_length > 0:
+                        body = await asyncio.wait_for(reader.readexactly(body_length), timeout=30.0)
+                        open_reader.feed_data(body)
+                    open_reader.feed_eof()
+                except Exception as e:
+                    self.logger.warning(f"Failed to read OPEN for mesh ID from {peer_ip}: {e}")
+                    writer.close()
+                    await writer.wait_closed()
+                    return
+
+                open_msg = await self._read_open_message(open_reader)
 
                 if not open_msg:
                     self.logger.warning(f"Failed to read OPEN from {peer_ip} for mesh identification, rejecting")
