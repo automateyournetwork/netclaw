@@ -100,11 +100,17 @@ Integrate the official Splunk MCP server to provide log aggregation and SPL quer
 - **Grafana**: Splunk as Grafana data source
 - **PagerDuty**: Splunk alerts trigger PagerDuty incidents
 
+## Clarifications
+
+### Session 2026-04-04
+- Q: Default output format for search results? → A: Markdown tables (human-readable, structured)
+
 ## Security Considerations
 
 - Credentials stored in .env, never logged
 - SPL validation prevents injection attacks
 - Output sanitization removes sensitive data
+- Default output format: Markdown tables for CLI readability
 
 ## Success Criteria
 
