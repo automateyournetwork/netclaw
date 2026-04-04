@@ -82,6 +82,7 @@ const INTEGRATION_CATALOG = [
   { id: 'prisma-sdwan', name: 'Prisma SD-WAN', category: 'Network Platforms', prefixes: ['prisma-sdwan-'], color: '#fa582d', transport: 'stdio', toolEstimate: 16, description: 'Palo Alto Networks Prisma SD-WAN — sites, elements, topology, health, alarms, interfaces, routing, policies, and applications.' },
   { id: 'telemetry-receivers', name: 'Telemetry Receivers', category: 'Observability', prefixes: ['syslog-', 'snmptrap-', 'ipfix-', 'telemetry-'], color: '#9b59b6', transport: 'stdio', toolEstimate: 12, description: 'Real-time telemetry ingestion — syslog, SNMP traps, and IPFIX/NetFlow receivers for event correlation and alerting.' },
   { id: 'config-archive', name: 'Config Archive', category: 'Governance', prefixes: ['config-archive-'], color: '#34495e', transport: 'stdio', toolEstimate: 4, description: 'Configuration archive compliance — backup verification, drift detection, and config restore workflows.' },
+  { id: 'pagerduty', name: 'PagerDuty', category: 'Incident Management', prefixes: ['pagerduty-'], color: '#06ac38', transport: 'stdio', toolEstimate: 70, description: 'Incident management — incidents, on-call schedules, services, escalation policies, event orchestration with read/write capabilities.' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -358,6 +359,11 @@ const ENV_MAP = {
     env: ['CONFIG_ARCHIVE_PATH', 'CONFIG_ARCHIVE_RETENTION_DAYS'],
     files: [],
     notes: 'Configuration archive storage path and retention policy. Used for backup verification and drift detection.',
+  },
+  pagerduty: {
+    env: ['PAGERDUTY_USER_API_KEY', 'PAGERDUTY_API_HOST'],
+    files: [],
+    notes: 'PagerDuty MCP Server via uvx. User API key from PagerDuty API settings. API host defaults to US (use api.eu.pagerduty.com for EU).',
   },
 };
 

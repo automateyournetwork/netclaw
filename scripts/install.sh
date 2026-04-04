@@ -1702,6 +1702,20 @@ else
 fi
 
 # ═══════════════════════════════════════════
+# Step 45.6: PagerDuty MCP Server (Incident Management)
+# ═══════════════════════════════════════════
+
+log_step "45.6/$TOTAL_STEPS Configuring PagerDuty MCP Server..."
+echo "  Source: pip install pagerduty-mcp (uvx runner)"
+echo "  Incident management: incidents, on-call, services, event orchestration (70 tools)"
+if command -v uvx &> /dev/null; then
+    log_info "uvx available for PagerDuty MCP (runs via uvx pagerduty-mcp)"
+else
+    log_warn "uvx not available — install uv for PagerDuty MCP: pip install uv"
+fi
+log_info "Configure PAGERDUTY_USER_API_KEY in .env"
+
+# ═══════════════════════════════════════════
 # Step 46: AAP Enterprise MCP Server (Ansible Automation Platform)
 # ═══════════════════════════════════════════
 

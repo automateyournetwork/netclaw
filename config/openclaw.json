@@ -121,6 +121,14 @@
         "PAN_TSG_ID": "${PAN_TSG_ID}",
         "PAN_REGION": "${PAN_REGION:-americas}"
       }
+    },
+    "pagerduty-mcp": {
+      "command": "uvx",
+      "args": ["pagerduty-mcp", "--enable-write-tools"],
+      "env": {
+        "PAGERDUTY_USER_API_KEY": "${PAGERDUTY_USER_API_KEY}",
+        "PAGERDUTY_API_HOST": "${PAGERDUTY_API_HOST:-https://api.pagerduty.com}"
+      }
     }
   }
 }
