@@ -112,10 +112,15 @@ Integrate the official PagerDuty MCP server to provide incident management capab
 - **Slack/WebEx**: Cross-reference incidents with alert channels
 - **Grafana**: Correlate incidents with metric anomalies
 
+## Clarifications
+
+### Session 2026-04-04
+- Q: Write tools enablement policy? → A: Enable write tools by default (all 70 tools available)
+
 ## Security Considerations
 
-- Read-only mode by default (no --enable-write-tools flag)
-- Write operations gated by ServiceNow CR workflow
+- Write tools enabled by default (--enable-write-tools flag set)
+- Write operations on production services gated by ServiceNow CR workflow
 - API key stored in .env, never logged
 
 ## Success Criteria
