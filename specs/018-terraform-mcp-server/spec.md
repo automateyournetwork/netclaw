@@ -113,12 +113,18 @@ Integrate the official HashiCorp Terraform MCP server to provide Infrastructure 
 - **Vault**: Secrets injection for provider credentials
 - **Azure/AWS**: Cloud provider configurations
 
+## Clarifications
+
+### Session 2026-04-04
+- Q: Terraform operations enablement? → A: Enable ALL toolsets (Registry + Operations + HCP Terraform)
+
 ## Security Considerations
 
-- Apply operations require ServiceNow CR
+- All toolsets enabled (Registry, Operations, HCP Terraform)
+- Apply and destroy operations require ServiceNow CR approval
 - Credentials managed via Vault integration
 - State files not exposed through MCP
-- Destroy operations require explicit confirmation
+- Destroy operations require explicit confirmation plus CR
 
 ## Success Criteria
 
