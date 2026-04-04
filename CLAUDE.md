@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-04-03
+Auto-generated from all feature plans. Last updated: 2026-04-04
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -26,6 +26,8 @@ Auto-generated from all feature plans. Last updated: 2026-04-03
 - N/A (stateless proxy to GNS3 REST API) (012-gns3-mcp-server)
 - Python 3.10+ (community MCP server uses prisma_sase SDK) + prisma-sdwan-mcp (community), prisma_sase SDK (OAuth2 client) (013-prisma-sdwan-mcp-server)
 - N/A (stateless proxy to Prisma SASE REST API) (013-prisma-sdwan-mcp-server)
+- Python/Node.js (official Splunk MCP server) + splunk-mcp-server2 (official package), Splunk REST API (017-splunk-mcp-server)
+- N/A (stateless proxy to Splunk REST API) (017-splunk-mcp-server)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -45,9 +47,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 017-splunk-mcp-server: Added Python/Node.js (official Splunk MCP server) + splunk-mcp-server2 (official package), Splunk REST API
 - 013-prisma-sdwan-mcp-server: Added Python 3.10+ (community MCP server uses prisma_sase SDK) + prisma-sdwan-mcp (community), prisma_sase SDK (OAuth2 client)
 - 012-gns3-mcp-server: Added Python 3.10+ (consistent with existing NetClaw MCP servers) + FastMCP (MCP framework), httpx (async HTTP client), python-dotenv (environment variables)
-- 011-soul-optimization: Added Markdown (documentation reorganization) + N/A (pure markdown files, OpenClaw read tool)
 
 
 <!-- MANUAL ADDITIONS START -->
