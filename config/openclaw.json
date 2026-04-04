@@ -121,6 +121,14 @@
         "PAN_TSG_ID": "${PAN_TSG_ID}",
         "PAN_REGION": "${PAN_REGION:-americas}"
       }
+    },
+    "terraform-mcp": {
+      "command": "terraform-mcp-server",
+      "args": ["--enable-all-toolsets"],
+      "env": {
+        "TFE_TOKEN": "${TFE_TOKEN}",
+        "TFE_ADDRESS": "${TFE_ADDRESS}"
+      }
     }
   }
 }

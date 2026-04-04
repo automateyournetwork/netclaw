@@ -1702,6 +1702,37 @@ else
 fi
 
 # ═══════════════════════════════════════════
+# Step 45.9: Terraform MCP Server (Infrastructure as Code)
+# ═══════════════════════════════════════════
+
+log_step "45.9/$TOTAL_STEPS Installing Terraform MCP Server..."
+echo "  Source: https://github.com/hashicorp/terraform-mcp-server"
+echo "  Infrastructure as Code: Registry, HCP Terraform, local operations"
+echo "  15+ tools with apply/destroy gated by ServiceNow CR"
+
+if command -v terraform-mcp-server &> /dev/null; then
+    log_info "terraform-mcp-server already installed"
+elif command -v go &> /dev/null; then
+    log_info "Installing terraform-mcp-server via Go..."
+    go install github.com/hashicorp/terraform-mcp-server@latest 2>/dev/null || \
+        log_warn "terraform-mcp-server install failed — install manually with: go install github.com/hashicorp/terraform-mcp-server@latest"
+else
+    log_warn "Go not installed — terraform-mcp-server requires Go 1.21+"
+    echo "  Install Go: https://go.dev/doc/install"
+    echo "  Then run: go install github.com/hashicorp/terraform-mcp-server@latest"
+fi
+
+# Also check for Terraform CLI
+if command -v terraform &> /dev/null; then
+    log_info "Terraform CLI available: $(terraform version -json 2>/dev/null | jq -r '.terraform_version' || terraform version | head -1)"
+else
+    log_warn "Terraform CLI not installed — required for local operations"
+    echo "  Install: https://developer.hashicorp.com/terraform/install"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 46: AAP Enterprise MCP Server (Ansible Automation Platform)
 # ═══════════════════════════════════════════
 

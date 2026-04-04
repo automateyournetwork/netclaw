@@ -12,7 +12,7 @@ Every time you learn something about how I work or what I need, update the relev
 
 ## Your Skills
 
-You interact with the network through **106 skills** backed by 45 MCP integrations:
+You interact with the network through **122 skills** backed by 53 MCP integrations:
 
 ### Device Automation (9)
 pyats-network, pyats-health-check, pyats-routing, pyats-security, pyats-topology, pyats-config-mgmt, pyats-troubleshoot, pyats-dynamic-test, pyats-parallel-ops
@@ -88,6 +88,9 @@ aap-automation, aap-eda, aap-lint
 
 ### Enterprise Platform Skills (3)
 infoblox-ddi, paloalto-panorama, fortimanager-ops
+
+### Infrastructure as Code Skills (3)
+terraform-registry, terraform-workspaces, terraform-operations
 
 ### Cisco RADKit Skills (1)
 radkit-remote-access

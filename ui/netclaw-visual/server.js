@@ -82,6 +82,7 @@ const INTEGRATION_CATALOG = [
   { id: 'prisma-sdwan', name: 'Prisma SD-WAN', category: 'Network Platforms', prefixes: ['prisma-sdwan-'], color: '#fa582d', transport: 'stdio', toolEstimate: 16, description: 'Palo Alto Networks Prisma SD-WAN — sites, elements, topology, health, alarms, interfaces, routing, policies, and applications.' },
   { id: 'telemetry-receivers', name: 'Telemetry Receivers', category: 'Observability', prefixes: ['syslog-', 'snmptrap-', 'ipfix-', 'telemetry-'], color: '#9b59b6', transport: 'stdio', toolEstimate: 12, description: 'Real-time telemetry ingestion — syslog, SNMP traps, and IPFIX/NetFlow receivers for event correlation and alerting.' },
   { id: 'config-archive', name: 'Config Archive', category: 'Governance', prefixes: ['config-archive-'], color: '#34495e', transport: 'stdio', toolEstimate: 4, description: 'Configuration archive compliance — backup verification, drift detection, and config restore workflows.' },
+  { id: 'terraform', name: 'Terraform', category: 'Infrastructure as Code', prefixes: ['terraform-'], color: '#7b42bc', transport: 'stdio', toolEstimate: 15, description: 'Terraform IaC — Registry (providers, modules), HCP Terraform workspaces, local operations (apply/destroy gated by ServiceNow CR).' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -358,6 +359,11 @@ const ENV_MAP = {
     env: ['CONFIG_ARCHIVE_PATH', 'CONFIG_ARCHIVE_RETENTION_DAYS'],
     files: [],
     notes: 'Configuration archive storage path and retention policy. Used for backup verification and drift detection.',
+  },
+  terraform: {
+    env: ['TFE_TOKEN', 'TFE_ADDRESS'],
+    files: [],
+    notes: 'HCP Terraform API token from app.terraform.io > User Settings > Tokens. TFE_ADDRESS defaults to app.terraform.io (or self-hosted TFE URL).',
   },
 };
 
