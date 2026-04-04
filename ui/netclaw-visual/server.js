@@ -82,6 +82,7 @@ const INTEGRATION_CATALOG = [
   { id: 'prisma-sdwan', name: 'Prisma SD-WAN', category: 'Network Platforms', prefixes: ['prisma-sdwan-'], color: '#fa582d', transport: 'stdio', toolEstimate: 16, description: 'Palo Alto Networks Prisma SD-WAN — sites, elements, topology, health, alarms, interfaces, routing, policies, and applications.' },
   { id: 'telemetry-receivers', name: 'Telemetry Receivers', category: 'Observability', prefixes: ['syslog-', 'snmptrap-', 'ipfix-', 'telemetry-'], color: '#9b59b6', transport: 'stdio', toolEstimate: 12, description: 'Real-time telemetry ingestion — syslog, SNMP traps, and IPFIX/NetFlow receivers for event correlation and alerting.' },
   { id: 'config-archive', name: 'Config Archive', category: 'Governance', prefixes: ['config-archive-'], color: '#34495e', transport: 'stdio', toolEstimate: 4, description: 'Configuration archive compliance — backup verification, drift detection, and config restore workflows.' },
+  { id: 'splunk', name: 'Splunk', category: 'Log Management', prefixes: ['splunk-'], color: '#65a637', transport: 'stdio', toolEstimate: 7, description: 'Log management and SIEM — SPL query execution, index discovery, saved search management for security event hunting and network log correlation.' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -358,6 +359,11 @@ const ENV_MAP = {
     env: ['CONFIG_ARCHIVE_PATH', 'CONFIG_ARCHIVE_RETENTION_DAYS'],
     files: [],
     notes: 'Configuration archive storage path and retention policy. Used for backup verification and drift detection.',
+  },
+  splunk: {
+    env: ['SPLUNK_HOST', 'SPLUNK_PORT', 'SPLUNK_USERNAME', 'SPLUNK_PASSWORD', 'SPLUNK_VERIFY_SSL'],
+    files: [],
+    notes: 'Splunk MCP Server via npx. Host is the Splunk server hostname. Port defaults to 8089 (management port). Username/password for authentication.',
   },
 };
 

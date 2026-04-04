@@ -1702,6 +1702,24 @@ else
 fi
 
 # ═══════════════════════════════════════════
+# Step 45.10: Splunk MCP Server (Log Management)
+# ═══════════════════════════════════════════
+
+log_step "45.10/$TOTAL_STEPS Configuring Splunk MCP Server..."
+echo "  Source: npx @splunk/mcp-server2"
+echo "  Log management: SPL query validation/execution, index discovery, saved searches"
+echo "  7 tools with Markdown table output and sensitive data sanitization"
+
+if command -v npx &> /dev/null; then
+    log_info "npx available for Splunk MCP (runs via npx @splunk/mcp-server2)"
+else
+    log_warn "npx not available — install Node.js/npm for Splunk MCP"
+    echo "  Install: https://nodejs.org/"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 46: AAP Enterprise MCP Server (Ansible Automation Platform)
 # ═══════════════════════════════════════════
 

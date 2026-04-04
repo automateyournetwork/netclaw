@@ -121,6 +121,17 @@
         "PAN_TSG_ID": "${PAN_TSG_ID}",
         "PAN_REGION": "${PAN_REGION:-americas}"
       }
+    },
+    "splunk-mcp": {
+      "command": "npx",
+      "args": ["@splunk/mcp-server2", "--transport", "stdio"],
+      "env": {
+        "SPLUNK_HOST": "${SPLUNK_HOST}",
+        "SPLUNK_PORT": "${SPLUNK_PORT:-8089}",
+        "SPLUNK_USERNAME": "${SPLUNK_USERNAME}",
+        "SPLUNK_PASSWORD": "${SPLUNK_PASSWORD}",
+        "SPLUNK_VERIFY_SSL": "${SPLUNK_VERIFY_SSL:-true}"
+      }
     }
   }
 }
