@@ -846,3 +846,376 @@ When performing periodic heartbeat health checks, send check-in messages to all 
 - **Teams** — if Microsoft Graph configured, post to designated Teams channel
 
 Keep healthy check-ins to one sentence. Use rich formatting only for problem summaries.
+
+---
+
+## Cloudflare Skills
+
+### cloudflare-dns
+DNS and domain management via Cloudflare DNS Analytics MCP:
+- `list_zones` — enumerate all zones in account
+- `get_zone_details` — zone configuration, status, plan
+- `list_dns_records` — A/AAAA/CNAME/MX/TXT records with filters
+- `get_dns_analytics` — query volume, latency, error rates
+- `get_dnssec_status` — DNSSEC configuration and key status
+
+Query DNS analytics first for traffic patterns. Cross-reference with NetBox DNS records.
+
+### cloudflare-zerotrust
+Zero Trust network access via Cloudflare:
+- `list_access_applications` — protected applications inventory
+- `list_access_policies` — policy rules and conditions
+- `get_gateway_logs` — DNS/HTTP gateway activity
+- `list_tunnel_connections` — Cloudflare Tunnel status
+- `get_device_posture` — endpoint compliance checks
+
+Zero Trust audit: applications → policies → gateway logs → posture compliance.
+
+### cloudflare-analytics
+Traffic and performance analytics:
+- `get_zone_analytics` — requests, bandwidth, threats blocked
+- `get_firewall_events` — WAF triggers, rate limiting, bot detection
+- `get_origin_analytics` — origin server response times
+- `get_cache_analytics` — cache hit ratio, bandwidth saved
+
+Start with zone analytics for overview, drill into firewall events for security.
+
+### cloudflare-workers
+Edge compute and serverless via Workers:
+- `list_workers` — deployed Worker scripts
+- `get_worker_logs` — Worker execution logs and errors
+- `list_kv_namespaces` — KV storage namespaces
+- `get_durable_objects` — stateful edge compute
+
+Workers are read-only by default. Deployment requires ServiceNow CR.
+
+### cloudflare-security
+WAF, DDoS, and security posture:
+- `list_firewall_rules` — custom firewall rules
+- `get_waf_packages` — managed WAF rulesets
+- `get_rate_limits` — rate limiting configuration
+- `get_ddos_analytics` — DDoS attack mitigation stats
+- `list_ip_access_rules` — IP allow/block lists
+
+Security audit: WAF packages → firewall rules → rate limits → DDoS analytics.
+
+---
+
+## Zscaler Skills
+
+### zscaler-zia
+Zscaler Internet Access (ZIA) security:
+- `list_url_categories` — URL filtering categories
+- `get_security_policies` — web security policies
+- `list_firewall_rules` — cloud firewall rules
+- `get_ssl_inspection` — SSL inspection config
+- `list_dlp_engines` — DLP engines and patterns
+
+ZIA audit: security policies → firewall rules → SSL inspection → DLP.
+
+### zscaler-zpa
+Zscaler Private Access (ZPA) zero trust:
+- `list_application_segments` — protected applications
+- `list_server_groups` — app connector groups
+- `list_access_policies` — access policies
+- `list_posture_profiles` — device posture checks
+- `list_connectors` — ZPA connector status
+
+ZPA audit: connectors → server groups → application segments → access policies.
+
+### zscaler-zdx
+Zscaler Digital Experience (ZDX) monitoring:
+- `list_devices` — enrolled endpoint devices
+- `get_user_experience` — user experience scores
+- `list_applications` — monitored applications
+- `get_network_metrics` — network path analytics
+- `list_alerts` — ZDX alerts and issues
+
+ZDX troubleshooting: device health → network metrics → application performance.
+
+### zscaler-identity
+Zscaler identity and user management:
+- `list_users` — user directory
+- `list_groups` — user groups
+- `list_departments` — department hierarchy
+- `get_idp_config` — identity provider settings
+
+Identity audit: IDP config → departments → groups → users.
+
+### zscaler-insights
+Zscaler analytics and reporting:
+- `get_traffic_insights` — traffic analytics
+- `get_threat_insights` — threat detection stats
+- `get_bandwidth_report` — bandwidth utilization
+- `list_audit_logs` — admin audit trail
+
+Security review: threat insights → traffic analytics → audit logs.
+
+---
+
+## HashiCorp Vault Skills
+
+### vault-secrets
+Secrets engine management:
+- `list_secrets` — enumerate secrets in a path
+- `read_secret` — retrieve secret data
+- `list_secret_engines` — available secrets engines
+- `get_secret_metadata` — version history, deletion status
+
+Secrets audit: list engines → list secrets → read metadata → verify policies.
+
+### vault-pki
+PKI certificates management:
+- `list_certificates` — issued certificates
+- `get_certificate` — certificate details
+- `get_ca_chain` — CA certificate chain
+- `list_roles` — PKI roles for cert issuance
+
+Certificate audit: CA chain → roles → issued certificates → expiration.
+
+### vault-mounts
+Secrets engine and auth method mounts:
+- `list_auth_methods` — authentication methods
+- `list_secret_engines` — secrets engines
+- `get_mount_config` — mount configuration
+- `get_audit_devices` — audit logging devices
+
+Vault health: auth methods → secret engines → audit devices.
+
+---
+
+## HashiCorp Terraform Skills
+
+### terraform-registry
+Terraform Registry module and provider discovery:
+- `search_modules` — find public modules
+- `get_module_versions` — version history
+- `search_providers` — find providers
+- `get_provider_docs` — provider documentation
+
+Use registry search before writing modules from scratch.
+
+### terraform-workspaces
+Terraform Cloud workspace management:
+- `list_workspaces` — organization workspaces
+- `get_workspace_runs` — run history
+- `get_workspace_state` — current state file
+- `list_variables` — workspace variables
+
+Workspace review: variables → recent runs → current state.
+
+### terraform-operations
+Terraform Cloud run operations:
+- `create_run` — trigger plan/apply (requires ServiceNow CR)
+- `get_run_status` — run status and logs
+- `get_plan_output` — plan details
+- `cancel_run` — cancel pending run
+
+All write operations gate through ServiceNow CR workflow.
+
+---
+
+## Splunk Skills
+
+### splunk-search
+Splunk search and query:
+- `run_search` — execute SPL queries
+- `get_search_results` — retrieve search results
+- `list_search_jobs` — active/completed searches
+- `get_search_status` — job status
+
+Search workflow: list indexes → run search → get results → export.
+
+### splunk-indexes
+Splunk index management:
+- `list_indexes` — available indexes
+- `get_index_details` — index configuration
+- `get_index_stats` — event count, size
+- `list_sourcetypes` — data sourcetypes
+
+Index discovery before querying for efficient searches.
+
+### splunk-saved
+Splunk saved searches and alerts:
+- `list_saved_searches` — saved search definitions
+- `get_saved_search` — search details
+- `run_saved_search` — execute saved search
+- `list_alerts` — alert history
+
+Compliance reporting: list saved searches → run on schedule → verify results.
+
+---
+
+## Datadog Skills
+
+### datadog-logs
+Log search and analysis:
+- `search_logs` — query logs with filters
+- `get_log_details` — specific log entry
+- `list_log_indexes` — available indexes
+- `get_pipeline_config` — log pipeline configuration
+
+Log investigation: search by service/host → filter by time → get details.
+
+### datadog-metrics
+Metric queries and dashboards:
+- `execute_query` — PromQL-style metric queries
+- `list_metrics` — available metrics
+- `get_metric_metadata` — metric type and unit
+- `list_dashboards` — dashboard inventory
+- `get_dashboard` — dashboard definition
+
+Metric analysis: list metrics → execute query → visualize in dashboard.
+
+### datadog-incidents
+Incident management:
+- `list_incidents` — active/resolved incidents
+- `get_incident` — incident details
+- `create_incident` — create incident (requires write)
+- `update_incident` — update status (requires write)
+
+Read-only by default. Write operations require explicit enable.
+
+### datadog-apm
+Application performance monitoring:
+- `list_services` — APM service inventory
+- `get_service_summary` — service health
+- `list_traces` — distributed traces
+- `get_trace` — trace details
+
+APM workflow: service inventory → health check → trace analysis.
+
+---
+
+## PagerDuty Skills
+
+### pagerduty-incidents
+Incident management:
+- `list_incidents` — active/resolved incidents
+- `get_incident` — incident details
+- `manage_incidents` — acknowledge/resolve
+- `add_note_to_incident` — timeline updates
+- `add_responders` — escalate to additional responders
+- `get_related_incidents` — find related issues
+
+Incident workflow: list triggered → get details → acknowledge → add notes → resolve.
+
+### pagerduty-oncall
+On-call schedule management:
+- `list_oncalls` — current on-call
+- `list_schedules` — schedule inventory
+- `get_schedule` — schedule details
+- `list_escalation_policies` — escalation chains
+- `create_schedule_override` — temporary coverage
+
+On-call check: list oncalls → verify escalation policy → create override if needed.
+
+### pagerduty-services
+Service catalog:
+- `list_services` — service inventory
+- `get_service` — service configuration
+- `create_service` — new service (requires write)
+- `update_service` — modify service (requires write)
+
+Service review: list services → check escalation policy assignments.
+
+### pagerduty-orchestration
+Event orchestration:
+- `list_event_orchestrations` — orchestration rules
+- `get_event_orchestration` — rule details
+- `get_event_orchestration_router` — routing rules
+- `update_event_orchestration_router` — modify routing (requires write)
+
+Event routing audit: list orchestrations → review router rules → verify destinations.
+
+---
+
+## Prisma SD-WAN Skills
+
+### prisma-sdwan-topology
+Prisma SD-WAN fabric topology:
+- `list_sites` — site inventory
+- `get_site` — site details and configuration
+- `list_elements` — ION device inventory
+- `get_element` — device details
+- `list_interfaces` — interface inventory
+
+Topology discovery: sites → elements → interfaces → WAN links.
+
+### prisma-sdwan-status
+Prisma SD-WAN health and status:
+- `get_element_status` — device health
+- `list_alarms` — active alarms
+- `get_app_status` — application health
+- `list_vpn_links` — VPN tunnel status
+- `get_path_status` — path analytics
+
+Health check: element status → alarms → VPN links → path status.
+
+### prisma-sdwan-config
+Prisma SD-WAN configuration:
+- `list_policy_sets` — policy definitions
+- `get_policy` — policy details
+- `list_path_policies` — path selection rules
+- `list_qos_policies` — QoS configuration
+
+Config audit: policy sets → path policies → QoS policies.
+
+### prisma-sdwan-apps
+Prisma SD-WAN application visibility:
+- `list_app_definitions` — application signatures
+- `get_app_stats` — application usage
+- `list_app_policies` — per-app policies
+
+Application visibility: app definitions → usage stats → policy mapping.
+
+---
+
+## GNS3 Skills
+
+### gns3-project-lifecycle
+GNS3 project management:
+- `list_projects` — lab inventory
+- `create_project` — new lab project
+- `open_project` — open existing project
+- `close_project` — close project
+- `delete_project` — remove project
+
+Lab-only operations — no ServiceNow CR required.
+
+### gns3-node-operations
+GNS3 node management:
+- `list_nodes` — nodes in project
+- `create_node` — add node to topology
+- `start_node` — power on node
+- `stop_node` — power off node
+- `get_node_console` — console access
+
+Node lifecycle: create → configure → start → test → stop.
+
+### gns3-link-management
+GNS3 link and connectivity:
+- `list_links` — links in project
+- `create_link` — connect nodes
+- `delete_link` — remove connection
+- `get_link_filters` — link conditioning
+
+Link management for topology building.
+
+### gns3-packet-capture
+GNS3 packet capture:
+- `start_capture` — begin capture on link
+- `stop_capture` — end capture
+- `get_capture_file` — download pcap
+- `list_captures` — active captures
+
+Hand off pcap files to Packet Buddy for analysis.
+
+### gns3-snapshot-ops
+GNS3 snapshot management:
+- `list_snapshots` — snapshot inventory
+- `create_snapshot` — save lab state
+- `restore_snapshot` — rollback to snapshot
+- `delete_snapshot` — remove snapshot
+
+Always snapshot before major topology changes.
