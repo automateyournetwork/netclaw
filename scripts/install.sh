@@ -2112,9 +2112,9 @@ cp -r "$NETCLAW_DIR/workspace/skills/"* "$OPENCLAW_DIR/workspace/skills/"
 log_info "Deployed skills to $OPENCLAW_DIR/workspace/skills/"
 
 # Deploy OpenClaw workspace MD files (SOUL, AGENTS, IDENTITY, USER, TOOLS, HEARTBEAT)
-for mdfile in SOUL.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
-    if [ -f "$NETCLAW_DIR/$mdfile" ]; then
-        cp "$NETCLAW_DIR/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
+for mdfile in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md CLAUDE.md; do
+    if [ -f "$NETCLAW_DIR/workspace-override.example/$mdfile" ]; then
+        cp "$NETCLAW_DIR/workspace-override.example/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
         log_info "Deployed $mdfile to workspace"
     fi
 done

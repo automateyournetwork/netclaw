@@ -6,9 +6,9 @@
     "defaults": {
       "workspace": "~/.openclaw/workspace",
       "model": {
-        "primary": "anthropic/claude-opus-4-6",
+        "primary": "ollama/qwen3.5:397b-cloud",
         "fallbacks": [
-          "anthropic/claude-sonnet-4-6"
+          "ollama/qwen3.5:cloud"
         ]
       }
     }
@@ -28,237 +28,95 @@
     "ownerDisplay": "raw"
   },
   "mcpServers": {
-    "suzieq-mcp": {
-      "command": "python3",
+    "devnet-content-search": {
+      "url": "https://devnet.cisco.com/v1/foundation-search-mcp/mcp"
+    },
+    "pyats-mcp": {
+      "command": "/opt/venv/bin/python3",
       "args": [
         "-u",
-        "mcp-servers/suzieq-mcp/server.py"
+        "/opt/netclaw/mcp-servers/pyATS_MCP/pyats_mcp_server.py"
       ],
       "env": {
-        "SUZIEQ_API_URL": "${SUZIEQ_API_URL}",
-        "SUZIEQ_API_KEY": "${SUZIEQ_API_KEY}",
-        "SUZIEQ_VERIFY_SSL": "${SUZIEQ_VERIFY_SSL:-true}",
-        "SUZIEQ_TIMEOUT": "${SUZIEQ_TIMEOUT:-30}"
+        "PYATS_TESTBED_PATH": "${PYATS_TESTBED_PATH:-/root/.openclaw/workspace/testbed/testbed.yaml}"
       }
     },
-    "batfish-mcp": {
-      "command": "python3",
+    "gait-mcp": {
+      "command": "/opt/venv/bin/python3",
       "args": [
         "-u",
-        "mcp-servers/batfish-mcp/batfish_mcp_server.py"
-      ],
-      "env": {
-        "BATFISH_HOST": "${BATFISH_HOST:-localhost}",
-        "BATFISH_PORT": "${BATFISH_PORT:-9997}",
-        "BATFISH_NETWORK": "${BATFISH_NETWORK:-netclaw}"
-      }
+        "/opt/netclaw/scripts/gait-stdio.py"
+      ]
     },
-    "gnmi-mcp": {
-      "command": "python3",
+    "markmap-mcp": {
+      "command": "node",
+      "args": [
+        "/opt/netclaw/mcp-servers/markmap_mcp/markmap-mcp/dist/index.js"
+      ]
+    },
+    "nautobot-mcp": {
+      "command": "/opt/venv/bin/python3",
       "args": [
         "-u",
-        "mcp-servers/gnmi-mcp/gnmi_mcp_server.py"
+        "/opt/netclaw/mcp-servers/nautobot-mcp-v2/server.py"
       ],
       "env": {
-        "GNMI_TARGETS": "${GNMI_TARGETS}",
-        "GNMI_TLS_CA_CERT": "${GNMI_TLS_CA_CERT}",
-        "GNMI_TLS_CLIENT_CERT": "${GNMI_TLS_CLIENT_CERT}",
-        "GNMI_TLS_CLIENT_KEY": "${GNMI_TLS_CLIENT_KEY}",
-        "GNMI_TLS_SKIP_VERIFY": "${GNMI_TLS_SKIP_VERIFY:-false}",
-        "GNMI_DEFAULT_PORT": "${GNMI_DEFAULT_PORT:-6030}",
-        "GNMI_MAX_RESPONSE_SIZE": "${GNMI_MAX_RESPONSE_SIZE:-1048576}",
-        "GNMI_MAX_SUBSCRIPTIONS": "${GNMI_MAX_SUBSCRIPTIONS:-50}"
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NAUTOBOT_VERIFY_SSL": "${NAUTOBOT_VERIFY_SSL:-false}",
+        "NAUTOBOT_TIMEOUT": "${NAUTOBOT_TIMEOUT:-30}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-true}"
       }
     },
-    "azure-network-mcp": {
-      "command": "python",
+    "wikipedia-mcp": {
+      "command": "/opt/venv/bin/python3",
       "args": [
-        "mcp-servers/azure-network-mcp/azure_network_mcp_server.py"
-      ],
-      "env": {
-        "AZURE_TENANT_ID": "${AZURE_TENANT_ID}",
-        "AZURE_CLIENT_ID": "${AZURE_CLIENT_ID}",
-        "AZURE_CLIENT_SECRET": "${AZURE_CLIENT_SECRET}",
-        "AZURE_SUBSCRIPTION_ID": "${AZURE_SUBSCRIPTION_ID}"
-      }
+        "-u",
+        "/opt/netclaw/mcp-servers/Wikipedia_MCP/main.py"
+      ]
     },
-    "gitlab-mcp": {
+    "subnet-calculator-mcp": {
+      "command": "/opt/venv/bin/python3",
+      "args": [
+        "-u",
+        "/opt/netclaw/mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py"
+      ]
+    },
+    "packet-buddy-mcp": {
+      "command": "/opt/venv/bin/python3",
+      "args": [
+        "-u",
+        "/opt/netclaw/mcp-servers/packet-buddy-mcp/server.py"
+      ]
+    },
+    "nmap-mcp": {
+      "command": "/opt/venv/bin/python3",
+      "args": [
+        "-u",
+        "/opt/netclaw/mcp-servers/nmap-mcp/server.py"
+      ]
+    },
+    "mempalace-mcp": {
+      "command": "/opt/venv/bin/python3",
+      "args": [
+        "-u",
+        "/opt/netclaw/mcp-servers/mempalace/mempalace/mcp_server.py"
+      ]
+    },
+    "drawio-mcp": {
       "command": "npx",
       "args": [
         "-y",
-        "@zereight/mcp-gitlab"
-      ],
-      "env": {
-        "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}",
-        "GITLAB_API_URL": "${GITLAB_API_URL:-https://gitlab.com}"
-      }
-    },
-    "jenkins-mcp": {
-      "url": "${JENKINS_URL}/mcp-server/mcp",
-      "headers": {
-        "Authorization": "Basic ${JENKINS_AUTH_BASE64}"
-      },
-      "env": {
-        "JENKINS_URL": "${JENKINS_URL}",
-        "JENKINS_AUTH_BASE64": "${JENKINS_AUTH_BASE64}"
-      }
-    },
-    "atlassian-mcp": {
-      "command": "uvx",
-      "args": [
-        "mcp-atlassian"
-      ],
-      "env": {
-        "JIRA_URL": "${JIRA_URL}",
-        "JIRA_USERNAME": "${JIRA_USERNAME}",
-        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}",
-        "CONFLUENCE_URL": "${CONFLUENCE_URL}",
-        "CONFLUENCE_USERNAME": "${CONFLUENCE_USERNAME}",
-        "CONFLUENCE_API_TOKEN": "${CONFLUENCE_API_TOKEN}"
-      }
-    },
-    "gns3-mcp": {
-      "command": "python3",
-      "args": [
-        "-u",
-        "mcp-servers/gns3-mcp-server/gns3_mcp_server.py"
-      ],
-      "env": {
-        "GNS3_URL": "${GNS3_URL}",
-        "GNS3_USER": "${GNS3_USER}",
-        "GNS3_PASSWORD": "${GNS3_PASSWORD}",
-        "GNS3_VERIFY_SSL": "${GNS3_VERIFY_SSL:-true}",
-        "GNS3_TOKEN_TTL": "${GNS3_TOKEN_TTL:-3000}"
-      }
-    },
-    "prisma-sdwan-mcp": {
-      "command": "python3",
-      "args": [
-        "-u",
-        "mcp-servers/prisma-sdwan-mcp/prisma_sdwan_mcp_server.py"
-      ],
-      "env": {
-        "PAN_CLIENT_ID": "${PAN_CLIENT_ID}",
-        "PAN_CLIENT_SECRET": "${PAN_CLIENT_SECRET}",
-        "PAN_TSG_ID": "${PAN_TSG_ID}",
-        "PAN_REGION": "${PAN_REGION:-americas}"
-      }
-    },
-    "datadog-mcp": {
-      "url": "mcp://datadog.com/mcp",
-      "env": {
-        "DD_API_KEY": "${DD_API_KEY}",
-        "DD_APP_KEY": "${DD_APP_KEY}",
-        "DD_SITE": "${DD_SITE:-datadoghq.com}"
-      }
-    },
-    "pagerduty-mcp": {
-      "command": "uvx",
-      "args": [
-        "pagerduty-mcp",
-        "--enable-write-tools"
-      ],
-      "env": {
-        "PAGERDUTY_USER_API_KEY": "${PAGERDUTY_USER_API_KEY}",
-        "PAGERDUTY_API_HOST": "${PAGERDUTY_API_HOST:-https://api.pagerduty.com}"
-      }
-    },
-    "splunk-mcp": {
-      "command": "uvx",
-      "args": [
-        "splunk-mcp"
-      ],
-      "env": {
-        "SPLUNK_HOST": "${SPLUNK_HOST}",
-        "SPLUNK_TOKEN": "${SPLUNK_TOKEN}",
-        "SPLUNK_VERIFY_SSL": "${SPLUNK_VERIFY_SSL:-true}"
-      }
-    },
-    "terraform-mcp": {
-      "url": "mcp://terraform.io/mcp",
-      "env": {
-        "TFC_TOKEN": "${TFC_TOKEN}",
-        "TFC_ORG": "${TFC_ORG}",
-        "TFC_HOST": "${TFC_HOST:-app.terraform.io}"
-      }
-    },
-    "vault-mcp": {
-      "url": "mcp://vault.hashicorp.com/mcp",
-      "env": {
-        "VAULT_ADDR": "${VAULT_ADDR}",
-        "VAULT_TOKEN": "${VAULT_TOKEN}",
-        "VAULT_NAMESPACE": "${VAULT_NAMESPACE}"
-      }
-    },
-    "zscaler-mcp": {
-      "url": "mcp://zscaler.com/mcp",
-      "env": {
-        "ZSCALER_ZIA_API_KEY": "${ZSCALER_ZIA_API_KEY}",
-        "ZSCALER_ZIA_USERNAME": "${ZSCALER_ZIA_USERNAME}",
-        "ZSCALER_ZIA_PASSWORD": "${ZSCALER_ZIA_PASSWORD}",
-        "ZSCALER_ZIA_CLOUD": "${ZSCALER_ZIA_CLOUD:-zscaler.net}",
-        "ZSCALER_ZPA_CLIENT_ID": "${ZSCALER_ZPA_CLIENT_ID}",
-        "ZSCALER_ZPA_CLIENT_SECRET": "${ZSCALER_ZPA_CLIENT_SECRET}",
-        "ZSCALER_ZPA_CUSTOMER_ID": "${ZSCALER_ZPA_CUSTOMER_ID}"
-      }
-    },
-    "cloudflare-dns-analytics": {
-      "url": "mcp://cloudflare.com/dns-analytics",
-      "env": {
-        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
-        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
-      }
-    },
-    "cloudflare-security": {
-      "url": "mcp://cloudflare.com/security",
-      "env": {
-        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
-        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
-      }
-    },
-    "cloudflare-zerotrust": {
-      "url": "mcp://cloudflare.com/zero-trust",
-      "env": {
-        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
-        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
-      }
-    },
-    "cloudflare-analytics": {
-      "url": "mcp://cloudflare.com/analytics",
-      "env": {
-        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
-        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
-      }
-    },
-    "cloudflare-workers": {
-      "url": "mcp://cloudflare.com/workers",
-      "env": {
-        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
-        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
-      }
-    },
-    "blender-mcp": {
-      "command": "uvx",
-      "args": [
-        "blender-mcp"
+        "@drawio/mcp"
       ]
     },
-    "aruba-cx-mcp": {
-      "command": "python3",
+    "rfc-mcp": {
+      "command": "npx",
       "args": [
-        "-u",
-        "mcp-servers/aruba-cx-mcp/aruba_cx_mcp_server.py"
-      ],
-      "env": {
-        "ARUBA_CX_TARGETS": "${ARUBA_CX_TARGETS}",
-        "ARUBA_CX_CONFIG": "${ARUBA_CX_CONFIG}",
-        "ARUBA_CX_TIMEOUT": "${ARUBA_CX_TIMEOUT:-30}",
-        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
-        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-false}"
-      }
-    },
-    "devnet-content-search": {
-      "url": "https://devnet.cisco.com/v1/foundation-search-mcp/mcp"
+        "-y",
+        "@mjpitz/mcp-rfc"
+      ]
     }
   }
 }

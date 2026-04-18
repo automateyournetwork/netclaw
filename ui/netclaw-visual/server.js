@@ -968,37 +968,31 @@ app.post('/api/chat', async (req, res) => {
     timestamp,
   });
 
-  // Try to proxy through the real OpenClaw gateway with streaming
+  // Try to proxy through the real OpenClaw gateway via CLI
   let responseText = '';
   let fromGateway = false;
   const gw = getGatewayConfig();
 
   try {
-    const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${gw.token}`,
-        'Content-Type': 'application/json',
-        'x-openclaw-agent-id': 'main',
-      },
-      body: JSON.stringify({
-        model: 'openclaw',
-        messages: chatHistory
-          .filter((m) => m.role === 'user' || m.role === 'assistant')
-          .slice(-10)
-          .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(300000),
+    const { execFileSync } = await import('child_process');
+    const result = execFileSync('openclaw', [
+      'agent', '--agent', 'main', '--session-id', 'agent:main:hud', '--message', message
+    ], {
+      timeout: 300000,
+      encoding: 'utf8',
+      env: { ...process.env, HOME: '/root', NO_COLOR: '1' },
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
-
-    if (gwRes.ok) {
-      const gwData = await gwRes.json();
-      responseText = gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
-      fromGateway = true;
-    }
-  } catch {
-    // Gateway not reachable — fall back to local heuristic
+    // Strip config warnings and ANSI codes from stdout
+    const lines = result.split('\n').filter(l => !l.startsWith('Config (') && !l.startsWith('Gateway agent'));
+    responseText = lines.join('\n').replace(/\x1b\[[0-9;]*m/g, '').trim();
+    if (responseText) fromGateway = true;
+  } catch (err) {
+    // Gateway not reachable or command failed - fall back to local heuristic
+    const out = (err.stdout || '').toString();
+    const lines = out.split('\n').filter(l => !l.startsWith('Config (') && !l.startsWith('Gateway agent') && !l.startsWith('Error:'));
+    responseText = lines.join('\n').replace(/\x1b\[[0-9;]*m/g, '').trim();
+    if (responseText) fromGateway = true;
   }
 
   if (!responseText) {
@@ -1301,6 +1295,16 @@ wss.on('connection', (socket) => {
     clearInterval(timer);
   });
 });
+
+// Serve built frontend (vite build output)
+const distPath = path.join(__dirname, 'dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api/') || req.path === '/ws') return next();
+    res.sendFile(path.join(distPath, 'index.html'));
+  });
+}
 
 const PORT = process.env.HUD_PORT || 3001;
 server.listen(PORT, () => {

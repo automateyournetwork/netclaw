@@ -1,0 +1,51 @@
+services:
+  netclaw:
+    build: .
+    container_name: netclaw-convergence
+    ports:
+      - "18789:18789"
+      - "3000:3000"
+    volumes:
+      # Persistent OpenClaw state (sessions, memory, logs, gateway config)
+      # Survives rebuilds - only `docker compose down -v` wipes it
+      - openclaw-data:/root/.openclaw
+
+      # User-editable files - edit on host, restart to pick up changes
+      # Copy workspace-override.example/ to workspace-override/ and customize
+      - ./workspace-override:/workspace-override:ro
+
+    # Credentials - the .env file at project root
+    env_file:
+      - .env
+    #environment:
+    restart: unless-stopped
+    # For protocol participation (BGP/OSPF/GRE) and nmap raw sockets
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+    stdin_open: true
+    tty: true
+
+volumes:
+  openclaw-data:
+
+# ─── Usage ───────────────────────────────────────────────────────
+#
+# QUICK START (headless - just set your API key):
+#   1. cp .env.example .env && nano .env        # set ANTHROPIC_API_KEY
+#   2. cp -r workspace-override.example/* workspace-override/
+#   3. nano workspace-override/USER.md          # your name, timezone
+#   4. docker compose up -d --build
+#   5. docker compose exec -it netclaw openclaw chat --new
+#
+# INTERACTIVE SETUP (full wizard experience):
+#   docker compose exec -it netclaw openclaw onboard              # AI provider + channels
+#   docker compose exec -it netclaw /opt/netclaw/scripts/setup.sh # platform credentials
+#   docker compose restart                                         # apply changes
+#
+# RECONFIGURE:
+#   docker compose exec -it netclaw openclaw configure   # change AI provider
+#   docker compose exec -it netclaw bash                 # shell access
+#
+# RESET (wipe all state, start fresh):
+#   docker compose down -v && docker compose up -d --build

@@ -61,3 +61,13 @@ trace.json
 trace.json.gz
 
 .claude
+
+# Docker
+openclaw-data/
+
+# User workspace overrides (personalized markdowns, testbed, credentials)
+# The example directory is tracked; the actual user directory is not
+workspace-override/*
+!workspace-override/.gitkeep
+docs/blog*
+golden-config-work
