@@ -170,13 +170,13 @@
 - [x] T020 [P] Create `mcp-servers/nautobot-mcp-v2/README.md` with tool inventory (13 tools), env vars, transport, install instructions, examples
 - [x] T021 [P] Create `workspace/skills/nautobot-sot/SKILL.md` with purpose, tools used, workflow steps, env vars
 - [x] T022 [P] Update `.env.example` with NAUTOBOT_URL, NAUTOBOT_TOKEN, NAUTOBOT_VERIFY_SSL, NAUTOBOT_TIMEOUT, ITSM_ENABLED, ITSM_LAB_MODE
-- [ ] T023 [P] Update `workspace-override/TOOLS.md` with nautobot-mcp-v2 entry (13 tools)
-- [ ] T024 [P] Update `workspace-override/SOUL.md` with nautobot-sot skill and v2 capabilities
-- [ ] T025 [P] Update `README.md` with v2 description, updated tool/skill counts
+- [x] T023 [P] Update `workspace-override/TOOLS.md` with nautobot-mcp-v2 entry (32 tools)
+- [x] T024 [P] Update `workspace-override/SOUL.md` with nautobot-sot skill and v2 capabilities
+- [x] T025 [P] Update `README.md` with v2 description, updated tool/skill counts
 - [x] T026 Update `config/openclaw.json` to point nautobot-mcp at v2 server.py with new env vars
-- [ ] T027 [P] Update `scripts/install.sh` with v2 dependency installation
-- [ ] T028 [P] Update `ui/netclaw-visual/` HUD with updated Nautobot node (v2 capabilities)
-- [ ] T029 [P] Update `Dockerfile` to install v2 requirements and copy v2 server files
+- [x] T027 [P] Update `scripts/install.sh` with v2 dependency installation
+- [x] T028 [P] Update `ui/netclaw-visual/` HUD with updated Nautobot node (v2 capabilities)
+- [x] T029 [P] Update `Dockerfile` to install v2 requirements and copy v2 server files
 
 ---
 

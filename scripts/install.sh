@@ -299,39 +299,37 @@ echo ""
 # Step 11: Nautobot MCP (clone + pip install)
 # ═══════════════════════════════════════════
 
-log_step "11/$TOTAL_STEPS Installing Nautobot MCP Server..."
-echo "  Source: https://github.com/aiopnet/mcp-nautobot"
-echo "  Nautobot IPAM source of truth — IP addresses, prefixes, VRF/tenant/site filtering (5 tools)"
+log_step "11/$TOTAL_STEPS Installing Nautobot MCP Servers..."
 
+# v1: mcp-nautobot (5 IPAM-only tools, kept for reference)
+echo "  Source: https://github.com/aiopnet/mcp-nautobot (v1, 5 tools)"
 NAUTOBOT_MCP_DIR="$MCP_DIR/mcp-nautobot"
 if [ -d "$NAUTOBOT_MCP_DIR" ]; then
-    log_info "Nautobot MCP already cloned, pulling latest..."
+    log_info "Nautobot MCP v1 already cloned, pulling latest..."
     git -C "$NAUTOBOT_MCP_DIR" pull --quiet 2>/dev/null || true
 else
     git clone https://github.com/aiopnet/mcp-nautobot.git "$NAUTOBOT_MCP_DIR" 2>/dev/null
 fi
-
 if [ -d "$NAUTOBOT_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
-    if [ "$PY_MINOR" -ge 13 ]; then
-        log_info "Python 3.$PY_MINOR detected (3.13+ required for Nautobot MCP)"
-        if [ -f "$NAUTOBOT_MCP_DIR/pyproject.toml" ]; then
-            cd "$NAUTOBOT_MCP_DIR" && pip3 install -e . 2>/dev/null || \
-                pip3 install --break-system-packages -e . 2>/dev/null || \
-                log_warn "Nautobot MCP editable install failed"
-            cd "$NETCLAW_DIR"
-        fi
-        log_info "Nautobot MCP installed (stdio transport via MCP SDK)"
-    else
-        log_warn "Python 3.13+ required for Nautobot MCP (found 3.$PY_MINOR)"
-        log_info "Installing core dependencies..."
-        pip3 install "mcp>=1.10.1" httpx "pydantic>=2.11.0" pydantic-settings python-dotenv 2>/dev/null || \
-            pip3 install --break-system-packages "mcp>=1.10.1" httpx "pydantic>=2.11.0" pydantic-settings python-dotenv 2>/dev/null || \
-            log_warn "Nautobot core deps install failed"
-        log_info "Nautobot MCP installed (some features may require Python 3.13+)"
-    fi
+    cd "$NAUTOBOT_MCP_DIR" && pip3 install -e . 2>/dev/null || \
+        pip3 install --break-system-packages -e . 2>/dev/null || true
+    cd "$NETCLAW_DIR"
+    log_info "Nautobot MCP v1 installed (kept for reference)"
 else
-    log_warn "Nautobot MCP clone failed"
+    log_warn "Nautobot MCP v1 clone failed"
+fi
+
+# v2: nautobot-mcp-v2 (32 tools — GraphQL reads, REST writes, golden config, design reference)
+echo "  Built-in: mcp-servers/nautobot-mcp-v2/ (v2, 32 tools)"
+NAUTOBOT_V2_DIR="$MCP_DIR/nautobot-mcp-v2"
+if [ -f "$NAUTOBOT_V2_DIR/requirements.txt" ]; then
+    log_info "Installing Nautobot MCP v2 dependencies..."
+    pip3 install -r "$NAUTOBOT_V2_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$NAUTOBOT_V2_DIR/requirements.txt" 2>/dev/null || \
+        log_warn "Nautobot MCP v2 deps install failed"
+    log_info "Nautobot MCP v2 ready: $NAUTOBOT_V2_DIR/server.py (32 tools, stdio)"
+else
+    log_warn "Nautobot MCP v2 not found at $NAUTOBOT_V2_DIR"
 fi
 
 echo ""
@@ -2162,6 +2160,7 @@ _set_env_var "INFOBLOX_MCP_CMD"         "$INFOBLOX_MCP_CMD_DETECTED"
 _set_env_var "PANOS_MCP_CMD"            "$PANOS_MCP_CMD_DETECTED"
 _set_env_var "FORTIMANAGER_MCP_CMD"     "$FORTIMANAGER_MCP_CMD_DETECTED"
 _set_env_var "MEMPALACE_MCP_SCRIPT"     "$MEMPALACE_MCP_DIR/mempalace/mcp_server.py"
+_set_env_var "NAUTOBOT_V2_MCP_SCRIPT"   "$NAUTOBOT_V2_DIR/server.py"
 
 # gtrace is a Go binary, not a Python script — just record the path
 if command -v gtrace &> /dev/null; then

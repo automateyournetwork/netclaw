@@ -28,6 +28,7 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 ### Connection Details (reference only — actual values in .env)
 - pyATS Testbed       → PYATS_TESTBED_PATH
 - NetBox              → NETBOX_URL, NETBOX_TOKEN
+- Nautobot v2         → NAUTOBOT_URL, NAUTOBOT_TOKEN (32 tools: devices, interfaces, VLANs, golden config, reconciliation)
 - ServiceNow          → SERVICENOW_INSTANCE_URL, SERVICENOW_USERNAME, SERVICENOW_PASSWORD
 - Cisco APIC          → APIC_URL, APIC_USERNAME, APIC_PASSWORD
 - Cisco ISE           → ISE_BASE, ISE_USERNAME, ISE_PASSWORD

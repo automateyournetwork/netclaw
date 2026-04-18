@@ -191,7 +191,7 @@ Human (Slack / WebEx / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
                                 |     MCP: Cisco ACI       --> APIC / ACI fabric
                                 |     MCP: Cisco ISE       --> Identity, posture, TrustSec
                                 |     MCP: NetBox          --> DCIM/IPAM source of truth (read-write)
-                                |     MCP: Nautobot        --> IPAM source of truth (5 tools, alternative to NetBox)
+                                |     MCP: Nautobot v2     --> GraphQL reads + REST writes (32 tools, Nautobot 3.1.0)
                                 |     MCP: Infrahub        --> Schema-driven SoT, GraphQL, branches (10 tools)
                                 |     MCP: ServiceNow      --> Incidents, Changes, CMDB
                                 |
@@ -304,7 +304,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 4 | Cisco ACI | [automateyournetwork/ACI_MCP](https://github.com/automateyournetwork/ACI_MCP) | stdio (Python) | APIC interaction, policy management, fabric health |
 | 5 | Cisco ISE | [automateyournetwork/ISE_MCP](https://github.com/automateyournetwork/ISE_MCP) | stdio (Python) | Identity policy, posture, TrustSec, endpoint control |
 | 6 | NetBox | [netboxlabs/netbox-mcp-server](https://github.com/netboxlabs/netbox-mcp-server) | stdio (Python) | Read-write DCIM/IPAM source of truth |
-| 7 | Nautobot | [aiopnet/mcp-nautobot](https://github.com/aiopnet/mcp-nautobot) | stdio (Python) | IPAM source of truth — IP addresses, prefixes, VRF/tenant/site filtering (5 tools, alternative to NetBox) |
+| 7 | Nautobot v2 | Built-in ([nautobot-mcp-v2](mcp-servers/nautobot-mcp-v2/)) | stdio (Python) | GraphQL reads + REST writes for Nautobot 3.1.0 — devices, interfaces, VLANs, prefixes, IPs, cables, golden config (compliance features/rules/settings/repos/SoT queries), firewall policies/zones/NAT, BGP routing/ASNs, OSPF, ITSM-gated creates/updates, live-vs-SoT reconciliation, Cisco design reference KB (13 features), template scaffolding (22 Jinja templates) (32 tools) |
 | 8 | OpsMill Infrahub | [opsmill/infrahub-mcp](https://github.com/opsmill/infrahub-mcp) | stdio (Python) | Schema-driven SoT: nodes, GraphQL queries, versioned branches (10 tools) | `INFRAHUB_ADDRESS`, `INFRAHUB_API_TOKEN` |
 | 9 | Itential IAP | [itential/itential-mcp](https://github.com/itential/itential-mcp) | stdio (Python) | Network automation orchestration: config mgmt, compliance, workflows, golden config, lifecycle (65+ tools) | `ITENTIAL_MCP_PLATFORM_HOST`, `ITENTIAL_MCP_PLATFORM_USER`, `ITENTIAL_MCP_PLATFORM_PASSWORD` |
 | 10 | ServiceNow | [echelon-ai-labs/servicenow-mcp](https://github.com/echelon-ai-labs/servicenow-mcp) | stdio (Python) | Incidents, change requests, CMDB |
@@ -420,7 +420,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | Skill | What It Does |
 |-------|-------------|
 | **netbox-reconcile** | Diffs NetBox intent vs device reality. Detects 7 discrepancy types: IP_DRIFT, MISSING_INTERFACE, UNDOCUMENTED_LINK, CABLE_MISMATCH, VLAN_MISMATCH, STATUS_MISMATCH, MTU_MISMATCH. Opens ServiceNow incidents for CRITICAL findings. Generates Markmap drift summary. GAIT audit. |
-| **nautobot-sot** | Nautobot IPAM source of truth (5 tools, alternative to NetBox): query IP addresses with filtering by status (active/reserved/deprecated), role (loopback/secondary/anycast), VRF, tenant; look up network prefixes by site and role; full-text search across all IP data; retrieve IP details by Nautobot UUID; verify API connectivity. Supports pagination (up to 1000 results). Integrates with pyATS topology for intended-vs-actual reconciliation. |
+| **nautobot-sot** | Nautobot 3.1.0 source of truth (32 tools via nautobot-mcp-v2): GraphQL reads for devices, interfaces, VLANs, prefixes, IPs, cables; golden config management (compliance features, rules, settings, repos, SoT queries); firewall policies/zones/NAT; BGP routing/ASNs; OSPF; ITSM-gated writes (create IPs, VLANs, prefixes, update any object); live-vs-SoT reconciliation; Cisco design reference KB (13 features with best practices, config examples, rationale, RFCs); template scaffolding reader (22 Jinja templates). |
 | **infrahub-sot** | OpsMill Infrahub schema-driven source of truth (10 tools): get_schema_mapping for all available kinds, get_nodes/get_node_details for infrastructure objects (InfraDevice, InfraInterface, InfraIPAddress, InfraPrefix), get_related_nodes for relationship traversal, query_graphql for custom queries and mutations, get_branches/branch_create/branch_delete for versioned change management, branch_diff for change review. Supports GraphQL-based schema introspection and branch-based workflows for safe infrastructure changes. |
 | **aci-fabric-audit** | ACI fabric health: node status, firmware, policy tree walk (Tenant/VRF/BD/EPG), contract analysis, fault analysis with health scores, endpoint learning verification. Severity-rated consolidated report. GAIT audit. |
 | **aci-change-deploy** | Safe ACI policy changes: ServiceNow CR gating, pre-change fault baseline, dependency-ordered deployment (Tenant > VRF > BD > AP > EPG), post-change fault delta, automatic rollback on fault increase. GAIT audit. |
@@ -2034,7 +2034,7 @@ netclaw/
 7. **Clones Arista CVP MCP** — `git clone noredistribution/mcp-cvp-fun` + `uv` runtime deps for CloudVision Portal REST API (4 tools: device inventory, events, connectivity monitor, tag management). Requires CVP service account token.
 8. **Clones GAIT MCP** — `git clone` + `pip3 install gait-ai fastmcp`
 9. **Clones NetBox MCP** — `git clone` + `pip3 install` dependencies
-10. **Clones Nautobot MCP** — `git clone` + `pip3 install -e .` for Nautobot IPAM source of truth (5 tools: IP addresses, prefixes, VRF/tenant/site filtering, search, connection test). Python 3.13+ required; falls back to core deps on older Python. Alternative to NetBox.
+10. **Installs Nautobot MCP** — v1 (`git clone` + `pip3 install -e .`, 5 IPAM tools) and v2 (built-in, `pip3 install -r requirements.txt`, 32 tools: GraphQL reads, REST writes, golden config, firewall, BGP/OSPF, reconciliation, Cisco design reference). v2 is the active server in openclaw.json.
 11. **Clones Infrahub MCP** — `git clone` + `pip3 install -e .` for OpsMill Infrahub schema-driven source of truth (10 tools: nodes, GraphQL queries, versioned branches). Requires Infrahub instance with API token.
 12. **Installs Itential MCP** — `pip3 install itential-mcp` (falls back to `git clone` + `pip3 install -e .`) for Itential Automation Platform network orchestration (65+ tools: config mgmt, compliance, workflows, golden config, lifecycle). Requires IAP instance with credentials.
 13. **Clones ServiceNow MCP** — `git clone` + `pip3 install` dependencies

@@ -21,7 +21,7 @@ pyats-network, pyats-health-check, pyats-routing, pyats-security, pyats-topology
 pyats-linux-system, pyats-linux-network, pyats-linux-vmware, pyats-junos-system, pyats-junos-interfaces, pyats-junos-routing, pyats-asa-firewall, pyats-f5-ltm, pyats-f5-platform
 
 ### Domain Skills (9)
-netbox-reconcile, nautobot-sot, infrahub-sot, aci-fabric-audit, aci-change-deploy, ise-posture-audit, ise-incident-response, servicenow-change-workflow, gait-session-tracking
+netbox-reconcile, nautobot-sot, infrahub-sot, aci-fabric-audit, aci-change-deploy, ise-posture-audit, ise-incident-response, servicenow-change-workflow, gait-session-tracking, golden-config-bootstrap
 
 ### F5 BIG-IP Skills (3)
 f5-health-check, f5-config-mgmt, f5-troubleshoot
