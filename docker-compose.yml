@@ -14,9 +14,6 @@ services:
       # Copy workspace-override.example/ to workspace-override/ and customize
       - ./workspace-override:/workspace-override:ro
 
-      # Docker socket — needed for GitHub MCP server (runs via docker run)
-      - /var/run/docker.sock:/var/run/docker.sock
-
     # Credentials - the .env file at project root
     env_file:
       - .env
@@ -28,6 +25,14 @@ services:
       - NET_ADMIN
     stdin_open: true
     tty: true
+
+  github-mcp:
+    image: ghcr.io/github/github-mcp-server
+    container_name: github-mcp
+    command: ["http", "--port", "8082", "--toolsets", "all"]
+    environment:
+      GITHUB_PERSONAL_ACCESS_TOKEN: ${GITHUB_PERSONAL_ACCESS_TOKEN}
+    restart: unless-stopped
 
 volumes:
   openclaw-data:

@@ -1009,6 +1009,98 @@ async def nautobot_update_golden_config_setting(
         return json.dumps({"error": str(e)})
 
 
+# ── Secrets Management (for Git Repository auth) ────────────────────
+
+
+@mcp.tool()
+async def nautobot_create_secret(
+    name: str,
+    provider: str,
+    parameters: str,
+    description: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create a secret in Nautobot. Used to store credentials for git repo access. ITSM-gated.
+
+    name: Display name (e.g., 'GitHub Token')
+    provider: Secret provider type. Common values:
+      environment-variable — reads from a Nautobot server env var
+      text-file — reads from a file on the Nautobot server
+    parameters: JSON string of provider-specific parameters.
+      For environment-variable: {"variable": "NAUTOBOT_GIT_TOKEN"}
+      For text-file: {"path": "/opt/nautobot/secrets/github-token"}
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_create_secret name={name} provider={provider} cr={cr_number}")
+    try:
+        params = json.loads(parameters)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid parameters JSON: {e}"})
+    try:
+        payload: dict = {"name": name, "provider": provider, "parameters": params}
+        if description:
+            payload["description"] = description
+        result = await client.rest_post("extras/secrets", payload)
+        return json.dumps({"created": True, "secret": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_secrets_group(
+    name: str,
+    description: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create a secrets group in Nautobot. Secrets groups bundle secrets for use with git repos. ITSM-gated."""
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_create_secrets_group name={name} cr={cr_number}")
+    try:
+        payload: dict = {"name": name}
+        if description:
+            payload["description"] = description
+        result = await client.rest_post("extras/secrets-groups", payload)
+        return json.dumps({"created": True, "secrets_group": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_add_secret_to_group(
+    secrets_group_id: str,
+    secret_id: str,
+    access_type: str,
+    secret_type: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Associate a secret with a secrets group. ITSM-gated.
+
+    secrets_group_id: UUID of the secrets group
+    secret_id: UUID of the secret
+    access_type: How the secret is accessed. Values: 'HTTP(S)', 'SSH', 'SNMP', 'REST', 'Generic'
+    secret_type: What the secret represents. Values: 'token', 'username', 'password', 'key', 'secret'
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_add_secret_to_group group={secrets_group_id} secret={secret_id} cr={cr_number}")
+    try:
+        payload: dict = {
+            "secrets_group": secrets_group_id,
+            "secret": secret_id,
+            "access_type": access_type,
+            "secret_type": secret_type,
+        }
+        result = await client.rest_post("extras/secrets-groups-associations", payload)
+        return json.dumps({"created": True, "association": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
 # ── Firewall Models Plugin ───────────────────────────────────────────
 
 
