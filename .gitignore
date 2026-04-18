@@ -72,4 +72,5 @@ workspace-override/*
 !workspace-override/.gitkeep
 docs/blog*
 golden-config-work/HomeSwitch01.cfg
-golden-config-work/HomeSwitch02.cfg.amazonq/
+golden-config-work/HomeSwitch02.cfg
+.amazonq/
