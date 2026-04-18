@@ -1,0 +1,18 @@
+{% set vty = config_context.vty | default({}) %}
+line con 0
+ exec-timeout {{ vty.console_timeout | default("15 0") }}
+ logging synchronous
+ stopbits 1
+line aux 0
+ stopbits 1
+line vty 0 4
+ exec-timeout {{ vty.exec_timeout | default("15 0") }}
+ login local
+ transport input ssh
+ transport output ssh
+line vty 5 15
+ exec-timeout {{ vty.exec_timeout | default("15 0") }}
+ privilege level 15
+ login local
+ transport input ssh
+ transport output ssh

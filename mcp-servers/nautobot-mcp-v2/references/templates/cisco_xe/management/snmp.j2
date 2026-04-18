@@ -1,0 +1,19 @@
+{% if config_context.snmp is defined %}
+{% set snmp = config_context.snmp %}
+{% for community in snmp.communities | default([]) %}
+snmp-server community {{ community.name }} {{ community.permission }}{% if community.acl is defined %} {{ community.acl }}{% endif %}
+
+{% endfor %}
+{% if snmp.location is defined %}
+snmp-server location {{ snmp.location }}
+{% endif %}
+{% if snmp.contact is defined %}
+snmp-server contact {{ snmp.contact }}
+{% endif %}
+{% for trap in snmp.traps | default([]) %}
+snmp-server enable traps {{ trap }}
+{% endfor %}
+{% if snmp.host is defined %}
+snmp-server host {{ snmp.host }}{% if snmp.host_version is defined %} version {{ snmp.host_version }}{% endif %} {{ snmp.host_community | default(snmp.communities[0].name) }}
+{% endif %}
+{% endif %}

@@ -1,0 +1,18 @@
+interface {{ interface.name }}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if not interface.enabled %}
+ no ip address
+ shutdown
+{% else %}
+{% if config_context.mgmt_vrf is defined and interface.name == 'Vlan' + (config_context.mgmt_vrf.vlan | default('3') | string) %}
+ vrf forwarding {{ config_context.mgmt_vrf.name }}
+{% endif %}
+{% for addr in interface.ip_addresses | default([]) %}
+{% if '.' in addr.address %}
+ ip address {{ addr.address | ipaddr('address') }} {{ addr.address | ipaddr('netmask') }}
+{% endif %}
+{% endfor %}
+{% endif %}
+!

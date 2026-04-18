@@ -1,0 +1,9 @@
+{% set stp = config_context.spanning_tree | default({}) %}
+spanning-tree mode {{ stp.mode | default("rapid-pvst") }}
+{% if stp.logging | default(true) %}
+spanning-tree logging
+{% endif %}
+spanning-tree extend system-id
+{% if stp.priority is defined %}
+spanning-tree vlan 1-4094 priority {{ stp.priority }}
+{% endif %}

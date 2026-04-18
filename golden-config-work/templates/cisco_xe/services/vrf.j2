@@ -1,0 +1,9 @@
+{% if config_context.mgmt_vrf is defined %}
+vrf definition {{ config_context.mgmt_vrf.name }}
+ !
+ address-family ipv4
+ exit-address-family
+ !
+ address-family ipv6
+ exit-address-family
+{% endif %}

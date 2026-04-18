@@ -1,0 +1,8 @@
+{% if config_context.mgmt_vrf is defined %}
+{% set mgmt = config_context.mgmt_vrf %}
+ip ftp source-interface {{ mgmt.source_interface | default("Vlan3") }}
+ip route vrf {{ mgmt.name }} 0.0.0.0 0.0.0.0 {{ mgmt.gateway }}
+{% if mgmt.ipv6_gateway is defined %}
+ipv6 route vrf {{ mgmt.name }} ::/0 {{ mgmt.ipv6_gateway }}
+{% endif %}
+{% endif %}

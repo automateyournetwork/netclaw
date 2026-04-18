@@ -1,0 +1,80 @@
+{
+  "system": {
+    "mtu": 9198
+  },
+  "mgmt_vrf": {
+    "name": "MGMT",
+    "vlan": "3",
+    "source_interface": "Vlan3",
+    "gateway": "192.168.3.1",
+    "ipv6_gateway": "2602:61:7638:BB07::1"
+  },
+  "aaa": {
+    "new_model": false
+  },
+  "ntp": {
+    "timezone": "MST",
+    "utc_offset": "-7 0",
+    "source_interface": "Vlan3",
+    "vrf": "MGMT",
+    "authenticate": false,
+    "servers": [
+      {"address": "time.google.com", "prefer": true},
+      {"address": "time.cloudflare.com", "prefer": false}
+    ]
+  },
+  "logging": {
+    "trap_level": "debugging",
+    "source_interface": "Vlan3",
+    "source_vrf": "MGMT",
+    "host": "192.168.3.254",
+    "host_vrf": "MGMT"
+  },
+  "snmp": {
+    "communities": [
+      {"name": "{{ secrets.snmp_ro }}", "permission": "RO", "acl": "99"},
+      {"name": "{{ secrets.snmp_rw }}", "permission": "RW", "acl": "99"}
+    ],
+    "location": "Byrns Lab",
+    "contact": "admin@byrnbaker.me",
+    "host": "192.168.3.254",
+    "host_version": "2c",
+    "host_community": "{{ secrets.snmp_ro }}",
+    "traps": [
+      "snmp authentication linkdown linkup coldstart warmstart",
+      "config",
+      "syslog",
+      "entity",
+      "cpu threshold",
+      "memory bufferpeak",
+      "flash insertion removal lowspace",
+      "envmon",
+      "port-security",
+      "stackwise"
+    ]
+  },
+  "ssh": {
+    "version": 2,
+    "source_interface": "Vlan3"
+  },
+  "http": {
+    "server": true,
+    "source_interface": "Vlan3"
+  },
+  "spanning_tree": {
+    "mode": "rapid-pvst",
+    "logging": true,
+    "priority": 24576
+  },
+  "vtp": {
+    "mode": "transparent"
+  },
+  "users": [
+    {"name": "cisco", "privilege": 15, "password": "{{ secrets.local_password }}"},
+    {"name": "admin", "privilege": 15, "password": "{{ secrets.admin_password }}"}
+  ],
+  "vty": {
+    "exec_timeout": "0 0",
+    "console_timeout": "0 0"
+  }
+}

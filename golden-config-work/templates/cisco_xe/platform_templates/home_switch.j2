@@ -1,0 +1,73 @@
+!
+version 16.12
+no service pad
+service timestamps debug datetime msec
+service timestamps log datetime msec
+{% if config_context.service_password_encryption | default(false) %}
+service password-encryption
+{% endif %}
+service call-home
+platform punt-keepalive disable-kernel-core
+!
+hostname {{ hostname }}
+!
+!
+{% include '/cisco_xe/services/vrf.j2' %}
+!
+{% include '/cisco_xe/management/logging.j2' %}
+!
+{% include '/cisco_xe/management/aaa.j2' %}
+!
+{% include '/cisco_xe/management/ntp.j2' %}
+!
+switch 1 provision ws-c3850-48p
+!
+call-home
+ contact-email-addr sch-smart-licensing@cisco.com
+ profile "CiscoTAC-1"
+  active
+  destination transport-method http
+  no destination transport-method email
+!
+login on-success log
+!
+{% include '/cisco_xe/switching/vtp.j2' %}
+!
+no device-tracking logging theft
+!
+system mtu {{ config_context.system.mtu | default(9198) }}
+license boot level ipservicesk9 addon dna-advantage
+!
+diagnostic bootup level minimal
+!
+{% include '/cisco_xe/switching/spanning_tree.j2' %}
+!
+memory free low-watermark processor 79475
+!
+{% include '/cisco_xe/management/users.j2' %}
+!
+redundancy
+ mode sso
+!
+transceiver type all
+ monitoring
+!
+{% include '/cisco_xe/switching/vlans.j2' %}
+!
+{% include '/cisco_xe/interfaces/interfaces.j2' %}
+!
+ip forward-protocol nd
+{% include '/cisco_xe/management/http.j2' %}
+!
+{% include '/cisco_xe/management/routing.j2' %}
+!
+{% include '/cisco_xe/management/ssh.j2' %}
+!
+{% include '/cisco_xe/management/snmp.j2' %}
+!
+control-plane
+ service-policy input system-cpp-policy
+!
+{% include '/cisco_xe/management/line_vty.j2' %}
+!
+end

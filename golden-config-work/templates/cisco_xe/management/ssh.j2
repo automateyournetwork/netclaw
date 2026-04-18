@@ -1,0 +1,8 @@
+{% if config_context.ssh is defined %}
+{% set ssh = config_context.ssh %}
+ip ssh version {{ ssh.version | default(2) }}
+{% if ssh.source_interface is defined %}
+ip ssh source-interface {{ ssh.source_interface }}
+{% endif %}
+ip scp server enable
+{% endif %}

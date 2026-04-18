@@ -1,0 +1,19 @@
+{% if config_context.ntp is defined %}
+{% set ntp = config_context.ntp %}
+clock timezone {{ ntp.timezone | default("UTC") }} {{ ntp.utc_offset | default("0 0") }}
+{% if ntp.summer_time is defined %}
+clock summer-time {{ ntp.summer_time }} recurring
+{% endif %}
+!
+{% if ntp.authenticate | default(false) %}
+ntp authentication-key 1 md5 {{ ntp.auth_key }}
+ntp trusted-key 1
+ntp authenticate
+{% endif %}
+{% if ntp.source_interface is defined %}
+ntp source {{ ntp.source_interface }}
+{% endif %}
+{% for server in ntp.servers | default([]) %}
+ntp server{% if ntp.vrf is defined %} vrf {{ ntp.vrf }}{% endif %} {{ server.address }}{% if ntp.authenticate | default(false) %} key 1{% endif %}{% if server.prefer | default(false) %} prefer{% endif %}
+{% endfor %}
+{% endif %}

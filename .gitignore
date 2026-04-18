@@ -55,6 +55,7 @@ mcp-servers/*
 !mcp-servers/ipfix-mcp/
 !mcp-servers/gns3-mcp-server/
 !mcp-servers/prisma-sdwan-mcp/
+!mcp-servers/nautobot-mcp-v2/
 
 # Traces
 trace.json
@@ -70,4 +71,5 @@ openclaw-data/
 workspace-override/*
 !workspace-override/.gitkeep
 docs/blog*
-golden-config-work
+golden-config-work/HomeSwitch01.cfg
+golden-config-work/HomeSwitch02.cfg

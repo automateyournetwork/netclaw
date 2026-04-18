@@ -1,0 +1,12 @@
+interface {{ interface.name }}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if interface.mode == 'TAGGED' and interface.tagged_vlans | length > 0 %}
+ switchport trunk allowed vlan {{ interface.tagged_vlans | map(attribute='vid') | join(',') }}
+ switchport mode trunk
+{% elif interface.mode == 'ACCESS' and interface.untagged_vlan is defined %}
+ switchport access vlan {{ interface.untagged_vlan.vid }}
+ switchport mode access
+{% endif %}
+!

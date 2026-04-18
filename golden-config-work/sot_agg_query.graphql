@@ -1,0 +1,55 @@
+query ($device_id: ID!) {
+  device(id: $device_id) {
+    name
+    hostname: name
+    role {
+      name
+    }
+    platform {
+      name
+      network_driver
+    }
+    location {
+      name
+      vlans {
+        vid
+        name
+        status {
+          name
+        }
+      }
+    }
+    config_context
+    interfaces {
+      name
+      type
+      enabled
+      description
+      mac_address
+      mtu
+      mode
+      mgmt_only
+      label
+      untagged_vlan {
+        vid
+        name
+      }
+      tagged_vlans {
+        vid
+        name
+      }
+      ip_addresses {
+        address
+      }
+      lag {
+        name
+      }
+      connected_interface {
+        name
+        device {
+          name
+        }
+      }
+    }
+  }
+}
