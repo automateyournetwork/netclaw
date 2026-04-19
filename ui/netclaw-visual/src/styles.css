@@ -469,6 +469,11 @@ input {
   align-items: center;
   padding: 8px 14px 4px;
   flex: none;
+  cursor: grab;
+  user-select: none;
+}
+.chat-header:active {
+  cursor: grabbing;
 }
 
 .chat-header .eyebrow {

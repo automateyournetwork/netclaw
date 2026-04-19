@@ -2650,7 +2650,39 @@ function wireUI() {
     });
   }
 
-  // Panel collapse/expand
+  // Chat drawer drag-to-move from header
+  {
+    const drawer = dom.chatDrawer;
+    const header = drawer.querySelector('.chat-header');
+    header.addEventListener('mousedown', (e) => {
+      // Don't drag if clicking buttons
+      if (e.target.closest('button')) return;
+      e.preventDefault();
+      const rect = drawer.getBoundingClientRect();
+      const startX = e.clientX;
+      const startY = e.clientY;
+      const startLeft = rect.left;
+      const startBottom = window.innerHeight - rect.bottom;
+
+      // Switch from centered to absolute positioning
+      drawer.style.transform = 'none';
+      drawer.style.left = startLeft + 'px';
+      drawer.style.bottom = startBottom + 'px';
+
+      const onMove = (ev) => {
+        const dx = ev.clientX - startX;
+        const dy = ev.clientY - startY;
+        drawer.style.left = (startLeft + dx) + 'px';
+        drawer.style.bottom = (startBottom - dy) + 'px';
+      };
+      const onUp = () => {
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+      };
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  }
   function togglePanel(panel, reopenBtn, arrowCollapsed, arrowExpanded) {
     panel.classList.toggle('collapsed');
     const isCollapsed = panel.classList.contains('collapsed');
