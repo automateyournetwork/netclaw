@@ -418,13 +418,15 @@ input {
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(620px, calc(100vw - 40px));
-  max-height: 320px;
+  width: min(900px, calc(100vw - 40px));
+  max-height: 70vh;
   border-radius: 18px;
   display: flex;
   flex-direction: column;
   z-index: 40;
   transition: max-height 300ms ease, opacity 200ms ease;
+  resize: both;
+  overflow: auto;
 }
 
 .chat-drawer.collapsed {
@@ -491,7 +493,6 @@ input {
   flex-direction: column;
   gap: 8px;
   min-height: 80px;
-  max-height: 200px;
 }
 
 .chat-messages::-webkit-scrollbar { width: 4px; }
