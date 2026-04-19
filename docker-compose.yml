@@ -1,6 +1,7 @@
 services:
   netclaw-convergence:
     build: .
+    image: netclaw-convergence
     container_name: netclaw-convergence
     ports:
       - "18789:18789"

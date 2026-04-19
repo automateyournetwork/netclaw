@@ -19,7 +19,7 @@ cp -r "$NETCLAW_DIR/workspace/skills/"* "$WORKSPACE/skills/"
 # --- Deploy workspace files ---
 # User overrides (from ./workspace-override/) take priority.
 # Fall back to the defaults baked into the image.
-for md in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md USER.md TOOLS.md CLAUDE.md; do
+for md in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md CLAUDE.md; do
     if [ -f "/workspace-override/$md" ]; then
         cp "/workspace-override/$md" "$WORKSPACE/$md"
     elif [ -f "$NETCLAW_DIR/workspace-override.example/$md" ]; then
