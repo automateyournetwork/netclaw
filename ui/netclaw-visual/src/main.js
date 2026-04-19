@@ -38,6 +38,7 @@ const state = {
   hovered: null,
   selected: null,
   qualityMode: 'balanced',
+  animationPaused: false,
   filters: {
     query: '',
     categories: new Set(),
@@ -2333,7 +2334,7 @@ function onClick(event) {
 function animate() {
   requestAnimationFrame(animate);
   const elapsed = state.clock.getElapsedTime();
-  const frozen = !!state.selected;
+  const frozen = !!state.selected || state.animationPaused;
 
   // Track time offset for freeze: when frozen, hold rotations at the moment of freeze
   if (frozen && state._frozenAt == null) state._frozenAt = elapsed;
@@ -2594,6 +2595,61 @@ function wireUI() {
     dom.chatToggle.textContent = dom.chatDrawer.classList.contains('collapsed') ? '+' : '_';
   });
 
+  // Chat drawer resize from edges and corners
+  {
+    const drawer = dom.chatDrawer;
+    const handles = drawer.querySelectorAll('.chat-resize-handle');
+    handles.forEach(handle => {
+      handle.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        const rect = drawer.getBoundingClientRect();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startW = rect.width;
+        const startH = rect.height;
+        const startLeft = rect.left;
+        const startBottom = window.innerHeight - rect.bottom;
+        const isTop = handle.classList.contains('chat-resize-top') || handle.classList.contains('chat-resize-top-left') || handle.classList.contains('chat-resize-top-right');
+        const isLeft = handle.classList.contains('chat-resize-left') || handle.classList.contains('chat-resize-top-left');
+        const isRight = handle.classList.contains('chat-resize-bottom-right') || handle.classList.contains('chat-resize-top-right');
+
+        // Switch from centered to absolute positioning during resize
+        drawer.style.transform = 'none';
+        drawer.style.left = rect.left + 'px';
+        drawer.style.bottom = startBottom + 'px';
+
+        const onMove = (ev) => {
+          const dx = ev.clientX - startX;
+          const dy = ev.clientY - startY;
+          if (isTop) {
+            const newH = Math.max(200, startH - dy);
+            drawer.style.height = newH + 'px';
+          }
+          if (isLeft) {
+            const newW = Math.max(360, startW - dx);
+            drawer.style.width = newW + 'px';
+            drawer.style.left = (startLeft + startW - newW) + 'px';
+          }
+          if (isRight) {
+            const newW = Math.max(360, startW + dx);
+            drawer.style.width = newW + 'px';
+          }
+          if (handle.classList.contains('chat-resize-bottom-right') && !isTop) {
+            const newH = Math.max(200, startH + dy);
+            drawer.style.height = newH + 'px';
+            drawer.style.bottom = (startBottom - dy) + 'px';
+          }
+        };
+        const onUp = () => {
+          document.removeEventListener('mousemove', onMove);
+          document.removeEventListener('mouseup', onUp);
+        };
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('mouseup', onUp);
+      });
+    });
+  }
+
   // Panel collapse/expand
   function togglePanel(panel, reopenBtn, arrowCollapsed, arrowExpanded) {
     panel.classList.toggle('collapsed');
@@ -2622,6 +2678,14 @@ function wireUI() {
   const qualityToggle = document.getElementById('quality-toggle');
   if (qualityToggle) {
     qualityToggle.addEventListener('click', cycleQualityMode);
+  }
+
+  const pauseToggle = document.getElementById('pause-toggle');
+  if (pauseToggle) {
+    pauseToggle.addEventListener('click', () => {
+      state.animationPaused = !state.animationPaused;
+      pauseToggle.textContent = state.animationPaused ? '▶ PLAY' : '⏸ PAUSE';
+    });
   }
 
   window.addEventListener('pointermove', onPointerMove);
@@ -2679,7 +2743,8 @@ function updateParticleFlow(elapsed) {
     const pd = state.particleData[i];
     const entry = state.integrations[pd.integrationIndex];
     if (!entry || !entry.group.visible) {
-      dummy.scale.set(0, 0, 0);
+      dummy.position.set(0, -9999, 0);
+      dummy.scale.setScalar(0.001);
       dummy.updateMatrix();
       state.particleSystem.setMatrixAt(i, dummy.matrix);
       continue;

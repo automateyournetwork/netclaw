@@ -419,14 +419,43 @@ input {
   left: 50%;
   transform: translateX(-50%);
   width: min(900px, calc(100vw - 40px));
-  max-height: 70vh;
+  height: 420px;
+  min-width: 360px;
+  min-height: 200px;
+  max-width: calc(100vw - 20px);
+  max-height: calc(100vh - 100px);
   border-radius: 18px;
   display: flex;
   flex-direction: column;
   z-index: 40;
-  transition: max-height 300ms ease, opacity 200ms ease;
-  resize: both;
-  overflow: auto;
+  transition: opacity 200ms ease;
+  overflow: hidden;
+}
+
+/* Resize handles */
+.chat-resize-handle {
+  position: absolute;
+  z-index: 50;
+}
+.chat-resize-top {
+  top: -4px; left: 18px; right: 18px; height: 8px;
+  cursor: n-resize;
+}
+.chat-resize-left {
+  top: 18px; bottom: 18px; left: -4px; width: 8px;
+  cursor: w-resize;
+}
+.chat-resize-top-left {
+  top: -4px; left: -4px; width: 18px; height: 18px;
+  cursor: nw-resize;
+}
+.chat-resize-top-right {
+  top: -4px; right: -4px; width: 18px; height: 18px;
+  cursor: ne-resize;
+}
+.chat-resize-bottom-right {
+  bottom: -4px; right: -4px; width: 18px; height: 18px;
+  cursor: se-resize;
 }
 
 .chat-drawer.collapsed {
