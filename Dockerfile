@@ -61,7 +61,7 @@ RUN cd mcp-servers/mcp-nvd && pip install -e . 2>/dev/null || true \
     && cd $NETCLAW_DIR \
     && cd mcp-servers/AAP-Enterprise-MCP-Server && pip install -e . 2>/dev/null || true \
     && cd $NETCLAW_DIR \
-    && cd mcp-servers/mcp-nautobot && pip install -e . 2>/dev/null || true \
+    && cd mcp-servers/mcp-nautobot && echo 'mcp-nautobot v1 skipped — replaced by nautobot-mcp-v2' || true \
     && cd $NETCLAW_DIR \
     && pip install gait-ai 2>/dev/null || true \
     && pip install -r mcp-servers/nautobot-mcp-v2/requirements.txt 2>/dev/null || true \
