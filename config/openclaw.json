@@ -28,9 +28,6 @@
     "ownerDisplay": "raw"
   },
   "mcpServers": {
-    "devnet-content-search": {
-      "url": "https://devnet.cisco.com/v1/foundation-search-mcp/mcp"
-    },
     "pyats-mcp": {
       "command": "/opt/venv/bin/python3",
       "args": [
@@ -83,13 +80,6 @@
         "/opt/netclaw/mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py"
       ]
     },
-    "packet-buddy-mcp": {
-      "command": "/opt/venv/bin/python3",
-      "args": [
-        "-u",
-        "/opt/netclaw/mcp-servers/packet-buddy-mcp/server.py"
-      ]
-    },
     "nmap-mcp": {
       "command": "/opt/venv/bin/python3",
       "args": [
@@ -101,7 +91,8 @@
       "command": "/opt/venv/bin/python3",
       "args": [
         "-u",
-        "/opt/netclaw/mcp-servers/mempalace/mempalace/mcp_server.py"
+        "-m",
+        "mempalace.mcp_server"
       ]
     },
     "drawio-mcp": {
