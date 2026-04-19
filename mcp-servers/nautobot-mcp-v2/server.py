@@ -1098,6 +1098,42 @@ async def nautobot_sync_git_repository(
         return json.dumps({"error": str(e)})
 
 
+@mcp.tool()
+async def nautobot_update_git_repository(
+    repository_id: str,
+    updates: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Update a git repository in Nautobot. ITSM-gated.
+
+    repository_id: UUID of the git repository (get from nautobot_get_git_repositories)
+    updates: JSON string of fields to update. Common fields:
+      secrets_group: UUID of secrets group for authentication
+      remote_url: Git remote URL
+      branch: Branch name
+      provided_contents: List of content types
+      name: Display name
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_update_git_repository id={repository_id} cr={cr_number}")
+    try:
+        update_dict = json.loads(updates)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid updates JSON: {e}"})
+    try:
+        old = await client.rest_get(f"extras/git-repositories/{repository_id}")
+        result = await client.rest_patch(f"extras/git-repositories/{repository_id}", update_dict)
+        changes = {}
+        for k in update_dict:
+            if old.get(k) != result.get(k):
+                changes[k] = {"old": old.get(k), "new": result.get(k)}
+        return json.dumps({"updated": True, "changes": changes}, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
 # ── Config Contexts ──────────────────────────────────────────
 
 
