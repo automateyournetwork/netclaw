@@ -1009,6 +1009,232 @@ async def nautobot_update_golden_config_setting(
         return json.dumps({"error": str(e)})
 
 
+# ── Job Management (trigger and monitor Nautobot jobs) ─────────────
+
+
+@mcp.tool()
+async def nautobot_run_job(
+    job_id: str,
+    data: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Trigger a Nautobot job by its UUID. ITSM-gated.
+
+    job_id: UUID of the job (get from nautobot_list_jobs)
+    data: Optional JSON string of job input data (e.g., '{"device": ["uuid1"]}')
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_run_job job_id={job_id} cr={cr_number}")
+    try:
+        payload: dict = {"data": json.loads(data) if data else {}}
+        result = await client.rest_post(f"extras/jobs/{job_id}/run", payload)
+        return json.dumps({"triggered": True, "job_result": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_get_job_result(job_result_id: str) -> str:
+    """Check the status and result of a Nautobot job run.
+
+    job_result_id: UUID of the job result (returned by nautobot_run_job)
+    """
+    logger.info(f"nautobot_get_job_result id={job_result_id}")
+    try:
+        result = await client.rest_get(f"extras/job-results/{job_result_id}")
+        summary = {
+            "id": result.get("id"),
+            "status": result.get("status", {}).get("value") if isinstance(result.get("status"), dict) else result.get("status"),
+            "name": result.get("name"),
+            "completed": result.get("date_done"),
+            "result": result.get("result"),
+        }
+        return json.dumps(summary, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_list_jobs(
+    q: Optional[str] = None,
+    limit: int = 50,
+) -> str:
+    """List available Nautobot jobs. Use q to search by name (e.g., 'intended', 'backup', 'compliance')."""
+    logger.info(f"nautobot_list_jobs q={q}")
+    try:
+        params = {"limit": limit}
+        if q:
+            params["q"] = q
+        data = await client.rest_get("extras/jobs", params)
+        results = data.get("results", [])
+        jobs = [{"id": j["id"], "name": j.get("name"), "enabled": j.get("enabled")} for j in results]
+        return json.dumps({"count": len(jobs), "jobs": jobs}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+# ── Git Repository Sync ───────────────────────────────────────
+
+
+@mcp.tool()
+async def nautobot_sync_git_repository(
+    repository_id: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Trigger a git repository sync in Nautobot. ITSM-gated.
+
+    repository_id: UUID of the git repository (get from nautobot_get_git_repositories)
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_sync_git_repository id={repository_id} cr={cr_number}")
+    try:
+        result = await client.rest_post(f"extras/git-repositories/{repository_id}/sync", {})
+        return json.dumps({"synced": True, "result": result}, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+# ── Config Contexts ──────────────────────────────────────────
+
+
+@mcp.tool()
+async def nautobot_get_config_contexts(
+    name: Optional[str] = None,
+    limit: int = 50,
+) -> str:
+    """Query config contexts from Nautobot. Returns name, data, and role/location/platform assignments."""
+    logger.info(f"nautobot_get_config_contexts name={name}")
+    try:
+        params: dict = {"limit": limit}
+        if name:
+            params["name"] = name
+        data = await client.rest_get("extras/config-contexts", params)
+        results = data.get("results", [])
+        contexts = []
+        for ctx in results:
+            contexts.append({
+                "id": ctx["id"],
+                "name": ctx.get("name"),
+                "roles": [r.get("name") or r.get("display") for r in ctx.get("roles", [])],
+                "locations": [l.get("name") or l.get("display") for l in ctx.get("locations", [])],
+                "platforms": [p.get("name") or p.get("display") for p in ctx.get("platforms", [])],
+                "data_keys": list(ctx.get("data", {}).keys()) if ctx.get("data") else [],
+            })
+        return json.dumps({"count": len(contexts), "config_contexts": contexts}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_get_config_context_detail(config_context_id: str) -> str:
+    """Get full detail of a config context including its data payload."""
+    logger.info(f"nautobot_get_config_context_detail id={config_context_id}")
+    try:
+        result = await client.rest_get(f"extras/config-contexts/{config_context_id}")
+        return json.dumps(result, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_config_context(
+    name: str,
+    data: str,
+    roles: Optional[str] = None,
+    locations: Optional[str] = None,
+    platforms: Optional[str] = None,
+    description: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create a config context in Nautobot. ITSM-gated.
+
+    name: Display name
+    data: JSON string of the config context data payload
+    roles: Optional comma-separated role names to scope the context to
+    locations: Optional comma-separated location names
+    platforms: Optional comma-separated platform names
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_create_config_context name={name} cr={cr_number}")
+    try:
+        ctx_data = json.loads(data)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid data JSON: {e}"})
+    try:
+        payload: dict = {"name": name, "data": ctx_data}
+        if description:
+            payload["description"] = description
+        if roles:
+            role_ids = []
+            for r in roles.split(","):
+                role_ids.append(await client.resolve_id("role", r.strip()))
+            payload["roles"] = role_ids
+        if locations:
+            loc_ids = []
+            for l in locations.split(","):
+                loc_ids.append(await client.resolve_id("location", l.strip()))
+            payload["locations"] = loc_ids
+        if platforms:
+            plat_ids = []
+            for p in platforms.split(","):
+                plat_ids.append(await client.resolve_id("platform", p.strip()))
+            payload["platforms"] = plat_ids
+        result = await client.rest_post("extras/config-contexts", payload)
+        return json.dumps({"created": True, "config_context": result}, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_update_config_context(
+    config_context_id: str,
+    updates: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Update a config context in Nautobot. ITSM-gated.
+
+    config_context_id: UUID of the config context
+    updates: JSON string of fields to update. Common fields: data, roles, locations, platforms, name, description
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+    logger.info(f"nautobot_update_config_context id={config_context_id} cr={cr_number}")
+    try:
+        update_dict = json.loads(updates)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid updates JSON: {e}"})
+    try:
+        result = await client.rest_patch(f"extras/config-contexts/{config_context_id}", update_dict)
+        return json.dumps({"updated": True, "config_context": result}, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+# ── Dynamic Groups ───────────────────────────────────────────
+
+
+@mcp.tool()
+async def nautobot_get_dynamic_group_members(
+    dynamic_group_id: str,
+) -> str:
+    """Get the members of a Nautobot dynamic group. Returns the list of devices that match the group's filter."""
+    logger.info(f"nautobot_get_dynamic_group_members id={dynamic_group_id}")
+    try:
+        data = await client.rest_get(f"extras/dynamic-groups/{dynamic_group_id}/members")
+        results = data.get("results", []) if isinstance(data, dict) else data
+        members = [{"name": m.get("name"), "id": m.get("id")} for m in results if isinstance(m, dict)]
+        return json.dumps({"count": len(members), "members": members}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
 # ── Secrets Management (for Git Repository auth) ────────────────────
 
 
