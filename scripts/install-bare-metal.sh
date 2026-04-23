@@ -12,7 +12,7 @@
 #   openclaw gateway    # terminal 1
 #   openclaw tui        # terminal 2
 
-set -euo pipefail
+set -eo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -78,11 +78,17 @@ log_step "1/8 Installing system prerequisites..."
 
 if command -v apt-get &> /dev/null; then
     sudo apt-get update -qq
-    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
+    sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
         python3 python3-pip python3-venv python3-dev \
         git curl ca-certificates tshark nmap graphviz \
-        openssh-client sshpass build-essential docker.io \
-        2>/dev/null
+        openssh-client sshpass build-essential \
+        2>&1 | tail -5
+    # Docker — install only if not already present
+    if ! command -v docker &> /dev/null; then
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y docker.io 2>&1 | tail -5
+    else
+        log_info "Docker already installed: $(docker --version)"
+    fi
     log_info "System packages installed"
 else
     log_warn "Not a Debian/Ubuntu system — install prerequisites manually"
@@ -225,6 +231,11 @@ for name, cfg in raw_servers.items():
     if "args" in cfg:
         cfg["args"] = [a.replace("/opt/netclaw/", netclaw_dir + "/") for a in cfg["args"]]
 
+    # Rewrite /root/.openclaw/ paths to local home
+    home_dir = os.path.expanduser("~")
+    if "args" in cfg:
+        cfg["args"] = [a.replace("/root/.openclaw/", home_dir + "/.openclaw/") for a in cfg["args"]]
+
     # Resolve env vars
     env = cfg.get("env", {})
     resolved_env = {}
@@ -241,6 +252,12 @@ for name, cfg in raw_servers.items():
                     resolved_env[key] = env_val
                 continue
         else:
+            resolved_env[key] = val
+    # Rewrite Docker paths in resolved env values
+    for key, val in resolved_env.items():
+        if isinstance(val, str):
+            val = val.replace("/opt/netclaw/", netclaw_dir + "/")
+            val = val.replace("/root/.openclaw/", home_dir + "/.openclaw/")
             resolved_env[key] = val
     if resolved_env:
         cfg["env"] = resolved_env
