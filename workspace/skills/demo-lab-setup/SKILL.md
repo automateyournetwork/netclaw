@@ -178,6 +178,16 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 
 ## Phase 6: Wire Golden Config
 
+### Step 6-PREREQ: Verify Nautobot can reach lab devices
+
+**Do NOT proceed until this passes.** Golden Config backup jobs need Nautobot to SSH/connect to devices on the clab-mgmt network.
+
+```bash
+NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker-1) && docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null; docker exec $NAUTOBOT_CONTAINER ping -c 1 192.168.220.2 && echo "=== Nautobot can reach lab devices ==="
+```
+
+If this fails, Nautobot is not connected to the clab-mgmt network. The `docker network connect` commands above fix it. If ping still fails, check that ContainerLab is running (`sudo clab inspect --all`).
+
 The golden config Git repos already exist on GitHub. **Do NOT create new repos, do NOT set up local git servers.** Just register these existing repos in Nautobot.
 
 ### Step 6a: Register Git repos in Nautobot — use MCP tools
