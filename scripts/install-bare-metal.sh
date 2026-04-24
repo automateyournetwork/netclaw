@@ -130,8 +130,8 @@ fi
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip -q
 
-# Install all Python dependencies
-pip install -r "$NETCLAW_DIR/requirements-docker.txt" -q 2>/dev/null || {
+# Install core Python dependencies (pyATS, MCP framework, etc.)
+pip install "pyats[full]" mcp fastmcp paramiko requests httpx pydantic pydantic-settings python-dotenv PyYAML -q 2>/dev/null || {
     log_warn "Some pip dependencies failed — continuing"
 }
 
@@ -163,6 +163,12 @@ fi
 
 # Pre-cache npx packages
 npm cache add @drawio/mcp @mjpitz/mcp-rfc @anthropic-ai/microsoft-graph-mcp 2>/dev/null || true
+
+# Proxmox MCP
+if [ -d "mcp-servers/mcp-proxmox" ]; then
+    cd mcp-servers/mcp-proxmox && npm install -q && cd "$NETCLAW_DIR"
+    log_info "Proxmox MCP built"
+fi
 
 # Pull GitHub MCP Docker image
 if command -v docker &> /dev/null; then
