@@ -18,6 +18,7 @@ Deploy the byrn-baker/Nautobot-Workshop environment end-to-end.
 6. **NEVER poll builds** — no `process poll` or `process log` on long-running commands. Run it, get "still running", tell user to wait, check result once with a tiny command.
 7. **Use nautobot-mcp-v2 tools** for ALL Nautobot API operations — never curl or docker exec.
 8. **Suggest session breaks** between phases to reset context.
+9. **Do NOT explore the repo.** Do not ls, cat, grep, find, or read README files. This skill has all the information you need. Execute the prescribed commands directly.
 
 ## Prerequisites — ONE command
 
@@ -93,9 +94,23 @@ Wait for completion, then verify with ONE MCP call:
 nautobot_get_devices
 ```
 
-Should show all 20 devices. If it does, Phase 3 is done.
+Should show all 20 devices.
 
-**Suggest session break:** "Phase 3 done — Nautobot populated. Start a new session and say 'continue demo from Phase 4'."
+### Step 3c: Load config contexts
+
+Design Builder creates devices, interfaces, IPs, and BGP but does NOT create config contexts. The config contexts are in the workshop repo and must be loaded separately.
+
+**ONE command:**
+```bash
+cd ~/Nautobot-Workshop && python3 -c "import json,os,yaml,requests; token='0123456789abcdef0123456789abcdef01234567'; headers={'Authorization':f'Token {token}','Content-Type':'application/json'}; base='http://localhost:8080/api'; [requests.post(f'{base}/extras/config-contexts/',json=item,headers=headers) for d in ['config_contexts'] if os.path.isdir(d) for f in sorted(os.listdir(d)) if f.endswith(('.yml','.yaml')) for item in ([yaml.safe_load(open(os.path.join(d,f)))] if not isinstance(yaml.safe_load(open(os.path.join(d,f))),list) else yaml.safe_load(open(os.path.join(d,f))))]; print('Config contexts loaded')"
+```
+
+Verify:
+```
+nautobot_get_config_contexts
+```
+
+**Suggest session break:** "Phase 3 done — Nautobot populated with devices and config contexts. Start a new session and say 'continue demo from Phase 4'."
 
 ## Phase 4: Deploy ContainerLab — TWO commands max
 
@@ -134,8 +149,10 @@ If any device fails:
 
 **Command 1 — Set up Ansible venv and install deps:**
 ```bash
-cd ~/Nautobot-Workshop/ansible-lab && python3 -m venv .venv && . .venv/bin/activate && pip install -q -r pip-requirements.txt && ansible-galaxy collection install -r galaxy-requirements.yml -p ./ansible_collections 2>&1 | tail -3 && echo "nautobot" > ~/.vault-pass.txt && chmod 600 ~/.vault-pass.txt && echo "=== Ansible ready ==="
+cd ~/Nautobot-Workshop/ansible-lab && python3 -m venv .venv && . .venv/bin/activate && pip install -q -r pip-requirements.txt && pip install -q --upgrade pynautobot && ansible-galaxy collection install -r galaxy-requirements.yml -p ./ansible_collections 2>&1 | tail -3 && echo "nautobot" > ~/.vault-pass.txt && chmod 600 ~/.vault-pass.txt && echo "=== Ansible ready ==="
 ```
+
+Note: `pip install --upgrade pynautobot` is required because the workshop pins 2.6.3 but the networktocode.nautobot collection 6.x needs 2.7+ for the `exclude_m2m` parameter.
 
 **Command 2 — Generate configs (use --tags build ONLY):**
 ```bash
