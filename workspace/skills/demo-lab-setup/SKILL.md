@@ -19,6 +19,7 @@ Deploy the byrn-baker/Nautobot-Workshop environment end-to-end.
 7. **Use nautobot-mcp-v2 tools** for ALL Nautobot API operations — never curl or docker exec.
 8. **Suggest session breaks** between phases to reset context.
 9. **Do NOT explore the repo.** Do not ls, cat, grep, find, or read README files. This skill has all the information you need. Execute the prescribed commands directly.
+10. **NEVER restart Nautobot containers.** Do not run docker compose down/up, invoke stop/start, or any command that restarts the Nautobot stack. If an environment variable is missing, add it to creds.env and tell the user to restart manually.
 
 ## Prerequisites — ONE command
 
@@ -32,7 +33,7 @@ If anything is missing, fix it before proceeding.
 ## Phase 1: Clone and Set Up — ONE command
 
 ```bash
-cd ~ && git clone https://github.com/byrn-baker/Nautobot-Workshop.git && cd ~/Nautobot-Workshop/nautobot-docker-compose && cp invoke.example.yml invoke.yml && cp environments/creds.example environments/creds.env && sed -i 's/NAUTOBOT_CREATE_SUPERUSER=false/NAUTOBOT_CREATE_SUPERUSER=true/' environments/creds.env && echo "=== repo cloned, nautobot-docker-compose configured, superuser enabled ==="
+cd ~ && git clone https://github.com/byrn-baker/Nautobot-Workshop.git && cd ~/Nautobot-Workshop/nautobot-docker-compose && cp invoke.example.yml invoke.yml && cp environments/creds.example environments/creds.env && sed -i 's/NAUTOBOT_CREATE_SUPERUSER=false/NAUTOBOT_CREATE_SUPERUSER=true/' environments/creds.env && echo "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}" >> environments/creds.env && echo "=== repo cloned, superuser enabled, GitHub token added ==="
 ```
 
 Then set up Poetry — ONE command:
@@ -177,6 +178,17 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 The golden config Git repos already exist on GitHub. **Do NOT create new repos, do NOT set up local git servers.** Just register these existing repos in Nautobot.
 
 ### Step 6a: Register Git repos in Nautobot — use MCP tools
+
+The repos may be private. The GitHub PAT was added to Nautobot's creds.env in Phase 1. Create a Nautobot secret and secrets group to authenticate, then link it to each repo.
+
+**First, set up authentication:**
+```
+nautobot_create_secrets_group(name="GitHub Access")
+nautobot_create_secret(name="GitHub PAT", provider="environment-variable", parameters='{"variable": "GITHUB_PERSONAL_ACCESS_TOKEN"}')
+nautobot_add_secret_to_group(secrets_group_id="<id>", secret_id="<id>", access_type="HTTP(S)", secret_type="token")
+```
+
+**Then register each repo with the secrets group:**
 
 ```
 nautobot_create_git_repository(
