@@ -115,3 +115,36 @@ The demo runs ~15-20 minutes. You talk while the coworker works.
 
 **"How is this different from Ansible or Terraform?"**
 > Those are tools — they do exactly what you tell them. If an Ansible playbook fails, it stops. NetClaw is a coworker — if something fails, it reads the error, thinks about what went wrong, and tries a different approach. The skills give it the judgment to make good decisions.
+
+---
+
+## Appendix: Lessons Learned — Mistakes We Corrected
+
+Reference material for Q&A or ad-lib. Each is a real issue from test runs that became a better instruction.
+
+**The git server ($10 mistake)**
+The coworker decided to install nginx and fcgiwrap to host its own git server for golden config templates — 29 shell commands, 30 minutes wasted. The templates already existed on GitHub. Fix: "The repos are here. Use them. Do NOT build a local git server."
+
+**The curl habit (46 wasted calls)**
+Had 32 purpose-built Nautobot tools available but used raw curl commands instead — manually constructing auth headers, getting 403 errors, debugging. Fix: "If a tool exists for the job, use it."
+
+**The explorer (37 wasted calls)**
+Spent the first 10 minutes reading every file in the repo — README, Dockerfiles, compose files, Ansible configs. All that info was already in the skill. Fix: "Don't explore. The skill has everything you need."
+
+**The impatient poller ($4 in token costs)**
+Checked Docker build progress every 15 seconds. Each check re-sent the full conversation (130k+ tokens). Fix: "Start the build, tell the user to wait, check once when it should be done."
+
+**The container restart**
+Needed a GitHub token in Nautobot's environment. Correctly created the secret, but then restarted the entire Nautobot stack mid-demo. Fix: Add the token during initial setup before Nautobot starts. Also: "Never restart containers on your own."
+
+**Skipping connectivity**
+Deployed 20 devices and immediately pushed configs. Half hadn't finished booting. Fix: Mandatory SSH connectivity test before Ansible runs.
+
+**The pynautobot mismatch**
+Ansible collection needed pynautobot 2.7+ but the workshop pinned 2.6.3. Model spent 3 turns debugging the error. Fix: "pip install --upgrade pynautobot" baked into the setup step.
+
+**Config contexts not loaded**
+Design Builder created devices but not config contexts. Model wrote a custom Python loader — 10+ calls. Fix: Prescribe the exact loader command in the skill.
+
+**Wrong Ansible tags**
+Ran the playbook without --tags, which re-ran Design Builder AND rebuilt the ContainerLab topology — duplicating two phases of work. Fix: "NEVER run without --tags build or --tags deploy."

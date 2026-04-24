@@ -72,14 +72,17 @@ Look for `(healthy)`. Default login: admin/admin at http://localhost:8080.
 
 ## Phase 3: Populate Nautobot with Design Builder
 
-### Step 3a: Enable jobs (user action required)
+### Step 3a: Enable ALL jobs (user action required)
 
 **Tell the user:**
-> Enable the Design Builder and Golden Config jobs in Nautobot:
+> Enable ALL jobs in Nautobot before I can proceed:
 > 1. Open http://localhost:8080 (admin / admin)
-> 2. Jobs → Jobs → enable **Nautobot Workshop Demo Initial Data**
-> 3. Enable any Golden Config jobs
-> 4. Tell me when done.
+> 2. Navigate to **Jobs** → **Jobs**
+> 3. Enable **every job** — Design Builder, Golden Config (Backup, Intended, Compliance, Deploy), and all others
+> 4. Fastest way: click each job, toggle Enabled, save. There are about 15-20 jobs.
+> 5. Tell me when done.
+
+All golden config jobs must be enabled: **Backup Configurations**, **Generate Intended Configurations**, **Run Compliance**, **Deploy Golden Config**, and any others. If even one is disabled, the workflow will fail when it tries to run that job.
 
 **Wait for confirmation.**
 
