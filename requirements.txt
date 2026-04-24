@@ -1,0 +1,57 @@
+# NetClaw Python Dependencies (bare-metal install)
+# Core MCP framework
+mcp
+fastmcp
+
+# pyATS (Cisco device automation)
+pyats[full]
+genie
+paramiko
+
+# Common MCP server deps
+requests
+httpx
+pydantic
+pydantic-settings
+python-dotenv
+PyYAML
+starlette
+uvicorn
+aiohttp
+
+# Protocol participation
+scapy
+networkx
+
+# nmap
+python-nmap
+
+# TTS
+edge-tts
+
+# Wikipedia
+wikipedia
+
+# ISE
+aiocache
+aiolimiter
+
+# Meraki
+meraki
+
+# Token optimization
+anthropic
+toon-format
+
+# gNMI
+pygnmi
+grpcio
+protobuf
+cryptography
+
+# Prometheus
+prometheus-mcp-server
+
+# Pillow for UML/diagram rendering
+pillow
+graphviz

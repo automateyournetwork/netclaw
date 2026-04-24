@@ -130,8 +130,8 @@ fi
 source "$VENV_DIR/bin/activate"
 pip install --upgrade pip -q
 
-# Install core Python dependencies (pyATS, MCP framework, etc.)
-pip install "pyats[full]" mcp fastmcp paramiko requests httpx pydantic pydantic-settings python-dotenv PyYAML -q 2>/dev/null || {
+# Install core Python dependencies
+pip install -r "$NETCLAW_DIR/requirements.txt" -q 2>/dev/null || {
     log_warn "Some pip dependencies failed — continuing"
 }
 
