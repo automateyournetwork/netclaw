@@ -25,6 +25,18 @@ This is the showcase demo for NetClaw — an AI agent that can build and operate
 3. **Use the workshop repo as-is** — do NOT create custom docker-compose, topology, or Ansible files
 4. **Use Poetry 1.5.x** — newer versions break the nautobot-docker-compose tasks.py
 5. **Use Invoke** to build/start Nautobot — do NOT run docker compose directly
+6. **Minimize token usage** — follow the cost control rules below
+
+## Cost Control Rules
+
+Long-running commands (docker builds, ansible playbooks, clab deploy) generate massive output that inflates the context window. Every poll sends the full conversation history. Follow these rules:
+
+1. **Fire and forget long builds.** Start `invoke build` or `invoke debug` as a background process, then immediately tell the user: "The build is running. This takes 3-5 minutes. Let me know when it's done, or I'll check back in 5 minutes." Do NOT poll every 15 seconds.
+2. **Poll at most twice.** For any long-running command: once after 2-3 minutes, once more if still running. If it's still going after that, tell the user to confirm when it completes.
+3. **Don't log full build output.** Never use `process log` to dump Docker build output into the conversation. If you need to check for errors, use `process poll` with a timeout — it returns only new output.
+4. **Suggest session breaks between phases.** After completing a phase, tell the user: "Phase N is done. To keep costs down, you can start a new session for Phase N+1 — just say 'continue the demo from Phase N+1'." This resets the context window.
+5. **Use MCP tools, not shell commands.** MCP tool results are typically small JSON. Shell commands (docker exec, curl, ansible-playbook) dump verbose output that bloats context. Always prefer nautobot-mcp-v2 tools over curl/docker exec for Nautobot operations.
+6. **Summarize, don't echo.** When a command completes, summarize the result in 1-2 sentences. Do NOT paste the full output back to the user unless they ask for it.
 
 ## Prerequisites
 
@@ -171,12 +183,21 @@ The pyproject.toml pins Nautobot 2.4.10 with these plugins:
 
 ```bash
 invoke build
+```
+
+**IMPORTANT: `invoke build` takes 3-5 minutes.** Start it as a background process, tell the user it's building, and check back once after 3 minutes. Do NOT poll repeatedly. When the build completes (exit code 0), proceed to:
+
+```bash
 invoke debug
 ```
 
-Wait for Nautobot to be healthy. Default login: admin/admin.
+**IMPORTANT: `invoke debug` takes 1-2 minutes to become healthy.** Start it, tell the user to wait, and check once after 90 seconds. Verify with:
 
-Verify at http://localhost:8080 (or the host IP on port 8080).
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep nautobot
+```
+
+Look for `(healthy)` status. Default login: admin/admin at http://localhost:8080.
 
 ### Step 2d: Note on management network
 
@@ -248,7 +269,7 @@ cd ~/Nautobot-Workshop/clabs
 sudo clab deploy --topo nautobot-workshop-topology.clab.yml
 ```
 
-This deploys all 20 nodes with startup configs from `clabs/startup-configs/`. ContainerLab auto-creates the `clab-mgmt` network at 192.168.220.0/24.
+**IMPORTANT: `clab deploy` takes 2-5 minutes for 20 nodes.** Start it, tell the user it's deploying, and check once after 3 minutes. Do NOT poll repeatedly. When it completes, run `clab inspect` once to verify.
 
 ### Step 4b: Verify the lab
 
@@ -319,6 +340,8 @@ chmod 600 ~/.vault-pass.txt
 ansible-playbook pb.build-lab.yml --tags build
 ```
 
+**IMPORTANT: Ansible runs take 1-3 minutes.** Start it, tell the user, check once after 2 minutes. Do NOT poll repeatedly.
+
 This generates configs under `ansible-lab/configs/` using Jinja2 templates and Nautobot data via the GraphQL inventory plugin.
 
 ### Step 5e: Deploy configs to running lab devices
@@ -326,6 +349,8 @@ This generates configs under `ansible-lab/configs/` using Jinja2 templates and N
 ```bash
 ansible-playbook pb.build-lab.yml --tags deploy
 ```
+
+**IMPORTANT: Deploy takes 2-5 minutes across 20 devices.** Same rule — start it, tell the user, check once.
 
 ### Step 5f: Verify
 
@@ -396,6 +421,16 @@ The demo uses `qwen3-coder:480b` via Ollama Cloud. Observations:
 - Good at interpreting CLI output from pyATS
 - Handles GraphQL query construction well
 - Test with your specific skill workflows — some models follow numbered steps more reliably than others
+
+## Session Break Strategy
+
+To minimize cost, suggest session breaks at these natural boundaries:
+
+- **After Phase 2** (Nautobot running) — "Nautobot is up. Start a new session and say 'continue demo from Phase 3' to keep costs down."
+- **After Phase 4** (ContainerLab deployed) — "Lab is deployed. Start a new session for Ansible config deployment."
+- **After Phase 5** (configs deployed) — "Configs are pushed. Start a new session for golden config and the demo walkthrough."
+
+Each new session resets the context window from potentially 200k+ tokens back to ~50k (system prompt + skills).
 
 ## Cleanup
 
