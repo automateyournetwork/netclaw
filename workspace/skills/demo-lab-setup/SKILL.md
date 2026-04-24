@@ -157,47 +157,69 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 
 ## Phase 6: Wire Golden Config
 
-Nautobot's Golden Config plugin needs a Git repository containing Jinja2 templates. **Use a GitHub repo — do NOT set up a local git server (nginx, gitea, etc.).** The Nautobot container can clone directly from GitHub.
+The golden config Git repos already exist on GitHub. **Do NOT create new repos, do NOT set up local git servers.** Just register these existing repos in Nautobot.
 
-### Step 6a: Create GitHub repo and push templates — use GitHub MCP
-
-The workshop has templates at `~/Nautobot-Workshop/nautobot-docker-compose/jobs/templates/`. Use the GitHub MCP to create a repo and push them:
-
-```
-github_create_repository(name="nautobot-golden-config-templates", description="Golden config Jinja2 templates for Nautobot Workshop", private=false, auto_init=true)
-```
-
-Then push the template files using the GitHub MCP:
-```
-github_push_files(owner="<USER>", repo="nautobot-golden-config-templates", branch="main", files=[...], message="Add golden config templates")
-```
-
-Read the template files from disk first, then push them via the MCP. Do NOT use `git init` / `git push` shell commands — the GitHub MCP handles authentication and repo creation.
-
-If GitHub MCP is not configured (no `GITHUB_PERSONAL_ACCESS_TOKEN`), **ask the user to create a public repo and provide the URL**. Do NOT set up a local git server (nginx, gitea, etc.).
-
-### Step 6b: Configure Golden Config in Nautobot — use MCP tools
+### Step 6a: Register Git repos in Nautobot — use MCP tools
 
 ```
 nautobot_create_git_repository(
   name="golden-config-templates",
-  remote_url="https://github.com/<USER>/nautobot-golden-config-templates.git",
+  remote_url="https://github.com/byrn-baker/nautobot_workshop_golden_config_templates.git",
   branch="main",
   provided_contents="nautobot_golden_config.jinjatemplate"
 )
+
+nautobot_create_git_repository(
+  name="golden-config-intended",
+  remote_url="https://github.com/byrn-baker/nautobot_workshop_golden_config_intended_configs.git",
+  branch="main",
+  provided_contents="nautobot_golden_config.intendedconfigs"
+)
+
+nautobot_create_git_repository(
+  name="golden-config-backups",
+  remote_url="https://github.com/byrn-baker/nautobot_workshop_golden_config_backup_configs.git",
+  branch="main",
+  provided_contents="nautobot_golden_config.backupconfigs"
+)
+
+nautobot_create_git_repository(
+  name="golden-config-properties",
+  remote_url="https://github.com/byrn-baker/nautobot_workshop_golden_config_properties.git",
+  branch="main",
+  provided_contents="nautobot_golden_config.configproperties"
+)
 ```
 
-Then sync the repo:
+Sync all repos:
 ```
 nautobot_sync_git_repository(name="golden-config-templates")
+nautobot_sync_git_repository(name="golden-config-intended")
+nautobot_sync_git_repository(name="golden-config-backups")
+nautobot_sync_git_repository(name="golden-config-properties")
 ```
 
-Create the SoT query and compliance settings using the `golden-config-bootstrap` skill.
+### Step 6b: Configure Golden Config settings — use MCP tools
+
+Create the SoT GraphQL query and link the repos to golden config settings:
+```
+nautobot_create_graphql_query(name="golden_config_sot", query="...")
+nautobot_update_golden_config_setting(...)
+```
+
+Use the `golden-config-bootstrap` skill for the full SoT query and compliance rule setup.
 
 ### Step 6c: Run compliance
 
 Ask the user to run compliance from the Nautobot UI:
 > Golden Config → Compliance → Run → select devices → review results
+
+### Golden Config GitHub Repos (reference)
+- Templates: https://github.com/byrn-baker/nautobot_workshop_golden_config_templates
+- Intended configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_intended_configs
+- Backup configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_backup_configs
+- Properties: https://github.com/byrn-baker/nautobot_workshop_golden_config_properties
+- SoT/config: https://github.com/byrn-baker/golden_config_git
 
 ## Phase 7: Demo Walkthrough
 

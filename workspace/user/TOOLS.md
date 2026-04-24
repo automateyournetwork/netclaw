@@ -76,6 +76,15 @@ DNS-02 → 192.168.220.21, DNS server, EOS
 - **EVPN/VXLAN:** West and East DC fabrics (spine-leaf)
 - **MLAG:** Leaf pairs (West-Leaf01/02, East-Leaf01/02)
 
+## Golden Config Git Repos
+
+These repos are pre-built and ready for Nautobot golden config:
+- Templates: https://github.com/byrn-baker/nautobot_workshop_golden_config_templates
+- Intended configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_intended_configs
+- Backup configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_backup_configs
+- Properties: https://github.com/byrn-baker/nautobot_workshop_golden_config_properties
+- SoT/config: https://github.com/byrn-baker/golden_config_git
+
 ## Platform Credentials
 
 All credentials are in `~/.openclaw/.env`. Never put credentials in skill files or this document.
