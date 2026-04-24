@@ -76,9 +76,10 @@ DNS-02 → 192.168.220.21, DNS server, EOS
 - **EVPN/VXLAN:** West and East DC fabrics (spine-leaf)
 - **MLAG:** Leaf pairs (West-Leaf01/02, East-Leaf01/02)
 
-## Golden Config Git Repos
+## Golden Config and Data Source Git Repos
 
-These repos are pre-built and ready for Nautobot golden config:
+These repos are pre-built and ready for Nautobot:
+- Data source (config contexts, schemas, jobs): https://github.com/byrn-baker/Nautobot-Workshop-Datasource
 - Templates: https://github.com/byrn-baker/nautobot_workshop_golden_config_templates
 - Intended configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_intended_configs
 - Backup configs: https://github.com/byrn-baker/nautobot_workshop_golden_config_backup_configs

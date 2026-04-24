@@ -104,14 +104,32 @@ nautobot_get_devices
 
 Should show all 20 devices.
 
-### Step 3c: Load config contexts
+### Step 3c: Load config contexts, schemas, and jobs via Git Data Source
 
-Design Builder creates devices, interfaces, IPs, and BGP but does NOT create config contexts. The config contexts are in the workshop repo and must be loaded separately.
+Design Builder creates devices, interfaces, IPs, and BGP but does NOT create config contexts. These are in a separate Git repo that Nautobot syncs as a data source.
 
-**ONE command:**
-```bash
-cd ~/Nautobot-Workshop && python3 -c "import json,os,yaml,requests; token='0123456789abcdef0123456789abcdef01234567'; headers={'Authorization':f'Token {token}','Content-Type':'application/json'}; base='http://localhost:8080/api'; [requests.post(f'{base}/extras/config-contexts/',json=item,headers=headers) for d in ['config_contexts'] if os.path.isdir(d) for f in sorted(os.listdir(d)) if f.endswith(('.yml','.yaml')) for item in ([yaml.safe_load(open(os.path.join(d,f)))] if not isinstance(yaml.safe_load(open(os.path.join(d,f))),list) else yaml.safe_load(open(os.path.join(d,f))))]; print('Config contexts loaded')"
+Register the datasource repo in Nautobot — use MCP tools:
 ```
+nautobot_create_git_repository(
+  name="nautobot-workshop-datasource",
+  remote_url="https://github.com/byrn-baker/Nautobot-Workshop-Datasource.git",
+  branch="main",
+  provided_contents="extras.configcontext,extras.configcontextschema,extras.job"
+)
+```
+
+If the repo is private, link the GitHub Secrets Group (created in Step 3d) to this repo as well.
+
+Sync the repo:
+```
+nautobot_sync_git_repository(name="nautobot-workshop-datasource")
+```
+
+This loads:
+- Config contexts (role-scoped: ospf_global, mpls_global, prefix_lists, route_maps, fabric configs)
+- Per-device config contexts (East/West Leaf and Spine devices)
+- Config context schemas (OSPF, MPLS, prefix_list, route_map validation)
+- Jobs from the repo
 
 Verify:
 ```
