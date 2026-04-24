@@ -157,13 +157,47 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 
 ## Phase 6: Wire Golden Config
 
-Use the `golden-config-bootstrap` skill for the full interactive workflow, or manually:
+Nautobot's Golden Config plugin needs a Git repository containing Jinja2 templates. **Use a GitHub repo — do NOT set up a local git server (nginx, gitea, etc.).** The Nautobot container can clone directly from GitHub.
 
-1. Create a Git repo in Nautobot (Extensibility → Git Repositories)
-2. Point it at a GitHub repo containing Jinja2 templates
-3. Create a GraphQL SoT aggregation query
-4. Create compliance features and rules
-5. Run the first compliance job
+### Step 6a: Create GitHub repo and push templates — use GitHub MCP
+
+The workshop has templates at `~/Nautobot-Workshop/nautobot-docker-compose/jobs/templates/`. Use the GitHub MCP to create a repo and push them:
+
+```
+github_create_repository(name="nautobot-golden-config-templates", description="Golden config Jinja2 templates for Nautobot Workshop", private=false, auto_init=true)
+```
+
+Then push the template files using the GitHub MCP:
+```
+github_push_files(owner="<USER>", repo="nautobot-golden-config-templates", branch="main", files=[...], message="Add golden config templates")
+```
+
+Read the template files from disk first, then push them via the MCP. Do NOT use `git init` / `git push` shell commands — the GitHub MCP handles authentication and repo creation.
+
+If GitHub MCP is not configured (no `GITHUB_PERSONAL_ACCESS_TOKEN`), **ask the user to create a public repo and provide the URL**. Do NOT set up a local git server (nginx, gitea, etc.).
+
+### Step 6b: Configure Golden Config in Nautobot — use MCP tools
+
+```
+nautobot_create_git_repository(
+  name="golden-config-templates",
+  remote_url="https://github.com/<USER>/nautobot-golden-config-templates.git",
+  branch="main",
+  provided_contents="nautobot_golden_config.jinjatemplate"
+)
+```
+
+Then sync the repo:
+```
+nautobot_sync_git_repository(name="golden-config-templates")
+```
+
+Create the SoT query and compliance settings using the `golden-config-bootstrap` skill.
+
+### Step 6c: Run compliance
+
+Ask the user to run compliance from the Nautobot UI:
+> Golden Config → Compliance → Run → select devices → review results
 
 ## Phase 7: Demo Walkthrough
 
