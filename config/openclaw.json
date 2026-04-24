@@ -112,12 +112,29 @@
     "github-mcp": {
       "command": "docker",
       "args": [
-        "run", "-i", "--rm",
-        "-e", "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
         "ghcr.io/github/github-mcp-server"
       ],
       "env": {
         "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "proxmox-mcp": {
+      "command": "node",
+      "args": [
+        "/home/ubuntu/netclaw/mcp-servers/mcp-proxmox/index.js"
+      ],
+      "env": {
+        "PROXMOX_HOST": "${PROXMOX_HOST}",
+        "PROXMOX_PORT": "${PROXMOX_PORT:-8006}",
+        "PROXMOX_USER": "${PROXMOX_USER:-root@pam}",
+        "PROXMOX_TOKEN_NAME": "${PROXMOX_TOKEN_NAME:-mcpserver}",
+        "PROXMOX_TOKEN_VALUE": "${PROXMOX_TOKEN_VALUE}",
+        "PROXMOX_ALLOW_ELEVATED": "${PROXMOX_ALLOW_ELEVATED:-false}"
       }
     }
   }

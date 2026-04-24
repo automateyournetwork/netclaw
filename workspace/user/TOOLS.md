@@ -84,4 +84,5 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 ### Connection Details (reference only — actual values in .env)
 - pyATS Testbed       → PYATS_TESTBED_PATH
 - Nautobot            → NAUTOBOT_URL, NAUTOBOT_TOKEN
+- Proxmox             → PROXMOX_HOST, PROXMOX_TOKEN_NAME, PROXMOX_TOKEN_VALUE
 ```

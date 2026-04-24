@@ -696,6 +696,27 @@ log_info "Configure: CONFLUENCE_URL, CONFLUENCE_USERNAME, CONFLUENCE_API_TOKEN"
 echo ""
 
 # ═══════════════════════════════════════════
+# Step 24e: Proxmox MCP Server
+# ═══════════════════════════════════════════
+
+log_step "24e/$TOTAL_STEPS Installing Proxmox MCP Server..."
+echo "  Source: https://github.com/gilby125/mcp-proxmox"
+echo "  Proxmox VE management — VMs, containers, snapshots, backups, disks, networking (49+ tools)"
+
+PROXMOX_MCP_DIR="$MCP_DIR/mcp-proxmox"
+clone_or_pull "$PROXMOX_MCP_DIR" "https://github.com/gilby125/mcp-proxmox.git"
+
+if [ -d "$PROXMOX_MCP_DIR" ]; then
+    log_info "Installing Proxmox MCP dependencies..."
+    cd "$PROXMOX_MCP_DIR" && npm install && cd "$NETCLAW_DIR"
+    log_info "Proxmox MCP ready: node $PROXMOX_MCP_DIR/index.js (stdio transport)"
+else
+    log_warn "Proxmox MCP clone failed"
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 25: Packet Buddy MCP Server (pcap analysis)
 # ═══════════════════════════════════════════
 

@@ -88,6 +88,37 @@ docker images | grep -E "cisco_iol|ceos"
 | DNS-01 | DNS server | 192.168.220.20 |
 | DNS-02 | DNS server | 192.168.220.21 |
 
+## Phase 0: Provision the Lab VM (Proxmox)
+
+If the lab VM doesn't exist yet, use the Proxmox MCP tools to create it.
+
+### Step 0a: Check existing VMs
+
+```
+proxmox_get_nodes
+proxmox_get_vms
+```
+
+### Step 0b: Create the lab VM
+
+Requires `PROXMOX_ALLOW_ELEVATED=true` in the environment.
+
+```
+proxmox_create_vm(
+  node="pve",
+  name="netclaw-lab",
+  cores=20,
+  memory=32768,
+  disk_size="100G"
+)
+```
+
+Recommended specs: 20 vCPU, 32 GB RAM, 100 GB disk (Ubuntu 22.04 or 24.04).
+
+After the VM is running, SSH in and proceed with Phase 1.
+
+If Proxmox MCP is not configured, **ask the user to create the VM manually** and provide the IP when ready.
+
 ## Phase 1: Clone the Workshop Repo
 
 ```bash
