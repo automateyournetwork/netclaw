@@ -304,17 +304,20 @@ if os.environ.get("OLLAMA_API_KEY"):
 elif os.environ.get("ANTHROPIC_API_KEY"):
     model_id = os.environ.get("NETCLAW_MODEL", "claude-sonnet-4-20250514")
     defaults["model"] = {"primary": f"anthropic/{model_id}"}
+    defaults["params"] = {"cacheRetention": "long"}
     runtime["models"] = {"mode": "merge", "providers": {
-        "anthropic": {"api": "anthropic", "apiKey": os.environ["ANTHROPIC_API_KEY"]}
+        "anthropic": {"api": "anthropic-messages", "baseUrl": "https://api.anthropic.com",
+                      "apiKey": os.environ["ANTHROPIC_API_KEY"], "models": []}
     }}
     runtime["auth"] = {"profiles": {"anthropic:default": {"provider": "anthropic", "mode": "api_key"}}}
-    print(f"[config] AI provider: anthropic (model: {model_id})")
+    print(f"[config] AI provider: anthropic (model: {model_id}, cacheRetention: long)")
 
 elif os.environ.get("OPENAI_API_KEY"):
     model_id = os.environ.get("NETCLAW_MODEL", "gpt-4o")
     defaults["model"] = {"primary": f"openai/{model_id}"}
     runtime["models"] = {"mode": "merge", "providers": {
-        "openai": {"api": "openai", "apiKey": os.environ["OPENAI_API_KEY"]}
+        "openai": {"api": "openai-responses", "baseUrl": "https://api.openai.com/v1",
+                   "apiKey": os.environ["OPENAI_API_KEY"], "models": []}
     }}
     runtime["auth"] = {"profiles": {"openai:default": {"provider": "openai", "mode": "api_key"}}}
     print(f"[config] AI provider: openai (model: {model_id})")
