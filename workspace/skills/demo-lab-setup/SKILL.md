@@ -164,19 +164,33 @@ This step happens after Phase 4, not here — just noting it for awareness.
 
 The workshop includes a Design Builder job that creates the full data model — locations, devices, interfaces, IPs, prefixes, BGP peering, OSPF custom fields, VLANs, everything.
 
-### Step 3a: Enable Design Builder jobs
+### Step 3a: Enable required jobs
 
-In the Nautobot UI:
-1. Navigate to **Jobs** → **Jobs**
-2. Find the **Nautobot Workshop Demo Initial Data** job
-3. Click it and ensure it is **Enabled**
+The Design Builder and Golden Config jobs must be enabled before they can run. The nautobot-mcp-v2 tools cannot enable jobs — this requires the Nautobot UI.
+
+**Ask the user to do this manually:**
+
+> I need you to enable the Design Builder and Golden Config jobs in Nautobot before I can proceed.
+>
+> 1. Open http://localhost:8080 and log in (admin / admin)
+> 2. Navigate to **Jobs** → **Jobs**
+> 3. Find and enable these jobs:
+>    - **Nautobot Workshop Demo Initial Data** (Design Builder)
+>    - Any Golden Config jobs (compliance, intended, backup)
+> 4. Let me know when they're enabled.
+
+**Wait for user confirmation before proceeding.**
 
 ### Step 3b: Run the initial data design
 
-1. Navigate to **Design** → **Design Builder** (right sidebar)
+Once the user confirms jobs are enabled:
+
+1. In the Nautobot UI: **Design** → **Design Builder** (right sidebar)
 2. Select **Nautobot Workshop Demo Initial Data**
 3. Click **Run**
 4. Wait for completion — this creates all devices, interfaces, IPs, BGP sessions, OSPF config, VLANs
+
+Alternatively, ask the user to run it and confirm when done.
 
 ### Step 3c: Verify the data model
 
