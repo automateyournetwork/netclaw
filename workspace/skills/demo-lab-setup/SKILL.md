@@ -239,6 +239,8 @@ nautobot_get_vlans
 
 ## Phase 4: Deploy ContainerLab Topology
 
+**Deploy directly from the workshop's clab topology file.** Do NOT use the Ansible playbook to create the topology — that would duplicate it.
+
 ### Step 4a: Deploy the lab
 
 ```bash
@@ -246,7 +248,7 @@ cd ~/Nautobot-Workshop/clabs
 sudo clab deploy --topo nautobot-workshop-topology.clab.yml
 ```
 
-This deploys all 20 nodes with startup configs from `clabs/startup-configs/`.
+This deploys all 20 nodes with startup configs from `clabs/startup-configs/`. ContainerLab auto-creates the `clab-mgmt` network at 192.168.220.0/24.
 
 ### Step 4b: Verify the lab
 
@@ -266,53 +268,66 @@ ping -c 2 192.168.220.18  # East-Leaf01
 Now that ContainerLab has created the `clab-mgmt` network, connect Nautobot:
 
 ```bash
-docker network connect clab-mgmt nautobot-docker-compose-nautobot-1
-docker network connect clab-mgmt nautobot-docker-compose-celery_worker-1
+docker network connect clab-mgmt nautobotworkshop-docker-compose-nautobot-1
+docker network connect clab-mgmt nautobotworkshop-docker-compose-celery_worker-1
 ```
+
+Note: The container names may vary. Check with `docker ps` for the actual names.
 
 Verify Nautobot can reach lab devices:
 ```bash
-docker exec nautobot-docker-compose-nautobot-1 ping -c 2 192.168.220.2
+docker exec nautobotworkshop-docker-compose-nautobot-1 ping -c 2 192.168.220.2
 ```
 
 ## Phase 5: Deploy Device Configurations via Ansible
 
-The workshop includes Ansible roles to build and deploy full configs.
+The workshop includes Ansible roles to generate and deploy configs. The inventory uses Nautobot's GraphQL plugin, so **Design Builder must have run first** (Phase 3) before Ansible can discover devices.
 
-### Step 5a: Set up Ansible
+### Step 5a: Set up the Ansible virtual environment
 
 ```bash
 cd ~/Nautobot-Workshop/ansible-lab
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r pip-requirements.txt
-ansible-galaxy install -r galaxy-requirements.yml
 ```
 
-Create a vault password file (or use the workshop default):
+This installs: ansible 10.7.0, pynautobot, netaddr, netutils, paramiko, aristaproto, and other dependencies.
+
+### Step 5b: Install Ansible Galaxy collections
+
+```bash
+ansible-galaxy collection install -r galaxy-requirements.yml -p ./ansible_collections
+```
+
+This installs `arista.avd` (>=5.4.0) and `networktocode.nautobot` (>=5.11.0).
+
+### Step 5c: Create the vault password file
+
+The ansible.cfg expects `~/.vault-pass.txt`. The workshop's vault.yml is plaintext (not encrypted), but Ansible still needs the file to exist:
+
 ```bash
 echo "nautobot" > ~/.vault-pass.txt
+chmod 600 ~/.vault-pass.txt
 ```
 
-### Step 5b: Build the topology file (optional — already have clab topology)
+### Step 5d: Generate device configs
+
+**Use `--tags build` only** — do NOT run the playbook without tags (that would re-run load_nautobot and build_clab_topology, duplicating work already done in Phases 3-4).
 
 ```bash
-ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags clab
+ansible-playbook pb.build-lab.yml --tags build
 ```
 
-### Step 5c: Generate device configs
+This generates configs under `ansible-lab/configs/` using Jinja2 templates and Nautobot data via the GraphQL inventory plugin.
+
+### Step 5e: Deploy configs to running lab devices
 
 ```bash
-ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags build
+ansible-playbook pb.build-lab.yml --tags deploy
 ```
 
-This generates configs under `ansible-lab/configs/` using Jinja2 templates and Nautobot data.
-
-### Step 5d: Deploy configs to running lab devices
-
-```bash
-ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags deploy
-```
-
-### Step 5e: Verify
+### Step 5f: Verify
 
 SSH into a device and check:
 ```bash
