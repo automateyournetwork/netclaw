@@ -13,6 +13,14 @@
       }
     }
   },
+  "models": {
+    "providers": {
+      "anthropic": {
+        "enableCacheControl": true,
+        "cacheRetention": "long"
+      }
+    }
+  },
   "tokenOptimization": {
     "enabled": true,
     "libraryPath": "src/netclaw_tokens",
