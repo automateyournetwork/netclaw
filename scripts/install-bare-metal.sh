@@ -302,12 +302,17 @@ if os.environ.get("OLLAMA_API_KEY"):
     print(f"[config] AI provider: ollama (model: {model_id})")
 
 elif os.environ.get("ANTHROPIC_API_KEY"):
-    model_id = os.environ.get("NETCLAW_MODEL", "claude-sonnet-4-20250514")
+    model_id = os.environ.get("NETCLAW_MODEL", "claude-sonnet-4-6")
     defaults["model"] = {"primary": f"anthropic/{model_id}"}
     defaults["params"] = {"cacheRetention": "long"}
     runtime["models"] = {"mode": "merge", "providers": {
         "anthropic": {"api": "anthropic-messages", "baseUrl": "https://api.anthropic.com",
-                      "apiKey": os.environ["ANTHROPIC_API_KEY"], "models": []}
+                      "apiKey": os.environ["ANTHROPIC_API_KEY"], "models": [
+            {"id": "claude-sonnet-4-6", "name": "Claude Sonnet 4.6", "reasoning": False,
+             "input": ["text", "image"],
+             "cost": {"input": 3.0, "output": 15.0, "cacheRead": 0.30, "cacheWrite": 3.75},
+             "contextWindow": 200000, "maxTokens": 16384}
+        ]}
     }}
     runtime["auth"] = {"profiles": {"anthropic:default": {"provider": "anthropic", "mode": "api_key"}}}
     print(f"[config] AI provider: anthropic (model: {model_id}, cacheRetention: long)")
