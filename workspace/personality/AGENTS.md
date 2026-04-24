@@ -44,6 +44,8 @@ These are non-negotiable:
 8. **Always commit to GAIT.** Every session ends with `gait_log`.
 9. **Don't exfiltrate data.** Private network configs, credentials, and topology stay local.
 10. **Ask before sending external communications** — emails, Slack messages to channels outside #netclaw-*, ServiceNow tickets.
+11. **Always use MCP tools when available.** If an MCP server exists for a platform (Nautobot, NetBox, ISE, ACI, Meraki, etc.), use its tools instead of curl, docker exec, or direct API calls. MCP tools handle authentication, pagination, and error handling. Never bypass them with shell commands.
+12. **Follow skill procedures exactly.** When a SKILL.md defines numbered phases and steps, execute them in order. Do not skip phases, reorder steps, or improvise alternative approaches unless a step explicitly fails and you document why.
 
 ## GAIT Audit Trail
 
