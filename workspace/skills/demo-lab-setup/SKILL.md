@@ -32,8 +32,13 @@ If anything is missing, fix it before proceeding.
 ## Phase 1: Clone and Set Up — ONE command
 
 ```bash
-cd ~ && git clone https://github.com/byrn-baker/Nautobot-Workshop.git && cd ~/Nautobot-Workshop/nautobot-docker-compose && cp invoke.example.yml invoke.yml && cp environments/creds.example environments/creds.env && sed -i 's/NAUTOBOT_CREATE_SUPERUSER=false/NAUTOBOT_CREATE_SUPERUSER=true/' environments/creds.env && echo "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}" >> environments/creds.env && echo "=== repo cloned, superuser enabled, GitHub token added ==="
+cd ~ && git clone https://github.com/byrn-baker/Nautobot-Workshop.git && cd ~/Nautobot-Workshop/nautobot-docker-compose && cp invoke.example.yml invoke.yml && cp environments/creds.example environments/creds.env && sed -i 's/NAUTOBOT_CREATE_SUPERUSER=false/NAUTOBOT_CREATE_SUPERUSER=true/' environments/creds.env && echo "GITHUB_PERSONAL_ACCESS_TOKEN=${GITHUB_PERSONAL_ACCESS_TOKEN}" >> environments/creds.env && echo "NAUTOBOT_NAPALM_USERNAME=${NETCLAW_USERNAME}" >> environments/creds.env && echo "NAUTOBOT_NAPALM_PASSWORD=${NETCLAW_PASSWORD}" >> environments/creds.env && echo "DEVICE_USERNAME=${NETCLAW_USERNAME}" >> environments/creds.env && echo "DEVICE_PASSWORD=${NETCLAW_PASSWORD}" >> environments/creds.env && echo "=== repo cloned, superuser enabled, GitHub token + device creds added ==="
 ```
+
+This appends to creds.env using variables from the shell environment (sourced from .env). The actual credentials never appear in the skill or repo. The env vars added:
+- `GITHUB_PERSONAL_ACCESS_TOKEN` — for golden config repo sync
+- `NAUTOBOT_NAPALM_USERNAME` / `NAUTOBOT_NAPALM_PASSWORD` — for NAPALM device connections
+- `DEVICE_USERNAME` / `DEVICE_PASSWORD` — for Nornir/Secrets-based device connections
 
 Then set up Poetry — ONE command:
 ```bash
@@ -113,7 +118,31 @@ Verify:
 nautobot_get_config_contexts
 ```
 
-**STOP. Tell the user:** "Phase 3 complete — Nautobot populated. Ready for Phase 4? (Say continue, or /new to start fresh and say continue demo from Phase 4)"
+### Step 3d: Set up device credentials (Secrets + Secrets Group)
+
+Golden Config uses Nornir which gets SSH credentials from Nautobot Secrets Groups. Create the secrets referencing the environment variables added to creds.env in Phase 1:
+
+```
+nautobot_create_secrets_group(name="Device Credentials")
+nautobot_create_secret(name="Device Username", provider="environment-variable", parameters='{"variable": "DEVICE_USERNAME"}')
+nautobot_create_secret(name="Device Password", provider="environment-variable", parameters='{"variable": "DEVICE_PASSWORD"}')
+nautobot_add_secret_to_group(secrets_group_id="<id>", secret_id="<username-secret-id>", access_type="Generic", secret_type="username")
+nautobot_add_secret_to_group(secrets_group_id="<id>", secret_id="<password-secret-id>", access_type="Generic", secret_type="password")
+```
+
+Then assign the Secrets Group to all devices. Use GraphQL to get all device IDs, then update each one:
+```
+nautobot_graphql query="{ devices { id name } }"
+```
+
+For each device:
+```
+nautobot_update_object(object_type="device", identifier="<device-name>", updates='{"secrets_group": "<secrets-group-id>"}')
+```
+
+This must be done before golden config backup/intended jobs will work. Without it, Nornir cannot SSH to devices.
+
+**STOP. Tell the user:** "Phase 3 complete — Nautobot populated with devices, config contexts, and credentials. Ready for Phase 4? (Say continue, or /new to start fresh and say continue demo from Phase 4)"
 
 ## Phase 4: Deploy ContainerLab — TWO commands max
 
