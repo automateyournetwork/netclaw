@@ -16,8 +16,11 @@
   "models": {
     "providers": {
       "anthropic": {
+        "api": "anthropic-messages",
+        "baseUrl": "https://api.anthropic.com",
         "enableCacheControl": true,
-        "cacheRetention": "long"
+        "cacheRetention": "long",
+        "models": []
       }
     }
   },
