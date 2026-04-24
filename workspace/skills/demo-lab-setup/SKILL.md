@@ -1,362 +1,353 @@
-# SKILL: Demo Lab Setup — ContainerLab + Nautobot + Golden Config
+# SKILL: Demo Lab Setup — Nautobot Workshop + ContainerLab + Golden Config
 
 ## Purpose
 
-Deploy a complete demo environment from scratch using natural language:
-1. A ContainerLab network topology with routers/switches
-2. A Nautobot dev instance (via nautobot-docker-compose)
-3. Network connectivity between Nautobot and the lab devices
-4. Device onboarding into Nautobot
-5. Golden Config bootstrap (templates, compliance, intended configs)
+Deploy the byrn-baker/Nautobot-Workshop environment end-to-end:
+1. Clone the workshop repo (includes nautobot-docker-compose, ContainerLab topology, Ansible roles, Design Builder jobs)
+2. Stand up Nautobot 2.4.10 with all workshop plugins
+3. Deploy the ContainerLab topology (20 nodes: Cisco IOL SP core + Arista cEOS EVPN/VXLAN fabric)
+4. Run Design Builder to populate Nautobot with the full data model
+5. Deploy device configs via Ansible
+6. Wire golden config compliance
 
-This is the showcase demo for NetClaw — proving an AI agent can build an entire network automation stack from a single conversation.
+This is the showcase demo for NetClaw — an AI agent that can build and operate an entire network automation stack from conversation.
 
 ## When to Use
 
-- User says "set up the demo" or "build the demo lab"
+- User says "set up the demo" or "build the demo lab" or "deploy the workshop"
 - User wants to demonstrate NetClaw + Nautobot + ContainerLab end-to-end
-- User wants a self-contained lab environment for golden config testing
+- User wants the byrn-baker/Nautobot-Workshop environment running
 
 ## CRITICAL RULES
 
-1. **Follow the phases in order** — each phase depends on the previous one
+1. **Follow the phases in order** — each depends on the previous
 2. **Wait for user confirmation** between phases — this is a demo, the user needs to see each step
-3. **Use MCP tools** for Nautobot operations — never exec/curl
-4. **Use exec** for shell commands (git, docker, clab, poetry, invoke) — these have no MCP
-5. **Read the sub-skills** before executing their phases — nautobot-dev-setup and golden-config-bootstrap have detailed procedures
+3. **Use the workshop repo as-is** — do NOT create custom docker-compose, topology, or Ansible files
+4. **Use Poetry 1.5.x** — newer versions break the nautobot-docker-compose tasks.py
+5. **Use Invoke** to build/start Nautobot — do NOT run docker compose directly
 
 ## Prerequisites
 
-The following must be installed on the host (the bare-metal install script handles these):
-- Docker and Docker Compose
-- ContainerLab (`bash -c "$(curl -sL https://get.containerlab.dev)"`)
-- Poetry 1.5.x (`pip install "poetry>=1.5.0,<1.6.0"`)
-- Git
-
-Check prerequisites before starting:
+Check before starting:
 ```bash
-docker --version
-clab version
-poetry --version
+docker --version          # Docker 24+
+clab version              # ContainerLab 0.69+
+poetry --version          # Poetry 1.5.x (pip install "poetry>=1.5.0,<1.6.0")
+ansible --version         # Ansible 2.15+
 git --version
 ```
 
-If ContainerLab is not installed:
+If ContainerLab is missing:
 ```bash
 bash -c "$(curl -sL https://get.containerlab.dev)"
 ```
 
-## Phase 1: Gather Demo Requirements
+If Poetry is wrong version:
+```bash
+pip install "poetry>=1.5.0,<1.6.0"
+```
 
-Ask the user:
+Required container images (must be pre-imported):
+- `vrnetlab/cisco_iol:17.12.01` — Cisco IOL for P/PE/CE/RR routers
+- `ceos:4.34.0F` — Arista cEOS for spine/leaf/DNS switches
 
-1. **Lab topology** — what devices? Suggest a default:
-   - 2x Arista cEOS switches (leaf1, leaf2) — or SR Linux if cEOS images aren't available
-   - 1x FRR router (spine1)
-   - This gives a simple leaf-spine to demonstrate golden config across multiple devices
+Verify images:
+```bash
+docker images | grep -E "cisco_iol|ceos"
+```
 
-2. **Nautobot plugins** — suggest the standard set:
-   - nautobot-golden-config
-   - nautobot-bgp-models
-   - nautobot-firewall-models
-   - nautobot-igp-models
-   - nautobot-plugin-nornir
-   - nautobot-ssot
-   - nautobot-device-onboarding
-   - welcome-wizard
+## Workshop Topology
 
-3. **GitHub repo** for golden config templates — ask for org/user name
+20 nodes on management network 192.168.220.0/24:
 
-4. **Confirm the plan** before proceeding
+### SP Core (Cisco IOL 17.12.01)
+| Device | Role | Mgmt IP |
+|--------|------|---------|
+| P1 | P router | 192.168.220.2 |
+| P2 | P router | 192.168.220.3 |
+| P3 | P router | 192.168.220.4 |
+| P4 | P router | 192.168.220.5 |
+| PE1 | PE router | 192.168.220.6 |
+| PE2 | PE router | 192.168.220.7 |
+| PE3 | PE router | 192.168.220.8 |
+| CE1 | CE router | 192.168.220.9 |
+| CE2 | CE router | 192.168.220.10 |
+| RR1 | Route Reflector | 192.168.220.11 |
 
-## Phase 2: Deploy ContainerLab Topology
+### EVPN/VXLAN Fabric (Arista cEOS 4.34.0F)
+| Device | Role | Mgmt IP |
+|--------|------|---------|
+| West-Spine01 | Spine | 192.168.220.12 |
+| West-Spine02 | Spine | 192.168.220.13 |
+| West-Leaf01 | Leaf | 192.168.220.14 |
+| West-Leaf02 | Leaf | 192.168.220.15 |
+| East-Spine01 | Spine | 192.168.220.16 |
+| East-Spine02 | Spine | 192.168.220.17 |
+| East-Leaf01 | Leaf | 192.168.220.18 |
+| East-Leaf02 | Leaf | 192.168.220.19 |
+| DNS-01 | DNS server | 192.168.220.20 |
+| DNS-02 | DNS server | 192.168.220.21 |
 
-### Step 2a: Create the topology file
-
-Create a ContainerLab topology YAML file. The topology MUST include a management network that Nautobot can reach.
+## Phase 1: Clone the Workshop Repo
 
 ```bash
-mkdir -p ~/demo-lab
+cd ~
+git clone https://github.com/byrn-baker/Nautobot-Workshop.git
+cd Nautobot-Workshop
 ```
 
-Write the topology file at `~/demo-lab/topology.yml`:
-
-```yaml
-name: netclaw-demo
-
-mgmt:
-  network: netclaw-mgmt
-  ipv4-subnet: 172.20.20.0/24
-
-topology:
-  nodes:
-    leaf1:
-      kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:latest
-      type: ixrd2l
-      mgmt-ipv4: 172.20.20.11
-    leaf2:
-      kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:latest
-      type: ixrd2l
-      mgmt-ipv4: 172.20.20.12
-    spine1:
-      kind: nokia_srlinux
-      image: ghcr.io/nokia/srlinux:latest
-      type: ixrd3l
-      mgmt-ipv4: 172.20.20.13
-
-  links:
-    - endpoints: ["leaf1:e1-49", "spine1:e1-1"]
-    - endpoints: ["leaf2:e1-49", "spine1:e1-2"]
-    - endpoints: ["leaf1:e1-50", "leaf2:e1-50"]
+Verify the structure:
+```bash
+ls -d clabs/ nautobot-docker-compose/ ansible-lab/ jobs/
 ```
 
-If the user wants Arista cEOS instead (requires cEOS image to be imported):
-```yaml
-    leaf1:
-      kind: ceos
-      image: ceos:latest
-      mgmt-ipv4: 172.20.20.11
-```
+## Phase 2: Deploy Nautobot
 
-If the user wants FRR (lightweight, no license needed):
-```yaml
-    spine1:
-      kind: linux
-      image: frrouting/frr:latest
-      mgmt-ipv4: 172.20.20.13
-```
-
-### Step 2b: Deploy the topology
+### Step 2a: Set up nautobot-docker-compose
 
 ```bash
-cd ~/demo-lab
-sudo clab deploy --topo topology.yml
+cd ~/Nautobot-Workshop/nautobot-docker-compose
+cp invoke.example.yml invoke.yml
+cp environments/creds.example environments/creds.env
 ```
 
-Wait for deployment to complete. Then verify:
-```bash
-sudo clab inspect --topo topology.yml
-```
-
-This shows the management IPs for each node. Record them — Nautobot needs these.
-
-### Step 2c: Verify connectivity
+### Step 2b: Poetry environment
 
 ```bash
-ping -c 2 172.20.20.11
-ping -c 2 172.20.20.12
-ping -c 2 172.20.20.13
+poetry shell
+poetry lock
+poetry install
 ```
 
-**Present the topology and management IPs to the user before proceeding.**
+The pyproject.toml pins Nautobot 2.4.10 with these plugins:
+- nautobot-plugin-nornir
+- nautobot-bgp-models
+- nautobot-golden-config
+- nautobot-design-builder
+- nautobot-device-lifecycle-mgmt
+- nautobot-ssot
+- nautobot-device-onboarding
+- pyavd, pyats[full], genie, ntc-templates
 
-## Phase 3: Deploy Nautobot Dev Instance
-
-**Read and follow the `skills/nautobot-dev-setup/SKILL.md` skill for this phase.**
-
-Key additions for the demo:
-
-### Step 3a: Clone and set up nautobot-docker-compose
-
-Follow the nautobot-dev-setup skill exactly — clone the repo, use Poetry, add plugins.
-
-### Step 3b: Connect Nautobot to the ContainerLab management network
-
-After `invoke build` but BEFORE `invoke start`, connect the Nautobot container to the ContainerLab management network.
-
-Edit the `environments/docker-compose.local.yml` to add the external network:
-
-```yaml
-services:
-  nautobot:
-    command: "nautobot-server runserver 0.0.0.0:8080"
-    ports:
-      - "8080:8080"
-    volumes:
-      - "../config/nautobot_config.py:/opt/nautobot/nautobot_config.py"
-      - "../jobs:/opt/nautobot/jobs"
-    networks:
-      - default
-      - clab-mgmt
-    healthcheck:
-      interval: "30s"
-      timeout: "10s"
-      start_period: "60s"
-      retries: 3
-      test: ["CMD", "true"]
-  celery_worker:
-    volumes:
-      - "../config/nautobot_config.py:/opt/nautobot/nautobot_config.py"
-      - "../jobs:/opt/nautobot/jobs"
-    networks:
-      - default
-      - clab-mgmt
-
-networks:
-  clab-mgmt:
-    external: true
-    name: netclaw-mgmt
-```
-
-The `netclaw-mgmt` network was created by ContainerLab in Phase 2. This connects the Nautobot container to the same network as the lab devices.
-
-### Step 3c: Start Nautobot and verify connectivity
+### Step 2c: Build and start
 
 ```bash
-cd ~/nautobot-dev
-invoke start
+invoke build
+invoke debug
 ```
 
-Wait for healthy status, then verify Nautobot can reach the lab devices:
+Wait for Nautobot to be healthy. Default login: admin/admin.
+
+Verify at http://localhost:8080 (or the host IP on port 8080).
+
+### Step 2d: Note on management network
+
+The ContainerLab topology defines its own management network (`clab-mgmt` at 192.168.220.0/24). ContainerLab creates this network automatically during `clab deploy` — no manual bridge creation needed.
+
+After the lab is deployed (Phase 4), connect the Nautobot containers to it:
 
 ```bash
-docker compose -f environments/docker-compose.postgres.yml -f environments/docker-compose.base.yml -f environments/docker-compose.local.yml exec nautobot ping -c 2 172.20.20.11
+docker network connect clab-mgmt nautobot-docker-compose-nautobot-1
+docker network connect clab-mgmt nautobot-docker-compose-celery_worker-1
 ```
 
-### Step 3d: Create superuser and get API token
+This step happens after Phase 4, not here — just noting it for awareness.
 
-Follow the nautobot-dev-setup skill Phase 10-11.
+## Phase 3: Populate Nautobot with Design Builder
 
-## Phase 4: Onboard Lab Devices into Nautobot
+The workshop includes a Design Builder job that creates the full data model — locations, devices, interfaces, IPs, prefixes, BGP peering, OSPF custom fields, VLANs, everything.
 
-Once Nautobot is running and connected to the lab network:
+### Step 3a: Enable Design Builder jobs
 
-### Step 4a: Create platform and device type
+In the Nautobot UI:
+1. Navigate to **Jobs** → **Jobs**
+2. Find the **Nautobot Workshop Demo Initial Data** job
+3. Click it and ensure it is **Enabled**
 
-Use nautobot-mcp tools to create the necessary objects:
+### Step 3b: Run the initial data design
 
-For SR Linux devices:
-- Platform: name=`nokia_srlinux`, network_driver=`srlinux`
-- Device Type: model=`ixrd2l` (or `ixrd3l` for spine), manufacturer=`Nokia`
-- Device Role: name=`leaf` and `spine`
-- Location: name=`Demo Lab`
+1. Navigate to **Design** → **Design Builder** (right sidebar)
+2. Select **Nautobot Workshop Demo Initial Data**
+3. Click **Run**
+4. Wait for completion — this creates all devices, interfaces, IPs, BGP sessions, OSPF config, VLANs
 
-For Arista cEOS:
-- Platform: name=`arista_eos`, network_driver=`arista_eos`
+### Step 3c: Verify the data model
 
-For FRR:
-- Platform: name=`linux_frr`, network_driver=`linux`
+After the job completes, verify in Nautobot:
+- **Devices** → should show all 20 devices with correct platforms, roles, locations
+- **IP Addresses** → management IPs and loopbacks assigned
+- **BGP** → peering sessions between P/PE/RR routers
+- **Interfaces** → all physical and logical interfaces with descriptions
 
-### Step 4b: Create devices in Nautobot
-
-Use `nautobot_graphql` or the REST write tools to create:
-- Location: "Demo Lab"
-- Devices: leaf1 (172.20.20.11), leaf2 (172.20.20.12), spine1 (172.20.20.13)
-- Assign platforms, roles, device types
-- Create management interfaces and assign IPs
-
-### Step 4c: Verify devices in Nautobot
-
+Or use the nautobot-mcp-v2 tools:
 ```
 nautobot_get_devices
+nautobot_graphql query="{ devices { name role { name } location { name } primary_ip4 { host } platform { name } } }"
 ```
 
-Should show all three lab devices with their management IPs.
+## Phase 4: Deploy ContainerLab Topology
 
-## Phase 5: Create pyATS Testbed for Lab Devices
+### Step 4a: Deploy the lab
 
-Create a testbed.yaml that pyATS can use to connect to the lab devices:
-
-```yaml
-testbed:
-  name: netclaw-demo-lab
-
-devices:
-  leaf1:
-    os: linux  # or 'eos' for cEOS, adjust per platform
-    type: switch
-    connections:
-      defaults:
-        class: unicon.Unicon
-      cli:
-        protocol: ssh
-        ip: 172.20.20.11
-        port: 22
-    credentials:
-      default:
-        username: admin
-        password: NokiaSrl1!  # SR Linux default
-
-  leaf2:
-    os: linux
-    type: switch
-    connections:
-      defaults:
-        class: unicon.Unicon
-      cli:
-        protocol: ssh
-        ip: 172.20.20.12
-        port: 22
-    credentials:
-      default:
-        username: admin
-        password: NokiaSrl1!
-
-  spine1:
-    os: linux
-    type: router
-    connections:
-      defaults:
-        class: unicon.Unicon
-      cli:
-        protocol: ssh
-        ip: 172.20.20.13
-        port: 22
-    credentials:
-      default:
-        username: admin
-        password: NokiaSrl1!
+```bash
+cd ~/Nautobot-Workshop/clabs
+sudo clab deploy --topo nautobot-workshop-topology.clab.yml
 ```
 
-Write this to `~/demo-lab/testbed.yaml` and update the `PYATS_TESTBED_PATH` env var.
+This deploys all 20 nodes with startup configs from `clabs/startup-configs/`.
 
-## Phase 6: Golden Config Bootstrap
+### Step 4b: Verify the lab
 
-**Read and follow the `skills/golden-config-bootstrap/SKILL.md` skill for this phase.**
+```bash
+sudo clab inspect --topo nautobot-workshop-topology.clab.yml
+```
 
-This is the main demo payoff:
+Verify management connectivity from the host:
+```bash
+ping -c 2 192.168.220.2   # P1
+ping -c 2 192.168.220.12  # West-Spine01
+ping -c 2 192.168.220.18  # East-Leaf01
+```
 
-1. Collect running configs from lab devices via pyATS
-2. Analyze configs against design reference best practices
-3. Generate Jinja templates
-4. Create GitHub repo and commit templates
-5. Wire Nautobot golden config (repos, SoT query, compliance rules)
-6. Run first compliance check
-7. Show the user the compliance results
+### Step 4c: Connect Nautobot to the lab network
+
+Now that ContainerLab has created the `clab-mgmt` network, connect Nautobot:
+
+```bash
+docker network connect clab-mgmt nautobot-docker-compose-nautobot-1
+docker network connect clab-mgmt nautobot-docker-compose-celery_worker-1
+```
+
+Verify Nautobot can reach lab devices:
+```bash
+docker exec nautobot-docker-compose-nautobot-1 ping -c 2 192.168.220.2
+```
+
+## Phase 5: Deploy Device Configurations via Ansible
+
+The workshop includes Ansible roles to build and deploy full configs.
+
+### Step 5a: Set up Ansible
+
+```bash
+cd ~/Nautobot-Workshop/ansible-lab
+pip install -r pip-requirements.txt
+ansible-galaxy install -r galaxy-requirements.yml
+```
+
+Create a vault password file (or use the workshop default):
+```bash
+echo "nautobot" > ~/.vault-pass.txt
+```
+
+### Step 5b: Build the topology file (optional — already have clab topology)
+
+```bash
+ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags clab
+```
+
+### Step 5c: Generate device configs
+
+```bash
+ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags build
+```
+
+This generates configs under `ansible-lab/configs/` using Jinja2 templates and Nautobot data.
+
+### Step 5d: Deploy configs to running lab devices
+
+```bash
+ansible-playbook pb.build-lab.yml --vault-password ~/.vault-pass.txt --tags deploy
+```
+
+### Step 5e: Verify
+
+SSH into a device and check:
+```bash
+ssh admin@192.168.220.12   # West-Spine01 (cEOS, admin/admin)
+show ip bgp summary
+show ip ospf neighbor
+```
+
+For IOL devices:
+```bash
+ssh admin@192.168.220.2    # P1 (IOL, admin/admin)
+show ip ospf neighbor
+show mpls ldp neighbor
+```
+
+## Phase 6: Wire Golden Config
+
+With Nautobot populated and devices configured, set up golden config compliance.
+
+### Step 6a: Create a golden config Git repository
+
+The workshop's `nautobot-docker-compose/jobs/templates/` directory contains Jinja2 templates. These can be committed to a Git repo that Nautobot's golden config plugin tracks.
+
+Use the `golden-config-bootstrap` skill for the full interactive workflow, or manually:
+
+1. Create a Git repo in Nautobot (Extensibility → Git Repositories)
+2. Point it at a GitHub repo containing Jinja2 templates
+3. Create a GraphQL SoT aggregation query
+4. Create compliance features and rules
+5. Run the first compliance job
+
+### Step 6b: Run compliance
+
+In Nautobot UI:
+1. **Golden Config** → **Compliance** → **Run**
+2. Select all devices or a subset
+3. Review results — intended vs actual config diffs
 
 ## Phase 7: Demo Walkthrough
 
-Once everything is set up, present the demo flow to the user:
+Once everything is running, demonstrate NetClaw's capabilities against the live lab:
 
-1. **"Show me my network"** → `nautobot_get_devices` → shows all lab devices
-2. **"Check the health of leaf1"** → pyATS health check
-3. **"What does the golden config say about leaf1?"** → compliance results
-4. **"What's the intended config for leaf1?"** → rendered Jinja template
-5. **"What's out of compliance?"** → diff between actual and intended
-6. **"Generate a topology diagram"** → Draw.io or Markmap visualization
+1. **"Show me all devices in Nautobot"** → nautobot_get_devices
+2. **"Health check on the SP core"** → pyATS against P1-P4, PE1-PE3, RR1
+3. **"Show BGP peering status"** → pyATS show ip bgp summary on PE routers
+4. **"What's out of compliance?"** → golden config compliance results
+5. **"Reconcile Nautobot against the live network"** → nautobot-sot reconciliation
+6. **"Generate a topology diagram"** → Draw.io or UML nwdiag from Nautobot data
+7. **"Trace the path from CE1 to CE2"** → pyATS traceroute + routing table analysis
+
+## Nautobot Version Notes
+
+The workshop targets Nautobot **2.4.10** (pinned in pyproject.toml). Key considerations for 3.x:
+
+- **Design Builder** — check plugin compatibility before upgrading
+- **Golden Config** — v2.4.x is the latest for Nautobot 2.x; 3.x may need newer plugin versions
+- **GraphQL schema** — field names may change between major versions
+- **nautobot-mcp-v2** — currently targets Nautobot 2.x GraphQL schema
+
+**Recommendation:** Stay on 2.4.10 for the demo. The workshop is tested against it and all plugins are compatible.
+
+## Model Selection Notes
+
+The demo uses `qwen3-coder:480b` via Ollama Cloud. Observations:
+- Strong at following multi-step skill procedures
+- Good at interpreting CLI output from pyATS
+- Handles GraphQL query construction well
+- Test with your specific skill workflows — some models follow numbered steps more reliably than others
 
 ## Cleanup
 
-To tear down the entire demo:
-
 ```bash
+# Stop ContainerLab
+cd ~/Nautobot-Workshop/clabs
+sudo clab destroy --topo nautobot-workshop-topology.clab.yml
+
 # Stop Nautobot
-cd ~/nautobot-dev && invoke destroy
+cd ~/Nautobot-Workshop/nautobot-docker-compose
+invoke stop
 
-# Destroy ContainerLab topology
-cd ~/demo-lab && sudo clab destroy --topo topology.yml
-
-# Remove files
-rm -rf ~/demo-lab ~/nautobot-dev
+# Remove everything
+rm -rf ~/Nautobot-Workshop
 ```
 
-## Notes
+## Resource Requirements
 
-- SR Linux is the easiest ContainerLab node — free, no license, fast boot
-- cEOS requires importing the Arista image first (`docker import cEOS-lab.tar ceos:latest`)
-- FRR is lightweight but has limited CLI parsing support in pyATS
-- The management network name (`netclaw-mgmt`) must match between the topology.yml and the docker-compose.local.yml
-- ContainerLab requires `sudo` for deployment (creates network namespaces)
-- The demo can run entirely on a single VM with 8GB+ RAM
+- **CPU:** 20 vCPU recommended (50% utilization with full lab)
+- **RAM:** 32 GB recommended (20 GB used with full lab)
+- **Disk:** 50 GB+ (container images are large)
+- **Network:** Management bridge at 192.168.220.0/24

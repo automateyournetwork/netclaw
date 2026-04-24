@@ -361,24 +361,22 @@ cp -r "$NETCLAW_DIR/workspace/skills/"* "$WORKSPACE/skills/"
 SKILL_COUNT=$(ls -d "$WORKSPACE/skills/"*/ 2>/dev/null | wc -l)
 log_info "Deployed $SKILL_COUNT skills"
 
-# Deploy workspace markdown files
-# Priority: workspace-override/ > workspace-override.example/
-for md in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md CLAUDE.md; do
-    if [ -f "$NETCLAW_DIR/workspace-override/$md" ]; then
-        cp "$NETCLAW_DIR/workspace-override/$md" "$WORKSPACE/$md"
-    elif [ -f "$NETCLAW_DIR/workspace-override.example/$md" ]; then
-        cp "$NETCLAW_DIR/workspace-override.example/$md" "$WORKSPACE/$md"
+# Deploy workspace markdown files from workspace/personality/ and workspace/user/
+for md in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md HEARTBEAT.md CLAUDE.md; do
+    if [ -f "$NETCLAW_DIR/workspace/personality/$md" ]; then
+        cp "$NETCLAW_DIR/workspace/personality/$md" "$WORKSPACE/$md"
+    fi
+done
+for md in USER.md TOOLS.md; do
+    if [ -f "$NETCLAW_DIR/workspace/user/$md" ]; then
+        cp "$NETCLAW_DIR/workspace/user/$md" "$WORKSPACE/$md"
     fi
 done
 log_info "Deployed workspace files"
 
 # Symlink testbed
 mkdir -p "$WORKSPACE/testbed"
-if [ -f "$NETCLAW_DIR/workspace-override/testbed.yaml" ]; then
-    ln -sf "$NETCLAW_DIR/workspace-override/testbed.yaml" "$WORKSPACE/testbed/testbed.yaml"
-else
-    ln -sf "$NETCLAW_DIR/testbed/testbed.yaml" "$WORKSPACE/testbed/testbed.yaml"
-fi
+ln -sf "$NETCLAW_DIR/testbed/testbed.yaml" "$WORKSPACE/testbed/testbed.yaml"
 
 # Write env vars for MCP script paths
 OPENCLAW_ENV="$OPENCLAW_DIR/.env"

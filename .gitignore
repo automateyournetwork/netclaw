@@ -63,13 +63,10 @@ trace.json.gz
 
 .claude
 
-# Docker
-openclaw-data/
-
-# User workspace overrides (personalized markdowns, testbed, credentials)
-# The example directory is tracked; the actual user directory is not
-workspace-override/*
-!workspace-override/.gitkeep
+# User workspace customizations (USER.md, TOOLS.md — personalized, not tracked)
+workspace/user/*
+!workspace/user/USER.md
+!workspace/user/TOOLS.md
 docs/blog*
 golden-config-work/HomeSwitch01.cfg
 golden-config-work/HomeSwitch02.cfg

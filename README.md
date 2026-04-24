@@ -8,56 +8,13 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 
 ---
 
-## Quick Install (Docker)
+## Quick Install
 
-Requires [Docker](https://docs.docker.com/get-docker/) and [Docker Compose](https://docs.docker.com/compose/install/).
+See [setup-instructions](docs/setup-instructions.md) for Ubuntu prerequisites, then:
 
 ```bash
 git clone https://github.com/automateyournetwork/netclaw.git
 cd netclaw
-
-# 1. Configure credentials
-cp .env.example .env
-nano .env                                    # set your AI provider key (Ollama Cloud, Anthropic, OpenAI, etc.)
-
-# 2. Customize your workspace (optional)
-cp -r workspace-override.example/* workspace-override/
-nano workspace-override/USER.md              # your name, role, timezone
-nano workspace-override/TOOLS.md             # your device IPs, subnets, platforms
-nano workspace-override/testbed.yaml         # pyATS device inventory
-
-# 3. Build and start
-docker compose up -d --build
-
-# 4. Chat with NetClaw
-docker compose exec -it netclaw openclaw tui
-```
-
-The container auto-configures the AI provider from your `.env` — set one of:
-- `OLLAMA_API_KEY` — [Ollama Cloud](https://ollama.com/account/api-keys) (free tier available)
-- `ANTHROPIC_API_KEY` — Anthropic Claude
-- `OPENAI_API_KEY` — OpenAI
-
-### Interactive Setup (optional)
-
-For the full wizard experience (AI provider selection, channel connections, platform credentials):
-
-```bash
-docker compose exec -it netclaw openclaw onboard              # AI provider + Slack/Discord/WebEx
-docker compose exec -it netclaw /opt/netclaw/scripts/setup.sh # network platform credentials
-docker compose restart                                         # apply changes
-```
-
-Reconfigure anytime:
-- `docker compose exec -it netclaw openclaw configure` — AI provider, gateway, channels
-- `docker compose exec -it netclaw /opt/netclaw/scripts/setup.sh` — network platform credentials
-- Edit `workspace-override/` files on your host, then `docker compose restart`
-
-### Bare-Metal Install (alternative)
-
-If you prefer running without Docker, see [setup-instructions](docs/setup-instructions.md) for Ubuntu prerequisites, then:
-
-```bash
 ./scripts/install.sh          # installs everything, then launches the setup wizard
 ```
 
@@ -91,17 +48,13 @@ openclaw tui                  # terminal 2
 
 NetClaw includes a Three.js 3D operations dashboard that visualizes all 48 integrations, 103 skills, your device fleet, and live BGP peering topology. Chat with NetClaw directly from the browser, watch integrations light up as tools execute, and inspect every node in the graph. The Canvas/A2UI visualization skill renders inline topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards directly in the chat interface.
 
-With Docker, the Visual HUD starts automatically at `http://localhost:3000`.
-
-For bare-metal installs:
-
 ```bash
 cd ui/netclaw-visual
 npm install
 npm run dev                   # opens at http://localhost:3000
 ```
 
-Requires the OpenClaw gateway to be running for live chat.
+Requires the OpenClaw gateway to be running for live chat (`openclaw gateway`).
 
 **[Full setup guide, peering instructions, and feature documentation >>>](ui/netclaw-visual/README.md)**
 
@@ -281,16 +234,16 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 | File | Purpose | Loaded When |
 |------|---------|-------------|
-| **[SOUL.md](workspace-override.example/SOUL.md)** | Core personality, CCIE expertise, 12 non-negotiable rules, protocol knowledge base | Every session |
-| **[AGENTS.md](workspace-override.example/AGENTS.md)** | Operating instructions: memory system, safety rules, change management workflow, Slack behavior, escalation matrix | Every session |
-| **[IDENTITY.md](workspace-override.example/IDENTITY.md)** | Name, creature type, vibe, emoji — NetClaw's identity card | Every session |
-| **[USER.md](workspace-override.example/USER.md)** | Your preferences, timezone, role, network details — personalization layer (edit this) | Every session |
-| **[TOOLS.md](workspace-override.example/TOOLS.md)** | Local infrastructure notes: device IPs, SSH hosts, Slack channels, site info (edit this) | Every session |
-| **[HEARTBEAT.md](workspace-override.example/HEARTBEAT.md)** | Periodic health checks: device reachability, OSPF/BGP state, CPU/memory, syslog scan | Every heartbeat cycle |
+| **[SOUL.md](workspace/personality/SOUL.md)** | Core personality, CCIE expertise, 12 non-negotiable rules, protocol knowledge base | Every session |
+| **[AGENTS.md](workspace/personality/AGENTS.md)** | Operating instructions: memory system, safety rules, change management workflow, Slack behavior, escalation matrix | Every session |
+| **[IDENTITY.md](workspace/personality/IDENTITY.md)** | Name, creature type, vibe, emoji — NetClaw's identity card | Every session |
+| **[USER.md](workspace/user/USER.md)** | Your preferences, timezone, role, network details — personalization layer (edit this) | Every session |
+| **[TOOLS.md](workspace/user/TOOLS.md)** | Local infrastructure notes: device IPs, SSH hosts, Slack channels, site info (edit this) | Every session |
+| **[HEARTBEAT.md](workspace/personality/HEARTBEAT.md)** | Periodic health checks: device reachability, OSPF/BGP state, CPU/memory, syslog scan | Every heartbeat cycle |
 
 **How they work:** OpenClaw reads these files at session start and injects them under "Project Context" in the system prompt. Each file is capped at 20,000 characters. Sub-agents only receive AGENTS.md and TOOLS.md.
 
-**What to customize:** Copy `workspace-override.example/` to `workspace-override/`, then edit `USER.md` with your name, timezone, and preferences. Edit `TOOLS.md` with your device IPs, Slack channels, and site information. The rest define NetClaw's behavior and expertise - modify only if you want to change how the agent operates.
+**What to customize:** Edit `workspace/user/USER.md` with your name, timezone, and preferences. Edit `workspace/user/TOOLS.md` with your device IPs, Slack channels, and site information. The personality files in `workspace/personality/` define NetClaw's behavior and expertise — modify only if you want to change how the agent operates.
 
 ---
 
@@ -1846,26 +1799,13 @@ This is not optional. It is how NetClaw earns trust in production environments.
 
 ```
 netclaw/
-├── Dockerfile                            # Docker image definition
-├── docker-compose.yml                    # Container orchestration
-├── docker-entrypoint.sh                  # Boot: config merge, env resolution, HUD + gateway start
 ├── .env                                  # Credentials (gitignored)
 ├── .env.example                          # Credential template
 ├── config/
 │   └── openclaw.json                     # MCP server definitions (authoritative)
-├── workspace-override/                   # Your customizations (gitignored)
-│   ├── USER.md                           # Your name, role, timezone
-│   ├── TOOLS.md                          # Your device IPs, subnets, platforms
-│   ├── testbed.yaml                      # pyATS device inventory
-│   └── ...                               # Any workspace file overrides
-├── workspace-override.example/           # Default templates (tracked in git)
-│   ├── SOUL.md                           # Agent personality, expertise, rules
-│   ├── AGENTS.md                         # Operating instructions, memory, safety
-│   ├── IDENTITY.md                       # Name, creature type, vibe, emoji
-│   ├── USER.md                           # Your preferences template
-│   ├── TOOLS.md                          # Infrastructure notes template
-│   └── ...                               # All workspace file defaults
-├── workspace/
+├── workspace/                            # OpenClaw workspace
+│   ├── personality/                      # Agent behavior (SOUL.md, AGENTS.md, IDENTITY.md, etc.)
+│   ├── user/                             # Your customizations (USER.md, TOOLS.md)
 │   └── skills/                           # 159 skill definitions
 │       ├── pyats-network/                # Core device automation (8 MCP tools)
 │       ├── pyats-health-check/           # Health + NetBox cross-ref + pCall
@@ -1986,7 +1926,7 @@ netclaw/
 │   ├── clab-mcp-server/               # ContainerLab lab management (6 tools)
 │   └── cisco-sdwan-mcp/               # Cisco SD-WAN vManage monitoring (12 tools)
 ├── lab/
-│   └── frr-testbed/                     # Docker FRR 3-router lab for protocol testing
+│   └── frr-testbed/                     # FRR 3-router lab for protocol testing
 ├── scripts/
 │   ├── install.sh                        # Full bootstrap installer (45 steps)
 │   ├── setup.sh                          # Interactive setup wizard (API key, platforms, Slack)
@@ -2008,12 +1948,12 @@ netclaw/
 
 | Location | Purpose |
 |----------|---------|
-| `workspace-override.example/SOUL.md` | Agent system prompt. Defines personality, CCIE expertise, rules, and workflow orchestration |
-| `workspace-override.example/AGENTS.md` | Operating instructions. Memory system, safety rules, change management, Slack behavior, escalation |
-| `workspace-override.example/IDENTITY.md` | Agent identity card. Name, creature type, vibe, emoji |
-| `workspace-override.example/USER.md` | About you. Preferences, timezone, role, network details. **Copy to `workspace-override/` and edit.** |
-| `workspace-override.example/TOOLS.md` | Local infrastructure. Device IPs, SSH hosts, Slack channels. **Copy to `workspace-override/` and edit.** |
-| `workspace-override.example/testbed.yaml` | pyATS device inventory template. **Copy to `workspace-override/` and edit.** |
+| `workspace/personality/SOUL.md` | Agent system prompt. Defines personality, CCIE expertise, rules, and workflow orchestration |
+| `workspace/personality/AGENTS.md` | Operating instructions. Memory system, safety rules, change management, Slack behavior, escalation |
+| `workspace/personality/IDENTITY.md` | Agent identity card. Name, creature type, vibe, emoji |
+| `workspace/user/USER.md` | About you. Preferences, timezone, role, network details. **Edit this.** |
+| `workspace/user/TOOLS.md` | Local infrastructure. Device IPs, SSH hosts, Slack channels. **Edit this.** |
+| `testbed/testbed.yaml` | pyATS device inventory. **Edit this.** |
 | `workspace/skills/` | 159 skill definitions. Deployed to OpenClaw workspace at boot |
 | `config/openclaw.json` | MCP server definitions + model config. Authoritative source merged at boot |
 | `mcp-servers/` | MCP server source code. Gitignored (cloned repos) + built-in servers |
@@ -2047,7 +1987,7 @@ netclaw/
 20. **Clones Catalyst Center MCP** — `git clone` + `pip3 install` dependencies
 21. **Caches Microsoft Graph MCP** — `npm cache add` for Graph API (OneDrive, SharePoint, Visio, Teams)
 22. **Caches npx packages** — `npm cache add` for Draw.io and RFC servers
-23. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker)
+23. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker on the host)
 24. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
 25. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
 26. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)

@@ -1,56 +1,353 @@
 ---
+# Nautobot Workshop — ContainerLab Topology
+# Management network: 192.168.220.0/24 (clab-mgmt, auto-created by ContainerLab)
+# Source: byrn-baker/Nautobot-Workshop
+
+# --- SP Core (Cisco IOL 17.12.01) ---
+
 devices:
-  HomeSwitch01:
-    alias: "HomeSwitch01"
-    type: "Cisco WS-C3850-48P"
-    os: "ios"
-    platform: "cisco_ios"
+  P1:
+    alias: "P1"
+    type: router
+    os: iosxe
+    platform: cisco_iol
     credentials:
       default:
-        username: cisco
-        password: cisco
-      enable:
-        password: cisco
+        username: admin
+        password: admin
     connections:
       cli:
         protocol: ssh
-        ip: 192.168.3.2
+        ip: 192.168.220.2
         port: 22
         arguments:
           connection_timeout: 60
 
-  HomeSwitch02:
-    alias: "HomeSwitch02"
-    type: "Cisco WS-C3850-48P"
-    os: "ios"
-    platform: "cisco_ios"
+  P2:
+    alias: "P2"
+    type: router
+    os: iosxe
+    platform: cisco_iol
     credentials:
       default:
-        username: cisco
-        password: cisco
-      enable:
-        password: cisco
+        username: admin
+        password: admin
     connections:
       cli:
         protocol: ssh
-        ip: 192.168.3.3
+        ip: 192.168.220.3
         port: 22
         arguments:
           connection_timeout: 60
 
-  firewall01.local.byrnbaker.me:
-    alias: "pfSense-FW01"
-    type: "linux"
-    os: "linux"
-    platform: "pfsense"
+  P3:
+    alias: "P3"
+    type: router
+    os: iosxe
+    platform: cisco_iol
     credentials:
       default:
-        username: root
-        password: "@Vitron80109"
+        username: admin
+        password: admin
     connections:
       cli:
         protocol: ssh
-        ip: "192.168.3.1"
+        ip: 192.168.220.4
         port: 22
         arguments:
-          connection_timeout: 30
+          connection_timeout: 60
+
+  P4:
+    alias: "P4"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.5
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  PE1:
+    alias: "PE1"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.6
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  PE2:
+    alias: "PE2"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.7
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  PE3:
+    alias: "PE3"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.8
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  CE1:
+    alias: "CE1"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.9
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  CE2:
+    alias: "CE2"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.10
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  RR1:
+    alias: "RR1"
+    type: router
+    os: iosxe
+    platform: cisco_iol
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.11
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  # --- West DC Fabric (Arista cEOS 4.34.0F) ---
+
+  West-Spine01:
+    alias: "West-Spine01"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.12
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  West-Spine02:
+    alias: "West-Spine02"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.13
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  West-Leaf01:
+    alias: "West-Leaf01"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.14
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  West-Leaf02:
+    alias: "West-Leaf02"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.15
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  # --- East DC Fabric (Arista cEOS 4.34.0F) ---
+
+  East-Spine01:
+    alias: "East-Spine01"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.16
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  East-Spine02:
+    alias: "East-Spine02"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.17
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  East-Leaf01:
+    alias: "East-Leaf01"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.18
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  East-Leaf02:
+    alias: "East-Leaf02"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.19
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  # --- DNS Servers (Arista cEOS 4.34.0F) ---
+
+  DNS-01:
+    alias: "DNS-01"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.20
+        port: 22
+        arguments:
+          connection_timeout: 60
+
+  DNS-02:
+    alias: "DNS-02"
+    type: switch
+    os: eos
+    platform: arista_ceos
+    credentials:
+      default:
+        username: admin
+        password: admin
+    connections:
+      cli:
+        protocol: ssh
+        ip: 192.168.220.21
+        port: 22
+        arguments:
+          connection_timeout: 60

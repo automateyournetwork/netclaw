@@ -13,7 +13,7 @@
 #
 # What it does NOT remove:
 #   .env                      — your credentials (you'll need these for reinstall)
-#   workspace-override/       — your private workspace files
+#   workspace/user/           — your private workspace files (USER.md, TOOLS.md)
 #   mcp-servers/              — MCP server source code
 #   The project directory itself
 
@@ -52,7 +52,7 @@ echo "    Docker volume         (openclaw-data)"
 echo ""
 echo "  This will NOT remove:"
 echo "    .env                  (your credentials)"
-echo "    workspace-override/   (your private files)"
+echo "    workspace/user/        (your private files)"
 echo ""
 
 if ! confirm "Proceed with clean slate?"; then

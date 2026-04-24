@@ -2109,10 +2109,16 @@ mkdir -p "$OPENCLAW_DIR/workspace/skills"
 cp -r "$NETCLAW_DIR/workspace/skills/"* "$OPENCLAW_DIR/workspace/skills/"
 log_info "Deployed skills to $OPENCLAW_DIR/workspace/skills/"
 
-# Deploy OpenClaw workspace MD files (SOUL, AGENTS, IDENTITY, USER, TOOLS, HEARTBEAT)
-for mdfile in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md CLAUDE.md; do
-    if [ -f "$NETCLAW_DIR/workspace-override.example/$mdfile" ]; then
-        cp "$NETCLAW_DIR/workspace-override.example/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
+# Deploy OpenClaw workspace MD files from workspace/personality/ and workspace/user/
+for mdfile in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md HEARTBEAT.md CLAUDE.md; do
+    if [ -f "$NETCLAW_DIR/workspace/personality/$mdfile" ]; then
+        cp "$NETCLAW_DIR/workspace/personality/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
+        log_info "Deployed $mdfile to workspace"
+    fi
+done
+for mdfile in USER.md TOOLS.md; do
+    if [ -f "$NETCLAW_DIR/workspace/user/$mdfile" ]; then
+        cp "$NETCLAW_DIR/workspace/user/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
         log_info "Deployed $mdfile to workspace"
     fi
 done
