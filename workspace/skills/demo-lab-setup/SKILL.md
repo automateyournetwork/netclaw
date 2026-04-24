@@ -11,15 +11,14 @@ Deploy the byrn-baker/Nautobot-Workshop environment end-to-end.
 ## CRITICAL RULES
 
 1. **Follow the phases in order**
-2. **Wait for user confirmation** between phases
+2. **MANDATORY STOP between every phase.** After completing each phase, you MUST stop and say: "Phase N complete. Ready for Phase N+1? (Say 'continue' to proceed, or '/new' to start a fresh session and say 'continue demo from Phase N+1')" Do NOT proceed until the user says continue.
 3. **Use the workshop repo as-is** — do NOT create custom files
 4. **Use Invoke** to build/start Nautobot — do NOT run docker compose directly
 5. **BATCH COMMANDS** — combine multiple shell commands into ONE exec call using `&&`. Every tool call costs tokens. Aim for 1-3 exec calls per phase, not 10-20.
 6. **NEVER poll builds** — no `process poll` or `process log` on long-running commands. Run it, get "still running", tell user to wait, check result once with a tiny command.
 7. **Use nautobot-mcp-v2 tools** for ALL Nautobot API operations — never curl or docker exec.
-8. **Suggest session breaks** between phases to reset context.
-9. **Do NOT explore the repo.** Do not ls, cat, grep, find, or read README files. This skill has all the information you need. Execute the prescribed commands directly.
-10. **NEVER restart Nautobot containers.** Do not run docker compose down/up, invoke stop/start, or any command that restarts the Nautobot stack. If an environment variable is missing, add it to creds.env and tell the user to restart manually.
+8. **Do NOT explore the repo.** Do not ls, cat, grep, find, or read README files. This skill has all the information you need. Execute the prescribed commands directly.
+9. **NEVER restart Nautobot containers.** Do not run docker compose down/up, invoke stop/start, or any command that restarts the Nautobot stack. If an environment variable is missing, add it to creds.env and tell the user to restart manually.
 
 ## Prerequisites — ONE command
 
@@ -68,7 +67,7 @@ sleep 60 && docker ps --format 'table {{.Names}}\t{{.Status}}' | grep nautobot
 
 Look for `(healthy)`. Default login: admin/admin at http://localhost:8080.
 
-**Suggest session break:** "Phase 2 done — Nautobot is running. To save tokens, start a new session and say 'continue demo from Phase 3'."
+**STOP. Tell the user:** "Phase 2 complete — Nautobot is running. Ready for Phase 3? (Say continue, or /new to start a fresh session and say continue demo from Phase 3)"
 
 ## Phase 3: Populate Nautobot with Design Builder
 
@@ -114,7 +113,7 @@ Verify:
 nautobot_get_config_contexts
 ```
 
-**Suggest session break:** "Phase 3 done — Nautobot populated with devices and config contexts. Start a new session and say 'continue demo from Phase 4'."
+**STOP. Tell the user:** "Phase 3 complete — Nautobot populated. Ready for Phase 4? (Say continue, or /new to start fresh and say continue demo from Phase 4)"
 
 ## Phase 4: Deploy ContainerLab — TWO commands max
 
@@ -131,7 +130,7 @@ cd ~/Nautobot-Workshop/clabs && sudo clab deploy --topo nautobot-workshop-topolo
 sudo clab inspect --topo ~/Nautobot-Workshop/clabs/nautobot-workshop-topology.clab.yml 2>&1 | tail -5 && NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null && echo "=== Nautobot connected to clab-mgmt ===" && ping -c 1 192.168.220.2 && echo "=== P1 reachable ==="
 ```
 
-**Suggest session break:** "Phase 4 done — lab deployed, Nautobot connected. Start a new session for 'continue demo from Phase 5'."
+**STOP. Tell the user:** "Phase 4 complete — lab deployed, Nautobot connected. Ready for Phase 5? (Say continue, or /new to start fresh and say continue demo from Phase 5)"
 
 ## Phase 4.5: Verify Connectivity Before Ansible
 
@@ -174,7 +173,7 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 
 **NEVER run the playbook without --tags** — that re-runs load_nautobot and build_clab_topology, duplicating Phases 3-4.
 
-**Suggest session break:** "Phase 5 done — configs deployed. Start a new session for golden config and demo walkthrough."
+**STOP. Tell the user:** "Phase 5 complete — configs deployed. Ready for Phase 6? (Say continue, or /new to start fresh and say continue demo from Phase 6)"
 
 ## Phase 6: Wire Golden Config
 
