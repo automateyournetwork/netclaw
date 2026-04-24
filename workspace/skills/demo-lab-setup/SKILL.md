@@ -114,6 +114,22 @@ sudo clab inspect --topo ~/Nautobot-Workshop/clabs/nautobot-workshop-topology.cl
 
 **Suggest session break:** "Phase 4 done — lab deployed, Nautobot connected. Start a new session for 'continue demo from Phase 5'."
 
+## Phase 4.5: Verify Connectivity Before Ansible
+
+**Do NOT proceed to Phase 5 until all devices are reachable.** Ansible will fail on unreachable devices and waste time/tokens on retries.
+
+**ONE command — test SSH to one device per role:**
+```bash
+echo "=== Testing SSH connectivity ===" && ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes admin@192.168.220.2 echo "P1 OK" 2>&1 | tail -1 && ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes admin@192.168.220.6 echo "PE1 OK" 2>&1 | tail -1 && ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes admin@192.168.220.12 echo "West-Spine01 OK" 2>&1 | tail -1 && ssh -o ConnectTimeout=5 -o StrictHostKeyChecking=no -o BatchMode=yes admin@192.168.220.18 echo "East-Leaf01 OK" 2>&1 | tail -1 && echo "=== All roles reachable ==="
+```
+
+If any device fails:
+- IOL devices (P/PE/CE/RR) take 2-3 minutes to boot after clab deploy. Wait and retry.
+- cEOS devices (spine/leaf/DNS) boot faster but may need 60 seconds for SSH.
+- If still failing after 5 minutes, check `docker logs clab-nautobot_workshop-<device>` for boot issues.
+
+**Only proceed to Phase 5 when all four test devices respond.**
+
 ## Phase 5: Deploy Configs via Ansible — THREE commands max
 
 **Command 1 — Set up Ansible venv and install deps:**
