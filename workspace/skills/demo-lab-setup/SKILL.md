@@ -31,12 +31,14 @@ This is the showcase demo for NetClaw — an AI agent that can build and operate
 
 Long-running commands (docker builds, ansible playbooks, clab deploy) generate massive output that inflates the context window. Every poll sends the full conversation history. Follow these rules:
 
-1. **Fire and forget long builds.** Start `invoke build` or `invoke debug` as a background process, then immediately tell the user: "The build is running. This takes 3-5 minutes. Let me know when it's done, or I'll check back in 5 minutes." Do NOT poll every 15 seconds.
-2. **Poll at most twice.** For any long-running command: once after 2-3 minutes, once more if still running. If it's still going after that, tell the user to confirm when it completes.
-3. **Don't log full build output.** Never use `process log` to dump Docker build output into the conversation. If you need to check for errors, use `process poll` with a timeout — it returns only new output.
-4. **Suggest session breaks between phases.** After completing a phase, tell the user: "Phase N is done. To keep costs down, you can start a new session for Phase N+1 — just say 'continue the demo from Phase N+1'." This resets the context window.
-5. **Use MCP tools, not shell commands.** MCP tool results are typically small JSON. Shell commands (docker exec, curl, ansible-playbook) dump verbose output that bloats context. Always prefer nautobot-mcp-v2 tools over curl/docker exec for Nautobot operations.
-6. **Summarize, don't echo.** When a command completes, summarize the result in 1-2 sentences. Do NOT paste the full output back to the user unless they ask for it.
+1. **NEVER use `process poll` or `process log` on build commands.** Docker builds produce thousands of lines that get appended to context. Instead, run the command with a timeout, and when it says "Command still running", tell the user to wait and check the exit code later with a simple `docker ps` or `echo $?`.
+2. **For `invoke build`:** Run it, get the "still running" response, then tell the user: "The Nautobot image is building. This takes 3-5 minutes. Tell me when it's done or I'll check with `docker images | grep nautobot-workshop` in a few minutes." Do NOT poll.
+3. **For `invoke debug`:** Run it, get the "still running" response, then wait 90 seconds and run `docker ps --format 'table {{.Names}}\t{{.Status}}' | grep nautobot` to check health. One command, one check.
+4. **For `clab deploy`:** Same pattern — run it, tell the user to wait, then check with `sudo clab inspect` once.
+5. **For `ansible-playbook`:** Same pattern — run it, tell the user to wait, then check exit code once.
+6. **Suggest session breaks between phases.** After completing a phase, tell the user: "Phase N is done. To keep costs down, you can start a new session for Phase N+1 — just say 'continue the demo from Phase N+1'." This resets the context window.
+7. **Use MCP tools, not shell commands.** MCP tool results are typically small JSON. Shell commands (docker exec, curl, ansible-playbook) dump verbose output that bloats context. Always prefer nautobot-mcp-v2 tools over curl/docker exec for Nautobot operations.
+8. **Summarize, don't echo.** When a command completes, summarize the result in 1-2 sentences. Do NOT paste the full output back to the user unless they ask for it.
 
 ## Prerequisites
 
@@ -185,14 +187,21 @@ The pyproject.toml pins Nautobot 2.4.10 with these plugins:
 invoke build
 ```
 
-**IMPORTANT: `invoke build` takes 3-5 minutes.** Start it as a background process, tell the user it's building, and check back once after 3 minutes. Do NOT poll repeatedly. When the build completes (exit code 0), proceed to:
+**STOP after the "Command still running" response. Do NOT poll. Do NOT use `process poll` or `process log`.** Tell the user:
 
+> "The Nautobot Docker image is building. This takes 3-5 minutes. Let me know when it finishes, or I'll check in a few minutes."
+
+When the user confirms (or after waiting), verify the image was built:
+```bash
+docker images | grep nautobot-workshop
+```
+
+If the image exists, proceed to start Nautobot:
 ```bash
 invoke debug
 ```
 
-**IMPORTANT: `invoke debug` takes 1-2 minutes to become healthy.** Start it, tell the user to wait, and check once after 90 seconds. Verify with:
-
+**Again, STOP after "Command still running". Do NOT poll.** Wait 90 seconds, then check health once:
 ```bash
 docker ps --format 'table {{.Names}}\t{{.Status}}' | grep nautobot
 ```
