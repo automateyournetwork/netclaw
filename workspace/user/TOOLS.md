@@ -50,7 +50,10 @@ DNS-02 → 192.168.220.21, DNS server, EOS
 
 ### Nautobot 2.4.10
 - URL: http://localhost:8080
-- API Token: configured in ~/.openclaw/.env as NAUTOBOT_TOKEN
+- Default credentials: admin / admin
+- Default API Token: `0123456789abcdef0123456789abcdef01234567` (from creds.env)
+- Set `NAUTOBOT_CREATE_SUPERUSER=true` in creds.env before first start
+- API Token configured in ~/.openclaw/.env as NAUTOBOT_TOKEN
 - Plugins: golden-config, design-builder, bgp-models, device-lifecycle-mgmt, ssot, device-onboarding, plugin-nornir
 - Data populated via Design Builder "Nautobot Workshop Demo Initial Data" job
 

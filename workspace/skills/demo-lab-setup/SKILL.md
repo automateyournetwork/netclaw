@@ -111,6 +111,13 @@ cp invoke.example.yml invoke.yml
 cp environments/creds.example environments/creds.env
 ```
 
+Enable auto-creation of the superuser (admin/admin):
+```bash
+sed -i 's/NAUTOBOT_CREATE_SUPERUSER=false/NAUTOBOT_CREATE_SUPERUSER=true/' environments/creds.env
+```
+
+This sets `NAUTOBOT_CREATE_SUPERUSER=true` so the container automatically creates the admin user with password `admin` and the default API token on first start.
+
 ### Step 2b: Poetry environment
 
 ```bash
@@ -173,17 +180,17 @@ In the Nautobot UI:
 
 ### Step 3c: Verify the data model
 
-After the job completes, verify in Nautobot:
-- **Devices** → should show all 20 devices with correct platforms, roles, locations
-- **IP Addresses** → management IPs and loopbacks assigned
-- **BGP** → peering sessions between P/PE/RR routers
-- **Interfaces** → all physical and logical interfaces with descriptions
+After the job completes, use the nautobot-mcp-v2 tools to verify:
 
-Or use the nautobot-mcp-v2 tools:
 ```
 nautobot_get_devices
+nautobot_get_interfaces(device="P1")
 nautobot_graphql query="{ devices { name role { name } location { name } primary_ip4 { host } platform { name } } }"
+nautobot_get_prefixes
+nautobot_get_vlans
 ```
+
+**Always use nautobot-mcp-v2 tools for Nautobot API operations** — do NOT use docker exec, curl, or direct API calls. The MCP server handles authentication, pagination, and error handling.
 
 ## Phase 4: Deploy ContainerLab Topology
 
