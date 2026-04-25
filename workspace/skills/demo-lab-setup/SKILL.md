@@ -97,7 +97,20 @@ Once confirmed, use nautobot-mcp-v2:
 nautobot_run_job(job_name="Nautobot Workshop Demo Initial Data")
 ```
 
-Wait for completion, then verify with ONE MCP call:
+Wait for completion, then run post-upgrade to refresh the GraphQL schema (Design Builder creates custom fields that won't be available in GraphQL until this runs):
+
+```bash
+cd ~/Nautobot-Workshop/nautobot-docker-compose && poetry run invoke post-upgrade
+```
+
+If `invoke post-upgrade` is not available, restart the containers instead:
+```bash
+cd ~/Nautobot-Workshop/nautobot-docker-compose && poetry run invoke stop && poetry run invoke debug
+```
+
+**This step is critical.** Without it, the `cf_ospf_area`, `cf_mpls_enabled`, and other custom fields created by Design Builder will not be queryable via GraphQL, and golden config intended generation will fail with 400 errors.
+
+Then verify with ONE MCP call:
 ```
 nautobot_get_devices
 ```
