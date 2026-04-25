@@ -289,13 +289,20 @@ nautobot_sync_git_repository(name="golden-config-properties")
 
 ### Step 6b: Configure Golden Config settings — use MCP tools
 
-Create the SoT GraphQL query and link the repos to golden config settings:
+Create the SoT GraphQL query. This query MUST include BGP routing instances, peer groups, endpoints, config_context, interfaces with custom fields, and location VLANs. Use this EXACT query:
+
 ```
-nautobot_create_graphql_query(name="golden_config_sot", query="...")
+nautobot_create_graphql_query(name="nautobot_workshop_sot_agg", query="query { device(id: \"{{ id }}\") { hostname: name config_context bgp_routing_instances { extra_attributes autonomous_system { asn } address_families { afi_safi extra_attributes } peer_groups { name source_interface { name } autonomous_system { asn } extra_attributes secret { name } address_families { import_policy export_policy extra_attributes } peergroup_template { autonomous_system { asn } extra_attributes } address_families { afi_safi import_policy export_policy } } endpoints { peer_group { name } source_ip { address } source_interface { name } description peer { description source_ip { address } address_families { afi_safi import_policy export_policy } autonomous_system { asn } routing_instance { autonomous_system { asn } } } } } position serial role { name } primary_ip4 { id primary_ip4_for { id name } } tenant { name } tags { name } platform { name network_driver manufacturer { name } napalm_driver } location { name vlans { name vid vlan_group { name } } parent { name vlans { name vid vlan_group { name } } } } interfaces { name description mac_address enabled mgmt_only label lag { name } cf_ospf_network_type cf_ospf_area cf_mpls_enabled cf_vrrp_group_id cf_vrrp_ipv4_enabled cf_vrrp_ipv6_enabled cf_vrrp_disabled cf_vrrp_preempt cf_vrrp_priority_level cf_vrrp_advertisement_interval cf_vrrp_bfd_enabled cf_vrrp_mac_advertisement_interval cf_vrrp_peer_address cf_vrrp_session_name cf_vrrp_timer_interval cf_vrrp_tracked_object ip_addresses { address tags { id } } mode tagged_vlans { vid } untagged_vlan { vid } connected_interface { name device { name } } cf_mlag_interface tags { id } } } }")
+```
+
+Do NOT create a shorter or simplified query. The templates depend on every field listed above. If BGP data is missing, config generation will fail.
+
+Then link the repos to golden config settings:
+```
 nautobot_update_golden_config_setting(...)
 ```
 
-Use the `golden-config-bootstrap` skill for the full SoT query and compliance rule setup.
+Use the `golden-config-bootstrap` skill for compliance rule setup.
 
 ### Step 6c: Run compliance
 
