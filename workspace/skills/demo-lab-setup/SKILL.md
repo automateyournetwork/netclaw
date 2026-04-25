@@ -128,9 +128,14 @@ nautobot_create_git_repository(
   name="nautobot-workshop-datasource",
   remote_url="https://github.com/byrn-baker/Nautobot-Workshop-Datasource.git",
   branch="main",
-  provided_contents="extras.configcontext,extras.configcontextschema,extras.job"
+  provided_contents="extras.configcontext,extras.configcontextschema,extras.graphqlquery"
 )
 ```
+
+The `provided_contents` tells Nautobot what to import from this repo:
+- `extras.configcontext` — role-scoped and per-device config contexts (OSPF, MPLS, prefix lists, route maps, fabric configs)
+- `extras.configcontextschema` — validation schemas for config contexts
+- `extras.graphqlquery` — saved GraphQL queries (may include the SoT aggregation query)
 
 If the repo is private, link the GitHub Secrets Group (created in Step 3d) to this repo as well.
 
