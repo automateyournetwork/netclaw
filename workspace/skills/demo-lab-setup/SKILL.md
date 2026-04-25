@@ -90,25 +90,26 @@ All golden config jobs must be enabled: **Backup Configurations**, **Generate In
 
 **Wait for confirmation.**
 
-### Step 3b: Run Design Builder and verify — use MCP tools
+### Step 3b: Run Design Builder, restart Nautobot, and verify
 
 Once confirmed, use nautobot-mcp-v2:
 ```
 nautobot_run_job(job_name="Nautobot Workshop Demo Initial Data")
 ```
 
-Wait for completion, then run post-upgrade to refresh the GraphQL schema (Design Builder creates custom fields that won't be available in GraphQL until this runs):
+Wait for completion, then **restart Nautobot containers.** This is MANDATORY — Design Builder creates custom fields (cf_ospf_area, cf_mpls_enabled, cf_vrrp_*, cf_mlag_interface) that the GraphQL schema will NOT recognize until the containers restart. Without this, golden config intended generation WILL fail with GraphQL 400 errors.
 
+**ONE command:**
 ```bash
-cd ~/Nautobot-Workshop/nautobot-docker-compose && poetry run invoke post-upgrade
+cd ~/Nautobot-Workshop/nautobot-docker-compose && poetry run invoke restart
 ```
 
-If `invoke post-upgrade` is not available, restart the containers instead:
+**STOP after "Command still running". Wait 90 seconds, then check health:**
 ```bash
-cd ~/Nautobot-Workshop/nautobot-docker-compose && poetry run invoke stop && poetry run invoke debug
+docker ps --format 'table {{.Names}}\t{{.Status}}' | grep nautobot
 ```
 
-**This step is critical.** Without it, the `cf_ospf_area`, `cf_mpls_enabled`, and other custom fields created by Design Builder will not be queryable via GraphQL, and golden config intended generation will fail with 400 errors.
+Look for `(healthy)` status before proceeding.
 
 Then verify with ONE MCP call:
 ```
@@ -187,8 +188,10 @@ cd ~/Nautobot-Workshop/clabs && sudo clab deploy --topo nautobot-workshop-topolo
 
 **Command 2 — When user confirms, verify and connect Nautobot:**
 ```bash
-sudo clab inspect --topo ~/Nautobot-Workshop/clabs/nautobot-workshop-topology.clab.yml 2>&1 | tail -5 && NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null && echo "=== Nautobot connected to clab-mgmt ===" && ping -c 1 192.168.220.2 && echo "=== P1 reachable ==="
+sudo clab inspect --topo ~/Nautobot-Workshop/clabs/nautobot-workshop-topology.clab.yml 2>&1 | tail -5 && NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker) && BEAT_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_beat) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null; docker network connect clab-mgmt $BEAT_CONTAINER 2>/dev/null && echo "=== Nautobot + celery connected to clab-mgmt ===" && docker exec $NAUTOBOT_CONTAINER python3 -c "import socket; s=socket.socket(); s.settimeout(3); s.connect(('192.168.220.2', 22)); print('P1 SSH reachable from Nautobot'); s.close()"
 ```
+
+**This step is CRITICAL.** Without connecting Nautobot to clab-mgmt, golden config backup jobs WILL fail with "Could not connect to IP" errors. The celery_worker must also be on the network since it runs the Nornir tasks.
 
 **STOP. Tell the user:** "Phase 4 complete — lab deployed, Nautobot connected. Ready for Phase 5? (Say continue, or /new to start fresh and say continue demo from Phase 5)"
 
@@ -242,10 +245,10 @@ cd ~/Nautobot-Workshop/ansible-lab && . .venv/bin/activate && export NAUTOBOT_TO
 **Do NOT proceed until this passes.** Golden Config backup jobs need Nautobot to SSH/connect to devices on the clab-mgmt network.
 
 ```bash
-NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker-1) && docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null; docker exec $NAUTOBOT_CONTAINER ping -c 1 192.168.220.2 && echo "=== Nautobot can reach lab devices ==="
+NAUTOBOT_CONTAINER=$(docker ps --format '{{.Names}}' | grep nautobot-1) && docker network connect clab-mgmt $NAUTOBOT_CONTAINER 2>/dev/null; CELERY_CONTAINER=$(docker ps --format '{{.Names}}' | grep celery_worker-1) && docker network connect clab-mgmt $CELERY_CONTAINER 2>/dev/null; docker exec $NAUTOBOT_CONTAINER python3 -c "import socket; s=socket.socket(); s.settimeout(3); s.connect(('192.168.220.2', 22)); print('P1 SSH reachable'); s.close()" && echo "=== Nautobot can reach lab devices ==="
 ```
 
-If this fails, Nautobot is not connected to the clab-mgmt network. The `docker network connect` commands above fix it. If ping still fails, check that ContainerLab is running (`sudo clab inspect --all`).
+If this fails, Nautobot is not connected to the clab-mgmt network. The `docker network connect` commands above fix it. If SSH still fails, check that ContainerLab is running (`sudo clab inspect --all`). Note: the Nautobot container does not have `ping` — use the Python socket test above.
 
 The golden config Git repos already exist on GitHub. **Do NOT create new repos, do NOT set up local git servers.** Just register these existing repos in Nautobot.
 
