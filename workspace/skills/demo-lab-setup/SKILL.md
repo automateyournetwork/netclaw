@@ -314,7 +314,7 @@ nautobot_update_golden_config_setting(
     "jinja_repository": "<templates-repo-id>",
     "intended_repository": "<intended-configs-repo-id>",
     "backup_repository": "<backup-configs-repo-id>",
-    "jinja_path_template": "{{ obj.platform.network_driver }}/main.j2",
+    "jinja_path_template": "{{ obj.platform.network_driver }}.j2",
     "intended_path_template": "{{ obj.location.name }}/{{ obj.name }}.cfg",
     "backup_path_template": "{{ obj.location.name }}/{{ obj.name }}.cfg"
   }'
