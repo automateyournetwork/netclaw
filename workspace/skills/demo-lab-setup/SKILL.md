@@ -297,10 +297,36 @@ nautobot_create_graphql_query(name="nautobot_workshop_sot_agg", query="query { d
 
 Do NOT create a shorter or simplified query. The templates depend on every field listed above. If BGP data is missing, config generation will fail.
 
-Then link the repos to golden config settings:
+Then link ALL repos to the golden config settings. **Every field below is required — if any repo is missing, jobs will crash with `NoneType has no attribute filesystem_path`.**
+
+First get the golden config setting ID and all repo IDs:
 ```
-nautobot_update_golden_config_setting(...)
+nautobot_get_golden_config_settings
+nautobot_get_git_repositories
 ```
+
+Then update the setting with ALL repos, the SoT query, and path templates:
+```
+nautobot_update_golden_config_setting(
+  setting_id="<golden-config-setting-id>",
+  updates='{
+    "sot_agg_query": "<sot-query-id>",
+    "jinja_repository": "<templates-repo-id>",
+    "intended_repository": "<intended-configs-repo-id>",
+    "backup_repository": "<backup-configs-repo-id>",
+    "jinja_path_template": "{{ obj.platform.network_driver }}/main.j2",
+    "intended_path_template": "{{ obj.location.name }}/{{ obj.name }}.cfg",
+    "backup_path_template": "{{ obj.location.name }}/{{ obj.name }}.cfg"
+  }'
+)
+```
+
+Verify the settings are complete:
+```
+nautobot_get_golden_config_settings
+```
+
+Confirm that `jinja_repository`, `intended_repository`, `backup_repository`, and `sot_agg_query` are ALL non-null. If any is null, the corresponding job will fail.
 
 Use the `golden-config-bootstrap` skill for compliance rule setup.
 
