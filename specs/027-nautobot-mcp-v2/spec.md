@@ -2,7 +2,7 @@
 
 **Feature Branch**: `027-nautobot-mcp-v2`
 **Created**: 2026-04-09
-**Status**: Draft
+**Status**: Complete (base), Extended (virtualization tools added 2026-05-02)
 **Input**: User description: "Rewrite the Nautobot MCP server to use GraphQL for reads and REST API for writes, add device/interface/VLAN/prefix/cable queries, write operations with approval gating, and reconciliation between live device config and Nautobot source of truth. Target: Nautobot 3.1.0."
 
 ## Context

@@ -301,6 +301,91 @@ nautobot_reconcile(
 
 ---
 
+## Virtualization Tools (4) — GraphQL reads + REST writes
+
+### nautobot_get_virtual_machines
+
+**Description**: Query virtual machines from Nautobot. Returns name, cluster, role, status, primary IP, vCPUs, memory, disk, and interfaces.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| name | string | No | Filter by VM name |
+| cluster | string | No | Filter by cluster name |
+| role | string | No | Filter by role name |
+| status | string | No | Filter by status name |
+| limit | integer | No | Max results (default: 50) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Returns**: JSON with VM list including name, status, role, cluster, vcpus, memory, disk, primary_ip4, and interfaces with IPs.
+
+**Example invocations**:
+- All VMs: `nautobot_get_virtual_machines()`
+- By cluster: `nautobot_get_virtual_machines(cluster="Observability")`
+
+---
+
+### nautobot_create_virtual_machine
+
+**Description**: Create a virtual machine in Nautobot. ITSM-gated.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| name | string | Yes | VM name (e.g., "otel-collector") |
+| cluster | string | Yes | Cluster name the VM belongs to |
+| role | string | No | Device role name (e.g., "Monitoring") |
+| status | string | No | Status name (default: "Active") |
+| vcpus | integer | No | Number of virtual CPUs |
+| memory | integer | No | Memory in MB |
+| disk | integer | No | Disk in GB |
+| comments | string | No | Free-text description |
+| cr_number | string | Conditional | ServiceNow CR (required if ITSM_ENABLED) |
+
+**Returns**: JSON with created VM details including Nautobot ID.
+
+---
+
+### nautobot_create_vm_interface
+
+**Description**: Create a network interface on a virtual machine. ITSM-gated.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| virtual_machine | string | Yes | VM name |
+| name | string | Yes | Interface name (e.g., "eth0") |
+| enabled | boolean | No | Whether the interface is enabled (default: true) |
+| description | string | No | Interface description |
+| cr_number | string | Conditional | ServiceNow CR (required if ITSM_ENABLED) |
+
+**Returns**: JSON with created VM interface details.
+
+---
+
+### nautobot_assign_ip_to_vm
+
+**Description**: Create an IP address and assign it to a VM interface. Optionally set as the VM's primary IPv4 address. ITSM-gated.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| virtual_machine | string | Yes | VM name |
+| interface | string | Yes | VM interface name (e.g., "eth0") |
+| address | string | Yes | IP address in CIDR notation (e.g., "192.168.220.200/24") |
+| status | string | No | IP status (default: "Active") |
+| namespace | string | No | IPAM namespace (default: "Global") |
+| set_primary | boolean | No | Set as VM's primary IPv4 (default: true) |
+| cr_number | string | Conditional | ServiceNow CR (required if ITSM_ENABLED) |
+
+**Returns**: JSON with IP address, assignment confirmation, and primary status.
+
+---
+
 ## Environment Variables
 
 | Variable | Required | Description |

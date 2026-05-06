@@ -163,6 +163,36 @@
 
 ---
 
+## Phase 7b: Virtualization (Post-MVP Extension)
+
+**Goal**: Manage virtual machines in Nautobot for tracking containers, VMs, and cloud instances.
+
+- [x] T030 [P] Add `cluster` and `virtual_machine` to resolve_id query map in `nautobot_client.py`
+- [x] T031 Implement `nautobot_get_virtual_machines` tool in `server.py`:
+  - GraphQL fields: id, name, status{name}, role{name}, cluster{name}, vcpus, memory, disk, comments, primary_ip4{address}, interfaces{name, enabled, mac_address, ip_addresses{address}}
+  - Filters: name, cluster, role, status, limit, offset
+- [x] T032 Implement `nautobot_create_virtual_machine` tool in `server.py`:
+  - Check ITSM gating
+  - Resolve status, cluster, role UUIDs
+  - POST to /api/virtualization/virtual-machines/
+  - Return created VM details
+- [x] T033 [P] Implement `nautobot_create_vm_interface` tool in `server.py`:
+  - Check ITSM gating
+  - Resolve virtual_machine UUID
+  - POST to /api/virtualization/interfaces/
+  - Return created interface details
+- [x] T034 Implement `nautobot_assign_ip_to_vm` tool in `server.py`:
+  - Check ITSM gating
+  - Create IP address via REST
+  - Resolve VM interface via GraphQL (vm_interfaces query)
+  - POST to /api/ipam/ip-address-to-interface/ with vm_interface
+  - Optionally PATCH VM to set primary_ip4
+  - Return assignment confirmation
+
+**Checkpoint**: Can create VMs, interfaces, and assign IPs. Used by deploy-observability skill to register containers in Nautobot.
+
+---
+
 ## Phase 8: Polish & Artifact Coherence
 
 **Purpose**: Documentation, configuration, and artifact coherence.
