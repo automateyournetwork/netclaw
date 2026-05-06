@@ -30,7 +30,7 @@ class NautobotClient:
         self.url = os.environ["NAUTOBOT_URL"].rstrip("/")
         self.token = os.environ["NAUTOBOT_TOKEN"]
         verify = os.environ.get("NAUTOBOT_VERIFY_SSL", "false").lower() == "true"
-        timeout = int(os.environ.get("NAUTOBOT_TIMEOUT", "30"))
+        timeout = int(os.environ.get("NAUTOBOT_TIMEOUT", "60"))
 
         self.http = httpx.AsyncClient(
             headers={
@@ -132,6 +132,8 @@ class NautobotClient:
             "platform": '{{ platforms(name: "{}") {{ id }} }}'.format(_esc(name)),
             "tenant": '{{ tenants(name: "{}") {{ id }} }}'.format(_esc(name)),
             "vlan_group": '{{ vlan_groups(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "cluster": '{{ clusters(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "virtual_machine": '{{ virtual_machines(name: "{}") {{ id }} }}'.format(_esc(name)),
         }
 
         if object_type == "namespace":

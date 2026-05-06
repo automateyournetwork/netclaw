@@ -1075,6 +1075,52 @@ async def nautobot_list_jobs(
         return json.dumps({"error": str(e)})
 
 
+@mcp.tool()
+async def nautobot_enable_job(
+    job_id: Optional[str] = None,
+    enable_all: bool = False,
+    enabled: bool = True,
+) -> str:
+    """Enable or disable Nautobot jobs.
+
+    job_id: UUID of a single job to enable/disable (get from nautobot_list_jobs)
+    enable_all: If True, enables ALL disabled jobs in one call. Ignores job_id.
+    enabled: True to enable, False to disable (default: True)
+    """
+    logger.info(f"nautobot_enable_job id={job_id} enable_all={enable_all} enabled={enabled}")
+    try:
+        if enable_all:
+            data = await client.rest_get("extras/jobs", {"limit": 200})
+            results = data.get("results", [])
+            disabled = [j for j in results if not j.get("enabled")]
+            if not disabled:
+                return json.dumps({"message": "All jobs already enabled", "count": 0})
+            updated = []
+            errors = []
+            for job in disabled:
+                try:
+                    r = await client.rest_patch(f"extras/jobs/{job['id']}", {"enabled": enabled})
+                    updated.append({"id": r.get("id"), "name": r.get("name")})
+                except NautobotError as e:
+                    errors.append({"id": job["id"], "name": job.get("name"), "error": str(e)})
+            return json.dumps({
+                "updated": True,
+                "enabled_count": len(updated),
+                "jobs": updated,
+                "errors": errors if errors else None,
+            }, indent=2)
+        elif job_id:
+            result = await client.rest_patch(f"extras/jobs/{job_id}", {"enabled": enabled})
+            return json.dumps({
+                "updated": True,
+                "job": {"id": result.get("id"), "name": result.get("name"), "enabled": result.get("enabled")},
+            }, indent=2)
+        else:
+            return json.dumps({"error": "Provide job_id or set enable_all=True"})
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
 # ── Git Repository Sync ───────────────────────────────────────
 
 
@@ -1558,6 +1604,210 @@ async def nautobot_get_ospf_routing(
         "ospf_configs": data.get("ospf_configurations", []),
         "ospf_interface_configs": data.get("ospf_interface_configurations", []),
     }, indent=2)
+
+
+# ── Virtualization ────────────────────────────────────────────────────
+
+
+@mcp.tool()
+async def nautobot_get_virtual_machines(
+    name: Optional[str] = None,
+    cluster: Optional[str] = None,
+    role: Optional[str] = None,
+    status: Optional[str] = None,
+    limit: int = 50,
+    offset: int = 0,
+) -> str:
+    """Query virtual machines from Nautobot. Returns name, cluster, role, status, primary IP, vCPUs, memory, disk."""
+    logger.info(f"nautobot_get_virtual_machines name={name} cluster={cluster}")
+    filt = _gql_filters(
+        name=name, cluster=cluster, role=role, status=status,
+        limit=limit, offset=offset,
+    )
+    query = f"""{{
+  virtual_machines{filt} {{
+    id name status {{ name }} role {{ name }} cluster {{ name }}
+    vcpus memory disk comments
+    primary_ip4 {{ address }}
+    interfaces {{ name enabled mac_address ip_addresses {{ address }} }}
+  }}
+}}"""
+    try:
+        data = await client.graphql(query)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+    vms = data.get("virtual_machines", [])
+    return json.dumps({"count": len(vms), "virtual_machines": vms}, indent=2)
+
+
+@mcp.tool()
+async def nautobot_create_virtual_machine(
+    name: str,
+    cluster: str,
+    role: Optional[str] = None,
+    status: str = "Active",
+    vcpus: Optional[int] = None,
+    memory: Optional[int] = None,
+    disk: Optional[int] = None,
+    comments: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create a virtual machine in Nautobot. ITSM-gated.
+
+    Args:
+        name: VM name (e.g., "otel-collector")
+        cluster: Cluster name the VM belongs to (e.g., "Observability")
+        role: Device role (e.g., "Monitoring")
+        status: Status name (default: Active)
+        vcpus: Number of virtual CPUs
+        memory: Memory in MB
+        disk: Disk in GB
+        comments: Free-text description
+        cr_number: ServiceNow change request number (required if ITSM enabled)
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+
+    logger.info(f"nautobot_create_virtual_machine {name} cluster={cluster} cr={cr_number}")
+    try:
+        status_id = await client.resolve_id("status", status)
+        cluster_id = await client.resolve_id("cluster", cluster)
+
+        payload: dict = {
+            "name": name,
+            "status": status_id,
+            "cluster": cluster_id,
+        }
+        if role:
+            payload["role"] = await client.resolve_id("role", role)
+        if vcpus:
+            payload["vcpus"] = vcpus
+        if memory:
+            payload["memory"] = memory
+        if disk:
+            payload["disk"] = disk
+        if comments:
+            payload["comments"] = comments
+
+        result = await client.rest_post("virtualization/virtual-machines", payload)
+        return json.dumps({"created": True, "virtual_machine": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_vm_interface(
+    virtual_machine: str,
+    name: str,
+    enabled: bool = True,
+    description: Optional[str] = None,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create a network interface on a virtual machine. ITSM-gated.
+
+    Args:
+        virtual_machine: VM name (e.g., "otel-collector")
+        name: Interface name (e.g., "eth0")
+        enabled: Whether the interface is enabled
+        description: Interface description
+        cr_number: ServiceNow change request number
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+
+    logger.info(f"nautobot_create_vm_interface {virtual_machine}:{name} cr={cr_number}")
+    try:
+        vm_id = await client.resolve_id("virtual_machine", virtual_machine)
+
+        payload: dict = {
+            "virtual_machine": vm_id,
+            "name": name,
+            "enabled": enabled,
+        }
+        if description:
+            payload["description"] = description
+
+        result = await client.rest_post("virtualization/interfaces", payload)
+        return json.dumps({"created": True, "vm_interface": result}, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_assign_ip_to_vm(
+    virtual_machine: str,
+    interface: str,
+    address: str,
+    status: str = "Active",
+    namespace: str = "Global",
+    set_primary: bool = True,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create an IP address and assign it to a VM interface. Optionally set as primary. ITSM-gated.
+
+    Args:
+        virtual_machine: VM name
+        interface: VM interface name (e.g., "eth0")
+        address: IP address in CIDR notation (e.g., "192.168.220.200/24")
+        status: IP status (default: Active)
+        namespace: IPAM namespace (default: Global)
+        set_primary: Set as the VM's primary IPv4 address
+        cr_number: ServiceNow change request number
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+
+    logger.info(f"nautobot_assign_ip_to_vm {virtual_machine}:{interface} {address} cr={cr_number}")
+    try:
+        status_id = await client.resolve_id("status", status)
+        ns_id = await client.resolve_id("namespace", namespace)
+
+        # Create the IP address
+        ip_payload: dict = {
+            "address": address,
+            "status": status_id,
+            "namespace": ns_id,
+        }
+        ip_result = await client.rest_post("ipam/ip-addresses", ip_payload)
+        ip_id = ip_result["id"]
+
+        # Resolve VM interface
+        # Query for the VM interface by VM name + interface name
+        query = f"""{{ vm_interfaces(virtual_machine: "{_esc(virtual_machine)}", name: "{_esc(interface)}") {{ id }} }}"""
+        data = await client.graphql(query)
+        ifaces = data.get("vm_interfaces", [])
+        if not ifaces:
+            return json.dumps({"error": f"VM interface {virtual_machine}:{interface} not found"})
+        iface_id = ifaces[0]["id"]
+
+        # Assign IP to VM interface
+        await client.rest_post(
+            "ipam/ip-address-to-interface",
+            {"ip_address": ip_id, "vm_interface": iface_id},
+        )
+
+        # Set as primary IP if requested
+        if set_primary:
+            vm_query = f"""{{ virtual_machines(name: "{_esc(virtual_machine)}") {{ id }} }}"""
+            vm_data = await client.graphql(vm_query)
+            vms = vm_data.get("virtual_machines", [])
+            if vms:
+                await client.rest_patch(
+                    f"virtualization/virtual-machines/{vms[0]['id']}",
+                    {"primary_ip4": ip_id},
+                )
+
+        return json.dumps({
+            "created": True,
+            "ip_address": address,
+            "assigned_to": f"{virtual_machine}:{interface}",
+            "primary": set_primary,
+        }, indent=2)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
 
 
 # ═══════════════════════════════════════════════════════════════════════
