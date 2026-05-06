@@ -1,0 +1,89 @@
+---
+# Observability stack for the Nautobot Workshop lab
+# Shares the clab-mgmt network (192.168.220.0/24) for direct device access
+#
+# Usage:
+#   docker compose -f docker-compose.observability.yml up -d
+#
+# Prerequisites:
+#   - ContainerLab topology running (clab-mgmt network exists)
+#   - Devices configured with SNMP community and syslog export
+
+services:
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    container_name: otel-collector
+    restart: unless-stopped
+    volumes:
+      - ./otel-collector/otel-config.yaml:/etc/otelcol-contrib/config.yaml:ro
+    ports:
+      - "4317:4317"   # OTLP gRPC
+      - "4318:4318"   # OTLP HTTP
+      - "1514:1514/udp"  # Syslog UDP
+    networks:
+      clab-mgmt:
+        ipv4_address: 192.168.220.200
+    depends_on:
+      - victoriametrics
+      - loki
+
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:v1.101.0
+    container_name: victoriametrics
+    restart: unless-stopped
+    volumes:
+      - vm-data:/storage
+    command:
+      - "--storageDataPath=/storage"
+      - "--httpListenAddr=:8428"
+      - "--retentionPeriod=30d"
+    ports:
+      - "8428:8428"
+    networks:
+      clab-mgmt:
+        ipv4_address: 192.168.220.201
+
+  loki:
+    image: grafana/loki:3.1.0
+    container_name: loki
+    restart: unless-stopped
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    ports:
+      - "3100:3100"
+    networks:
+      clab-mgmt:
+        ipv4_address: 192.168.220.202
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=netclaw
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    networks:
+      clab-mgmt:
+        ipv4_address: 192.168.220.203
+    depends_on:
+      - victoriametrics
+      - loki
+
+volumes:
+  vm-data:
+  loki-data:
+  grafana-data:
+
+networks:
+  clab-mgmt:
+    external: true

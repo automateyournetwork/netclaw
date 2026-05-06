@@ -1,0 +1,139 @@
+{
+  "uid": "netclaw-interface-status",
+  "title": "Interface Status",
+  "tags": ["netclaw", "network", "interfaces"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "templating": {
+    "list": [
+      {
+        "name": "device",
+        "type": "query",
+        "datasource": "VictoriaMetrics",
+        "query": "label_values(interface_status, device_name)",
+        "multi": false,
+        "includeAll": false
+      },
+      {
+        "name": "interface",
+        "type": "query",
+        "datasource": "VictoriaMetrics",
+        "query": "label_values(interface_status{device_name=\"$device\"}, interface_name)",
+        "multi": true,
+        "includeAll": true,
+        "current": { "text": "All", "value": "$__all" }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Interface Operational Status",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {
+          "expr": "interface_status{device_name=\"$device\", interface_name=~\"$interface\"}",
+          "format": "table",
+          "instant": true
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": { "Time": true, "__name__": true },
+            "renameByName": {
+              "device_name": "Device",
+              "interface_name": "Interface",
+              "Value": "Status (1=Up)"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Inbound Traffic (bits/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {
+          "expr": "rate(interface_octets_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m]) * 8",
+          "legendFormat": "{{interface_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bps" }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Outbound Traffic (bits/s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {
+          "expr": "rate(interface_octets_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m]) * 8",
+          "legendFormat": "{{interface_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "bps" }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Packets/s (In vs Out)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {
+          "expr": "rate(interface_packets_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface_name}} IN"
+        },
+        {
+          "expr": "rate(interface_packets_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface_name}} OUT"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": { "unit": "pps" }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Interface Errors",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": "VictoriaMetrics",
+      "targets": [
+        {
+          "expr": "rate(interface_errors_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface_name}} IN errors"
+        },
+        {
+          "expr": "rate(interface_errors_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface_name}} OUT errors"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "errors/s",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "schemaVersion": 39
+}

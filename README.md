@@ -60,6 +60,24 @@ Requires the OpenClaw gateway to be running for live chat (`openclaw gateway`).
 
 ---
 
+## Observability Stack
+
+NetClaw includes a portable observability pipeline that deploys alongside the [Nautobot Workshop](https://github.com/byrn-baker/Nautobot-Workshop) ContainerLab topology:
+
+```bash
+cd observability
+docker compose -f docker-compose.observability.yml up -d
+# Grafana: http://localhost:3000 (admin/netclaw)
+```
+
+OTEL Collector polls SNMP from all 18 lab devices (Cisco IOL + Arista cEOS), VictoriaMetrics stores metrics, Loki aggregates syslog, and Grafana renders pre-provisioned dashboards. NetClaw queries it all via Grafana MCP (75+ tools) and Prometheus MCP (6 tools).
+
+SNMP and syslog configuration is managed through the golden config pipeline — Nautobot config contexts + Jinja templates — not manual CLI.
+
+**[Full setup guide, metrics reference, and troubleshooting >>>](observability/README.md)**
+
+---
+
 ## What It Does
 
 NetClaw is an autonomous network engineering agent powered by Claude that can:

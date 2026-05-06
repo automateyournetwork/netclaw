@@ -165,15 +165,32 @@ Nautobot needs credentials to clone the GitHub repo. This requires setting up Se
    }
    ```
 
-   b. **Create a Secrets Group** — associate the secret with the "HTTP(S) Token" access type:
+   b. **Create a Secrets Group** — associate BOTH username and token secrets. Nautobot's git credential helper builds `https://<username>:<token>@github.com/...` — without the username, git push gets 403:
    ```
    POST /api/extras/secrets-groups/
    {"name": "GitHub Credentials"}
 
+   # Username secret (GitHub expects "x-access-token" when using PAT)
+   POST /api/extras/secrets/
+   {
+     "name": "GitHub Username",
+     "provider": "environment-variable",
+     "parameters": {"variable": "GITHUB_USERNAME"}
+   }
+   # Set GITHUB_USERNAME=x-access-token in the Nautobot environment
+
    POST /api/extras/secrets-groups-associations/
    {
      "secrets_group": "<secrets_group_id>",
-     "secret": "<secret_id>",
+     "secret": "<username_secret_id>",
+     "access_type": "HTTP(S)",
+     "secret_type": "username"
+   }
+
+   POST /api/extras/secrets-groups-associations/
+   {
+     "secrets_group": "<secrets_group_id>",
+     "secret": "<token_secret_id>",
      "access_type": "HTTP(S)",
      "secret_type": "token"
    }
@@ -212,6 +229,14 @@ Nautobot needs credentials to clone the GitHub repo. This requires setting up Se
 1. Create compliance features for each config section the user wants to track
 2. Create compliance rules linking each feature to the platform with `match_config` regex patterns
 3. The `match_config` patterns come from the design reference: `cisco_design_reference(feature="ntp")` returns `match_config: "^ntp "`
+
+### Known Compliance False Positives
+The compliance engine compares intended vs actual config line-by-line. Some diffs are NOT real compliance failures:
+- **Indentation differences** — EOS may indent `address-family` sub-commands differently than the Jinja template renders. This is a template whitespace issue.
+- **Line ordering** — IOS may reorder `neighbor` statements (e.g., `remote-as` before `peer-group`). The compliance engine treats ordering as a diff.
+- **Duplicate SoT data** — If Nautobot has duplicate objects (e.g., a BGP endpoint with and without a peer-group), the template renders extra lines that don't exist on the device.
+
+When presenting compliance results, flag these as template/data issues and recommend fixing the template or Nautobot data rather than changing the device config.
 
 ### Phase 8: Validation
 

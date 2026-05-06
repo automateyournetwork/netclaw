@@ -63,11 +63,16 @@ trace.json.gz
 
 .claude
 
+# Observability stack runtime data
+observability/*-data/
+
 # User workspace customizations (USER.md, TOOLS.md — personalized, not tracked)
 workspace/user/*
 !workspace/user/USER.md
 !workspace/user/TOOLS.md
 docs/blog*
+docs/roadmap*
+docs/series-plan*
 golden-config-work/HomeSwitch01.cfg
 golden-config-work/HomeSwitch02.cfg
 .amazonq/

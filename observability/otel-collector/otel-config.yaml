@@ -1,0 +1,356 @@
+# OpenTelemetry Collector configuration for Nautobot Workshop lab
+# SNMP polling: 18 devices (10 Cisco IOL + 8 Arista cEOS) on clab-mgmt network
+# Syslog: UDP 1514 for device log ingestion
+
+receivers:
+  # SNMP polling — Cisco IOL devices (IOS-XE style)
+  snmp/cisco:
+    collection_interval: 60s
+    endpoint: udp://0.0.0.0:0
+    version: v2c
+    community: public
+    resource_attributes:
+      device.vendor:
+        value: cisco
+    attributes:
+      device.role:
+        value: ""
+    targets:
+      # Provider core
+      - endpoint: udp://192.168.220.2:161
+        resource_attributes:
+          device.name: { value: "P1" }
+          device.role: { value: "provider" }
+      - endpoint: udp://192.168.220.3:161
+        resource_attributes:
+          device.name: { value: "P2" }
+          device.role: { value: "provider" }
+      - endpoint: udp://192.168.220.4:161
+        resource_attributes:
+          device.name: { value: "P3" }
+          device.role: { value: "provider" }
+      - endpoint: udp://192.168.220.5:161
+        resource_attributes:
+          device.name: { value: "P4" }
+          device.role: { value: "provider" }
+      # Provider edge
+      - endpoint: udp://192.168.220.6:161
+        resource_attributes:
+          device.name: { value: "PE1" }
+          device.role: { value: "pe" }
+      - endpoint: udp://192.168.220.7:161
+        resource_attributes:
+          device.name: { value: "PE2" }
+          device.role: { value: "pe" }
+      - endpoint: udp://192.168.220.8:161
+        resource_attributes:
+          device.name: { value: "PE3" }
+          device.role: { value: "pe" }
+      # Customer edge
+      - endpoint: udp://192.168.220.9:161
+        resource_attributes:
+          device.name: { value: "CE1" }
+          device.role: { value: "ce" }
+      - endpoint: udp://192.168.220.10:161
+        resource_attributes:
+          device.name: { value: "CE2" }
+          device.role: { value: "ce" }
+      # Route reflector
+      - endpoint: udp://192.168.220.11:161
+        resource_attributes:
+          device.name: { value: "RR1" }
+          device.role: { value: "rr" }
+    metrics:
+      # System metrics
+      system.cpu.utilization:
+        unit: "%"
+        gauge:
+          value_type: double
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.9.9.109.1.1.1.1.8.1"  # cpmCPUTotal5minRev
+            resource_attributes:
+              - device.name
+              - device.role
+      system.memory.utilization:
+        unit: "%"
+        gauge:
+          value_type: double
+        scalar_oids:
+          - oid: "1.3.6.1.4.1.9.9.48.1.1.1.5.1"  # ciscoMemoryPoolUsed
+            resource_attributes:
+              - device.name
+              - device.role
+      # Interface metrics
+      interface.packets.in:
+        unit: "{packets}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.11"  # ifInUcastPkts
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"  # ifDescr
+      interface.packets.out:
+        unit: "{packets}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.17"  # ifOutUcastPkts
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.octets.in:
+        unit: "By"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.31.1.1.1.6"  # ifHCInOctets
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.octets.out:
+        unit: "By"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.31.1.1.1.10"  # ifHCOutOctets
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.errors.in:
+        unit: "{errors}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.14"  # ifInErrors
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.errors.out:
+        unit: "{errors}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.20"  # ifOutErrors
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.status:
+        unit: ""
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.8"  # ifOperStatus (1=up, 2=down)
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+
+  # SNMP polling — Arista cEOS devices
+  snmp/arista:
+    collection_interval: 60s
+    endpoint: udp://0.0.0.0:0
+    version: v2c
+    community: public
+    resource_attributes:
+      device.vendor:
+        value: arista
+    attributes:
+      device.role:
+        value: ""
+    targets:
+      # West DC
+      - endpoint: udp://192.168.220.12:161
+        resource_attributes:
+          device.name: { value: "West-Spine01" }
+          device.role: { value: "spine" }
+      - endpoint: udp://192.168.220.13:161
+        resource_attributes:
+          device.name: { value: "West-Spine02" }
+          device.role: { value: "spine" }
+      - endpoint: udp://192.168.220.14:161
+        resource_attributes:
+          device.name: { value: "West-Leaf01" }
+          device.role: { value: "leaf" }
+      - endpoint: udp://192.168.220.15:161
+        resource_attributes:
+          device.name: { value: "West-Leaf02" }
+          device.role: { value: "leaf" }
+      # East DC
+      - endpoint: udp://192.168.220.16:161
+        resource_attributes:
+          device.name: { value: "East-Spine01" }
+          device.role: { value: "spine" }
+      - endpoint: udp://192.168.220.17:161
+        resource_attributes:
+          device.name: { value: "East-Spine02" }
+          device.role: { value: "spine" }
+      - endpoint: udp://192.168.220.18:161
+        resource_attributes:
+          device.name: { value: "East-Leaf01" }
+          device.role: { value: "leaf" }
+      - endpoint: udp://192.168.220.19:161
+        resource_attributes:
+          device.name: { value: "East-Leaf02" }
+          device.role: { value: "leaf" }
+    metrics:
+      # Arista uses standard MIBs for interface counters
+      interface.packets.in:
+        unit: "{packets}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.11"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.packets.out:
+        unit: "{packets}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.17"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.octets.in:
+        unit: "By"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.31.1.1.1.6"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.octets.out:
+        unit: "By"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.31.1.1.1.10"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.errors.in:
+        unit: "{errors}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.14"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.errors.out:
+        unit: "{errors}"
+        sum:
+          value_type: int
+          monotonic: true
+          aggregation_temporality: cumulative
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.20"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+      interface.status:
+        unit: ""
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: "1.3.6.1.2.1.2.2.1.8"
+            resource_attributes:
+              - device.name
+            attributes:
+              - name: interface.name
+                oid: "1.3.6.1.2.1.2.2.1.2"
+
+  # Syslog receiver — devices send logs here
+  syslog:
+    udp:
+      listen_address: "0.0.0.0:1514"
+    protocol: rfc3164
+
+processors:
+  batch:
+    timeout: 10s
+    send_batch_size: 1000
+
+  resource/metrics:
+    attributes:
+      - key: service.name
+        value: "network-devices"
+        action: upsert
+
+exporters:
+  # Prometheus remote write to VictoriaMetrics
+  prometheusremotewrite:
+    endpoint: "http://victoriametrics:8428/api/v1/write"
+    resource_to_telemetry_conversion:
+      enabled: true
+
+  # Loki for logs
+  loki:
+    endpoint: "http://loki:3100/loki/api/v1/push"
+    default_labels_enabled:
+      exporter: false
+      job: true
+
+  debug:
+    verbosity: basic
+
+service:
+  pipelines:
+    metrics:
+      receivers: [snmp/cisco, snmp/arista]
+      processors: [resource/metrics, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [syslog]
+      processors: [batch]
+      exporters: [loki]
