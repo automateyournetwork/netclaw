@@ -1811,6 +1811,540 @@ async def nautobot_assign_ip_to_vm(
 
 
 # ═══════════════════════════════════════════════════════════════════════
+# GENERIC CRUD TOOLS — Registry-embedded for zero-iteration usage
+# ═══════════════════════════════════════════════════════════════════════
+
+# Object type registry: maps type → endpoint, required fields, and resolvable foreign keys
+_OBJECT_REGISTRY: dict[str, dict] = {
+    # ── DCIM ──
+    "device": {
+        "endpoint": "dcim/devices",
+        "required": ["name", "device_type", "role", "location", "status"],
+        "resolve": {"device_type": "device_type", "role": "role", "location": "location", "status": "status", "platform": "platform", "tenant": "tenant"},
+        "lookup": "devices",
+        "lookup_field": "name",
+    },
+    "interface": {
+        "endpoint": "dcim/interfaces",
+        "required": ["device", "name", "type", "status"],
+        "resolve": {"device": "device", "status": "status"},
+        "lookup": "interfaces",
+        "lookup_field": "name",
+        "lookup_extra": "device",
+    },
+    "cable": {
+        "endpoint": "dcim/cables",
+        "required": ["termination_a_type", "termination_a_id", "termination_b_type", "termination_b_id", "status"],
+        "resolve": {"status": "status"},
+        "lookup": None,
+    },
+    "location": {
+        "endpoint": "dcim/locations",
+        "required": ["name", "location_type", "status"],
+        "resolve": {"location_type": "location_type", "status": "status", "parent": "location", "tenant": "tenant"},
+        "lookup": "locations",
+        "lookup_field": "name",
+    },
+    "location_type": {
+        "endpoint": "dcim/location-types",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "location_types",
+        "lookup_field": "name",
+    },
+    "manufacturer": {
+        "endpoint": "dcim/manufacturers",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "manufacturers",
+        "lookup_field": "name",
+    },
+    "device_type": {
+        "endpoint": "dcim/device-types",
+        "required": ["model", "manufacturer"],
+        "resolve": {"manufacturer": "manufacturer"},
+        "lookup": "device_types",
+        "lookup_field": "model",
+    },
+    "platform": {
+        "endpoint": "dcim/platforms",
+        "required": ["name"],
+        "resolve": {"manufacturer": "manufacturer"},
+        "lookup": "platforms",
+        "lookup_field": "name",
+    },
+    "rack": {
+        "endpoint": "dcim/racks",
+        "required": ["name", "status", "location"],
+        "resolve": {"status": "status", "location": "location", "tenant": "tenant", "role": "role"},
+        "lookup": "racks",
+        "lookup_field": "name",
+    },
+    "rack_group": {
+        "endpoint": "dcim/rack-groups",
+        "required": ["name", "location"],
+        "resolve": {"location": "location"},
+        "lookup": "rack_groups",
+        "lookup_field": "name",
+    },
+    # ── IPAM ──
+    "ip_address": {
+        "endpoint": "ipam/ip-addresses",
+        "required": ["address", "status", "namespace"],
+        "resolve": {"status": "status", "namespace": "namespace", "tenant": "tenant"},
+        "lookup": "ip_addresses",
+        "lookup_field": "address",
+    },
+    "prefix": {
+        "endpoint": "ipam/prefixes",
+        "required": ["prefix", "status", "namespace"],
+        "resolve": {"status": "status", "namespace": "namespace", "tenant": "tenant"},
+        "lookup": "prefixes",
+        "lookup_field": "prefix",
+    },
+    "vlan": {
+        "endpoint": "ipam/vlans",
+        "required": ["vid", "name", "status"],
+        "resolve": {"status": "status", "vlan_group": "vlan_group", "tenant": "tenant"},
+        "lookup": "vlans",
+        "lookup_field": "vid",
+    },
+    "vrf": {
+        "endpoint": "ipam/vrfs",
+        "required": ["name", "rd"],
+        "resolve": {"namespace": "namespace", "tenant": "tenant"},
+        "lookup": "vrfs",
+        "lookup_field": "name",
+    },
+    "namespace": {
+        "endpoint": "ipam/namespaces",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": None,  # uses REST
+    },
+    "vlan_group": {
+        "endpoint": "ipam/vlan-groups",
+        "required": ["name"],
+        "resolve": {"location": "location"},
+        "lookup": "vlan_groups",
+        "lookup_field": "name",
+    },
+    "route_target": {
+        "endpoint": "ipam/route-targets",
+        "required": ["name"],
+        "resolve": {"tenant": "tenant"},
+        "lookup": None,
+    },
+    "service": {
+        "endpoint": "ipam/services",
+        "required": ["name", "ports"],
+        "resolve": {"device": "device", "virtual_machine": "virtual_machine"},
+        "lookup": None,
+    },
+    # ── Circuits ──
+    "provider": {
+        "endpoint": "circuits/providers",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "providers",
+        "lookup_field": "name",
+    },
+    "circuit_type": {
+        "endpoint": "circuits/circuit-types",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "circuit_types",
+        "lookup_field": "name",
+    },
+    "circuit": {
+        "endpoint": "circuits/circuits",
+        "required": ["cid", "status", "provider", "circuit_type"],
+        "resolve": {"status": "status", "provider": "provider", "circuit_type": "circuit_type", "tenant": "tenant"},
+        "lookup": None,
+    },
+    "circuit_termination": {
+        "endpoint": "circuits/circuit-terminations",
+        "required": ["term_side", "circuit"],
+        "resolve": {"location": "location"},
+        "lookup": None,
+    },
+    "provider_network": {
+        "endpoint": "circuits/provider-networks",
+        "required": ["name", "provider"],
+        "resolve": {"provider": "provider"},
+        "lookup": None,
+    },
+    # ── Tenancy ──
+    "tenant": {
+        "endpoint": "tenancy/tenants",
+        "required": ["name"],
+        "resolve": {"tenant_group": "tenant_group"},
+        "lookup": "tenants",
+        "lookup_field": "name",
+    },
+    "tenant_group": {
+        "endpoint": "tenancy/tenant-groups",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "tenant_groups",
+        "lookup_field": "name",
+    },
+    # ── Virtualization ──
+    "cluster_type": {
+        "endpoint": "virtualization/cluster-types",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "cluster_types",
+        "lookup_field": "name",
+    },
+    "cluster_group": {
+        "endpoint": "virtualization/cluster-groups",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": "cluster_groups",
+        "lookup_field": "name",
+    },
+    "cluster": {
+        "endpoint": "virtualization/clusters",
+        "required": ["name", "cluster_type"],
+        "resolve": {"cluster_type": "cluster_type", "cluster_group": "cluster_group", "location": "location", "tenant": "tenant"},
+        "lookup": "clusters",
+        "lookup_field": "name",
+    },
+    "virtual_machine": {
+        "endpoint": "virtualization/virtual-machines",
+        "required": ["name", "status", "cluster"],
+        "resolve": {"status": "status", "cluster": "cluster", "role": "role", "tenant": "tenant", "platform": "platform"},
+        "lookup": "virtual_machines",
+        "lookup_field": "name",
+    },
+    # ── Extras ──
+    "tag": {
+        "endpoint": "extras/tags",
+        "required": ["name", "content_types"],
+        "resolve": {},
+        "lookup": "tags",
+        "lookup_field": "name",
+    },
+    "role": {
+        "endpoint": "extras/roles",
+        "required": ["name", "content_types"],
+        "resolve": {},
+        "lookup": "roles",
+        "lookup_field": "name",
+    },
+    "status": {
+        "endpoint": "extras/statuses",
+        "required": ["name", "content_types"],
+        "resolve": {},
+        "lookup": "statuses",
+        "lookup_field": "name",
+    },
+    "contact": {
+        "endpoint": "extras/contacts",
+        "required": ["name"],
+        "resolve": {},
+        "lookup": None,
+    },
+    # ── BGP Plugin ──
+    "autonomous_system": {
+        "endpoint": "plugins/bgp/autonomous-systems",
+        "required": ["asn"],
+        "resolve": {"status": "status", "provider": "provider"},
+        "lookup": "autonomous_systems",
+        "lookup_field": "asn",
+    },
+    "bgp_routing_instance": {
+        "endpoint": "plugins/bgp/routing-instances",
+        "required": ["device", "autonomous_system"],
+        "resolve": {"device": "device", "status": "status"},
+        "lookup": None,
+    },
+    "bgp_peer_group": {
+        "endpoint": "plugins/bgp/peer-groups",
+        "required": ["name", "routing_instance"],
+        "resolve": {},
+        "lookup": None,
+    },
+    "bgp_peering": {
+        "endpoint": "plugins/bgp/peerings",
+        "required": [],
+        "resolve": {"status": "status"},
+        "lookup": None,
+    },
+}
+
+# Fields that are foreign keys and should be auto-resolved from name→UUID
+_RESOLVABLE_TYPES = {
+    "status", "role", "location", "location_type", "platform", "tenant",
+    "tenant_group", "manufacturer", "device_type", "device", "namespace",
+    "vlan_group", "cluster", "cluster_type", "cluster_group",
+    "virtual_machine", "provider", "circuit_type", "vrf",
+}
+
+
+async def _auto_resolve_fields(payload: dict, resolve_map: dict) -> dict:
+    """Resolve string names to UUIDs for foreign key fields."""
+    resolved = dict(payload)
+    for field, resolve_type in resolve_map.items():
+        if field in resolved and isinstance(resolved[field], str):
+            try:
+                resolved[field] = await client.resolve_id(resolve_type, resolved[field])
+            except NautobotError:
+                pass  # leave as-is, let REST API validate
+    return resolved
+
+
+@mcp.tool()
+async def nautobot_create(
+    object_type: str,
+    data: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Create any Nautobot object via REST API. Auto-resolves names to UUIDs. ITSM-gated.
+
+    object_type — one of:
+      DCIM:
+        device (required: name, device_type, role, location, status)
+        interface (required: device, name, type, status) — type e.g. "1000base-t", "virtual"
+        cable (required: termination_a_type, termination_a_id, termination_b_type, termination_b_id, status)
+        location (required: name, location_type, status)
+        location_type (required: name)
+        manufacturer (required: name)
+        device_type (required: model, manufacturer)
+        platform (required: name) — optional: manufacturer, network_driver
+        rack (required: name, status, location)
+        rack_group (required: name, location)
+      IPAM:
+        ip_address (required: address, status, namespace) — use nautobot_create_ip_address for interface assignment
+        prefix (required: prefix, status, namespace)
+        vlan (required: vid, name, status)
+        vrf (required: name, rd) — optional: namespace, tenant
+        namespace (required: name)
+        vlan_group (required: name)
+        route_target (required: name)
+        service (required: name, ports) — ports is a list of integers
+      Circuits:
+        provider (required: name)
+        circuit_type (required: name)
+        circuit (required: cid, status, provider, circuit_type)
+        circuit_termination (required: term_side, circuit) — term_side: "A" or "Z"
+        provider_network (required: name, provider)
+      Tenancy:
+        tenant (required: name)
+        tenant_group (required: name)
+      Virtualization:
+        cluster_type (required: name)
+        cluster_group (required: name)
+        cluster (required: name, cluster_type)
+        virtual_machine (required: name, status, cluster)
+      Extras:
+        tag (required: name, content_types) — content_types: list like ["dcim.device"]
+        role (required: name, content_types)
+        status (required: name, content_types)
+        contact (required: name)
+      BGP Plugin:
+        autonomous_system (required: asn)
+        bgp_routing_instance (required: device, autonomous_system)
+        bgp_peer_group (required: name, routing_instance)
+        bgp_peering (required: none — optional: status)
+
+    data — JSON string of fields. Foreign key fields (status, role, location, device, platform,
+           tenant, manufacturer, device_type, cluster, cluster_type, namespace, vlan_group,
+           provider, circuit_type) accept human-readable names and are auto-resolved to UUIDs.
+
+    Examples:
+      nautobot_create("device", '{"name": "SW01", "device_type": "C9300-48T", "role": "Access", "location": "NYC", "status": "Active"}')
+      nautobot_create("interface", '{"device": "SW01", "name": "GigabitEthernet1/0/1", "type": "1000base-t", "status": "Active"}')
+      nautobot_create("vrf", '{"name": "MGMT", "rd": "65000:100", "namespace": "Global"}')
+      nautobot_create("tenant", '{"name": "Acme Corp"}')
+      nautobot_create("circuit", '{"cid": "CKT-001", "status": "Active", "provider": "Lumen", "circuit_type": "MPLS"}')
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+
+    if object_type not in _OBJECT_REGISTRY:
+        return json.dumps({
+            "error": f"Unknown object_type '{object_type}'",
+            "valid_types": sorted(_OBJECT_REGISTRY.keys()),
+        })
+
+    try:
+        payload = json.loads(data)
+    except json.JSONDecodeError as e:
+        return json.dumps({"error": f"Invalid data JSON: {e}"})
+
+    reg = _OBJECT_REGISTRY[object_type]
+
+    # Check required fields
+    missing = [f for f in reg["required"] if f not in payload]
+    if missing:
+        return json.dumps({
+            "error": f"Missing required fields for {object_type}: {missing}",
+            "required": reg["required"],
+        })
+
+    logger.info(f"nautobot_create type={object_type} cr={cr_number}")
+
+    try:
+        # Auto-resolve foreign key names to UUIDs
+        resolved = await _auto_resolve_fields(payload, reg["resolve"])
+        result = await client.rest_post(reg["endpoint"], resolved)
+        return json.dumps({"created": True, "object_type": object_type, "object": result}, indent=2, default=str)
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_delete(
+    object_type: str,
+    identifier: str,
+    cr_number: Optional[str] = None,
+) -> str:
+    """Delete any Nautobot object by type and identifier. ITSM-gated.
+
+    object_type — same types as nautobot_create (device, interface, vlan, prefix, ip_address, etc.)
+    identifier — how to find the object:
+      - device: device name (e.g., "SW01")
+      - interface: "device_name:interface_name" (e.g., "SW01:GigabitEthernet1/0/1")
+      - ip_address: address (e.g., "10.0.1.50/24")
+      - vlan: vid as string (e.g., "100")
+      - prefix: prefix (e.g., "10.0.1.0/24")
+      - vrf: name (e.g., "MGMT")
+      - location: name (e.g., "NYC")
+      - cable, tag, role, status, contact: UUID directly
+      - tenant, manufacturer, platform, provider, circuit_type, cluster, cluster_type: name
+      - autonomous_system: ASN as string (e.g., "65000")
+      - For any type: pass a UUID directly if known
+    """
+    blocked = _check_itsm(cr_number)
+    if blocked:
+        return json.dumps({"error": blocked})
+
+    if object_type not in _OBJECT_REGISTRY:
+        return json.dumps({
+            "error": f"Unknown object_type '{object_type}'",
+            "valid_types": sorted(_OBJECT_REGISTRY.keys()),
+        })
+
+    logger.info(f"nautobot_delete type={object_type} id={identifier} cr={cr_number}")
+
+    reg = _OBJECT_REGISTRY[object_type]
+
+    try:
+        # Resolve identifier to UUID
+        obj_id = await _resolve_identifier(object_type, identifier, reg)
+        await client.rest_delete(f"{reg['endpoint']}/{obj_id}")
+        return json.dumps({"deleted": True, "object_type": object_type, "id": obj_id})
+    except NautobotError as e:
+        return json.dumps({"error": str(e)})
+
+
+async def _resolve_identifier(object_type: str, identifier: str, reg: dict) -> str:
+    """Resolve a human-readable identifier to a UUID."""
+    # If it looks like a UUID already, use it directly
+    if len(identifier) == 36 and identifier.count("-") == 4:
+        return identifier
+
+    # Special cases
+    if object_type == "interface":
+        return await client.resolve_id("interface", identifier)
+
+    if object_type == "vlan":
+        data = await client.graphql(f'{{ vlans(vid: {int(identifier)}) {{ id }} }}')
+        items = _first_list_from(data)
+        if not items:
+            raise NautobotError(f"VLAN vid={identifier} not found.")
+        return items[0]["id"]
+
+    if object_type == "autonomous_system":
+        data = await client.graphql(f'{{ autonomous_systems(asn: {int(identifier)}) {{ id }} }}')
+        items = _first_list_from(data)
+        if not items:
+            raise NautobotError(f"ASN {identifier} not found.")
+        return items[0]["id"]
+
+    if object_type == "namespace":
+        resp = await client.rest_get("ipam/namespaces", {"name": identifier})
+        results = resp.get("results", [])
+        if not results:
+            raise NautobotError(f"Namespace '{identifier}' not found.")
+        return results[0]["id"]
+
+    # Generic GraphQL lookup
+    lookup = reg.get("lookup")
+    lookup_field = reg.get("lookup_field")
+    if lookup and lookup_field:
+        if lookup_field in ("asn", "vid"):
+            q = f'{{ {lookup}({lookup_field}: {int(identifier)}) {{ id }} }}'
+        else:
+            q = f'{{ {lookup}({lookup_field}: "{_esc(identifier)}") {{ id }} }}'
+        data = await client.graphql(q)
+        items = _first_list_from(data)
+        if not items:
+            raise NautobotError(f"{object_type} '{identifier}' not found in Nautobot.")
+        return items[0]["id"]
+
+    # Fallback: try REST list with name filter
+    resp = await client.rest_get(reg["endpoint"], {"name": identifier, "limit": 1})
+    results = resp.get("results", [])
+    if not results:
+        raise NautobotError(f"{object_type} '{identifier}' not found. Pass a UUID if lookup by name fails.")
+    return results[0]["id"]
+
+
+@mcp.tool()
+async def nautobot_get_schema(object_type: str) -> str:
+    """Get the full field schema for any Nautobot object type — required fields, optional fields, and field types.
+
+    Use this when you need to know exactly what fields an object type accepts before creating or updating.
+    Returns the OPTIONS metadata from the Nautobot REST API.
+
+    object_type — same types as nautobot_create (device, interface, vlan, prefix, etc.)
+    """
+    if object_type not in _OBJECT_REGISTRY:
+        return json.dumps({
+            "error": f"Unknown object_type '{object_type}'",
+            "valid_types": sorted(_OBJECT_REGISTRY.keys()),
+        })
+
+    reg = _OBJECT_REGISTRY[object_type]
+    logger.info(f"nautobot_get_schema type={object_type}")
+
+    try:
+        url = f"{client.url}/api/{reg['endpoint'].strip('/')}/"
+        resp = await client.http.request("OPTIONS", url)
+        if resp.status_code != 200:
+            return json.dumps({"error": f"OPTIONS returned {resp.status_code}"})
+        data = resp.json()
+        post_fields = data.get("actions", {}).get("POST", {})
+        if not post_fields:
+            return json.dumps({"error": "No POST schema available (read-only endpoint?)"})
+
+        # Build concise schema
+        schema = {"object_type": object_type, "endpoint": reg["endpoint"], "fields": {}}
+        for field_name, meta in sorted(post_fields.items()):
+            # Skip computed/read-only fields
+            if meta.get("read_only"):
+                continue
+            schema["fields"][field_name] = {
+                "type": meta.get("type", "unknown"),
+                "required": meta.get("required", False),
+                "label": meta.get("label", ""),
+            }
+            if meta.get("choices"):
+                schema["fields"][field_name]["choices"] = [
+                    c.get("value") for c in meta["choices"]
+                ]
+            if meta.get("help_text"):
+                schema["fields"][field_name]["help"] = meta["help_text"]
+
+        schema["auto_resolved_fields"] = list(reg["resolve"].keys())
+        return json.dumps(schema, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
 
 if __name__ == "__main__":
     mcp.run(transport="stdio")

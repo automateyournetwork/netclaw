@@ -87,6 +87,18 @@ class NautobotClient:
     async def rest_patch(self, endpoint: str, data: dict) -> dict[str, Any]:
         return await self._rest("PATCH", endpoint, json_body=data)
 
+    async def rest_delete(self, endpoint: str) -> dict[str, Any]:
+        return await self._rest("DELETE", endpoint)
+
+    async def rest_list(
+        self, endpoint: str, params: Optional[dict] = None, limit: int = 50, offset: int = 0
+    ) -> dict[str, Any]:
+        """GET a list endpoint with pagination."""
+        p = dict(params or {})
+        p["limit"] = limit
+        p["offset"] = offset
+        return await self._rest("GET", endpoint, params=p)
+
     async def _rest(
         self,
         method: str,
@@ -128,12 +140,22 @@ class NautobotClient:
             "status": '{{ statuses(name: "{}") {{ id }} }}'.format(_esc(name)),
             "role": '{{ roles(name: "{}") {{ id }} }}'.format(_esc(name)),
             "location": '{{ locations(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "location_type": '{{ location_types(name: "{}") {{ id }} }}'.format(_esc(name)),
             "device": '{{ devices(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "device_type": '{{ device_types(model: "{}") {{ id }} }}'.format(_esc(name)),
+            "manufacturer": '{{ manufacturers(name: "{}") {{ id }} }}'.format(_esc(name)),
             "platform": '{{ platforms(name: "{}") {{ id }} }}'.format(_esc(name)),
             "tenant": '{{ tenants(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "tenant_group": '{{ tenant_groups(name: "{}") {{ id }} }}'.format(_esc(name)),
             "vlan_group": '{{ vlan_groups(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "vrf": '{{ vrfs(name: "{}") {{ id }} }}'.format(_esc(name)),
             "cluster": '{{ clusters(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "cluster_type": '{{ cluster_types(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "cluster_group": '{{ cluster_groups(name: "{}") {{ id }} }}'.format(_esc(name)),
             "virtual_machine": '{{ virtual_machines(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "provider": '{{ providers(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "circuit_type": '{{ circuit_types(name: "{}") {{ id }} }}'.format(_esc(name)),
+            "tag": '{{ tags(name: "{}") {{ id }} }}'.format(_esc(name)),
         }
 
         if object_type == "namespace":
