@@ -101,72 +101,52 @@ class BGPConnector:
         **attributes
     ):
         """
-        Inject route into BGP.
+        Inject route into BGP and advertise to peers.
 
-        This would add a route to the RIB and advertise it to peers.
+        Uses the agent's originate_route method which installs in Loc-RIB
+        and triggers UPDATE advertisement to all established peers.
         """
         # Parse network
         parts = network.split("/")
         if len(parts) != 2:
             return {"success": False, "error": "Invalid network format"}
 
-        prefix = parts[0]
-        prefix_len = int(parts[1])
+        local_pref = attributes.get("local_pref", 100)
 
-        # Determine AFI/SAFI
-        import ipaddress
-        try:
-            addr = ipaddress.ip_address(prefix)
-            afi = 1 if addr.version == 4 else 2
-        except:
-            return {"success": False, "error": "Invalid IP address"}
+        # Use the agent's originate_route which actually sends UPDATEs
+        success = self.speaker.agent.originate_route(
+            prefix=network,
+            next_hop=next_hop,
+            local_pref=local_pref,
+        )
 
-        # Create route key
-        route_key = (prefix, prefix_len, afi, 1)  # SAFI 1 = unicast
-
-        # Build route info
-        route_info = {
-            "next_hop": next_hop or "0.0.0.0",
-            "as_path": as_path or [self.speaker.local_as],
-            "local_pref": attributes.get("local_pref", 100),
-            "med": attributes.get("med", 0),
-            "origin": attributes.get("origin", "igp")
-        }
-
-        # Add to RIB
-        if not hasattr(self.speaker, "rib"):
-            self.speaker.rib = {}
-
-        self.speaker.rib[route_key] = route_info
-
-        return {
-            "success": True,
-            "network": network,
-            "route_info": route_info
-        }
+        if success:
+            return {
+                "success": True,
+                "network": network,
+                "next_hop": next_hop or self.speaker.router_id,
+                "local_pref": local_pref,
+                "advertised": True,
+            }
+        else:
+            return {"success": False, "error": "Failed to originate route"}
 
     async def withdraw_route(self, network: str):
         """
-        Withdraw route from BGP.
+        Withdraw route from BGP and send WITHDRAW to peers.
 
-        Removes route from RIB and sends withdrawal to peers.
+        Removes from Loc-RIB and triggers UPDATE with withdrawal.
         """
-        # Parse network
-        parts = network.split("/")
-        if len(parts) != 2:
-            return {"success": False, "error": "Invalid network format"}
+        # Remove from Loc-RIB
+        removed = self.speaker.agent.loc_rib.remove_route(network)
+        if not removed:
+            return {"success": False, "error": f"Route {network} not found in Loc-RIB"}
 
-        prefix = parts[0]
-        prefix_len = int(parts[1])
+        # Trigger withdrawal advertisement to peers
+        import asyncio
+        asyncio.create_task(self.speaker.agent._advertise_routes([network]))
 
-        # Find and remove from RIB
-        if hasattr(self.speaker, "rib"):
-            for route_key in list(self.speaker.rib.keys()):
-                if route_key[0] == prefix and route_key[1] == prefix_len:
-                    del self.speaker.rib[route_key]
-                    return {"success": True, "network": network}
-
-        return {"success": False, "error": "Route not found"}
+        return {"success": True, "network": network, "withdrawn": True}
 
     async def adjust_local_pref(self, network: str, local_pref: int):
         """
