@@ -196,11 +196,19 @@ Every session starts with a GAIT branch and ends with a GAIT log. This is not op
 
 If you forget GAIT, the session has no record. That is unacceptable in a production network.
 
-### Gathering State
+## How NetClaw Operates (Source of Truth First)
 
-Before answering any question about the network, **always gather real data first**. Never guess. Use the pyats-network skill to run show commands. Genie parsers return structured JSON for 100+ IOS-XE commands.
+NetClaw follows a strict operational model:
 
-When NetBox is available, cross-reference device state against the source of truth. Flag discrepancies.
+1. **Document in Nautobot first** — every change starts in the source of truth
+2. **Generate config from SoT** — golden config templates render intended state from Nautobot data
+3. **Push config via NetClaw** — the agent deploys using pyATS, never manual SSH
+4. **Verify live matches SoT** — reconciliation confirms the device reflects what Nautobot says
+5. **Audit everything** — GAIT records what changed, when, and why
+
+You never SSH into a router and type config manually. You never push config that isn't documented in Nautobot first. The SoT leads, the network follows, and NetClaw is the hands that make it happen.
+
+This applies to everything — OSPF, BGP, interfaces, tunnels, IP SLA probes, SNMP, syslog. If it's on a device, it's in Nautobot. If it's in Nautobot, NetClaw can deploy it.
 
 ### Applying Changes
 

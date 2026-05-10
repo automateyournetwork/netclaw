@@ -1,0 +1,219 @@
+{
+  "uid": "bgp-route-stability",
+  "title": "BGP Route Stability & Path Quality",
+  "description": "Monitors BGP route announcements/withdrawals, flap damping penalties, interface status correlation, and IP SLA jitter/loss metrics",
+  "tags": ["bgp", "routing", "stability", "netclaw"],
+  "timezone": "browser",
+  "refresh": "30s",
+  "time": { "from": "now-1h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Route Withdrawals Rate (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(bgp_route_withdrawals_total[5m])",
+          "legendFormat": "{{prefix}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.05 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Route Announcements Rate (5m)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "rate(bgp_route_announcements_total[5m])",
+          "legendFormat": "{{prefix}}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Flap Damping Penalty",
+      "type": "gauge",
+      "gridPos": { "h": 8, "w": 8, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "bgp_route_flap_penalty",
+          "legendFormat": "{{prefix}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "min": 0,
+          "max": 3000,
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 750 },
+              { "color": "orange", "value": 2000 },
+              { "color": "red", "value": 3000 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Suppressed Routes",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 4, "x": 8, "y": 8 },
+      "targets": [
+        {
+          "expr": "sum(bgp_route_suppressed)",
+          "legendFormat": "Suppressed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "RIB Size",
+      "type": "stat",
+      "gridPos": { "h": 8, "w": 4, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "bgp_rib_size",
+          "legendFormat": "Routes"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "BGP Peer State",
+      "type": "table",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 8 },
+      "targets": [
+        {
+          "expr": "bgp_peer_state",
+          "legendFormat": "{{peer}}",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 7,
+      "title": "Interface Flaps (status transitions)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "targets": [
+        {
+          "expr": "changes(interface_status[5m])",
+          "legendFormat": "{{device_name}} {{interface}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 1 },
+              { "color": "red", "value": 3 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "IP SLA Jitter (avg ms)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "targets": [
+        {
+          "expr": "ip_sla_jitter_avg",
+          "legendFormat": "{{device_name}} probe"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 10 },
+              { "color": "red", "value": 50 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 9,
+      "title": "IP SLA Packet Loss",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 24 },
+      "targets": [
+        {
+          "expr": "rate(ip_sla_packet_loss_sd[5m])",
+          "legendFormat": "{{device_name}} SD loss"
+        },
+        {
+          "expr": "rate(ip_sla_packet_loss_ds[5m])",
+          "legendFormat": "{{device_name}} DS loss"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.01 },
+              { "color": "red", "value": 0.1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 10,
+      "title": "IP SLA Round-Trip Time",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 24 },
+      "targets": [
+        {
+          "expr": "ip_sla_rtt",
+          "legendFormat": "{{device_name}} RTT"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "thresholds": {
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 50 },
+              { "color": "red", "value": 200 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

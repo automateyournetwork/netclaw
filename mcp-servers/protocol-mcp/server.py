@@ -52,6 +52,30 @@ logging.basicConfig(
 logger = logging.getLogger("protocol-mcp")
 
 # ---------------------------------------------------------------------------
+# Metrics exporter (Prometheus format on :9179/metrics)
+# ---------------------------------------------------------------------------
+METRICS_ENABLED = os.environ.get("PROTOCOL_METRICS_ENABLED", "true").lower() in ("true", "1", "yes")
+METRICS_PORT = int(os.environ.get("PROTOCOL_METRICS_PORT", "9179"))
+
+if METRICS_ENABLED:
+    from metrics_exporter import (
+        start_metrics_server,
+        record_announcement,
+        record_withdrawal,
+        update_flap_penalty,
+        update_rib_size,
+        update_peer_state,
+    )
+    start_metrics_server(METRICS_PORT)
+else:
+    # No-op stubs when metrics disabled
+    def record_announcement(*a, **kw): pass
+    def record_withdrawal(*a, **kw): pass
+    def update_flap_penalty(*a, **kw): pass
+    def update_rib_size(*a, **kw): pass
+    def update_peer_state(*a, **kw): pass
+
+# ---------------------------------------------------------------------------
 # Late-import protocol modules (heavy deps like scapy)
 # ---------------------------------------------------------------------------
 _bgp_connector = None
@@ -145,6 +169,9 @@ async def bgp_get_peers() -> str:
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
     peers = await _bgp_connector.get_peers()
+    # Update metrics for each peer
+    for p in peers:
+        update_peer_state(p.get("peer", ""), p.get("state", ""), p.get("prefixes_received", 0))
     return _toon_dumps({"peers": peers, "count": len(peers)})
 
 
@@ -184,6 +211,9 @@ async def bgp_inject_route(
         as_path=parsed_path,
         local_pref=local_pref,
     )
+    if result.get("success"):
+        record_announcement(network, "local")
+        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size() if hasattr(_bgp_connector.speaker, 'agent') else 0)
     return _toon_dumps(result)
 
 
@@ -198,6 +228,9 @@ async def bgp_withdraw_route(network: str) -> str:
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
     result = await _bgp_connector.withdraw_route(network=network)
+    if result.get("success"):
+        record_withdrawal(network, "local")
+        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size() if hasattr(_bgp_connector.speaker, 'agent') else 0)
     return _toon_dumps(result)
 
 

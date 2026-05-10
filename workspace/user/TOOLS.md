@@ -76,6 +76,81 @@ DNS-02 → 192.168.220.21, DNS server, EOS
 - **EVPN/VXLAN:** West and East DC fabrics (spine-leaf)
 - **MLAG:** Leaf pairs (West-Leaf01/02, East-Leaf01/02)
 
+## Protocol MCP — BGP Participation
+
+NetClaw participates as a live BGP peer via the **Protocol MCP server** (built-in, scapy-based). This is NOT ExaBGP, GoBGP, BIRD, or any external daemon. The speaker is implemented in Python using raw scapy packets.
+
+**CRITICAL RULES:**
+- DO NOT install or use ExaBGP, GoBGP, BIRD, FRR, or any external BGP daemon
+- DO NOT try to build a new BGP implementation
+- DO NOT modify the Protocol MCP server code to add external dependencies
+- USE ONLY the built-in tools: `bgp_get_peers`, `bgp_get_rib`, `bgp_inject_route`, `bgp_withdraw_route`, `bgp_adjust_local_pref`, `protocol_summary`
+- The Protocol MCP server handles all BGP session management internally via scapy
+
+**Architecture — GRE Tunnel Peering:**
+
+The management interfaces on ContainerLab devices are in VRF `clab-mgmt`. BGP peering in a VRF won't reflect routes to the global table (where PE1/PE2/PE3 live). So we use a GRE tunnel to bridge into the global routing domain:
+
+```
+NetClaw Host (192.168.220.1)                    RR1 (192.168.220.11)
+     │                                               │
+     │  GRE tunnel (transport via clab-mgmt L2)      │
+     │  local: 192.168.220.1                         │
+     │  remote: 192.168.220.11                       │
+     │                                               │
+     ├─ gre-rr1 interface: 10.255.255.1/30           ├─ Tunnel0: 10.255.255.2/30
+     │  (global table on host)                       │  (global table on RR1)
+     │                                               │
+     └─ eBGP session: 10.255.255.1 ──────────────── 10.255.255.2
+        AS 65099                                     AS 65000
+```
+
+The GRE tunnel's underlay uses the clab-mgmt IPs (reachable at L2), but the tunnel interface itself lives in the global routing table on RR1. This means routes injected by NetClaw get reflected to PE1/PE2/PE3 via iBGP — exactly like a real eBGP peer.
+
+**Host-side GRE setup (run once, or add to a startup script):**
+```bash
+sudo ip tunnel add gre-rr1 mode gre remote 192.168.220.11 local 192.168.220.1
+sudo ip addr add 10.255.255.1/30 dev gre-rr1
+sudo ip link set gre-rr1 up
+```
+
+**RR1-side config (apply via pyATS or SSH):**
+```
+interface Tunnel0
+ ip address 10.255.255.2 255.255.255.252
+ tunnel source Ethernet0/0
+ tunnel destination 192.168.220.1
+!
+router bgp 65000
+ neighbor 10.255.255.1 remote-as 65099
+ neighbor 10.255.255.1 description NetClaw-Protocol-MCP
+ neighbor 10.255.255.1 update-source Tunnel0
+ address-family ipv4 unicast
+  neighbor 10.255.255.1 activate
+  neighbor 10.255.255.1 route-map NETCLAW-IN in
+  neighbor 10.255.255.1 route-map NETCLAW-OUT out
+!
+route-map NETCLAW-IN permit 10
+ set local-preference 50
+!
+route-map NETCLAW-OUT permit 10
+```
+
+**Environment variables (set in openclaw.json):**
+```
+NETCLAW_ROUTER_ID=4.4.4.4
+NETCLAW_LOCAL_AS=65099
+NETCLAW_BGP_PEERS=[{"ip":"10.255.255.2","as":65000}]
+```
+
+**How it works:**
+- The Protocol MCP server starts when the OpenClaw gateway launches
+- It initializes a BGP speaker using scapy raw sockets (requires cap_net_raw on Python binary)
+- It establishes an eBGP session with RR1 at 10.255.255.2 via the GRE tunnel
+- RR1 reflects injected routes to PE1/PE2/PE3 via iBGP (global table)
+- All 10 protocol tools are then available to the agent
+- Metrics are exported at :9179/metrics (Prometheus format) for the observability stack
+
 ## Golden Config and Data Source Git Repos
 
 These repos are pre-built and ready for Nautobot:

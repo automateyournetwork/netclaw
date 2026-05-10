@@ -1,0 +1,14 @@
+# VictoriaMetrics scrape config for Protocol MCP BGP metrics
+#
+# The Protocol MCP server exposes Prometheus metrics at :9179/metrics
+# on the host machine. Since VictoriaMetrics runs on the clab-mgmt
+# network, it reaches the host at 192.168.220.1 (bridge gateway).
+
+scrape_configs:
+  - job_name: "protocol-mcp"
+    scrape_interval: 15s
+    static_configs:
+      - targets: ["192.168.220.1:9179"]
+        labels:
+          service: "netclaw-protocol-mcp"
+          component: "bgp-speaker"

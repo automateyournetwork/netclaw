@@ -4,12 +4,12 @@ datasources:
   - name: VictoriaMetrics
     type: prometheus
     access: proxy
-    url: http://victoriametrics:8428
+    url: http://192.168.220.201:8428
     isDefault: true
     editable: true
 
   - name: Loki
     type: loki
     access: proxy
-    url: http://loki:3100
+    url: http://192.168.220.202:3100
     editable: true

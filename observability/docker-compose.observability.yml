@@ -33,10 +33,12 @@ services:
     restart: unless-stopped
     volumes:
       - vm-data:/storage
+      - ./victoriametrics/scrape.yml:/etc/victoriametrics/scrape.yml:ro
     command:
       - "--storageDataPath=/storage"
       - "--httpListenAddr=:8428"
       - "--retentionPeriod=30d"
+      - "--promscrape.config=/etc/victoriametrics/scrape.yml"
     ports:
       - "8428:8428"
     networks:

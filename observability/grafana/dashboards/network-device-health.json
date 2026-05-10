@@ -1,10 +1,17 @@
 {
   "uid": "netclaw-device-health",
   "title": "Network Device Health",
-  "tags": ["netclaw", "network", "health"],
+  "tags": [
+    "netclaw",
+    "network",
+    "health"
+  ],
   "timezone": "browser",
   "refresh": "30s",
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -14,66 +21,24 @@
         "query": "label_values(interface_status, device_name)",
         "multi": true,
         "includeAll": true,
-        "current": { "text": "All", "value": "$__all" }
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
   "panels": [
     {
-      "id": 1,
-      "title": "CPU Utilization",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
-      "datasource": "VictoriaMetrics",
-      "targets": [
-        {
-          "expr": "system_cpu_utilization{device_name=~\"$device\"}",
-          "legendFormat": "{{device_name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "thresholds": {
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 60 },
-              { "color": "red", "value": 85 }
-            ]
-          }
-        }
-      }
-    },
-    {
-      "id": 2,
-      "title": "Memory Utilization",
-      "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
-      "datasource": "VictoriaMetrics",
-      "targets": [
-        {
-          "expr": "system_memory_utilization{device_name=~\"$device\"}",
-          "legendFormat": "{{device_name}}"
-        }
-      ],
-      "fieldConfig": {
-        "defaults": {
-          "unit": "percent",
-          "thresholds": {
-            "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 70 },
-              { "color": "red", "value": 90 }
-            ]
-          }
-        }
-      }
-    },
-    {
       "id": 3,
       "title": "Device Status (Interfaces Up)",
       "type": "stat",
-      "gridPos": { "h": 6, "w": 24, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 6,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
@@ -84,11 +49,19 @@
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "color": { "mode": "thresholds" },
+          "color": {
+            "mode": "thresholds"
+          },
           "thresholds": {
             "steps": [
-              { "color": "red", "value": null },
-              { "color": "green", "value": 1 }
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
             ]
           }
         }
@@ -98,16 +71,21 @@
       "id": 4,
       "title": "Interface Errors (All Devices)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 14 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "rate(interface_errors_in{device_name=~\"$device\"}[5m])",
-          "legendFormat": "{{device_name}} {{interface_name}} IN"
+          "expr": "rate(interface_errors_in_total{device_name=~\"$device\"}[5m])",
+          "legendFormat": "{{device_name}} {{interface}} IN"
         },
         {
-          "expr": "rate(interface_errors_out{device_name=~\"$device\"}[5m])",
-          "legendFormat": "{{device_name}} {{interface_name}} OUT"
+          "expr": "rate(interface_errors_out_total{device_name=~\"$device\"}[5m])",
+          "legendFormat": "{{device_name}} {{interface}} OUT"
         }
       ],
       "fieldConfig": {
@@ -115,13 +93,120 @@
           "unit": "errors/s",
           "thresholds": {
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "yellow", "value": 1 },
-              { "color": "red", "value": 10 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 10
+              }
             ]
           }
         }
       }
+    },
+    {
+      "id": 10,
+      "title": "Device Overview",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 0,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "count(interface_status == 1)",
+          "legendFormat": "Interfaces Up"
+        }
+      ],
+      "datasource": "VictoriaMetrics"
+    },
+    {
+      "id": 11,
+      "title": "Total Devices",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 4,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "count(count(interface_status) by (device_name))",
+          "legendFormat": "Devices"
+        }
+      ],
+      "datasource": "VictoriaMetrics"
+    },
+    {
+      "id": 12,
+      "title": "Total Errors (All Devices)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 8,
+        "y": 0
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(interface_errors_in_total[5m])) + sum(rate(interface_errors_out_total[5m]))",
+          "legendFormat": "Errors/s"
+        }
+      ],
+      "datasource": "VictoriaMetrics"
+    },
+    {
+      "id": 13,
+      "title": "Interfaces Up",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "count(interface_status{device_name=~\"$device\"} == 1) by (device_name)",
+          "legendFormat": "{{device_name}}"
+        },
+        {
+          "expr": "count(interface_status{device_name=~\"$device\"} == 2) by (device_name)",
+          "legendFormat": "{{device_name}} (down)"
+        }
+      ],
+      "datasource": "VictoriaMetrics"
+    },
+    {
+      "id": 14,
+      "title": "Traffic per Device",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "targets": [
+        {
+          "expr": "sum(rate(interface_octets_in_bytes_total{device_name=~\"$device\"}[5m])) by (device_name) * 8",
+          "legendFormat": "{{device_name}} in"
+        },
+        {
+          "expr": "sum(rate(interface_octets_out_bytes_total{device_name=~\"$device\"}[5m])) by (device_name) * 8",
+          "legendFormat": "{{device_name}} out"
+        }
+      ],
+      "datasource": "VictoriaMetrics"
     }
   ],
   "schemaVersion": 39

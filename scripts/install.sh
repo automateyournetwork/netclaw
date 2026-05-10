@@ -38,6 +38,9 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
+VENV_DIR="$NETCLAW_DIR/.venv"
+VENV_PYTHON="$VENV_DIR/bin/python3"
+VENV_PIP="$VENV_DIR/bin/pip3"
 TOTAL_STEPS=55
 
 echo "========================================="
@@ -88,6 +91,31 @@ if [ "$MISSING" -eq 1 ]; then
 fi
 
 log_info "All prerequisites satisfied."
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 1b: Create Python Virtual Environment
+# ═══════════════════════════════════════════
+
+log_step "1b/$TOTAL_STEPS Creating Python virtual environment..."
+
+if [ -d "$VENV_DIR" ]; then
+    log_info "Virtual environment already exists: $VENV_DIR"
+else
+    log_info "Creating virtual environment at $VENV_DIR..."
+    python3 -m venv "$VENV_DIR"
+    log_info "Virtual environment created"
+fi
+
+# Upgrade pip in venv
+"$VENV_PIP" install --upgrade pip 2>/dev/null || true
+log_info "Using venv Python: $VENV_PYTHON"
+log_info "Using venv pip: $VENV_PIP"
+
+# All subsequent pip3 calls use the venv
+pip3() { "$VENV_PIP" "$@"; }
+export -f pip3 2>/dev/null || true
+
 echo ""
 
 # ═══════════════════════════════════════════
@@ -1468,6 +1496,17 @@ if [ -d "$PROTOCOL_MCP_DIR" ]; then
                 log_warn "Protocol MCP core deps install failed"
         }
     fi
+
+    # Grant raw socket capabilities to the venv Python (required for scapy BGP/OSPF)
+    REAL_PYTHON=$(readlink -f "$VENV_PYTHON")
+    if [ "$(uname)" = "Linux" ] && command -v setcap &> /dev/null; then
+        if sudo setcap cap_net_raw,cap_net_admin+eip "$REAL_PYTHON" 2>/dev/null; then
+            log_info "cap_net_raw,cap_net_admin set on $REAL_PYTHON (Protocol MCP scapy enabled)"
+        else
+            log_warn "Could not set capabilities on $REAL_PYTHON — Protocol MCP may require sudo"
+        fi
+    fi
+
     log_info "Protocol MCP installed (stdio transport via FastMCP)"
 fi
 
@@ -2116,8 +2155,9 @@ fi
 # Deploy openclaw.json config ONLY if onboard didn't already create one
 if [ ! -f "$OPENCLAW_DIR/openclaw.json" ]; then
     if [ -f "$NETCLAW_DIR/config/openclaw.json" ]; then
-        cp "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
-        log_info "Deployed fallback openclaw.json (gateway.mode=local)"
+        # Replace hardcoded paths with actual install location
+        sed "s|/home/ubuntu/netclaw|$NETCLAW_DIR|g" "$NETCLAW_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
+        log_info "Deployed openclaw.json (paths adjusted to $NETCLAW_DIR)"
     else
         log_warn "config/openclaw.json not found in repo"
     fi

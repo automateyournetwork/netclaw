@@ -32,7 +32,7 @@
   },
   "mcpServers": {
     "pyats-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/mcp-servers/pyATS_MCP/pyats_mcp_server.py"
@@ -42,7 +42,7 @@
       }
     },
     "gait-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/scripts/gait-stdio.py"
@@ -55,7 +55,7 @@
       ]
     },
     "nautobot-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/mcp-servers/nautobot-mcp-v2/server.py"
@@ -70,28 +70,28 @@
       }
     },
     "wikipedia-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/mcp-servers/Wikipedia_MCP/main.py"
       ]
     },
     "subnet-calculator-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py"
       ]
     },
     "nmap-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "/opt/netclaw/mcp-servers/nmap-mcp/server.py"
       ]
     },
     "mempalace-mcp": {
-      "command": "/opt/venv/bin/python3",
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
       "args": [
         "-u",
         "-m",
@@ -138,6 +138,20 @@
         "PROXMOX_TOKEN_NAME": "${PROXMOX_TOKEN_NAME:-mcpserver}",
         "PROXMOX_TOKEN_VALUE": "${PROXMOX_TOKEN_VALUE}",
         "PROXMOX_ALLOW_ELEVATED": "${PROXMOX_ALLOW_ELEVATED:-false}"
+      }
+    },
+    "protocol-mcp": {
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "args": [
+        "-u",
+        "/home/ubuntu/netclaw/mcp-servers/protocol-mcp/server.py"
+      ],
+      "env": {
+        "NETCLAW_ROUTER_ID": "${NETCLAW_ROUTER_ID:-4.4.4.4}",
+        "NETCLAW_LOCAL_AS": "${NETCLAW_LOCAL_AS:-65099}",
+        "NETCLAW_BGP_PEERS": "${NETCLAW_BGP_PEERS:-[{\"ip\":\"10.255.255.2\",\"as\":65000}]}",
+        "NETCLAW_LAB_MODE": "${NETCLAW_LAB_MODE:-true}",
+        "PROTOCOL_METRICS_ENABLED": "${PROTOCOL_METRICS_ENABLED:-true}"
       }
     }
   }

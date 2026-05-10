@@ -1,10 +1,17 @@
 {
   "uid": "netclaw-interface-status",
   "title": "Interface Status",
-  "tags": ["netclaw", "network", "interfaces"],
+  "tags": [
+    "netclaw",
+    "network",
+    "interfaces"
+  ],
   "timezone": "browser",
   "refresh": "30s",
-  "time": { "from": "now-1h", "to": "now" },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -19,10 +26,13 @@
         "name": "interface",
         "type": "query",
         "datasource": "VictoriaMetrics",
-        "query": "label_values(interface_status{device_name=\"$device\"}, interface_name)",
+        "query": "label_values(interface_status{device_name=\"$device\"}, interface)",
         "multi": true,
         "includeAll": true,
-        "current": { "text": "All", "value": "$__all" }
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        }
       }
     ]
   },
@@ -31,11 +41,16 @@
       "id": 1,
       "title": "Interface Operational Status",
       "type": "table",
-      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 0 },
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "interface_status{device_name=\"$device\", interface_name=~\"$interface\"}",
+          "expr": "interface_status{device_name=\"$device\", interface=~\"$interface\"}",
           "format": "table",
           "instant": true
         }
@@ -44,10 +59,13 @@
         {
           "id": "organize",
           "options": {
-            "excludeByName": { "Time": true, "__name__": true },
+            "excludeByName": {
+              "Time": true,
+              "__name__": true
+            },
             "renameByName": {
               "device_name": "Device",
-              "interface_name": "Interface",
+              "interface": "Interface",
               "Value": "Status (1=Up)"
             }
           }
@@ -58,68 +76,94 @@
       "id": 2,
       "title": "Inbound Traffic (bits/s)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "rate(interface_octets_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m]) * 8",
-          "legendFormat": "{{interface_name}}"
+          "expr": "rate(interface_octets_in_bytes_total{device_name=\"$device\", interface=~\"$interface\"}[5m]) * 8",
+          "legendFormat": "{{interface}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "bps" }
+        "defaults": {
+          "unit": "bps"
+        }
       }
     },
     {
       "id": 3,
       "title": "Outbound Traffic (bits/s)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "rate(interface_octets_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m]) * 8",
-          "legendFormat": "{{interface_name}}"
+          "expr": "rate(interface_octets_out_bytes_total{device_name=\"$device\", interface=~\"$interface\"}[5m]) * 8",
+          "legendFormat": "{{interface}}"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "bps" }
+        "defaults": {
+          "unit": "bps"
+        }
       }
     },
     {
       "id": 4,
       "title": "Packets/s (In vs Out)",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "rate(interface_packets_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
-          "legendFormat": "{{interface_name}} IN"
+          "expr": "rate(interface_packets_in_total{device_name=\"$device\", interface=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface}} IN"
         },
         {
-          "expr": "rate(interface_packets_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
-          "legendFormat": "{{interface_name}} OUT"
+          "expr": "rate(interface_packets_out_total{device_name=\"$device\", interface=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface}} OUT"
         }
       ],
       "fieldConfig": {
-        "defaults": { "unit": "pps" }
+        "defaults": {
+          "unit": "pps"
+        }
       }
     },
     {
       "id": 5,
       "title": "Interface Errors",
       "type": "timeseries",
-      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
       "datasource": "VictoriaMetrics",
       "targets": [
         {
-          "expr": "rate(interface_errors_in{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
-          "legendFormat": "{{interface_name}} IN errors"
+          "expr": "rate(interface_errors_in_total{device_name=\"$device\", interface=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface}} IN errors"
         },
         {
-          "expr": "rate(interface_errors_out{device_name=\"$device\", interface_name=~\"$interface\"}[5m])",
-          "legendFormat": "{{interface_name}} OUT errors"
+          "expr": "rate(interface_errors_out_total{device_name=\"$device\", interface=~\"$interface\"}[5m])",
+          "legendFormat": "{{interface}} OUT errors"
         }
       ],
       "fieldConfig": {
@@ -127,8 +171,14 @@
           "unit": "errors/s",
           "thresholds": {
             "steps": [
-              { "color": "green", "value": null },
-              { "color": "red", "value": 1 }
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
             ]
           }
         }
