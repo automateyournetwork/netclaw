@@ -161,6 +161,35 @@ These repos are pre-built and ready for Nautobot:
 - Properties: https://github.com/byrn-baker/nautobot_workshop_golden_config_properties
 - SoT/config: https://github.com/byrn-baker/golden_config_git
 
+## Golden Config MCP Server (nautobot-golden-config-mcp)
+
+Dedicated MCP server for golden config lifecycle operations. Replaces the scattered golden config tools in nautobot-mcp-v2 with purpose-built, one-call tools.
+
+**Config Lifecycle (one call per operation):**
+- `golden_config_generate_intended(device=)` — render intended config from templates + SoT
+- `golden_config_backup(device=)` — pull running config from device(s)
+- `golden_config_compliance(device=)` — compare intended vs backup
+- `golden_config_full_pipeline(device=)` — run all three in sequence
+- `golden_config_remediate(device=, cr_number=)` — push intended to fix drift (ITSM-gated)
+
+**Config Inspection (one call per query):**
+- `golden_config_get_intended(device=)` — get rendered intended config text
+- `golden_config_get_backup(device=)` — get latest backup config text
+- `golden_config_get_compliance_diff(device=)` — per-feature diffs (missing/extra)
+- `golden_config_get_compliance_summary(device=, feature=)` — compliance table
+
+**Template & Context:**
+- `golden_config_get_templates(device=)` — list templates for a device
+- `golden_config_render_preview(device=)` — preview rendered config
+- `golden_config_get_device_context(device=)` — merged config context
+- `golden_config_update_device_context(device=, key=, value=)` — update context key
+- `golden_config_update_template(path=, content=)` — prepare template for git commit
+
+**Setup:**
+- `golden_config_get_settings()` — current GC settings (repos, paths, query)
+- `golden_config_create_compliance_feature(name=)` — create feature
+- `golden_config_create_compliance_rule(feature=, platform=, match_config=)` — create rule
+
 ## Platform Credentials
 
 All credentials are in `~/.openclaw/.env`. Never put credentials in skill files or this document.

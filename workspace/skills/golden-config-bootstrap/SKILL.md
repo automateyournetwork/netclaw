@@ -13,6 +13,23 @@ Interactively set up the Nautobot Golden Config plugin from scratch. This is a c
 
 ## MCP Tools Used
 
+### Primary Tools (nautobot-golden-config-mcp)
+- **golden_config_get_settings** — check current GC state (repos, paths, SoT query)
+- **golden_config_get_device_context** — get merged config context for a device
+- **golden_config_update_device_context** — update config context keys
+- **golden_config_get_templates** — list templates for a device's platform/role
+- **golden_config_render_preview** — preview rendered intended config
+- **golden_config_generate_intended** — trigger intended config generation
+- **golden_config_backup** — pull running config backup
+- **golden_config_compliance** — run compliance check
+- **golden_config_get_compliance_diff** — view per-feature diffs
+- **golden_config_get_compliance_summary** — compliance status table
+- **golden_config_create_compliance_feature** — create compliance features
+- **golden_config_create_compliance_rule** — create compliance rules
+- **golden_config_update_template** — prepare template updates for git commit
+- **golden_config_full_pipeline** — run intended → backup → compliance in one call
+- **golden_config_remediate** — push intended config to fix drift (ITSM-gated)
+
 ### Device Config Collection
 - **pyATS MCP**: `pyats_run_command` — collect `show running-config` from devices
 
@@ -20,18 +37,15 @@ Interactively set up the Nautobot Golden Config plugin from scratch. This is a c
 - **nautobot-mcp-v2**: `cisco_design_reference` — Cisco best practices, config examples, rationale, RFCs per feature
 - **RFC MCP**: `rfc_lookup` — deep-dive into specific standards (NTP, syslog, SNMP, SSH)
 
-### Nautobot Configuration
+### Nautobot Configuration (via nautobot-mcp-v2)
 - **nautobot-mcp-v2**: `nautobot_get_devices` — discover devices in scope
 - **nautobot-mcp-v2**: `nautobot_get_interfaces` — get interface inventory for template generation
 - **nautobot-mcp-v2**: `nautobot_get_vlans` — get VLAN inventory
 - **nautobot-mcp-v2**: `nautobot_graphql` — query config_context, locations, platforms
-- **nautobot-mcp-v2**: `nautobot_create_compliance_feature` — create compliance features
-- **nautobot-mcp-v2**: `nautobot_create_compliance_rule` — create compliance rules with match_config patterns
 - **nautobot-mcp-v2**: `nautobot_create_graphql_query` — create SoT aggregation query
 - **nautobot-mcp-v2**: `nautobot_create_git_repository` — register git repo in Nautobot
 - **nautobot-mcp-v2**: `nautobot_update_golden_config_setting` — wire repos, paths, SoT query
-- **nautobot-mcp-v2**: `nautobot_get_golden_config_settings` — check current GC state
-- **nautobot-mcp-v2**: `nautobot_get_compliance_rules` — verify what's already configured
+- **nautobot-mcp-v2**: `nautobot_sync_git_repository` — sync git repo after template changes
 
 ### GitHub Repository
 - **GitHub MCP**: `create_repository` — create private repo for templates

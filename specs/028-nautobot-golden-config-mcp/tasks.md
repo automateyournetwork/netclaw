@@ -8,12 +8,12 @@
 
 ## Phase 1: Server Scaffold
 
-- [ ] T001 Create `mcp-servers/nautobot-golden-config-mcp/` directory structure
-- [ ] T002 Create `server.py` with FastMCP scaffold, env var loading, logging
-- [ ] T003 Create `nautobot_client.py` — shared async HTTP client (REST + GraphQL) with auth
-- [ ] T004 Create `job_runner.py` — trigger job + poll-until-complete pattern
-- [ ] T005 Create `requirements.txt` (httpx, fastmcp, mcp)
-- [ ] T006 Register in `config/openclaw.json` with `.venv/bin/python3` path
+- [x] T001 Create `mcp-servers/nautobot-golden-config-mcp/` directory structure
+- [x] T002 Create `server.py` with FastMCP scaffold, env var loading, logging
+- [x] T003 Create `nautobot_client.py` — shared async HTTP client (REST + GraphQL) with auth
+- [x] T004 Create `job_runner.py` — trigger job + poll-until-complete pattern
+- [x] T005 Create `requirements.txt` (httpx, fastmcp, mcp)
+- [x] T006 Register in `config/openclaw.json` with `.venv/bin/python3` path
 
 **Checkpoint**: Server starts, connects to Nautobot, no tools yet.
 
@@ -21,11 +21,11 @@
 
 ## Phase 2: Config Lifecycle Tools (Core)
 
-- [ ] T007 Implement `golden_config_generate_intended(device=)` — triggers IntendedJob, waits, returns status
-- [ ] T008 Implement `golden_config_backup(device=)` — triggers BackupJob, waits, returns status
-- [ ] T009 Implement `golden_config_compliance(device=)` — triggers ComplianceJob, waits, returns summary
-- [ ] T010 Implement `golden_config_full_pipeline(device=)` — runs intended → backup → compliance in sequence
-- [ ] T011 Implement `golden_config_remediate(device=)` — pushes intended config to fix drift
+- [x] T007 Implement `golden_config_generate_intended(device=)` — triggers IntendedJob, waits, returns status
+- [x] T008 Implement `golden_config_backup(device=)` — triggers BackupJob, waits, returns status
+- [x] T009 Implement `golden_config_compliance(device=)` — triggers ComplianceJob, waits, returns summary
+- [x] T010 Implement `golden_config_full_pipeline(device=)` — runs intended → backup → compliance in sequence
+- [x] T011 Implement `golden_config_remediate(device=)` — pushes intended config to fix drift
 
 **Checkpoint**: LLM can run the full pipeline in 1-3 tool calls. SC-001 met.
 
@@ -33,10 +33,10 @@
 
 ## Phase 3: Config Inspection Tools
 
-- [ ] T012 Implement `golden_config_get_intended(device=)` — returns rendered intended config text
-- [ ] T013 Implement `golden_config_get_backup(device=)` — returns latest backup config text
-- [ ] T014 Implement `golden_config_get_compliance_diff(device=)` — returns per-feature diffs (missing/extra lines)
-- [ ] T015 Implement `golden_config_get_compliance_summary(device=, feature=)` — returns compliance table
+- [x] T012 Implement `golden_config_get_intended(device=)` — returns rendered intended config text
+- [x] T013 Implement `golden_config_get_backup(device=)` — returns latest backup config text
+- [x] T014 Implement `golden_config_get_compliance_diff(device=)` — returns per-feature diffs (missing/extra lines)
+- [x] T015 Implement `golden_config_get_compliance_summary(device=, feature=)` — returns compliance table
 
 **Checkpoint**: LLM can inspect compliance state in 1 call. SC-002, SC-003 met.
 
@@ -44,11 +44,11 @@
 
 ## Phase 4: Template & Context Tools
 
-- [ ] T016 Implement `golden_config_get_templates(device=)` — lists templates for a device's platform/role
-- [ ] T017 Implement `golden_config_render_preview(device=)` — renders template with device context (no save)
-- [ ] T018 Implement `golden_config_get_device_context(device=)` — returns merged config context
-- [ ] T019 Implement `golden_config_update_device_context(device=, key=, value=)` — updates a config context key
-- [ ] T020 Implement `golden_config_update_template(path=, content=)` — commits template change to git
+- [x] T016 Implement `golden_config_get_templates(device=)` — lists templates for a device's platform/role
+- [x] T017 Implement `golden_config_render_preview(device=)` — renders template with device context (no save)
+- [x] T018 Implement `golden_config_get_device_context(device=)` — returns merged config context
+- [x] T019 Implement `golden_config_update_device_context(device=, key=, value=)` — updates a config context key
+- [x] T020 Implement `golden_config_update_template(path=, content=)` — commits template change to git
 
 **Checkpoint**: LLM can preview and modify templates/contexts. SC-005, SC-006 met.
 
@@ -56,9 +56,9 @@
 
 ## Phase 5: Setup Tools
 
-- [ ] T021 Implement `golden_config_get_settings()` — returns current GC settings (repos, paths, query)
-- [ ] T022 Implement `golden_config_create_compliance_feature(name=, description=)` — creates feature
-- [ ] T023 Implement `golden_config_create_compliance_rule(feature=, platform=, match_config=)` — creates rule
+- [x] T021 Implement `golden_config_get_settings()` — returns current GC settings (repos, paths, query)
+- [x] T022 Implement `golden_config_create_compliance_feature(name=, description=)` — creates feature
+- [x] T023 Implement `golden_config_create_compliance_rule(feature=, platform=, match_config=)` — creates rule
 
 **Checkpoint**: LLM can set up golden config from scratch.
 
@@ -66,9 +66,9 @@
 
 ## Phase 6: Integration & Deprecation
 
-- [ ] T024 Add deprecation warnings to golden config tools in nautobot-mcp-v2 (point to new server)
-- [ ] T025 Update `workspace/skills/golden-config-bootstrap/SKILL.md` to reference new MCP server tools
-- [ ] T026 Update `workspace/user/TOOLS.md` with golden config MCP server documentation
+- [x] T024 Add deprecation warnings to golden config tools in nautobot-mcp-v2 (point to new server)
+- [x] T025 Update `workspace/skills/golden-config-bootstrap/SKILL.md` to reference new MCP server tools
+- [x] T026 Update `workspace/user/TOOLS.md` with golden config MCP server documentation
 - [ ] T027 Test full pipeline: update config context → generate intended → compliance → remediate
 
 **Checkpoint**: End-to-end workflow works. SC-007 met (context burn < 200 tokens per operation).

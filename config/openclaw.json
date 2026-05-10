@@ -153,6 +153,23 @@
         "NETCLAW_LAB_MODE": "${NETCLAW_LAB_MODE:-true}",
         "PROTOCOL_METRICS_ENABLED": "${PROTOCOL_METRICS_ENABLED:-true}"
       }
+    },
+    "nautobot-golden-config-mcp": {
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "args": [
+        "-u",
+        "/home/ubuntu/netclaw/mcp-servers/nautobot-golden-config-mcp/server.py"
+      ],
+      "env": {
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NAUTOBOT_VERIFY_SSL": "${NAUTOBOT_VERIFY_SSL:-false}",
+        "NAUTOBOT_TIMEOUT": "${NAUTOBOT_TIMEOUT:-60}",
+        "GOLDEN_CONFIG_POLL_INTERVAL": "${GOLDEN_CONFIG_POLL_INTERVAL:-5}",
+        "GOLDEN_CONFIG_JOB_TIMEOUT": "${GOLDEN_CONFIG_JOB_TIMEOUT:-300}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-true}"
+      }
     }
   }
 }

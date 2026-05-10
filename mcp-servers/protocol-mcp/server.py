@@ -130,7 +130,8 @@ async def _ensure_init():
                         hostname=is_hostname,
                     )
             _bgp_connector = BGPConnector(_bgp_speaker)
-            logger.info("BGP speaker initialised — AS %s, %d peer(s)", LOCAL_AS, len(bgp_peers))
+            await _bgp_speaker.start()
+            logger.info("BGP speaker started — AS %s, %d peer(s)", LOCAL_AS, len(bgp_peers))
         except Exception as exc:
             logger.warning("BGP init skipped: %s", exc)
 

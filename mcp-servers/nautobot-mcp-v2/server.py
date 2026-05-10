@@ -727,7 +727,11 @@ async def nautobot_get_golden_configs(
     limit: int = 50,
     offset: int = 0,
 ) -> str:
-    """Query golden config records — backup, intended, and compliance configs per device."""
+    """Query golden config records — backup, intended, and compliance configs per device.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_get_intended(device=) or golden_config_get_backup(device=)
+    """
     logger.info(f"nautobot_get_golden_configs device={device}")
     filt = _gql_filters(device=device, limit=limit, offset=offset)
     query = f"""{{
@@ -755,7 +759,11 @@ async def nautobot_get_config_compliance(
     limit: int = 50,
     offset: int = 0,
 ) -> str:
-    """Query config compliance status per device and feature. Shows compliant/non-compliant with actual vs intended diffs."""
+    """Query config compliance status per device and feature. Shows compliant/non-compliant with actual vs intended diffs.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_get_compliance_summary(device=) or golden_config_get_compliance_diff(device=)
+    """
     logger.info(f"nautobot_get_config_compliance device={device}")
     filt = _gql_filters(device=device, limit=limit, offset=offset)
     query = f"""{{
@@ -784,7 +792,11 @@ async def nautobot_get_compliance_rules(
     limit: int = 50,
     offset: int = 0,
 ) -> str:
-    """Query compliance features and rules. Shows what config sections are being checked and the match patterns."""
+    """Query compliance features and rules. Shows what config sections are being checked and the match patterns.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_get_settings()
+    """
     logger.info("nautobot_get_compliance_rules")
     try:
         feat_data = await client.graphql(
@@ -806,7 +818,11 @@ async def nautobot_get_compliance_rules(
 
 @mcp.tool()
 async def nautobot_get_golden_config_settings() -> str:
-    """Query golden config settings — repos, path templates, SoT query, and dynamic group scope."""
+    """Query golden config settings — repos, path templates, SoT query, and dynamic group scope.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_get_settings()
+    """
     logger.info("nautobot_get_golden_config_settings")
     try:
         data = await client.rest_get("plugins/golden-config/golden-config-settings")
@@ -847,7 +863,11 @@ async def nautobot_create_compliance_feature(
     description: Optional[str] = None,
     cr_number: Optional[str] = None,
 ) -> str:
-    """Create a compliance feature (e.g., 'aaa', 'ntp', 'logging', 'snmp', 'acl'). ITSM-gated."""
+    """Create a compliance feature (e.g., 'aaa', 'ntp', 'logging', 'snmp', 'acl'). ITSM-gated.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_create_compliance_feature(name=, description=)
+    """
     blocked = _check_itsm(cr_number)
     if blocked:
         return json.dumps({"error": blocked})
@@ -874,6 +894,9 @@ async def nautobot_create_compliance_rule(
     cr_number: Optional[str] = None,
 ) -> str:
     """Create a compliance rule linking a feature to a platform with a config match pattern. ITSM-gated.
+
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_create_compliance_rule(feature=, platform=, match_config=)
 
     feature: Compliance feature name (e.g., 'aaa')
     platform: Platform name (e.g., 'cisco_ios')
@@ -2355,6 +2378,9 @@ async def nautobot_get_device_config_context(
 ) -> str:
     """Get the merged config context for a device as the golden config templates see it.
 
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_get_device_context(device=)
+
     Args:
         device: Device name (e.g. 'RR1', 'PE1')
 
@@ -2684,8 +2710,8 @@ async def nautobot_render_device_config(
 ) -> str:
     """Trigger golden config intended job for a device and return the rendered config.
 
-    This runs the golden config intended job for a single device and returns
-    what the templates produce — the config that SHOULD be on the device.
+    DEPRECATED: Use nautobot-golden-config-mcp tools instead:
+      golden_config_render_preview(device=) or golden_config_get_intended(device=)
 
     Args:
         device: Device name (e.g. 'RR1')
