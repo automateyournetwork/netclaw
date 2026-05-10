@@ -408,3 +408,260 @@ All tools return structured error messages for:
 - **Not found**: "No {object_type} found matching '{identifier}' in Nautobot." (not treated as error)
 - **Timeout**: "Nautobot query timed out after {timeout}s. Try narrowing filters or increasing NAUTOBOT_TIMEOUT."
 - **Permission denied**: "Nautobot token does not have write permission. Contact your Nautobot admin."
+
+
+---
+
+## High-Level Network Tools (6) — Reduce LLM Context Burn
+
+> Added 2026-05-10. These tools combine multiple API calls into single operations
+> to prevent the LLM from spiraling through raw REST/GraphQL calls.
+
+### nautobot_get_device_config_context
+
+**Description**: Get the merged config context for a device as the golden config templates see it. Returns the full merged dict — all config contexts that apply based on role, site, tenant, tags, etc.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | Yes | Device name (e.g., "RR1") |
+
+**Returns**: JSON with device name and full merged config_context dict.
+
+---
+
+### nautobot_create_interface
+
+**Description**: Create an interface on a device with optional IP assignment in one call. Idempotent — returns existing interface if already present.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | Yes | Device name (e.g., "RR1") |
+| name | string | Yes | Interface name (e.g., "Tunnel0", "Loopback99") |
+| interface_type | string | No | Interface type (default: "virtual") |
+| ip_address | string | No | IP with prefix (e.g., "10.255.255.2/30") — creates and assigns |
+| description | string | No | Interface description |
+| enabled | boolean | No | Whether interface is enabled (default: true) |
+
+**Returns**: JSON with interface action (created/already_exists) and IP action (created/already_exists/null).
+
+---
+
+### nautobot_create_autonomous_system
+
+**Description**: Create an autonomous system in Nautobot BGP models. Idempotent — returns existing if already present.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| asn | integer | Yes | AS number (e.g., 65099) |
+| description | string | No | Description (e.g., "NetClaw Protocol Agent") |
+
+**Returns**: JSON with action (created/already_exists), ASN, and Nautobot ID.
+
+---
+
+### nautobot_create_bgp_peer_group
+
+**Description**: Create a BGP peer group on a device's routing instance. Includes optional remote ASN, source interface, and address family assignment in one call.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| name | string | Yes | Peer group name (e.g., "NETCLAW-PEERS") |
+| device | string | Yes | Device name (e.g., "RR1") |
+| remote_asn | integer | No | Remote AS for the group |
+| source_interface | string | No | Update-source interface name |
+| description | string | No | Description |
+| address_families | string | No | Comma-separated AFI/SAFI (e.g., "ipv4_unicast") |
+
+**Returns**: JSON with action (created/already_exists), name, and Nautobot ID.
+
+---
+
+### nautobot_create_bgp_peering
+
+**Description**: Create a complete BGP peering in Nautobot in one call. Creates the peering object with both endpoints (local and remote), optionally linking to a peer group and adding address families.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | Yes | Local device name (e.g., "RR1") |
+| local_ip | string | Yes | Local IP with mask (e.g., "10.255.255.2/30") |
+| peer_ip | string | Yes | Remote peer IP with mask (e.g., "10.255.255.1/30") |
+| peer_asn | integer | Yes | Remote autonomous system number |
+| peer_group | string | No | Peer group name to associate with |
+| local_asn | integer | No | Local ASN (defaults to device's routing instance ASN) |
+| description | string | No | Peering description |
+| address_families | string | No | Comma-separated AFI/SAFI (default: "ipv4_unicast") |
+
+**Returns**: JSON with peering_id, device, local_ip, peer_ip, peer_asn, peer_group, and address_families.
+
+---
+
+### nautobot_render_device_config
+
+**Description**: Get the latest golden config intended (rendered) config for a device. Returns what the templates produce — the config that SHOULD be on the device.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | Yes | Device name (e.g., "RR1") |
+
+**Returns**: JSON with device name, intended_config text, and last_generated timestamp. Returns null if no intended config exists (run the golden config intended job first).
+
+---
+
+## BGP/Routing Read Tools (3) — GraphQL API
+
+### nautobot_get_bgp_routing
+
+**Description**: Query BGP routing instances, peer groups, peer endpoints, and autonomous systems for a device or all devices.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | No | Filter by device name |
+| limit | integer | No | Max results (default: 50) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Returns**: JSON with BGP routing instances including device, router_id, autonomous_system, peer_groups (with ASN, source_ip, source_interface), and endpoints (with peer IP, peer_group, role).
+
+---
+
+### nautobot_get_autonomous_systems
+
+**Description**: Query autonomous systems registered in Nautobot BGP models.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| limit | integer | No | Max results (default: 50) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Returns**: JSON with autonomous system list including ASN, description, and status.
+
+---
+
+### nautobot_get_ospf_routing
+
+**Description**: Query OSPF routing instances and areas for a device or all devices.
+
+**Parameters**:
+
+| Name | Type | Required | Description |
+|------|------|----------|-------------|
+| device | string | No | Filter by device name |
+| limit | integer | No | Max results (default: 50) |
+| offset | integer | No | Pagination offset (default: 0) |
+
+**Returns**: JSON with OSPF instances including device, router_id, areas, and interfaces.
+
+---
+
+## Golden Config Tools (Deprecated — Moving to nautobot-golden-config-mcp)
+
+> These tools remain in nautobot-mcp-v2 for backward compatibility but will be
+> superseded by the dedicated `nautobot-golden-config-mcp` server (spec 028).
+
+### nautobot_get_golden_configs
+
+**Description**: Get golden config records (intended, backup, compliance) for devices.
+
+### nautobot_get_config_compliance
+
+**Description**: Get compliance results per device per feature.
+
+### nautobot_get_compliance_rules
+
+**Description**: Get compliance rules (feature + platform + match_config).
+
+### nautobot_get_golden_config_settings
+
+**Description**: Get golden config settings (repos, paths, SoT query).
+
+### nautobot_create_compliance_feature
+
+**Description**: Create a compliance feature (e.g., "observability").
+
+### nautobot_create_compliance_rule
+
+**Description**: Create a compliance rule linking feature to platform.
+
+### nautobot_update_golden_config_setting
+
+**Description**: Update golden config settings (link repos, set paths).
+
+### nautobot_get_config_contexts
+
+**Description**: List config contexts with metadata.
+
+### nautobot_get_config_context_detail
+
+**Description**: Get full config context data by name.
+
+### nautobot_create_config_context
+
+**Description**: Create a new config context.
+
+### nautobot_update_config_context
+
+**Description**: Update an existing config context.
+
+---
+
+## Firewall Plugin Tools (3) — GraphQL reads
+
+### nautobot_get_firewall_policies
+
+**Description**: Query firewall policies with rules, zones, and address objects.
+
+### nautobot_get_firewall_zones
+
+**Description**: Query firewall zones with VRFs and interfaces.
+
+### nautobot_get_nat_policies
+
+**Description**: Query NAT policies and rules.
+
+---
+
+## Generic CRUD Tools (3) — REST API
+
+### nautobot_create
+
+**Description**: Create any Nautobot object via REST API. Uses the schema registry to resolve field names to UUIDs automatically.
+
+### nautobot_delete
+
+**Description**: Delete a Nautobot object by type and identifier.
+
+### nautobot_get_schema
+
+**Description**: Get the REST API schema for a Nautobot endpoint (fields, types, choices, required).
+
+---
+
+## Tool Count Summary
+
+| Category | Count | Notes |
+|----------|-------|-------|
+| Read (GraphQL) | 7 | Core DCIM/IPAM queries |
+| Write (REST) | 5 | IP, VLAN, prefix, update, reconcile |
+| Connection | 1 | Test connectivity |
+| Virtualization | 4 | VMs, interfaces, IP assignment |
+| High-Level Network | 6 | BGP peering, interface+IP, config context (NEW) |
+| BGP/Routing Read | 3 | BGP instances, ASNs, OSPF |
+| Golden Config (deprecated) | 11 | Moving to nautobot-golden-config-mcp |
+| Firewall | 3 | Policy, zones, NAT reads |
+| Generic CRUD | 3 | Create/delete/schema for any object |
+| **Total** | **43** | |
