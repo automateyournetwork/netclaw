@@ -2346,5 +2346,365 @@ async def nautobot_get_schema(object_type: str) -> str:
         return json.dumps({"error": str(e)})
 
 
+# ── High-Level BGP/Network Tools (reduce LLM context burn) ─────────────────
+
+
+@mcp.tool()
+async def nautobot_get_device_config_context(
+    device: str,
+) -> str:
+    """Get the merged config context for a device as the golden config templates see it.
+
+    Args:
+        device: Device name (e.g. 'RR1', 'PE1')
+
+    Returns the full merged config context dict — all config contexts that apply
+    to this device based on role, site, tenant, tags, etc.
+    """
+    logger.info(f"nautobot_get_device_config_context device={device}")
+    try:
+        resp = await client.get(f"/api/dcim/devices/", params={"name": device})
+        devices = resp.get("results", [])
+        if not devices:
+            return json.dumps({"error": f"Device '{device}' not found"})
+        device_id = devices[0]["id"]
+        detail = await client.get(f"/api/dcim/devices/{device_id}/")
+        config_context = detail.get("config_context", {})
+        return json.dumps({"device": device, "config_context": config_context}, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_bgp_peering(
+    device: str,
+    local_ip: str,
+    peer_ip: str,
+    peer_asn: int,
+    peer_group: Optional[str] = None,
+    local_asn: Optional[int] = None,
+    description: Optional[str] = None,
+    address_families: Optional[str] = None,
+) -> str:
+    """Create a complete BGP peering in Nautobot in one call.
+
+    Creates the peering object with both endpoints (local and remote),
+    optionally linking to a peer group and adding address families.
+
+    Args:
+        device: Local device name (e.g. 'RR1')
+        local_ip: Local IP with mask (e.g. '10.255.255.2/30')
+        peer_ip: Remote peer IP with mask (e.g. '10.255.255.1/30')
+        peer_asn: Remote autonomous system number
+        peer_group: Optional peer group name to associate with
+        local_asn: Optional local ASN (defaults to device's routing instance ASN)
+        description: Optional peering description
+        address_families: Comma-separated AFI/SAFI (e.g. 'ipv4_unicast,ipv6_unicast'). Default: ipv4_unicast
+    """
+    logger.info(f"nautobot_create_bgp_peering device={device} local={local_ip} peer={peer_ip} as={peer_asn}")
+    afis = (address_families or "ipv4_unicast").split(",")
+    try:
+        # Find the routing instance for the device
+        gql = f"""{{ bgp_routing_instances {{ id device {{ name }} autonomous_system {{ asn }} }} }}"""
+        data = await client.graphql(gql)
+        instances = [i for i in data.get("bgp_routing_instances", []) if i["device"]["name"] == device]
+        if not instances:
+            return json.dumps({"error": f"No BGP routing instance found for device '{device}'"})
+        instance_id = instances[0]["id"]
+
+        # Find peer group if specified
+        peer_group_id = None
+        if peer_group:
+            pg_gql = f"""{{ bgp_peer_groups {{ id name }} }}"""
+            pg_data = await client.graphql(pg_gql)
+            for pg in pg_data.get("bgp_peer_groups", []):
+                if pg["name"] == peer_group:
+                    peer_group_id = pg["id"]
+                    break
+
+        # Find or create the peer ASN
+        asn_resp = await client.get("/api/plugins/bgp/autonomous-systems/", params={"asn": peer_asn})
+        asn_results = asn_resp.get("results", [])
+        if asn_results:
+            peer_asn_id = asn_results[0]["id"]
+        else:
+            asn_create = await client.post("/api/plugins/bgp/autonomous-systems/", json={
+                "asn": peer_asn, "status": "active",
+                "description": f"AS {peer_asn}"
+            })
+            peer_asn_id = asn_create["id"]
+
+        # Find local and peer IPs
+        local_ip_resp = await client.get("/api/ipam/ip-addresses/", params={"address": local_ip})
+        peer_ip_resp = await client.get("/api/ipam/ip-addresses/", params={"address": peer_ip})
+
+        local_ip_id = local_ip_resp["results"][0]["id"] if local_ip_resp.get("results") else None
+        peer_ip_id = peer_ip_resp["results"][0]["id"] if peer_ip_resp.get("results") else None
+
+        if not local_ip_id:
+            return json.dumps({"error": f"Local IP {local_ip} not found in Nautobot. Create the interface and IP first."})
+
+        # Create the peering
+        peering_payload = {"status": "active"}
+        if description:
+            peering_payload["description"] = description
+        peering = await client.post("/api/plugins/bgp/peerings/", json=peering_payload)
+        peering_id = peering["id"]
+
+        # Create endpoint A (local device)
+        ep_a_payload = {
+            "peering": peering_id,
+            "routing_instance": instance_id,
+            "source_ip": local_ip_id,
+            "enabled": True,
+        }
+        if peer_group_id:
+            ep_a_payload["peer_group"] = peer_group_id
+        await client.post("/api/plugins/bgp/peer-endpoints/", json=ep_a_payload)
+
+        # Create endpoint B (remote peer)
+        ep_b_payload = {
+            "peering": peering_id,
+            "autonomous_system": peer_asn_id,
+            "enabled": True,
+        }
+        if peer_ip_id:
+            ep_b_payload["source_ip"] = peer_ip_id
+        await client.post("/api/plugins/bgp/peer-endpoints/", json=ep_b_payload)
+
+        # Add address families to the peer group if specified
+        if peer_group_id and afis:
+            for afi in afis:
+                try:
+                    await client.post("/api/plugins/bgp/address-families/", json={
+                        "routing_instance": instance_id,
+                        "peer_group": peer_group_id,
+                        "afi_safi": afi.strip(),
+                    })
+                except Exception:
+                    pass  # May already exist
+
+        return json.dumps({
+            "success": True,
+            "peering_id": peering_id,
+            "device": device,
+            "local_ip": local_ip,
+            "peer_ip": peer_ip,
+            "peer_asn": peer_asn,
+            "peer_group": peer_group,
+            "address_families": afis,
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_interface(
+    device: str,
+    name: str,
+    interface_type: str = "virtual",
+    ip_address: Optional[str] = None,
+    description: Optional[str] = None,
+    enabled: bool = True,
+) -> str:
+    """Create an interface on a device with optional IP assignment in one call.
+
+    Args:
+        device: Device name (e.g. 'RR1')
+        name: Interface name (e.g. 'Tunnel0', 'Loopback99')
+        interface_type: Interface type (virtual, lag, bridge, 1000base-t, etc.)
+        ip_address: Optional IP with prefix (e.g. '10.255.255.2/30') — creates and assigns
+        description: Optional interface description
+        enabled: Whether interface is enabled (default True)
+    """
+    logger.info(f"nautobot_create_interface device={device} name={name} ip={ip_address}")
+    try:
+        # Find device
+        dev_resp = await client.get("/api/dcim/devices/", params={"name": device})
+        devices = dev_resp.get("results", [])
+        if not devices:
+            return json.dumps({"error": f"Device '{device}' not found"})
+        device_id = devices[0]["id"]
+
+        # Check if interface already exists
+        iface_resp = await client.get("/api/dcim/interfaces/", params={"device": device, "name": name})
+        if iface_resp.get("results"):
+            iface_id = iface_resp["results"][0]["id"]
+            action = "already_exists"
+        else:
+            # Create interface
+            iface_payload = {
+                "device": device_id,
+                "name": name,
+                "type": interface_type,
+                "enabled": enabled,
+                "status": "active",
+            }
+            if description:
+                iface_payload["description"] = description
+            iface = await client.post("/api/dcim/interfaces/", json=iface_payload)
+            iface_id = iface["id"]
+            action = "created"
+
+        # Assign IP if provided
+        ip_action = None
+        if ip_address:
+            # Check if IP already exists
+            ip_resp = await client.get("/api/ipam/ip-addresses/", params={"address": ip_address})
+            if ip_resp.get("results"):
+                ip_id = ip_resp["results"][0]["id"]
+                ip_action = "ip_already_exists"
+            else:
+                # Find or create prefix for the IP
+                ip_payload = {
+                    "address": ip_address,
+                    "status": "active",
+                    "assigned_object_type": "dcim.interface",
+                    "assigned_object_id": iface_id,
+                }
+                if description:
+                    ip_payload["description"] = description
+                await client.post("/api/ipam/ip-addresses/", json=ip_payload)
+                ip_action = "ip_created_and_assigned"
+
+        return json.dumps({
+            "success": True,
+            "device": device,
+            "interface": name,
+            "interface_action": action,
+            "ip_address": ip_address,
+            "ip_action": ip_action,
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_autonomous_system(
+    asn: int,
+    description: Optional[str] = None,
+) -> str:
+    """Create an autonomous system in Nautobot BGP models.
+
+    Args:
+        asn: AS number (e.g. 65099)
+        description: Optional description (e.g. 'NetClaw Protocol Agent')
+    """
+    logger.info(f"nautobot_create_autonomous_system asn={asn}")
+    try:
+        # Check if it already exists
+        resp = await client.get("/api/plugins/bgp/autonomous-systems/", params={"asn": asn})
+        if resp.get("results"):
+            return json.dumps({"success": True, "action": "already_exists", "asn": asn, "id": resp["results"][0]["id"]})
+
+        payload = {"asn": asn, "status": "active"}
+        if description:
+            payload["description"] = description
+        result = await client.post("/api/plugins/bgp/autonomous-systems/", json=payload)
+        return json.dumps({"success": True, "action": "created", "asn": asn, "id": result["id"]})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_create_bgp_peer_group(
+    name: str,
+    device: str,
+    remote_asn: Optional[int] = None,
+    source_interface: Optional[str] = None,
+    description: Optional[str] = None,
+    address_families: Optional[str] = None,
+) -> str:
+    """Create a BGP peer group on a device's routing instance.
+
+    Args:
+        name: Peer group name (e.g. 'NETCLAW-PEERS')
+        device: Device name (e.g. 'RR1')
+        remote_asn: Optional remote AS for the group
+        source_interface: Optional update-source interface name
+        description: Optional description
+        address_families: Comma-separated AFI/SAFI (e.g. 'ipv4_unicast')
+    """
+    logger.info(f"nautobot_create_bgp_peer_group name={name} device={device}")
+    try:
+        # Find routing instance
+        gql = f"""{{ bgp_routing_instances {{ id device {{ name }} }} }}"""
+        data = await client.graphql(gql)
+        instances = [i for i in data.get("bgp_routing_instances", []) if i["device"]["name"] == device]
+        if not instances:
+            return json.dumps({"error": f"No BGP routing instance for device '{device}'"})
+        instance_id = instances[0]["id"]
+
+        # Check if peer group exists
+        pg_resp = await client.get("/api/plugins/bgp/peer-groups/", params={"name": name})
+        if pg_resp.get("results"):
+            return json.dumps({"success": True, "action": "already_exists", "name": name, "id": pg_resp["results"][0]["id"]})
+
+        # Build payload
+        payload = {
+            "name": name,
+            "routing_instance": instance_id,
+            "enabled": True,
+            "status": "active",
+        }
+        if description:
+            payload["description"] = description
+        if remote_asn:
+            asn_resp = await client.get("/api/plugins/bgp/autonomous-systems/", params={"asn": remote_asn})
+            if asn_resp.get("results"):
+                payload["autonomous_system"] = asn_resp["results"][0]["id"]
+        if source_interface:
+            iface_resp = await client.get("/api/dcim/interfaces/", params={"device": device, "name": source_interface})
+            if iface_resp.get("results"):
+                payload["source_interface"] = iface_resp["results"][0]["id"]
+
+        result = await client.post("/api/plugins/bgp/peer-groups/", json=payload)
+        pg_id = result["id"]
+
+        # Add address families
+        if address_families:
+            for afi in address_families.split(","):
+                try:
+                    await client.post("/api/plugins/bgp/address-families/", json={
+                        "routing_instance": instance_id,
+                        "peer_group": pg_id,
+                        "afi_safi": afi.strip(),
+                    })
+                except Exception:
+                    pass
+
+        return json.dumps({"success": True, "action": "created", "name": name, "id": pg_id})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
+@mcp.tool()
+async def nautobot_render_device_config(
+    device: str,
+) -> str:
+    """Trigger golden config intended job for a device and return the rendered config.
+
+    This runs the golden config intended job for a single device and returns
+    what the templates produce — the config that SHOULD be on the device.
+
+    Args:
+        device: Device name (e.g. 'RR1')
+    """
+    logger.info(f"nautobot_render_device_config device={device}")
+    try:
+        # Get the latest intended config from golden config
+        resp = await client.get("/api/plugins/golden-config/golden-config/", params={"device__name": device})
+        results = resp.get("results", [])
+        if results and results[0].get("intended_config"):
+            return json.dumps({
+                "device": device,
+                "intended_config": results[0]["intended_config"],
+                "last_generated": results[0].get("intended_last_attempt_date"),
+            }, indent=2)
+        return json.dumps({"device": device, "intended_config": None, "message": "No intended config found. Run the golden config intended job first."})
+    except Exception as e:
+        return json.dumps({"error": str(e)})
+
+
 if __name__ == "__main__":
     mcp.run(transport="stdio")
