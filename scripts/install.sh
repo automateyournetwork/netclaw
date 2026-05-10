@@ -2152,43 +2152,34 @@ if [ ! -d "$OPENCLAW_DIR" ]; then
     log_info "Created $OPENCLAW_DIR"
 fi
 
-# Deploy openclaw.json config ONLY if onboard didn't already create one
-if [ ! -f "$OPENCLAW_DIR/openclaw.json" ]; then
-    if [ -f "$NETCLAW_DIR/config/openclaw.json" ]; then
-        # Replace hardcoded paths with actual install location
-        sed "s|/home/ubuntu/netclaw|$NETCLAW_DIR|g" "$NETCLAW_DIR/config/openclaw.json" > "$OPENCLAW_DIR/openclaw.json"
-        log_info "Deployed openclaw.json (paths adjusted to $NETCLAW_DIR)"
-    else
-        log_warn "config/openclaw.json not found in repo"
-    fi
+# Deploy openclaw.json config — symlink to repo (single source of truth)
+if [ -L "$OPENCLAW_DIR/openclaw.json" ]; then
+    log_info "openclaw.json already symlinked"
+elif [ -f "$OPENCLAW_DIR/openclaw.json" ]; then
+    log_info "Replacing openclaw.json copy with symlink to repo..."
+    rm "$OPENCLAW_DIR/openclaw.json"
+    ln -s "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
+    log_info "Symlinked openclaw.json → $NETCLAW_DIR/config/openclaw.json"
 else
-    log_info "openclaw.json already exists (created by onboard) — keeping it"
+    ln -s "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
+    log_info "Symlinked openclaw.json → $NETCLAW_DIR/config/openclaw.json"
 fi
 
-# Deploy skills
-mkdir -p "$OPENCLAW_DIR/workspace/skills"
-cp -r "$NETCLAW_DIR/workspace/skills/"* "$OPENCLAW_DIR/workspace/skills/"
-log_info "Deployed skills to $OPENCLAW_DIR/workspace/skills/"
+# Deploy workspace — symlink to repo (single source of truth)
+if [ -L "$OPENCLAW_DIR/workspace" ]; then
+    log_info "workspace already symlinked"
+elif [ -d "$OPENCLAW_DIR/workspace" ]; then
+    log_info "Replacing workspace copy with symlink to repo..."
+    rm -rf "$OPENCLAW_DIR/workspace"
+    ln -s "$NETCLAW_DIR/workspace" "$OPENCLAW_DIR/workspace"
+    log_info "Symlinked workspace → $NETCLAW_DIR/workspace"
+else
+    ln -s "$NETCLAW_DIR/workspace" "$OPENCLAW_DIR/workspace"
+    log_info "Symlinked workspace → $NETCLAW_DIR/workspace"
+fi
 
-# Deploy OpenClaw workspace MD files from workspace/personality/ and workspace/user/
-for mdfile in SOUL.md SOUL-SKILLS.md SOUL-EXPERTISE.md AGENTS.md IDENTITY.md HEARTBEAT.md CLAUDE.md; do
-    if [ -f "$NETCLAW_DIR/workspace/personality/$mdfile" ]; then
-        cp "$NETCLAW_DIR/workspace/personality/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
-        log_info "Deployed $mdfile to workspace"
-    fi
-done
-for mdfile in USER.md TOOLS.md; do
-    if [ -f "$NETCLAW_DIR/workspace/user/$mdfile" ]; then
-        cp "$NETCLAW_DIR/workspace/user/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
-        log_info "Deployed $mdfile to workspace"
-    fi
-done
-log_info "Deployed workspace files to $OPENCLAW_DIR/workspace/"
-
-# Symlink testbed into workspace so OpenClaw can find it
-mkdir -p "$OPENCLAW_DIR/workspace/testbed"
-ln -sf "$NETCLAW_DIR/testbed/testbed.yaml" "$OPENCLAW_DIR/workspace/testbed/testbed.yaml"
-log_info "Symlinked testbed.yaml into workspace"
+# Testbed is already accessible via workspace symlink
+log_info "Testbed accessible at $OPENCLAW_DIR/workspace/testbed/testbed.yaml (via workspace symlink)"
 
 # Set ALL environment variables in OpenClaw .env
 OPENCLAW_ENV="$OPENCLAW_DIR/.env"

@@ -173,6 +173,9 @@ async def bgp_get_peers() -> str:
     # Update metrics for each peer
     for p in peers:
         update_peer_state(p.get("peer", ""), p.get("state", ""), p.get("prefixes_received", 0))
+    # Update RIB size metric
+    if hasattr(_bgp_connector.speaker, 'agent'):
+        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size())
     return _toon_dumps({"peers": peers, "count": len(peers)})
 
 
@@ -183,6 +186,9 @@ async def bgp_get_rib(prefix: Optional[str] = None) -> str:
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
     routes = await _bgp_connector.get_rib(prefix=prefix)
+    # Update RIB size metric
+    if hasattr(_bgp_connector.speaker, 'agent'):
+        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size())
     return _toon_dumps({"routes": routes, "count": len(routes)})
 
 
