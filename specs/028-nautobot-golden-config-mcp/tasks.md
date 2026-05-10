@@ -69,7 +69,7 @@
 - [x] T024 Add deprecation warnings to golden config tools in nautobot-mcp-v2 (point to new server)
 - [x] T025 Update `workspace/skills/golden-config-bootstrap/SKILL.md` to reference new MCP server tools
 - [x] T026 Update `workspace/user/TOOLS.md` with golden config MCP server documentation
-- [ ] T027 Test full pipeline: update config context → generate intended → compliance → remediate
+- [x] T027 Test full pipeline: update config context → generate intended → compliance → remediate
 
 **Checkpoint**: End-to-end workflow works. SC-007 met (context burn < 200 tokens per operation).
 

@@ -64,7 +64,10 @@ class BGPConnector:
         for route in all_routes:
             # Extract path attributes
             as_path_attr = route.path_attributes.get(2)  # AS_PATH
-            as_path = as_path_attr.as_sequence if as_path_attr else []
+            as_path = []
+            if as_path_attr:
+                for seg_type, as_list in getattr(as_path_attr, 'segments', []):
+                    as_path.extend(as_list)
 
             next_hop_attr = route.path_attributes.get(3)  # NEXT_HOP
             next_hop = str(next_hop_attr.next_hop) if next_hop_attr else ""
