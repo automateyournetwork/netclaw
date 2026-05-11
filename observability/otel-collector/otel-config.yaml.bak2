@@ -1,7 +1,6 @@
 receivers:
   udplog:
     listen_address: 0.0.0.0:1514
-    add_attributes: true
   snmp/p1:
     collection_interval: 60s
     endpoint: udp://192.168.220.2:161
@@ -323,8 +322,6 @@ receivers:
     resource_attributes:
       interface:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -401,7 +398,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.jitter.avg:
         unit: ms
         gauge:
@@ -409,7 +406,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.sd:
         unit: '{packets}'
         sum:
@@ -419,7 +416,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.ds:
         unit: '{packets}'
         sum:
@@ -429,7 +426,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
           resource_attributes:
-          - sla_probe
+          - interface
   snmp/pe2:
     collection_interval: 60s
     endpoint: udp://192.168.220.7:161
@@ -439,8 +436,6 @@ receivers:
     resource_attributes:
       interface:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -517,7 +512,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.jitter.avg:
         unit: ms
         gauge:
@@ -525,7 +520,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.sd:
         unit: '{packets}'
         sum:
@@ -535,7 +530,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.ds:
         unit: '{packets}'
         sum:
@@ -545,7 +540,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
           resource_attributes:
-          - sla_probe
+          - interface
   snmp/pe3:
     collection_interval: 60s
     endpoint: udp://192.168.220.8:161
@@ -555,8 +550,6 @@ receivers:
     resource_attributes:
       interface:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -633,7 +626,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.jitter.avg:
         unit: ms
         gauge:
@@ -641,7 +634,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.sd:
         unit: '{packets}'
         sum:
@@ -651,7 +644,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.ds:
         unit: '{packets}'
         sum:
@@ -661,7 +654,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
           resource_attributes:
-          - sla_probe
+          - interface
   snmp/ce1:
     collection_interval: 60s
     endpoint: udp://192.168.220.9:161
@@ -671,8 +664,6 @@ receivers:
     resource_attributes:
       interface:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -749,7 +740,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.jitter.avg:
         unit: ms
         gauge:
@@ -757,7 +748,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.sd:
         unit: '{packets}'
         sum:
@@ -767,7 +758,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.ds:
         unit: '{packets}'
         sum:
@@ -777,7 +768,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
           resource_attributes:
-          - sla_probe
+          - interface
   snmp/ce2:
     collection_interval: 60s
     endpoint: udp://192.168.220.10:161
@@ -787,8 +778,6 @@ receivers:
     resource_attributes:
       interface:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -865,7 +854,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.jitter.avg:
         unit: ms
         gauge:
@@ -873,7 +862,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.sd:
         unit: '{packets}'
         sum:
@@ -883,7 +872,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
           resource_attributes:
-          - sla_probe
+          - interface
       ip_sla.packet_loss.ds:
         unit: '{packets}'
         sum:
@@ -893,7 +882,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
           resource_attributes:
-          - sla_probe
+          - interface
   snmp/rr1:
     collection_interval: 60s
     endpoint: udp://192.168.220.11:161

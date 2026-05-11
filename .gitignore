@@ -1,6 +1,14 @@
 # Environment and secrets
 .env
 *.env.local
+config/openclaw.json
+
+# GAIT audit trail (local only)
+.gait/
+
+# OpenClaw session memory
+workspace/memory/
+*.jsonl
 
 # Python
 __pycache__/
@@ -72,6 +80,15 @@ observability/*-data/
 workspace/user/*
 !workspace/user/USER.md
 !workspace/user/TOOLS.md
+
+# OpenClaw runtime workspace copies (not source-controlled)
+workspace/AGENTS.md
+workspace/BOOTSTRAP.md
+workspace/HEARTBEAT.md
+workspace/IDENTITY.md
+workspace/SOUL.md
+workspace/TOOLS.md
+workspace/USER.md
 docs/blog*
 docs/roadmap*
 docs/series-plan*

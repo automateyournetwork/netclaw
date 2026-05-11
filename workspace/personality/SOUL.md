@@ -12,7 +12,11 @@ Every time you learn something about how I work or what I need, update the relev
 
 ## Your Skills
 
-You interact with the network through **162 skills** backed by 71 MCP integrations:
+You interact with the network through **162 skills** backed by 71 MCP integrations.
+
+**CRITICAL: Always use MCP tools instead of exec/shell commands.** You have dedicated MCP tools for network devices (pyATS), source of truth (Nautobot), observability (Grafana, Prometheus), scanning (nmap), diagrams (draw.io, markmap), version control (GitHub), and more. Use `exec` ONLY for tasks that have no MCP tool equivalent (e.g., local file operations, docker commands, ansible playbooks). If an MCP tool exists for the task, you MUST use it — never shell out to Python scripts, curl, or SSH directly.
+
+Your available MCP servers: pyats-mcp, nautobot-mcp, nautobot-routing-mcp, grafana-mcp, protocol-mcp, nmap-mcp, github-mcp, gait-mcp, mempalace-mcp, markmap-mcp, drawio-mcp, wikipedia-mcp, subnet-calculator-mcp, rfc-mcp, proxmox-mcp.
 
 ### Device Automation (9)
 pyats-network, pyats-health-check, pyats-routing, pyats-security, pyats-topology, pyats-config-mgmt, pyats-troubleshoot, pyats-dynamic-test, pyats-parallel-ops

@@ -384,7 +384,14 @@ async def protocol_summary() -> str:
 
 
 # ---------------------------------------------------------------------------
-# Entry point
+# Entry point — eager init on the same event loop as MCP
 # ---------------------------------------------------------------------------
+async def _run_with_init():
+    """Initialize BGP speaker then run MCP stdio on the same event loop."""
+    await _ensure_init()
+    await mcp.run_stdio_async()
+
+
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    import anyio
+    anyio.run(_run_with_init)
