@@ -57,6 +57,7 @@ mcp-servers/*
 !mcp-servers/prisma-sdwan-mcp/
 !mcp-servers/nautobot-mcp-v2/
 !mcp-servers/nautobot-golden-config-mcp/
+!mcp-servers/nautobot-routing-mcp/
 
 # Traces
 trace.json
