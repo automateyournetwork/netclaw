@@ -1,180 +1,234 @@
 ---
 name: bgp-route-stability-watch
-description: "Monitor BGP route stability — detect route flaps, correlate with interface bounces, check jitter/loss, and determine root cause. Use when investigating route instability, prefix flapping, or path quality degradation."
+description: "Investigate BGP route stability using router-native netclaw_* metrics — peer state, prefix counts, BMP withdrawals, path quality, and syslog correlation. Use when routes flap, prefixes drop, BGP alerts fire, or path quality degrades. Does NOT use Protocol MCP RIB."
 user-invocable: true
 metadata:
-  { "openclaw": { "requires": { "bins": ["python3"], "env": ["GRAFANA_URL", "NETCLAW_BGP_PEERS"] } } }
+  { "openclaw": { "requires": { "bins": ["python3"], "env": ["GRAFANA_URL", "PROMETHEUS_URL", "PYATS_TESTBED_PATH"] } } }
 ---
 
 # BGP Route Stability Watch
 
+Router-native observability for BGP instability. All queries use **`netclaw_*`** metrics from VictoriaMetrics — SNMP, gNMI, and BMP adapters. **Protocol MCP is not used** for monitoring (injection demos only — see Scenario D in `docs/failure-scenarios.md`).
+
 ## When to Use
 
-- BGP routes are being withdrawn and re-announced repeatedly (flapping)
-- Interface error counters are climbing on SP core links
-- IP SLA jitter or packet loss exceeds thresholds
-- You suspect a physical layer issue (bad optic, flapping port) is causing routing instability
-- Heartbeat check detects elevated withdrawal rates
+- Grafana alert `netclaw-bgp-*` or `netclaw-path-jitter-high` is firing
+- User asks "are routes flapping?" or "why did prefixes drop?"
+- Follow-up from `lab-alert-triage` on BGP-related alerts
+- Heartbeat check for Part 15 route stability observability
 
 ## Data Sources
 
 | Source | What It Provides | How to Query |
 |--------|-----------------|--------------|
-| Protocol MCP | Live RIB, flap penalties, peer state | `bgp_get_rib`, `bgp_get_peers`, `protocol_summary` |
-| Prometheus/VictoriaMetrics | `bgp_route_withdrawals_total`, `interface_status`, `ip_sla.*` | Grafana MCP `query_prometheus` |
-| Loki | `%LINEPROTO-5-UPDOWN`, `%BGP-5-ADJCHANGE` syslog | Grafana MCP `query_loki_logs` |
-| pyATS | Device-side `show ip bgp summary`, `show interfaces` | pyATS MCP |
+| VictoriaMetrics | `netclaw_bgp_*`, `netclaw_path_*`, `interface_status` | Grafana MCP `query_prometheus` or Prometheus MCP `execute_query` |
+| Loki | `%BGP-5-ADJCHANGE`, `%LINEPROTO-5-UPDOWN`, `%BGP-3-NOTIFICATION` | Grafana MCP `query_loki_logs` with `{device_name="..."}` |
+| pyATS MCP | `show ip bgp summary`, `show ip bgp neighbors`, `show interfaces` | Device drill-down on Cisco CSR |
+| gNMI MCP | OpenConfig BGP neighbor state (Arista spines/leaves) | `gnmi_get` / `gnmi_compare_with_cli` when device is cEOS |
+
+## Decision Tree
+
+```text
+1. BGP signal     → peer down? prefix drop? BMP withdrawals? UPDATE spike?
+2. Interface      → changes(interface_status[5m]) on same device?
+3. Syslog         → ADJCHANGE / UPDOWN in same window?
+4. Path quality   → netclaw_path_jitter_ms / loss elevated?
+5. Verdict        → physical layer | peer/session | upstream | synthetic demo
+```
 
 ## Procedure
 
-### Step 1: Check BGP Route Withdrawal Rate
-
-Query Prometheus for elevated withdrawal rates across all prefixes:
+### Step 1: Fleet BGP Health Snapshot
 
 ```
-query_prometheus(expr="rate(bgp_route_withdrawals_total[5m]) > 0", time_range="30m")
+query_prometheus(expr="netclaw_bgp_peer_state{device_name=~\"rr1|pe.*\"} != 6", time_range="15m")
+query_prometheus(expr="netclaw_bgp_peer_state{source=\"gnmi\"} != 6", time_range="15m")
 ```
 
-**GATE:** If no withdrawals in the last 30 minutes → report HEALTHY, stop.
+**GATE:** If no non-established peers AND no other signals in Steps 2–4 → report **HEALTHY**, stop.
 
-### Step 2: Identify Affected Prefixes
+Record any peers with state ≠ 6 (1=IDLE … 6=ESTABLISHED per BGP4-MIB mapping).
 
-From the withdrawal rate results, extract the prefix labels. Then query the Protocol MCP for current flap damping state:
+### Step 2: Prefix Count Stability
 
-```
-protocol_summary()
-bgp_get_rib(prefix="<affected_prefix>")
-```
-
-Record:
-- Which prefixes are flapping
-- Current penalty level (0-3000 scale)
-- Whether any are suppressed (penalty ≥ 3000)
-
-### Step 3: Correlate with Interface Status Changes
-
-For each affected prefix, determine the next-hop device. Then check if that device's interfaces are bouncing:
+Detect drops ≥20% from 1h baseline (matches ALERT-002):
 
 ```
-query_prometheus(expr="changes(interface_status{device_name='<next_hop_device>'}[5m]) > 0", time_range="30m")
+query_prometheus(expr="""
+  (netclaw_bgp_peer_prefixes_received
+   < 0.8 * avg_over_time(netclaw_bgp_peer_prefixes_received[1h]))
+  and netclaw_bgp_peer_prefixes_received > 0
+""", time_range="1h")
 ```
 
-**GATE:** If interface flaps found on the next-hop device within the same time window as route withdrawals → proceed to Step 4 (port bounce is likely root cause).
-
-If NO interface flaps → skip to Step 5 (external cause).
-
-### Step 4: Confirm Port Bounce Root Cause
-
-Query Loki for syslog messages confirming the interface state change:
+Also check RR1 service prefix count:
 
 ```
-query_loki_logs(query='{device_name="<device>"} |~ "UPDOWN|LINEPROTO"', time_range="30m")
+query_prometheus(expr='netclaw_bgp_peer_prefixes_received{device_name="rr1",neighbor="100.0.254.13"}', time_range="1h")
 ```
 
-Also check error counters on the bouncing interface:
+**GATE:** Prefix drop without peer down → suspect upstream withdrawal or RR path change; proceed to Step 4 (BMP).
+
+### Step 3: Session Flap Detection
 
 ```
-query_prometheus(expr="rate(interface_errors_in{device_name='<device>',interface='<iface>'}[5m])")
-query_prometheus(expr="rate(interface_errors_out{device_name='<device>',interface='<iface>'}[5m])")
+query_prometheus(expr="increase(netclaw_bgp_peer_established_transitions_total[15m]) > 0", time_range="30m")
 ```
 
-**Verdict:** "Route flap on `<prefix>` caused by interface instability on `<device>` `<interface>`. Interface bounced `<N>` times in 5 minutes, causing `<M>` route withdrawals. Error rate: `<X>` errors/sec."
+If transitions increased, note `device_name` and `neighbor` labels.
 
-### Step 5: Check Path Quality (Jitter/Loss)
-
-Even without interface bounces, path degradation can cause BGP hold-timer expiry:
+### Step 4: BMP Withdrawal Rate (when BMP stack running)
 
 ```
-query_prometheus(expr="ip_sla_jitter_avg{device_name=~'pe.*|ce.*'}", time_range="30m")
-query_prometheus(expr="rate(ip_sla_packet_loss_sd[5m])", time_range="30m")
-query_prometheus(expr="ip_sla_rtt{device_name=~'pe.*|ce.*'}", time_range="30m")
+query_prometheus(expr='sum by (device_name, prefix) (rate(netclaw_bgp_prefix_withdrawals_total[5m])) > 0', time_range="30m")
+query_prometheus(expr='rate(netclaw_bgp_prefix_announcements_total[5m])', time_range="30m")
 ```
 
-**Thresholds:**
+Lab RR1 BMP is live when `netclaw_bgp_prefix_announcements_total{device_name="rr1"}` has series.
+
+**GATE:** BMP withdrawal spike without interface change → upstream or policy change; check syslog NOTIFICATION.
+
+### Step 5: Correlate Interface Changes
+
+For each affected `device_name`:
+
+```
+query_prometheus(expr="changes(interface_status{device_name=\"<device>\"}[5m])", time_range="30m")
+query_prometheus(expr="interface_status{device_name=\"<device>\"} == 2", time_range="15m")
+```
+
+ALERT-007 combined signal:
+
+```
+query_prometheus(expr="""
+  changes(interface_status{device_role=~\"pe|p\"}[5m]) > 0
+  and on(device_name) rate(netclaw_bgp_peer_in_updates_total[5m]) > 0
+""", time_range="15m")
+```
+
+**GATE:** Interface flap + BGP UPDATE activity → physical/link root cause (Scenario B).
+
+### Step 6: Syslog Confirmation
+
+```
+query_loki_logs(query='{device_name="<device>"} |~ "(?i)(ADJCHANGE|UPDOWN|LINEPROTO|NOTIFICATION)"', time_range="30m")
+```
+
+Match log timestamps to metric transitions from Steps 1–5.
+
+### Step 7: Path Quality
+
+```
+query_prometheus(expr='netclaw_path_jitter_ms{device_name=~"pe.*|ce.*"}', time_range="30m")
+query_prometheus(expr='netclaw_path_rtt_ms{device_name=~"pe.*|ce.*"}', time_range="30m")
+query_prometheus(expr='netclaw_path_loss_sd{device_name=~"pe.*|ce.*"}', time_range="30m")
+```
+
 | Metric | HEALTHY | WARNING | CRITICAL |
 |--------|---------|---------|----------|
-| Jitter (avg) | < 10ms | 10-50ms | > 50ms |
-| Packet Loss | 0% | < 1% | > 1% |
-| RTT | < 50ms | 50-200ms | > 200ms |
+| Jitter | < 10 ms | 10–30 ms | > 30 ms (ALERT-006) |
+| RTT | < 50 ms | 50–200 ms | > 200 ms |
+| Loss (sd) | 0 | 1–5 pkts | sustained > 0 with jitter |
 
-### Step 6: Check for External BGP Events
+### Step 8: Device Drill-Down
 
-If no local interface or path quality issues, the flap may be from an external peer:
-
-```
-bgp_get_rib(prefix="<affected_prefix>")
-```
-
-Check the AS_PATH — if it changed between announcements, the instability is upstream (not our fault).
-
-Query Loki for BGP NOTIFICATION messages:
+**Cisco CSR (PE, RR, P):**
 
 ```
-query_loki_logs(query='{device_name="rr1"} |~ "BGP-5-ADJCHANGE|BGP-3-NOTIFICATION"', time_range="30m")
+pyats_run_command(device="<device>", command="show ip bgp summary")
+pyats_run_command(device="<device>", command="show ip bgp neighbors <neighbor>")
+pyats_run_command(device="<device>", command="show ip interface brief")
+pyats_run_command(device="<device>", command="show logging last 30")
 ```
 
-### Step 7: Generate Report
+**Arista cEOS (spine/leaf):**
+
+```
+gnmi_get(target="west-spine01", paths=["/network-instances/network-instance/protocols/protocol/bgp/neighbors"])
+# or
+gnmi_compare_with_cli(target="west-spine01", data_type="bgp_neighbors")
+```
+
+Do **not** call `bgp_get_rib`, `protocol_summary`, or other Protocol MCP tools for production RCA.
+
+### Step 9: Root Cause Classification
+
+| Class | Evidence |
+|-------|----------|
+| **physical-layer** | `interface_status` change + UPDOWN syslog + BGP UPDATE spike on same device |
+| **peer-session** | `netclaw_bgp_peer_state != 6` + ADJCHANGE, no interface flap |
+| **prefix-upstream** | BMP withdrawals or prefix drop without local interface/peer issues |
+| **path-quality** | Elevated `netclaw_path_jitter_ms` / loss before peer flap |
+| **synthetic-demo** | Protocol MCP injection only — BMP/SNMP show no correlated interface event (Scenario D) |
+
+### Step 10: Generate Report
 
 ```
 ╔══════════════════════════════════════════════════════════════╗
-║           BGP ROUTE STABILITY REPORT                        ║
+║           BGP ROUTE STABILITY REPORT (netclaw_*)            ║
 ╠══════════════════════════════════════════════════════════════╣
 ║ Time Window: <start> — <end>                                ║
-║ Status: <HEALTHY | WARNING | CRITICAL>                      ║
+║ Status: <HEALTHY | WARNING | HIGH | CRITICAL>              ║
 ╠══════════════════════════════════════════════════════════════╣
-║ ROUTE FLAPS                                                 ║
-║   Prefixes affected: <count>                                ║
-║   Total withdrawals (5m): <count>                           ║
-║   Suppressed routes: <count>                                ║
-║   Max penalty: <value>/3000                                 ║
+║ BGP PEERS                                                   ║
+║   Down / not established: <count> (<device:neighbor list>)  ║
+║   Session flaps (15m): <count>                              ║
+║   Prefix drops (>20%): <device:neighbor → before/after>     ║
 ╠══════════════════════════════════════════════════════════════╣
-║ ROOT CAUSE                                                  ║
-║   <description>                                             ║
-║   Device: <device>                                          ║
-║   Interface: <interface>                                    ║
-║   Bounces (5m): <count>                                     ║
-║   Error rate: <X> errors/sec                                ║
+║ BMP (if available)                                          ║
+║   Withdrawal rate (5m): <top prefixes>                      ║
+║   Announcement rate (5m): <summary>                         ║
 ╠══════════════════════════════════════════════════════════════╣
-║ PATH QUALITY                                                ║
-║   Jitter (avg): <X> ms                                      ║
-║   Packet Loss: <X>%                                         ║
-║   RTT (avg): <X> ms                                         ║
+║ CORRELATION                                                 ║
+║   Interface changes: <device → count>                       ║
+║   Syslog: <key ADJCHANGE/UPDOWN lines>                      ║
+║   Path jitter max: <device> <X> ms                          ║
 ╠══════════════════════════════════════════════════════════════╣
-║ RECOMMENDATION                                              ║
-║   <action>                                                  ║
+║ ROOT CAUSE: <physical-layer | peer-session | upstream |    ║
+║              path-quality | synthetic-demo>                 ║
+║ RECOMMENDATION: <action>                                    ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-### Step 8: GAIT Audit Trail
-
-Record the stability check in the audit trail:
+### Step 11: GAIT Audit Trail
 
 ```
 gait_record(
   operation="bgp-route-stability-watch",
-  result=<HEALTHY|WARNING|CRITICAL>,
-  prefixes_affected=<list>,
-  root_cause=<description>,
+  result=<HEALTHY|WARNING|HIGH|CRITICAL>,
+  root_cause_class=<classification>,
+  devices_affected=<list>,
   recommendation=<action>
 )
 ```
+
+## Alert → First Query Mapping
+
+| Alert ID | First PromQL | LogQL | Drill-down |
+|----------|--------------|-------|------------|
+| ALERT-001 | `netclaw_bgp_peer_state{device_name="X"} != 6` | `{device_name="X"} \|~ "ADJCHANGE"` | `show ip bgp summary` |
+| ALERT-002 | `netclaw_bgp_peer_prefixes_received{device_name="X"}` | same | `show ip bgp neighbors X received` |
+| ALERT-003 | `increase(netclaw_bgp_peer_established_transitions_total[15m])` | ADJCHANGE | `show ip bgp neighbors X` |
+| ALERT-004 | `rate(netclaw_bgp_prefix_withdrawals_total[5m])` | BMP + syslog | `show ip bgp <prefix>` |
+| ALERT-005 | `rate(netclaw_bgp_peer_in_updates_total[5m])` | — | `show ip bgp summary` |
+| ALERT-006 | `netclaw_path_jitter_ms{device_name="X"}` | — | `show ip sla statistics` |
+| ALERT-007 | `changes(interface_status{device_name="X"}[5m])` | UPDOWN | `show interfaces` |
 
 ## Severity Levels
 
 | Level | Criteria |
 |-------|----------|
-| HEALTHY | No withdrawals in 30m, all penalties at 0, jitter < 10ms, loss = 0% |
-| WARNING | Withdrawals detected but penalty < 2000, OR jitter 10-50ms, OR loss < 1% |
-| HIGH | Penalty approaching suppress (2000-3000), OR jitter > 50ms, OR loss > 1% |
-| CRITICAL | Routes suppressed (penalty ≥ 3000), OR multiple prefixes flapping, OR loss > 5% |
+| HEALTHY | All peers state=6, no prefix drops, jitter < 10 ms, no BMP withdrawal storm |
+| WARNING | ALERT-003/005/006 fired, or single prefix drop < 50% |
+| HIGH | ALERT-002/004/007 fired, or multiple peers affected |
+| CRITICAL | ALERT-001 fired on RR1 or ≥2 PE peers simultaneously |
 
-## Integration with Other Skills
+## Integration
 
-| Skill | Integration |
-|-------|-------------|
-| **protocol-participation** | Direct RIB access, flap penalty data, peer state |
-| **grafana-observability** | PromQL queries for interface status, IP SLA metrics, Loki log correlation |
-| **pyats-health-check** | Device-side verification of interface state and BGP neighbor status |
-| **servicenow-change-workflow** | If remediation needed (shut/no shut, replace optic), gate via CR |
-| **slack-network-alerts** | Send severity-formatted alert when CRITICAL threshold hit |
-| **gait-session-tracking** | Immutable record of every stability check and finding |
+| Skill | When |
+|-------|------|
+| `lab-alert-triage` | Alert fired — confirm before deep RCA |
+| `lab-troubleshoot` | Multi-symptom or unclear root cause |
+| `pyats-health-check` | Device-side verification |
+| `gnmi-telemetry` | Arista spine/leaf drill-down |
+| `servicenow-change-workflow` | Remediation requires CR |

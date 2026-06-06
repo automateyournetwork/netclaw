@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+
+RUN pip install --no-cache-dir prometheus_client pyyaml pygnmi
+
+WORKDIR /app
+COPY exporters/bgp_gnmi_exporter.py .
+COPY gnmi/subscriptions.yaml /app/gnmi/subscriptions.yaml
+
+ENV BGP_GNMI_EXPORTER_PORT=9103
+ENV GNMI_SUBSCRIPTIONS=/app/gnmi/subscriptions.yaml
+EXPOSE 9103
+
+CMD ["python3", "-u", "bgp_gnmi_exporter.py"]

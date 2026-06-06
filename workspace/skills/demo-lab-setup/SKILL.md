@@ -430,7 +430,35 @@ Do NOT chase these false positives. Report them as known template/data issues an
 
 **GATE:** Compliance job completed.
 
-**SESSION CHECKPOINT.** Tell the user: "Checkpoint: Step 20 complete — Golden Config fully bootstrapped. Intended configs generated, backups collected, compliance run. Ready for demo walkthrough?"
+**SESSION CHECKPOINT.** Tell the user: "Checkpoint: Step 20 complete — Golden Config fully bootstrapped. Intended configs generated, backups collected, compliance run. Say 'continue' to proceed, or '/new' and say 'continue demo from Step 21'."
+
+## Step 21: Deploy Observability Stack
+
+Config contexts for SNMP/syslog/IP SLA live in [Nautobot-Workshop-Datasource](https://github.com/byrn-baker/Nautobot-Workshop-Datasource.git) (`config_contexts/observability.yml` and `config_contexts/devices/PE*.yml`). Sync that Git repo in Nautobot before deploying device configs (Step 17 should already have rendered observability + IP SLA if contexts are synced).
+
+Invoke the deploy-observability skill procedure:
+
+```bash
+cd /home/ubuntu/netclaw/observability
+docker compose -f docker-compose.observability.yml up -d
+sleep 90
+curl -sf "http://192.168.220.201:8428/api/v1/query?query=interface_status" | \
+  python3 -c "import sys,json; r=json.load(sys.stdin); print(f'{len(r[\"data\"][\"result\"])} interface_status series')"
+```
+
+**GATE:** Docker compose reports 4 containers Up. VictoriaMetrics query returns **> 0** `interface_status` series (expect ~60+ after SNMP is enabled on devices).
+
+If series count is 0, devices lack SNMP — re-run Step 17 deploy, or run:
+
+```bash
+cd /home/ubuntu/netclaw && PYATS_TESTBED_PATH=/home/ubuntu/netclaw/testbed/testbed.yaml .venv/bin/python3 scripts/push-lab-observability.py
+```
+
+**GATE:** Push script reports success for PE/CE/P routers (Arista may fail SSH — known issue; IOS devices are required for this gate).
+
+Register observability VMs in Nautobot (optional but recommended — see deploy-observability skill Step 9).
+
+**SESSION CHECKPOINT.** Tell the user: "Checkpoint: Step 21 complete — observability stack running, metrics flowing. Ready for demo walkthrough?"
 
 ---
 

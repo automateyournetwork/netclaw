@@ -312,6 +312,7 @@ async def handle_http(reader, writer):
                             peer_as=int(peer_as),
                             peer_port=peer_port,
                             hostname=is_hostname,
+                            route_reflector_client=is_hostname,
                         )
                         # Start the session
                         await _speaker.agent.start_peer(peer_ip)
@@ -448,11 +449,16 @@ async def main():
         local_ipv6=LOCAL_IPV6 or None,
     )
 
+    # Enable route reflection so iBGP routes from lab (RR1) are reflected to mesh peers
+    _speaker.enable_route_reflection()
+
     for peer in BGP_PEERS:
         accept_any_source = bool(peer.get("accept_any_source", False))
         is_hostname = bool(peer.get("hostname", False))
         peer_passive = bool(peer.get("passive", False))
         peer_port = int(peer.get("port", 179))
+        # Mesh peers (hostname or accept_any_source) are RR clients
+        rr_client = is_hostname or accept_any_source
 
         if accept_any_source:
             # Type 3: Inbound mesh peer — no IP, passive, matched by AS from OPEN
@@ -462,8 +468,9 @@ async def main():
                 peer_as=peer["as"],
                 passive=True,
                 accept_any_source=True,
+                route_reflector_client=rr_client,
             )
-            logger.info("Added mesh peer AS%s (accept_any_source, passive)", peer["as"])
+            logger.info("Added mesh peer AS%s (accept_any_source, passive, rr_client)", peer["as"])
         else:
             # Type 1: Local FRR peer (ip is an IP address)
             # Type 2: Outbound mesh peer (ip is a hostname like ngrok endpoint)
@@ -473,9 +480,10 @@ async def main():
                 peer_port=peer_port,
                 passive=peer_passive,
                 hostname=is_hostname,
+                route_reflector_client=rr_client,
             )
-            logger.info("Added peer %s AS%s port=%s passive=%s hostname=%s",
-                        peer["ip"], peer["as"], peer_port, peer_passive, is_hostname)
+            logger.info("Added peer %s AS%s port=%s passive=%s hostname=%s rr_client=%s",
+                        peer["ip"], peer["as"], peer_port, peer_passive, is_hostname, rr_client)
 
     # Start HTTP API
     http_server = await asyncio.start_server(handle_http, "127.0.0.1", API_PORT)

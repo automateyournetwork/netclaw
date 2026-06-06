@@ -69,6 +69,8 @@ As a network engineer, I want NetClaw to detect failures (link down, BGP session
 
 **Why this priority**: Moves from passive monitoring to active detection — the AI notices problems before the human does.
 
+**Architecture note (2026-06-05, complete 2026-06-06)**: Part 15 BGP route stability is implemented via **`specs/031-bgp-route-observability`** (Phases 1–6 complete) — router-native telemetry (BMP + gNMI + SNMP + syslog), normalized `netclaw_*` metrics, Grafana alerts, and Nautobot golden config. Protocol MCP is demo-only for injection scenarios (Scenario D), not the monitoring plane. Validation: `bash scripts/validate-bgp-metrics.sh --phase 1` through `--phase 6`.
+
 **Independent Test**: Shut an interface on a lab device, verify NetClaw detects the state change via metrics and correlates with syslog in Loki.
 
 **Acceptance Scenarios**:
@@ -77,9 +79,9 @@ As a network engineer, I want NetClaw to detect failures (link down, BGP session
    **When** the OTEL Collector reports `interface_status == 2`,
    **Then** the `lab-troubleshoot` skill detects the change, queries Loki for related syslog, and reports the event with timeline.
 
-2. **Given** a BGP session drops,
-   **When** metrics show the peer state change,
-   **Then** NetClaw correlates with OSPF state, interface status, and syslog to determine if it's a link failure, config change, or peer-side issue.
+2. **Given** a BGP session drops on RR1,
+   **When** `netclaw_bgp_peer_state` changes from established,
+   **Then** NetClaw correlates with interface status, `netclaw_path_*` metrics, and syslog to determine if it's a link failure, config change, or peer-side issue (see `031` spec).
 
 ---
 

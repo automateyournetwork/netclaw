@@ -1,0 +1,137 @@
+BGP Route Stability Watch — Scenario D Transcript
+Generated: 2026-06-05T23:04:00Z
+Lab: Nautobot Workshop (RR1 AS65000, NetClaw AS65099 via GRE 10.255.255.1/30)
+
+══════════════════════════════════════════════════════════════════════════════
+USER PROMPT (simulated)
+══════════════════════════════════════════════════════════════════════════════
+"Are routes flapping on 192.168.99.0/24? We saw withdrawal alerts — is this a
+port bounce or something else?"
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 1 — Check BGP route withdrawal rate (VictoriaMetrics / Grafana MCP)
+══════════════════════════════════════════════════════════════════════════════
+query_prometheus(expr="rate(bgp_route_withdrawals_total[10m])")
+
+Result:
+  prefix=192.168.99.0/24  rate=0.0410/s
+  (lab RR1 reflector prefixes 100.1.254.x/32 at rate=0 — stable)
+
+query_prometheus(expr="sum(increase(bgp_route_withdrawals_total{prefix=\"192.168.99.0/24\"}[15m]))")
+  total withdrawals (15m window): 9
+
+GATE: Withdrawals detected → proceed (not HEALTHY).
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 2 — Identify affected prefixes (Protocol MCP)
+══════════════════════════════════════════════════════════════════════════════
+bgp_get_peers():
+  peer 10.255.255.2 (AS65000) state=Established
+  prefixes_received=4, prefixes_sent=0
+
+protocol_summary() [post-injection baseline]:
+  router_id=10.255.255.1, local_as=65099
+  rib_size=4 (RR1 reflector routes)
+  GRE tunnel gre-rr1 UP 10.255.255.1/30 → 10.255.255.2
+
+bgp_get_rib(prefix="192.168.99.0/24"):
+  routes=[], count=0  (prefix withdrawn at end of demo — expected)
+
+Affected prefix: 192.168.99.0/24 only (injection target).
+Flap penalty metrics: none accumulated (penalty gauge empty — sub-threshold).
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 3 — Correlate with interface status changes (SNMP → VictoriaMetrics)
+══════════════════════════════════════════════════════════════════════════════
+query_prometheus(expr="changes(interface_status[10m]) > 0")
+
+Result: 0 interfaces with status changes in 10m window.
+
+GATE: No interface flaps on next-hop devices → skip port-bounce path (Step 4).
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 4 — Loki syslog correlation (skipped — no interface flaps)
+══════════════════════════════════════════════════════════════════════════════
+query_loki_logs(query='{service_name="network-devices"} |~ "UPDOWN|LINEPROTO|BGP-5-ADJCHANGE"')
+
+Result: 0 matching lines in 30m window.
+(No %LINEPROTO-5-UPDOWN on PE/core links during injection window.)
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 5 — Path quality (IP SLA via OTEL SNMP)
+══════════════════════════════════════════════════════════════════════════════
+query_prometheus(expr="ip_sla_rtt_milliseconds{device_name=~\"pe.*\"}")
+  pe2: 1 ms
+  pe3: 1 ms
+
+query_prometheus(expr="ip_sla_jitter_avg_milliseconds{device_name=~\"pe.*\"}")
+  (no series — jitter probes still warming on IOL)
+
+query_prometheus(expr="rate(ip_sla_packet_loss_sd[10m])")
+  (no loss detected)
+
+PATH QUALITY: HEALTHY — RTT < 10ms, no loss.
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 6 — External / control-plane cause
+══════════════════════════════════════════════════════════════════════════════
+Scenario D injection log (Protocol MCP direct):
+  5 cycles × (inject 192.168.99.0/24 → wait 8s → withdraw → wait 8s)
+  All inject/withdraw operations returned success=true.
+  Peer remained Established throughout.
+
+query_prometheus(expr="rate(bgp_route_announcements_total[10m])")
+  prefix=192.168.99.0/24  rate=0.0462/s
+  sum(increase(...[15m])): 10 announcements
+
+Verdict: Withdrawals correlate 1:1 with controlled BGP UPDATE inject/withdraw
+from NetClaw Protocol MCP (AS65099 → RR1). Not a physical-layer or upstream flap.
+
+══════════════════════════════════════════════════════════════════════════════
+STEP 7 — BGP ROUTE STABILITY REPORT
+══════════════════════════════════════════════════════════════════════════════
+╔══════════════════════════════════════════════════════════════╗
+║           BGP ROUTE STABILITY REPORT                        ║
+╠══════════════════════════════════════════════════════════════╣
+║ Time Window: 2026-06-05 22:58 — 23:02 UTC                   ║
+║ Status: WARNING                                             ║
+╠══════════════════════════════════════════════════════════════╣
+║ ROUTE FLAPS                                                 ║
+║   Prefixes affected: 1 (192.168.99.0/24)                    ║
+║   Total withdrawals (15m): 9                                ║
+║   Total announcements (15m): 10                             ║
+║   Suppressed routes: 0                                      ║
+║   Max penalty: 0/3000                                       ║
+╠══════════════════════════════════════════════════════════════╣
+║ ROOT CAUSE                                                  ║
+║   Controlled route inject/withdraw via Protocol MCP         ║
+║   (Scenario D demo — not infrastructure failure)            ║
+║   Device: NetClaw speaker (10.255.255.1 / AS65099)          ║
+║   Interface: N/A — no interface flaps detected              ║
+║   Bounces (10m): 0                                          ║
+║   Error rate: 0 errors/sec                                  ║
+╠══════════════════════════════════════════════════════════════╣
+║ PATH QUALITY                                                ║
+║   Jitter (avg): N/A (probes warming)                        ║
+║   Packet Loss: 0%                                           ║
+║   RTT (avg): ~1 ms (PE2/PE3)                                ║
+╠══════════════════════════════════════════════════════════════╣
+║ RECOMMENDATION                                              ║
+║   No remediation required — flap is synthetic/demo traffic. ║
+║   If unexpected in production: check BGP speakers injecting ║
+║   192.168.99.0/24 and review flap-damping policy on RR.     ║
+╚══════════════════════════════════════════════════════════════╝
+
+══════════════════════════════════════════════════════════════════════════════
+RAW SCENARIO D RUNNER OUTPUT
+══════════════════════════════════════════════════════════════════════════════
+See /tmp/scenario-d-transcript.txt for full Protocol MCP session log.
+
+Key metrics at correlation time:
+  sum(rate(bgp_route_withdrawals_total[10m])) = 0.036/s
+  sum(changes(interface_status[10m])>0) = empty (0 flaps)
+
+Post-run: OpenClaw gateway restarted via systemd (openclaw-gateway.service).
+Note: Protocol MCP metrics (:9179) are emitted by the MCP process; gateway
+lazy-starts protocol-mcp on first tool call. For continuous scrape, invoke
+protocol_summary or run scenario-d-flap.py standalone.

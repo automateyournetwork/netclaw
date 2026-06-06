@@ -103,8 +103,8 @@ Determine if the withdrawal is caused by:
 ### Step 3d: Path Quality Degradation
 
 ```
-query_prometheus(expr="ip_sla_jitter_avg{device_name=~'pe.*|ce.*'}")
-query_prometheus(expr="ip_sla_rtt{device_name=~'pe.*|ce.*'}")
+query_prometheus(expr="ip_sla_jitter_avg_milliseconds{device_name=~'pe.*|ce.*'}")
+query_prometheus(expr="ip_sla_rtt_milliseconds{device_name=~'pe.*|ce.*'}")
 query_prometheus(expr="rate(ip_sla_packet_loss_sd_total[5m])")
 ```
 

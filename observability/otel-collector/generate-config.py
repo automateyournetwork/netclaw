@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Generate otel-config.yaml with proper syslog handling and IP SLA metrics."""
+"""Generate otel-config.yaml — SNMP, IP SLA scalars, syslog with device enrichment."""
+
+import os
+from pathlib import Path
 
 import yaml
 
@@ -24,94 +27,178 @@ DEVICES = {
     "east-leaf02":  {"ip": "192.168.220.19", "vendor": "arista", "role": "leaf"},
 }
 
-# Base interface metrics (all devices)
+IP_TO_DEVICE = {info["ip"]: name for name, info in DEVICES.items()}
+
+INTERFACE_INDEX = "interface.index"
+INTERFACE_NAME = "interface.name"
+BGP_NEIGHBOR = "bgp.neighbor"
+BGP_PEER_AS = "bgp.peer_as"
+
 BASE_METRICS = {
     "interface.octets.in": {
         "unit": "By",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.6", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.6", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.octets.out": {
         "unit": "By",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.10", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.10", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.packets.in": {
         "unit": "{packets}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.11", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.11", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.packets.out": {
         "unit": "{packets}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.17", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.17", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.errors.in": {
         "unit": "{errors}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.14", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.14", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.errors.out": {
         "unit": "{errors}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.20", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.20", "resource_attributes": [INTERFACE_INDEX]}],
     },
     "interface.status": {
         "unit": "{state}",
         "gauge": {"value_type": "int"},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.8", "resource_attributes": ["interface"]}],
+        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.8", "resource_attributes": [INTERFACE_INDEX]}],
     },
 }
 
-# IP SLA metrics (PE/CE only)
-IP_SLA_METRICS = {
-    "ip_sla.rtt": {
-        "unit": "ms",
-        "gauge": {"value_type": "int"},
-        "column_oids": [{"oid": "1.3.6.1.4.1.9.9.42.1.2.10.1.1", "resource_attributes": ["interface"]}],
-    },
-    "ip_sla.jitter.avg": {
-        "unit": "ms",
-        "gauge": {"value_type": "int"},
-        "column_oids": [{"oid": "1.3.6.1.4.1.9.9.42.1.5.2.1.46", "resource_attributes": ["interface"]}],
-    },
-    "ip_sla.packet_loss.sd": {
-        "unit": "{packets}",
-        "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.4.1.9.9.42.1.5.2.1.26", "resource_attributes": ["interface"]}],
-    },
-    "ip_sla.packet_loss.ds": {
-        "unit": "{packets}",
-        "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.4.1.9.9.42.1.5.2.1.27", "resource_attributes": ["interface"]}],
-    },
-}
+DATASOURCE_ROOT = Path(os.environ.get(
+    "NAUTOBOT_DATASOURCE",
+    "/home/ubuntu/github-projects/Nautobot-Workshop-Datasource/config_contexts/devices",
+))
 
-# NOTE: Cisco CPU/Memory OIDs (cpmCPUTotal5minRev, ciscoMemoryPoolUsed/Free)
-# are not available on IOL virtual devices. Omitted to avoid scrape errors.
-# If running on real hardware, add scalar_oids for:
-#   1.3.6.1.4.1.9.9.109.1.1.1.1.8.1 (CPU 5min)
-#   1.3.6.1.4.1.9.9.48.1.1.1.5.1 (memory used)
-#   1.3.6.1.4.1.9.9.48.1.1.1.6.1 (memory free)
-CISCO_SYSTEM_METRICS = {}
+
+def load_ip_sla_probe_ids(device_key: str, probe_type: str | None = None) -> list[int]:
+    """Load IP SLA probe IDs from Nautobot datasource device context."""
+    fname = device_key.upper().replace("WEST-", "West-").replace("EAST-", "East-")
+    if fname.startswith("P") and not fname.startswith("PE"):
+        fname = fname  # P1, P2, etc.
+    path = DATASOURCE_ROOT / f"{fname}.yml"
+    if not path.exists():
+        path = DATASOURCE_ROOT / f"{device_key.upper()}.yml"
+    if not path.exists():
+        return []
+    try:
+        data = yaml.safe_load(path.read_text()) or {}
+        probes = data.get("ip_sla", {}).get("probes", [])
+        ids = []
+        for p in probes:
+            if "id" not in p:
+                continue
+            if probe_type and p.get("type") != probe_type:
+                continue
+            ids.append(int(p["id"]))
+        return ids
+    except Exception:
+        return []
+
+
+def build_ip_sla_scalar_metrics(all_probe_ids: list[int], jitter_probe_ids: list[int]) -> dict:
+    """Per-probe scalar OIDs — avoids broken indexed sla.index resource mapping on IOL."""
+    if not all_probe_ids:
+        return {}
+    metrics = {}
+    rtt_oids = [{"oid": f"1.3.6.1.4.1.9.9.42.1.2.10.1.1.{pid}"} for pid in all_probe_ids]
+    # RTTMON-MIB: avg jitter column .1.4.{probe} (not .1.46.{probe}.1)
+    jitter_oids = [{"oid": f"1.3.6.1.4.1.9.9.42.1.5.2.1.4.{pid}"} for pid in jitter_probe_ids]
+    loss_sd_oids = [{"oid": f"1.3.6.1.4.1.9.9.42.1.5.2.1.26.{pid}"} for pid in jitter_probe_ids]
+    loss_ds_oids = [{"oid": f"1.3.6.1.4.1.9.9.42.1.5.2.1.27.{pid}"} for pid in jitter_probe_ids]
+
+    metrics["netclaw.path.rtt"] = {
+        "unit": "ms",
+        "gauge": {"value_type": "int"},
+        "scalar_oids": rtt_oids,
+    }
+    metrics["netclaw.path.jitter"] = {
+        "unit": "ms",
+        "gauge": {"value_type": "int"},
+        "scalar_oids": jitter_oids,
+    }
+    metrics["netclaw.path.loss.sd"] = {
+        "unit": "{packets}",
+        "gauge": {"value_type": "int"},
+        "scalar_oids": loss_sd_oids,
+    }
+    metrics["netclaw.path.loss.ds"] = {
+        "unit": "{packets}",
+        "gauge": {"value_type": "int"},
+        "scalar_oids": loss_ds_oids,
+    }
+    return metrics
+
+
+def build_bgp4_mib_metrics() -> dict:
+    """Standard BGP4-MIB bgpPeerTable — indexed by bgpPeerRemoteAddr."""
+    peer_idx = [BGP_NEIGHBOR]
+    return {
+        "netclaw.bgp.peer.state": {
+            "unit": "{state}",
+            "gauge": {"value_type": "int"},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.2", "resource_attributes": peer_idx}],
+        },
+        "netclaw.bgp.peer.in.updates": {
+            "unit": "{update}",
+            "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.10", "resource_attributes": peer_idx}],
+        },
+        "netclaw.bgp.peer.out.updates": {
+            "unit": "{update}",
+            "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.11", "resource_attributes": peer_idx}],
+        },
+        "netclaw.bgp.peer.fsm.transitions": {
+            "unit": "{transition}",
+            "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.15", "resource_attributes": peer_idx}],
+        },
+        "netclaw.bgp.peer.uptime": {
+            "unit": "s",
+            "gauge": {"value_type": "int"},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.16", "resource_attributes": peer_idx}],
+        },
+        "netclaw.bgp.peer.remote.as": {
+            "unit": "{as}",
+            "gauge": {"value_type": "int"},
+            "column_oids": [{"oid": "1.3.6.1.2.1.15.3.1.9", "resource_attributes": peer_idx}],
+        },
+    }
+
+
+BGP_ROLES = frozenset({"rr", "pe"})
 
 
 def build_snmp_receiver(name, info):
     metrics = dict(BASE_METRICS)
-    if info["vendor"] == "cisco":
-        metrics.update(CISCO_SYSTEM_METRICS)
+    resource_attrs = {
+        INTERFACE_INDEX: {"oid": "1.3.6.1.2.1.2.2.1.1"},
+        INTERFACE_NAME: {"oid": "1.3.6.1.2.1.2.2.1.2"},
+    }
+    if info["role"] in BGP_ROLES or (info["vendor"] == "arista" and info["role"] in ("spine", "leaf")):
+        resource_attrs[BGP_NEIGHBOR] = {"oid": "1.3.6.1.2.1.15.3.1.7"}
+        resource_attrs[BGP_PEER_AS] = {"oid": "1.3.6.1.2.1.15.3.1.9"}
+        metrics.update(build_bgp4_mib_metrics())
     if info["role"] in ("pe", "ce"):
-        metrics.update(IP_SLA_METRICS)
+        all_probe_ids = load_ip_sla_probe_ids(name)
+        jitter_probe_ids = load_ip_sla_probe_ids(name, probe_type="jitter")
+        metrics.update(build_ip_sla_scalar_metrics(all_probe_ids, jitter_probe_ids))
 
     return {
-        "collection_interval": "60s",
+        "collection_interval": "90s",
         "endpoint": f"udp://{info['ip']}:161",
         "version": "v2c",
         "community": "public",
-        "timeout": "10s",
-        "resource_attributes": {
-            "interface": {"oid": "1.3.6.1.2.1.2.2.1.2"}
-        },
+        "timeout": "30s",
+        "resource_attributes": resource_attrs,
         "metrics": metrics,
     }
 
@@ -128,8 +215,45 @@ def build_resource_processor(name, info):
     }
 
 
+def build_syslog_device_processor():
+    """Map syslog source IP (net.peer.ip) to device_name for Loki correlation."""
+    ottl = []
+    for ip, device in sorted(IP_TO_DEVICE.items()):
+        ottl.append(
+            f'set(attributes["device_name"], "{device}") where attributes["net.peer.ip"] == "{ip}"'
+        )
+        ottl.append(
+            f'set(attributes["device_ip"], "{ip}") where attributes["net.peer.ip"] == "{ip}"'
+        )
+    ottl.append(
+        'set(attributes["loki.attribute.labels"], "device_name,device_ip") '
+        "where attributes[\"device_name\"] != nil"
+    )
+    return {
+        "log_statements": [
+            {"context": "log", "statements": ottl},
+        ]
+    }
+
+
+def build_syslog_resource_processor():
+    """Promote device_name from log attributes to resource for Loki index labels."""
+    return {
+        "log_statements": [
+            {
+                "context": "log",
+                "statements": [
+                    'set(resource.attributes["device_name"], attributes["device_name"]) '
+                    'where attributes["device_name"] != nil',
+                    'set(resource.attributes["device_ip"], attributes["device_ip"]) '
+                    'where attributes["device_ip"] != nil',
+                ],
+            },
+        ]
+    }
+
+
 class NoAliasDumper(yaml.SafeDumper):
-    """YAML dumper that never uses anchors/aliases."""
     def ignore_aliases(self, data):
         return True
 
@@ -138,42 +262,57 @@ def main():
     config = {
         "receivers": {},
         "processors": {
-            "batch": {"timeout": "10s", "send_batch_size": 1000},
+            "batch": {"timeout": "15s", "send_batch_size": 512},
+            "attributes/loki": {
+                "actions": [
+                    {
+                        "key": "loki.attribute.labels",
+                        "value": "device_name,device_ip",
+                        "action": "insert",
+                    },
+                ]
+            },
             "resource/syslog": {
                 "attributes": [
                     {"key": "service.name", "value": "network-devices", "action": "upsert"},
+                    {"key": "loki.resource.labels", "value": "device_name,service.name", "action": "insert"},
                 ]
             },
+            "transform/syslog_device": build_syslog_device_processor(),
+            "transform/syslog_resource": build_syslog_resource_processor(),
         },
         "exporters": {
             "prometheusremotewrite": {
                 "endpoint": "http://192.168.220.201:8428/api/v1/write",
                 "resource_to_telemetry_conversion": {"enabled": True},
+                "timeout": "30s",
             },
             "loki": {
                 "endpoint": "http://192.168.220.202:3100/loki/api/v1/push",
+                "timeout": "30s",
             },
         },
         "service": {"pipelines": {}},
     }
 
-    # Syslog receiver — use udplog (raw lines, no RFC3164 parsing)
-    # Cisco IOS sends: *May 10 21:49:01.747: %FACILITY-SEV-MNEMONIC: message
-    # Arista EOS sends: May 10 21:49:01 hostname FACILITY: message
-    # We ingest raw and let Loki/Grafana handle parsing via LogQL
     config["receivers"]["udplog"] = {
         "listen_address": "0.0.0.0:1514",
+        "add_attributes": True,
     }
 
-    # SNMP receivers + resource processors
     for name, info in DEVICES.items():
         config["receivers"][f"snmp/{name}"] = build_snmp_receiver(name, info)
         config["processors"][f"resource/{name}"] = build_resource_processor(name, info)
 
-    # Service pipelines
     config["service"]["pipelines"]["logs"] = {
         "receivers": ["udplog"],
-        "processors": ["resource/syslog", "batch"],
+        "processors": [
+            "transform/syslog_device",
+            "transform/syslog_resource",
+            "attributes/loki",
+            "resource/syslog",
+            "batch",
+        ],
         "exporters": ["loki"],
     }
 
@@ -184,15 +323,12 @@ def main():
             "exporters": ["prometheusremotewrite"],
         }
 
-    # Write YAML without anchors
-    with open("/home/ubuntu/netclaw/observability/otel-collector/otel-config.yaml", "w") as f:
+    out = Path(__file__).parent / "otel-config.yaml"
+    with open(out, "w") as f:
         yaml.dump(config, f, Dumper=NoAliasDumper, default_flow_style=False, sort_keys=False, width=120)
 
-    print("Generated otel-config.yaml")
+    print(f"Generated {out}")
     print(f"  {len(DEVICES)} SNMP receivers")
-    print(f"  IP SLA metrics on: {[n for n,i in DEVICES.items() if i['role'] in ('pe','ce')]}")
-    print(f"  CPU/Memory: disabled (IOL doesn't expose cpmCPU/ciscoMemoryPool MIBs)")
-    print(f"  Syslog: udplog receiver (raw lines, LogQL parsing)")
 
 
 if __name__ == "__main__":

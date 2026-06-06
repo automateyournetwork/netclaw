@@ -3,13 +3,15 @@ receivers:
     listen_address: 0.0.0.0:1514
     add_attributes: true
   snmp/p1:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.2:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
     metrics:
       interface.octets.in:
@@ -21,7 +23,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -31,7 +33,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -41,7 +43,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -51,7 +53,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -61,7 +63,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -71,7 +73,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -79,15 +81,17 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
   snmp/p2:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.3:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
     metrics:
       interface.octets.in:
@@ -99,7 +103,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -109,7 +113,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -119,7 +123,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -129,7 +133,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -139,7 +143,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -149,7 +153,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -157,15 +161,17 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
   snmp/p3:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.4:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
     metrics:
       interface.octets.in:
@@ -177,7 +183,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -187,7 +193,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -197,7 +203,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -207,7 +213,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -217,7 +223,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -227,7 +233,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -235,15 +241,17 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
   snmp/p4:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.5:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
     metrics:
       interface.octets.in:
@@ -255,7 +263,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -265,7 +273,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -275,7 +283,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -285,7 +293,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -295,7 +303,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -305,7 +313,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -313,18 +321,22 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
   snmp/pe1:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.6:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -335,7 +347,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -345,7 +357,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -355,7 +367,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -365,7 +377,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -375,7 +387,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -385,7 +397,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -393,54 +405,105 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
-      ip_sla.rtt:
-        unit: ms
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
         gauge:
           value_type: int
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
+        - oid: 1.3.6.1.2.1.15.3.1.2
           resource_attributes:
-          - sla_probe
-      ip_sla.jitter.avg:
-        unit: ms
-        gauge:
-          value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.sd:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
+        - oid: 1.3.6.1.2.1.15.3.1.10
           resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.ds:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
+        - oid: 1.3.6.1.2.1.15.3.1.11
           resource_attributes:
-          - sla_probe
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.path.rtt:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.20
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.30
+      netclaw.path.jitter:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.20
+      netclaw.path.loss.sd:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.20
+      netclaw.path.loss.ds:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.20
   snmp/pe2:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.7:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -451,7 +514,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -461,7 +524,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -471,7 +534,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -481,7 +544,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -491,7 +554,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -501,7 +564,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -509,54 +572,105 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
-      ip_sla.rtt:
-        unit: ms
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
         gauge:
           value_type: int
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
+        - oid: 1.3.6.1.2.1.15.3.1.2
           resource_attributes:
-          - sla_probe
-      ip_sla.jitter.avg:
-        unit: ms
-        gauge:
-          value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.sd:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
+        - oid: 1.3.6.1.2.1.15.3.1.10
           resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.ds:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
+        - oid: 1.3.6.1.2.1.15.3.1.11
           resource_attributes:
-          - sla_probe
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.path.rtt:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.20
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.30
+      netclaw.path.jitter:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.20
+      netclaw.path.loss.sd:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.20
+      netclaw.path.loss.ds:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.20
   snmp/pe3:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.8:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -567,7 +681,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -577,7 +691,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -587,7 +701,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -597,7 +711,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -607,7 +721,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -617,7 +731,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -625,54 +739,101 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
-      ip_sla.rtt:
-        unit: ms
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
         gauge:
           value_type: int
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
+        - oid: 1.3.6.1.2.1.15.3.1.2
           resource_attributes:
-          - sla_probe
-      ip_sla.jitter.avg:
-        unit: ms
-        gauge:
-          value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.sd:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
+        - oid: 1.3.6.1.2.1.15.3.1.10
           resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.ds:
-        unit: '{packets}'
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
         sum:
           value_type: int
           aggregation: cumulative
           monotonic: true
         column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
+        - oid: 1.3.6.1.2.1.15.3.1.11
           resource_attributes:
-          - sla_probe
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.path.rtt:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.20
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.30
+      netclaw.path.jitter:
+        unit: ms
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.20
+      netclaw.path.loss.sd:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.20
+      netclaw.path.loss.ds:
+        unit: '{packets}'
+        gauge:
+          value_type: int
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.20
   snmp/ce1:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.9:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -683,7 +844,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -693,7 +854,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -703,7 +864,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -713,7 +874,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -723,7 +884,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -733,7 +894,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -741,54 +902,43 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
-      ip_sla.rtt:
+          - interface.index
+      netclaw.path.rtt:
         unit: ms
         gauge:
           value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
-          resource_attributes:
-          - sla_probe
-      ip_sla.jitter.avg:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.20
+      netclaw.path.jitter:
         unit: ms
         gauge:
           value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.sd:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.10
+      netclaw.path.loss.sd:
         unit: '{packets}'
-        sum:
+        gauge:
           value_type: int
-          aggregation: cumulative
-          monotonic: true
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.ds:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.10
+      netclaw.path.loss.ds:
         unit: '{packets}'
-        sum:
+        gauge:
           value_type: int
-          aggregation: cumulative
-          monotonic: true
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
-          resource_attributes:
-          - sla_probe
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.10
   snmp/ce2:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.10:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
-      sla_probe:
-        oid: 1.3.6.1.4.1.9.9.42.1.2.1.1.2
     metrics:
       interface.octets.in:
         unit: By
@@ -799,7 +949,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -809,7 +959,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -819,7 +969,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -829,7 +979,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -839,7 +989,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -849,7 +999,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -857,52 +1007,47 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
-      ip_sla.rtt:
+          - interface.index
+      netclaw.path.rtt:
         unit: ms
         gauge:
           value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1
-          resource_attributes:
-          - sla_probe
-      ip_sla.jitter.avg:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.10
+        - oid: 1.3.6.1.4.1.9.9.42.1.2.10.1.1.20
+      netclaw.path.jitter:
         unit: ms
         gauge:
           value_type: int
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.46
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.sd:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.4.10
+      netclaw.path.loss.sd:
         unit: '{packets}'
-        sum:
+        gauge:
           value_type: int
-          aggregation: cumulative
-          monotonic: true
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26
-          resource_attributes:
-          - sla_probe
-      ip_sla.packet_loss.ds:
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.26.10
+      netclaw.path.loss.ds:
         unit: '{packets}'
-        sum:
+        gauge:
           value_type: int
-          aggregation: cumulative
-          monotonic: true
-        column_oids:
-        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27
-          resource_attributes:
-          - sla_probe
+        scalar_oids:
+        - oid: 1.3.6.1.4.1.9.9.42.1.5.2.1.27.10
   snmp/rr1:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.11:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -913,7 +1058,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -923,7 +1068,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -933,7 +1078,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -943,7 +1088,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -953,7 +1098,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -963,7 +1108,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -971,16 +1116,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/west-spine01:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.12:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -991,7 +1196,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1001,7 +1206,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1011,7 +1216,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1021,7 +1226,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1031,7 +1236,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1041,7 +1246,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1049,16 +1254,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/west-spine02:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.13:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1069,7 +1334,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1079,7 +1344,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1089,7 +1354,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1099,7 +1364,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1109,7 +1374,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1119,7 +1384,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1127,16 +1392,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/west-leaf01:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.14:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1147,7 +1472,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1157,7 +1482,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1167,7 +1492,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1177,7 +1502,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1187,7 +1512,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1197,7 +1522,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1205,16 +1530,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/west-leaf02:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.15:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1225,7 +1610,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1235,7 +1620,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1245,7 +1630,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1255,7 +1640,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1265,7 +1650,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1275,7 +1660,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1283,16 +1668,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/east-spine01:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.16:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1303,7 +1748,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1313,7 +1758,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1323,7 +1768,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1333,7 +1778,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1343,7 +1788,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1353,7 +1798,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1361,16 +1806,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/east-spine02:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.17:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1381,7 +1886,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1391,7 +1896,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1401,7 +1906,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1411,7 +1916,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1421,7 +1926,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1431,7 +1936,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1439,16 +1944,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/east-leaf01:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.18:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1459,7 +2024,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1469,7 +2034,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1479,7 +2044,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1489,7 +2054,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1499,7 +2064,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1509,7 +2074,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1517,16 +2082,76 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
   snmp/east-leaf02:
-    collection_interval: 60s
+    collection_interval: 90s
     endpoint: udp://192.168.220.19:161
     version: v2c
     community: public
-    timeout: 10s
+    timeout: 30s
     resource_attributes:
-      interface:
+      interface.index:
+        oid: 1.3.6.1.2.1.2.2.1.1
+      interface.name:
         oid: 1.3.6.1.2.1.2.2.1.2
+      bgp.neighbor:
+        oid: 1.3.6.1.2.1.15.3.1.7
+      bgp.peer_as:
+        oid: 1.3.6.1.2.1.15.3.1.9
     metrics:
       interface.octets.in:
         unit: By
@@ -1537,7 +2162,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.6
           resource_attributes:
-          - interface
+          - interface.index
       interface.octets.out:
         unit: By
         sum:
@@ -1547,7 +2172,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.31.1.1.1.10
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.in:
         unit: '{packets}'
         sum:
@@ -1557,7 +2182,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.11
           resource_attributes:
-          - interface
+          - interface.index
       interface.packets.out:
         unit: '{packets}'
         sum:
@@ -1567,7 +2192,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.17
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.in:
         unit: '{errors}'
         sum:
@@ -1577,7 +2202,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.14
           resource_attributes:
-          - interface
+          - interface.index
       interface.errors.out:
         unit: '{errors}'
         sum:
@@ -1587,7 +2212,7 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.20
           resource_attributes:
-          - interface
+          - interface.index
       interface.status:
         unit: '{state}'
         gauge:
@@ -1595,16 +2220,125 @@ receivers:
         column_oids:
         - oid: 1.3.6.1.2.1.2.2.1.8
           resource_attributes:
-          - interface
+          - interface.index
+      netclaw.bgp.peer.state:
+        unit: '{state}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.2
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.in.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.10
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.out.updates:
+        unit: '{update}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.11
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.fsm.transitions:
+        unit: '{transition}'
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.15
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.uptime:
+        unit: s
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.16
+          resource_attributes:
+          - bgp.neighbor
+      netclaw.bgp.peer.remote.as:
+        unit: '{as}'
+        gauge:
+          value_type: int
+        column_oids:
+        - oid: 1.3.6.1.2.1.15.3.1.9
+          resource_attributes:
+          - bgp.neighbor
 processors:
   batch:
-    timeout: 10s
-    send_batch_size: 1000
+    timeout: 15s
+    send_batch_size: 512
+  attributes/loki:
+    actions:
+    - key: loki.attribute.labels
+      value: device_name,device_ip
+      action: insert
   resource/syslog:
     attributes:
     - key: service.name
       value: network-devices
       action: upsert
+    - key: loki.resource.labels
+      value: device_name,service.name
+      action: insert
+  transform/syslog_device:
+    log_statements:
+    - context: log
+      statements:
+      - set(attributes["device_name"], "ce2") where attributes["net.peer.ip"] == "192.168.220.10"
+      - set(attributes["device_ip"], "192.168.220.10") where attributes["net.peer.ip"] == "192.168.220.10"
+      - set(attributes["device_name"], "rr1") where attributes["net.peer.ip"] == "192.168.220.11"
+      - set(attributes["device_ip"], "192.168.220.11") where attributes["net.peer.ip"] == "192.168.220.11"
+      - set(attributes["device_name"], "west-spine01") where attributes["net.peer.ip"] == "192.168.220.12"
+      - set(attributes["device_ip"], "192.168.220.12") where attributes["net.peer.ip"] == "192.168.220.12"
+      - set(attributes["device_name"], "west-spine02") where attributes["net.peer.ip"] == "192.168.220.13"
+      - set(attributes["device_ip"], "192.168.220.13") where attributes["net.peer.ip"] == "192.168.220.13"
+      - set(attributes["device_name"], "west-leaf01") where attributes["net.peer.ip"] == "192.168.220.14"
+      - set(attributes["device_ip"], "192.168.220.14") where attributes["net.peer.ip"] == "192.168.220.14"
+      - set(attributes["device_name"], "west-leaf02") where attributes["net.peer.ip"] == "192.168.220.15"
+      - set(attributes["device_ip"], "192.168.220.15") where attributes["net.peer.ip"] == "192.168.220.15"
+      - set(attributes["device_name"], "east-spine01") where attributes["net.peer.ip"] == "192.168.220.16"
+      - set(attributes["device_ip"], "192.168.220.16") where attributes["net.peer.ip"] == "192.168.220.16"
+      - set(attributes["device_name"], "east-spine02") where attributes["net.peer.ip"] == "192.168.220.17"
+      - set(attributes["device_ip"], "192.168.220.17") where attributes["net.peer.ip"] == "192.168.220.17"
+      - set(attributes["device_name"], "east-leaf01") where attributes["net.peer.ip"] == "192.168.220.18"
+      - set(attributes["device_ip"], "192.168.220.18") where attributes["net.peer.ip"] == "192.168.220.18"
+      - set(attributes["device_name"], "east-leaf02") where attributes["net.peer.ip"] == "192.168.220.19"
+      - set(attributes["device_ip"], "192.168.220.19") where attributes["net.peer.ip"] == "192.168.220.19"
+      - set(attributes["device_name"], "p1") where attributes["net.peer.ip"] == "192.168.220.2"
+      - set(attributes["device_ip"], "192.168.220.2") where attributes["net.peer.ip"] == "192.168.220.2"
+      - set(attributes["device_name"], "p2") where attributes["net.peer.ip"] == "192.168.220.3"
+      - set(attributes["device_ip"], "192.168.220.3") where attributes["net.peer.ip"] == "192.168.220.3"
+      - set(attributes["device_name"], "p3") where attributes["net.peer.ip"] == "192.168.220.4"
+      - set(attributes["device_ip"], "192.168.220.4") where attributes["net.peer.ip"] == "192.168.220.4"
+      - set(attributes["device_name"], "p4") where attributes["net.peer.ip"] == "192.168.220.5"
+      - set(attributes["device_ip"], "192.168.220.5") where attributes["net.peer.ip"] == "192.168.220.5"
+      - set(attributes["device_name"], "pe1") where attributes["net.peer.ip"] == "192.168.220.6"
+      - set(attributes["device_ip"], "192.168.220.6") where attributes["net.peer.ip"] == "192.168.220.6"
+      - set(attributes["device_name"], "pe2") where attributes["net.peer.ip"] == "192.168.220.7"
+      - set(attributes["device_ip"], "192.168.220.7") where attributes["net.peer.ip"] == "192.168.220.7"
+      - set(attributes["device_name"], "pe3") where attributes["net.peer.ip"] == "192.168.220.8"
+      - set(attributes["device_ip"], "192.168.220.8") where attributes["net.peer.ip"] == "192.168.220.8"
+      - set(attributes["device_name"], "ce1") where attributes["net.peer.ip"] == "192.168.220.9"
+      - set(attributes["device_ip"], "192.168.220.9") where attributes["net.peer.ip"] == "192.168.220.9"
+      - set(attributes["loki.attribute.labels"], "device_name,device_ip") where attributes["device_name"] != nil
+  transform/syslog_resource:
+    log_statements:
+    - context: log
+      statements:
+      - set(resource.attributes["device_name"], attributes["device_name"]) where attributes["device_name"] != nil
+      - set(resource.attributes["device_ip"], attributes["device_ip"]) where attributes["device_ip"] != nil
   resource/p1:
     attributes:
     - key: device_name
@@ -1916,14 +2650,19 @@ exporters:
     endpoint: http://192.168.220.201:8428/api/v1/write
     resource_to_telemetry_conversion:
       enabled: true
+    timeout: 30s
   loki:
     endpoint: http://192.168.220.202:3100/loki/api/v1/push
+    timeout: 30s
 service:
   pipelines:
     logs:
       receivers:
       - udplog
       processors:
+      - transform/syslog_device
+      - transform/syslog_resource
+      - attributes/loki
       - resource/syslog
       - batch
       exporters:

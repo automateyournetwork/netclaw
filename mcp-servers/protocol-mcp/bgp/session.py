@@ -27,6 +27,18 @@ from .capabilities import CapabilityManager, build_capability_list, parse_capabi
 from .attributes import PathAttribute
 from .flap_damping import RouteFlapDamping, FlapDampingConfig
 
+try:
+    from metrics_exporter import record_announcement, record_withdrawal, update_flap_penalty
+except ImportError:
+    def record_announcement(*_a, **_kw):  # type: ignore[misc]
+        pass
+
+    def record_withdrawal(*_a, **_kw):  # type: ignore[misc]
+        pass
+
+    def update_flap_penalty(*_a, **_kw):  # type: ignore[misc]
+        pass
+
 
 @dataclass
 class BGPSessionConfig:
@@ -658,10 +670,14 @@ class BGPSession:
         # Process IPv4 withdrawn routes
         if message.withdrawn_routes:
             self.logger.debug(f"IPv4 withdrawn routes: {len(message.withdrawn_routes)}")
+            peer_label = str(self.config.peer_ip)
             for prefix in message.withdrawn_routes:
-                # Track flap if damping enabled
+                record_withdrawal(prefix, peer_label)
                 if self.flap_damping:
                     self.flap_damping.route_withdrawn(prefix)
+                    penalty = self.flap_damping.get_penalty(prefix)
+                    suppressed = self.flap_damping.is_suppressed(prefix)
+                    update_flap_penalty(prefix, penalty, suppressed)
 
                 self.adj_rib_in.remove_route(prefix, self.peer_id)
                 self.stats['routes_received'] -= 1
@@ -700,6 +716,10 @@ class BGPSession:
 
                     self.adj_rib_in.add_route(route)
                     self.stats['routes_received'] += 1
+                    record_announcement(prefix, str(self.config.peer_ip))
+                    if self.flap_damping:
+                        penalty = self.flap_damping.get_penalty(prefix)
+                        update_flap_penalty(prefix, penalty, self.flap_damping.is_suppressed(prefix))
 
                     # Mark route as refreshed if in graceful restart
                     if self.graceful_restart_manager and self.config.enable_graceful_restart:

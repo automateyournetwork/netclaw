@@ -59,6 +59,29 @@ services:
       clab-mgmt:
         ipv4_address: 192.168.220.202
 
+  bgp-snmp-exporter:
+    build: ./exporters
+    container_name: bgp-snmp-exporter
+    restart: unless-stopped
+    environment:
+      - SNMP_COMMUNITY=public
+      - BGP_SNMP_POLL_INTERVAL=60
+      - BGP_SNMP_EXPORTER_PORT=9102
+      - NAUTOBOT_DATASOURCE=/datasource/devices
+    volumes:
+      - ${NAUTOBOT_DATASOURCE:-/home/ubuntu/github-projects/Nautobot-Workshop-Datasource/config_contexts/devices}:/datasource/devices:ro
+    ports:
+      - "9102:9102"
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:9102/metrics')\""]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 90s
+    networks:
+      clab-mgmt:
+        ipv4_address: 192.168.220.204
+
   grafana:
     image: grafana/grafana:11.1.0
     container_name: grafana

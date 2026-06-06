@@ -36,9 +36,9 @@
 
 ## Phase 2: Week 2 — NetClaw ↔ Grafana/Prometheus Integration (Part 14)
 
-- [ ] T018 [W2] Create lab-noc-watch skill (SKILL.md) — queries Grafana for interface errors, CPU, memory, BGP state
-- [ ] T019 [W2] Create lab-alert-triage skill (SKILL.md) — reads Grafana alerts, correlates with pyATS device state
-- [ ] T020 [W2] Configure Grafana alert rules for: interface down, CPU > 85%, interface errors > 0
+- [X] T018 [W2] Create lab-noc-watch skill (SKILL.md) — queries Grafana for interface errors, CPU, memory, BGP state
+- [X] T019 [W2] Create lab-alert-triage skill (SKILL.md) — reads Grafana alerts, correlates with pyATS device state
+- [X] T020 [W2] Configure Grafana alert rules for: interface down, CPU > 85%, interface errors > 0
 - [ ] T021 [P][W2] Document example PromQL queries for lab metrics in skill procedures
 - [ ] T022 [P][W2] Document example LogQL queries for device syslog in skill procedures
 - [ ] T023 [W2] Validate Grafana MCP connectivity (search_dashboards, query_prometheus, query_loki_logs)
@@ -49,10 +49,13 @@
 
 ---
 
-## Phase 3: Week 3 — Failure Detection + pfSense MCP (Part 15)
+## Phase 3: Week 3 — Failure Detection + Route Stability (Part 15)
 
-- [ ] T026 [W3] Create lab-troubleshoot skill (SKILL.md) — combines observability data with device state for diagnosis
-- [ ] T027 [W3] Create pfSense MCP server spec (spec within this spec or separate 030-pfSense-mcp?)
+**Pivot**: BGP route stability moved to **`specs/031-bgp-route-observability`** (production BMP/gNMI/SNMP architecture). Implement via spec-kit phased tasks there.
+
+- [X] T026 [W3] Create lab-troubleshoot skill (SKILL.md) — combines observability data with device state for diagnosis
+- [x] T026b [W3] Execute `031` Phases 1–6 per `specs/031-bgp-route-observability/tasks.md` (complete 2026-06-06)
+- [ ] T027 [W3] Create pfSense MCP server spec (deferred — separate spec)
 - [ ] T028 [W3] Implement pfSense MCP server: read tools (get_rules, get_interfaces, get_states, get_dhcp_leases, get_arp, get_system_info, get_gateways, get_logs)
 - [ ] T029 [W3] Implement pfSense XML-RPC client with auth handling
 - [ ] T030 [W3] Deploy pfSense (mock service or VM) on clab-mgmt network
