@@ -38,6 +38,7 @@ yarn-error.log*
 # IDE
 .vscode/
 .idea/
+netclaw.code-workspace
 *.swp
 *.swo
 *~
