@@ -31,44 +31,56 @@ IP_TO_DEVICE = {info["ip"]: name for name, info in DEVICES.items()}
 
 INTERFACE_INDEX = "interface.index"
 INTERFACE_NAME = "interface.name"
+IFACE_INDEX_ONLY = [INTERFACE_INDEX]
 BGP_NEIGHBOR = "bgp.neighbor"
 BGP_PEER_AS = "bgp.peer_as"
+
+# Polled sequentially by bgp-snmp-exporter — skip OTEL parallel SNMP (IOL agents stall).
+OTEL_SNMP_SKIP = frozenset({
+    "p1", "p2", "p3", "p4",
+    "pe1", "pe2", "pe3", "ce1", "ce2", "rr1",
+})
+
+
+def _iface_col(oid: str) -> list[dict]:
+    return [{"oid": oid, "resource_attributes": IFACE_INDEX_ONLY}]
+
 
 BASE_METRICS = {
     "interface.octets.in": {
         "unit": "By",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.6", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.31.1.1.1.6"),
     },
     "interface.octets.out": {
         "unit": "By",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.31.1.1.1.10", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.31.1.1.1.10"),
     },
     "interface.packets.in": {
         "unit": "{packets}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.11", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.2.2.1.11"),
     },
     "interface.packets.out": {
         "unit": "{packets}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.17", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.2.2.1.17"),
     },
     "interface.errors.in": {
         "unit": "{errors}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.14", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.2.2.1.14"),
     },
     "interface.errors.out": {
         "unit": "{errors}",
         "sum": {"value_type": "int", "aggregation": "cumulative", "monotonic": True},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.20", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.2.2.1.20"),
     },
     "interface.status": {
         "unit": "{state}",
         "gauge": {"value_type": "int"},
-        "column_oids": [{"oid": "1.3.6.1.2.1.2.2.1.8", "resource_attributes": [INTERFACE_INDEX]}],
+        "column_oids": _iface_col("1.3.6.1.2.1.2.2.1.8"),
     },
 }
 
@@ -177,29 +189,51 @@ def build_bgp4_mib_metrics() -> dict:
 BGP_ROLES = frozenset({"rr", "pe"})
 
 
-def build_snmp_receiver(name, info):
+def build_snmp_receiver(name, info, device_index: int):
     metrics = dict(BASE_METRICS)
     resource_attrs = {
         INTERFACE_INDEX: {"oid": "1.3.6.1.2.1.2.2.1.1"},
         INTERFACE_NAME: {"oid": "1.3.6.1.2.1.2.2.1.2"},
     }
-    if info["role"] in BGP_ROLES or (info["vendor"] == "arista" and info["role"] in ("spine", "leaf")):
+    add_bgp = info["role"] in BGP_ROLES or (
+        info["vendor"] == "arista" and info["role"] in ("spine", "leaf")
+    )
+    if add_bgp:
         resource_attrs[BGP_NEIGHBOR] = {"oid": "1.3.6.1.2.1.15.3.1.7"}
         resource_attrs[BGP_PEER_AS] = {"oid": "1.3.6.1.2.1.15.3.1.9"}
         metrics.update(build_bgp4_mib_metrics())
-    if info["role"] in ("pe", "ce"):
-        all_probe_ids = load_ip_sla_probe_ids(name)
-        jitter_probe_ids = load_ip_sla_probe_ids(name, probe_type="jitter")
-        metrics.update(build_ip_sla_scalar_metrics(all_probe_ids, jitter_probe_ids))
 
     return {
         "collection_interval": "90s",
+        "initial_delay": f"{device_index * 5}s",
         "endpoint": f"udp://{info['ip']}:161",
         "version": "v2c",
         "community": "public",
-        "timeout": "30s",
+        "timeout": "45s",
         "resource_attributes": resource_attrs,
         "metrics": metrics,
+    }
+
+
+def build_interface_label_processor():
+    """Promote interface_name → interface for agent/Grafana PromQL."""
+    return {
+        "metric_statements": [
+            {
+                "context": "datapoint",
+                "statements": [
+                    'set(attributes["interface"], attributes["interface_name"]) '
+                    'where attributes["interface_name"] != nil',
+                ],
+            },
+            {
+                "context": "resource",
+                "statements": [
+                    'set(attributes["interface"], attributes["interface_name"]) '
+                    'where attributes["interface_name"] != nil',
+                ],
+            },
+        ]
     }
 
 
@@ -280,15 +314,16 @@ def main():
             },
             "transform/syslog_device": build_syslog_device_processor(),
             "transform/syslog_resource": build_syslog_resource_processor(),
+            "transform/interface_labels": build_interface_label_processor(),
         },
         "exporters": {
             "prometheusremotewrite": {
-                "endpoint": "http://192.168.220.201:8428/api/v1/write",
+                "endpoint": "http://victoriametrics:8428/api/v1/write",
                 "resource_to_telemetry_conversion": {"enabled": True},
                 "timeout": "30s",
             },
             "loki": {
-                "endpoint": "http://192.168.220.202:3100/loki/api/v1/push",
+                "endpoint": "http://loki:3100/loki/api/v1/push",
                 "timeout": "30s",
             },
         },
@@ -300,8 +335,9 @@ def main():
         "add_attributes": True,
     }
 
-    for name, info in DEVICES.items():
-        config["receivers"][f"snmp/{name}"] = build_snmp_receiver(name, info)
+    otel_snmp_devices = [(n, i) for n, i in DEVICES.items() if n not in OTEL_SNMP_SKIP]
+    for idx, (name, info) in enumerate(otel_snmp_devices):
+        config["receivers"][f"snmp/{name}"] = build_snmp_receiver(name, info, idx)
         config["processors"][f"resource/{name}"] = build_resource_processor(name, info)
 
     config["service"]["pipelines"]["logs"] = {
@@ -316,10 +352,10 @@ def main():
         "exporters": ["loki"],
     }
 
-    for name in DEVICES:
+    for name, _ in otel_snmp_devices:
         config["service"]["pipelines"][f"metrics/{name}"] = {
             "receivers": [f"snmp/{name}"],
-            "processors": [f"resource/{name}", "batch"],
+            "processors": [f"resource/{name}", "transform/interface_labels", "batch"],
             "exporters": ["prometheusremotewrite"],
         }
 
@@ -328,7 +364,7 @@ def main():
         yaml.dump(config, f, Dumper=NoAliasDumper, default_flow_style=False, sort_keys=False, width=120)
 
     print(f"Generated {out}")
-    print(f"  {len(DEVICES)} SNMP receivers")
+    print(f"  {len(otel_snmp_devices)} SNMP receivers ({len(OTEL_SNMP_SKIP)} via bgp-snmp-exporter)")
 
 
 if __name__ == "__main__":

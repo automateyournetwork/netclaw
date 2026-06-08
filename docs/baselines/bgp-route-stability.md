@@ -73,8 +73,9 @@ end
 
 | Signal | Query | Expected |
 |--------|-------|----------|
-| Interface down | `interface_status{device_name="pe1"}` | One series → 2 (down) |
-| Interface change | `changes(interface_status{device_name="pe1"}[5m])` | > 0 |
+| Interface down | `interface_status{device_name="pe1",interface="GigabitEthernet2",job="netclaw-bgp-snmp"}` | → 2 (down) |
+| Interface change | `changes(interface_status{device_name="pe1",job="netclaw-bgp-snmp"}[5m])` | > 0 |
+| Grafana | Lab Interface Down | Fires ~3 min after shutdown |
 | Syslog | `{device_name="pe1"} \|~ "UPDOWN"` | LINEPROTO UPDOWN |
 | BGP activity | `rate(netclaw_bgp_peer_in_updates_total{device_name="pe1"}[5m])` | May spike briefly |
 | Correlation alert | ALERT-007 | Fires if UPDATE rate > 0 |
@@ -88,12 +89,19 @@ interface GigabitEthernet2
 end
 ```
 
-**Scenario B run (2026-06-06)**: PE1 Gi2 `shutdown` via mgmt SSH:
+**Scenario B run (2026-06-06, automated)**: `bash scripts/observability/run-scenario-b.sh`:
 
-- Loki: `%LINEPROTO-5-UPDOWN: Line protocol on Interface GigabitEthernet2, changed state to down` within 2 min (`{device_name="pe1"}`)
-- `netclaw_bgp_peer_state{device_name="pe1"} != 6` → **0** (sessions survived on Gi3/Gi4 paths)
-- ALERT-001 did not fire (expected — dual-homed PE)
-- `interface_status` SNMP lag: index mapping pending next OTEL poll cycle; use Loki + `show ip interface brief` for immediate confirmation
+- Loki: `%LINEPROTO-5-UPDOWN` within 2 min
+- `interface_status` → **2** via `bgp-snmp-exporter` (~90s after shutdown)
+- **Lab Interface Down** Grafana alert fires (~3 min)
+- `netclaw_bgp_peer_state != 6` → **0** (dual-homed; expected)
+- ALERT-007 did not fire (no BGP UPDATE spike — expected)
+
+**Scenario C run (2026-06-06, automated)**: `bash scripts/observability/run-scenario-c.sh`:
+
+- Gi2 + Gi3 shutdown → RR peer Idle in SNMP ~**200s**
+- **ALERT-001** + **ALERT-003** fire after `for: 2m`
+- Loki ADJCHANGE/UPDOWN storm present
 
 ---
 

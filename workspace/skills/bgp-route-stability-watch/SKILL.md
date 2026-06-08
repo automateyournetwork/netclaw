@@ -93,16 +93,16 @@ Lab RR1 BMP is live when `netclaw_bgp_prefix_announcements_total{device_name="rr
 For each affected `device_name`:
 
 ```
-query_prometheus(expr="changes(interface_status{device_name=\"<device>\"}[5m])", time_range="30m")
-query_prometheus(expr="interface_status{device_name=\"<device>\"} == 2", time_range="15m")
+query_prometheus(expr="changes(interface_status{device_name=\"<device>\",job=\"netclaw-bgp-snmp\"}[5m])", time_range="30m")
+query_prometheus(expr="interface_status{device_name=\"<device>\",job=\"netclaw-bgp-snmp\"} == 2", time_range="15m")
 ```
 
 ALERT-007 combined signal:
 
 ```
 query_prometheus(expr="""
-  changes(interface_status{device_role=~\"pe|p\"}[5m]) > 0
-  and on(device_name) rate(netclaw_bgp_peer_in_updates_total[5m]) > 0
+  changes(interface_status{device_role=~\"pe|p\",job=\"netclaw-bgp-snmp\"}[5m]) > 0
+  and on(device_name) rate(netclaw_bgp_peer_in_updates_total{job=\"netclaw-bgp-snmp\"}[5m]) > 0
 """, time_range="15m")
 ```
 

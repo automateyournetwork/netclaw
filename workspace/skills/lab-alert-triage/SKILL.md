@@ -1,6 +1,6 @@
 ---
 name: lab-alert-triage
-description: "Investigate firing Grafana alerts on the lab network. Lists active alert rules, correlates each alert with netclaw_* PromQL/Loki evidence, and confirms or refutes with pyATS/gNMI live device state. Use when alerts fire, the user asks about a Grafana notification, or lab-noc-watch reports WARNING/CRITICAL."
+description: "Investigate firing Grafana alerts on the lab network. Lists active alert rules, correlates each alert with netclaw_* PromQL/Loki evidence, and confirms or refutes with pyATS/gNMI live device state. Use when alerts fire autonomously (Grafana webhook → OpenClaw hook), on cron lab-alert-watch, when the user asks about a Grafana notification, or lab-noc-watch reports WARNING/CRITICAL."
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["uvx", "python3"], "env": ["GRAFANA_URL", "PROMETHEUS_URL", "PYATS_TESTBED_PATH"] } } }
@@ -10,10 +10,36 @@ metadata:
 
 ## When to Use
 
+- **Autonomous trigger:** Grafana fires a `team=lab-noc` alert → webhook hits OpenClaw `/hooks/grafana-alert` → run this skill immediately without waiting for the user
 - Grafana alert rules are firing or pending (folder **Lab Network**)
 - User asks "what's alerting?" or "triage the NOC alert"
 - Follow-up after `lab-noc-watch` returns WARNING or CRITICAL
 - Discord/Slack notification from the lab observability stack
+
+## Autonomous Mode
+
+When the hook message starts with `AUTONOMOUS ALERT TRIAGE`:
+
+1. Do **not** ask the user for permission to investigate — execute the full procedure
+2. Do **not** remediate (no `shutdown`, no config push, no ticket creation) unless the user explicitly approves in the same thread
+3. **Always** emit the Step 6 box in the session even if pyATS/Loki fail; then post to Discord:
+   - **Webhook (preferred):** `bash scripts/observability/post-discord-webhook.sh "<Step 6 report>"` when `DISCORD_WEBHOOK_URL` is set
+   - **Bot fallback:** `message` tool to `channel:<id>` only if webhook is unset and `deliver` is enabled
+4. If `Alert status: resolved`, post a one-line all-clear and skip deep drill-down
+5. **Never use Protocol MCP** for router RCA — it is NetClaw's synthetic speaker (AS 65099), not PE/RR/P devices
+6. **Finish within ~8 tool calls** — skip `memory_search`, `list_alert_groups`, `list_incidents`, and broad instant queries like `{device_name="pe3"}`
+7. Use metric `netclaw_path_jitter_ms` (not `ipsla_jitter_ms`) and Loki label `device_name` (not `device`)
+8. Loki `startRfc3339`/`endRfc3339` must be RFC3339 timestamps (e.g. `2026-06-07T03:00:00Z`), not `now-30m`
+9. After **one** Loki query returns zero streams, skip further log correlation and proceed to pyATS or the report
+
+### Autonomous fast path (ALERT-006 example)
+
+```
+alerting_manage_rules(operation="list", search_rule_name="<alertname>")
+query_prometheus(expr="netclaw_path_jitter_ms{device_name='<device>'}", queryType="range", startTime="now-30m")
+pyats_run_command(device="<device>", command="show ip sla statistics")   # if pyATS available
+→ Step 6 triage report (CONFIRMED if jitter > 20ms on any probe)
+```
 
 ## Data Sources
 
@@ -44,7 +70,7 @@ Filter to folder **Lab Network** with state `firing` or `pending`. Record: rule 
 
 | Alert rule | PromQL confirmation | Drill-down |
 |------------|---------------------|------------|
-| Lab Interface Down | `interface_status{device_name="<d>"} == 2` | `show ip interface brief` |
+| Lab Interface Down | `interface_status{device_name="<d>",job="netclaw-bgp-snmp"} == 2` | `show ip interface brief` |
 | Lab Interface Errors | `rate(interface_errors_in_total{device_name="<d>"}[5m])` | `show interfaces` (errors/CRC) |
 | Lab CPU High | `system_cpu_utilization{device_name="<d>"}` | `show processes cpu` |
 
@@ -58,7 +84,7 @@ Filter to folder **Lab Network** with state `firing` or `pending`. Record: rule 
 | ALERT-004 | netclaw-bgp-prefix-withdrawal-rate | `rate(netclaw_bgp_prefix_withdrawals_total{device_name="<d>"}[5m])` | BMP-related syslog | `show ip bgp <prefix>` |
 | ALERT-005 | netclaw-bgp-update-rate-high | `rate(netclaw_bgp_peer_in_updates_total{device_name="<d>"}[5m])` | — | `show ip bgp summary` |
 | ALERT-006 | netclaw-path-jitter-high | `netclaw_path_jitter_ms{device_name="<d>"}` | — | `show ip sla statistics` |
-| ALERT-007 | netclaw-interface-bgp-correlation | `changes(interface_status{device_name="<d>"}[5m])` + BGP UPDATE rate | UPDOWN | `show interfaces` |
+| ALERT-007 | netclaw-interface-bgp-correlation | `changes(interface_status{device_name="<d>",job="netclaw-bgp-snmp"}[5m])` + `rate(netclaw_bgp_peer_in_updates_total{job="netclaw-bgp-snmp"}[5m])` | UPDOWN | `show interfaces` |
 
 Extract `device_name`, `neighbor`, `prefix` from alert labels or query results.
 
@@ -67,8 +93,8 @@ Extract `device_name`, `neighbor`, `prefix` from alert labels or query results.
 For each firing alert:
 
 ```
-query_prometheus(expr="interface_status{device_name='<device>'}")
-query_prometheus(expr="changes(interface_status{device_name='<device>'}[15m])")
+query_prometheus(expr="interface_status{device_name='<device>',job='netclaw-bgp-snmp'}")
+query_prometheus(expr="changes(interface_status{device_name='<device>',job='netclaw-bgp-snmp'}[15m])")
 query_prometheus(expr="netclaw_bgp_peer_state{device_name='<device>'}")
 query_prometheus(expr="netclaw_bgp_peer_prefixes_received{device_name='<device>'}")
 query_prometheus(expr="rate(netclaw_bgp_peer_in_updates_total{device_name='<device>'}[5m])")
@@ -118,6 +144,17 @@ gnmi_compare_with_cli(target="<device>", data_type="bgp_neighbors")
 ║ Next: <bgp-route-stability-watch | lab-troubleshoot | none> ║
 ╚══════════════════════════════════════════════════════════════╝
 ```
+
+### Step 6b: Discord delivery
+
+```bash
+bash scripts/observability/post-discord-webhook.sh "$(cat <<'EOF'
+<paste Step 6 triage box here>
+EOF
+)"
+```
+
+Skip if `DISCORD_WEBHOOK_URL` is unset.
 
 ### Step 7: GAIT Audit
 

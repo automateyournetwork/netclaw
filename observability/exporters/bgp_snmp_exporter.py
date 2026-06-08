@@ -32,6 +32,21 @@ PATH_DEVICES = {
     "ce2": {"ip": "192.168.220.10"},
 }
 
+# Cisco IOL — sequential ifOperStatus poll (OTEL parallel scrapes time out on these).
+INTERFACE_DEVICES = {
+    "p1": {"ip": "192.168.220.2"},
+    "p2": {"ip": "192.168.220.3"},
+    "p3": {"ip": "192.168.220.4"},
+    "p4": {"ip": "192.168.220.5"},
+    **{k: {"ip": v["ip"]} for k, v in BGP_DEVICES.items()},
+    **{k: {"ip": v["ip"]} for k, v in PATH_DEVICES.items()},
+}
+
+IF_OPER_OID = "1.3.6.1.2.1.2.2.1.8"
+IF_NAME_OID = "1.3.6.1.2.1.2.2.1.2"
+IF_ERR_IN_OID = "1.3.6.1.2.1.2.2.1.14"
+IF_ERR_OUT_OID = "1.3.6.1.2.1.2.2.1.20"
+
 DATASOURCE_ROOT = Path(os.environ.get(
     "NAUTOBOT_DATASOURCE",
     "/home/ubuntu/github-projects/Nautobot-Workshop-Datasource/config_contexts/devices",
@@ -105,6 +120,22 @@ path_loss = Gauge(
     "netclaw_path_loss_packets",
     "IP SLA source-to-destination packet loss (RTTMON-MIB .1.5.2.1.26.{probe})",
     ["device_name", "probe_id", "probe_type", "destination", "source"],
+)
+
+interface_oper_status = Gauge(
+    "interface_status",
+    "ifOperStatus (1=up, 2=down, …)",
+    ["device_name", "interface_index", "interface", "device_role", "source"],
+)
+interface_errors_in = Gauge(
+    "interface_errors_in_total",
+    "ifInErrors SNMP counter",
+    ["device_name", "interface_index", "interface", "device_role", "source"],
+)
+interface_errors_out = Gauge(
+    "interface_errors_out_total",
+    "ifOutErrors SNMP counter",
+    ["device_name", "interface_index", "interface", "device_role", "source"],
 )
 
 
@@ -237,6 +268,55 @@ def poll_cisco_prefixes(device_name: str, host: str) -> list[dict]:
     return results
 
 
+def parse_if_name(val: str) -> str:
+    val = val.strip()
+    if val.startswith('STRING:'):
+        val = val.split(':', 1)[1].strip()
+    return val.strip('"')
+
+
+def poll_interface_status(device_name: str, host: str) -> None:
+    """Walk ifName + ifOperStatus — one device at a time for IOL SNMP agent headroom."""
+    role = BGP_DEVICES.get(device_name, {}).get("role") or (
+        "pe" if device_name.startswith("pe") else
+        "ce" if device_name.startswith("ce") else
+        "rr" if device_name == "rr1" else
+        "p" if device_name.startswith("p") else "unknown"
+    )
+    names: dict[str, str] = {}
+    for left, val in snmp_walk(host, IF_NAME_OID):
+        idx = index_key_from_oid(left, IF_NAME_OID)
+        if idx:
+            names[idx] = parse_if_name(val)
+
+    oper_rows = snmp_walk(host, IF_OPER_OID)
+    if not oper_rows:
+        log.warning("No interface_status from %s (%s)", device_name, host)
+        return
+
+    err_in = {index_key_from_oid(l, IF_ERR_IN_OID): parse_int(v) for l, v in snmp_walk(host, IF_ERR_IN_OID)}
+    err_out = {index_key_from_oid(l, IF_ERR_OUT_OID): parse_int(v) for l, v in snmp_walk(host, IF_ERR_OUT_OID)}
+
+    for left, val in oper_rows:
+        idx = index_key_from_oid(left, IF_OPER_OID)
+        status = parse_int(val)
+        if status is None or not idx:
+            continue
+        ifname = names.get(idx, f"ifIndex{idx}")
+        labels = dict(
+            device_name=device_name,
+            interface_index=idx,
+            interface=ifname,
+            device_role=role,
+            source="snmp",
+        )
+        interface_oper_status.labels(**labels).set(status)
+        if err_in.get(idx) is not None:
+            interface_errors_in.labels(**labels).set(err_in[idx])
+        if err_out.get(idx) is not None:
+            interface_errors_out.labels(**labels).set(err_out[idx])
+
+
 def poll_path_device(device_name: str, info: dict) -> None:
     host = info["ip"]
     probes = load_ip_sla_probes(device_name)
@@ -306,6 +386,11 @@ def poll_device(device_name: str, info: dict) -> None:
 
 def poll_loop() -> None:
     while True:
+        for name, info in INTERFACE_DEVICES.items():
+            try:
+                poll_interface_status(name, info["ip"])
+            except Exception as exc:
+                log.exception("Interface poll failed for %s: %s", name, exc)
         for name, info in BGP_DEVICES.items():
             try:
                 poll_device(name, info)

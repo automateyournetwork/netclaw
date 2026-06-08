@@ -20,12 +20,12 @@
 - [x] T003 [1] Regenerate `otel-config.yaml`; restart otel-collector
 - [x] T004 [P] [1] Create `observability/exporters/bgp-normalizer.py` skeleton (SNMP label normalization if OTEL cannot emit `netclaw_` prefix directly)
 - [x] T005 [1] Update `observability/grafana/dashboards/bgp-route-stability.json` peer/RIB panels to `netclaw_*` queries
-- [x] T006 [1] Add `scripts/validate-bgp-metrics.sh` checkpoint script
+- [x] T006 [1] Add `scripts/observability/validate-bgp-metrics.sh` checkpoint script
 - [x] T007 [1] Document Phase 1 in `quickstart.md` validation section
 
 **Checkpoint command**:
 ```bash
-bash scripts/validate-bgp-metrics.sh --phase 1
+bash scripts/observability/validate-bgp-metrics.sh --phase 1
 ```
 
 ---
@@ -40,7 +40,7 @@ bash scripts/validate-bgp-metrics.sh --phase 1
 - [x] T012 [2] Fix Grafana syslog panel LogQL: `{service_name="network-devices"} |~ "(?i)(BGP|LINEPROTO|UPDOWN|ADJCHANGE)"`
 - [x] T013 [P] [2] Update `bgp-route-stability.json` path quality panels to `netclaw_path_jitter_ms`, `netclaw_path_rtt_ms`
 - [x] T014 [2] Push IP SLA + `logging host` via golden config / Ansible for PE1–PE3 (fix PE1 reachability)
-- [x] T015 [2] Extend `scripts/validate-bgp-metrics.sh --phase 2`
+- [x] T015 [2] Extend `scripts/observability/validate-bgp-metrics.sh --phase 2`
 
 ---
 
@@ -55,7 +55,7 @@ bash scripts/validate-bgp-metrics.sh --phase 1
 - [x] T023 [P] [3] Add BMP statistics → `netclaw_bgp_rib_routes_total`
 - [x] T024 [3] Wire compose overlay into `observability/README.md` and `quickstart.md`
 - [x] T025 [3] Add dashboard panels for BMP withdrawal rate (show "no data" gracefully in lab)
-- [x] T026 [3] Extend `scripts/validate-bgp-metrics.sh --phase 3`
+- [x] T026 [3] Extend `scripts/observability/validate-bgp-metrics.sh --phase 3`
 
 ---
 
@@ -69,7 +69,7 @@ bash scripts/validate-bgp-metrics.sh --phase 1
 - [x] T032 [4] Map gNMI updates to `netclaw_*` (reuse normalizer or OTEL transform)
 - [x] T033 [P] [4] Add Arista targets to gnmi config (192.168.220.12–19, port 6030, lab TLS skip)
 - [x] T034 [4] Validate against `gnmi-mcp` `gnmi_compare_with_cli` for one spine
-- [x] T035 [4] Extend `scripts/validate-bgp-metrics.sh --phase 4`
+- [x] T035 [4] Extend `scripts/observability/validate-bgp-metrics.sh --phase 4`
 
 ---
 
@@ -88,7 +88,7 @@ bash scripts/validate-bgp-metrics.sh --phase 1
 
 **Checkpoint command**:
 ```bash
-bash scripts/validate-bgp-metrics.sh --phase 5
+bash scripts/observability/validate-bgp-metrics.sh --phase 5
 # Live alert fire: Scenario B (PE1 Gi2 shutdown) — see docs/baselines/bgp-route-stability.md
 ```
 
@@ -108,8 +108,8 @@ bash scripts/validate-bgp-metrics.sh --phase 5
 
 **Checkpoint command**:
 ```bash
-bash scripts/validate-bgp-metrics.sh --phase 6
-python3 scripts/nautobot-push-observability.py
+bash scripts/observability/validate-bgp-metrics.sh --phase 6
+python3 scripts/observability/nautobot-push-observability.py
 ```
 
 ---

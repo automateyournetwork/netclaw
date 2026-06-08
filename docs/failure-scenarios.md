@@ -4,7 +4,16 @@ Injectable failures for the Nautobot Workshop lab observability demos (Part 14�
 
 **Prerequisites:** Observability stack running (`observability/docker-compose.observability.yml` + BMP/gNMI overlays), SNMP/syslog on devices, Grafana alerts provisioned under folder **Lab Network**.
 
-**Metrics plane:** Router-native `netclaw_*` only. Protocol MCP is **demo-only** (Scenario D).
+**Environment:** Nautobot Workshop ContainerLab on `clab-mgmt` (192.168.220.0/24). pyATS via project venv: `bash scripts/observability/run-all-scenarios.sh --all` (uses `testbed/testbed.yaml`).
+
+**Metrics plane:** Router-native `netclaw_*` from `bgp-snmp-exporter` (`job=netclaw-bgp-snmp`), BMP, gNMI. Cisco `interface_status` is **not** polled by OTEL (parallel SNMP timed out on IOL). Protocol MCP is **demo-only** (Scenario D).
+
+**Automated validation:**
+
+```bash
+bash scripts/observability/validate-alert-scenarios.sh    # prerequisites + PromQL would-fire map
+bash scripts/observability/run-all-scenarios.sh --all     # pyATS inject + Grafana alert gates
+```
 
 ---
 
@@ -23,11 +32,14 @@ end
 
 **Expected telemetry**
 
-- `changes(interface_status{device_name="pe1"}[5m]) > 0`
-- Grafana alert **Lab Interface Down** or **netclaw-interface-bgp-correlation** (ALERT-007) within ~2 minutes
+- `interface_status{device_name="pe1",interface="GigabitEthernet2",job="netclaw-bgp-snmp"} == 2`
+- `changes(interface_status{device_name="pe1",job="netclaw-bgp-snmp"}[5m]) > 0`
+- Grafana **Lab Interface Down** within ~3 minutes (`for: 2m` + 60s SNMP/scrape)
 - Syslog: `%LINEPROTO-5-UPDOWN` in Loki `{device_name="pe1"}`
 
 **NetClaw:** `lab-alert-triage` → `lab-troubleshoot`
+
+**Run:** `bash scripts/observability/run-scenario-a.sh`
 
 **Restore:** `no shutdown` on the interface.
 
@@ -47,7 +59,9 @@ interface GigabitEthernet2
 - `changes(interface_status{device_name="pe1"}[5m])` on affected link
 - `rate(netclaw_bgp_peer_in_updates_total{device_name="pe1"}[5m])` may spike briefly
 - Syslog: `%LINEPROTO-5-UPDOWN`; `%BGP-5-ADJCHANGE` if session drops
-- ALERT-007 if interface change coincides with BGP UPDATE activity
+- ALERT-007 only if BGP UPDATE rate > 0 (often **absent** on dual-homed PE — peers stay Established)
+
+**Run:** `bash scripts/observability/run-scenario-b.sh`
 
 **NetClaw:** `bgp-route-stability-watch` → `lab-troubleshoot`
 
@@ -65,6 +79,10 @@ interface GigabitEthernet2
 - `netclaw_bgp_peer_prefixes_received` drop ≥20% from 1h avg (ALERT-002)
 - Syslog: ADJCHANGE + UPDOWN storm
 
+**Timing:** RR peer shows `!= 6` in SNMP ~200s after dual shutdown; Grafana ALERT-001 ~2m after that.
+
+**Run:** `bash scripts/observability/run-scenario-c.sh`
+
 **NetClaw:** `bgp-route-stability-watch` (root cause: **physical-layer**)
 
 **Restore:** `no shutdown` on both interfaces.
@@ -75,7 +93,7 @@ interface GigabitEthernet2
 
 > **Not part of the production monitoring plane.** Protocol MCP injects routes into NetClaw's synthetic BGP speaker (AS 65099). Router-native metrics (`netclaw_bgp_*` from SNMP/gNMI/BMP) do **not** reflect these withdrawals unless correlated interface events occur.
 
-**Trigger:** Use `scripts/scenario-d-flap.py` or Protocol MCP inject/withdraw loop.
+**Trigger:** Use `scripts/scenarios/scenario-d-flap.py` or Protocol MCP inject/withdraw loop.
 
 **Expected telemetry (demo path only)**
 
@@ -90,20 +108,21 @@ interface GigabitEthernet2
 **Run:**
 
 ```bash
-bash scripts/run-scenario-d.sh
+bash scripts/observability/run-scenario-d.sh
 ```
 
 ---
 
-## E. Interface error storm (L2)
+## E. Rapid interface flaps (L2)
 
-**Trigger:** Flap an interface repeatedly or induce errors on a test port.
+**Trigger:** Repeated shutdown/no shutdown on a non-core interface (lab: PE1 Gi4), paced with 60s SNMP scrape.
 
 **Expected telemetry**
 
-- `rate(interface_errors_in_total[5m]) > 0`
-- Grafana alert **Lab Interface Errors**
-- Possible `changes(interface_status[10m]) > 0`
+- `changes(interface_status{device_name="pe1",job="netclaw-bgp-snmp"}[5m]) > 4`
+- Grafana **Lab Interface Rapid Flaps**
+
+**Run:** `bash scripts/observability/run-scenario-e.sh`
 
 **NetClaw:** `lab-alert-triage` → `lab-troubleshoot`
 
@@ -111,12 +130,21 @@ bash scripts/run-scenario-d.sh
 
 ## F. Path quality degradation (IP SLA)
 
-**Trigger:** Blackhole or rate-limit path between PE probes.
+**Trigger:** ContainerLab netem on **P1 eth2** (PE1→PE2 probe path) — delay + jitter + loss while interfaces stay up.
+
+```bash
+containerlab tools netem set -t ~/Nautobot-Workshop/clabs/nautobot-workshop-topology.clab.yml \
+  -n clab-nautobot_workshop-P1 -i eth2 --delay 120ms --jitter 100ms --loss 10
+```
+
+**Alternate trigger (validated):** netem on **PE1 Gi2** also drives **ALERT-006** on **pe3** — IP SLA probe 10 (udp-jitter to `100.0.254.11`/PE1) shows elevated jitter/RTT while probe 20 to PE2 stays ~1 ms. Useful asymmetric pattern for `lab-alert-triage` RCA (impairment on PE1 uplink, not a sensor fault on PE3).
 
 **Expected telemetry**
 
-- `netclaw_path_jitter_ms` / `netclaw_path_rtt_ms` elevated
-- ALERT-006 **netclaw-path-jitter-high** if > 30 ms for 10m
+- `netclaw_path_jitter_ms` > 20 ms and/or `netclaw_path_rtt_ms` > 60 ms on the affected probe path (PE1 for scripted F; **pe3** probe 10 when PE1 Gi2 is impaired)
+- ALERT-006 **netclaw-path-jitter-high** (`for: 3m` in lab)
+
+**Run:** `bash scripts/observability/run-scenario-f.sh` (automated netem via pyATS runner)
 
 **NetClaw:** `bgp-route-stability-watch` (path-quality class) → `lab-troubleshoot`
 

@@ -648,6 +648,7 @@ echo ""
 log_step "24/$TOTAL_STEPS Installing GitHub MCP Server..."
 echo "  Source: https://github.com/github/github-mcp-server"
 echo "  Auth: GitHub Personal Access Token (PAT)"
+echo "  Transport: persistent container + docker exec stdio (prevents container proliferation)"
 
 GITHUB_MCP_IMAGE="ghcr.io/github/github-mcp-server"
 
@@ -656,7 +657,15 @@ if command -v docker &> /dev/null; then
     log_info "Pulling GitHub MCP Server Docker image..."
     docker pull "$GITHUB_MCP_IMAGE" 2>/dev/null || \
         log_warn "Could not pull GitHub MCP image — will pull on first use"
-    log_info "GitHub MCP ready: docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
+
+    # Use the ensure script which starts a single named long-lived container
+    # (http listener as keeper) so that all stdio sessions reuse it via docker exec.
+    if [ -x "./scripts/ensure-github-mcp.sh" ]; then
+        ./scripts/ensure-github-mcp.sh || log_warn "ensure-github-mcp.sh failed; falling back to on-demand docker run"
+    else
+        log_warn "ensure-github-mcp.sh not found; GitHub MCP will use legacy docker run -i --rm (may proliferate)"
+        log_info "GitHub MCP ready: docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
+    fi
 else
     log_warn "Docker not found — GitHub MCP server requires Docker"
     log_info "Install Docker, then run: docker pull $GITHUB_MCP_IMAGE"

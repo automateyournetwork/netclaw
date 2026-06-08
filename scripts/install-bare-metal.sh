@@ -170,9 +170,13 @@ if [ -d "mcp-servers/mcp-proxmox" ]; then
     log_info "Proxmox MCP built"
 fi
 
-# Pull GitHub MCP Docker image
+# Pull GitHub MCP Docker image and start the persistent keeper container
+# (single named container + docker exec for stdio; avoids dozens of random containers)
 if command -v docker &> /dev/null; then
     docker pull ghcr.io/github/github-mcp-server 2>/dev/null || log_warn "GitHub MCP image pull failed"
+    if [ -x "./scripts/ensure-github-mcp.sh" ]; then
+        ./scripts/ensure-github-mcp.sh || log_warn "ensure-github-mcp failed (PAT may be missing from env or config)"
+    fi
 fi
 
 echo ""

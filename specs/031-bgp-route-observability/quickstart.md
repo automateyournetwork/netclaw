@@ -38,7 +38,7 @@ docker compose -f observability/docker-compose.observability.yml restart otel-co
 sleep 90
 
 # Checkpoint script (exporter :9102 + VM scrape)
-bash scripts/validate-bgp-metrics.sh --phase 1
+bash scripts/observability/validate-bgp-metrics.sh --phase 1
 
 # Manual: RR1 peer 100.0.254.13 prefixes = 4
 curl -sf 'http://localhost:8428/api/v1/query' \
@@ -50,7 +50,7 @@ curl -sf 'http://localhost:8428/api/v1/query' \
 ### Phase 2 — Jitter + syslog
 
 ```bash
-bash scripts/validate-bgp-metrics.sh --phase 2
+bash scripts/observability/validate-bgp-metrics.sh --phase 2
 
 # Manual checks
 curl -sf 'http://localhost:8428/api/v1/query' \
@@ -70,7 +70,7 @@ docker compose -f observability/docker-compose.observability.yml \
   -f observability/docker-compose.bmp.yml up -d --build
 sleep 45
 
-bash scripts/validate-bgp-metrics.sh --phase 3
+bash scripts/observability/validate-bgp-metrics.sh --phase 3
 
 # Manual: BMP collector listens on clab-mgmt for production peers
 docker ps --filter name=gobmp --filter name=redpanda --filter name=bgp-bmp-consumer
@@ -84,7 +84,7 @@ curl -sf http://localhost:9100/metrics | grep netclaw_bmp_consumer_up
 ```bash
 docker compose -f observability/docker-compose.observability.yml \
   -f observability/docker-compose.gnmi.yml up -d --build
-bash scripts/validate-bgp-metrics.sh --phase 4
+bash scripts/observability/validate-bgp-metrics.sh --phase 4
 
 curl -sf 'http://localhost:8428/api/v1/query' \
   --data-urlencode 'query=netclaw_bgp_peer_state{source="gnmi",device_name="west-spine01"}'
@@ -94,8 +94,8 @@ curl -sf 'http://localhost:8428/api/v1/query' \
 
 ```bash
 # Sync datasource context (bmp/gnmi blocks) into Nautobot, then render + deploy
-python3 scripts/nautobot-push-observability.py
-bash scripts/validate-bgp-metrics.sh --phase 6
+python3 scripts/observability/nautobot-push-observability.py
+bash scripts/observability/validate-bgp-metrics.sh --phase 6
 ```
 
 Push template changes to `nautobot_workshop_golden_config_templates` on GitHub and run **Git Repository Sync** in Nautobot for intended-config API parity.
@@ -104,7 +104,7 @@ Push template changes to `nautobot_workshop_golden_config_templates` on GitHub a
 
 ```bash
 docker restart grafana   # reload provisioned netclaw alert rules
-bash scripts/validate-bgp-metrics.sh --phase 5
+bash scripts/observability/validate-bgp-metrics.sh --phase 5
 
 # Scenario B (PE1 Gi2 shutdown) — see docs/baselines/bgp-route-stability.md
 # Invoke bgp-route-stability-watch — netclaw_* + Loki + pyATS (no Protocol MCP RIB)

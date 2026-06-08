@@ -158,7 +158,7 @@ groups:
             datasourceUid: victoriametrics
             model:
               editorMode: code
-              expr: sum by (device_name, prefix) (rate(netclaw_bgp_prefix_withdrawals_total[5m])) > 0.05
+              expr: sum by (device_name, prefix) (increase(netclaw_bgp_prefix_withdrawals_total[2m])) > 10
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -184,10 +184,10 @@ groups:
               type: threshold
         noDataState: OK
         execErrState: Error
-        for: 5m
+        for: 1m
         annotations:
-          summary: BMP withdrawal rate elevated for {{ $labels.prefix }} on {{ $labels.device_name }}
-          description: Per-prefix BMP withdrawal rate exceeds 0.05/s. May be idle in lab until BMP peers send updates.
+          summary: BMP withdrawal burst for {{ $labels.prefix }} on {{ $labels.device_name }}
+          description: Per-prefix BMP withdrawals increased by >10 in 2m (lab synthetic inject or live RR churn).
         labels:
           severity: high
           team: lab-noc
@@ -252,7 +252,7 @@ groups:
             datasourceUid: victoriametrics
             model:
               editorMode: code
-              expr: max by (device_name) (netclaw_path_jitter_ms{device_name=~"pe.*|ce.*"}) > 30
+              expr: (max by (device_name) (netclaw_path_jitter_ms{device_name=~"pe.*|ce.*"}) > 20) or (max by (device_name) (netclaw_path_rtt_ms{device_name=~"pe.*|ce.*"}) > 60)
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -278,9 +278,9 @@ groups:
               type: threshold
         noDataState: OK
         execErrState: Error
-        for: 10m
+        for: 3m
         annotations:
-          summary: IP SLA jitter above 30ms on {{ $labels.device_name }}
+          summary: IP SLA path quality degraded on {{ $labels.device_name }}
           description: Path quality degraded — may cause BGP hold-timer expiry if sustained.
         labels:
           severity: warning
@@ -299,7 +299,7 @@ groups:
             datasourceUid: victoriametrics
             model:
               editorMode: code
-              expr: changes(interface_status{device_role=~"pe|p"}[5m]) > 0 and on(device_name) rate(netclaw_bgp_peer_in_updates_total[5m]) > 0
+              expr: changes(interface_status{device_role=~"pe|p",job="netclaw-bgp-snmp"}[5m]) > 0 and on(device_name) rate(netclaw_bgp_peer_in_updates_total{job="netclaw-bgp-snmp"}[5m]) > 0
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200

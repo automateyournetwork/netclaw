@@ -70,10 +70,13 @@ if command -v docker &> /dev/null; then
     docker stop netclaw-convergence 2>/dev/null && echo "  Stopped netclaw-convergence" || true
     docker rm netclaw-convergence 2>/dev/null && echo "  Removed netclaw-convergence" || true
     
-    # Stop any orphan github-mcp containers
+    # Stop any orphan github-mcp containers (old random-named ones)
     for cid in $(docker ps -aq --filter "ancestor=ghcr.io/github/github-mcp-server" 2>/dev/null); do
         docker stop "$cid" 2>/dev/null && docker rm "$cid" 2>/dev/null && echo "  Removed orphan github-mcp ($cid)" || true
     done
+
+    # Remove the canonical persistent github-mcp container (if present)
+    docker rm -f github-mcp 2>/dev/null && echo "  Removed github-mcp (persistent keeper)" || true
     
     # Remove docker compose project containers
     if [ -f "$NETCLAW_DIR/docker-compose.yml" ]; then

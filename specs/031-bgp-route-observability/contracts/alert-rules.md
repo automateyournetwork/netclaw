@@ -51,10 +51,11 @@ severity: warning
 
 ```yaml
 name: netclaw-bgp-prefix-withdrawal-rate
-expr: sum by (device_name, prefix) (rate(netclaw_bgp_prefix_withdrawals_total[5m])) > 0.05
-for: 5m
+expr: sum by (device_name, prefix) (increase(netclaw_bgp_prefix_withdrawals_total[2m])) > 10
+for: 1m
 severity: high
 # Lab: may not fire until BMP peer connected
+# (tuned for sustained synthetic inject or live RR churn)
 ```
 
 ### ALERT-005: SNMP UPDATE storm (lab fallback)
@@ -72,8 +73,8 @@ severity: warning
 
 ```yaml
 name: netclaw-path-jitter-high
-expr: max by (device_name) (netclaw_path_jitter_ms{device_name=~"pe.*|ce.*"}) > 30
-for: 10m
+expr: (max by (device_name) (netclaw_path_jitter_ms{device_name=~"pe.*|ce.*"}) > 20) or (max by (device_name) (netclaw_path_rtt_ms{device_name=~"pe.*|ce.*"}) > 60)
+for: 3m
 severity: warning
 ```
 
@@ -90,13 +91,15 @@ severity: high
 
 ## Baselining Procedure (before enabling FOR durations)
 
-1. Deploy Phases 1–2; run stack ≥7 days (lab: run Scenarios B/C + steady state 48h).
-2. Record in Grafana:
+1. Deploy Phases 1–4 (full SNMP/gNMI/BMP + IP SLA + syslog); run stack for a representative period (lab: run Scenarios B/C + steady state).
+2. Record in Grafana / VM:
    - p50/p95 `rate(netclaw_bgp_peer_in_updates_total[5m])` per peer
-   - Steady `netclaw_bgp_peer_prefixes_received` per peer
-   - p95 `netclaw_path_jitter_ms` per PE probe
-3. Set ALERT-005 multiplier from measured p95.
+   - Steady `netclaw_bgp_peer_prefixes_received` per peer (e.g. RR1 service peer = 4)
+   - p95 `netclaw_path_jitter_ms` / `netclaw_path_rtt_ms` per PE probe
+3. Set ALERT-005 multiplier from measured p95 (shipped default in yaml: 3×).
 4. Enable CRITICAL/HIGH rules first; WARNING after false-positive review.
+
+**Shipped values**: See the provisioned `observability/grafana/provisioning/alerting/bgp-route-stability.yaml` for the exact `for:` durations and threshold expressions that were validated with the scenarios. The contract documents the logical intent; the yaml is the source of truth for Grafana.
 
 ## Agent Runbook Mapping
 

@@ -451,7 +451,7 @@ curl -sf "http://192.168.220.201:8428/api/v1/query?query=interface_status" | \
 If series count is 0, devices lack SNMP — re-run Step 17 deploy, or run:
 
 ```bash
-cd /home/ubuntu/netclaw && PYATS_TESTBED_PATH=/home/ubuntu/netclaw/testbed/testbed.yaml .venv/bin/python3 scripts/push-lab-observability.py
+cd /home/ubuntu/netclaw && PYATS_TESTBED_PATH=/home/ubuntu/netclaw/testbed/testbed.yaml .venv/bin/python3 scripts/observability/push-lab-observability.py
 ```
 
 **GATE:** Push script reports success for PE/CE/P routers (Arista may fail SSH — known issue; IOS devices are required for this gate).

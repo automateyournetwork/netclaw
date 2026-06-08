@@ -16,7 +16,7 @@ groups:
             datasourceUid: victoriametrics
             model:
               editorMode: code
-              expr: interface_status == 2
+              expr: interface_status{job="netclaw-bgp-snmp",device_role=~"pe|p|ce|rr"} == 2
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -60,7 +60,7 @@ groups:
             datasourceUid: victoriametrics
             model:
               editorMode: code
-              expr: sum(rate(interface_errors_in_total[5m])) by (device_name) > 0
+              expr: sum(rate(interface_errors_in_total{job="netclaw-bgp-snmp"}[5m])) by (device_name) > 0
               instant: true
               intervalMs: 1000
               maxDataPoints: 43200
@@ -89,6 +89,50 @@ groups:
         for: 5m
         annotations:
           summary: Inbound interface errors on {{ $labels.device_name }}
+        labels:
+          severity: warning
+          team: lab-noc
+
+      - uid: lab-interface-flap-rapid
+        title: Lab Interface Rapid Flaps
+        condition: C
+        data:
+          - refId: A
+            relativeTimeRange:
+              from: 600
+              to: 0
+            datasourceUid: victoriametrics
+            model:
+              editorMode: code
+              expr: max by (device_name) (changes(interface_status{job="netclaw-bgp-snmp",device_role=~"pe|p|ce|rr"}[10m])) > 3
+              instant: true
+              intervalMs: 1000
+              maxDataPoints: 43200
+              range: false
+              refId: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              conditions:
+                - evaluator:
+                    params: [0]
+                    type: gt
+                  operator:
+                    type: and
+                  query:
+                    params: [C]
+                  reducer:
+                    params: []
+                    type: last
+                  type: query
+              expression: A
+              refId: C
+              type: threshold
+        noDataState: OK
+        execErrState: Error
+        for: 2m
+        annotations:
+          summary: Rapid interface flaps on {{ $labels.device_name }}
         labels:
           severity: warning
           team: lab-noc

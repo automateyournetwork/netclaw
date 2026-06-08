@@ -10,3 +10,12 @@ providers:
     options:
       path: /var/lib/grafana/dashboards
       foldersFromFilesStructure: false
+  - name: "Lab Network Dashboards"
+    orgId: 1
+    folder: "Lab Network"
+    type: file
+    disableDeletion: false
+    editable: true
+    options:
+      path: /var/lib/grafana/dashboards/lab-network
+      foldersFromFilesStructure: false
