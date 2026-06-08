@@ -14,7 +14,8 @@ ContainerLab (18 devices — CSR1000v + Arista cEOS)
         ├─ PLANE 1: BMP (RR1) ──→ gobmp (.205) ──→ Redpanda ──→ bgp-bmp-consumer (.206)
         ├─ PLANE 2a: SNMP ──→ bgp-snmp-exporter (.204) ──→ netclaw_bgp_* + netclaw_path_*
         ├─ PLANE 2b: gNMI ──→ bgp-gnmi-exporter (.207) ──→ netclaw_bgp_* (Arista)
-        ├─ PLANE 2c: SNMP infra ──→ OTEL Collector (.200) ──→ interface_status, CPU, …
+        ├─ PLANE 2c: SNMP infra ──→ bgp-snmp-exporter (.204) ──→ interface_status (Cisco)
+        │                         OTEL Collector (.200) ──→ Arista SNMP + syslog
         └─ PLANE 3: Syslog (udp/1514) ──→ OTEL ──→ Loki (.202) with device_name labels
                                     │
                                     ▼
@@ -24,7 +25,9 @@ ContainerLab (18 devices — CSR1000v + Arista cEOS)
                           Grafana (.203:3000) → NetClaw agents
 ```
 
-All services share the `clab-mgmt` Docker network (192.168.220.0/24).
+Services run on the internal `netclaw-obs` Docker network (172.28.220.0/24).
+Lab devices (192.168.220.2–21) are reached via the host's IP routing table
+(the ContainerLab lab has moved to a remote VM).
 
 ### BGP Route Stability (Part 15 — spec 031 complete)
 
@@ -44,7 +47,9 @@ All services share the `clab-mgmt` Docker network (192.168.220.0/24).
 
 ## Prerequisites
 
-1. **ContainerLab topology running** — the `clab-mgmt` Docker network must exist
+1. **Routing to the remote lab** — this host must have a route to 192.168.220.0/24
+   (the ContainerLab topology now lives on another VM). Local Docker services
+   no longer attach to clab-mgmt.
 2. **SNMP + syslog configured on devices** — managed via golden config (see below)
 3. **Docker and docker compose** available on the host
 
@@ -54,7 +59,8 @@ All services share the `clab-mgmt` Docker network (192.168.220.0/24).
 
 ```bash
 # 1. Ensure ContainerLab is running
-docker network inspect clab-mgmt >/dev/null 2>&1 && echo "OK" || echo "Deploy ContainerLab first"
+# No longer requires local clab-mgmt. Verify routing instead, e.g.:
+ip route | grep 192.168.220 || echo "Ensure a route exists to the remote lab subnet"
 
 # 2. Deploy the observability stack
 cd /path/to/netclaw/observability
@@ -62,19 +68,19 @@ docker compose -f docker-compose.observability.yml up -d
 
 # Optional: BMP event plane (Phase 3 — spec 031)
 docker compose -f docker-compose.observability.yml -f docker-compose.bmp.yml up -d --build
-bash ../scripts/validate-bgp-metrics.sh --phase 3
+bash ../scripts/observability/validate-bgp-metrics.sh --phase 3
 
 # Optional: gNMI BGP stream (Phase 4 — Arista cEOS)
 docker compose -f docker-compose.observability.yml -f docker-compose.gnmi.yml up -d --build
-bash ../scripts/validate-bgp-metrics.sh --phase 4
+bash ../scripts/observability/validate-bgp-metrics.sh --phase 4
 
 # Phase 5: netclaw_* Grafana alerts (provisioned) + agent skills
 docker restart grafana
-bash ../scripts/validate-bgp-metrics.sh --phase 5
+bash ../scripts/observability/validate-bgp-metrics.sh --phase 5
 
 # Phase 6: golden config BMP + gNMI (SoT → Ansible render)
-python3 ../scripts/nautobot-push-observability.py
-bash ../scripts/validate-bgp-metrics.sh --phase 6
+python3 ../scripts/observability/nautobot-push-observability.py
+bash ../scripts/observability/validate-bgp-metrics.sh --phase 6
 
 # 3. Wait for first SNMP poll cycle (~90 seconds)
 sleep 90
@@ -99,18 +105,18 @@ SNMP and syslog are **not** configured manually. They're managed through the Nau
 
 ```yaml
 observability:
-  mgmt_vrf: clab-mgmt
+  mgmt_vrf: clab-mgmt   # VRF on the remote lab devices
   snmp:
     community: public
     access: ro
   syslog:
-    host: 192.168.220.200
+    host: 192.168.3.252   # This host's IP on the interconnect (OBS_COLLECTOR_IP)
     port: 1514
     transport: udp
     trap_level: informational
   bmp:
     enabled: true
-    host: 192.168.220.205
+    host: 192.168.3.252
     port: 5000
   gnmi:
     enabled: true
@@ -148,17 +154,17 @@ ansible-playbook pb.build-lab.yml --tags deploy  # push to devices
 
 | Service | Container | IP | Port | Purpose |
 |---------|-----------|-----|------|---------|
-| OTEL Collector | otel-collector | 192.168.220.200 | 4317 (gRPC), 1514/udp (syslog) | SNMP polling + syslog ingestion |
-| VictoriaMetrics | victoriametrics | 192.168.220.201 | 8428 | Prometheus-compatible metrics storage |
-| Loki | loki | 192.168.220.202 | 3100 | Log aggregation |
-| Grafana | grafana | 192.168.220.203 | 3000 | Dashboards + visualization |
-| Redpanda | redpanda | 192.168.220.210 | 9092 (internal) | BMP event bus (Kafka API) |
-| gobmp | gobmp | 192.168.220.205 | 5000 | BMP collector (production peers) |
-| BMP consumer | bgp-bmp-consumer | 192.168.220.206 | 9100 | Kafka → `netclaw_bgp_prefix_*` metrics |
+| OTEL Collector | otel-collector | (netclaw-obs) | 4317 (gRPC), 1514/udp (syslog) | SNMP polling + syslog ingestion |
+| VictoriaMetrics | victoriametrics | (netclaw-obs) | 8428 | Prometheus-compatible metrics storage |
+| Loki | loki | (netclaw-obs) | 3100 | Log aggregation |
+| Grafana | grafana | (netclaw-obs) | 3000 | Dashboards + visualization |
+| Redpanda | redpanda | (netclaw-obs) | 9092 (internal) | BMP event bus (Kafka API) |
+| gobmp | gobmp | (netclaw-obs) | 5000 | BMP collector (production peers) |
+| BMP consumer | bgp-bmp-consumer | (netclaw-obs) | 9100 | Kafka → `netclaw_bgp_prefix_*` metrics |
 
 ### BMP overlay (`docker-compose.bmp.yml`)
 
-Production IOS-XE/XR route reflectors peer BMP to **192.168.220.205:5000**. gobmp parses updates and publishes to Redpanda topics `gobmp.parsed.unicast_prefix_v4|v6` and `gobmp.parsed.statistics`. `bgp-bmp-consumer` (`observability/exporters/bgp-normalizer.py`) exposes Prometheus metrics scraped by VictoriaMetrics job `netclaw-bgp-bmp`.
+Production IOS-XE/XR route reflectors (on the remote lab) peer BMP to this host's IP on port 5000 (published by the gobmp container). gobmp parses updates and publishes to Redpanda topics... (same as before).
 
 Cisco IOL lab devices do not export BMP; the stack remains healthy with zero prefix events until production peers connect.
 
@@ -203,10 +209,10 @@ All metrics are labeled with `device_name` and `interface_name`.
 Set these environment variables to connect NetClaw's MCP servers to the lab stack:
 
 ```bash
-export GRAFANA_URL=http://192.168.220.203:3000
+export GRAFANA_URL=http://localhost:3000
 export GRAFANA_USERNAME=admin
 export GRAFANA_PASSWORD=netclaw
-export PROMETHEUS_URL=http://192.168.220.201:8428
+export PROMETHEUS_URL=http://localhost:8428
 ```
 
 This enables:
@@ -215,15 +221,28 @@ This enables:
 
 Register both in `config/openclaw.json` (`grafana-mcp`, `prometheus-mcp`). Grafana alert rules for the lab are file-provisioned in `observability/grafana/provisioning/alerting/` (`lab-network.yaml`, `bgp-route-stability.yaml`).
 
+### Autonomous alert triage (Grafana → NetClaw)
+
+Lab alerts labeled `team=lab-noc` can trigger NetClaw without a manual prompt:
+
+```bash
+bash scripts/observability/setup-alert-automation.sh      # one-time: hooks + Grafana webhook + cron backup
+bash scripts/observability/validate-alert-automation.sh   # verify wiring
+```
+
+Flow: Grafana fires → webhook `POST` to OpenClaw `/hooks/grafana-alert` → agent runs `lab-alert-triage` → optional Discord report. A 5-minute cron job (`lab-alert-watch`) polls as backup. Remediation still requires human approval.
+
+**Dashboard:** [Lab Network — Active Alerts](http://localhost:3000/d/lab-active-alerts) (`observability/grafana/dashboards/lab-network/lab-active-alerts.json`) — firing/pending list plus path jitter and interface-down context panels.
+
 ### Part 15 full chain (four-source correlation)
 
 ```bash
 # One-time lab wiring: GRE tunnel, RR1 BGP neighbor, IP SLA, OTEL regen
-bash scripts/setup-part15-lab.sh
+bash scripts/observability/setup-part15-lab.sh
 
 # Restart OpenClaw gateway so protocol-mcp loads AS 65099 + RR1 peer
 # Then validate:
-bash scripts/validate-part15-chain.sh
+bash scripts/observability/validate-part15-chain.sh
 ```
 
 Demo scenarios: `docs/blogs/failure-scenarios.md` (interface isolation, BGP peer loss, route flap injection).

@@ -1,13 +1,15 @@
 ---
 # Observability stack for the Nautobot Workshop lab
-# Shares the clab-mgmt network (192.168.220.0/24) for direct device access
+# Uses its own Docker network (netclaw-obs). Lab devices at 192.168.220.0/24
+# are reached via host IP routing (the lab now lives on a remote VM).
 #
 # Usage:
 #   docker compose -f docker-compose.observability.yml up -d
 #
-# Prerequisites:
-#   - ContainerLab topology running (clab-mgmt network exists)
-#   - Devices configured with SNMP community and syslog export
+# After the lab move:
+#   - No dependency on clab-mgmt / 192.168.220.0/24 Docker network.
+#   - Inbound telemetry uses published ports on the host.
+#   - Outbound (SNMP/gNMI pulls, etc.) uses host routing to the remote lab subnet.
 
 services:
   otel-collector:
@@ -21,8 +23,7 @@ services:
       - "4318:4318"   # OTLP HTTP
       - "1514:1514/udp"  # Syslog UDP
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.200
+      - netclaw-obs
     depends_on:
       - victoriametrics
       - loki
@@ -42,8 +43,7 @@ services:
     ports:
       - "8428:8428"
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.201
+      - netclaw-obs
 
   loki:
     image: grafana/loki:3.1.0
@@ -56,8 +56,7 @@ services:
     ports:
       - "3100:3100"
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.202
+      - netclaw-obs
 
   bgp-snmp-exporter:
     build: ./exporters
@@ -79,8 +78,7 @@ services:
       retries: 3
       start_period: 90s
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.204
+      - netclaw-obs
 
   grafana:
     image: grafana/grafana:11.1.0
@@ -91,6 +89,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=netclaw
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+      - OPENCLAW_HOOK_URL=${OPENCLAW_HOOK_URL}
+      - OPENCLAW_HOOK_TOKEN=${OPENCLAW_HOOK_TOKEN}
     volumes:
       - ./grafana/provisioning:/etc/grafana/provisioning:ro
       - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
@@ -98,8 +98,7 @@ services:
     ports:
       - "3000:3000"
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.203
+      - netclaw-obs
     depends_on:
       - victoriametrics
       - loki
@@ -110,5 +109,11 @@ volumes:
   grafana-data:
 
 networks:
-  clab-mgmt:
-    external: true
+  netclaw-obs:
+    driver: bridge
+    # Using a non-conflicting subnet so the host can route to the remote
+    # lab's 192.168.220.0/24 via its normal routing table (no local Docker
+    # bridge claiming the lab management subnet).
+    ipam:
+      config:
+        - subnet: 172.28.220.0/24

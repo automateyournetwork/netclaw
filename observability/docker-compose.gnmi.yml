@@ -5,7 +5,8 @@
 #   docker compose -f observability/docker-compose.observability.yml \
 #     -f observability/docker-compose.gnmi.yml up -d --build
 #
-# Streams OpenConfig BGP from Arista cEOS (192.168.220.12–19:6030) → :9103/metrics
+# Streams OpenConfig BGP from remote Arista devices (192.168.220.12–19:6030)
+# to the bgp-gnmi-exporter (reached via host routing + published port 9103).
 
 services:
   bgp-gnmi-exporter:
@@ -26,5 +27,4 @@ services:
       retries: 3
       start_period: 45s
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.207
+      - netclaw-obs

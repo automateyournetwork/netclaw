@@ -7,7 +7,7 @@ scrape_configs:
   - job_name: "netclaw-bgp-snmp"
     scrape_interval: 60s
     static_configs:
-      - targets: ["192.168.220.204:9102"]
+      - targets: ["bgp-snmp-exporter:9102"]
         labels:
           service: "netclaw-bgp-snmp"
           component: "bgp-snmp-exporter"
@@ -15,7 +15,7 @@ scrape_configs:
   - job_name: "netclaw-bgp-bmp"
     scrape_interval: 30s
     static_configs:
-      - targets: ["192.168.220.206:9100"]
+      - targets: ["bgp-bmp-consumer:9100"]
         labels:
           service: "netclaw-bgp-bmp"
           component: "bgp-bmp-consumer"
@@ -23,7 +23,7 @@ scrape_configs:
   - job_name: "netclaw-bgp-gnmi"
     scrape_interval: 30s
     static_configs:
-      - targets: ["192.168.220.207:9103"]
+      - targets: ["bgp-gnmi-exporter:9103"]
         labels:
           service: "netclaw-bgp-gnmi"
           component: "bgp-gnmi-exporter"

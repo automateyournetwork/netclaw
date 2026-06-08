@@ -3,10 +3,11 @@
 #
 # Usage:
 #   docker compose -f observability/docker-compose.observability.yml \
-#     -f observability/docker-compose.bmp.yml up -d
+#     -f observability/docker-compose.bmp.yml up -d --build
 #
-# BMP peers (production IOS-XE/XR) connect to gobmp on 192.168.220.205:5000.
-# Cisco IOL in the lab does not export BMP — pipeline stays healthy idle.
+# BMP peers (remote lab) connect to the host's published port for gobmp:5000
+# (the observability services now live on netclaw-obs Docker network; lab
+# devices reach this host via routing).
 
 services:
   redpanda:
@@ -36,8 +37,7 @@ services:
       retries: 8
       start_period: 30s
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.210
+      - netclaw-obs
 
   gobmp:
     image: sbezverk/gobmp:latest
@@ -62,8 +62,7 @@ services:
       retries: 3
       start_period: 20s
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.205
+      - netclaw-obs
 
   bgp-bmp-consumer:
     build:
@@ -89,5 +88,4 @@ services:
       redpanda:
         condition: service_healthy
     networks:
-      clab-mgmt:
-        ipv4_address: 192.168.220.206
+      - netclaw-obs

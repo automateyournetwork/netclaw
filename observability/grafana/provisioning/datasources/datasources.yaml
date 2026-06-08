@@ -5,7 +5,7 @@ datasources:
     uid: victoriametrics
     type: prometheus
     access: proxy
-    url: http://192.168.220.201:8428
+    url: http://victoriametrics:8428
     isDefault: true
     editable: true
 
@@ -13,5 +13,5 @@ datasources:
     uid: loki
     type: loki
     access: proxy
-    url: http://192.168.220.202:3100
+    url: http://loki:3100
     editable: true
