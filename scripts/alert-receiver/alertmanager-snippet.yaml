@@ -1,0 +1,29 @@
+# Add this to your Alertmanager config on the OBS VM (192.168.3.250)
+# Location: ~/observability-stack/alertmanager/alertmanager.yml
+#
+# This replaces the placeholder 192.0.2.1 webhook with the real NetClaw endpoint.
+
+# Under 'receivers:', add or replace:
+receivers:
+  - name: netclaw
+    webhook_configs:
+      - url: "http://192.168.3.252:8099/webhook"
+        send_resolved: true
+        # Optional: only fire after 30s to avoid flapping
+        # max_alerts: 10
+
+# Under 'route:', point default or specific routes to netclaw:
+route:
+  receiver: netclaw
+  group_by: ['alertname', 'instance']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  # You can add sub-routes for severity-based handling:
+  # routes:
+  #   - match:
+  #       severity: critical
+  #     receiver: netclaw
+  #     group_wait: 10s
+  #     repeat_interval: 1h

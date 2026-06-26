@@ -1,7 +1,0 @@
-# gobmp collector config for NetClaw lab (optional — compose uses CLI flags)
-bmp_listen_port: 5000
-split_af: true
-kafka_config:
-  kafka_srv: "redpanda:9092"
-  kafka_tp_retn_time_ms: 900000
-  admin_id: "netclaw-lab"

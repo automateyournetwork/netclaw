@@ -1,0 +1,28 @@
+# Systemd service for the NetClaw Alert Receiver.
+# Install:
+#   sudo cp netclaw-alert-receiver.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now netclaw-alert-receiver
+
+[Unit]
+Description=NetClaw Alert Receiver (Alertmanager webhook → NetClaw)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+Group=ubuntu
+WorkingDirectory=/home/ubuntu/netclaw/scripts/alert-receiver
+ExecStart=/home/ubuntu/netclaw/.venv/bin/python server.py
+Restart=on-failure
+RestartSec=5
+Environment=PATH=/home/ubuntu/netclaw/.venv/bin:/usr/bin:/bin
+
+# Security hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu/netclaw/scripts/alert-receiver
+
+[Install]
+WantedBy=multi-user.target
