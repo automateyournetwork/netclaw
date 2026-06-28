@@ -103,6 +103,77 @@ WARN_CALL_MINUTES = int(os.environ.get("VOICE_WARN_MINUTES", "25"))
 # Active call tracking: {call_sid: start_time}
 _active_calls: dict[str, datetime] = {}
 
+# Pending results for async processing: {call_sid: {"status": "pending"|"ready", "result": str, "caller_id": str}}
+_pending_results: dict[str, dict] = {}
+
+# Lock for thread-safe access to pending results
+import threading
+_results_lock = threading.Lock()
+
+
+def start_async_processing(call_sid: str, user_message: str, caller_id: str) -> None:
+    """Start async processing of a voice command in background thread."""
+    with _results_lock:
+        _pending_results[call_sid] = {
+            "status": "pending",
+            "result": None,
+            "caller_id": caller_id,
+            "message": user_message,
+            "started": datetime.utcnow()
+        }
+
+    # Start background processing
+    executor.submit(_process_in_background, call_sid, user_message, caller_id)
+    logger.info(f"Started async processing for {call_sid}")
+
+
+def _process_in_background(call_sid: str, user_message: str, caller_id: str) -> None:
+    """Background thread to process command and store result."""
+    try:
+        # Run the async processing in a new event loop
+        result = asyncio.run(process_with_claude_agent(user_message, caller_id=caller_id))
+
+        with _results_lock:
+            if call_sid in _pending_results:
+                _pending_results[call_sid]["status"] = "ready"
+                _pending_results[call_sid]["result"] = result
+                _pending_results[call_sid]["completed"] = datetime.utcnow()
+
+        logger.info(f"Async processing complete for {call_sid}")
+
+    except Exception as e:
+        logger.error(f"Background processing error for {call_sid}: {e}")
+        with _results_lock:
+            if call_sid in _pending_results:
+                _pending_results[call_sid]["status"] = "ready"
+                _pending_results[call_sid]["result"] = "I had trouble processing that request. Please try again."
+
+
+def get_pending_result(call_sid: str) -> tuple[str, Optional[str]]:
+    """
+    Get the status and result for a call.
+
+    Returns:
+        Tuple of (status, result) where status is "pending", "ready", or "not_found"
+    """
+    with _results_lock:
+        if call_sid not in _pending_results:
+            return "not_found", None
+
+        entry = _pending_results[call_sid]
+        if entry["status"] == "ready":
+            result = entry["result"]
+            # Clean up after delivering result
+            del _pending_results[call_sid]
+            return "ready", result
+
+        # Check for timeout (10 minutes max processing time for complex multi-MCP operations)
+        if datetime.utcnow() - entry["started"] > timedelta(minutes=10):
+            del _pending_results[call_sid]
+            return "ready", "That request timed out after 10 minutes. Please try a simpler query."
+
+        return "pending", None
+
 
 def start_call_tracking(call_sid: str) -> None:
     """Start tracking a call's duration."""
@@ -614,8 +685,17 @@ async def process_with_gateway(user_message: str, ctx: ConversationContext = Non
     This is the TRUE universal voice handler - routes to the gateway
     which has access to ALL 40+ MCPs and 100+ skills.
     """
-    # Build context-aware system message
+    # Build context-aware system message with voice-specific instructions
+    voice_instructions = """
+IMPORTANT VOICE RESPONSE RULES:
+- Keep responses SHORT (2-3 sentences max) - they will be spoken aloud
+- For long-running operations (pyATS, device queries), provide a BRIEF summary only
+- Don't read technical details like full configs - summarize them
+- If an operation will take time, acknowledge it briefly then give results
+- Never read out UUIDs, long IDs, or raw technical output
+"""
     system_content = get_system_prompt(ctx) if ctx else SYSTEM_PROMPT_BASE
+    system_content = system_content + "\n\n" + voice_instructions
 
     messages = [
         {"role": "system", "content": system_content},
@@ -623,7 +703,8 @@ async def process_with_gateway(user_message: str, ctx: ConversationContext = Non
     ]
 
     try:
-        async with httpx.AsyncClient(timeout=120.0) as client:
+        # Longer timeout for operations like pyATS (5 minutes)
+        async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(
                 f"{OPENCLAW_GATEWAY_URL}/v1/chat/completions",
                 headers={
@@ -937,35 +1018,143 @@ def process_voice_command():
         response.hangup()
         return Response(str(response), mimetype="application/xml")
 
-    # Process the command through the agent
-    response.say("Let me check that for you.", voice=voice)
+    # ASYNC PROCESSING: Start background processing and redirect to results endpoint
+    # This avoids Twilio's 15-second webhook timeout for long-running operations like pyATS
+    start_async_processing(call_sid, speech_result, from_number)
 
-    # T009/T010/T011: Execute the agentic processing with context
-    result = process_command_sync(speech_result, caller_id=from_number)
+    # Tell user we're working on it and redirect to results polling endpoint
+    response.say("I'm working on that now. Please hold for a moment.", voice=voice)
 
-    # T010: Result is already speech-formatted by process_with_claude_agent
-    # Apply additional sanitization for safety
-    safe_result = sanitize_for_voice(result)
-    response.say(safe_result, voice=voice)
+    # Redirect to results endpoint which will poll until ready
+    response.redirect("/webhooks/twilio/voice/results", method="POST")
 
-    # T012: Warn if approaching time limit
-    if should_warn:
-        remaining = MAX_CALL_MINUTES - minutes_elapsed
-        response.say(f"Note: We have about {remaining} minutes left on this call.", voice=voice)
+    return Response(str(response), mimetype="application/xml")
 
-    # Offer to continue
-    gather = Gather(
-        input="speech",
-        action="/webhooks/twilio/voice/process-command",
-        method="POST",
-        timeout=8,
-        speech_timeout="auto"
-    )
-    gather.say("Anything else?", voice=voice)
-    response.append(gather)
 
-    response.say("Goodbye.", voice=voice)
-    response.hangup()
+@app.route("/webhooks/twilio/voice/results", methods=["POST"])
+def poll_voice_results():
+    """
+    Poll for async processing results.
+
+    This endpoint is called repeatedly until results are ready,
+    allowing long-running operations like pyATS to complete
+    without hitting Twilio's webhook timeout.
+    """
+    call_sid = request.form.get("CallSid", "unknown")
+    from_number = request.form.get("From", "")
+
+    config = load_config()
+    voice = config.get("voice", "Polly.Matthew")
+
+    response = VoiceResponse()
+
+    # Check if result is ready
+    status, result = get_pending_result(call_sid)
+
+    if status == "ready":
+        # Result is ready - speak it
+        logger.info(f"Delivering result for {call_sid}")
+
+        # Apply speech formatting and sanitization
+        safe_result = sanitize_for_voice(result)
+        response.say(safe_result, voice=voice)
+
+        # Check call duration for warning
+        should_continue, should_warn, minutes_elapsed = check_call_duration(call_sid)
+        if should_warn:
+            remaining = MAX_CALL_MINUTES - minutes_elapsed
+            response.say(f"Note: We have about {remaining} minutes left on this call.", voice=voice)
+
+        # Offer to continue
+        gather = Gather(
+            input="speech",
+            action="/webhooks/twilio/voice/process-command",
+            method="POST",
+            timeout=8,
+            speech_timeout="auto"
+        )
+        gather.say("Anything else?", voice=voice)
+        response.append(gather)
+
+        response.say("Goodbye.", voice=voice)
+        response.hangup()
+
+    elif status == "pending":
+        # Still processing - provide natural keepalive messages with context
+        with _results_lock:
+            entry = _pending_results.get(call_sid, {})
+            message = entry.get("message", "your request")
+            elapsed = (datetime.utcnow() - entry.get("started", datetime.utcnow())).total_seconds()
+            poll_count = entry.get("poll_count", 0) + 1
+            entry["poll_count"] = poll_count
+
+        # Only speak a keepalive message every 3rd poll (roughly every 15 seconds)
+        # This prevents rapid-fire messages and sounds more natural
+        if poll_count % 3 == 1:
+            import random
+            # 25 creative keepalive messages for natural conversation
+            keepalive_messages = [
+                "Still working on that. Network queries can take a moment.",
+                "Hang tight, I'm gathering the data you asked for.",
+                "Almost there. The system is processing your request.",
+                "Still running. Some operations take a bit longer.",
+                "Working on it. I'll have an answer for you shortly.",
+                "Crunching the numbers now. Won't be long.",
+                "Talking to your network devices. They're being cooperative.",
+                "Just a bit more. Good things take time.",
+                "Processing away. Thanks for your patience.",
+                "The bits are flowing. Results coming soon.",
+                "Reaching out to the systems now.",
+                "Your request is in good hands. Still working.",
+                "Making progress. Shouldn't be much longer.",
+                "Gathering all the details for you.",
+                "The network is responding. Putting it together now.",
+                "Still on it. Complex queries need a moment.",
+                "Working through the data. Almost ready.",
+                "Checking with all the right sources.",
+                "Your patience is appreciated. Nearly done.",
+                "The systems are talking. I'm listening.",
+                "Pulling it all together for you now.",
+                "Just dotting the i's and crossing the t's.",
+                "Running through the final checks.",
+                "Good progress. Results are forming.",
+                "The heavy lifting is happening. Hang in there.",
+            ]
+
+            # Randomly select a message for variety
+            keepalive = random.choice(keepalive_messages)
+
+            # Add time context for longer waits (after ~60 seconds)
+            if elapsed > 60:
+                time_phrases = [
+                    "This one's a bit more complex.",
+                    "Taking a little longer than usual.",
+                    "Big request, but we're getting there.",
+                    "Worth the wait, I promise.",
+                ]
+                keepalive = f"{random.choice(time_phrases)} {keepalive}"
+
+            response.say(keepalive, voice=voice)
+
+        # Pause 5 seconds between polls for natural pacing
+        response.pause(length=5)
+        response.redirect("/webhooks/twilio/voice/results", method="POST")
+
+    else:
+        # Not found - something went wrong
+        logger.warning(f"No pending result for {call_sid}")
+        response.say("I lost track of your request. Let's try again.", voice=voice)
+        gather = Gather(
+            input="speech",
+            action="/webhooks/twilio/voice/process-command",
+            method="POST",
+            timeout=10,
+            speech_timeout="auto"
+        )
+        gather.say("What would you like to do?", voice=voice)
+        response.append(gather)
+        response.say("Goodbye.", voice=voice)
+        response.hangup()
 
     return Response(str(response), mimetype="application/xml")
 

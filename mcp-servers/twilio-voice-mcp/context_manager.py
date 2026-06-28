@@ -67,6 +67,9 @@ class ConversationContext:
     total_calls: int = 0
     facts_stored: list[str] = field(default_factory=list)
 
+    # Custom preferences (Slack channel, preferred tools, etc.)
+    preferences: dict = field(default_factory=dict)
+
     def to_dict(self) -> dict:
         """Convert to dictionary for serialization."""
         return asdict(self)
@@ -357,6 +360,20 @@ def build_context_prompt(ctx: ConversationContext) -> str:
         parts.append(f"\n## Known Facts")
         for fact in ctx.facts_stored[-5:]:
             parts.append(f"- {fact}")
+
+    # User preferences (Slack channel, preferred tools, etc.)
+    if ctx.preferences:
+        parts.append(f"\n## User Preferences")
+        if ctx.preferences.get("slack_channel"):
+            parts.append(f"- Default Slack channel: {ctx.preferences['slack_channel']} (ID: {ctx.preferences.get('slack_channel_id', 'unknown')})")
+        if ctx.preferences.get("mind_map_tool"):
+            parts.append(f"- For mind maps, use the {ctx.preferences['mind_map_tool']} skill")
+        if ctx.preferences.get("default_output_channel"):
+            parts.append(f"- Send outputs to: {ctx.preferences['default_output_channel']}")
+        # Include any other preferences
+        for key, value in ctx.preferences.items():
+            if key not in ["slack_channel", "slack_channel_id", "mind_map_tool", "default_output_channel"]:
+                parts.append(f"- {key}: {value}")
 
     return "\n".join(parts)
 
