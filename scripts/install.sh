@@ -337,51 +337,32 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 12: Infrahub MCP (clone + uv sync)
+# Step 12: Infrahub MCP (pip install)
 # ═══════════════════════════════════════════
 
 log_step "12/$TOTAL_STEPS Installing OpsMill Infrahub MCP Server..."
 echo "  Source: https://github.com/opsmill/infrahub-mcp"
 echo "  Infrahub infrastructure source of truth — nodes, search, GraphQL, and branch-isolated writes via Proposed Changes (10 tools)"
 
-INFRAHUB_MCP_DIR="$MCP_DIR/infrahub-mcp"
-if [ -d "$INFRAHUB_MCP_DIR" ]; then
-    log_info "Infrahub MCP already cloned, pulling latest..."
-    git -C "$INFRAHUB_MCP_DIR" pull --quiet 2>/dev/null || true
-else
-    git clone https://github.com/opsmill/infrahub-mcp.git "$INFRAHUB_MCP_DIR" 2>/dev/null
-fi
-
-if [ -d "$INFRAHUB_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
-    if [ "$PY_MINOR" -ge 13 ]; then
-        log_info "Python 3.$PY_MINOR detected (3.13+ required for Infrahub MCP)"
-        if command -v uv &> /dev/null; then
-            log_info "Installing Infrahub MCP via uv sync..."
-            cd "$INFRAHUB_MCP_DIR" && uv sync 2>/dev/null && cd "$NETCLAW_DIR" || {
-                log_warn "uv sync failed — trying pip install..."
-                pip3 install infrahub-mcp 2>/dev/null || \
-                    pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
-                    log_warn "Infrahub MCP deps install failed"
-                cd "$NETCLAW_DIR"
-            }
+PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+if [ "$PY_MINOR" -ge 13 ]; then
+    log_info "Python 3.$PY_MINOR detected (3.13+ required for Infrahub MCP)"
+    pip3 install infrahub-mcp 2>/dev/null || \
+        pip3 install --break-system-packages infrahub-mcp 2>/dev/null || {
+        log_warn "pip install infrahub-mcp failed — trying from source..."
+        INFRAHUB_MCP_DIR="$MCP_DIR/infrahub-mcp"
+        if [ -d "$INFRAHUB_MCP_DIR" ]; then
+            git -C "$INFRAHUB_MCP_DIR" pull --quiet 2>/dev/null || true
         else
-            log_info "uv not found — installing Infrahub MCP package via pip..."
-            pip3 install infrahub-mcp 2>/dev/null || \
-                pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
-                log_warn "Infrahub MCP deps install failed"
+            git clone https://github.com/opsmill/infrahub-mcp.git "$INFRAHUB_MCP_DIR" 2>/dev/null
         fi
-        log_info "Infrahub MCP installed (stdio transport via FastMCP)"
-    else
-        log_warn "Python 3.13+ required for Infrahub MCP (found 3.$PY_MINOR)"
-        log_info "Installing Infrahub MCP package..."
-        pip3 install infrahub-mcp 2>/dev/null || \
-            pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
-            log_warn "Infrahub core deps install failed"
-        log_info "Infrahub MCP installed (some features may require Python 3.13+)"
-    fi
+        if [ -d "$INFRAHUB_MCP_DIR" ] && command -v uv &> /dev/null; then
+            cd "$INFRAHUB_MCP_DIR" && uv sync 2>/dev/null; cd "$NETCLAW_DIR"
+        fi
+    }
+    log_info "Infrahub MCP installed (launched via 'uvx infrahub-mcp' — stdio transport)"
 else
-    log_warn "Infrahub MCP clone failed"
+    log_warn "Python 3.13+ required for Infrahub MCP (found 3.$PY_MINOR) — skipping"
 fi
 
 echo ""
@@ -2638,21 +2619,15 @@ else
     SERVERS_FAIL=$((SERVERS_FAIL + 1))
 fi
 
-# Infrahub MCP is git-cloned with uv sync / pip
-if [ -d "$INFRAHUB_MCP_DIR" ]; then
-    if python3 -c "import infrahub_sdk" 2>/dev/null; then
-        log_info "Infrahub MCP: OK (infrahub_sdk importable)"
-        SERVERS_OK=$((SERVERS_OK + 1))
-    elif [ -f "$INFRAHUB_MCP_DIR/src/infrahub_mcp/server.py" ]; then
-        log_info "Infrahub MCP: OK (server.py found)"
-        SERVERS_OK=$((SERVERS_OK + 1))
-    else
-        log_info "Infrahub MCP: CLONED (server script location may vary)"
-        SERVERS_OK=$((SERVERS_OK + 1))
-    fi
+# Infrahub MCP is pip-installed / launched via uvx, check via command or import
+if command -v infrahub-mcp &> /dev/null; then
+    log_info "Infrahub MCP: OK (cli entry point)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+elif python3 -c "import infrahub_mcp" 2>/dev/null; then
+    log_info "Infrahub MCP: OK (module importable)"
+    SERVERS_OK=$((SERVERS_OK + 1))
 else
-    log_warn "Infrahub MCP: NOT INSTALLED (git clone failed)"
-    SERVERS_FAIL=$((SERVERS_FAIL + 1))
+    log_warn "Infrahub MCP: NOT INSTALLED (pip3 install infrahub-mcp)"
 fi
 
 # Itential MCP is pip-installed, check via command or import

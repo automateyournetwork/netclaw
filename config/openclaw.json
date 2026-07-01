@@ -193,6 +193,16 @@
         "SPLUNK_VERIFY_SSL": "${SPLUNK_VERIFY_SSL:-true}"
       }
     },
+    "infrahub-mcp": {
+      "command": "uvx",
+      "args": [
+        "infrahub-mcp"
+      ],
+      "env": {
+        "INFRAHUB_ADDRESS": "${INFRAHUB_ADDRESS}",
+        "INFRAHUB_API_TOKEN": "${INFRAHUB_API_TOKEN}"
+      }
+    },
     "terraform-mcp": {
       "url": "mcp://terraform.io/mcp",
       "env": {
