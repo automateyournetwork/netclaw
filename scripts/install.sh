@@ -342,7 +342,7 @@ echo ""
 
 log_step "12/$TOTAL_STEPS Installing OpsMill Infrahub MCP Server..."
 echo "  Source: https://github.com/opsmill/infrahub-mcp"
-echo "  Infrahub infrastructure source of truth — schema-driven nodes, GraphQL, versioned branches (10 tools)"
+echo "  Infrahub infrastructure source of truth — nodes, search, GraphQL, and branch-isolated writes via Proposed Changes (10 tools)"
 
 INFRAHUB_MCP_DIR="$MCP_DIR/infrahub-mcp"
 if [ -d "$INFRAHUB_MCP_DIR" ]; then
@@ -360,23 +360,23 @@ if [ -d "$INFRAHUB_MCP_DIR" ]; then
             log_info "Installing Infrahub MCP via uv sync..."
             cd "$INFRAHUB_MCP_DIR" && uv sync 2>/dev/null && cd "$NETCLAW_DIR" || {
                 log_warn "uv sync failed — trying pip install..."
-                pip3 install fastmcp infrahub-sdk 2>/dev/null || \
-                    pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+                pip3 install infrahub-mcp 2>/dev/null || \
+                    pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
                     log_warn "Infrahub MCP deps install failed"
                 cd "$NETCLAW_DIR"
             }
         else
-            log_info "uv not found — installing core dependencies via pip..."
-            pip3 install fastmcp infrahub-sdk 2>/dev/null || \
-                pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+            log_info "uv not found — installing Infrahub MCP package via pip..."
+            pip3 install infrahub-mcp 2>/dev/null || \
+                pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
                 log_warn "Infrahub MCP deps install failed"
         fi
         log_info "Infrahub MCP installed (stdio transport via FastMCP)"
     else
         log_warn "Python 3.13+ required for Infrahub MCP (found 3.$PY_MINOR)"
-        log_info "Installing core dependencies..."
-        pip3 install fastmcp infrahub-sdk 2>/dev/null || \
-            pip3 install --break-system-packages fastmcp infrahub-sdk 2>/dev/null || \
+        log_info "Installing Infrahub MCP package..."
+        pip3 install infrahub-mcp 2>/dev/null || \
+            pip3 install --break-system-packages infrahub-mcp 2>/dev/null || \
             log_warn "Infrahub core deps install failed"
         log_info "Infrahub MCP installed (some features may require Python 3.13+)"
     fi
@@ -2996,7 +2996,7 @@ echo "  │   Cisco ISE           Identity, posture, TrustSec"
 echo "  │   Infoblox DDI        DNS, DHCP, IPAM records, scopes, utilization"
 echo "  │   NetBox              DCIM/IPAM source of truth (read-write)"
 echo "  │   Nautobot            IPAM/DCIM source of truth — IP addresses, prefixes, VRF/tenant (5 tools)"
-echo "  │   Infrahub            Schema-driven SoT — nodes, GraphQL, versioned branches (10 tools)"
+echo "  │   Infrahub            Schema-driven SoT — nodes, GraphQL, branch-isolated writes (10 tools)"
 echo "  │   ServiceNow          ITSM: incidents, changes, CMDB"
 echo "  │"
 echo "  │ NETWORK ORCHESTRATION:"
@@ -3123,7 +3123,7 @@ echo "  │"
 echo "  │ Domain Skills:"
 echo "  │   netbox-reconcile       Source of truth drift detection"
 echo "  │   nautobot-sot           Nautobot IPAM — IP addresses, prefixes, VRF/tenant/site queries"
-echo "  │   infrahub-sot           Infrahub SoT — schema-driven nodes, GraphQL, versioned branches"
+echo "  │   infrahub-sot           Infrahub SoT — nodes, GraphQL, branch-isolated writes + Proposed Changes"
 echo "  │   aci-fabric-audit       ACI fabric health & policy audit"
 echo "  │   aci-change-deploy      Safe ACI policy changes"
 echo "  │   ise-posture-audit      ISE posture & TrustSec audit"

@@ -169,8 +169,11 @@ echo ""
 # --- OpsMill Infrahub ---
 if yesno "Do you have an OpsMill Infrahub instance? (schema-driven infrastructure source of truth)"; then
     echo ""
-    echo -e "  Infrahub MCP provides schema-driven infrastructure queries with versioned branches."
-    echo -e "  10 tools: nodes, schemas, GraphQL, branches."
+    echo -e "  Infrahub MCP provides schema-driven infrastructure queries and safe, branch-isolated changes."
+    echo -e "  10 tools: nodes, search, schema, read-only GraphQL, plus writes that land on an auto-created"
+    echo -e "  session branch and are submitted as a Proposed Change for human review."
+    echo -e "  Tip: pair with the infrahub-skills plugin (npx skills add opsmill/infrahub-skills) for authoring"
+    echo -e "  schemas, checks, transforms, and generators."
     echo -e "  Get your API token from: ${BOLD}Infrahub UI → Settings → API Tokens${NC}"
     echo ""
     prompt INFRAHUB_ADDR "Infrahub URL (http://infrahub.example.com:8000)" ""

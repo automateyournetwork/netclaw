@@ -276,10 +276,11 @@ Alternative to NetBox for orgs running Nautobot.
 
 ### infrahub-sot
 Infrahub SoT operations:
-- `get_schema_mapping` — discover node types, attributes, relationships first
-- `get_node_filters` — learn supported filter syntax before queries
-- Branch for changes — never mutate directly on main branch
-- `get_related_nodes` — traverse relationships instead of multiple queries
+- `get_schema` — discover node types, attributes, relationships, and filters first
+- `get_nodes` / `search_nodes` — typed/filtered/paged reads and fuzzy substring search
+- `query_graphql` — read-only custom queries
+- Branch-isolated writes — `node_upsert` / `node_delete` / `mutate_graphql` land on an auto-created `mcp/session-*` branch, never the default
+- `propose_changes` — open a Proposed Change for human review (agent never merges)
 
 ### aci-fabric-audit
 ACI fabric health, policy audit, fault analysis:

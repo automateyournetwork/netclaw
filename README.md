@@ -383,7 +383,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 5 | Cisco ISE | [automateyournetwork/ISE_MCP](https://github.com/automateyournetwork/ISE_MCP) | stdio (Python) | Identity policy, posture, TrustSec, endpoint control |
 | 6 | NetBox | [netboxlabs/netbox-mcp-server](https://github.com/netboxlabs/netbox-mcp-server) | stdio (Python) | Read-write DCIM/IPAM source of truth |
 | 7 | Nautobot | [aiopnet/mcp-nautobot](https://github.com/aiopnet/mcp-nautobot) | stdio (Python) | IPAM source of truth — IP addresses, prefixes, VRF/tenant/site filtering (5 tools, alternative to NetBox) |
-| 8 | OpsMill Infrahub | [opsmill/infrahub-mcp](https://github.com/opsmill/infrahub-mcp) | stdio (Python) | Schema-driven SoT: nodes, GraphQL queries, versioned branches (10 tools) | `INFRAHUB_ADDRESS`, `INFRAHUB_API_TOKEN` |
+| 8 | OpsMill Infrahub | [opsmill/infrahub-mcp](https://github.com/opsmill/infrahub-mcp) | stdio (Python) | Schema-driven SoT: nodes, search, GraphQL queries, and branch-isolated writes via Proposed Changes (10 tools + resources/prompts) | `INFRAHUB_ADDRESS`, `INFRAHUB_API_TOKEN` |
 | 9 | Itential IAP | [itential/itential-mcp](https://github.com/itential/itential-mcp) | stdio (Python) | Network automation orchestration: config mgmt, compliance, workflows, golden config, lifecycle (65+ tools) | `ITENTIAL_MCP_PLATFORM_HOST`, `ITENTIAL_MCP_PLATFORM_USER`, `ITENTIAL_MCP_PLATFORM_PASSWORD` |
 | 10 | ServiceNow | [echelon-ai-labs/servicenow-mcp](https://github.com/echelon-ai-labs/servicenow-mcp) | stdio (Python) | Incidents, change requests, CMDB |
 | 11 | Microsoft Graph | [@anthropic-ai/microsoft-graph-mcp](https://www.npmjs.com/package/@anthropic-ai/microsoft-graph-mcp) | npx | OneDrive, SharePoint, Visio, Teams, Exchange via Graph API |
@@ -500,7 +500,7 @@ HumanRail MCP runs via FastMCP streamable HTTP (Python) on port 8100 (`git clone
 |-------|-------------|
 | **netbox-reconcile** | Diffs NetBox intent vs device reality. Detects 7 discrepancy types: IP_DRIFT, MISSING_INTERFACE, UNDOCUMENTED_LINK, CABLE_MISMATCH, VLAN_MISMATCH, STATUS_MISMATCH, MTU_MISMATCH. Opens ServiceNow incidents for CRITICAL findings. Generates Markmap drift summary. GAIT audit. |
 | **nautobot-sot** | Nautobot IPAM source of truth (5 tools, alternative to NetBox): query IP addresses with filtering by status (active/reserved/deprecated), role (loopback/secondary/anycast), VRF, tenant; look up network prefixes by site and role; full-text search across all IP data; retrieve IP details by Nautobot UUID; verify API connectivity. Supports pagination (up to 1000 results). Integrates with pyATS topology for intended-vs-actual reconciliation. |
-| **infrahub-sot** | OpsMill Infrahub schema-driven source of truth (10 tools): get_schema_mapping for all available kinds, get_nodes/get_node_details for infrastructure objects (InfraDevice, InfraInterface, InfraIPAddress, InfraPrefix), get_related_nodes for relationship traversal, query_graphql for custom queries and mutations, get_branches/branch_create/branch_delete for versioned change management, branch_diff for change review. Supports GraphQL-based schema introspection and branch-based workflows for safe infrastructure changes. |
+| **infrahub-sot** | OpsMill Infrahub schema-driven source of truth (10 tools). Read: `get_schema` (kind catalog + per-kind schema), `get_nodes` (typed/filtered/paged reads of InfraDevice, InfraInterface, InfraIPAddress, InfraPrefix…), `search_nodes` (fuzzy substring), `query_graphql` (read-only), `get_session_info`. Write (branch-isolated): `node_upsert`, `node_delete`, `mutate_graphql`, `propose_changes`, `reset_session_branch`. Writes never touch the default branch — they land on an auto-created `mcp/session-*` branch and are submitted as a **Proposed Change** for human review. Also exposes MCP resources (`infrahub://schema`, `graphql-schema`, `branches`) and prompts. Pairs with the [infrahub-skills](https://github.com/opsmill/infrahub-skills) plugin for authoring schemas, checks, transforms, and generators. |
 | **aci-fabric-audit** | ACI fabric health: node status, firmware, policy tree walk (Tenant/VRF/BD/EPG), contract analysis, fault analysis with health scores, endpoint learning verification. Severity-rated consolidated report. GAIT audit. |
 | **aci-change-deploy** | Safe ACI policy changes: ServiceNow CR gating, pre-change fault baseline, dependency-ordered deployment (Tenant > VRF > BD > AP > EPG), post-change fault delta, automatic rollback on fault increase. GAIT audit. |
 | **ise-posture-audit** | ISE audit: authorization policy review (default-allow detection), posture compliance assessment, profiling coverage analysis, TrustSec SGT matrix analysis (permit-all detection), active session health. |
@@ -1370,24 +1370,22 @@ nautobot-sot
 ### Infrahub Infrastructure Audit
 ```
 infrahub-sot
---> get_schema_mapping: discover all available schema kinds
---> get_nodes(kind="InfraDevice"): retrieve full device inventory
---> get_related_nodes per device: interfaces, IPs, connections
---> branch_create("audit-2024"): isolated branch for analysis
---> query_graphql: custom queries for cross-referencing relationships
+--> get_schema (no kind) / read infrahub://schema: discover all available schema kinds
+--> get_nodes(kind="InfraDevice"): retrieve full device inventory (filtered/paged)
+--> get_schema(kind="InfraDevice"): relationships to traverse (interfaces, IPs, connections)
+--> query_graphql: read-only custom queries for cross-referencing relationships
 --> Report: infrastructure inventory with relationship completeness
 --> GAIT audit trail
 ```
 
-### Infrahub Branch-Based Change
+### Infrahub Branch-Isolated Change
 ```
 infrahub-sot
---> get_branches: list existing branches and their status
---> branch_create("vlan-changes"): create isolated change branch
---> get_nodes(kind="InfraVLAN", branch="vlan-changes"): current VLAN state
---> query_graphql: mutation to create/update VLANs on branch
---> branch_diff: review all changes before merge
---> Report: branch change summary with before/after comparison
+--> get_session_info: show the active mcp/session-* branch (none yet on a fresh session)
+--> get_nodes(kind="InfraVLAN"): current VLAN state
+--> node_upsert / mutate_graphql: create/update VLANs — first write auto-creates the session branch (never the default)
+--> propose_changes: open a Proposed Change from the session branch for human review
+--> Report: change summary + Proposed Change link (human reviews and merges in Infrahub)
 --> GAIT audit trail
 ```
 
@@ -2047,7 +2045,7 @@ netclaw/
 │   ├── thousandeyes-mcp-community/     # ThousandEyes monitoring (9 read-only tools)
 │   ├── radkit-mcp-server-community/   # Cisco RADKit cloud-relayed device access (5 tools)
 │   ├── mcp-nautobot/                  # Nautobot IPAM source of truth (5 tools)
-│   ├── infrahub-mcp/                 # OpsMill Infrahub schema-driven SoT (10 tools)
+│   ├── infrahub-mcp/                 # OpsMill Infrahub schema-driven SoT — read + branch-isolated writes (10 tools)
 │   ├── itential-mcp/                 # Itential IAP network automation (65+ tools)
 │   ├── junos-mcp-server/            # Juniper JunOS PyEZ/NETCONF (10 tools)
 │   ├── mcp-cvp-fun/                # Arista CloudVision Portal (4 tools)
@@ -2105,7 +2103,7 @@ netclaw/
 8. **Clones GAIT MCP** — `git clone` + `pip3 install gait-ai fastmcp`
 9. **Clones NetBox MCP** — `git clone` + `pip3 install` dependencies
 10. **Clones Nautobot MCP** — `git clone` + `pip3 install -e .` for Nautobot IPAM source of truth (5 tools: IP addresses, prefixes, VRF/tenant/site filtering, search, connection test). Python 3.13+ required; falls back to core deps on older Python. Alternative to NetBox.
-11. **Clones Infrahub MCP** — `git clone` + `pip3 install -e .` for OpsMill Infrahub schema-driven source of truth (10 tools: nodes, GraphQL queries, versioned branches). Requires Infrahub instance with API token.
+11. **Clones Infrahub MCP** — `git clone` + `uv sync` (pip fallback) for OpsMill Infrahub schema-driven source of truth (10 tools: nodes, search, GraphQL, and branch-isolated writes via Proposed Changes). Requires Python 3.13+ and an Infrahub instance with API token. Now also published to PyPI (`pip install infrahub-mcp`) and as a Docker image (`registry.opsmill.io/opsmill/infrahub-mcp`).
 12. **Installs Itential MCP** — `pip3 install itential-mcp` (falls back to `git clone` + `pip3 install -e .`) for Itential Automation Platform network orchestration (65+ tools: config mgmt, compliance, workflows, golden config, lifecycle). Requires IAP instance with credentials.
 13. **Clones ServiceNow MCP** — `git clone` + `pip3 install` dependencies
 14. **Clones ACI MCP** — `git clone` + `pip3 install` dependencies
@@ -2199,7 +2197,7 @@ Optional (for full feature set):
 - Arista CloudVision Portal with service account token, Python 3.12+ and `uv` (for CVP device inventory, events, connectivity monitoring, tag management)
 - AWS account with IAM credentials (`AWS_ACCESS_KEY_ID` + `AWS_SECRET_ACCESS_KEY`) for AWS cloud skills
 - graphviz (`apt install graphviz` or `brew install graphviz`) for AWS architecture diagrams
-- OpsMill Infrahub instance + API token (optional — schema-driven source of truth alternative)
+- OpsMill Infrahub instance + API token (optional — schema-driven source of truth alternative; Python 3.13+ for the MCP server)
 - Itential Automation Platform instance + credentials (optional — network orchestration, compliance, golden config)
 - Google Cloud project with service account or `gcloud` CLI (for GCP Compute, Monitoring, Logging skills)
 - Microsoft 365 tenant with Azure AD app registration (for Graph/Visio/Teams skills)
@@ -2341,13 +2339,13 @@ Ask NetClaw anything you'd ask a senior network engineer:
 --> nautobot-sot: search_ip_addresses(query="core-rtr-01"), matching IPs with device assignment details
 
 "What schema kinds are available in Infrahub?"
---> infrahub-sot: get_schema_mapping, list all available kinds with descriptions and relationships
+--> infrahub-sot: get_schema (no kind) / read infrahub://schema, list all available kinds with descriptions and relationships
 
 "Show me all devices in Infrahub"
 --> infrahub-sot: get_nodes(kind="InfraDevice"), device inventory with platform, role, site, and status
 
-"Create a branch for VLAN changes"
---> infrahub-sot: branch_create("vlan-update"), query_graphql on branch to stage changes, branch_diff to review, GAIT audit
+"Add a VLAN to Infrahub"
+--> infrahub-sot: node_upsert stages the change on an auto-created mcp/session-* branch (never the default), then propose_changes opens a Proposed Change for human review, GAIT audit
 
 "Check the health of our Itential platform"
 --> itential-automation: get_health, status of adapters, applications, system components, GAIT audit
