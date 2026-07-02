@@ -137,6 +137,12 @@ It is **opt-in and fail-open**:
 - Resolved alerts skip scoping (they only post an all-clear).
 - Scoping is serialized with a lock so concurrent alerts can't leave the shared
   skills directory half-written.
+- **Restore-after-trigger**: after triggering (and a short delay so the fresh
+  alert session has read the scoped dir), the receiver restores the full catalog
+  so interactive sessions aren't left with the reduced set. A generation counter
+  ensures that if a newer alert re-scoped in the meantime, the stale restore is
+  skipped. Controlled by `SKILL_RESTORE_AFTER_TRIGGER` (default on) and
+  `SKILL_RESTORE_DELAY` (default 8s).
 
 Enable and tune it via the receiver's `.env` (see
 `scripts/alert-receiver/.env.example`):
@@ -251,10 +257,18 @@ hallucinated tools across all runs.
   defaults to the keyword ranker to keep the webhook hot path fast and
   dependency-light; set `SKILL_SELECTOR_RANKER=auto` for semantic selection.
 - **Concurrent alert bursts share one skills directory.** Scoping is serialized
-  to prevent partial writes, but if two alerts fire close together the second
-  scope can replace the first before its investigation reads the directory.
-  Pinning the common safety + device skills bounds the blast radius; for
-  high-concurrency environments a per-session skills directory would be needed.
+  to prevent partial writes, and a generation counter prevents a stale restore
+  from clobbering a newer alert's scope. Because OpenClaw resolves skills
+  per-run from this single directory, a fresh alert session reads whatever is on
+  disk at session start — so the receiver scopes just before triggering and
+  restores shortly after. Under exact-simultaneous alert + interactive load the
+  window is still shared; true isolation would need per-session skill dirs.
+
+**Runtime read timing (verified):** OpenClaw builds the skill snapshot per run
+(`resolveSkillsPromptForRun` → `buildWorkspaceSkillSnapshot` → live `readdirSync`,
+no startup cache), and each alert spawns a fresh session. So scoping the
+directory just before triggering is reliably picked up by that alert's
+investigation, with no gateway restart needed.
 
 ---
 

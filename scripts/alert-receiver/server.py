@@ -76,10 +76,20 @@ SKILL_SELECTOR_K = os.getenv("SKILL_SELECTOR_K", "8")
 # if you want semantic ranking (requires sentence-transformers).
 SKILL_SELECTOR_RANKER = os.getenv("SKILL_SELECTOR_RANKER", "keyword")
 SKILL_SELECTOR_TIMEOUT = float(os.getenv("SKILL_SELECTOR_TIMEOUT", "60"))
+# After triggering, restore the full catalog so interactive sessions aren't left
+# with the scoped subset. The fresh alert session reads skills at session start
+# (a few seconds after trigger), so we wait before restoring.
+SKILL_RESTORE_AFTER_TRIGGER = os.getenv(
+    "SKILL_RESTORE_AFTER_TRIGGER", "true"
+).lower() in ("1", "true", "yes")
+SKILL_RESTORE_DELAY = float(os.getenv("SKILL_RESTORE_DELAY", "8"))
 
 # Serialize scoping so concurrent alerts never leave the shared skills dir in a
 # partially-written state. Created lazily on the running event loop.
 _scope_lock: Optional["asyncio.Lock"] = None
+# Monotonic counter: each successful scope bumps it. A scheduled restore only
+# runs if it's still the latest scope (no newer alert has re-scoped since).
+_scope_generation: int = 0
 
 logging.basicConfig(
     level=LOG_LEVEL,
@@ -246,20 +256,23 @@ async def lookup_device(hostname: str) -> dict:
 # ---------------------------------------------------------------------------
 
 
-async def scope_skills_for_alert(alert: Alert, device_info: dict) -> None:
+async def scope_skills_for_alert(alert: Alert, device_info: dict) -> Optional[int]:
     """Scope the runtime skills directory to the alert-relevant subset.
 
     Runs the skill selector (scripts/skill-selector/select_skills.py) as a
     subprocess with --apply. Fail-open: any error leaves the existing catalog in
     place so the investigation still has its skills. Serialized via a lock so
     concurrent alerts don't corrupt the shared directory.
+
+    Returns the scope generation number on success (for a later restore), or
+    None if scoping was skipped or failed.
     """
     if not SKILL_SCOPING_ENABLED:
-        return
+        return None
     if alert.status != "firing":
-        return  # resolved alerts just post an all-clear; no scoping needed
+        return None  # resolved alerts just post an all-clear; no scoping needed
 
-    global _scope_lock
+    global _scope_lock, _scope_generation
     if _scope_lock is None:
         _scope_lock = asyncio.Lock()
 
@@ -297,15 +310,17 @@ async def scope_skills_for_alert(alert: Alert, device_info: dict) -> None:
             except asyncio.TimeoutError:
                 proc.kill()
                 log.warning("Skill scoping timed out — proceeding with existing catalog")
-                return
+                return None
 
             if proc.returncode != 0:
                 log.warning(
                     f"Skill scoping failed (exit {proc.returncode}): "
                     f"{stderr.decode(errors='replace')[:200]} — proceeding with existing catalog"
                 )
-                return
+                return None
 
+            _scope_generation += 1
+            my_gen = _scope_generation
             try:
                 result = json.loads(stdout.decode(errors="replace"))
                 log.info(
@@ -316,13 +331,69 @@ async def scope_skills_for_alert(alert: Alert, device_info: dict) -> None:
                 )
             except (json.JSONDecodeError, KeyError):
                 log.info(f"Skills scoped for {alert.labels.alertname} (unparsed selector output)")
+            return my_gen
         except FileNotFoundError:
             log.warning(
                 f"Skill selector not found at {SKILL_SELECTOR_SCRIPT} — "
                 "proceeding with existing catalog"
             )
+            return None
         except Exception as e:
             log.warning(f"Skill scoping error: {e} — proceeding with existing catalog")
+            return None
+
+
+async def restore_skills_after_trigger(scope_gen: int) -> None:
+    """After the alert session has read the scoped dir, restore the full catalog
+    so interactive sessions aren't left with the reduced set. Skips the restore
+    if a newer alert has re-scoped since (its own restore will handle it)."""
+    if not (SKILL_SCOPING_ENABLED and SKILL_RESTORE_AFTER_TRIGGER):
+        return
+    if scope_gen is None:
+        return
+
+    await asyncio.sleep(SKILL_RESTORE_DELAY)
+
+    global _scope_lock, _scope_generation
+    if _scope_lock is None:
+        _scope_lock = asyncio.Lock()
+
+    async with _scope_lock:
+        if scope_gen != _scope_generation:
+            # A newer alert re-scoped after us; leave its scope in place.
+            log.info(
+                f"Skip restore (gen {scope_gen} superseded by {_scope_generation}) — "
+                "a newer alert owns the current scope"
+            )
+            return
+        cmd = [
+            SKILL_SELECTOR_PYTHON, SKILL_SELECTOR_SCRIPT,
+            "--restore-all",
+            "--catalog", SKILL_CATALOG_DIR,
+            "--target", SKILL_TARGET_DIR,
+            "--apply", "--json",
+        ]
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            _, stderr = await asyncio.wait_for(
+                proc.communicate(), timeout=SKILL_SELECTOR_TIMEOUT
+            )
+            if proc.returncode == 0:
+                log.info("Restored full skill catalog after triage (interactive-safe resting state)")
+            else:
+                log.warning(
+                    f"Skill restore failed (exit {proc.returncode}): "
+                    f"{stderr.decode(errors='replace')[:200]}"
+                )
+        except asyncio.TimeoutError:
+            proc.kill()
+            log.warning("Skill restore timed out")
+        except Exception as e:
+            log.warning(f"Skill restore error: {e}")
 
 
 async def trigger_netclaw(alert: Alert, device_info: dict):
@@ -502,9 +573,13 @@ async def process_alert(alert: Alert):
     log.info(f"  Device resolved: {device_info['name']} → {device_info['ip']} (source: {device_info['source']})")
 
     # Scope the runtime skills directory to this alert before investigation.
-    await scope_skills_for_alert(alert, device_info)
+    scope_gen = await scope_skills_for_alert(alert, device_info)
 
     await trigger_netclaw(alert, device_info)
+
+    # After the fresh alert session has read the scoped dir, restore the full
+    # catalog so interactive sessions aren't left with the reduced set.
+    await restore_skills_after_trigger(scope_gen)
 
 
 # ---------------------------------------------------------------------------
