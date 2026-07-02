@@ -147,13 +147,30 @@ Time window: alert start time ± 5 minutes.
 ╚══════════════════════════════════════════════════════════════╝
 ```
 
-### Step 7: Discord Notification (if configured)
+### Step 6b: Enrich external IPs (threat intelligence)
 
-If `DISCORD_WEBHOOK_URL` is set, post the triage report:
+For any **external/public** source IP in the alert (port scans, WAN blocks,
+suspicious inbound), enrich before concluding. Skip private/RFC1918 addresses.
+
+- `greynoise_community_lookup(ip)` — free, no key. Is it benign internet noise /
+  a known scanner (Censys, Shodan) or targeted? Best first signal for scans.
+- `threatintel_lookup_ip(ip)` / `abuseipdb_check` / `otx_get_pulses` — reputation,
+  abuse confidence score, and threat-pulse membership.
+- gtrace `asn_lookup(ip)` / `geo_lookup(ip)` — ownership (org/ASN) and location.
+
+Fold the verdict into ROOT CAUSE (e.g. "EXTERNAL — benign scanner (Censys)").
+
+### Step 7: Deliver findings to Discord (native bridge)
+
+Post the completed triage report to the alerts channel using NetClaw's native
+Discord bridge (not a script):
 
 ```bash
-bash scripts/alert-receiver/post-discord.sh "<triage report>"
+openclaw message send --channel discord --target <ALERT_CHANNEL_ID> --message "<triage report>"
 ```
+
+The alert receiver passes the channel id in the investigation prompt. The
+investigation is not complete until the report is posted.
 
 ## Autonomous Mode
 

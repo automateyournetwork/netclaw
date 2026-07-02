@@ -67,6 +67,10 @@ mcp-servers/*
 !mcp-servers/nautobot-mcp-v2/
 !mcp-servers/nautobot-golden-config-mcp/
 !mcp-servers/nautobot-routing-mcp/
+!mcp-servers/nautobot-firewall-mcp/
+!mcp-servers/ollama-mcp/
+!mcp-servers/threatintel-mcp/
+!mcp-servers/greynoise-community-mcp/
 
 # Traces
 trace.json
@@ -96,3 +100,5 @@ docs/series-plan*
 golden-config-work/HomeSwitch01.cfg
 golden-config-work/HomeSwitch02.cfg
 .amazonq/
+memory/*.db
+memory/chromadb/

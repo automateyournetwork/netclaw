@@ -1,0 +1,18 @@
+[submodule "mcp-servers/nautobot-mcp-v2"]
+	path = mcp-servers/nautobot-mcp-v2
+	url = https://github.com/byrn-baker/nautobot-mcp-v2.git
+[submodule "mcp-servers/nautobot-golden-config-mcp"]
+	path = mcp-servers/nautobot-golden-config-mcp
+	url = https://github.com/byrn-baker/nautobot-golden-config-mcp.git
+[submodule "mcp-servers/nautobot-routing-mcp"]
+	path = mcp-servers/nautobot-routing-mcp
+	url = https://github.com/byrn-baker/nautobot-routing-mcp.git
+[submodule "mcp-servers/nautobot-firewall-mcp"]
+	path = mcp-servers/nautobot-firewall-mcp
+	url = https://github.com/byrn-baker/nautobot-firewall-mcp.git
+[submodule "mcp-servers/ollama-mcp"]
+	path = mcp-servers/ollama-mcp
+	url = https://github.com/byrn-baker/ollama-domain-experts-mcp.git
+[submodule "mcp-servers/threatintel-mcp"]
+	path = mcp-servers/threatintel-mcp
+	url = https://github.com/aplaceforallmystuff/mcp-threatintel.git

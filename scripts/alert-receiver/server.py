@@ -44,6 +44,10 @@ OPENCLAW_GATEWAY_URL = os.getenv("OPENCLAW_GATEWAY_URL", "").rstrip("/")
 OPENCLAW_HOOK_TOKEN = os.getenv("OPENCLAW_HOOK_TOKEN", "")
 
 DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+# Discord channel the agent posts its triage FINDINGS to (via the native
+# `openclaw message send` bridge). Distinct from DISCORD_WEBHOOK_URL, which is
+# the receiver's immediate "alert received" notice.
+DISCORD_ALERT_CHANNEL_ID = os.getenv("DISCORD_ALERT_CHANNEL_ID", "")
 
 # Local inventory fallback (hostname → device info)
 INVENTORY_FILE = Path(__file__).parent / "inventory.yaml"
@@ -479,8 +483,18 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
         parts.append("2. Use available tools (SNMP, SSH, MCP) to investigate the device.")
 
     parts.append("3. Query Prometheus for recent metric history if relevant.")
-    parts.append("4. Produce a triage report: what's wrong, likely cause, and recommended action.")
-    parts.append("5. Do NOT remediate without explicit human approval.")
+    parts.append(
+        "4. For any EXTERNAL/public source IP in this alert (e.g. port scans, "
+        "WAN blocks, suspicious connections), enrich it before concluding:\n"
+        "   - `greynoise_community_lookup` — is it benign internet noise / a "
+        "known scanner (Censys, Shodan) or targeted? (free, no key)\n"
+        "   - `threatintel_lookup_ip` / `abuseipdb_check` / `otx_get_pulses` — "
+        "reputation, abuse reports, and threat pulses.\n"
+        "   - gtrace `asn_lookup` / `geo_lookup` — who owns the IP and where.\n"
+        "   Skip enrichment for private/RFC1918 addresses."
+    )
+    parts.append("5. Produce a triage report: what's wrong, likely cause, and recommended action.")
+    parts.append("6. Do NOT remediate without explicit human approval.")
 
     if alert.status == "resolved":
         parts = [
@@ -488,6 +502,20 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
             f"Device: {device_info['name']} ({device_info['ip']})",
             "The alert has cleared. Post a brief all-clear confirmation.",
         ]
+
+    # Final step (both firing and resolved): deliver findings to the alerts
+    # channel using NetClaw's native Discord bridge — not a script.
+    if DISCORD_ALERT_CHANNEL_ID:
+        parts.append("")
+        parts.append(
+            "FINAL STEP — deliver your findings. Post the complete triage report "
+            "(or all-clear) to the Discord alerts channel using the native "
+            "message bridge, e.g. run via exec:\n"
+            f"  openclaw message send --channel discord --target {DISCORD_ALERT_CHANNEL_ID} "
+            "--message \"<your report>\"\n"
+            "This is required — the investigation is not complete until the "
+            "report is posted to the channel."
+        )
 
     return "\n".join(parts)
 
