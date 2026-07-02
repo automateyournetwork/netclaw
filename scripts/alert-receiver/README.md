@@ -18,6 +18,7 @@ Alert Receiver (192.168.3.252:8099)
     ├── 2. Extract hostname/instance from labels
     ├── 3. Lookup device in Nautobot (or local inventory.yaml)
     ├── 4. Build investigation prompt with device context
+    ├── 4b. (Optional) Scope runtime skills to the alert — shrinks token cost
     ├── 5. POST to OpenClaw gateway → triggers NetClaw skill
     └── 6. (Optional) Post notification to Discord
 ```
@@ -90,6 +91,23 @@ curl http://localhost:8099/health
 | `OPENCLAW_HOOK_TOKEN` | — | Bearer token for OpenClaw hooks |
 | `DISCORD_WEBHOOK_URL` | — | Discord webhook for alert notifications |
 | `LOG_LEVEL` | `INFO` | Python log level |
+| `SKILL_SCOPING_ENABLED` | `false` | Scope runtime skills to the alert before investigation |
+| `SKILL_SELECTOR_PYTHON` | current python | Interpreter to run the selector (use repo venv) |
+| `SKILL_SELECTOR_PINS` | safety+device set | Skills always kept regardless of alert |
+| `SKILL_SELECTOR_K` | `8` | Top-k relevant skills to select |
+| `SKILL_SELECTOR_RANKER` | `keyword` | `keyword` \| `embeddings` \| `auto` |
+
+## Skill Scoping (Token Optimization)
+
+When `SKILL_SCOPING_ENABLED=true`, the receiver scopes the runtime skills
+directory to the alert-relevant subset (plus a pinned safety core) before
+triggering investigation. This shrinks the skill index OpenClaw injects into the
+system prompt by ~65–94% per turn, cutting quota/latency on autonomous triage.
+
+It is **opt-in** and **fail-open**: if the selector errors or times out, the
+investigation proceeds with the full catalog. See
+[`docs/architecture/skill-context-scoping.md`](../../docs/architecture/skill-context-scoping.md)
+for the full explanation, measurements, and caveats.
 
 ## Device Lookup Order
 

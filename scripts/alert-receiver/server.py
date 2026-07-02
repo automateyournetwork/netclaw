@@ -48,6 +48,39 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # Local inventory fallback (hostname → device info)
 INVENTORY_FILE = Path(__file__).parent / "inventory.yaml"
 
+# ---------------------------------------------------------------------------
+# Skill scoping (see docs/architecture/skill-context-scoping.md)
+# Opt-in: scopes the runtime skills directory to the alert-relevant subset
+# before triggering investigation, shrinking the injected skill index.
+# ---------------------------------------------------------------------------
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+
+SKILL_SCOPING_ENABLED = os.getenv("SKILL_SCOPING_ENABLED", "false").lower() in ("1", "true", "yes")
+SKILL_SELECTOR_SCRIPT = os.getenv(
+    "SKILL_SELECTOR_SCRIPT",
+    str(REPO_ROOT / "scripts" / "skill-selector" / "select_skills.py"),
+)
+SKILL_SELECTOR_PYTHON = os.getenv("SKILL_SELECTOR_PYTHON", sys.executable)
+SKILL_CATALOG_DIR = os.getenv("SKILL_CATALOG_DIR", str(REPO_ROOT / "workspace" / "skills"))
+SKILL_TARGET_DIR = os.getenv(
+    "SKILL_TARGET_DIR", os.path.expanduser("~/.openclaw/workspace/skills")
+)
+SKILL_SELECTOR_PINS = os.getenv(
+    "SKILL_SELECTOR_PINS",
+    "alert-triage,gait-session-tracking,memory-management,humanrail-escalation,"
+    "pyats-network,pyats-troubleshoot",
+)
+SKILL_SELECTOR_K = os.getenv("SKILL_SELECTOR_K", "8")
+# keyword is fast and dependency-light for the hot path; set to auto/embeddings
+# if you want semantic ranking (requires sentence-transformers).
+SKILL_SELECTOR_RANKER = os.getenv("SKILL_SELECTOR_RANKER", "keyword")
+SKILL_SELECTOR_TIMEOUT = float(os.getenv("SKILL_SELECTOR_TIMEOUT", "60"))
+
+# Serialize scoping so concurrent alerts never leave the shared skills dir in a
+# partially-written state. Created lazily on the running event loop.
+_scope_lock: Optional["asyncio.Lock"] = None
+
 logging.basicConfig(
     level=LOG_LEVEL,
     format="%(asctime)s %(levelname)s %(name)s — %(message)s",
@@ -152,6 +185,8 @@ async def lookup_device_inventory(hostname: str) -> Optional[dict]:
         import yaml
         inventory = yaml.safe_load(INVENTORY_FILE.read_text()) or {}
         devices = inventory.get("devices", {})
+
+        # Try direct hostname match first
         if hostname in devices:
             dev = devices[hostname]
             return {
@@ -163,6 +198,19 @@ async def lookup_device_inventory(hostname: str) -> Optional[dict]:
                 "status": "active",
                 "source": "local-inventory",
             }
+
+        # Try matching by IP address
+        for name, dev in devices.items():
+            if dev.get("ip") == hostname:
+                return {
+                    "name": name,
+                    "ip": dev.get("ip", ""),
+                    "platform": dev.get("platform", ""),
+                    "role": dev.get("role", ""),
+                    "site": dev.get("site", ""),
+                    "status": "active",
+                    "source": "local-inventory",
+                }
     except Exception as e:
         log.warning(f"Local inventory lookup failed: {e}")
 
@@ -196,6 +244,85 @@ async def lookup_device(hostname: str) -> dict:
 # ---------------------------------------------------------------------------
 # NetClaw Trigger
 # ---------------------------------------------------------------------------
+
+
+async def scope_skills_for_alert(alert: Alert, device_info: dict) -> None:
+    """Scope the runtime skills directory to the alert-relevant subset.
+
+    Runs the skill selector (scripts/skill-selector/select_skills.py) as a
+    subprocess with --apply. Fail-open: any error leaves the existing catalog in
+    place so the investigation still has its skills. Serialized via a lock so
+    concurrent alerts don't corrupt the shared directory.
+    """
+    if not SKILL_SCOPING_ENABLED:
+        return
+    if alert.status != "firing":
+        return  # resolved alerts just post an all-clear; no scoping needed
+
+    global _scope_lock
+    if _scope_lock is None:
+        _scope_lock = asyncio.Lock()
+
+    alert_ctx = json.dumps({
+        "alertname": alert.labels.alertname,
+        "summary": alert.annotations.summary,
+        "description": alert.annotations.description,
+        "device_platform": device_info.get("platform", ""),
+        "device_role": device_info.get("role", ""),
+        "severity": alert.labels.severity,
+    })
+
+    cmd = [
+        SKILL_SELECTOR_PYTHON, SKILL_SELECTOR_SCRIPT,
+        "--alert", alert_ctx,
+        "--catalog", SKILL_CATALOG_DIR,
+        "--target", SKILL_TARGET_DIR,
+        "--pin", SKILL_SELECTOR_PINS,
+        "--k", SKILL_SELECTOR_K,
+        "--ranker", SKILL_SELECTOR_RANKER,
+        "--apply", "--json",
+    ]
+
+    async with _scope_lock:
+        try:
+            proc = await asyncio.create_subprocess_exec(
+                *cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            try:
+                stdout, stderr = await asyncio.wait_for(
+                    proc.communicate(), timeout=SKILL_SELECTOR_TIMEOUT
+                )
+            except asyncio.TimeoutError:
+                proc.kill()
+                log.warning("Skill scoping timed out — proceeding with existing catalog")
+                return
+
+            if proc.returncode != 0:
+                log.warning(
+                    f"Skill scoping failed (exit {proc.returncode}): "
+                    f"{stderr.decode(errors='replace')[:200]} — proceeding with existing catalog"
+                )
+                return
+
+            try:
+                result = json.loads(stdout.decode(errors="replace"))
+                log.info(
+                    f"Skills scoped for {alert.labels.alertname}: "
+                    f"{result['selected_size']}/{result['catalog_size']} skills, "
+                    f"index ~{result['index_tokens_saved']} tokens saved "
+                    f"({result['index_tokens_saved_pct']}%) — {result['selected']}"
+                )
+            except (json.JSONDecodeError, KeyError):
+                log.info(f"Skills scoped for {alert.labels.alertname} (unparsed selector output)")
+        except FileNotFoundError:
+            log.warning(
+                f"Skill selector not found at {SKILL_SELECTOR_SCRIPT} — "
+                "proceeding with existing catalog"
+            )
+        except Exception as e:
+            log.warning(f"Skill scoping error: {e} — proceeding with existing catalog")
 
 
 async def trigger_netclaw(alert: Alert, device_info: dict):
@@ -373,6 +500,9 @@ async def process_alert(alert: Alert):
 
     device_info = await lookup_device(instance)
     log.info(f"  Device resolved: {device_info['name']} → {device_info['ip']} (source: {device_info['source']})")
+
+    # Scope the runtime skills directory to this alert before investigation.
+    await scope_skills_for_alert(alert, device_info)
 
     await trigger_netclaw(alert, device_info)
 
