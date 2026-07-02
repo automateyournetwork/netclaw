@@ -18,11 +18,15 @@ ExecStart=/home/ubuntu/netclaw/.venv/bin/python server.py
 Restart=on-failure
 RestartSec=5
 Environment=PATH=/home/ubuntu/netclaw/.venv/bin:/usr/bin:/bin
+Environment=HOME=/home/ubuntu
 
 # Security hardening
 NoNewPrivileges=true
 ProtectSystem=strict
-ReadWritePaths=/home/ubuntu/netclaw/scripts/alert-receiver
+# alert-receiver runtime dir + the OpenClaw skills dir the selector scopes.
+# (The canonical catalog under /home/ubuntu/netclaw is only read, which is
+# allowed under ProtectSystem=strict.)
+ReadWritePaths=/home/ubuntu/netclaw/scripts/alert-receiver /home/ubuntu/.openclaw/workspace/skills
 
 [Install]
 WantedBy=multi-user.target
