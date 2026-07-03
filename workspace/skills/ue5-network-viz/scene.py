@@ -32,6 +32,17 @@ class SceneState:
     # Mapping of link_id to actor name for links
     link_actors: dict[str, str] = field(default_factory=dict)
 
+    # Mapping of "{hostname}:{interface_name}" to actor name for up/up
+    # interface actors (045-ue5-digital-twin). Only up/up interfaces get an
+    # entry here — down interfaces are tracked separately (see below) and
+    # never get an individual actor, to bound total actor count.
+    interface_actors: dict[str, str] = field(default_factory=dict)
+
+    # Mapping of hostname to a list of that device's down interface names,
+    # for the compact down-interface summary (spec FR-002) rather than one
+    # actor per down port.
+    down_interfaces: dict[str, list[str]] = field(default_factory=dict)
+
     # Device positions for link calculation
     device_positions: dict[str, list[float]] = field(default_factory=dict)
 
@@ -124,6 +135,42 @@ def unregister_link_actor(link_id: str) -> None:
     update_scene_timestamp()
 
 
+def register_interface_actor(hostname: str, interface_name: str, actor_name: str) -> None:
+    """Register a spawned up/up interface actor for tracking (045-ue5-digital-twin)."""
+    state = get_scene_state()
+    state.interface_actors[f"{hostname}:{interface_name}"] = actor_name
+    update_scene_timestamp()
+
+
+def unregister_interface_actor(hostname: str, interface_name: str) -> None:
+    """Remove an interface actor from tracking."""
+    state = get_scene_state()
+    state.interface_actors.pop(f"{hostname}:{interface_name}", None)
+    update_scene_timestamp()
+
+
+def get_tracked_interfaces() -> dict[str, str]:
+    """Get all tracked interface actors ("hostname:interface" -> actor_name)."""
+    return get_scene_state().interface_actors.copy()
+
+
+def is_interface_tracked(hostname: str, interface_name: str) -> bool:
+    """Check if a specific up/up interface is currently tracked."""
+    return f"{hostname}:{interface_name}" in get_scene_state().interface_actors
+
+
+def set_down_interfaces(hostname: str, interface_names: list[str]) -> None:
+    """Record a device's down interfaces for the compact summary (FR-002)."""
+    state = get_scene_state()
+    state.down_interfaces[hostname] = list(interface_names)
+    update_scene_timestamp()
+
+
+def get_down_interfaces(hostname: str) -> list[str]:
+    """Get a device's recorded down interfaces."""
+    return get_scene_state().down_interfaces.get(hostname, [])
+
+
 def get_tracked_devices() -> dict[str, str]:
     """Get all tracked device actors (hostname -> actor_name)."""
     return get_scene_state().device_actors.copy()
@@ -165,46 +212,39 @@ async def sync_scene_state_from_ue5(client: UE5MCPClient) -> SceneState:
     Returns:
         Updated scene state
     """
-    from actors import NETCLAW_TAG
+    from actors import find_netclaw_actors
 
-    result = await client.call_tool(
-        toolset="ActorTools",
-        tool="get_all_actors_with_tag",
-        args={"tag": NETCLAW_TAG},
-    )
+    actors = await find_netclaw_actors(client)
 
     state = get_scene_state()
 
-    if result.success:
-        actors = result.data.get("actors", [])
+    # Clear current tracking
+    state.device_actors.clear()
+    state.link_actors.clear()
+    state.device_positions.clear()
 
-        # Clear current tracking
-        state.device_actors.clear()
-        state.link_actors.clear()
-        state.device_positions.clear()
+    # Rebuild from UE5 state
+    for actor in actors:
+        name = actor.get("name", "")
+        tags = actor.get("tags", [])
+        location = actor.get("location", [0, 0, 0])
 
-        # Rebuild from UE5 state
-        for actor in actors:
-            name = actor.get("name", "")
-            tags = actor.get("tags", [])
-            location = actor.get("location", [0, 0, 0])
+        if "device" in tags:
+            # Extract hostname from actor name
+            # Format: netclaw_device_{hostname}
+            if name.startswith("netclaw_device_"):
+                hostname = name[15:].replace("_", "-")
+                state.device_actors[hostname] = name
+                state.device_positions[hostname] = location
 
-            if "device" in tags:
-                # Extract hostname from actor name
-                # Format: netclaw_device_{hostname}
-                if name.startswith("netclaw_device_"):
-                    hostname = name[15:].replace("_", "-")
-                    state.device_actors[hostname] = name
-                    state.device_positions[hostname] = location
+        elif "link" in tags:
+            # Extract link_id from actor name
+            # Format: netclaw_link_{source}__{target}
+            if name.startswith("netclaw_link_"):
+                link_id = name[13:].replace("__", "_")
+                state.link_actors[link_id] = name
 
-            elif "link" in tags:
-                # Extract link_id from actor name
-                # Format: netclaw_link_{source}__{target}
-                if name.startswith("netclaw_link_"):
-                    link_id = name[13:].replace("__", "_")
-                    state.link_actors[link_id] = name
-
-        update_scene_timestamp()
+    update_scene_timestamp()
 
     return state
 
@@ -244,9 +284,9 @@ async def setup_scene_lighting(
         args["direction"] = [0, 0, -1]  # Top-down
 
     result = await client.call_tool(
-        toolset="LightingTools",
-        tool="set_directional_light",
-        args=args,
+        toolset_name="LightingTools",
+        tool_name="set_directional_light",
+        arguments=args,
     )
 
     return result.success
@@ -270,9 +310,9 @@ async def setup_ambient_lighting(
     """
     # Try to set sky light if available
     result = await client.call_tool(
-        toolset="LightingTools",
-        tool="set_sky_light",
-        args={
+        toolset_name="LightingTools",
+        tool_name="set_sky_light",
+        arguments={
             "intensity": intensity,
             "color": color or [0.5, 0.6, 0.8],  # Slight blue tint
         },
@@ -325,10 +365,15 @@ async def get_scene_info(client: UE5MCPClient) -> dict[str, Any]:
     Returns:
         Scene information dict
     """
+    try:
+        from .actors import SCENE_TOOLSET, TOOL_GET_CURRENT_LEVEL
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from actors import SCENE_TOOLSET, TOOL_GET_CURRENT_LEVEL
+
     result = await client.call_tool(
-        toolset="SceneTools",
-        tool="get_scene_info",
-        args={},
+        toolset_name=SCENE_TOOLSET,
+        tool_name=TOOL_GET_CURRENT_LEVEL,
+        arguments={},
     )
 
     if result.success:
@@ -346,14 +391,6 @@ async def get_netclaw_actor_count(client: UE5MCPClient) -> int:
     Returns:
         Number of NetClaw actors
     """
-    from actors import NETCLAW_TAG
+    from actors import find_netclaw_actors
 
-    result = await client.call_tool(
-        toolset="ActorTools",
-        tool="get_all_actors_with_tag",
-        args={"tag": NETCLAW_TAG},
-    )
-
-    if result.success:
-        return len(result.data.get("actors", []))
-    return 0
+    return len(await find_netclaw_actors(client))

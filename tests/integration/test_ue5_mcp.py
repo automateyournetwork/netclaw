@@ -711,6 +711,670 @@ class TestIncrementalUpdates:
 
 
 # =============================================================================
+# Digital Twin: Interface Actors, Labels, Legend (045-ue5-digital-twin)
+#
+# US1 (T010/T011), US2 (T015), US3 (T019). These exercise the client-side
+# spec computation and script generation directly (no live UE5 required) —
+# the same approach TestMaterials/TestLayout use above — since the actual
+# spawn logic lives inside a generated execute_tool_script string that only
+# runs inside UE5's embedded interpreter and can't be unit tested directly.
+# =============================================================================
+
+from actors import (
+    resolve_device_interfaces,
+    _compute_batch_specs,
+    build_batch_scene_script,
+    is_device_in_topology,
+    is_interface_in_topology,
+    is_link_in_topology,
+    resolve_actor_ref,
+)
+from materials import generate_legend_swatches, DEVICE_TYPE_COLORS
+from renderer import NetworkDevice, NetworkLink, TopologyGraph
+from scene import reset_scene_state, register_device_actor, register_interface_actor, register_link_actor
+
+
+class TestDigitalTwinInterfaces:
+    """US1: up/up interfaces get their own actor; down interfaces are summarized, never spawned individually."""
+
+    def test_resolve_device_interfaces_explicit_inventory(self):
+        """T010: explicit interface inventory is authoritative and splits up/down."""
+        device = NetworkDevice(
+            hostname="r1",
+            device_type="router",
+            interfaces=[
+                {"name": "Gi0/0", "status": "up"},
+                {"name": "Gi0/1", "status": "down"},
+                {"name": "Gi0/2", "status": "admin-down"},
+            ],
+        )
+        up, down = resolve_device_interfaces(device, links=[])
+        assert up == ["Gi0/0"]
+        assert down == ["Gi0/1", "Gi0/2"]
+
+    def test_resolve_device_interfaces_link_inferred_fallback(self):
+        """T010: with no explicit inventory, up interfaces come only from this device's link endpoints."""
+        device = NetworkDevice(hostname="sw1", device_type="switch")
+        links = [
+            NetworkLink(source_device="sw1", target_device="pc1", source_interface="Gi1/0/1", target_interface="eth0"),
+            NetworkLink(source_device="r1", target_device="sw1", source_interface="Gi0/0", target_interface="Gi1/0/2"),
+        ]
+        up, down = resolve_device_interfaces(device, links)
+        assert up == ["Gi1/0/1", "Gi1/0/2"]
+        assert down == []  # no inventory data -> never invent a down list
+
+    def test_compute_batch_specs_spawns_one_actor_per_up_interface_and_one_summary_for_down(self):
+        """T011: interface_specs has one entry per up interface; down interfaces collapse to one summary actor."""
+        device = NetworkDevice(
+            hostname="r1",
+            device_type="router",
+            interfaces=[
+                {"name": "Gi0/0", "status": "up"},
+                {"name": "Gi0/1", "status": "down"},
+                {"name": "Gi0/2", "status": "down"},
+            ],
+        )
+        topology = TopologyGraph(devices=[device], links=[])
+        positions = {"r1": [0, 0, 0]}
+
+        _, interface_specs, _, down_summary_specs, _, _ = _compute_batch_specs(topology, positions)
+
+        assert len(interface_specs) == 1
+        assert interface_specs[0]["parent_hostname"] == "r1"
+        assert interface_specs[0]["interface_name"] == "Gi0/0"
+
+        assert len(down_summary_specs) == 1  # one summary actor, not one per down interface
+        assert "Gi0/1" in down_summary_specs[0]["text"]
+        assert "Gi0/2" in down_summary_specs[0]["text"]
+
+    def test_links_attach_to_interface_actors_when_available(self):
+        """FR-003: a link between two up/up interfaces attaches to those interface actors, not the device centers."""
+        r1 = NetworkDevice(hostname="r1", device_type="router")
+        sw1 = NetworkDevice(hostname="sw1", device_type="switch")
+        link = NetworkLink(source_device="r1", target_device="sw1", source_interface="Gi0/0", target_interface="Gi1/0/1")
+        topology = TopologyGraph(devices=[r1, sw1], links=[link])
+        positions = {"r1": [0, 0, 300], "sw1": [0, 0, 0]}
+
+        _, _, link_specs, _, _, _ = _compute_batch_specs(topology, positions)
+
+        assert len(link_specs) == 1
+        assert link_specs[0]["attached_to_interfaces"] is True
+
+
+class TestDigitalTwinLabelsAndLegend:
+    """US2/US3: every spawned actor type gets a readable label; the legend always matches live colors."""
+
+    def test_generate_legend_swatches_covers_every_device_type(self):
+        """T019: legend has exactly one entry per DeviceType, using the live color mapping."""
+        swatches = generate_legend_swatches()
+        assert len(swatches) == len(DEVICE_TYPE_COLORS)
+        by_type = {s["device_type"]: s["color"] for s in swatches}
+        for device_type, color in DEVICE_TYPE_COLORS.items():
+            assert by_type[device_type.value] == color.to_list()
+
+    def test_endpoint_color_is_orange_not_gray(self):
+        """T016: endpoints render orange (previously gray, indistinguishable from 'unknown')."""
+        from materials import DeviceType
+        endpoint_color = DEVICE_TYPE_COLORS[DeviceType.ENDPOINT].to_list()
+        r, g, b = endpoint_color
+        assert r > g > b  # orange: red-dominant, green secondary, blue lowest
+        assert (r, g, b) != (0.5, 0.5, 0.5)
+
+    def test_compute_batch_specs_generates_one_legend_actor(self):
+        """T019: a non-empty topology always gets exactly one legend actor spec."""
+        device = NetworkDevice(hostname="r1", device_type="router")
+        topology = TopologyGraph(devices=[device], links=[])
+        _, _, _, _, legend_spec, _ = _compute_batch_specs(topology, {"r1": [0, 0, 0]})
+        assert legend_spec is not None
+        assert legend_spec["name"] == "NC_Legend"
+        assert "LEGEND" in legend_spec["text"]
+
+    def test_build_batch_scene_script_is_valid_python(self):
+        """T015: the generated execute_tool_script payload (devices, interfaces, links, down summaries, legend, labels) parses as valid Python."""
+        import ast
+
+        device = NetworkDevice(hostname="r1", device_type="router", interfaces=[{"name": "Gi0/0", "status": "up"}, {"name": "Gi0/1", "status": "down"}])
+        sw1 = NetworkDevice(hostname="sw1", device_type="switch")
+        link = NetworkLink(source_device="r1", target_device="sw1", source_interface="Gi0/0", target_interface="Gi1/0/1")
+        topology = TopologyGraph(devices=[device, sw1], links=[link])
+        positions = {"r1": [0, 0, 300], "sw1": [0, 0, 0]}
+
+        specs = _compute_batch_specs(topology, positions)
+        script = build_batch_scene_script(*specs, True)
+
+        ast.parse(script)  # raises SyntaxError if malformed
+        assert "_spawn_text" in script
+        assert "down_summaries" in script
+
+
+class TestDigitalTwinTopologyResolution:
+    """Foundational (T004): every new capability must refuse to act on names that aren't actually in the built scene (FR-040)."""
+
+    def setup_method(self):
+        reset_scene_state()
+
+    def test_resolve_actor_ref_finds_registered_device(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        assert is_device_in_topology("r1") is True
+        assert resolve_actor_ref("r1") is not None
+
+    def test_resolve_actor_ref_finds_registered_interface(self):
+        register_interface_actor("r1", "Gi0/0", "NC_If_r1_Gi0_0")
+        assert is_interface_in_topology("r1", "Gi0/0") is True
+        assert resolve_actor_ref("Gi0/0") is None  # only resolvable by its actual key, not bare interface name
+
+    def test_resolve_actor_ref_finds_registered_link(self):
+        register_link_actor("r1_sw1", "NC_Link_r1_sw1")
+        assert is_link_in_topology("r1_sw1") is True
+        assert resolve_actor_ref("r1_sw1") is not None
+
+    def test_unknown_name_reports_not_found(self):
+        """FR-040: an unbuilt device/interface/link must resolve to None, never be silently ignored."""
+        assert is_device_in_topology("does-not-exist") is False
+        assert resolve_actor_ref("does-not-exist") is None
+
+
+# =============================================================================
+# Digital Twin: Traffic, Live Health, Sticky Trap Alerts (045-ue5-digital-twin)
+#
+# US4 (T023), US5 (T028), US6 (T035). These drive the async functions with
+# asyncio.run() from plain sync test functions instead of @pytest.mark.asyncio,
+# since this environment doesn't have pytest-asyncio installed (the existing
+# @pytest.mark.asyncio tests above are already silently skipped for the same
+# reason). A minimal AsyncMock-based fake client stands in for a live UE5
+# instance so the sticky-alert/traffic/history business logic — the part
+# that's actually ours to get right — is verified without requiring UE5.
+# =============================================================================
+
+import asyncio
+from datetime import datetime
+from unittest.mock import AsyncMock
+
+from ue5_mcp_client import ToolResult
+from telemetry import (
+    TelemetryReceiver,
+    TelemetryPoller,
+    PollingConfig,
+    refresh_traffic_visualization,
+    refresh_health_visualization,
+    start_live_mode,
+    stop_live_mode,
+    get_live_mode_status,
+    latch_sticky_alert,
+    clear_sticky_alert,
+    is_sticky_alert_active,
+    clear_all_sticky_alerts,
+    get_history_window,
+    clear_history,
+    record_history,
+)
+from materials import get_traffic_color, get_alarm_color, DeviceType
+
+
+def _fake_client():
+    client = AsyncMock()
+    client.call_tool = AsyncMock(return_value=ToolResult(success=True, data={"applied": True, "rendered": True}))
+    return client
+
+
+class TestDigitalTwinTrafficVisualization:
+    """US4: traffic utilization is a supplied value; unknown keys never error."""
+
+    def test_get_traffic_color_gradient_green_to_red(self):
+        assert get_traffic_color(0.0).to_list() == [0.0, 1.0, 0.0]
+        red = get_traffic_color(1.0).to_list()
+        assert red[0] == 1.0 and red[1] == 0.0
+
+    def test_refresh_traffic_visualization_skips_unregistered_interfaces(self):
+        reset_scene_state()
+        client = _fake_client()
+        result = asyncio.run(refresh_traffic_visualization(client, {"ghost:Gi0/0": 0.9}))
+        assert result["applied"] == []
+        assert result["skipped"] == ["ghost:Gi0/0"]
+        client.call_tool.assert_not_called()
+
+    def test_refresh_traffic_visualization_applies_and_records_history(self):
+        reset_scene_state()
+        clear_history()
+        register_interface_actor("r1", "Gi0/0", "NC_If_r1_Gi0_0")
+        client = _fake_client()
+
+        result = asyncio.run(refresh_traffic_visualization(client, {"r1:Gi0/0": 0.8}))
+        assert result["applied"] == ["r1:Gi0/0"]
+        client.call_tool.assert_awaited()
+
+        records = get_history_window(datetime.min, datetime.max)
+        assert any(r.subject_key == "r1:Gi0/0" and r.change_type == "traffic" for r in records)
+
+
+class TestDigitalTwinLiveHealth:
+    """US5: on-demand refresh, live-mode start/stop/status, per-item polling isolation."""
+
+    def test_refresh_health_visualization_ignores_unknown_device(self):
+        reset_scene_state()
+        client = _fake_client()
+        result = asyncio.run(refresh_health_visualization(client, device_status_by_hostname={"ghost": "critical"}))
+        assert result["skipped"] == ["ghost"]
+        assert result["applied"] == []
+
+    def test_refresh_health_visualization_clears_sticky_alert_on_healthy_link(self):
+        reset_scene_state()
+        clear_all_sticky_alerts()
+        register_link_actor("r1_sw1", "NC_Link_r1_sw1")
+        latch_sticky_alert("r1_sw1", "linkDown")
+        assert is_sticky_alert_active("r1_sw1") is True
+
+        client = _fake_client()
+        asyncio.run(refresh_health_visualization(client, link_status_by_id={"r1_sw1": "healthy"}))
+        assert is_sticky_alert_active("r1_sw1") is False
+
+    def test_live_mode_start_stop_status_roundtrip(self):
+        client = _fake_client()
+        poller = TelemetryPoller(client)
+
+        status = get_live_mode_status(poller)
+        assert status.active is False
+        assert status.started_at is None
+
+        asyncio.run(start_live_mode(client, poller))
+        status = get_live_mode_status(poller)
+        assert status.active is True
+        assert status.started_at is not None
+
+        asyncio.run(stop_live_mode(poller))
+        status = get_live_mode_status(poller)
+        assert status.active is False
+        assert status.started_at is None
+
+    def test_poll_once_clears_sticky_alert_on_confirmed_healthy_recovery(self):
+        """T032: continuous polling, not just the on-demand refresh, must clear a stale sticky alert."""
+        reset_scene_state()
+        clear_all_sticky_alerts()
+        clear_history()
+        register_link_actor("r1_sw1", "NC_Link_r1_sw1")
+        latch_sticky_alert("r1_sw1", "linkDown")
+
+        async def healthy_link_callback(link_id):
+            return "healthy"
+
+        client = _fake_client()
+        config = PollingConfig(link_status_callback=healthy_link_callback)
+        poller = TelemetryPoller(client, config)
+
+        asyncio.run(poller._poll_once())
+        assert is_sticky_alert_active("r1_sw1") is False
+        records = get_history_window(datetime.min, datetime.max)
+        assert any(r.subject_key == "r1_sw1" and r.change_type == "health" for r in records)
+
+    def test_poll_once_isolates_a_single_device_failure(self):
+        """FR-016: one device's polling callback raising must not block polling the rest."""
+        reset_scene_state()
+        register_device_actor("bad-device", "NC_bad_device", [0, 0, 0])
+        register_device_actor("good-device", "NC_good_device", [100, 0, 0])
+
+        async def flaky_status_callback(hostname):
+            if hostname == "bad-device":
+                raise RuntimeError("simulated device unreachable")
+            return "healthy"
+
+        client = _fake_client()
+        config = PollingConfig(device_status_callback=flaky_status_callback)
+        poller = TelemetryPoller(client, config)
+
+        asyncio.run(poller._poll_once())  # must not raise despite bad-device failing
+        assert poller._device_status_cache.get("good-device") == "healthy"
+        assert "bad-device" not in poller._device_status_cache
+
+
+class TestDigitalTwinStickyAlerts:
+    """US6: down-type traps latch a sticky alert; only a matching up trap or health-poll recovery clears it."""
+
+    def setup_method(self):
+        reset_scene_state()
+        clear_all_sticky_alerts()
+        clear_history()
+
+    def test_trap_for_unknown_device_is_ignored_without_error(self):
+        client = _fake_client()
+        receiver = TelemetryReceiver(client)
+        result = asyncio.run(receiver.process_snmp_trap({
+            "hostname": "ghost-device", "interface": "Gi0/0", "trap_oid": "1.3.6.1.6.3.1.1.5.3",
+        }))
+        assert result["applied"] is False
+        assert is_sticky_alert_active("ghost-device:Gi0/0") is False
+
+    def test_link_down_trap_latches_sticky_alert_and_survives_unrelated_refresh(self):
+        register_interface_actor("r1", "Gi0/0", "NC_If_r1_Gi0_0")
+        client = _fake_client()
+        receiver = TelemetryReceiver(client)
+
+        result = asyncio.run(receiver.process_snmp_trap({
+            "hostname": "r1", "interface": "Gi0/0", "trap_oid": "1.3.6.1.6.3.1.1.5.3",
+        }))
+        assert result["applied"] is True
+        assert is_sticky_alert_active("r1:Gi0/0") is True
+
+        # An unrelated refresh (a different interface entirely) must not clear it.
+        asyncio.run(refresh_traffic_visualization(client, {"r1:Gi0/0": 0.1}))
+        assert is_sticky_alert_active("r1:Gi0/0") is True
+
+    def test_matching_link_up_trap_clears_sticky_alert(self):
+        register_interface_actor("r1", "Gi0/0", "NC_If_r1_Gi0_0")
+        client = _fake_client()
+        receiver = TelemetryReceiver(client)
+
+        asyncio.run(receiver.process_snmp_trap({
+            "hostname": "r1", "interface": "Gi0/0", "trap_oid": "1.3.6.1.6.3.1.1.5.3",
+        }))
+        assert is_sticky_alert_active("r1:Gi0/0") is True
+
+        result = asyncio.run(receiver.process_snmp_trap({
+            "hostname": "r1", "interface": "Gi0/0", "trap_oid": "1.3.6.1.6.3.1.1.5.4",
+        }))
+        assert result["applied"] is True
+        assert is_sticky_alert_active("r1:Gi0/0") is False
+
+    def test_alarm_color_distinct_from_critical_status_color(self):
+        from materials import DEVICE_STATUS_COLORS, DeviceStatus
+        assert get_alarm_color().to_list() != DEVICE_STATUS_COLORS[DeviceStatus.CRITICAL].to_list()
+
+
+# =============================================================================
+# Digital Twin: Ping/Traceroute Animation, Config Panels (045-ue5-digital-twin)
+#
+# US7 (T039), US8 (T042).
+# =============================================================================
+
+import diagnostics
+import panels
+
+
+class TestDigitalTwinDiagnostics:
+    """US7: real ping/traceroute results animate along the path; unknown devices are reported, not attempted."""
+
+    def setup_method(self):
+        reset_scene_state()
+
+    def test_ping_between_unknown_device_is_reported_not_attempted(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+        result = asyncio.run(diagnostics.animate_ping(client, "r1", "ghost", True))
+        assert result["animated"] is False
+        assert "ghost" in result["reason"]
+        client.call_tool.assert_not_called()
+
+    def test_ping_success_and_failure_are_visually_distinguishable(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        register_device_actor("r2", "NC_r2", [200, 0, 0])
+        client = _fake_client()
+
+        success_result = asyncio.run(diagnostics.animate_ping(client, "r1", "r2", True, latency_ms=5.0))
+        assert success_result["animated"] is True
+        assert success_result["success"] is True
+
+        failure_result = asyncio.run(diagnostics.animate_ping(client, "r1", "r2", False))
+        assert failure_result["success"] is False
+
+    def test_traceroute_skips_unknown_hop_but_continues_animating_the_rest(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        register_device_actor("r2", "NC_r2", [200, 0, 0])
+        client = _fake_client()
+
+        result = asyncio.run(diagnostics.animate_traceroute(client, [
+            {"hostname": "r1", "reached": True},
+            {"hostname": "ghost-hop", "reached": True},
+            {"hostname": "r2", "reached": False},
+        ]))
+        assert result["animated"] == ["r1", "r2"]
+        assert result["skipped"] == ["ghost-hop"]
+
+
+class TestDigitalTwinConfigPanels:
+    """US8: a device's config appears as a panel; a repeat request replaces rather than duplicates it."""
+
+    def setup_method(self):
+        reset_scene_state()
+
+    def test_show_config_panel_for_unknown_device_is_reported(self):
+        client = _fake_client()
+        result = asyncio.run(panels.show_config_panel(client, "ghost", "hostname ghost"))
+        assert result["rendered"] is False
+        assert "ghost" in result["reason"]
+
+    def test_show_config_panel_renders_for_known_device(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+        result = asyncio.run(panels.show_config_panel(client, "r1", "hostname r1\ninterface Gi0/0"))
+        assert result["rendered"] is True
+        assert result["panel_kind"] == "config"
+        client.call_tool.assert_awaited()
+
+    def test_repeated_panel_request_uses_the_same_actor_name(self):
+        """FR-025/FR-037: same (hostname, panel_kind) always maps to one actor name, so the generated script destroys-then-recreates instead of stacking a duplicate."""
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        first_name = panels.generate_panel_actor_name("r1", "config")
+        second_name = panels.generate_panel_actor_name("r1", "config")
+        assert first_name == second_name
+
+
+# =============================================================================
+# Digital Twin: Incident Correlation, Historical Playback (045-ue5-digital-twin)
+#
+# US9 (T046), US10 (T051).
+# =============================================================================
+
+from datetime import timedelta
+
+import incidents
+import playback
+
+
+class TestDigitalTwinIncidentCorrelation:
+    """US9: a matching open incident applies the alarm state; no match is explicitly reported."""
+
+    def setup_method(self):
+        reset_scene_state()
+
+    def test_matching_incident_applies_alarm_state(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+        open_incidents = [{"incident_id": "PD123", "title": "r1 interface flapping", "description": "", "service_name": ""}]
+
+        result = asyncio.run(incidents.correlate_incident(client, "r1", open_incidents))
+        assert result["correlated"] is True
+        assert result["incident_id"] == "PD123"
+        assert result["alarm_state_applied"] is True
+
+    def test_no_matching_incident_is_explicitly_reported(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+        open_incidents = [{"incident_id": "PD999", "title": "unrelated-device down", "description": "", "service_name": ""}]
+
+        result = asyncio.run(incidents.correlate_incident(client, "r1", open_incidents))
+        assert result["correlated"] is False
+        assert "r1" in result["reason"]
+
+    def test_unknown_subject_is_reported_not_attempted(self):
+        client = _fake_client()
+        result = asyncio.run(incidents.correlate_incident(client, "ghost", [{"title": "ghost is down"}]))
+        assert result["correlated"] is False
+        client.call_tool.assert_not_called()
+
+    def test_link_correlates_via_either_endpoint_hostname(self):
+        register_link_actor("r1_sw1", "NC_Link_r1_sw1")
+        client = _fake_client()
+        open_incidents = [{"incident_id": "PD456", "title": "sw1 unreachable", "description": "", "service_name": ""}]
+
+        result = asyncio.run(incidents.correlate_incident(client, "r1_sw1", open_incidents))
+        assert result["correlated"] is True
+
+
+class TestDigitalTwinPlayback:
+    """US10: a recorded window replays in order at compressed speed; an empty window is reported, not a silent no-op."""
+
+    def setup_method(self):
+        reset_scene_state()
+        clear_history()
+
+    def test_empty_window_is_explicitly_reported(self):
+        client = _fake_client()
+        now = datetime.now()
+        result = asyncio.run(playback.replay_window(client, now - timedelta(days=2), now - timedelta(days=1)))
+        assert result["replayed"] == 0
+        assert "reason" in result
+
+    def test_window_with_changes_replays_all_in_order(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        register_interface_actor("sw1", "Gi0/1", "NC_If_sw1_Gi0_1")
+        record_history("r1", "health", "healthy", "critical")
+        record_history("sw1:Gi0/1", "traffic", None, 0.9)
+
+        client = _fake_client()
+        now = datetime.now()
+        result = asyncio.run(playback.replay_window(client, now - timedelta(minutes=5), now + timedelta(minutes=5)))
+        assert result["replayed"] == 2
+        assert client.call_tool.await_count >= 2
+
+    def test_adjusted_speed_is_reported_back(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        record_history("r1", "health", "healthy", "warning")
+        client = _fake_client()
+        now = datetime.now()
+        result = asyncio.run(playback.replay_window(client, now - timedelta(minutes=1), now + timedelta(minutes=1), speed=4.0))
+        assert result["speed"] == 4.0
+
+
+# =============================================================================
+# Digital Twin: Hierarchical Zoom, Metrics HUD, Fixed Camera Controls
+# (045-ue5-digital-twin)
+#
+# US11 (T056), US12 (T059), plus coverage for the camera.py calling-
+# convention fix that US11's zoom_to()/zoom_out_to_site() depend on.
+# =============================================================================
+
+import camera
+import hierarchy
+
+
+class TestDigitalTwinCameraControls:
+    """
+    camera.py's get_camera_state/set_camera_location/focus_on_actor
+    previously called client.call_tool(toolset=..., tool=..., args=...) —
+    not this codebase's real call_tool(toolset_name, tool_name, arguments)
+    signature — so every one of them raised TypeError the instant they were
+    actually invoked. Fixed by routing through execute_tool_script instead
+    of an unconfirmed generic CameraTools toolset.
+    """
+
+    def test_set_camera_location_uses_execute_tool_script_convention(self):
+        client = _fake_client()
+        ok = asyncio.run(camera.set_camera_location(client, [100, 200, 300], [-30, 45, 0]))
+        assert ok is True
+        _, kwargs = client.call_tool.call_args
+        assert kwargs["toolset_name"].endswith("ProgrammaticToolset")
+        assert "execute_tool_script" in kwargs["tool_name"]
+
+    def test_get_camera_state_does_not_raise(self):
+        client = AsyncMock()
+        client.call_tool = AsyncMock(return_value=ToolResult(
+            success=True, data={"location": [1.0, 2.0, 3.0], "rotation": [-30.0, 45.0, 0.0]}
+        ))
+        state = asyncio.run(camera.get_camera_state(client))
+        assert state.location == [1.0, 2.0, 3.0]
+
+    def test_focus_on_actor_does_not_raise(self):
+        client = _fake_client()
+        ok = asyncio.run(camera.focus_on_actor(client, "NC_r1"))
+        assert ok is True
+
+
+class TestDigitalTwinHierarchicalZoom:
+    """US11: NetBox/Infrahub-sourced groups first, manual fallback; zoom never loses/duplicates actors."""
+
+    def setup_method(self):
+        reset_scene_state()
+        hierarchy.clear_zoom_groups()
+
+    def test_resolve_zoom_groups_prefers_netbox_infrahub_data(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        register_device_actor("sw1", "NC_sw1", [100, 0, 0])
+        placement = {
+            "r1": {"group_name": "rack-1", "zoom_level": "rack", "source": "netbox"},
+            "sw1": {"group_name": "rack-1", "zoom_level": "rack", "source": "netbox"},
+        }
+        groups = asyncio.run(hierarchy.resolve_zoom_groups(["r1", "sw1"], placement))
+        assert len(groups) == 1
+        assert groups[0].source == "netbox"
+        assert set(groups[0].member_hostnames) == {"r1", "sw1"}
+
+    def test_unplaced_device_is_ungrouped_until_manual_assignment(self):
+        register_device_actor("pc1", "NC_pc1", [0, 0, 0])
+        asyncio.run(hierarchy.resolve_zoom_groups(["pc1"], {}))
+        assert hierarchy.get_ungrouped_hostnames(["pc1"]) == ["pc1"]
+
+        hierarchy.assign_manual_group("misc-rack", ["pc1"])
+        assert hierarchy.get_ungrouped_hostnames(["pc1"]) == []
+
+    def test_zoom_to_unknown_group_is_reported(self):
+        client = _fake_client()
+        result = asyncio.run(hierarchy.zoom_to(client, "does-not-exist"))
+        assert result["zoomed"] is False
+        client.call_tool.assert_not_called()
+
+    def test_zoom_to_and_zoom_out_only_toggle_visibility_never_rebuild(self):
+        """FR-034/FR-035: zoom must never call a spawn/destroy tool, only visibility toggles."""
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        register_device_actor("sw1", "NC_sw1", [100, 0, 0])
+        hierarchy.assign_manual_group("rack-1", ["r1", "sw1"])
+
+        client = _fake_client()
+        zoom_result = asyncio.run(hierarchy.zoom_to(client, "rack-1"))
+        assert zoom_result["zoomed"] is True
+        assert zoom_result["member_count"] == 2
+
+        zoom_out_result = asyncio.run(hierarchy.zoom_out_to_site(client))
+        assert zoom_out_result["zoomed_out"] is True
+
+        for call in client.call_tool.call_args_list:
+            script = call.kwargs.get("arguments", {}).get("script", "")
+            assert "spawn_actor_from_class" not in script
+            assert "destroy_actor" not in script
+
+
+class TestDigitalTwinMetricsHUD:
+    """US12: live CPU/memory/uptime as a floating panel; a repeat request always shows fresh values."""
+
+    def setup_method(self):
+        reset_scene_state()
+
+    def test_metrics_hud_for_unknown_device_is_reported(self):
+        client = _fake_client()
+        result = asyncio.run(panels.show_metrics_hud(client, "ghost", 50.0, 60.0, "3d 2h"))
+        assert result["rendered"] is False
+
+    def test_metrics_hud_renders_with_current_values(self):
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+        result = asyncio.run(panels.show_metrics_hud(client, "r1", 42.5, 71.0, "10d 4h"))
+        assert result["rendered"] is True
+        assert result["panel_kind"] == "metrics"
+
+    def test_repeated_metrics_request_reflects_freshly_supplied_values(self):
+        """FR-037: no caching — each call renders exactly what was just passed in."""
+        register_device_actor("r1", "NC_r1", [0, 0, 0])
+        client = _fake_client()
+
+        asyncio.run(panels.show_metrics_hud(client, "r1", 10.0, 20.0, "1h"))
+        first_script = client.call_tool.call_args.kwargs["arguments"]["script"]
+        assert "10.0" in first_script
+
+        asyncio.run(panels.show_metrics_hud(client, "r1", 90.0, 95.0, "1h 5m"))
+        second_script = client.call_tool.call_args.kwargs["arguments"]["script"]
+        assert "90.0" in second_script
+        assert "10.0" not in second_script
+
+
+# =============================================================================
 # Run tests if executed directly
 # =============================================================================
 

@@ -1,12 +1,14 @@
 # UE5 Network Visualization Skill
 
-**Version**: 0.1.0
-**Feature**: 044-ue5-mcp-network-viz
+**Version**: 0.2.0
+**Feature**: 044-ue5-mcp-network-viz (foundation), 045-ue5-digital-twin (interactive digital twin)
 **Status**: Active
 
 ## Overview
 
 The UE5 Network Visualization skill enables 3D network topology visualization in Unreal Engine 5.8 using the built-in MCP server. Network engineers can request topology renderings via natural language, and NetClaw transforms network data into an immersive 3D scene with color-coded devices, animated links, and real-time health updates.
+
+**045-ue5-digital-twin** extends this from a static snapshot into an interactive digital twin / network looking-glass: interface-level actors, universal labeling, a color legend, live traffic/health/trap-driven state, real ping/traceroute animation, on-demand config panels, PagerDuty incident correlation, historical playback, hierarchical zoom, and a floating metrics HUD — all conversational, no in-engine UI. See the "Digital Twin Capabilities (045)" section below for full command reference.
 
 ## Prerequisites
 
@@ -86,6 +88,119 @@ The UE5 Network Visualization skill enables 3D network topology visualization in
 "Reset the visualization"
 ```
 
+## Digital Twin Capabilities (045)
+
+Everything below extends a topology already built by the commands above into
+an interactive digital twin — all conversational, no in-engine UI. Every
+capability refuses (and tells you why) rather than silently attempting or
+ignoring a request that names a device, interface, or link not present in
+the currently built scene.
+
+### Interfaces, Labels, Legend (always on)
+
+Every render/refresh automatically gets: a separate small actor for each
+up/up interface (attached near its parent device, with links connecting to
+interfaces rather than device centers when interface data is available), a
+compact "N down: ..." summary per device instead of one actor per down
+interface, a label on every device/interface/link, and a legend actor
+showing the live device-type color mapping. Nothing extra to ask for —
+"render my topology" and "refresh the topology with colours" both include
+all of this.
+
+```
+"Render my topology"
+"Refresh the topology with colours"
+```
+
+### Traffic Visibility
+
+```
+"Show traffic on r1's links"
+"Refresh the traffic visualization"
+```
+
+Colors links/interfaces on a green→yellow→red gradient from utilization data
+you or NetClaw has already retrieved (via gnmi-mcp/pyATS). Links/interfaces
+with no utilization data keep their normal appearance — never an error.
+
+### Live Health
+
+```
+"Refresh device health"
+"Start live mode"
+"Is live mode running?"
+"Stop live mode"
+```
+
+On-demand health refresh recolors device/link actors from real gnmi-mcp/pyATS
+status. Live mode runs continuous background polling until explicitly
+stopped; one unreachable device never blocks polling the rest.
+
+### SNMP Trap Alerts (automatic once wired to snmptrap-mcp)
+
+A real linkDown trap latches a sticky alert (hot pink) on the affected
+interface that persists across unrelated refreshes — cleared only by a
+matching linkUp trap or a confirmed healthy poll, never by time alone. Traps
+for a device/interface not in the current topology are ignored, not errored.
+
+### Ping and Traceroute
+
+```
+"Ping r1 from sw1"
+"Traceroute from pc1 to r1"
+```
+
+Animates a real ping/traceroute result (green = success, red = failure/
+timeout) along the path between actors. A device not in the current
+topology is reported, not attempted.
+
+### Show Config / Metrics HUD
+
+```
+"Show me r1's running config"
+"Show metrics for sw1"
+```
+
+Renders a readable text panel near the device's actor with real content
+(config or CPU/memory/uptime). Asking again replaces the panel with fresh
+data — it never stacks duplicates or shows a stale cached value.
+
+### Incident Correlation
+
+```
+"Is there an open incident for r1?"
+"Check incidents for the r1-sw1 link"
+```
+
+Matches a device (or either endpoint of a link) against open PagerDuty
+incidents by hostname substring in the title/description/service name. A
+match applies a distinct alarm color (hot pink); no match is clearly
+reported, never a silent no-op.
+
+### Historical Playback
+
+```
+"Replay the last 30 minutes"
+"Replay from 2pm to 2:30pm at double speed"
+```
+
+Replays recorded health/traffic/trap changes against the live scene in
+original order, compressed by default (2x) with an adjustable speed. An
+empty window is reported explicitly.
+
+### Hierarchical Zoom
+
+```
+"Zoom into rack-1"
+"Zoom out to the full site"
+```
+
+Groups devices by real NetBox/Infrahub rack/site placement first, with a
+manual grouping fallback for devices neither source has placement for.
+Zooming only toggles actor visibility and reframes the camera — it never
+rebuilds the topology, so nothing is lost or duplicated when you zoom back
+out.
+
 ## Device Type Visualization
 
 | Device Type | Shape | Color | Hex |
@@ -95,7 +210,7 @@ The UE5 Network Visualization skill enables 3D network topology visualization in
 | Firewall | Cube | Red | #CC3333 |
 | Access Point | Sphere | Yellow | #E6CC33 |
 | Load Balancer | Cube | Purple | #9933CC |
-| Endpoint | Sphere | Gray | #808080 |
+| Endpoint | Sphere | Orange | #E68019 |
 | Unknown | Cube | White | #FFFFFF |
 
 ## Health State Colors
@@ -218,6 +333,12 @@ Not every UE5 MCP build behaves the same way. Two build-specific issues surfaced
 2. **`set_actor_transform` does not reliably preserve omitted fields, despite its own docs claiming it does.** Setting only `scale` on an existing actor was observed to silently reset its `location` to `(0,0,0)` on a live build — this is what caused an entire 22-actor scene to visually "stack in the middle" after an otherwise-successful build. Always pass the full transform (location + rotation + scale) together in a single call; never assume a partial update leaves the rest alone, regardless of what the tool's own documentation says.
 3. **Actor refPaths can go stale across a level save.** Actors built on an unsaved `/Temp/Untitled_N` level and later persisted to a real `/Game/` level get a NEW refPath under the new level path — old refPaths captured before the save (e.g. in a persisted JSON artifact) will not resolve. Re-resolve actors via `find_actors(tag="netclaw")` and match by their stable index/name suffix rather than trusting a previously-cached refPath across a save/reload.
 4. **CML canvas coordinates need both scaling AND centering, not just scaling.** A topology positioned by taking raw CML editor-canvas (x, y) and multiplying by a flat scale factor will have the right *relative* shape but can land its centroid thousands of units from world origin — CML's canvas coordinates have no relationship to where "the middle of the map" is in UE5. Always compute the centroid of the scaled positions and subtract it before spawning (see `_compute_batch_specs()`/the centering fix in `layout.py`'s `ForceDirectedLayout.run()` for the reference implementation) — do this for BOTH device positions and link midpoints/endpoints, derived from the already-centered device positions rather than recomputed from raw coordinates.
+
+### 045-ue5-digital-twin Live Test Findings (confirmed live, 2026-07-03)
+
+1. **The `execute_tool_script` sandbox restriction from gotcha #2 above blocks ALL of 045's new capabilities, not just the original batch-build path.** Interface actors, labels, the legend, traffic/health/trap coloring, config/metrics panels, camera moves, and hierarchical zoom are all implemented via `execute_tool_script` + native `unreal.*` calls — the only UE5 interaction path this codebase has ever confirmed live for multi-step operations. On a build where this sandbox forbids `import unreal` (confirmed live: `"Import of 'unreal' is not permitted. Allowed modules: {json, time, datetime, re, copy, math}"`), none of 045's new features can execute, even though `render_topology_fast()` still falls back cleanly to 044's base per-actor topology (devices + links only, no interfaces/labels/legend/live coloring). This is a live-environment constraint, not a code defect — all 045 capabilities are unit-tested (56 passing tests against a mocked client) and will activate automatically the moment they run against a UE5 build/plugin version that allows script-level `import unreal`.
+2. **A cosmetic lighting-setup failure was silently flipping a successful render to `success=False`.** `render_topology()`'s per-actor path wrapped the entire function (device spawn, link spawn, AND the optional lighting step) in one `try/except`. When `setup_default_lighting()` raised (itself a separate pre-existing bug — `scene.py`'s lighting functions used the wrong `call_tool()` keyword arguments), the shared `except` clause overwrote an already-correct `success=True, devices_rendered=4, links_rendered=3` down to `success=False`, making a fully successful 4-device render report as a total failure. Fixed by isolating the lighting step in its own try/except that records a non-fatal error instead of failing the whole render — never let an optional, cosmetic step's failure invalidate already-completed substantive work.
+3. **`find_actors`'s returned actor references carry only `refPath` (the engine's auto-generated internal object name, e.g. `StaticMeshActor_34`), never the display Label** (e.g. `NC_core-rtr-01`) that `set_actor_label`/`generate_device_actor_name` set. Any code that re-queries `find_actors` afterward and tries to classify or count actors by matching a `"name"`/`"label"` field against a generated `NC_...` string (as opposed to trusting a script's own self-reported spawn tally, or the calling function's own per-actor `spawn_result.success` count) will not find what it's looking for. `render_topology()`'s per-actor path is unaffected — it counts from each spawn call's own immediate success response, never from a post-hoc `find_actors` re-query.
 
 ### Proper Actor Spawning Workflow
 

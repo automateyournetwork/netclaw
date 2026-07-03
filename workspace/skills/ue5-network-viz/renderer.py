@@ -91,6 +91,13 @@ class NetworkDevice:
     vendor: str = ""
     status: str = "healthy"
     utilization: Optional[float] = None
+    # Optional explicit interface inventory (045-ue5-digital-twin), e.g. from
+    # pyATS/gNMI "show interfaces": [{"name": "GigabitEthernet0/1", "status": "up"}, ...].
+    # When absent, up interfaces are inferred purely from this device's link
+    # endpoints (a link can only exist between interfaces that are up) and no
+    # down-interface list is produced, since there is no way to enumerate
+    # ports we have no data for at all. See actors.py's resolve_device_interfaces().
+    interfaces: Optional[list[dict]] = None
 
 
 @dataclass
@@ -166,6 +173,7 @@ def parse_topology_dict(data: dict) -> TopologyGraph:
             vendor=d.get("vendor", ""),
             status=d.get("status", "healthy"),
             utilization=d.get("utilization"),
+            interfaces=d.get("interfaces"),
         ))
 
     links = []
@@ -308,9 +316,19 @@ async def render_topology(
                     status=link.status,
                 )
 
-        # Step 6: Setup lighting (optional)
+        # Step 6: Setup lighting (optional, cosmetic — isolated so a lighting
+        # failure never overwrites an otherwise-successful device/link
+        # render. LIVE INCIDENT 2026-07-03: this used to be inside the same
+        # try/except as devices/links; a broken calling convention in
+        # setup_default_lighting raised, and the shared except clause
+        # overwrote result.success=True (with correct devices_rendered=4,
+        # links_rendered=3 already recorded) down to False, making a
+        # successful render report as a total failure.
         if setup_lighting:
-            await setup_default_lighting(client)
+            try:
+                await setup_default_lighting(client)
+            except Exception as e:
+                result.errors.append(f"Lighting setup failed (non-fatal): {str(e)}")
 
         # Update scene state
         state = get_scene_state()

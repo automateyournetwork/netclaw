@@ -175,6 +175,34 @@ def generate_label_actor_name(hostname: str) -> str:
     return f"NC_Label_{safe_name}"
 
 
+def _safe(text: str) -> str:
+    """Sanitize a string for use in a UE5 actor name."""
+    return text.replace("-", "_").replace(".", "_").replace(" ", "_").replace("/", "_")
+
+
+def generate_interface_actor_name(hostname: str, interface_name: str) -> str:
+    """Generate UE5 actor name for an up/up interface actor (045-ue5-digital-twin, FR-001)."""
+    return f"NC_If_{_safe(hostname)}_{_safe(interface_name)}"
+
+
+def generate_interface_label_actor_name(hostname: str, interface_name: str) -> str:
+    """Generate UE5 actor name for an interface's label (045-ue5-digital-twin, FR-006)."""
+    return f"NC_Label_If_{_safe(hostname)}_{_safe(interface_name)}"
+
+
+def generate_link_label_actor_name(link_id: str) -> str:
+    """Generate UE5 actor name for a link's label (045-ue5-digital-twin, FR-007)."""
+    return f"NC_Label_Link_{_safe(link_id)}"
+
+
+def generate_down_interface_summary_actor_name(hostname: str) -> str:
+    """Generate UE5 actor name for a device's down-interface summary (045-ue5-digital-twin, FR-002)."""
+    return f"NC_DownIf_{_safe(hostname)}"
+
+
+LEGEND_ACTOR_NAME = "NC_Legend"
+
+
 # =============================================================================
 # Transform Helpers
 # =============================================================================
@@ -655,8 +683,86 @@ async def save_level(client: UE5MCPClient) -> bool:
 
 
 # =============================================================================
-# Material Application (Placeholder)
+# Material Application
 # =============================================================================
+#
+# 044 left this as a TODO stub returning True unconditionally, because the
+# generic MaterialInstanceTools API's exact parameter schema was never
+# confirmed live. That silently no-op'd every device/link status-color update
+# ever since (handle_device_status_change/handle_link_status_change always
+# reported success without actually recoloring anything in the scene).
+#
+# Fixed here (045-ue5-digital-twin) by reusing the SAME find-actor-by-label +
+# dynamic-material-instance approach the batch-build script already uses
+# successfully for the initial color pass (see _apply_color inside
+# build_batch_scene_script) — routed through execute_tool_script, the one
+# UE5 interaction path this codebase has actually verified live.
+
+async def apply_actor_color(
+    client: UE5MCPClient,
+    actor_label: str,
+    rgb: list[float],
+    emissive_intensity: float = 0.0,
+) -> bool:
+    """
+    Recolor an already-spawned actor (found by its outliner label) by
+    applying a new dynamic material instance. Used for every post-build
+    status/traffic/alert color change in US4-US6 and US9 — the actor must
+    already exist (spawned by render_topology_batch/render_topology); this
+    never spawns anything itself.
+    """
+    script = f'''
+import json
+import unreal
+
+_editor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+_ok = False
+try:
+    target = None
+    for a in _editor.get_all_level_actors():
+        if a.get_actor_label() == "{actor_label}":
+            target = a
+            break
+    if target:
+        mesh_component = target.get_component_by_class(unreal.StaticMeshComponent)
+        if mesh_component:
+            base_material = unreal.load_asset("/Engine/EngineMaterials/DefaultMaterial.DefaultMaterial")
+            if base_material:
+                dyn_material = unreal.KismetMaterialLibrary.create_dynamic_material_instance(
+                    unreal.EditorLevelLibrary.get_editor_world(), base_material
+                )
+                if dyn_material:
+                    dyn_material.set_vector_parameter_value(
+                        "BaseColor", unreal.LinearColor({rgb[0]}, {rgb[1]}, {rgb[2]}, 1.0)
+                    )
+                    if {emissive_intensity} > 0:
+                        dyn_material.set_scalar_parameter_value("EmissiveIntensity", {emissive_intensity})
+                        dyn_material.set_vector_parameter_value(
+                            "EmissiveColor", unreal.LinearColor({rgb[0]}, {rgb[1]}, {rgb[2]}, 1.0)
+                        )
+                    mesh_component.set_material(0, dyn_material)
+                    _ok = True
+except Exception as exc:
+    unreal.log_error("apply_actor_color failed: " + str(exc))
+    _ok = False
+
+result = json.dumps({{"applied": _ok}})
+print(result)
+'''
+    exec_result = await client.call_tool(
+        toolset_name=PROGRAMMATIC_TOOLSET,
+        tool_name=TOOL_EXECUTE_SCRIPT,
+        arguments={"script": script},
+    )
+    if not exec_result.success:
+        return False
+    if isinstance(exec_result.data, dict):
+        return bool(exec_result.data.get("applied", False))
+    # execute_tool_script's own return-value convention was never confirmed
+    # live (see module docstring) — treat a bare success as best-effort True
+    # rather than failing a color change we likely did apply.
+    return True
+
 
 async def apply_device_material(
     client: UE5MCPClient,
@@ -665,8 +771,14 @@ async def apply_device_material(
     status: str = "healthy",
 ) -> bool:
     """Apply material to a device actor based on type and status."""
-    # TODO: Implement with correct MaterialInstanceTools API
-    return True
+    try:
+        from .materials import get_device_status_color, get_device_type_color
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from materials import get_device_status_color, get_device_type_color
+
+    color = get_device_status_color(status) or get_device_type_color(device_type)
+    emissive = 2.0 if status in ("critical", "unreachable") else (1.0 if status == "warning" else 0.0)
+    return await apply_actor_color(client, generate_device_actor_name(hostname), color.to_list(), emissive)
 
 
 async def apply_link_material(
@@ -676,8 +788,32 @@ async def apply_link_material(
     status: str = "healthy",
 ) -> bool:
     """Apply material to a link actor based on status."""
-    # TODO: Implement with correct MaterialInstanceTools API
-    return True
+    try:
+        from .materials import get_link_status_color
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from materials import get_link_status_color
+
+    color = get_link_status_color(status)
+    emissive = 2.0 if status == "down" else (1.0 if status == "degraded" else 0.0)
+    actor_name = generate_link_actor_name(source_hostname, target_hostname)
+    return await apply_actor_color(client, actor_name, color.to_list(), emissive)
+
+
+async def apply_interface_material(
+    client: UE5MCPClient,
+    hostname: str,
+    interface_name: str,
+    rgb: list[float],
+    emissive_intensity: float = 0.0,
+) -> bool:
+    """
+    Recolor an interface actor (045-ue5-digital-twin). Used by traffic
+    visualization (US4), health polling (US5), and sticky trap alerts (US6).
+    Callers MUST check is_interface_in_topology() first (FR-040) — this
+    function does not verify the interface actor exists before trying.
+    """
+    actor_name = generate_interface_actor_name(hostname, interface_name)
+    return await apply_actor_color(client, actor_name, rgb, emissive_intensity)
 
 
 # =============================================================================
@@ -750,22 +886,99 @@ def persist_build_artifacts(topology_json: dict, script: str, tag: str = "last_b
         pass
 
 
+INTERFACE_OFFSET_RADIUS = 60.0   # cm - small ring around the parent device
+INTERFACE_SCALE = [20.0, 20.0, 20.0]  # small sphere, distinct from the device itself
+
+
+def resolve_device_interfaces(
+    device: "NetworkDevice",
+    links: list["NetworkLink"],
+) -> tuple[list[str], list[str]]:
+    """
+    Determine a device's up and down interface names (045-ue5-digital-twin, FR-001/FR-002).
+
+    If the device carries an explicit `interfaces` inventory (from pyATS/gNMI,
+    e.g. real "show interfaces" data), that is authoritative: entries with
+    status "up" become up-interface actors, entries with any other status
+    (e.g. "down", "admin-down") go into the down-interface summary.
+
+    If no explicit inventory is present, up interfaces are inferred purely
+    from this device's link endpoints (a link can only exist between
+    interfaces that are up) and NO down-interface list is produced — there is
+    no reliable way to enumerate ports we have zero data about at all. This
+    keeps the existing 044 CML+pyATS topology-only workflow (link-derived
+    interface names, no full "show interfaces" inventory) working unchanged.
+
+    Returns (up_interface_names, down_interface_names), each de-duplicated
+    and order-preserving.
+    """
+    up: list[str] = []
+    down: list[str] = []
+    seen_up: set[str] = set()
+    seen_down: set[str] = set()
+
+    if device.interfaces:
+        for iface in device.interfaces:
+            name = iface.get("name", "")
+            if not name:
+                continue
+            status = str(iface.get("status", "down")).lower()
+            if status == "up":
+                if name not in seen_up:
+                    up.append(name)
+                    seen_up.add(name)
+            else:
+                if name not in seen_down:
+                    down.append(name)
+                    seen_down.add(name)
+        return up, down
+
+    # Fallback: infer up interfaces from this device's link endpoints only.
+    for link in links:
+        if link.source_device == device.hostname and link.source_interface:
+            if link.source_interface not in seen_up:
+                up.append(link.source_interface)
+                seen_up.add(link.source_interface)
+        if link.target_device == device.hostname and link.target_interface:
+            if link.target_interface not in seen_up:
+                up.append(link.target_interface)
+                seen_up.add(link.target_interface)
+    return up, down
+
+
 def _compute_batch_specs(
     topology: "TopologyGraph",
     positions: dict[str, list[float]],
-) -> tuple[list[dict], list[dict], float]:
-    """Precompute every device/link spec (mesh, transform, color, label) on the
-    client side, so the UE5-side script is pure playback with no branching
-    logic that could touch a _StrictDict.
+) -> tuple[list[dict], list[dict], list[dict], list[dict], Optional[dict], float]:
+    """Precompute every device/interface/link/down-summary/legend spec (mesh,
+    transform, color, label) on the client side, so the UE5-side script is
+    pure playback with no branching logic that could touch a _StrictDict.
 
-    Returns (device_specs, link_specs, label_world_size).
+    Returns (device_specs, interface_specs, link_specs, down_summary_specs,
+    legend_spec, label_world_size).
     """
+    import math
+
     try:
-        from .materials import get_device_type_color, get_device_status_color, get_link_status_color
+        from .materials import (
+            get_device_type_color,
+            get_device_status_color,
+            get_link_status_color,
+            generate_legend_swatches,
+        )
     except ImportError:  # pragma: no cover - fallback for sys.path-style loading
-        from materials import get_device_type_color, get_device_status_color, get_link_status_color
+        from materials import (
+            get_device_type_color,
+            get_device_status_color,
+            get_link_status_color,
+            generate_legend_swatches,
+        )
 
     device_specs = []
+    interface_specs = []
+    down_summary_specs = []
+    # interface position lookup for link attachment: "hostname:interface" -> [x,y,z]
+    interface_positions: dict[str, list[float]] = {}
     min_pt = [float("inf")] * 3
     max_pt = [float("-inf")] * 3
 
@@ -788,21 +1001,81 @@ def _compute_batch_specs(
             min_pt[i] = min(min_pt[i], pos[i])
             max_pt[i] = max(max_pt[i], pos[i])
 
+        # US1 (FR-001/FR-002): spawn an actor only for up/up interfaces;
+        # down interfaces get one compact summary actor per device, never
+        # one actor each.
+        up_ifaces, down_ifaces = resolve_device_interfaces(device, topology.links)
+        for idx, iface_name in enumerate(up_ifaces):
+            angle = (2 * math.pi * idx) / max(len(up_ifaces), 1)
+            offset = [
+                INTERFACE_OFFSET_RADIUS * math.cos(angle),
+                INTERFACE_OFFSET_RADIUS * math.sin(angle),
+                INTERFACE_OFFSET_RADIUS * 0.5,
+            ]
+            iface_pos = [pos[i] + offset[i] for i in range(3)]
+            interface_positions[f"{device.hostname}:{iface_name}"] = iface_pos
+            interface_specs.append({
+                "name": generate_interface_actor_name(device.hostname, iface_name),
+                "label": iface_name,
+                "parent_hostname": device.hostname,
+                "interface_name": iface_name,
+                "location": iface_pos,
+                "scale": INTERFACE_SCALE,
+                "color": color.to_list(),
+            })
+
+        if down_ifaces:
+            down_summary_specs.append({
+                "name": generate_down_interface_summary_actor_name(device.hostname),
+                "parent_hostname": device.hostname,
+                "location": [pos[0], pos[1], pos[2] + 140.0],
+                "text": f"{len(down_ifaces)} down: " + ", ".join(down_ifaces[:8]) + (
+                    ", ..." if len(down_ifaces) > 8 else ""
+                ),
+                "color": [0.8, 0.2, 0.2],
+            })
+
     link_specs = []
     for link in topology.links:
         source_pos = positions.get(link.source_device)
         target_pos = positions.get(link.target_device)
         if not source_pos or not target_pos:
             continue
-        location, rotation, scale = calculate_link_transform(source_pos, target_pos)
+
+        # FR-003: attach to interface actors when both ends resolve to a
+        # known up/up interface position; fall back to device-level
+        # attachment otherwise (e.g. no interface data, or the named
+        # interface was reported down and has no actor).
+        src_key = f"{link.source_device}:{link.source_interface}" if link.source_interface else None
+        dst_key = f"{link.target_device}:{link.target_interface}" if link.target_interface else None
+        attach_source = interface_positions.get(src_key) if src_key else None
+        attach_target = interface_positions.get(dst_key) if dst_key else None
+        endpoint_source = attach_source or source_pos
+        endpoint_target = attach_target or target_pos
+
+        location, rotation, scale = calculate_link_transform(endpoint_source, endpoint_target)
         link_specs.append({
             "name": generate_link_actor_name(link.source_device, link.target_device),
+            "link_id": link.id,
             "mesh_path": STATIC_MESH_PATHS["cylinder"],
             "location": location,
             "rotation": rotation,
             "scale": scale,
             "color": get_link_status_color(link.status).to_list(),
+            "attached_to_interfaces": bool(attach_source and attach_target),
         })
+
+    # US3 (FR-008/FR-009): one legend actor, generated directly from the live
+    # color mapping so it can never drift out of sync with reality.
+    legend_spec = None
+    if device_specs:
+        legend_lines = [f"{e['label']}: RGB{tuple(round(c, 2) for c in e['color'])}" for e in generate_legend_swatches()]
+        legend_spec = {
+            "name": LEGEND_ACTOR_NAME,
+            "text": "LEGEND\n" + "\n".join(legend_lines),
+            "location": [min_pt[0] - 300.0, min_pt[1] - 300.0, max_pt[2] + 300.0],
+            "color": [1.0, 1.0, 1.0],
+        }
 
     # Auto-scale label size from the scene's bounding-box diagonal.
     # Fixed sizes (24, then 95 during live testing) were unreadable once the
@@ -814,18 +1087,51 @@ def _compute_batch_specs(
         span = 2000.0
     label_world_size = max(span / 20.0, 100.0)
 
-    return device_specs, link_specs, label_world_size
+    return device_specs, interface_specs, link_specs, down_summary_specs, legend_spec, label_world_size
+
+
+def _spawn_text_render_snippet() -> str:
+    """Shared UE5-side helper (embedded once) for spawning a labeled
+    TextRenderActor — used by device/interface/link labels, down-interface
+    summaries, and the legend. Kept as one function inside the generated
+    script instead of four near-duplicates."""
+    return '''
+def _spawn_text(location, text, world_size, rgb, actor_label, extra_tag):
+    loc = unreal.Vector(location[0], location[1], location[2])
+    text_actor = _editor.spawn_actor_from_class(unreal.TextRenderActor, loc, unreal.Rotator(0, 0, 0))
+    if not text_actor:
+        return None
+    text_component = text_actor.get_component_by_class(unreal.TextRenderComponent)
+    if text_component:
+        text_component.set_text(text)
+        text_component.set_world_size(world_size)
+        text_component.set_horizontal_alignment(unreal.HorizTextAligment.EHTA_CENTER)
+        text_component.set_text_render_color(
+            unreal.Color(int(rgb[0] * 255), int(rgb[1] * 255), int(rgb[2] * 255), 255)
+        )
+    text_actor.set_actor_label(actor_label)
+    text_actor.tags.append("{tag}")
+    if extra_tag:
+        text_actor.tags.append(extra_tag)
+    _hide_billboard(text_actor)
+    return text_actor
+'''.format(tag=NETCLAW_TAG)
 
 
 def build_batch_scene_script(
     device_specs: list[dict],
+    interface_specs: list[dict],
     link_specs: list[dict],
+    down_summary_specs: list[dict],
+    legend_spec: Optional[dict],
     label_world_size: float,
     include_labels: bool = True,
 ) -> str:
     """Generate a single self-contained Python script to run inside UE5 via
-    execute_tool_script. Spawns every device, link, and (optionally) label in
-    one MCP round trip instead of one call per actor.
+    execute_tool_script. Spawns every device, interface, link, down-interface
+    summary, legend, and (optionally) label in one MCP round trip instead of
+    one call per actor (045-ue5-digital-twin: US1 interface actors, US2
+    labels, US3 legend, all folded into the same proven batch-build path).
 
     All positioning/color data is embedded as JSON literals — the script does
     no lookups against UE5-returned dicts, so it can't trip the _StrictDict
@@ -833,7 +1139,10 @@ def build_batch_scene_script(
     """
     payload = {
         "devices": device_specs,
+        "interfaces": interface_specs,
         "links": link_specs,
+        "down_summaries": down_summary_specs,
+        "legend": legend_spec,
         "label_world_size": label_world_size,
         "include_labels": include_labels,
     }
@@ -846,8 +1155,11 @@ _editor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
 _mesh_cache = {{}}
 _errors = []
 _devices_ok = 0
+_interfaces_ok = 0
 _links_ok = 0
 _labels_ok = 0
+_down_summaries_ok = 0
+_legend_ok = 0
 
 
 def _load_mesh(path):
@@ -881,6 +1193,7 @@ def _hide_billboard(actor):
         comp.set_visibility(False)
         comp.set_hidden_in_game(True)
 
+{_spawn_text_render_snippet()}
 
 for spec in _data["devices"]:
     try:
@@ -897,32 +1210,48 @@ for spec in _data["devices"]:
             mesh_component.set_static_mesh(mesh)
         scale = spec["scale"]
         actor.set_actor_scale3d(unreal.Vector(scale[0], scale[1], scale[2]))
-        actor.set_actor_label(spec["label"])
+        # Actor label carries the NC_-prefixed name (not the bare hostname) so
+        # the post-build find_actors re-query (the source of truth for
+        # devices_rendered) can actually tell devices apart from every other
+        # NC_-tagged actor kind by name prefix alone.
+        actor.set_actor_label(spec["name"])
         actor.tags.append("{NETCLAW_TAG}")
         actor.tags.append("device")
         _apply_color(actor, spec["color"])
         _devices_ok += 1
 
         if _data["include_labels"]:
-            label_loc = unreal.Vector(loc[0], loc[1], loc[2] + scale[2] * 0.75 + 50)
-            label_actor = _editor.spawn_actor_from_class(
-                unreal.TextRenderActor, label_loc, unreal.Rotator(0, 0, 0)
-            )
-            if label_actor:
-                text_component = label_actor.get_component_by_class(unreal.TextRenderComponent)
-                if text_component:
-                    text_component.set_text(spec["label"])
-                    text_component.set_world_size(_data["label_world_size"])
-                    text_component.set_horizontal_alignment(unreal.HorizTextAligment.EHTA_CENTER)
-                    text_component.set_text_render_color(
-                        unreal.Color(
-                            int(spec["color"][0] * 255), int(spec["color"][1] * 255), int(spec["color"][2] * 255), 255
-                        )
-                    )
-                label_actor.set_actor_label(spec["label"] + "_Label")
-                label_actor.tags.append("{NETCLAW_TAG}")
-                label_actor.tags.append("label")
-                _hide_billboard(label_actor)
+            label_loc = [loc[0], loc[1], loc[2] + scale[2] * 0.75 + 50]
+            if _spawn_text(label_loc, spec["label"], _data["label_world_size"], spec["color"], spec["label"] + "_Label", "label"):
+                _labels_ok += 1
+    except Exception as exc:
+        _errors.append(spec.get("name", "?") + ": " + str(exc))
+
+for spec in _data["interfaces"]:
+    try:
+        loc = spec["location"]
+        actor = _editor.spawn_actor_from_class(
+            unreal.StaticMeshActor, unreal.Vector(loc[0], loc[1], loc[2]), unreal.Rotator(0, 0, 0)
+        )
+        if not actor:
+            _errors.append("interface spawn failed: " + spec["name"])
+            continue
+        mesh = _load_mesh("{STATIC_MESH_PATHS['sphere']}")
+        mesh_component = actor.get_component_by_class(unreal.StaticMeshComponent)
+        if mesh_component and mesh:
+            mesh_component.set_static_mesh(mesh)
+        scale = spec["scale"]
+        actor.set_actor_scale3d(unreal.Vector(scale[0], scale[1], scale[2]))
+        actor.set_actor_label(spec["name"])
+        actor.tags.append("{NETCLAW_TAG}")
+        actor.tags.append("interface")
+        _apply_color(actor, spec["color"])
+        _interfaces_ok += 1
+
+        if _data["include_labels"]:
+            label_loc = [loc[0], loc[1], loc[2] + scale[2] * 1.5 + 20]
+            label_size = max(_data["label_world_size"] * 0.5, 60.0)
+            if _spawn_text(label_loc, spec["label"], label_size, spec["color"], spec["label"] + "_IfLabel", "label"):
                 _labels_ok += 1
     except Exception as exc:
         _errors.append(spec.get("name", "?") + ": " + str(exc))
@@ -950,13 +1279,37 @@ for spec in _data["links"]:
         actor.tags.append("link")
         _apply_color(actor, spec["color"])
         _links_ok += 1
+
+        if _data["include_labels"]:
+            label_loc = [loc[0], loc[1], loc[2] + 40]
+            label_size = max(_data["label_world_size"] * 0.5, 60.0)
+            if _spawn_text(label_loc, spec.get("link_id", spec["name"]), label_size, spec["color"], spec["name"] + "_LinkLabel", "label"):
+                _labels_ok += 1
     except Exception as exc:
         _errors.append(spec.get("name", "?") + ": " + str(exc))
 
+for spec in _data["down_summaries"]:
+    try:
+        if _spawn_text(spec["location"], spec["text"], _data["label_world_size"] * 0.6, spec["color"], spec["name"], "down_summary"):
+            _down_summaries_ok += 1
+    except Exception as exc:
+        _errors.append(spec.get("name", "?") + ": " + str(exc))
+
+if _data["legend"]:
+    try:
+        spec = _data["legend"]
+        if _spawn_text(spec["location"], spec["text"], _data["label_world_size"] * 0.7, spec["color"], spec["name"], "legend"):
+            _legend_ok = 1
+    except Exception as exc:
+        _errors.append("legend: " + str(exc))
+
 result = json.dumps({{
     "devices_spawned": _devices_ok,
+    "interfaces_spawned": _interfaces_ok,
     "links_spawned": _links_ok,
     "labels_spawned": _labels_ok,
+    "down_summaries_spawned": _down_summaries_ok,
+    "legend_spawned": _legend_ok,
     "errors": _errors,
 }})
 print(result)
@@ -984,9 +1337,25 @@ async def render_topology_batch(
     try:
         from .layout import calculate_topology_layout
         from .renderer import RenderResult  # local import to avoid a circular import at module load
+        from .scene import (
+            get_scene_state,
+            reset_scene_state,
+            register_device_actor,
+            register_link_actor,
+            register_interface_actor,
+            set_down_interfaces,
+        )
     except ImportError:  # pragma: no cover - fallback for sys.path-style loading
         from layout import calculate_topology_layout
         from renderer import RenderResult  # local import to avoid a circular import at module load
+        from scene import (
+            get_scene_state,
+            reset_scene_state,
+            register_device_actor,
+            register_link_actor,
+            register_interface_actor,
+            set_down_interfaces,
+        )
 
     start_time = time.time()
     result = RenderResult(success=True)
@@ -999,11 +1368,22 @@ async def render_topology_batch(
     link_dicts = [{"source_device": l.source_device, "target_device": l.target_device} for l in topology.links]
     positions = calculate_topology_layout(device_dicts, link_dicts, layout_config)
 
-    device_specs, link_specs, label_world_size = _compute_batch_specs(topology, positions)
-    script = build_batch_scene_script(device_specs, link_specs, label_world_size, include_labels)
+    device_specs, interface_specs, link_specs, down_summary_specs, legend_spec, label_world_size = (
+        _compute_batch_specs(topology, positions)
+    )
+    script = build_batch_scene_script(
+        device_specs, interface_specs, link_specs, down_summary_specs, legend_spec, label_world_size, include_labels
+    )
 
     persist_build_artifacts(
-        {"devices": device_specs, "links": link_specs, "label_world_size": label_world_size},
+        {
+            "devices": device_specs,
+            "interfaces": interface_specs,
+            "links": link_specs,
+            "down_summaries": down_summary_specs,
+            "legend": legend_spec,
+            "label_world_size": label_world_size,
+        },
         script,
     )
 
@@ -1036,16 +1416,29 @@ async def render_topology_batch(
     # point of re-querying was to not trust the script's own claims — never
     # let a fallback quietly override a real (even if zero) count.
     actual_actors = await find_netclaw_actors(client)
+
+    def _name(a: Any) -> str:
+        return str(a.get("name", "")) if isinstance(a, dict) else ""
+
+    # 045-ue5-digital-twin added interface/down-summary/legend/link-label
+    # actors that also carry the NC_ prefix (previously only devices and
+    # links did), so classification must key off each generator's exact
+    # prefix rather than a loose "Link"/"_Label" substring check — that
+    # looser check would double-count link labels (named "..._LinkLabel") as
+    # extra links, and count interfaces/down-summaries/the legend as devices,
+    # since none of those existed when this filter was first written.
     result.devices_rendered = sum(
         1 for a in actual_actors
-        if isinstance(a, dict)
-        and str(a.get("name", "")).startswith("NC_")
-        and "_Label" not in str(a.get("name", ""))
-        and "Link" not in str(a.get("name", ""))
+        if _name(a).startswith("NC_")
+        and not _name(a).startswith("NC_Link_")
+        and not _name(a).startswith("NC_If_")
+        and not _name(a).startswith("NC_DownIf_")
+        and _name(a) != "NC_Legend"
+        and "_Label" not in _name(a)
     )
     result.links_rendered = sum(
         1 for a in actual_actors
-        if isinstance(a, dict) and "Link" in str(a.get("name", ""))
+        if _name(a).startswith("NC_Link_") and "_LinkLabel" not in _name(a)
     )
 
     for device in topology.devices:
@@ -1054,6 +1447,16 @@ async def render_topology_batch(
             register_device_actor(device.hostname, generate_device_actor_name(device.hostname), pos)
     for link in topology.links:
         register_link_actor(link.id, generate_link_actor_name(link.source_device, link.target_device))
+
+    # US1 (FR-001/FR-002): mirror what the batch script actually spawned into
+    # scene state, so is_interface_in_topology()/resolve_actor_ref() and the
+    # down-interface HUD (US8/US12) can answer without re-querying UE5.
+    for spec in interface_specs:
+        register_interface_actor(spec["parent_hostname"], spec["interface_name"], spec["name"])
+    for device in topology.devices:
+        _, down_ifaces = resolve_device_interfaces(device, topology.links)
+        if down_ifaces:
+            set_down_interfaces(device.hostname, down_ifaces)
 
     state = get_scene_state()
     state.last_topology_hash = topology.to_hash()
@@ -1102,6 +1505,67 @@ print(result)
     # successful call with no parseable summary as "probably worked" but
     # tell the caller to verify manually rather than silently assuming.
     return True
+
+
+# =============================================================================
+# Foundational: Topology Name Resolution (045-ue5-digital-twin)
+# =============================================================================
+#
+# Shared by diagnostics.py, panels.py, incidents.py, playback.py, and
+# hierarchy.py to satisfy FR-040: any request naming a device, interface, or
+# link not present in the CURRENTLY BUILT topology must be reported to the
+# user rather than silently attempted or ignored. This is the single place
+# that answers "is this actually in the scene right now?" so every new
+# capability in this feature reports the same way instead of each
+# reinventing (and potentially getting wrong) its own check.
+
+def is_device_in_topology(hostname: str) -> bool:
+    """True if `hostname` currently has a tracked device actor."""
+    try:
+        from .scene import get_scene_state
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_scene_state
+    return hostname in get_scene_state().device_actors
+
+
+def is_interface_in_topology(hostname: str, interface_name: str) -> bool:
+    """True if this device/interface pair currently has a tracked up/up interface actor."""
+    try:
+        from .scene import is_interface_tracked
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import is_interface_tracked
+    return is_interface_tracked(hostname, interface_name)
+
+
+def is_link_in_topology(link_id: str) -> bool:
+    """True if `link_id` currently has a tracked link actor."""
+    try:
+        from .scene import get_scene_state
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_scene_state
+    return link_id in get_scene_state().link_actors
+
+
+def resolve_actor_ref(name: str) -> Optional[dict]:
+    """
+    Resolve a device hostname, "hostname:interface" pair, or link id against
+    the currently built topology and return a UE5 actor reference dict, or
+    None if it isn't present. Callers MUST report a None result to the user
+    (FR-040) rather than proceeding as if the actor existed.
+    """
+    try:
+        from .scene import get_scene_state
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_scene_state
+    state = get_scene_state()
+
+    if name in state.device_actors:
+        return make_actor_ref(state.device_actors[name])
+    if name in state.interface_actors:
+        return make_actor_ref(state.interface_actors[name])
+    if name in state.link_actors:
+        return make_actor_ref(state.link_actors[name])
+    return None
 
 
 async def capture_scene_screenshot(

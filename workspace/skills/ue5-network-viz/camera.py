@@ -14,11 +14,11 @@ from typing import Optional, Any
 try:
     from .ue5_mcp_client import UE5MCPClient, ToolResult
     from .scene import get_scene_state, get_device_position
-    from .actors import generate_device_actor_name
+    from .actors import generate_device_actor_name, PROGRAMMATIC_TOOLSET, TOOL_EXECUTE_SCRIPT
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient, ToolResult
     from scene import get_scene_state, get_device_position
-    from actors import generate_device_actor_name
+    from actors import generate_device_actor_name, PROGRAMMATIC_TOOLSET, TOOL_EXECUTE_SCRIPT
 
 
 # =============================================================================
@@ -58,25 +58,46 @@ def update_cached_camera_state(state: CameraState) -> None:
 
 async def get_camera_state(client: UE5MCPClient) -> CameraState:
     """
-    Get current camera position and orientation from UE5.
+    Get current editor viewport camera position/orientation from UE5, via
+    execute_tool_script's native unreal.EditorLevelLibrary API.
 
-    Args:
-        client: UE5 MCP client
-
-    Returns:
-        Current camera state
+    REWRITTEN for 045-ue5-digital-twin: this previously called
+    client.call_tool(toolset=..., tool=..., args=...) — not this codebase's
+    real call_tool(toolset_name, tool_name, arguments) signature, and never
+    against a toolset path confirmed live (unlike SCENE_TOOLSET/ACTOR_TOOLSET/
+    etc. in actors.py, which were verified against a running UE5 8.0 server).
+    Every camera function in this module raised TypeError on the first line
+    the moment it was actually called. Routed through execute_tool_script —
+    the one UE5 interaction path this codebase has confirmed live — instead
+    of guessing at an unconfirmed "CameraTools" MCP toolset schema.
     """
-    result = await client.call_tool(
-        toolset="CameraTools",
-        tool="get_camera_state",
-        args={},
+    script = '''
+import json
+import unreal
+
+_loc = unreal.Vector(0, 0, 500)
+_rot = unreal.Rotator(-45, 0, 0)
+try:
+    _loc, _rot = unreal.EditorLevelLibrary.get_level_viewport_camera_info()
+except Exception as exc:
+    unreal.log_error("get_camera_state failed: " + str(exc))
+
+result = json.dumps({
+    "location": [_loc.x, _loc.y, _loc.z],
+    "rotation": [_rot.pitch, _rot.yaw, _rot.roll],
+})
+print(result)
+'''
+    exec_result = await client.call_tool(
+        toolset_name=PROGRAMMATIC_TOOLSET,
+        tool_name=TOOL_EXECUTE_SCRIPT,
+        arguments={"script": script},
     )
 
-    if result.success:
+    if exec_result.success and isinstance(exec_result.data, dict) and "location" in exec_result.data:
         state = CameraState(
-            location=result.data.get("location", [0, 0, 500]),
-            rotation=result.data.get("rotation", [-45, 0, 0]),
-            fov=result.data.get("fov", 90.0),
+            location=exec_result.data.get("location", [0, 0, 500]),
+            rotation=exec_result.data.get("rotation", [-45, 0, 0]),
         )
         update_cached_camera_state(state)
         return state
@@ -90,34 +111,44 @@ async def set_camera_location(
     rotation: Optional[list[float]] = None,
 ) -> bool:
     """
-    Set camera to a specific location.
+    Set the editor viewport camera to a specific location/rotation, via
+    execute_tool_script (see get_camera_state's docstring for why this isn't
+    a generic CameraTools MCP call).
 
     Args:
         client: UE5 MCP client
         location: [x, y, z] world position
         rotation: Optional [pitch, yaw, roll] rotation
-
-    Returns:
-        True if successful
     """
-    args = {"location": location}
-    if rotation:
-        args["rotation"] = rotation
+    rot = rotation or get_cached_camera_state().rotation
+    script = f'''
+import json
+import unreal
 
-    result = await client.call_tool(
-        toolset="CameraTools",
-        tool="set_camera_location",
-        args=args,
+_ok = False
+try:
+    unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+        unreal.Vector({location[0]}, {location[1]}, {location[2]}),
+        unreal.Rotator({rot[0]}, {rot[1]}, {rot[2]}),
+    )
+    _ok = True
+except Exception as exc:
+    unreal.log_error("set_camera_location failed: " + str(exc))
+    _ok = False
+
+result = json.dumps({{"applied": _ok}})
+print(result)
+'''
+    exec_result = await client.call_tool(
+        toolset_name=PROGRAMMATIC_TOOLSET,
+        tool_name=TOOL_EXECUTE_SCRIPT,
+        arguments={"script": script},
     )
 
-    if result.success:
-        state = CameraState(
-            location=location,
-            rotation=rotation or get_cached_camera_state().rotation,
-        )
-        update_cached_camera_state(state)
-
-    return result.success
+    success = exec_result.success and (not isinstance(exec_result.data, dict) or exec_result.data.get("applied", True))
+    if success:
+        update_cached_camera_state(CameraState(location=location, rotation=rot))
+    return success
 
 
 async def focus_on_actor(
@@ -125,22 +156,45 @@ async def focus_on_actor(
     actor_name: str,
 ) -> bool:
     """
-    Focus camera on a specific actor.
+    Move the editor viewport camera to frame a specific actor by its
+    outliner label, via execute_tool_script.
 
     Args:
         client: UE5 MCP client
-        actor_name: Name of actor to focus on
-
-    Returns:
-        True if successful
+        actor_name: Outliner label of the actor to focus on
     """
-    result = await client.call_tool(
-        toolset="CameraTools",
-        tool="focus_on_actor",
-        args={"actor_name": actor_name},
-    )
+    script = f'''
+import json
+import unreal
 
-    return result.success
+_ok = False
+try:
+    _editor = unreal.get_editor_subsystem(unreal.EditorActorSubsystem)
+    target = None
+    for a in _editor.get_all_level_actors():
+        if a.get_actor_label() == "{actor_name}":
+            target = a
+            break
+    if target:
+        loc = target.get_actor_location()
+        unreal.EditorLevelLibrary.set_level_viewport_camera_info(
+            unreal.Vector(loc.x - 500, loc.y - 500, loc.z + 300),
+            unreal.Rotator(-30, 45, 0),
+        )
+        _ok = True
+except Exception as exc:
+    unreal.log_error("focus_on_actor failed: " + str(exc))
+    _ok = False
+
+result = json.dumps({{"applied": _ok}})
+print(result)
+'''
+    exec_result = await client.call_tool(
+        toolset_name=PROGRAMMATIC_TOOLSET,
+        tool_name=TOOL_EXECUTE_SCRIPT,
+        arguments={"script": script},
+    )
+    return exec_result.success and (not isinstance(exec_result.data, dict) or exec_result.data.get("applied", True))
 
 
 async def focus_on_device(

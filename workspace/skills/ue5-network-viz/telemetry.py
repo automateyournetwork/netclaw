@@ -21,21 +21,297 @@ try:
     from .materials import (
         create_device_material_config,
         create_link_material_config,
+        get_traffic_color,
+        get_alarm_color,
+        get_link_status_color,
         DeviceStatus,
         LinkStatus,
     )
-    from .actors import apply_device_material, apply_link_material
+    from .actors import (
+        apply_device_material,
+        apply_link_material,
+        apply_interface_material,
+        is_device_in_topology,
+        is_interface_in_topology,
+        is_link_in_topology,
+    )
     from .scene import get_scene_state, get_device_position
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient
     from materials import (
         create_device_material_config,
         create_link_material_config,
+        get_traffic_color,
+        get_alarm_color,
+        get_link_status_color,
         DeviceStatus,
         LinkStatus,
     )
-    from actors import apply_device_material, apply_link_material
+    from actors import (
+        apply_device_material,
+        apply_link_material,
+        apply_interface_material,
+        is_device_in_topology,
+        is_interface_in_topology,
+        is_link_in_topology,
+    )
     from scene import get_scene_state, get_device_position
+
+
+# =============================================================================
+# History Buffer (Foundational, 045-ue5-digital-twin)
+# =============================================================================
+#
+# Session-scoped, in-memory record of every health/traffic/trap-driven state
+# change, per data-model.md's HistoryRecord entity. Populated by US4
+# (traffic), US5 (health polling), and US6 (trap alerts); consumed by US10's
+# playback.py. Bounded ring buffer — never persisted, never survives a
+# NetClaw restart (spec Assumptions).
+
+_HISTORY_MAX_LEN = 5000
+
+
+@dataclass
+class HistoryRecord:
+    """One recorded state change, for historical playback (US10)."""
+    subject_key: str  # hostname, "hostname:interface", or link id
+    change_type: str  # "health" | "traffic" | "trap"
+    previous_state: Any
+    new_state: Any
+    timestamp: datetime = field(default_factory=datetime.now)
+
+
+_history_buffer: list[HistoryRecord] = []
+
+
+def record_history(subject_key: str, change_type: str, previous_state: Any, new_state: Any) -> None:
+    """Append a state change to the session history buffer, trimming to _HISTORY_MAX_LEN."""
+    _history_buffer.append(HistoryRecord(
+        subject_key=subject_key,
+        change_type=change_type,
+        previous_state=previous_state,
+        new_state=new_state,
+    ))
+    if len(_history_buffer) > _HISTORY_MAX_LEN:
+        del _history_buffer[: len(_history_buffer) - _HISTORY_MAX_LEN]
+
+
+def get_history_window(start: datetime, end: datetime) -> list[HistoryRecord]:
+    """Return recorded changes with start <= timestamp <= end, in original order."""
+    return [r for r in _history_buffer if start <= r.timestamp <= end]
+
+
+def clear_history() -> None:
+    """Clear the session history buffer (used by tests and by a fresh topology build)."""
+    _history_buffer.clear()
+
+
+# =============================================================================
+# Traffic Visualization (US4, 045-ue5-digital-twin)
+# =============================================================================
+#
+# FR-010: traffic utilization is a *supplied* value — this module never
+# queries gnmi-mcp/pyATS itself. The calling agent retrieves utilization via
+# those MCP tools in conversation, then hands the results here as a plain
+# {"hostname:interface" or link_id -> utilization 0.0-1.0} mapping. Keys not
+# present in the mapping keep their current (non-traffic) appearance rather
+# than being reset or errored (FR-012).
+
+_traffic_state_cache: dict[str, float] = {}
+
+
+async def refresh_traffic_visualization(
+    client: UE5MCPClient,
+    utilization_by_key: dict[str, float],
+) -> dict:
+    """
+    Apply traffic-utilization color to every interface/link actor named in
+    `utilization_by_key` (FR-010/FR-011). Unknown keys (not currently
+    tracked in the scene) are skipped rather than erroring (FR-019/FR-040).
+    Repeated calls simply replace prior traffic state (FR-011: reflects the
+    most recently retrieved data).
+    """
+    state = get_scene_state()
+    applied: list[str] = []
+    skipped: list[str] = []
+
+    for key, utilization in utilization_by_key.items():
+        color = get_traffic_color(utilization).to_list()
+
+        if ":" in key and key in state.interface_actors:
+            hostname, interface_name = key.split(":", 1)
+            ok = await apply_interface_material(client, hostname, interface_name, color)
+        elif key in state.link_actors:
+            source, target = key.split("_", 1) if "_" in key else (key, key)
+            ok = await _apply_link_traffic_color(client, source, target, color)
+        else:
+            skipped.append(key)
+            continue
+
+        if ok:
+            previous = _traffic_state_cache.get(key)
+            if previous != utilization:
+                record_history(key, "traffic", previous, utilization)
+                _traffic_state_cache[key] = utilization
+            applied.append(key)
+        else:
+            skipped.append(key)
+
+    return {"applied": applied, "skipped": skipped}
+
+
+async def _apply_link_traffic_color(client: UE5MCPClient, source: str, target: str, rgb: list[float]) -> bool:
+    """Recolor a link actor directly with a traffic-gradient color (bypasses the health-status color lookup apply_link_material uses)."""
+    try:
+        from .actors import apply_actor_color, generate_link_actor_name
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from actors import apply_actor_color, generate_link_actor_name
+    return await apply_actor_color(client, generate_link_actor_name(source, target), rgb)
+
+
+# =============================================================================
+# Live Mode Control (US5, 045-ue5-digital-twin)
+# =============================================================================
+
+@dataclass
+class LiveModeState:
+    """Session-scoped live-mode status (FR-014/FR-015). Never persisted."""
+    active: bool
+    started_at: Optional[datetime]
+    poll_interval_seconds: float
+
+
+async def start_live_mode(client: UE5MCPClient, poller: "TelemetryPoller") -> None:
+    """Start continuous background polling (FR-014)."""
+    await poller.start()
+    poller.live_started_at = datetime.now()
+
+
+async def stop_live_mode(poller: "TelemetryPoller") -> None:
+    """Stop continuous background polling (FR-014)."""
+    await poller.stop()
+    poller.live_started_at = None
+
+
+def get_live_mode_status(poller: "TelemetryPoller") -> LiveModeState:
+    """Report whether live mode is currently active (FR-015)."""
+    return LiveModeState(
+        active=poller._running,
+        started_at=getattr(poller, "live_started_at", None),
+        poll_interval_seconds=poller.config.interval_seconds,
+    )
+
+
+async def refresh_health_visualization(
+    client: UE5MCPClient,
+    device_status_by_hostname: Optional[dict[str, str]] = None,
+    link_status_by_id: Optional[dict[str, str]] = None,
+) -> dict:
+    """
+    On-demand health refresh (FR-013), distinct from continuous live mode:
+    apply externally-retrieved health status (already queried from
+    gnmi-mcp/pyATS by the calling agent) to device/link actors in one shot.
+    Unknown hostnames/link ids are skipped without error (FR-019/FR-040). A
+    link status of "healthy" also clears any sticky trap alert latched on
+    that link, since a confirmed health-poll recovery is a valid clear
+    condition alongside a matching linkUp trap (FR-018).
+    """
+    state = get_scene_state()
+    applied: list[str] = []
+    skipped: list[str] = []
+
+    for hostname, status in (device_status_by_hostname or {}).items():
+        if not is_device_in_topology(hostname):
+            skipped.append(hostname)
+            continue
+        previous = _device_status_history_cache.get(hostname)
+        ok = await apply_device_material(client, hostname, "unknown", status)
+        if ok:
+            if previous != status:
+                record_history(hostname, "health", previous, status)
+                _device_status_history_cache[hostname] = status
+            applied.append(hostname)
+        else:
+            skipped.append(hostname)
+
+    for link_id, status in (link_status_by_id or {}).items():
+        if not is_link_in_topology(link_id):
+            skipped.append(link_id)
+            continue
+        source, target = link_id.split("_", 1) if "_" in link_id else (link_id, link_id)
+        previous = _link_status_history_cache.get(link_id)
+        ok = await apply_link_material(client, source, target, status)
+        if ok:
+            if previous != status:
+                record_history(link_id, "health", previous, status)
+                _link_status_history_cache[link_id] = status
+            if status == "healthy" and is_sticky_alert_active(link_id):
+                clear_sticky_alert(link_id, "health_poll_recovery")
+                await apply_link_material(client, source, target, "healthy")
+            applied.append(link_id)
+        else:
+            skipped.append(link_id)
+
+    return {"applied": applied, "skipped": skipped}
+
+
+_device_status_history_cache: dict[str, str] = {}
+_link_status_history_cache: dict[str, str] = {}
+
+
+# =============================================================================
+# Sticky Trap Alerts (US6, 045-ue5-digital-twin)
+# =============================================================================
+#
+# Per data-model.md's StickyAlertState: a down-type trap latches a visible
+# alert on the affected interface/link that survives unrelated refreshes —
+# it is cleared ONLY by a matching up-type trap or a health-poll-confirmed
+# recovery (FR-018), never by the mere passage of time.
+
+@dataclass
+class StickyAlertState:
+    """One latched trap-driven alert (data-model.md)."""
+    key: str  # "hostname:interface" or a link id
+    latched_since: datetime
+    trap_type: str
+    cleared_by: Optional[str] = None  # "linkUp_trap" | "health_poll_recovery" | None
+
+
+_sticky_alerts: dict[str, StickyAlertState] = {}
+
+
+def latch_sticky_alert(subject_key: str, trap_type: str) -> None:
+    """Latch a sticky alert on `subject_key` (FR-018). Re-latching an already-active alert refreshes trap_type but keeps the original latched_since untouched only if still active; a fresh latch after a clear starts a new window."""
+    existing = _sticky_alerts.get(subject_key)
+    if existing and existing.cleared_by is None:
+        existing.trap_type = trap_type
+        return
+    _sticky_alerts[subject_key] = StickyAlertState(
+        key=subject_key, latched_since=datetime.now(), trap_type=trap_type
+    )
+
+
+def clear_sticky_alert(subject_key: str, cleared_by: str) -> None:
+    """Clear a latched alert (FR-018) — called on a matching linkUp trap or a confirmed health-poll recovery."""
+    existing = _sticky_alerts.get(subject_key)
+    if existing:
+        existing.cleared_by = cleared_by
+
+
+def is_sticky_alert_active(subject_key: str) -> bool:
+    """True if `subject_key` currently has an un-cleared latched alert."""
+    existing = _sticky_alerts.get(subject_key)
+    return existing is not None and existing.cleared_by is None
+
+
+def get_active_sticky_alerts() -> list[StickyAlertState]:
+    """All currently-active (uncleared) sticky alerts, for HUD/status reporting."""
+    return [a for a in _sticky_alerts.values() if a.cleared_by is None]
+
+
+def clear_all_sticky_alerts() -> None:
+    """Reset the registry (used by tests and by a fresh topology build)."""
+    _sticky_alerts.clear()
 
 
 # =============================================================================
@@ -271,12 +547,14 @@ class TelemetryPoller:
                     new_status = await self.config.device_status_callback(hostname)
 
                     if new_status and new_status != self._device_status_cache.get(hostname):
+                        previous = self._device_status_cache.get(hostname)
                         await handle_device_status_change(
                             self.client,
                             hostname,
                             new_status,
                         )
                         self._device_status_cache[hostname] = new_status
+                        record_history(hostname, "health", previous, new_status)  # T027
 
                 except Exception as e:
                     print(f"Error polling device {hostname}: {e}")
@@ -290,6 +568,7 @@ class TelemetryPoller:
                     if new_status and new_status != self._link_status_cache.get(link_id):
                         parts = link_id.split("_")
                         if len(parts) >= 2:
+                            previous = self._link_status_cache.get(link_id)
                             await handle_link_status_change(
                                 self.client,
                                 parts[0],
@@ -297,6 +576,16 @@ class TelemetryPoller:
                                 new_status,
                             )
                             self._link_status_cache[link_id] = new_status
+                            record_history(link_id, "health", previous, new_status)  # T027
+
+                            # T032: a confirmed-healthy poll result is a valid
+                            # sticky-alert clear condition, same as a matching
+                            # linkUp trap (FR-018) — continuous polling must
+                            # clear stale alerts too, not just the on-demand
+                            # refresh_health_visualization path.
+                            if new_status == "healthy" and is_sticky_alert_active(link_id):
+                                clear_sticky_alert(link_id, "health_poll_recovery")
+                                await handle_link_status_change(self.client, parts[0], parts[1], "healthy")
 
                 except Exception as e:
                     print(f"Error polling link {link_id}: {e}")
@@ -374,40 +663,65 @@ class TelemetryReceiver:
 
         await handle_telemetry_event(self.client, event)
 
-    async def process_snmp_trap(self, trap_data: dict) -> None:
+    async def process_snmp_trap(self, trap_data: dict) -> dict:
         """
-        Process an SNMP trap from Telemetry Receivers MCP.
+        Process a real SNMP trap from `snmptrap-mcp` (010-telemetry-receivers)
+        and latch/clear a sticky visual alert on the affected interface
+        (US6, FR-017/FR-018/FR-019).
+
+        REWRITTEN for 045-ue5-digital-twin: the previous implementation built
+        a LINK_STATUS_CHANGE TelemetryEvent with only `hostname` set, but
+        handle_telemetry_event's LINK_STATUS_CHANGE branch only acts when
+        `event.link_id` is set — hostname alone was silently ignored, so
+        every trap this receiver ever processed was a complete no-op before
+        this fix. Interface-level traps also don't map cleanly onto that
+        device-pair-keyed event type anyway (a link needs BOTH endpoints;
+        a trap only ever names one device/interface), so this routes
+        directly to the interface-actor coloring + sticky-alert registry
+        added for this feature instead of through the legacy event path.
 
         Args:
-            trap_data: Raw SNMP trap data
+            trap_data: Parsed trap dict. Expects `hostname` (falls back to
+                `source_ip` for backward compatibility with pre-045 senders)
+                and `interface`; `trap_oid` selects down (.5.3) vs up (.5.4).
+
+        Returns:
+            {"applied": bool, "reason": str} — always returns rather than
+            raising, per FR-019 (unknown device/interface must be ignored,
+            not error).
         """
-        # Common trap types that affect link status
-        hostname = trap_data.get("source_ip")
+        hostname = trap_data.get("hostname") or trap_data.get("source_ip")
+        interface = trap_data.get("interface", "")
         oid = trap_data.get("trap_oid", "")
 
-        # Link down trap: 1.3.6.1.6.3.1.1.5.3
-        if "1.3.6.1.6.3.1.1.5.3" in oid:
-            interface = trap_data.get("interface", "")
-            event = TelemetryEvent(
-                event_type=TelemetryEventType.LINK_STATUS_CHANGE,
-                hostname=hostname,
-                new_status="down",
-                message=f"Link down: {interface}",
-                raw_data=trap_data,
-            )
-            await handle_telemetry_event(self.client, event)
+        if not hostname or not interface:
+            return {"applied": False, "reason": "trap missing hostname/interface"}
 
-        # Link up trap: 1.3.6.1.6.3.1.1.5.4
-        elif "1.3.6.1.6.3.1.1.5.4" in oid:
-            interface = trap_data.get("interface", "")
-            event = TelemetryEvent(
-                event_type=TelemetryEventType.LINK_STATUS_CHANGE,
-                hostname=hostname,
-                new_status="healthy",
-                message=f"Link up: {interface}",
-                raw_data=trap_data,
+        # FR-019: ignore traps for devices/interfaces not in the current scene.
+        if not is_interface_in_topology(hostname, interface):
+            return {"applied": False, "reason": f"{hostname}:{interface} not in current topology"}
+
+        subject_key = f"{hostname}:{interface}"
+
+        if "1.3.6.1.6.3.1.1.5.3" in oid:  # linkDown
+            previous = is_sticky_alert_active(subject_key)
+            latch_sticky_alert(subject_key, "linkDown")
+            record_history(subject_key, "trap", previous, "linkDown")
+            applied = await apply_interface_material(
+                self.client, hostname, interface, get_alarm_color().to_list(), emissive_intensity=2.5
             )
-            await handle_telemetry_event(self.client, event)
+            return {"applied": applied, "reason": "linkDown trap latched sticky alert"}
+
+        if "1.3.6.1.6.3.1.1.5.4" in oid:  # linkUp
+            if is_sticky_alert_active(subject_key):
+                clear_sticky_alert(subject_key, "linkUp_trap")
+                record_history(subject_key, "trap", "linkDown", "linkUp")
+            applied = await apply_interface_material(
+                self.client, hostname, interface, get_link_status_color("healthy").to_list()
+            )
+            return {"applied": applied, "reason": "linkUp trap cleared sticky alert"}
+
+        return {"applied": False, "reason": f"unhandled trap OID {oid}"}
 
 
 # =============================================================================

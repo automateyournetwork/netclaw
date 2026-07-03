@@ -79,7 +79,7 @@ DEVICE_TYPE_COLORS: dict[DeviceType, Color] = {
     DeviceType.FIREWALL: Color(0.8, 0.2, 0.2),      # Red #CC3333
     DeviceType.ACCESS_POINT: Color(0.9, 0.8, 0.2),  # Yellow #E6CC33
     DeviceType.LOAD_BALANCER: Color(0.6, 0.2, 0.8), # Purple #9933CC
-    DeviceType.ENDPOINT: Color(0.5, 0.5, 0.5),      # Gray #808080
+    DeviceType.ENDPOINT: Color(0.9, 0.5, 0.1),      # Orange #E68019 (045-ue5-digital-twin FR-009)
     DeviceType.UNKNOWN: Color(1.0, 1.0, 1.0),       # White #FFFFFF
 }
 
@@ -99,6 +99,22 @@ def get_device_type_color(device_type: str) -> Color:
     except ValueError:
         dt = DeviceType.UNKNOWN
     return DEVICE_TYPE_COLORS[dt]
+
+
+def generate_legend_swatches() -> list[dict]:
+    """
+    Generate legend entries directly from the live DEVICE_TYPE_COLORS mapping
+    (045-ue5-digital-twin, FR-008/FR-009), so the in-scene legend can never
+    drift out of sync with the actual colors devices are rendered with.
+    """
+    return [
+        {
+            "device_type": device_type.value,
+            "label": device_type.value.replace("_", " ").title(),
+            "color": color.to_list(),
+        }
+        for device_type, color in DEVICE_TYPE_COLORS.items()
+    ]
 
 
 # =============================================================================
@@ -161,6 +177,39 @@ def get_link_status_color(status: str) -> Color:
     except ValueError:
         ls = LinkStatus.UNKNOWN
     return LINK_STATUS_COLORS[ls]
+
+
+# =============================================================================
+# Traffic Utilization Color Gradient (045-ue5-digital-twin, US4)
+# =============================================================================
+
+def get_traffic_color(utilization: float) -> Color:
+    """
+    Color gradient for traffic-utilization visualization (FR-010): green
+    (idle) -> yellow (moderate) -> red (saturated), independent of the
+    device/link's health-status color, since traffic view is a distinct
+    on-demand overlay rather than a replacement for status coloring.
+    """
+    u = max(0.0, min(1.0, utilization))
+    if u < 0.5:
+        t = u / 0.5
+        return Color(t, 1.0, 0.0)
+    t = (u - 0.5) / 0.5
+    return Color(1.0, 1.0 - t, 0.0)
+
+
+# =============================================================================
+# Alarm Color (045-ue5-digital-twin, US6/US9)
+# =============================================================================
+
+ALARM_COLOR = Color(1.0, 0.0, 0.6)  # Hot pink - deliberately distinct from
+# "critical" red so a trap-latched sticky alert or a correlated PagerDuty
+# incident is never visually confused with an ordinary health-poll status.
+
+
+def get_alarm_color() -> Color:
+    """Color for trap-latched sticky alerts (US6) and correlated incidents (US9)."""
+    return ALARM_COLOR
 
 
 # =============================================================================
