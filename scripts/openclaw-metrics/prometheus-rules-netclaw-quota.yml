@@ -1,0 +1,59 @@
+# Prometheus alerting rules for NetClaw DeepSeek quota early-warning.
+#
+# Install on the OBS VM: drop into the Prometheus rules dir (referenced by
+# `rule_files:` in prometheus.yml), then reload:
+#   curl -X POST http://192.168.3.250:9090/-/reload
+#
+# IMPORTANT — calibrate the budget. The Ollama Pro weekly cap is GPU-time /
+# usage based, not a token count, so this is a PROXY. Set WEEKLY_TOKEN_BUDGET
+# below to your calibrated value:
+#   1. Note DeepSeek's 7-day token total in Prometheus:
+#        sum(increase(netclaw_model_input_tokens_total{model=~"deepseek.*"}[7d]))
+#        + sum(increase(netclaw_model_output_tokens_total{model=~"deepseek.*"}[7d]))
+#   2. Read the matching weekly usage % from the Ollama dashboard.
+#   3. budget = observed_tokens / (observed_percent / 100)
+#      e.g. if ~18.6M tokens ≈ 9.3% (one heavy day), a full week ≈ 200M tokens.
+#
+# These thresholds are literals (Prometheus rules can't read Grafana variables).
+# Replace 200000000 with your calibrated budget in all three expressions.
+
+groups:
+  - name: netclaw-quota
+    rules:
+      # Convenience recording rule: rolling 7-day DeepSeek token burn.
+      - record: netclaw:deepseek_tokens_7d
+        expr: |
+          sum(increase(netclaw_model_input_tokens_total{model=~"deepseek.*"}[7d]))
+          + sum(increase(netclaw_model_output_tokens_total{model=~"deepseek.*"}[7d]))
+
+      # Projected weekly burn from the current daily rate.
+      - record: netclaw:deepseek_tokens_weekly_projection
+        expr: |
+          7 * (sum(increase(netclaw_model_input_tokens_total{model=~"deepseek.*"}[1d]))
+               + sum(increase(netclaw_model_output_tokens_total{model=~"deepseek.*"}[1d])))
+
+      - alert: DeepSeekQuotaProjectionHigh
+        expr: netclaw:deepseek_tokens_weekly_projection > (200000000 * 0.80)
+        for: 30m
+        labels:
+          severity: warning
+          service: netclaw
+        annotations:
+          summary: "DeepSeek weekly quota projection > 80% (proxy)"
+          description: >
+            At the current daily DeepSeek token rate, projected weekly usage
+            exceeds 80% of the calibrated budget. Consider routing more triage to
+            local qwen. Confirm the authoritative figure on the Ollama dashboard.
+
+      - alert: DeepSeekQuotaBurn7dCritical
+        expr: netclaw:deepseek_tokens_7d > (200000000 * 0.90)
+        for: 15m
+        labels:
+          severity: critical
+          service: netclaw
+        annotations:
+          summary: "DeepSeek 7-day token burn > 90% of weekly budget (proxy)"
+          description: >
+            Rolling 7-day DeepSeek token consumption has passed 90% of the
+            calibrated weekly budget. Switch the default to local qwen
+            (`openclaw models set ollama/qwen3.6:35b`) if you need to protect the cap.

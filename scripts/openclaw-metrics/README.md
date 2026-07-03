@@ -90,3 +90,38 @@ sum by (model) (netclaw_model_calls_total{instance="netclaw"})
 # Cost/hour (once model prices are set)
 sum(rate(netclaw_model_cost_usd_total{instance="netclaw"}[5m])) * 3600
 ```
+
+## Quota-watch dashboard + alerts
+
+`grafana-dashboard-netclaw-quota.json` and `prometheus-rules-netclaw-quota.yml`
+give you a DeepSeek weekly-quota early-warning, since routine triage is now on
+free local qwen and DeepSeek is the metered path.
+
+Import the dashboard:
+
+```bash
+curl -X POST http://admin:admin@192.168.3.250:3000/api/dashboards/db \
+  -H "Content-Type: application/json" \
+  -d "{\"dashboard\": $(cat scripts/openclaw-metrics/grafana-dashboard-netclaw-quota.json), \"overwrite\": true}"
+```
+UID: `netclaw-quota-watch`. On import, pick your Prometheus datasource and set
+the `weekly_token_budget` variable (see calibration below).
+
+Install the alert rules on the OBS Prometheus (into its `rule_files:` dir), then
+`curl -X POST http://192.168.3.250:9090/-/reload`.
+
+### Calibrating the budget (important)
+
+The Ollama Pro weekly cap is **GPU-time / usage based, not a token count**, so
+the token totals are a *proxy*. Calibrate once:
+
+1. Read DeepSeek's rolling 7-day tokens:
+   `sum(increase(netclaw_model_input_tokens_total{model=~"deepseek.*"}[7d])) + sum(increase(netclaw_model_output_tokens_total{model=~"deepseek.*"}[7d]))`
+2. Read the matching weekly usage % from the Ollama dashboard.
+3. `budget = observed_tokens / (observed_percent / 100)`.
+   (Data point: ~one heavy day of DeepSeek ≈ 9.3% of weekly, so a full week at
+   that rate ≈ 200M tokens — the placeholder default.)
+
+Set `weekly_token_budget` in the dashboard and replace `200000000` in the three
+rule expressions with your calibrated value. Always treat the Ollama dashboard
+as the authoritative quota figure; these are trend + early-warning.
