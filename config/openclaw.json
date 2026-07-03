@@ -574,6 +574,12 @@
         "TWILIO_PHONE_NUMBER": "${TWILIO_PHONE_NUMBER}",
         "TWILIO_WEBHOOK_URL": "${TWILIO_WEBHOOK_URL}"
       }
+    },
+    "unreal-mcp": {
+      "url": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}",
+      "env": {
+        "UE5_MCP_URL": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}"
+      }
     }
   }
 }

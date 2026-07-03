@@ -192,6 +192,22 @@ The gNMI MCP server provides 10 tools for streaming telemetry and model-driven c
 - `TWITTER_API_KEY`, `TWITTER_API_SECRET`, `TWITTER_ACCESS_TOKEN`, `TWITTER_ACCESS_SECRET`
 - `TWITTER_MENTION_POLL_INTERVAL` — polling frequency (default 300s)
 
+## Unreal Engine 5.8 MCP Server
+
+The Unreal Engine 5.8 MCP server is built into UE5.8+ and provides enterprise-grade 3D network topology visualization via HTTP transport. Tool names below are confirmed against a real running UE5 8.0 MCP server (not the originally-assumed names) — see `workspace/skills/ue5-network-viz/SKILL.md` for the full incident history behind these:
+
+- **Tool Search Mode**: `list_toolsets`, `describe_toolset`, `call_tool` — meta-tools for discovering and executing UE5 tools. `call_tool` takes `toolset_name` (full path, e.g. `editor_toolset.toolsets.scene.SceneTools`) and `tool_name` as the **short** method name only (e.g. `add_to_scene_from_class`) — passing the fully-qualified `toolset.method` string as `tool_name` silently returns "Unknown tool" on some builds.
+- **`editor_toolset.toolsets.scene.SceneTools`**: `add_to_scene_from_class`, `add_to_scene_from_asset`, `remove_from_scene`, `find_actors`, `load_level`, `get_current_level` — spawn/find/remove device and link actors
+- **`editor_toolset.toolsets.actor.ActorTools`**: `set_actor_transform`, `set_label`, `add_tag`, `get_components` — position, label, and tag actors. `set_actor_transform` has been observed to reset omitted fields (e.g. location, when only scale is set) to `(0,0,0)` on some builds despite its own docs claiming otherwise — always pass location + rotation + scale together.
+- **`editor_toolset.toolsets.object.ObjectTools`**: `set_properties`, `get_property` — set mesh/material properties on a spawned actor
+- **`editor_toolset.toolsets.asset.AssetTools`**: `load_asset`, `find_assets`, `save_assets`, `create_folder` — load basic-shape meshes, manage `/Game/` folders
+- **`editor_toolset.toolsets.programmatic.ProgrammaticToolset`**: `execute_tool_script` (`{"script": "<python>"}`) — run a script inside UE5's embedded Python in one MCP round trip instead of one call per actor. **Not universally available**: some UE5 8.0 builds' script sandbox forbids `import unreal` (only stdlib modules allowed), making this batch path unusable — the skill falls back to per-actor calls automatically when this happens.
+- URL: `http://127.0.0.1:8000/mcp` (local-only, loopback). Endpoint only accepts POST — a bare `curl` GET correctly returns HTTP 405, that's the server confirming it's up.
+- Requires: UE5.8+ with MCP plugin enabled (Edit > Plugins > "Unreal MCP")
+- Auto-start or manually: `ModelContextProtocol.StartServer` in UE5 console
+- `UE5_MCP_URL` → server endpoint (default: `http://127.0.0.1:8000/mcp`)
+- Client note: some builds respond over a keep-alive `text/event-stream` even after the real answer has been sent — a client that waits for the full response body to complete (rather than reading the SSE stream line-by-line and stopping at the first complete JSON-RPC object) can hang for the full timeout on an answer that already arrived.
+
 ## Claroty xDome MCP Server
 
 The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writes) for OT / IoT / IoMT visibility via stdio transport:

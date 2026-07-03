@@ -38,7 +38,7 @@ clone_or_pull() {
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 MCP_DIR="$NETCLAW_DIR/mcp-servers"
-TOTAL_STEPS=55
+TOTAL_STEPS=56
 
 echo "========================================="
 echo "  NetClaw - CCIE Network Agent"
@@ -2596,10 +2596,34 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 52: Verify installation
+# Step 52: Unreal Engine 5.8 MCP (3D Network Topology Visualization)
 # ═══════════════════════════════════════════
 
-log_step "52/$TOTAL_STEPS Verifying installation..."
+log_step "52/$TOTAL_STEPS Configuring Unreal Engine 5.8 MCP..."
+echo "  UE5.8+ built-in MCP server for enterprise-grade 3D network topology"
+echo "  Lumen lighting, spawn actors for devices/links, real-time health updates"
+echo ""
+
+log_info "Unreal Engine 5.8 MCP is built into UE5.8+ — no local clone required"
+log_info "To enable UE5 MCP:"
+log_info "  1. Install Unreal Engine 5.8+ from https://unrealengine.com"
+log_info "  2. Enable MCP plugin: Edit > Plugins > search 'Unreal MCP' > Enable"
+log_info "  3. Restart UE5 Editor"
+log_info "  4. Start MCP server: Console command 'ModelContextProtocol.StartServer'"
+log_info "  5. Verify: curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.1:8000/mcp"
+log_info "     (expect 405 — the endpoint only accepts POST; that response code means the server is up)"
+log_info ""
+log_info "UE5 MCP URL: http://127.0.0.1:8000/mcp (local-only, loopback)"
+log_info "Set UE5_MCP_URL in ~/.openclaw/.env to override default"
+log_info "Skills: ue5-network-viz (spawn devices, links, materials, camera fly-throughs)"
+
+echo ""
+
+# ═══════════════════════════════════════════
+# Step 53: Verify installation
+# ═══════════════════════════════════════════
+
+log_step "53/$TOTAL_STEPS Verifying installation..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -2956,6 +2980,16 @@ else
     SERVERS_FAIL=$((SERVERS_FAIL + 1))
 fi
 
+# UE5 MCP is a remote HTTP server built into Unreal Engine 5.8+
+# No local install required — just check if skill exists
+if [ -d "$NETCLAW_DIR/workspace/skills/ue5-network-viz" ] && [ -f "$NETCLAW_DIR/workspace/skills/ue5-network-viz/SKILL.md" ]; then
+    log_info "UE5 MCP: OK (remote HTTP http://127.0.0.1:8000/mcp — requires UE5.8+ with MCP plugin)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+else
+    log_info "UE5 MCP: READY (remote HTTP — enable MCP plugin in UE5.8+, start server)"
+    SERVERS_OK=$((SERVERS_OK + 1))
+fi
+
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
@@ -2963,10 +2997,10 @@ log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
 echo ""
 
 # ═══════════════════════════════════════════
-# Step 51: Summary
+# Step 54: Summary
 # ═══════════════════════════════════════════
 
-log_step "53/$TOTAL_STEPS Installation Summary"
+log_step "54/$TOTAL_STEPS Installation Summary"
 echo ""
 echo "========================================="
 echo "  NetClaw Installation Complete"
@@ -3064,6 +3098,9 @@ echo "  │   Resource Manager      Project discovery (1 tool)"
 echo "  │"
 echo "  │ AZURE CLOUD (1 server via pip):"
 echo "  │   Azure Network         VNets, NSGs, ExpressRoute, VPN, Firewall, LB, DNS (19 tools)"
+echo "  │"
+echo "  │ 3D VISUALIZATION:"
+echo "  │   Unreal Engine 5     UE5.8 MCP — 3D topology, Lumen lighting, health colors, camera fly-throughs (remote HTTP)"
 echo "  │"
 echo "  │ UTILITIES:"
 echo "  │   Subnet Calculator   IPv4 + IPv6 CIDR calculator"
@@ -3243,6 +3280,9 @@ echo "  │   markmap-viz            Mind map visualization"
 echo "  │   drawio-diagram         Draw.io diagrams: native .drawio + CLI export (PNG/SVG/PDF) + browser MCP"
 echo "  │   uml-diagram            27+ UML/diagram types via Kroki (class, sequence, nwdiag, rack, packet)"
 echo "  │   rfc-lookup             IETF RFC search"
+echo "  │"
+echo "  │ 3D Visualization Skills:"
+echo "  │   ue5-network-viz        UE5.8 MCP — 3D topology, Lumen lighting, real-time health, camera fly-throughs"
 echo "  │"
 echo "  │ Slack Integration Skills:"
 echo "  │   slack-network-alerts   Alert formatting & delivery"

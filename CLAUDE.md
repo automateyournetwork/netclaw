@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-06-26
+Auto-generated from all feature plans. Last updated: 2026-06-28
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -53,6 +53,8 @@ Auto-generated from all feature plans. Last updated: 2026-06-26
 - Memory MCP (feature 033) for call logging and audit trail (042-twilio-voice-mcp)
 - Python 3.10+ (webhook server, skills), Node.js 18+ (Twilio MCP) + FastMCP, Twilio SDK, @twilio-alpha/mcp, Anthropic SDK, httpx, existing MCP servers (pyATS, CML, GNS3, PagerDuty, RFC, Memory, Twitter) (043-full-voice-integration)
 - Memory MCP (conversation context per caller ID), SQLite (call audit logs) (043-full-voice-integration)
+- Python 3.10+ (skill logic), No custom MCP server code (uses built-in UE5 MCP) + httpx (HTTP client for MCP), Unreal Engine 5.8+ (user-installed with MCP plugin) (044-ue5-mcp-network-viz)
+- N/A (stateless - visualization is ephemeral in UE5) (044-ue5-mcp-network-viz)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -72,9 +74,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 044-ue5-mcp-network-viz: Added Python 3.10+ (skill logic), No custom MCP server code (uses built-in UE5 MCP) + httpx (HTTP client for MCP), Unreal Engine 5.8+ (user-installed with MCP plugin)
 - 043-full-voice-integration: Added Python 3.10+ (webhook server, skills), Node.js 18+ (Twilio MCP) + FastMCP, Twilio SDK, @twilio-alpha/mcp, Anthropic SDK, httpx, existing MCP servers (pyATS, CML, GNS3, PagerDuty, RFC, Memory, Twitter)
 - 042-twilio-voice-mcp: Added Node.js 18+ (for @twilio-alpha/mcp), Python 3.10+ (for webhook server and skills) + @twilio-alpha/mcp (NPM), FastMCP (Python webhook), Twilio SDK, openai-whisper-api (existing skill for STT)
-- 040-twitter-mentions: Added Python 3.10+ (consistent with existing NetClaw MCP servers) + FastMCP (MCP framework), tweepy 4.x (Twitter API v2 client), python-dotenv
 
 
 <!-- MANUAL ADDITIONS START -->
