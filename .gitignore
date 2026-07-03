@@ -1,6 +1,13 @@
 # Environment and secrets
 .env
 *.env.local
+# Kiro MCP settings can contain API keys — do not commit
+.kiro/settings/mcp.json
+
+# Runtime memory stores (SQLite + ChromaDB) — data, not source
+memory/*.db
+memory/*.sqlite3
+memory/chromadb/
 config/openclaw.json
 
 # GAIT audit trail (local only)
