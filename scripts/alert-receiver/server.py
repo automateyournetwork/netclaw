@@ -180,7 +180,10 @@ async def lookup_device_nautobot(hostname: str) -> Optional[dict]:
         async with httpx.AsyncClient(timeout=10, verify=False) as client:
             resp = await client.get(
                 f"{NAUTOBOT_URL}/api/dcim/devices/",
-                params={"name": hostname},
+                # depth=1 expands nested objects (role, platform, location) so they
+                # carry a "name"; without it Nautobot returns brief refs and the
+                # role gate sees an empty role and wrongly skips the device.
+                params={"name": hostname, "depth": 1},
                 headers={
                     "Authorization": f"Token {NAUTOBOT_TOKEN}",
                     "Accept": "application/json",
@@ -198,12 +201,19 @@ async def lookup_device_nautobot(hostname: str) -> Optional[dict]:
 
             device = results[0]
             primary_ip = device.get("primary_ip", {})
+
+            def _nested_name(obj) -> str:
+                # Nautobot nested objects expose "name"; brief refs expose "display".
+                if isinstance(obj, dict):
+                    return obj.get("name") or obj.get("display") or ""
+                return ""
+
             return {
                 "name": device.get("name", hostname),
                 "ip": primary_ip.get("address", "").split("/")[0] if primary_ip else "",
-                "platform": device.get("platform", {}).get("name", "") if device.get("platform") else "",
-                "role": device.get("role", {}).get("name", "") if device.get("role") else "",
-                "site": device.get("location", {}).get("name", "") if device.get("location") else "",
+                "platform": _nested_name(device.get("platform")),
+                "role": _nested_name(device.get("role")),
+                "site": _nested_name(device.get("location")),
                 "status": device.get("status", {}).get("value", "") if isinstance(device.get("status"), dict) else str(device.get("status", "")),
                 "source": "nautobot",
             }
