@@ -20,7 +20,7 @@ devices:
       cli:
         protocol: ssh
         ip: 192.168.3.2
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
   HomeSwitch02:
     os: iosxe
     type: switch
@@ -30,7 +30,7 @@ devices:
       cli:
         protocol: ssh
         ip: 192.168.3.3
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
   U6-Pro - Basement Laundry Room:
     os: iosxe
     type: switch
@@ -40,7 +40,7 @@ devices:
       cli:
         protocol: ssh
         ip: 192.168.3.15
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
   U6-Pro - Sophies Office:
     os: iosxe
     type: switch
@@ -50,7 +50,7 @@ devices:
       cli:
         protocol: ssh
         ip: 192.168.3.16
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
   r640-pve:
     os: linux
     type: switch

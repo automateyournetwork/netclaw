@@ -39,7 +39,8 @@ OUTPUT_PATH = Path(os.getenv("PYATS_TESTBED_PATH", "testbed/testbed.yaml"))
 # Legacy SSH key exchange for old Cisco IOS/IOS-XE switches (Catalyst 3850, etc.)
 # that modern OpenSSH refuses by default. Appended to the unicon ssh command.
 LEGACY_SSH_OPTIONS = (
-    "-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1"
+    "-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 "
+    "-o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa"
 )
 
 # Map Nautobot platform slugs/network_drivers to pyATS os types

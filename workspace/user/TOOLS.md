@@ -33,24 +33,30 @@ Credentials for device access are in `~/.openclaw/.env`
 
 ## Accessing the Old Switches (legacy SSH key exchange)
 
-HomeSwitch01/02 are Cisco Catalyst 3850s running older IOS-XE that only negotiate
-legacy Diffie-Hellman key exchange. A modern SSH client rejects them by default with
-"no matching key exchange method". You must enable the legacy algorithms:
+HomeSwitch01/02 are Cisco Catalyst 3850s running older IOS-XE. A modern SSH client
+rejects them twice: first on key exchange ("no matching key exchange method"), then on
+the host key ("no matching host key type ... their offer: ssh-rsa"). You must enable
+both the legacy kex and the legacy RSA host key:
 
 ```bash
-ssh -oKexAlgorithms=+diffie-hellman-group-exchange-sha1,+diffie-hellman-group14-sha1 \
-    admin@192.168.3.2
+ssh -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 \
+    -o HostKeyAlgorithms=+ssh-rsa \
+    -o PubkeyAcceptedAlgorithms=+ssh-rsa \
+    cisco@192.168.3.2
 ```
 
 This is already wired into:
-- **`~/.ssh/config`** — a `Host 192.168.3.2 192.168.3.3` block sets `KexAlgorithms`
-  so any SSH (including pyATS/unicon, which shells out to `ssh`) negotiates correctly.
+- **`~/.ssh/config`** — a `Host 192.168.3.2 192.168.3.3` block sets `KexAlgorithms`,
+  `HostKeyAlgorithms`, and `PubkeyAcceptedAlgorithms` so any SSH (including
+  pyATS/unicon, which shells out to `ssh`) negotiates correctly.
 - **pyATS testbed** (`testbed/testbed.yaml`) — the switch connections carry the
-  matching `ssh_options`. The testbed is auto-generated, so the option is emitted by
-  `scripts/generate-testbed-from-nautobot.py` and survives regeneration.
+  matching `ssh_options`. The testbed is auto-generated, so the options are emitted by
+  `scripts/generate-testbed-from-nautobot.py` and survive regeneration.
+
+Verified: `ssh cisco@192.168.3.2` / `.3` now negotiates to the auth prompt.
 
 If you add another legacy device, add its IP to the `~/.ssh/config` block (or the
-generator) with the same `KexAlgorithms` line.
+generator) with the same options.
 
 ## Network Layout — pfSense VLANs / Subnets
 
