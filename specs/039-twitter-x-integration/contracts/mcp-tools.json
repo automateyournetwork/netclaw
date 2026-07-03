@@ -1,0 +1,234 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Twitter MCP Server Tools",
+  "description": "MCP tool definitions for twitter-mcp server",
+  "version": "1.0.0",
+  "tools": [
+    {
+      "name": "twitter_post_tweet",
+      "description": "Post a new tweet to Twitter. Content is validated against guardrails before posting. Always includes #netclaw hashtag.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Tweet content (max 280 characters including hashtag)",
+            "maxLength": 280
+          },
+          "skip_guardrails": {
+            "type": "boolean",
+            "description": "Skip content guardrails (not recommended, requires explicit approval)",
+            "default": false
+          }
+        },
+        "required": ["content"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tweet_id": {
+            "type": "string",
+            "description": "Twitter's unique ID for the posted tweet"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to view the tweet on Twitter"
+          },
+          "content": {
+            "type": "string",
+            "description": "Final content as posted (may differ if sanitized)"
+          },
+          "guardrail_actions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pattern": { "type": "string" },
+                "action": { "type": "string", "enum": ["pass", "sanitize", "block"] },
+                "original": { "type": "string" },
+                "replacement": { "type": "string" }
+              }
+            },
+            "description": "List of guardrail actions applied"
+          },
+          "error": {
+            "type": "string",
+            "description": "Error message if posting failed"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "twitter_post_thread",
+      "description": "Post a thread of multiple tweets for content exceeding 280 characters. Automatically splits at sentence boundaries.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Full content to be split into a thread"
+          },
+          "skip_guardrails": {
+            "type": "boolean",
+            "description": "Skip content guardrails (not recommended)",
+            "default": false
+          }
+        },
+        "required": ["content"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "thread_root_id": {
+            "type": "string",
+            "description": "Tweet ID of the first tweet in the thread"
+          },
+          "tweet_ids": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "List of all tweet IDs in the thread"
+          },
+          "tweet_count": {
+            "type": "integer",
+            "description": "Number of tweets in the thread"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "URL to view the thread on Twitter"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "twitter_post_tweet_with_media",
+      "description": "Post a tweet with an attached image. Supports PNG, JPG, GIF formats.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "content": {
+            "type": "string",
+            "description": "Tweet content (max 280 characters)",
+            "maxLength": 280
+          },
+          "media_path": {
+            "type": "string",
+            "description": "Absolute path to the image file to attach"
+          },
+          "alt_text": {
+            "type": "string",
+            "description": "Alt text for accessibility (max 1000 characters)",
+            "maxLength": 1000
+          },
+          "skip_guardrails": {
+            "type": "boolean",
+            "default": false
+          }
+        },
+        "required": ["content", "media_path"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "tweet_id": {
+            "type": "string"
+          },
+          "media_id": {
+            "type": "string",
+            "description": "Twitter's media ID for the uploaded image"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "twitter_delete_tweet",
+      "description": "Delete a previously posted tweet by ID. Use with caution.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tweet_id": {
+            "type": "string",
+            "description": "The ID of the tweet to delete"
+          }
+        },
+        "required": ["tweet_id"]
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "deleted_id": {
+            "type": "string"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success"]
+      }
+    },
+    {
+      "name": "twitter_get_rate_limits",
+      "description": "Check current Twitter API rate limit status for posting.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {},
+        "required": []
+      },
+      "outputSchema": {
+        "type": "object",
+        "properties": {
+          "success": {
+            "type": "boolean"
+          },
+          "limit": {
+            "type": "integer",
+            "description": "Maximum tweets allowed per 24 hours (50 for Free tier)"
+          },
+          "remaining": {
+            "type": "integer",
+            "description": "Tweets remaining in current window"
+          },
+          "reset_time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the rate limit resets (ISO 8601)"
+          },
+          "reset_in_seconds": {
+            "type": "integer",
+            "description": "Seconds until rate limit resets"
+          },
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": ["success"]
+      }
+    }
+  ]
+}

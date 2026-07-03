@@ -1,0 +1,166 @@
+{
+  "tools": [
+    {
+      "name": "twitter_get_mentions",
+      "description": "Fetch recent @mentions of the configured Twitter account. Returns unprocessed mentions for review and response.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "limit": {
+            "type": "integer",
+            "description": "Maximum number of mentions to return (default: 10, max: 100)",
+            "default": 10
+          },
+          "since_id": {
+            "type": "string",
+            "description": "Only return mentions newer than this tweet ID"
+          },
+          "include_processed": {
+            "type": "boolean",
+            "description": "Include already-processed mentions (default: false)",
+            "default": false
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "twitter_get_conversation",
+      "description": "Retrieve conversation context for a tweet. Returns parent tweets in the thread for context-aware replies.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tweet_id": {
+            "type": "string",
+            "description": "The tweet ID to get conversation context for"
+          },
+          "max_depth": {
+            "type": "integer",
+            "description": "Maximum number of parent tweets to retrieve (default: 5, max: 10)",
+            "default": 5
+          }
+        },
+        "required": ["tweet_id"]
+      }
+    },
+    {
+      "name": "twitter_classify_mention",
+      "description": "Classify a mention into response categories: netclaw_request, technical_network, friendly, off_topic, or spam.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "tweet_id": {
+            "type": "string",
+            "description": "The mention tweet ID to classify"
+          },
+          "text": {
+            "type": "string",
+            "description": "The mention text (optional if tweet_id provided)"
+          },
+          "author_data": {
+            "type": "object",
+            "description": "Author metadata for spam detection (optional)",
+            "properties": {
+              "created_at": { "type": "string" },
+              "followers_count": { "type": "integer" },
+              "following_count": { "type": "integer" },
+              "username": { "type": "string" }
+            }
+          }
+        },
+        "required": []
+      }
+    },
+    {
+      "name": "twitter_generate_reply",
+      "description": "Generate a CCIE-level reply for a mention. Does NOT post - returns draft for human approval.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mention_id": {
+            "type": "string",
+            "description": "The tweet ID being replied to"
+          },
+          "mention_text": {
+            "type": "string",
+            "description": "The mention text to respond to"
+          },
+          "author_handle": {
+            "type": "string",
+            "description": "@username of the mention author"
+          },
+          "conversation_context": {
+            "type": "array",
+            "description": "Array of parent tweet texts for context",
+            "items": { "type": "string" }
+          },
+          "user_history": {
+            "type": "object",
+            "description": "Prior interaction history with this user (optional)"
+          }
+        },
+        "required": ["mention_id", "mention_text", "author_handle"]
+      }
+    },
+    {
+      "name": "twitter_reply_to_tweet",
+      "description": "Post a reply to a specific tweet. REQUIRES human approval before posting (Constitution Principle XIV).",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "in_reply_to_tweet_id": {
+            "type": "string",
+            "description": "The tweet ID to reply to"
+          },
+          "text": {
+            "type": "string",
+            "description": "Reply content (max 280 characters, or will be split into thread)"
+          },
+          "approved": {
+            "type": "boolean",
+            "description": "Human approval confirmation (MUST be true to post)",
+            "default": false
+          }
+        },
+        "required": ["in_reply_to_tweet_id", "text", "approved"]
+      }
+    },
+    {
+      "name": "twitter_mark_processed",
+      "description": "Mark a mention as processed (skipped or replied). Prevents duplicate handling on next poll.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "mention_id": {
+            "type": "string",
+            "description": "The tweet ID to mark as processed"
+          },
+          "action": {
+            "type": "string",
+            "description": "What was done with the mention",
+            "enum": ["replied", "skipped_off_topic", "skipped_spam", "flagged_review"]
+          },
+          "reply_id": {
+            "type": "string",
+            "description": "The reply tweet ID if action was 'replied'"
+          }
+        },
+        "required": ["mention_id", "action"]
+      }
+    },
+    {
+      "name": "twitter_get_user_history",
+      "description": "Retrieve interaction history with a Twitter user from Memory MCP.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "description": "@username to look up (without @)"
+          }
+        },
+        "required": ["username"]
+      }
+    }
+  ]
+}

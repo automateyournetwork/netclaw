@@ -1,3 +1,0 @@
-httpx
-fastmcp
-mcp

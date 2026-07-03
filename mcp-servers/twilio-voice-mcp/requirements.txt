@@ -1,0 +1,23 @@
+# Twilio Voice MCP Dependencies
+# Feature 042: Twilio Voice MCP Integration
+
+# MCP Framework
+mcp>=1.1.0
+
+# Twilio SDK
+twilio>=9.0.0
+
+# HTTP Server for webhooks
+flask>=3.0.0
+
+# Async HTTP Client
+httpx>=0.27.0
+
+# Request signature validation
+twilio[request-validator]
+
+# Timezone handling for quiet hours
+pytz>=2024.1
+
+# Environment variable management
+python-dotenv>=1.0.0
