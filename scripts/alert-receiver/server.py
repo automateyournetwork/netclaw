@@ -700,20 +700,27 @@ def build_reconcile_prompt(model: str, event: str, data: dict,
         f"role={device_info['role']} platform={device_info['platform']}",
         f"Interface: {iface}",
         "",
+        "Webhook snapshot (TRIGGER CONTEXT ONLY — not the comparison):",
         "Prechange (Nautobot):",
-        json.dumps(pre, indent=2, default=str)[:1500] if pre else "  (none — created)",
+        json.dumps(pre, indent=2, default=str)[:1200] if pre else "  (none — created)",
         "",
         "Postchange (Nautobot):",
-        json.dumps(post, indent=2, default=str)[:1500] if post else "  (none — deleted)",
+        json.dumps(post, indent=2, default=str)[:1200] if post else "  (none — deleted)",
         "",
         "INSTRUCTIONS — follow the intent-reconcile skill:",
         "1. SCOPE GUARD: you may only reconcile DEVICE INTERFACE changes on "
         "switches. If this is not an interface change on a switch, STOP and post "
         "a one-line note that it is out of scope. Never touch firewalls.",
-        "2. Read the current interface state on the device (pyATS) and the "
-        "intended state from Nautobot (nautobot-sot).",
-        "3. Compute the diff and RENDER the exact config you would apply. "
-        "Dry-run/validate it. Do NOT apply yet.",
+        "2. Do NOT diff prechange vs postchange. Read the INTENDED state from "
+        "Nautobot (nautobot-sot) AND the ACTUAL live state from the device "
+        "(pyATS: 'show running-config interface <if>' and 'show interfaces <if>'), "
+        "then compare intent vs actual across ALL fields: enabled/admin-state, "
+        "mode, access VLAN, trunk allowed VLANs, MTU, description.",
+        "3. ADMIN STATE IS A FIRST-CLASS CHECK: if Nautobot has enabled=false but "
+        "the port is administratively UP on the device (or vice-versa), that is "
+        "drift — propose the shutdown/no shutdown to match intent. A no-op is only "
+        "valid when the device already matches Nautobot on every field; say what "
+        "you compared. Then RENDER the exact config and dry-run it. Do NOT apply.",
         "4. Write the pending change and post a proposal to the Discord alerts "
         "channel asking for `approve <id>` or `deny <id>`.",
         "5. Apply ONLY after an explicit human approval arrives, using the "

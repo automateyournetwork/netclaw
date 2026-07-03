@@ -71,16 +71,46 @@ Generate `id` as `CHG-` + 6 hex chars. Never reuse an id.
 ### 1. Scope check
 Confirm: model is `interface`, device role is a switch. Else → out-of-scope note, stop.
 
-### 2. Read both sides
+### 2. Read both sides — intent vs ACTUAL DEVICE (not the webhook snapshots)
+
+The webhook's prechange/postchange payload is only a **trigger and context**. It
+tells you *which* interface to look at — it is NOT the comparison. Do **not**
+conclude "no-op" because prechange == postchange; a Nautobot edit to one field
+(e.g. description) does not tell you whether the device matches intent on the
+*other* fields. Always read the live device and compare full state.
+
 - **Intent** (Nautobot): use `nautobot-sot` to read the interface's intended
-  state (name, description, enabled, mode, untagged/tagged VLANs, MTU).
-- **Reality** (device): use pyATS to read the live interface, e.g.
+  state — `enabled`, `description`, `mode`, `untagged_vlan`, `tagged_vlans`, `mtu`.
+- **Reality** (device): use pyATS to read the live interface:
   `pyats_run_command(device="<name>", command="show running-config interface <if>")`
-  and `show interfaces <if>`.
+  and `pyats_run_command(device="<name>", command="show interfaces <if>")` (the
+  latter shows the real admin/oper state: `administratively down` vs `up`).
 
 ### 3. Compute the diff + render config
-Diff intent vs reality. Render the **exact** platform config you would push
-(IOS-XE example):
+
+Diff **Nautobot intent vs the live device** across every attribute below. Any
+mismatch is drift, even if the webhook change was unrelated to it.
+
+| Nautobot field | Device config / check | Drift example |
+|----------------|-----------------------|---------------|
+| `enabled: false` | interface is `shutdown` (admin down) | **Nautobot disabled but port is UP → propose `shutdown`** |
+| `enabled: true` | interface is `no shutdown` (admin up) | Nautobot enabled but port shut → propose `no shutdown` |
+| `mode: access` | `switchport mode access` | mode differs |
+| `untagged_vlan` | `switchport access vlan <vid>` | access VLAN differs |
+| `mode: tagged/trunk` | `switchport mode trunk` + allowed VLANs | trunk/allowed differ |
+| `mtu` | `mtu <n>` | MTU differs |
+| `description` | `description <text>` | text differs (low risk) |
+
+**Admin state is a first-class check.** Explicitly compare `enabled` against the
+device's admin state every time. A port that is administratively up while
+Nautobot says `enabled: false` (or vice-versa) is drift and MUST be surfaced —
+propose the `shutdown` / `no shutdown` to match intent.
+
+A genuine no-op is only valid when **the live device already matches Nautobot
+intent on all fields above**. State what you compared (intent vs actual values)
+when you report a no-op — do not claim no-op from the webhook snapshots alone.
+
+Render the **exact** platform config you would push (IOS-XE example):
 
 ```
 interface GigabitEthernet1/0/5
