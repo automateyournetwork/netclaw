@@ -36,6 +36,12 @@ USERNAME = os.getenv("NETCLAW_USERNAME", "admin")
 PASSWORD = os.getenv("NETCLAW_PASSWORD", "admin")
 OUTPUT_PATH = Path(os.getenv("PYATS_TESTBED_PATH", "testbed/testbed.yaml"))
 
+# Legacy SSH key exchange for old Cisco IOS/IOS-XE switches (Catalyst 3850, etc.)
+# that modern OpenSSH refuses by default. Appended to the unicon ssh command.
+LEGACY_SSH_OPTIONS = (
+    "-o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1"
+)
+
 # Map Nautobot platform slugs/network_drivers to pyATS os types
 PLATFORM_MAP = {
     "cisco_ios": "ios",
@@ -142,15 +148,22 @@ def device_to_testbed_entry(device: dict) -> dict | None:
     role_name = role.get("name", "").lower() if isinstance(role, dict) else ""
     device_type = "router" if "router" in role_name or "reflector" in role_name else "switch"
 
+    cli = {
+        "protocol": "ssh",
+        "ip": ip_address,
+    }
+    # Old Cisco IOS/IOS-XE switches (e.g., Catalyst 3850) only negotiate legacy
+    # DH key exchange, which modern OpenSSH rejects. Pass the legacy algorithms so
+    # unicon's ssh handshake succeeds. Harmless on newer boxes ('+' only adds algos).
+    if os_type in ("iosxe", "ios"):
+        cli["ssh_options"] = LEGACY_SSH_OPTIONS
+
     entry = {
         "os": os_type,
         "type": device_type,
         "connections": {
             "defaults": {"class": "unicon.Unicon"},
-            "cli": {
-                "protocol": "ssh",
-                "ip": ip_address,
-            },
+            "cli": cli,
         },
     }
 
@@ -190,6 +203,8 @@ def generate_testbed(devices: list) -> str:
         lines.append(f"      cli:")
         lines.append(f"        protocol: ssh")
         lines.append(f"        ip: {entry['connections']['cli']['ip']}")
+        if entry["connections"]["cli"].get("ssh_options"):
+            lines.append(f"        ssh_options: {entry['connections']['cli']['ssh_options']}")
 
     lines.append("")
     return "\n".join(lines)

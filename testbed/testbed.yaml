@@ -1,151 +1,62 @@
-# Created by NetClaw demo setup - Step 17
+# Auto-generated from Nautobot — do not edit manually
+# Regenerate: .venv/bin/python3 scripts/generate-testbed-from-nautobot.py
+# Source: https://192.168.3.253
+# Devices: 6 active with primary IP
+
 testbed:
-  name: Nautobot-Workshop
+  name: Nautobot-Managed
   credentials:
     default:
-      username: admin
-      password: admin
+      username: "%ENV{NETCLAW_USERNAME}"
+      password: "%ENV{NETCLAW_PASSWORD}"
 
 devices:
-  P1:
+  HomeSwitch01:
     os: iosxe
-    type: router
+    type: switch
     connections:
       defaults:
         class: unicon.Unicon
       cli:
-        command: ssh admin@192.168.220.2
         protocol: ssh
-  P2:
+        ip: 192.168.3.2
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+  HomeSwitch02:
     os: iosxe
-    type: router
+    type: switch
     connections:
+      defaults:
+        class: unicon.Unicon
       cli:
-        command: ssh admin@192.168.220.3
         protocol: ssh
-  P3:
+        ip: 192.168.3.3
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+  U6-Pro - Basement Laundry Room:
     os: iosxe
-    type: router
+    type: switch
     connections:
+      defaults:
+        class: unicon.Unicon
       cli:
-        command: ssh admin@192.168.220.4
         protocol: ssh
-  P4:
+        ip: 192.168.3.15
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+  U6-Pro - Sophies Office:
     os: iosxe
-    type: router
+    type: switch
     connections:
+      defaults:
+        class: unicon.Unicon
       cli:
-        command: ssh admin@192.168.220.5
         protocol: ssh
-  PE1:
-    os: iosxe
-    type: router
+        ip: 192.168.3.16
+        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1
+  r640-pve:
+    os: linux
+    type: switch
     connections:
+      defaults:
+        class: unicon.Unicon
       cli:
-        command: ssh admin@192.168.220.6
         protocol: ssh
-  PE2:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.7
-        protocol: ssh
-  PE3:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.8
-        protocol: ssh
-  CE1:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.9
-        protocol: ssh
-  CE2:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.10
-        protocol: ssh
-  RR1:
-    os: iosxe
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.11
-        protocol: ssh
-  West-Spine01:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.12
-        protocol: ssh
-  West-Spine02:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.13
-        protocol: ssh
-  West-Leaf01:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.14
-        protocol: ssh
-  West-Leaf02:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.15
-        protocol: ssh
-  East-Spine01:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.16
-        protocol: ssh
-  East-Spine02:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.17
-        protocol: ssh
-  East-Leaf01:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.18
-        protocol: ssh
-  East-Leaf02:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.19
-        protocol: ssh
-  DNS-01:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.20
-        protocol: ssh
-  DNS-02:
-    os: eos
-    type: router
-    connections:
-      cli:
-        command: ssh admin@192.168.220.21
-        protocol: ssh
+        ip: 192.168.100.20
