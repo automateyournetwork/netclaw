@@ -14,6 +14,8 @@ Alertmanager webhook config (on OBS VM):
 """
 
 import asyncio
+import hashlib
+import hmac
 import json
 import logging
 import os
@@ -48,6 +50,26 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # `openclaw message send` bridge). Distinct from DISCORD_WEBHOOK_URL, which is
 # the receiver's immediate "alert received" notice.
 DISCORD_ALERT_CHANNEL_ID = os.getenv("DISCORD_ALERT_CHANNEL_ID", "")
+
+# ---------------------------------------------------------------------------
+# Nautobot intent-reconcile (webhook → propose → Discord approval → apply).
+# Opt-in and deliberately narrow: the webhook fires for ALL interface changes,
+# but the receiver only proposes for allowed models on allowed device roles.
+# Nothing applies without an explicit Discord approval (handled by the agent).
+# ---------------------------------------------------------------------------
+RECONCILE_ENABLED = os.getenv("RECONCILE_ENABLED", "false").lower() in ("1", "true", "yes")
+NAUTOBOT_WEBHOOK_SECRET = os.getenv("NAUTOBOT_WEBHOOK_SECRET", "")
+# Nautobot object models we act on (comma-separated). Start: interface only.
+RECONCILE_ALLOWED_MODELS = [
+    m.strip().lower() for m in os.getenv("RECONCILE_ALLOWED_MODELS", "interface").split(",") if m.strip()
+]
+# Device roles the agent is allowed to touch (comma-separated, case-insensitive
+# substring match against the Nautobot role). Switches only to start.
+RECONCILE_ALLOWED_ROLES = [
+    r.strip().lower() for r in os.getenv("RECONCILE_ALLOWED_ROLES", "switch").split(",") if r.strip()
+]
+# Discord channel for reconcile proposals/approvals (defaults to the alert channel).
+RECONCILE_CHANNEL_ID = os.getenv("RECONCILE_CHANNEL_ID", os.getenv("DISCORD_ALERT_CHANNEL_ID", ""))
 
 # Local inventory fallback (hostname → device info)
 INVENTORY_FILE = Path(__file__).parent / "inventory.yaml"
@@ -551,6 +573,146 @@ app = FastAPI(
 @app.get("/health")
 async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+# ---------------------------------------------------------------------------
+# Nautobot webhook → intent-reconcile proposal
+# ---------------------------------------------------------------------------
+
+
+def _verify_nautobot_signature(raw_body: bytes, signature: str) -> bool:
+    """Nautobot signs the raw body with HMAC-SHA512 (X-Hook-Signature header)."""
+    if not NAUTOBOT_WEBHOOK_SECRET:
+        # No secret configured: refuse rather than trust an unsigned change.
+        return False
+    if not signature:
+        return False
+    expected = hmac.new(
+        NAUTOBOT_WEBHOOK_SECRET.encode("utf-8"), raw_body, hashlib.sha512
+    ).hexdigest()
+    return hmac.compare_digest(expected, signature.strip())
+
+
+@app.post("/nautobot-webhook")
+async def nautobot_webhook(request: Request, background_tasks: BackgroundTasks):
+    """Receive a Nautobot change webhook, gate it, and propose a reconcile.
+
+    The webhook may fire for ALL interface changes; we only propose for allowed
+    models on allowed device roles. Nothing is applied here — the agent posts a
+    proposal to Discord and waits for explicit approval.
+    """
+    raw = await request.body()
+    sig = request.headers.get("X-Hook-Signature", "")
+
+    if not RECONCILE_ENABLED:
+        return {"status": "disabled"}
+
+    if not _verify_nautobot_signature(raw, sig):
+        log.warning("Nautobot webhook rejected: bad or missing HMAC signature")
+        return {"status": "rejected", "reason": "signature"}
+
+    try:
+        payload = json.loads(raw.decode("utf-8"))
+    except (ValueError, UnicodeDecodeError) as e:
+        log.error(f"Nautobot webhook parse error: {e}")
+        return {"status": "error", "message": "invalid json"}
+
+    model = str(payload.get("model", "")).lower()
+    event = str(payload.get("event", "")).lower()  # created | updated | deleted
+    if model not in RECONCILE_ALLOWED_MODELS:
+        log.info(f"Nautobot webhook ignored: model '{model}' not in scope")
+        return {"status": "ignored", "reason": "model-out-of-scope"}
+
+    background_tasks.add_task(process_nautobot_change, payload, model, event)
+    return {"status": "accepted", "model": model, "event": event,
+            "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+def _role_allowed(role: str) -> bool:
+    role = (role or "").lower()
+    return any(r in role for r in RECONCILE_ALLOWED_ROLES)
+
+
+async def process_nautobot_change(payload: dict, model: str, event: str):
+    """Resolve the device, gate by role, and hand a reconcile proposal to NetClaw."""
+    data = payload.get("data") or {}
+    snapshots = payload.get("snapshots") or {}
+
+    # Extract the device name from the interface object.
+    dev = data.get("device") or {}
+    device_name = dev.get("name") if isinstance(dev, dict) else (dev or "")
+    if not device_name:
+        log.warning("Nautobot webhook: could not resolve device name — skipping")
+        return
+
+    device_info = await lookup_device(device_name)
+    if not _role_allowed(device_info.get("role", "")):
+        log.info(f"Nautobot change on {device_name} (role="
+                 f"{device_info.get('role')}) not in allowed roles — skipping")
+        return
+
+    prompt = build_reconcile_prompt(model, event, data, snapshots, device_info)
+
+    if OPENCLAW_GATEWAY_URL and OPENCLAW_HOOK_TOKEN:
+        try:
+            body = {
+                "event": event,
+                "model": model,
+                "device": device_info,
+                "annotations": {"reconcile_prompt": prompt},
+            }
+            async with httpx.AsyncClient(timeout=30) as client:
+                resp = await client.post(
+                    f"{OPENCLAW_GATEWAY_URL}/hooks/reconcile",
+                    json=body,
+                    headers={"Authorization": f"Bearer {OPENCLAW_HOOK_TOKEN}",
+                             "Content-Type": "application/json"},
+                )
+                if resp.status_code in (200, 202):
+                    log.info(f"Reconcile proposal triggered: {model} {event} on {device_name}")
+                else:
+                    log.error(f"Gateway /hooks/reconcile returned {resp.status_code}: {resp.text[:200]}")
+        except Exception as e:
+            log.error(f"Failed to trigger reconcile: {e}")
+    else:
+        log.warning("No OpenClaw gateway configured — logging reconcile prompt")
+        log.info(f"RECONCILE PROMPT:\n{prompt}")
+
+
+def build_reconcile_prompt(model: str, event: str, data: dict,
+                           snapshots: dict, device_info: dict) -> str:
+    iface = data.get("name", "?")
+    pre = (snapshots.get("prechange") or {})
+    post = (snapshots.get("postchange") or {})
+    parts = [
+        f"NAUTOBOT INTENT CHANGE — {model} {event}",
+        f"Device: {device_info['name']} ({device_info['ip']}) | "
+        f"role={device_info['role']} platform={device_info['platform']}",
+        f"Interface: {iface}",
+        "",
+        "Prechange (Nautobot):",
+        json.dumps(pre, indent=2, default=str)[:1500] if pre else "  (none — created)",
+        "",
+        "Postchange (Nautobot):",
+        json.dumps(post, indent=2, default=str)[:1500] if post else "  (none — deleted)",
+        "",
+        "INSTRUCTIONS — follow the intent-reconcile skill:",
+        "1. SCOPE GUARD: you may only reconcile DEVICE INTERFACE changes on "
+        "switches. If this is not an interface change on a switch, STOP and post "
+        "a one-line note that it is out of scope. Never touch firewalls.",
+        "2. Read the current interface state on the device (pyATS) and the "
+        "intended state from Nautobot (nautobot-sot).",
+        "3. Compute the diff and RENDER the exact config you would apply. "
+        "Dry-run/validate it. Do NOT apply yet.",
+        "4. Write the pending change and post a proposal to the Discord alerts "
+        "channel asking for `approve <id>` or `deny <id>`.",
+        "5. Apply ONLY after an explicit human approval arrives, using the "
+        "pyats-config-mgmt baseline→apply→verify→rollback workflow.",
+    ]
+    if RECONCILE_CHANNEL_ID:
+        parts.append(f"6. Post the proposal (and later the result) to Discord "
+                     f"channel {RECONCILE_CHANNEL_ID} via `openclaw message send`.")
+    return "\n".join(parts)
 
 
 @app.post("/webhook")
