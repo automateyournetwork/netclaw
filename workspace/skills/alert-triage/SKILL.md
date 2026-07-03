@@ -34,17 +34,30 @@ NetFlow, install a flow exporter, or SSH into pfSense to run `pfTop`/`netflow sh
 that infrastructure is already running. To find **what a host is connecting to
 (destination IP, port, protocol)**, query the existing flow data:
 
-- **goflow2** receives IPFIX on `4739/udp` → writes `/tmp/netflow-data` → shipped to Loki.
-- **Loki** (via `grafana-mcp`, Loki datasource):
+- **goflow2** (`v2.1.3`, `-format=json`) receives IPFIX on `4739/udp` → writes
+  `/flows/netflow.jsonl` → OTel collector tails it → Loki (`service_name="netflow"`).
+- **Loki** (via `grafana-mcp`, Loki datasource). goflow2 v2 emits **snake_case** JSON
+  keys (NOT the PascalCase `SrcAddr` in some older dashboards):
   ```logql
-  {service_name="netflow"} | json | SrcAddr="192.168.100.45"
+  {service_name="netflow"} | json | src_addr="192.168.100.45"
+  {service_name="netflow"} | json | dst_port="179" | proto="TCP"
   ```
-  Fields: `SrcAddr`, `DstAddr`, `SrcPort`, `DstPort`, `Proto`, `SamplerAddress`, `Bytes`.
-- **VictoriaMetrics** (via `grafana-mcp`): `goflow2_*` counters for volume/rate.
+  Fields: `src_addr`, `dst_addr`, `src_port`, `dst_port`, `proto`, `sampler_address`,
+  `bytes`, `packets`, `etype`, `type`, `time_received_ns`.
+  Note: `proto` and `etype` are **strings** (`"TCP"`, `"IPv6"`) — filter with quotes
+  (`dst_port="179"`), a numeric filter like `dst_port=179` will not match.
+- **VictoriaMetrics** (via `grafana-mcp`, `192.168.3.250:8428`): `goflow2_*` counters
+  for volume/rate, labels `sampler_address`, `dst_port`, etc.
 - Grafana dashboard: `lab-network/netflow-traffic.json`.
 
-If a flow query returns nothing, confirm data is actually flowing (query without a
-filter for the last 5m) before concluding it's unavailable — say what you checked.
+**Verify before relying on it:** the NetFlow overlay is defined but may not always be
+running. Before concluding, check data is actually present — query
+`{service_name="netflow"}` (no filter) for the last 5m, or check VictoriaMetrics for
+`goflow2_flow_traffic_packets_total`. If both are empty, NetFlow is down/not exporting;
+say so and fall back to `search_firewall_states` (live pfSense connections). Do not
+tell the user to "enable NetFlow" — the pipeline exists; if it's empty it needs
+restarting (`docker compose ... -f docker-compose.netflow.yml up -d` on the OBS host)
+or pfSense isn't sending IPFIX to `192.168.3.250:4739`.
 
 ## Alert Context
 
