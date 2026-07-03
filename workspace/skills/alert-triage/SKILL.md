@@ -19,12 +19,32 @@ Investigate alerts received from the observability stack (Prometheus → Alertma
 
 ## Observability Stack
 
-| Service | Address | Use |
-|---------|---------|-----|
-| Prometheus | http://192.168.3.250:9090 | Query metrics, check targets |
-| Grafana | http://192.168.3.250:3000 | Dashboards (anonymous viewer) |
-| Loki | http://192.168.3.250:3100 | Query logs |
-| Alertmanager | http://192.168.3.250:9093 | Check firing alerts |
+| Service | Address | Query via | Use |
+|---------|---------|-----------|-----|
+| Prometheus | http://192.168.3.250:9090 | `prometheus-mcp` | Metrics, targets, `up`/probe status |
+| Grafana | http://192.168.3.250:3000 | `grafana-mcp` | Dashboards + query Loki/VictoriaMetrics datasources |
+| Loki | http://192.168.3.250:3100 | `grafana-mcp` (Loki datasource) | Logs, syslog, **NetFlow flow records** |
+| VictoriaMetrics | (Grafana datasource) | `grafana-mcp` | `goflow2_*` flow metrics |
+| Alertmanager | http://192.168.3.250:9093 | HTTP `/api/v2/alerts` | Check firing alerts |
+
+### NetFlow / connection data (IMPORTANT — this exists, use it)
+
+The home network already exports flow data. Do **not** tell the user to enable
+NetFlow, install a flow exporter, or SSH into pfSense to run `pfTop`/`netflow show` —
+that infrastructure is already running. To find **what a host is connecting to
+(destination IP, port, protocol)**, query the existing flow data:
+
+- **goflow2** receives IPFIX on `4739/udp` → writes `/tmp/netflow-data` → shipped to Loki.
+- **Loki** (via `grafana-mcp`, Loki datasource):
+  ```logql
+  {service_name="netflow"} | json | SrcAddr="192.168.100.45"
+  ```
+  Fields: `SrcAddr`, `DstAddr`, `SrcPort`, `DstPort`, `Proto`, `SamplerAddress`, `Bytes`.
+- **VictoriaMetrics** (via `grafana-mcp`): `goflow2_*` counters for volume/rate.
+- Grafana dashboard: `lab-network/netflow-traffic.json`.
+
+If a flow query returns nothing, confirm data is actually flowing (query without a
+filter for the last 5m) before concluding it's unavailable — say what you checked.
 
 ## Alert Context
 
@@ -37,6 +57,30 @@ When triggered by the alert receiver, you will receive:
 - **severity** — critical, warning, info
 - **summary** — human-readable description
 - **status** — firing or resolved
+
+## Investigation Principles (read first)
+
+1. **Use the data you already have before recommending new tooling.** Before you
+   suggest "enable X", "install a flow exporter", "forward syslog", or "SSH in and
+   run Y", check whether that capability already exists. This network already has:
+   pfSense MCP (ARP, DHCP, states, logs, NAT), NetFlow (goflow2 → Loki/VictoriaMetrics),
+   Prometheus, Loki, Grafana, SNMP. Recommending something already configured is a
+   failure, not a help.
+2. **Reach for an MCP tool before declaring "I can't."** Never say "I can't SSH into
+   pfSense" as a dead end — the `pfsense-mcp` answers ARP, DHCP leases, firewall
+   states, NAT, and logs over its REST API. If you don't know a tool exists, list
+   your available tools before concluding data is unavailable.
+3. **State what you checked.** If a query returns empty, say what you queried and the
+   window. Do not fabricate a root cause (e.g. "syslog only maps 192.168.220.x") from
+   a guess — verify against the live config or data before asserting it.
+4. **Match the tool to the question:**
+   | Question | Tool |
+   |----------|------|
+   | What is host X connecting to / on what port? | NetFlow (Loki `{service_name="netflow"}`) + `search_firewall_states` |
+   | What/where is host X (IP, MAC, name)? | `get_arp_table`, `search_dhcp_leases` |
+   | What's the LAN/DHCP lease range? | `get_dhcp_server_config` |
+   | Why is X being blocked? | `diagnose_blocked_traffic`, `get_firewall_log` |
+   | Is the block count real/excessive? | `analyze_blocked_traffic` (compare to threshold) |
 
 ## Procedure
 
@@ -75,12 +119,32 @@ Based on **device_platform**:
 
 #### pfSense (`platform: pfsense`)
 
-Use pfSense MCP tools:
-- `get_system_status` — uptime, CPU, memory, disk
-- `get_interfaces` — interface states, IPs, traffic
-- `get_firewall_rules` — recent rule changes
-- `get_services` — service states (DNS, DHCP, OpenVPN)
-- `get_system_logs` — recent system/firewall logs
+Use the `pfsense-mcp` tools (these are the real tool names — you do NOT need SSH):
+
+Health / config:
+- `system_status` — uptime, CPU, memory, disk, temp, version
+- `search_interfaces` / `search_interface_configs` — interface states, IPs, traffic
+- `search_firewall_rules` / `find_blocked_rules` — active ruleset, block/reject rules
+- `search_services` — service states (DNS, DHCP, unbound, OpenVPN)
+
+Who/where is a host (answers "what is host X, what's it connecting to, what's its IP"):
+- `get_arp_table` — live IP↔MAC on each interface (filter by `ip_address` / `mac_address`)
+- `search_dhcp_leases` — active/expired leases (hostname, IP, MAC)
+- `get_dhcp_server_config` — the DHCP pool ranges per interface (answers "what's the LAN lease range")
+- `search_firewall_states` — live active connections (source, dest, port, proto, state)
+- `search_nat_port_forwards` / `search_nat_outbound_mappings` — NAT translations
+
+Logs / blocked traffic:
+- `get_firewall_log` — filterlog entries (filter by source/dest IP, port, protocol, action)
+- `search_logs_by_ip` — all log activity for one IP
+- `analyze_blocked_traffic` — grouped block analysis with threat scoring
+- `diagnose_blocked_traffic` — why a specific source is being blocked (rules + log + alias)
+- `diagnose_connectivity` — ping + ARP + gateway check to a target
+
+For "what port / where is host X connecting?" prefer **NetFlow** (see NetFlow
+section) for historical flows, and `search_firewall_states` for live connections.
+The pfSense filterlog only records what the firewall *blocked or passed by rule* —
+NetFlow is the authoritative source for full connection detail.
 
 #### Cisco IOS/IOS-XE (`platform: ios` or `iosxe`)
 
@@ -179,6 +243,16 @@ When triggered by the alert receiver webhook:
 2. Do NOT remediate — investigation and reporting only
 3. Always produce the Step 6 triage report
 4. If alert status is "resolved", post a brief all-clear
+
+## Interactive Follow-ups
+
+After a triage, the user often asks follow-up questions ("what port is X connecting
+to?", "what's the DHCP range?", "look at the ARP table"). The Investigation
+Principles apply here too:
+- Answer with the MCP tool that fits the question (see the table above), don't
+  default to "SSH in and run this command."
+- If the user says "we already have X configured, why aren't you using it?" —
+  they're right. Stop recommending, query the existing data source, and answer.
 
 ## Escalation
 
