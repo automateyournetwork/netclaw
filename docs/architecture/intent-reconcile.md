@@ -11,6 +11,9 @@ drift between Nautobot intent and live switches (read-only).
 **Scope (today): device interface changes on switches only. Firewalls never.
 VLAN create/update/delete is a planned next phase.**
 
+> **Setting it up?** See the step-by-step runbook (config, webhook creation, SSH,
+> testing, troubleshooting): `docs/runbooks/intent-reconcile-webhook-setup.md`.
+
 - Receiver endpoint: `scripts/alert-receiver/server.py` → `/nautobot-webhook`
 - Skill: `workspace/skills/intent-reconcile/SKILL.md`
 - Gateway hook mapping: `reconcile` (in `openclaw.json`)
