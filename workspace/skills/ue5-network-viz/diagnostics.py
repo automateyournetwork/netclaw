@@ -14,18 +14,16 @@ from typing import Optional
 try:
     from .ue5_mcp_client import UE5MCPClient
     from .actors import (
-        apply_actor_color,
-        generate_device_actor_name,
-        generate_link_actor_name,
+        apply_color_by_hostname,
+        apply_color_by_link_id,
         is_device_in_topology,
     )
     from .telemetry import record_history
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient
     from actors import (
-        apply_actor_color,
-        generate_device_actor_name,
-        generate_link_actor_name,
+        apply_color_by_hostname,
+        apply_color_by_link_id,
         is_device_in_topology,
     )
     from telemetry import record_history
@@ -58,14 +56,13 @@ async def animate_ping(
 
     color = PING_SUCCESS_COLOR if success else PING_FAILURE_COLOR
 
-    await apply_actor_color(client, generate_device_actor_name(source_hostname), color, emissive_intensity=2.0)
+    await apply_color_by_hostname(client, source_hostname, color, emissive_intensity=2.0)
     await asyncio.sleep(HOP_ILLUMINATE_DELAY_SECONDS)
     # Best-effort: only lights up if a direct link actor exists between these
-    # two devices. A multi-hop ping with no direct link simply skips this
-    # step (apply_actor_color no-ops when it can't find the named actor).
-    await apply_actor_color(client, generate_link_actor_name(source_hostname, target_hostname), color, emissive_intensity=2.0)
+    # two devices. A multi-hop ping with no direct link simply skips this step.
+    await apply_color_by_link_id(client, source_hostname, target_hostname, color, emissive_intensity=2.0)
     await asyncio.sleep(HOP_ILLUMINATE_DELAY_SECONDS)
-    await apply_actor_color(client, generate_device_actor_name(target_hostname), color, emissive_intensity=2.0)
+    await apply_color_by_hostname(client, target_hostname, color, emissive_intensity=2.0)
 
     record_history(
         f"{source_hostname}->{target_hostname}", "health", None,
@@ -96,7 +93,7 @@ async def animate_traceroute(client: UE5MCPClient, hops: list[dict]) -> dict:
             continue
 
         color = PING_SUCCESS_COLOR if reached else PING_FAILURE_COLOR
-        await apply_actor_color(client, generate_device_actor_name(hostname), color, emissive_intensity=2.0)
+        await apply_color_by_hostname(client, hostname, color, emissive_intensity=2.0)
         animated.append(hostname)
         await asyncio.sleep(HOP_ILLUMINATE_DELAY_SECONDS)
 

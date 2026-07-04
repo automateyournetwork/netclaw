@@ -29,14 +29,31 @@ class SceneState:
     # Mapping of hostname to actor name for devices
     device_actors: dict[str, str] = field(default_factory=dict)
 
+    # Mapping of hostname to the REAL actor reference ({"refPath": ...})
+    # captured at spawn time (045-ue5-digital-twin, live-discovered
+    # 2026-07-03). The requested spawn "name" (generate_device_actor_name's
+    # "NC_..." string) is NOT what UE5 actually names or labels the actor —
+    # the label ends up being the bare hostname, and the internal object
+    # name is UE5's own auto-generated one (e.g. "StaticMeshActor_34").
+    # Reconstructing a refPath from the generated name therefore never
+    # resolves to the real actor; this is the only reliable handle for any
+    # post-spawn operation (recoloring, removal) on a specific actor.
+    device_refs: dict[str, dict] = field(default_factory=dict)
+
     # Mapping of link_id to actor name for links
     link_actors: dict[str, str] = field(default_factory=dict)
+
+    # Mapping of link_id to its real actor reference — see device_refs.
+    link_refs: dict[str, dict] = field(default_factory=dict)
 
     # Mapping of "{hostname}:{interface_name}" to actor name for up/up
     # interface actors (045-ue5-digital-twin). Only up/up interfaces get an
     # entry here — down interfaces are tracked separately (see below) and
     # never get an individual actor, to bound total actor count.
     interface_actors: dict[str, str] = field(default_factory=dict)
+
+    # Mapping of "{hostname}:{interface_name}" to its real actor reference — see device_refs.
+    interface_refs: dict[str, dict] = field(default_factory=dict)
 
     # Mapping of hostname to a list of that device's down interface names,
     # for the compact down-interface summary (spec FR-002) rather than one
@@ -82,19 +99,35 @@ def update_scene_timestamp() -> None:
 # Actor Tracking
 # =============================================================================
 
-def register_device_actor(hostname: str, actor_name: str, position: list[float]) -> None:
+def register_device_actor(
+    hostname: str,
+    actor_name: str,
+    position: list[float],
+    ref_path: Optional[str] = None,
+) -> None:
     """
     Register a spawned device actor for tracking.
 
     Args:
         hostname: Device hostname
-        actor_name: UE5 actor name
+        actor_name: UE5 actor name (requested at spawn time — see device_refs'
+            docstring for why this is NOT reliable for later lookups)
         position: Device position [x, y, z]
+        ref_path: The REAL actor reference captured from the spawn call's own
+            response, if available — the only reliable handle for recoloring
+            or removing this specific actor later.
     """
     state = get_scene_state()
     state.device_actors[hostname] = actor_name
     state.device_positions[hostname] = position
+    if ref_path:
+        state.device_refs[hostname] = {"refPath": ref_path}
     update_scene_timestamp()
+
+
+def get_device_ref(hostname: str) -> Optional[dict]:
+    """Get the real actor reference for a tracked device, if captured at spawn time."""
+    return get_scene_state().device_refs.get(hostname)
 
 
 def unregister_device_actor(hostname: str) -> None:
@@ -110,17 +143,25 @@ def unregister_device_actor(hostname: str) -> None:
     update_scene_timestamp()
 
 
-def register_link_actor(link_id: str, actor_name: str) -> None:
+def register_link_actor(link_id: str, actor_name: str, ref_path: Optional[str] = None) -> None:
     """
     Register a spawned link actor for tracking.
 
     Args:
         link_id: Link identifier (source_target)
-        actor_name: UE5 actor name
+        actor_name: UE5 actor name (requested at spawn time)
+        ref_path: The REAL actor reference captured from the spawn call's own response, if available.
     """
     state = get_scene_state()
     state.link_actors[link_id] = actor_name
+    if ref_path:
+        state.link_refs[link_id] = {"refPath": ref_path}
     update_scene_timestamp()
+
+
+def get_link_ref(link_id: str) -> Optional[dict]:
+    """Get the real actor reference for a tracked link, if captured at spawn time."""
+    return get_scene_state().link_refs.get(link_id)
 
 
 def unregister_link_actor(link_id: str) -> None:
@@ -135,11 +176,24 @@ def unregister_link_actor(link_id: str) -> None:
     update_scene_timestamp()
 
 
-def register_interface_actor(hostname: str, interface_name: str, actor_name: str) -> None:
+def register_interface_actor(
+    hostname: str,
+    interface_name: str,
+    actor_name: str,
+    ref_path: Optional[str] = None,
+) -> None:
     """Register a spawned up/up interface actor for tracking (045-ue5-digital-twin)."""
     state = get_scene_state()
-    state.interface_actors[f"{hostname}:{interface_name}"] = actor_name
+    key = f"{hostname}:{interface_name}"
+    state.interface_actors[key] = actor_name
+    if ref_path:
+        state.interface_refs[key] = {"refPath": ref_path}
     update_scene_timestamp()
+
+
+def get_interface_ref(hostname: str, interface_name: str) -> Optional[dict]:
+    """Get the real actor reference for a tracked interface, if captured at spawn time."""
+    return get_scene_state().interface_refs.get(f"{hostname}:{interface_name}")
 
 
 def unregister_interface_actor(hostname: str, interface_name: str) -> None:

@@ -78,6 +78,7 @@ STATIC_MESH_PATHS = {
 
 # StaticMeshActor class path (for spawning empty actors)
 STATIC_MESH_ACTOR_CLASS = "/Script/Engine.StaticMeshActor"
+TEXT_RENDER_ACTOR_CLASS = "/Script/Engine.TextRenderActor"
 
 # Default device shapes by type
 DEVICE_SHAPES = {
@@ -105,9 +106,21 @@ LAYER_HEIGHTS = {
     "unknown": 100,      # Default middle
 }
 
-# Base scale for device actors (larger for visibility)
-DEFAULT_DEVICE_SCALE = {"x": 100, "y": 100, "z": 100}  # 1 meter cubes
-DEFAULT_LINK_SCALE = {"x": 10, "y": 10, "z": 100}      # Thin cylinders
+# Base scale for device actors.
+#
+# LIVE-DISCOVERED 2026-07-03: /Engine/BasicShapes/Cube.Cube (and Sphere/
+# Cylinder/Cone) are already 100cm (1m) per side/diameter at scale=1.0 —
+# confirmed live via ActorTools.get_actor_bounds, which returned an exact
+# 10000x10000x10000cm (100m) bounding box for a device spawned at the old
+# scale=100. Every device in every render this whole feature has ever
+# produced has actually been a 100-METER cube, not the "1 meter cube" the
+# old comment claimed — massively overlapping at any layout spacing under
+# ~200m, and dwarfing every position offset (labels, interface rings,
+# camera framing) tuned elsewhere in this codebase assuming human-scale
+# objects. Fixed by using scale=1.0 directly, which now really does give a
+# 1-meter cube.
+DEFAULT_DEVICE_SCALE = {"x": 1.0, "y": 1.0, "z": 1.0}  # 1 meter cubes (for real, this time)
+DEFAULT_LINK_SCALE = {"x": 0.1, "y": 0.1, "z": 1.0}    # Thin cylinders
 
 # Spacing between devices
 DEVICE_SPACING_X = 400  # 4 meters between devices horizontally
@@ -128,7 +141,7 @@ class ActorInfo:
     ref_path: str  # Full actor reference path
     location: dict  # {"x": float, "y": float, "z": float}
     rotation: dict = field(default_factory=lambda: {"pitch": 0, "yaw": 0, "roll": 0})
-    scale: dict = field(default_factory=lambda: {"x": 100, "y": 100, "z": 100})
+    scale: dict = field(default_factory=lambda: {"x": 1.0, "y": 1.0, "z": 1.0})
     tags: list[str] = field(default_factory=list)
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -342,8 +355,8 @@ async def spawn_device_actor(
     if location[2] == 0:  # If Z not specified, use default height for device type
         location[2] = LAYER_HEIGHTS.get(device_type, LAYER_HEIGHTS["unknown"])
 
-    # Build transform with larger scale for visibility
-    scale_list = scale or [100, 100, 100]
+    # Build transform (base mesh is already 100cm/1m at scale=1.0 — see DEFAULT_DEVICE_SCALE's note)
+    scale_list = scale or [1.0, 1.0, 1.0]
     xform = make_transform(location, scale=scale_list)
 
     # Step 1: Spawn empty StaticMeshActor using add_to_scene_from_class
@@ -373,17 +386,22 @@ async def spawn_device_actor(
     # Step 2: Load the mesh asset
     loaded_mesh = await load_mesh_asset(client, mesh_path)
 
-    # Step 3: Assign mesh to actor using set_properties
-    # CRITICAL: Use 'staticMesh' (lowercase 's') and pass the loaded asset object
+    # Step 3: Assign mesh to the actor's StaticMeshComponent using set_properties
+    # LIVE-DISCOVERED 2026-07-03: 'staticMesh' is a property of the mesh
+    # COMPONENT, not the actor itself — setting it on `actor_ref` directly
+    # silently no-ops (confirmed live: staticMesh stayed "None" after this
+    # call). Must resolve the StaticMeshComponent via get_components first.
     if loaded_mesh:
-        await client.call_tool(
-            toolset_name=OBJECT_TOOLSET,
-            tool_name=TOOL_SET_PROPERTIES,
-            arguments={
-                "instance": actor_ref,
-                "values": json.dumps({"staticMesh": loaded_mesh})
-            },
-        )
+        mesh_component = await get_mesh_component(client, actor_ref)
+        if mesh_component:
+            await client.call_tool(
+                toolset_name=OBJECT_TOOLSET,
+                tool_name=TOOL_SET_PROPERTIES,
+                arguments={
+                    "instance": mesh_component,
+                    "values": json.dumps({"staticMesh": loaded_mesh})
+                },
+            )
 
     # Step 4: Set label/tag for the actor
     await client.call_tool(
@@ -395,13 +413,21 @@ async def spawn_device_actor(
         },
     )
 
-    # Add netclaw tag
+    # Add tags
     await client.call_tool(
         toolset_name=ACTOR_TOOLSET,
         tool_name=TOOL_ADD_TAG,
         arguments={
             "actor": actor_ref,
             "tag": NETCLAW_TAG,
+        },
+    )
+    await client.call_tool(
+        toolset_name=ACTOR_TOOLSET,
+        tool_name=TOOL_ADD_TAG,
+        arguments={
+            "actor": actor_ref,
+            "tag": "device",
         },
     )
 
@@ -483,10 +509,14 @@ def calculate_link_transform(
         yaw = 0
         pitch = 90 if dz < 0 else -90
 
-    # Scale: thin cylinder with length matching distance
-    # Default cylinder is 100 units, scale Z proportionally
+    # Scale: thin cylinder with length matching distance. The base cylinder
+    # mesh is 100cm (1m) tall/wide at scale=1.0 (see DEFAULT_DEVICE_SCALE's
+    # note) — scale_z=distance/100 was already correct for length, but the
+    # thickness (x/y) was hardcoded to 10, which is 10x the mesh's own
+    # 100cm diameter = a 10-meter-thick "thin cylinder". Fixed to 0.1 (10cm
+    # diameter), an actually-thin link relative to a 1m device.
     scale_z = max(distance / 100, 0.1)
-    scale = [10, 10, scale_z]  # Thin visible cylinder
+    scale = [0.1, 0.1, scale_z]  # Thin visible cylinder
 
     return [mid_x, mid_y, mid_z], [pitch, yaw, 0], scale
 
@@ -543,26 +573,45 @@ async def spawn_link_actor(
     if not actor_ref:
         return False, None
 
-    # Step 2: Load and assign cylinder mesh
+    # Step 2: Load and assign cylinder mesh to the StaticMeshComponent (not
+    # the actor — see the note in spawn_device_actor for why).
     loaded_mesh = await load_mesh_asset(client, mesh_path)
 
     if loaded_mesh:
-        await client.call_tool(
-            toolset_name=OBJECT_TOOLSET,
-            tool_name=TOOL_SET_PROPERTIES,
-            arguments={
-                "instance": actor_ref,
-                "values": json.dumps({"staticMesh": loaded_mesh})
-            },
-        )
+        mesh_component = await get_mesh_component(client, actor_ref)
+        if mesh_component:
+            await client.call_tool(
+                toolset_name=OBJECT_TOOLSET,
+                tool_name=TOOL_SET_PROPERTIES,
+                arguments={
+                    "instance": mesh_component,
+                    "values": json.dumps({"staticMesh": loaded_mesh})
+                },
+            )
 
-    # Step 3: Add tag
+    # Step 3: Set label and add tag
+    await client.call_tool(
+        toolset_name=ACTOR_TOOLSET,
+        tool_name=TOOL_SET_LABEL,
+        arguments={
+            "actor": actor_ref,
+            "label": f"{source_hostname}-{target_hostname}",
+        },
+    )
     await client.call_tool(
         toolset_name=ACTOR_TOOLSET,
         tool_name=TOOL_ADD_TAG,
         arguments={
             "actor": actor_ref,
             "tag": NETCLAW_TAG,
+        },
+    )
+    await client.call_tool(
+        toolset_name=ACTOR_TOOLSET,
+        tool_name=TOOL_ADD_TAG,
+        arguments={
+            "actor": actor_ref,
+            "tag": "link",
         },
     )
 
@@ -602,6 +651,170 @@ async def destroy_link_actor(
     )
 
     return result.success
+
+
+# =============================================================================
+# Label and Interface Actors (per-actor tool calls, no scripting required)
+# =============================================================================
+#
+# LIVE-DISCOVERED 2026-07-03: TextRenderActor spawning and interface actors
+# were originally only implemented inside the execute_tool_script batch
+# path — unusable on a build where the script sandbox blocks `import
+# unreal`. These are the per-actor equivalents, built from the same
+# confirmed-working tool calls as spawn_device_actor/spawn_link_actor, so
+# labels/interfaces work on any build.
+
+INTERFACE_OFFSET_RADIUS = 60.0   # cm - small ring around the parent device
+INTERFACE_SCALE = [0.2, 0.2, 0.2]  # small sphere (base mesh is 100cm/1m at scale=1.0 — see DEFAULT_DEVICE_SCALE's note)
+
+
+async def spawn_label_actor(
+    client: UE5MCPClient,
+    text: str,
+    location: list[float],
+    world_size: float = 80.0,
+    rgb: Optional[list[float]] = None,
+    actor_name: Optional[str] = None,
+) -> tuple[bool, Optional[dict]]:
+    """
+    Spawn a 3D text label (TextRenderActor). Returns (success, actor_ref) —
+    the real spawn-time reference, not a reconstructed name (see the
+    module-level note on apply_actor_color for why that distinction matters).
+    """
+    # LIVE-DISCOVERED 2026-07-03: TextRenderComponent only reads correctly
+    # from one side of its plane — at rotation [0,0,0] it read mirrored from
+    # camera.py's default overview camera position (which sits at
+    # center - offset in both X and Y, per calculate_overview_position).
+    # Facing yaw=225 (toward -X,-Y) points the readable side at that default
+    # viewpoint. Not a per-request camera-facing solution, just a better
+    # default than facing away from where NetClaw actually looks first.
+    xform = make_transform(location, rotation=[0, 225, 0], scale=[1, 1, 1])
+    spawn_result = await client.call_tool(
+        toolset_name=SCENE_TOOLSET,
+        tool_name=TOOL_ADD_FROM_CLASS,
+        arguments={
+            "actor_type": {"refPath": TEXT_RENDER_ACTOR_CLASS},
+            "name": actor_name or f"NC_Label_{text}",
+            "xform": xform,
+            "snap_to_ground": False,
+        },
+    )
+    if not spawn_result.success:
+        return False, None
+
+    data = spawn_result.data
+    actor_ref = data.get("returnValue") if isinstance(data, dict) else None
+    if not actor_ref:
+        return False, None
+
+    comp_result = await client.call_tool(
+        toolset_name=ACTOR_TOOLSET, tool_name="get_components", arguments={"actor": actor_ref},
+    )
+    comp_data = comp_result.data
+    if isinstance(comp_data, str):
+        try:
+            comp_data = json.loads(comp_data)
+        except (json.JSONDecodeError, ValueError):
+            comp_data = None
+    comps = comp_data.get("returnValue", comp_data) if isinstance(comp_data, dict) else comp_data
+    if not isinstance(comps, list):
+        comps = []
+
+    text_component = None
+    billboard_component = None
+    for comp in comps:
+        cls_result = await client.call_tool(toolset_name=OBJECT_TOOLSET, tool_name="get_class", arguments={"instance": comp})
+        cls_data = cls_result.data
+        cls_ref = ""
+        if isinstance(cls_data, dict):
+            cls_ref = (cls_data.get("returnValue") or {}).get("refPath", "")
+        if "TextRenderComponent" in cls_ref:
+            text_component = comp
+        elif "BillboardComponent" in cls_ref:
+            billboard_component = comp
+
+    color = rgb or [1.0, 1.0, 1.0]
+    if text_component:
+        await client.call_tool(
+            toolset_name=OBJECT_TOOLSET,
+            tool_name=TOOL_SET_PROPERTIES,
+            arguments={
+                "instance": text_component,
+                "values": json.dumps({
+                    "text": text,
+                    "worldSize": world_size,
+                    "horizontalAlignment": "EHTA_Center",
+                    "textRenderColor": {"r": color[0], "g": color[1], "b": color[2], "a": 1.0},
+                }),
+            },
+        )
+    if billboard_component:
+        # The editor-only billboard/sprite child shows up as a visible icon
+        # in-viewport and a black box in CaptureViewport screenshots.
+        await client.call_tool(
+            toolset_name=OBJECT_TOOLSET,
+            tool_name=TOOL_SET_PROPERTIES,
+            arguments={"instance": billboard_component, "values": json.dumps({"bVisible": False, "bHiddenInGame": True})},
+        )
+
+    await client.call_tool(toolset_name=ACTOR_TOOLSET, tool_name=TOOL_ADD_TAG, arguments={"actor": actor_ref, "tag": NETCLAW_TAG})
+    await client.call_tool(toolset_name=ACTOR_TOOLSET, tool_name=TOOL_ADD_TAG, arguments={"actor": actor_ref, "tag": "label"})
+
+    return True, actor_ref
+
+
+async def spawn_interface_actor(
+    client: UE5MCPClient,
+    hostname: str,
+    interface_name: str,
+    location: list[float],
+    rgb: list[float],
+) -> tuple[bool, Optional[dict]]:
+    """
+    Spawn a small sphere actor representing one up/up interface
+    (045-ue5-digital-twin, US1/FR-001). Returns (success, actor_ref).
+    """
+    actor_name = generate_interface_actor_name(hostname, interface_name)
+    xform = make_transform(location, scale=INTERFACE_SCALE)
+
+    spawn_result = await client.call_tool(
+        toolset_name=SCENE_TOOLSET,
+        tool_name=TOOL_ADD_FROM_CLASS,
+        arguments={
+            "actor_type": {"refPath": STATIC_MESH_ACTOR_CLASS},
+            "name": actor_name,
+            "xform": xform,
+            "snap_to_ground": False,
+        },
+    )
+    if not spawn_result.success:
+        return False, None
+
+    data = spawn_result.data
+    actor_ref = data.get("returnValue") if isinstance(data, dict) else None
+    if not actor_ref:
+        return False, None
+
+    loaded_mesh = await load_mesh_asset(client, STATIC_MESH_PATHS["sphere"])
+    if loaded_mesh:
+        mesh_component = await get_mesh_component(client, actor_ref)
+        if mesh_component:
+            await client.call_tool(
+                toolset_name=OBJECT_TOOLSET,
+                tool_name=TOOL_SET_PROPERTIES,
+                arguments={"instance": mesh_component, "values": json.dumps({"staticMesh": loaded_mesh})},
+            )
+
+    await client.call_tool(
+        toolset_name=ACTOR_TOOLSET, tool_name=TOOL_SET_LABEL,
+        arguments={"actor": actor_ref, "label": f"{hostname}-{interface_name}"},
+    )
+    await client.call_tool(toolset_name=ACTOR_TOOLSET, tool_name=TOOL_ADD_TAG, arguments={"actor": actor_ref, "tag": NETCLAW_TAG})
+    await client.call_tool(toolset_name=ACTOR_TOOLSET, tool_name=TOOL_ADD_TAG, arguments={"actor": actor_ref, "tag": "interface"})
+
+    await apply_color_to_actor_ref(client, actor_ref, rgb)
+
+    return True, actor_ref
 
 
 # =============================================================================
@@ -692,11 +905,188 @@ async def save_level(client: UE5MCPClient) -> bool:
 # ever since (handle_device_status_change/handle_link_status_change always
 # reported success without actually recoloring anything in the scene).
 #
-# Fixed here (045-ue5-digital-twin) by reusing the SAME find-actor-by-label +
-# dynamic-material-instance approach the batch-build script already uses
-# successfully for the initial color pass (see _apply_color inside
-# build_batch_scene_script) — routed through execute_tool_script, the one
-# UE5 interaction path this codebase has actually verified live.
+# LIVE-DISCOVERED 2026-07-03: two more compounding bugs sat behind that stub.
+# (1) execute_tool_script's "import unreal" sandbox restriction (see the
+#     "045-ue5-digital-twin Live Test Findings" note in SKILL.md) blocks this
+#     module's script-based coloring approach on this build entirely. (2)
+#     Independent of that: generate_device_actor_name()'s "NC_..." string was
+#     never what UE5 actually named OR labeled the spawned actor —
+#     spawn_device_actor/spawn_link_actor set the actor's real outliner Label
+#     to the bare hostname, and the actor's internal object Name is UE5's own
+#     auto-generated one (e.g. "StaticMeshActor_34") — so a script (or a
+#     find_actors query) searching for "NC_<hostname>" was never going to
+#     match anything, on ANY build, script sandbox or not.
+#
+# Fixed with a confirmed-working, non-scripted path: MaterialInstanceTools
+# (create a MaterialInstanceConstant asset, parented to
+# /Engine/BasicShapes/BasicShapeMaterial — the same material this skill's own
+# primitive meshes already use, which exposes a "Color" vector parameter) +
+# ObjectTools.set_properties (assign it to the mesh component's
+# overrideMaterials array). Both are plain MCP tool calls, not script
+# execution, so they are unaffected by the execute_tool_script sandbox. This
+# resolves the target actor via its REAL spawn-time ref_path (scene.py's
+# device_refs/link_refs/interface_refs, captured directly from each spawn
+# call's own response) rather than reconstructing an actor reference from the
+# generated name, sidestepping bug (2) as well.
+
+MATERIAL_INSTANCE_TOOLSET = "editor_toolset.toolsets.material_instance.MaterialInstanceTools"
+BASIC_SHAPE_MATERIAL_REF = {"refPath": "/Engine/BasicShapes/BasicShapeMaterial.BasicShapeMaterial"}
+NETCLAW_MATERIALS_FOLDER = "/Game/NetClaw/Materials"
+
+# In-memory cache of RGB tuple -> MaterialInstanceConstant ref, so repeated
+# colors (e.g. every "healthy" green device) reuse one asset instead of
+# creating a new one per actor per call.
+_color_material_cache: dict[tuple, dict] = {}
+
+
+async def _get_or_create_color_material(client: UE5MCPClient, rgb: list[float]) -> Optional[dict]:
+    """Get (or create, or re-load if it already exists from a prior session) a cached MaterialInstanceConstant for `rgb`."""
+    key = tuple(round(c, 3) for c in rgb[:3])
+    if key in _color_material_cache:
+        return _color_material_cache[key]
+
+    asset_name = "MI_Color_" + "_".join(str(int(max(0.0, min(1.0, c)) * 255)) for c in key)
+
+    create_result = await client.call_tool(
+        toolset_name=MATERIAL_INSTANCE_TOOLSET,
+        tool_name="create",
+        arguments={
+            "folder_path": NETCLAW_MATERIALS_FOLDER,
+            "asset_name": asset_name,
+            "parent": BASIC_SHAPE_MATERIAL_REF,
+        },
+    )
+    instance_ref = None
+    if create_result.success and isinstance(create_result.data, dict):
+        instance_ref = create_result.data.get("returnValue")
+
+    if not instance_ref:
+        # Most likely cause: this asset was already created in a prior
+        # session/run (the folder persists across restarts) — load it
+        # directly instead of failing.
+        load_result = await client.call_tool(
+            toolset_name=ASSET_TOOLSET,
+            tool_name=TOOL_LOAD_ASSET,
+            arguments={"asset_path": f"{NETCLAW_MATERIALS_FOLDER}/{asset_name}.{asset_name}"},
+        )
+        if load_result.success and isinstance(load_result.data, dict):
+            instance_ref = load_result.data.get("returnValue")
+
+    if not instance_ref:
+        return None
+
+    await client.call_tool(
+        toolset_name=MATERIAL_INSTANCE_TOOLSET,
+        tool_name="set_vector_parameter",
+        arguments={
+            "instance": instance_ref,
+            "name": "Color",
+            "value": {"r": rgb[0], "g": rgb[1], "b": rgb[2], "a": 1.0},
+        },
+    )
+    _color_material_cache[key] = instance_ref
+    return instance_ref
+
+
+async def get_mesh_component(client: UE5MCPClient, actor_ref: dict) -> Optional[dict]:
+    """
+    Resolve an actor's StaticMeshComponent reference. LIVE-DISCOVERED
+    2026-07-03: properties like 'staticMesh' and 'overrideMaterials' live on
+    the mesh COMPONENT, not the actor itself — ObjectTools.set_properties
+    against `actor_ref` directly silently no-ops (confirmed live: staticMesh
+    stayed "None" after such a call). Every spawn/color operation that
+    touches mesh/material properties must resolve this first.
+    """
+    comp_result = await client.call_tool(
+        toolset_name=ACTOR_TOOLSET,
+        tool_name="get_components",
+        arguments={"actor": actor_ref},
+    )
+    if not comp_result.success:
+        return None
+
+    data = comp_result.data
+    if isinstance(data, str):
+        try:
+            data = json.loads(data)
+        except (json.JSONDecodeError, ValueError):
+            return None
+    comps = data.get("returnValue", data) if isinstance(data, dict) else data
+    if not isinstance(comps, list) or not comps:
+        return None
+    return comps[0]  # devices/links/interfaces here are single-mesh actors
+
+
+async def apply_color_to_actor_ref(client: UE5MCPClient, actor_ref: dict, rgb: list[float]) -> bool:
+    """
+    Recolor an actor (identified by its real spawn-time actor reference, NOT
+    a reconstructed name/label) by assigning a cached, color-parameterized
+    MaterialInstanceConstant to its mesh component. Confirmed live
+    2026-07-03 — see the module-level note above for why this replaced the
+    script-based approach.
+    """
+    material_ref = await _get_or_create_color_material(client, rgb)
+    if not material_ref:
+        return False
+
+    mesh_component = await get_mesh_component(client, actor_ref)
+    if not mesh_component:
+        return False
+
+    apply_result = await client.call_tool(
+        toolset_name=OBJECT_TOOLSET,
+        tool_name=TOOL_SET_PROPERTIES,
+        arguments={
+            "instance": mesh_component,
+            "values": json.dumps({"overrideMaterials": [material_ref]}),
+        },
+    )
+    return apply_result.success
+
+
+async def apply_color_by_hostname(
+    client: UE5MCPClient,
+    hostname: str,
+    rgb: list[float],
+    emissive_intensity: float = 0.0,
+) -> bool:
+    """
+    Recolor a device by hostname, preferring the real spawn-time ref
+    (reliable, works on any build) and falling back to the script-based
+    label search only if no ref was captured. Shared by diagnostics.py
+    (ping/traceroute), incidents.py, and anything else that needs to color a
+    device by hostname without duplicating apply_device_material's own
+    status/type color lookup.
+    """
+    try:
+        from .scene import get_device_ref
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_device_ref
+
+    ref = get_device_ref(hostname)
+    if ref:
+        return await apply_color_to_actor_ref(client, ref, rgb)
+    return await apply_actor_color(client, generate_device_actor_name(hostname), rgb, emissive_intensity)
+
+
+async def apply_color_by_link_id(
+    client: UE5MCPClient,
+    source_hostname: str,
+    target_hostname: str,
+    rgb: list[float],
+    emissive_intensity: float = 0.0,
+) -> bool:
+    """Recolor a link by its endpoints, preferring the real spawn-time ref — see apply_color_by_hostname."""
+    try:
+        from .scene import get_link_ref
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_link_ref
+
+    ref = get_link_ref(f"{source_hostname}_{target_hostname}")
+    if ref:
+        return await apply_color_to_actor_ref(client, ref, rgb)
+    return await apply_actor_color(client, generate_link_actor_name(source_hostname, target_hostname), rgb, emissive_intensity)
+
 
 async def apply_actor_color(
     client: UE5MCPClient,
@@ -773,10 +1163,18 @@ async def apply_device_material(
     """Apply material to a device actor based on type and status."""
     try:
         from .materials import get_device_status_color, get_device_type_color
+        from .scene import get_device_ref
     except ImportError:  # pragma: no cover - fallback for sys.path-style loading
         from materials import get_device_status_color, get_device_type_color
+        from scene import get_device_ref
 
     color = get_device_status_color(status) or get_device_type_color(device_type)
+    ref = get_device_ref(hostname)
+    if ref:
+        return await apply_color_to_actor_ref(client, ref, color.to_list())
+
+    # No real ref captured (e.g. actor predates this fix) — fall back to the
+    # script-based label search, best-effort only (see module note above).
     emissive = 2.0 if status in ("critical", "unreachable") else (1.0 if status == "warning" else 0.0)
     return await apply_actor_color(client, generate_device_actor_name(hostname), color.to_list(), emissive)
 
@@ -790,10 +1188,17 @@ async def apply_link_material(
     """Apply material to a link actor based on status."""
     try:
         from .materials import get_link_status_color
+        from .scene import get_link_ref
     except ImportError:  # pragma: no cover - fallback for sys.path-style loading
         from materials import get_link_status_color
+        from scene import get_link_ref
 
     color = get_link_status_color(status)
+    link_id = f"{source_hostname}_{target_hostname}"
+    ref = get_link_ref(link_id)
+    if ref:
+        return await apply_color_to_actor_ref(client, ref, color.to_list())
+
     emissive = 2.0 if status == "down" else (1.0 if status == "degraded" else 0.0)
     actor_name = generate_link_actor_name(source_hostname, target_hostname)
     return await apply_actor_color(client, actor_name, color.to_list(), emissive)
@@ -812,6 +1217,15 @@ async def apply_interface_material(
     Callers MUST check is_interface_in_topology() first (FR-040) — this
     function does not verify the interface actor exists before trying.
     """
+    try:
+        from .scene import get_interface_ref
+    except ImportError:  # pragma: no cover - fallback for sys.path-style loading
+        from scene import get_interface_ref
+
+    ref = get_interface_ref(hostname, interface_name)
+    if ref:
+        return await apply_color_to_actor_ref(client, ref, rgb)
+
     actor_name = generate_interface_actor_name(hostname, interface_name)
     return await apply_actor_color(client, actor_name, rgb, emissive_intensity)
 
@@ -884,10 +1298,6 @@ def persist_build_artifacts(topology_json: dict, script: str, tag: str = "last_b
         (WORKSPACE_UE5_DIR / f"{tag}.py").write_text(script)
     except OSError:
         pass
-
-
-INTERFACE_OFFSET_RADIUS = 60.0   # cm - small ring around the parent device
-INTERFACE_SCALE = [20.0, 20.0, 20.0]  # small sphere, distinct from the device itself
 
 
 def resolve_device_interfaces(
@@ -993,7 +1403,7 @@ def _compute_batch_specs(
             "label": device.hostname,
             "mesh_path": STATIC_MESH_PATHS[shape],
             "location": pos,
-            "scale": [100, 100, 100],
+            "scale": [1.0, 1.0, 1.0],  # base mesh is already 100cm/1m at scale=1.0
             "color": color.to_list(),
             "device_type": device.device_type,
         })
