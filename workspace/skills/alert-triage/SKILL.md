@@ -284,14 +284,11 @@ Principles apply here too:
 up{instance="pfsense"}
 
 # CPU usage over last 15m
-100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle",instance="local-ai"}[5m])) * 100)
+100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle",instance="r640-pve"}[5m])) * 100)
 
 # Memory usage
-1 - (node_memory_MemAvailable_bytes{instance="local-ai"} / node_memory_MemTotal_bytes{instance="local-ai"})
+1 - (node_memory_MemAvailable_bytes{instance="r640-pve"} / node_memory_MemTotal_bytes{instance="r640-pve"})
 
 # Network traffic
-rate(node_network_receive_bytes_total{instance="local-ai",device="enp97s0f0np0"}[5m]) * 8
-
-# GPU temperature (AI box)
-amdgpu_temperature_celsius{instance="local-ai"}
+rate(node_network_receive_bytes_total{instance="r640-pve"}[5m]) * 8
 ```

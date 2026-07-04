@@ -8,41 +8,27 @@
 devices:
   # pfSense firewall
   pfsense:
-    ip: "192.168.1.1"
+    ip: "192.168.3.1"
     platform: pfsense
     role: firewall
     site: home
 
-  # Example: Proxmox hosts
-  # proxmox-01:
-  #   ip: "192.168.3.100"
-  #   platform: proxmox
-  #   role: hypervisor
-  #   site: home
-  #
-  # proxmox-02:
-  #   ip: "192.168.3.101"
-  #   platform: proxmox
-  #   role: hypervisor
-  #   site: home
-
   # Example: Switches
-  # core-sw:
-  #   ip: "192.168.1.2"
-  #   platform: ios
-  #   role: switch
-  #   site: home
+  HomeSwitch01:
+    ip: "192.168.3.2"
+    platform: ios
+    role: home_switch
+    site: home
+  
+  HomeSwitch02:
+    ip: "192.168.3.3"
+    platform: ios
+    role: home_switch
+    site: home
 
   # OBS VM (monitoring self-monitoring)
   home-obs-stack:
     ip: "192.168.3.250"
     platform: linux
     role: monitoring
-    site: home
-
-  # AI inference box
-  local-ai:
-    ip: "192.168.30.50"
-    platform: linux
-    role: ai-inference
     site: home

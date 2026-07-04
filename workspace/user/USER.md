@@ -30,9 +30,10 @@ This is a **live home/production network**, not a lab. The site is **"House"**.
   proxmox.home.byrnbaker.me:443) — hosts the VMs that are modeled in Nautobot
 - **Observability:** home-obs-stack at **192.168.3.250** (Prometheus, Grafana, Loki,
   VictoriaMetrics, Alertmanager)
-- **AI inference:** local-ai at **192.168.30.50**
 - **Management network:** VLAN 3 / **192.168.3.0/24** (network devices, mgmt, OBS,
   Nautobot, NetClaw)
+- **Models:** Ollama Cloud (`https://ollama.com`), default `deepseek-v4-pro:cloud`.
+  (The former local-ai Ollama box at 192.168.30.50 has been decommissioned.)
 
 ## Notes
 

@@ -65,7 +65,7 @@ pfSense-FW01 (192.168.3.1) is the gateway for every VLAN. Key segments:
 | VLAN | Interface | Subnet | Purpose | DHCP range |
 |------|-----------|--------|---------|-----------|
 | 3 | device_mgmt (lagg0.3) | 192.168.3.0/24 | Network devices, mgmt, OBS, Nautobot, NetClaw, APs, iLO/iDRAC | .20–.254 |
-| 30 | K3S_LAN (lagg0.30) | 192.168.30.0/24 | local-ai (.50), k3s, reverse-proxy | .50–.220 |
+| 30 | K3S_LAN (lagg0.30) | 192.168.30.0/24 | k3s, reverse-proxy (former local-ai .50 decommissioned) | .50–.220 |
 | 100 | HomeLan (lagg0.100) | 192.168.100.0/24 | Servers/clients: r640-pve (.20), BakerNas (.22), DiskStation (.23), cameras, Mac mini | .40–.254 |
 | 13 | PIHOLES (lagg0.13) | 192.168.13.0/24 | DNS: pihole01 (.253), pihole02 (.254) | .2–.249 |
 | 102 | IOT (lagg0.102) | 192.168.102.0/24 | IoT / cameras | .20–.254 |
