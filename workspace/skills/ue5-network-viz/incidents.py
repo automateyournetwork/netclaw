@@ -11,9 +11,8 @@ correlation and the resulting alarm visual state (FR-026/FR-027).
 try:
     from .ue5_mcp_client import UE5MCPClient
     from .actors import (
-        apply_actor_color,
-        generate_device_actor_name,
-        generate_link_actor_name,
+        apply_color_by_hostname,
+        apply_color_by_link_id,
         is_device_in_topology,
         is_link_in_topology,
     )
@@ -22,9 +21,8 @@ try:
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient
     from actors import (
-        apply_actor_color,
-        generate_device_actor_name,
-        generate_link_actor_name,
+        apply_color_by_hostname,
+        apply_color_by_link_id,
         is_device_in_topology,
         is_link_in_topology,
     )
@@ -69,13 +67,9 @@ async def correlate_incident(
 
         color = get_alarm_color().to_list()
         if subject_kind == "device":
-            applied = await apply_actor_color(
-                client, generate_device_actor_name(hostname_or_link), color, emissive_intensity=3.0
-            )
+            applied = await apply_color_by_hostname(client, hostname_or_link, color, emissive_intensity=3.0)
         else:
-            applied = await apply_actor_color(
-                client, generate_link_actor_name(*candidate_hostnames), color, emissive_intensity=3.0
-            )
+            applied = await apply_color_by_link_id(client, *candidate_hostnames, color, emissive_intensity=3.0)
 
         record_history(hostname_or_link, "trap", None, f"incident:{incident.get('incident_id')}")
         return {

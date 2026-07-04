@@ -163,10 +163,10 @@ async def refresh_traffic_visualization(
 async def _apply_link_traffic_color(client: UE5MCPClient, source: str, target: str, rgb: list[float]) -> bool:
     """Recolor a link actor directly with a traffic-gradient color (bypasses the health-status color lookup apply_link_material uses)."""
     try:
-        from .actors import apply_actor_color, generate_link_actor_name
+        from .actors import apply_color_by_link_id
     except ImportError:  # pragma: no cover - fallback for sys.path-style loading
-        from actors import apply_actor_color, generate_link_actor_name
-    return await apply_actor_color(client, generate_link_actor_name(source, target), rgb)
+        from actors import apply_color_by_link_id
+    return await apply_color_by_link_id(client, source, target, rgb)
 
 
 # =============================================================================

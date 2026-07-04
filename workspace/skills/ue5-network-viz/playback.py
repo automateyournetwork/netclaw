@@ -14,11 +14,10 @@ from datetime import datetime
 try:
     from .ue5_mcp_client import UE5MCPClient
     from .actors import (
-        apply_actor_color,
+        apply_color_by_link_id,
         apply_device_material,
         apply_link_material,
         apply_interface_material,
-        generate_link_actor_name,
         is_device_in_topology,
         is_link_in_topology,
     )
@@ -27,11 +26,10 @@ try:
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient
     from actors import (
-        apply_actor_color,
+        apply_color_by_link_id,
         apply_device_material,
         apply_link_material,
         apply_interface_material,
-        generate_link_actor_name,
         is_device_in_topology,
         is_link_in_topology,
     )
@@ -58,7 +56,7 @@ async def _apply_replayed_state(client: UE5MCPClient, record: HistoryRecord) -> 
             await apply_interface_material(client, hostname, interface_name, color)
         else:
             source, target = key.split("_", 1) if "_" in key else (key, key)
-            await apply_actor_color(client, generate_link_actor_name(source, target), color)
+            await apply_color_by_link_id(client, source, target, color)
 
     elif record.change_type == "health" and isinstance(new_state, str):
         if ":" in key:

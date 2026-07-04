@@ -16,15 +16,29 @@ from typing import Optional, Any
 try:
     from .ue5_mcp_client import UE5MCPClient, UE5MCPError, check_connectivity
     from .layout import calculate_topology_layout, LayoutConfig, Vector3
-    from .materials import infer_device_type, create_device_material_config
+    from .materials import (
+        infer_device_type,
+        create_device_material_config,
+        get_device_type_color,
+        get_device_status_color,
+        get_link_status_color,
+    )
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from ue5_mcp_client import UE5MCPClient, UE5MCPError, check_connectivity
     from layout import calculate_topology_layout, LayoutConfig, Vector3
-    from materials import infer_device_type, create_device_material_config
+    from materials import (
+        infer_device_type,
+        create_device_material_config,
+        get_device_type_color,
+        get_device_status_color,
+        get_link_status_color,
+    )
 try:
     from .actors import (
         spawn_device_actor,
         spawn_link_actor,
+        spawn_label_actor,
+        spawn_interface_actor,
         destroy_device_actor,
         destroy_link_actor,
         apply_device_material,
@@ -33,11 +47,17 @@ try:
         find_netclaw_actors,
         generate_device_actor_name,
         generate_link_actor_name,
+        resolve_device_interfaces,
+        INTERFACE_OFFSET_RADIUS,
+        INTERFACE_SCALE,
     )
+    from .materials import generate_legend_swatches
 except ImportError:  # pragma: no cover - fallback for sys.path-style loading
     from actors import (
         spawn_device_actor,
         spawn_link_actor,
+        spawn_label_actor,
+        spawn_interface_actor,
         destroy_device_actor,
         destroy_link_actor,
         apply_device_material,
@@ -46,13 +66,19 @@ except ImportError:  # pragma: no cover - fallback for sys.path-style loading
         find_netclaw_actors,
         generate_device_actor_name,
         generate_link_actor_name,
+        resolve_device_interfaces,
+        INTERFACE_OFFSET_RADIUS,
+        INTERFACE_SCALE,
     )
+    from materials import generate_legend_swatches
 try:
     from .scene import (
         get_scene_state,
         reset_scene_state,
         register_device_actor,
         register_link_actor,
+        register_interface_actor,
+        set_down_interfaces,
         unregister_device_actor,
         unregister_link_actor,
         get_tracked_devices,
@@ -67,6 +93,8 @@ except ImportError:  # pragma: no cover - fallback for sys.path-style loading
         reset_scene_state,
         register_device_actor,
         register_link_actor,
+        register_interface_actor,
+        set_down_interfaces,
         unregister_device_actor,
         unregister_link_actor,
         get_tracked_devices,
@@ -252,7 +280,25 @@ async def render_topology(
 
         positions = calculate_topology_layout(device_dicts, link_dicts, layout_config)
 
-        # Step 3: Spawn device actors
+        import math
+
+        # Bounding box for the legend's placement and for scaling label text
+        # readably (see label_world_size below).
+        all_positions = [positions[d.hostname] for d in topology.devices if d.hostname in positions]
+        if all_positions:
+            min_pt = [min(p[i] for p in all_positions) for i in range(3)]
+            max_pt = [max(p[i] for p in all_positions) for i in range(3)]
+            span = sum((max_pt[i] - min_pt[i]) ** 2 for i in range(3)) ** 0.5
+        else:
+            min_pt, max_pt, span = [0, 0, 0], [0, 0, 0], 2000.0
+        label_world_size = max(span / 20.0, 100.0)
+
+        # Step 3: Spawn device actors, their labels, and their up/up
+        # interface actors (045-ue5-digital-twin US1/US2) — interface
+        # positions are computed here (not after) so link spawning below can
+        # attach to them instead of device centers when available.
+        interface_positions: dict[str, list[float]] = {}  # "hostname:interface" -> [x,y,z]
+
         for device in topology.devices:
             if device.hostname not in positions:
                 result.errors.append(f"No position for device: {device.hostname}")
@@ -268,16 +314,66 @@ async def render_topology(
                 status=device.status,
             )
 
-            if success:
-                register_device_actor(device.hostname, actor.name, pos)
-                result.devices_rendered += 1
-            else:
+            if not success:
                 result.errors.append(f"Failed to spawn device: {device.hostname}")
+                continue
 
-        # Step 4: Spawn link actors
+            register_device_actor(device.hostname, actor.name, pos, ref_path=actor.ref_path)
+            result.devices_rendered += 1
+
+            device_color = (get_device_status_color(device.status) or get_device_type_color(device.device_type)).to_list()
+
+            actor_scale_z = actor.scale["z"] if isinstance(actor.scale, dict) else actor.scale[2]
+            label_loc = [pos[0], pos[1], pos[2] + actor_scale_z * 0.75 + 50]
+            await spawn_label_actor(client, device.hostname, label_loc, world_size=label_world_size, rgb=device_color)
+
+            up_ifaces, down_ifaces = resolve_device_interfaces(device, topology.links)
+            for idx, iface_name in enumerate(up_ifaces):
+                angle = (2 * math.pi * idx) / max(len(up_ifaces), 1)
+                offset = [
+                    INTERFACE_OFFSET_RADIUS * math.cos(angle),
+                    INTERFACE_OFFSET_RADIUS * math.sin(angle),
+                    INTERFACE_OFFSET_RADIUS * 0.5,
+                ]
+                iface_pos = [pos[i] + offset[i] for i in range(3)]
+                interface_positions[f"{device.hostname}:{iface_name}"] = iface_pos
+
+                iok, iref = await spawn_interface_actor(client, device.hostname, iface_name, iface_pos, device_color)
+                if iok:
+                    register_interface_actor(
+                        device.hostname, iface_name,
+                        actor_name=f"NC_If_{device.hostname}_{iface_name}",
+                        ref_path=iref.get("refPath") if iref else None,
+                    )
+                    label_loc = [iface_pos[0], iface_pos[1], iface_pos[2] + INTERFACE_SCALE[2] * 1.5 + 20]
+                    await spawn_label_actor(
+                        client, iface_name, label_loc,
+                        world_size=max(label_world_size * 0.5, 60.0), rgb=device_color,
+                    )
+                else:
+                    result.errors.append(f"Failed to spawn interface: {device.hostname}:{iface_name}")
+
+            if down_ifaces:
+                set_down_interfaces(device.hostname, down_ifaces)
+                summary_text = f"{len(down_ifaces)} down: " + ", ".join(down_ifaces[:8]) + (", ..." if len(down_ifaces) > 8 else "")
+                await spawn_label_actor(
+                    client, summary_text, [pos[0], pos[1], pos[2] + 140.0],
+                    world_size=label_world_size * 0.6, rgb=[0.8, 0.2, 0.2],
+                    actor_name=f"NC_DownIf_{device.hostname}",
+                )
+
+        # Step 4: Spawn link actors — attach to interface positions when both
+        # ends resolved to a known up/up interface, falling back to
+        # device-level attachment otherwise (FR-003).
         for link in topology.links:
-            source_pos = positions.get(link.source_device)
-            target_pos = positions.get(link.target_device)
+            src_key = f"{link.source_device}:{link.source_interface}" if link.source_interface else None
+            dst_key = f"{link.target_device}:{link.target_interface}" if link.target_interface else None
+            source_pos = interface_positions.get(src_key) if src_key else None
+            target_pos = interface_positions.get(dst_key) if dst_key else None
+            if source_pos is None:
+                source_pos = positions.get(link.source_device)
+            if target_pos is None:
+                target_pos = positions.get(link.target_device)
 
             if not source_pos or not target_pos:
                 result.errors.append(f"Missing position for link: {link.id}")
@@ -292,13 +388,23 @@ async def render_topology(
                 status=link.status,
             )
 
-            if success:
-                register_link_actor(link.id, actor.name)
-                result.links_rendered += 1
-            else:
+            if not success:
                 result.errors.append(f"Failed to spawn link: {link.id}")
+                continue
 
-        # Step 5: Apply materials (optional)
+            register_link_actor(link.id, actor.name, ref_path=actor.ref_path)
+            result.links_rendered += 1
+
+            mid_pos = [(source_pos[i] + target_pos[i]) / 2 for i in range(3)]
+            link_color = get_link_status_color(link.status).to_list()
+            await spawn_label_actor(
+                client, link.id, [mid_pos[0], mid_pos[1], mid_pos[2] + 40],
+                world_size=max(label_world_size * 0.5, 60.0), rgb=link_color,
+            )
+
+        # Step 5: Apply materials (optional) — status-based, so this can also
+        # be re-run standalone later (e.g. "mark r1 critical") without a
+        # full re-render.
         if apply_materials:
             for device in topology.devices:
                 await apply_device_material(
@@ -315,6 +421,17 @@ async def render_topology(
                     target_hostname=link.target_device,
                     status=link.status,
                 )
+
+        # Step 5b: Legend (US3, FR-008/FR-009) — generated directly from the
+        # live color mapping so it can never drift out of sync with reality.
+        if topology.devices and all_positions:
+            legend_lines = [f"{e['label']}: RGB{tuple(round(c, 2) for c in e['color'])}" for e in generate_legend_swatches()]
+            await spawn_label_actor(
+                client, "LEGEND\n" + "\n".join(legend_lines),
+                [min_pt[0] - 300.0, min_pt[1] - 300.0, max_pt[2] + 300.0],
+                world_size=label_world_size * 0.7, rgb=[1.0, 1.0, 1.0],
+                actor_name="NC_Legend",
+            )
 
         # Step 6: Setup lighting (optional, cosmetic — isolated so a lighting
         # failure never overwrites an otherwise-successful device/link
@@ -554,7 +671,7 @@ async def render_topology_incremental(
             )
 
             if success:
-                register_device_actor(device.hostname, actor.name, pos)
+                register_device_actor(device.hostname, actor.name, pos, ref_path=actor.ref_path)
                 result.devices_rendered += 1
 
                 if apply_materials:
@@ -581,7 +698,7 @@ async def render_topology_incremental(
                 )
 
                 if success:
-                    register_link_actor(link.id, actor.name)
+                    register_link_actor(link.id, actor.name, ref_path=actor.ref_path)
                     result.links_rendered += 1
 
                     if apply_materials:

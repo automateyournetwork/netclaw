@@ -84,9 +84,14 @@ class LayoutEdge:
 class LayoutConfig:
     """Configuration for the force-directed layout algorithm."""
     # Force parameters
-    repulsion_strength: float = 5000.0  # Coulomb's law constant
+    # LIVE-DISCOVERED 2026-07-03: the old defaults (repulsion 5000, ideal
+    # edge 300) converged a 10-device/12-link topology into a ~600x250 unit
+    # bounding box — with 100-unit device meshes, that's severe overlap and
+    # an unreadable scene. Raised both so devices/links are actually legible
+    # at the overview camera distance camera.py uses.
+    repulsion_strength: float = 20000.0  # Coulomb's law constant
     attraction_strength: float = 0.1   # Spring constant
-    ideal_edge_length: float = 300.0   # Target distance between connected nodes
+    ideal_edge_length: float = 600.0   # Target distance between connected nodes
 
     # Type clustering - nodes of same type attract slightly
     type_clustering_strength: float = 0.02
@@ -99,8 +104,8 @@ class LayoutConfig:
     convergence_threshold: float = 0.5  # Stop if max displacement < this
 
     # Bounds (UE5 coordinates in centimeters)
-    bounds_min: Vector3 = field(default_factory=lambda: Vector3(-2000, -2000, 0))
-    bounds_max: Vector3 = field(default_factory=lambda: Vector3(2000, 2000, 1000))
+    bounds_min: Vector3 = field(default_factory=lambda: Vector3(-4000, -4000, 0))
+    bounds_max: Vector3 = field(default_factory=lambda: Vector3(4000, 4000, 1000))
 
     # Scale factor (convert to UE5 centimeters)
     scale: float = 100.0
