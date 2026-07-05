@@ -213,6 +213,19 @@ The Unreal Engine 5.8 MCP server is built into UE5.8+ and provides enterprise-gr
 - `UE5_MCP_URL` → server endpoint (default: `http://127.0.0.1:8000/mcp`)
 - Client note: some builds respond over a keep-alive `text/event-stream` even after the real answer has been sent — a client that waits for the full response body to complete (rather than reading the SSE stream line-by-line and stopping at the first complete JSON-RPC object) can hang for the full timeout on an answer that already arrived.
 
+## Sketchfab MCP Server
+
+The Sketchfab MCP server ([gregkop/sketchfab-mcp-server](https://github.com/gregkop/sketchfab-mcp-server), vendored at `mcp-servers/sketchfab-mcp-server/`) provides 3D model search/download for `workspace/skills/threejs-network-viz/`'s optional real-stencil mode (046-threejs-network-viz, User Story 5) — it is not used by any other skill.
+
+- **Tools (3)**: `sketchfab-search` (query/tags/categories/downloadable/limit), `sketchfab-model-details` (full model metadata including license, given a model ID), `sketchfab-download` (format gltf/glb/usdz/source, given a model ID)
+- Transport: stdio (Node.js), registered as `sketchfab-mcp` in `config/openclaw.json`
+- Requires: `SKETCHFAB_API_KEY` (get one at https://sketchfab.com/settings/password → API Tokens); `SKETCHFAB_USERNAME` is reference/attribution only, not required by the API
+- Install: `cd mcp-servers/sketchfab-mcp-server && npm install && npm run build` (produces `build/index.js`, the file `config/openclaw.json` points at)
+- **Patched during 046's implementation**: the upstream server's `sketchfab-model-details` tool silently dropped the `license` field from its formatted text output, even though the real Sketchfab API returns it — confirmed live against `https://api.sketchfab.com/v3/models/{uid}`. Without it, `threejs-network-viz/assets.py` has no way to verify a candidate model is actually CC0-licensed before using it. Fixed in `mcp-servers/sketchfab-mcp-server/index.ts`'s `formatModelForDisplay()` (see the "NetClaw patch" comments) and rebuilt. **If this vendored server is ever re-cloned fresh from upstream, this patch must be reapplied and rebuilt before real-stencil mode's license verification will work.**
+- Sketchfab's catalog is mixed-license — the `sketchfab-search` tool has no license filter parameter, so every candidate must be individually verified via `sketchfab-model-details` before download (never trust `downloadable: true` alone as a license signal). The real Sketchfab API's CC0 license record has `slug: "cc0"`, `uid: "7c23a1ba438d4306920229c12afcb5f9"` — confirmed live against `GET /v3/licenses`.
+- Not every downloadable model has a ready-made glTF/GLB export — `sketchfab-download` silently substitutes a different format (source/gltf/usdz) when the requested `glb` isn't available for that specific model; callers must check the tool's response text for the exact "in glb format." success phrasing rather than assuming success means the requested format was honored.
+- In practice, CC0-licensed models specific to network equipment are essentially nonexistent on Sketchfab — confirmed via live searches during development ("router", "server rack", "electronic box" all returned zero or irrelevant CC0 results). Procedural-shape fallback in `threejs-network-viz` is the expected common case, not a rare edge case.
+
 ## Claroty xDome MCP Server
 
 The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writes) for OT / IoT / IoMT visibility via stdio transport:

@@ -590,6 +590,15 @@
       "env": {
         "UE5_MCP_URL": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}"
       }
+    },
+    "sketchfab-mcp": {
+      "command": "node",
+      "args": [
+        "mcp-servers/sketchfab-mcp-server/build/index.js"
+      ],
+      "env": {
+        "SKETCHFAB_API_KEY": "${SKETCHFAB_API_KEY}"
+      }
     }
   }
 }

@@ -372,7 +372,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (73)
+## MCP Servers (74)
 
 | # | MCP Server | Repository | Transport | Function |
 |---|------------|------------|-----------|----------|
@@ -445,12 +445,13 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 71 | Aruba CX | [slientnight/aruba-cx-mcp-server](https://github.com/slientnight/aruba-cx-mcp-server) | stdio (Python) | HPE Aruba CX switch management — system info, interfaces, VLANs, configs, routing, LLDP, MAC table, DOM diagnostics, ISSU, VSF topology. 11 read-only + 5 ITSM-gated write tools (16 tools) |
 | 72 | DevNet Content Search | [CiscoDevNet/devnet-content-search-mcp](https://github.com/CiscoDevNet/devnet-content-search-mcp) | Remote HTTP | Cisco DevNet documentation search — Meraki API doc search, Catalyst Center API doc search, Meraki operation ID lookup. No auth required (3 tools) |
 | 73 | HumanRail | [prime001/humanrail-mcp-server](https://github.com/prime001/humanrail-mcp-server) | Streamable HTTP (Python) | Human-in-the-loop escalation — route low-confidence decisions, pre-destructive operation approvals, and ambiguous incident tickets to human engineers; workers paid via Lightning Network. Free while in beta. (7 tools) |
+| 74 | Sketchfab | [gregkop/sketchfab-mcp-server](https://github.com/gregkop/sketchfab-mcp-server) | stdio (Node.js) | Real 3D model search/download for the Three.js network visualization skill's optional real-stencil mode — search, model-details (license verification), and download, filtered to CC0-licensed models only (3 tools) |
 
 HumanRail MCP runs via FastMCP streamable HTTP (Python) on port 8100 (`git clone` + `pip install "mcp[cli]>=1.0.0" httpx` + `python3 server.py`). Auth via `HUMANRAIL_API_KEY` Bearer token. Public hosted endpoint also available at `https://humanrail.dev/mcp` — set `HUMANRAIL_MCP_URL=https://humanrail.dev/mcp` to skip local install. Get a free API key at [humanrail.dev](https://humanrail.dev). All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`. GitHub MCP runs via Docker. CML MCP is pip-installed (`cml-mcp`). NSO MCP is pip-installed (`cisco-nso-mcp-server`). FMC MCP runs as an HTTP server on port 8000. Meraki Magic MCP runs via FastMCP stdio (~804 Dashboard API endpoints). ThousandEyes community MCP runs via stdio (9 read-only tools); ThousandEyes official MCP is a remote HTTP endpoint hosted by Cisco at `https://api.thousandeyes.com/mcp` (~20 tools via `npx mcp-remote`). RADKit MCP runs via FastMCP stdio with certificate-based cloud relay auth (5 tools for remote device access). Nautobot MCP runs via MCP SDK stdio (5 IPAM tools, alternative to NetBox). Infrahub MCP runs via stdio (10 tools for schema-driven SoT, GraphQL queries, and versioned branches). Itential MCP is pip-installed (`itential-mcp`) and runs via stdio (65+ tools for network automation orchestration). JunOS MCP runs via stdio (10 tools for PyEZ/NETCONF device automation). Arista CVP MCP runs via uv/stdio (4 tools for CloudVision Portal device inventory, events, connectivity monitoring, and tag management). UML MCP runs via stdio (2 tools for 27+ diagram types via Kroki multi-engine rendering). Protocol MCP runs via stdio (10 tools for live BGP/OSPF/GRE control-plane participation using scapy-based protocol speakers). ContainerLab MCP runs via stdio (6 tools for containerized network lab lifecycle management via ContainerLab API). SD-WAN MCP runs via stdio (12 read-only tools for Cisco SD-WAN vManage fabric monitoring). Grafana MCP runs via `uvx mcp-grafana` (75+ tools for dashboards, Prometheus, Loki, alerting, incidents, OnCall). Prometheus MCP is pip-installed (`prometheus-mcp-server`) and runs via stdio (6 tools for direct PromQL queries, metric discovery, and scrape target health). Kubeshark MCP is a remote HTTP endpoint running inside a Kubernetes cluster (6 tools for L4/L7 traffic capture, pcap export, flow analysis, and TLS decryption via eBPF; access via `kubectl port-forward svc/kubeshark-hub 8898:8898`). nmap MCP runs via FastMCP stdio (14 tools for host discovery, port scanning, service/OS detection, NSE scripts, and vulnerability scanning with CIDR scope enforcement and audit logging). gtrace MCP runs via `gtrace mcp` stdio (6 tools for advanced traceroute with MPLS/ECMP/NAT detection, MTR continuous monitoring, GlobalPing distributed probes, ASN lookup, geolocation, and reverse DNS). AWS MCPs run via `uvx` (uv tool runner). GCP MCPs are remote HTTP endpoints hosted by Google (OAuth 2.0 auth). AAP Enterprise MCP provides 4 independent servers via `uv run` stdio: Controller (45 tools for inventories, jobs, projects, ad-hoc commands, Galaxy), EDA (12 tools for event-driven activations, rulebooks, decision environments), ansible-lint (9 tools for playbook/role validation and best practices), and Red Hat Docs (documentation search with domain validation). fwrule MCP runs via `uv run fwrule-mcp` stdio (3 tools for multi-vendor firewall rule overlap, shadowing, conflict, and duplication analysis across 9 vendors using 6-dimensional set intersection). SuzieQ MCP runs via stdio (5 read-only tools for network state queries, assertions, summaries, unique value discovery, and path tracing across 20+ network tables via the SuzieQ REST API). GNS3 MCP runs via FastMCP stdio (26 tools for GNS3 network lab management — projects, nodes, links, packet capture, and snapshots via REST API v3). No persistent connections, no port management.
 
 ---
 
-## Skills (126)
+## Skills (127)
 
 ### pyATS Device Skills (9)
 
@@ -809,7 +810,7 @@ HumanRail MCP runs via FastMCP streamable HTTP (Python) on port 8100 (`git clone
 | **cloudflare-analytics** | Traffic analytics (6 tools): zone analytics, firewall events, origin analytics, cache analytics. Traffic analysis, performance review, and cache optimization workflows. |
 | **cloudflare-workers** | Edge compute (6 tools): list Workers, get logs, list KV namespaces, view Durable Objects. Workers inventory, log analysis, and edge compute review workflows. |
 
-### Reference & Utility Skills (7)
+### Reference & Utility Skills (9)
 
 | Skill | Tool Backend | Purpose |
 |-------|-------------|---------|
@@ -821,6 +822,7 @@ HumanRail MCP runs via FastMCP streamable HTTP (Python) on port 8100 (`git clone
 | **rfc-lookup** | [@mjpitz/mcp-rfc](https://github.com/mjpitz/mcp-rfc) (npx) | IETF RFC search, retrieval, and section extraction — BGP (4271), OSPF (2328), NTP (5905) |
 | **uml-diagram** | [UML MCP](https://github.com/antoinebou12/uml-mcp) (stdio) | 27+ UML/diagram types via Kroki — class, sequence, nwdiag, rackdiag, packetdiag, C4, Mermaid, D2, Graphviz, ERD, BPMN |
 | **blender-3d-viz** | [blender-mcp](https://github.com/ahujasid/blender-mcp) (uvx) | 3D network topology visualization — draw CDP/LLDP topologies in Blender, color by device type (router=blue, switch=green, firewall=red), add labels, export PNG/video |
+| **threejs-network-viz** | Vendored Three.js r147 + [gregkop/sketchfab-mcp-server](https://github.com/gregkop/sketchfab-mcp-server) (optional) | Browser-based 3D network topology visualization — the recommended alternative to `blender-3d-viz`/`ue5-network-viz` when you don't want a desktop engine: single self-contained HTML file, no build/server/GPU required. True interface-as-child-of-device scene graph, interface-to-interface link cables, role/state color legend, composes any of 8 topology-source integrations or a freeform description, optional CC0-verified real-3D-model stencils |
 
 ### Slack Integration Skills (4)
 

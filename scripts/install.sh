@@ -2603,6 +2603,60 @@ log_info "Skills: ue5-network-viz (interactive digital twin — see its SKILL.md
 echo ""
 
 # ═══════════════════════════════════════════
+# Step 52a: Three.js Network Visualization + optional Sketchfab MCP
+# ═══════════════════════════════════════════
+
+log_step "52a/$TOTAL_STEPS Configuring Three.js Network Visualization..."
+echo "  Browser-based 3D network topology visualization — the no-GPU/no-desktop-app"
+echo "  alternative to ue5-network-viz/blender-3d-viz: single self-contained HTML"
+echo "  file, opens directly in any modern browser, no build/server required."
+echo ""
+
+log_info "threejs-network-viz works with zero setup beyond NetClaw itself (Three.js r147"
+log_info "is already vendored in workspace/skills/threejs-network-viz/vendor/three/)."
+echo ""
+
+read -r -p "Enable optional real-3D-model stencil mode (Sketchfab, CC0-licensed only)? [y/N] " enable_sketchfab
+if [[ "$enable_sketchfab" =~ ^[Yy]$ ]]; then
+    SKETCHFAB_MCP_DIR="$MCP_DIR/sketchfab-mcp-server"
+    clone_or_pull "$SKETCHFAB_MCP_DIR" "https://github.com/gregkop/sketchfab-mcp-server.git"
+
+    # Upstream's sketchfab-model-details tool silently drops the license
+    # field from its output, which threejs-network-viz's real-stencil mode
+    # needs to verify CC0 licensing (FR-019a) — apply the fix idempotently.
+    SKETCHFAB_PATCH="$NETCLAW_DIR/scripts/patches/sketchfab-mcp-license-fix.patch"
+    if ! git -C "$SKETCHFAB_MCP_DIR" apply --reverse --check "$SKETCHFAB_PATCH" 2>/dev/null; then
+        log_info "Applying license-field fix to Sketchfab MCP server..."
+        git -C "$SKETCHFAB_MCP_DIR" apply "$SKETCHFAB_PATCH" || \
+            log_warn "Could not apply Sketchfab license-field patch — real-stencil mode's CC0 verification will not work until this is applied manually (see $SKETCHFAB_PATCH)"
+    else
+        log_info "Sketchfab MCP license-field fix already applied"
+    fi
+
+    log_info "Building Sketchfab MCP server..."
+    cd "$SKETCHFAB_MCP_DIR"
+    npm install 2>/dev/null || log_warn "npm install failed for Sketchfab MCP"
+    npm run build 2>/dev/null || log_warn "npm run build failed for Sketchfab MCP"
+    cd "$NETCLAW_DIR"
+
+    echo ""
+    echo "  Sketchfab MCP server installed to: $SKETCHFAB_MCP_DIR"
+    echo ""
+    echo "  Configure credentials in ~/.openclaw/.env:"
+    echo "    SKETCHFAB_API_KEY=your_sketchfab_api_token   # https://sketchfab.com/settings/password"
+    echo "    SKETCHFAB_USERNAME=your_sketchfab_username   # reference/attribution only"
+    echo ""
+    log_warn "Real network-equipment-specific CC0 models are rare on Sketchfab — expect"
+    log_warn "threejs-network-viz to fall back to its procedural shapes most of the time."
+    echo ""
+else
+    log_info "Skipping Sketchfab MCP — threejs-network-viz still works fully with procedural shapes."
+fi
+log_info "Skills: threejs-network-viz (see its SKILL.md for the full command reference)"
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 53: Verify installation
 # ═══════════════════════════════════════════
 
