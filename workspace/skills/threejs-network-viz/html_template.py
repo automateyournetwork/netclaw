@@ -15,7 +15,7 @@ import json
 from pathlib import Path
 
 _VENDOR_DIR = Path(__file__).resolve().parent / "vendor" / "three"
-_THREE_JS_PATH = _VENDOR_DIR / "build" / "three.js"
+_THREE_JS_PATH = _VENDOR_DIR / "core" / "three.js"
 _ORBIT_CONTROLS_PATH = _VENDOR_DIR / "examples" / "js" / "controls" / "OrbitControls.js"
 _GLTF_LOADER_PATH = _VENDOR_DIR / "examples" / "js" / "loaders" / "GLTFLoader.js"
 
