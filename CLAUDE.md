@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-07-05
+Auto-generated from all feature plans. Last updated: 2026-07-07
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -59,6 +59,8 @@ Auto-generated from all feature plans. Last updated: 2026-07-05
 - N/A — all new state (sticky alert flags, live-mode status, session history buffer, manual zoom groupings) is in-memory for the lifetime of the running skill process; nothing persists across a NetClaw restart (045-ue5-digital-twin)
 - Python 3.10+ (skill logic, consistent with the rest of NetClaw) + Three.js r147 pinned (`three@0.147.0` — last release with both classic UMD core and non-module OrbitControls/GLTFLoader addons) vendored as static JS, the newly vendored community `sketchfab-mcp-server` (Node.js, `mcp-servers/sketchfab-mcp-server/`, registered as `sketchfab-mcp` in `config/openclaw.json`) for real-stencil model search/download, and NetClaw's existing topology-source skills/MCP servers (CML lab tooling, `gns3-mcp-server`, `clab-mcp-server`, `eve-ng-mcp-server`, `nautobot-mcp-v2`, `netbox-mcp-server`, `infrahub-mcp`, `ipfabric` integration, `forward-mcp`) consumed as-is, not modified (046-threejs-network-viz)
 - N/A for rendering itself; generated visualizations are written as timestamped, uniquely-named `.html` files to a persistent NetClaw workspace output directory (per Clarification session 2026-07-05) — never overwritten, never ephemeral (046-threejs-network-viz)
+- Python 3.10+ (matches every other script in `scripts/`, e.g. `scan-all-mcp-source.py`, `register-all-mcps.py`) + None beyond the Python standard library (`os`, `json`, `re`) — no new third-party packages (047-docs-inventory-reconciliation)
+- N/A (reads existing `workspace/skills/` directory tree and `config/openclaw.json`; writes no persistent state) (047-docs-inventory-reconciliation)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -78,9 +80,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 047-docs-inventory-reconciliation: Added Python 3.10+ (matches every other script in `scripts/`, e.g. `scan-all-mcp-source.py`, `register-all-mcps.py`) + None beyond the Python standard library (`os`, `json`, `re`) — no new third-party packages
 - 046-threejs-network-viz: Added Python 3.10+ (skill logic, consistent with the rest of NetClaw) + Three.js r147 pinned (last release with classic UMD core + non-module OrbitControls/GLTFLoader) vendored as static JS, the newly vendored community `sketchfab-mcp-server` (Node.js, `mcp-servers/sketchfab-mcp-server/`, registered as `sketchfab-mcp` in `config/openclaw.json`) for real-stencil model search/download, and NetClaw's existing topology-source skills/MCP servers (CML lab tooling, `gns3-mcp-server`, `clab-mcp-server`, `eve-ng-mcp-server`, `nautobot-mcp-v2`, `netbox-mcp-server`, `infrahub-mcp`, `ipfabric` integration, `forward-mcp`) consumed as-is, not modified
 - 045-ue5-digital-twin: Added Python 3.10+ (matches the existing `ue5-network-viz` skill and the rest of NetClaw) + httpx (existing UE5 MCP HTTP/JSON-RPC client, `ue5_mcp_client.py`), no new third-party packages required
-- 044-ue5-mcp-network-viz: Added Python 3.10+ (skill logic), No custom MCP server code (uses built-in UE5 MCP) + httpx (HTTP client for MCP), Unreal Engine 5.8+ (user-installed with MCP plugin)
 
 
 <!-- MANUAL ADDITIONS START -->
