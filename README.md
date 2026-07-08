@@ -13,10 +13,38 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 ```bash
 git clone https://github.com/automateyournetwork/netclaw.git
 cd netclaw
-./scripts/install.sh          # installs everything, then launches the setup wizard
+./scripts/install.sh          # interactive installer — pick exactly what you want
 ```
 
-That's it. The installer deploys 113 skills, installs bundled MCP dependencies, and prepares configuration for 66 MCP integrations, then launches a two-phase setup:
+> **Run it as your normal user — not with `sudo`.** Under sudo, OpenClaw's config, your API keys, and all skills land in `/root/.openclaw` where your own `openclaw` can't see them. The installer refuses to run under sudo and instead asks before each specific command that needs root.
+
+The installer opens an interactive TUI (pure bash — no dialog/whiptail needed): pick an install profile, then optionally fine-tune the exact MCP server list in an arrow-key checklist (Space to toggle, `a` all, `n` none). Only what you select gets installed.
+
+**Install profiles:**
+
+| Profile | What you get |
+|---------|--------------|
+| **Recommended** | Curated starter set (~17 servers): pyATS, NetBox, ServiceNow, GAIT audit trail, nmap, diagrams, utilities |
+| **Custom** | Hand-pick from all 72 components in a categorized checklist |
+| **Everything** | The classic full install — all 72 components |
+| **Cisco** | pyATS, ACI, ISE, Catalyst Center, Meraki, SD-WAN, CML, FMC, RADKit, ThousandEyes |
+| **Multivendor** | Cisco + Juniper, Arista, Aruba, F5, NetBox, Nautobot |
+| **Cloud** | AWS, Azure, GCP, Cloudflare, Terraform, Vault, GitHub |
+| **Security** | ISE, FMC, Panorama, FortiManager, Check Point, Zscaler, Claroty, nmap, CVE |
+| **Labs** | CML, ContainerLab, Batfish, protocol peering, SuzieQ |
+| **Observability** | Grafana, Prometheus, Datadog, Splunk, PagerDuty, ThousandEyes, Kubeshark |
+| **Minimal** | pyATS + audit trail + core utilities |
+
+Scripted / non-interactive installs:
+
+```bash
+./scripts/install.sh --profile recommended        # any profile, no TUI
+./scripts/install.sh --components "pyats netbox"  # exact component list
+./scripts/install.sh --all                        # everything
+./scripts/install.sh --list                       # see all components & profiles
+```
+
+Whatever you pick, the installer then runs a two-phase setup:
 
 **Phase 1: `openclaw onboard`** (OpenClaw's built-in wizard)
 - Pick your AI provider (Anthropic, OpenAI, Bedrock, Vertex, 30+ options)
@@ -26,7 +54,7 @@ That's it. The installer deploys 113 skills, installs bundled MCP dependencies, 
 
 **Phase 2: `./scripts/setup.sh`** (NetClaw platform credentials)
 - Network devices (testbed.yaml editor)
-- Platform credentials (NetBox, Nautobot, Infrahub, Infoblox, Itential, ServiceNow, ACI, ISE, F5, Catalyst Center, NVD, Microsoft Graph, GitHub, CML, NSO, Meraki, FMC, Panorama, FortiManager, ThousandEyes, RADKit, AWS, GCP, ContainerLab, SD-WAN, Grafana, Prometheus, Kubeshark)
+- Platform credentials — **only for the components you installed** (your selection is remembered in `~/.openclaw/netclaw-components.conf`)
 - Your identity (name, role, timezone for USER.md)
 
 After setup, start NetClaw:
@@ -39,6 +67,7 @@ openclaw tui                  # terminal 2
 Reconfigure anytime:
 - `openclaw configure` — AI provider, gateway, channels
 - `./scripts/setup.sh` — network platform credentials
+- `./scripts/install.sh` — add or remove MCP servers (re-run keeps your current selection preselected)
 
 ---
 
@@ -2057,8 +2086,13 @@ netclaw/
 ├── lab/
 │   └── frr-testbed/                     # Docker FRR 3-router lab for protocol testing
 ├── scripts/
-│   ├── install.sh                        # Full bootstrap installer (45 steps)
-│   ├── setup.sh                          # Interactive setup wizard (API key, platforms, Slack)
+│   ├── install.sh                        # Interactive TUI installer (profiles + component picker)
+│   ├── setup.sh                          # Setup wizard — only asks about installed components
+│   ├── lib/
+│   │   ├── common.sh                     # Shared helpers, paths, component manifest
+│   │   ├── tui.sh                        # Logo, arrow-key menu, multi-select checklist
+│   │   ├── catalog.sh                    # Component catalog + install profiles
+│   │   └── install-steps.sh              # One install function per component (72)
 │   ├── mcp-call.py                       # MCP JSON-RPC protocol handler
 │   └── gait-stdio.py                     # GAIT server stdio wrapper
 ├── examples/
@@ -2094,52 +2128,19 @@ netclaw/
 
 ## What install.sh Does
 
-1. **Checks prerequisites** — Node.js >= 18, Python 3, pip3, git, npx
-2. **Installs OpenClaw** — `npm install -g openclaw@latest`
-3. **Runs OpenClaw onboard** — AI provider, gateway, channels, daemon service
-4. **Creates mcp-servers/** — directory for all cloned backends
-5. **Clones pyATS MCP** — `git clone` + `pip3 install -r requirements.txt`
-6. **Clones Markmap MCP** — `git clone` + `npm install` + `npm run build`
-7. **Clones Arista CVP MCP** — `git clone noredistribution/mcp-cvp-fun` + `uv` runtime deps for CloudVision Portal REST API (4 tools: device inventory, events, connectivity monitor, tag management). Requires CVP service account token.
-8. **Clones GAIT MCP** — `git clone` + `pip3 install gait-ai fastmcp`
-9. **Clones NetBox MCP** — `git clone` + `pip3 install` dependencies
-10. **Clones Nautobot MCP** — `git clone` + `pip3 install -e .` for Nautobot IPAM source of truth (5 tools: IP addresses, prefixes, VRF/tenant/site filtering, search, connection test). Python 3.13+ required; falls back to core deps on older Python. Alternative to NetBox.
-11. **Clones Infrahub MCP** — `git clone` + `uv sync` (pip fallback) for OpsMill Infrahub schema-driven source of truth (10 tools: nodes, search, GraphQL, and branch-isolated writes via Proposed Changes). Requires Python 3.13+ and an Infrahub instance with API token. Now also published to PyPI (`pip install infrahub-mcp`) and as a Docker image (`registry.opsmill.io/opsmill/infrahub-mcp`).
-12. **Installs Itential MCP** — `pip3 install itential-mcp` (falls back to `git clone` + `pip3 install -e .`) for Itential Automation Platform network orchestration (65+ tools: config mgmt, compliance, workflows, golden config, lifecycle). Requires IAP instance with credentials.
-13. **Clones ServiceNow MCP** — `git clone` + `pip3 install` dependencies
-14. **Clones ACI MCP** — `git clone` + `pip3 install` dependencies
-15. **Clones ISE MCP** — `git clone` + `pip3 install` dependencies
-16. **Clones Wikipedia MCP** — `git clone` + `pip3 install` dependencies
-17. **Clones NVD CVE MCP** — `git clone` + `pip3 install -e .`
-18. **Clones Subnet Calculator MCP** — `git clone` (enhanced with IPv6 support)
-19. **Clones F5 BIG-IP MCP** — `git clone` + `pip3 install` dependencies
-20. **Clones Catalyst Center MCP** — `git clone` + `pip3 install` dependencies
-21. **Caches Microsoft Graph MCP** — `npm cache add` for Graph API (OneDrive, SharePoint, Visio, Teams)
-22. **Caches npx packages** — `npm cache add` for Draw.io and RFC servers
-23. **Pulls GitHub MCP** — `docker pull ghcr.io/github/github-mcp-server` (requires Docker)
-24. **Installs Packet Buddy MCP** — verifies/installs tshark, creates pcap upload directory
-25. **Installs CML MCP** — `pip3 install cml-mcp` (requires Python 3.12+, CML 2.9+)
-26. **Installs NSO MCP** — `pip3 install cisco-nso-mcp-server` (requires Python 3.12+, NSO with RESTCONF)
-27. **Installs FMC MCP** — `git clone` + `pip3 install -r requirements.txt` for Cisco Secure Firewall policy search (HTTP transport, port 8000)
-28. **Installs Meraki Magic MCP** — `git clone` + `pip install -r requirements.txt` for Cisco Meraki Dashboard API (~804 endpoints: orgs, networks, wireless, switching, security, cameras, diagnostics). Python 3.13+ recommended; falls back to core deps on older Python.
-29. **Installs ThousandEyes Community MCP** — `git clone` + `pip install -r requirements.txt` for ThousandEyes monitoring (9 read-only tools: tests, agents, path vis, dashboards). Python 3.12+ required.
-30. **Configures ThousandEyes Official MCP** — Remote HTTP endpoint hosted by Cisco at `https://api.thousandeyes.com/mcp` (~20 tools: alerts, outages, BGP, instant tests, endpoint agents). Pre-caches `mcp-remote` via npm. No local install required.
-31. **Installs RADKit MCP** — `git clone` + `pip install -e .` for Cisco RADKit cloud-relayed remote device access (5 tools: device inventory, attributes, CLI exec, SNMP GET, structured exec). Python 3.10+ required. Certificate-based auth via RADKit service.
-32. **Installs AWS Cloud MCP Servers** — Installs `uv` (Astral), validates 6 AWS MCP packages via `uvx` (Network, CloudWatch, IAM, CloudTrail, Cost Explorer, Diagram)
-33. **Configures GCP Cloud MCP Servers** — Checks for `gcloud` CLI and credentials; 4 remote HTTP servers hosted by Google (Compute Engine, Cloud Monitoring, Cloud Logging, Resource Manager)
-34. **Installs JunOS MCP** — `git clone` + `pip3 install -r requirements.txt` for Juniper JunOS device automation via PyEZ/NETCONF (10 tools: CLI execution, config management, Jinja2 templates, device facts, batch operations). Python 3.10+ required.
-35. **Installs UML MCP** — `git clone` + `pip3 install -e .` for 27+ diagram types via Kroki multi-engine rendering (2 tools: generate_uml, generate_diagram_url). Python 3.10+ required. nwdiag (network), rackdiag (rack), packetdiag (protocol headers), sequence, state, class, C4, Mermaid, D2, Graphviz, ERD, BPMN.
-36. **Installs ContainerLab MCP** — `git clone` + `pip3 install -r requirements.txt` for containerized network lab lifecycle management via ContainerLab API (6 tools: authenticate, list, deploy, inspect, exec, destroy). Supports SR Linux, cEOS, FRR, Cisco IOS-XR/XE/NX-OS, and more.
-37. **Installs SD-WAN MCP** — `git clone` + `pip3 install` deps (fastmcp, requests, python-dotenv) for Cisco SD-WAN vManage read-only monitoring (12 tools: fabric devices, WAN Edge inventory, templates, policies, alarms, BFD, OMP routes, control connections, running config).
-38. **Installs Grafana MCP** — Validates `uvx` availability for running `mcp-grafana` (Go binary, 75+ tools: dashboards, Prometheus PromQL, Loki LogQL, alerting, incidents, OnCall, annotations, panel rendering). Requires Grafana 9.0+ with service account token.
-39. **Installs Prometheus MCP** — `pip3 install prometheus-mcp-server` for direct Prometheus monitoring (6 tools: instant/range PromQL queries, metric discovery with pagination, metric metadata, scrape target health, system health check). Supports basic auth, bearer tokens, and multi-tenant org IDs.
-40. **Configures Kubeshark MCP** — Checks for `kubectl`; Kubeshark MCP is a remote HTTP endpoint running inside a Kubernetes cluster (6 tools: traffic capture, pcap export, snapshots, KFL filtering, L4 flow stats, TLS decryption). Requires Kubeshark deployed via Helm with `mcp.enabled=true`.
-41. **Installs Protocol MCP** — `pip3 install -r requirements.txt` (scapy, networkx, mcp, fastmcp) for live BGP/OSPF/GRE control-plane participation (10 tools: peer with routers, inject/withdraw routes, query RIB/LSDB, adjust metrics). Protocol speakers from WontYouBeMyNeighbour.
-42. **Protocol Peering Wizard** — Optional interactive configuration: router ID, local AS, BGP peer IP/AS, OSPF areas, GRE tunnels, lab mode. Writes protocol environment variables to `~/.openclaw/.env`. Optionally creates GRE tunnel (requires sudo).
-42b. **Installs HumanRail MCP** — `git clone` + `pip3 install "mcp[cli]>=1.0.0" httpx` for human-in-the-loop escalation (7 tools: create_task, get_task, wait_for_task, cancel_task, list_tasks, get_usage, health_check). Streamable HTTP transport on port 8100. Requires `HUMANRAIL_API_KEY` — free API at [humanrail.dev](https://humanrail.dev). Mobile app coming soon; web app available now for engineer sign-up.
-43. **Deploys skills + workspace files** — Copies 82 skills and 6 MD files to `~/.openclaw/workspace/`
-44. **Verifies installation** — Checks all MCP server scripts + core scripts exist
-45. **Prints summary** — Lists all 37 MCP servers by category and all 82 skills by domain
+The installer is an interactive TUI (pure bash — works over SSH, degrades gracefully without a TTY). Install logic lives in `scripts/lib/` (`common.sh` helpers, `tui.sh` interface, `catalog.sh` component catalog + profiles, `install-steps.sh` one install function per component).
+
+1. **Pick your components** — choose an install profile (Recommended, Cisco, Multivendor, Cloud, Security, Labs, Observability, Minimal, Everything) or hand-pick from all 72 components in a categorized multi-select checklist. Re-running the installer preselects what you already have.
+2. **Checks prerequisites** — Node.js >= 18, Python 3, pip3, git, npx — offers to run the install commands for anything missing (apt/dnf/yum/pacman/apk/brew), and handles PEP 668 externally-managed Pythons so pip installs work on modern distros
+3. **Installs OpenClaw** — `npm install -g openclaw@latest`
+4. **Runs OpenClaw onboard** — AI provider, gateway, channels, daemon service — then verifies the gateway service actually started (systemd unit / LaunchAgent / port probe) and offers a retry with diagnostics if it didn't
+5. **Installs the selected MCP servers** — each component clones/pip-installs/pulls exactly what it needs (`./scripts/install.sh --list` shows every component and what it provides)
+6. **Deploys skills + workspace files** — copies all skills and the SOUL/AGENTS/IDENTITY/USER/TOOLS/HEARTBEAT files to `~/.openclaw/workspace/`
+7. **Writes the component manifest** — your selection is saved to `~/.openclaw/netclaw-components.conf` so `setup.sh` only prompts for credentials that matter
+8. **Verifies the installation** — checks each selected component's script/CLI/module actually landed
+9. **Prints a summary** — the installed components grouped by category
+10. **Offers DefenseClaw** — optional enterprise security layer (Cisco AI Defense + NVIDIA OpenShell)
+11. **Launches setup.sh** — network platform credentials for the components you installed
 
 ---
 

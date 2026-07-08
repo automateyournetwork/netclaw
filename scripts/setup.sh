@@ -23,8 +23,13 @@ DIM='\033[2m'
 NC='\033[0m'
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+SCRIPT_DIR="$NETCLAW_DIR/scripts"
 OPENCLAW_DIR="$HOME/.openclaw"
 OPENCLAW_ENV="$OPENCLAW_DIR/.env"
+
+# Shared helpers: logo (tui.sh) + component manifest awareness (common.sh)
+source "$SCRIPT_DIR/lib/common.sh"
+source "$SCRIPT_DIR/lib/tui.sh"
 
 # ───────────────────────────────────────────
 # Helpers
@@ -62,6 +67,18 @@ yesno() {
     [[ "$yn" =~ ^[Yy] ]]
 }
 
+# want "<id> [id...]" "<question>" — ask only if at least one of the
+# components was installed (per ~/.openclaw/netclaw-components.conf).
+# With no manifest (pre-TUI install), every platform is offered.
+want() {
+    local ids="$1" question="$2" id found=1
+    for id in $ids; do
+        component_selected "$id" && { found=0; break; }
+    done
+    [ "$found" -eq 0 ] || return 1
+    yesno "$question"
+}
+
 set_env() {
     local key="$1" value="$2"
     [ -z "$value" ] && return
@@ -89,6 +106,12 @@ skip() { echo -e "  ${DIM}– $1 (skipped)${NC}"; }
 # Preflight
 # ───────────────────────────────────────────
 
+if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ] && [ "${NETCLAW_ALLOW_ROOT:-0}" != "1" ]; then
+    log_error "Do not run setup with sudo — credentials would be written to /root/.openclaw/.env,"
+    log_error "where openclaw run as $SUDO_USER cannot read them. Re-run as your normal user."
+    exit 1
+fi
+
 if [ ! -d "$OPENCLAW_DIR" ]; then
     echo -e "${RED}Error: ~/.openclaw not found. Run install.sh first.${NC}"
     exit 1
@@ -100,7 +123,7 @@ fi
 # Welcome
 # ───────────────────────────────────────────
 
-echo ""
+netclaw_logo
 echo -e "${BOLD}    NetClaw Platform Setup${NC}"
 echo ""
 echo -e "  Configure your network platform credentials."
@@ -108,6 +131,9 @@ echo -e "  AI provider and channels (Slack, WebEx, etc.) were set up by ${BOLD}o
 echo -e "  Re-run anytime: ${BOLD}./scripts/setup.sh${NC}"
 echo ""
 echo -e "  ${DIM}All credentials are stored in ~/.openclaw/.env (never committed to git)${NC}"
+if [ -f "$NETCLAW_MANIFEST" ]; then
+    echo -e "  ${DIM}Only platforms selected during install are offered below — re-run ./scripts/install.sh to add more.${NC}"
+fi
 
 # ═══════════════════════════════════════════
 # Step 1: Network Devices (pyATS)
@@ -138,7 +164,7 @@ echo "  You can always re-run this to add more later."
 echo ""
 
 # --- NetBox ---
-if yesno "Do you have a NetBox instance?"; then
+if want "netbox" "Do you have a NetBox instance?"; then
     echo ""
     prompt NETBOX_URL "NetBox URL (https://netbox.example.com)" ""
     prompt_secret NETBOX_TOKEN "NetBox API Token"
@@ -151,7 +177,7 @@ fi
 echo ""
 
 # --- Nautobot ---
-if yesno "Do you have a Nautobot instance? (alternative to NetBox for source of truth)"; then
+if want "nautobot" "Do you have a Nautobot instance? (alternative to NetBox for source of truth)"; then
     echo ""
     echo -e "  Nautobot MCP provides read-only IPAM queries — IP addresses, prefixes, VRF/tenant/site."
     echo -e "  Get your API token from: ${BOLD}Nautobot → Admin → API Tokens${NC}"
@@ -167,7 +193,7 @@ fi
 echo ""
 
 # --- OpsMill Infrahub ---
-if yesno "Do you have an OpsMill Infrahub instance? (schema-driven infrastructure source of truth)"; then
+if want "infrahub" "Do you have an OpsMill Infrahub instance? (schema-driven infrastructure source of truth)"; then
     echo ""
     echo -e "  Infrahub MCP provides schema-driven infrastructure queries and safe, branch-isolated changes."
     echo -e "  10 tools: nodes, search, schema, read-only GraphQL, plus writes that land on an auto-created"
@@ -187,7 +213,7 @@ fi
 echo ""
 
 # --- Infoblox DDI ---
-if yesno "Do you have an Infoblox DDI platform? (DNS, DHCP, IPAM)"; then
+if want "infoblox" "Do you have an Infoblox DDI platform? (DNS, DHCP, IPAM)"; then
     echo ""
     echo -e "  Infoblox MCP covers DNS records, DHCP scopes and leases, and IPAM utilization."
     echo ""
@@ -202,7 +228,7 @@ fi
 echo ""
 
 # --- Itential Automation Platform ---
-if yesno "Do you have an Itential Automation Platform (IAP) instance? (network automation orchestration)"; then
+if want "itential" "Do you have an Itential Automation Platform (IAP) instance? (network automation orchestration)"; then
     echo ""
     echo -e "  Itential MCP provides 65+ tools: config mgmt, compliance, workflows, golden config, lifecycle."
     echo ""
@@ -219,7 +245,7 @@ fi
 echo ""
 
 # --- Juniper JunOS ---
-if yesno "Do you have Juniper JunOS devices? (PyEZ/NETCONF automation)"; then
+if want "junos" "Do you have Juniper JunOS devices? (PyEZ/NETCONF automation)"; then
     echo ""
     echo -e "  JunOS MCP provides 10 tools: CLI execution, config management, Jinja2 templates, device facts, batch operations."
     echo -e "  Devices are defined in a JSON inventory file (not environment variables)."
@@ -233,7 +259,7 @@ fi
 echo ""
 
 # --- Arista CloudVision ---
-if yesno "Do you have an Arista CloudVision Portal (CVP) instance? (Arista network management)"; then
+if want "arista-cvp" "Do you have an Arista CloudVision Portal (CVP) instance? (Arista network management)"; then
     echo ""
     echo -e "  CVP MCP provides 4 tools: device inventory, events, connectivity monitoring, tag management."
     echo -e "  Generate a service account token from: ${BOLD}CVP → Settings → Service Accounts${NC}"
@@ -249,7 +275,7 @@ fi
 echo ""
 
 # --- ServiceNow ---
-if yesno "Do you have a ServiceNow instance?"; then
+if want "servicenow" "Do you have a ServiceNow instance?"; then
     echo ""
     prompt SNOW_URL "ServiceNow Instance URL (https://xxx.service-now.com)" ""
     prompt SNOW_USER "ServiceNow Username" ""
@@ -264,7 +290,7 @@ fi
 echo ""
 
 # --- Cisco ACI ---
-if yesno "Do you have a Cisco ACI fabric (APIC)?"; then
+if want "aci" "Do you have a Cisco ACI fabric (APIC)?"; then
     echo ""
     prompt APIC_URL "APIC URL (https://apic.example.com)" ""
     prompt APIC_USER "APIC Username" "admin"
@@ -279,7 +305,7 @@ fi
 echo ""
 
 # --- Cisco ISE ---
-if yesno "Do you have Cisco ISE with ERS API enabled?"; then
+if want "ise" "Do you have Cisco ISE with ERS API enabled?"; then
     echo ""
     prompt ISE_BASE "ISE Base URL (https://ise.example.com)" ""
     prompt ISE_USER "ISE ERS Username" ""
@@ -294,7 +320,7 @@ fi
 echo ""
 
 # --- F5 BIG-IP ---
-if yesno "Do you have an F5 BIG-IP load balancer?"; then
+if want "f5" "Do you have an F5 BIG-IP load balancer?"; then
     echo ""
     prompt F5_IP "F5 Management IP/Hostname" ""
     prompt F5_USER "F5 Username" "admin"
@@ -313,7 +339,7 @@ fi
 echo ""
 
 # --- Catalyst Center ---
-if yesno "Do you have Cisco Catalyst Center (DNA Center)?"; then
+if want "catalyst-center" "Do you have Cisco Catalyst Center (DNA Center)?"; then
     echo ""
     prompt CCC_HOST "Catalyst Center Hostname/IP" ""
     prompt CCC_USER "Catalyst Center Username" "admin"
@@ -328,7 +354,7 @@ fi
 echo ""
 
 # --- NVD CVE ---
-if yesno "Do you want CVE vulnerability scanning? (free NVD API key)"; then
+if want "nvd-cve" "Do you want CVE vulnerability scanning? (free NVD API key)"; then
     echo ""
     echo -e "  Get a free API key from: ${BOLD}https://nvd.nist.gov/developers/request-an-api-key${NC}"
     echo ""
@@ -344,7 +370,7 @@ else
 fi
 
 # --- Microsoft Graph (Office 365) ---
-if yesno "Do you have a Microsoft 365 tenant? (Visio, SharePoint, Teams, OneDrive)"; then
+if want "msgraph" "Do you have a Microsoft 365 tenant? (Visio, SharePoint, Teams, OneDrive)"; then
     echo ""
     echo -e "  Microsoft Graph MCP requires an Azure AD app registration."
     echo -e "  Register at: ${BOLD}https://portal.azure.com → Azure Active Directory → App registrations${NC}"
@@ -368,7 +394,7 @@ fi
 echo ""
 
 # --- GitHub ---
-if yesno "Do you have a GitHub account? (issues, PRs, config-as-code)"; then
+if want "github" "Do you have a GitHub account? (issues, PRs, config-as-code)"; then
     echo ""
     echo -e "  Create a Personal Access Token at: ${BOLD}https://github.com/settings/tokens${NC}"
     echo -e "  Recommended scopes: ${DIM}repo, read:org, read:user, workflow${NC}"
@@ -386,7 +412,7 @@ fi
 echo ""
 
 # --- Cisco Modeling Labs (CML) ---
-if yesno "Do you have a Cisco Modeling Labs (CML) server?"; then
+if want "cml" "Do you have a Cisco Modeling Labs (CML) server?"; then
     echo ""
     echo -e "  CML MCP lets you build and manage network labs via natural language."
     echo -e "  Requires CML 2.9+ with API access."
@@ -410,7 +436,7 @@ fi
 echo ""
 
 # --- Cisco NSO ---
-if yesno "Do you have a Cisco NSO (Network Services Orchestrator) server?"; then
+if want "nso" "Do you have a Cisco NSO (Network Services Orchestrator) server?"; then
     echo ""
     echo -e "  NSO MCP connects via RESTCONF API for device config, sync, and services."
     echo ""
@@ -437,7 +463,7 @@ fi
 echo ""
 
 # --- AWS Cloud ---
-if yesno "Do you have an AWS account? (VPC, Transit GW, CloudWatch, IAM, costs)"; then
+if want "aws" "Do you have an AWS account? (VPC, Transit GW, CloudWatch, IAM, costs)"; then
     echo ""
     echo -e "  AWS MCP servers connect via standard AWS credentials."
     echo -e "  Create an access key at: ${BOLD}https://console.aws.amazon.com/iam/home#/security_credentials${NC}"
@@ -456,7 +482,7 @@ fi
 echo ""
 
 # --- Google Cloud Platform ---
-if yesno "Do you have a GCP project? (Compute Engine, Cloud Monitoring, Cloud Logging)"; then
+if want "gcp" "Do you have a GCP project? (Compute Engine, Cloud Monitoring, Cloud Logging)"; then
     echo ""
     echo -e "  GCP MCP servers are remote HTTP endpoints hosted by Google."
     echo -e "  Auth via service account key or gcloud application-default credentials."
@@ -481,7 +507,7 @@ fi
 echo ""
 
 # --- Cisco Meraki ---
-if yesno "Do you have a Cisco Meraki Dashboard? (wireless, switching, security, cameras)"; then
+if want "meraki" "Do you have a Cisco Meraki Dashboard? (wireless, switching, security, cameras)"; then
     echo ""
     echo -e "  Meraki Magic MCP connects to the Meraki Dashboard API (~804 endpoints)."
     echo -e "  Get your API key from: ${BOLD}Dashboard → Organization → Settings → Dashboard API access${NC}"
@@ -504,7 +530,7 @@ fi
 echo ""
 
 # --- Cisco FMC (Secure Firewall) ---
-if yesno "Do you have a Cisco Secure Firewall Management Center (FMC)?"; then
+if want "fmc" "Do you have a Cisco Secure Firewall Management Center (FMC)?"; then
     echo ""
     echo -e "  FMC MCP connects via HTTP to the FMC REST API for firewall policy search."
     echo -e "  Requires FMC with API access enabled."
@@ -528,7 +554,7 @@ fi
 echo ""
 
 # --- Palo Alto Panorama ---
-if yesno "Do you have a Palo Alto Panorama instance?"; then
+if want "panorama" "Do you have a Palo Alto Panorama instance?"; then
     echo ""
     echo -e "  Panorama MCP covers device groups, templates, security policy, NAT, and commit validation."
     echo ""
@@ -543,7 +569,7 @@ fi
 echo ""
 
 # --- FortiManager ---
-if yesno "Do you have a FortiManager instance?"; then
+if want "fortimanager" "Do you have a FortiManager instance?"; then
     echo ""
     echo -e "  FortiManager MCP covers ADOM inventory, policy packages, object search, and install preview."
     echo ""
@@ -558,7 +584,7 @@ fi
 echo ""
 
 # --- Ansible Automation Platform (AAP) ---
-if yesno "Do you have a Red Hat Ansible Automation Platform instance?"; then
+if want "aap" "Do you have a Red Hat Ansible Automation Platform instance?"; then
     echo ""
     echo -e "  AAP MCP provides 4 servers: Controller (45 tools), EDA (12 tools), ansible-lint (9 tools), Red Hat docs."
     echo -e "  Get your API token from: ${BOLD}AAP → Settings → Tokens → Create (Write scope)${NC}"
@@ -578,7 +604,7 @@ fi
 echo ""
 
 # --- Cisco ThousandEyes ---
-if yesno "Do you have a Cisco ThousandEyes account? (network monitoring, path visualization, BGP)"; then
+if want "te-community te-official" "Do you have a Cisco ThousandEyes account? (network monitoring, path visualization, BGP)"; then
     echo ""
     echo -e "  ThousandEyes uses two MCP servers:"
     echo -e "    Community (local, 9 tools) — tests, agents, path vis, dashboards"
@@ -595,7 +621,7 @@ fi
 echo ""
 
 # --- Cisco RADKit ---
-if yesno "Do you have a Cisco RADKit service instance? (cloud-relayed remote device access)"; then
+if want "radkit" "Do you have a Cisco RADKit service instance? (cloud-relayed remote device access)"; then
     echo ""
     echo -e "  RADKit provides cloud-relayed access to on-premises network devices."
     echo -e "  Your RADKit service must be running and devices onboarded."
@@ -614,7 +640,7 @@ fi
 echo ""
 
 # --- ContainerLab ---
-if yesno "Do you have a ContainerLab API server running?"; then
+if want "containerlab" "Do you have a ContainerLab API server running?"; then
     echo ""
     echo -e "  ContainerLab MCP lets NetClaw deploy and manage containerized network labs."
     echo -e "  Requires a running ContainerLab API server (clab-api-server)."
@@ -642,7 +668,7 @@ fi
 echo ""
 
 # --- HumanRail ---
-if yesno "Do you have a HumanRail account? (human-in-the-loop escalation for AI agents — free while in beta)"; then
+if want "humanrail" "Do you have a HumanRail account? (human-in-the-loop escalation for AI agents — free while in beta)"; then
     echo ""
     echo -e "  HumanRail routes agent decisions to human engineers when confidence is low,"
     echo -e "  a destructive operation needs sign-off, or an ambiguous ticket needs triage."
@@ -700,7 +726,7 @@ echo ""
 echo -e "${BOLD}Twilio Voice Integration${NC}"
 echo "  Bidirectional voice calling: emergency alerts, on-demand status, inbound commands"
 echo ""
-if yesno "Configure Twilio Voice?"; then
+if want "twilio" "Configure Twilio Voice?"; then
     echo ""
     echo -e "  Get credentials from ${CYAN}https://console.twilio.com${NC}"
     echo "  1. Account → Account SID (starts with AC)"
