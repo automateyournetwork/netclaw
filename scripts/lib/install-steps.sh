@@ -3234,3 +3234,117 @@ log_info "Standalone setup/repair tool also available: ./scripts/chrome-devtools
 echo ""
 }
 
+# ── Computer Use: full-desktop automation via OpenClaw ClawHub skill (spec 050) ─
+component_install_computer_use() {
+log_step "Configuring Computer Use (full-desktop automation)..."
+echo "  Source: OpenClaw ClawHub skill \"computer-use\""
+echo "  Full desktop automation for API-less/browser-less targets — Xvfb + XFCE"
+echo "  virtual desktop, xdotool input automation, 17 actions, VNC/noVNC Watch Mode."
+echo "  Auth: none — no credentials, no environment variables required."
+
+COMPUTER_USE_PACKAGES="xvfb xfce4 xfce4-terminal xdotool scrot imagemagick dbus-x11 x11vnc novnc websockify"
+
+_detect_pkg_mgr
+case "$PKG_MGR" in
+    apt)
+        log_info "Installing virtual desktop packages via apt (this may take a few minutes)..."
+        sudo apt-get update -qq 2>/dev/null
+        sudo apt-get install -y $COMPUTER_USE_PACKAGES 2>/dev/null || \
+            log_warn "Some packages failed to install via apt-get — check output above"
+        ;;
+    dnf|yum)
+        log_info "Installing virtual desktop packages via $PKG_MGR..."
+        sudo "$PKG_MGR" install -y $COMPUTER_USE_PACKAGES 2>/dev/null || \
+            log_warn "Some packages failed to install via $PKG_MGR — check output above"
+        ;;
+    pacman)
+        log_info "Installing virtual desktop packages via pacman..."
+        sudo pacman -S --noconfirm $COMPUTER_USE_PACKAGES 2>/dev/null || \
+            log_warn "Some packages failed to install via pacman — check output above"
+        ;;
+    *)
+        log_warn "Computer Use targets headless Linux servers (apt/dnf/pacman) — no supported package manager found for the virtual desktop packages on this host."
+        log_warn "This component provisions a virtual X11 desktop (Xvfb/XFCE); it has no macOS equivalent (Homebrew) since macOS already has a native desktop."
+        log_warn "Skipping system package installation. The ClawHub skill install below may still be attempted, but will not function without the virtual desktop packages."
+        ;;
+esac
+
+COMPUTER_USE_SKILL_DIR=""
+if command -v openclaw &> /dev/null; then
+    log_info "Installing the computer-use skill from ClawHub..."
+    if openclaw skills install --global computer-use 2>&1 | tail -5; then
+        log_info "computer-use skill installed"
+        for candidate in "$HOME/.openclaw/skills/computer-use" "$NETCLAW_DIR/.openclaw/skills/computer-use"; do
+            [ -d "$candidate" ] && COMPUTER_USE_SKILL_DIR="$candidate" && break
+        done
+        # openclaw skills install writes the action scripts as non-executable
+        # (0644) -- confirmed live: every action script fails with "Permission
+        # denied" until fixed, since desktop-gui-inspect invokes them directly.
+        if [ -n "$COMPUTER_USE_SKILL_DIR" ] && [ -d "$COMPUTER_USE_SKILL_DIR/scripts" ]; then
+            chmod +x "$COMPUTER_USE_SKILL_DIR"/scripts/*.sh
+            log_info "Made computer-use action scripts executable"
+        fi
+    else
+        log_warn "Could not install the computer-use skill automatically — try manually: openclaw skills install --global computer-use"
+    fi
+else
+    log_warn "openclaw CLI not found — install the skill manually once OpenClaw is set up: openclaw skills install --global computer-use"
+fi
+
+# The skill only ships its action scripts (click.sh, screenshot.sh, ...) --
+# the virtual desktop itself (Xvfb/XFCE/x11vnc/noVNC, as systemd services)
+# is provisioned by the skill's own setup-vnc.sh, which does NOT run
+# automatically as part of "skills install". Run it now so this component
+# is actually usable, not just downloaded.
+if [ -n "$COMPUTER_USE_SKILL_DIR" ] && [ -f "$COMPUTER_USE_SKILL_DIR/scripts/setup-vnc.sh" ]; then
+    log_info "Running the skill's own setup-vnc.sh to provision the virtual desktop (systemd services)..."
+    bash "$COMPUTER_USE_SKILL_DIR/scripts/setup-vnc.sh" || \
+        log_warn "setup-vnc.sh reported an issue — check output above. The virtual desktop may not be fully running."
+
+    # setup-vnc.sh's own generated x11vnc/novnc systemd units listen on all
+    # interfaces by default (verified live: x11vnc has no -localhost flag,
+    # and the novnc unit's --listen has no bind address) -- a real exposure
+    # of full desktop control to the network, not a hypothetical one. Patch
+    # the generated units (not the skill's own source) to enforce loopback,
+    # matching the skill's own documented "SSH tunnel then connect" access
+    # pattern, which this doesn't change -- it just makes it mandatory.
+    log_step "Hardening the live-viewing service to loopback-only (FR-004)..."
+    if [ -f /etc/systemd/system/x11vnc.service ] && ! grep -q -- "-localhost" /etc/systemd/system/x11vnc.service; then
+        sudo sed -i 's/-noclipboard$/-noclipboard -localhost/' /etc/systemd/system/x11vnc.service
+        log_info "Patched x11vnc.service: added -localhost"
+    fi
+    if [ -f /etc/systemd/system/novnc.service ]; then
+        # Debian/Ubuntu's novnc package ships launch.sh, not the novnc_proxy
+        # wrapper the skill's script assumes -- confirmed missing live on
+        # this host. Repoint ExecStart at the real binary and bind loopback.
+        sudo sed -i \
+            -e 's|ExecStart=.*novnc_proxy.*|ExecStart=/usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 127.0.0.1:6080 --web /usr/share/novnc|' \
+            -e 's/--listen 6080\b/--listen 127.0.0.1:6080/' \
+            /etc/systemd/system/novnc.service
+        log_info "Patched novnc.service: loopback-only listen address (and corrected the proxy script path if it was missing)"
+    fi
+    sudo systemctl daemon-reload
+    sudo systemctl restart x11vnc.service novnc.service 2>/dev/null || true
+    sleep 2
+fi
+
+log_step "Verifying the live-viewing service is not exposed to the network..."
+if command -v ss &> /dev/null; then
+    EXPOSED_PORTS="$( { sudo ss -tlnp 2>/dev/null || ss -tlnp 2>/dev/null; } | awk '$4 !~ /^(127\.0\.0\.1|\[::1\]|localhost)/ && ($4 ~ /:5900$/ || $4 ~ /:6080$/) {print $4}')"
+    if [ -n "$EXPOSED_PORTS" ]; then
+        log_error "Live-viewing service is reachable on a non-loopback address: $EXPOSED_PORTS"
+        log_error "This exposes full desktop control to your network. Do not proceed without fixing this — see workspace/skills/desktop-gui-inspect/SKILL.md."
+    else
+        log_info "Confirmed loopback-only: no non-loopback VNC/noVNC listener detected (checked ports 5900, 6080)."
+    fi
+else
+    log_warn "\`ss\` not found — could not verify the live-viewing service's bind address automatically. Check manually before relying on this component (see FR-004 in specs/050-computer-use-desktop/)."
+fi
+
+log_info "Watch or take over live: connect a VNC client, or open noVNC in a browser (typically http://localhost:6080)"
+log_info "Remote viewing: tunnel first — ssh -L 6080:localhost:6080 <this-host> — never expose the port directly"
+log_info "Skill: desktop-gui-inspect (see its SKILL.md for the full workflow reference)"
+
+echo ""
+}
+

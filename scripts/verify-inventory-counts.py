@@ -101,6 +101,9 @@ EXTERNAL_INTEGRATIONS = [
     "SNMP Trap Receiver",
     "Syslog Receiver",
     "Text-to-Speech (TTS)",
+    # Installed via OpenClaw's own ClawHub skill-marketplace mechanism, not a
+    # vendored mcp-servers/ clone -- see spec 050 research.md R3.
+    "Computer Use",
 ]
 
 

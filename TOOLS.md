@@ -73,6 +73,14 @@ The Chrome DevTools MCP server (official Chrome DevTools team package, `chrome-d
 - Watch Mode is platform-agnostic (just `--headless=false`) — works on macOS, Linux desktop, or WSL2 with WSLg; on a genuinely headless host it fails to launch and the remote-debugging attach pattern is the fallback
 - Skills: `browser-viz-verify` (verify generated visualizations render cleanly) and `browser-gui-inspect` (controller GUI gap-fill, undocumented API discovery, general web-GUI automation, Watch Mode)
 
+## Computer Use (OpenClaw ClawHub Skill)
+
+`computer-use` is OpenClaw's own ClawHub skill (not an MCP server — no `config/openclaw.json` entry). It provisions a virtual X11 desktop (Xvfb + XFCE) on this NetClaw host and exposes 17 actions as individual bash scripts (`screenshot.sh`, `click.sh`, `type_text.sh`, `key.sh`, `scroll.sh`, `drag.sh`, `zoom.sh`, `wait.sh`, `cursor_position.sh`, `mouse_move.sh`, `mouse_down.sh`, `mouse_up.sh`, `hold_key.sh`), invoked directly against `DISPLAY=:99`.
+- Installed via `openclaw skills install --global computer-use`, plus system packages (`xvfb`, `xfce4`, `xfce4-terminal`, `xdotool`, `scrot`, `imagemagick`, `dbus-x11`, `x11vnc`, `novnc`, `websockify`) and the skill's own `scripts/setup-vnc.sh` (provisions four systemd services: `xvfb`, `xfce-minimal`, `x11vnc`, `novnc`) — all handled automatically by `./scripts/install.sh --components computer-use`
+- Live-viewing service (VNC on port 5900, noVNC on port 6080) is enforced loopback-only by the installer, which patches the generated systemd units and re-verifies with `ss -tlnp` after every install (a real, confirmed exposure in the upstream skill's default output — see `specs/050-computer-use-desktop/research.md` R5) — remote viewing requires an SSH tunnel (`ssh -L 6080:localhost:6080 <host>`), never a direct connection
+- No credentials, no env vars
+- Skill: `desktop-gui-inspect` (full-desktop automation for legacy tools with no browser or API path, read/confirm/search only, VNC/noVNC Watch Mode)
+
 ## Jenkins MCP Server
 
 The Jenkins MCP server (official Jenkins plugin) provides 16 tools via Streamable HTTP transport:

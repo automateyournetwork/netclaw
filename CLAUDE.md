@@ -65,6 +65,8 @@ Auto-generated from all feature plans. Last updated: 2026-07-08
 - N/A for NetClaw itself (stateless proxy to a local browser process). A persistent Chrome profile directory on disk (`~/.openclaw/chrome-devtools/profile` by default, overridable via `CHROME_DEVTOOLS_PROFILE_DIR`) holds cookies/session state for manually authenticated sites — this is Chrome's own state, not a NetClaw-managed database. (048-chrome-devtools-browser-inspection)
 - Bash (matches every existing NetClaw install/enable script and PR #96's own implementation), Python 3.10+ (for the coverage-check script, extending the existing `scripts/verify-inventory-counts.py` pattern) + None beyond what's already vendored — PR #96's own `scripts/lib/*.sh`, the repo's existing Python stdlib-only tooling convention (049-merge-modular-installer)
 - N/A (installer logic + a plain-text component manifest at `~/.openclaw/netclaw-components.conf`, per PR #96's own design) (049-merge-modular-installer)
+- Bash (install function, matching every existing `scripts/lib/install-steps.sh` entry), Markdown (skill documentation) + OpenClaw's ClawHub `computer-use` skill (consumed as-is, no fork); apt packages `xvfb`, `xfce4`, `xfce4-terminal`, `xdotool`, `scrot`, `imagemagick`, `dbus-x11`, `x11vnc`, `novnc`, `websockify` (all confirmed present in this host's apt repositories; `dbus-x11`, `imagemagick`, `scrot`, `xvfb` already installed) (050-computer-use-desktop)
+- N/A — the virtual desktop's state is ephemeral (X11 session state), nothing NetClaw-managed persists across a restart (050-computer-use-desktop)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -84,9 +86,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 050-computer-use-desktop: Added Bash (install function, matching every existing `scripts/lib/install-steps.sh` entry), Markdown (skill documentation) + OpenClaw's ClawHub `computer-use` skill (consumed as-is, no fork); apt packages `xvfb`, `xfce4`, `xfce4-terminal`, `xdotool`, `scrot`, `imagemagick`, `dbus-x11`, `x11vnc`, `novnc`, `websockify` (all confirmed present in this host's apt repositories; `dbus-x11`, `imagemagick`, `scrot`, `xvfb` already installed)
 - 049-merge-modular-installer: Added Bash (matches every existing NetClaw install/enable script and PR #96's own implementation), Python 3.10+ (for the coverage-check script, extending the existing `scripts/verify-inventory-counts.py` pattern) + None beyond what's already vendored — PR #96's own `scripts/lib/*.sh`, the repo's existing Python stdlib-only tooling convention
 - 048-chrome-devtools-browser-inspection: Added Node.js 18+ (official `chrome-devtools-mcp` server — no NetClaw-authored server code); Bash (setup/enable script, consistent with `scripts/*-enable.sh` convention); Markdown (skill + MCP documentation) + `chrome-devtools-mcp` (npm package, official Chrome DevTools team release, MIT-style OSS), Node.js 18+, a locally installed Chrome/Chromium binary (stable channel by default)
-- 047-docs-inventory-reconciliation: Added Python 3.10+ (matches every other script in `scripts/`, e.g. `scan-all-mcp-source.py`, `register-all-mcps.py`) + None beyond the Python standard library (`os`, `json`, `re`) — no new third-party packages
 
 
 <!-- MANUAL ADDITIONS START -->

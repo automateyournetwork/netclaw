@@ -93,6 +93,7 @@ const INTEGRATION_CATALOG = [
   { id: 'claroty', name: 'Claroty xDome', category: 'Security', prefixes: ['claroty-'], color: '#00a3a3', transport: 'stdio', toolEstimate: 21, description: 'OT / IoT / IoMT visibility — asset discovery, Purdue Model classification, alert and vulnerability triage, communication-map topology, all writes ITSM-gated.' },
   { id: 'threejs-viz', name: 'Three.js Network Viz', category: 'Visualization', prefixes: ['threejs-network-viz'], color: '#049ef4', transport: 'stdio', toolEstimate: 3, description: 'Browser-based 3D network topology visualization — single self-contained HTML file, no desktop app/GPU/server required. Optional real-3D-model stencil mode via the vendored sketchfab-mcp-server (3 tools: search, model-details/license-verification, download), filtered to CC0-licensed models only.' },
   { id: 'chrome-devtools', name: 'Chrome DevTools', category: 'Browser Automation', prefixes: ['chrome-devtools-', 'browser-viz-verify', 'browser-gui-inspect'], color: '#4285f4', transport: 'npx', toolEstimate: 20, description: 'Controlled browser automation/inspection — visualization render QA, controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile.' },
+  { id: 'computer-use', name: 'Computer Use', category: 'Desktop Automation', prefixes: ['desktop-gui-inspect'], color: '#f9ab00', transport: 'script', toolEstimate: 17, description: 'Full-desktop automation for legacy tools with no browser or API path — virtual Xvfb+XFCE desktop, 17 xdotool-driven actions, VNC/noVNC Watch Mode (loopback-only). No credentials; installed via OpenClaw\'s ClawHub skill mechanism, not a vendored MCP server.' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -172,6 +173,11 @@ const ENV_MAP = {
     env: [],
     files: [],
     notes: 'No credentials, no env vars — chrome-devtools-mcp takes config as CLI flags only. Target-site auth is a one-time manual sign-in into its default persistent profile (see mcp-servers/chrome-devtools-mcp/README.md).',
+  },
+  'computer-use': {
+    env: [],
+    files: [],
+    notes: 'No credentials, no env vars — installed via `openclaw skills install --global computer-use`, not config/openclaw.json. Live-viewing service (VNC 5900, noVNC 6080) is enforced loopback-only by the installer (see specs/050-computer-use-desktop/research.md R5).',
   },
   jenkins: {
     env: ['JENKINS_URL', 'JENKINS_USERNAME', 'JENKINS_API_TOKEN', 'JENKINS_AUTH_BASE64'],

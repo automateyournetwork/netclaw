@@ -73,6 +73,7 @@ GROUPED_EXTERNAL_COVERAGE = {
     # Pre-existing, already-correct mapping the length-3-minimum heuristic
     # can't find on its own ("f5" is 2 characters).
     "f5": ["F5 BIG-IP"],
+    "computer-use": ["Computer Use"],
 }
 
 
