@@ -112,6 +112,22 @@
         "GITLAB_API_URL": "${GITLAB_API_URL:-https://gitlab.com}"
       }
     },
+    "chrome-devtools-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=true"
+      ]
+    },
+    "chrome-devtools-mcp-visible": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=false"
+      ]
+    },
     "jenkins-mcp": {
       "url": "${JENKINS_URL}/mcp-server/mcp",
       "headers": {
@@ -589,6 +605,15 @@
       "url": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}",
       "env": {
         "UE5_MCP_URL": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}"
+      }
+    },
+    "sketchfab-mcp": {
+      "command": "node",
+      "args": [
+        "mcp-servers/sketchfab-mcp-server/build/index.js"
+      ],
+      "env": {
+        "SKETCHFAB_API_KEY": "${SKETCHFAB_API_KEY}"
       }
     }
   }

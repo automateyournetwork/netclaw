@@ -39,6 +39,7 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - gNMI Telemetry      → GNMI_TARGETS (JSON), GNMI_TLS_CA_CERT, GNMI_TLS_CLIENT_CERT, GNMI_TLS_CLIENT_KEY
 - Azure Network MCP   → AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID
 - Canvas/A2UI Viz     → No new credentials (uses existing MCP server connections)
+- Chrome DevTools MCP  → No credentials, no env vars at all (config is CLI flags only; auth is via manual browser sign-in)
 - Token Optimization  → ANTHROPIC_API_KEY (reused), NETCLAW_TOKEN_PRICING_OVERRIDE (optional)
 - GitLab MCP          → GITLAB_PERSONAL_ACCESS_TOKEN, GITLAB_API_URL (default: gitlab.com)
 - Jenkins MCP         → JENKINS_URL, JENKINS_AUTH_BASE64 (remote HTTP, Basic Auth)
@@ -60,6 +61,17 @@ The GitLab MCP server (`@zereight/mcp-gitlab`) provides 98+ tools for GitLab ope
 - **Wiki**: list_wiki_pages, get_wiki_page, create_wiki_page, update_wiki_page, delete_wiki_page
 - Supports gitlab.com and self-hosted instances via `GITLAB_API_URL`
 - Read-only mode available via `GITLAB_READ_ONLY_MODE=true`
+
+## Chrome DevTools MCP Server
+
+The Chrome DevTools MCP server (official Chrome DevTools team package, `chrome-devtools-mcp`) provides controlled browser automation/inspection via stdio transport. Registered **twice** — `chrome-devtools-mcp` (`--headless=true`, default, no visible window) and `chrome-devtools-mcp-visible` (`--headless=false`, "Watch Mode" — a real Chrome window opens wherever NetClaw runs, so an operator can watch it navigate/click/read live). NetClaw uses ~20 of its ~50+ tools across two skills:
+- **Navigation**: navigate_page, new_page, list_pages, select_page, close_page, wait_for
+- **Reading & Interacting** (read/confirm/search only — never for submitting config changes): take_snapshot, take_screenshot, click, hover, fill, fill_form, drag, press_key, type_text, handle_dialog, upload_file
+- **Network Inspection**: list_network_requests, get_network_request
+- **Debugging & Performance**: list_console_messages, get_console_message, evaluate_script, resize_page, emulate, performance_start_trace, performance_stop_trace, performance_analyze_insight, lighthouse_audit
+- No credentials, no env vars — auth is a one-time manual sign-in into the tool's own default persistent profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), shared by both registrations
+- Watch Mode is platform-agnostic (just `--headless=false`) — works on macOS, Linux desktop, or WSL2 with WSLg; on a genuinely headless host it fails to launch and the remote-debugging attach pattern is the fallback
+- Skills: `browser-viz-verify` (verify generated visualizations render cleanly) and `browser-gui-inspect` (controller GUI gap-fill, undocumented API discovery, general web-GUI automation, Watch Mode)
 
 ## Jenkins MCP Server
 
@@ -212,6 +224,19 @@ The Unreal Engine 5.8 MCP server is built into UE5.8+ and provides enterprise-gr
 - Auto-start or manually: `ModelContextProtocol.StartServer` in UE5 console
 - `UE5_MCP_URL` → server endpoint (default: `http://127.0.0.1:8000/mcp`)
 - Client note: some builds respond over a keep-alive `text/event-stream` even after the real answer has been sent — a client that waits for the full response body to complete (rather than reading the SSE stream line-by-line and stopping at the first complete JSON-RPC object) can hang for the full timeout on an answer that already arrived.
+
+## Sketchfab MCP Server
+
+The Sketchfab MCP server ([gregkop/sketchfab-mcp-server](https://github.com/gregkop/sketchfab-mcp-server), vendored at `mcp-servers/sketchfab-mcp-server/`) provides 3D model search/download for `workspace/skills/threejs-network-viz/`'s optional real-stencil mode (046-threejs-network-viz, User Story 5) — it is not used by any other skill.
+
+- **Tools (3)**: `sketchfab-search` (query/tags/categories/downloadable/limit), `sketchfab-model-details` (full model metadata including license, given a model ID), `sketchfab-download` (format gltf/glb/usdz/source, given a model ID)
+- Transport: stdio (Node.js), registered as `sketchfab-mcp` in `config/openclaw.json`
+- Requires: `SKETCHFAB_API_KEY` (get one at https://sketchfab.com/settings/password → API Tokens); `SKETCHFAB_USERNAME` is reference/attribution only, not required by the API
+- Install: `cd mcp-servers/sketchfab-mcp-server && npm install && npm run build` (produces `build/index.js`, the file `config/openclaw.json` points at)
+- **Patched during 046's implementation**: the upstream server's `sketchfab-model-details` tool silently dropped the `license` field from its formatted text output, even though the real Sketchfab API returns it — confirmed live against `https://api.sketchfab.com/v3/models/{uid}`. Without it, `threejs-network-viz/assets.py` has no way to verify a candidate model is actually CC0-licensed before using it. Fixed in `mcp-servers/sketchfab-mcp-server/index.ts`'s `formatModelForDisplay()` (see the "NetClaw patch" comments) and rebuilt. **If this vendored server is ever re-cloned fresh from upstream, this patch must be reapplied and rebuilt before real-stencil mode's license verification will work.**
+- Sketchfab's catalog is mixed-license — the `sketchfab-search` tool has no license filter parameter, so every candidate must be individually verified via `sketchfab-model-details` before download (never trust `downloadable: true` alone as a license signal). The real Sketchfab API's CC0 license record has `slug: "cc0"`, `uid: "7c23a1ba438d4306920229c12afcb5f9"` — confirmed live against `GET /v3/licenses`.
+- Not every downloadable model has a ready-made glTF/GLB export — `sketchfab-download` silently substitutes a different format (source/gltf/usdz) when the requested `glb` isn't available for that specific model; callers must check the tool's response text for the exact "in glb format." success phrasing rather than assuming success means the requested format was honored.
+- In practice, CC0-licensed models specific to network equipment are essentially nonexistent on Sketchfab — confirmed via live searches during development ("router", "server rack", "electronic box" all returned zero or irrelevant CC0 results). Procedural-shape fallback in `threejs-network-viz` is the expected common case, not a rare edge case.
 
 ## Claroty xDome MCP Server
 

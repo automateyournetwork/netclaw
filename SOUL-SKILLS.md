@@ -1388,3 +1388,193 @@ IP Fabric network assurance and path analysis (10 tools):
 **Credentials:** `IPFABRIC_HOST`, `IPFABRIC_API_TOKEN`
 
 Developed in collaboration with **Daren Fulwell** (Field CTO, IP Fabric) and **John Capobianco** (Creator, NetClaw).
+
+---
+
+## Additional Skills Index
+
+The skills above are documented with full step-by-step operational procedures. The 181 skills below were added across later feature branches and are not yet expanded into full procedures in this file — each one's complete workflow, commands, and best practices live directly in its own `SKILL.md`, which remains the authoritative reference. This index exists so every skill NetClaw has is at least discoverable from this file; read the linked `SKILL.md` for the actual procedure, don't guess from the one-line summary below.
+
+| Skill | Summary | Full Procedure |
+|-------|---------|-----------------|
+| `aap-automation` | Red Hat Ansible Automation Platform — inventory management, job template execution, project SCM sync, ad-hoc commands, host management, Galaxy content discov... | `workspace/skills/aap-automation/SKILL.md` |
+| `aap-eda` | Event-Driven Ansible (EDA) — activation lifecycle, rulebook management, decision environments, event stream monitoring. Use when managing event-driven automa... | `workspace/skills/aap-eda/SKILL.md` |
+| `aap-lint` | ansible-lint playbook and role validation — syntax checking, best practice enforcement, project-wide analysis, rule filtering. Use when validating Ansible pl... | `workspace/skills/aap-lint/SKILL.md` |
+| `aci-change-deploy` | Safe ACI policy change deployment - ServiceNow CR lifecycle, pre/post-change fault baselines, APIC policy application, automatic rollback on fault delta, and... | `workspace/skills/aci-change-deploy/SKILL.md` |
+| `aci-fabric-audit` | Comprehensive Cisco ACI fabric health audit - node status, tenant/VRF/BD/EPG policy review, contract analysis, fault triage, and endpoint learning verificati... | `workspace/skills/aci-fabric-audit/SKILL.md` |
+| `arista-cvp` | Arista CloudVision Portal (CVP) automation via REST API — device inventory, events, connectivity monitoring, tag management (4 tools). Use when managing Aris... | `workspace/skills/arista-cvp/SKILL.md` |
+| `aruba-cx-config` | View and manage Aruba CX switch configurations, perform ISSU upgrades, and firmware operations | `workspace/skills/aruba-cx-config/SKILL.md` |
+| `aruba-cx-interfaces` | Monitor Aruba CX switch interface status, LLDP neighbors, and optical transceiver health | `workspace/skills/aruba-cx-interfaces/SKILL.md` |
+| `aruba-cx-switching` | View and manage Aruba CX switch VLANs and MAC address tables for Layer 2 operations | `workspace/skills/aruba-cx-switching/SKILL.md` |
+| `aruba-cx-system` | Discover Aruba CX switch system information, firmware versions, and VSF topology | `workspace/skills/aruba-cx-system/SKILL.md` |
+| `atlassian-itsm` | IT Service Management workflows using Jira for issue tracking and Confluence for documentation | `workspace/skills/atlassian-itsm/SKILL.md` |
+| `aws-architecture-diagram` | AWS architecture diagrams — generate visual network topology diagrams from live AWS infrastructure. Use when drawing AWS network diagrams, visualizing VPCs, ... | `workspace/skills/aws-architecture-diagram/SKILL.md` |
+| `aws-cloud-monitoring` | AWS CloudWatch monitoring — metrics, alarms, log queries, VPC flow log analysis, network performance. Use when checking AWS alarms, analyzing VPC flow logs, ... | `workspace/skills/aws-cloud-monitoring/SKILL.md` |
+| `aws-cost-ops` | AWS Cost Explorer — spending analysis, service breakdowns, forecasts, cost anomalies. Use when analyzing AWS spending, investigating cost spikes, reviewing n... | `workspace/skills/aws-cost-ops/SKILL.md` |
+| `aws-network-ops` | AWS cloud networking — VPC, Transit Gateway, Cloud WAN, VPN, Network Firewall, ENI, flow logs. Use when auditing AWS VPCs, troubleshooting connectivity betwe... | `workspace/skills/aws-network-ops/SKILL.md` |
+| `aws-security-audit` | AWS security auditing — IAM users/roles/policies, CloudTrail API events, security posture analysis. Use when auditing IAM permissions, investigating security... | `workspace/skills/aws-security-audit/SKILL.md` |
+| `azure-network-ops` | Azure cloud networking -- VNets, NSGs, ExpressRoute, VPN Gateways, Azure Firewalls, Load Balancers, Application Gateways, Route Tables, Network Watcher, Priv... | `workspace/skills/azure-network-ops/SKILL.md` |
+| `azure-security-audit` | Azure NSG compliance auditing and security posture assessment. CIS Azure Foundations Benchmark rules, effective security rule analysis, orphaned NSG detectio... | `workspace/skills/azure-security-audit/SKILL.md` |
+| `batfish-config-analysis` | Batfish network configuration analysis -- pre-deployment validation, reachability testing, ACL/firewall tracing, differential analysis, compliance checking. ... | `workspace/skills/batfish-config-analysis/SKILL.md` |
+| `blender-3d-viz` | Create 3D network topology visualizations in Blender from CDP/LLDP neighbor data | `workspace/skills/blender-3d-viz/SKILL.md` |
+| `catc-client-ops` | Catalyst Center client operations and monitoring - list/filter wired and wireless clients, detailed client lookup by MAC, client count analytics, time-based ... | `workspace/skills/catc-client-ops/SKILL.md` |
+| `catc-inventory` | Catalyst Center device inventory and site management - list/filter devices by hostname, IP, platform, family, role, reachability; view site hierarchy; get in... | `workspace/skills/catc-inventory/SKILL.md` |
+| `catc-troubleshoot` | Catalyst Center troubleshooting workflows - device unreachable investigation, client connectivity issues, interface down analysis, site-wide outage triage, w... | `workspace/skills/catc-troubleshoot/SKILL.md` |
+| `checkpoint` | A comprehensive skill for interacting with Check Point enterprise security infrastructure through 15 MCP servers. | `workspace/skills/checkpoint/SKILL.md` |
+| `clab-lab-management` | ContainerLab network lab lifecycle management — authenticate, list, deploy, inspect, execute commands on, and destroy containerized network labs via the Cont... | `workspace/skills/clab-lab-management/SKILL.md` |
+| `claroty-asset-inventory` | Discover and classify OT / IoT / IoMT assets via Claroty xDome. List devices by site, Purdue level, and device purpose; assign Purdue layers and custom attri... | `workspace/skills/claroty-asset-inventory/SKILL.md` |
+| `claroty-ot-topology` | Render Claroty xDome OT / IoT communication maps and zone segmentation as inline Canvas/A2UI topology, draw.io diagrams, and timeline summaries. | `workspace/skills/claroty-ot-topology/SKILL.md` |
+| `claroty-risk-triage` | Triage Claroty xDome alerts and vulnerabilities, compute blast radius, correlate with NVD CVE data, and drive ITSM-gated workflow actions (acknowledge, label... | `workspace/skills/claroty-risk-triage/SKILL.md` |
+| `cloudflare-analytics` | Access Cloudflare traffic analytics, logs, and Radar global Internet insights. | `workspace/skills/cloudflare-analytics/SKILL.md` |
+| `cloudflare-dns` | Manage Cloudflare DNS zones and records with analytics insights. | `workspace/skills/cloudflare-dns/SKILL.md` |
+| `cloudflare-security` | Monitor Cloudflare WAF, firewall events, audit logs, and threat intelligence. | `workspace/skills/cloudflare-security/SKILL.md` |
+| `cloudflare-workers` | Monitor Cloudflare Workers deployments, bindings, and build insights. | `workspace/skills/cloudflare-workers/SKILL.md` |
+| `cloudflare-zerotrust` | Inspect Cloudflare Zero Trust access applications, policies, tunnels, and CASB findings. | `workspace/skills/cloudflare-zerotrust/SKILL.md` |
+| `cml-admin` | CML administration — user/group management, system info, licensing, resource monitoring. Use when creating CML users, checking license status, monitoring CML... | `workspace/skills/cml-admin/SKILL.md` |
+| `cml-lab-lifecycle` | Cisco CML lab lifecycle management — create, start, stop, wipe, delete, clone, import/export labs. Use when building a network lab, starting or stopping a CM... | `workspace/skills/cml-lab-lifecycle/SKILL.md` |
+| `cml-node-operations` | CML node operations — start, stop, console access, CLI execution, config management, node details. Use when starting or stopping a CML node, running show com... | `workspace/skills/cml-node-operations/SKILL.md` |
+| `cml-packet-capture` | CML packet capture — start, stop, download pcaps from CML lab links, integrate with Packet Buddy for analysis. Use when capturing packets in a CML lab, troub... | `workspace/skills/cml-packet-capture/SKILL.md` |
+| `cml-topology-builder` | Build CML topologies — add nodes, create interfaces, wire links, set link conditioning, add annotations. Use when building a network topology in CML, adding ... | `workspace/skills/cml-topology-builder/SKILL.md` |
+| `datadog-apm` | Analyze distributed traces and service performance in Datadog APM. | `workspace/skills/datadog-apm/SKILL.md` |
+| `datadog-incidents` | Manage incidents in Datadog Incident Management. | `workspace/skills/datadog-incidents/SKILL.md` |
+| `datadog-logs` | Search and analyze logs in Datadog Log Management. | `workspace/skills/datadog-logs/SKILL.md` |
+| `datadog-metrics` | Query metrics and explore dashboards in Datadog. | `workspace/skills/datadog-metrics/SKILL.md` |
+| `defenseclaw-ops` | Manage DefenseClaw enterprise security - scan components, manage tool permissions, view alerts, configure guardrails | `workspace/skills/defenseclaw-ops/SKILL.md` |
+| `devnet-catalyst-search` | Search Cisco Catalyst Center API documentation for device management and policy automation | `workspace/skills/devnet-catalyst-search/SKILL.md` |
+| `devnet-meraki-search` | Search Cisco Meraki API documentation and lookup specific operations | `workspace/skills/devnet-meraki-search/SKILL.md` |
+| `drawio-diagram` | Generate draw.io network diagrams — native .drawio files with CLI export (PNG/SVG/PDF), plus browser-based Mermaid/XML/CSV via MCP server. Use when creating ... | `workspace/skills/drawio-diagram/SKILL.md` |
+| `eve-lab-topology-build` | Build or rewire EVE-NG lab topology. Use when creating or deleting virtual networks, connecting node interfaces to networks, inspecting topology links, check... | `workspace/skills/eve-lab-topology-build/SKILL.md` |
+| `eve-lab-topology-design` | Design EVE-NG lab topology and coordinate the design workflow. Use when the user asks for lab design, architecture advice, topology planning, design review, ... | `workspace/skills/eve-lab-topology-design/SKILL.md` |
+| `eve-lab-topology-discovery` | Gather missing requirements for EVE-NG topology design. Use when the request is vague or incomplete, when you need discovery questions, defaults, trade-off f... | `workspace/skills/eve-lab-topology-discovery/SKILL.md` |
+| `eve-lab-topology-validation` | Validate EVE-NG topology designs and enforce final delivery structure. Use when reviewing a design, checking build readiness, producing the final design outp... | `workspace/skills/eve-lab-topology-validation/SKILL.md` |
+| `eve-ng-config-ops` | Manage EVE-NG startup configurations stored in lab files. Use when exporting configs natively into the lab, reading embedded startup configs, pushing startup... | `workspace/skills/eve-ng-config-ops/SKILL.md` |
+| `eve-ng-console-ops` | Execute live CLI commands on running EVE-NG nodes over telnet console. Use when running show commands, making live config changes, verifying protocol state, ... | `workspace/skills/eve-ng-console-ops/SKILL.md` |
+| `eve-ng-lab-management` | Manage EVE-NG labs and platform inventory. Use when listing labs, checking lab metadata, creating or deleting labs, importing or exporting lab archives, chec... | `workspace/skills/eve-ng-lab-management/SKILL.md` |
+| `eve-ng-node-operations` | Manage EVE-NG node lifecycle. Use when listing nodes, checking runtime state, creating or deleting nodes, starting or stopping nodes or whole labs, verifying... | `workspace/skills/eve-ng-node-operations/SKILL.md` |
+| `evpn-vxlan-fabric` | EVPN/VXLAN fabric audit and troubleshooting — VTEPs, VNIs, route types, multihoming, underlay/overlay validation. Use when troubleshooting VXLAN overlay reac... | `workspace/skills/evpn-vxlan-fabric/SKILL.md` |
+| `f5-config-mgmt` | F5 BIG-IP configuration management - safe change workflow with baseline capture, planning, creation/update/deletion of virtual servers, pools, iRules, and pr... | `workspace/skills/f5-config-mgmt/SKILL.md` |
+| `f5-health-check` | F5 BIG-IP health monitoring - virtual server status, pool member health, log analysis, performance statistics, and systematic health assessment. Use when che... | `workspace/skills/f5-health-check/SKILL.md` |
+| `f5-troubleshoot` | F5 BIG-IP troubleshooting - virtual server failures, pool member health, connection issues, SSL/TLS problems, iRule errors, persistence issues, and performan... | `workspace/skills/f5-troubleshoot/SKILL.md` |
+| `fmc-firewall-ops` | Cisco Secure Firewall FMC — access policy search, rule inspection, FTD device targeting, multi-FMC profile management. Use when searching firewall rules by I... | `workspace/skills/fmc-firewall-ops/SKILL.md` |
+| `fortimanager-ops` | FortiManager operations — ADOM inventory, policy package review, object search, install preview, and compliance workflows. Use when auditing FortiGate firewa... | `workspace/skills/fortimanager-ops/SKILL.md` |
+| `forward` | Forward snapshot assurance, path search, app-aware path search, NQE, checks, vulnerabilities, diffs, configuration, lifecycle, collection, and topology workf... | `workspace/skills/forward/SKILL.md` |
+| `fwrule-analyzer` | Multi-vendor firewall rule analysis — overlap detection, shadowing, conflict identification, duplication checking across PAN-OS, ASA, FTD, IOS/IOS-XE, IOS-XR... | `workspace/skills/fwrule-analyzer/SKILL.md` |
+| `gait-session-tracking` | GAIT session lifecycle management - branch creation, turn recording, audit logging for every NetClaw operation. Use when starting a new NetClaw session, reco... | `workspace/skills/gait-session-tracking/SKILL.md` |
+| `gcp-cloud-logging` | Google Cloud Logging — log search, VPC flow logs, firewall logs, audit logs, log buckets and views. Use when searching GCP logs, investigating denied VPC flo... | `workspace/skills/gcp-cloud-logging/SKILL.md` |
+| `gcp-cloud-monitoring` | Google Cloud Monitoring — time series metrics, alert policies, active alerts, metric discovery. Use when checking GCP network performance, investigating firi... | `workspace/skills/gcp-cloud-monitoring/SKILL.md` |
+| `gcp-compute-ops` | Google Cloud Compute Engine — VM instances, disks, templates, instance groups, reservations, project discovery. Use when listing GCP VMs, troubleshooting a C... | `workspace/skills/gcp-compute-ops/SKILL.md` |
+| `github-ops` | GitHub repository operations — issues, PRs, code search, and config-as-code workflows. Use when creating a GitHub issue for a network finding, opening a pull... | `workspace/skills/github-ops/SKILL.md` |
+| `gitlab-devops` | GitLab DevOps operations — issues, merge requests, CI/CD pipelines, repository browsing, labels, milestones, releases, and wiki management. Use when querying... | `workspace/skills/gitlab-devops/SKILL.md` |
+| `gnmi-telemetry` | gNMI streaming telemetry operations for multi-vendor network devices. Query device state via structured YANG model paths, subscribe to real-time telemetry st... | `workspace/skills/gnmi-telemetry/SKILL.md` |
+| `gns3-link-management` | Manage GNS3 links - connect/disconnect node interfaces, isolate nodes | `workspace/skills/gns3-link-management/SKILL.md` |
+| `gns3-node-operations` | Manage GNS3 nodes - add from templates, start/stop/suspend/reload, console access | `workspace/skills/gns3-node-operations/SKILL.md` |
+| `gns3-packet-capture` | Capture network traffic on GNS3 links - start/stop captures, retrieve PCAP data | `workspace/skills/gns3-packet-capture/SKILL.md` |
+| `gns3-project-lifecycle` | Manage GNS3 network lab projects - create, open, close, delete, clone, export/import | `workspace/skills/gns3-project-lifecycle/SKILL.md` |
+| `gns3-snapshot-ops` | Manage GNS3 project snapshots - create, restore, delete for safe experimentation | `workspace/skills/gns3-snapshot-ops/SKILL.md` |
+| `grafana-observability` | Grafana observability platform — dashboards, Prometheus PromQL, Loki LogQL, alerting, incidents, OnCall schedules, annotations, datasource queries, panel ren... | `workspace/skills/grafana-observability/SKILL.md` |
+| `gtrace-ip-enrichment` | IP address enrichment — ASN ownership lookup, geolocation (city/region/country/coordinates), and reverse DNS resolution. Use when identifying who owns an IP ... | `workspace/skills/gtrace-ip-enrichment/SKILL.md` |
+| `gtrace-path-analysis` | Network path tracing and monitoring — traceroute with MPLS/ECMP/NAT detection, continuous MTR monitoring, and distributed GlobalPing probes from 500+ worldwi... | `workspace/skills/gtrace-path-analysis/SKILL.md` |
+| `humanrail-escalation` | Human-in-the-loop escalation via HumanRail — route low-confidence agent decisions, pre-destructive operation approvals, and ambiguous incident tickets to rea... | `workspace/skills/humanrail-escalation/SKILL.md` |
+| `infoblox-ddi` | Infoblox DDI operations — DNS zones/records, DHCP scopes and leases, IPAM networks and address utilization. Use when checking DNS records, validating IPAM ad... | `workspace/skills/infoblox-ddi/SKILL.md` |
+| `infrahub-sot` | OpsMill Infrahub — infrastructure source of truth with schema-driven nodes, GraphQL queries, and branch-isolated changes. Use when querying Infrahub for devi... | `workspace/skills/infrahub-sot/SKILL.md` |
+| `ipfabric` | > Developed in collaboration with **Daren Fulwell** (Field CTO, IP Fabric) and **John Capobianco** (Creator, NetClaw), representing nearly a decade of profes... | `workspace/skills/ipfabric/SKILL.md` |
+| `ipfix-receiver` | Receive and query IPFIX and NetFlow flow records from network devices via UDP. | `workspace/skills/ipfix-receiver/SKILL.md` |
+| `ise-posture-audit` | Cisco ISE posture and policy audit - authorization rules, posture compliance, profiling gaps, TrustSec SGT matrix, active session health. Use when running a ... | `workspace/skills/ise-posture-audit/SKILL.md` |
+| `itential-automation` | Itential Automation Platform (IAP) — network automation orchestration, device configuration management, compliance enforcement, workflow execution, golden co... | `workspace/skills/itential-automation/SKILL.md` |
+| `jenkins-cicd` | Jenkins CI/CD pipeline management — monitor builds, trigger pipelines, analyze logs, and track SCM changes for network automation workflows. | `workspace/skills/jenkins-cicd/SKILL.md` |
+| `junos-network` | Juniper JunOS device automation via PyEZ/NETCONF — CLI execution, configuration management, Jinja2 template rendering, device facts, batch operations, config... | `workspace/skills/junos-network/SKILL.md` |
+| `kubeshark-traffic` | Kubeshark Kubernetes traffic analysis — L4/L7 deep packet inspection, TLS decryption, pcap export, flow analysis, service mapping (6 tools). Use when capturi... | `workspace/skills/kubeshark-traffic/SKILL.md` |
+| `markmap-viz` | Create interactive mind map visualizations from markdown - network inventory, OSPF areas, BGP topology, security audit results. Use when visualizing network ... | `workspace/skills/markmap-viz/SKILL.md` |
+| `memory` | The Memory skill enables NetClaw to remember information about your network across sessions. Instead of re-explaining your topology, device names, and past i... | `workspace/skills/memory/SKILL.md` |
+| `mempalace` | MemPalace AI memory — persistent memory across sessions. Search past decisions, store architecture choices, track temporal network facts via knowledge graph,... | `workspace/skills/mempalace/SKILL.md` |
+| `meraki-monitoring` | Cisco Meraki Monitoring & Diagnostics — live ping, cable test, LED blink, wake-on-LAN, camera analytics, config change tracking. Use when running ping tests ... | `workspace/skills/meraki-monitoring/SKILL.md` |
+| `meraki-network-ops` | Cisco Meraki Dashboard — organization inventory, network management, device lifecycle, client discovery, action batches. Use when listing Meraki devices, man... | `workspace/skills/meraki-network-ops/SKILL.md` |
+| `meraki-security-appliance` | Cisco Meraki Security Appliance (MX) — firewall rules, site-to-site VPN, content filtering, traffic shaping, security events. Use when auditing Meraki MX fir... | `workspace/skills/meraki-security-appliance/SKILL.md` |
+| `meraki-switch-ops` | Cisco Meraki Switching — port configuration, VLANs, port status, ACLs, QoS rules, port cycling. Use when configuring Meraki switch ports, creating VLANs, che... | `workspace/skills/meraki-switch-ops/SKILL.md` |
+| `meraki-wireless-ops` | Cisco Meraki Wireless — SSID management, RF profiles, channel utilization, signal quality, client connectivity events. Use when managing Meraki SSIDs, troubl... | `workspace/skills/meraki-wireless-ops/SKILL.md` |
+| `msgraph-files` | Manage files on OneDrive and SharePoint via Microsoft Graph API - upload, download, list, search, and organize network documentation and artifacts. Use when ... | `workspace/skills/msgraph-files/SKILL.md` |
+| `msgraph-teams` | Send notifications and reports to Microsoft Teams channels via Graph API - alert delivery, report posting, incident updates, and diagram sharing. Use when po... | `workspace/skills/msgraph-teams/SKILL.md` |
+| `msgraph-visio` | Generate and manage Visio network diagrams on SharePoint via Microsoft Graph API - create topology diagrams from CDP/LLDP discovery, update existing diagrams... | `workspace/skills/msgraph-visio/SKILL.md` |
+| `nmap-network-scan` | Host discovery and port scanning using nmap — ICMP/ARP host discovery, SYN/TCP/UDP port scanning with scope enforcement and audit logging. Use when discoveri... | `workspace/skills/nmap-network-scan/SKILL.md` |
+| `nmap-scan-management` | Custom nmap scans with arbitrary flags, plus scan history retrieval and management. Use when running nmap with custom flags, reviewing past scan results, com... | `workspace/skills/nmap-scan-management/SKILL.md` |
+| `nmap-service-detection` | Service fingerprinting, OS detection, NSE script execution, and vulnerability scanning using nmap MCP. Use when identifying services on open ports, fingerpri... | `workspace/skills/nmap-service-detection/SKILL.md` |
+| `nso-device-ops` | Cisco NSO device operations — config retrieval, state inspection, sync, platform info, NED IDs, device groups. Use when retrieving device configs from NSO, c... | `workspace/skills/nso-device-ops/SKILL.md` |
+| `nso-service-mgmt` | Cisco NSO service management — discover service types, list service instances, orchestrate network services. Use when listing NSO services, checking service ... | `workspace/skills/nso-service-mgmt/SKILL.md` |
+| `packet-analysis` | Analyze network packet captures (.pcap/.pcapng) using Packet Buddy MCP. Use when opening a pcap file, inspecting packet captures, troubleshooting network tra... | `workspace/skills/packet-analysis/SKILL.md` |
+| `pagerduty-incidents` | Manage and investigate incidents in PagerDuty. | `workspace/skills/pagerduty-incidents/SKILL.md` |
+| `pagerduty-oncall` | Manage on-call schedules and escalation policies in PagerDuty. | `workspace/skills/pagerduty-oncall/SKILL.md` |
+| `pagerduty-orchestration` | Manage event orchestration and routing rules in PagerDuty. | `workspace/skills/pagerduty-orchestration/SKILL.md` |
+| `pagerduty-services` | Manage service catalog and service health in PagerDuty. | `workspace/skills/pagerduty-services/SKILL.md` |
+| `paloalto-panorama` | Palo Alto Panorama operations — device groups, templates, security policy search, NAT review, commit status, and audit workflows. Use when searching Palo Alt... | `workspace/skills/paloalto-panorama/SKILL.md` |
+| `prisma-sdwan-apps` | View Prisma SD-WAN application definitions for policy visibility | `workspace/skills/prisma-sdwan-apps/SKILL.md` |
+| `prisma-sdwan-config` | Inspect Prisma SD-WAN interfaces, routing (BGP, static), policies, and security zones | `workspace/skills/prisma-sdwan-config/SKILL.md` |
+| `prisma-sdwan-status` | Monitor Prisma SD-WAN element health, software versions, events, and alarms | `workspace/skills/prisma-sdwan-status/SKILL.md` |
+| `prisma-sdwan-topology` | Discover Prisma SD-WAN sites, ION elements, machines, and network topology | `workspace/skills/prisma-sdwan-topology/SKILL.md` |
+| `prometheus-monitoring` | Prometheus monitoring — PromQL instant/range queries, metric discovery, metadata, scrape target health, system health checks (6 tools). Use when querying Pro... | `workspace/skills/prometheus-monitoring/SKILL.md` |
+| `protocol-participation` | Live BGP and OSPF control-plane participation — peer with real routers, inject/withdraw routes, query RIB/LSDB, adjust metrics, GRE tunnel status. Use when i... | `workspace/skills/protocol-participation/SKILL.md` |
+| `pyats-asa-firewall` | Cisco ASA firewall operations via pyATS — VPN sessions, failover state, interfaces, routing, service policies, resource usage, AnyConnect monitoring. Use whe... | `workspace/skills/pyats-asa-firewall/SKILL.md` |
+| `pyats-config-mgmt` | Network change management - pre-change baselines, configuration deployment, post-change verification, rollback procedures, and compliance validation. Use whe... | `workspace/skills/pyats-config-mgmt/SKILL.md` |
+| `pyats-dynamic-test` | Generate and execute deterministic pyATS aetest validation scripts - interface state, OSPF neighbors, BGP paths, ping matrices, and custom compliance tests. ... | `workspace/skills/pyats-dynamic-test/SKILL.md` |
+| `pyats-f5-ltm` | F5 BIG-IP LTM/GTM operations via pyATS iControl REST — virtual servers, pools, nodes, monitors, profiles, iRules, persistence, GTM wide IPs, DNS, data groups... | `workspace/skills/pyats-f5-ltm/SKILL.md` |
+| `pyats-f5-platform` | F5 BIG-IP platform operations via pyATS iControl REST — system, networking, HA/CM, auth, analytics, security, APM, live-update, ADC certs, file management. U... | `workspace/skills/pyats-f5-platform/SKILL.md` |
+| `pyats-health-check` | Comprehensive network device health monitoring - CPU, memory, interfaces, hardware, NTP, logging, environment, and uptime analysis. Use when running a device... | `workspace/skills/pyats-health-check/SKILL.md` |
+| `pyats-junos-interfaces` | JunOS interface operations via pyATS — physical/logical interfaces, LACP, CoS, LLDP, ARP, BFD, IPv6 neighbors, traffic monitoring, optics diagnostics. Use wh... | `workspace/skills/pyats-junos-interfaces/SKILL.md` |
+| `pyats-junos-routing` | JunOS routing operations via pyATS — OSPF/OSPFv3, BGP, route table, MPLS/LDP/RSVP, TED, PFE, ping, traceroute across Juniper devices. Use when checking Junip... | `workspace/skills/pyats-junos-routing/SKILL.md` |
+| `pyats-junos-system` | JunOS system operations via pyATS — chassis health, hardware inventory, system info, NTP, SNMP, files/logs, firewall counters, DDoS protection, services acco... | `workspace/skills/pyats-junos-system/SKILL.md` |
+| `pyats-linux-network` | Linux host network operations via pyATS — interface configuration, routing tables, network connections, and multi-table route inspection across fleet hosts. ... | `workspace/skills/pyats-linux-network/SKILL.md` |
+| `pyats-linux-system` | Linux host system operations via pyATS — process monitoring, filesystem inspection, Docker container stats, package/tool verification across fleet hosts. Use... | `workspace/skills/pyats-linux-system/SKILL.md` |
+| `pyats-linux-vmware` | VMware ESXi host operations via pyATS — VM inventory, snapshot management, hypervisor inspection across ESXi hosts in the testbed. Use when listing VMs on ES... | `workspace/skills/pyats-linux-vmware/SKILL.md` |
+| `pyats-network` | Network device automation via pyATS - run show commands, ping, apply config, learn config/logging, list devices, run Linux commands, execute dynamic tests on... | `workspace/skills/pyats-network/SKILL.md` |
+| `pyats-parallel-ops` | Fleet-wide parallel device operations - concurrent health checks, config audits, routing snapshots, severity-sorted reporting, and failure-isolated multi-dev... | `workspace/skills/pyats-parallel-ops/SKILL.md` |
+| `pyats-routing` | CCIE-level routing protocol analysis - OSPF, BGP, EIGRP, IS-IS, static routes, RIB/FIB verification, redistribution audit, and convergence validation. Use wh... | `workspace/skills/pyats-routing/SKILL.md` |
+| `pyats-security` | Network security audit - ACLs, AAA, control plane policing, management plane hardening, encryption, port security, and CIS benchmark checks. Use when auditin... | `workspace/skills/pyats-security/SKILL.md` |
+| `pyats-topology` | Network topology discovery via CDP/LLDP neighbors, ARP tables, routing peers, and interface mapping to build complete network maps. Use when mapping the netw... | `workspace/skills/pyats-topology/SKILL.md` |
+| `pyats-troubleshoot` | Systematic network troubleshooting - connectivity, routing, interface, protocol, and performance issues using structured OSI-layer and divide-and-conquer met... | `workspace/skills/pyats-troubleshoot/SKILL.md` |
+| `radkit-remote-access` | Cisco RADKit — cloud-relayed remote device access, CLI execution, SNMP polling, device inventory discovery, attribute inspection. Use when accessing remote n... | `workspace/skills/radkit-remote-access/SKILL.md` |
+| `rfc-lookup` | Search and retrieve IETF RFC documents - lookup by number, search by keyword, extract sections. Use when looking up an RFC, checking protocol specifications,... | `workspace/skills/rfc-lookup/SKILL.md` |
+| `sdwan-ops` | Cisco SD-WAN vManage read-only operations — fabric devices, WAN Edge inventory, templates, policies, alarms, events, interface stats, BFD sessions, OMP route... | `workspace/skills/sdwan-ops/SKILL.md` |
+| `servicenow-change-workflow` | Full ITSM-gated change lifecycle - CR creation, pre-change incident validation, approval gate, execution via pyats-config-mgmt, post-change verification, and... | `workspace/skills/servicenow-change-workflow/SKILL.md` |
+| `slack-incident-workflow` | Manage network incident response workflows in Slack - incident channels, status updates, escalation, resolution tracking, and post-incident review coordinati... | `workspace/skills/slack-incident-workflow/SKILL.md` |
+| `slack-network-alerts` | Format and deliver network alerts, health warnings, and critical notifications via Slack with rich formatting, reactions, and file attachments. Use when send... | `workspace/skills/slack-network-alerts/SKILL.md` |
+| `slack-report-delivery` | Deliver formatted network reports, audit results, topology diagrams, and compliance documentation to Slack channels with rich Block Kit formatting. Use when ... | `workspace/skills/slack-report-delivery/SKILL.md` |
+| `slack-user-context` | Leverage Slack user profiles, presence, DND status, and workspace context to personalize responses, route escalations, and coordinate team operations. Use wh... | `workspace/skills/slack-user-context/SKILL.md` |
+| `slack-voice-interface` | Respond to Slack voice clips with both text and an MP3 voice reply using edge-tts. Voice IN is already handled by OpenClaw transcription. Use when a user sen... | `workspace/skills/slack-voice-interface/SKILL.md` |
+| `snmptrap-receiver` | Receive and query SNMP traps from network devices via UDP. | `workspace/skills/snmptrap-receiver/SKILL.md` |
+| `splunk-indexes` | Discover and inspect Splunk indexes and configuration. | `workspace/skills/splunk-indexes/SKILL.md` |
+| `splunk-saved` | Manage and run saved searches in Splunk. | `workspace/skills/splunk-saved/SKILL.md` |
+| `splunk-search` | Execute and validate SPL (Search Processing Language) queries. | `workspace/skills/splunk-search/SKILL.md` |
+| `subnet-calculator` | IPv4 and IPv6 subnet calculator - CIDR breakdown, usable hosts, previous/next subnets, address classification, VLSM planning, and dual-stack analysis. Use wh... | `workspace/skills/subnet-calculator/SKILL.md` |
+| `suzieq-observability` | SuzieQ network observability — query current and historical network state, run validation assertions, get summary statistics, trace forwarding paths, and dis... | `workspace/skills/suzieq-observability/SKILL.md` |
+| `syslog-receiver` | Receive and query syslog messages from network devices via UDP. | `workspace/skills/syslog-receiver/SKILL.md` |
+| `te-network-monitoring` | Cisco ThousandEyes — test management, agent inventory, test results, dashboards, path visualization, user/account management. Use when checking ThousandEyes ... | `workspace/skills/te-network-monitoring/SKILL.md` |
+| `te-path-analysis` | Cisco ThousandEyes — path visualization, BGP route analysis, outage investigation, instant tests, endpoint agent diagnostics. Use when tracing network paths ... | `workspace/skills/te-path-analysis/SKILL.md` |
+| `telemetry-ops` | Comprehensive network telemetry and event collection across multiple protocols. | `workspace/skills/telemetry-ops/SKILL.md` |
+| `terraform-operations` | Execute local Terraform operations with ServiceNow change control. | `workspace/skills/terraform-operations/SKILL.md` |
+| `terraform-registry` | Discover providers and modules from the Terraform Registry. | `workspace/skills/terraform-registry/SKILL.md` |
+| `terraform-workspaces` | Manage HCP Terraform (Terraform Cloud/Enterprise) workspaces. | `workspace/skills/terraform-workspaces/SKILL.md` |
+| `threejs-network-viz` | Renders network topologies as interactive, fully-labeled 3D scenes directly in a web browser, using Three.js. Unlike NetClaw's UE5 (`ue5-network-viz`) and Bl... | `workspace/skills/threejs-network-viz/SKILL.md` |
+| `token-tracker` | Track and display token consumption and cost for every NetClaw interaction. | `workspace/skills/token-tracker/SKILL.md` |
+| `twilio-daily-briefing` | Provide optional daily phone briefings at a scheduled time with overnight event summaries. | `workspace/skills/twilio-daily-briefing/SKILL.md` |
+| `twilio-emergency-call` | Automatically call John when critical network events occur (P1 incidents, core device failures). Emergency calls bypass quiet hours and are auto-approved wit... | `workspace/skills/twilio-emergency-call/SKILL.md` |
+| `twilio-inbound-voice` | Enable John to call NetClaw's Twilio number and have a bidirectional voice conversation for status queries and network commands. | `workspace/skills/twilio-inbound-voice/SKILL.md` |
+| `twilio-outbound-call` | Enable John to request on-demand phone calls for network status updates and schedule periodic update calls during ongoing incidents. | `workspace/skills/twilio-outbound-call/SKILL.md` |
+| `twitter-check` | This skill provides a quick way for John to invoke the Twitter mention check and auto-respond workflow directly from Claude Code. | `workspace/skills/twitter-check/SKILL.md` |
+| `twitter-heartbeat` | The twitter-heartbeat skill enables NetClaw to: | `workspace/skills/twitter-heartbeat/SKILL.md` |
+| `twitter-respond` | Enables bidirectional Twitter interaction by monitoring @mentions of @John_Capobianco and generating CCIE-level technical replies. All replies require human ... | `workspace/skills/twitter-respond/SKILL.md` |
+| `twitter-share` | The twitter-share skill enables users to ask NetClaw to tweet specific content. All tweets go through content guardrails and require explicit human approval ... | `workspace/skills/twitter-share/SKILL.md` |
+| `ue5-network-viz` | The UE5 Network Visualization skill enables 3D network topology visualization in Unreal Engine 5.8 using the built-in MCP server. Network engineers can reque... | `workspace/skills/ue5-network-viz/SKILL.md` |
+| `uml-diagram` | UML and diagram generation via Kroki — class, sequence, activity, state, component, deployment, network, ER, C4, Mermaid, D2, Graphviz, BPMN, 27+ types. Use ... | `workspace/skills/uml-diagram/SKILL.md` |
+| `vault-mounts` | Discover and manage HashiCorp Vault secret engine mounts. | `workspace/skills/vault-mounts/SKILL.md` |
+| `vault-pki` | Manage HashiCorp Vault PKI certificate infrastructure. | `workspace/skills/vault-pki/SKILL.md` |
+| `vault-secrets` | Manage HashiCorp Vault KV secrets with strict value protection. | `workspace/skills/vault-secrets/SKILL.md` |
+| `webex-incident-workflow` | Manage network incident response workflows in Cisco WebEx - incident spaces, status updates, escalation, resolution tracking, and post-incident review coordi... | `workspace/skills/webex-incident-workflow/SKILL.md` |
+| `webex-network-alerts` | Format and deliver network alerts, health warnings, and critical notifications via Cisco WebEx with Adaptive Cards, markdown formatting, and file attachments... | `workspace/skills/webex-network-alerts/SKILL.md` |
+| `webex-report-delivery` | Deliver formatted network reports, audit results, topology diagrams, and compliance documentation to WebEx spaces with Adaptive Cards and markdown formatting... | `workspace/skills/webex-report-delivery/SKILL.md` |
+| `webex-user-context` | Leverage WebEx user profiles, presence status, and workspace context to personalize responses, route escalations, and coordinate team operations. Use when ch... | `workspace/skills/webex-user-context/SKILL.md` |
+| `webex-voice-interface` | Respond to WebEx voice clips with both text and an MP3 voice reply using edge-tts. Voice IN is already handled by OpenClaw transcription. Use when a user sen... | `workspace/skills/webex-voice-interface/SKILL.md` |
+| `wikipedia-research` | Research networking protocols, standards history, and technology context via Wikipedia - OSPF, BGP, MPLS, 802.1X, VXLAN, and more. Use when looking up protoc... | `workspace/skills/wikipedia-research/SKILL.md` |
+| `zscaler-identity` | Manage users, groups, departments, and identity provider configurations. | `workspace/skills/zscaler-identity/SKILL.md` |
+| `zscaler-insights` | Access analytics, threat intelligence, and security event data. | `workspace/skills/zscaler-insights/SKILL.md` |
+| `zscaler-zdx` | Monitor digital experience scores, user performance, and application health. | `workspace/skills/zscaler-zdx/SKILL.md` |
+| `zscaler-zia` | Manage Zscaler Internet Access firewall rules, URL filtering, DLP, and security policies. | `workspace/skills/zscaler-zia/SKILL.md` |
+| `zscaler-zpa` | Manage Zscaler Private Access applications, segments, policies, and connectors. | `workspace/skills/zscaler-zpa/SKILL.md` |

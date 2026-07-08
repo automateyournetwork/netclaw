@@ -48,6 +48,8 @@ memory/
 
 # Cloned MCP servers (installed by install.sh)
 mcp-servers/*
+# Directory-level documentation (tracked in repo)
+!mcp-servers/README.md
 # Built-in MCP servers (tracked in repo)
 !mcp-servers/protocol-mcp/
 !mcp-servers/suzieq-mcp/
@@ -82,3 +84,7 @@ workspace/node_modules/
 
 # Sensitive config files (contain phone numbers, etc.)
 config/twilio-voice.json
+
+# Generated topology visualizations and downloaded/cached 3D assets (spec 046)
+# — regenerated on demand by output.py/assets.py, never checked in.
+workspace/output/

@@ -12,7 +12,7 @@ Every time you learn something about how I work or what I need, update the relev
 
 ## Your Skills
 
-You interact with the network through **187 skills** backed by 46 MCP servers:
+You interact with the network through **188 skills** backed by 110 MCP servers:
 
 ### Device Automation (9)
 pyats-network, pyats-health-check, pyats-routing, pyats-security, pyats-topology, pyats-config-mgmt, pyats-troubleshoot, pyats-dynamic-test, pyats-parallel-ops
@@ -167,6 +167,9 @@ blender-3d-viz
 ### Unreal Engine 5 Visualization Skills (1)
 ue5-network-viz
 
+### Three.js Visualization Skills (1)
+threejs-network-viz
+
 ### Aruba CX Switching Skills (4)
 aruba-cx-system, aruba-cx-interfaces, aruba-cx-switching, aruba-cx-config
 
@@ -224,6 +227,9 @@ twitter-heartbeat, twitter-share, twitter-respond, twitter-check
 
 ### Twilio Voice Integration Skills (6)
 twilio-emergency-call, twilio-outbound-call, twilio-inbound-voice, twilio-daily-briefing, twilio-universal-voice, twilio-proactive-alerts
+
+### Browser Automation & Inspection Skills (2)
+browser-viz-verify, browser-gui-inspect
 
 **UNIVERSAL VOICE ACCESS (Feature 043)**
 
@@ -322,7 +328,7 @@ Follow the pyats-health-check skill for systematic 8-step assessments with sever
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 182 skills
+- Contains operational workflows, commands, and best practices for all 188 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:

@@ -91,6 +91,8 @@ const INTEGRATION_CATALOG = [
   { id: 'cloudflare', name: 'Cloudflare', category: 'Edge Platform', prefixes: ['cloudflare-'], color: '#f48120', transport: 'http', toolEstimate: 50, description: 'Edge platform — DNS analytics, WAF/DDoS security, Zero Trust access, traffic analytics, and Workers compute.' },
   { id: 'checkpoint', name: 'Check Point', category: 'Security', prefixes: ['checkpoint-', 'chkp-'], color: '#e21d38', transport: 'stdio', toolEstimate: 60, description: 'Enterprise security — 15 MCPs for policy management, threat intelligence, gateway diagnostics, SASE, threat prevention, malware analysis, HTTPS inspection, and exposure management.' },
   { id: 'claroty', name: 'Claroty xDome', category: 'Security', prefixes: ['claroty-'], color: '#00a3a3', transport: 'stdio', toolEstimate: 21, description: 'OT / IoT / IoMT visibility — asset discovery, Purdue Model classification, alert and vulnerability triage, communication-map topology, all writes ITSM-gated.' },
+  { id: 'threejs-viz', name: 'Three.js Network Viz', category: 'Visualization', prefixes: ['threejs-network-viz'], color: '#049ef4', transport: 'stdio', toolEstimate: 3, description: 'Browser-based 3D network topology visualization — single self-contained HTML file, no desktop app/GPU/server required. Optional real-3D-model stencil mode via the vendored sketchfab-mcp-server (3 tools: search, model-details/license-verification, download), filtered to CC0-licensed models only.' },
+  { id: 'chrome-devtools', name: 'Chrome DevTools', category: 'Browser Automation', prefixes: ['chrome-devtools-', 'browser-viz-verify', 'browser-gui-inspect'], color: '#4285f4', transport: 'npx', toolEstimate: 20, description: 'Controlled browser automation/inspection — visualization render QA, controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile.' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -165,6 +167,11 @@ const ENV_MAP = {
     env: ['GITLAB_PERSONAL_ACCESS_TOKEN', 'GITLAB_API_URL', 'GITLAB_READ_ONLY_MODE'],
     files: [],
     notes: 'GitLab PAT (api or read_api scope). GITLAB_API_URL defaults to gitlab.com; override for self-hosted.',
+  },
+  'chrome-devtools': {
+    env: [],
+    files: [],
+    notes: 'No credentials, no env vars — chrome-devtools-mcp takes config as CLI flags only. Target-site auth is a one-time manual sign-in into its default persistent profile (see mcp-servers/chrome-devtools-mcp/README.md).',
   },
   jenkins: {
     env: ['JENKINS_URL', 'JENKINS_USERNAME', 'JENKINS_API_TOKEN', 'JENKINS_AUTH_BASE64'],
@@ -412,6 +419,11 @@ const ENV_MAP = {
     env: ['CLAROTY_API_URL', 'CLAROTY_API_TOKEN', 'CLAROTY_VERIFY_SSL', 'CLAROTY_TIMEOUT', 'CLAROTY_RATE_LIMIT_PER_MIN', 'NETCLAW_LAB_MODE'],
     files: ['mcp-servers/claroty-mcp/.env'],
     notes: 'Claroty xDome MCP — OT / IoT / IoMT visibility. Bearer token from xDome Admin Settings > User Management. Writes require a ServiceNow CR; NETCLAW_LAB_MODE=true skips the state check (shared with gnmi-mcp).',
+  },
+  'threejs-viz': {
+    env: ['SKETCHFAB_API_KEY', 'SKETCHFAB_USERNAME'],
+    files: ['mcp-servers/sketchfab-mcp-server/'],
+    notes: 'Only needed for optional real-3D-model stencil mode. Token from https://sketchfab.com/settings/password. Procedural-shape rendering works with zero configuration.',
   },
 };
 
