@@ -71,6 +71,8 @@ mcp-servers/*
 !mcp-servers/ollama-mcp/
 !mcp-servers/twitter-mcp/
 !mcp-servers/twilio-voice-mcp/
+!mcp-servers/atlassian-mcp/
+!mcp-servers/chrome-devtools-mcp/
 
 # Traces
 trace.json
