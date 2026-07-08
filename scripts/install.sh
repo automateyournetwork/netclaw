@@ -2657,6 +2657,32 @@ log_info "Skills: threejs-network-viz (see its SKILL.md for the full command ref
 echo ""
 
 # ═══════════════════════════════════════════
+# Step 52b: Chrome DevTools MCP Server (browser automation/inspection)
+# ═══════════════════════════════════════════
+
+log_step "52b/$TOTAL_STEPS Configuring Chrome DevTools MCP Server..."
+echo "  Source: https://github.com/ChromeDevTools/chrome-devtools-mcp"
+echo "  Auth: None — one-time manual sign-in into a persistent Chrome profile"
+echo "  Transport: stdio via npx chrome-devtools-mcp@latest (registered twice: headless + Watch Mode)"
+
+# Chrome DevTools MCP runs via npx — requires Node.js 18+, same as GitLab MCP above.
+# Delegates to chrome-devtools-enable.sh, which finds (or, if none exists,
+# deterministically provisions via @puppeteer/browsers — no OS package manager,
+# no sudo, works identically on Linux/macOS/WSL2) a Chrome binary and pins it
+# via --executablePath. This avoids ever depending on --channel's OS-standard
+# install-path lookup (e.g. /opt/google/chrome on Linux), which is not
+# guaranteed to exist even when Node.js/npx are present.
+if command -v npx &> /dev/null; then
+    bash "$NETCLAW_DIR/scripts/chrome-devtools-enable.sh" || log_warn "chrome-devtools-enable.sh reported an issue — see output above; the MCP server can still be registered manually later."
+else
+    log_warn "npx not found — Chrome DevTools MCP server requires Node.js 18+ with npx"
+    log_info "Install Node.js 18+: https://nodejs.org/"
+fi
+log_info "Skills: browser-viz-verify (visualization QA), browser-gui-inspect (controller GUI gap-fill, API discovery, general automation, Watch Mode)"
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 53: Verify installation
 # ═══════════════════════════════════════════
 

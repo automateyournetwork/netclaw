@@ -112,6 +112,22 @@
         "GITLAB_API_URL": "${GITLAB_API_URL:-https://gitlab.com}"
       }
     },
+    "chrome-devtools-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=true"
+      ]
+    },
+    "chrome-devtools-mcp-visible": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=false"
+      ]
+    },
     "jenkins-mcp": {
       "url": "${JENKINS_URL}/mcp-server/mcp",
       "headers": {

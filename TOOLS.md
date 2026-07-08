@@ -39,6 +39,7 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - gNMI Telemetry      → GNMI_TARGETS (JSON), GNMI_TLS_CA_CERT, GNMI_TLS_CLIENT_CERT, GNMI_TLS_CLIENT_KEY
 - Azure Network MCP   → AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID
 - Canvas/A2UI Viz     → No new credentials (uses existing MCP server connections)
+- Chrome DevTools MCP  → No credentials, no env vars at all (config is CLI flags only; auth is via manual browser sign-in)
 - Token Optimization  → ANTHROPIC_API_KEY (reused), NETCLAW_TOKEN_PRICING_OVERRIDE (optional)
 - GitLab MCP          → GITLAB_PERSONAL_ACCESS_TOKEN, GITLAB_API_URL (default: gitlab.com)
 - Jenkins MCP         → JENKINS_URL, JENKINS_AUTH_BASE64 (remote HTTP, Basic Auth)
@@ -60,6 +61,17 @@ The GitLab MCP server (`@zereight/mcp-gitlab`) provides 98+ tools for GitLab ope
 - **Wiki**: list_wiki_pages, get_wiki_page, create_wiki_page, update_wiki_page, delete_wiki_page
 - Supports gitlab.com and self-hosted instances via `GITLAB_API_URL`
 - Read-only mode available via `GITLAB_READ_ONLY_MODE=true`
+
+## Chrome DevTools MCP Server
+
+The Chrome DevTools MCP server (official Chrome DevTools team package, `chrome-devtools-mcp`) provides controlled browser automation/inspection via stdio transport. Registered **twice** — `chrome-devtools-mcp` (`--headless=true`, default, no visible window) and `chrome-devtools-mcp-visible` (`--headless=false`, "Watch Mode" — a real Chrome window opens wherever NetClaw runs, so an operator can watch it navigate/click/read live). NetClaw uses ~20 of its ~50+ tools across two skills:
+- **Navigation**: navigate_page, new_page, list_pages, select_page, close_page, wait_for
+- **Reading & Interacting** (read/confirm/search only — never for submitting config changes): take_snapshot, take_screenshot, click, hover, fill, fill_form, drag, press_key, type_text, handle_dialog, upload_file
+- **Network Inspection**: list_network_requests, get_network_request
+- **Debugging & Performance**: list_console_messages, get_console_message, evaluate_script, resize_page, emulate, performance_start_trace, performance_stop_trace, performance_analyze_insight, lighthouse_audit
+- No credentials, no env vars — auth is a one-time manual sign-in into the tool's own default persistent profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), shared by both registrations
+- Watch Mode is platform-agnostic (just `--headless=false`) — works on macOS, Linux desktop, or WSL2 with WSLg; on a genuinely headless host it fails to launch and the remote-debugging attach pattern is the fallback
+- Skills: `browser-viz-verify` (verify generated visualizations render cleanly) and `browser-gui-inspect` (controller GUI gap-fill, undocumented API discovery, general web-GUI automation, Watch Mode)
 
 ## Jenkins MCP Server
 
