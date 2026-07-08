@@ -1,100 +1,87 @@
-# TOOLS.md — Local Infrastructure Notes
+# TOOLS-REFERENCE.md — Detailed Per-Integration Infrastructure Notes
 
-Skills define *how* tools work. This file is for *your* specifics — the environment details that are unique to your deployment.
+Not auto-loaded at session start (unlike `TOOLS.md`, `SOUL.md`) — read this on demand when you need tool-specific detail beyond what `TOOLS.md`'s quick reference gives you. Load with: `read("~/.openclaw/workspace/TOOLS-REFERENCE.md")`. This mirrors how `SOUL-SKILLS.md`/`SOUL-EXPERTISE.md` are already lazy-loaded from `SOUL.md`.
 
-## Network Devices
+## GitLab MCP Server
 
-Devices are defined in `testbed/testbed.yaml`. Update that file with your SSH-accessible Cisco devices.
+The GitLab MCP server (`@zereight/mcp-gitlab`) provides 98+ tools for GitLab operations via stdio transport:
+- **Issues**: list_issues, get_issue, create_issue, update_issue, add_issue_comment, list_issue_comments
+- **Merge Requests**: list_merge_requests, get_merge_request, create_merge_request, update_merge_request, merge_merge_request, add_merge_request_comment
+- **Pipelines**: list_pipelines, get_pipeline, get_pipeline_jobs, get_pipeline_job_log, create_pipeline, retry_pipeline, cancel_pipeline
+- **Repository**: list_repository_tree, get_file_content, list_commits, get_commit, compare_branches
+- **Projects**: list_projects, get_project, search_projects
+- **Labels**: list_labels, create_label, update_label, delete_label
+- **Milestones**: list_milestones, create_milestone, update_milestone
+- **Releases**: list_releases, get_release, create_release
+- **Wiki**: list_wiki_pages, get_wiki_page, create_wiki_page, update_wiki_page, delete_wiki_page
+- Supports gitlab.com and self-hosted instances via `GITLAB_API_URL`
+- Read-only mode available via `GITLAB_READ_ONLY_MODE=true`
 
-```
-### Example Device Map
-- R1 → 10.1.1.1, Core Router, IOS-XE 17.9
-- R2 → 10.1.1.2, Distribution Router, IOS-XE 17.9
-- SW1 → 10.1.2.1, Access Switch, IOS-XE 17.9
-- SW2 → 10.1.2.2, Access Switch, IOS-XE 17.9
-```
+## Chrome DevTools MCP Server
 
-## Platform Credentials
+The Chrome DevTools MCP server (official Chrome DevTools team package, `chrome-devtools-mcp`) provides controlled browser automation/inspection via stdio transport. Registered **twice** — `chrome-devtools-mcp` (`--headless=true`, default, no visible window) and `chrome-devtools-mcp-visible` (`--headless=false`, "Watch Mode" — a real Chrome window opens wherever NetClaw runs, so an operator can watch it navigate/click/read live). NetClaw uses ~20 of its ~50+ tools across two skills:
+- **Navigation**: navigate_page, new_page, list_pages, select_page, close_page, wait_for
+- **Reading & Interacting** (read/confirm/search only — never for submitting config changes): take_snapshot, take_screenshot, click, hover, fill, fill_form, drag, press_key, type_text, handle_dialog, upload_file
+- **Network Inspection**: list_network_requests, get_network_request
+- **Debugging & Performance**: list_console_messages, get_console_message, evaluate_script, resize_page, emulate, performance_start_trace, performance_stop_trace, performance_analyze_insight, lighthouse_audit
+- No credentials, no env vars — auth is a one-time manual sign-in into the tool's own default persistent profile (`~/.cache/chrome-devtools-mcp/chrome-profile`), shared by both registrations
+- Watch Mode is platform-agnostic (just `--headless=false`) — works on macOS, Linux desktop, or WSL2 with WSLg; on a genuinely headless host it fails to launch and the remote-debugging attach pattern is the fallback
+- Skills: `browser-viz-verify` (verify generated visualizations render cleanly) and `browser-gui-inspect` (controller GUI gap-fill, undocumented API discovery, general web-GUI automation, Watch Mode)
 
-All credentials are in `~/.openclaw/.env`. Never put credentials in skill files or this document.
+## Computer Use (OpenClaw ClawHub Skill)
 
-```
-### Batfish Configuration Analysis (reference only — actual values in .env)
-- Batfish Host        → BATFISH_HOST (default: localhost)
-- Batfish Port        → BATFISH_PORT (default: 9997)
-- Batfish Network     → BATFISH_NETWORK (default: netclaw)
-- Docker Container    → batfish/batfish (ports 9997, 9996)
+`computer-use` is OpenClaw's own ClawHub skill (not an MCP server — no `config/openclaw.json` entry). It provisions a virtual X11 desktop (Xvfb + XFCE) on this NetClaw host and exposes 17 actions as individual bash scripts (`screenshot.sh`, `click.sh`, `type_text.sh`, `key.sh`, `scroll.sh`, `drag.sh`, `zoom.sh`, `wait.sh`, `cursor_position.sh`, `mouse_move.sh`, `mouse_down.sh`, `mouse_up.sh`, `hold_key.sh`), invoked directly against `DISPLAY=:99`.
+- Installed via `openclaw skills install --global computer-use`, plus system packages (`xvfb`, `xfce4`, `xfce4-terminal`, `xdotool`, `scrot`, `imagemagick`, `dbus-x11`, `x11vnc`, `novnc`, `websockify`) and the skill's own `scripts/setup-vnc.sh` (provisions four systemd services: `xvfb`, `xfce-minimal`, `x11vnc`, `novnc`) — all handled automatically by `./scripts/install.sh --components computer-use`
+- Live-viewing service (VNC on port 5900, noVNC on port 6080) is enforced loopback-only by the installer, which patches the generated systemd units and re-verifies with `ss -tlnp` after every install (a real, confirmed exposure in the upstream skill's default output — see `specs/050-computer-use-desktop/research.md` R5) — remote viewing requires an SSH tunnel (`ssh -L 6080:localhost:6080 <host>`), never a direct connection
+- No credentials, no env vars
+- Skill: `desktop-gui-inspect` (full-desktop automation for legacy tools with no browser or API path, read/confirm/search only, VNC/noVNC Watch Mode)
+- **Known gotcha, confirmed live**: launching `xfce4-terminal &` and then immediately calling `screenshot.sh` in the *same* shell invocation races the window manager and can hang the whole invocation (the backgrounded GUI process never exits, and the wrapping shell can end up waiting on it). Launch the terminal as its own step, wait briefly (`wait.sh` or a short `sleep`), then screenshot as a separate call.
 
-### Connection Details (reference only — actual values in .env)
-- pyATS Testbed       → PYATS_TESTBED_PATH
-- NetBox              → NETBOX_URL, NETBOX_TOKEN
-- ServiceNow          → SERVICENOW_INSTANCE_URL, SERVICENOW_USERNAME, SERVICENOW_PASSWORD
-- Cisco APIC          → APIC_URL, APIC_USERNAME, APIC_PASSWORD
-- Cisco ISE           → ISE_BASE, ISE_USERNAME, ISE_PASSWORD
-- NVD API             → NVD_API_KEY
-- F5 BIG-IP           → F5_IP_ADDRESS, F5_AUTH_STRING
-- Catalyst Center     → CCC_HOST, CCC_USER, CCC_PWD
-- Microsoft Graph     → AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET
-- SuzieQ              → SUZIEQ_API_URL, SUZIEQ_API_KEY
-- gNMI Telemetry      → GNMI_TARGETS (JSON), GNMI_TLS_CA_CERT, GNMI_TLS_CLIENT_CERT, GNMI_TLS_CLIENT_KEY
-- Azure Network MCP   → AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET, AZURE_SUBSCRIPTION_ID
-- Canvas/A2UI Viz     → No new credentials (uses existing MCP server connections)
-- Chrome DevTools MCP  → No credentials, no env vars at all (config is CLI flags only; auth is via manual browser sign-in)
-- Token Optimization  → ANTHROPIC_API_KEY (reused), NETCLAW_TOKEN_PRICING_OVERRIDE (optional)
-- GitLab MCP          → GITLAB_PERSONAL_ACCESS_TOKEN, GITLAB_API_URL (default: gitlab.com)
-- Jenkins MCP         → JENKINS_URL, JENKINS_AUTH_BASE64 (remote HTTP, Basic Auth)
-- Claroty xDome MCP   → CLAROTY_API_URL (default: https://api.medigate.io), CLAROTY_API_TOKEN, CLAROTY_VERIFY_SSL, CLAROTY_TIMEOUT, CLAROTY_RATE_LIMIT_PER_MIN (default: 2000)
-- Twitter MCP         → TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, TWITTER_HEARTBEAT_ENABLED (default: false)
-```
+## Jenkins MCP Server
 
-## Detailed Per-Integration Notes
+The Jenkins MCP server (official Jenkins plugin) provides 16 tools via Streamable HTTP transport:
+- **Job Management**: getJob, getJobs, triggerBuild, getQueueItem
+- **Build Operations**: getBuild, updateBuild, getBuildLog, searchBuildLog
+- **SCM Integration**: getJobScm, getBuildScm, getBuildChangeSets, findJobsWithScmUrl
+- **System**: whoAmI, getStatus
+- **Pipeline**: getPipelineRuns, getPipelineRunLog
+- Remote HTTP server running inside Jenkins (Streamable HTTP at `/mcp-server/mcp`)
+- Auth: HTTP Basic with Jenkins API token (Base64-encoded username:token)
+- Requires Jenkins 2.533+ with MCP Server plugin v0.158+
 
-For **detailed infrastructure notes on specific MCP servers/skills** (GitLab, Chrome DevTools, Computer Use, Jenkins, Atlassian, Token Optimization, gNMI, Memory MCP, MemPalace, Twitter, UE5, Sketchfab, Claroty), read `TOOLS-REFERENCE.md`:
-- Not auto-loaded — this file has a size budget, so the verbose per-integration reference material lives separately
-- Load with: `read("~/.openclaw/workspace/TOOLS-REFERENCE.md")`
-- Same pattern as `SOUL.md` deferring to `SOUL-SKILLS.md`/`SOUL-EXPERTISE.md` — read it when a task needs that level of detail, don't hold it in context otherwise
+## Atlassian MCP Server
 
-## Slack Integration
+The Atlassian MCP server (community mcp-atlassian by sooperset) provides 72 tools via stdio transport:
+- **Jira Issues**: jira_search, jira_get_issue, jira_create_issue, jira_update_issue, jira_delete_issue, jira_add_comment, jira_batch_create_issues
+- **Jira Transitions**: jira_get_transitions, jira_transition_issue
+- **Jira Projects/Fields**: jira_get_projects, jira_get_project, jira_get_fields, jira_get_issue_types
+- **Jira Links**: jira_link_issues, jira_get_issue_links, jira_get_link_types
+- **Confluence Pages**: confluence_search, confluence_get_page, confluence_create_page, confluence_update_page, confluence_delete_page
+- **Confluence Comments**: confluence_get_page_comments, confluence_add_comment
+- **Confluence Spaces**: confluence_get_spaces, confluence_get_space
+- Supports Atlassian Cloud and Server/Data Center deployments
+- Auth: API token (Cloud) or Personal Access Token (Server/DC)
+- Runs via `uvx mcp-atlassian`
 
-```
-### Channels
-- #netclaw-alerts     → P1/P2 critical alerts
-- #netclaw-reports    → Scheduled health reports, audit results
-- #netclaw-general    → General queries, P3/P4 notifications
-- #incidents          → Active incident threads
-```
+## Token Optimization Infrastructure
 
-## Microsoft Teams Integration
+The `netclaw_tokens` shared library (`src/netclaw_tokens/`) provides token counting, TOON serialization, and cost tracking:
+- **counter.py** — Token counting via Anthropic `count_tokens()` API with `len/4` fallback
+- **toon_serializer.py** — TOON format serialization for MCP responses (40-60% savings on tabular data)
+- **cost_calculator.py** — Model-aware pricing: Opus ($5/$25), Sonnet ($3/$15), Haiku ($1/$5) per 1M tokens
+- **session_ledger.py** — Thread-safe cumulative session tracking with per-tool breakdown
+- **footer.py** — Mandatory token/cost footer formatter for every interaction
+- **toon_wrapper.py** — TOON conversion wrapper for community/remote MCP servers
+- Pricing override via `NETCLAW_TOKEN_PRICING_OVERRIDE` env var (JSON format)
+- Prompt caching discount: 90% off cached input tokens
 
-```
-### Teams Channels (if using Microsoft Graph for Teams delivery)
-- #netclaw-alerts     → P1/P2 critical alerts, CVE exposure
-- #netclaw-reports    → Health reports, audit results, reconciliation
-- #netclaw-changes    → Change request updates, completion notices
-- #network-general    → P3/P4 notifications, topology updates
+## gNMI Infrastructure
 
-### SharePoint Sites
-- Network Engineering → Topology diagrams, audit reports, config backups
-```
-
-## SSH Access
-
-```
-### Jump Hosts / Bastion
-- (your bastion host, if applicable)
-
-### Console Servers
-- (your console server, if applicable)
-```
-
-## Site Information
-
-```
-### Sites
-- Site-A → Primary data center
-- Site-B → DR site
-- Lab    → Non-production test environment (relaxed change control)
-```
+The gNMI MCP server provides 10 tools for streaming telemetry and model-driven configuration:
+- **gnmi_get** / **gnmi_set** / **gnmi_subscribe** / **gnmi_unsubscribe** / **gnmi_get_subscriptions** / **gnmi_get_subscription_updates** / **gnmi_capabilities** / **gnmi_browse_yang_paths** / **gnmi_compare_with_cli** / **gnmi_list_targets**
+- Supported vendors: Cisco IOS-XR (port 57400), Juniper (32767), Arista (6030), Nokia SR OS (57400)
+- YANG models: OpenConfig and vendor-native
+- TLS mandatory, mTLS supported, max 50 concurrent subscriptions
 
 ## Memory MCP Server (NetClaw Native)
 
@@ -186,8 +173,3 @@ The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writ
 - **Writes (ITSM-gated, CHG\d+ CR required)**: `acknowledge_alert`, `set_vulnerability_relevance`, `set_device_purdue_level`, `set_device_custom_attribute`, `label_alerts`, `assign_alerts`
 - Default base URL `https://api.medigate.io`; Bearer token auth; sliding-window rate gate at 2000 req/min matches the xDome upstream cap; lab-mode bypass via `NETCLAW_LAB_MODE=true` (shared with gnmi-mcp).
 - Edge sensor lifecycle, site CRUD, and organisation policy CRUD are deferred to a future spec — see `specs/035-claroty-mcp/research.md`.
-
-## Notes
-
-- Add whatever helps NetClaw do its job — device nicknames, maintenance windows, ISP circuit IDs, TAC case numbers, anything environment-specific.
-- This file is yours. Skills are shared. Keeping them apart means you can update skills without losing your notes.

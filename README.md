@@ -965,6 +965,16 @@ HumanRail MCP runs via FastMCP streamable HTTP (Python) on port 8100 (`git clone
 |-------|---------|
 | **desktop-gui-inspect** | Full-desktop automation for legacy tools with no browser or API path — a Java-based NMS client, a vendor's Windows-only utility, a terminal emulator with no scriptable interface. Drives OpenClaw's `computer-use` skill (virtual Xvfb+XFCE desktop, 17 mouse/keyboard/screenshot actions) to read/confirm/search state, with VNC/noVNC Watch Mode. Read/confirm only — never a config-change mechanism |
 
+#### Watching NetClaw Live (Watch Mode)
+
+Both `browser-gui-inspect` and `desktop-gui-inspect` support Watch Mode — just ask (e.g. "watch mode: open a terminal and SSH into R1"). What you connect to depends on which one is running:
+
+- **Chrome DevTools Watch Mode** opens a real, visible Chrome window wherever NetClaw's host has a display (macOS, Linux desktop, WSL2 with WSLg) — no viewer needed, the window just appears.
+- **Computer Use Watch Mode** drives a *virtual* desktop, so you connect to it explicitly:
+  - **Same machine as NetClaw**: open `http://localhost:6080/vnc.html` in a browser (leave the password field blank unless you set one), or point any VNC client at `localhost:5900`.
+  - **Different machine**: tunnel first, then connect locally — `ssh -L 6080:localhost:6080 <netclaw-host>`, then open `http://localhost:6080/vnc.html`. Never expose port 5900 or 6080 directly; the installer enforces loopback-only binding for exactly this reason (see `specs/050-computer-use-desktop/research.md` R5).
+  - You can watch passively or click/type directly into the noVNC window to take over — e.g. to complete a one-time interactive login NetClaw can't do itself.
+
 ### Flow & Event Telemetry Skills (5)
 
 | Skill | Purpose |
