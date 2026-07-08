@@ -2726,7 +2726,15 @@ echo ""
 
 # ── Step 51: Twilio Voice MCP (NetClaw native) ──────────────────
 component_install_twilio() {
-log_step "Installing Twilio Voice MCP Server..."
+log_step "Installing Twilio MCP Servers (core API + Voice)..."
+echo "  Core: @twilio-alpha/mcp — messaging, phone numbers, account resources (npx, Node.js 18+)"
+echo "  Voice: built-in twilio-voice-mcp — inbound/outbound calls, emergency alerts"
+
+if command -v npx &> /dev/null; then
+    log_info "npx found — Twilio core MCP will auto-install on first use via: npx -y @twilio-alpha/mcp"
+else
+    log_warn "npx not found — Twilio core MCP requires Node.js 18+ with npx"
+fi
 
 TWILIO_MCP_DIR="$NETCLAW_DIR/mcp-servers/twilio-voice-mcp"
 
@@ -2967,6 +2975,261 @@ with open(config_path, 'w') as f:
     echo ""
     echo "  Enable later: ./scripts/defenseclaw-enable.sh"
 fi
+
+echo ""
+}
+
+# ── GNS3 MCP Server (spec 012, backfilled for catalog parity) ───
+component_install_gns3() {
+log_step "Installing GNS3 MCP Server..."
+echo "  Built-in MCP server: mcp-servers/gns3-mcp-server/"
+echo "  GNS3 network simulation — projects, nodes, links, templates, snapshots, packet capture (23 tools)"
+
+GNS3_MCP_DIR="$MCP_DIR/gns3-mcp-server"
+
+if [ -f "$GNS3_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing GNS3 MCP dependencies..."
+    pip3 install -r "$GNS3_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$GNS3_MCP_DIR/requirements.txt" 2>/dev/null || {
+            log_warn "GNS3 MCP pip install failed — dependencies may need manual installation"
+        }
+    log_info "GNS3 MCP ready: $GNS3_MCP_DIR/gns3_mcp_server.py"
+    log_info "Configure GNS3_URL / GNS3_USER / GNS3_PASSWORD in ~/.openclaw/.env"
+else
+    log_warn "GNS3 MCP requirements.txt not found at $GNS3_MCP_DIR"
+fi
+
+echo ""
+}
+
+# ── DevNet Content Search MCP (spec 026, backfilled for catalog parity) ─
+component_install_devnet_content_search() {
+log_step "Configuring DevNet Content Search MCP..."
+echo "  Source: Cisco DevNet remote MCP (https://devnet.cisco.com)"
+echo "  Cisco API documentation search — Meraki, Catalyst Center (remote HTTP, no auth, 3 tools)"
+log_info "Remote HTTP MCP — no local install, no credentials. Registered directly in config/openclaw.json."
+
+echo ""
+}
+
+# ── Memory MCP Server (spec 033, backfilled for catalog parity) ─
+component_install_memory_mcp() {
+log_step "Installing Memory MCP Server..."
+echo "  Built-in MCP server: mcp-servers/memory-mcp/"
+echo "  Hybrid persistent memory — structured facts (SQLite), semantic search (ChromaDB), decision log (Python 3.11+)"
+
+MEMORY_MCP_DIR="$MCP_DIR/memory-mcp"
+MEMORY_DATA_DIR="$HOME/.openclaw/memory"
+mkdir -p "$MEMORY_DATA_DIR"
+
+if [ -f "$MEMORY_MCP_DIR/pyproject.toml" ]; then
+    log_info "Installing Memory MCP dependencies (mcp, fastmcp, chromadb, sentence-transformers, torch)..."
+    log_warn "First install downloads the embedding model (~80MB) — this may take a moment."
+    pip3 install -e "$MEMORY_MCP_DIR" 2>/dev/null || \
+        pip3 install --break-system-packages -e "$MEMORY_MCP_DIR" 2>/dev/null || \
+        log_warn "Memory MCP editable install failed"
+    log_info "Memory MCP ready. Data directory: $MEMORY_DATA_DIR"
+    log_info "Not pre-registered in config/openclaw.json (per its own design) — register with:"
+    log_info "  openclaw mcp set memory-mcp '{\"command\":\"uvx\",\"args\":[\"--from\",\"netclaw-memory-mcp\",\"memory-mcp-server\"],\"env\":{\"MEMORY_DATA_DIR\":\"$MEMORY_DATA_DIR\"}}'"
+else
+    log_warn "Memory MCP pyproject.toml not found at $MEMORY_MCP_DIR"
+fi
+
+echo ""
+}
+
+# ── Ollama Domain Experts MCP (spec 037, backfilled for catalog parity) ─
+component_install_ollama() {
+log_step "Installing Ollama Domain Experts MCP Server..."
+echo "  Built-in MCP server: mcp-servers/ollama-mcp/"
+echo "  Delegates structured, domain-specific tasks to local Ollama models on your own GPU (10 tools)"
+
+if command -v ollama &> /dev/null; then
+    log_info "Ollama found: $(ollama --version 2>/dev/null || echo 'version unknown')"
+else
+    log_warn "Ollama not found — install from https://ollama.com before using this component"
+fi
+
+OLLAMA_MCP_DIR="$MCP_DIR/ollama-mcp"
+if [ -f "$OLLAMA_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing Ollama MCP dependencies..."
+    pip3 install -r "$OLLAMA_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$OLLAMA_MCP_DIR/requirements.txt" 2>/dev/null || \
+        log_warn "Ollama MCP pip install failed — dependencies may need manual installation"
+    log_info "Ollama MCP ready: $OLLAMA_MCP_DIR"
+else
+    log_warn "Ollama MCP requirements.txt not found at $OLLAMA_MCP_DIR"
+fi
+
+echo ""
+}
+
+# ── Telemetry Receivers: SNMP trap, syslog, IPFIX/NetFlow (spec 010, backfilled) ─
+component_install_telemetry_receivers() {
+log_step "Installing Telemetry Receivers (SNMP trap, syslog, IPFIX/NetFlow)..."
+echo "  Built-in MCP servers: mcp-servers/snmptrap-mcp/, syslog-mcp/, ipfix-mcp/"
+echo "  Real-time UDP telemetry ingestion for event correlation and alerting (3 servers)"
+
+for pair in "SNMP trap:snmptrap-mcp" "Syslog:syslog-mcp" "IPFIX/NetFlow:ipfix-mcp"; do
+    name="${pair%%:*}"
+    dir_name="${pair##*:}"
+    receiver_dir="$MCP_DIR/$dir_name"
+    if [ -f "$receiver_dir/requirements.txt" ]; then
+        log_info "Installing $name receiver dependencies..."
+        pip3 install -r "$receiver_dir/requirements.txt" 2>/dev/null || \
+            pip3 install --break-system-packages -r "$receiver_dir/requirements.txt" 2>/dev/null || \
+            log_warn "$name receiver pip install failed — dependencies may need manual installation"
+    else
+        log_warn "$name receiver requirements.txt not found at $receiver_dir"
+    fi
+done
+
+log_info "All three receivers ready — deduplication, rate limiting, and GAIT audit logging built in"
+
+echo ""
+}
+
+# ── Nautobot Golden Config MCP (spec 028, backfilled for catalog parity) ─
+component_install_nautobot_golden_config() {
+log_step "Installing Nautobot Golden Config MCP Server..."
+echo "  Built-in MCP server: mcp-servers/nautobot-golden-config-mcp/"
+echo "  Golden-config compliance job runner for Nautobot"
+
+GOLDEN_CONFIG_MCP_DIR="$MCP_DIR/nautobot-golden-config-mcp"
+if [ -f "$GOLDEN_CONFIG_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing Nautobot Golden Config MCP dependencies..."
+    pip3 install -r "$GOLDEN_CONFIG_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$GOLDEN_CONFIG_MCP_DIR/requirements.txt" 2>/dev/null || \
+        log_warn "Nautobot Golden Config MCP pip install failed — dependencies may need manual installation"
+    log_info "Nautobot Golden Config MCP ready: $GOLDEN_CONFIG_MCP_DIR"
+else
+    log_warn "Nautobot Golden Config MCP requirements.txt not found at $GOLDEN_CONFIG_MCP_DIR"
+fi
+
+echo ""
+}
+
+# ── Nautobot Routing MCP (spec 030, backfilled for catalog parity) ─
+component_install_nautobot_routing() {
+log_step "Installing Nautobot Routing MCP Server..."
+echo "  Built-in MCP server: mcp-servers/nautobot-routing-mcp/"
+echo "  BGP/routing data queries against Nautobot"
+
+ROUTING_MCP_DIR="$MCP_DIR/nautobot-routing-mcp"
+if [ -f "$ROUTING_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing Nautobot Routing MCP dependencies..."
+    pip3 install -r "$ROUTING_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$ROUTING_MCP_DIR/requirements.txt" 2>/dev/null || \
+        log_warn "Nautobot Routing MCP pip install failed — dependencies may need manual installation"
+    log_info "Nautobot Routing MCP ready: $ROUTING_MCP_DIR"
+else
+    log_warn "Nautobot Routing MCP requirements.txt not found at $ROUTING_MCP_DIR"
+fi
+
+echo ""
+}
+
+# ── Three.js Network Viz + optional Sketchfab MCP (spec 046, backfilled) ─
+component_install_threejs_viz() {
+log_step "Configuring Three.js Network Visualization..."
+echo "  Browser-based 3D network topology visualization — no desktop app, no GPU, no server required"
+echo "  Three.js r147 already vendored in workspace/skills/threejs-network-viz/vendor/three/"
+
+log_info "threejs-network-viz works with zero setup beyond NetClaw itself."
+
+read -r -p "Enable optional real-3D-model stencil mode (Sketchfab, CC0-licensed only)? [y/N] " enable_sketchfab
+if [[ "$enable_sketchfab" =~ ^[Yy]$ ]]; then
+    SKETCHFAB_MCP_DIR="$MCP_DIR/sketchfab-mcp-server"
+    clone_or_pull "$SKETCHFAB_MCP_DIR" "https://github.com/gregkop/sketchfab-mcp-server.git"
+
+    SKETCHFAB_PATCH="$NETCLAW_DIR/scripts/patches/sketchfab-mcp-license-fix.patch"
+    if ! git -C "$SKETCHFAB_MCP_DIR" apply --reverse --check "$SKETCHFAB_PATCH" 2>/dev/null; then
+        log_info "Applying license-field fix to Sketchfab MCP server..."
+        git -C "$SKETCHFAB_MCP_DIR" apply "$SKETCHFAB_PATCH" || \
+            log_warn "Could not apply Sketchfab license-field patch — real-stencil mode's CC0 verification will not work until this is applied manually"
+    else
+        log_info "Sketchfab MCP license-field fix already applied"
+    fi
+
+    log_info "Building Sketchfab MCP server..."
+    cd "$SKETCHFAB_MCP_DIR"
+    npm install 2>/dev/null || log_warn "npm install failed for Sketchfab MCP"
+    npm run build 2>/dev/null || log_warn "npm run build failed for Sketchfab MCP"
+    cd "$NETCLAW_DIR"
+
+    echo ""
+    echo "  Configure credentials in ~/.openclaw/.env:"
+    echo "    SKETCHFAB_API_KEY=your_sketchfab_api_token   # https://sketchfab.com/settings/password"
+    echo "    SKETCHFAB_USERNAME=your_sketchfab_username   # reference/attribution only"
+else
+    log_info "Skipping Sketchfab MCP — threejs-network-viz still works fully with procedural shapes."
+fi
+
+echo ""
+}
+
+# ── Chrome DevTools MCP: headless + Watch Mode (spec 048) ───────
+component_install_chrome_devtools() {
+log_step "Configuring Chrome DevTools MCP (headless + Watch Mode)..."
+echo "  Source: https://github.com/ChromeDevTools/chrome-devtools-mcp"
+echo "  Browser automation/inspection — visualization QA, controller GUI gap-fill,"
+echo "  API discovery, and Watch Mode (a real, visible browser you can watch work)."
+echo "  Auth: none — one-time manual sign-in into a persistent Chrome profile."
+
+CHROME_DEVTOOLS_CACHE_DIR="$HOME/.cache/chrome-devtools-mcp/browsers"
+CHROME_DEVTOOLS_EXECUTABLE=""
+
+for candidate in google-chrome google-chrome-stable chromium chromium-browser; do
+    if command -v "$candidate" &> /dev/null; then
+        CHROME_DEVTOOLS_EXECUTABLE="$(command -v "$candidate")"
+        log_info "Found system browser: $CHROME_DEVTOOLS_EXECUTABLE"
+        break
+    fi
+done
+
+if [ -z "$CHROME_DEVTOOLS_EXECUTABLE" ] && [ -x "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" ]; then
+    CHROME_DEVTOOLS_EXECUTABLE="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    log_info "Found system browser: $CHROME_DEVTOOLS_EXECUTABLE"
+fi
+
+if [ -z "$CHROME_DEVTOOLS_EXECUTABLE" ] && command -v npx &> /dev/null; then
+    log_warn "No system Chrome/Chromium found. Provisioning a pinned build via @puppeteer/browsers (no sudo, cross-platform)..."
+    mkdir -p "$CHROME_DEVTOOLS_CACHE_DIR"
+    install_output="$(npx -y @puppeteer/browsers install chrome@stable --path "$CHROME_DEVTOOLS_CACHE_DIR" 2>&1 | tail -1)"
+    CHROME_DEVTOOLS_EXECUTABLE="$(echo "$install_output" | awk '{print $2}')"
+    if [ -n "$CHROME_DEVTOOLS_EXECUTABLE" ] && [ -x "$CHROME_DEVTOOLS_EXECUTABLE" ]; then
+        log_info "Provisioned: $CHROME_DEVTOOLS_EXECUTABLE"
+    else
+        log_warn "Automatic provisioning did not return a usable path — chrome-devtools-mcp may still auto-download its own copy on first use"
+        CHROME_DEVTOOLS_EXECUTABLE=""
+    fi
+elif [ -z "$CHROME_DEVTOOLS_EXECUTABLE" ]; then
+    log_warn "npx not found — cannot provision a browser automatically. Install Node.js 18+ first."
+fi
+
+if [ -n "$CHROME_DEVTOOLS_EXECUTABLE" ]; then
+    HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
+    VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
+else
+    HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\"]"
+    VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\"]"
+fi
+
+if command -v openclaw &> /dev/null; then
+    openclaw mcp set chrome-devtools-mcp "{\"command\":\"npx\",\"args\":${HEADLESS_ARGS}}" >/dev/null 2>&1 \
+        && log_info "Registered chrome-devtools-mcp (headless)" \
+        || log_warn "Could not register chrome-devtools-mcp — register manually (see mcp-servers/chrome-devtools-mcp/README.md)"
+    openclaw mcp set chrome-devtools-mcp-visible "{\"command\":\"npx\",\"args\":${VISIBLE_ARGS}}" >/dev/null 2>&1 \
+        && log_info "Registered chrome-devtools-mcp-visible (Watch Mode)" \
+        || log_warn "Could not register chrome-devtools-mcp-visible — register manually"
+    openclaw mcp reload >/dev/null 2>&1 || true
+else
+    log_info "openclaw CLI not found — add both registrations from config/openclaw.json once OpenClaw is installed."
+fi
+
+log_info "Sign in once per target site: npx chrome-devtools-mcp@latest --headless=false${CHROME_DEVTOOLS_EXECUTABLE:+ --executablePath=\"$CHROME_DEVTOOLS_EXECUTABLE\"}"
+log_info "Or ask NetClaw to \"watch\" a task — see workspace/skills/browser-gui-inspect/SKILL.md (Watch Mode)"
+log_info "Standalone setup/repair tool also available: ./scripts/chrome-devtools-enable.sh"
 
 echo ""
 }

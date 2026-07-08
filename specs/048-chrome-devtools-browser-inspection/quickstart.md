@@ -13,13 +13,21 @@ Note: `chrome-devtools-mcp` takes all of its configuration as CLI flags, not env
 
 ## Setup
 
-### 1. Run the enable script
+### 1. Install the component
+
+Via the modular installer (spec 049) — either the TUI, a profile that includes it (`recommended`), or directly:
+
+```bash
+./scripts/install.sh --components chrome-devtools
+```
+
+Or the standalone setup/repair script, same underlying logic:
 
 ```bash
 ./scripts/chrome-devtools-enable.sh
 ```
 
-This checks Node.js 18+, then finds a usable Chrome/Chromium binary — checking `PATH` and the macOS app bundle first, and if nothing is found, provisioning a pinned build via `npx @puppeteer/browsers install chrome@stable` (the same cross-platform installer Puppeteer uses — no OS package manager, no sudo, works identically on Linux/macOS/WSL2). It then registers both `chrome-devtools-mcp` and `chrome-devtools-mcp-visible` with an explicit `--executablePath` on any live OpenClaw instance it finds, and reloads the MCP runtime. The tool's own default persistent profile path:
+Either checks Node.js 18+, then finds a usable Chrome/Chromium binary — checking `PATH` and the macOS app bundle first, and if nothing is found, provisioning a pinned build via `npx @puppeteer/browsers install chrome@stable` (the same cross-platform installer Puppeteer uses — no OS package manager, no sudo, works identically on Linux/macOS/WSL2). It then registers both `chrome-devtools-mcp` and `chrome-devtools-mcp-visible` with an explicit `--executablePath` on any live OpenClaw instance it finds, and reloads the MCP runtime. The tool's own default persistent profile path:
 
 ```
 ~/.cache/chrome-devtools-mcp/chrome-profile

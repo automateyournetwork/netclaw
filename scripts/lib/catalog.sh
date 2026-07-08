@@ -16,6 +16,8 @@ CATALOG=(
 
     "netbox|Source of Truth|NetBox|DCIM/IPAM source of truth (read-write)"
     "nautobot|Source of Truth|Nautobot|IPAM — IPs, prefixes, VRF/tenant/site (5 tools)"
+    "nautobot-golden-config|Source of Truth|Nautobot Golden Config|Golden-config compliance job runner for Nautobot"
+    "nautobot-routing|Source of Truth|Nautobot Routing|BGP/routing data queries against Nautobot"
     "infrahub|Source of Truth|OpsMill Infrahub|Schema-driven SoT, branch-isolated writes (10 tools)"
     "infoblox|Source of Truth|Infoblox DDI|DNS records, DHCP scopes/leases, IPAM utilization"
 
@@ -57,8 +59,10 @@ CATALOG=(
     "suzieq|Observability|SuzieQ|Network state queries, assertions, path tracing (bundled)"
     "kubeshark|Observability|Kubeshark|K8s L4/L7 traffic analysis, TLS decryption (remote)"
     "gtrace|Observability|gtrace|Traceroute (MPLS/ECMP/NAT), MTR, GlobalPing, ASN, geo (6 tools)"
+    "telemetry-receivers|Observability|Telemetry Receivers|SNMP trap, syslog, IPFIX/NetFlow receivers over UDP (3 servers)"
 
     "cml|Labs & Simulation|Cisco CML|Lab lifecycle, topology, packet capture (Python 3.12+)"
+    "gns3|Labs & Simulation|GNS3|Projects, nodes, links, templates, snapshots, packet capture (23 tools)"
     "containerlab|Labs & Simulation|ContainerLab|Containerized labs — SR Linux, cEOS, FRR"
     "batfish|Labs & Simulation|Batfish|Offline config analysis, reachability, ACL trace (bundled)"
     "protocol|Labs & Simulation|Protocol MCP|Live BGP/OSPF peering + GRE tunnels (10 tools)"
@@ -77,15 +81,20 @@ CATALOG=(
     "uml|Analysis & Diagrams|UML Diagrams|27+ diagram types via Kroki"
     "subnet-calc|Analysis & Diagrams|Subnet Calculator|IPv4 + IPv6 CIDR calculator"
     "wikipedia|Analysis & Diagrams|Wikipedia|Technology context and history"
+    "devnet-content-search|Analysis & Diagrams|DevNet Content Search|Cisco DevNet API doc search — Meraki, Catalyst Center (remote, 3 tools)"
     "blender|Analysis & Diagrams|Blender 3D|3D network topology rendering (requires Blender)"
     "ue5|Analysis & Diagrams|Unreal Engine 5|3D digital twin (requires UE5.8+ with MCP plugin)"
+    "threejs-viz|Analysis & Diagrams|Three.js Network Viz|Browser-based 3D topology, no desktop app/GPU (optional Sketchfab real-stencil mode)"
+    "chrome-devtools|Analysis & Diagrams|Chrome DevTools|Browser automation/inspection — visualization QA, controller GUI gap-fill, API discovery, Watch Mode (2 servers)"
 
     "tts|Voice & Social|Text-to-Speech|edge-tts voice replies for Slack/WebEx (2 tools)"
     "twitter|Voice & Social|Twitter/X|Tweet posting, threads, heartbeat (bundled)"
-    "twilio|Voice & Social|Twilio Voice|Bidirectional voice calls, emergency alerts (bundled)"
+    "twilio|Voice & Social|Twilio|Core API (SMS/messaging) plus bidirectional voice calls, emergency alerts (2 servers)"
 
     "gait|Platform Services|GAIT Audit Trail|Git-based AI audit trail (recommended for all installs)"
     "mempalace|Platform Services|MemPalace Memory|Local AI memory — 19 tools, no API keys"
+    "memory-mcp|Platform Services|Memory MCP|Hybrid persistent memory — structured facts (SQLite), semantic search (ChromaDB), decision log"
+    "ollama|Platform Services|Ollama Domain Experts|Delegates structured tasks to local Ollama models on your own GPU (10 tools)"
     "humanrail|Platform Services|HumanRail|Human-in-the-loop escalation and approvals"
 )
 
@@ -118,7 +127,7 @@ catalog_has() {
 PROFILE_MINIMAL="pyats gait subnet-calc drawio-rfc"
 
 PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
-drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol tts"
+drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol tts chrome-devtools"
 
 PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve subnet-calc drawio-rfc uml packet-buddy"

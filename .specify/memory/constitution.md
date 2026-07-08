@@ -1,28 +1,32 @@
 <!--
   Sync Impact Report
   ==================
-  Version change: 1.0.0 → 1.1.0 (MINOR — principle addition)
+  Version change: 1.1.0 → 1.2.0 (MINOR — principle clarification)
 
-  Modified principles: None
+  Modified principles:
+    - Principle XI: Full-Stack Artifact Coherence — the installer touchpoint
+      changed from a single monolithic scripts/install.sh (45 hardcoded
+      steps) to a modular catalog (scripts/lib/catalog.sh) plus one install
+      function per component (scripts/lib/install-steps.sh), following the
+      installer rewrite completed in spec 049. This is a clarifying update
+      to which concrete files satisfy the principle, not a redefinition of
+      what artifact coherence means — hence MINOR, not MAJOR.
 
-  Added sections:
-    - Principle XVII: Milestone Documentation via WordPress
+  Added sections: None
 
   Removed sections: None
 
   Templates requiring updates:
     - .specify/templates/plan-template.md — ✅ Compatible (no changes needed)
     - .specify/templates/spec-template.md — ✅ Compatible (no changes needed)
-    - .specify/templates/tasks-template.md — ✅ Compatible (Phase N Polish
-      section should include WordPress blog task for feature completions)
+    - .specify/templates/tasks-template.md — ✅ Compatible (no changes needed)
 
-  Follow-up TODOs:
-    - Ensure WordPress MCP server is registered in openclaw.json
-    - Create workspace/skills/wordpress-blogging/SKILL.md when WordPress MCP
-      is integrated
+  Follow-up TODOs: None
 
   Previous version history:
     - 1.0.0 (2026-03-26): Initial ratification with 16 core principles
+    - 1.1.0 (2026-03-28): Added Principle XVII (Milestone Documentation via
+      WordPress)
 -->
 
 # NetClaw Constitution
@@ -140,7 +144,18 @@
   is considered complete:
   - `README.md` — capability description, architecture diagram, tool
     count, and setup instructions
-  - `scripts/install.sh` — installation steps for new dependencies
+  - `scripts/lib/catalog.sh` — one component catalog entry
+    (`"id|Category|Name|Description"`), plus profile membership where
+    the component fits an existing curated profile
+  - `scripts/lib/install-steps.sh` — one self-contained
+    `component_install_<id>()` function implementing that catalog entry
+    (installer logic lives here, not in `scripts/install.sh` itself —
+    `scripts/install.sh` is a thin, unchanging dispatcher over the
+    catalog; see spec 049)
+  - `scripts/verify-catalog-coverage.py` — every newly registered
+    `config/openclaw.json` server (or externally-documented integration
+    with no config entry of its own) MUST be reachable from a catalog
+    id, run this script to confirm before merging
   - `ui/netclaw-visual/` — Three.js HUD nodes for new integrations
   - `SOUL.md` — skill definitions, identity references, and
     capability summary
@@ -271,7 +286,9 @@ completeness. Every item MUST be checked before merge:
 
 ```
 [ ] README.md updated (description, architecture, counts)
-[ ] scripts/install.sh updated (new dependencies, setup steps)
+[ ] scripts/lib/catalog.sh updated (new component entry)
+[ ] scripts/lib/install-steps.sh updated (new component_install_<id>())
+[ ] scripts/verify-catalog-coverage.py passes (zero unexplained gaps)
 [ ] ui/netclaw-visual/ updated (new HUD node or panel)
 [ ] SOUL.md updated (skill definition, capability summary)
 [ ] workspace/skills/<name>/SKILL.md created (full documentation)
@@ -335,4 +352,4 @@ MUST verify:
 - Use `.specify/` templates and workflows for all runtime
   development guidance.
 
-**Version**: 1.1.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-03-28
+**Version**: 1.2.0 | **Ratified**: 2026-03-26 | **Last Amended**: 2026-07-08
