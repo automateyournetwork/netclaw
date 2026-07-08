@@ -19,8 +19,8 @@
 
 **Purpose**: Get PR #96's branch conflict-free against current main before any new content is added
 
-- [ ] T001 On `pr-96-review`, merge current `main` into the branch; resolve the `scripts/install.sh` and `README.md` conflicts by taking PR #96's version of both wholesale (a clean file replacement, not a line-by-line merge — see research.md R1)
-- [ ] T002 [P] Run `bash -n` on `scripts/install.sh` and every file under `scripts/lib/` post-merge to confirm the baseline (before any new entries) is syntactically valid
+- [X] T001 On `pr-96-review`, merge current `main` into the branch; resolve the `scripts/install.sh` and `README.md` conflicts by taking PR #96's version of both wholesale (a clean file replacement, not a line-by-line merge — see research.md R1)
+- [X] T002 [P] Run `bash -n` on `scripts/install.sh` and every file under `scripts/lib/` post-merge to confirm the baseline (before any new entries) is syntactically valid
 
 ---
 
@@ -30,8 +30,8 @@
 
 **CRITICAL**: No user story work can be marked done until this phase's script exists and runs (even reporting known gaps) — it's the acceptance mechanism for US1
 
-- [ ] T003 Create `scripts/verify-catalog-coverage.py`: enumerate `config/openclaw.json`'s `mcpServers` keys, enumerate `scripts/lib/catalog.sh`'s catalog ids, apply the `GROUPED_COVERAGE` allow-list (per contracts/catalog-entry-format.md) for existing intentional groupings (`checkpoint` → 15 `chkp-*` servers, `aws` → its 6 servers, `gcp` → its 4, `aap` → its 4), report any registered server not reachable via a direct or grouped match as a gap, and exit non-zero if any gap is unexplained
-- [ ] T004 [P] Run `scripts/verify-catalog-coverage.py` against the post-merge, pre-backfill state and confirm it correctly reports the 9 known gaps from research.md R2 (proves the script itself works before it's used to prove the backfill worked)
+- [X] T003 Create `scripts/verify-catalog-coverage.py`: enumerate `config/openclaw.json`'s `mcpServers` keys, enumerate `scripts/lib/catalog.sh`'s catalog ids, apply the `GROUPED_COVERAGE` allow-list (per contracts/catalog-entry-format.md) for existing intentional groupings (`checkpoint` → 15 `chkp-*` servers, `aws` → its 6 servers, `gcp` → its 4, `aap` → its 4), report any registered server not reachable via a direct or grouped match as a gap, and exit non-zero if any gap is unexplained
+- [X] T004 [P] Run `scripts/verify-catalog-coverage.py` against the post-merge, pre-backfill state and confirm it correctly reports the 9 known gaps from research.md R2 (proves the script itself works before it's used to prove the backfill worked)
 
 **Checkpoint**: Coverage-check tool exists and correctly identifies the known gaps. Backfill work (US1) can now proceed and be verified.
 
@@ -45,17 +45,17 @@
 
 ### Implementation for User Story 1
 
-- [ ] T005 [P] [US1] Add `gns3` catalog entry to `scripts/lib/catalog.sh` (category: Labs & Simulation) and `component_install_gns3()` to `scripts/lib/install-steps.sh`, per contracts/catalog-entry-format.md
-- [ ] T006 [P] [US1] Add `devnet-search` catalog entry (category: ITSM & DevOps or Analysis & Diagrams, whichever existing category fits DevNet Content Search's remote-HTTP no-auth nature) and `component_install_devnet_search()`
-- [ ] T007 [P] [US1] Add `memory-mcp` catalog entry (category: Platform Services, alongside `mempalace`) and `component_install_memory_mcp()`, clearly distinguishing its description from `mempalace`'s
-- [ ] T008 [P] [US1] Add `ollama` catalog entry (category: Platform Services) and `component_install_ollama()`
-- [ ] T009 [P] [US1] Add `telemetry-receivers` catalog entry (category: Observability) covering SNMP trap, syslog, and IPFIX/NetFlow together, and `component_install_telemetry_receivers()` registering all three (`snmptrap-mcp`, `syslog-mcp`, `ipfix-mcp`)
-- [ ] T010 [P] [US1] Add `nautobot-golden-config` catalog entry (category: Source of Truth) and `component_install_nautobot_golden_config()`
-- [ ] T011 [P] [US1] Add `nautobot-routing` catalog entry (category: Source of Truth) and `component_install_nautobot_routing()`
-- [ ] T012 [P] [US1] Expand catalog coverage for base Twilio: either broaden the existing `twilio` entry's description/install function to also register `twilio-mcp` alongside `twilio-voice-mcp`, or add a distinct `twilio-core` entry — whichever keeps the description accurate; update `component_install_twilio()` accordingly
-- [ ] T013 [P] [US1] Add `threejs-viz` catalog entry (category: Analysis & Diagrams, alongside `blender`/`ue5`) and `component_install_threejs_viz()` covering `threejs-network-viz` plus the optional vendored `sketchfab-mcp` real-stencil mode
-- [ ] T014 [US1] Update `GROUPED_COVERAGE` in `scripts/verify-catalog-coverage.py` for any of T005-T013 that cover more than one registered server (at minimum `telemetry-receivers` and the Twilio entry from T012)
-- [ ] T015 [US1] Run `scripts/verify-catalog-coverage.py` and confirm zero unexplained gaps remain for every registered server that existed prior to spec 048 (chrome-devtools itself is still an expected, separate gap at this point — closed in Phase 4)
+- [X] T005 [P] [US1] Add `gns3` catalog entry to `scripts/lib/catalog.sh` (category: Labs & Simulation) and `component_install_gns3()` to `scripts/lib/install-steps.sh`, per contracts/catalog-entry-format.md
+- [X] T006 [P] [US1] Add `devnet-search` catalog entry (category: ITSM & DevOps or Analysis & Diagrams, whichever existing category fits DevNet Content Search's remote-HTTP no-auth nature) and `component_install_devnet_search()`
+- [X] T007 [P] [US1] Add `memory-mcp` catalog entry (category: Platform Services, alongside `mempalace`) and `component_install_memory_mcp()`, clearly distinguishing its description from `mempalace`'s
+- [X] T008 [P] [US1] Add `ollama` catalog entry (category: Platform Services) and `component_install_ollama()`
+- [X] T009 [P] [US1] Add `telemetry-receivers` catalog entry (category: Observability) covering SNMP trap, syslog, and IPFIX/NetFlow together, and `component_install_telemetry_receivers()` registering all three (`snmptrap-mcp`, `syslog-mcp`, `ipfix-mcp`)
+- [X] T010 [P] [US1] Add `nautobot-golden-config` catalog entry (category: Source of Truth) and `component_install_nautobot_golden_config()`
+- [X] T011 [P] [US1] Add `nautobot-routing` catalog entry (category: Source of Truth) and `component_install_nautobot_routing()`
+- [X] T012 [P] [US1] Expand catalog coverage for base Twilio: either broaden the existing `twilio` entry's description/install function to also register `twilio-mcp` alongside `twilio-voice-mcp`, or add a distinct `twilio-core` entry — whichever keeps the description accurate; update `component_install_twilio()` accordingly
+- [X] T013 [P] [US1] Add `threejs-viz` catalog entry (category: Analysis & Diagrams, alongside `blender`/`ue5`) and `component_install_threejs_viz()` covering `threejs-network-viz` plus the optional vendored `sketchfab-mcp` real-stencil mode
+- [X] T014 [US1] Update `GROUPED_COVERAGE` in `scripts/verify-catalog-coverage.py` for any of T005-T013 that cover more than one registered server (at minimum `telemetry-receivers` and the Twilio entry from T012)
+- [X] T015 [US1] Run `scripts/verify-catalog-coverage.py` and confirm zero unexplained gaps remain for every registered server that existed prior to spec 048 (chrome-devtools itself is still an expected, separate gap at this point — closed in Phase 4)
 
 **Checkpoint**: Every pre-048 capability on main is installable through the new installer. This alone is mergeable as a non-regressive improvement over PR #96's original submission.
 
@@ -69,12 +69,12 @@
 
 ### Implementation for User Story 2
 
-- [ ] T016 [US2] Add `chrome-devtools` catalog entry to `scripts/lib/catalog.sh` (category: Analysis & Diagrams, per research.md R4 — one entry covering both registrations) per contracts/catalog-entry-format.md
-- [ ] T017 [US2] Write `component_install_chrome_devtools()` in `scripts/lib/install-steps.sh`, self-contained (per research.md R5 — inline, not delegating to `scripts/chrome-devtools-enable.sh`): find a system Chrome/Chromium binary or provision one via `npx @puppeteer/browsers install chrome@stable`, then register both `chrome-devtools-mcp` (`--headless=true`) and `chrome-devtools-mcp-visible` (`--headless=false`) with the resolved `--executablePath`
-- [ ] T018 [US2] Add `chrome-devtools` to the `recommended` profile in `scripts/lib/catalog.sh` (it now underpins visualization-QA workflows already represented in that profile)
-- [ ] T019 [US2] Update `GROUPED_COVERAGE` in `scripts/verify-catalog-coverage.py`: `"chrome-devtools": ["chrome-devtools-mcp", "chrome-devtools-mcp-visible"]`
-- [ ] T020 [US2] Update `mcp-servers/chrome-devtools-mcp/README.md`, `quickstart.md` (spec 048), and both `SKILL.md` files with a short note that the component is now also installable via `./scripts/install.sh --components chrome-devtools` (in addition to the standalone `scripts/chrome-devtools-enable.sh`, which remains supported per research.md R5)
-- [ ] T021 [US2] Run `scripts/verify-catalog-coverage.py` and confirm zero unexplained gaps remain for chrome-devtools-mcp and chrome-devtools-mcp-visible
+- [X] T016 [US2] Add `chrome-devtools` catalog entry to `scripts/lib/catalog.sh` (category: Analysis & Diagrams, per research.md R4 — one entry covering both registrations) per contracts/catalog-entry-format.md
+- [X] T017 [US2] Write `component_install_chrome_devtools()` in `scripts/lib/install-steps.sh`, self-contained (per research.md R5 — inline, not delegating to `scripts/chrome-devtools-enable.sh`): find a system Chrome/Chromium binary or provision one via `npx @puppeteer/browsers install chrome@stable`, then register both `chrome-devtools-mcp` (`--headless=true`) and `chrome-devtools-mcp-visible` (`--headless=false`) with the resolved `--executablePath`
+- [X] T018 [US2] Add `chrome-devtools` to the `recommended` profile in `scripts/lib/catalog.sh` (it now underpins visualization-QA workflows already represented in that profile)
+- [X] T019 [US2] Update `GROUPED_COVERAGE` in `scripts/verify-catalog-coverage.py`: `"chrome-devtools": ["chrome-devtools-mcp", "chrome-devtools-mcp-visible"]`
+- [X] T020 [US2] Update `mcp-servers/chrome-devtools-mcp/README.md`, `quickstart.md` (spec 048), and both `SKILL.md` files with a short note that the component is now also installable via `./scripts/install.sh --components chrome-devtools` (in addition to the standalone `scripts/chrome-devtools-enable.sh`, which remains supported per research.md R5)
+- [X] T021 [US2] Run `scripts/verify-catalog-coverage.py` and confirm zero unexplained gaps remain for chrome-devtools-mcp and chrome-devtools-mcp-visible
 
 **Checkpoint**: Chrome DevTools is fully represented in the new installer with no behavior regression from spec 048's validated design.
 
@@ -88,8 +88,8 @@
 
 ### Implementation for User Story 3
 
-- [ ] T022 [US3] In `.specify/memory/constitution.md`, update Principle XI's body text and the Artifact Coherence Checklist line that currently reads `scripts/install.sh — installation steps for new dependencies` to instead describe adding a `CatalogEntry` to `scripts/lib/catalog.sh` and a `component_install_<id>()` function to `scripts/lib/install-steps.sh`, and note that `scripts/verify-catalog-coverage.py` is how compliance is verified
-- [ ] T023 [US3] Add a Sync Impact Report comment block at the top of `.specify/memory/constitution.md` (matching the existing 1.0.0→1.1.0 style) documenting this amendment, and bump the version per its MINOR-bump rule (clarifying/extending existing principle text, not redefining a principle)
+- [X] T022 [US3] In `.specify/memory/constitution.md`, update Principle XI's body text and the Artifact Coherence Checklist line that currently reads `scripts/install.sh — installation steps for new dependencies` to instead describe adding a `CatalogEntry` to `scripts/lib/catalog.sh` and a `component_install_<id>()` function to `scripts/lib/install-steps.sh`, and note that `scripts/verify-catalog-coverage.py` is how compliance is verified
+- [X] T023 [US3] Add a Sync Impact Report comment block at the top of `.specify/memory/constitution.md` (matching the existing 1.0.0→1.1.0 style) documenting this amendment, and bump the version per its MINOR-bump rule (clarifying/extending existing principle text, not redefining a principle)
 
 **Checkpoint**: Constitution accurately describes the merged installer's real structure.
 
@@ -99,12 +99,12 @@
 
 **Purpose**: Final validation and landing the work under the contributor's own PR
 
-- [ ] T024 [P] Run `bash -n` on every modified/added file: `scripts/install.sh`, all of `scripts/lib/*.sh`, `scripts/chrome-devtools-enable.sh`, `scripts/setup.sh`
-- [ ] T025 [P] Run `./scripts/install.sh --list` and visually confirm all ~81 components appear, correctly grouped, with no shell errors
-- [ ] T026 Reconcile `README.md`'s installer section (PR #96's rewrite) with any current-main content it doesn't yet account for (e.g. mentions of newly-backfilled components in the Quick Start narrative, if warranted)
-- [ ] T027 Push the completed branch to the contributor's fork: `git push git@github.com:calcuttin/netclaw.git pr-96-review:feat/installer-tui-refactor` (confirmed viable — `maintainerCanModify: true`)
-- [ ] T028 Post a comment on PR #96 explaining what changed (conflict resolution + 9 coverage-gap backfills + chrome-devtools retrofit + constitution amendment) and crediting the contributor's original work, per the conversation with the operator
-- [ ] T029 Confirm via `gh pr view 96` that `mergeable` now reports `MERGEABLE`, not `CONFLICTING`
+- [X] T024 [P] Run `bash -n` on every modified/added file: `scripts/install.sh`, all of `scripts/lib/*.sh`, `scripts/chrome-devtools-enable.sh`, `scripts/setup.sh`
+- [X] T025 [P] Run `./scripts/install.sh --list` and visually confirm all ~81 components appear, correctly grouped, with no shell errors
+- [X] T026 Reconcile `README.md`'s installer section (PR #96's rewrite) with any current-main content it doesn't yet account for (e.g. mentions of newly-backfilled components in the Quick Start narrative, if warranted)
+- [X] T027 Push the completed branch to the contributor's fork: `git push git@github.com:calcuttin/netclaw.git pr-96-review:feat/installer-tui-refactor` (confirmed viable — `maintainerCanModify: true`)
+- [X] T028 Post a comment on PR #96 explaining what changed (conflict resolution + 9 coverage-gap backfills + chrome-devtools retrofit + constitution amendment) and crediting the contributor's original work, per the conversation with the operator
+- [X] T029 Confirm via `gh pr view 96` that `mergeable` now reports `MERGEABLE`, not `CONFLICTING`
 
 ---
 
@@ -164,3 +164,9 @@ User Story 1 is the MVP — it's the one that turns "a great PR that would silen
 - This is a merge-and-extend effort on top of a community contribution, not new application code — no new runtime dependency is introduced beyond what PR #96 and spec 048 already established
 - The coverage-check script (T003) is itself a durable project asset — it should keep working after this feature ships, catching the next contributor's version of this same drift
 - Every new catalog entry and install function must match `contracts/catalog-entry-format.md` exactly, since the whole point of this exercise is that the merged installer reads as one coherent system, not "PR #96's style" plus "NetClaw's bolted-on style"
+
+## Completion Record
+
+All 29 tasks completed 2026-07-08. The actual `scripts/lib/catalog.sh` / `scripts/lib/install-steps.sh` / `scripts/verify-catalog-coverage.py` / constitution changes were implemented directly on a local copy of PR #96's branch (`refs/pull/96/head`) and pushed to `calcuttin:feat/installer-tui-refactor` to preserve contributor attribution — see PR #96 for that diff and its own commit history. PR #96 went from `mergeStateStatus: DIRTY` / `mergeable: CONFLICTING` to `CLEAN` / `MERGEABLE` as a direct result. An explanatory comment was posted on PR #96 crediting the original contribution. This branch's job was the spec/plan/tasks record of that work, not the implementation itself.
+
+One unrelated, pre-existing bug was found and fixed along the way (separate commit on `main`, `dc5e411`): `.gitignore`'s `mcp-servers/*` rule had no exception for `atlassian-mcp/` or `chrome-devtools-mcp/`, so both directories' READMEs were silently never committed despite being referenced throughout the docs. Restored.
