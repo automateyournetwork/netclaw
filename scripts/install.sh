@@ -8,7 +8,8 @@
 #
 # Non-interactive / scripted use:
 #   ./scripts/install.sh --profile recommended
-#   ./scripts/install.sh --components "pyats netbox gait"
+#   ./scripts/install.sh --components "pyats netbox gait"   # exact set (replaces manifest)
+#   ./scripts/install.sh --add "gns3 cml"                   # add to what's installed
 #   ./scripts/install.sh --all
 #   ./scripts/install.sh --list
 #
@@ -42,7 +43,10 @@ usage() {
     echo "  (no options)              interactive TUI installer"
     echo "  --profile <name>          install a profile without the TUI"
     echo "                            ($PROFILE_NAMES)"
-    echo "  --components \"id id ...\"  install an exact component list (see --list)"
+    echo "  --components \"id id ...\"  install an exact component list (see --list);"
+    echo "                            REPLACES the recorded component set"
+    echo "  --add \"id id ...\"         install components on top of an existing install;"
+    echo "                            merges into the recorded component set"
     echo "  --all                     install everything ($TOTAL_COMPONENTS components)"
     echo "  --list                    list all components and profiles, then exit"
     echo "  --help                    this help"
@@ -71,6 +75,7 @@ list_components() {
 
 SELECTED=""
 CLI_MODE=0
+ADD_MODE=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -84,6 +89,14 @@ while [ $# -gt 0 ]; do
                 catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
             done
             SELECTED="$2"
+            CLI_MODE=1; shift 2 ;;
+        --add)
+            [ $# -ge 2 ] || { log_error "--add needs a value"; usage; exit 1; }
+            for id in $2; do
+                catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
+            done
+            SELECTED="$2"
+            ADD_MODE=1
             CLI_MODE=1; shift 2 ;;
         --all|--full)
             SELECTED="$(profile_components full)"
@@ -115,6 +128,57 @@ elif [ "$(id -u)" = "0" ]; then
 fi
 
 # ═══════════════════════════════════════════
+# Existing-install detection
+# ═══════════════════════════════════════════
+# Probe real state instead of asking the user what's installed:
+# OpenClaw binary, onboard state, gateway service, component manifest.
+# Sets DETECTED_* for the banner, the menu, and the core-step skips.
+
+DETECTED_OPENCLAW=""
+DETECTED_ONBOARDED=0
+DETECTED_GATEWAY=0
+DETECTED_COMPONENTS=""
+
+detect_existing() {
+    if command -v openclaw &> /dev/null; then
+        DETECTED_OPENCLAW="$(openclaw --version 2>/dev/null | head -1 || true)"
+        DETECTED_OPENCLAW="${DETECTED_OPENCLAW:-unknown version}"
+    fi
+    [ -f "$HOME/.openclaw/openclaw.json" ] && DETECTED_ONBOARDED=1
+    if command -v systemctl &> /dev/null && \
+       [ "$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)" = "active" ]; then
+        DETECTED_GATEWAY=1
+    elif (exec 3<>/dev/tcp/127.0.0.1/18789) 2>/dev/null; then
+        DETECTED_GATEWAY=1
+    fi
+    if [ -f "$NETCLAW_MANIFEST" ]; then
+        # `|| true` guards pipefail: grep -v exits 1 on a comments-only manifest
+        DETECTED_COMPONENTS="$(grep -v '^#' "$NETCLAW_MANIFEST" 2>/dev/null | tr '\n' ' ' | tr -s ' ' || true)"
+        DETECTED_COMPONENTS="${DETECTED_COMPONENTS# }"; DETECTED_COMPONENTS="${DETECTED_COMPONENTS% }"
+    fi
+}
+
+detect_banner() {
+    local ok="${T_CYAN}✓${T_NC}" no="${T_DIM}—${T_NC}" parts=""
+    if [ -n "$DETECTED_OPENCLAW" ]; then
+        parts="${DETECTED_OPENCLAW} $ok"
+        [ "$DETECTED_ONBOARDED" = "1" ] && parts="$parts ${T_DIM}·${T_NC} onboarded $ok" \
+                                        || parts="$parts ${T_DIM}·${T_NC} not onboarded $no"
+        [ "$DETECTED_GATEWAY" = "1" ]   && parts="$parts ${T_DIM}·${T_NC} gateway running $ok" \
+                                        || parts="$parts ${T_DIM}·${T_NC} gateway not running $no"
+        if [ -n "$DETECTED_COMPONENTS" ]; then
+            parts="$parts ${T_DIM}·${T_NC} $(echo "$DETECTED_COMPONENTS" | wc -w | tr -d ' ') components installed"
+        fi
+    else
+        parts="OpenClaw not installed $no ${T_DIM}— full setup will run${T_NC}"
+    fi
+    echo -e "  ${T_BOLD}Detected:${T_NC} $parts"
+    echo ""
+}
+
+detect_existing
+
+# ═══════════════════════════════════════════
 # Component selection (TUI)
 # ═══════════════════════════════════════════
 
@@ -139,20 +203,22 @@ build_checklist() {
 
 select_components() {
     netclaw_logo
+    detect_banner
 
     # Preselect previously installed components on a re-run
-    local previous=""
-    [ -f "$NETCLAW_MANIFEST" ] && previous="$(grep -v '^#' "$NETCLAW_MANIFEST" | tr '\n' ' ')"
+    local previous="$DETECTED_COMPONENTS"
 
     local rec_count
     rec_count=$(echo $PROFILE_RECOMMENDED | wc -w | tr -d ' ')
 
+    local options=() profiles=()
     if [ -n "$previous" ]; then
-        echo -e "  ${T_CYAN}Existing install detected${T_NC} ${T_DIM}— your current components are preselected under Custom.${T_NC}"
-        echo ""
+        local prev_count
+        prev_count=$(echo $previous | wc -w | tr -d ' ')
+        options+=("Add / update    — your $prev_count installed components, preselected; tick more to add")
+        profiles+=(update)
     fi
-
-    local options=(
+    options+=(
         "Recommended     — curated starter set for most users ($rec_count servers)"
         "Custom          — pick exactly the MCP servers you want"
         "Everything      — all $TOTAL_COMPONENTS components (the classic full install)"
@@ -164,12 +230,12 @@ select_components() {
         "Observability   — Grafana, Prometheus, Datadog, Splunk, ThousandEyes..."
         "Minimal         — pyATS + audit trail + core utilities"
     )
-    local profiles=(recommended custom full cisco multivendor cloud security labs observability minimal)
+    profiles+=(recommended custom full cisco multivendor cloud security labs observability minimal)
 
     tui_menu "How do you want to set up NetClaw?" "${options[@]}" || { log_warn "Install cancelled."; exit 1; }
     local choice="${profiles[$TUI_CHOICE]}"
 
-    if [ "$choice" = "custom" ]; then
+    if [ "$choice" = "custom" ] || [ "$choice" = "update" ]; then
         build_checklist "${previous:-$PROFILE_RECOMMENDED}"
         tui_checklist "Select MCP servers to install ($TOTAL_COMPONENTS available)" || { log_warn "Install cancelled."; exit 1; }
         SELECTED="$TUI_SELECTED"
@@ -224,10 +290,13 @@ if [ "$CLI_MODE" -eq 0 ]; then
         log_info "Scripted installs must pick explicitly:"
         log_info "  ./scripts/install.sh --profile recommended"
         log_info "  ./scripts/install.sh --components \"pyats netbox gait\""
+        log_info "  ./scripts/install.sh --add \"gns3 cml\"       # add to an existing install"
         log_info "  ./scripts/install.sh --all"
         exit 1
     fi
 else
+    echo ""
+    detect_banner
     show_selection
 fi
 
@@ -254,6 +323,43 @@ core_mcpdir
 # ═══════════════════════════════════════════
 # Selected components
 # ═══════════════════════════════════════════
+# Installer output goes to a per-component log at full verbosity; the
+# terminal gets one line per component. On failure the log tail prints
+# immediately AND in the final problem report, so nothing depends on
+# terminal scrollback. NETCLAW_VERBOSE=1 streams everything like before.
+# Components whose installers prompt for input keep the terminal.
+
+INSTALL_LOG_DIR="$HOME/.openclaw/logs/install"
+mkdir -p "$INSTALL_LOG_DIR"
+INTERACTIVE_COMPONENTS=" checkpoint forward ipfabric peering threejs-viz "
+
+run_component() {
+    # $1 = component id, $2 = function name, $3 = display name
+    local id="$1" fn="$2" name="$3" logf="$INSTALL_LOG_DIR/$1.log"
+    if [ "${NETCLAW_VERBOSE:-0}" = "1" ] || [[ "$INTERACTIVE_COMPONENTS" == *" $id "* ]]; then
+        if ! "$fn"; then
+            log_warn "$name install reported an error — continuing."
+            return 1
+        fi
+        return 0
+    fi
+    if "$fn" > "$logf" 2>&1; then
+        # Safety net for installers that log [ERROR] but still return 0 —
+        # don't let a component claim success with errors in its log.
+        if grep -aq "\[ERROR\]" "$logf"; then
+            log_error "$name reported errors despite finishing — last 15 log lines:"
+            tail -15 "$logf" | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^/    /'
+            log_warn "Full log: $logf — continuing."
+            return 1
+        fi
+        log_info "$name installed  ${DIM}(log: $logf)${NC}"
+        return 0
+    fi
+    log_error "$name install failed — last 15 log lines:"
+    tail -15 "$logf" | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^/    /'
+    log_warn "Full log: $logf — continuing."
+    return 1
+}
 
 FAILED_COMPONENTS=""
 STEP=0
@@ -262,20 +368,34 @@ for id in $SELECTED; do
     fn="component_install_${id//-/_}"
     echo -e "${CYAN}── [$STEP/$SELECTED_COUNT] $(catalog_field "$id" 3) ──────────────────${NC}"
     if declare -F "$fn" > /dev/null; then
-        if ! "$fn"; then
-            log_warn "$(catalog_field "$id" 3) install reported an error — continuing."
+        run_component "$id" "$fn" "$(catalog_field "$id" 3)" || \
             FAILED_COMPONENTS="$FAILED_COMPONENTS $id"
-        fi
     else
         log_warn "No installer found for '$id' — skipping."
     fi
 done
 
-core_tokens
+if [ "${NETCLAW_VERBOSE:-0}" = "1" ]; then
+    core_tokens
+else
+    if core_tokens > "$INSTALL_LOG_DIR/core-tokens.log" 2>&1; then
+        log_info "Token optimization library installed  ${DIM}(log: $INSTALL_LOG_DIR/core-tokens.log)${NC}"
+    else
+        log_warn "Token optimization install reported an error — last 10 log lines:"
+        tail -10 "$INSTALL_LOG_DIR/core-tokens.log" | sed 's/^/    /'
+    fi
+fi
 core_deploy
 
-# Record the selection so setup.sh only prompts for what's installed
-manifest_write $SELECTED
+# Record the selection so setup.sh only prompts for what's installed.
+# --add merges into the existing manifest; every other path records the
+# exact selection (unticking a component in the TUI removes it).
+if [ "$ADD_MODE" = "1" ] && [ -n "$DETECTED_COMPONENTS" ]; then
+    MERGED="$(printf '%s\n' $DETECTED_COMPONENTS $SELECTED | awk 'NF && !seen[$0]++')"
+    manifest_write $MERGED
+else
+    manifest_write $SELECTED
+fi
 log_info "Component manifest written: $NETCLAW_MANIFEST"
 echo ""
 
@@ -404,8 +524,13 @@ verify_component() {
     esac
 }
 
+VERIFY_FAILED_COMPONENTS=""
 for id in $SELECTED; do
+    FAILS_BEFORE=$SERVERS_FAIL
     verify_component "$id"
+    if [ "$SERVERS_FAIL" -gt "$FAILS_BEFORE" ]; then
+        VERIFY_FAILED_COMPONENTS="$VERIFY_FAILED_COMPONENTS $id"
+    fi
 done
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
@@ -440,12 +565,6 @@ for entry in "${CATALOG[@]}"; do
     printf '    %-26s %s\n' "$name" "$desc"
 done
 echo ""
-
-if [ -n "$FAILED_COMPONENTS" ]; then
-    log_warn "Components that reported errors during install:$FAILED_COMPONENTS"
-    log_warn "Re-run ./scripts/install.sh to retry them."
-    echo ""
-fi
 
 echo "Skills deployed: $SKILL_COUNT → ~/.openclaw/workspace/skills/"
 echo "Component manifest: $NETCLAW_MANIFEST"
@@ -498,3 +617,36 @@ echo "    openclaw onboard --install-daemon  # AI provider, gateway, channels"
 echo "    ./scripts/setup.sh                 # Network platform credentials"
 echo "    ./scripts/install.sh               # Add or remove MCP servers"
 echo ""
+
+# ═══════════════════════════════════════════
+# Problem report — printed LAST so it can't scroll away behind
+# the setup wizard or the summary.
+# ═══════════════════════════════════════════
+
+PROBLEM_COMPONENTS="$(printf '%s\n' $FAILED_COMPONENTS $VERIFY_FAILED_COMPONENTS | awk 'NF && !seen[$0]++')"
+if [ -n "$PROBLEM_COMPONENTS" ]; then
+    PROBLEM_COUNT=$(echo "$PROBLEM_COMPONENTS" | wc -l | tr -d ' ')
+    echo -e "${RED}=========================================${NC}"
+    echo -e "${RED}  ⚠  $PROBLEM_COUNT component(s) did not install cleanly${NC}"
+    echo -e "${RED}=========================================${NC}"
+    echo ""
+    for id in $PROBLEM_COMPONENTS; do
+        reason=""
+        [[ " $FAILED_COMPONENTS " == *" $id "* ]] && reason="install step reported an error"
+        if [[ " $VERIFY_FAILED_COMPONENTS " == *" $id "* ]]; then
+            [ -n "$reason" ] && reason="$reason; failed verification" || reason="failed verification"
+        fi
+        printf "    %-18s %s\n" "$id" "$reason"
+        if [ -f "$INSTALL_LOG_DIR/$id.log" ]; then
+            # Replay the tail of the error here so nothing depends on scrollback
+            grep -aE "\[(ERROR|WARN)\]|[Ee]rror|ERR!|fatal" "$INSTALL_LOG_DIR/$id.log" 2>/dev/null \
+                | tail -3 | sed -e 's/\x1b\[[0-9;]*m//g' -e 's/^/        /' || true
+            echo "        full log: $INSTALL_LOG_DIR/$id.log"
+        fi
+    done
+    echo ""
+    echo "  Everything else installed fine. Retry just these with:"
+    echo ""
+    echo "    ./scripts/install.sh --add \"$(echo $PROBLEM_COMPONENTS | tr '\n' ' ' | sed 's/ $//')\""
+    echo ""
+fi

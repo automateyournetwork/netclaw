@@ -73,6 +73,10 @@ mcp-servers/*
 !mcp-servers/twilio-voice-mcp/
 !mcp-servers/atlassian-mcp/
 !mcp-servers/chrome-devtools-mcp/
+# Documented as built-in but never committed (installers expect them) —
+# whitelisted so the upstream fix that adds them isn't silently re-ignored
+!mcp-servers/packet-buddy-mcp/
+!mcp-servers/tts-mcp/
 
 # Traces
 trace.json

@@ -251,6 +251,15 @@ echo ""
 core_onboard() {
 log_step "Running OpenClaw onboard..."
 
+# Already onboarded? Don't drag the user through the wizard again just to
+# add components. NETCLAW_FORCE_ONBOARD=1 re-runs it regardless.
+if [ -f "$HOME/.openclaw/openclaw.json" ] && [ "${NETCLAW_FORCE_ONBOARD:-0}" != "1" ]; then
+    log_info "OpenClaw is already onboarded (~/.openclaw/openclaw.json exists) — skipping the wizard."
+    log_info "Reconfigure provider/gateway/channels anytime: openclaw onboard --install-daemon"
+    echo ""
+    return 0
+fi
+
 echo ""
 echo "  This is OpenClaw's built-in setup wizard."
 echo "  You'll pick your AI provider, set up the gateway, and connect"
@@ -349,6 +358,21 @@ core_mcpdir() {
 log_step "Setting up MCP servers directory..."
 
 mkdir -p "$MCP_DIR"
+
+# Legacy sudo installs leave root-owned clones behind — git then refuses
+# to pull ("dubious ownership") and npm/pip die with EACCES mid-install.
+# Catch it up front with the exact fix instead of failing 9 components in.
+FOREIGN_OWNED="$(find "$NETCLAW_DIR" -maxdepth 2 ! -user "$(id -un)" 2>/dev/null | head -5 || true)"
+if [ -n "$FOREIGN_OWNED" ]; then
+    log_error "Files in this repo are not owned by $(id -un) (leftover from a sudo install):"
+    echo "$FOREIGN_OWNED" | sed 's/^/    /'
+    echo ""
+    log_warn "Fix ownership first, then re-run the installer:"
+    echo "    sudo chown -R $(id -un):$(id -gn) \"$NETCLAW_DIR\""
+    echo ""
+    exit 1
+fi
+
 log_info "MCP servers directory: $MCP_DIR"
 echo ""
 }
@@ -384,12 +408,23 @@ PYATS_MCP_DIR="$MCP_DIR/pyATS_MCP"
 clone_or_pull "$PYATS_MCP_DIR" "https://github.com/automateyournetwork/pyATS_MCP.git"
 
 log_info "Installing Python dependencies..."
-pip3 install -r "$PYATS_MCP_DIR/requirements.txt" 2>/dev/null || \
-    pip3 install "pyats[full]" mcp pydantic python-dotenv
+if ! pip3 install -r "$PYATS_MCP_DIR/requirements.txt" 2>/dev/null; then
+    log_warn "requirements.txt install failed — trying the direct package set..."
+    if ! pip3 install "pyats[full]" mcp pydantic python-dotenv; then
+        log_error "pyATS Python dependencies failed to install (see pip output above)."
+        log_warn "Fix the pip error, then retry with: ./scripts/install.sh --add \"pyats\""
+        echo ""
+        return 1
+    fi
+fi
 
-[ -f "$PYATS_MCP_DIR/pyats_mcp_server.py" ] && \
-    log_info "pyATS MCP ready: $PYATS_MCP_DIR/pyats_mcp_server.py" || \
-    log_error "pyats_mcp_server.py not found"
+if [ -f "$PYATS_MCP_DIR/pyats_mcp_server.py" ]; then
+    log_info "pyATS MCP ready: $PYATS_MCP_DIR/pyats_mcp_server.py"
+else
+    log_error "pyats_mcp_server.py not found after clone"
+    echo ""
+    return 1
+fi
 
 echo ""
 }
@@ -471,13 +506,21 @@ MARKMAP_MCP_DIR="$MCP_DIR/markmap_mcp"
 clone_or_pull "$MARKMAP_MCP_DIR" "https://github.com/automateyournetwork/markmap_mcp.git"
 
 MARKMAP_INNER="$MARKMAP_MCP_DIR/markmap-mcp"
-if [ -d "$MARKMAP_INNER" ]; then
-    log_info "Building Markmap MCP..."
-    cd "$MARKMAP_INNER" && npm install && npm run build && cd "$NETCLAW_DIR"
+BUILD_DIR="$MARKMAP_INNER"
+if [ ! -d "$MARKMAP_INNER" ]; then
+    log_warn "Nested markmap-mcp/ not found, trying top-level..."
+    BUILD_DIR="$MARKMAP_MCP_DIR"
+fi
+
+log_info "Building Markmap MCP..."
+# Subshell keeps the installer's cwd intact even when the build fails.
+if (cd "$BUILD_DIR" && npm install && npm run build); then
     log_info "Markmap MCP ready: node $MARKMAP_INNER/dist/index.js"
 else
-    log_warn "Nested markmap-mcp/ not found, trying top-level..."
-    cd "$MARKMAP_MCP_DIR" && npm install && npm run build && cd "$NETCLAW_DIR"
+    log_error "Markmap npm install/build failed (see npm output above)."
+    log_warn "Fix the error, then retry with: ./scripts/install.sh --add \"markmap\""
+    echo ""
+    return 1
 fi
 
 echo ""
@@ -912,9 +955,16 @@ pip3 install fastmcp 2>/dev/null || log_warn "fastmcp install failed"
 mkdir -p /tmp/netclaw-pcaps
 log_info "Pcap upload directory: /tmp/netclaw-pcaps"
 
-[ -f "$PACKET_BUDDY_MCP_DIR/server.py" ] && \
-    log_info "Packet Buddy MCP ready: $PACKET_BUDDY_MCP_DIR/server.py" || \
-    log_error "packet-buddy-mcp/server.py not found"
+if [ -f "$PACKET_BUDDY_MCP_DIR/server.py" ]; then
+    log_info "Packet Buddy MCP ready: $PACKET_BUDDY_MCP_DIR/server.py"
+else
+    log_error "packet-buddy-mcp/server.py is missing from this checkout."
+    log_warn "packet-buddy-mcp is documented as built-in but was never committed"
+    log_warn "(excluded by .gitignore's mcp-servers/*). Needs an upstream fix in"
+    log_warn "automateyournetwork/netclaw — nothing to retry locally."
+    echo ""
+    return 1
+fi
 
 echo ""
 }
@@ -1586,7 +1636,16 @@ else
     log_warn "edge-tts not installed — voice responses will not work"
 fi
 
-log_info "TTS MCP ready: $TTS_MCP_DIR/server.py (2 tools, no API key required)"
+if [ -f "$TTS_MCP_DIR/server.py" ]; then
+    log_info "TTS MCP ready: $TTS_MCP_DIR/server.py (2 tools, no API key required)"
+else
+    log_error "tts-mcp/server.py is missing from this checkout."
+    log_warn "tts-mcp is documented as built-in but was never committed"
+    log_warn "(excluded by .gitignore's mcp-servers/*). Needs an upstream fix in"
+    log_warn "automateyournetwork/netclaw — nothing to retry locally."
+    echo ""
+    return 1
+fi
 
 echo ""
 }
