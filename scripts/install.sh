@@ -331,7 +331,7 @@ core_mcpdir
 
 INSTALL_LOG_DIR="$HOME/.openclaw/logs/install"
 mkdir -p "$INSTALL_LOG_DIR"
-INTERACTIVE_COMPONENTS=" checkpoint forward ipfabric peering threejs-viz "
+INTERACTIVE_COMPONENTS=" checkpoint forward ipfabric threejs-viz "
 
 run_component() {
     # $1 = component id, $2 = function name, $3 = display name

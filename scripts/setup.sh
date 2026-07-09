@@ -821,6 +821,22 @@ else
 fi
 echo ""
 
+# ───────────────────────────────────────────
+# Protocol Peering & NetClaw Mesh
+# ───────────────────────────────────────────
+
+echo -e "${BOLD}Protocol Peering (BGP/OSPF) & NetClaw Mesh${NC}"
+echo "  Participate in BGP/OSPF as a real routing peer, and mesh with other"
+echo "  NetClaw instances worldwide over BGP via ngrok."
+echo ""
+if want "peering protocol" "Configure protocol peering now?"; then
+    bash "$SCRIPT_DIR/peering-setup.sh"
+    ok "Protocol peering configured"
+else
+    skip "Protocol peering (configure anytime: ./scripts/peering-setup.sh)"
+fi
+echo ""
+
 # ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
