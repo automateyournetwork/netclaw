@@ -822,7 +822,10 @@ async function fetchBGPState() {
     // Enrich peers with adj-rib-in route counts, ASN, router-id, and type
     const enrichedPeers = (peers.peers || []).map((p) => {
       const adjRoutes = rib.adj_rib_in?.[p.peer] || [];
-      const isMesh = p.peer.startsWith('mesh-');
+      // Mesh claws appear two ways: inbound sessions keyed "mesh-as<N>", and
+      // outbound sessions keyed by their ngrok hostname (anything that isn't
+      // a bare IPv4/IPv6 literal).
+      const isMesh = p.peer.startsWith('mesh-') || !/^[0-9a-fA-F:.]+$/.test(p.peer);
 
       // Extract ASN: from peer key "mesh-as65002" or from adj-rib-in AS paths
       let peerAs = null;

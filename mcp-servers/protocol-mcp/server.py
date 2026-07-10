@@ -147,24 +147,88 @@ mcp = FastMCP("protocol-mcp")
 
 # ── BGP tools ──────────────────────────────────────────────────────────────
 
+# The persistent mesh daemon (bgp-daemon-v2.py) is the source of truth when it
+# is running: it holds the FRR lab session AND all NetClaw mesh peers. The
+# private in-process speaker below only knows the env-configured peers, so
+# always try the daemon API first and fall back to the speaker.
+BGP_DAEMON_API = os.environ.get("BGP_DAEMON_API", "http://127.0.0.1:8179")
+
+
+async def _daemon_get(path: str) -> Optional[dict]:
+    """Query the running mesh daemon's HTTP API. None if daemon not running."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{BGP_DAEMON_API}{path}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return None
+
+
+async def _daemon_post(path: str, body: dict) -> Optional[dict]:
+    """POST to the running mesh daemon's HTTP API. None if daemon not running."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(f"{BGP_DAEMON_API}{path}", json=body)
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return None
+
+
 @mcp.tool()
 async def bgp_get_peers() -> str:
-    """List BGP peer sessions with state, AS, IP, uptime, and prefix counts."""
+    """List BGP peer sessions with state, AS, IP, uptime, and prefix counts.
+
+    Includes NetClaw mesh peers (other NetClaw instances over ngrok) when the
+    mesh daemon is running, plus local router peers (e.g. FRR lab).
+    """
+    daemon = await _daemon_get("/peers")
+    if daemon is not None:
+        status = await _daemon_get("/status") or {}
+        rib = await _daemon_get("/rib") or {}
+        # Enrich with AS numbers from loc-rib AS paths
+        peer_as = {}
+        for route in (rib.get("loc_rib") or {}).values():
+            path = route.get("as_path") or []
+            if route.get("peer_ip") and path:
+                peer_as.setdefault(route["peer_ip"], path[0])
+        peers = [
+            {**p, "as": peer_as.get(p.get("peer")),
+             "mesh": str(p.get("peer", "")).startswith("mesh-")
+                     or not all(c in "0123456789abcdefABCDEF:." for c in str(p.get("peer", "")))}
+            for p in daemon.get("peers", [])
+        ]
+        return _gcf_dumps({"peers": peers, "count": len(peers),
+                           "source": "mesh-daemon", "daemon_status": status.get("status")})
     await _ensure_init()
     if not _bgp_connector:
-        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
+        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS, or start the mesh daemon."})
     peers = await _bgp_connector.get_peers()
-    return _gcf_dumps({"peers": peers, "count": len(peers)})
+    return _gcf_dumps({"peers": peers, "count": len(peers), "source": "in-process speaker"})
 
 
 @mcp.tool()
 async def bgp_get_rib(prefix: Optional[str] = None) -> str:
-    """Query the Loc-RIB. Optionally filter by prefix (e.g. '10.0.0.0/24')."""
+    """Query the Loc-RIB. Optionally filter by prefix (e.g. '10.0.0.0/24').
+
+    Includes routes learned from NetClaw mesh peers when the mesh daemon is running.
+    """
+    daemon = await _daemon_get("/rib")
+    if daemon is not None:
+        routes = list((daemon.get("loc_rib") or {}).values())
+        if prefix:
+            routes = [r for r in routes if r.get("prefix") == prefix]
+        return _gcf_dumps({"routes": routes, "count": len(routes), "source": "mesh-daemon"})
     await _ensure_init()
     if not _bgp_connector:
-        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
+        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS, or start the mesh daemon."})
     routes = await _bgp_connector.get_rib(prefix=prefix)
-    return _gcf_dumps({"routes": routes, "count": len(routes)})
+    return _gcf_dumps({"routes": routes, "count": len(routes), "source": "in-process speaker"})
 
 
 @mcp.tool()
@@ -182,6 +246,13 @@ async def bgp_inject_route(
         as_path: Comma-separated AS path (e.g. '65001,65002')
         local_pref: LOCAL_PREF value (default 100)
     """
+    body = {"network": network}
+    if next_hop:
+        body["next_hop"] = next_hop
+    daemon = await _daemon_post("/inject", body)
+    if daemon is not None:
+        return _gcf_dumps({**daemon, "source": "mesh-daemon"})
+
     await _ensure_init()
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
@@ -203,6 +274,10 @@ async def bgp_withdraw_route(network: str) -> str:
     Args:
         network: CIDR prefix to withdraw (e.g. '192.168.1.0/24')
     """
+    daemon = await _daemon_post("/withdraw", {"network": network})
+    if daemon is not None:
+        return _gcf_dumps({**daemon, "source": "mesh-daemon"})
+
     await _ensure_init()
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
