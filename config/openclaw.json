@@ -578,8 +578,10 @@
         "-y",
         "@twilio-alpha/mcp",
         "${TWILIO_ACCOUNT_SID}/${TWILIO_API_KEY_SID}:${TWILIO_API_SECRET}",
-        "--services", "twilio_api_v2010",
-        "--tags", "Api20100401Call,Api20100401Message"
+        "--services",
+        "twilio_api_v2010",
+        "--tags",
+        "Api20100401Call,Api20100401Message"
       ],
       "env": {
         "TWILIO_ACCOUNT_SID": "${TWILIO_ACCOUNT_SID}",
@@ -614,6 +616,16 @@
       ],
       "env": {
         "SKETCHFAB_API_KEY": "${SKETCHFAB_API_KEY}"
+      }
+    },
+    "n2n-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/n2n-mcp/server.py"
+      ],
+      "env": {
+        "BGP_DAEMON_API": "${BGP_DAEMON_API:-http://127.0.0.1:8179}"
       }
     }
   }

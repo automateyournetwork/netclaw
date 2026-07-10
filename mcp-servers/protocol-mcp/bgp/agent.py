@@ -100,6 +100,10 @@ class BGPAgent:
         # Data-plane tunnel manager
         self.tunnel_manager = TunnelManager(local_as, kernel_route_manager)
 
+        # N2N federation service (feature 052) — attached by the daemon when
+        # N2N_ENABLED; None means federation is off and NCFED channels are refused.
+        self.federation_service = None
+
         # TCP listener
         self.server: Optional[asyncio.Server] = None
 
@@ -269,14 +273,38 @@ class BGPAgent:
             self.logger.info(f"Incoming connection from {peer_ip}")
 
             # --- Protocol discrimination ---
-            # Peek first byte: 0xFF = BGP marker, 'N' (0x4E) = NCTUN tunnel
+            # Peek first byte: 0xFF = BGP marker, 'N' (0x4E) = NCTUN tunnel or
+            # NCFED federation channel (disambiguated by the next 4 magic bytes).
             first_byte = await asyncio.wait_for(reader.readexactly(1), timeout=30.0)
 
             if first_byte == b'N':
-                # Tunnel handshake: read remaining 4 bytes of magic ("CTUN")
+                # Read remaining 4 bytes of magic: "CTUN" (tunnel) or "CFED" (federation)
                 rest_magic = await asyncio.wait_for(reader.readexactly(4), timeout=10.0)
-                if first_byte + rest_magic != NCTUN_MAGIC:
-                    self.logger.warning(f"Invalid tunnel magic from {peer_ip}: {first_byte + rest_magic!r}")
+                magic = first_byte + rest_magic
+
+                if magic == NCFED_MAGIC:
+                    # N2N federation channel (feature 052). Handshake: 4-byte AS
+                    # + 4-byte router-id. Handed to the federation service if one
+                    # is attached; otherwise the peer is pre-federation-aware and
+                    # we simply close (BGP paths unaffected — FR-027).
+                    if self.federation_service is None:
+                        self.logger.debug(f"NCFED from {peer_ip} but federation disabled — closing")
+                        writer.close()
+                        await writer.wait_closed()
+                        return
+                    from .federation.channel import read_handshake
+                    hs = await read_handshake(reader)
+                    if not hs:
+                        writer.close()
+                        await writer.wait_closed()
+                        return
+                    fed_as, fed_rid = hs
+                    self.logger.info(f"NCFED handshake from AS{fed_as} ({fed_rid}) at {peer_ip}")
+                    await self.federation_service.accept_channel(fed_as, fed_rid, reader, writer)
+                    return  # Federation channels don't continue as BGP
+
+                if magic != NCTUN_MAGIC:
+                    self.logger.warning(f"Invalid N-magic from {peer_ip}: {magic!r}")
                     writer.close()
                     await writer.wait_closed()
                     return

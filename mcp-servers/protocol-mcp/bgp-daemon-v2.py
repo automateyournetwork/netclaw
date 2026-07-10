@@ -44,6 +44,14 @@ MESH_ENDPOINT = os.environ.get("NETCLAW_MESH_ENDPOINT", "")
 LOCAL_IPV6  = os.environ.get("NETCLAW_LOCAL_IPV6", "")
 DRY_RUN     = os.environ.get("NETCLAW_DRY_RUN", "").lower() in ("true", "1", "yes")
 
+# N2N Federation (feature 052)
+N2N_ENABLED = os.environ.get("N2N_ENABLED", "false").lower() in ("true", "1", "yes")
+N2N_DISPLAY_NAME = os.environ.get("N2N_DISPLAY_NAME", "")
+N2N_REFRESH_S = int(os.environ.get("N2N_INVENTORY_REFRESH_S", "21600"))
+
+# Global federation service reference for the HTTP API
+_federation = None
+
 # Global speaker reference for the API
 _speaker = None
 # In-memory table of injected routes: prefix -> route_dict
@@ -175,6 +183,82 @@ async def withdraw_route(network: str):
                 success = True
                 logger.info("Withdrew %s from %s", key, peer_ip)
     return success
+
+
+# ---- N2N Federation HTTP routes (feature 052) ----
+
+async def handle_n2n(method, path, body):
+    """Dispatch /n2n/* routes. Returns (resp_code, resp_body)."""
+    if _federation is None:
+        return 503, {"error": "N2N federation not enabled (set N2N_ENABLED=true)"}
+
+    fed = _federation
+    mgr = fed.manager
+    parts = path.strip("/").split("/")  # e.g. ["n2n","peers","as65007-7.7.7.7","inventory"]
+
+    try:
+        if method == "GET" and path == "/n2n/status":
+            peers = []
+            for p in mgr.list_peers():
+                meta = fed.inventory.load_remote(p["identity"], fed.refresh_s)
+                peers.append({
+                    "identity": p["identity"], "display_name": p["display_name"],
+                    "state": p["state"], "chat_enabled": bool(p["chat_enabled"]),
+                    "inventory_version": (meta or {}).get("inventory", {}).get("version") if meta else None,
+                    "inventory_received_at": (meta or {}).get("received_at") if meta else None,
+                    "stale": (meta or {}).get("stale") if meta else None,
+                })
+            return 200, {"enabled": True, "identity": fed.local_identity, "peers": peers}
+
+        if method == "POST" and path == "/n2n/consent":
+            peer_as = body.get("as"); router_id = body.get("router_id")
+            if not peer_as or not router_id:
+                return 400, {"error": "as and router_id required"}
+            state = mgr.local_consent(int(peer_as), router_id, body.get("display_name"))
+            # If we already learned remote consent, try opening the channel now.
+            ident = f"as{peer_as}-{router_id}"
+            if body.get("host") and body.get("port"):
+                asyncio.create_task(fed.open_channel(int(peer_as), router_id,
+                                                     body["host"], int(body["port"])))
+            return 200, {"identity": ident, "state": state.value}
+
+        if method == "POST" and path == "/n2n/kill":
+            ident = body.get("peer")
+            if not ident:
+                return 400, {"error": "peer (identity) required"}
+            ok = await fed.sever_local(ident)
+            return (200 if ok else 404), {"severed": ok, "peer": ident}
+
+        if method == "POST" and path == "/n2n/visibility":
+            it, name, vis = body.get("item_type"), body.get("item_name"), body.get("visibility")
+            if not all([it, name, vis]):
+                return 400, {"error": "item_type, item_name, visibility required"}
+            mgr._conn.execute(
+                "INSERT OR REPLACE INTO visibility_setting (item_type,item_name,visibility,peer_list) "
+                "VALUES (?,?,?,?)", (it, name, vis, json.dumps(body.get("peer_list")) if body.get("peer_list") else None))
+            mgr._conn.commit()
+            # Re-advertise to federated peers
+            for ident, ch in list(fed.channels.items()):
+                if mgr.is_federated(ident):
+                    asyncio.create_task(fed._advertise_to(ch))
+            return 200, {"success": True}
+
+        if method == "GET" and len(parts) >= 3 and parts[1] == "peers":
+            ident = parts[2]
+            if len(parts) == 4 and parts[3] == "inventory":
+                meta = fed.inventory.load_remote(ident, fed.refresh_s)
+                if not meta:
+                    return 404, {"error": "no inventory cached for peer"}
+                return 200, meta
+            peer = mgr.get_peer(ident)
+            if not peer:
+                return 404, {"error": "unknown peer"}
+            return 200, peer
+
+        return 404, {"error": f"unknown n2n route {path}"}
+    except Exception as e:
+        logger.error("N2N route error %s %s: %s", method, path, e)
+        return 500, {"error": str(e)}
 
 
 # ---- Asyncio HTTP server ----
@@ -393,6 +477,9 @@ async def handle_http(reader, writer):
                 resp_code = 503
                 resp_body = {"error": "speaker not ready"}
 
+        elif path.startswith("/n2n"):
+            resp_code, resp_body = await handle_n2n(method, path, body)
+
         else:
             resp_code = 404
             resp_body = {"error": "not found"}
@@ -480,6 +567,23 @@ async def main():
     # Start HTTP API
     http_server = await asyncio.start_server(handle_http, "127.0.0.1", API_PORT)
     logger.info("HTTP API listening on 127.0.0.1:%d", API_PORT)
+
+    # Attach N2N federation service (feature 052) before starting the speaker
+    # so the listener's NCFED discrimination branch can hand off channels.
+    global _federation
+    if N2N_ENABLED:
+        try:
+            from bgp.federation.service import FederationService
+            _federation = FederationService(
+                local_as=LOCAL_AS, router_id=ROUTER_ID,
+                display_name=N2N_DISPLAY_NAME, refresh_s=N2N_REFRESH_S,
+            )
+            _speaker.agent.federation_service = _federation
+            logger.info("N2N federation ENABLED — identity %s", _federation.local_identity)
+        except Exception as e:
+            logger.error("N2N federation failed to init (continuing without it): %s", e)
+    else:
+        logger.info("N2N federation disabled (set N2N_ENABLED=true to enable)")
 
     logger.info("Starting BGP speaker...")
     await _speaker.start()
