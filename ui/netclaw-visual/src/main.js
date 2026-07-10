@@ -63,6 +63,7 @@ const state = {
   terminalCards: [],
   // BGP topology
   bgp: null,
+  n2n: null,
   // Chat session focus mode
   chatSession: {
     active: false,               // true when user has sent a message
@@ -1354,6 +1355,91 @@ function revealSkills(entry) {
   });
 }
 
+// ── N2N Federation view (feature 052) ────────────────────────────
+// Finds the federation record for a claw peer by matching AS number.
+function findFederationPeer(peer) {
+  if (!state.n2n?.available) return null;
+  return (state.n2n.peers || []).find((fp) => {
+    const asMatch = fp.identity && peer.as && fp.identity.startsWith(`as${peer.as}-`);
+    return asMatch;
+  }) || null;
+}
+
+function renderFederationSection(peer) {
+  const fp = findFederationPeer(peer);
+  if (!state.n2n?.available) {
+    return `<div class="n2n-section"><h3>N2N Federation</h3>
+      <p class="n2n-muted">Federation layer not enabled on this claw.</p></div>`;
+  }
+  if (!fp || fp.state !== 'federated') {
+    const st = fp?.state || 'not federated';
+    return `<div class="n2n-section"><h3>N2N Federation</h3>
+      <div class="detail-row"><span>Status</span><strong class="n2n-state-${st.replace(/_/g,'-')}">${st.replace(/_/g,' ')}</strong></div>
+      <p class="n2n-muted">Not federated — no capability inventory. Mutually consent to exchange skills &amp; tools.</p></div>`;
+  }
+  const inv = fp.inventory?.inventory || {};
+  const badges = (inv.badges || []).map((b) => `<span class="n2n-badge">${b}</span>`).join('') || '<span class="n2n-muted">none</span>';
+  const skills = (inv.skills || []).map((s) => `<li>${s.name}</li>`).join('') || '<li class="n2n-muted">none advertised</li>';
+  const servers = (inv.mcp_servers || []).map((s) =>
+    `<li>${s.name} <span class="n2n-muted">(${(s.tools || []).length} tools)</span></li>`).join('') || '<li class="n2n-muted">none advertised</li>';
+  const fresh = fp.stale ? `<span class="n2n-stale">STALE</span>` : `<span class="n2n-fresh">fresh</span>`;
+  const recv = fp.inventory_received_at || '—';
+  return `
+    <div class="n2n-section n2n-federated">
+      <h3>N2N Federation ${fresh}</h3>
+      <div class="detail-row"><span>Status</span><strong class="n2n-state-federated">federated</strong></div>
+      <div class="detail-row"><span>Inventory</span><strong>v${inv.version ?? '—'} · ${recv}</strong></div>
+      <div class="n2n-badges">${badges}</div>
+      <h4>Skills (${(inv.skills || []).length})</h4>
+      <ul class="n2n-list">${skills}</ul>
+      <h4>MCP Servers (${(inv.mcp_servers || []).length})</h4>
+      <ul class="n2n-list">${servers}</ul>
+      ${fp.chat_enabled ? `
+        <h4>Claw-to-Claw Chat</h4>
+        <div class="n2n-chat" id="n2n-chat-log"></div>
+        <div class="n2n-chat-input">
+          <input type="text" id="n2n-chat-text" placeholder="Ask ${fp.display_name || fp.identity}'s claw…" />
+          <button id="n2n-chat-send">Send</button>
+        </div>
+      ` : `<p class="n2n-muted">Chat disabled for this peer.</p>`}
+    </div>`;
+}
+
+function wireFederationChat(peer) {
+  const fp = findFederationPeer(peer);
+  if (!fp || fp.state !== 'federated' || !fp.chat_enabled) return;
+  const btn = document.getElementById('n2n-chat-send');
+  const input = document.getElementById('n2n-chat-text');
+  const log = document.getElementById('n2n-chat-log');
+  if (!btn || !input || !log) return;
+  let sessionId = null;
+  const send = async () => {
+    const text = input.value.trim();
+    if (!text) return;
+    log.innerHTML += `<div class="n2n-msg n2n-me"><strong>you:</strong> ${text}</div>`;
+    input.value = '';
+    log.innerHTML += `<div class="n2n-msg n2n-pending" id="n2n-pending">…</div>`;
+    log.scrollTop = log.scrollHeight;
+    try {
+      const r = await fetch('/api/n2n/chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ peer: fp.identity, text, session_id: sessionId }),
+      });
+      const data = await r.json();
+      sessionId = data.session_id || sessionId;
+      document.getElementById('n2n-pending')?.remove();
+      const reply = data.text || data.error || '(no response)';
+      log.innerHTML += `<div class="n2n-msg n2n-peer"><strong>${fp.display_name || fp.identity}:</strong> ${reply}</div>`;
+      log.scrollTop = log.scrollHeight;
+    } catch (e) {
+      document.getElementById('n2n-pending')?.remove();
+      log.innerHTML += `<div class="n2n-msg n2n-err">error: ${e.message}</div>`;
+    }
+  };
+  btn.addEventListener('click', send);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') send(); });
+}
+
 function setDetail(kind, payload, related = []) {
   if (kind === 'integration') {
     dom.detailPanel.innerHTML = `
@@ -1443,6 +1529,7 @@ function setDetail(kind, payload, related = []) {
         <div class="detail-row"><span>Peer IP</span><strong>${peer.peerIp || '—'}</strong></div>
         <div class="detail-row"><span>Routes</span><strong>${peer.routesReceived}</strong></div>
       </div>
+      ${isClaw ? renderFederationSection(peer) : ''}
       ${routes.length ? `
         <div class="bgp-routes-section">
           <h3>Adj-RIB-In</h3>
@@ -1453,6 +1540,7 @@ function setDetail(kind, payload, related = []) {
         </div>
       ` : ''}
     `;
+    if (isClaw) wireFederationChat(peer);
     return;
   }
 
@@ -2809,6 +2897,12 @@ async function boot() {
       state.bgp = await bgpRes.json();
     } catch { state.bgp = null; }
 
+    // N2N federation state (feature 052) — optional, degrades gracefully
+    try {
+      const n2nRes = await fetch('/api/n2n');
+      state.n2n = await n2nRes.json();
+    } catch { state.n2n = null; }
+
     setLoading(36, 'Spinning up scene');
     initScene();
 
@@ -2891,6 +2985,10 @@ async function boot() {
     connectSocket();
     checkGatewayStatus();
     setInterval(checkGatewayStatus, 15000);
+    // Refresh N2N federation state so claw nodes reflect consent/inventory/sever (FR-026)
+    setInterval(async () => {
+      try { state.n2n = await (await fetch('/api/n2n')).json(); } catch { /* keep last */ }
+    }, 30000);
     animate();
 
     setLoading(100, 'Visual layer online');

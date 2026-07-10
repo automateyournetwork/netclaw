@@ -92,8 +92,8 @@ junos-network
 ### Arista CloudVision Skills (1)
 arista-cvp
 
-### Protocol Participation Skills (1)
-protocol-participation
+### Protocol Participation Skills (2)
+protocol-participation, n2n-federation
 
 ### Cisco FMC Skills (1)
 fmc-firewall-ops

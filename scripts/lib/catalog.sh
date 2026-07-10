@@ -67,6 +67,7 @@ CATALOG=(
     "batfish|Labs & Simulation|Batfish|Offline config analysis, reachability, ACL trace (bundled)"
     "protocol|Labs & Simulation|Protocol MCP|Live BGP/OSPF peering + GRE tunnels (10 tools)"
     "peering|Labs & Simulation|Protocol Peering Wizard|Configure BGP/OSPF participation + NetClaw Mesh (interactive)"
+    "n2n|Labs & Simulation|N2N Federation|Peer NetClaws: capability exchange, remote tool/skill invocation, claw-to-claw chat"
 
     "servicenow|ITSM & DevOps|ServiceNow|Incidents, changes, CMDB"
     "github|ITSM & DevOps|GitHub|Issues, PRs, code search, Actions (Docker)"
@@ -128,7 +129,7 @@ catalog_has() {
 PROFILE_MINIMAL="pyats gait subnet-calc drawio-rfc"
 
 PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
-drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol tts chrome-devtools"
+drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol n2n tts chrome-devtools"
 
 PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve subnet-calc drawio-rfc uml packet-buddy"
@@ -141,7 +142,7 @@ PROFILE_CLOUD="aws azure gcp cloudflare terraform vault github gait drawio-rfc u
 PROFILE_SECURITY="ise fmc panorama fortimanager checkpoint claroty zscaler nvd-cve nmap \
 fwrule gait servicenow"
 
-PROFILE_LABS="cml containerlab batfish protocol peering suzieq gait subnet-calc drawio-rfc uml"
+PROFILE_LABS="cml containerlab batfish protocol peering n2n suzieq gait subnet-calc drawio-rfc uml"
 
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
 suzieq kubeshark gtrace gait"

@@ -33,6 +33,18 @@ class FederationService:
         self.audit = Auditor(self.manager)
         self.channels: Dict[str, FederationChannel] = {}
         os.environ["N2N_LOCAL_IDENTITY"] = self.local_identity
+
+        # US2/US3 engines
+        from .authorization import Authorizer
+        from .invocation import Invoker
+        from .chat import ChatManager
+        self.authz = Authorizer(self.manager)
+        self.invoker = Invoker(self)
+        self.chat = ChatManager(self)
+        # Optional callback the daemon sets to push approval prompts to the
+        # operator's channels (Slack/Webex/CLI) via the gateway (FR-013).
+        self.approval_notifier = None
+
         # Handler map passed to every channel this service creates (per-service,
         # not global — see FederationChannel).
         self.handlers = {
@@ -41,7 +53,21 @@ class FederationService:
             "n2n/sever": self._on_sever,
             "n2n/inventory": self._on_inventory,
             "n2n/inventory_get": self._on_inventory_get,
+            "n2n/tools/call": self.invoker.handle_tools_call,
+            "n2n/tasks/submit": self.invoker.handle_task_submit,
+            "n2n/chat/open": self.chat.handle_chat_open,
+            "n2n/chat/message": self.chat.handle_chat_message,
         }
+
+    def notify_approval(self, invocation_id, peer, target_type, target_name):
+        """Push an approval prompt to the operator's channels (FR-013). Best-effort."""
+        logger.info("APPROVAL NEEDED: %s wants to run %s '%s' (invocation %s)",
+                    peer, target_type, target_name, invocation_id)
+        if self.approval_notifier:
+            try:
+                self.approval_notifier(invocation_id, peer, target_type, target_name)
+            except Exception as e:
+                logger.warning("approval notifier failed: %s", e)
 
     async def _on_hello(self, channel, params):
         channel.display_name = params.get("display_name")

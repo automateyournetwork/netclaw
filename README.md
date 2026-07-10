@@ -31,7 +31,7 @@ The installer opens an interactive TUI (pure bash — no dialog/whiptail needed)
 | **Multivendor** | Cisco + Juniper, Arista, Aruba, F5, NetBox, Nautobot |
 | **Cloud** | AWS, Azure, GCP, Cloudflare, Terraform, Vault, GitHub |
 | **Security** | ISE, FMC, Panorama, FortiManager, Check Point, Zscaler, Claroty, nmap, CVE |
-| **Labs** | CML, ContainerLab, Batfish, protocol peering, SuzieQ |
+| **Labs** | CML, ContainerLab, Batfish, protocol peering, N2N federation, SuzieQ |
 | **Observability** | Grafana, Prometheus, Datadog, Splunk, PagerDuty, ThousandEyes, Kubeshark |
 | **Minimal** | pyATS + audit trail + core utilities |
 
@@ -500,6 +500,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 109 | Chrome DevTools | [ChromeDevTools/chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) | stdio (Node, npx) | Controlled browser automation/inspection — visualization render QA (screenshot + console check), controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile (~20 tools used across 2 skills) |
 | 110 | Chrome DevTools (Watch Mode) | [ChromeDevTools/chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) | stdio (Node, npx) | Same server, headed (`--headless=false`) instead of headless — a real Chrome window opens wherever NetClaw runs, so an operator can watch it navigate/click/read live (e.g. via Slack: "watch it log into the NetBox demo and create a site"). Works on any host with a display (Mac, Linux desktop, WSL2 with WSLg); no OS-specific code |
 | 111 | Computer Use | OpenClaw ClawHub skill (`computer-use`, installed via `openclaw skills install`, not `config/openclaw.json`) | Script-based (bash + xdotool, `DISPLAY=:99`) | Full-desktop automation for legacy tools with no browser or API path — virtual Xvfb+XFCE desktop, 17 mouse/keyboard/screenshot actions, VNC/noVNC live-viewing (loopback-only) for Watch Mode. No credentials (used by 1 skill) |
+| 112 | N2N Federation | Built-in (`n2n-mcp`) | stdio (Python) | NetClaw-to-NetClaw federation over the BGP mesh via the new **NCFED** protocol (JSON-RPC 2.0, MCP + A2A semantics) — mutual-consent capability exchange, default-deny remote tool/skill invocation with approvals/budgets/audit, and claw-to-claw chat (15 tools). See [N2N-PEERING-NETCLAWS.md](N2N-PEERING-NETCLAWS.md) |
 
 ### Additional Server Notes
 

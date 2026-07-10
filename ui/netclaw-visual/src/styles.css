@@ -1146,3 +1146,48 @@ input {
 .bgp-state-idle {
   color: #ff6b6b;
 }
+
+/* ── N2N Federation panel (feature 052) ─────────────────────────── */
+.n2n-section {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(224, 64, 251, 0.06);
+  border: 1px solid rgba(224, 64, 251, 0.25);
+}
+.n2n-section h3 { margin: 0 0 8px; color: #e879f9; font-size: 13px; letter-spacing: 0.5px; }
+.n2n-section h4 { margin: 12px 0 4px; color: #c4b5fd; font-size: 11px; text-transform: uppercase; }
+.n2n-muted { color: #8b8ba0; font-size: 11px; font-style: italic; }
+.n2n-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.n2n-badge {
+  background: rgba(224, 64, 251, 0.2);
+  color: #f0abfc;
+  border: 1px solid rgba(224, 64, 251, 0.4);
+  border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600;
+}
+.n2n-list { margin: 4px 0; padding-left: 18px; font-size: 11px; color: #d4d4e0; }
+.n2n-list li { margin: 2px 0; }
+.n2n-fresh { color: #4ade80; font-size: 10px; font-weight: 600; }
+.n2n-stale { color: #fbbf24; font-size: 10px; font-weight: 700; }
+.n2n-state-federated { color: #4ade80; }
+.n2n-state-not-federated, .n2n-state-severed { color: #ff6b6b; }
+.n2n-state-consent-pending-local, .n2n-state-consent-pending-remote { color: #fbbf24; }
+.n2n-chat {
+  max-height: 180px; overflow-y: auto; margin: 8px 0;
+  background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; font-size: 11px;
+}
+.n2n-msg { margin: 4px 0; line-height: 1.4; }
+.n2n-me strong { color: #66ccff; }
+.n2n-peer strong { color: #e879f9; }
+.n2n-pending { color: #8b8ba0; font-style: italic; }
+.n2n-err { color: #ff6b6b; }
+.n2n-chat-input { display: flex; gap: 6px; }
+.n2n-chat-input input {
+  flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(224,64,251,0.3);
+  border-radius: 4px; color: #fff; padding: 6px 8px; font-size: 11px;
+}
+.n2n-chat-input button {
+  background: rgba(224,64,251,0.3); border: 1px solid rgba(224,64,251,0.5);
+  color: #f0abfc; border-radius: 4px; padding: 6px 12px; font-size: 11px; cursor: pointer;
+}
+.n2n-chat-input button:hover { background: rgba(224,64,251,0.5); }

@@ -1698,6 +1698,47 @@ echo "      ./scripts/peering-setup.sh status   # sessions + RIB"
 echo ""
 }
 
+# ── N2N Federation (feature 052) ────────────────────────────────
+component_install_n2n() {
+log_step "Installing N2N Federation..."
+echo "  Peer NetClaws: exchange capability inventories, invoke each other's"
+echo "  allowlisted tools/skills, and chat claw-to-claw — over the existing BGP mesh."
+echo "  New protocol: NCFED (JSON-RPC 2.0, MCP + A2A semantics). Requires the mesh."
+
+N2N_MCP_DIR="$MCP_DIR/n2n-mcp"
+if [ -d "$N2N_MCP_DIR" ]; then
+    log_info "Installing n2n-mcp dependencies..."
+    pip3 install -r "$N2N_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$N2N_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install httpx fastmcp 2>/dev/null || \
+        pip3 install --break-system-packages httpx fastmcp 2>/dev/null || \
+        log_warn "n2n-mcp deps install failed — install httpx + fastmcp manually"
+else
+    log_warn "n2n-mcp not found — it should be bundled at mcp-servers/n2n-mcp/"
+fi
+
+# Enable the federation layer in the OpenClaw .env
+OPENCLAW_ENV_N2N="$HOME/.openclaw/.env"
+[ -f "$OPENCLAW_ENV_N2N" ] || touch "$OPENCLAW_ENV_N2N"
+if ! grep -q "^N2N_ENABLED=" "$OPENCLAW_ENV_N2N" 2>/dev/null; then
+    {
+        echo "N2N_ENABLED=true"
+        echo "N2N_DISPLAY_NAME=$(hostname)"
+    } >> "$OPENCLAW_ENV_N2N"
+    log_info "Set N2N_ENABLED=true in $OPENCLAW_ENV_N2N"
+else
+    log_info "N2N already configured in $OPENCLAW_ENV_N2N"
+fi
+
+log_info "N2N Federation installed. Next:"
+echo "      1. Ensure the mesh is up (./scripts/peering-setup.sh start)"
+echo "      2. Restart the mesh daemon so the NCFED channel is live"
+echo "      3. Reload MCP servers (openclaw mcp reload) to pick up n2n-mcp"
+echo "      4. Mutually consent with a peer — see N2N-PEERING-NETCLAWS.md"
+
+echo ""
+}
+
 # ── Infoblox DDI MCP backend ────────────────────────────────────
 component_install_infoblox() {
 log_step "Installing Infoblox DDI MCP Server..."

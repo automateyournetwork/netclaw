@@ -253,7 +253,62 @@ async def handle_n2n(method, path, body):
             peer = mgr.get_peer(ident)
             if not peer:
                 return 404, {"error": "unknown peer"}
+            peer["budget"] = fed.authz.budget_status(ident)
             return 200, peer
+
+        # ---- US2: grants, invocation, approvals, audit, config ----
+        if path == "/n2n/grants" and method == "GET":
+            return 200, {"grants": fed.authz.list_grants(body.get("peer") if body else None)}
+
+        if path == "/n2n/grants" and method == "POST":
+            gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
+                                  bool(body.get("requires_approval", False)), body.get("timeout_s"))
+            return 200, {"grant_id": gid}
+
+        if len(parts) == 3 and parts[1] == "grants" and method == "DELETE":
+            fed.authz.revoke(int(parts[2]))
+            return 200, {"revoked": int(parts[2])}
+
+        if path == "/n2n/invoke" and method == "POST":
+            ident = body["peer"]; ttype = body.get("target_type", "tool")
+            try:
+                if ttype == "tool":
+                    res = await fed.invoker.invoke_remote_tool(ident, body["target_name"], body.get("arguments") or {})
+                else:
+                    res = await fed.invoker.invoke_remote_skill(ident, body["target_name"], body.get("input_text", ""))
+                return 200, res
+            except Exception as e:
+                code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
+                return 200, {"error": {"code": code, "message": msg}}
+
+        if path == "/n2n/approvals" and method == "GET":
+            return 200, {"pending": fed.authz.pending_approvals()}
+
+        if len(parts) == 3 and parts[1] == "approvals" and method == "POST":
+            fed.authz.resolve_approval(int(parts[2]), body.get("action", "deny"), body.get("via", "cli"))
+            return 200, {"resolved": int(parts[2]), "action": body.get("action")}
+
+        if path == "/n2n/audit" and method == "GET":
+            return 200, {"records": fed.audit.recent(body.get("peer") if body else None, 50)}
+
+        if path == "/n2n/config" and method == "POST":
+            ident = body["peer"]
+            if "chat_enabled" in body:
+                mgr.set_chat_enabled(ident, bool(body["chat_enabled"]))
+            return 200, {"success": True, "peer": ident,
+                         "chat_enabled": bool(mgr.get_peer(ident)["chat_enabled"])}
+
+        # ---- US3: chat ----
+        if path == "/n2n/chat/open" and method == "POST":
+            res = await fed.chat.open_and_send(body["peer"], body.get("text", ""), body.get("session_id"))
+            return 200, res
+
+        if path == "/n2n/chat/send" and method == "POST":
+            res = await fed.chat.open_and_send(body["peer"], body["text"], body.get("session_id"))
+            return 200, res
+
+        if path == "/n2n/chats" and method == "GET":
+            return 200, {"sessions": fed.chat.list_sessions()}
 
         return 404, {"error": f"unknown n2n route {path}"}
     except Exception as e:
