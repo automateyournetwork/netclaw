@@ -416,6 +416,9 @@ a working conversation when chat is enabled.
   DefenseClaw logs) rather than introducing a new store.
 - Capability badges are derived from which MCP servers/skills are installed and
   advertised — not from probing the operator's devices.
+- Default visibility on first run is privacy-leaning: MCP servers start hidden
+  (operator opts them in), skill names start advertised to federated peers;
+  both are operator-changeable per item (FR-006).
 - Rate-limit, approval-window, and refresh-interval defaults will be set at plan time;
   all are operator-configurable per peer.
 - Out of scope (per description): multi-hop federation through an intermediate claw,

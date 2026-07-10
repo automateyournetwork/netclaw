@@ -61,7 +61,8 @@ correlation (FR-015).
 Errors use JSON-RPC error objects with reserved codes:
 `-32001` not_allowlisted · `-32002` approval_pending · `-32003` approval_expired
 · `-32004` budget_exhausted · `-32005` rate_limited · `-32006` execution_timeout
-· `-32007` severed. Every refusal names its code in `error.message` (FR-012/017).
+· `-32007` severed · `-32008` guardrail_blocked (DefenseClaw inspection refused
+the call — FR-014). Every refusal names its code in `error.message` (FR-012/017).
 
 ### Skill delegation (A2A task-lifecycle-inspired)
 

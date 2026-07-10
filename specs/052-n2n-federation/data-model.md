@@ -20,6 +20,10 @@ One row per remote claw known from the mesh.
 | chat_enabled | INTEGER | 0/1, per-peer (FR-018) |
 | created_at / updated_at | TEXT | ISO 8601 |
 
+**Terminology**: the operator action is the **kill switch** (`n2n_kill` tool,
+`/n2n/kill` route); the wire notification is `n2n/sever`; the resulting peer
+state is `severed`. One action, three layer-appropriate names.
+
 **State transitions** (FR-001, FR-004):
 
 ```

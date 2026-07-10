@@ -74,7 +74,14 @@ peers never send `NCFED` and see zero behavior change (FR-027).
   and performs `initialize` → `tools/call` directly (JSON-RPC over stdio, ~30
   lines with subprocess + stdlib json). No LLM involved; result returned
   verbatim. Server command/args come from `config/openclaw.json` exactly as the
-  gateway launches them.
+  gateway launches them. **DefenseClaw compliance (FR-014)**: because this path
+  bypasses the gateway where runtime guardrails hook, the daemon MUST perform
+  its own inspection step before spawn when `security.mode == "defenseclaw"` in
+  `~/.openclaw/config/openclaw.json`: invoke DefenseClaw's tool-inspection
+  interface (`defenseclaw` CLI check on the tool name + serialized arguments)
+  and refuse with error code `-32008 guardrail_blocked` on rejection; when
+  security mode is `hobby`, the step is skipped. This keeps deterministic tools
+  out of the LLM path while preserving "same inspection as any local tool call."
 - **Skills + chat (agentic)**: the daemon POSTs to the local OpenClaw gateway's
   OpenAI-compatible API (the same `http://127.0.0.1:<gw.port>/v1/...` surface
   ui/netclaw-visual/server.js already proxies for HUD chat). A delegated skill

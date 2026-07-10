@@ -104,7 +104,8 @@ mcp-servers/protocol-mcp/
         ├── manager.py           # consent state machine, peer registry, kill switch
         ├── inventory.py         # build local inventory (openclaw.json + workspace/skills), visibility filter
         ├── authorization.py     # grants, default-deny, approvals, budgets, rate limits
-        ├── invocation.py        # inbound exec: MCP stdio tools/call; gateway task for skills/chat
+        ├── invocation.py        # inbound exec: MCP stdio tools/call (+ DefenseClaw pre-spawn inspection); gateway tasks for skills
+        ├── chat.py              # chat sessions, streaming relay, transcripts
         └── audit.py             # dual-side audit records → federation.db + GAIT
 
 mcp-servers/n2n-mcp/             # NEW operator-facing MCP server
