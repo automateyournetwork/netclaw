@@ -123,9 +123,9 @@
 - [X] T043 [P] Add catalog entry `"n2n|Federation|N2N Federation|Peer NetClaws: capability exchange, remote invocation, claw-to-claw chat"` to `scripts/lib/catalog.sh` and `component_install_n2n()` (pip deps, env prompts for `N2N_ENABLED`/`N2N_DISPLAY_NAME`, consent quickstart pointer) to `scripts/lib/install-steps.sh`
 - [X] T044 Run `python3 scripts/verify-catalog-coverage.py` and fix any gap so `n2n-mcp` is reachable from the `n2n` catalog id
 - [X] T045 [P] Update `README.md` (capability description + MCP/tool counts), `TOOLS.md` reference, and `SOUL.md` capability summary for N2N federation
-- [ ] T046 Run full test suite `pytest tests/n2n/ -v` plus regression check that daemon with `N2N_ENABLED=false` behaves byte-identically on BGP paths (FR-027, Constitution XV)
+- [X] T046 Run full test suite `pytest tests/n2n/ -v` plus regression check that daemon with `N2N_ENABLED=false` behaves byte-identically on BGP paths (FR-027, Constitution XV)
 - [ ] T047 Live-mesh validation per quickstart.md verification checklist with Nicholas (AS 65007) and Byrn (AS 65099): SC-001…SC-008 spot checks + schedule the 24 h SC-009 soak
-- [ ] T048 Draft WordPress milestone blog post (what was built, why, key decisions — NCFED mux, MCP/A2A hybrid, budgets; lessons learned) and present for review before publishing (Constitution XVII)
+- [X] T048 Draft WordPress milestone blog post (what was built, why, key decisions — NCFED mux, MCP/A2A hybrid, budgets; lessons learned) and present for review before publishing (Constitution XVII)
 
 ---
 
