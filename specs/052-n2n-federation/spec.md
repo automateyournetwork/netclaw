@@ -20,13 +20,41 @@ allowlisted tools or skills on the peer (with the remote operator in control at 
 step), and hold attributed, rate-limited conversations with the peer's agent — all
 without any credentials or secrets ever leaving either machine.
 
+## Clarifications
+
+### Session 2026-07-10
+
+- Q: How should a claw's stable federation identity be established and verified at
+  consent time? → A: BGP identity (AS number + router-id), as presented in the BGP
+  OPEN on the established mesh session. Inventory authenticity is anchored to arrival
+  over that session (channel-based), not to per-claw signatures. Residual spoofing
+  risk (anyone who can dial a claw's public port can claim any AS/router-id) is
+  accepted for v1 and mitigated by mutual consent + operator out-of-band confirmation.
+- Q: How is the remote operator's compute cost bounded when peers use their claw
+  (chat + invocations that engage the remote agent/LLM)? → A: Per-peer daily budget
+  (requests and tokens per day, operator-configurable) enforced by the remote side,
+  in addition to per-minute rate limits; exceeding either returns a clear "budget
+  exhausted" refusal, logged on both sides.
+- Q: What carries N2N traffic between peers, given the overlay tunnel currently fails
+  to establish while BGP works? → A: N2N rides the peer's existing public mesh
+  endpoint using protocol discrimination (multiplexed alongside BGP on the same
+  port), as a first-class channel — federation must work wherever a BGP mesh session
+  works; no dependence on the current overlay tunnel layer and no new exposed ports.
+- Q: Where does the remote operator see and answer human-approval prompts? → A: On
+  their existing NetClaw channels (Slack/Webex/CLI — wherever they are connected),
+  with approve/deny actions; the HUD federation view also lists pending approvals.
+- Q: What is remotely invocable in v1 — tools only, or also skills? → A: Both. Tools
+  execute as direct calls; a skill executes as a delegated task on the remote agent
+  (its own LLM, policies, and per-peer budget), returning the finished result to the
+  requester. Both are allowlisted per peer under the same grant model.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - Capability Exchange & Remote Capability Queries (Priority: P1)
 
 John's NetClaw (AS 65001) is mesh-peered with Nicholas's (AS 65007) and Byrn's
 (AS 65099). John and Nicholas each run one command (or answer one prompt) consenting
-to federate with the other. From then on, each claw advertises a signed inventory of
+to federate with the other. From then on, each claw advertises an inventory of
 its skills, MCP servers, tool names, and coarse platform capabilities ("has CML",
 "has pyATS testbed", "has Meraki") to the other. John can then ask his own NetClaw:
 "does Nicholas's claw have CML?", "what skills does Nicholas have that I don't?" and
@@ -184,8 +212,10 @@ a working conversation when chat is enabled.
   (tunnel endpoints change) — federation state (consent, allowlists) survives and
   re-attaches to the peer's stable identity, not its transient endpoint.
 - **Identity collision or spoofing attempt**: a third claw presents another peer's
-  identity — inventory signature verification fails; the impostor gains no federation
-  state and the event is logged.
+  AS/router-id — because federation requires mutual consent per identity AND the
+  inventory must arrive over that identity's established session, the impostor gains
+  no federation state unless the operator consents to it; conflicting sessions
+  claiming an already-federated identity are flagged to the operator and logged.
 - **Very large inventories**: a claw with hundreds of skills/tools advertises — the
   exchange completes without disrupting BGP keepalives or the session (inventory
   transfer must never starve the control plane).
@@ -209,11 +239,15 @@ a working conversation when chat is enabled.
 
 - **FR-001**: Federation with a peer MUST require explicit opt-in from BOTH operators
   (mutual consent) before any capability information is exchanged in either direction.
-- **FR-002**: Each claw MUST have a stable federation identity that peers can verify,
-  independent of its transient public endpoint.
-- **FR-003**: Advertised inventories MUST be signed by the originating claw, and
-  receivers MUST reject inventories that fail verification, retaining the last
-  known-good inventory and logging the rejection.
+- **FR-002**: Each claw's federation identity MUST be its BGP identity (AS number +
+  router-id) as presented in the BGP OPEN of the established mesh session; federation
+  state re-associates by this identity across endpoint changes.
+- **FR-003**: Inventory authenticity MUST be anchored to the established mesh session
+  it arrives over (channel-based): inventories arriving outside an Established session
+  for that AS/router-id, or claiming a different identity than the session's, MUST be
+  rejected, retaining the last known-good inventory and logging the rejection. The
+  residual v1 spoofing risk is accepted and mitigated by mutual consent (FR-001) plus
+  operator out-of-band confirmation at consent time.
 - **FR-004**: Operators MUST be able to sever N2N federation with a specific peer at
   any time with a single action (kill switch); severing MUST take effect immediately,
   MUST NOT drop the underlying BGP session, and MUST be reversible only by repeating
@@ -238,19 +272,25 @@ a working conversation when chat is enabled.
   peer's capabilities (existence checks, listings, and local-vs-remote comparisons)
   answered entirely from locally stored inventory, with staleness indicated whenever
   the inventory is older than its refresh interval.
-- **FR-010**: Capability exchange MUST ride the existing authenticated mesh channels
-  between peers and MUST NOT require any new inbound network exposure beyond what mesh
-  peering already established.
+- **FR-010**: All N2N traffic (capability exchange, invocation, chat) MUST ride the
+  peer's existing public mesh endpoint, multiplexed alongside BGP via protocol
+  discrimination, and MUST NOT require any new inbound network exposure beyond what
+  mesh peering already established; N2N MUST be able to establish wherever a BGP mesh
+  session can establish.
 - **FR-011**: Inventory transfer MUST NOT disrupt BGP session health (keepalives and
   route exchange take precedence).
 
 **Remote Invocation**
 
 - **FR-012**: Remote invocation MUST be default-deny: a peer may invoke only tools and
-  skills the remote operator has explicitly allowlisted for that specific peer.
+  skills the remote operator has explicitly allowlisted for that specific peer. Tools
+  execute as direct calls; skills execute as delegated tasks on the remote agent (its
+  own reasoning, policies, and per-peer budget), returning only the finished result.
 - **FR-013**: The remote operator MUST be able to require human approval per tool,
-  per skill, or per category; unapproved requests MUST expire and be denied after a
-  configurable window.
+  per skill, or per category; approval prompts MUST be delivered on the operator's
+  existing NetClaw channels (Slack/Webex/CLI — wherever connected) with approve/deny
+  actions, and also listed as pending in the HUD federation view; unapproved requests
+  MUST expire and be denied after a configurable window.
 - **FR-014**: Remote invocations MUST execute with the remote claw's own local
   policies, credentials, and security layer (including DefenseClaw guardrail
   inspection when enabled) exactly as if locally initiated; only results — never
@@ -260,8 +300,11 @@ a working conversation when chat is enabled.
   target tool/skill, timestamps, outcome, and returned payload reference.
 - **FR-016**: Requesting claws MUST treat all remote results as untrusted input:
   rendered and reasoned over, never automatically executed as instructions.
-- **FR-017**: Remote invocations MUST be rate-limited per peer, and requests MUST
-  carry a timeout after which the requester receives a definitive status.
+- **FR-017**: Remote invocations MUST be rate-limited per peer AND bounded by a
+  per-peer daily budget (request count and token spend, operator-configurable)
+  enforced by the executing side; requests MUST carry a timeout after which the
+  requester receives a definitive status, and budget/rate refusals MUST be explicit
+  ("budget exhausted" / "rate limited") and logged on both sides.
 
 **Claw-to-Claw Chat**
 
@@ -270,8 +313,9 @@ a working conversation when chat is enabled.
 - **FR-019**: Chat messages MUST relay from the requesting operator through their own
   claw to the remote claw's agent, with responses streamed back and every message
   clearly attributed to its originating claw and operator in both sessions.
-- **FR-020**: Chat MUST be rate-limited per peer, and full conversation history MUST
-  be available to both operators for review.
+- **FR-020**: Chat MUST be rate-limited per peer and MUST draw from the same per-peer
+  daily budget as remote invocations (FR-017); full conversation history MUST be
+  available to both operators for review.
 - **FR-021**: While answering chat, the remote agent's tool use MUST be governed
   solely by its own operator's local policies.
 - **FR-022**: Every N2N chat exchange MUST be audit-logged on both sides.
@@ -300,17 +344,18 @@ a working conversation when chat is enabled.
 
 - **Federation Peer**: a remote NetClaw known from the mesh, keyed by stable
   federation identity; carries AS number, display name, endpoint (transient),
-  federation state (not federated / pending / federated / severed), and trust material
-  for verifying its inventory signatures.
+  federation state (not federated / pending / federated / severed); authenticity of
+  what it sends is anchored to its established mesh session (see FR-003).
 - **Consent Record**: an operator's decision to federate with a specific peer;
   both directions required for active federation; revocable (kill switch).
-- **Capability Inventory**: the signed, versioned set a claw advertises — skill
-  entries (name, description, visibility), MCP server entries (name, tool names,
-  visibility), capability badges; carries issue time and signature. Stored remotely
-  with received-at time for staleness.
+- **Capability Inventory**: the versioned set a claw advertises — skill entries
+  (name, description, visibility), MCP server entries (name, tool names, visibility),
+  capability badges; carries issue time and the advertising identity (AS + router-id).
+  Stored remotely with received-at time for staleness.
 - **Invocation Grant (Allowlist Entry)**: remote-operator-owned permission tying one
   peer to one invocable tool/skill, with optional human-approval flag, rate limits,
-  and timeout.
+  and timeout. Grants draw against the peer's daily budget (request + token caps,
+  shared with chat).
 - **Remote Invocation Record**: audit entry for one invocation attempt — requester,
   target, decision path (allowlisted / approved / denied / expired), timing, outcome,
   result reference. Exists on both sides.
@@ -348,9 +393,11 @@ a working conversation when chat is enabled.
 - The existing NetClaw Mesh (eBGP over public tunnel endpoints, mesh directory,
   overlay tunnel channel) is the transport; N2N adds no new listening ports beyond
   what mesh peering already uses.
-- The overlay/tunnel channel between peers (already attempted today by the mesh
-  daemon) will carry federation payloads; where it cannot establish, federation
-  degrades gracefully to "peered but not federated" rather than falling back to
+- N2N traffic is multiplexed on the same public endpoint as BGP via protocol
+  discrimination (per Clarifications) — the existing TunnelManager's discrimination
+  mechanism is the precedent, but N2N does not depend on the current overlay tunnel
+  layer establishing. If the N2N channel itself cannot establish, federation degrades
+  gracefully to "peered but not federated" rather than falling back to
   unauthenticated paths.
 - **Federation wire protocol**: candidate protocols are Agent2Agent (A2A — agent
   cards for capability discovery, task lifecycle for delegated work, streaming for
@@ -359,10 +406,10 @@ a working conversation when chat is enabled.
   protocol family. The concrete choice (A2A, MCP-over-mesh, hybrid, or bespoke
   JSON-RPC 2.0) is a plan-phase decision — this spec constrains only the behavior,
   consent, and security properties the chosen protocol must satisfy.
-- Stable federation identity is established at consent time via an operator-verifiable
-  exchange (e.g. each operator confirms a short fingerprint out-of-band, as they
-  already coordinate peering details out-of-band today); no central authority or PKI
-  exists in v1.
+- Federation identity is the BGP identity (AS + router-id) per Clarifications; no
+  keys, certificates, or central authority in v1. Operators confirm each other's
+  AS/router-id out-of-band (as they already coordinate peering details today) before
+  consenting.
 - The operator's existing agent surfaces (Slack/CLI/HUD chat) are how N2N questions
   and invocations are initiated; no new operator-facing client is introduced.
 - Audit logging reuses the platform's existing audit stores (e.g. GAIT / Memory MCP /
