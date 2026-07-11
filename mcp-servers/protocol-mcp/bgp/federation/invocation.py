@@ -255,6 +255,20 @@ class Invoker:
                                timeout=self.tool_timeout + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}
 
+    def _peer_skill_timeout(self, ident) -> int:
+        """Wait budget for a remote skill run. A delegated skill executes on the
+        peer's model, so honor the timeout it advertised in n2n/hello (capped),
+        falling back to our local skill timeout."""
+        from .service import MAX_HONORED_TIMEOUT_S
+        row = self.service.manager.get_peer(ident)
+        advertised = row.get("peer_suggested_timeout_s") if row else None
+        if advertised:
+            try:
+                return max(self.skill_timeout, min(int(advertised), MAX_HONORED_TIMEOUT_S))
+            except (TypeError, ValueError):
+                pass
+        return self.skill_timeout
+
     async def invoke_remote_skill(self, ident, skill, input_text):
         ch = self.service.channels.get(ident)
         if not ch:
@@ -264,5 +278,5 @@ class Invoker:
                           target_name=skill, request_id=req_id, decision="requested", outcome="pending")
         result = await ch.call("n2n/tasks/submit",
                                {"skill": skill, "input_text": input_text, "request_id": req_id},
-                               timeout=self.skill_timeout + 5)
+                               timeout=self._peer_skill_timeout(ident) + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}

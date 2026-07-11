@@ -41,11 +41,20 @@ correlation (FR-015).
 
 | Method | Direction | Params | Result |
 |---|---|---|---|
-| `n2n/hello` | both, on channel open | `{identity, display_name, versions: ["1.0"]}` | `{identity, display_name, version: "1.0"}` |
+| `n2n/hello` | both, on channel open | `{identity, display_name, versions: ["1.0"], model?, suggested_timeout_s?}` | `{identity, display_name, version: "1.0", model?, suggested_timeout_s?}` |
 | `n2n/consent_state` | both | `{state}` | `{state}` — used to surface pending/severed transitions |
 | `n2n/sever` | either | `{}` | `{acked: true}` — kill switch notification; receiver marks peer severed and closes channel (FR-004) |
 
-### Capability exchange (A2A AgentCard-inspired)
+#### Model + timeout negotiation (in `n2n/hello`)
+
+Each side optionally advertises `model` (the LLM running its gateway agent) and
+`suggested_timeout_s` (how long the peer should wait for its chat/skill replies).
+A claw on a slow model (e.g. an Ollama Cloud model that takes 1–3 min/turn)
+advertises a larger `suggested_timeout_s` so the requesting side does not give
+up mid-turn. Receivers store the peer's values and use `suggested_timeout_s`
+(clamped to `[local_default, 900]`) as the wait on outbound `n2n/chat/message`
+and `n2n/tasks/submit`. Both fields are optional and backwards compatible — a
+peer that omits them (older build) falls back to local defaults.
 
 | Method | Direction | Params | Result |
 |---|---|---|---|

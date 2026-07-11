@@ -204,11 +204,16 @@ async def handle_n2n(method, path, body):
                 peers.append({
                     "identity": p["identity"], "display_name": p["display_name"],
                     "state": p["state"], "chat_enabled": bool(p["chat_enabled"]),
+                    "model": p.get("peer_model"),
+                    "suggested_timeout_s": p.get("peer_suggested_timeout_s"),
                     "inventory_version": (meta or {}).get("inventory", {}).get("version") if meta else None,
                     "inventory_received_at": (meta or {}).get("received_at") if meta else None,
                     "stale": (meta or {}).get("stale") if meta else None,
                 })
-            return 200, {"enabled": True, "identity": fed.local_identity, "peers": peers}
+            from bgp.federation.service import local_model, local_suggested_timeout_s
+            return 200, {"enabled": True, "identity": fed.local_identity,
+                         "model": local_model(), "suggested_timeout_s": local_suggested_timeout_s(),
+                         "peers": peers}
 
         if method == "POST" and path == "/n2n/consent":
             peer_as = body.get("as"); router_id = body.get("router_id")

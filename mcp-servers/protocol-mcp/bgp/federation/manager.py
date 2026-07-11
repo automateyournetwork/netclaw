@@ -48,6 +48,8 @@ CREATE TABLE IF NOT EXISTS federation_peer (
     endpoint_port INTEGER,
     state         TEXT NOT NULL DEFAULT 'not_federated',
     chat_enabled  INTEGER NOT NULL DEFAULT 0,
+    peer_model    TEXT,
+    peer_suggested_timeout_s INTEGER,
     created_at    TEXT NOT NULL,
     updated_at    TEXT NOT NULL
 );
@@ -129,8 +131,24 @@ class FederationManager:
         self._conn = sqlite3.connect(self.db_path, check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
         self._conn.executescript(SCHEMA)
+        self._migrate()
         self._conn.commit()
         logger.info("FederationManager ready (db=%s)", self.db_path)
+
+    def _migrate(self):
+        """Idempotent column additions for DBs created before a column existed.
+
+        SQLite has no 'ADD COLUMN IF NOT EXISTS', so probe PRAGMA table_info
+        and add anything missing. Keeps pre-existing federation.db files working
+        without a manual drop (Constitution XV — backwards compatible)."""
+        cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(federation_peer)")}
+        for col, ddl in (
+            ("peer_model", "ALTER TABLE federation_peer ADD COLUMN peer_model TEXT"),
+            ("peer_suggested_timeout_s",
+             "ALTER TABLE federation_peer ADD COLUMN peer_suggested_timeout_s INTEGER"),
+        ):
+            if col not in cols:
+                self._conn.execute(ddl)
 
     # ---- peer registry ------------------------------------------------
 
@@ -245,6 +263,31 @@ class FederationManager:
     def set_chat_enabled(self, ident: str, enabled: bool):
         self._conn.execute("UPDATE federation_peer SET chat_enabled=?, updated_at=? WHERE identity=?",
                            (1 if enabled else 0, _now(), ident))
+        self._conn.commit()
+
+    # ---- peer profile: advertised model + suggested wait timeout -------
+
+    def set_peer_profile(self, ident: str, model: Optional[str] = None,
+                         suggested_timeout_s: Optional[int] = None):
+        """Store what a peer advertised about itself in the n2n/hello exchange:
+        the model it runs and how long we should wait for its chat/skill replies
+        (a slow model on the far side asks us to be patient)."""
+        sets, vals = [], []
+        if model is not None:
+            sets.append("peer_model=?"); vals.append(str(model))
+        if suggested_timeout_s is not None:
+            try:
+                # Convert first — only record the column if the value is valid,
+                # so sets/vals never drift out of sync.
+                t = int(suggested_timeout_s)
+                sets.append("peer_suggested_timeout_s=?"); vals.append(t)
+            except (TypeError, ValueError):
+                pass
+        if not sets:
+            return
+        sets.append("updated_at=?"); vals.append(_now())
+        vals.append(ident)
+        self._conn.execute(f"UPDATE federation_peer SET {','.join(sets)} WHERE identity=?", vals)
         self._conn.commit()
 
     def close(self):

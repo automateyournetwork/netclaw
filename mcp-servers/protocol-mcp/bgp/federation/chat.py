@@ -77,6 +77,21 @@ class ChatManager:
 
     # ---- outbound: OUR operator chats with the PEER's agent -----------
 
+    def _peer_wait_timeout(self, ident: str) -> int:
+        """How long to wait for a peer's chat reply. Honor the timeout the peer
+        advertised in n2n/hello (its model may be slow), capped to a ceiling so
+        a bad value can't block us forever. Falls back to our local default."""
+        from .service import MAX_HONORED_TIMEOUT_S
+        default = int(os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S", "300"))
+        row = self.manager.get_peer(ident)
+        advertised = row.get("peer_suggested_timeout_s") if row else None
+        if not advertised:
+            return default
+        try:
+            return max(default, min(int(advertised), MAX_HONORED_TIMEOUT_S))
+        except (TypeError, ValueError):
+            return default
+
     async def open_and_send(self, ident: str, text: str, session_id: str = None):
         ch = self.service.channels.get(ident)
         if not ch:
@@ -94,7 +109,7 @@ class ChatManager:
             self.manager._conn.commit()
         self._append(session_id, f"[{self.service.local_identity}] {text}")
         reply = await ch.call("n2n/chat/message", {"session_id": session_id, "text": text},
-                              timeout=int(os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S", "300")))
+                              timeout=self._peer_wait_timeout(ident))
         self._append(session_id, f"[{ident}] {reply.get('text','')}")
         self._touch(session_id)
         self.audit.record(direction="outbound", peer_identity=ident, target_type="chat",

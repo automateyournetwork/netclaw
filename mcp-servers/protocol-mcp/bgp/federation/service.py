@@ -20,6 +20,32 @@ from .audit import Auditor
 logger = logging.getLogger("n2n.service")
 
 
+def local_model() -> str:
+    """The model this claw runs, advertised to peers in n2n/hello so they can
+    size their wait timeouts. Falls back through the common env vars."""
+    return (os.environ.get("N2N_MODEL")
+            or os.environ.get("NETCLAW_MODEL")
+            or os.environ.get("BEDROCK_MODEL_ID")
+            or "unknown")
+
+
+def local_suggested_timeout_s() -> int:
+    """How long a peer should wait for OUR chat/skill replies. A slow local
+    model (e.g. an Ollama Cloud model) advertises a larger value so the far
+    side doesn't give up mid-turn. Defaults to the chat idle timeout."""
+    try:
+        return int(os.environ.get("N2N_SUGGESTED_TIMEOUT_S")
+                   or os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S")
+                   or "300")
+    except (TypeError, ValueError):
+        return 300
+
+
+# Upper bound applied to a peer-advertised timeout before we honor it, so a
+# misconfigured or hostile peer can't make us block indefinitely.
+MAX_HONORED_TIMEOUT_S = 900
+
+
 class FederationService:
     def __init__(self, *, local_as: int, router_id: str, display_name: str = "",
                  refresh_s: int = 21600, manager: Optional[FederationManager] = None):
@@ -73,10 +99,17 @@ class FederationService:
         channel.display_name = params.get("display_name")
         # Peer presence on the channel implies they consented to us.
         self.manager.remote_consent(channel.peer_as, channel.peer_router_id)
+        # Record the model + suggested wait timeout the peer advertised so our
+        # outbound chat/skill calls to them size their timeout correctly.
+        self.manager.set_peer_profile(channel.peer_identity,
+                                      model=params.get("model"),
+                                      suggested_timeout_s=params.get("suggested_timeout_s"))
         state = self.manager._recompute_state(channel.peer_identity)
         if state == PeerState.FEDERATED:
             asyncio.create_task(self._advertise_to(channel))
-        return {"identity": self.local_identity, "display_name": self.display_name, "version": "1.0"}
+        return {"identity": self.local_identity, "display_name": self.display_name,
+                "version": "1.0", "model": local_model(),
+                "suggested_timeout_s": local_suggested_timeout_s()}
 
     async def _on_consent_state(self, channel, params):
         return {"state": self.manager.get_peer(channel.peer_identity)["state"]}
@@ -198,8 +231,13 @@ class FederationService:
             self.channels[ident] = ch
             await ch.start()
             resp = await ch.call("n2n/hello", {"identity": self.local_identity,
-                                               "display_name": self.display_name, "versions": ["1.0"]})
+                                               "display_name": self.display_name, "versions": ["1.0"],
+                                               "model": local_model(),
+                                               "suggested_timeout_s": local_suggested_timeout_s()})
             ch.display_name = resp.get("display_name")
+            # Store the acceptor's advertised model + suggested wait timeout.
+            self.manager.set_peer_profile(ident, model=resp.get("model"),
+                                          suggested_timeout_s=resp.get("suggested_timeout_s"))
             self.manager.remote_consent(peer_as, router_id)
             if self.manager._recompute_state(ident) == PeerState.FEDERATED:
                 await self._advertise_to(ch)
