@@ -189,6 +189,16 @@ NCTUN_OVERLAY_PREFIX = "fd00:cc::"  # /48 overlay prefix for tunnel point-to-poi
 NCTUN_FRAME_HEADER_SIZE = 2       # 2-byte big-endian length prefix per IP packet
 NCTUN_MAX_PACKET_SIZE = 1400      # Maximum IP packet size in tunnel frame
 
+# NetClaw N2N Federation Constants (feature 052)
+# Third protocol on the mesh port: after peeking 'N', the next 4 bytes are
+# "CTUN" (tunnel) or "CFED" (federation). See bgp/agent.py discrimination.
+NCFED_MAGIC = b'NCFED'            # 5-byte magic for federation channel discrimination
+NCFED_FRAME_HEADER_SIZE = 5       # 4-byte big-endian payload length + 1-byte flags
+NCFED_MAX_PAYLOAD = 65536         # 64 KB max per frame; larger messages chunk
+NCFED_FLAG_CONTINUATION = 0x01    # payload is a chunk; concatenate until flag clear
+NCFED_HEARTBEAT_INTERVAL = 30     # seconds of silence before sending an empty frame
+NCFED_HEARTBEAT_MISS_LIMIT = 3    # missed heartbeats before channel considered down
+
 CAPABILITY_NAMES = {
     CAP_MULTIPROTOCOL: "Multiprotocol",
     CAP_ROUTE_REFRESH: "Route Refresh",

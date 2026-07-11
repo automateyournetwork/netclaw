@@ -21,18 +21,27 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-# Add netclaw_tokens to path for TOON serialization
+# Add netclaw_tokens to path for GCF serialization
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
 
 
-def _toon_dumps(data, **kwargs) -> str:
-    """Serialize data using TOON format with JSON fallback."""
+def _gcf_dumps(data, **kwargs) -> str:
+    """Serialize data using GCF with graph auto-detection and session dedup.
+
+    Auto-detects graph-shaped data (nodes + edges) and uses graph profile.
+    Session dedup tracks previously-sent symbols across calls.
+    Delta encoding sends only changes on re-queries.
+    Falls back to generic profile for flat data, and to JSON on any error.
+    """
     try:
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        return result["encoded_data"]
     except Exception:
         return json.dumps(data, indent=2, default=str)
+
+
+
 
 
 # ---------------------------------------------------------------------------
@@ -50,30 +59,6 @@ logging.basicConfig(
     format="%(asctime)s [%(name)s] %(levelname)s %(message)s",
 )
 logger = logging.getLogger("protocol-mcp")
-
-# ---------------------------------------------------------------------------
-# Metrics exporter (Prometheus format on :9179/metrics)
-# ---------------------------------------------------------------------------
-METRICS_ENABLED = os.environ.get("PROTOCOL_METRICS_ENABLED", "true").lower() in ("true", "1", "yes")
-METRICS_PORT = int(os.environ.get("PROTOCOL_METRICS_PORT", "9179"))
-
-if METRICS_ENABLED:
-    from metrics_exporter import (
-        start_metrics_server,
-        record_announcement,
-        record_withdrawal,
-        update_flap_penalty,
-        update_rib_size,
-        update_peer_state,
-    )
-    start_metrics_server(METRICS_PORT)
-else:
-    # No-op stubs when metrics disabled
-    def record_announcement(*a, **kw): pass
-    def record_withdrawal(*a, **kw): pass
-    def update_flap_penalty(*a, **kw): pass
-    def update_rib_size(*a, **kw): pass
-    def update_peer_state(*a, **kw): pass
 
 # ---------------------------------------------------------------------------
 # Late-import protocol modules (heavy deps like scapy)
@@ -130,8 +115,7 @@ async def _ensure_init():
                         hostname=is_hostname,
                     )
             _bgp_connector = BGPConnector(_bgp_speaker)
-            await _bgp_speaker.start()
-            logger.info("BGP speaker started — AS %s, %d peer(s)", LOCAL_AS, len(bgp_peers))
+            logger.info("BGP speaker initialised — AS %s, %d peer(s)", LOCAL_AS, len(bgp_peers))
         except Exception as exc:
             logger.warning("BGP init skipped: %s", exc)
 
@@ -163,33 +147,88 @@ mcp = FastMCP("protocol-mcp")
 
 # ── BGP tools ──────────────────────────────────────────────────────────────
 
+# The persistent mesh daemon (bgp-daemon-v2.py) is the source of truth when it
+# is running: it holds the FRR lab session AND all NetClaw mesh peers. The
+# private in-process speaker below only knows the env-configured peers, so
+# always try the daemon API first and fall back to the speaker.
+BGP_DAEMON_API = os.environ.get("BGP_DAEMON_API", "http://127.0.0.1:8179")
+
+
+async def _daemon_get(path: str) -> Optional[dict]:
+    """Query the running mesh daemon's HTTP API. None if daemon not running."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=3.0) as client:
+            resp = await client.get(f"{BGP_DAEMON_API}{path}")
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return None
+
+
+async def _daemon_post(path: str, body: dict) -> Optional[dict]:
+    """POST to the running mesh daemon's HTTP API. None if daemon not running."""
+    try:
+        import httpx
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.post(f"{BGP_DAEMON_API}{path}", json=body)
+            if resp.status_code == 200:
+                return resp.json()
+    except Exception:
+        pass
+    return None
+
+
 @mcp.tool()
 async def bgp_get_peers() -> str:
-    """List BGP peer sessions with state, AS, IP, uptime, and prefix counts."""
+    """List BGP peer sessions with state, AS, IP, uptime, and prefix counts.
+
+    Includes NetClaw mesh peers (other NetClaw instances over ngrok) when the
+    mesh daemon is running, plus local router peers (e.g. FRR lab).
+    """
+    daemon = await _daemon_get("/peers")
+    if daemon is not None:
+        status = await _daemon_get("/status") or {}
+        rib = await _daemon_get("/rib") or {}
+        # Enrich with AS numbers from loc-rib AS paths
+        peer_as = {}
+        for route in (rib.get("loc_rib") or {}).values():
+            path = route.get("as_path") or []
+            if route.get("peer_ip") and path:
+                peer_as.setdefault(route["peer_ip"], path[0])
+        peers = [
+            {**p, "as": peer_as.get(p.get("peer")),
+             "mesh": str(p.get("peer", "")).startswith("mesh-")
+                     or not all(c in "0123456789abcdefABCDEF:." for c in str(p.get("peer", "")))}
+            for p in daemon.get("peers", [])
+        ]
+        return _gcf_dumps({"peers": peers, "count": len(peers),
+                           "source": "mesh-daemon", "daemon_status": status.get("status")})
     await _ensure_init()
     if not _bgp_connector:
-        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
+        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS, or start the mesh daemon."})
     peers = await _bgp_connector.get_peers()
-    # Update metrics for each peer
-    for p in peers:
-        update_peer_state(p.get("peer", ""), p.get("state", ""), p.get("prefixes_received", 0))
-    # Update RIB size metric
-    if hasattr(_bgp_connector.speaker, 'agent'):
-        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size())
-    return _toon_dumps({"peers": peers, "count": len(peers)})
+    return _gcf_dumps({"peers": peers, "count": len(peers), "source": "in-process speaker"})
 
 
 @mcp.tool()
 async def bgp_get_rib(prefix: Optional[str] = None) -> str:
-    """Query the Loc-RIB. Optionally filter by prefix (e.g. '10.0.0.0/24')."""
+    """Query the Loc-RIB. Optionally filter by prefix (e.g. '10.0.0.0/24').
+
+    Includes routes learned from NetClaw mesh peers when the mesh daemon is running.
+    """
+    daemon = await _daemon_get("/rib")
+    if daemon is not None:
+        routes = list((daemon.get("loc_rib") or {}).values())
+        if prefix:
+            routes = [r for r in routes if r.get("prefix") == prefix]
+        return _gcf_dumps({"routes": routes, "count": len(routes), "source": "mesh-daemon"})
     await _ensure_init()
     if not _bgp_connector:
-        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS."})
+        return json.dumps({"error": "BGP not configured. Set NETCLAW_BGP_PEERS, or start the mesh daemon."})
     routes = await _bgp_connector.get_rib(prefix=prefix)
-    # Update RIB size metric
-    if hasattr(_bgp_connector.speaker, 'agent'):
-        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size())
-    return _toon_dumps({"routes": routes, "count": len(routes)})
+    return _gcf_dumps({"routes": routes, "count": len(routes), "source": "in-process speaker"})
 
 
 @mcp.tool()
@@ -207,6 +246,13 @@ async def bgp_inject_route(
         as_path: Comma-separated AS path (e.g. '65001,65002')
         local_pref: LOCAL_PREF value (default 100)
     """
+    body = {"network": network}
+    if next_hop:
+        body["next_hop"] = next_hop
+    daemon = await _daemon_post("/inject", body)
+    if daemon is not None:
+        return _gcf_dumps({**daemon, "source": "mesh-daemon"})
+
     await _ensure_init()
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
@@ -218,10 +264,7 @@ async def bgp_inject_route(
         as_path=parsed_path,
         local_pref=local_pref,
     )
-    if result.get("success"):
-        record_announcement(network, "local")
-        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size() if hasattr(_bgp_connector.speaker, 'agent') else 0)
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 @mcp.tool()
@@ -231,14 +274,15 @@ async def bgp_withdraw_route(network: str) -> str:
     Args:
         network: CIDR prefix to withdraw (e.g. '192.168.1.0/24')
     """
+    daemon = await _daemon_post("/withdraw", {"network": network})
+    if daemon is not None:
+        return _gcf_dumps({**daemon, "source": "mesh-daemon"})
+
     await _ensure_init()
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
     result = await _bgp_connector.withdraw_route(network=network)
-    if result.get("success"):
-        record_withdrawal(network, "local")
-        update_rib_size(_bgp_connector.speaker.agent.loc_rib.size() if hasattr(_bgp_connector.speaker, 'agent') else 0)
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 @mcp.tool()
@@ -253,7 +297,7 @@ async def bgp_adjust_local_pref(network: str, local_pref: int) -> str:
     if not _bgp_connector:
         return json.dumps({"error": "BGP not configured."})
     result = await _bgp_connector.adjust_local_pref(network=network, local_pref=local_pref)
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ── OSPF tools ─────────────────────────────────────────────────────────────
@@ -265,7 +309,7 @@ async def ospf_get_neighbors() -> str:
     if not _ospf_connector:
         return json.dumps({"error": "OSPF not configured. Set NETCLAW_OSPF_AREAS."})
     neighbors = await _ospf_connector.get_neighbors()
-    return _toon_dumps({"neighbors": neighbors, "count": len(neighbors)})
+    return _gcf_dumps({"neighbors": neighbors, "count": len(neighbors)})
 
 
 @mcp.tool()
@@ -275,7 +319,7 @@ async def ospf_get_lsdb() -> str:
     if not _ospf_connector:
         return json.dumps({"error": "OSPF not configured. Set NETCLAW_OSPF_AREAS."})
     lsas = await _ospf_connector.get_lsdb()
-    return _toon_dumps({"lsdb": lsas, "count": len(lsas)})
+    return _gcf_dumps({"lsdb": lsas, "count": len(lsas)})
 
 
 @mcp.tool()
@@ -291,7 +335,7 @@ async def ospf_adjust_cost(interface: str, cost: int) -> str:
         return json.dumps({"error": "OSPF not configured."})
     result = await _ospf_connector.adjust_interface_cost(cost=cost)
     result["interface"] = interface
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ── GRE tools ──────────────────────────────────────────────────────────────
@@ -323,7 +367,7 @@ async def gre_tunnel_status() -> str:
     except Exception as exc:
         return json.dumps({"error": str(exc)})
 
-    return _toon_dumps(
+    return _gcf_dumps(
         {"tunnels": tunnels, "addresses": tunnel_addrs, "count": len(tunnels)},
     )
 
@@ -380,18 +424,11 @@ async def protocol_summary() -> str:
     except Exception as exc:
         summary["gre"] = {"error": str(exc)}
 
-    return _toon_dumps(summary)
+    return _gcf_dumps(summary)
 
 
 # ---------------------------------------------------------------------------
-# Entry point — eager init on the same event loop as MCP
+# Entry point
 # ---------------------------------------------------------------------------
-async def _run_with_init():
-    """Initialize BGP speaker then run MCP stdio on the same event loop."""
-    await _ensure_init()
-    await mcp.run_stdio_async()
-
-
 if __name__ == "__main__":
-    import anyio
-    anyio.run(_run_with_init)
+    mcp.run(transport="stdio")

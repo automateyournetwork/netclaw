@@ -1,6 +1,7 @@
 ---
 name: protocol-participation
 description: "Live BGP and OSPF control-plane participation — peer with real routers, inject/withdraw routes, query RIB/LSDB, adjust metrics, GRE tunnel status. Use when injecting or withdrawing BGP routes, checking BGP peer state, querying the OSPF LSDB, or testing route advertisement in a lab."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["NETCLAW_ROUTER_ID"] } } }
