@@ -2910,6 +2910,15 @@ echo "  └───────────────────────
 echo ""
 
 # ═══════════════════════════════════════════
+# Top-level `netclaw` command (menu: TUI / installer / protocol peering)
+# ═══════════════════════════════════════════
+
+if [ -x "$NETCLAW_DIR/scripts/netclaw" ]; then
+    "$NETCLAW_DIR/scripts/netclaw" link || log_warn "Could not link netclaw command to ~/.local/bin"
+    echo ""
+fi
+
+# ═══════════════════════════════════════════
 # Launch NetClaw Platform Setup
 # ═══════════════════════════════════════════
 

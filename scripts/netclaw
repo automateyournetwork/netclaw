@@ -1,0 +1,286 @@
+#!/usr/bin/env bash
+# netclaw — top-level NetClaw command.
+#
+#   netclaw                 interactive menu (TUI launcher, installer, peering)
+#   netclaw tui             open the NetClaw chat TUI (openclaw tui)
+#   netclaw install [...]   run the component installer (flags pass through)
+#   netclaw peering [status|bgp|n2n|ngrok]   protocol peering status (non-interactive)
+#   netclaw chats [id]      list N2N chat sessions, or tail one
+#   netclaw link            (re)create the ~/.local/bin/netclaw symlink
+#
+# Reads peering state from the mesh daemon HTTP API (bgp-daemon-v2.py,
+# default http://127.0.0.1:8179) and N2N chat transcripts from
+# ~/.openclaw/n2n/chats/. Status is read-only: if the daemon is down this
+# tool reports it and points at scripts/peering-setup.sh start.
+set -euo pipefail
+
+SCRIPT_PATH="$(readlink -f "${BASH_SOURCE[0]}")"
+NETCLAW_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
+# shellcheck source=lib/tui.sh
+source "$NETCLAW_ROOT/scripts/lib/tui.sh"
+
+BGP_API="${NETCLAW_BGP_API:-http://127.0.0.1:8179}"
+NGROK_API="${NETCLAW_NGROK_API:-http://127.0.0.1:4040}"
+CHATS_DIR="${NETCLAW_N2N_CHATS:-$HOME/.openclaw/n2n/chats}"
+
+api_get() { curl -s --max-time 3 "$BGP_API$1" 2>/dev/null; }
+
+ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null; }
+
+daemon_up() { api_get /status | grep -q '"running"'; }
+
+daemon_down_msg() {
+    echo -e "  ${T_YELLOW}Mesh daemon is not running.${T_NC}"
+    echo -e "  ${T_DIM}Start it with: $NETCLAW_ROOT/scripts/peering-setup.sh start${T_NC}"
+}
+
+pause() { echo ""; echo -ne "  ${T_DIM}press any key to continue${T_NC}"; read -rsn1; echo ""; }
+
+# ── peering views ─────────────────────────────────────────────────
+peering_overview() {
+    echo ""
+    echo -e "  ${T_BOLD}Protocol Peering — overview${T_NC}"
+    echo ""
+    if ! daemon_up; then daemon_down_msg; return 0; fi
+    { api_get /status; api_get /n2n/status; ngrok_get /api/tunnels; } | python3 -c '
+import json, sys
+docs = json.JSONDecoder()
+raw = sys.stdin.read()
+out, i = [], 0
+while i < len(raw):
+    while i < len(raw) and raw[i] not in "{[": i += 1
+    if i >= len(raw): break
+    d, j = docs.raw_decode(raw, i); out.append(d); i = j
+status = out[0] if out else {}
+n2n = out[1] if len(out) > 1 else {}
+peers = status.get("peers", [])
+est = [p for p in peers if p.get("state") in ("Established", "OpenConfirm")]
+print("    BGP daemon : %s" % status.get("status", "?"))
+print("    BGP peers  : %d configured, %d established" % (len(peers), len(est)))
+for p in peers:
+    mesh = " (mesh)" if "ngrok" in p.get("peer", "") or p.get("peer", "").startswith("mesh-") else ""
+    print("      %-30s %s%s" % (p.get("peer", "?"), p.get("state", "?"), mesh))
+print("    N2N        : %s  identity %s" % ("enabled" if n2n.get("enabled") else "disabled", n2n.get("identity", "-")))
+for p in n2n.get("peers", []):
+    stale = " STALE" if p.get("stale") else ""
+    chat = "chat" if p.get("chat_enabled") else "no-chat"
+    print("      %-24s %-12s %-10s %s%s" % (p.get("identity", "?"), p.get("display_name") or "-", p.get("state", "?"), chat, stale))
+tun = [t for t in (out[2].get("tunnels", []) if len(out) > 2 else []) if t.get("proto") == "tcp"]
+if tun:
+    print("    ngrok      : up  %s -> %s" % (tun[0].get("public_url", "?").replace("tcp://", ""), tun[0].get("config", {}).get("addr", "?")))
+else:
+    print("    ngrok      : DOWN (no tcp tunnel — mesh peers cannot reach this node)")
+'
+}
+
+peering_bgp() {
+    echo ""
+    echo -e "  ${T_BOLD}BGP detail${T_NC}"
+    echo ""
+    if ! daemon_up; then daemon_down_msg; return 0; fi
+    echo -e "  ${T_CYAN}Sessions${T_NC}"
+    api_get /status | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+for p in d.get("peers", []):
+    print("    %-30s %s" % (p.get("peer", "?"), p.get("state", "?")))
+print("    injected routes: %d" % len(d.get("injected_routes", [])))
+'
+    echo ""
+    echo -e "  ${T_CYAN}RIB (best routes)${T_NC}"
+    api_get /rib | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+rib = d.get("loc_rib", {})
+if not rib: print("    (empty)")
+for pfx, r in rib.items():
+    path = ",".join(str(a) for a in r.get("as_path", [])) or "local"
+    print("    %-28s via %-22s as_path [%s] (%s)" % (pfx, r.get("peer_ip", "-"), path, r.get("source", "?")))
+'
+}
+
+peering_n2n() {
+    echo ""
+    echo -e "  ${T_BOLD}N2N federation detail${T_NC}"
+    echo ""
+    if ! daemon_up; then daemon_down_msg; return 0; fi
+    api_get /n2n/status | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+print("    enabled  : %s" % d.get("enabled"))
+print("    identity : %s" % d.get("identity", "-"))
+peers = d.get("peers", [])
+print("    peers    : %d" % len(peers))
+for p in peers:
+    print("")
+    print("      %s (%s)" % (p.get("identity", "?"), p.get("display_name") or "unnamed"))
+    print("        state=%s chat=%s inventory_v%s received=%s%s" % (
+        p.get("state", "?"), p.get("chat_enabled"),
+        p.get("inventory_version"), p.get("inventory_received_at"),
+        " STALE" if p.get("stale") else ""))
+'
+}
+
+peering_ngrok() {
+    echo ""
+    echo -e "  ${T_BOLD}Ngrok tunnel (mesh transport)${T_NC}"
+    echo ""
+    local tunnels
+    tunnels="$(ngrok_get /api/tunnels)"
+    if [ -z "$tunnels" ]; then
+        echo -e "  ${T_YELLOW}ngrok agent is not running (no API on ${NGROK_API}).${T_NC}"
+        echo -e "  ${T_DIM}Mesh peers cannot dial in without the tunnel. See scripts/peering-setup.sh${T_NC}"
+        return 0
+    fi
+    printf '%s' "$tunnels" | python3 -c '
+import json, sys
+d = json.load(sys.stdin)
+tcp = [t for t in d.get("tunnels", []) if t.get("proto") == "tcp"]
+if not tcp:
+    print("    agent up, but NO tcp tunnel — mesh peers cannot reach this node")
+for t in tcp:
+    c = t.get("metrics", {}).get("conns", {})
+    print("    endpoint   : %s" % t.get("public_url", "?").replace("tcp://", ""))
+    print("    forwards to: %s" % t.get("config", {}).get("addr", "?"))
+    print("    conns      : %s total, %s open" % (c.get("count", 0), c.get("gauge", 0)))
+'
+    local proc
+    proc="$(pgrep -af "ngrok (tcp|start)" 2>/dev/null | head -1 || true)"
+    [ -n "$proc" ] && echo -e "    ${T_DIM}agent      : pid ${proc%% *}${T_NC}"
+}
+
+# ── N2N chat viewer ───────────────────────────────────────────────
+chats_list() {
+    if ! ls "$CHATS_DIR"/*.txt >/dev/null 2>&1; then
+        echo -e "  ${T_DIM}No N2N chat sessions found in $CHATS_DIR${T_NC}"
+        return 1
+    fi
+    CHAT_FILES=()
+    while IFS= read -r f; do CHAT_FILES+=("$f"); done \
+        < <(ls -1t "$CHATS_DIR"/*.txt)
+    CHAT_LABELS=()
+    local f
+    for f in "${CHAT_FILES[@]}"; do
+        CHAT_LABELS+=("$(python3 - "$f" <<'PY'
+import os, re, sys
+f = sys.argv[1]
+sid = os.path.basename(f)[:-4]
+peers, msgs = [], 0
+with open(f, errors="replace") as fh:
+    for line in fh:
+        m = re.match(r"\S+ \[([^\]]+)\]", line)
+        if m:
+            msgs += 1
+            if m.group(1) not in peers: peers.append(m.group(1))
+import datetime
+mtime = datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime("%m-%d %H:%M")
+print("%s  %-45s %3d msgs  %s" % (sid[:8], ",".join(peers)[:45] or "-", msgs, mtime))
+PY
+)")
+    done
+}
+
+chat_tail() {
+    local f="$1"
+    echo ""
+    echo -e "  ${T_BOLD}$(basename "$f" .txt)${T_NC}  ${T_DIM}(live — Ctrl+C to go back)${T_NC}"
+    echo ""
+    # keep Ctrl+C local to tail so the menu survives
+    trap ' ' INT
+    tail -n 40 -f "$f" || true
+    trap - INT
+    echo ""
+}
+
+chats_menu() {
+    while true; do
+        clear
+        chats_list || { pause; return 0; }
+        local opts=("${CHAT_LABELS[@]}" "← Back")
+        tui_menu "N2N chat sessions (newest first)" "${opts[@]}" || return 0
+        [ "$TUI_CHOICE" -ge "${#CHAT_FILES[@]}" ] && return 0
+        chat_tail "${CHAT_FILES[$TUI_CHOICE]}"
+    done
+}
+
+# ── menus ─────────────────────────────────────────────────────────
+peering_menu() {
+    while true; do
+        clear
+        tui_menu "Protocol Peering" \
+            "Overview (BGP · mesh · N2N · ngrok)" \
+            "BGP detail (sessions + RIB)" \
+            "N2N federation detail" \
+            "Ngrok tunnel (mesh transport)" \
+            "N2N chat logs" \
+            "← Back" || return 0
+        case "$TUI_CHOICE" in
+            0) peering_overview; pause ;;
+            1) peering_bgp; pause ;;
+            2) peering_n2n; pause ;;
+            3) peering_ngrok; pause ;;
+            4) chats_menu ;;
+            5) return 0 ;;
+        esac
+    done
+}
+
+main_menu() {
+    if ! tui_is_tty; then
+        echo "netclaw: interactive menu needs a terminal (try: netclaw help)" >&2
+        exit 1
+    fi
+    while true; do
+        clear
+        netclaw_logo
+        tui_menu "NetClaw" \
+            "Launch NetClaw TUI" \
+            "Installer (add/remove components)" \
+            "Protocol Peering (BGP · MESH · N2N)" \
+            "Exit" || exit 0
+        case "$TUI_CHOICE" in
+            0) exec openclaw tui ;;
+            1) exec "$NETCLAW_ROOT/scripts/install.sh" ;;
+            2) peering_menu ;;
+            3) exit 0 ;;
+        esac
+    done
+}
+
+# ── symlink install ───────────────────────────────────────────────
+do_link() {
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$SCRIPT_PATH" "$HOME/.local/bin/netclaw"
+    echo -e "  ${T_CYAN}linked${T_NC} ~/.local/bin/netclaw → $SCRIPT_PATH"
+}
+
+# ── entry ─────────────────────────────────────────────────────────
+case "${1:-}" in
+    "")        main_menu ;;
+    tui)       exec openclaw tui ;;
+    install)   shift; exec "$NETCLAW_ROOT/scripts/install.sh" "$@" ;;
+    peering)
+        case "${2:-status}" in
+            status) peering_overview ;;
+            bgp)    peering_bgp ;;
+            n2n)    peering_n2n ;;
+            ngrok)  peering_ngrok ;;
+            *)      echo "Usage: netclaw peering [status|bgp|n2n|ngrok]"; exit 1 ;;
+        esac ;;
+    chats)
+        if [ -n "${2:-}" ]; then
+            f="$CHATS_DIR/$2.txt"
+            [ -f "$f" ] || f="$(ls "$CHATS_DIR"/"$2"*.txt 2>/dev/null | head -1 || true)"
+            [ -n "$f" ] && [ -f "$f" ] || { echo "No chat session matching '$2' in $CHATS_DIR"; exit 1; }
+            chat_tail "$f"
+        else
+            chats_list || exit 0
+            for l in "${CHAT_LABELS[@]}"; do echo "  $l"; done
+            echo ""
+            echo -e "  ${T_DIM}netclaw chats <id-prefix> to tail one${T_NC}"
+        fi ;;
+    link)      do_link ;;
+    help|-h|--help)
+        sed -n '2,9p' "$SCRIPT_PATH" | sed 's/^# \{0,3\}//' ;;
+    *) echo "Unknown command: $1 (try: netclaw help)"; exit 1 ;;
+esac
