@@ -69,14 +69,27 @@ Both operators must consent before ANY capability information flows.
 - Daemon: `N2N_ENABLED=true` (plus optional `N2N_*` tuning — see `.env.example`).
 - `n2n-mcp`: `BGP_DAEMON_API` (default `http://127.0.0.1:8179`).
 
-## Long remote operations — delegate, don't chat (feature 053)
+## Long remote operations — ALWAYS delegate, never chat (feature 053)
 
-For multi-minute work on a peer (e.g. "recreate my CML lab"), use **async
-delegation**, not chat: `n2n_delegate(peer, target_name, input_text)` submits
-the task and returns a `task_id` immediately; the peer runs it in the
-background. Poll with `n2n_task_status(task_id)` and fetch `n2n_task_result(task_id)`
-when it completes (`n2n_task_cancel` to stop). This survives ngrok resets that
-would drop a single long call — the fix for the "Connection lost" mid-build.
+**Decision rule: if the request will take more than a few seconds on the peer
+(any build, multi-tool run, "recreate my CML lab", "configure the testbed",
+"push these configs"), you MUST use `n2n_delegate` — NOT `n2n_chat` and NOT
+`n2n_invoke`.**
+
+Why this matters (and why builds "time out" even though 053 shipped): **chat and
+synchronous invoke are blocking.** A multi-minute build over `n2n_chat` will
+time out on the requester side — and worse, the peer often keeps running it, so
+the result is *lost* to you. Async delegation is the only path that survives:
+
+- `n2n_delegate(peer, target_name, input_text)` — submits the task, returns a
+  `task_id` in ~2 seconds while the peer runs it in the background.
+- `n2n_task_status(task_id)` — poll progress (short call).
+- `n2n_task_result(task_id)` — fetch the result when `completed`; it is captured
+  and retained even if the channel dropped or a daemon restarted mid-build.
+- `n2n_task_cancel(task_id)` — stop it.
+
+Use `n2n_chat` ONLY for short conversational questions ("why is your OSPF area 0
+flapping?"). Anything build- or task-shaped → `n2n_delegate`.
 
 ## Reliability — it self-heals (feature 053)
 

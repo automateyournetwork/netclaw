@@ -291,7 +291,11 @@ async def handle_n2n(method, path, body):
                 if ttype == "tool":
                     res = await fed.invoker.invoke_remote_tool(ident, body["target_name"], body.get("arguments") or {})
                 else:
-                    res = await fed.invoker.invoke_remote_skill(ident, body["target_name"], body.get("input_text", ""))
+                    # skills go async (submit → task_id); invoke_remote_skill was
+                    # renamed to submit_remote_skill in 053. A long skill must
+                    # never run synchronously here or it times out (this is the
+                    # very failure async delegation fixes).
+                    res = await fed.invoker.submit_remote_skill(ident, body["target_name"], body.get("input_text", ""))
                 return 200, res
             except Exception as e:
                 code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
