@@ -1,6 +1,7 @@
 ---
 name: pyats-linux-vmware
 description: "VMware ESXi host operations via pyATS — VM inventory, snapshot management, hypervisor inspection across ESXi hosts in the testbed. Use when listing VMs on ESXi, checking snapshot age, auditing VMware inventory, or verifying pre-change snapshots exist."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

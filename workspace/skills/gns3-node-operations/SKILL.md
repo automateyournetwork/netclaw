@@ -1,6 +1,7 @@
 ---
 name: gns3-node-operations
 description: "Manage GNS3 nodes - add from templates, start/stop/suspend/reload, console access"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

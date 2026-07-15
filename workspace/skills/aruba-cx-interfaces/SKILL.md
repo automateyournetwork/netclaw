@@ -1,6 +1,7 @@
 ---
 name: aruba-cx-interfaces
 description: "Monitor Aruba CX switch interface status, LLDP neighbors, and optical transceiver health"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

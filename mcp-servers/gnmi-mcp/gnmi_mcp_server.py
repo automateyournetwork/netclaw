@@ -31,12 +31,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
 
 
-def _toon_dumps(data, **kwargs) -> str:
-    """Serialize data using TOON format with JSON fallback."""
+def _gcf_dumps(data, **kwargs) -> str:
+    """Serialize data using GCF with graph auto-detection and session dedup."""
     try:
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        return result["encoded_data"]
     except Exception:
         return json.dumps(data, indent=2, default=str)
 
@@ -451,7 +451,7 @@ def gnmi_get_subscriptions() -> str:
         status, creation time, and last update time.
     """
     subs = _sub_manager.list_subscriptions()
-    return _toon_dumps([s.model_dump() for s in subs])
+    return _gcf_dumps([s.model_dump() for s in subs])
 
 
 # ===================================================================
@@ -481,7 +481,7 @@ def gnmi_get_subscription_updates(
             "message": str(exc),
         })
 
-    return _toon_dumps([u.model_dump() for u in updates])
+    return _gcf_dumps([u.model_dump() for u in updates])
 
 
 # ===================================================================
@@ -806,7 +806,7 @@ def gnmi_list_targets() -> str:
             "status": "reachable" if reachable else "unreachable",
         })
 
-    return _toon_dumps(targets_info)
+    return _gcf_dumps(targets_info)
 
 
 # ---------------------------------------------------------------------------

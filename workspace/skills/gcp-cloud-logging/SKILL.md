@@ -2,6 +2,7 @@
 name: gcp-cloud-logging
 description: "Google Cloud Logging — log search, VPC flow logs, firewall logs, audit logs, log buckets and views. Use when searching GCP logs, investigating denied VPC flow traffic, checking who deleted a VM, analyzing firewall rule hits, or troubleshooting a GCP application error."
 version: 1.0.0
+license: Apache-2.0
 tags: [gcp, cloud-logging, logs, flow-logs, audit, firewall-logs]
 ---
 

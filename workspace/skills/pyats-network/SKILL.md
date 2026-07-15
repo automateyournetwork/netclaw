@@ -1,6 +1,7 @@
 ---
 name: pyats-network
 description: "Network device automation via pyATS - run show commands, ping, apply config, learn config/logging, list devices, run Linux commands, execute dynamic tests on Cisco IOS-XE/NX-OS devices. Use when running CLI commands on routers or switches, checking interface status, applying configuration changes, or collecting device data via pyATS."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

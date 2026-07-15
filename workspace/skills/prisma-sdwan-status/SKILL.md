@@ -1,6 +1,7 @@
 ---
 name: prisma-sdwan-status
 description: "Monitor Prisma SD-WAN element health, software versions, events, and alarms"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

@@ -1,6 +1,7 @@
 ---
 name: atlassian-itsm
 description: IT Service Management workflows using Jira for issue tracking and Confluence for documentation
+license: Apache-2.0
 mcp_servers:
   - atlassian-mcp
 tools_used:

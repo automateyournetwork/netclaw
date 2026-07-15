@@ -301,7 +301,7 @@ Found 3 API endpoints matching "BGP neighbors":
 ```
 Enable IP Fabric Integration? y
 IP Fabric Host URL: https://sa-itentialdev01a.hel1-cloud.ipf.cx
-API Token: <REDACTED>
+API Token: 2fe04e6c7eb787f5547d72abbd7b4f09
 ```
 
 **Output:**

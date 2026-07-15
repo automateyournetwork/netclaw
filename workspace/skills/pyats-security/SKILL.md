@@ -1,6 +1,7 @@
 ---
 name: pyats-security
 description: "Network security audit - ACLs, AAA, control plane policing, management plane hardening, encryption, port security, and CIS benchmark checks. Use when auditing device security posture, checking compliance, hardening a router or switch, reviewing access lists, or investigating unauthorized access."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

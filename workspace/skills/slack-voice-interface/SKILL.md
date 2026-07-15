@@ -1,6 +1,7 @@
 ---
 name: slack-voice-interface
 description: "Respond to Slack voice clips with both text and an MP3 voice reply using edge-tts. Voice IN is already handled by OpenClaw transcription. Use when a user sends a voice message in Slack, you need to reply with audio, or you want to generate a spoken MP3 response."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["TTS_MCP_SCRIPT", "MCP_CALL"] } } }

@@ -1,6 +1,7 @@
 ---
 name: gait-session-tracking
 description: "GAIT session lifecycle management - branch creation, turn recording, audit logging for every NetClaw operation. Use when starting a new NetClaw session, recording a health check or config change, pinning a pre-change baseline, or viewing the audit trail for a troubleshooting session."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["GAIT_MCP_SCRIPT"] } } }

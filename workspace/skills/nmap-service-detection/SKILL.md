@@ -1,6 +1,7 @@
 ---
 name: nmap-service-detection
 description: "Service fingerprinting, OS detection, NSE script execution, and vulnerability scanning using nmap MCP. Use when identifying services on open ports, fingerprinting OS versions, running NSE scripts for SSL or SMB checks, or scanning for known CVEs and vulnerabilities"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3", "nmap"], "env": ["NMAP_MCP_SCRIPT"] } } }

@@ -1,6 +1,7 @@
 ---
 name: pyats-parallel-ops
 description: "Fleet-wide parallel device operations - concurrent health checks, config audits, routing snapshots, severity-sorted reporting, and failure-isolated multi-device automation. Use when checking all devices at once, running bulk health checks, collecting configs from the entire fleet, or comparing state across multiple routers and switches."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

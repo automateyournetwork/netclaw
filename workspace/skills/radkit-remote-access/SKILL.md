@@ -2,6 +2,7 @@
 name: radkit-remote-access
 description: "Cisco RADKit — cloud-relayed remote device access, CLI execution, SNMP polling, device inventory discovery, attribute inspection. Use when accessing remote network devices through a cloud relay, running CLI on air-gapped devices, polling SNMP metrics remotely, or discovering device inventory via RADKit."
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, radkit, remote-access, cli, snmp, inventory, cloud-relay]
 ---
 

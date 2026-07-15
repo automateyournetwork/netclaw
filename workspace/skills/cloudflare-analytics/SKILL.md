@@ -1,3 +1,12 @@
+---
+name: cloudflare-analytics
+description: "Access Cloudflare traffic analytics, logs, and Radar global Internet insights."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Cloudflare Analytics Skill
 
 Access Cloudflare traffic analytics, logs, and Radar global Internet insights.

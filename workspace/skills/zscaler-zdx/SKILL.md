@@ -1,3 +1,12 @@
+---
+name: zscaler-zdx
+description: "Monitor digital experience scores, user performance, and application health."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Zscaler Digital Experience (ZDX) Skill
 
 Monitor digital experience scores, user performance, and application health.

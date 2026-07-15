@@ -1,6 +1,7 @@
 ---
 name: prisma-sdwan-apps
 description: "View Prisma SD-WAN application definitions for policy visibility"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

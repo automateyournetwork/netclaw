@@ -2,6 +2,7 @@
 name: cml-packet-capture
 description: "CML packet capture — start, stop, download pcaps from CML lab links, integrate with Packet Buddy for analysis. Use when capturing packets in a CML lab, troubleshooting BGP or OSPF with packet analysis, or downloading pcap files for Wireshark review."
 version: 1.0.0
+license: Apache-2.0
 tags: [cml, pcap, capture, troubleshooting, wireshark]
 ---
 

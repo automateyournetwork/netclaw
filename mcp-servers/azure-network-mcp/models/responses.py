@@ -19,14 +19,14 @@ def to_dict(obj) -> dict:
 
 
 def to_json(obj) -> str:
-    """Serialize a dataclass or list of dataclasses using TOON with JSON fallback."""
+    """Serialize a dataclass or list of dataclasses using GCF with JSON fallback."""
     if isinstance(obj, list):
         data = [to_dict(item) for item in obj]
     else:
         data = to_dict(obj)
     try:
-        from utils.toon_helper import toon_dumps
-        return toon_dumps(data)
+        from utils.gcf_helper import gcf_dumps
+        return gcf_dumps(data)
     except Exception:
         return json.dumps(data, indent=2)
 

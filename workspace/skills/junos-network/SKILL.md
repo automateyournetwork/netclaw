@@ -1,6 +1,7 @@
 ---
 name: junos-network
 description: "Juniper JunOS device automation via PyEZ/NETCONF — CLI execution, configuration management, Jinja2 template rendering, device facts, batch operations, config diff and rollback comparison (10 tools). Use when managing Juniper routers, pushing JunOS configs, running show commands on Juniper devices, or comparing rollback versions"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["JUNOS_DEVICES_FILE"] } } }

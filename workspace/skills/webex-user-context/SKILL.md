@@ -1,6 +1,7 @@
 ---
 name: webex-user-context
 description: "Leverage WebEx user profiles, presence status, and workspace context to personalize responses, route escalations, and coordinate team operations. Use when checking who is available, routing an escalation, personalizing responses based on user role, or determining engineer availability before paging someone."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

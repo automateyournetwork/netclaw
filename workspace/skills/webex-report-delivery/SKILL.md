@@ -1,6 +1,7 @@
 ---
 name: webex-report-delivery
 description: "Deliver formatted network reports, audit results, topology diagrams, and compliance documentation to WebEx spaces with Adaptive Cards and markdown formatting. Use when posting a health check report, sharing a security audit, delivering topology diagrams, or sending scheduled network reports to WebEx."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

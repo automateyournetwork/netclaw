@@ -1,6 +1,7 @@
 ---
 name: webex-network-alerts
 description: "Format and deliver network alerts, health warnings, and critical notifications via Cisco WebEx with Adaptive Cards, markdown formatting, and file attachments. Use when sending alerts to WebEx spaces, posting health check results, notifying the team about a device issue, or formatting network status updates for a WebEx space."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

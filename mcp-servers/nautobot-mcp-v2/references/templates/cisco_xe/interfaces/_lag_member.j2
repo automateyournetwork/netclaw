@@ -1,0 +1,11 @@
+interface {{ interface.name }}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+{% if interface.tagged_vlans | length > 0 %}
+ switchport trunk allowed vlan {{ interface.tagged_vlans | map(attribute='vid') | join(',') }}
+{% endif %}
+ switchport mode trunk
+ channel-group {{ interface.lag.name | replace('Port-channel', '') }} mode active
+ spanning-tree portfast trunk
+!

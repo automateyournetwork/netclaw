@@ -1,6 +1,7 @@
 ---
 name: ise-incident-response
 description: "Rapid ISE endpoint investigation and quarantine workflow - endpoint lookup, auth history, posture review, human-authorized quarantine, ServiceNow Security Incident. Use when a SOC alert flags a compromised endpoint, an unauthorized device is detected on the network, an endpoint is doing port scanning or lateral movement, or you need to quarantine a MAC address in ISE."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["ISE_MCP_SCRIPT", "ISE_BASE", "SERVICENOW_MCP_SCRIPT"] } } }

@@ -2,6 +2,7 @@
 name: te-path-analysis
 description: "Cisco ThousandEyes — path visualization, BGP route analysis, outage investigation, instant tests, endpoint agent diagnostics. Use when tracing network paths hop-by-hop, investigating why a site is slow, analyzing BGP route changes, diagnosing an internet outage, or troubleshooting VPN from endpoint agents."
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, thousandeyes, path-vis, bgp, outage, instant-test, endpoint, troubleshooting]
 ---
 

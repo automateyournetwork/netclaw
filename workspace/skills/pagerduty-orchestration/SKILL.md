@@ -1,3 +1,12 @@
+---
+name: pagerduty-orchestration
+description: "Manage event orchestration and routing rules in PagerDuty."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # PagerDuty Orchestration Skill
 
 Manage event orchestration and routing rules in PagerDuty.

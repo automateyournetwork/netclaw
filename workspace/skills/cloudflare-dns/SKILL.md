@@ -1,3 +1,12 @@
+---
+name: cloudflare-dns
+description: "Manage Cloudflare DNS zones and records with analytics insights."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Cloudflare DNS Skill
 
 Manage Cloudflare DNS zones and records with analytics insights.

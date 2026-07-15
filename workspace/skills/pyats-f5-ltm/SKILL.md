@@ -1,6 +1,7 @@
 ---
 name: pyats-f5-ltm
 description: "F5 BIG-IP LTM/GTM operations via pyATS iControl REST — virtual servers, pools, nodes, monitors, profiles, iRules, persistence, GTM wide IPs, DNS, data groups. Use when checking F5 virtual server status, auditing pool members, reviewing iRules, or inspecting GTM wide IP health."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

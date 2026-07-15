@@ -120,7 +120,7 @@ CREATE TABLE IF NOT EXISTS n2n_chat_session (
 CREATE TABLE IF NOT EXISTS delegated_task (
     task_id         TEXT PRIMARY KEY,
     direction       TEXT NOT NULL,          -- inbound (we run it) | outbound (peer runs it)
-    peer_identity   TEXT NOT NULL,
+    peer_identity   TEXT NOT NULL,          -- eN2N: as<AS>-<rid>; iN2N: <risk>/<member> (member_id)
     target_type     TEXT,                   -- skill | tool
     target_name     TEXT,
     input_text      TEXT,
@@ -132,6 +132,44 @@ CREATE TABLE IF NOT EXISTS delegated_task (
     updated_at      TEXT,
     completed_at    TEXT,
     retention_until TEXT
+);
+-- feature 056: iN2N internal federation — a "risk" of claws.
+-- This claw's own role in its risk (singleton row id=1).
+CREATE TABLE IF NOT EXISTS risk (
+    id              INTEGER PRIMARY KEY CHECK (id = 1),
+    risk_name       TEXT,
+    description     TEXT,
+    role            TEXT NOT NULL DEFAULT 'standalone',  -- standalone|border|member
+    enabled_stacks  TEXT,                   -- border only: en2n|in2n|both
+    border_endpoint TEXT,                   -- member only: host:port it dials outbound
+    self_member_id  TEXT,                   -- member only: <risk>/<name>
+    created_at      TEXT NOT NULL,
+    updated_at      TEXT NOT NULL
+);
+-- The Border's registry of its members (rows exist only on a Border).
+CREATE TABLE IF NOT EXISTS member (
+    member_id         TEXT PRIMARY KEY,     -- <risk>/<name>, stable across relocation
+    display_name      TEXT,
+    pinned_key        TEXT,                 -- member's self-signed public key (PEM), pinned TOFU
+    key_fingerprint   TEXT,                 -- sha256 of the pinned public key
+    profile           TEXT,                 -- cml|pyats|security|custom
+    scope             TEXT,                 -- JSON: [{name,type,tier}] tier=base|specialty
+    runtime_kind      TEXT,                 -- process|container
+    transport_binding TEXT,                 -- loopback|distributed
+    state             TEXT NOT NULL DEFAULT 'enrolled', -- enrolled|active|unreachable|quarantined|removed
+    health            TEXT,                 -- JSON: last_seen, heartbeat, in_flight
+    auth_failures     INTEGER NOT NULL DEFAULT 0,
+    enrolled_at       TEXT,
+    updated_at        TEXT
+);
+-- Single-use enrollment tokens issued by a Border (only the hash is stored).
+CREATE TABLE IF NOT EXISTS enrollment_token (
+    token_hash         TEXT PRIMARY KEY,
+    label              TEXT,
+    issued_at          TEXT NOT NULL,
+    expires_at         TEXT,
+    spent_at           TEXT,
+    spent_by_member_id TEXT
 );
 """
 
@@ -150,7 +188,24 @@ class FederationManager:
         self._conn.executescript(SCHEMA)
         # Migrate existing DBs: add columns introduced after first release
         # (SQLite has no ADD COLUMN IF NOT EXISTS). Safe/idempotent.
-        for table, col, decl in [("federation_peer", "endpoint_updated_at", "TEXT")]:
+        for table, col, decl in [
+            ("federation_peer", "endpoint_updated_at", "TEXT"),
+            # feature 056: discriminate internal vs external audit + link them
+            ("remote_invocation_record", "channel_kind", "TEXT DEFAULT 'en2n'"),
+            ("remote_invocation_record", "linked_record_id", "INTEGER"),
+            # feature 056: how the Border cold-starts an on-demand member, and
+            # whether it may (local spawnable) vs must wait for a remote member.
+            ("member", "launch_cmd", "TEXT"),
+            ("member", "on_demand", "INTEGER NOT NULL DEFAULT 0"),
+            # feature 057: durable runtime + production enforcement.
+            #   managed_by     — 'service' (own durable systemd unit) | 'cold' (spawn on route)
+            #   service_unit   — the systemd unit name when managed_by='service'
+            #   component_scan — cached DefenseClaw component-scan verdict for this
+            #                    member: 'pass' | 'flagged:<what>' | NULL (not scanned)
+            ("member", "managed_by", "TEXT NOT NULL DEFAULT 'cold'"),
+            ("member", "service_unit", "TEXT"),
+            ("member", "component_scan", "TEXT"),
+        ]:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             except sqlite3.OperationalError:

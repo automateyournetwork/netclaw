@@ -1,6 +1,7 @@
 ---
 name: kubeshark-traffic
 description: "Kubeshark Kubernetes traffic analysis — L4/L7 deep packet inspection, TLS decryption, pcap export, flow analysis, service mapping (6 tools). Use when capturing Kubernetes pod traffic, debugging service-to-service latency, exporting pcaps from a cluster, or analyzing encrypted east-west traffic"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["kubectl"], "env": ["KUBESHARK_MCP_URL"] } } }

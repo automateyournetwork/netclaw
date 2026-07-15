@@ -1,0 +1,10 @@
+interface {{ interface.name }}
+{% if interface.description %}
+ description {{ interface.description }}
+{% endif %}
+ switchport access vlan {{ interface.untagged_vlan.vid | default(1) }}
+ switchport mode access
+ load-interval 30
+ spanning-tree portfast
+ spanning-tree bpduguard enable
+!

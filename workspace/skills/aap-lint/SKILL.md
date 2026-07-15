@@ -2,6 +2,7 @@
 name: aap-lint
 description: "ansible-lint playbook and role validation — syntax checking, best practice enforcement, project-wide analysis, rule filtering. Use when validating Ansible playbooks, checking code quality, or enforcing automation best practices before deployment."
 version: 1.0.0
+license: Apache-2.0
 tags: [ansible, lint, quality, validation, best-practices, playbook]
 metadata:
   { "openclaw": { "requires": { "bins": ["python3", "ansible-lint"] } } }

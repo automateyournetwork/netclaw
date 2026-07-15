@@ -1,0 +1,632 @@
+{
+  "gateway": {
+    "mode": "local"
+  },
+  "agents": {
+    "defaults": {
+      "workspace": "~/.openclaw/workspace",
+      "model": {
+        "primary": "anthropic/claude-opus-4-6",
+        "fallbacks": [
+          "anthropic/claude-sonnet-4-6"
+        ]
+      }
+    }
+  },
+  "tokenOptimization": {
+    "enabled": true,
+    "libraryPath": "src/netclaw_tokens",
+    "gcfSerializationDefault": true,
+    "footerDisplay": "always",
+    "sessionTracking": true,
+    "pricingOverrideEnvVar": "NETCLAW_TOKEN_PRICING_OVERRIDE"
+  },
+  "commands": {
+    "native": "auto",
+    "nativeSkills": "auto",
+    "restart": true,
+    "ownerDisplay": "raw"
+  },
+  "security": {
+    "mode": "hobby"
+  },
+  "mcpServers": {
+    "forward-mcp": {
+      "command": "mcp-servers/forward-mcp/forward-mcp",
+      "env": {
+        "FORWARD_API_BASE_URL": "${FORWARD_API_BASE_URL}",
+        "FORWARD_API_KEY": "${FORWARD_API_KEY}",
+        "FORWARD_API_SECRET": "${FORWARD_API_SECRET}",
+        "FORWARD_INSTANCE_ID": "${FORWARD_INSTANCE_ID}",
+        "FORWARD_DEFAULT_NETWORK_ID": "${FORWARD_DEFAULT_NETWORK_ID}",
+        "FORWARD_DEFAULT_QUERY_LIMIT": "10000",
+        "FORWARD_LOCK_DIR": "${FORWARD_LOCK_DIR}",
+        "FORWARD_BLOOM_ENABLED": "true",
+        "FORWARD_BLOOM_INDEX_PATH": "${FORWARD_BLOOM_INDEX_PATH}",
+        "FORWARD_SEMANTIC_CACHE_ENABLED": "true",
+        "FORWARD_SEMANTIC_CACHE_DISK_PATH": "${FORWARD_SEMANTIC_CACHE_DISK_PATH}"
+      }
+    },
+    "suzieq-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/suzieq-mcp/server.py"
+      ],
+      "env": {
+        "SUZIEQ_API_URL": "${SUZIEQ_API_URL}",
+        "SUZIEQ_API_KEY": "${SUZIEQ_API_KEY}",
+        "SUZIEQ_VERIFY_SSL": "${SUZIEQ_VERIFY_SSL:-true}",
+        "SUZIEQ_TIMEOUT": "${SUZIEQ_TIMEOUT:-30}"
+      }
+    },
+    "batfish-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/batfish-mcp/batfish_mcp_server.py"
+      ],
+      "env": {
+        "BATFISH_HOST": "${BATFISH_HOST:-localhost}",
+        "BATFISH_PORT": "${BATFISH_PORT:-9997}",
+        "BATFISH_NETWORK": "${BATFISH_NETWORK:-netclaw}"
+      }
+    },
+    "gnmi-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/gnmi-mcp/gnmi_mcp_server.py"
+      ],
+      "env": {
+        "GNMI_TARGETS": "${GNMI_TARGETS}",
+        "GNMI_TLS_CA_CERT": "${GNMI_TLS_CA_CERT}",
+        "GNMI_TLS_CLIENT_CERT": "${GNMI_TLS_CLIENT_CERT}",
+        "GNMI_TLS_CLIENT_KEY": "${GNMI_TLS_CLIENT_KEY}",
+        "GNMI_TLS_SKIP_VERIFY": "${GNMI_TLS_SKIP_VERIFY:-false}",
+        "GNMI_DEFAULT_PORT": "${GNMI_DEFAULT_PORT:-6030}",
+        "GNMI_MAX_RESPONSE_SIZE": "${GNMI_MAX_RESPONSE_SIZE:-1048576}",
+        "GNMI_MAX_SUBSCRIPTIONS": "${GNMI_MAX_SUBSCRIPTIONS:-50}"
+      }
+    },
+    "azure-network-mcp": {
+      "command": "python",
+      "args": [
+        "mcp-servers/azure-network-mcp/azure_network_mcp_server.py"
+      ],
+      "env": {
+        "AZURE_TENANT_ID": "${AZURE_TENANT_ID}",
+        "AZURE_CLIENT_ID": "${AZURE_CLIENT_ID}",
+        "AZURE_CLIENT_SECRET": "${AZURE_CLIENT_SECRET}",
+        "AZURE_SUBSCRIPTION_ID": "${AZURE_SUBSCRIPTION_ID}"
+      }
+    },
+    "gitlab-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@zereight/mcp-gitlab"
+      ],
+      "env": {
+        "GITLAB_PERSONAL_ACCESS_TOKEN": "${GITLAB_PERSONAL_ACCESS_TOKEN}",
+        "GITLAB_API_URL": "${GITLAB_API_URL:-https://gitlab.com}"
+      }
+    },
+    "chrome-devtools-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=true"
+      ]
+    },
+    "chrome-devtools-mcp-visible": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "chrome-devtools-mcp@latest",
+        "--headless=false"
+      ]
+    },
+    "jenkins-mcp": {
+      "url": "${JENKINS_URL}/mcp-server/mcp",
+      "headers": {
+        "Authorization": "Basic ${JENKINS_AUTH_BASE64}"
+      },
+      "env": {
+        "JENKINS_URL": "${JENKINS_URL}",
+        "JENKINS_AUTH_BASE64": "${JENKINS_AUTH_BASE64}"
+      }
+    },
+    "atlassian-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-atlassian"
+      ],
+      "env": {
+        "JIRA_URL": "${JIRA_URL}",
+        "JIRA_USERNAME": "${JIRA_USERNAME}",
+        "JIRA_API_TOKEN": "${JIRA_API_TOKEN}",
+        "CONFLUENCE_URL": "${CONFLUENCE_URL}",
+        "CONFLUENCE_USERNAME": "${CONFLUENCE_USERNAME}",
+        "CONFLUENCE_API_TOKEN": "${CONFLUENCE_API_TOKEN}"
+      }
+    },
+    "gns3-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/gns3-mcp-server/gns3_mcp_server.py"
+      ],
+      "env": {
+        "GNS3_URL": "${GNS3_URL}",
+        "GNS3_USER": "${GNS3_USER}",
+        "GNS3_PASSWORD": "${GNS3_PASSWORD}",
+        "GNS3_VERIFY_SSL": "${GNS3_VERIFY_SSL:-true}",
+        "GNS3_TOKEN_TTL": "${GNS3_TOKEN_TTL:-3000}"
+      }
+    },
+    "prisma-sdwan-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/prisma-sdwan-mcp/prisma_sdwan_mcp_server.py"
+      ],
+      "env": {
+        "PAN_CLIENT_ID": "${PAN_CLIENT_ID}",
+        "PAN_CLIENT_SECRET": "${PAN_CLIENT_SECRET}",
+        "PAN_TSG_ID": "${PAN_TSG_ID}",
+        "PAN_REGION": "${PAN_REGION:-americas}"
+      }
+    },
+    "datadog-mcp": {
+      "url": "mcp://datadog.com/mcp",
+      "env": {
+        "DD_API_KEY": "${DD_API_KEY}",
+        "DD_APP_KEY": "${DD_APP_KEY}",
+        "DD_SITE": "${DD_SITE:-datadoghq.com}"
+      }
+    },
+    "pagerduty-mcp": {
+      "command": "uvx",
+      "args": [
+        "pagerduty-mcp",
+        "--enable-write-tools"
+      ],
+      "env": {
+        "PAGERDUTY_USER_API_KEY": "${PAGERDUTY_USER_API_KEY}",
+        "PAGERDUTY_API_HOST": "${PAGERDUTY_API_HOST:-https://api.pagerduty.com}"
+      }
+    },
+    "splunk-mcp": {
+      "command": "uvx",
+      "args": [
+        "splunk-mcp"
+      ],
+      "env": {
+        "SPLUNK_HOST": "${SPLUNK_HOST}",
+        "SPLUNK_TOKEN": "${SPLUNK_TOKEN}",
+        "SPLUNK_VERIFY_SSL": "${SPLUNK_VERIFY_SSL:-true}"
+      }
+    },
+    "infrahub-mcp": {
+      "command": "uvx",
+      "args": [
+        "infrahub-mcp"
+      ],
+      "env": {
+        "INFRAHUB_ADDRESS": "${INFRAHUB_ADDRESS}",
+        "INFRAHUB_API_TOKEN": "${INFRAHUB_API_TOKEN}"
+      }
+    },
+    "terraform-mcp": {
+      "url": "mcp://terraform.io/mcp",
+      "env": {
+        "TFC_TOKEN": "${TFC_TOKEN}",
+        "TFC_ORG": "${TFC_ORG}",
+        "TFC_HOST": "${TFC_HOST:-app.terraform.io}"
+      }
+    },
+    "vault-mcp": {
+      "url": "mcp://vault.hashicorp.com/mcp",
+      "env": {
+        "VAULT_ADDR": "${VAULT_ADDR}",
+        "VAULT_TOKEN": "${VAULT_TOKEN}",
+        "VAULT_NAMESPACE": "${VAULT_NAMESPACE}"
+      }
+    },
+    "zscaler-mcp": {
+      "url": "mcp://zscaler.com/mcp",
+      "env": {
+        "ZSCALER_ZIA_API_KEY": "${ZSCALER_ZIA_API_KEY}",
+        "ZSCALER_ZIA_USERNAME": "${ZSCALER_ZIA_USERNAME}",
+        "ZSCALER_ZIA_PASSWORD": "${ZSCALER_ZIA_PASSWORD}",
+        "ZSCALER_ZIA_CLOUD": "${ZSCALER_ZIA_CLOUD:-zscaler.net}",
+        "ZSCALER_ZPA_CLIENT_ID": "${ZSCALER_ZPA_CLIENT_ID}",
+        "ZSCALER_ZPA_CLIENT_SECRET": "${ZSCALER_ZPA_CLIENT_SECRET}",
+        "ZSCALER_ZPA_CUSTOMER_ID": "${ZSCALER_ZPA_CUSTOMER_ID}"
+      }
+    },
+    "cloudflare-dns-analytics": {
+      "url": "mcp://cloudflare.com/dns-analytics",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      }
+    },
+    "cloudflare-security": {
+      "url": "mcp://cloudflare.com/security",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      }
+    },
+    "cloudflare-zerotrust": {
+      "url": "mcp://cloudflare.com/zero-trust",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      }
+    },
+    "cloudflare-analytics": {
+      "url": "mcp://cloudflare.com/analytics",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      }
+    },
+    "cloudflare-workers": {
+      "url": "mcp://cloudflare.com/workers",
+      "env": {
+        "CLOUDFLARE_API_TOKEN": "${CLOUDFLARE_API_TOKEN}",
+        "CLOUDFLARE_ACCOUNT_ID": "${CLOUDFLARE_ACCOUNT_ID}"
+      }
+    },
+    "blender-mcp": {
+      "command": "uvx",
+      "args": [
+        "blender-mcp"
+      ]
+    },
+    "aruba-cx-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/aruba-cx-mcp/aruba_cx_mcp_server.py"
+      ],
+      "env": {
+        "ARUBA_CX_TARGETS": "${ARUBA_CX_TARGETS}",
+        "ARUBA_CX_CONFIG": "${ARUBA_CX_CONFIG}",
+        "ARUBA_CX_TIMEOUT": "${ARUBA_CX_TIMEOUT:-30}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-false}"
+      }
+    },
+    "devnet-content-search": {
+      "url": "https://devnet.cisco.com/v1/foundation-search-mcp/mcp"
+    },
+    "nautobot-mcp": {
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "args": [
+        "-u",
+        "/home/ubuntu/netclaw/mcp-servers/nautobot-mcp-v2/server.py"
+      ],
+      "env": {
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NAUTOBOT_VERIFY_SSL": "${NAUTOBOT_VERIFY_SSL:-false}",
+        "NAUTOBOT_TIMEOUT": "${NAUTOBOT_TIMEOUT:-60}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-true}"
+      }
+    },
+    "nautobot-golden-config-mcp": {
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "args": [
+        "-u",
+        "/home/ubuntu/netclaw/mcp-servers/nautobot-golden-config-mcp/server.py"
+      ],
+      "env": {
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NAUTOBOT_VERIFY_SSL": "${NAUTOBOT_VERIFY_SSL:-false}",
+        "NAUTOBOT_TIMEOUT": "${NAUTOBOT_TIMEOUT:-60}",
+        "GOLDEN_CONFIG_POLL_INTERVAL": "${GOLDEN_CONFIG_POLL_INTERVAL:-5}",
+        "GOLDEN_CONFIG_JOB_TIMEOUT": "${GOLDEN_CONFIG_JOB_TIMEOUT:-300}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-true}"
+      }
+    },
+    "nautobot-routing-mcp": {
+      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "args": [
+        "-u",
+        "/home/ubuntu/netclaw/mcp-servers/nautobot-routing-mcp/server.py"
+      ],
+      "env": {
+        "NAUTOBOT_URL": "${NAUTOBOT_URL}",
+        "NAUTOBOT_TOKEN": "${NAUTOBOT_TOKEN}",
+        "NAUTOBOT_VERIFY_SSL": "${NAUTOBOT_VERIFY_SSL:-false}",
+        "NAUTOBOT_TIMEOUT": "${NAUTOBOT_TIMEOUT:-60}",
+        "ITSM_ENABLED": "${ITSM_ENABLED:-false}",
+        "ITSM_LAB_MODE": "${ITSM_LAB_MODE:-true}"
+      }
+    },
+    "chkp-management": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/management/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-management-logs": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/management-logs/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-threat-prevention": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/threat-prevention/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-https-inspection": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/https-inspection/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-harmony-sase": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/harmony-sase/dist/index.js"
+      ],
+      "env": {
+        "API_KEY": "${CHKP_SASE_API_KEY}",
+        "MANAGEMENT_HOST": "${CHKP_SASE_MGMT_HOST}",
+        "ORIGIN": "${CHKP_SASE_ORIGIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-reputation-service": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/reputation-service/dist/index.js"
+      ],
+      "env": {
+        "API_KEY": "${CHKP_REPUTATION_API_KEY}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-quantum-gw-cli": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/gw-cli/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-gw-connection-analysis": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/gw-cli-connection-analysis/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-threat-emulation": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/threat-emulation/dist/index.js"
+      ],
+      "env": {
+        "API_KEY": "${CHKP_TE_API_KEY}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-quantum-gaia": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/gaia/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-documentation": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/documentation-tool/dist/index.js"
+      ],
+      "env": {
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-spark-management": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/spark-management/dist/index.js"
+      ],
+      "env": {
+        "API_KEY": "${CHKP_SPARK_API_KEY}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-cpinfo-analysis": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/cpinfo-analysis/dist/index.js"
+      ],
+      "env": {
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-argos-erm": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/argos-erm/dist/index.js"
+      ],
+      "env": {
+        "API_KEY": "${CHKP_ARGOS_API_KEY}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "chkp-policy-insights": {
+      "command": "node",
+      "args": [
+        "mcp-servers/checkpoint-mcp-servers/packages/policy-insights/dist/index.js"
+      ],
+      "env": {
+        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
+        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "API_KEY": "${CHKP_MGMT_API_KEY}",
+        "USERNAME": "${CHKP_MGMT_USERNAME}",
+        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
+        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
+      }
+    },
+    "claroty-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/claroty-mcp/claroty_mcp_server.py"
+      ],
+      "env": {
+        "CLAROTY_API_URL": "${CLAROTY_API_URL:-https://api.medigate.io}",
+        "CLAROTY_API_TOKEN": "${CLAROTY_API_TOKEN}",
+        "CLAROTY_VERIFY_SSL": "${CLAROTY_VERIFY_SSL:-true}",
+        "CLAROTY_TIMEOUT": "${CLAROTY_TIMEOUT:-30}",
+        "CLAROTY_RATE_LIMIT_PER_MIN": "${CLAROTY_RATE_LIMIT_PER_MIN:-2000}",
+        "NETCLAW_LAB_MODE": "${NETCLAW_LAB_MODE:-false}"
+      }
+    },
+    "twitter-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/twitter-mcp/server.py"
+      ],
+      "env": {
+        "TWITTER_API_KEY": "${TWITTER_API_KEY}",
+        "TWITTER_API_SECRET": "${TWITTER_API_SECRET}",
+        "TWITTER_ACCESS_TOKEN": "${TWITTER_ACCESS_TOKEN}",
+        "TWITTER_ACCESS_SECRET": "${TWITTER_ACCESS_SECRET}",
+        "TWITTER_HEARTBEAT_ENABLED": "${TWITTER_HEARTBEAT_ENABLED:-false}",
+        "TWITTER_HEARTBEAT_INTERVAL": "${TWITTER_HEARTBEAT_INTERVAL:-14400}"
+      }
+    },
+    "twilio-mcp": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@twilio-alpha/mcp",
+        "${TWILIO_ACCOUNT_SID}/${TWILIO_API_KEY_SID}:${TWILIO_API_SECRET}",
+        "--services",
+        "twilio_api_v2010",
+        "--tags",
+        "Api20100401Call,Api20100401Message"
+      ],
+      "env": {
+        "TWILIO_ACCOUNT_SID": "${TWILIO_ACCOUNT_SID}",
+        "TWILIO_API_KEY_SID": "${TWILIO_API_KEY_SID}",
+        "TWILIO_API_SECRET": "${TWILIO_API_SECRET}"
+      }
+    },
+    "twilio-voice-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/twilio-voice-mcp/server.py"
+      ],
+      "env": {
+        "TWILIO_ACCOUNT_SID": "${TWILIO_ACCOUNT_SID}",
+        "TWILIO_API_KEY_SID": "${TWILIO_API_KEY_SID}",
+        "TWILIO_API_SECRET": "${TWILIO_API_SECRET}",
+        "TWILIO_PHONE_NUMBER": "${TWILIO_PHONE_NUMBER}",
+        "TWILIO_WEBHOOK_URL": "${TWILIO_WEBHOOK_URL}"
+      }
+    },
+    "unreal-mcp": {
+      "url": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}",
+      "env": {
+        "UE5_MCP_URL": "${UE5_MCP_URL:-http://127.0.0.1:8000/mcp}"
+      }
+    },
+    "sketchfab-mcp": {
+      "command": "node",
+      "args": [
+        "mcp-servers/sketchfab-mcp-server/build/index.js"
+      ],
+      "env": {
+        "SKETCHFAB_API_KEY": "${SKETCHFAB_API_KEY}"
+      }
+    },
+    "n2n-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/n2n-mcp/server.py"
+      ],
+      "env": {
+        "BGP_DAEMON_API": "${BGP_DAEMON_API:-http://127.0.0.1:8179}"
+      }
+    }
+  }
+}

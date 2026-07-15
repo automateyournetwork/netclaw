@@ -1,3 +1,12 @@
+---
+name: zscaler-insights
+description: "Access analytics, threat intelligence, and security event data."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Zscaler Insights Skill
 
 Access analytics, threat intelligence, and security event data.

@@ -12,8 +12,14 @@ Modules:
   invocation    inbound tool/skill execution (US2)
   chat          claw-to-claw chat sessions (US3)
   audit         dual-side audit records
+
+Feature 057 (iN2N production enforcement + durable runtime):
+  controls      probe/apply the 3 production controls (sandbox/model-guard/audit)
+  posture       aggregate controls → truthful risk posture + delegation preflight
+  gait          Git-based immutable audit trail (complements the SQLite audit)
 """
 
 from .manager import FederationManager, PeerState
+from . import controls, posture, gait
 
-__all__ = ["FederationManager", "PeerState"]
+__all__ = ["FederationManager", "PeerState", "controls", "posture", "gait"]

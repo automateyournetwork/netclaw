@@ -2,6 +2,7 @@
 name: meraki-monitoring
 description: "Cisco Meraki Monitoring & Diagnostics — live ping, cable test, LED blink, wake-on-LAN, camera analytics, config change tracking. Use when running ping tests from Meraki devices, troubleshooting switch port cables, blinking LEDs to identify hardware, checking camera analytics, or auditing Meraki config changes"
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, meraki, monitoring, diagnostics, ping, cable-test, camera, analytics]
 ---
 

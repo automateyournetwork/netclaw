@@ -1,6 +1,7 @@
 ---
 name: devnet-catalyst-search
 description: Search Cisco Catalyst Center API documentation for device management and policy automation
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

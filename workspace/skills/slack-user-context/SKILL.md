@@ -1,6 +1,7 @@
 ---
 name: slack-user-context
 description: "Leverage Slack user profiles, presence, DND status, and workspace context to personalize responses, route escalations, and coordinate team operations. Use when checking who is on-call, routing an escalation, personalizing responses based on user role, or respecting Do Not Disturb before paging someone."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

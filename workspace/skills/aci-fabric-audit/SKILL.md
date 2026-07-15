@@ -1,6 +1,7 @@
 ---
 name: aci-fabric-audit
 description: "Comprehensive Cisco ACI fabric health audit - node status, tenant/VRF/BD/EPG policy review, contract analysis, fault triage, and endpoint learning verification. Use when auditing ACI fabric health, checking for faults, reviewing tenant policies, or running pre/post-change baselines on APIC."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["ACI_MCP_SCRIPT", "APIC_URL"] } } }

@@ -1,3 +1,12 @@
+---
+name: splunk-search
+description: "Execute and validate SPL (Search Processing Language) queries."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Splunk Search Skill
 
 Execute and validate SPL (Search Processing Language) queries.

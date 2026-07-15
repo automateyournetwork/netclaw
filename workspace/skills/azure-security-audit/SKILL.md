@@ -2,6 +2,7 @@
 name: azure-security-audit
 description: "Azure NSG compliance auditing and security posture assessment. CIS Azure Foundations Benchmark rules, effective security rule analysis, orphaned NSG detection. Use when auditing Azure NSGs for CIS compliance, checking for overly permissive rules, or reviewing effective security on NICs."
 version: 1.0.0
+license: Apache-2.0
 tags: [azure, nsg, security, compliance, cis-benchmark, audit]
 ---
 

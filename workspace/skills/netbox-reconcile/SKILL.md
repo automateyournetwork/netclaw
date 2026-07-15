@@ -1,6 +1,7 @@
 ---
 name: netbox-reconcile
 description: "Reconcile NetBox source of truth against live network state - detect IP drift, missing interfaces, undocumented links, cable mismatches, VLAN mismatches, and ticket discrepancies in ServiceNow. Use when validating NetBox accuracy, checking for config drift, auditing network documentation, or reconciling source of truth after changes"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["NETBOX_MCP_SCRIPT", "PYATS_TESTBED_PATH"] } } }

@@ -2,6 +2,7 @@
 name: azure-network-ops
 description: "Azure cloud networking -- VNets, NSGs, ExpressRoute, VPN Gateways, Azure Firewalls, Load Balancers, Application Gateways, Route Tables, Network Watcher, Private Endpoints, DNS zones. Use when auditing Azure VNets, troubleshooting hybrid connectivity (ExpressRoute/VPN), checking NSG rules, inspecting firewall policies, or analyzing load balancer health."
 version: 1.0.0
+license: Apache-2.0
 tags: [azure, vnet, nsg, expressroute, vpn, firewall, load-balancer, dns, private-link]
 ---
 

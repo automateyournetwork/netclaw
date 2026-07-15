@@ -1,6 +1,7 @@
 ---
 name: batfish-config-analysis
 description: "Batfish network configuration analysis -- pre-deployment validation, reachability testing, ACL/firewall tracing, differential analysis, compliance checking. Use when validating configs before deployment, testing traffic paths, tracing ACL rules, comparing config versions, or auditing compliance policies. Strictly read-only."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3", "docker"], "env": ["BATFISH_HOST"] } } }

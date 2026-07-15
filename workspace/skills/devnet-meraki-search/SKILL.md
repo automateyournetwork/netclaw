@@ -1,6 +1,7 @@
 ---
 name: devnet-meraki-search
 description: Search Cisco Meraki API documentation and lookup specific operations
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

@@ -54,12 +54,24 @@ netclaw.code-workspace
 # OpenClaw
 .openclaw/
 
+# iN2N keys/certs (feature 056) — runtime-generated self-signed keys, never committed.
+# Live path is ~/.openclaw/n2n/keys/ (already covered by .openclaw/); guard repo-local copies.
+**/n2n/keys/
+
+# Local agent state and audit harnesses
+.gait/
+memory/
+.pytest_cache/
+
 # Diagrams (generated)
 *.drawio.bak
 
 # Cloned MCP servers (installed by install.sh)
 mcp-servers/*
+# Directory-level documentation (tracked in repo)
+!mcp-servers/README.md
 # Built-in MCP servers (tracked in repo)
+!mcp-servers/n2n-mcp/
 !mcp-servers/protocol-mcp/
 !mcp-servers/suzieq-mcp/
 !mcp-servers/azure-network-mcp/
@@ -70,42 +82,57 @@ mcp-servers/*
 !mcp-servers/snmptrap-mcp/
 !mcp-servers/ipfix-mcp/
 !mcp-servers/gns3-mcp-server/
+!mcp-servers/eve-ng-mcp-server/
 !mcp-servers/prisma-sdwan-mcp/
 !mcp-servers/nautobot-mcp-v2/
 !mcp-servers/nautobot-golden-config-mcp/
 !mcp-servers/nautobot-routing-mcp/
-!mcp-servers/nautobot-firewall-mcp/
+!mcp-servers/memory-mcp/
+!mcp-servers/claroty-mcp/
 !mcp-servers/ollama-mcp/
-!mcp-servers/threatintel-mcp/
-!mcp-servers/greynoise-community-mcp/
+!mcp-servers/twitter-mcp/
+!mcp-servers/twilio-voice-mcp/
+!mcp-servers/atlassian-mcp/
+!mcp-servers/chrome-devtools-mcp/
+# Documented as built-in but never committed (installers expect them) —
+# whitelisted so the upstream fix that adds them isn't silently re-ignored
+!mcp-servers/packet-buddy-mcp/
+!mcp-servers/tts-mcp/
 
 # Traces
 trace.json
 trace.json.gz
 
 .claude
+docs/blogs/
+.amazonq
+workspace/node_modules/
+.dev-secrets/
 
-# Observability stack runtime data
-observability/*-data/
+# Sensitive config files (contain phone numbers, etc.)
+config/twilio-voice.json
 
-# User workspace customizations (USER.md, TOOLS.md — personalized, not tracked)
-workspace/user/*
-!workspace/user/USER.md
-!workspace/user/TOOLS.md
+# Generated topology visualizations and downloaded/cached 3D assets (spec 046)
+# — regenerated on demand by output.py/assets.py, never checked in.
+workspace/output/
 
-# OpenClaw runtime workspace copies (not source-controlled)
-workspace/AGENTS.md
-workspace/BOOTSTRAP.md
-workspace/HEARTBEAT.md
-workspace/IDENTITY.md
-workspace/SOUL.md
-workspace/TOOLS.md
-workspace/USER.md
-docs/blog*
-docs/roadmap*
-docs/series-plan*
-golden-config-work/HomeSwitch01.cfg
-golden-config-work/HomeSwitch02.cfg
-.amazonq/
-memory/*.db
-memory/chromadb/
+# iN2N migration scaffold (contains per-member .env slices — never commit)
+migration-staging/
+
+# iN2N production enforcement + durable runtime (feature 057).
+# Live/generated state belongs under ~/.openclaw (already ignored) or
+# ~/.config/systemd/user — NEVER in the repo. Guard against repo-local copies:
+#   - the GAIT immutable audit trail (git repo of federation events)
+#   - generated systemd units / env (the checked-in TEMPLATE scripts/systemd/*.service stays)
+#   - any member scoped .env slices
+federation-events.jsonl
+gait/
+*.systemd.env
+mesh.systemd.env
+
+# NCFED Internet-Draft (feature 059) — generated build outputs; keep the .md source
+docs/ietf/*.xml
+docs/ietf/*.txt
+docs/ietf/*.html
+docs/ietf/.refcache/
+docs/ietf/kdrfc-err.txt

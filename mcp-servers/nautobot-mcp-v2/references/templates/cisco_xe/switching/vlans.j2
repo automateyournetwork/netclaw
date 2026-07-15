@@ -1,0 +1,9 @@
+{% if location is defined and location.vlans is defined %}
+{% for vlan in location.vlans | sort(attribute='vid') %}
+{% if vlan.vid != 1 %}
+vlan {{ vlan.vid }}
+ name {{ vlan.name }}
+!
+{% endif %}
+{% endfor %}
+{% endif %}

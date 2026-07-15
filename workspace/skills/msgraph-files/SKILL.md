@@ -1,6 +1,7 @@
 ---
 name: msgraph-files
 description: "Manage files on OneDrive and SharePoint via Microsoft Graph API - upload, download, list, search, and organize network documentation and artifacts. Use when uploading reports to SharePoint, retrieving network docs from OneDrive, organizing config backups, or searching for topology diagrams"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["npx"], "env": ["AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"] } } }

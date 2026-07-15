@@ -21,6 +21,36 @@ logger = logging.getLogger("n2n.gateway")
 AGENT_ID = os.environ.get("N2N_AGENT_ID", "main")
 
 
+class EnforcementRefused(RuntimeError):
+    """Raised when a production containment control is unavailable, so a member
+    task fails closed rather than running unsandboxed/unguarded (feature 057)."""
+
+
+async def _apply_production_controls(cmd: list, prompt: str) -> list:
+    """In production, guard a member's model I/O through DefenseClaw, fail-closed.
+
+    The member PROCESS itself is confined at the OS level by its systemd unit
+    (feature 057 US2 = host-level kernel confinement: NoNewPrivileges, read-only
+    system, hidden master secrets, and — on native Linux — syscall/namespace
+    limits). So the confinement is applied at launch, not per model turn; here we
+    only enforce the DefenseClaw model-guard (US3). Returns the command unchanged
+    (confinement is out-of-band); raises EnforcementRefused if the guard is
+    unavailable. No-op in testing mode."""
+    from . import controls
+    if not controls.is_production():
+        return cmd
+
+    # US3 (FR-007/009): model I/O guard. DefenseClaw guards model I/O via its
+    # guardrail PROXY (the member's model provider routes through it); guarding is
+    # not a per-call CLI command. Here we FAIL CLOSED if the proxy guard isn't
+    # actually available — the member must not run its model turn unguarded. The
+    # inspection itself happens in the proxy the member routes through.
+    guard_ok, guard_detail = await controls.defenseclaw_available()
+    if not guard_ok:
+        raise EnforcementRefused(f"model-guard unavailable: {guard_detail}")
+    return cmd
+
+
 def _extract_reply(stdout: str):
     """Parse the `openclaw agent --json` envelope (which is preceded by banner
     noise) and return (reply_text, tokens_used)."""
@@ -86,8 +116,18 @@ def _extract_reply(stdout: str):
     return reply or "(no reply text in agent response)", int(tokens or 0)
 
 
-async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int = 300):
-    """Run one gateway agent turn. Returns (reply_text, tokens_used).
+async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int = 300,
+                         local: bool = False, model: str = None):
+    """Run one agent turn. Returns (reply_text, tokens_used).
+
+    Two modes:
+      - gateway (default): `openclaw agent --agent <id> …` against the running
+        gateway. Used by the Border / a standalone claw (eN2N responder).
+      - embedded (local=True): `openclaw agent --local --model <model> …` — the
+        agent runs in-process with the member's own provider API keys and ONLY
+        the MCP servers in the member's config dir. This is how an iN2N MEMBER
+        executes a delegated skill: no gateway, no comms, scoped tools, its own
+        model/provider (feature 056). `model` is 'provider/model' or a model id.
 
     Raises TimeoutError on timeout; on non-zero exit returns the stderr tail as
     the reply so the caller can surface a useful message rather than crashing.
@@ -97,7 +137,18 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
     # responder running its own agent, so the local probe is authoritative.
     from .negotiate import local_descriptor
     flag = "--" + local_descriptor().get("agent_invoke", "session-id")
-    cmd = ["openclaw", "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
+    if local:
+        cmd = ["openclaw", "agent", "--local"]
+        if model:
+            cmd += ["--model", model]
+        cmd += [flag, session_key, "--json", "-m", prompt]
+        # feature 057: in production a MEMBER executes INSIDE the OpenShell sandbox
+        # (US2/FR-004/005) with its model I/O guarded by DefenseClaw (US3/FR-007/009).
+        # Both fail closed — a member that cannot be sandboxed or guarded does NOT
+        # run unprotected. Testing mode runs unwrapped (fast iteration, FR-006).
+        cmd = await _apply_production_controls(cmd, prompt)
+    else:
+        cmd = ["openclaw", "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
     try:

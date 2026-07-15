@@ -1,3 +1,12 @@
+---
+name: token-tracker
+description: "Track and display token consumption and cost for every NetClaw interaction."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Skill: Token Tracker
 
 ## Purpose

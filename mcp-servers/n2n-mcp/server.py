@@ -72,6 +72,30 @@ async def n2n_status() -> str:
     return _gcf_dumps(data)
 
 
+@mcp.tool()
+async def n2n_posture() -> str:
+    """iN2N production posture (feature 057): whether the risk is `testing`,
+    `production — enforced`, or `production — DEGRADED` and which enforcement
+    controls (OpenShell sandbox / DefenseClaw model-guard / GAIT audit) are active.
+    The Border NEVER claims full production while a control is missing."""
+    data = await _get("/n2n/posture")
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_faults() -> str:
+    """iN2N fault isolation (feature 057): the truthful cause of any trouble —
+    `daemon` (federation layer down), `member` (a specific member down; whether it
+    will cold-start), `backend` (a member is up but its device/API is unreachable),
+    or `none`. Use in the operator heartbeat so the diagnosis matches the real cause
+    rather than mislabeling a daemon or backend problem as a member flap.
+
+    If this call itself errors/times out, the mesh DAEMON is down — report a
+    federation-layer/daemon fault (the daemon serves this endpoint)."""
+    data = await _get("/n2n/faults")
+    return _gcf_dumps(data)
+
+
 # ── Consent ────────────────────────────────────────────────────────────────
 
 @mcp.tool()
@@ -431,6 +455,108 @@ async def n2n_trust(peer: str, tools: str = "", chat: bool = True) -> str:
     if tools:
         body["tools"] = [t.strip() for t in tools.split(",") if t.strip()]
     return _gcf_dumps(await _post("/n2n/trust", body))
+
+
+# ── iN2N: internal federation — a "risk" of claws (feature 056) ─────────────
+
+@mcp.tool()
+async def n2n_risk_status() -> str:
+    """This claw's iN2N risk identity: role (standalone|border|member), risk name,
+    enabled stacks, and — on a Border — member count/health summary. A standalone
+    claw reports 'a risk of one'."""
+    return _gcf_dumps(await _get("/n2n/risk"))
+
+
+@mcp.tool()
+async def n2n_member_list() -> str:
+    """List this Border's member claws with profile, scope size, state, and whether
+    each has a live channel. (Border role only.)"""
+    return _gcf_dumps(await _get("/n2n/members"))
+
+
+@mcp.tool()
+async def n2n_member_health(member_id: Optional[str] = None) -> str:
+    """Per-member health: state (active/unreachable/quarantined), consecutive
+    auth/health failures, live channel, and last-seen. Surfaces auto-quarantine
+    alerts. (Border role only.)"""
+    data = await _get("/n2n/members/health")
+    if member_id:
+        data = {"members": [m for m in data.get("members", [])
+                            if m.get("member_id") == member_id]}
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_member_add(name: str, profile: Optional[str] = None,
+                         specialty: str = "", ttl_seconds: Optional[int] = None,
+                         launch_cmd: Optional[str] = None, on_demand: bool = False) -> str:
+    """Provision a member claw of this risk and issue its single-use enrollment
+    token. Computes scope = mandatory base floor + specialty. Does NOT spawn the
+    member — it is a separate NetClaw install (N2N_ROLE=member + the token). The
+    returned join instructions tell the operator how to bring it up. (Border only.)
+
+    Args:
+        name: member short name (member_id becomes '<risk>/<name>')
+        profile: a catalog-derived profile (e.g. 'cml', 'pyats', 'security')
+        specialty: comma-separated capability names for a Custom member (used if
+                   no profile, or to extend one)
+        ttl_seconds: optional expiry for the enrollment token
+        launch_cmd: how the Border cold-starts this member (e.g. the member's
+                    run.sh). Omit for a remote member the Border cannot spawn.
+        on_demand: if true, the Border cold-starts this member on first route and
+                   the member idle-exits when quiet (hybrid runtime). If false,
+                   the member is expected to be always-on.
+    """
+    body = {"name": name}
+    if profile:
+        body["profile"] = profile
+    if specialty:
+        body["specialty"] = [s.strip() for s in specialty.split(",") if s.strip()]
+    if ttl_seconds:
+        body["ttl_seconds"] = ttl_seconds
+    if launch_cmd:
+        body["launch_cmd"] = launch_cmd
+    if on_demand:
+        body["on_demand"] = True
+    return _gcf_dumps(await _post("/n2n/members/add", body))
+
+
+@mcp.tool()
+async def n2n_enroll_token(label: Optional[str] = None,
+                           ttl_seconds: Optional[int] = None) -> str:
+    """Issue a single-use enrollment token for a member to join this risk. The raw
+    token is shown once — hand it to the member at provisioning. (Border only.)"""
+    body = {}
+    if label:
+        body["label"] = label
+    if ttl_seconds:
+        body["ttl_seconds"] = ttl_seconds
+    return _gcf_dumps(await _post("/n2n/enroll/token", body))
+
+
+@mcp.tool()
+async def n2n_member_remove(member_id: str) -> str:
+    """Remove a member from this risk: unpin its key, drop it from routing, refuse
+    reconnect. DESTRUCTIVE — confirm with the operator first. The member must
+    re-enroll with a NEW token to return. (Border only.)"""
+    return _gcf_dumps(await _post("/n2n/members/remove", {"member_id": member_id}))
+
+
+@mcp.tool()
+async def n2n_route(request_text: str, target_hint: Optional[str] = None) -> str:
+    """Ask the Border to route a task-shaped request to the member that owns the
+    capability, and delegate it (async). Returns a task_id — poll with
+    n2n_task_status / n2n_task_result. Reports plainly if no member can do it.
+
+    Args:
+        request_text: the operator's request
+        target_hint: the capability/skill name to route on (e.g. 'cml-lab-lifecycle');
+                     when omitted the Border infers it from request_text
+    """
+    body = {"request_text": request_text}
+    if target_hint:
+        body["capability"] = target_hint
+    return _gcf_dumps(await _post("/n2n/route", body))
 
 
 # ── Entry point ────────────────────────────────────────────────────────────

@@ -2,6 +2,7 @@
 name: aws-architecture-diagram
 description: "AWS architecture diagrams — generate visual network topology diagrams from live AWS infrastructure. Use when drawing AWS network diagrams, visualizing VPCs, mapping Transit Gateway topology, or generating architecture documentation."
 version: 1.0.0
+license: Apache-2.0
 tags: [aws, diagram, architecture, visualization, topology]
 ---
 

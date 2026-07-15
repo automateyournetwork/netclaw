@@ -118,13 +118,45 @@ class InventoryBuilder:
                 return False
         return False
 
-    def build(self, peer_identity: str) -> dict:
-        """Build the inventory to advertise to a specific peer (visibility applied)."""
+    def _member_aggregate_skills(self, existing_names: set) -> list:
+        """iN2N (056/FR-016): on a Border, advertise the UNION of member SPECIALTY
+        capabilities under the risk identity — capability NAMES only, never member
+        ids/endpoints/topology. Lets a peer learn 'this risk can do CML/pyATS/…'
+        without seeing the internal member structure."""
+        conn = self.manager._conn
+        try:
+            r = conn.execute("SELECT role FROM risk WHERE id=1").fetchone()
+            if not r or r["role"] != "border":
+                return []
+            rows = conn.execute(
+                "SELECT scope FROM member WHERE state NOT IN ('removed','quarantined')"
+            ).fetchall()
+        except Exception:
+            return []   # risk table absent (pre-056) or unreadable — no aggregate
+        names = set()
+        for row in rows:
+            try:
+                for e in json.loads(row["scope"] or "[]"):
+                    if e.get("tier") == "specialty" and e.get("name") not in existing_names:
+                        names.add(e["name"])
+            except (ValueError, TypeError):
+                continue
+        return [{"name": n, "invocable": True, "risk_aggregate": True} for n in sorted(names)]
+
+    def build(self, peer_identity: str, posture: Optional[dict] = None) -> dict:
+        """Build the inventory (A2A capability card) to advertise to a peer.
+
+        Feature 057: the card carries the risk's PRODUCTION POSTURE + security
+        flags so a peer (or member) knows whether this risk is enforcing (sandbox
+        + model-guard + immutable audit) or degraded/testing — visibility applied
+        to capabilities as before, no secrets ever."""
         self._version += 1
         skills = [s for s in self._load_skills()
                   if self._visibility("skill", s["name"], peer_identity)]
         for s in skills:
             s["invocable"] = True
+        # Border: fold in member specialties as risk-level capabilities (FR-016).
+        skills += self._member_aggregate_skills({s["name"] for s in skills})
         all_servers = self._load_mcp_servers()
         servers = [s for s in all_servers
                    if self._visibility("mcp_server", s["name"], peer_identity)]
@@ -137,9 +169,63 @@ class InventoryBuilder:
             "mcp_servers": [{"name": s["name"], "tools": s["tools"],
                              "invocable_tools": s["tools"]} for s in servers],
             "badges": badges,
+            "posture": self._posture_card(posture),
+            "llm": self._llm_card(),
         }
         self._assert_no_secrets(inv)
         return inv
+
+    def _posture_card(self, posture: Optional[dict]) -> dict:
+        """Compact security posture for the A2A card (feature 057). Uses the live
+        cached posture when provided, else a sync snapshot. Peers/members learn
+        whether this risk is enforcing or testing/degraded."""
+        from . import controls
+        if posture:
+            return {"mode": posture.get("mode"), "state": posture.get("state"),
+                    "summary": posture.get("summary"),
+                    "controls": {c["name"]: c["available"]
+                                 for c in posture.get("controls", [])}}
+        return {"mode": "production" if controls.is_production() else "testing",
+                "state": "unknown",
+                "summary": "production" if controls.is_production() else "testing",
+                "controls": {}}
+
+    def _llm_card(self) -> dict:
+        """Advertise the claw's LLM capability (family/tier + whether guarded) so a
+        peer understands the reasoning capability of its neighbour (feature 057).
+        NO credentials — just the model id and guard status; a Border notes that its
+        members run their own tiered models (topology stays hidden, FR-016)."""
+        from . import controls
+        model = self._local_primary_model()
+        guarded = str(model).startswith("defenseclaw/")  # guardrail-proxy prefix
+        underlying = model.split("/", 1)[1] if guarded and "/" in model else model
+        card = {"primary_model": underlying or None, "guarded": bool(guarded)}
+        try:
+            if self.manager and hasattr(self.manager, "_conn"):
+                r = self.manager._conn.execute(
+                    "SELECT role FROM risk WHERE id=1").fetchone()
+                if r and r[0] == "border":
+                    card["note"] = ("Border reasoning model; member claws run their "
+                                    "own per-specialty tiered models")
+        except Exception:
+            pass
+        return card
+
+    def _local_primary_model(self) -> str:
+        """Read this claw's primary model from the OpenClaw config (no secrets)."""
+        import json as _json
+        for p in (Path(os.path.expanduser("~/.openclaw/openclaw.json")),):
+            try:
+                cfg = _json.loads(p.read_text())
+                ag = (cfg.get("agents") or {}).get("defaults") or {}
+                m = ag.get("model")
+                if isinstance(m, dict):
+                    return m.get("primary") or ""
+                if isinstance(m, str):
+                    return m
+            except Exception:
+                continue
+        return ""
 
     def _local_identity(self) -> str:
         return os.environ.get("N2N_LOCAL_IDENTITY", "")

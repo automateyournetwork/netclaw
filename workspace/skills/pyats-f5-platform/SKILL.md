@@ -1,6 +1,7 @@
 ---
 name: pyats-f5-platform
 description: "F5 BIG-IP platform operations via pyATS iControl REST — system, networking, HA/CM, auth, analytics, security, APM, live-update, ADC certs, file management. Use when checking BIG-IP system health, verifying HA sync status, auditing certificates, or inspecting F5 platform resources."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

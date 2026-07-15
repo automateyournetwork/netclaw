@@ -71,7 +71,7 @@ ANTHROPIC_API_KEY = os.environ.get("ANTHROPIC_API_KEY", "")
 
 # OpenClaw Gateway - routes to Claude with ALL MCPs
 OPENCLAW_GATEWAY_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://localhost:18789")
-OPENCLAW_GATEWAY_TOKEN = os.environ.get("OPENCLAW_GATEWAY_TOKEN", "")
+OPENCLAW_GATEWAY_TOKEN = os.environ.get("OPENCLAW_GATEWAY_TOKEN", "7cd7e3ad9acece055b438f97d0bf188c70a44397868832f9")
 
 # MCP Server URLs (for direct integration)
 CML_API_URL = os.environ.get("CML_URL", "")

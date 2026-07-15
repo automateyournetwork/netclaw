@@ -1,6 +1,7 @@
 ---
 name: slack-network-alerts
 description: "Format and deliver network alerts, health warnings, and critical notifications via Slack with rich formatting, reactions, and file attachments. Use when sending alerts to Slack, posting health check results, notifying the team about a device issue, or formatting network status updates for a channel."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

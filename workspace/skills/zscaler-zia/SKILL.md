@@ -1,3 +1,12 @@
+---
+name: zscaler-zia
+description: "Manage Zscaler Internet Access firewall rules, URL filtering, DLP, and security policies."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Zscaler Internet Access (ZIA) Skill
 
 Manage Zscaler Internet Access firewall rules, URL filtering, DLP, and security policies.

@@ -1,6 +1,7 @@
 ---
 name: pyats-asa-firewall
 description: "Cisco ASA firewall operations via pyATS — VPN sessions, failover state, interfaces, routing, service policies, resource usage, AnyConnect monitoring. Use when checking ASA failover status, monitoring VPN sessions, auditing ASA security, or troubleshooting AnyConnect connectivity."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

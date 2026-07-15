@@ -31,8 +31,8 @@ const INTEGRATION_CATALOG = [
   { id: 'junos', name: 'JunOS', category: 'Device Automation', prefixes: ['junos-', 'pyats-junos-'], color: '#7bd389', transport: 'stdio', toolEstimate: 60, description: 'Juniper-oriented operational coverage through pyATS and JunOS skills.' },
   { id: 'asa', name: 'Cisco ASA', category: 'Security', prefixes: ['pyats-asa-'], color: '#ef476f', transport: 'stdio', toolEstimate: 20, description: 'Firewall session, failover, and dataplane health views.' },
   { id: 'netbox', name: 'NetBox', category: 'Source of Truth', prefixes: ['netbox-'], color: '#00bbf9', transport: 'stdio', toolEstimate: 12, description: 'Intent reconciliation between live device state and documented truth.' },
-  { id: 'nautobot', name: 'Nautobot', category: 'Source of Truth', prefixes: ['nautobot_', 'cisco_design_', 'golden_config_'], color: '#00f5d4', transport: 'stdio', toolEstimate: 32, description: 'Nautobot 3.1.0 GraphQL reads + REST writes: devices, interfaces, VLANs, prefixes, IPs, cables, golden config, firewall, BGP/OSPF, reconciliation, Cisco design reference, template scaffolding.' },
-  { id: 'infrahub', name: 'Infrahub', category: 'Source of Truth', prefixes: ['infrahub-'], color: '#06d6a0', transport: 'stdio', toolEstimate: 8, description: 'Schema-driven, branchable infrastructure state.' },
+  { id: 'nautobot', name: 'Nautobot', category: 'Source of Truth', prefixes: ['nautobot-'], color: '#00f5d4', transport: 'stdio', toolEstimate: 8, description: 'Alternative SoT and IPAM access pattern.' },
+  { id: 'infrahub', name: 'Infrahub', category: 'Source of Truth', prefixes: ['infrahub-'], color: '#06d6a0', transport: 'stdio', toolEstimate: 10, description: 'Schema-driven SoT with branch-isolated writes submitted as Proposed Changes.' },
   { id: 'infoblox', name: 'Infoblox', category: 'Source of Truth', prefixes: ['infoblox-'], color: '#73d2de', transport: 'stdio', toolEstimate: 10, description: 'DNS, DHCP, and IPAM operations.' },
   { id: 'servicenow', name: 'ServiceNow', category: 'Governance', prefixes: ['servicenow-'], color: '#ffd166', transport: 'stdio', toolEstimate: 12, description: 'Change gating and ITSM workflow integration.' },
   { id: 'gait', name: 'GAIT', category: 'Governance', prefixes: ['gait-'], color: '#f4a261', transport: 'stdio', toolEstimate: 9, description: 'Git-backed audit history and turn tracking.' },
@@ -89,6 +89,11 @@ const INTEGRATION_CATALOG = [
   { id: 'vault', name: 'HashiCorp Vault', category: 'Security', prefixes: ['vault-'], color: '#000000', transport: 'http', toolEstimate: 35, description: 'Secrets management — KV secrets, PKI certificates, transit encryption, authentication methods, and audit logging.' },
   { id: 'zscaler', name: 'Zscaler', category: 'Security', prefixes: ['zscaler-'], color: '#0090d4', transport: 'http', toolEstimate: 300, description: 'Zero Trust security — ZIA (SWG), ZPA (ZTNA), ZDX (DEM), identity management, and security insights.' },
   { id: 'cloudflare', name: 'Cloudflare', category: 'Edge Platform', prefixes: ['cloudflare-'], color: '#f48120', transport: 'http', toolEstimate: 50, description: 'Edge platform — DNS analytics, WAF/DDoS security, Zero Trust access, traffic analytics, and Workers compute.' },
+  { id: 'checkpoint', name: 'Check Point', category: 'Security', prefixes: ['checkpoint-', 'chkp-'], color: '#e21d38', transport: 'stdio', toolEstimate: 60, description: 'Enterprise security — 15 MCPs for policy management, threat intelligence, gateway diagnostics, SASE, threat prevention, malware analysis, HTTPS inspection, and exposure management.' },
+  { id: 'claroty', name: 'Claroty xDome', category: 'Security', prefixes: ['claroty-'], color: '#00a3a3', transport: 'stdio', toolEstimate: 21, description: 'OT / IoT / IoMT visibility — asset discovery, Purdue Model classification, alert and vulnerability triage, communication-map topology, all writes ITSM-gated.' },
+  { id: 'threejs-viz', name: 'Three.js Network Viz', category: 'Visualization', prefixes: ['threejs-network-viz'], color: '#049ef4', transport: 'stdio', toolEstimate: 3, description: 'Browser-based 3D network topology visualization — single self-contained HTML file, no desktop app/GPU/server required. Optional real-3D-model stencil mode via the vendored sketchfab-mcp-server (3 tools: search, model-details/license-verification, download), filtered to CC0-licensed models only.' },
+  { id: 'chrome-devtools', name: 'Chrome DevTools', category: 'Browser Automation', prefixes: ['chrome-devtools-', 'browser-viz-verify', 'browser-gui-inspect'], color: '#4285f4', transport: 'npx', toolEstimate: 20, description: 'Controlled browser automation/inspection — visualization render QA, controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile.' },
+  { id: 'computer-use', name: 'Computer Use', category: 'Desktop Automation', prefixes: ['desktop-gui-inspect'], color: '#f9ab00', transport: 'script', toolEstimate: 17, description: 'Full-desktop automation for legacy tools with no browser or API path — virtual Xvfb+XFCE desktop, 17 xdotool-driven actions, VNC/noVNC Watch Mode (loopback-only). No credentials; installed via OpenClaw\'s ClawHub skill mechanism, not a vendored MCP server.' },
 ];
 
 // ── ENV variable mapping per integration ────────────────────────────
@@ -163,6 +168,16 @@ const ENV_MAP = {
     env: ['GITLAB_PERSONAL_ACCESS_TOKEN', 'GITLAB_API_URL', 'GITLAB_READ_ONLY_MODE'],
     files: [],
     notes: 'GitLab PAT (api or read_api scope). GITLAB_API_URL defaults to gitlab.com; override for self-hosted.',
+  },
+  'chrome-devtools': {
+    env: [],
+    files: [],
+    notes: 'No credentials, no env vars — chrome-devtools-mcp takes config as CLI flags only. Target-site auth is a one-time manual sign-in into its default persistent profile (see mcp-servers/chrome-devtools-mcp/README.md).',
+  },
+  'computer-use': {
+    env: [],
+    files: [],
+    notes: 'No credentials, no env vars — installed via `openclaw skills install --global computer-use`, not config/openclaw.json. Live-viewing service (VNC 5900, noVNC 6080) is enforced loopback-only by the installer (see specs/050-computer-use-desktop/research.md R5).',
   },
   jenkins: {
     env: ['JENKINS_URL', 'JENKINS_USERNAME', 'JENKINS_API_TOKEN', 'JENKINS_AUTH_BASE64'],
@@ -400,6 +415,21 @@ const ENV_MAP = {
     env: ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'CLOUDFLARE_ZONE_ID'],
     files: [],
     notes: 'Cloudflare MCP Servers (5 domain-specific). API token from Cloudflare dashboard. Account ID required, Zone ID optional.',
+  },
+  checkpoint: {
+    env: ['CHKP_MGMT_HOST', 'CHKP_MGMT_PORT', 'CHKP_MGMT_API_KEY', 'CHKP_MGMT_USERNAME', 'CHKP_MGMT_PASSWORD', 'CHKP_MGMT_DOMAIN', 'CHKP_S1C_API_KEY', 'CHKP_S1C_URL', 'CHKP_REPUTATION_API_KEY', 'CHKP_SASE_API_KEY', 'CHKP_SASE_MGMT_HOST', 'CHKP_TE_API_KEY', 'CHKP_SPARK_API_KEY', 'CHKP_ARGOS_API_KEY', 'CHKP_TELEMETRY_DISABLED', 'CHKP_LOG_LEVEL'],
+    files: ['mcp-servers/checkpoint-mcp-servers/'],
+    notes: 'Check Point Security (15 MCPs). Management Server requires CHKP_MGMT_HOST + API key or username/password. Additional keys for SASE, Threat Emulation, Reputation, Spark, Argos. Enable with ./scripts/checkpoint-enable.sh',
+  },
+  claroty: {
+    env: ['CLAROTY_API_URL', 'CLAROTY_API_TOKEN', 'CLAROTY_VERIFY_SSL', 'CLAROTY_TIMEOUT', 'CLAROTY_RATE_LIMIT_PER_MIN', 'NETCLAW_LAB_MODE'],
+    files: ['mcp-servers/claroty-mcp/.env'],
+    notes: 'Claroty xDome MCP — OT / IoT / IoMT visibility. Bearer token from xDome Admin Settings > User Management. Writes require a ServiceNow CR; NETCLAW_LAB_MODE=true skips the state check (shared with gnmi-mcp).',
+  },
+  'threejs-viz': {
+    env: ['SKETCHFAB_API_KEY', 'SKETCHFAB_USERNAME'],
+    files: ['mcp-servers/sketchfab-mcp-server/'],
+    notes: 'Only needed for optional real-3D-model stencil mode. Token from https://sketchfab.com/settings/password. Procedural-shape rendering works with zero configuration.',
   },
 };
 
@@ -792,7 +822,10 @@ async function fetchBGPState() {
     // Enrich peers with adj-rib-in route counts, ASN, router-id, and type
     const enrichedPeers = (peers.peers || []).map((p) => {
       const adjRoutes = rib.adj_rib_in?.[p.peer] || [];
-      const isMesh = p.peer.startsWith('mesh-');
+      // Mesh claws appear two ways: inbound sessions keyed "mesh-as<N>", and
+      // outbound sessions keyed by their ngrok hostname (anything that isn't
+      // a bare IPv4/IPv6 literal).
+      const isMesh = p.peer.startsWith('mesh-') || !/^[0-9a-fA-F:.]+$/.test(p.peer);
 
       // Extract ASN: from peer key "mesh-as65002" or from adj-rib-in AS paths
       let peerAs = null;
@@ -855,11 +888,116 @@ app.get('/api/bgp', async (req, res) => {
   res.json(await fetchBGPState());
 });
 
+// ── N2N Federation endpoint (feature 052) ─────────────────────────
+// Aggregates the mesh daemon's /n2n/* state for the HUD federation view.
+// Mirrors the /api/bgp pattern; degrades gracefully when N2N is disabled.
+async function fetchN2NState() {
+  try {
+    const statusRes = await fetch(`${BGP_API}/n2n/status`, { signal: AbortSignal.timeout(3000) });
+    if (!statusRes.ok) return { available: false, peers: [] };
+    const status = await statusRes.json();
+    if (!status || status.enabled === false) return { available: false, peers: [] };
+
+    // Enrich each federated peer with its cached inventory
+    const peers = await Promise.all((status.peers || []).map(async (p) => {
+      let inventory = null;
+      if (p.state === 'federated' && p.inventory_version != null) {
+        try {
+          const invRes = await fetch(`${BGP_API}/n2n/peers/${encodeURIComponent(p.identity)}/inventory`,
+            { signal: AbortSignal.timeout(3000) });
+          if (invRes.ok) inventory = await invRes.json();
+        } catch { /* peer inventory optional */ }
+      }
+      return { ...p, inventory };
+    }));
+
+    let approvals = [];
+    try {
+      const aRes = await fetch(`${BGP_API}/n2n/approvals`, { signal: AbortSignal.timeout(3000) });
+      if (aRes.ok) approvals = (await aRes.json()).pending || [];
+    } catch { /* approvals optional */ }
+
+    // 053 US6: fold per-peer channel health + in-flight tasks into each peer
+    try {
+      const hRes = await fetch(`${BGP_API}/n2n/health`, { signal: AbortSignal.timeout(3000) });
+      if (hRes.ok) {
+        const health = (await hRes.json()).peers || [];
+        const byId = Object.fromEntries(health.map((h) => [h.identity, h]));
+        peers.forEach((p) => {
+          const h = byId[p.identity];
+          if (h) {
+            p.channel_state = h.channel_state;
+            p.last_seen = h.last_seen;
+            p.endpoint_updated_at = h.endpoint_updated_at;
+            p.in_flight_tasks = h.in_flight_tasks || [];
+          }
+        });
+      }
+    } catch { /* health optional */ }
+
+    // 056 iN2N: fold this claw's risk role + (on a Border) its members so the
+    // HUD can render the hub-and-spoke risk view alongside eN2N peers.
+    let risk = null;
+    let members = [];
+    let posture = null;
+    try {
+      const rRes = await fetch(`${BGP_API}/n2n/risk`, { signal: AbortSignal.timeout(3000) });
+      if (rRes.ok) risk = await rRes.json();
+      if (risk && risk.role === 'border') {
+        const mRes = await fetch(`${BGP_API}/n2n/members`, { signal: AbortSignal.timeout(3000) });
+        if (mRes.ok) members = (await mRes.json()).members || [];
+      }
+    } catch { /* iN2N optional (standalone/pre-056 daemon) */ }
+
+    // 057: production posture (enforced/degraded/testing) for the risk panel.
+    try {
+      const pRes = await fetch(`${BGP_API}/n2n/posture`, { signal: AbortSignal.timeout(3000) });
+      if (pRes.ok) posture = await pRes.json();
+    } catch { /* posture optional (pre-057 daemon) */ }
+
+    // 057: GAIT immutable audit trail (recent federation events) for the risk panel.
+    let gait = [];
+    try {
+      const gRes = await fetch(`${BGP_API}/n2n/gait`, { signal: AbortSignal.timeout(3000) });
+      if (gRes.ok) gait = (await gRes.json()).events || [];
+    } catch { /* gait optional (pre-057 daemon) */ }
+
+    return { available: true, identity: status.identity, peers, approvals,
+             risk, members, posture, gait, generatedAt: new Date().toISOString() };
+  } catch {
+    return { available: false, peers: [], risk: null, members: [],
+             generatedAt: new Date().toISOString() };
+  }
+}
+
+app.get('/api/n2n', async (req, res) => {
+  res.json(await fetchN2NState());
+});
+
+// Proxy a claw-to-claw chat message from the HUD to the daemon (FR-025)
+app.post('/api/n2n/chat', async (req, res) => {
+  const { peer, text, session_id } = req.body || {};
+  if (!peer || !text) return res.status(400).json({ error: 'expected { peer, text }' });
+  try {
+    const r = await fetch(`${BGP_API}/n2n/chat/send`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ peer, text, session_id }),
+      signal: AbortSignal.timeout(300000),
+    });
+    res.json(await r.json());
+  } catch (e) {
+    res.status(502).json({ error: `daemon unreachable: ${e.message}` });
+  }
+});
+
 // ── Gateway status endpoint ───────────────────────────────────────
 app.get('/api/gateway/status', async (req, res) => {
   const gw = getGatewayConfig();
   try {
+    // The gateway's /v1 API requires the bearer token — without it we get 401
+    // and the HUD falsely shows "offline". Send the token like the chat call does.
     const health = await fetch(`http://127.0.0.1:${gw.port}/v1/models`, {
+      headers: gw.token ? { 'Authorization': `Bearer ${gw.token}` } : {},
       signal: AbortSignal.timeout(2000),
     });
     res.json({ online: health.ok, port: gw.port });
@@ -968,31 +1106,37 @@ app.post('/api/chat', async (req, res) => {
     timestamp,
   });
 
-  // Try to proxy through the real OpenClaw gateway via CLI
+  // Try to proxy through the real OpenClaw gateway with streaming
   let responseText = '';
   let fromGateway = false;
   const gw = getGatewayConfig();
 
   try {
-    const { execFileSync } = await import('child_process');
-    const result = execFileSync('openclaw', [
-      'agent', '--agent', 'main', '--session-id', 'agent:main:hud', '--message', message
-    ], {
-      timeout: 300000,
-      encoding: 'utf8',
-      env: { ...process.env, HOME: '/root', NO_COLOR: '1' },
-      stdio: ['pipe', 'pipe', 'pipe'],
+    const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gw.token}`,
+        'Content-Type': 'application/json',
+        'x-openclaw-agent-id': 'main',
+      },
+      body: JSON.stringify({
+        model: 'openclaw',
+        messages: chatHistory
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-10)
+          .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(300000),
     });
-    // Strip config warnings and ANSI codes from stdout
-    const lines = result.split('\n').filter(l => !l.startsWith('Config (') && !l.startsWith('Gateway agent'));
-    responseText = lines.join('\n').replace(/\x1b\[[0-9;]*m/g, '').trim();
-    if (responseText) fromGateway = true;
-  } catch (err) {
-    // Gateway not reachable or command failed - fall back to local heuristic
-    const out = (err.stdout || '').toString();
-    const lines = out.split('\n').filter(l => !l.startsWith('Config (') && !l.startsWith('Gateway agent') && !l.startsWith('Error:'));
-    responseText = lines.join('\n').replace(/\x1b\[[0-9;]*m/g, '').trim();
-    if (responseText) fromGateway = true;
+
+    if (gwRes.ok) {
+      const gwData = await gwRes.json();
+      responseText = gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
+      fromGateway = true;
+    }
+  } catch {
+    // Gateway not reachable — fall back to local heuristic
   }
 
   if (!responseText) {
@@ -1187,7 +1331,14 @@ function resolveActivations(message, graph) {
     'topology': ['pyats'],
     'security': ['ise', 'nmap', 'nvd', 'fmc'],
     'audit': ['pyats', 'nvd', 'gait'],
-    'firewall': ['asa', 'fmc', 'paloalto', 'fortimanager'],
+    'firewall': ['asa', 'fmc', 'paloalto', 'fortimanager', 'checkpoint'],
+    'check point': ['checkpoint'],
+    'checkpoint': ['checkpoint'],
+    'threat emulation': ['checkpoint'],
+    'sandblast': ['checkpoint'],
+    'harmony sase': ['checkpoint'],
+    'clusterxl': ['checkpoint'],
+    'smartconsole': ['checkpoint'],
     'vpn': ['asa', 'sdwan', 'meraki'],
     'change': ['servicenow', 'gait'],
     'diagram': ['drawio', 'uml', 'markmap'],
@@ -1295,16 +1446,6 @@ wss.on('connection', (socket) => {
     clearInterval(timer);
   });
 });
-
-// Serve built frontend (vite build output)
-const distPath = path.join(__dirname, 'dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.get('*', (req, res, next) => {
-    if (req.path.startsWith('/api/') || req.path === '/ws') return next();
-    res.sendFile(path.join(distPath, 'index.html'));
-  });
-}
 
 const PORT = process.env.HUD_PORT || 3001;
 server.listen(PORT, () => {

@@ -1,6 +1,7 @@
 ---
 name: pyats-junos-routing
 description: "JunOS routing operations via pyATS — OSPF/OSPFv3, BGP, route table, MPLS/LDP/RSVP, TED, PFE, ping, traceroute across Juniper devices. Use when checking Juniper OSPF neighbors, viewing BGP summary, inspecting MPLS LSPs, tracing routes, or auditing the JunOS route table."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

@@ -2,6 +2,7 @@
 name: jenkins-cicd
 description: Jenkins CI/CD pipeline management — monitor builds, trigger pipelines, analyze logs, and track SCM changes for network automation workflows.
 version: "1.0"
+license: Apache-2.0
 tags:
   - cicd
   - jenkins

@@ -1,6 +1,7 @@
 ---
 name: pyats-topology
 description: "Network topology discovery via CDP/LLDP neighbors, ARP tables, routing peers, and interface mapping to build complete network maps. Use when mapping the network, building a diagram, discovering what is connected to what, or documenting device neighbors and links."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

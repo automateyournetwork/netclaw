@@ -2,6 +2,7 @@
 name: meraki-switch-ops
 description: "Cisco Meraki Switching — port configuration, VLANs, port status, ACLs, QoS rules, port cycling. Use when configuring Meraki switch ports, creating VLANs, checking port status and PoE, troubleshooting switch connectivity, or managing Meraki ACLs and QoS"
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, meraki, switch, port, vlan, acl, qos, ms]
 ---
 

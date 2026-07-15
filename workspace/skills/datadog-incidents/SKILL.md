@@ -1,3 +1,12 @@
+---
+name: datadog-incidents
+description: "Manage incidents in Datadog Incident Management."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Datadog Incidents Skill
 
 Manage incidents in Datadog Incident Management.

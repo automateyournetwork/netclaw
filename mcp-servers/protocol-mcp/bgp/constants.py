@@ -199,6 +199,40 @@ NCFED_FLAG_CONTINUATION = 0x01    # payload is a chunk; concatenate until flag c
 NCFED_HEARTBEAT_INTERVAL = 30     # seconds of silence before sending an empty frame
 NCFED_HEARTBEAT_MISS_LIMIT = 3    # missed heartbeats before channel considered down
 
+# ── iN2N — Internal NetClaw Federation (feature 056) ────────────────
+# iN2N reuses the NCFED wire framing above over a member-initiated internal
+# transport. It is a NEW binding + trust profile, NOT a new wire protocol; the
+# frozen eN2N (052/053) framing/consent/default-deny are untouched.
+N2N_ROLE_STANDALONE = "standalone"   # a "risk of one" — behaves as pre-056 NetClaw
+N2N_ROLE_BORDER = "border"           # the sole coordinator + external face of a risk
+N2N_ROLE_MEMBER = "member"           # an internal, tightly-scoped specialist claw
+N2N_ROLES = (N2N_ROLE_STANDALONE, N2N_ROLE_BORDER, N2N_ROLE_MEMBER)
+
+# iN2N handshake methods (siblings of eN2N n2n/hello — dispatched over the
+# internal channel; carry a risk-local member id + pinned-key proof, NOT an AS).
+IN2N_METHOD_HELLO = "in2n/hello"
+IN2N_METHOD_ENROLL = "in2n/enroll"
+
+# iN2N transport preamble: the Border sends this magic + a 32-byte nonce on
+# accept; the member replies with in2n/hello|in2n/enroll signing the nonce
+# (proof-of-possession of its pinned self-signed key). Distinct from NCFED so
+# eN2N discrimination is unaffected; iN2N uses its own listener (N2N_IN2N_PORT).
+IN2N_MAGIC = b'IN2N1'
+IN2N_NONCE_SIZE = 32
+
+# iN2N JSON-RPC error codes (distinct from the frozen eN2N -3200x range).
+IN2N_ERR_ENROLL_TOKEN_INVALID = -32021   # token missing/spent/expired
+IN2N_ERR_MEMBER_ID_TAKEN = -32022        # member_id already pinned to another key
+IN2N_ERR_MEMBER_NOT_TRUSTED = -32023     # key != pinned, or member removed/quarantined
+IN2N_ERR_NOT_A_BORDER = -32024           # enrollment attempted against a non-Border claw
+IN2N_ERR_NO_CAPABLE_MEMBER = -32030      # no active member covers the requested capability
+IN2N_ERR_OUT_OF_SCOPE = -32031           # member asked to act beyond its advertised scope
+
+# iN2N tunables (defaults; overridable via env — see .env.example).
+N2N_QUARANTINE_THRESHOLD_DEFAULT = 5     # consecutive auth/health failures → auto-quarantine
+# N2N_IN2N_PORT (env): optional dedicated iN2N listener on the Border; when unset
+# the Border accepts iN2N dial-ins on the shared mesh port via discrimination.
+
 CAPABILITY_NAMES = {
     CAP_MULTIPROTOCOL: "Multiprotocol",
     CAP_ROUTE_REFRESH: "Route Refresh",

@@ -2,6 +2,7 @@
 name: aws-cost-ops
 description: "AWS Cost Explorer — spending analysis, service breakdowns, forecasts, cost anomalies. Use when analyzing AWS spending, investigating cost spikes, reviewing network cost drivers like NAT Gateway, or forecasting next month's bill."
 version: 1.0.0
+license: Apache-2.0
 tags: [aws, cost-explorer, billing, finops, cost-optimization]
 ---
 

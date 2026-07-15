@@ -1,3 +1,12 @@
+---
+name: datadog-logs
+description: "Search and analyze logs in Datadog Log Management."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Datadog Logs Skill
 
 Search and analyze logs in Datadog Log Management.

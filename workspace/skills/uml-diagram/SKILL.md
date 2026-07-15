@@ -1,6 +1,7 @@
 ---
 name: uml-diagram
 description: "UML and diagram generation via Kroki — class, sequence, activity, state, component, deployment, network, ER, C4, Mermaid, D2, Graphviz, BPMN, 27+ types. Use when generating a network diagram, creating a sequence diagram, drawing a rack layout, visualizing a protocol state machine, or producing architecture documentation."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": [] } } }

@@ -1,6 +1,7 @@
 ---
 name: pyats-linux-network
 description: "Linux host network operations via pyATS — interface configuration, routing tables, network connections, and multi-table route inspection across fleet hosts. Use when checking Linux interface status, viewing routing tables, auditing host network config, or comparing routes across hosts."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

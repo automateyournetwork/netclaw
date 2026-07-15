@@ -1,6 +1,7 @@
 ---
 name: mempalace
 description: "MemPalace AI memory — persistent memory across sessions. Search past decisions, store architecture choices, track temporal network facts via knowledge graph, navigate cross-domain connections, maintain specialist agent diaries. Use when recalling past decisions, storing important context, tracking network changes over time, or maintaining operational journals."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["MEMPALACE_MCP_SCRIPT", "MCP_CALL"] } } }

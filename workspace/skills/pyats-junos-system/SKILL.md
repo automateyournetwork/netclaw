@@ -1,6 +1,7 @@
 ---
 name: pyats-junos-system
 description: "JunOS system operations via pyATS — chassis health, hardware inventory, system info, NTP, SNMP, files/logs, firewall counters, DDoS protection, services accounting. Use when checking Juniper chassis alarms, auditing hardware inventory, reviewing system uptime, or inspecting JunOS firewall counters."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

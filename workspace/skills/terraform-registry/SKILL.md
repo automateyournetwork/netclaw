@@ -1,3 +1,12 @@
+---
+name: terraform-registry
+description: "Discover providers and modules from the Terraform Registry."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Terraform Registry Skill
 
 Discover providers and modules from the Terraform Registry.

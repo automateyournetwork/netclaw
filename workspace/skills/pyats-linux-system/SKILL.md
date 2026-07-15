@@ -1,6 +1,7 @@
 ---
 name: pyats-linux-system
 description: "Linux host system operations via pyATS — process monitoring, filesystem inspection, Docker container stats, package/tool verification across fleet hosts. Use when checking running processes, monitoring Docker containers, inspecting log files, or verifying system tools on Linux hosts."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

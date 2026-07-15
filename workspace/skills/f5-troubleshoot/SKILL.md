@@ -1,6 +1,7 @@
 ---
 name: f5-troubleshoot
 description: "F5 BIG-IP troubleshooting - virtual server failures, pool member health, connection issues, SSL/TLS problems, iRule errors, persistence issues, and performance degradation. Use when a VIP is not responding, pool members are marked down, users report SSL errors, the application is slow, or iRule TCL errors appear in logs."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["F5_MCP_SCRIPT", "MCP_CALL"] } } }

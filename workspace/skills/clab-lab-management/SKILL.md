@@ -1,6 +1,7 @@
 ---
 name: clab-lab-management
 description: "ContainerLab network lab lifecycle management — authenticate, list, deploy, inspect, execute commands on, and destroy containerized network labs via the ContainerLab API. Use when deploying containerized network labs, spinning up SR Linux or cEOS topologies, running commands on lab nodes, or tearing down test environments."
+license: Apache-2.0
 user-invokable: true
 ---
 

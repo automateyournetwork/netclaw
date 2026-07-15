@@ -2,6 +2,7 @@
 name: aap-automation
 description: "Red Hat Ansible Automation Platform — inventory management, job template execution, project SCM sync, ad-hoc commands, host management, Galaxy content discovery. Use when automating infrastructure with Ansible, running playbooks, managing inventories, or searching for Ansible collections and roles."
 version: 1.0.0
+license: Apache-2.0
 tags: [ansible, aap, automation, redhat, inventory, playbook, job-template]
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["AAP_URL", "AAP_TOKEN"] } } }

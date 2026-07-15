@@ -1,6 +1,7 @@
 ---
 name: drawio-diagram
 description: "Generate draw.io network diagrams — native .drawio files with CLI export (PNG/SVG/PDF), plus browser-based Mermaid/XML/CSV via MCP server. Use when creating network topology diagrams, generating architecture visuals, exporting diagrams to PNG or PDF, or building draw.io files from discovery data."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["npx"] } } }

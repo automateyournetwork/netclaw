@@ -1,6 +1,7 @@
 ---
 name: aruba-cx-system
 description: "Discover Aruba CX switch system information, firmware versions, and VSF topology"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

@@ -1,6 +1,7 @@
 ---
 name: f5-health-check
 description: "F5 BIG-IP health monitoring - virtual server status, pool member health, log analysis, performance statistics, and systematic health assessment. Use when checking F5 load balancer health, running a pre-change or post-change validation, investigating pool member failures, or auditing SSL certificate expiration."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["F5_MCP_SCRIPT", "MCP_CALL"] } } }

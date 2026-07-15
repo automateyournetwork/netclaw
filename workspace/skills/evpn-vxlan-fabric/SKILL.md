@@ -1,6 +1,7 @@
 ---
 name: evpn-vxlan-fabric
 description: "EVPN/VXLAN fabric audit and troubleshooting — VTEPs, VNIs, route types, multihoming, underlay/overlay validation. Use when troubleshooting VXLAN overlay reachability, auditing leaf-spine fabric health, debugging silent hosts or asymmetric flooding, or validating anycast gateway and ESI multihoming state."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

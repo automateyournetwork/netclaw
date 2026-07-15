@@ -1,6 +1,7 @@
 ---
 name: infoblox-ddi
 description: "Infoblox DDI operations — DNS zones/records, DHCP scopes and leases, IPAM networks and address utilization. Use when checking DNS records, validating IPAM address allocation, investigating DHCP scope exhaustion, verifying reverse DNS for network devices, or reconciling Infoblox with NetBox or Nautobot."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["INFOBLOX_MCP_CMD", "INFOBLOX_URL", "INFOBLOX_API_KEY"] } } }

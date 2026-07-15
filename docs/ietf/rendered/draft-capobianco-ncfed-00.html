@@ -1,0 +1,2869 @@
+<!DOCTYPE html>
+<html lang="en" class="Internet-Draft">
+<head>
+<meta charset="utf-8">
+<meta content="Common,Latin" name="scripts">
+<meta content="initial-scale=1.0" name="viewport">
+<title>The NetClaw-to-NetClaw Federation Protocol (NCFED)</title>
+<meta content="John Capobianco" name="author">
+<meta content="
+       This document specifies the NetClaw-to-NetClaw Federation Protocol (NCFED), an
+application-layer protocol that lets independently operated AI network-engineering
+agents (&quot;NetClaws&quot;) discover one another's capabilities, invoke remote tools, and
+delegate tasks over long-lived TCP sessions. NCFED multiplexes its federation
+channel with BGP-4 and an associated tunneling data plane on a single listening
+port, using first-octet protocol discrimination. Its payload is JSON-RPC 2.0
+carrying Model Context Protocol (MCP) and Agent2Agent (A2A) operations. Two trust
+models are defined: mutual operator consent for external federation between
+different trust domains (eN2N), and enrollment-token bootstrap with
+trust-on-first-use (TOFU) key pinning for hub-and-spoke federation within a single
+operator's trust domain (iN2N). NCFED does not replace MCP or A2A; it is a
+cross-operator federation, identity, and transport layer that carries them. This
+document describes the protocol as implemented in the open-source NetClaw project
+and is published as Experimental to enable interoperability and public review. 
+    " name="description">
+<meta content="xml2rfc 3.34.0" name="generator">
+<meta content="federation" name="keyword">
+<meta content="ai-agents" name="keyword">
+<meta content="mcp" name="keyword">
+<meta content="a2a" name="keyword">
+<meta content="bgp" name="keyword">
+<meta content="multiplexing" name="keyword">
+<meta content="draft-capobianco-ncfed-00" name="ietf.draft">
+<!-- Generator version information:
+  xml2rfc 3.34.0
+    Python 3.13.0b1
+    ConfigArgParse 1.7.5
+    google-i18n-address 3.1.1
+    intervaltree 3.2.1
+    Jinja2 3.1.6
+    lxml 6.0.2
+    natsort 8.4.0
+    platformdirs 4.9.2
+    pycountry 26.2.16
+    pypdf 5.5.0
+    PyYAML 6.0.2
+    requests 2.32.3
+    wcwidth 0.2.13
+-->
+<link href="draft-capobianco-ncfed-00.xml" rel="alternate" type="application/rfc+xml">
+<link href="#copyright" rel="license">
+<style type="text/css">/*
+
+  NOTE: Changes at the bottom of this file overrides some earlier settings.
+
+  Once the style has stabilized and has been adopted as an official RFC style,
+  this can be consolidated so that style settings occur only in one place, but
+  for now the contents of this file consists first of the initial CSS work as
+  provided to the RFC Formatter (xml2rfc) work, followed by itemized and
+  commented changes found necessary during the development of the v3
+  formatters.
+
+*/
+
+/* fonts */
+@import url('https://static.ietf.org/fonts/noto-sans/import.css'); /* Sans-serif */
+@import url('https://static.ietf.org/fonts/noto-serif/import.css'); /* Serif (print) */
+@import url('https://static.ietf.org/fonts/roboto-mono/import.css'); /* Monospace */
+
+:root {
+  --font-sans: 'Noto Sans', Arial, Helvetica, sans-serif;
+  --font-serif: 'Noto Serif', 'Times', 'Times New Roman', serif;
+  --font-mono: 'Roboto Mono', Courier, 'Courier New', monospace;
+}
+
+@viewport {
+  zoom: 1.0;
+}
+@-ms-viewport {
+  width: extend-to-zoom;
+  zoom: 1.0;
+}
+/* general and mobile first */
+html {
+}
+body {
+  max-width: 90%;
+  margin: 1.5em auto;
+  color: #222;
+  background-color: #fff;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  scroll-behavior: smooth;
+  overflow-wrap: break-word;
+}
+.ears {
+  display: none;
+}
+
+/* headings */
+#title, h1, h2, h3, h4, h5, h6 {
+  margin: 1em 0 0.5em;
+  font-weight: bold;
+  line-height: 1.3;
+}
+#title {
+  clear: both;
+  border-bottom: 1px solid #ddd;
+  margin: 0 0 0.5em 0;
+  padding: 1em 0 0.5em;
+}
+.author {
+  padding-bottom: 4px;
+}
+h1 {
+  font-size: 26px;
+  margin: 1em 0;
+}
+h2 {
+  font-size: 22px;
+  margin-top: -20px;  /* provide offset for in-page anchors */
+  padding-top: 33px;
+}
+h3 {
+  font-size: 18px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h4 {
+  font-size: 16px;
+  margin-top: -36px;  /* provide offset for in-page anchors */
+  padding-top: 42px;
+}
+h5, h6 {
+  font-size: 14px;
+}
+#n-copyright-notice {
+  border-bottom: 1px solid #ddd;
+  padding-bottom: 1em;
+  margin-bottom: 1em;
+}
+/* general structure */
+p {
+  padding: 0;
+  margin: 0 0 1em 0;
+  text-align: left;
+}
+div, span {
+  position: relative;
+}
+div {
+  margin: 0;
+}
+.alignRight.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignRight.art-text pre {
+  padding: 0;
+}
+.alignRight {
+  margin: 1em 0;
+}
+.alignRight > *:first-child {
+  border: none;
+  margin: 0;
+  float: right;
+  clear: both;
+}
+.alignRight > *:nth-child(2) {
+  clear: both;
+  display: block;
+  border: none;
+}
+svg {
+  display: block;
+}
+@media print {
+  svg {
+    max-height: 850px;
+    max-width: 660px;
+  }
+}
+svg[font-family~="serif" i], svg [font-family~="serif" i] {
+  font-family: var(--font-serif);
+}
+svg[font-family~="sans-serif" i], svg [font-family~="sans-serif" i] {
+  font-family: var(--font-sans);
+}
+svg[font-family~="monospace" i], svg [font-family~="monospace" i] {
+  font-family: var(--font-mono);
+}
+.alignCenter.art-text {
+  background-color: #f9f9f9;
+  border: 1px solid #eee;
+  border-radius: 3px;
+  padding: 1em 1em 0;
+  margin-bottom: 1.5em;
+}
+.alignCenter.art-text pre {
+  padding: 0;
+}
+.alignCenter {
+  margin: 1em 0;
+}
+.alignCenter > *:first-child {
+  display: table;
+  border: none;
+  margin: 0 auto;
+}
+
+/* lists */
+ol, ul {
+  padding: 0;
+  margin: 0 0 1em 2em;
+}
+ol ol, ul ul, ol ul, ul ol {
+  margin-left: 1em;
+}
+li {
+  margin: 0 0 0.25em 0;
+}
+.ulCompact li {
+  margin: 0;
+}
+ul.empty, .ulEmpty {
+  list-style-type: none;
+}
+ul.empty li, .ulEmpty li {
+  margin-top: 0.5em;
+}
+ul.ulBare, li.ulBare {
+  margin-left: 0em !important;
+}
+ul.compact, .ulCompact,
+ol.compact, .olCompact {
+  line-height: 100%;
+  margin: 0 0 0 2em;
+}
+
+/* definition lists */
+dl {
+}
+dl > dt {
+  float: left;
+  margin-right: 1em;
+}
+/* 
+dl.nohang > dt {
+  float: none;
+}
+*/
+dl > dd {
+  margin-bottom: .8em;
+  min-height: 1.3em;
+}
+dl.compact > dd, .dlCompact > dd {
+  margin-bottom: 0em;
+}
+dl > dd > dl {
+  margin-top: 0.5em;
+  margin-bottom: 0em;
+}
+
+/* links */
+a {
+  text-decoration: none;
+}
+a[href] {
+  color: #22e; /* Arlen: WCAG 2019 */
+}
+a[href]:hover {
+  background-color: #f2f2f2;
+}
+figcaption a[href],
+a[href].selfRef {
+  color: #222;
+}
+/* XXX probably not this:
+a.selfRef:hover {
+  background-color: transparent;
+  cursor: default;
+} */
+
+/* Figures */
+tt, code, pre {
+  background-color: #f9f9f9;
+  font-family: var(--font-mono);
+}
+pre {
+  border: 1px solid #eee;
+  margin: 0;
+  padding: 1em;
+}
+img {
+  max-width: 100%;
+}
+figure {
+  margin: 0;
+}
+figure blockquote {
+  margin: 0.8em 0.4em 0.4em;
+}
+figcaption {
+  font-style: italic;
+  margin: 0 0 1em 0;
+}
+@media screen {
+  pre {
+    overflow-x: auto;
+    max-width: 100%;
+    max-width: calc(100% - 22px);
+  }
+}
+
+/* aside, blockquote */
+aside, blockquote {
+  margin-left: 0;
+  padding: 1.2em 2em;
+}
+blockquote {
+  background-color: #f9f9f9;
+  color: #111; /* Arlen: WCAG 2019 */
+  border: 1px solid #ddd;
+  border-radius: 3px;
+  margin: 1em 0;
+}
+blockquote > *:last-child {
+  margin-bottom: 0;
+}
+cite {
+  display: block;
+  text-align: right;
+  font-style: italic;
+}
+.xref {
+  overflow-wrap: normal;
+}
+
+/* tables */
+table {
+  width: 100%;
+  margin: 0 0 1em;
+  border-collapse: collapse;
+  border: 1px solid #eee;
+}
+th, td {
+  text-align: left;
+  vertical-align: top;
+  padding: 0.5em 0.75em;
+}
+th {
+  text-align: left;
+  background-color: #e9e9e9;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f5f5f5;
+}
+table caption {
+  font-style: italic;
+  margin: 0;
+  padding: 0;
+  text-align: left;
+}
+table p {
+  /* XXX to avoid bottom margin on table row signifiers. If paragraphs should
+     be allowed within tables more generally, it would be far better to select on a class. */
+  margin: 0;
+}
+
+/* pilcrow */
+a.pilcrow {
+  color: #666; /* Arlen: AHDJ 2019 */
+  text-decoration: none;
+  visibility: hidden;
+  user-select: none;
+  -ms-user-select: none;
+  -o-user-select:none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+@media screen {
+  aside:hover > a.pilcrow,
+  p:hover > a.pilcrow,
+  blockquote:hover > a.pilcrow,
+  div:hover > a.pilcrow,
+  li:hover > a.pilcrow,
+  pre:hover > a.pilcrow {
+    visibility: visible;
+  }
+  a.pilcrow:hover {
+    background-color: transparent;
+  }
+}
+
+/* misc */
+hr {
+  border: 0;
+  border-top: 1px solid #eee;
+}
+.bcp14 {
+  font-variant: small-caps;
+}
+
+.role {
+  font-variant: all-small-caps;
+}
+
+/* info block */
+#identifiers {
+  margin: 0;
+  font-size: 0.9em;
+}
+#identifiers dt {
+  width: 3em;
+  clear: left;
+}
+#identifiers dd {
+  float: left;
+  margin-bottom: 0;
+}
+/* Fix PDF info block run off issue */
+@media print {
+  #identifiers dd {
+    max-width: 100%;
+  }
+}
+#identifiers .authors .author {
+  display: inline-block;
+  margin-right: 1.5em;
+}
+#identifiers .authors .org {
+  font-style: italic;
+}
+
+/* The prepared/rendered info at the very bottom of the page */
+.docInfo {
+  color: #666; /* Arlen: WCAG 2019 */
+  font-size: 0.9em;
+  font-style: italic;
+  margin-top: 2em;
+}
+.docInfo .prepared {
+  float: left;
+}
+.docInfo .prepared {
+  float: right;
+}
+
+/* table of contents */
+#toc  {
+  padding: 0.75em 0 2em 0;
+  margin-bottom: 1em;
+}
+nav.toc ul {
+  margin: 0 0.5em 0 0;
+  padding: 0;
+  list-style: none;
+}
+nav.toc li {
+  line-height: 1.3em;
+  margin: 0.75em 0;
+  padding-left: 1.2em;
+  text-indent: -1.2em;
+}
+/* references */
+.references dt {
+  text-align: right;
+  font-weight: bold;
+  min-width: 7em;
+}
+.references dd {
+  margin-left: 8em;
+  overflow: auto;
+}
+
+.refInstance {
+  margin-bottom: 1.25em;
+}
+
+.refSubseries {
+  margin-bottom: 1.25em;
+}
+
+.references .ascii {
+  margin-bottom: 0.25em;
+}
+
+/* index */
+.index ul {
+  margin: 0 0 0 1em;
+  padding: 0;
+  list-style: none;
+}
+.index ul ul {
+  margin: 0;
+}
+.index li {
+  margin: 0;
+  text-indent: -2em;
+  padding-left: 2em;
+  padding-bottom: 5px;
+}
+.indexIndex {
+  margin: 0.5em 0 1em;
+}
+.index a {
+  font-weight: 700;
+}
+/* make the index two-column on all but the smallest screens */
+@media (min-width: 600px) {
+  .index ul {
+    -moz-column-count: 2;
+    -moz-column-gap: 20px;
+  }
+  .index ul ul {
+    -moz-column-count: 1;
+    -moz-column-gap: 0;
+  }
+}
+
+/* authors */
+address.vcard {
+  font-style: normal;
+  margin: 1em 0;
+}
+
+address.vcard .nameRole {
+  font-weight: 700;
+  margin-left: 0;
+}
+address.vcard .label {
+  font-family: var(--font-sans);
+  margin: 0.5em 0;
+}
+address.vcard .type {
+  display: none;
+}
+.alternative-contact {
+  margin: 1.5em 0 1em;
+}
+hr.addr {
+  border-top: 1px dashed;
+  margin: 0;
+  color: #ddd;
+  max-width: calc(100% - 16px);
+}
+
+/* temporary notes */
+.rfcEditorRemove::before {
+  position: absolute;
+  top: 0.2em;
+  right: 0.2em;
+  padding: 0.2em;
+  content: "The RFC Editor will remove this note";
+  color: #9e2a00; /* Arlen: WCAG 2019 */
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+}
+.rfcEditorRemove {
+  position: relative;
+  padding-top: 1.8em;
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  border-radius: 3px;
+}
+.cref {
+  background-color: #ffd; /* Arlen: WCAG 2019 */
+  padding: 2px 4px;
+}
+.crefSource {
+  font-style: italic;
+}
+/* alternative layout for smaller screens */
+@media screen and (max-width: 1023px) {
+  body {
+    padding-top: 2em;
+  }
+  #title {
+    padding: 1em 0;
+  }
+  h1 {
+    font-size: 24px;
+  }
+  h2 {
+    font-size: 20px;
+    margin-top: -18px;  /* provide offset for in-page anchors */
+    padding-top: 38px;
+  }
+  #identifiers dd {
+    max-width: 60%;
+  }
+  #toc {
+    position: fixed;
+    z-index: 2;
+    top: 0;
+    right: 0;
+    padding: 0;
+    margin: 0;
+    background-color: inherit;
+    border-bottom: 1px solid #ccc;
+  }
+  #toc h2 {
+    margin: -1px 0 0 0;
+    padding: 4px 0 4px 6px;
+    padding-right: 1em;
+    min-width: 190px;
+    font-size: 1.1em;
+    text-align: right;
+    background-color: #444;
+    color: white;
+    cursor: pointer;
+  }
+  #toc h2::before { /* css hamburger */
+    float: right;
+    position: relative;
+    width: 1em;
+    height: 1px;
+    left: -164px;
+    margin: 6px 0 0 0;
+    background: white none repeat scroll 0 0;
+    box-shadow: 0 4px 0 0 white, 0 8px 0 0 white;
+    content: "";
+  }
+  #toc nav {
+    display: none;
+    padding: 0.5em 1em 1em;
+    overflow: auto;
+    height: calc(100vh - 48px);
+    border-left: 1px solid #ddd;
+  }
+}
+
+/* alternative layout for wide screens */
+@media screen and (min-width: 1024px) {
+  body {
+    max-width: 724px;
+    margin: 42px auto;
+    padding-left: 1.5em;
+    padding-right: 29em;
+  }
+  #toc {
+    position: fixed;
+    top: 42px;
+    right: 42px;
+    width: 25%;
+    margin: 0;
+    padding: 0 1em;
+    z-index: 1;
+  }
+  #toc h2 {
+    border-top: none;
+    border-bottom: 1px solid #ddd;
+    font-size: 1em;
+    font-weight: normal;
+    margin: 0;
+    padding: 0.25em 1em 1em 0;
+  }
+  #toc nav {
+    display: block;
+    height: calc(90vh - 84px);
+    bottom: 0;
+    padding: 0.5em 0 0;
+    overflow: auto;
+  }
+  img { /* future proofing */
+    max-width: 100%;
+    height: auto;
+  }
+}
+
+/* pagination */
+@media print {
+  body {
+    width: 100%;
+  }
+  p {
+    orphans: 3;
+    widows: 3;
+  }
+  #n-copyright-notice {
+    border-bottom: none;
+  }
+  #toc, #n-introduction {
+    page-break-before: always;
+  }
+  #toc {
+    border-top: none;
+    padding-top: 0;
+  }
+  figure, pre {
+    page-break-inside: avoid;
+  }
+  figure {
+    overflow: scroll;
+  }
+  .breakable pre {
+    break-inside: auto;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid;
+  }
+  h2+*, h3+*, h4+*, h5+*, h6+* {
+    page-break-before: avoid;
+  }
+  pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    font-size: 10pt;
+  }
+  table {
+    border: 1px solid #ddd;
+  }
+  td {
+    border-top: 1px solid #ddd;
+  }
+}
+
+/* This is commented out here, as the string-set: doesn't
+   pass W3C validation currently */
+/*
+.ears thead .left {
+  string-set: ears-top-left content();
+}
+
+.ears thead .center {
+  string-set: ears-top-center content();
+}
+
+.ears thead .right {
+  string-set: ears-top-right content();
+}
+
+.ears tfoot .left {
+  string-set: ears-bottom-left content();
+}
+
+.ears tfoot .center {
+  string-set: ears-bottom-center content();
+}
+
+.ears tfoot .right {
+  string-set: ears-bottom-right content();
+}
+*/
+
+@page :first {
+  padding-top: 0;
+  @top-left {
+    content: normal;
+    border: none;
+  }
+  @top-center {
+    content: normal;
+    border: none;
+  }
+  @top-right {
+    content: normal;
+    border: none;
+  }
+}
+
+@page {
+  size: A4;
+  margin-bottom: 45mm;
+  padding-top: 20px;
+  /* The following is commented out here, but set appropriately by in code, as
+     the content depends on the document */
+  /*
+  @top-left {
+    content: 'Internet-Draft';
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-left {
+    content: string(ears-top-left);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-center {
+    content: string(ears-top-center);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @top-right {
+    content: string(ears-top-right);
+    vertical-align: bottom;
+    border-bottom: solid 1px #ccc;
+  }
+  @bottom-left {
+    content: string(ears-bottom-left);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-center {
+    content: string(ears-bottom-center);
+    vertical-align: top;
+    border-top: solid 1px #ccc;
+  }
+  @bottom-right {
+      content: '[Page ' counter(page) ']';
+      vertical-align: top;
+      border-top: solid 1px #ccc;
+  }
+  */
+
+}
+
+/* Changes introduced to fix issues found during implementation */
+/* Make sure links are clickable even if overlapped by following H* */
+a {
+  z-index: 2;
+}
+/* Separate body from document info even without intervening H1 */
+section {
+  clear: both;
+}
+
+
+/* Top align author divs, to avoid names without organization dropping level with org names */
+.author {
+  vertical-align: top;
+}
+
+/* Leave room in document info to show Internet-Draft on one line */
+#identifiers dt {
+  width: 8em;
+}
+
+/* Don't waste quite as much whitespace between label and value in doc info */
+#identifiers dd {
+  margin-left: 1em;
+}
+
+/* Give floating toc a background color (needed when it's a div inside section */
+#toc {
+  background-color: white;
+}
+
+/* Make the collapsed ToC header render white on gray also when it's a link */
+@media screen and (max-width: 1023px) {
+  #toc h2 a,
+  #toc h2 a:link,
+  #toc h2 a:focus,
+  #toc h2 a:hover,
+  #toc a.toplink,
+  #toc a.toplink:hover {
+    color: white;
+    background-color: #444;
+    text-decoration: none;
+  }
+}
+
+/* Give the bottom of the ToC some whitespace */
+@media screen and (min-width: 1024px) {
+  #toc {
+    padding: 0 0 1em 1em;
+  }
+}
+
+/* Style section numbers with more space between number and title */
+.section-number {
+  padding-right: 0.5em;
+}
+
+/* prevent monospace from becoming overly large */
+tt, code, pre {
+  font-size: 95%;
+}
+
+/* Fix the height/width aspect for ascii art*/
+.sourcecode pre,
+.art-text pre {
+  line-height: 1.12;
+}
+
+
+/* Add styling for a link in the ToC that points to the top of the document */
+a.toplink {
+  float: right;
+  margin-right: 0.5em;
+}
+
+/* Fix the dl styling to match the RFC 7992 attributes */
+dl > dt,
+dl.dlParallel > dt {
+  float: left;
+  margin-right: 1em;
+}
+dl.dlNewline > dt {
+  float: none;
+}
+
+/* Provide styling for table cell text alignment */
+table td.text-left,
+table th.text-left {
+  text-align: left;
+}
+table td.text-center,
+table th.text-center {
+  text-align: center;
+}
+table td.text-right,
+table th.text-right {
+  text-align: right;
+}
+
+/* Make the alternative author contact information look less like just another
+   author, and group it closer with the primary author contact information */
+.alternative-contact {
+  margin: 0.5em 0 0.25em 0;
+}
+address .non-ascii {
+  margin: 0 0 0 2em;
+}
+
+/* With it being possible to set tables with alignment
+  left, center, and right, { width: 100%; } does not make sense */
+table {
+  width: auto;
+}
+
+/* Avoid reference text that sits in a block with very wide left margin,
+   because of a long floating dt label.*/
+.references dd {
+  overflow: visible;
+}
+
+/* Control caption placement */
+caption {
+  caption-side: bottom;
+}
+
+/* Limit the width of the author address vcard, so names in right-to-left
+   script don't end up on the other side of the page. */
+
+address.vcard {
+  max-width: 30em;
+  margin-right: auto;
+}
+
+/* For address alignment dependent on LTR or RTL scripts */
+address div.left {
+  text-align: left;
+}
+address div.right {
+  text-align: right;
+}
+
+/* Provide table alignment support.  We can't use the alignX classes above
+   since they do unwanted things with caption and other styling. */
+table.right {
+ margin-left: auto;
+ margin-right: 0;
+}
+table.center {
+ margin-left: auto;
+ margin-right: auto;
+}
+table.left {
+ margin-left: 0;
+ margin-right: auto;
+}
+
+/* Give the table caption label the same styling as the figcaption */
+caption a[href] {
+  color: #222;
+}
+
+@media print {
+  .toplink {
+    display: none;
+  }
+
+  /* avoid overwriting the top border line with the ToC header */
+  #toc {
+    padding-top: 1px;
+  }
+
+  /* Avoid page breaks inside dl and author address entries */
+  .vcard {
+    page-break-inside: avoid;
+  }
+
+}
+/* Tweak the bcp14 keyword presentation */
+.bcp14 {
+  font-variant: small-caps;
+  font-weight: bold;
+  font-size: 0.9em;
+}
+/* Tweak the invisible space above H* in order not to overlay links in text above */
+ h2 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 31px;
+ }
+ h3 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+ h4 {
+  margin-top: -18px;  /* provide offset for in-page anchors */
+  padding-top: 24px;
+ }
+/* Float artwork pilcrow to the right */
+@media screen {
+  .artwork a.pilcrow {
+    display: block;
+    line-height: 0.7;
+    margin-top: 0.15em;
+  }
+}
+/* Make pilcrows on dd visible */
+@media screen {
+  dd:hover > a.pilcrow {
+    visibility: visible;
+  }
+}
+/* Make the placement of figcaption match that of a table's caption
+   by removing the figure's added bottom margin */
+.alignLeft.art-text,
+.alignCenter.art-text,
+.alignRight.art-text {
+   margin-bottom: 0;
+}
+.alignLeft,
+.alignCenter,
+.alignRight {
+  margin: 1em 0 0 0;
+}
+/* In print, the pilcrow won't show on hover, so prevent it from taking up space,
+   possibly even requiring a new line */
+@media print {
+  a.pilcrow {
+    display: none;
+  }
+}
+/* Styling for the external metadata */
+div#external-metadata {
+  background-color: #eee;
+  padding: 0.5em;
+  margin-bottom: 0.5em;
+  display: none;
+}
+div#internal-metadata {
+  padding: 0.5em;                       /* to match the external-metadata padding */
+}
+/* Styling for title RFC Number */
+h1#rfcnum {
+  clear: both;
+  margin: 0 0 -1em;
+  padding: 1em 0 0 0;
+}
+/* Make .olPercent look the same as <ol><li> */
+dl.olPercent > dd {
+  margin-bottom: 0.25em;
+  min-height: initial;
+}
+/* Give aside some styling to set it apart */
+aside {
+  border-left: 1px solid #ddd;
+  margin: 1em 0 1em 2em;
+  padding: 0.2em 2em;
+}
+aside > dl,
+aside > ol,
+aside > ul,
+aside > table,
+aside > p {
+  margin-bottom: 0.5em;
+}
+/* Additional page break settings */
+@media print {
+  figcaption, table caption {
+    page-break-before: avoid;
+  }
+}
+/* Font size adjustments for print */
+@media print {
+  body  { font-size: 10pt;      line-height: normal; max-width: 96%; }
+  h1    { font-size: 1.72em;    padding-top: 1.5em; } /* 1*1.2*1.2*1.2 */
+  h2    { font-size: 1.44em;    padding-top: 1.5em; } /* 1*1.2*1.2 */
+  h3    { font-size: 1.2em;     padding-top: 1.5em; } /* 1*1.2 */
+  h4    { font-size: 1em;       padding-top: 1.5em; }
+  h5, h6 { font-size: 1em;      margin: initial; padding: 0.5em 0 0.3em; }
+}
+/* Sourcecode margin in print, when there's no pilcrow */
+@media print {
+  .artwork,
+  .artwork > pre,
+  .sourcecode {
+    margin-bottom: 1em;
+  }
+}
+/* Avoid narrow tables forcing too narrow table captions, which may render badly */
+table {
+  min-width: 20em;
+}
+/* ol type a */
+ol.type-a { list-style-type: lower-alpha; }
+ol.type-A { list-style-type: upper-alpha; }
+ol.type-i { list-style-type: lower-roman; }
+ol.type-I { list-style-type: upper-roman; }
+/* Apply the print table and row borders in general, on request from the RPC,
+and increase the contrast between border and odd row background slightly */
+table {
+  border: 1px solid #ddd;
+}
+td {
+  border-top: 1px solid #ddd;
+}
+tr {
+  break-inside: avoid;
+}
+tr:nth-child(2n+1) > td {
+  background-color: #f8f8f8;
+}
+/* Use style rules to govern display of the TOC. */
+@media screen and (max-width: 1023px) {
+  #toc nav { display: none; }
+  #toc.active nav { display: block; }
+}
+/* Add support for keepWithNext */
+.keepWithNext {
+  break-after: avoid-page;
+  break-after: avoid-page;
+}
+/* Add support for keepWithPrevious */
+.keepWithPrevious {
+  break-before: avoid-page;
+}
+/* Change the approach to avoiding breaks inside artwork etc. */
+figure, pre, table, .artwork, .sourcecode  {
+  break-before: auto;
+  break-after: auto;
+}
+/* Avoid breaks between <dt> and <dd> */
+dl {
+  break-before: auto;
+  break-inside: auto;
+}
+dt {
+  break-before: auto;
+  break-after: avoid-page;
+}
+dd {
+  break-before: avoid-page;
+  break-after: auto;
+  orphans: 3;
+  widows: 3
+}
+span.break, dd.break {
+  margin-bottom: 0;
+  min-height: 0;
+  break-before: auto;
+  break-inside: auto;
+  break-after: auto;
+}
+/* Undo break-before ToC */
+@media print {
+  #toc {
+    break-before: auto;
+  }
+}
+/* Text in compact lists should not get extra bottom margin space,
+   since that would makes the list not compact */
+ul.compact p, .ulCompact p,
+ol.compact p, .olCompact p {
+ margin: 0;
+}
+/* But the list as a whole needs the extra space at the end */
+section ul.compact,
+section .ulCompact,
+section ol.compact,
+section .olCompact {
+  margin-bottom: 1em;                    /* same as p not within ul.compact etc. */
+}
+/* The tt and code background above interferes with for instance table cell
+   backgrounds.  Changed to something a bit more selective. */
+tt, code {
+  background-color: transparent;
+}
+p tt, p code, li tt, li code, dt tt, dt code {
+  background-color: #f8f8f8;
+}
+/* Tweak the pre margin -- 0px doesn't come out well */
+pre {
+   margin-top: 0.5px;
+}
+/* Tweak the compact list text */
+ul.compact, .ulCompact,
+ol.compact, .olCompact,
+dl.compact, .dlCompact {
+  line-height: normal;
+}
+/* Don't add top margin for nested lists */
+li > ul, li > ol, li > dl,
+dd > ul, dd > ol, dd > dl,
+dl > dd > dl {
+  margin-top: initial;
+}
+/* Elements that should not be rendered on the same line as a <dt> */
+/* This should match the element list in writer.text.TextWriter.render_dl() */
+dd > div.artwork:first-child,
+dd > aside:first-child,
+dd > blockquote:first-child,
+dd > figure:first-child,
+dd > ol:first-child,
+dd > div.sourcecode:first-child,
+dd > table:first-child,
+dd > ul:first-child {
+  clear: left;
+}
+/* fix for weird browser behaviour when <dd/> is empty */
+dt+dd:empty::before{
+  content: "\00a0";
+}
+/* Make paragraph spacing inside <li> smaller than in body text, to fit better within the list */
+li > p {
+  margin-bottom: 0.5em
+}
+/* Don't let p margin spill out from inside list items */
+li > p:last-of-type:only-child {
+  margin-bottom: 0;
+}
+</style>
+<link href="rfc-local.css" rel="stylesheet" type="text/css">
+<script type="application/javascript">async function addMetadata(){try{const e=document.styleSheets[0].cssRules;for(let t=0;t<e.length;t++)if(/#identifiers/.exec(e[t].selectorText)){const a=e[t].cssText.replace("#identifiers","#external-updates");document.styleSheets[0].insertRule(a,document.styleSheets[0].cssRules.length)}}catch(e){console.log(e)}const e=document.getElementById("external-metadata");if(e)try{var t,a="",o=function(e){const t=document.getElementsByTagName("meta");for(let a=0;a<t.length;a++)if(t[a].getAttribute("name")===e)return t[a].getAttribute("content");return""}("rfc.number");if(o){t="https://www.rfc-editor.org/rfc/rfc"+o+".json";try{const e=await fetch(t);a=await e.json()}catch(e){t=document.URL.indexOf("html")>=0?document.URL.replace(/html$/,"json"):document.URL+".json";const o=await fetch(t);a=await o.json()}}if(!a)return;e.style.display="block";const s="",d="https://datatracker.ietf.org/doc",n="https://datatracker.ietf.org/ipr/search",c="https://www.rfc-editor.org/info",l=a.doc_id.toLowerCase(),i=a.doc_id.slice(0,3).toLowerCase(),f=a.doc_id.slice(3).replace(/^0+/,""),u={status:"Status",obsoletes:"Obsoletes",obsoleted_by:"Obsoleted By",updates:"Updates",updated_by:"Updated By",see_also:"See Also",errata_url:"Errata"};let h="<dl style='overflow:hidden' id='external-updates'>";["status","obsoletes","obsoleted_by","updates","updated_by","see_also","errata_url"].forEach(e=>{if("status"==e){a[e]=a[e].toLowerCase();var t=a[e].split(" "),o=t.length,w="",p=1;for(let e=0;e<o;e++)p<o?w=w+r(t[e])+" ":w+=r(t[e]),p++;a[e]=w}else if("obsoletes"==e||"obsoleted_by"==e||"updates"==e||"updated_by"==e){var g,m="",b=1;g=a[e].length;for(let t=0;t<g;t++)a[e][t]&&(a[e][t]=String(a[e][t]).toLowerCase(),m=b<g?m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>, ":m+"<a href='"+s+"/rfc/".concat(a[e][t])+"'>"+a[e][t].slice(3)+"</a>",b++);a[e]=m}else if("see_also"==e){var y,L="",C=1;y=a[e].length;for(let t=0;t<y;t++)if(a[e][t]){a[e][t]=String(a[e][t]);var _=a[e][t].slice(0,3),v=a[e][t].slice(3).replace(/^0+/,"");L=C<y?"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>, ":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>, ":"RFC"!=_?L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+_+" "+v+"</a>":L+"<a href='"+s+"/info/"+_.toLowerCase().concat(v.toLowerCase())+"'>"+v+"</a>",C++}a[e]=L}else if("errata_url"==e){var R="";R=a[e]?R+"<a href='"+a[e]+"'>Errata exist</a> | <a href='"+d+"/"+l+"'>Datatracker</a>| <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>":"<a href='"+d+"/"+l+"'>Datatracker</a> | <a href='"+n+"/?"+i+"="+f+"&submit="+i+"'>IPR</a> | <a href='"+c+"/"+l+"'>Info page</a>",a[e]=R}""!=a[e]?"Errata"==u[e]?h+=`<dt>More info:</dt><dd>${a[e]}</dd>`:h+=`<dt>${u[e]}:</dt><dd>${a[e]}</dd>`:"Errata"==u[e]&&(h+=`<dt>More info:</dt><dd>${a[e]}</dd>`)}),h+="</dl>",e.innerHTML=h}catch(e){console.log(e)}else console.log("Could not locate metadata <div> element");function r(e){return e.charAt(0).toUpperCase()+e.slice(1)}}window.removeEventListener("load",addMetadata),window.addEventListener("load",addMetadata);</script>
+</head>
+<body class="xml2rfc">
+<table class="ears">
+<thead><tr>
+<td class="left">Internet-Draft</td>
+<td class="center">NCFED</td>
+<td class="right">July 2026</td>
+</tr></thead>
+<tfoot><tr>
+<td class="left">Capobianco</td>
+<td class="center">Expires 15 January 2027</td>
+<td class="right">[Page]</td>
+</tr></tfoot>
+</table>
+<div id="external-metadata" class="document-information"></div>
+<div id="internal-metadata" class="document-information">
+<dl id="identifiers">
+<dt class="label-workgroup">Workgroup:</dt>
+<dd class="workgroup">Network Working Group</dd>
+<dt class="label-internet-draft">Internet-Draft:</dt>
+<dd class="internet-draft">draft-capobianco-ncfed-00</dd>
+<dt class="label-published">Published:</dt>
+<dd class="published">
+<time datetime="2026-07-14" class="published">14 July 2026</time>
+    </dd>
+<dt class="label-intended-status">Intended Status:</dt>
+<dd class="intended-status">Experimental</dd>
+<dt class="label-expires">Expires:</dt>
+<dd class="expires"><time datetime="2027-01-15">15 January 2027</time></dd>
+<dt class="label-authors">Author:</dt>
+<dd class="authors">
+<div class="author">
+      <div class="author-name">J. Capobianco</div>
+<div class="org">Automate Your Network</div>
+</div>
+</dd>
+</dl>
+</div>
+<h1 id="title">The NetClaw-to-NetClaw Federation Protocol (NCFED)</h1>
+<section id="section-abstract">
+      <h2 id="abstract"><a href="#abstract" class="selfRef">Abstract</a></h2>
+<p id="section-abstract-1">This document specifies the NetClaw-to-NetClaw Federation Protocol (NCFED), an
+application-layer protocol that lets independently operated AI network-engineering
+agents ("NetClaws") discover one another's capabilities, invoke remote tools, and
+delegate tasks over long-lived TCP sessions. NCFED multiplexes its federation
+channel with BGP-4 and an associated tunneling data plane on a single listening
+port, using first-octet protocol discrimination. Its payload is JSON-RPC 2.0
+carrying Model Context Protocol (MCP) and Agent2Agent (A2A) operations. Two trust
+models are defined: mutual operator consent for external federation between
+different trust domains (eN2N), and enrollment-token bootstrap with
+trust-on-first-use (TOFU) key pinning for hub-and-spoke federation within a single
+operator's trust domain (iN2N). NCFED does not replace MCP or A2A; it is a
+cross-operator federation, identity, and transport layer that carries them. This
+document describes the protocol as implemented in the open-source NetClaw project
+and is published as Experimental to enable interoperability and public review.<a href="#section-abstract-1" class="pilcrow">¶</a></p>
+</section>
+<section class="note rfcEditorRemove" id="section-note.1">
+      <h2 id="name-about-this-document">
+<a href="#name-about-this-document" class="section-name selfRef">About This Document</a>
+      </h2>
+<p id="section-note.1-1">This note is to be removed before publishing as an RFC.<a href="#section-note.1-1" class="pilcrow">¶</a></p>
+<p id="section-note.1-2">
+        The latest revision of this draft can be found at <span><a href="https://github.com/automateyournetwork/netclaw">https://github.com/automateyournetwork/netclaw</a></span>.
+        Status information for this document may be found at <span><a href="https://datatracker.ietf.org/doc/draft-capobianco-ncfed/">https://datatracker.ietf.org/doc/draft-capobianco-ncfed/</a></span>.<a href="#section-note.1-2" class="pilcrow">¶</a></p>
+<p id="section-note.1-3">Source for this draft and an issue tracker can be found at
+        <span><a href="https://github.com/automateyournetwork/netclaw">https://github.com/automateyournetwork/netclaw</a></span>.<a href="#section-note.1-3" class="pilcrow">¶</a></p>
+</section>
+<div id="status-of-memo">
+<section id="section-boilerplate.1">
+        <h2 id="name-status-of-this-memo">
+<a href="#name-status-of-this-memo" class="section-name selfRef">Status of This Memo</a>
+        </h2>
+<p id="section-boilerplate.1-1">
+        This Internet-Draft is submitted in full conformance with the
+        provisions of BCP 78 and BCP 79.<a href="#section-boilerplate.1-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-2">
+        Internet-Drafts are working documents of the Internet Engineering Task
+        Force (IETF). Note that other groups may also distribute working
+        documents as Internet-Drafts. The list of current Internet-Drafts is
+        at <span><a href="https://datatracker.ietf.org/drafts/current/">https://datatracker.ietf.org/drafts/current/</a></span>.<a href="#section-boilerplate.1-2" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-3">
+        Internet-Drafts are draft documents valid for a maximum of six months
+        and may be updated, replaced, or obsoleted by other documents at any
+        time. It is inappropriate to use Internet-Drafts as reference
+        material or to cite them other than as "work in progress."<a href="#section-boilerplate.1-3" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.1-4">
+        This Internet-Draft will expire on 15 January 2027.<a href="#section-boilerplate.1-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="copyright">
+<section id="section-boilerplate.2">
+        <h2 id="name-copyright-notice">
+<a href="#name-copyright-notice" class="section-name selfRef">Copyright Notice</a>
+        </h2>
+<p id="section-boilerplate.2-1">
+            Copyright (c) 2026 IETF Trust and the persons identified as the
+            document authors. All rights reserved.<a href="#section-boilerplate.2-1" class="pilcrow">¶</a></p>
+<p id="section-boilerplate.2-2">
+            This document is subject to BCP 78 and the IETF Trust's Legal
+            Provisions Relating to IETF Documents
+            (<span><a href="https://trustee.ietf.org/license-info">https://trustee.ietf.org/license-info</a></span>) in effect on the date of
+            publication of this document. Please review these documents
+            carefully, as they describe your rights and restrictions with
+            respect to this document. Code Components extracted from this
+            document must include Revised BSD License text as described in
+            Section 4.e of the Trust Legal Provisions and are provided without
+            warranty as described in the Revised BSD License.<a href="#section-boilerplate.2-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="toc">
+<section id="section-toc.1">
+        <a href="#" onclick="scroll(0,0)" class="toplink">▲</a><h2 id="name-table-of-contents">
+<a href="#name-table-of-contents" class="section-name selfRef">Table of Contents</a>
+        </h2>
+<nav class="toc"><ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1">
+            <p id="section-toc.1-1.1.1" class="keepWithNext"><a href="#section-1" class="auto internal xref">1</a>.  <a href="#name-introduction" class="internal xref">Introduction</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.1">
+                <p id="section-toc.1-1.1.2.1.1" class="keepWithNext"><a href="#section-1.1" class="auto internal xref">1.1</a>.  <a href="#name-motivation-and-applicabilit" class="internal xref">Motivation and Applicability</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.1.2.2">
+                <p id="section-toc.1-1.1.2.2.1" class="keepWithNext"><a href="#section-1.2" class="auto internal xref">1.2</a>.  <a href="#name-status-of-this-protocol-des" class="internal xref">Status of this Protocol Description</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.2">
+            <p id="section-toc.1-1.2.1"><a href="#section-2" class="auto internal xref">2</a>.  <a href="#name-conventions-and-definitions" class="internal xref">Conventions and Definitions</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.3">
+            <p id="section-toc.1-1.3.1"><a href="#section-3" class="auto internal xref">3</a>.  <a href="#name-protocol-stack-overview" class="internal xref">Protocol Stack Overview</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.4">
+            <p id="section-toc.1-1.4.1"><a href="#section-4" class="auto internal xref">4</a>.  <a href="#name-protocol-discrimination" class="internal xref">Protocol Discrimination</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.5">
+            <p id="section-toc.1-1.5.1"><a href="#section-5" class="auto internal xref">5</a>.  <a href="#name-federation-handshake" class="internal xref">Federation Handshake</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.6">
+            <p id="section-toc.1-1.6.1"><a href="#section-6" class="auto internal xref">6</a>.  <a href="#name-message-framing" class="internal xref">Message Framing</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.7">
+            <p id="section-toc.1-1.7.1"><a href="#section-7" class="auto internal xref">7</a>.  <a href="#name-heartbeat-and-liveness" class="internal xref">Heartbeat and Liveness</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8">
+            <p id="section-toc.1-1.8.1"><a href="#section-8" class="auto internal xref">8</a>.  <a href="#name-semantic-payload" class="internal xref">Semantic Payload</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.1">
+                <p id="section-toc.1-1.8.2.1.1"><a href="#section-8.1" class="auto internal xref">8.1</a>.  <a href="#name-method-families" class="internal xref">Method families</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.2">
+                <p id="section-toc.1-1.8.2.2.1"><a href="#section-8.2" class="auto internal xref">8.2</a>.  <a href="#name-asynchronous-task-delegatio" class="internal xref">Asynchronous task delegation</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.8.2.3">
+                <p id="section-toc.1-1.8.2.3.1"><a href="#section-8.3" class="auto internal xref">8.3</a>.  <a href="#name-error-codes" class="internal xref">Error codes</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.9">
+            <p id="section-toc.1-1.9.1"><a href="#section-9" class="auto internal xref">9</a>.  <a href="#name-version-and-capability-nego" class="internal xref">Version and Capability Negotiation</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.10">
+            <p id="section-toc.1-1.10.1"><a href="#section-10" class="auto internal xref">10</a>. <a href="#name-capability-cards" class="internal xref">Capability Cards</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11">
+            <p id="section-toc.1-1.11.1"><a href="#section-11" class="auto internal xref">11</a>. <a href="#name-trust-establishment" class="internal xref">Trust Establishment</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.1">
+                <p id="section-toc.1-1.11.2.1.1"><a href="#section-11.1" class="auto internal xref">11.1</a>.  <a href="#name-external-federation-en2n" class="internal xref">External federation: eN2N</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.11.2.2">
+                <p id="section-toc.1-1.11.2.2.1"><a href="#section-11.2" class="auto internal xref">11.2</a>.  <a href="#name-internal-federation-in2n" class="internal xref">Internal federation: iN2N</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.12">
+            <p id="section-toc.1-1.12.1"><a href="#section-12" class="auto internal xref">12</a>. <a href="#name-operational-considerations" class="internal xref">Operational Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13">
+            <p id="section-toc.1-1.13.1"><a href="#section-13" class="auto internal xref">13</a>. <a href="#name-security-considerations" class="internal xref">Security Considerations</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.1">
+                <p id="section-toc.1-1.13.2.1.1"><a href="#section-13.1" class="auto internal xref">13.1</a>.  <a href="#name-sharing-a-listening-port-wi" class="internal xref">Sharing a listening port with BGP</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.2">
+                <p id="section-toc.1-1.13.2.2.1"><a href="#section-13.2" class="auto internal xref">13.2</a>.  <a href="#name-peer-authentication" class="internal xref">Peer authentication</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.3">
+                <p id="section-toc.1-1.13.2.3.1"><a href="#section-13.3" class="auto internal xref">13.3</a>.  <a href="#name-trust-on-first-use" class="internal xref">Trust on first use</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.4">
+                <p id="section-toc.1-1.13.2.4.1"><a href="#section-13.4" class="auto internal xref">13.4</a>.  <a href="#name-confidentiality-and-integri" class="internal xref">Confidentiality and integrity</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.5">
+                <p id="section-toc.1-1.13.2.5.1"><a href="#section-13.5" class="auto internal xref">13.5</a>.  <a href="#name-agent-delegation-hazards" class="internal xref">Agent-delegation hazards</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.6">
+                <p id="section-toc.1-1.13.2.6.1"><a href="#section-13.6" class="auto internal xref">13.6</a>.  <a href="#name-denial-of-service" class="internal xref">Denial of service</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.13.2.7">
+                <p id="section-toc.1-1.13.2.7.1"><a href="#section-13.7" class="auto internal xref">13.7</a>.  <a href="#name-capability-card-privacy" class="internal xref">Capability-card privacy</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.14">
+            <p id="section-toc.1-1.14.1"><a href="#section-14" class="auto internal xref">14</a>. <a href="#name-iana-considerations" class="internal xref">IANA Considerations</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15">
+            <p id="section-toc.1-1.15.1"><a href="#section-15" class="auto internal xref">15</a>. <a href="#name-references" class="internal xref">References</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.1">
+                <p id="section-toc.1-1.15.2.1.1"><a href="#section-15.1" class="auto internal xref">15.1</a>.  <a href="#name-normative-references" class="internal xref">Normative References</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.15.2.2">
+                <p id="section-toc.1-1.15.2.2.1"><a href="#section-15.2" class="auto internal xref">15.2</a>.  <a href="#name-informative-references" class="internal xref">Informative References</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.16">
+            <p id="section-toc.1-1.16.1"><a href="#appendix-A" class="auto internal xref">Appendix A</a>.  <a href="#name-prior-art-and-design-ration" class="internal xref">Prior Art and Design Rationale</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.17">
+            <p id="section-toc.1-1.17.1"><a href="#appendix-B" class="auto internal xref">Appendix B</a>.  <a href="#name-implementation-status" class="internal xref">Implementation Status</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18">
+            <p id="section-toc.1-1.18.1"><a href="#appendix-C" class="auto internal xref">Appendix C</a>.  <a href="#name-json-rpc-method-reference" class="internal xref">JSON-RPC Method Reference</a></p>
+<ul class="compact toc ulBare ulEmpty">
+<li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.1">
+                <p id="section-toc.1-1.18.2.1.1"><a href="#appendix-C.1" class="auto internal xref">C.1</a>.  <a href="#name-en2n-methods" class="internal xref">eN2N methods</a></p>
+</li>
+              <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.18.2.2">
+                <p id="section-toc.1-1.18.2.2.1"><a href="#appendix-C.2" class="auto internal xref">C.2</a>.  <a href="#name-in2n-methods" class="internal xref">iN2N methods</a></p>
+</li>
+            </ul>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.19">
+            <p id="section-toc.1-1.19.1"><a href="#appendix-D" class="auto internal xref"></a><a href="#name-acknowledgments" class="internal xref">Acknowledgments</a></p>
+</li>
+          <li class="compact toc ulBare ulEmpty" id="section-toc.1-1.20">
+            <p id="section-toc.1-1.20.1"><a href="#appendix-E" class="auto internal xref"></a><a href="#name-authors-address" class="internal xref">Author's Address</a></p>
+</li>
+        </ul>
+</nav>
+</section>
+</div>
+<div id="introduction">
+<section id="section-1">
+      <h2 id="name-introduction">
+<a href="#section-1" class="section-number selfRef">1. </a><a href="#name-introduction" class="section-name selfRef">Introduction</a>
+      </h2>
+<p id="section-1-1">Large-language-model agents that operate network infrastructure are increasingly
+deployed as long-running services with tool access to routers, controllers, and
+network sources of truth. When two such agents are operated by different parties,
+there is value in letting them cooperate: one agent may hold capabilities, data, or
+vantage points the other lacks. When one operator runs many narrowly scoped agents,
+there is equal value in coordinating them behind a single point of contact.<a href="#section-1-1" class="pilcrow">¶</a></p>
+<p id="section-1-2">NCFED addresses both cases with one wire protocol. It provides:<a href="#section-1-2" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-1-3">
+<li id="section-1-3.1">
+          <p id="section-1-3.1.1">First-octet protocol discrimination so that NCFED, BGP-4 <span>[<a href="#RFC4271" class="cite xref">RFC4271</a>]</span>, and an
+associated data-plane tunnel (NCTUN, out of scope here) can share a single TCP
+listening port (<a href="#discrimination" class="auto internal xref">Section 4</a>).<a href="#section-1-3.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-3.2">
+          <p id="section-1-3.2.1">A compact federation handshake that identifies each peer by an Autonomous System
+number and a router identifier, reusing operational identities already familiar
+from BGP deployments (<a href="#handshake" class="auto internal xref">Section 5</a>).<a href="#section-1-3.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-3.3">
+          <p id="section-1-3.3.1">A minimal length-prefixed message framing with a continuation flag and a
+zero-length-frame heartbeat (<a href="#framing" class="auto internal xref">Section 6</a>, <a href="#heartbeat" class="auto internal xref">Section 7</a>).<a href="#section-1-3.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-3.4">
+          <p id="section-1-3.4.1">A semantic layer in which capability inventory, remote tool calls (MCP <span>[<a href="#MCP" class="cite xref">MCP</a>]</span>),
+and task delegation (A2A <span>[<a href="#A2A" class="cite xref">A2A</a>]</span>) are expressed as JSON-RPC 2.0 <span>[<a href="#JSONRPC" class="cite xref">JSONRPC</a>]</span>
+messages (<a href="#semantics" class="auto internal xref">Section 8</a>).<a href="#section-1-3.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-3.5">
+          <p id="section-1-3.5.1">In-band version and capability negotiation (<a href="#negotiation" class="auto internal xref">Section 9</a>).<a href="#section-1-3.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li id="section-1-3.6">
+          <p id="section-1-3.6.1">Two trust-establishment models (<a href="#trust" class="auto internal xref">Section 11</a>): mutual operator consent (eN2N) and
+enrollment-token + TOFU pinning (iN2N).<a href="#section-1-3.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ol>
+<p id="section-1-4">NCFED is complementary to, not competing with, MCP and A2A: it is the
+cross-operator federation/identity/transport layer that carries their payloads.<a href="#section-1-4" class="pilcrow">¶</a></p>
+<div id="applicability">
+<section id="section-1.1">
+        <h3 id="name-motivation-and-applicabilit">
+<a href="#section-1.1" class="section-number selfRef">1.1. </a><a href="#name-motivation-and-applicabilit" class="section-name selfRef">Motivation and Applicability</a>
+        </h3>
+<p id="section-1.1-1">The motivating deployment is a small mesh of independently operated NetClaws. Three
+operators each run a lab and automation stack; their agents are already BGP-mesh
+peered and can see one another, but could not, before NCFED, discover or use one
+another's capabilities. Separately, a single operator may decompose one monolithic
+agent (carrying on the order of a hundred skills) into a <strong>risk</strong>: a group of
+narrowly focused member agents fronted by a single Border agent that routes requests
+to them. (The Border is one member of the risk, not the risk itself.)<a href="#section-1.1-1" class="pilcrow">¶</a></p>
+<p id="section-1.1-2">NCFED assumes <strong>long-lived sessions between a small number of mutually known
+peers</strong>, established deliberately by their operators. It is <strong>not</strong> designed for
+anonymous, open, or large-scale federation, and it does not attempt spam
+resistance, discovery of unknown peers, or public-key infrastructure. These
+assumptions shape the trust models (<a href="#trust" class="auto internal xref">Section 11</a>) and the Security Considerations
+(<a href="#seccons" class="auto internal xref">Section 13</a>), and are the reason the current design accepts an underlay-dependent
+trust model rather than defining its own cryptographic peer authentication (see
+<a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a> for the intended evolution).<a href="#section-1.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="status-of-this-protocol-description">
+<section id="section-1.2">
+        <h3 id="name-status-of-this-protocol-des">
+<a href="#section-1.2" class="section-number selfRef">1.2. </a><a href="#name-status-of-this-protocol-des" class="section-name selfRef">Status of this Protocol Description</a>
+        </h3>
+<p id="section-1.2-1">This is an individual submission, published as <strong>Experimental</strong>. The author seeks
+adoption of this work by an IETF Working Group addressing agent-to-agent and
+agent-to-tool communication (e.g., the effort emerging from the <code>agentproto</code> Birds-
+of-a-Feather), with the goal of a future Standards-Track document. This <code>-00</code>
+asserts no IETF consensus. The technical content is category-neutral and may be
+re-targeted without change if adopted.<a href="#section-1.2-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="conventions-and-definitions">
+<section id="section-2">
+      <h2 id="name-conventions-and-definitions">
+<a href="#section-2" class="section-number selfRef">2. </a><a href="#name-conventions-and-definitions" class="section-name selfRef">Conventions and Definitions</a>
+      </h2>
+<p id="section-2-1">The key words "<span class="bcp14">MUST</span>", "<span class="bcp14">MUST NOT</span>", "<span class="bcp14">REQUIRED</span>", "<span class="bcp14">SHALL</span>", "<span class="bcp14">SHALL NOT</span>", "<span class="bcp14">SHOULD</span>", "<span class="bcp14">SHOULD NOT</span>", "<span class="bcp14">RECOMMENDED</span>", "<span class="bcp14">NOT RECOMMENDED</span>",
+"<span class="bcp14">MAY</span>", and "<span class="bcp14">OPTIONAL</span>" in this document are to be interpreted as
+described in BCP 14 <span>[<a href="#RFC2119" class="cite xref">RFC2119</a>]</span> <span>[<a href="#RFC8174" class="cite xref">RFC8174</a>]</span> when, and only when, they
+appear in all capitals, as shown here.<a href="#section-2-1" class="pilcrow">¶</a></p>
+<p id="section-2-2">The following terms are used:<a href="#section-2-2" class="pilcrow">¶</a></p>
+<span class="break"></span><dl class="dlParallel" id="section-2-3">
+        <dt id="section-2-3.1">NetClaw (or "claw"):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.2">
+          <p id="section-2-3.2.1">A long-running AI agent process that exposes network-engineering capabilities as
+tools.<a href="#section-2-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.3">Risk:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.4">
+          <p id="section-2-3.4.1">A named group of claws under a single operator's administrative control,
+coordinated by a Border. ("A risk" is the collective noun for lobsters, the
+project mascot.)<a href="#section-2-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.5">Border:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.6">
+          <p id="section-2-3.6.1">The single claw in a risk that terminates external communication, routes requests
+to members, and holds the risk's external identity.<a href="#section-2-3.6.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.7">Member:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.8">
+          <p id="section-2-3.8.1">A narrowly scoped claw within a risk that dials outbound to its Border and accepts
+delegated work only over that channel.<a href="#section-2-3.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.9">eN2N (external federation):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.10">
+          <p id="section-2-3.10.1">Federation between claws in different trust domains (different operators),
+established by mutual consent.<a href="#section-2-3.10.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.11">iN2N (internal federation):</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.12">
+          <p id="section-2-3.12.1">Federation between a Border and its members within one trust domain, established
+by an enrollment token and TOFU key pinning.<a href="#section-2-3.12.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-2-3.13">Peer AS / Router-ID:</dt>
+        <dd style="margin-left: 1.5em" id="section-2-3.14">
+          <p id="section-2-3.14.1">The 4-octet Autonomous System number and 4-octet router identifier presented in
+the NCFED handshake. They <span class="bcp14">MAY</span> coincide with BGP identifiers but are not required
+to; they are assigned by operator convention.<a href="#section-2-3.14.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="protocol-stack-overview">
+<section id="section-3">
+      <h2 id="name-protocol-stack-overview">
+<a href="#section-3" class="section-number selfRef">3. </a><a href="#name-protocol-stack-overview" class="section-name selfRef">Protocol Stack Overview</a>
+      </h2>
+<p id="section-3-1">The NCFED stack is layered as shown in <a href="#fig-stack" class="auto internal xref">Figure 1</a>.<a href="#section-3-1" class="pilcrow">¶</a></p>
+<span id="name-ncfed-protocol-stack"></span><div id="fig-stack">
+<figure id="figure-1">
+        <div class="alignLeft art-text artwork" id="section-3-2.1">
+<pre>
++---------------------------------------------------------------+
+| Application semantics (NCFED payload)                         |
+|   MCP:  n2n/tools/call                                        |
+|   A2A:  capability card, n2n/tasks/{submit,status,result,...} |
++---------------------------------------------------------------+
+| Encoding: UTF-8 JSON-RPC 2.0                                  |
++---------------------------------------------------------------+
+| Framing:  [4-octet BE length][1-octet flags][payload]        |
+|           flags bit0 = CONTINUATION; length 0 = heartbeat     |
++---------------------------------------------------------------+
+| Federation handshake (13 octets):                            |
+|   "NCFED" + &lt;4-octet AS&gt; + &lt;4-octet router-id (IPv4)&gt;        |
++---------------------------------------------------------------+
+| Discrimination on the shared listen port:                    |
+|   0xFF          -&gt; BGP-4        (RFC 4271 marker)             |
+|   'N' + "CFED"  -&gt; NCFED (this document)                     |
+|   'N' + "CTUN"  -&gt; NCTUN data plane (out of scope)           |
++---------------------------------------------------------------+
+| TCP  /  IP                                                    |
++---------------------------------------------------------------+
+</pre>
+</div>
+<figcaption><a href="#figure-1" class="selfRef">Figure 1</a>:
+<a href="#name-ncfed-protocol-stack" class="selfRef">NCFED protocol stack</a>
+        </figcaption></figure>
+</div>
+<p id="section-3-3">iN2N (<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>) reuses the same framing and JSON-RPC layers over a separate,
+member-initiated transport with its own preamble instead of the shared-port
+discrimination.<a href="#section-3-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="discrimination">
+<section id="section-4">
+      <h2 id="name-protocol-discrimination">
+<a href="#section-4" class="section-number selfRef">4. </a><a href="#name-protocol-discrimination" class="section-name selfRef">Protocol Discrimination</a>
+      </h2>
+<p id="section-4-1">An NCFED node listens on a single configured TCP port. (In the reference deployment
+this is the operator's BGP/mesh port; NCFED defines no fixed well-known port -- see
+<a href="#iana" class="auto internal xref">Section 14</a>.) The peer that opened the TCP connection is the <strong>initiator</strong> and <span class="bcp14">MUST</span> send
+its protocol preamble (the 0xFF BGP marker, or the 5-octet 'N' magic of
+<a href="#handshake" class="auto internal xref">Section 5</a>) immediately upon connection establishment; the peer that accepted the
+connection is the <strong>acceptor</strong> and reads it. On accepting a connection, the acceptor
+reads the first octet. It <span class="bcp14">MUST</span> close the connection if the first octet is not
+received within 30 seconds.<a href="#section-4-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-2.1">
+          <p id="section-4-2.1.1">If the first octet is 0xFF, the connection is a BGP-4 session and is handed to the
+BGP engine. (A BGP message header begins with a 16-octet marker of all ones
+<span>[<a href="#RFC4271" class="cite xref">RFC4271</a>]</span>.) An implementation that consumes the first octet in order to
+discriminate <span class="bcp14">MUST</span> make it available to the BGP engine again (for example, by
+re-prepending it to the byte stream), because a BGP parser expects to read the
+16-octet marker from the first octet of the stream. The reference implementation
+reads one octet and, for a BGP connection, replays it ahead of the remainder of
+the stream before handing the session to its BGP engine.<a href="#section-4-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-4-2.2">
+          <p id="section-4-2.2.1">If the first octet is 0x4E ('N'), the node reads the following 4 octets. It <span class="bcp14">MUST</span>
+close the connection if those 4 octets are not received within 10 seconds. The
+resulting 5-octet magic selects the protocol:<a href="#section-4-2.2.1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-4-2.2.2.1">
+              <p id="section-4-2.2.2.1.1">"NCFED" (0x4E 0x43 0x46 0x45 0x44): the connection proceeds as an NCFED
+federation channel (<a href="#handshake" class="auto internal xref">Section 5</a>).<a href="#section-4-2.2.2.1.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4-2.2.2.2">
+              <p id="section-4-2.2.2.2.1">"NCTUN" (0x4E 0x43 0x54 0x55 0x4E): the connection proceeds as an NCTUN
+data-plane channel. NCTUN is out of scope for this document.<a href="#section-4-2.2.2.2.1" class="pilcrow">¶</a></p>
+</li>
+            <li class="normal" id="section-4-2.2.2.3">
+              <p id="section-4-2.2.2.3.1">Any other 5-octet value: the node <span class="bcp14">MUST</span> close the connection.<a href="#section-4-2.2.2.3.1" class="pilcrow">¶</a></p>
+</li>
+          </ul>
+</li>
+        <li class="normal" id="section-4-2.3">
+          <p id="section-4-2.3.1">Any other first octet: the node <span class="bcp14">MUST</span> close the connection without a response.<a href="#section-4-2.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-4-3">This first-octet discrimination is deliberately simpler than, and distinct from,
+TLS ALPN <span>[<a href="#RFC7301" class="cite xref">RFC7301</a>]</span>, which negotiates at the TLS layer; NCFED discriminates in
+cleartext at the start of the TCP byte stream. It follows that NCFED does <strong>not</strong>
+perform a TLS handshake on the shared port: the first octet of a TLS ClientHello
+record is 0x16 (the TLS "handshake" content type), which is not a recognized
+discriminator value, so a direct TLS connection to the shared port is closed like
+any other unrecognized preamble. Where an encrypted transport is required, it is
+supplied by an underlay or tunnel beneath TCP, or by the separate iN2N listener
+(<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>), not by inline TLS on the discrimination port; see <a href="#seccons-conf" class="auto internal xref">Section 13.4</a>.
+<a href="#seccons" class="auto internal xref">Section 13</a> discusses the security consequences of sharing a port with BGP.<a href="#section-4-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="handshake">
+<section id="section-5">
+      <h2 id="name-federation-handshake">
+<a href="#section-5" class="section-number selfRef">5. </a><a href="#name-federation-handshake" class="section-name selfRef">Federation Handshake</a>
+      </h2>
+<p id="section-5-1">Immediately after the "NCFED" magic, the initiating peer sends 8 further octets: a
+4-octet Autonomous System number followed by a 4-octet router identifier (a packed
+IPv4 address). With the magic, the complete handshake is 13 octets, as shown in
+<a href="#fig-handshake" class="auto internal xref">Figure 2</a>.<a href="#section-5-1" class="pilcrow">¶</a></p>
+<span id="name-ncfed-federation-handshake-"></span><div id="fig-handshake">
+<figure id="figure-2">
+        <div class="alignLeft art-text artwork" id="section-5-2.1">
+<pre>
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      'N'      |      'C'      |      'F'      |      'E'      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|      'D'      |     Autonomous System Number (bits 0..23)     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|  AS (24..31)  |        Router-ID (IPv4) (bits 0..23)         |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|Router-ID24..31|
++-+-+-+-+-+-+-+-+
+</pre>
+</div>
+<figcaption><a href="#figure-2" class="selfRef">Figure 2</a>:
+<a href="#name-ncfed-federation-handshake-" class="selfRef">NCFED federation handshake (13 octets)</a>
+        </figcaption></figure>
+</div>
+<p id="section-5-3">The Autonomous System number is an unsigned 32-bit integer in network byte order
+(big-endian). The router identifier is a 4-octet packed IPv4 address. All
+multi-octet fields in NCFED are network byte order.<a href="#section-5-3" class="pilcrow">¶</a></p>
+<p id="section-5-4">The initiator (the peer that opened the connection; see <a href="#discrimination" class="auto internal xref">Section 4</a>) sends its
+13-octet handshake immediately. If the acceptor admits the connection, it replies with
+its own 13-octet handshake: the "NCFED" magic followed by the acceptor's AS and
+router-id. The initiator <span class="bcp14">MUST</span> verify that the reply begins with the "NCFED" magic and
+that the AS/router-id identify the peer it expected, and <span class="bcp14">MUST</span> close the connection
+otherwise. The handshake is therefore a request/reply exchange in which each side
+presents its claimed identity to the other at the binary layer. Mutual capability
+exchange and the remainder of session establishment then proceed at the JSON-RPC
+layer via <code>n2n/hello</code> (<a href="#semantics" class="auto internal xref">Section 8</a>, <a href="#negotiation" class="auto internal xref">Section 9</a>), which the initiator sends
+first. The peer identity used throughout this document is the string
+<code>as&lt;AS&gt;-&lt;router-id&gt;</code> (for example, <code>as65001-192.0.2.1</code>).<a href="#section-5-4" class="pilcrow">¶</a></p>
+<p id="section-5-5">To avoid a simultaneous-open ambiguity (both peers dialing at once), NCFED designates
+a deterministic initiator: of any two peers, the one with the numerically <strong>lower</strong> AS
+number opens the channel, and the peer with the higher or equal AS number only
+accepts. An explicit re-dial replaces any existing channel to the same peer identity.<a href="#section-5-5" class="pilcrow">¶</a></p>
+<p id="section-5-6">The claimed AS/router-id in the handshake is <strong>not</strong> cryptographically authenticated.
+Its trust properties, and the intended evolution toward cryptographic peer
+authentication, are described in <a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a>.<a href="#section-5-6" class="pilcrow">¶</a></p>
+<p id="section-5-7">There is no version octet in the handshake; versioning is negotiated in-band
+(<a href="#negotiation" class="auto internal xref">Section 9</a>). Appending a version octet immediately after the magic is <strong>not</strong> a
+safe way to signal a future incompatible change, because that octet position is
+currently the most significant octet of the AS number and cannot be repurposed
+without ambiguity for already-deployed peers. It is therefore <span class="bcp14">RECOMMENDED</span> that any
+future incompatible change be negotiated in-band (<a href="#negotiation" class="auto internal xref">Section 9</a>), or be introduced
+only in a form that a legacy peer rejects cleanly rather than misparses.<a href="#section-5-7" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="framing">
+<section id="section-6">
+      <h2 id="name-message-framing">
+<a href="#section-6" class="section-number selfRef">6. </a><a href="#name-message-framing" class="section-name selfRef">Message Framing</a>
+      </h2>
+<p id="section-6-1">After a successful handshake, all traffic on the channel consists of frames, shown
+in <a href="#fig-frame" class="auto internal xref">Figure 3</a>.<a href="#section-6-1" class="pilcrow">¶</a></p>
+<span id="name-ncfed-frame"></span><div id="fig-frame">
+<figure id="figure-3">
+        <div class="alignLeft art-text artwork" id="section-6-2.1">
+<pre>
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|              Length (payload octets, unsigned, BE)            |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|     Flags     |            Payload (Length octets) ...        |
++-+-+-+-+-+-+-+-+                                               +
+|                              ...                              |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+</pre>
+</div>
+<figcaption><a href="#figure-3" class="selfRef">Figure 3</a>:
+<a href="#name-ncfed-frame" class="selfRef">NCFED frame</a>
+        </figcaption></figure>
+</div>
+<span class="break"></span><dl class="dlParallel" id="section-6-3">
+        <dt id="section-6-3.1">Length:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-3.2">
+          <p id="section-6-3.2.1">Unsigned 32-bit integer, network byte order, counting the payload octets only.
+A payload <span class="bcp14">MUST NOT</span> exceed 65536 octets (64 KiB). A larger message <span class="bcp14">MUST</span> be split
+across multiple frames using the CONTINUATION flag. A receiver that reads a Length
+greater than 65536 <span class="bcp14">MUST</span> close the connection.<a href="#section-6-3.2.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+<dt id="section-6-3.3">Flags:</dt>
+        <dd style="margin-left: 1.5em" id="section-6-3.4">
+          <p id="section-6-3.4.1">One octet. Bit 0 (0x01), CONTINUATION: when set, the payload is a fragment of a
+larger message and <span class="bcp14">MUST</span> be concatenated with the payloads of subsequent frames
+until a frame is received with CONTINUATION clear. Bits 1 through 7 are RESERVED;
+a sender <span class="bcp14">MUST</span> set them to 0 and a receiver <span class="bcp14">MUST</span> ignore them.<a href="#section-6-3.4.1" class="pilcrow">¶</a></p>
+</dd>
+      <dd class="break"></dd>
+</dl>
+<p id="section-6-4">Frames carry no message identifier. Consequently, an endpoint <span class="bcp14">MUST NOT</span> interleave the
+frames of different messages: once it sends a frame with CONTINUATION set, every
+subsequent frame it sends on that channel <span class="bcp14">MUST</span> be a fragment of the same message
+until a frame with CONTINUATION clear terminates the message. Fragments <span class="bcp14">MUST</span> be
+transmitted contiguously. A frame with Length 0 and CONTINUATION set is a legal empty
+fragment that contributes no octets to reassembly. Because a heartbeat (<a href="#heartbeat" class="auto internal xref">Section 7</a>)
+is a Length-0, CONTINUATION-clear frame, and because reassembly is never in progress
+between messages, a heartbeat is sent only between complete messages, never between a
+message's fragments; an endpoint <span class="bcp14">MUST NOT</span> emit a heartbeat while a message it is
+sending is partially transmitted. A receiver that observes a Length-0,
+CONTINUATION-clear frame while a reassembly is in progress <span class="bcp14">SHOULD</span> treat it as a
+protocol error and close the channel.<a href="#section-6-4" class="pilcrow">¶</a></p>
+<p id="section-6-5">A reassembled message is a complete JSON-RPC 2.0 message (<a href="#semantics" class="auto internal xref">Section 8</a>). Receivers
+<span class="bcp14">SHOULD</span> bound both the total size of a reassembled message and the memory held for
+in-progress reassembly, and close a channel that exceeds the bound; see
+<a href="#seccons-dos" class="auto internal xref">Section 13.6</a>. This document does not define a specific aggregate bound; the
+reference implementation does not currently enforce one (see <a href="#impl-status" class="auto internal xref">Appendix B</a>).<a href="#section-6-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="heartbeat">
+<section id="section-7">
+      <h2 id="name-heartbeat-and-liveness">
+<a href="#section-7" class="section-number selfRef">7. </a><a href="#name-heartbeat-and-liveness" class="section-name selfRef">Heartbeat and Liveness</a>
+      </h2>
+<p id="section-7-1">A frame with Length 0 and CONTINUATION clear, received when no reassembly is in
+progress, is a heartbeat. A heartbeat carries no payload and <span class="bcp14">MUST NOT</span> be delivered to
+the application layer; it is sent only between complete messages (<a href="#framing" class="auto internal xref">Section 6</a>).<a href="#section-7-1" class="pilcrow">¶</a></p>
+<p id="section-7-2">An endpoint <span class="bcp14">SHOULD</span> send a heartbeat frame approximately every 30 seconds (the
+heartbeat interval). Any inbound frame, including a heartbeat, is evidence of liveness
+and resets the endpoint's missed-interval count for that channel. An endpoint that
+receives no inbound frame for 3 consecutive intervals (approximately 90 seconds) <span class="bcp14">MUST</span>
+consider the channel dead and close it. These values mirror the BGP keepalive (30 s)
+and hold time (90 s) defaults <span>[<a href="#RFC4271" class="cite xref">RFC4271</a>]</span>. On close, an endpoint that initiated the
+session <span class="bcp14">SHOULD</span> attempt to re-establish it with bounded backoff.<a href="#section-7-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="semantics">
+<section id="section-8">
+      <h2 id="name-semantic-payload">
+<a href="#section-8" class="section-number selfRef">8. </a><a href="#name-semantic-payload" class="section-name selfRef">Semantic Payload</a>
+      </h2>
+<p id="section-8-1">Reassembled payloads are UTF-8 JSON-RPC 2.0 <span>[<a href="#JSONRPC" class="cite xref">JSONRPC</a>]</span> messages (<span>[<a href="#RFC8259" class="cite xref">RFC8259</a>]</span>). A
+message carrying a <code>method</code> member is a request (if it also carries <code>id</code>) or a
+notification (if it does not); a message carrying only <code>id</code> with <code>result</code> or <code>error</code>
+is a response. Each request carries a unique <code>id</code> chosen by the sender, which the
+response echoes. Batch requests (JSON-RPC arrays) are not used: an endpoint sends a
+single JSON-RPC object per reassembled message. A reassembled message that is not
+well-formed UTF-8 JSON is discarded and <span class="bcp14">SHOULD</span> be logged; its receipt does not by
+itself require closing the channel. The concrete parameter and result objects for
+each method are specified in <a href="#method-ref" class="auto internal xref">Appendix C</a>.<a href="#section-8-1" class="pilcrow">¶</a></p>
+<p id="section-8-2">Before federation (eN2N) or trust establishment (iN2N) completes, an endpoint <span class="bcp14">MUST</span>
+reject any method other than the handshake method (<code>n2n/hello</code> for eN2N;
+<code>in2n/hello</code> or <code>in2n/enroll</code> for iN2N) with the appropriate error (<a href="#errors" class="auto internal xref">Section 8.3</a>). On an
+eN2N channel the initiator sends <code>n2n/hello</code> first.<a href="#section-8-2" class="pilcrow">¶</a></p>
+<div id="method-families">
+<section id="section-8.1">
+        <h3 id="name-method-families">
+<a href="#section-8.1" class="section-number selfRef">8.1. </a><a href="#name-method-families" class="section-name selfRef">Method families</a>
+        </h3>
+<span class="break"></span><dl class="dlParallel" id="section-8.1-1">
+          <dt id="section-8.1-1.1">n2n/hello:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-1.2">
+            <p id="section-8.1-1.2.1">Mutual identity plus the capability descriptor (<a href="#negotiation" class="auto internal xref">Section 9</a>). The only method
+permitted before eN2N federation is established.<a href="#section-8.1-1.2.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-1.3">n2n/inventory, n2n/inventory_get:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-1.4">
+            <p id="section-8.1-1.4.1">Push and pull of the capability card (<a href="#cards" class="auto internal xref">Section 10</a>).<a href="#section-8.1-1.4.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-1.5">n2n/tools/call:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-1.6">
+            <p id="section-8.1-1.6.1">MCP-style <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> invocation of a named remote tool with JSON arguments, subject
+to the callee's per-peer authorization policy.<a href="#section-8.1-1.6.1" class="pilcrow">¶</a></p>
+</dd>
+          <dd class="break"></dd>
+<dt id="section-8.1-1.7">n2n/tasks/submit, n2n/tasks/status, n2n/tasks/result, n2n/tasks/cancel:</dt>
+          <dd style="margin-left: 1.5em" id="section-8.1-1.8">
+            <p id="section-8.1-1.8.1">A2A-style <span>[<a href="#A2A" class="cite xref">A2A</a>]</span> asynchronous task delegation and retrieval.<a href="#section-8.1-1.8.1" class="pilcrow">¶</a></p>
+</dd>
+        <dd class="break"></dd>
+</dl>
+<p id="section-8.1-2">Additional methods (e.g., claw-to-claw chat) <span class="bcp14">MAY</span> be present; unknown methods are
+rejected with METHOD_NOT_FOUND (<a href="#errors" class="auto internal xref">Section 8.3</a>).<a href="#section-8.1-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="asynchronous-task-delegation">
+<section id="section-8.2">
+        <h3 id="name-asynchronous-task-delegatio">
+<a href="#section-8.2" class="section-number selfRef">8.2. </a><a href="#name-asynchronous-task-delegatio" class="section-name selfRef">Asynchronous task delegation</a>
+        </h3>
+<p id="section-8.2-1">A delegated task progresses through the states:<a href="#section-8.2-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-8.2-2">
+<pre>
+submitted --&gt; working --&gt; completed
+                     \--&gt; failed
+                     \--&gt; cancelled
+</pre><a href="#section-8.2-2" class="pilcrow">¶</a>
+</div>
+<p id="section-8.2-3">The callee returns an opaque task identifier from <code>n2n/tasks/submit</code>; the caller
+retrieves progress and the terminal result via <code>n2n/tasks/status</code> and
+<code>n2n/tasks/result</code>, and <span class="bcp14">MAY</span> request cancellation via <code>n2n/tasks/cancel</code>. Task state
+persists across channel drops so that results survive reconnection. In the reference
+implementation these retrieval methods are keyed by the task identifier alone and do
+not verify that the caller is the peer that submitted the task; the task identifier
+therefore functions as a bearer capability and <span class="bcp14">MUST</span> be treated as a secret (see
+<a href="#seccons-deleg" class="auto internal xref">Section 13.5</a>). This document does not define a retention or garbage-collection
+policy for terminal task state, nor idempotency or retry semantics for resubmission.<a href="#section-8.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="errors">
+<section id="section-8.3">
+        <h3 id="name-error-codes">
+<a href="#section-8.3" class="section-number selfRef">8.3. </a><a href="#name-error-codes" class="section-name selfRef">Error codes</a>
+        </h3>
+<p id="section-8.3-1">NCFED uses JSON-RPC error objects. All NCFED application error codes fall within the
+JSON-RPC implementation-defined server-error range (-32000 to -32099) <span>[<a href="#JSONRPC" class="cite xref">JSONRPC</a>]</span>;
+this reuse is intentional and permitted. The following application error codes are
+defined for eN2N:<a href="#section-8.3-1" class="pilcrow">¶</a></p>
+<span id="name-en2n-error-codes"></span><table class="center" id="table-1">
+          <caption>
+<a href="#table-1" class="selfRef">Table 1</a>:
+<a href="#name-en2n-error-codes" class="selfRef">eN2N error codes</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Code</th>
+              <th class="text-left" rowspan="1" colspan="1">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32001</td>
+              <td class="text-left" rowspan="1" colspan="1">NOT_ALLOWLISTED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32002</td>
+              <td class="text-left" rowspan="1" colspan="1">APPROVAL_PENDING</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32003</td>
+              <td class="text-left" rowspan="1" colspan="1">APPROVAL_EXPIRED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32004</td>
+              <td class="text-left" rowspan="1" colspan="1">BUDGET_EXHAUSTED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32005</td>
+              <td class="text-left" rowspan="1" colspan="1">RATE_LIMITED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32006</td>
+              <td class="text-left" rowspan="1" colspan="1">EXECUTION_TIMEOUT</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32007</td>
+              <td class="text-left" rowspan="1" colspan="1">SEVERED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32008</td>
+              <td class="text-left" rowspan="1" colspan="1">GUARDRAIL_BLOCKED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32010</td>
+              <td class="text-left" rowspan="1" colspan="1">NOT_FEDERATED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32601</td>
+              <td class="text-left" rowspan="1" colspan="1">METHOD_NOT_FOUND (JSON-RPC standard)</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-8.3-3">The following application error codes are defined for iN2N (<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>):<a href="#section-8.3-3" class="pilcrow">¶</a></p>
+<span id="name-in2n-error-codes"></span><table class="center" id="table-2">
+          <caption>
+<a href="#table-2" class="selfRef">Table 2</a>:
+<a href="#name-in2n-error-codes" class="selfRef">iN2N error codes</a>
+          </caption>
+<thead>
+            <tr>
+              <th class="text-left" rowspan="1" colspan="1">Code</th>
+              <th class="text-left" rowspan="1" colspan="1">Name</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32021</td>
+              <td class="text-left" rowspan="1" colspan="1">ENROLL_TOKEN_INVALID</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32022</td>
+              <td class="text-left" rowspan="1" colspan="1">MEMBER_ID_TAKEN</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32023</td>
+              <td class="text-left" rowspan="1" colspan="1">MEMBER_NOT_TRUSTED</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32024</td>
+              <td class="text-left" rowspan="1" colspan="1">NOT_A_BORDER</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32030</td>
+              <td class="text-left" rowspan="1" colspan="1">NO_CAPABLE_MEMBER</td>
+            </tr>
+            <tr>
+              <td class="text-left" rowspan="1" colspan="1">-32031</td>
+              <td class="text-left" rowspan="1" colspan="1">OUT_OF_SCOPE</td>
+            </tr>
+          </tbody>
+        </table>
+<p id="section-8.3-5">MEMBER_ID_TAKEN (-32022) is reserved for an enrollment whose member identifier is
+already pinned to a different key. In the reference implementation this condition is
+currently reported as ENROLL_TOKEN_INVALID (-32021), and -32022 is not yet emitted on
+the wire (see <a href="#impl-status" class="auto internal xref">Appendix B</a>). A key-possession failure at <code>in2n/hello</code> or
+<code>in2n/enroll</code> is reported as MEMBER_NOT_TRUSTED (-32023).<a href="#section-8.3-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="negotiation">
+<section id="section-9">
+      <h2 id="name-version-and-capability-nego">
+<a href="#section-9" class="section-number selfRef">9. </a><a href="#name-version-and-capability-nego" class="section-name selfRef">Version and Capability Negotiation</a>
+      </h2>
+<p id="section-9-1">NCFED features are advertised in-band at <code>n2n/hello</code>, not in the binary handshake.
+Each endpoint advertises a capability descriptor:<a href="#section-9-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="section-9-2">
+<pre>
+{ "proto_version": "053",
+  "features": ["async_tasks", "endpoint_reannounce", "negotiate"],
+  "agent_invoke": "session-id",
+  "reply_shapes": ["finalAssistantVisibleText", "payloads"] }
+</pre><a href="#section-9-2" class="pilcrow">¶</a>
+</div>
+<p id="section-9-3"><code>proto_version</code> is an opaque label identifying a baseline (for example "052" or
+"053"); NCFED performs no ordering comparison on it, and an endpoint does not infer
+capability from its value. Capability is instead determined field by field: use of an
+optional feature is gated solely by its presence in the peer's <code>features</code> array, and
+the other descriptor fields (for example <code>agent_invoke</code> and <code>reply_shapes</code>) let each
+side adapt to the other's build. An endpoint that receives no descriptor treats the
+peer as the baseline "052" with an empty feature set. This mechanism is therefore
+feature advertisement with graceful degradation, not selection of a single common
+version: an unrecognized feature name is simply not used, and no failure is defined
+for a feature one side requires but the other lacks.<a href="#section-9-3" class="pilcrow">¶</a></p>
+<p id="section-9-4">Because the binary handshake carries no version indicator, an incompatible change
+cannot be signaled below the JSON-RPC layer, and -- as noted in <a href="#handshake" class="auto internal xref">Section 5</a> -- a
+version octet cannot simply be appended to the handshake. It is <span class="bcp14">RECOMMENDED</span> that any
+future incompatible change be negotiated in-band through this mechanism. A true
+version-negotiation scheme -- selecting a common protocol version and defining
+behavior when one side requires a feature the other does not support -- is left to a
+future revision (see <a href="#impl-status" class="auto internal xref">Appendix B</a>).<a href="#section-9-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="cards">
+<section id="section-10">
+      <h2 id="name-capability-cards">
+<a href="#section-10" class="section-number selfRef">10. </a><a href="#name-capability-cards" class="section-name selfRef">Capability Cards</a>
+      </h2>
+<p id="section-10-1">An endpoint advertises its capabilities in a card exchanged via <code>n2n/inventory</code> /
+<code>n2n/inventory_get</code>. A card contains:<a href="#section-10-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-10-2.1">
+          <p id="section-10-2.1.1"><code>skills</code> and <code>mcp_servers</code>: the capabilities the endpoint is willing to expose to
+this peer, after applying the per-peer visibility/authorization policy (not the
+endpoint's full local set);<a href="#section-10-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-2.2">
+          <p id="section-10-2.2.1"><code>badges</code>: coarse capability tags;<a href="#section-10-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-2.3">
+          <p id="section-10-2.3.1"><code>posture</code>: the advertiser's operational security posture, as
+<code>{ "mode", "state", "controls" }</code> (e.g., mode <code>production</code>, state <code>enforced</code>, and
+the set of active controls);<a href="#section-10-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-10-2.4">
+          <p id="section-10-2.4.1"><code>llm</code>: the advertiser's reasoning-model capability, as
+<code>{ "primary_model", "guarded" }</code> -- the model family/tier and whether its
+input/output is routed through a guardrail.<a href="#section-10-2.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-10-3">A card <span class="bcp14">MUST NOT</span> contain secrets, credentials, or per-member topology of a risk. A
+Border advertises its own reasoning model and <span class="bcp14">MAY</span> note that members run their own
+tiered models, without revealing individual members.<a href="#section-10-3" class="pilcrow">¶</a></p>
+<p id="section-10-4">Even so, because a card enumerates skills, MCP servers, security posture, and
+reasoning-model family, it discloses metadata about the advertiser's attack surface.
+An endpoint <span class="bcp14">MUST</span> advertise only the subset a given peer is authorized to see, and
+operators <span class="bcp14">SHOULD</span> treat card contents as sensitive -- particularly while transport is
+cleartext (<a href="#seccons-conf" class="auto internal xref">Section 13.4</a>). A future revision may define a minimized or
+integrity-protected card (<a href="#seccons-priv" class="auto internal xref">Section 13.7</a>).<a href="#section-10-4" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust">
+<section id="section-11">
+      <h2 id="name-trust-establishment">
+<a href="#section-11" class="section-number selfRef">11. </a><a href="#name-trust-establishment" class="section-name selfRef">Trust Establishment</a>
+      </h2>
+<div id="trust-en2n">
+<section id="section-11.1">
+        <h3 id="name-external-federation-en2n">
+<a href="#section-11.1" class="section-number selfRef">11.1. </a><a href="#name-external-federation-en2n" class="section-name selfRef">External federation: eN2N</a>
+        </h3>
+<p id="section-11.1-1">Peers in different trust domains federate only after explicit mutual operator
+consent. The AS/router-id identity of each peer is confirmed <strong>out of band</strong> (for
+example, by the operators exchanging it directly) before consent is granted. Consent
+is durable and survives restarts and endpoint (e.g., tunnel address) changes; it is
+keyed by the peer identity, not by a network address.<a href="#section-11.1-1" class="pilcrow">¶</a></p>
+<p id="section-11.1-2">A peer's federation state is derived from two independent consent bits -- the local
+operator's grant and the remote peer's grant -- as shown in <a href="#fig-consent" class="auto internal xref">Figure 4</a>.
+Federation requires both. Which "pending" state a peer occupies depends only on which
+grant has been recorded so far, not on a fixed order.<a href="#section-11.1-2" class="pilcrow">¶</a></p>
+<span id="name-en2n-consent-state-derived-"></span><div id="fig-consent">
+<figure id="figure-4">
+          <div class="alignLeft art-text artwork" id="section-11.1-3.1">
+<pre>
+                      not_federated
+                     (neither grant)
+                    /               \
+        local grant                  remote grant
+             v                           v
+   consent_pending_remote       consent_pending_local
+   (we granted; await peer)      (peer granted; await us)
+                    \               /
+                     \  both grants /
+                      v            v
+                        federated
+                            |
+                    sever (revoke local grant)
+                            v
+                        severed
+                            |
+                 re-consent (grant locally again)
+                            v
+                      not_federated --&gt; ...
+</pre>
+</div>
+<figcaption><a href="#figure-4" class="selfRef">Figure 4</a>:
+<a href="#name-en2n-consent-state-derived-" class="selfRef">eN2N consent state, derived from the local and remote grants</a>
+          </figcaption></figure>
+</div>
+<p id="section-11.1-4">Only <code>n2n/hello</code> is accepted before <code>federated</code>. Remote tool invocation is
+default-deny: a tool call is rejected (NOT_ALLOWLISTED) unless a per-peer grant
+authorizes it, and grants <span class="bcp14">MAY</span> carry approval requirements, budgets, and rate limits
+(reflected in the error codes of <a href="#errors" class="auto internal xref">Section 8.3</a>). Severing revokes the local grant and
+drops the channel (the operator kill switch); re-consent restores the local grant,
+returning the peer to <code>not_federated</code>, from which it may re-federate. As noted in
+<a href="#handshake" class="auto internal xref">Section 5</a>, the numerically lower AS initiates the channel.<a href="#section-11.1-4" class="pilcrow">¶</a></p>
+<p id="section-11.1-5">The claimed AS/router-id is not cryptographically authenticated (<a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a>);
+the out-of-band identity confirmation above is an administrative step, not a runtime
+cryptographic proof.<a href="#section-11.1-5" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="trust-in2n">
+<section id="section-11.2">
+        <h3 id="name-internal-federation-in2n">
+<a href="#section-11.2" class="section-number selfRef">11.2. </a><a href="#name-internal-federation-in2n" class="section-name selfRef">Internal federation: iN2N</a>
+        </h3>
+<p id="section-11.2-1">Within a single operator's risk, a member is authenticated by proving possession of
+a self-signed key that the Border pinned at enrollment (TOFU), not by BGP identity
+or mutual consent. iN2N is hub-and-spoke: a member connects only to its Border, and
+a member <span class="bcp14">MUST NOT</span> accept inbound federation connections.<a href="#section-11.2-1" class="pilcrow">¶</a></p>
+<p id="section-11.2-2">iN2N uses a <strong>separate</strong> Border listener (not the shared discrimination port of
+<a href="#discrimination" class="auto internal xref">Section 4</a>). The transport preamble is shown in <a href="#fig-in2n-preamble" class="auto internal xref">Figure 5</a>.<a href="#section-11.2-2" class="pilcrow">¶</a></p>
+<span id="name-in2n-transport-preamble"></span><div id="fig-in2n-preamble">
+<figure id="figure-5">
+          <div class="alignLeft art-text artwork" id="section-11.2-3.1">
+<pre>
+Border --&gt; Member:  "IN2N1" (5 octets) || nonce (32 octets, random)
+Member --&gt; Border:  JSON-RPC  in2n/hello | in2n/enroll
+   params: an ECDSA (P-256, SHA-256) signature over the nonce, proving
+   the member holds its pinned self-signed key
+   ... the standard NCFED framing/JSON-RPC channel then runs ...
+</pre>
+</div>
+<figcaption><a href="#figure-5" class="selfRef">Figure 5</a>:
+<a href="#name-in2n-transport-preamble" class="selfRef">iN2N transport preamble</a>
+          </figcaption></figure>
+</div>
+<p id="section-11.2-4">The trailing "1" in the "IN2N1" magic is a preamble version digit. The exact JSON
+parameters and their encodings -- PEM certificate, hexadecimal DER-encoded ECDSA
+signature, and hexadecimal key fingerprint -- are specified in <a href="#method-ref" class="auto internal xref">Appendix C</a>.<a href="#section-11.2-4" class="pilcrow">¶</a></p>
+<p id="section-11.2-5">Enrollment and pinning:<a href="#section-11.2-5" class="pilcrow">¶</a></p>
+<ol start="1" type="1" class="normal type-1" id="section-11.2-6">
+<li id="section-11.2-6.1">
+            <p id="section-11.2-6.1.1">The Border issues a single-use enrollment token, conveyed to the member out of
+band (for example, at install time). The token has the form <code>in2n_&lt;random&gt;</code> with
+at least 128 bits of entropy; the Border stores only its SHA-256 and <span class="bcp14">MAY</span> set an
+expiry.<a href="#section-11.2-6.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-6.2">
+            <p id="section-11.2-6.2.1">The member generates its own key pair at runtime: ECDSA <span>[<a href="#RFC6090" class="cite xref">RFC6090</a>]</span> on NIST curve
+P-256 <span>[<a href="#RFC5480" class="cite xref">RFC5480</a>]</span> with SHA-256 <span>[<a href="#RFC6234" class="cite xref">RFC6234</a>]</span>, in a self-signed X.509 certificate
+<span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span>.<a href="#section-11.2-6.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-6.3">
+            <p id="section-11.2-6.3.1">On first contact (<code>in2n/enroll</code>) the member presents the token and its
+certificate; the Border validates and spends the token and <strong>pins</strong> the member's
+key (TOFU). The pinned identity is the SHA-256 of the certificate's
+SubjectPublicKeyInfo.<a href="#section-11.2-6.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li id="section-11.2-6.4">
+            <p id="section-11.2-6.4.1">On every subsequent connection (<code>in2n/hello</code>) the member signs the Border's
+32-octet nonce with the pinned key; the Border verifies the signature.<a href="#section-11.2-6.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ol>
+<p id="section-11.2-7">A Border routes a request to the member that owns the capability, selecting
+deterministically (most-specific specialist first, then lexicographically by member
+identity); if no active member covers the capability it returns NO_CAPABLE_MEMBER,
+and a member asked to act beyond its advertised scope returns OUT_OF_SCOPE. Operator
+removal of a member unpins its key; a member that fails pinned-key authentication more
+than a configurable number of times is automatically quarantined -- its key unpinned --
+and must be re-enrolled by the operator to return. The security implications of this
+automatic quarantine are discussed in <a href="#seccons-tofu" class="auto internal xref">Section 13.3</a>.<a href="#section-11.2-7" class="pilcrow">¶</a></p>
+<p id="section-11.2-8">iN2N authenticates the member to the Border: the member proves possession of its
+pinned key over the Border's nonce. It does <strong>not</strong> authenticate the Border to the
+member. A member accepts any well-formed "IN2N1" preamble and treats the channel as
+trusted once the exchange completes, and the signed nonce proves key possession at
+session start but is not bound to the transport. An optional TLS wrapper <span class="bcp14">MAY</span> encrypt
+the iN2N socket for members reached across an untrusted network; it uses the member's
+self-signed certificate <span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span> with certificate verification disabled, so it
+supplies confidentiality only and establishes no channel binding. Consequently the
+current design does not exclude an active on-path attacker between a member and its
+Border; the intended hardening -- mutual key pinning and channel binding -- is described
+in <a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a>.<a href="#section-11.2-8" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="operational">
+<section id="section-12">
+      <h2 id="name-operational-considerations">
+<a href="#section-12" class="section-number selfRef">12. </a><a href="#name-operational-considerations" class="section-name selfRef">Operational Considerations</a>
+      </h2>
+<ul class="normal">
+<li class="normal" id="section-12-1.1">
+          <p id="section-12-1.1.1">Lifecycle: severing is an operator action that revokes the local consent grant and
+drops the NCFED channel (<a href="#trust-en2n" class="auto internal xref">Section 11.1</a>); there is no dedicated peer-to-peer sever
+message. A severed peer is reachable again only after the operator re-consents.<a href="#section-12-1.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-12-1.2">
+          <p id="section-12-1.2.1">Hybrid runtime: a Border keeps a hot set of members connected and cold-starts
+others on demand, idling them out when quiet. Cold start appears on the wire only
+as connection-establishment latency.<a href="#section-12-1.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-12-1.3">
+          <p id="section-12-1.3.1">Least privilege: each member is provisioned with only the secrets its integration
+requires; compromise of one member does not expose another's credentials.<a href="#section-12-1.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-12-1.4">
+          <p id="section-12-1.4.1">A standalone claw is a degenerate risk of one that is its own Border; no protocol
+change is required for that case.<a href="#section-12-1.4.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+</section>
+</div>
+<div id="seccons">
+<section id="section-13">
+      <h2 id="name-security-considerations">
+<a href="#section-13" class="section-number selfRef">13. </a><a href="#name-security-considerations" class="section-name selfRef">Security Considerations</a>
+      </h2>
+<div id="seccons-port">
+<section id="section-13.1">
+        <h3 id="name-sharing-a-listening-port-wi">
+<a href="#section-13.1" class="section-number selfRef">13.1. </a><a href="#name-sharing-a-listening-port-wi" class="section-name selfRef">Sharing a listening port with BGP</a>
+        </h3>
+<p id="section-13.1-1">Because NCFED, BGP-4, and NCTUN share a TCP listening port (<a href="#discrimination" class="auto internal xref">Section 4</a>), the
+NCFED discrimination and handshake parsers are reachable by any host that can reach
+the BGP port. Operators <span class="bcp14">SHOULD</span> protect the shared port with the same controls they
+apply to BGP peers -- for example, access-control lists restricting the permitted
+source addresses and, where the deployment allows, the Generalized TTL Security
+Mechanism <span>[<a href="#RFC5082" class="cite xref">RFC5082</a>]</span>. Implementations <span class="bcp14">MUST</span> enforce the discrimination read timeouts
+(<a href="#discrimination" class="auto internal xref">Section 4</a>: 30 s for the first octet, 10 s for the magic) and close on any
+malformed or unexpected preamble, to limit resource consumption by connections that
+stall before discrimination.<a href="#section-13.1-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-peer-auth">
+<section id="section-13.2">
+        <h3 id="name-peer-authentication">
+<a href="#section-13.2" class="section-number selfRef">13.2. </a><a href="#name-peer-authentication" class="section-name selfRef">Peer authentication</a>
+        </h3>
+<p id="section-13.2-1">NCFED does <strong>not</strong> cryptographically authenticate an eN2N peer. The AS/router-id in
+the handshake (<a href="#handshake" class="auto internal xref">Section 5</a>) is a cleartext claim, and consent and per-peer grants
+are keyed to that claimed identity. Any host that can reach the shared port and
+complete the handshake can assert a claimed identity; the request/reply handshake
+confirms only that both ends present matching identities, not that either end holds a
+credential proving it. eN2N peer authenticity is therefore only as strong as (a) the
+authenticity and confidentiality of the underlay the channel runs over
+(<a href="#seccons-conf" class="auto internal xref">Section 13.4</a>), and (b) the source-address controls on the shared port
+(<a href="#seccons-port" class="auto internal xref">Section 13.1</a>). An attacker who can bypass those controls and reach the port can
+impersonate a peer whose AS/router-id it knows.<a href="#section-13.2-1" class="pilcrow">¶</a></p>
+<p id="section-13.2-2">iN2N is stronger in one direction and weaker in the other: it authenticates the
+member to the Border (proof of possession of the pinned key over the Border's nonce),
+but it does not authenticate the Border to the member, and its optional TLS wrapper
+disables certificate verification, so it provides no channel binding
+(<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>). The signed nonce proves key possession at session start only; with
+verification disabled, an active on-path attacker could relay it.<a href="#section-13.2-2" class="pilcrow">¶</a></p>
+<p id="section-13.2-3">This is a deliberate, documented limitation of this Experimental protocol, consistent
+with its small-set-of-known-peers applicability (<a href="#applicability" class="auto internal xref">Section 1.1</a>). A future revision
+is expected to add cryptographic peer authentication. Candidate mechanisms include
+mutually authenticated TLS with certificates (<span>[<a href="#RFC8446" class="cite xref">RFC8446</a>]</span>, <span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span>); extending the
+iN2N proof-of-possession and key-pinning model to eN2N so that both peers pin each
+other's keys at consent and sign a session nonce (which would also supply channel
+binding for both trust models); or an emerging agent-identity and naming layer such
+as the Agent Name Service <span>[<a href="#ANS" class="cite xref">ANS</a>]</span>. Until such a mechanism exists, deployments <span class="bcp14">MUST NOT</span>
+rely on NCFED alone for peer authentication; eN2N peer identity rests on BGP-derived
+operational identity confirmed out of band, strict default-deny per-peer authorization
+(<a href="#seccons-deleg" class="auto internal xref">Section 13.5</a>), the deterministic-initiator and mutual-consent rules of
+<a href="#trust-en2n" class="auto internal xref">Section 11.1</a>, and the shared-port controls of <a href="#seccons-port" class="auto internal xref">Section 13.1</a>.<a href="#section-13.2-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-tofu">
+<section id="section-13.3">
+        <h3 id="name-trust-on-first-use">
+<a href="#section-13.3" class="section-number selfRef">13.3. </a><a href="#name-trust-on-first-use" class="section-name selfRef">Trust on first use</a>
+        </h3>
+<p id="section-13.3-1">eN2N relies on out-of-band confirmation of a peer's AS/router-id before consent; iN2N
+relies on TOFU pinning of a member's self-signed key at enrollment (<a href="#trust" class="auto internal xref">Section 11</a>). TOFU
+is vulnerable to an active attacker present at enrollment time. Enrollment tokens
+therefore <span class="bcp14">MUST</span> have at least 128 bits of entropy, <span class="bcp14">MUST</span> be single-use, <span class="bcp14">SHOULD</span> carry an
+expiry, and <span class="bcp14">SHOULD</span> be delivered over a confidential out-of-band channel. To detect an
+intercepted enrollment, the member <span class="bcp14">SHOULD</span> display the SHA-256 fingerprint of its
+generated certificate out of band so the operator can confirm it matches the value the
+Border pinned. If enrollment is suspected to have been intercepted, the operator
+removes (unpins) the member and re-enrolls it with a fresh token; the compromised key
+is thereby refused. This model is a deliberate instance of opportunistic security
+<span>[<a href="#RFC7435" class="cite xref">RFC7435</a>]</span>: it raises the bar against passive attackers and is appropriate for the
+small-set-of-known-peers applicability (<a href="#applicability" class="auto internal xref">Section 1.1</a>), but it is not a substitute
+for a PKI.<a href="#section-13.3-1" class="pilcrow">¶</a></p>
+<p id="section-13.3-2">The automatic quarantine that unpins a member after repeated failed authentications
+(<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>) is itself an availability hazard: an attacker who learns a member
+identifier and can reach the Border's iN2N listener can submit repeated failing
+authentications to drive that member over the quarantine threshold, unpinning it and
+removing it from routing -- a denial of service against a legitimate member. Operators
+<span class="bcp14">SHOULD</span> restrict reachability of the iN2N listener to member hosts, and a future
+revision <span class="bcp14">SHOULD</span> source-bind or rate-limit failed-authentication accounting rather than
+counting unauthenticated attempts globally (see <a href="#impl-status" class="auto internal xref">Appendix B</a>).<a href="#section-13.3-2" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-conf">
+<section id="section-13.4">
+        <h3 id="name-confidentiality-and-integri">
+<a href="#section-13.4" class="section-number selfRef">13.4. </a><a href="#name-confidentiality-and-integri" class="section-name selfRef">Confidentiality and integrity</a>
+        </h3>
+<p id="section-13.4-1">NCFED runs in cleartext by default; it provides neither confidentiality nor
+transport-layer integrity on its own. In the reference deployment it runs over
+private, overlay, or tunneled transports between mutually known peers. For any path
+that crosses an untrusted network, deployments <span class="bcp14">SHOULD</span> carry NCFED over an encrypted
+underlay or tunnel -- for example an encrypted data-plane tunnel, a VPN such as
+WireGuard <span>[<a href="#WIREGUARD" class="cite xref">WIREGUARD</a>]</span>, or a TLS <span>[<a href="#RFC8446" class="cite xref">RFC8446</a>]</span> tunnel that terminates below NCFED.
+NCFED does not itself perform a TLS handshake on the shared discrimination port: a
+direct TLS ClientHello is not a recognized discriminator value and is closed
+(<a href="#discrimination" class="auto internal xref">Section 4</a>). The optional iN2N TLS wrapper (<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>) uses the member's
+self-signed certificate <span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span> with certificate verification disabled: it
+supplies encryption only, establishes no channel binding, and <span class="bcp14">MUST NOT</span> be relied upon
+for peer authentication (<a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a>).<a href="#section-13.4-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-deleg">
+<section id="section-13.5">
+        <h3 id="name-agent-delegation-hazards">
+<a href="#section-13.5" class="section-number selfRef">13.5. </a><a href="#name-agent-delegation-hazards" class="section-name selfRef">Agent-delegation hazards</a>
+        </h3>
+<p id="section-13.5-1"><code>n2n/tools/call</code> and task delegation cause actions to be taken on real infrastructure
+at the request of a remote AI agent. Deployments:<a href="#section-13.5-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-13.5-2.1">
+            <p id="section-13.5-2.1.1"><span class="bcp14">MUST</span> authorize remote invocation per peer (default-deny; explicit grants), and
+<span class="bcp14">SHOULD</span> constrain grants with approval requirements, budgets, and rate limits;<a href="#section-13.5-2.1.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-13.5-2.2">
+            <p id="section-13.5-2.2.1"><span class="bcp14">MUST</span> treat content returned across the federation boundary (tool results, task
+output) as untrusted input to the local agent, which can carry prompt-injection
+payloads; such content <span class="bcp14">SHOULD NOT</span> be interpreted as instructions;<a href="#section-13.5-2.2.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-13.5-2.3">
+            <p id="section-13.5-2.3.1"><span class="bcp14">SHOULD</span> log every federated invocation at the Border for audit, and <span class="bcp14">MAY</span> gate
+execution behind a production-mode guardrail that inspects model input/output;<a href="#section-13.5-2.3.1" class="pilcrow">¶</a></p>
+</li>
+          <li class="normal" id="section-13.5-2.4">
+            <p id="section-13.5-2.4.1"><span class="bcp14">SHOULD</span> bound delegation depth to prevent loops when federated agents can themselves
+re-delegate. This document does not define a delegation-depth or hop-count field;
+implementations that permit transitive delegation <span class="bcp14">SHOULD</span> add and enforce one, and a
+future revision is expected to carry a decrementing hop count in the tool and task
+method families (<a href="#impl-status" class="auto internal xref">Appendix B</a>).<a href="#section-13.5-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        </ul>
+<p id="section-13.5-3">Because the task-retrieval methods are keyed by task identifier alone
+(<a href="#semantics" class="auto internal xref">Section 8</a>), a task identifier is a bearer capability: a peer that learns another
+peer's task identifier could read or cancel that task. Implementations <span class="bcp14">SHOULD</span> generate
+unguessable task identifiers, and a future revision <span class="bcp14">SHOULD</span> bind a task to the
+requesting peer and authorize retrieval accordingly.<a href="#section-13.5-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-dos">
+<section id="section-13.6">
+        <h3 id="name-denial-of-service">
+<a href="#section-13.6" class="section-number selfRef">13.6. </a><a href="#name-denial-of-service" class="section-name selfRef">Denial of service</a>
+        </h3>
+<p id="section-13.6-1">A payload is capped at 64 KiB per frame (<a href="#framing" class="auto internal xref">Section 6</a>) and an oversize Length <span class="bcp14">MUST</span>
+cause a close. However, a message <span class="bcp14">MAY</span> be reassembled from an unbounded number of
+CONTINUATION frames; a receiver <span class="bcp14">SHOULD</span> impose an upper bound on the total reassembled
+message size and on the memory retained for in-progress reassembly, and close a
+channel that exceeds it. The reference implementation does not currently enforce such
+an aggregate bound (<a href="#impl-status" class="auto internal xref">Appendix B</a>); a future revision is expected to define one
+together with a reassembly timeout. The heartbeat mechanism (<a href="#heartbeat" class="auto internal xref">Section 7</a>) and
+cold-start (<a href="#operational" class="auto internal xref">Section 12</a>) can be abused as resource-exhaustion vectors; operators
+<span class="bcp14">SHOULD</span> apply the per-peer rate/approval controls above and the port protections of
+<a href="#seccons-port" class="auto internal xref">Section 13.1</a>.<a href="#section-13.6-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="seccons-priv">
+<section id="section-13.7">
+        <h3 id="name-capability-card-privacy">
+<a href="#section-13.7" class="section-number selfRef">13.7. </a><a href="#name-capability-card-privacy" class="section-name selfRef">Capability-card privacy</a>
+        </h3>
+<p id="section-13.7-1">A capability card (<a href="#cards" class="auto internal xref">Section 10</a>) enumerates the advertiser's exposed skills, MCP servers,
+security posture, and reasoning-model family. This is attack-surface metadata. An
+endpoint <span class="bcp14">MUST</span> advertise only the subset a peer is authorized to see and <span class="bcp14">MUST NOT</span>
+include secrets or per-member topology; operators <span class="bcp14">SHOULD</span> treat card contents as
+sensitive, especially over cleartext transport (<a href="#seccons-conf" class="auto internal xref">Section 13.4</a>). A future revision
+may define a minimized or integrity-protected card.<a href="#section-13.7-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+</section>
+</div>
+<div id="iana">
+<section id="section-14">
+      <h2 id="name-iana-considerations">
+<a href="#section-14" class="section-number selfRef">14. </a><a href="#name-iana-considerations" class="section-name selfRef">IANA Considerations</a>
+      </h2>
+<p id="section-14-1">This document requests that IANA register the following service name in the Service
+Name and Transport Protocol Port Number Registry <span>[<a href="#RFC6335" class="cite xref">RFC6335</a>]</span>:<a href="#section-14-1" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="section-14-2.1">
+          <p id="section-14-2.1.1">Service Name: <code>ncfed</code><a href="#section-14-2.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.2">
+          <p id="section-14-2.2.1">Transport Protocol: TCP<a href="#section-14-2.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.3">
+          <p id="section-14-2.3.1">Description: NetClaw-to-NetClaw Federation Protocol<a href="#section-14-2.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.4">
+          <p id="section-14-2.4.1">Assignee: John Capobianco <a href="mailto:ptcapo@gmail.com">ptcapo@gmail.com</a><a href="#section-14-2.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.5">
+          <p id="section-14-2.5.1">Contact: John Capobianco <a href="mailto:ptcapo@gmail.com">ptcapo@gmail.com</a><a href="#section-14-2.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.6">
+          <p id="section-14-2.6.1">Reference: This document<a href="#section-14-2.6.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.7">
+          <p id="section-14-2.7.1">Port Number: none requested. NCFED does not define a fixed well-known port; a
+deployment multiplexes NCFED onto an operator-configured port (in the reference
+deployment, the BGP/mesh port), discriminated as in <a href="#discrimination" class="auto internal xref">Section 4</a>.<a href="#section-14-2.7.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="section-14-2.8">
+          <p id="section-14-2.8.1">Assignment Notes: NCFED operates over unicast TCP only; it does not use UDP,
+broadcast, multicast, or anycast.<a href="#section-14-2.8.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="section-14-3">This document does <strong>not</strong> request a registry for the first-octet discrimination
+tags ("NCFED", "NCTUN"); they are documented here for reference. Should third-party
+extensions of the tag space emerge, a future document may define such a registry
+(e.g., under a Specification Required or Expert Review policy <span>[<a href="#RFC8126" class="cite xref">RFC8126</a>]</span>).<a href="#section-14-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="sec-combined-references">
+<section id="section-15">
+      <h2 id="name-references">
+<a href="#section-15" class="section-number selfRef">15. </a><a href="#name-references" class="section-name selfRef">References</a>
+      </h2>
+<div id="sec-normative-references">
+<section id="section-15.1">
+        <h3 id="name-normative-references">
+<a href="#section-15.1" class="section-number selfRef">15.1. </a><a href="#name-normative-references" class="section-name selfRef">Normative References</a>
+        </h3>
+<dl class="references">
+<dt id="A2A">[A2A]</dt>
+        <dd>
+<span class="refTitle">"Agent2Agent (A2A) Protocol"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://a2a-protocol.org">https://a2a-protocol.org</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="JSONRPC">[JSONRPC]</dt>
+        <dd>
+<span class="refAuthor">JSON-RPC Working Group</span>, <span class="refTitle">"JSON-RPC 2.0 Specification"</span>, <time datetime="2013" class="refDate">2013</time>, <span>&lt;<a href="https://www.jsonrpc.org/specification">https://www.jsonrpc.org/specification</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="MCP">[MCP]</dt>
+        <dd>
+<span class="refTitle">"Model Context Protocol"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://modelcontextprotocol.io/specification">https://modelcontextprotocol.io/specification</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC2119">[RFC2119]</dt>
+        <dd>
+<span class="refAuthor">Bradner, S.</span>, <span class="refTitle">"Key words for use in RFCs to Indicate Requirement Levels"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 2119</span>, <span class="seriesInfo">DOI 10.17487/RFC2119</span>, <time datetime="1997-03" class="refDate">March 1997</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc2119">https://www.rfc-editor.org/rfc/rfc2119</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC4271">[RFC4271]</dt>
+        <dd>
+<span class="refAuthor">Rekhter, Y., Ed.</span>, <span class="refAuthor">Li, T., Ed.</span>, and <span class="refAuthor">S. Hares, Ed.</span>, <span class="refTitle">"A Border Gateway Protocol 4 (BGP-4)"</span>, <span class="seriesInfo">RFC 4271</span>, <span class="seriesInfo">DOI 10.17487/RFC4271</span>, <time datetime="2006-01" class="refDate">January 2006</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc4271">https://www.rfc-editor.org/rfc/rfc4271</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5280">[RFC5280]</dt>
+        <dd>
+<span class="refAuthor">Cooper, D.</span>, <span class="refAuthor">Santesson, S.</span>, <span class="refAuthor">Farrell, S.</span>, <span class="refAuthor">Boeyen, S.</span>, <span class="refAuthor">Housley, R.</span>, and <span class="refAuthor">W. Polk</span>, <span class="refTitle">"Internet X.509 Public Key Infrastructure Certificate and Certificate Revocation List (CRL) Profile"</span>, <span class="seriesInfo">RFC 5280</span>, <span class="seriesInfo">DOI 10.17487/RFC5280</span>, <time datetime="2008-05" class="refDate">May 2008</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5280">https://www.rfc-editor.org/rfc/rfc5280</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5480">[RFC5480]</dt>
+        <dd>
+<span class="refAuthor">Turner, S.</span>, <span class="refAuthor">Brown, D.</span>, <span class="refAuthor">Yiu, K.</span>, <span class="refAuthor">Housley, R.</span>, and <span class="refAuthor">T. Polk</span>, <span class="refTitle">"Elliptic Curve Cryptography Subject Public Key Information"</span>, <span class="seriesInfo">RFC 5480</span>, <span class="seriesInfo">DOI 10.17487/RFC5480</span>, <time datetime="2009-03" class="refDate">March 2009</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5480">https://www.rfc-editor.org/rfc/rfc5480</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6090">[RFC6090]</dt>
+        <dd>
+<span class="refAuthor">McGrew, D.</span>, <span class="refAuthor">Igoe, K.</span>, and <span class="refAuthor">M. Salter</span>, <span class="refTitle">"Fundamental Elliptic Curve Cryptography Algorithms"</span>, <span class="seriesInfo">RFC 6090</span>, <span class="seriesInfo">DOI 10.17487/RFC6090</span>, <time datetime="2011-02" class="refDate">February 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6090">https://www.rfc-editor.org/rfc/rfc6090</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6234">[RFC6234]</dt>
+        <dd>
+<span class="refAuthor">Eastlake 3rd, D.</span> and <span class="refAuthor">T. Hansen</span>, <span class="refTitle">"US Secure Hash Algorithms (SHA and SHA-based HMAC and HKDF)"</span>, <span class="seriesInfo">RFC 6234</span>, <span class="seriesInfo">DOI 10.17487/RFC6234</span>, <time datetime="2011-05" class="refDate">May 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6234">https://www.rfc-editor.org/rfc/rfc6234</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8174">[RFC8174]</dt>
+        <dd>
+<span class="refAuthor">Leiba, B.</span>, <span class="refTitle">"Ambiguity of Uppercase vs Lowercase in RFC 2119 Key Words"</span>, <span class="seriesInfo">BCP 14</span>, <span class="seriesInfo">RFC 8174</span>, <span class="seriesInfo">DOI 10.17487/RFC8174</span>, <time datetime="2017-05" class="refDate">May 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8174">https://www.rfc-editor.org/rfc/rfc8174</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8259">[RFC8259]</dt>
+      <dd>
+<span class="refAuthor">Bray, T., Ed.</span>, <span class="refTitle">"The JavaScript Object Notation (JSON) Data Interchange Format"</span>, <span class="seriesInfo">STD 90</span>, <span class="seriesInfo">RFC 8259</span>, <span class="seriesInfo">DOI 10.17487/RFC8259</span>, <time datetime="2017-12" class="refDate">December 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8259">https://www.rfc-editor.org/rfc/rfc8259</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+<div id="sec-informative-references">
+<section id="section-15.2">
+        <h3 id="name-informative-references">
+<a href="#section-15.2" class="section-number selfRef">15.2. </a><a href="#name-informative-references" class="section-name selfRef">Informative References</a>
+        </h3>
+<dl class="references">
+<dt id="ANS">[ANS]</dt>
+        <dd>
+<span class="refAuthor">Narajala et al.</span>, <span class="refTitle">"Agent Name Service (ANS): A Universal Directory for Secure AI Agent Discovery and Interoperability"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-narajala-ans/">https://datatracker.ietf.org/doc/draft-narajala-ans/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC5082">[RFC5082]</dt>
+        <dd>
+<span class="refAuthor">Gill, V.</span>, <span class="refAuthor">Heasley, J.</span>, <span class="refAuthor">Meyer, D.</span>, <span class="refAuthor">Savola, P., Ed.</span>, and <span class="refAuthor">C. Pignataro</span>, <span class="refTitle">"The Generalized TTL Security Mechanism (GTSM)"</span>, <span class="seriesInfo">RFC 5082</span>, <span class="seriesInfo">DOI 10.17487/RFC5082</span>, <time datetime="2007-10" class="refDate">October 2007</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc5082">https://www.rfc-editor.org/rfc/rfc5082</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6335">[RFC6335]</dt>
+        <dd>
+<span class="refAuthor">Cotton, M.</span>, <span class="refAuthor">Eggert, L.</span>, <span class="refAuthor">Touch, J.</span>, <span class="refAuthor">Westerlund, M.</span>, and <span class="refAuthor">S. Cheshire</span>, <span class="refTitle">"Internet Assigned Numbers Authority (IANA) Procedures for the Management of the Service Name and Transport Protocol Port Number Registry"</span>, <span class="seriesInfo">BCP 165</span>, <span class="seriesInfo">RFC 6335</span>, <span class="seriesInfo">DOI 10.17487/RFC6335</span>, <time datetime="2011-08" class="refDate">August 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6335">https://www.rfc-editor.org/rfc/rfc6335</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC6455">[RFC6455]</dt>
+        <dd>
+<span class="refAuthor">Fette, I.</span> and <span class="refAuthor">A. Melnikov</span>, <span class="refTitle">"The WebSocket Protocol"</span>, <span class="seriesInfo">RFC 6455</span>, <span class="seriesInfo">DOI 10.17487/RFC6455</span>, <time datetime="2011-12" class="refDate">December 2011</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc6455">https://www.rfc-editor.org/rfc/rfc6455</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7301">[RFC7301]</dt>
+        <dd>
+<span class="refAuthor">Friedl, S.</span>, <span class="refAuthor">Popov, A.</span>, <span class="refAuthor">Langley, A.</span>, and <span class="refAuthor">E. Stephan</span>, <span class="refTitle">"Transport Layer Security (TLS) Application-Layer Protocol Negotiation Extension"</span>, <span class="seriesInfo">RFC 7301</span>, <span class="seriesInfo">DOI 10.17487/RFC7301</span>, <time datetime="2014-07" class="refDate">July 2014</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7301">https://www.rfc-editor.org/rfc/rfc7301</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7435">[RFC7435]</dt>
+        <dd>
+<span class="refAuthor">Dukhovni, V.</span>, <span class="refTitle">"Opportunistic Security: Some Protection Most of the Time"</span>, <span class="seriesInfo">RFC 7435</span>, <span class="seriesInfo">DOI 10.17487/RFC7435</span>, <time datetime="2014-12" class="refDate">December 2014</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7435">https://www.rfc-editor.org/rfc/rfc7435</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC7942">[RFC7942]</dt>
+        <dd>
+<span class="refAuthor">Sheffer, Y.</span> and <span class="refAuthor">A. Farrel</span>, <span class="refTitle">"Improving Awareness of Running Code: The Implementation Status Section"</span>, <span class="seriesInfo">BCP 205</span>, <span class="seriesInfo">RFC 7942</span>, <span class="seriesInfo">DOI 10.17487/RFC7942</span>, <time datetime="2016-07" class="refDate">July 2016</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc7942">https://www.rfc-editor.org/rfc/rfc7942</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8126">[RFC8126]</dt>
+        <dd>
+<span class="refAuthor">Cotton, M.</span>, <span class="refAuthor">Leiba, B.</span>, and <span class="refAuthor">T. Narten</span>, <span class="refTitle">"Guidelines for Writing an IANA Considerations Section in RFCs"</span>, <span class="seriesInfo">BCP 26</span>, <span class="seriesInfo">RFC 8126</span>, <span class="seriesInfo">DOI 10.17487/RFC8126</span>, <time datetime="2017-06" class="refDate">June 2017</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8126">https://www.rfc-editor.org/rfc/rfc8126</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="RFC8446">[RFC8446]</dt>
+        <dd>
+<span class="refAuthor">Rescorla, E.</span>, <span class="refTitle">"The Transport Layer Security (TLS) Protocol Version 1.3"</span>, <span class="seriesInfo">RFC 8446</span>, <span class="seriesInfo">DOI 10.17487/RFC8446</span>, <time datetime="2018-08" class="refDate">August 2018</time>, <span>&lt;<a href="https://www.rfc-editor.org/rfc/rfc8446">https://www.rfc-editor.org/rfc/rfc8446</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="WIREGUARD">[WIREGUARD]</dt>
+        <dd>
+<span class="refAuthor">Donenfeld, J. A.</span>, <span class="refTitle">"WireGuard: Next Generation Kernel Network Tunnel"</span>, <time datetime="2017" class="refDate">2017</time>, <span>&lt;<a href="https://www.wireguard.com/papers/wireguard.pdf">https://www.wireguard.com/papers/wireguard.pdf</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+<dt id="YAN-A2A">[YAN-A2A]</dt>
+      <dd>
+<span class="refAuthor">Yan et al.</span>, <span class="refTitle">"Applicability of A2A Protocol for Network Management Agents"</span>, <time datetime="2025" class="refDate">2025</time>, <span>&lt;<a href="https://datatracker.ietf.org/doc/draft-yan-a2a-device-agent-applicability/">https://datatracker.ietf.org/doc/draft-yan-a2a-device-agent-applicability/</a>&gt;</span>. </dd>
+<dd class="break"></dd>
+</dl>
+</section>
+</div>
+</section>
+</div>
+<div id="prior-art-and-design-rationale">
+<section id="appendix-A">
+      <h2 id="name-prior-art-and-design-ration">
+<a href="#appendix-A" class="section-number selfRef">Appendix A. </a><a href="#name-prior-art-and-design-ration" class="section-name selfRef">Prior Art and Design Rationale</a>
+      </h2>
+<p id="appendix-A-1">NCFED's first-octet discrimination is analogous in spirit to, but distinct from, TLS
+ALPN <span>[<a href="#RFC7301" class="cite xref">RFC7301</a>]</span>, which negotiates the application protocol within the TLS
+handshake; NCFED discriminates in cleartext at the head of the TCP stream so that it
+can co-tenant with BGP without terminating TLS. Its length-prefixed, flag-bearing
+framing and post-handshake message model are in the lineage of WebSocket <span>[<a href="#RFC6455" class="cite xref">RFC6455</a>]</span>.
+Its use of AS/router-id as agent identity reuses the operational identity model of
+BGP-4 <span>[<a href="#RFC4271" class="cite xref">RFC4271</a>]</span>, which fits the network-engineering deployment.<a href="#appendix-A-1" class="pilcrow">¶</a></p>
+<p id="appendix-A-2">NCFED is closest, among current IETF work, to
+<span>[<a href="#YAN-A2A" class="cite xref">YAN-A2A</a>]</span> ("Applicability of A2A Protocol for Network Management Agents"). That
+work applies A2A to network management within a <strong>single administrative domain</strong>,
+between a controller agent and device agents, over mutually authenticated TLS, and
+does not address federation of independently operated agents. NCFED is
+complementary: it federates agents across <strong>different</strong> operators (eN2N, keyed by
+AS/router-id and mutual consent) and coordinates one operator's agents in a
+hub-and-spoke risk (iN2N, enrollment-token + TOFU), and it <strong>carries</strong> MCP and A2A
+payloads rather than defining new agent-card or task semantics of its own. A
+one-sentence differentiation: <em>NCFED is a cross-operator federation, identity, and
+transport layer -- multiplexed with BGP -- that transports A2A/MCP between
+independently operated network agents.</em><a href="#appendix-A-2" class="pilcrow">¶</a></p>
+<p id="appendix-A-3">Hub-and-spoke (rather than a full mesh) was chosen for iN2N so that a single Border
+provides one audit, policy, and routing boundary and one external identity for a
+risk; members never accept inbound connections, which minimizes their attack
+surface.<a href="#appendix-A-3" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="impl-status">
+<section id="appendix-B">
+      <h2 id="name-implementation-status">
+<a href="#appendix-B" class="section-number selfRef">Appendix B. </a><a href="#name-implementation-status" class="section-name selfRef">Implementation Status</a>
+      </h2>
+<p id="appendix-B-1">This section is to be removed before publishing as an RFC.<a href="#appendix-B-1" class="pilcrow">¶</a></p>
+<p id="appendix-B-2">This section records the status of known implementations of the protocol defined by
+this specification at the time of posting, per <span>[<a href="#RFC7942" class="cite xref">RFC7942</a>]</span>. It is to be removed
+before publication as an RFC.<a href="#appendix-B-2" class="pilcrow">¶</a></p>
+<p id="appendix-B-3"><strong>Implementation:</strong> the open-source NetClaw project (<code>automateyournetwork/netclaw</code>).
+NCFED (eN2N and iN2N) is deployed and in daily use across a live three-operator mesh
+(AS 65001, AS 65007, AS 65099) and within one operator's risk (a Border and its
+member claws). Coverage: protocol discrimination, the 13-octet handshake, the frame
+format and heartbeat, JSON-RPC method families, in-band negotiation, and both trust
+models are all implemented and interoperating.<a href="#appendix-B-3" class="pilcrow">¶</a></p>
+<p id="appendix-B-4"><strong>Interoperability evidence (packet capture):</strong> a 37.5-second capture of a live NCFED
+channel between johns-risk (AS 65001) and Nick (AS 65007) was taken at the initiator
+(<code>ncfed-johns-risk-nick-20260714.pcap</code> in the project repository) while three
+application-level round-trips were exercised:<a href="#appendix-B-4" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-B-5.1">
+          <p id="appendix-B-5.1.1">One long-lived TCP conversation, <code>192.168.2.61:45722</code> &lt;-&gt; <code>13.58.157.220:10416</code>
+(the initiator to the peer's tunnel edge); 24 packets, 3141 octets, near-symmetric
+(13 in / 1567 octets, 11 out / 1574 octets).<a href="#appendix-B-5.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.2">
+          <p id="appendix-B-5.2.1">TCP health: only ACK and PSH-ACK segments in-window (no SYN/FIN/RST -- a persistent,
+already-established control channel), with zero retransmissions and zero duplicate
+ACKs.<a href="#appendix-B-5.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-5.3">
+          <p id="appendix-B-5.3.1">Payload segmentation: 12 zero-length (pure-ACK) segments plus data segments of 5,
+75, 110, 127, 153, 274, and 352 octets -- small, bursty, and request/response-shaped,
+consistent with a control/chat protocol rather than bulk transfer.<a href="#appendix-B-5.3.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-B-6"><strong>Capture methodology and limitations (important, honest scope):</strong> this capture was
+taken on the wire <em>inside the peer's TLS-terminated tunnel transport</em> (the deployment
+reaches the remote AS over a tunnel provider). The captured payload octets are
+therefore <strong>ciphertext</strong>: the capture is accurate, first-hand evidence of the NCFED
+<strong>channel</strong> -- real endpoints, a persistent established session, healthy TCP, and a
+request/response traffic shape between two independently operated ASes -- but it does
+<strong>not</strong> expose decrypted NCFED frames, so the segment sizes above are TLS-record
+sizes carrying NCFED, not raw NCFED frame boundaries. A plaintext capture of the NCFED
+frames themselves requires capturing at the application layer (e.g., on loopback,
+before the tunnel) or on an underlay where the operator holds the keys (e.g.,
+WireGuard); such a capture is future work and is the recommended way to demonstrate
+the frame-level behavior specified in <a href="#framing" class="auto internal xref">Section 6</a> and <a href="#handshake" class="auto internal xref">Section 5</a> directly.<a href="#appendix-B-6" class="pilcrow">¶</a></p>
+<p id="appendix-B-7"><strong>Known limitations recorded for a future revision.</strong> In preparing this document, the
+running code and this description were reconciled against the source. The following
+are known gaps in the current implementation. They are documented here honestly and
+targeted for a future NCFED revision, rather than changed in the frozen wire this
+<code>-00</code> describes:<a href="#appendix-B-7" class="pilcrow">¶</a></p>
+<ul class="normal">
+<li class="normal" id="appendix-B-8.1">
+          <p id="appendix-B-8.1.1">eN2N performs no cryptographic peer authentication; iN2N does not authenticate the
+Border to the member, and its optional TLS wrapper disables certificate
+verification (no channel binding). See <a href="#seccons-peer-auth" class="auto internal xref">Section 13.2</a>.<a href="#appendix-B-8.1.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-8.2">
+          <p id="appendix-B-8.2.1">Message reassembly enforces the 64 KiB per-frame cap but no aggregate size bound or
+reassembly timeout. See <a href="#seccons-dos" class="auto internal xref">Section 13.6</a>.<a href="#appendix-B-8.2.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-8.3">
+          <p id="appendix-B-8.3.1">Repeated failed iN2N authentication auto-quarantines a member, which an attacker who
+knows a member identifier can abuse as a denial of service. See <a href="#seccons-tofu" class="auto internal xref">Section 13.3</a>.<a href="#appendix-B-8.3.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-8.4">
+          <p id="appendix-B-8.4.1">The tool and task method families carry no delegation hop count, and task-retrieval
+methods do not verify caller ownership. See <a href="#seccons-deleg" class="auto internal xref">Section 13.5</a>.<a href="#appendix-B-8.4.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-8.5">
+          <p id="appendix-B-8.5.1">MEMBER_ID_TAKEN (-32022) is defined but not yet emitted; the condition is currently
+reported as ENROLL_TOKEN_INVALID (-32021). See <a href="#errors" class="auto internal xref">Section 8.3</a>.<a href="#appendix-B-8.5.1" class="pilcrow">¶</a></p>
+</li>
+        <li class="normal" id="appendix-B-8.6">
+          <p id="appendix-B-8.6.1">In-band "version negotiation" is feature advertisement with graceful degradation,
+not selection of a common protocol version. See <a href="#negotiation" class="auto internal xref">Section 9</a>.<a href="#appendix-B-8.6.1" class="pilcrow">¶</a></p>
+</li>
+      </ul>
+<p id="appendix-B-9">This evidence is provided to document running code and operational reality; it is not
+a normative part of the protocol.<a href="#appendix-B-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="method-ref">
+<section id="appendix-C">
+      <h2 id="name-json-rpc-method-reference">
+<a href="#appendix-C" class="section-number selfRef">Appendix C. </a><a href="#name-json-rpc-method-reference" class="section-name selfRef">JSON-RPC Method Reference</a>
+      </h2>
+<p id="appendix-C-1">This appendix specifies the parameter and result objects for each NCFED method, as
+implemented in the reference implementation (<a href="#impl-status" class="auto internal xref">Appendix B</a>). All objects are JSON
+<span>[<a href="#RFC8259" class="cite xref">RFC8259</a>]</span>; unless stated otherwise, an unrecognized member is ignored. Encodings: a
+binary signature is a lowercase hexadecimal string of a DER-encoded ECDSA signature
+<span>[<a href="#RFC6090" class="cite xref">RFC6090</a>]</span> over the relevant nonce; a certificate is PEM-encoded <span>[<a href="#RFC5280" class="cite xref">RFC5280</a>]</span>; a key
+fingerprint is the lowercase hexadecimal SHA-256 <span>[<a href="#RFC6234" class="cite xref">RFC6234</a>]</span> of the certificate's
+SubjectPublicKeyInfo <span>[<a href="#RFC5480" class="cite xref">RFC5480</a>]</span>. Examples are illustrative.<a href="#appendix-C-1" class="pilcrow">¶</a></p>
+<div id="en2n-methods">
+<section id="appendix-C.1">
+        <h3 id="name-en2n-methods">
+<a href="#appendix-C.1" class="section-number selfRef">C.1. </a><a href="#name-en2n-methods" class="section-name selfRef">eN2N methods</a>
+        </h3>
+<p id="appendix-C.1-1"><code>n2n/hello</code> -- request <code>params</code> and <code>result</code> share the descriptor shape:<a href="#appendix-C.1-1" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.1-2">
+<pre>
+params: {
+  "identity": "as65001-192.0.2.1",
+  "display_name": "johns-risk",
+  "versions": ["1.0"],
+  "capabilities": {
+    "proto_version": "053",
+    "features": ["async_tasks", "endpoint_reannounce", "negotiate"],
+    "agent_invoke": "session-id",
+    "reply_shapes": ["finalAssistantVisibleText", "payloads"]
+  }
+}
+result: {
+  "display_name": "nick",
+  "capabilities": { ...same shape as params.capabilities... }
+}
+</pre><a href="#appendix-C.1-2" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.1-3"><code>n2n/tools/call</code> -- the <code>tool</code> member <span class="bcp14">MUST</span> have the form <code>server_id/tool_name</code>;
+otherwise the callee returns JSON-RPC error -32602 (invalid params). The <code>result</code> is
+the MCP <span>[<a href="#MCP" class="cite xref">MCP</a>]</span> tool-result object from the named server. Authorization failures use
+the codes of <a href="#errors" class="auto internal xref">Section 8.3</a>.<a href="#appendix-C.1-3" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.1-4">
+<pre>
+params: { "tool":       "&lt;server_id&gt;/&lt;tool_name&gt;",
+          "arguments":  { ...tool-specific JSON... },
+          "request_id": "as65001-192.0.2.1:42" }
+</pre><a href="#appendix-C.1-4" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.1-5"><code>n2n/tasks/submit</code> -- A2A-style <span>[<a href="#A2A" class="cite xref">A2A</a>]</span> delegation:<a href="#appendix-C.1-5" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.1-6">
+<pre>
+params: { "skill":      "&lt;skill-name&gt;",
+          "input_text": "&lt;free text passed to the skill&gt;",
+          "request_id": "as65001-192.0.2.1:43" }
+result: { "task_id": "&lt;opaque string&gt;", "state": "submitted" }
+</pre><a href="#appendix-C.1-6" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.1-7"><code>n2n/tasks/status</code>, <code>n2n/tasks/result</code>, <code>n2n/tasks/cancel</code> -- each takes
+<code>params: { "task_id": "&lt;opaque string&gt;" }</code> and returns:<a href="#appendix-C.1-7" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.1-8">
+<pre>
+status: {
+  "task_id": "...", "target": "&lt;skill-name&gt;",
+  "state": "submitted|working|completed|failed|cancelled|unknown",
+  "progress": "&lt;string or null&gt;"
+}
+result: {
+  "task_id": "...", "state": "...", "tokens_used": &lt;number&gt;,
+  "output_text": "&lt;present when completed&gt;",
+  "error": "&lt;present when failed&gt;"
+}
+cancel: { "task_id": "...", "cancelled": &lt;boolean&gt; }
+</pre><a href="#appendix-C.1-8" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.1-9"><code>n2n/inventory</code>, <code>n2n/inventory_get</code> -- push and pull of the capability card
+(<a href="#cards" class="auto internal xref">Section 10</a>).<a href="#appendix-C.1-9" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="in2n-methods">
+<section id="appendix-C.2">
+        <h3 id="name-in2n-methods">
+<a href="#appendix-C.2" class="section-number selfRef">C.2. </a><a href="#name-in2n-methods" class="section-name selfRef">iN2N methods</a>
+        </h3>
+<p id="appendix-C.2-1">Each iN2N method is sent by the member after receiving the Border's "IN2N1" preamble
+and 32-octet nonce (<a href="#trust-in2n" class="auto internal xref">Section 11.2</a>); the <code>signature</code> proves possession of the
+member's pinned key over that nonce.<a href="#appendix-C.2-1" class="pilcrow">¶</a></p>
+<p id="appendix-C.2-2"><code>in2n/enroll</code> -- first contact. On success the Border spends the token and pins the
+certificate's SubjectPublicKeyInfo. Errors: NOT_A_BORDER (-32024); MEMBER_NOT_TRUSTED
+(-32023) on possession failure; ENROLL_TOKEN_INVALID (-32021) for a spent or expired
+token, or a member identifier already pinned to another key (<a href="#errors" class="auto internal xref">Section 8.3</a>).<a href="#appendix-C.2-2" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.2-3">
+<pre>
+params: { "token":             "in2n_&lt;url-safe random&gt;",
+          "member_id":         "&lt;risk-local id&gt;",
+          "cert_pem":          "-----BEGIN CERTIFICATE----- ...",
+          "signature":         "&lt;hex DER ECDSA over the nonce&gt;",
+          "scope":             "&lt;optional capability scope&gt;",
+          "runtime_kind":      "process",
+          "display_name":      "&lt;optional&gt;",
+          "transport_binding": "distributed" }
+</pre><a href="#appendix-C.2-3" class="pilcrow">¶</a>
+</div>
+<p id="appendix-C.2-4"><code>in2n/hello</code> -- reconnect. A mismatched fingerprint or signature returns
+MEMBER_NOT_TRUSTED (-32023) and counts toward auto-quarantine (<a href="#seccons-tofu" class="auto internal xref">Section 13.3</a>).<a href="#appendix-C.2-4" class="pilcrow">¶</a></p>
+<div class="alignLeft art-text artwork" id="appendix-C.2-5">
+<pre>
+params: { "member_id":       "&lt;risk-local id&gt;",
+          "key_fingerprint": "&lt;hex SHA-256 of SubjectPublicKeyInfo&gt;",
+          "signature":       "&lt;hex DER ECDSA over the nonce&gt;" }
+result: { "risk": "&lt;risk name&gt;", "trusted": true,
+          "member_state": "active" }
+</pre><a href="#appendix-C.2-5" class="pilcrow">¶</a>
+</div>
+</section>
+</div>
+</section>
+</div>
+<div id="acknowledgments">
+<section id="appendix-D">
+      <h2 id="name-acknowledgments">
+<a href="#name-acknowledgments" class="section-name selfRef">Acknowledgments</a>
+      </h2>
+<p id="appendix-D-1">Thanks to the operators of the first three-node NCFED mesh -- Nicholas (AS 65007) and
+Byrn (AS 65099) -- for interoperation testing, and to the reviewers of the NetClaw
+project.<a href="#appendix-D-1" class="pilcrow">¶</a></p>
+</section>
+</div>
+<div id="authors-addresses">
+<section id="appendix-E">
+      <h2 id="name-authors-address">
+<a href="#name-authors-address" class="section-name selfRef">Author's Address</a>
+      </h2>
+<address class="vcard">
+        <div dir="auto" class="left"><span class="fn nameRole">John Capobianco</span></div>
+<div dir="auto" class="left"><span class="org">Automate Your Network</span></div>
+<div class="email">
+<span>Email:</span>
+<a href="mailto:ptcapo@gmail.com" class="email">ptcapo@gmail.com</a>
+</div>
+<div class="url">
+<span>URI:</span>
+<a href="https://automateyournetwork.ca" class="url">https://automateyournetwork.ca</a>
+</div>
+</address>
+</section>
+</div>
+<script>const toc = document.getElementById("toc");
+toc.querySelector("h2").addEventListener("click", e => {
+  toc.classList.toggle("active");
+});
+toc.querySelector("nav").addEventListener("click", e => {
+  toc.classList.remove("active");
+});
+</script>
+</body>
+</html>

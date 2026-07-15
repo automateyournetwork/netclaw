@@ -1,3 +1,12 @@
+---
+name: zscaler-identity
+description: "Manage users, groups, departments, and identity provider configurations."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Zscaler Identity Skill
 
 Manage users, groups, departments, and identity provider configurations.

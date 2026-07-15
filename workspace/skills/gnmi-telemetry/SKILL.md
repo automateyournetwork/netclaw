@@ -1,3 +1,12 @@
+---
+name: gnmi-telemetry
+description: "gNMI streaming telemetry operations for multi-vendor network devices. Query device state via structured YANG model paths, subscribe to real-time telemetry streams, apply ITSM-gated configuration changes, browse YANG capabilities, and compare gNMI data against CLI output."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # gnmi-telemetry
 
 gNMI streaming telemetry operations for multi-vendor network devices. Query device state via structured YANG model paths, subscribe to real-time telemetry streams, apply ITSM-gated configuration changes, browse YANG capabilities, and compare gNMI data against CLI output.

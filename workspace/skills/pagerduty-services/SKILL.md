@@ -1,3 +1,12 @@
+---
+name: pagerduty-services
+description: "Manage service catalog and service health in PagerDuty."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # PagerDuty Services Skill
 
 Manage service catalog and service health in PagerDuty.

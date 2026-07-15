@@ -2,6 +2,7 @@
 name: gitlab-devops
 description: "GitLab DevOps operations — issues, merge requests, CI/CD pipelines, repository browsing, labels, milestones, releases, and wiki management. Use when querying GitLab project status, monitoring pipeline executions, browsing repository files, creating issues for network findings, opening merge requests for config changes, or managing project metadata."
 version: 1.0.0
+license: Apache-2.0
 tags: [gitlab, devops, ci-cd, version-control, change-management]
 metadata:
   { "openclaw": { "requires": { "bins": ["node", "npx"], "env": ["GITLAB_PERSONAL_ACCESS_TOKEN"] } } }

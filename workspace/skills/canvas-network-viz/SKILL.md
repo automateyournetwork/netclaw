@@ -1,6 +1,7 @@
 ---
 name: canvas-network-viz
 description: "Canvas/A2UI inline network visualizations — topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards rendered directly in the OpenClaw chat interface. Consumes existing MCP server data (pyATS, Grafana, Prometheus, ServiceNow, SuzieQ, Batfish) and outputs A2UI JSON for Canvas rendering. Use when the operator asks to see a network map, device dashboard, alert summary, change request timeline, config diff, forwarding path trace, or health scorecard."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": [], "env": [] } } }

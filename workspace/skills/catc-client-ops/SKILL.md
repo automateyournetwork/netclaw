@@ -1,6 +1,7 @@
 ---
 name: catc-client-ops
 description: "Catalyst Center client operations and monitoring - list/filter wired and wireless clients, detailed client lookup by MAC, client count analytics, time-based analysis, SSID and band filtering, wireless troubleshooting. Use when looking up a client by MAC or IP, counting clients per site or SSID, analyzing wireless band distribution, or investigating Wi-Fi signal issues."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["CATC_MCP_SCRIPT", "MCP_CALL"] } } }

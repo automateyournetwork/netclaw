@@ -1,0 +1,23 @@
+[Unit]
+# NetClaw mesh daemon (BGP + NCFED eN2N + iN2N Border) — durable, feature 056/057.
+# This is the checked-in TEMPLATE. `scripts/in2n-services.py generate` substitutes
+# @REPO@ / @HOME@ and installs it to ~/.config/systemd/user/netclaw-mesh.service.
+# Restart=always + WantedBy=default.target is what makes the federation layer
+# survive session/terminal churn and host reboot (the recurring 056 outage).
+Description=NetClaw mesh daemon (BGP + NCFED eN2N + iN2N Border) — durable, feature 056/057
+After=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO@/mcp-servers/protocol-mcp
+# Include ~/.local/bin so the production enforcement CLIs (openshell, defenseclaw)
+# are reachable when the daemon runs as a service — otherwise posture would report
+# them "not found on PATH" and (correctly) refuse to claim enforced (feature 057).
+Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+EnvironmentFile=-@HOME@/.openclaw/mesh.systemd.env
+ExecStart=/usr/bin/python3 @REPO@/mcp-servers/protocol-mcp/bgp-daemon-v2.py
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

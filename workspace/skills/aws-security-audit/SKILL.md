@@ -2,6 +2,7 @@
 name: aws-security-audit
 description: "AWS security auditing — IAM users/roles/policies, CloudTrail API events, security posture analysis. Use when auditing IAM permissions, investigating security incidents, checking MFA compliance, or tracing API activity in CloudTrail."
 version: 1.0.0
+license: Apache-2.0
 tags: [aws, iam, cloudtrail, security, audit, compliance]
 ---
 

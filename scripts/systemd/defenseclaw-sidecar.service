@@ -1,0 +1,22 @@
+[Unit]
+# DefenseClaw guardrail sidecar — the model-guard proxy (feature 057).
+# Checked-in TEMPLATE; `scripts/in2n-services.py generate` substitutes @DG@ / @DGDIR@
+# and installs it to ~/.config/systemd/user/defenseclaw-sidecar.service. Runs the
+# sidecar in the FOREGROUND (Type=simple) so Restart=always genuinely self-heals —
+# this is what keeps production posture `enforced` across a reboot (otherwise
+# model-guard honestly reports DEGRADED until the proxy is started).
+# Prereq: `defenseclaw setup guardrail` has patched OpenClaw to route model I/O
+# through the proxy (:4000).
+Description=DefenseClaw guardrail sidecar (LLM proxy :4000 + tool policy) — feature 057 model-guard
+After=network-online.target openclaw-gateway.service
+Wants=openclaw-gateway.service
+
+[Service]
+Type=simple
+Environment=PATH=@DGDIR@:%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=@DG@
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

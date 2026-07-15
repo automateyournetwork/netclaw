@@ -1,6 +1,7 @@
 ---
 name: slack-report-delivery
 description: "Deliver formatted network reports, audit results, topology diagrams, and compliance documentation to Slack channels with rich Block Kit formatting. Use when posting a health check report, sharing a security audit, delivering topology diagrams, or sending scheduled network reports to Slack."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

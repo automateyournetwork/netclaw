@@ -2,6 +2,7 @@
 name: aap-eda
 description: "Event-Driven Ansible (EDA) — activation lifecycle, rulebook management, decision environments, event stream monitoring. Use when managing event-driven automation triggers, enabling/disabling activations, or reviewing EDA rulebooks."
 version: 1.0.0
+license: Apache-2.0
 tags: [ansible, eda, event-driven, redhat, automation, rulebook]
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["EDA_URL", "EDA_TOKEN"] } } }

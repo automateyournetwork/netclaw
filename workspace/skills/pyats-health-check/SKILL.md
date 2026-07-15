@@ -1,9 +1,19 @@
 ---
 name: pyats-health-check
 description: "Comprehensive network device health monitoring - CPU, memory, interfaces, hardware, NTP, logging, environment, and uptime analysis. Use when running a device health check, monitoring CPU or memory usage, checking interface errors, or validating NTP sync."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }
+
+netshell:
+  mcp_tools:
+    - mcp: pyats-mcp
+      tools:
+        - pyats_run_show_command
+        - pyats_parse_show_command
+        - pyats_get_device_info
+        - pyats_list_devices
 ---
 
 # Device Health Check

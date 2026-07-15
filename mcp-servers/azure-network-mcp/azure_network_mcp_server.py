@@ -20,12 +20,12 @@ from clients.azure_client import azure_client_factory
 from utils.rate_limiter import format_error_response
 
 
-def _toon_dumps(data, **kwargs) -> str:
-    """Serialize data using TOON format with JSON fallback."""
+def _gcf_dumps(data, **kwargs) -> str:
+    """Serialize data using GCF with graph auto-detection and session dedup."""
     try:
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        return result["encoded_data"]
     except Exception:
         return json.dumps(data, indent=2, default=str)
 
@@ -82,26 +82,18 @@ def with_gait_logging(tool_name: str):
 
 # --- Subscription Listing Tool ---
 
-@mcp.tool()
 async def azure_list_subscriptions() -> str:
     """List all accessible Azure subscriptions for the authenticated credential."""
-    gait_audit_log("azure_list_subscriptions", "all", status="started")
-    try:
-        sub_client = azure_client_factory.get_subscription_client()
-        subscriptions = []
-        for sub in sub_client.subscriptions.list():
-            subscriptions.append({
-                "subscription_id": sub.subscription_id,
-                "display_name": sub.display_name,
-                "state": sub.state,
-                "tenant_id": getattr(sub, "tenant_id", None),
-            })
-        gait_audit_log("azure_list_subscriptions", "all", status="success",
-                       details=f"Found {len(subscriptions)} subscriptions")
-        return _toon_dumps(subscriptions)
-    except Exception as e:
-        gait_audit_log("azure_list_subscriptions", "all", status="error", details=str(e))
-        return format_error_response(e)
+    sub_client = azure_client_factory.get_subscription_client()
+    subscriptions = []
+    for sub in sub_client.subscriptions.list():
+        subscriptions.append({
+            "subscription_id": sub.subscription_id,
+            "display_name": sub.display_name,
+            "state": sub.state,
+            "tenant_id": getattr(sub, "tenant_id", None),
+        })
+    return _gcf_dumps(subscriptions)
 
 
 # --- Import and register all tool modules ---
@@ -138,25 +130,31 @@ from tools.private_link import azure_get_private_endpoints
 from tools.dns import azure_get_dns_zones
 
 # Register all tools with FastMCP
-mcp.tool()(azure_list_vnets)
-mcp.tool()(azure_get_vnet_details)
-mcp.tool()(azure_get_vnet_peerings)
-mcp.tool()(azure_list_nsgs)
-mcp.tool()(azure_get_nsg_rules)
-mcp.tool()(azure_get_effective_security_rules)
-mcp.tool()(azure_audit_nsg_compliance)
-mcp.tool()(azure_get_expressroute_status)
-mcp.tool()(azure_get_expressroute_routes)
-mcp.tool()(azure_get_vpn_gateway_status)
-mcp.tool()(azure_list_firewalls)
-mcp.tool()(azure_get_firewall_policy)
-mcp.tool()(azure_list_load_balancers)
-mcp.tool()(azure_get_lb_backend_health)
-mcp.tool()(azure_get_app_gateway_health)
-mcp.tool()(azure_get_route_tables)
-mcp.tool()(azure_get_network_watcher_status)
-mcp.tool()(azure_get_private_endpoints)
-mcp.tool()(azure_get_dns_zones)
+tools_to_register = [
+    azure_list_subscriptions,
+    azure_list_vnets,
+    azure_get_vnet_details,
+    azure_get_vnet_peerings,
+    azure_list_nsgs,
+    azure_get_nsg_rules,
+    azure_get_effective_security_rules,
+    azure_audit_nsg_compliance,
+    azure_get_expressroute_status,
+    azure_get_expressroute_routes,
+    azure_get_vpn_gateway_status,
+    azure_list_firewalls,
+    azure_get_firewall_policy,
+    azure_list_load_balancers,
+    azure_get_lb_backend_health,
+    azure_get_app_gateway_health,
+    azure_get_route_tables,
+    azure_get_network_watcher_status,
+    azure_get_private_endpoints,
+    azure_get_dns_zones
+]
+
+for tool in tools_to_register:
+    mcp.tool()(with_gait_logging(tool.__name__)(tool))
 
 
 def main():

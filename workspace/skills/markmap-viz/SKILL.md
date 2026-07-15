@@ -1,6 +1,7 @@
 ---
 name: markmap-viz
 description: "Create interactive mind map visualizations from markdown - network inventory, OSPF areas, BGP topology, security audit results. Use when visualizing network topology as a mind map, creating audit result diagrams, or generating hierarchical views of OSPF areas, BGP peers, or VLAN structures"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["node"], "env": ["MARKMAP_MCP_SCRIPT"] } } }

@@ -2,6 +2,7 @@
 name: meraki-wireless-ops
 description: "Cisco Meraki Wireless — SSID management, RF profiles, channel utilization, signal quality, client connectivity events. Use when managing Meraki SSIDs, troubleshooting WiFi connectivity, analyzing RF channel utilization, checking wireless signal quality, or investigating client roaming issues"
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, meraki, wireless, ssid, rf, wifi, access-point, channel]
 ---
 

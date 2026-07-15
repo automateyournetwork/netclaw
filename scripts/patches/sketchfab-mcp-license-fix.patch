@@ -1,0 +1,38 @@
+diff --git a/index.ts b/index.ts
+index 062cc5b..02984a2 100644
+--- a/index.ts
++++ b/index.ts
+@@ -53,7 +53,11 @@ interface SketchfabModel {
+   downloadCount?: number;
+   viewCount?: number;
+   likeCount?: number;
+-  license?: string;
++  // NetClaw patch (spec 046): the real Sketchfab API returns license as an
++  // object ({uid, label}), not a string as originally declared here —
++  // verified live against https://api.sketchfab.com/v3/models/{uid} during
++  // implementation.
++  license?: { uid: string; label: string };
+   createdAt?: string;
+   faceCount?: number;
+   vertexCount?: number;
+@@ -241,12 +245,19 @@ function formatModelForDisplay(model: SketchfabModel): string {
+   const thumbnailUrl = model.thumbnails?.images?.[0]?.url || "No thumbnail";
+   const username = model.user?.username || "Unknown";
+   const downloadable = model.isDownloadable ? "Yes" : "No";
+-  
++  // NetClaw patch (spec 046, FR-019a): the license field was silently
++  // dropped from this formatter even though SketchfabModel declares it and
++  // the real API returns it as an object ({uid, label}) on both search and
++  // model-details responses. Without this line, no caller of
++  // sketchfab-model-details can verify a model's license before use.
++  const licenseJson = model.license ? JSON.stringify(model.license) : "null";
++
+   return `
+ [Model] ${model.name}
+ ID: ${model.uid}
+ Creator: ${username}
+ Downloadable: ${downloadable}
++License: ${licenseJson}
+ Thumbnail: ${thumbnailUrl}
+ ${model.description ? `Description: ${model.description}` : ""}
+ `;

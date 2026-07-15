@@ -1,0 +1,399 @@
+/**
+ * TwitterPanel Styles
+ * Visual HUD component for NetClaw Twitter integration
+ *
+ * Color scheme matches the existing NetClaw HUD cyberpunk aesthetic
+ */
+
+.twitter-panel {
+  position: fixed;
+  bottom: 80px;
+  right: 20px;
+  width: 320px;
+  max-height: 400px;
+  background: rgba(10, 15, 25, 0.95);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  border-radius: 8px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  color: #e0e0e0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
+              0 0 20px rgba(0, 255, 255, 0.1);
+  transition: all 0.3s ease;
+}
+
+.twitter-panel.collapsed {
+  max-height: 44px;
+  overflow: hidden;
+}
+
+.twitter-panel:hover {
+  border-color: rgba(0, 255, 255, 0.5);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5),
+              0 0 30px rgba(0, 255, 255, 0.2);
+}
+
+/* Header */
+.twitter-panel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+  background: rgba(0, 255, 255, 0.05);
+}
+
+.twitter-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  color: #00ffff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.twitter-icon {
+  color: #00ffff;
+}
+
+.twitter-panel-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.twitter-rate-limit {
+  font-size: 11px;
+  color: #00ff88;
+  padding: 2px 6px;
+  background: rgba(0, 255, 136, 0.1);
+  border-radius: 4px;
+}
+
+.twitter-rate-limit.warning {
+  color: #ffaa00;
+  background: rgba(255, 170, 0, 0.1);
+}
+
+.twitter-rate-limit.critical {
+  color: #ff4444;
+  background: rgba(255, 68, 68, 0.1);
+}
+
+.twitter-collapse-btn {
+  background: none;
+  border: none;
+  color: #888;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.twitter-collapse-btn:hover {
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.twitter-collapse-btn.rotated svg {
+  transform: rotate(180deg);
+}
+
+/* Tabs */
+.twitter-panel-tabs {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 255, 255, 0.2);
+}
+
+.twitter-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: #888;
+  font-family: inherit;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.twitter-tab:hover {
+  background: rgba(0, 255, 255, 0.05);
+  color: #aaa;
+}
+
+.twitter-tab.active {
+  color: #00ffff;
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.twitter-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: #00ffff;
+}
+
+.tab-icon {
+  font-size: 12px;
+}
+
+.mention-badge {
+  background: #ff4444;
+  color: white;
+  font-size: 9px;
+  padding: 1px 5px;
+  border-radius: 10px;
+  font-weight: 600;
+  min-width: 16px;
+  text-align: center;
+}
+
+/* Content */
+.twitter-panel-content {
+  flex: 1;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.twitter-tweet-list,
+.twitter-mention-list {
+  padding: 8px;
+}
+
+.twitter-empty {
+  text-align: center;
+  color: #666;
+  padding: 20px;
+  font-style: italic;
+}
+
+/* Individual Tweet */
+.twitter-tweet {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.2s;
+}
+
+.twitter-tweet:hover {
+  background: rgba(0, 255, 255, 0.05);
+  border-color: rgba(0, 255, 255, 0.2);
+}
+
+.twitter-tweet:last-child {
+  margin-bottom: 0;
+}
+
+.tweet-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.tweet-category {
+  font-size: 14px;
+}
+
+.tweet-badge {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.tweet-badge.heartbeat {
+  background: rgba(255, 0, 255, 0.2);
+  color: #ff00ff;
+}
+
+.tweet-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #666;
+}
+
+.tweet-content {
+  color: #ccc;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.tweet-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #00aaff;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.tweet-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Footer */
+.twitter-panel-footer {
+  padding: 8px 12px;
+  border-top: 1px solid rgba(0, 255, 255, 0.2);
+  font-size: 10px;
+}
+
+.twitter-status {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #666;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ff4444;
+}
+
+.status-dot.connected {
+  background: #00ff88;
+  box-shadow: 0 0 6px #00ff88;
+}
+
+/* Scrollbar */
+.twitter-panel-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.twitter-panel-content::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.twitter-panel-content::-webkit-scrollbar-thumb {
+  background: rgba(0, 255, 255, 0.3);
+  border-radius: 3px;
+}
+
+.twitter-panel-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 255, 255, 0.5);
+}
+
+/* Animation for new tweets */
+@keyframes tweet-slide-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.twitter-tweet {
+  animation: tweet-slide-in 0.3s ease;
+}
+
+/* Mentions */
+.twitter-mention {
+  padding: 10px;
+  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 6px;
+  transition: all 0.2s;
+  animation: tweet-slide-in 0.3s ease;
+}
+
+.twitter-mention:hover {
+  background: rgba(0, 255, 255, 0.05);
+  border-color: rgba(0, 255, 255, 0.2);
+}
+
+.twitter-mention.processed {
+  opacity: 0.7;
+  border-left: 2px solid #00ff88;
+}
+
+.twitter-mention:last-child {
+  margin-bottom: 0;
+}
+
+.mention-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.mention-author {
+  color: #00aaff;
+  font-weight: 600;
+  font-size: 11px;
+}
+
+.mention-category {
+  font-size: 14px;
+}
+
+.mention-status {
+  font-size: 9px;
+  padding: 1px 4px;
+  border-radius: 3px;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.mention-status.pending {
+  background: rgba(255, 170, 0, 0.2);
+  color: #ffaa00;
+}
+
+.mention-status.replied {
+  background: rgba(0, 255, 136, 0.2);
+  color: #00ff88;
+}
+
+.mention-time {
+  margin-left: auto;
+  font-size: 10px;
+  color: #666;
+}
+
+.mention-content {
+  color: #ccc;
+  line-height: 1.5;
+  word-break: break-word;
+}
+
+.mention-reply-link {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 10px;
+  color: #00ff88;
+  text-decoration: none;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.mention-reply-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}

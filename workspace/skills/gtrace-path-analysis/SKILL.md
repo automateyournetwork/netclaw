@@ -1,6 +1,7 @@
 ---
 name: gtrace-path-analysis
 description: "Network path tracing and monitoring — traceroute with MPLS/ECMP/NAT detection, continuous MTR monitoring, and distributed GlobalPing probes from 500+ worldwide locations. Use when tracing the path to a destination, diagnosing slow network routes, detecting MPLS or ECMP load balancing, running MTR for intermittent packet loss, or testing reachability from global vantage points."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3", "gtrace"], "env": ["GTRACE_MCP_BIN"] } } }

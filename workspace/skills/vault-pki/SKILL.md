@@ -1,3 +1,12 @@
+---
+name: vault-pki
+description: "Manage HashiCorp Vault PKI certificate infrastructure."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Vault PKI Skill
 
 Manage HashiCorp Vault PKI certificate infrastructure.

@@ -20,20 +20,20 @@ from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
 
-# Add netclaw_tokens to path for TOON serialization
+# Add netclaw_tokens to path for GCF serialization
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
 
 from suzieq_client import ASSERT_TABLES, KNOWN_TABLES, SuzieQClient
 
 # ---------------------------------------------------------------------------
-# TOON serialization helper
+# GCF serialization helper
 # ---------------------------------------------------------------------------
-def _toon_dumps(data: dict, **kwargs) -> str:
-    """Serialize data using TOON format with JSON fallback."""
+def _gcf_dumps(data: dict, **kwargs) -> str:
+    """Serialize data using GCF with graph auto-detection and session dedup."""
     try:
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        return result["encoded_data"]
     except Exception:
         return json.dumps(data, indent=2, **kwargs)
 
@@ -108,7 +108,7 @@ def format_query_response(
             indent=2,
         )
 
-    return _toon_dumps(
+    return _gcf_dumps(
         {
             "table": table,
             "verb": verb,
@@ -163,7 +163,7 @@ def format_assert_response(table: str, result: dict) -> str:
             else:
                 pass_count += 1
 
-    return _toon_dumps(
+    return _gcf_dumps(
         {
             "table": table,
             "verb": "assert",
@@ -217,7 +217,7 @@ def format_path_response(
             indent=2,
         )
 
-    return _toon_dumps(
+    return _gcf_dumps(
         {
             "namespace": namespace,
             "source": source,

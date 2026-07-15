@@ -2,6 +2,7 @@
 name: meraki-security-appliance
 description: "Cisco Meraki Security Appliance (MX) — firewall rules, site-to-site VPN, content filtering, traffic shaping, security events. Use when auditing Meraki MX firewall rules, troubleshooting site-to-site VPN tunnels, managing content filtering, or investigating Meraki security events and IDS alerts"
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, meraki, mx, firewall, vpn, security, content-filtering, traffic-shaping]
 ---
 

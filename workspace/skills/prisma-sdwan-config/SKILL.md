@@ -1,6 +1,7 @@
 ---
 name: prisma-sdwan-config
 description: "Inspect Prisma SD-WAN interfaces, routing (BGP, static), policies, and security zones"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

@@ -1,8 +1,8 @@
-"""netclaw_tokens — Token counting, cost tracking, and TOON serialization for NetClaw.
+"""netclaw_tokens — Token counting, cost tracking, and GCF serialization for NetClaw.
 
 This shared library provides:
   - Token counting via Anthropic API with local estimation fallback
-  - TOON serialization for MCP server responses (40-60% token savings)
+  - GCF serialization for MCP server responses (55-83% token savings)
   - Model-aware cost calculation (Opus, Sonnet, Haiku)
   - Session-level cumulative tracking with per-tool breakdown
   - Mandatory token footer formatting for every interaction
@@ -53,15 +53,19 @@ class ModelPricing:
 
 
 @dataclass
-class TOONResponse:
-    """An MCP tool response serialized in TOON format."""
+class GCFResponse:
+    """An MCP tool response serialized in GCF format."""
 
-    toon_data: str = ""
+    gcf_data: str = ""
     json_token_count: int = 0
-    toon_token_count: int = 0
+    gcf_token_count: int = 0
     savings_tokens: int = 0
     savings_pct: float = 0.0
     fallback_used: bool = False
+
+
+# Legacy alias
+TOONResponse = GCFResponse
 
 
 @dataclass
@@ -73,7 +77,7 @@ class ToolUsageRecord:
     total_input_tokens: int = 0
     total_output_tokens: int = 0
     total_cost: float = 0.0
-    toon_savings_tokens: int = 0
+    gcf_savings_tokens: int = 0
 
     @property
     def total_tokens(self) -> int:
@@ -91,7 +95,8 @@ __all__ = [
     "TokenCount",
     "CostEstimate",
     "ModelPricing",
-    "TOONResponse",
+    "GCFResponse",
+    "TOONResponse",  # legacy alias
     "ToolUsageRecord",
     # Functions (lazy imports to avoid circular dependencies)
     "count_tokens",
@@ -114,7 +119,7 @@ def __getattr__(name: str):
         from .cost_calculator import calculate_cost, get_pricing
         return calculate_cost if name == "calculate_cost" else get_pricing
     if name == "serialize_response":
-        from .toon_serializer import serialize_response
+        from .gcf_serializer import serialize_response
         return serialize_response
     if name == "format_footer":
         from .footer import format_footer

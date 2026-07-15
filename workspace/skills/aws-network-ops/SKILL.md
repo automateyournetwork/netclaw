@@ -2,7 +2,28 @@
 name: aws-network-ops
 description: "AWS cloud networking — VPC, Transit Gateway, Cloud WAN, VPN, Network Firewall, ENI, flow logs. Use when auditing AWS VPCs, troubleshooting connectivity between EC2 instances, checking Transit Gateway routes, or investigating VPN tunnel status."
 version: 1.0.0
+license: Apache-2.0
 tags: [aws, vpc, transit-gateway, cloud-wan, vpn, network-firewall, flow-logs]
+
+netshell:
+  mcp_tools:
+    - mcp: aws-network-mcp
+      tools:
+        - get_path_trace_methodology
+        - find_ip_address
+        - get_eni_details
+        - list_vpcs
+        - get_vpc_details
+        - get_vpc_route_tables
+        - list_subnets
+        - get_subnet_details
+        - list_transit_gateways
+        - get_transit_gateway_details
+        - get_transit_gateway_route_tables
+        - list_vpn_connections
+        - get_vpn_connection_details
+        - get_network_firewall_details
+        - list_flow_logs
 ---
 
 # AWS Network Operations

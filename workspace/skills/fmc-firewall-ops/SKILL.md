@@ -2,6 +2,7 @@
 name: fmc-firewall-ops
 description: "Cisco Secure Firewall FMC — access policy search, rule inspection, FTD device targeting, multi-FMC profile management. Use when searching firewall rules by IP or FQDN, checking if host A can reach host B through the firewall, auditing FMC access policies, or reviewing SGT-based segmentation rules."
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, fmc, firewall, ftd, security, access-policy, firepower]
 ---
 

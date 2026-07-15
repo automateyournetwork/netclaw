@@ -1,6 +1,7 @@
 ---
 name: nvd-cve
 description: "Search the National Vulnerability Database for CVEs - find vulnerabilities by keyword or ID, get CVSS scores, weaknesses, affected configurations, and remediation references. Use when looking up a CVE, scanning for vulnerabilities, running a security audit, or checking if a software version has known exploits."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["NVD_MCP_SCRIPT", "MCP_CALL"] } } }

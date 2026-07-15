@@ -1,3 +1,12 @@
+---
+name: telemetry-ops
+description: "Comprehensive network telemetry and event collection across multiple protocols."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Unified Telemetry Operations Skill
 
 Comprehensive network telemetry and event collection across multiple protocols.

@@ -1,0 +1,17 @@
+{% for interface in interfaces | sort(attribute='name') %}
+{% if 'Vlan' in interface.name %}
+{% include '/cisco_xe/interfaces/_svi.j2' %}
+{% elif interface.lag is defined and interface.lag %}
+{% include '/cisco_xe/interfaces/_lag_member.j2' %}
+{% elif interface.mode == 'TAGGED' %}
+{% include '/cisco_xe/interfaces/_l2_trunk.j2' %}
+{% elif interface.mode == 'ACCESS' %}
+{% include '/cisco_xe/interfaces/_l2_access.j2' %}
+{% elif 'Port-channel' in interface.name %}
+{% include '/cisco_xe/interfaces/_port_channel.j2' %}
+{% elif 'GigabitEthernet' in interface.name or 'TenGigabitEthernet' in interface.name %}
+{% if not interface.enabled %}
+{% include '/cisco_xe/interfaces/_unused.j2' %}
+{% endif %}
+{% endif %}
+{% endfor %}

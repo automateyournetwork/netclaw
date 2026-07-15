@@ -1,6 +1,7 @@
 ---
 name: aruba-cx-config
 description: "View and manage Aruba CX switch configurations, perform ISSU upgrades, and firmware operations"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

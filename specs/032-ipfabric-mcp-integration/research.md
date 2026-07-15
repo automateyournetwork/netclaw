@@ -13,7 +13,7 @@ The IP Fabric MCP Server requires authentication via API token. Based on the off
 | Variable | Description | Example |
 |----------|-------------|---------|
 | `IPFABRIC_HOST` | IP Fabric appliance URL (base URL without /mcp) | `https://ipfabric.example.com` |
-| `IPFABRIC_API_TOKEN` | API token with appropriate RBAC permissions | `<IPFABRIC_API_TOKEN>` |
+| `IPFABRIC_API_TOKEN` | API token with appropriate RBAC permissions | `2fe04e6c7eb787f5547d72abbd7b4f09` |
 
 ### Derived Variables (for mcp-remote)
 

@@ -2,6 +2,7 @@
 name: packet-analysis
 description: "Analyze network packet captures (.pcap/.pcapng) using Packet Buddy MCP. Use when opening a pcap file, inspecting packet captures, troubleshooting network traffic, analyzing retransmissions, or filtering packets by protocol."
 version: 1.0.0
+license: Apache-2.0
 tags: [packets, pcap, wireshark, tshark, troubleshooting]
 ---
 

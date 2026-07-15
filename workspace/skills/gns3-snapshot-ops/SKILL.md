@@ -1,6 +1,7 @@
 ---
 name: gns3-snapshot-ops
 description: "Manage GNS3 project snapshots - create, restore, delete for safe experimentation"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

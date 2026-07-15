@@ -1,3 +1,12 @@
+---
+name: snmptrap-receiver
+description: "Receive and query SNMP traps from network devices via UDP."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # SNMP Trap Receiver Skill
 
 Receive and query SNMP traps from network devices via UDP.

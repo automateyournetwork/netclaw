@@ -1,3 +1,12 @@
+---
+name: splunk-saved
+description: "Manage and run saved searches in Splunk."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Splunk Saved Searches Skill
 
 Manage and run saved searches in Splunk.

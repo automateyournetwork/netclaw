@@ -1,6 +1,7 @@
 ---
 name: pyats-troubleshoot
 description: "Systematic network troubleshooting - connectivity, routing, interface, protocol, and performance issues using structured OSI-layer and divide-and-conquer methodology. Use when something is broken, a device is unreachable, a link is flapping, users report slow performance, or an OSPF/BGP adjacency is down."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PYATS_TESTBED_PATH"] } } }

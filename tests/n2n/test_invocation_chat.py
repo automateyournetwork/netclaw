@@ -8,9 +8,22 @@ stubbing the tool executor and gateway so no external processes are needed.
 import asyncio
 import json
 
+import pytest
+
+from bgp.federation import invocation
 from bgp.federation.service import FederationService
 from bgp.federation.manager import FederationManager, peer_identity
 from bgp.federation.channel import FederationChannel, RpcError
+
+
+@pytest.fixture(autouse=True)
+def _guards_off(monkeypatch):
+    """These eN2N regression tests exercise pure authz allow/deny — force
+    OpenClaw's security.mode 'off' so they don't depend on the host's real
+    ~/.openclaw/openclaw.json (feature 057 legitimately sets it to 'defenseclaw'
+    on a production host, which would otherwise route these tool calls through the
+    real DefenseClaw CLI). Keeps the test hermetic without changing what it asserts."""
+    monkeypatch.setattr(invocation, "_security_mode", lambda: "hobby")
 
 
 def _svc(base, local_as, rid, name):

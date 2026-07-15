@@ -1,6 +1,7 @@
 ---
 name: sdwan-ops
 description: "Cisco SD-WAN vManage read-only operations — fabric devices, WAN Edge inventory, templates, policies, alarms, events, interface stats, BFD sessions, OMP routes, control connections, running config. Use when checking SD-WAN fabric health, viewing vManage alarms, auditing SD-WAN policies and templates, or troubleshooting BFD tunnels."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["VMANAGE_IP", "VMANAGE_USERNAME", "VMANAGE_PASSWORD"] } } }

@@ -1,3 +1,12 @@
+---
+name: splunk-indexes
+description: "Discover and inspect Splunk indexes and configuration."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Splunk Indexes Skill
 
 Discover and inspect Splunk indexes and configuration.

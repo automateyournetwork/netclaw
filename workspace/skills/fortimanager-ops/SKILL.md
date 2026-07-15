@@ -1,6 +1,7 @@
 ---
 name: fortimanager-ops
 description: "FortiManager operations — ADOM inventory, policy package review, object search, install preview, and compliance workflows. Use when auditing FortiGate firewall policies, reviewing ADOM policy packages, validating firewall path rules, or planning a FortiManager package install with rollback."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["FORTIMANAGER_MCP_CMD", "FORTIMANAGER_HOST", "FORTIMANAGER_API_TOKEN"] } } }

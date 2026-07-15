@@ -2,6 +2,7 @@
 name: cml-topology-builder
 description: "Build CML topologies — add nodes, create interfaces, wire links, set link conditioning, add annotations. Use when building a network topology in CML, adding routers or switches to a lab, wiring links between nodes, or simulating WAN conditions."
 version: 1.0.0
+license: Apache-2.0
 tags: [cml, topology, nodes, links, interfaces]
 ---
 

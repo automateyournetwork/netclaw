@@ -1,9 +1,20 @@
 ---
 name: catc-inventory
 description: "Catalyst Center device inventory and site management - list/filter devices by hostname, IP, platform, family, role, reachability; view site hierarchy; get interface details per device; device reachability monitoring; cross-reference with pyATS. Use when listing network devices, checking device reachability, auditing software versions, viewing site hierarchy, or finding a device by serial number."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["CATC_MCP_SCRIPT", "MCP_CALL"] } } }
+
+netshell:
+  mcp_tools:
+    - mcp: catalyst-center-mcp
+      tools:
+        - catc_get_device_list
+        - catc_get_device_by_id
+        - catc_get_device_interfaces
+        - catc_get_site_hierarchy
+        - catc_get_device_enrichment
 ---
 
 # Catalyst Center Device Inventory and Site Management

@@ -1,6 +1,7 @@
 ---
 name: aci-change-deploy
 description: "Safe ACI policy change deployment - ServiceNow CR lifecycle, pre/post-change fault baselines, APIC policy application, automatic rollback on fault delta, and GAIT audit trail. Use when deploying ACI policy changes, creating tenants or EPGs, pushing config to APIC, or running a change window with rollback protection."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["ACI_MCP_SCRIPT", "APIC_URL", "SERVICENOW_MCP_SCRIPT"] } } }

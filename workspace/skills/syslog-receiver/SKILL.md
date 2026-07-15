@@ -1,3 +1,12 @@
+---
+name: syslog-receiver
+description: "Receive and query syslog messages from network devices via UDP."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Syslog Receiver Skill
 
 Receive and query syslog messages from network devices via UDP.

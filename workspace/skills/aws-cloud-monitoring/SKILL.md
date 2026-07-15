@@ -2,6 +2,7 @@
 name: aws-cloud-monitoring
 description: "AWS CloudWatch monitoring — metrics, alarms, log queries, VPC flow log analysis, network performance. Use when checking AWS alarms, analyzing VPC flow logs, investigating network latency, or monitoring VPN and NAT Gateway metrics."
 version: 1.0.0
+license: Apache-2.0
 tags: [aws, cloudwatch, monitoring, metrics, alarms, logs, flow-logs]
 ---
 

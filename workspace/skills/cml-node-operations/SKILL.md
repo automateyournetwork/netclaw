@@ -2,6 +2,7 @@
 name: cml-node-operations
 description: "CML node operations — start, stop, console access, CLI execution, config management, node details. Use when starting or stopping a CML node, running show commands on a lab router, setting startup configs, or reading console logs."
 version: 1.0.0
+license: Apache-2.0
 tags: [cml, nodes, console, cli, config]
 ---
 

@@ -1,0 +1,20 @@
+{% if config_context.aaa is defined %}
+{% set aaa = config_context.aaa %}
+{% if aaa.new_model | default(false) %}
+aaa new-model
+!
+aaa authentication login default {{ aaa.auth_method | default("local") }}
+aaa authentication login CONSOLE local
+aaa authentication enable default {{ aaa.enable_method | default("enable") }}
+{% if aaa.authorization | default(false) %}
+aaa authorization exec default {{ aaa.auth_method | default("local") }}
+{% endif %}
+{% if aaa.accounting | default(false) %}
+aaa accounting exec default start-stop {{ aaa.accounting_method | default("local") }}
+{% endif %}
+{% else %}
+no aaa new-model
+{% endif %}
+{% else %}
+no aaa new-model
+{% endif %}

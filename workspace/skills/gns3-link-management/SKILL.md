@@ -1,6 +1,7 @@
 ---
 name: gns3-link-management
 description: "Manage GNS3 links - connect/disconnect node interfaces, isolate nodes"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

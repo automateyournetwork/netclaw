@@ -1,3 +1,12 @@
+---
+name: pagerduty-incidents
+description: "Manage and investigate incidents in PagerDuty."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # PagerDuty Incidents Skill
 
 Manage and investigate incidents in PagerDuty.

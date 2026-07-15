@@ -1,6 +1,7 @@
 ---
 name: msgraph-teams
 description: "Send notifications and reports to Microsoft Teams channels via Graph API - alert delivery, report posting, incident updates, and diagram sharing. Use when posting health alerts to Teams, sending security notifications, sharing change completion updates, or delivering reports to a Teams channel"
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["npx"], "env": ["AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"] } } }

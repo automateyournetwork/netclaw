@@ -1,3 +1,12 @@
+---
+name: cloudflare-workers
+description: "Monitor Cloudflare Workers deployments, bindings, and build insights."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Cloudflare Workers Skill
 
 Monitor Cloudflare Workers deployments, bindings, and build insights.

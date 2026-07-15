@@ -1,3 +1,12 @@
+---
+name: vault-mounts
+description: "Discover and manage HashiCorp Vault secret engine mounts."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Vault Mounts Skill
 
 Discover and manage HashiCorp Vault secret engine mounts.

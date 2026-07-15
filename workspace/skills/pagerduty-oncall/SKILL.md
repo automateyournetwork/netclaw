@@ -1,3 +1,12 @@
+---
+name: pagerduty-oncall
+description: "Manage on-call schedules and escalation policies in PagerDuty."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # PagerDuty On-Call Skill
 
 Manage on-call schedules and escalation policies in PagerDuty.

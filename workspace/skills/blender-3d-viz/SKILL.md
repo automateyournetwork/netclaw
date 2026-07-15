@@ -1,6 +1,7 @@
 ---
 name: blender-3d-viz
 description: "Create 3D network topology visualizations in Blender from CDP/LLDP neighbor data"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

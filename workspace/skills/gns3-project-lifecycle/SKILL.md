@@ -1,6 +1,7 @@
 ---
 name: gns3-project-lifecycle
 description: "Manage GNS3 network lab projects - create, open, close, delete, clone, export/import"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

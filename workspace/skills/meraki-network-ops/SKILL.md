@@ -2,7 +2,35 @@
 name: meraki-network-ops
 description: "Cisco Meraki Dashboard — organization inventory, network management, device lifecycle, client discovery, action batches. Use when listing Meraki devices, managing networks, checking device status, investigating clients, or running bulk Meraki API operations"
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, meraki, dashboard, network, devices, clients, inventory, organization]
+
+netshell:
+  mcp_tools:
+    - mcp: meraki-magic-mcp
+      tools:
+        - getOrganizations
+        - getOrganizationDetails
+        - getOrganizationStatus
+        - getOrganizationInventory
+        - getOrganizationLicense
+        - getNetworks
+        - getNetworkDetails
+        - getNetworkEvents
+        - getDevices
+        - getNetworkDevices
+        - getDeviceDetails
+        - getDeviceStatus
+        - getDeviceUplink
+        - getDeviceClients
+        - getNetworkClients
+        - getClientDetails
+        - call_meraki_api
+        - createNetwork           # Write - requires ITSM
+        - updateNetwork           # Write - requires ITSM
+        - claimDevices            # Write - requires ITSM
+        - removeDevice            # Write - requires ITSM
+  approval_required: false
 ---
 
 # Meraki Network & Device Operations

@@ -1,3 +1,12 @@
+---
+name: cloudflare-zerotrust
+description: "Inspect Cloudflare Zero Trust access applications, policies, tunnels, and CASB findings."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Cloudflare Zero Trust Skill
 
 Inspect Cloudflare Zero Trust access applications, policies, tunnels, and CASB findings.

@@ -1,6 +1,7 @@
 ---
 name: catc-troubleshoot
 description: "Catalyst Center troubleshooting workflows - device unreachable investigation, client connectivity issues, interface down analysis, site-wide outage triage, wireless roaming problems, integration with pyATS for CLI-level diagnostics. Use when a device is unreachable, a user reports connectivity problems, an interface is down, a site has an outage, or wireless clients have roaming issues."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["CATC_MCP_SCRIPT", "MCP_CALL"] } } }

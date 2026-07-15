@@ -1,3 +1,12 @@
+---
+name: datadog-metrics
+description: "Query metrics and explore dashboards in Datadog."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Datadog Metrics Skill
 
 Query metrics and explore dashboards in Datadog.

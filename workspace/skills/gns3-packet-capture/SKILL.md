@@ -1,6 +1,7 @@
 ---
 name: gns3-packet-capture
 description: "Capture network traffic on GNS3 links - start/stop captures, retrieve PCAP data"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

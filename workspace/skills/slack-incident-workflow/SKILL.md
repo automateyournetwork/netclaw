@@ -1,6 +1,7 @@
 ---
 name: slack-incident-workflow
 description: "Manage network incident response workflows in Slack - incident channels, status updates, escalation, resolution tracking, and post-incident review coordination. Use when declaring a network incident, coordinating outage response in Slack, tracking incident status, or running a post-incident review."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"] } } }

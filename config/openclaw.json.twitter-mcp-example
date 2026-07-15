@@ -1,0 +1,23 @@
+{
+  "twitter-mcp": {
+    "command": "python3",
+    "args": [
+      "-u",
+      "server.py"
+    ],
+    "cwd": "/path/to/netclaw/mcp-servers/twitter-mcp",
+    "env": {
+      "TWITTER_API_KEY": "${TWITTER_API_KEY}",
+      "TWITTER_API_SECRET": "${TWITTER_API_SECRET}",
+      "TWITTER_ACCESS_TOKEN": "${TWITTER_ACCESS_TOKEN}",
+      "TWITTER_ACCESS_SECRET": "${TWITTER_ACCESS_SECRET}",
+      "TWITTER_CLIENT_ID": "${TWITTER_CLIENT_ID}",
+      "TWITTER_CLIENT_SECRET": "${TWITTER_CLIENT_SECRET}",
+      "TWITTER_OAUTH2_ACCESS_TOKEN": "${TWITTER_OAUTH2_ACCESS_TOKEN}",
+      "TWITTER_OAUTH2_REFRESH_TOKEN": "${TWITTER_OAUTH2_REFRESH_TOKEN}",
+      "TWITTER_HEARTBEAT_ENABLED": "${TWITTER_HEARTBEAT_ENABLED:-false}",
+      "TWITTER_HEARTBEAT_INTERVAL": "${TWITTER_HEARTBEAT_INTERVAL:-14400}",
+      "TWITTER_MENTION_POLL_INTERVAL": "${TWITTER_MENTION_POLL_INTERVAL:-300}"
+    }
+  }
+}

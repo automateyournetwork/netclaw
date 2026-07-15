@@ -1,6 +1,7 @@
 ---
 name: servicenow-change-workflow
 description: "Full ITSM-gated change lifecycle - CR creation, pre-change incident validation, approval gate, execution via pyats-config-mgmt, post-change verification, and closure with GAIT audit trail. Use when creating a change request, making a network change that needs approval, tracking change management, or following ITIL change process."
+license: Apache-2.0
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["SERVICENOW_MCP_SCRIPT"] } } }

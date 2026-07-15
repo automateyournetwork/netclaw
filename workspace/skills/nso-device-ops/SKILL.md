@@ -2,6 +2,7 @@
 name: nso-device-ops
 description: "Cisco NSO device operations — config retrieval, state inspection, sync, platform info, NED IDs, device groups. Use when retrieving device configs from NSO, checking sync status, pulling platform inventory, or inspecting NSO device groups and NED drivers"
 version: 1.0.0
+license: Apache-2.0
 tags: [nso, orchestration, config, sync, restconf]
 ---
 

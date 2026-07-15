@@ -2,6 +2,7 @@
 name: nso-service-mgmt
 description: "Cisco NSO service management — discover service types, list service instances, orchestrate network services. Use when listing NSO services, checking service health, auditing deployed service instances, or asking what services NSO can provision."
 version: 1.0.0
+license: Apache-2.0
 tags: [nso, services, orchestration, automation]
 ---
 

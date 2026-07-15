@@ -2,6 +2,7 @@
 name: cml-admin
 description: "CML administration — user/group management, system info, licensing, resource monitoring. Use when creating CML users, checking license status, monitoring CML server resources, or auditing lab usage across teams."
 version: 1.0.0
+license: Apache-2.0
 tags: [cml, admin, users, groups, system, licensing]
 ---
 

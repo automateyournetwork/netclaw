@@ -61,22 +61,30 @@ def _security_mode() -> str:
 
 
 async def _defenseclaw_inspect(tool: str, arguments: dict) -> bool:
-    """Return True if allowed. Runs only when security.mode == defenseclaw (FR-014)."""
+    """Return True if the tool is ALLOWED by DefenseClaw's block/allow list.
+
+    Runs only when security.mode == defenseclaw. Uses `defenseclaw tool status
+    <tool>` — the real block/allow query (feature 057 fix: the previous
+    `defenseclaw tool inspect` is NOT a valid subcommand, so under defenseclaw mode
+    it errored and denied every eN2N tool call). We deny only on an explicit
+    'blocked' verdict; if the status can't be determined we allow (the DefenseClaw
+    LLM guardrail proxy is the primary inspection path — this CLI check is the
+    coarser per-tool block-list gate)."""
     if _security_mode() != "defenseclaw":
         return True
     try:
         proc = await asyncio.create_subprocess_exec(
-            "defenseclaw", "tool", "inspect", tool,
-            stdin=asyncio.subprocess.PIPE, stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.DEVNULL)
-        await asyncio.wait_for(proc.communicate(json.dumps(arguments).encode()), timeout=15)
-        return proc.returncode == 0
+            "defenseclaw", "tool", "status", tool,
+            stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+        out, _ = await asyncio.wait_for(proc.communicate(), timeout=15)
+        text = (out.decode(errors="replace") if out else "").lower()
+        return "blocked" not in text        # deny only if explicitly blocked
     except FileNotFoundError:
         logger.warning("security.mode=defenseclaw but 'defenseclaw' CLI not found — denying tool")
         return False
     except Exception as e:
-        logger.warning("DefenseClaw inspection error (%s) — denying", e)
-        return False
+        logger.warning("DefenseClaw tool-status error (%s) — allowing (proxy guards I/O)", e)
+        return True
 
 
 class Invoker:

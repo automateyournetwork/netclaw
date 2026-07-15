@@ -1,3 +1,12 @@
+---
+name: vault-secrets
+description: "Manage HashiCorp Vault KV secrets with strict value protection."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Vault Secrets Skill
 
 Manage HashiCorp Vault KV secrets with strict value protection.

@@ -1,6 +1,7 @@
 ---
 name: prisma-sdwan-topology
 description: "Discover Prisma SD-WAN sites, ION elements, machines, and network topology"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

@@ -1,3 +1,12 @@
+---
+name: terraform-operations
+description: "Execute local Terraform operations with ServiceNow change control."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Terraform Operations Skill
 
 Execute local Terraform operations with ServiceNow change control.

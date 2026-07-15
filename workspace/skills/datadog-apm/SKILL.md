@@ -1,3 +1,12 @@
+---
+name: datadog-apm
+description: "Analyze distributed traces and service performance in Datadog APM."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Datadog APM Skill
 
 Analyze distributed traces and service performance in Datadog APM.

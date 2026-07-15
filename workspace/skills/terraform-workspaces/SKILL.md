@@ -1,3 +1,12 @@
+---
+name: terraform-workspaces
+description: "Manage HCP Terraform (Terraform Cloud/Enterprise) workspaces."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Terraform Workspaces Skill
 
 Manage HCP Terraform (Terraform Cloud/Enterprise) workspaces.

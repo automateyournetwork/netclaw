@@ -1,0 +1,5 @@
+{% if config_context.users is defined %}
+{% for user in config_context.users %}
+username {{ user.name }} privilege {{ user.privilege | default(15) }} {{ user.secret_type | default('password') }} 0 {{ user.password }}
+{% endfor %}
+{% endif %}

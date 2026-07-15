@@ -1,0 +1,54 @@
+{
+  "whitelist": [
+    {
+      "phone_number": "+1XXXXXXXXXX",
+      "label": "Your Mobile",
+      "can_receive_calls": true,
+      "can_initiate_calls": true,
+      "added_at": "2026-06-25T00:00:00Z",
+      "added_by": "initial_config"
+    }
+  ],
+  "quiet_hours": [
+    {
+      "id": "default",
+      "start_time": "22:00",
+      "end_time": "07:00",
+      "timezone": "America/Toronto",
+      "days_of_week": [],
+      "p1_override": true,
+      "enabled": true
+    }
+  ],
+  "emergency_categories": [
+    {
+      "category_name": "pagerduty_p1",
+      "description": "PagerDuty P1 Critical Incidents",
+      "source": "pagerduty",
+      "match_pattern": "severity:P1",
+      "enabled": true
+    },
+    {
+      "category_name": "core_device_down",
+      "description": "Core router, firewall, or WAN link failure",
+      "source": "netclaw_monitoring",
+      "match_pattern": "device_type:(core_router|firewall|wan_link) AND status:down",
+      "enabled": true
+    }
+  ],
+  "rate_limits": {
+    "hourly_max": 3,
+    "daily_max": 10
+  },
+  "voice": "Polly.Matthew",
+  "daily_briefing": {
+    "enabled": false,
+    "time": "08:00",
+    "timezone": "America/Toronto"
+  },
+  "retry_config": {
+    "max_retries": 3,
+    "backoff_base_seconds": 30,
+    "backoff_multiplier": 2
+  }
+}

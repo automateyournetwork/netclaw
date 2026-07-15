@@ -1,6 +1,7 @@
 ---
 name: aruba-cx-switching
 description: "View and manage Aruba CX switch VLANs and MAC address tables for Layer 2 operations"
+license: Apache-2.0
 user-invocable: true
 metadata:
   openclaw:

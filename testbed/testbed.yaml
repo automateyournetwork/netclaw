@@ -1,62 +1,61 @@
-# Auto-generated from Nautobot — do not edit manually
-# Regenerate: .venv/bin/python3 scripts/generate-testbed-from-nautobot.py
-# Source: https://192.168.3.253
-# Devices: 6 active with primary IP
-
 testbed:
-  name: Nautobot-Managed
+  name: NetClaw-Full-Topo
   credentials:
     default:
-      username: "%ENV{NETCLAW_USERNAME}"
-      password: "%ENV{NETCLAW_PASSWORD}"
+      username: admin
+      password: C1sco12345
+    enable:
+      password: C1sco12345
 
 devices:
-  HomeSwitch01:
+  R1:
+    alias: R1
+    type: router
     os: iosxe
-    type: switch
+    platform: iol
     connections:
       defaults:
         class: unicon.Unicon
-      cli:
+      ssh:
         protocol: ssh
-        ip: 192.168.3.2
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
-  HomeSwitch02:
+        ip: 192.168.2.201
+        port: 22
+
+  R2:
+    alias: R2
+    type: router
     os: iosxe
-    type: switch
+    platform: iol
     connections:
       defaults:
         class: unicon.Unicon
-      cli:
+      ssh:
         protocol: ssh
-        ip: 192.168.3.3
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
-  U6-Pro - Basement Laundry Room:
+        ip: 192.168.2.202
+        port: 22
+
+  SW1:
+    alias: SW1
+    type: switch
     os: iosxe
-    type: switch
+    platform: iol
     connections:
       defaults:
         class: unicon.Unicon
-      cli:
+      ssh:
         protocol: ssh
-        ip: 192.168.3.15
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
-  U6-Pro - Sophies Office:
+        ip: 192.168.2.211
+        port: 22
+
+  SW2:
+    alias: SW2
+    type: switch
     os: iosxe
-    type: switch
+    platform: iol
     connections:
       defaults:
         class: unicon.Unicon
-      cli:
+      ssh:
         protocol: ssh
-        ip: 192.168.3.16
-        ssh_options: -o KexAlgorithms=+diffie-hellman-group-exchange-sha1,diffie-hellman-group14-sha1 -o HostKeyAlgorithms=+ssh-rsa -o PubkeyAcceptedAlgorithms=+ssh-rsa
-  r640-pve:
-    os: linux
-    type: switch
-    connections:
-      defaults:
-        class: unicon.Unicon
-      cli:
-        protocol: ssh
-        ip: 192.168.100.20
+        ip: 192.168.2.212
+        port: 22

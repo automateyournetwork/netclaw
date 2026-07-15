@@ -1,3 +1,12 @@
+---
+name: ipfix-receiver
+description: "Receive and query IPFIX and NetFlow flow records from network devices via UDP."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # IPFIX/NetFlow Receiver Skill
 
 Receive and query IPFIX and NetFlow flow records from network devices via UDP.

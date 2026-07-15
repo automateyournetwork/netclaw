@@ -1,3 +1,12 @@
+---
+name: zscaler-zpa
+description: "Manage Zscaler Private Access applications, segments, policies, and connectors."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Zscaler Private Access (ZPA) Skill
 
 Manage Zscaler Private Access applications, segments, policies, and connectors.

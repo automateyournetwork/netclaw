@@ -28,16 +28,16 @@ from typing import Any, Dict, List, Optional
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-# Add netclaw_tokens to path for TOON serialization
+# Add netclaw_tokens to path for GCF serialization
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "src"))
 
 
-def _toon_dumps(data, **kwargs) -> str:
-    """Serialize data using TOON format with JSON fallback."""
+def _gcf_dumps(data, **kwargs) -> str:
+    """Serialize data using GCF with graph auto-detection and session dedup."""
     try:
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        return result["encoded_data"]
     except Exception:
         return json.dumps(data, indent=2, default=str)
 
@@ -303,7 +303,7 @@ def batfish_upload_snapshot(
             result_summary=f"CREATED: {len(devices)} devices",
         )
 
-        return _toon_dumps(result)
+        return _gcf_dumps(result)
     finally:
         shutil.rmtree(snap_dir, ignore_errors=True)
 
@@ -395,7 +395,7 @@ def batfish_validate_config(
         result_summary=f"{'PASS' if overall_pass else 'FAIL'}: {passed}/{total} devices valid",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -495,7 +495,7 @@ def batfish_test_reachability(
         result_summary=f"{overall_disposition}: {len(traces_out)} trace(s)",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -613,7 +613,7 @@ def batfish_trace_acl(
         result_summary=f"{action}: matched '{matching_line}'",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -663,7 +663,7 @@ def batfish_diff_configs(
                          "include_reachability": include_reachability},
             result_summary="IDENTICAL: No differences (same snapshot)",
         )
-        return _toon_dumps(result)
+        return _gcf_dumps(result)
 
     route_diffs: List[Dict[str, Any]] = []
     reachability_diffs: List[Dict[str, Any]] = []
@@ -780,7 +780,7 @@ def batfish_diff_configs(
                         f"Reachability: {len(reachability_diffs)} changes"),
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -1032,7 +1032,7 @@ def batfish_check_compliance(
         result_summary=f"{overall_status}: {len(violations)} violation(s) across {checked_devices} devices",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -1064,7 +1064,7 @@ def batfish_list_snapshots(
         result_summary=f"{len(snapshots)} snapshot(s) found",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------
@@ -1105,7 +1105,7 @@ def batfish_delete_snapshot(
         result_summary="DELETED",
     )
 
-    return _toon_dumps(result)
+    return _gcf_dumps(result)
 
 
 # ---------------------------------------------------------------------------

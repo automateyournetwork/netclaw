@@ -26,7 +26,7 @@ class SessionLedger:
         self.total_input_tokens: int = 0
         self.total_output_tokens: int = 0
         self.total_cost: float = 0.0
-        self.total_toon_savings: int = 0
+        self.total_gcf_savings: int = 0
         self.total_call_count: int = 0
         self.tool_breakdown: Dict[str, ToolUsageRecord] = {}
 
@@ -35,7 +35,7 @@ class SessionLedger:
         tool_name: str,
         token_count: TokenCount,
         cost: CostEstimate,
-        toon_savings: int = 0,
+        gcf_savings: int = 0,
     ) -> None:
         """Record a tool call's token usage. Thread-safe.
 
@@ -43,13 +43,13 @@ class SessionLedger:
             tool_name: MCP tool identifier.
             token_count: Token count for this call.
             cost: Cost estimate for this call.
-            toon_savings: Tokens saved by TOON serialization.
+            gcf_savings: Tokens saved by GCF serialization.
         """
         with self._lock:
             self.total_input_tokens += token_count.input_tokens
             self.total_output_tokens += token_count.output_tokens
             self.total_cost += cost.total_cost
-            self.total_toon_savings += toon_savings
+            self.total_gcf_savings += gcf_savings
             self.total_call_count += 1
 
             if tool_name not in self.tool_breakdown:
@@ -62,14 +62,14 @@ class SessionLedger:
             record.total_input_tokens += token_count.input_tokens
             record.total_output_tokens += token_count.output_tokens
             record.total_cost += cost.total_cost
-            record.toon_savings_tokens += toon_savings
+            record.gcf_savings_tokens += gcf_savings
 
     def get_summary(self) -> dict:
         """Return session totals as a dictionary.
 
         Returns:
             Dict with total_input_tokens, total_output_tokens, total_tokens,
-            total_cost_usd, total_toon_savings, tool_count, call_count.
+            total_cost_usd, total_gcf_savings, tool_count, call_count.
         """
         with self._lock:
             return {
@@ -79,7 +79,7 @@ class SessionLedger:
                 "total_output_tokens": self.total_output_tokens,
                 "total_tokens": self.total_input_tokens + self.total_output_tokens,
                 "total_cost_usd": round(self.total_cost, 6),
-                "total_toon_savings": self.total_toon_savings,
+                "total_gcf_savings": self.total_gcf_savings,
                 "tool_count": len(self.tool_breakdown),
                 "call_count": self.total_call_count,
             }
@@ -88,7 +88,7 @@ class SessionLedger:
         """Return ranked list of tool usage records, sorted by total tokens desc.
 
         Each entry contains: tool_name, call_count, input_tokens, output_tokens,
-        total_tokens, cost, toon_savings, avg_tokens_per_call.
+        total_tokens, cost, gcf_savings, avg_tokens_per_call.
         """
         with self._lock:
             records = []
@@ -100,7 +100,7 @@ class SessionLedger:
                     "output_tokens": record.total_output_tokens,
                     "total_tokens": record.total_tokens,
                     "cost": round(record.total_cost, 6),
-                    "toon_savings": record.toon_savings_tokens,
+                    "gcf_savings": record.gcf_savings_tokens,
                     "avg_tokens_per_call": round(record.avg_tokens_per_call, 1),
                 })
 
@@ -125,6 +125,6 @@ class SessionLedger:
             self.total_input_tokens = 0
             self.total_output_tokens = 0
             self.total_cost = 0.0
-            self.total_toon_savings = 0
+            self.total_gcf_savings = 0
             self.total_call_count = 0
             self.tool_breakdown.clear()

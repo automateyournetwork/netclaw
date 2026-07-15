@@ -1,0 +1,17 @@
+{% if config_context.http is defined %}
+{% set http = config_context.http %}
+{% if http.server | default(false) %}
+ip http server
+{% else %}
+no ip http server
+{% endif %}
+ip http authentication local
+ip http secure-server
+{% if http.source_interface is defined %}
+ip http client source-interface {{ http.source_interface }}
+{% endif %}
+{% else %}
+no ip http server
+ip http authentication local
+ip http secure-server
+{% endif %}

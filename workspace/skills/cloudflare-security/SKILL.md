@@ -1,3 +1,12 @@
+---
+name: cloudflare-security
+description: "Monitor Cloudflare WAF, firewall events, audit logs, and threat intelligence."
+version: 1.0.0
+license: Apache-2.0
+author: netclaw
+tags: []
+---
+
 # Cloudflare Security Skill
 
 Monitor Cloudflare WAF, firewall events, audit logs, and threat intelligence.

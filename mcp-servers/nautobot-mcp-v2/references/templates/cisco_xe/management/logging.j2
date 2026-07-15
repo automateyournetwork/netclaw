@@ -1,0 +1,11 @@
+{% if config_context.logging is defined %}
+{% set log = config_context.logging %}
+no logging console
+logging trap {{ log.trap_level | default("informational") }}
+{% if log.source_interface is defined %}
+logging source-interface {{ log.source_interface }}{% if log.source_vrf is defined %} vrf {{ log.source_vrf }}{% endif %}
+{% endif %}
+{% if log.host is defined %}
+logging host {{ log.host }}{% if log.host_vrf is defined %} vrf {{ log.host_vrf }}{% endif %}
+{% endif %}
+{% endif %}

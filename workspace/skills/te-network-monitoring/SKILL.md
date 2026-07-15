@@ -2,6 +2,7 @@
 name: te-network-monitoring
 description: "Cisco ThousandEyes — test management, agent inventory, test results, dashboards, path visualization, user/account management. Use when checking ThousandEyes test results, viewing network monitoring dashboards, listing agents, investigating alerts, or assessing overall network performance."
 version: 1.0.0
+license: Apache-2.0
 tags: [cisco, thousandeyes, monitoring, network-tests, agents, dashboards, path-vis]
 ---
 

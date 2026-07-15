@@ -418,44 +418,13 @@ input {
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
-  width: min(900px, calc(100vw - 40px));
-  height: 420px;
-  min-width: 360px;
-  min-height: 200px;
-  max-width: calc(100vw - 20px);
-  max-height: calc(100vh - 100px);
+  width: min(620px, calc(100vw - 40px));
+  max-height: 320px;
   border-radius: 18px;
   display: flex;
   flex-direction: column;
   z-index: 40;
-  transition: opacity 200ms ease;
-  overflow: hidden;
-}
-
-/* Resize handles */
-.chat-resize-handle {
-  position: absolute;
-  z-index: 50;
-}
-.chat-resize-top {
-  top: -4px; left: 18px; right: 18px; height: 8px;
-  cursor: n-resize;
-}
-.chat-resize-left {
-  top: 18px; bottom: 18px; left: -4px; width: 8px;
-  cursor: w-resize;
-}
-.chat-resize-top-left {
-  top: -4px; left: -4px; width: 18px; height: 18px;
-  cursor: nw-resize;
-}
-.chat-resize-top-right {
-  top: -4px; right: -4px; width: 18px; height: 18px;
-  cursor: ne-resize;
-}
-.chat-resize-bottom-right {
-  bottom: -4px; right: -4px; width: 18px; height: 18px;
-  cursor: se-resize;
+  transition: max-height 300ms ease, opacity 200ms ease;
 }
 
 .chat-drawer.collapsed {
@@ -469,11 +438,6 @@ input {
   align-items: center;
   padding: 8px 14px 4px;
   flex: none;
-  cursor: grab;
-  user-select: none;
-}
-.chat-header:active {
-  cursor: grabbing;
 }
 
 .chat-header .eyebrow {
@@ -527,6 +491,7 @@ input {
   flex-direction: column;
   gap: 8px;
   min-height: 80px;
+  max-height: 200px;
 }
 
 .chat-messages::-webkit-scrollbar { width: 4px; }
@@ -1181,3 +1146,48 @@ input {
 .bgp-state-idle {
   color: #ff6b6b;
 }
+
+/* ── N2N Federation panel (feature 052) ─────────────────────────── */
+.n2n-section {
+  margin-top: 16px;
+  padding: 12px;
+  border-radius: 8px;
+  background: rgba(224, 64, 251, 0.06);
+  border: 1px solid rgba(224, 64, 251, 0.25);
+}
+.n2n-section h3 { margin: 0 0 8px; color: #e879f9; font-size: 13px; letter-spacing: 0.5px; }
+.n2n-section h4 { margin: 12px 0 4px; color: #c4b5fd; font-size: 11px; text-transform: uppercase; }
+.n2n-muted { color: #8b8ba0; font-size: 11px; font-style: italic; }
+.n2n-badges { display: flex; flex-wrap: wrap; gap: 4px; margin: 8px 0; }
+.n2n-badge {
+  background: rgba(224, 64, 251, 0.2);
+  color: #f0abfc;
+  border: 1px solid rgba(224, 64, 251, 0.4);
+  border-radius: 4px; padding: 2px 8px; font-size: 10px; font-weight: 600;
+}
+.n2n-list { margin: 4px 0; padding-left: 18px; font-size: 11px; color: #d4d4e0; }
+.n2n-list li { margin: 2px 0; }
+.n2n-fresh { color: #4ade80; font-size: 10px; font-weight: 600; }
+.n2n-stale { color: #fbbf24; font-size: 10px; font-weight: 700; }
+.n2n-state-federated { color: #4ade80; }
+.n2n-state-not-federated, .n2n-state-severed { color: #ff6b6b; }
+.n2n-state-consent-pending-local, .n2n-state-consent-pending-remote { color: #fbbf24; }
+.n2n-chat {
+  max-height: 180px; overflow-y: auto; margin: 8px 0;
+  background: rgba(0,0,0,0.3); border-radius: 6px; padding: 8px; font-size: 11px;
+}
+.n2n-msg { margin: 4px 0; line-height: 1.4; }
+.n2n-me strong { color: #66ccff; }
+.n2n-peer strong { color: #e879f9; }
+.n2n-pending { color: #8b8ba0; font-style: italic; }
+.n2n-err { color: #ff6b6b; }
+.n2n-chat-input { display: flex; gap: 6px; }
+.n2n-chat-input input {
+  flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(224,64,251,0.3);
+  border-radius: 4px; color: #fff; padding: 6px 8px; font-size: 11px;
+}
+.n2n-chat-input button {
+  background: rgba(224,64,251,0.3); border: 1px solid rgba(224,64,251,0.5);
+  color: #f0abfc; border-radius: 4px; padding: 6px 12px; font-size: 11px; cursor: pointer;
+}
+.n2n-chat-input button:hover { background: rgba(224,64,251,0.5); }
