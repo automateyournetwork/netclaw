@@ -65,9 +65,47 @@ async def compute_posture(service=None) -> dict:
         "missing": missing,
         "strict_all": strict,
         "model": _local_model(),
+        "channel_security": _channel_security(service),
         "computed_at": time.time(),
         "summary": summary,
     }
+
+
+def _channel_security(service) -> dict:
+    """Feature 060 (FR-019): summarize channel trust — peers by trust model, any
+    degraded (legacy/refused) channels, and credentials aging into amber/red."""
+    if service is None:
+        return {}
+    import datetime as _dt
+    try:
+        peers = service.manager.list_peers()
+        by_model, degraded = {}, 0
+        for p in peers:
+            tm = p.get("trust_model") or "legacy"
+            by_model[tm] = by_model.get(tm, 0) + 1
+            if tm == "legacy" or p.get("verify_state") == "refused-pending-patch":
+                degraded += 1
+        amber = red = failing = 0
+        now = _dt.datetime.now(_dt.timezone.utc)
+        for c in service.manager.list_credentials():
+            if c.get("state") == "failed":
+                failing += 1
+            na = c.get("not_after")
+            if na:
+                try:
+                    d = (_dt.datetime.fromisoformat(na) - now).days
+                    if d < 14:
+                        red += 1
+                    elif d < 30:
+                        amber += 1
+                except Exception:
+                    pass
+        return {"mode": ("enforce" if getattr(service, "cert_enforce", False) else
+                         ("on" if getattr(service, "cert_mode", False) else "off")),
+                "by_trust_model": by_model, "degraded": degraded,
+                "amber": amber, "red": red, "renewals_failing": failing}
+    except Exception:
+        return {}
 
 
 def _local_model() -> dict:

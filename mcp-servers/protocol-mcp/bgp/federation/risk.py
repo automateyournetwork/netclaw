@@ -122,12 +122,16 @@ class RiskManager:
         cert_pem, _ = self.ensure_self_identity(self.self_member_id() or self.role())
         return cert_pem
 
-    def self_sign(self, nonce: bytes) -> bytes:
-        """Sign a Border-issued nonce with this claw's own private key — proves
-        possession of the self-signed key whose cert the Border pinned (R3)."""
+    def self_sign(self, nonce: bytes, binding: bytes = b"") -> bytes:
+        """Sign a peer/Border-issued nonce with this claw's own private key —
+        proves possession of the self-signed key whose cert was pinned. `binding`
+        is the optional tls-server-end-point channel binding (feature 060): when
+        the channel is TLS, the caller passes the SHA-256 of the peer's server
+        certificate so the proof is bound to this session (RFC 5929). Empty on a
+        cleartext channel (and for iN2N, which is unchanged)."""
         self.ensure_self_identity(self.self_member_id() or self.role())
         key_pem = (self.keys_dir / "self.key").read_text()
-        return self.sign_challenge(key_pem, nonce)
+        return self.sign_challenge(key_pem, nonce + binding)
 
     @staticmethod
     def sign_challenge(key_pem: str, nonce: bytes) -> bytes:
@@ -136,17 +140,99 @@ class RiskManager:
         key = serialization.load_pem_private_key(key_pem.encode(), password=None)
         return key.sign(nonce, ec.ECDSA(hashes.SHA256()))
 
+    # ── feature 060: risk certificate authority + hub attestation (US2) ──
+    # The Border is its risk's CA. It presents a CA-signed hub credential to
+    # members so they can verify (at dial time) that the hub they reached is the
+    # legitimate one — closing the 059 "does not authenticate the Border to the
+    # member" gap. The CA anchor is delivered to a member at enrollment.
+    def ensure_risk_ca(self):
+        """Create (once) this risk's CA under keys/risk-ca/. Returns (ca_cert_pem,
+        ca_key_pem). Only meaningful on a Border."""
+        from . import certs
+        cad = self.keys_dir / "risk-ca"
+        cad.mkdir(exist_ok=True)
+        crt, key = cad / "ca.crt", cad / "ca.key"
+        if crt.exists() and key.exists():
+            return crt.read_text(), key.read_text()
+        risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
+        ca_cert, ca_key = certs.create_risk_ca(risk_name)
+        crt.write_text(ca_cert)
+        certs._write_secret(key, ca_key)
+        logger.info("Created risk CA for %s (fingerprint %s)", risk_name,
+                    certs.fingerprint(ca_cert)[:16])
+        return ca_cert, ca_key
+
+    def risk_ca_pem(self) -> Optional[str]:
+        crt = self.keys_dir / "risk-ca" / "ca.crt"
+        return crt.read_text() if crt.exists() else None
+
+    def store_risk_anchor(self, anchor_pem: str):
+        """Member side: persist the risk CA anchor received at enrollment so the
+        member can verify the hub on every future dial (FR-010)."""
+        (self.keys_dir / "risk-ca-anchor.pem").write_text(anchor_pem)
+
+    def risk_anchor(self) -> Optional[str]:
+        p = self.keys_dir / "risk-ca-anchor.pem"
+        return p.read_text() if p.exists() else None
+
+    def hub_credential(self):
+        """The Border's CA-signed hub credential (cert + key), created once.
+        Returns (hub_cert_pem, hub_key_pem)."""
+        from . import certs
+        cad = self.keys_dir / "risk-ca"
+        hcrt, hkey = cad / "hub.crt", cad / "hub.key"
+        if hcrt.exists() and hkey.exists():
+            return hcrt.read_text(), hkey.read_text()
+        ca_cert, ca_key = self.ensure_risk_ca()
+        risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
+        hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",
+                                             san=f"{risk_name}/border")
+        hcrt.write_text(hub_cert)
+        certs._write_secret(hkey, hub_key)
+        return hub_cert, hub_key
+
+    def attest_hub(self, member_nonce: bytes) -> Optional[dict]:
+        """Produce hub attestation for a member's challenge: the CA-signed hub
+        cert + a signature over the member's nonce. Member verifies chain-to-anchor
+        + signature. Returns None if this claw has no CA (not a Border)."""
+        if not self.is_border():
+            return None
+        hub_cert, hub_key = self.hub_credential()
+        sig = self.sign_challenge(hub_key, member_nonce)
+        return {"hub_cert": hub_cert, "hub_sig": sig.hex(),
+                "risk_ca": self.risk_ca_pem()}
+
     @staticmethod
-    def verify_possession(cert_pem: str, nonce: bytes, signature: bytes) -> bool:
-        """Verify a signature over `nonce` was made by the private key matching
-        `cert_pem` — impersonation resistance for the internal channel (FR-013)."""
+    def verify_hub_attestation(attest: dict, anchor_pem: str,
+                               member_nonce: bytes, risk_name: str) -> bool:
+        """Member side: verify the hub cert chains to the enrolled risk CA, names
+        the risk's border, and signed our nonce (proof the hub holds the key)."""
+        from . import certs
+        hub_cert = attest.get("hub_cert")
+        sig = bytes.fromhex(attest.get("hub_sig", "") or "")
+        if not hub_cert or not sig:
+            return False
+        ok, _ = certs.verify_chain(hub_cert, anchor_pem,
+                                   expected_san=f"{risk_name}/border")
+        if not ok:
+            return False
+        return RiskManager.verify_possession(hub_cert, member_nonce, sig)
+
+    @staticmethod
+    def verify_possession(cert_pem: str, nonce: bytes, signature: bytes,
+                          binding: bytes = b"") -> bool:
+        """Verify a signature over `nonce || binding` was made by the private key
+        matching `cert_pem` — impersonation resistance. `binding` is the optional
+        tls-server-end-point channel binding (feature 060); it MUST match the
+        value the signer used, so a proof made for one TLS session cannot be
+        relayed to another. Empty for cleartext / iN2N (unchanged)."""
         from cryptography import x509
         from cryptography.hazmat.primitives import hashes
         from cryptography.hazmat.primitives.asymmetric import ec
         from cryptography.exceptions import InvalidSignature
         try:
             cert = x509.load_pem_x509_certificate(cert_pem.encode())
-            cert.public_key().verify(signature, nonce, ec.ECDSA(hashes.SHA256()))
+            cert.public_key().verify(signature, nonce + binding, ec.ECDSA(hashes.SHA256()))
             return True
         except (InvalidSignature, ValueError, TypeError):
             return False
@@ -169,6 +255,34 @@ class RiskManager:
     def _unpin_key_file(self, member_id: str):
         safe = member_id.replace("/", "__")
         (self.pinned_dir / f"{safe}.crt").unlink(missing_ok=True)
+
+    # ---- eN2N peer pinning (TOFU) — reconciled from Josh/TunnelMind ----
+    # External claws are NOT risk members (no enrollment token, no scope), so they
+    # pin to a cert file under pinned/ keyed by eN2N identity — reusing the same
+    # store + fingerprint primitive, namespaced ("en2n__") so an external peer can
+    # never overwrite an internal member's pin.
+    def _peer_pin_path(self, ident: str):
+        return self.pinned_dir / f"en2n__{ident.replace('/', '__')}.crt"
+
+    def check_peer_pin(self, ident: str, cert_pem: str) -> str:
+        """Trust-on-first-use for a federated peer's self-signed cert.
+          'new'      first contact — cert is now pinned to this identity.
+          'match'    presented cert matches the pinned key.
+          'mismatch' key changed for a known identity — caller MUST reject and
+                     alert the operator; this NEVER silently re-pins.
+        Uses the SPKI (key) fingerprint so a peer survives cert rotation with the
+        same key (consistent with certs.key_fingerprint / feature 060)."""
+        path = self._peer_pin_path(ident)
+        if not path.exists():
+            path.write_text(cert_pem)
+            return "new"
+        if self.fingerprint_of(path.read_text()) == self.fingerprint_of(cert_pem):
+            return "match"
+        return "mismatch"
+
+    def repin_peer(self, ident: str, cert_pem: str):
+        """Deliberate operator re-pin after a verified key rotation (never automatic)."""
+        self._peer_pin_path(ident).write_text(cert_pem)
 
     # ---- role model (FR-002/003/004/015) ------------------------------
 
@@ -305,9 +419,19 @@ class RiskManager:
         self._conn.execute(
             "UPDATE enrollment_token SET spent_at=?, spent_by_member_id=? WHERE token_hash=?",
             (now, member_id, row["token_hash"]))
+        # FR-023: record that the credential fingerprint was surfaced at
+        # enrollment so an intercepted enrollment is detectable — the member
+        # recomputes this over the cert it holds and compares (a mismatch, i.e.
+        # the Border pinned a different key than the member generated, means an
+        # active attacker sat in the middle). Advisory (logged both sides), not a
+        # blocking prompt — scripted/bulk provisioning keeps working.
+        self._conn.execute(
+            "UPDATE member SET enroll_fingerprint_logged=1 WHERE member_id=?",
+            (member_id,))
         self._conn.commit()
-        logger.info("Enrolled member %s (fingerprint %s…)", member_id, fp[:12])
-        return {"member_id": member_id, "pinned": True, "state": STATE_ENROLLED}
+        logger.info("Enrolled member %s — confirm fingerprint out of band: %s", member_id, fp)
+        return {"member_id": member_id, "pinned": True, "state": STATE_ENROLLED,
+                "enroll_fingerprint": fp}
 
     # ---- member registry (FR-008/029) ---------------------------------
 
@@ -483,9 +607,53 @@ class RiskManager:
         logger.info("Removed member %s (unpinned; must re-enroll to return)", member_id)
         return True
 
-    def record_auth_failure(self, member_id: str) -> bool:
+    # ── feature 060 (FR-022): per-source failed-auth rate limiting so an
+    # attacker who can reach the listener cannot unpin a legitimate member by
+    # spraying failing authentications. The token bucket lives in the
+    # auth_failure_bucket table; only failures whose source matches the member's
+    # own established origin are allowed to count toward quarantine.
+    def note_source_failure(self, source: str, limit: int = 5,
+                            window_s: int = 60) -> bool:
+        """Record an unauthenticated failure from `source`; return True while the
+        source is within its rate budget, False once it should be dropped+audited."""
+        now = time.time()
+        row = self._conn.execute(
+            "SELECT count, window_start FROM auth_failure_bucket WHERE source=?",
+            (source,)).fetchone()
+        if row is None:
+            self._conn.execute(
+                "INSERT INTO auth_failure_bucket (source, count, window_start) VALUES (?,1,?)",
+                (source, str(now)))
+            self._conn.commit()
+            return True
+        start = float(row["window_start"] or now)
+        if now - start > window_s:
+            count = 1
+            start = now
+        else:
+            count = (row["count"] or 0) + 1
+        self._conn.execute(
+            "UPDATE auth_failure_bucket SET count=?, window_start=? WHERE source=?",
+            (count, str(start), source))
+        self._conn.commit()
+        return count <= limit
+
+    def record_auth_failure(self, member_id: str, source: Optional[str] = None,
+                            established_source: Optional[str] = None) -> bool:
         """Increment failure count; auto-quarantine at threshold (FR-013d).
-        Returns True if this failure triggered quarantine."""
+        Returns True if this failure triggered quarantine.
+
+        FR-022: when `source` is given and does NOT match the member's
+        established origin, the failure is rate-limited per source and MUST NOT
+        count toward quarantine — otherwise any host reaching the listener could
+        unpin a healthy member. Callers with no source (loopback/tests) keep the
+        original behavior."""
+        if source is not None and established_source is not None and source != established_source:
+            allowed = self.note_source_failure(source)
+            logger.info("iN2N auth failure for %s from foreign source %s — "
+                        "rate-limited, not counted toward quarantine%s",
+                        member_id, source, "" if allowed else " (over budget, dropped)")
+            return False
         mem = self.get_member(member_id)
         if not mem or mem["state"] in (STATE_REMOVED, STATE_QUARANTINED):
             return False

@@ -47,7 +47,13 @@ def test_confined_cold_start_uses_systemd_run(monkeypatch):
     argv = controls.confined_cold_start("bash /x/run.sh", "risk/cml")
     assert argv[0] == "systemd-run" and "--user" in argv
     assert "NoNewPrivileges=yes" in argv and "ProtectSystem=strict" in argv
-    assert "InaccessiblePaths=-%h/.openclaw/.env" in argv
+    # %h MUST be expanded to the real home: systemd-run passes -p properties over
+    # D-Bus, where %-specifiers are NOT expanded and a literal %h is rejected with
+    # "Invalid ReadWritePaths" (PR #124). Assert the resolved absolute path.
+    home = os.path.expanduser("~")
+    assert f"InaccessiblePaths=-{home}/.openclaw/.env" in argv
+    assert f"ReadWritePaths={home}" in argv
+    assert not any("%h" in a for a in argv)
     assert argv[-3:] == ["/bin/sh", "-c", "bash /x/run.sh"]
 
 

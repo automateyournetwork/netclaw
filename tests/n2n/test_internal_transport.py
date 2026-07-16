@@ -51,7 +51,12 @@ async def _enroll_then_reconnect(tmp_path):
     server = await asyncio.start_server(on_conn, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
 
-    async with server:
+    # Not `async with server`: on Python 3.12+ Server.wait_closed() (run by
+    # __aexit__) waits for every connection handler to return, and the border's
+    # accept_internal handlers live as long as the member channel stays open —
+    # the test would hang forever. close() alone stops the listener; asyncio.run
+    # teardown reaps the handler tasks.
+    try:
         # First contact: member dials out and ENROLLS (token + signed nonce).
         resp = await member.dial_border("127.0.0.1", port, enrollment_token=token)
         await asyncio.sleep(0.2)
@@ -81,6 +86,8 @@ async def _enroll_then_reconnect(tmp_path):
         await asyncio.sleep(0.2)
         assert resp2["trusted"] is True
         assert "risk/cml" in border.member_channels
+    finally:
+        server.close()
 
     border.manager.close(); member.manager.close()
 
@@ -103,7 +110,9 @@ async def _wrong_key_refused(tmp_path):
     server = await asyncio.start_server(on_conn, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
 
-    async with server:
+    # See _enroll_then_reconnect: no `async with server` — wait_closed() on
+    # Python 3.12+ would block on the live member-channel handler forever.
+    try:
         await member.dial_border("127.0.0.1", port, enrollment_token=token)
         await asyncio.sleep(0.2)
         # An imposter claiming the same member_id with a DIFFERENT key → refused.
@@ -112,4 +121,6 @@ async def _wrong_key_refused(tmp_path):
         with pytest.raises(Exception):
             await imposter.dial_border("127.0.0.1", port)  # hello with non-pinned key
         await asyncio.sleep(0.1)
+    finally:
+        server.close()
     border.manager.close(); member.manager.close(); imposter.manager.close()

@@ -1,5 +1,8 @@
 # Feature Specification: N2N Federation Ergonomics & Reliability
 
+> **Channel trust superseded by [feature 060](../060-claw-cert-security/spec.md):** the cleartext/pinned channel behavior described here is upgraded to TLS + certificate authentication (eN2N mutual auth, iN2N hub attestation) by claw certification. This spec is unchanged for historical accuracy.
+
+
 **Feature Branch**: `053-n2n-ergonomics`
 **Created**: 2026-07-11
 **Status**: Draft

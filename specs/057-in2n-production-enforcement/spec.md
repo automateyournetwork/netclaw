@@ -1,5 +1,8 @@
 # Feature Specification: iN2N Production-Mode Enforcement & Durable Runtime
 
+> **Channel trust superseded by [feature 060](../060-claw-cert-security/spec.md):** the cleartext/pinned channel behavior described here is upgraded to TLS + certificate authentication (eN2N mutual auth, iN2N hub attestation) by claw certification. This spec is unchanged for historical accuracy.
+
+
 **Feature Branch**: `057-in2n-production-enforcement`
 **Created**: 2026-07-13
 **Status**: Draft

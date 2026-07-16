@@ -67,7 +67,7 @@ def test_out_of_scope_refused_at_service(tmp_path):
         # in-scope → accepted (returns a task_id); out-of-scope → RpcError -32031
         from bgp.federation.channel import RpcError
         # stub the executor so no live gateway is needed
-        async def _fake(skill, text): return ("ok", 1)
+        async def _fake(skill, text, progress=None, peer=None): return ("ok", 1)
         member.invoker._exec_skill_gateway = _fake
         ok = await member._in2n_member_submit(_Chan(), {"skill": "cml-lab-lifecycle", "input_text": "x"})
         assert ok["state"] == "submitted"

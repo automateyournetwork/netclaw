@@ -228,8 +228,12 @@ def confined_cold_start(launch_cmd: str, member_id: str) -> list:
     slug = member_id.replace("/", "-")
     argv = ["systemd-run", "--user", "--collect",
             "--unit", f"netclaw-coldmember-{slug}"]
+    # systemd-run sends -p properties over D-Bus, where %-specifiers are NOT
+    # expanded (unlike unit files) — %h must be resolved here or the transient
+    # unit is rejected with "Invalid ReadWritePaths".
+    home = os.path.expanduser("~")
     for p in _CONFINE_PROPS:
-        argv += ["-p", p]
+        argv += ["-p", p.replace("%h", home)]
     argv += ["/bin/sh", "-c", launch_cmd]
     return argv
 

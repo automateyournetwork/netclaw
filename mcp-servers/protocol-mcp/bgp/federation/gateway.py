@@ -117,7 +117,9 @@ def _extract_reply(stdout: str):
 
 
 async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int = 300,
-                         local: bool = False, model: str = None):
+                         local: bool = False, model: str = None,
+                         untrusted: bool = False, on_stall=None,
+                         stall_after_s: int = 120):
     """Run one agent turn. Returns (reply_text, tokens_used).
 
     Two modes:
@@ -129,9 +131,40 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         executes a delegated skill: no gateway, no comms, scoped tools, its own
         model/provider (feature 056). `model` is 'provider/model' or a model id.
 
+    `untrusted` marks the prompt as carrying EXTERNAL (eN2N) peer input. An
+    untrusted turn may NEVER run embedded outside verified production
+    containment: embedded mode has no gateway scope-approval gate and no gateway
+    session log, so for an external peer it is only acceptable inside the
+    sandbox + model guard, both fail-closed (2026-07-14 delegation-bypass
+    security review).
+
+    `on_stall(waited_s)` (gateway mode only): called once if the turn produces
+    no result within `stall_after_s` — the signature of the gateway holding the
+    session at its scope-upgrade approval gate (the CLI stays silent while the
+    gateway waits for the operator). It may return extra seconds to wait (e.g.
+    the operator approval window) so an approval can land instead of the turn
+    dying on a blind hard timeout.
+
     Raises TimeoutError on timeout; on non-zero exit returns the stderr tail as
     the reply so the caller can surface a useful message rather than crashing.
     """
+    if local and untrusted:
+        # Fail-closed eN2N gate: never run external-peer input embedded unless
+        # the 057 production controls actually verify. This makes the one-line
+        # `local=True` approval-gate bypass impossible to reintroduce silently.
+        from . import controls
+        if not controls.is_production():
+            raise EnforcementRefused(
+                "embedded (--local) execution refused for untrusted eN2N input "
+                "outside production mode — use the gateway path (approval gate "
+                "+ session logging)")
+        sandbox_ok, sandbox_detail = await controls.sandbox_available()
+        if not sandbox_ok:
+            raise EnforcementRefused(
+                f"embedded execution refused for untrusted eN2N input — "
+                f"sandbox unavailable: {sandbox_detail}")
+        # model-guard is enforced fail-closed by _apply_production_controls below
+
     # US4: use the flag our OWN CLI supports, probed once and cached in
     # negotiate.py (builds differ: --session-id vs --session-key). This is the
     # responder running its own agent, so the local probe is authoritative.
@@ -151,14 +184,33 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         cmd = ["openclaw", "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
-    try:
-        out, _ = await asyncio.wait_for(proc.communicate(), timeout=timeout_s)
-    except asyncio.TimeoutError:
+    comm = asyncio.ensure_future(proc.communicate())
+    # asyncio.wait (unlike wait_for) does NOT cancel `comm` on timeout, so the
+    # turn keeps running across the stall checkpoint and any extension.
+    remaining = float(timeout_s)
+    if on_stall and not local and stall_after_s and stall_after_s < remaining:
+        done, _ = await asyncio.wait({comm}, timeout=stall_after_s)
+        remaining -= stall_after_s
+        if not done:
+            # Silent this long usually means the gateway is holding the session
+            # at its scope-upgrade approval gate. Surface it to the operator and
+            # let the caller extend the window so the approval can land.
+            try:
+                remaining += max(0, int(on_stall(stall_after_s) or 0))
+            except Exception as e:
+                logger.warning("on_stall notifier failed: %s", e)
+    if not comm.done():
+        await asyncio.wait({comm}, timeout=remaining)
+    if not comm.done():
         try:
             proc.kill()
         except Exception:
             pass
-        raise
+        comm.cancel()
+        raise asyncio.TimeoutError(
+            f"agent turn for session '{session_key}' timed out — if the gateway "
+            f"is holding a scope-upgrade approval, approve it and retry")
+    out, _ = await comm
     stdout = out.decode(errors="replace") if out else ""
     if proc.returncode != 0:
         logger.warning("openclaw agent exited %s", proc.returncode)

@@ -174,6 +174,41 @@ CREATE TABLE IF NOT EXISTS enrollment_token (
 """
 
 
+# feature 060: claw-certification tables. Kept separate from SCHEMA so the
+# migration path (executescript after column ALTERs) is explicit and idempotent.
+SCHEMA_060 = """
+CREATE TABLE IF NOT EXISTS credential (
+    credential_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    kind             TEXT NOT NULL,       -- acme | host-pinned | risk-ca | hub | member
+    subject_identity TEXT NOT NULL,       -- claw domain, as<ASN>-<router-id>, risk name, member_id
+    fingerprint      TEXT NOT NULL UNIQUE,-- SHA-256 over DER, hex
+    issuer           TEXT,
+    not_before       TEXT,
+    not_after        TEXT,
+    renew_after      TEXT,                -- issued + 2/3 lifetime (NULL for observed-only)
+    state            TEXT NOT NULL DEFAULT 'active',  -- active | overlap | retired | failed
+    cert_pem         TEXT,                -- PUBLIC cert only; private keys live under keys/
+    key_path         TEXT,               -- path for locally-held keys, else NULL
+    created_at       TEXT,
+    updated_at       TEXT
+);
+CREATE TABLE IF NOT EXISTS rotation_event (
+    event_id         INTEGER PRIMARY KEY AUTOINCREMENT,
+    subject_identity TEXT,
+    credential_id    INTEGER,
+    kind             TEXT NOT NULL,       -- renewed|rotated|overlap-opened|overlap-closed|renewal-failed|emergency-rekey|verify-refused
+    detail           TEXT,
+    at               TEXT
+);
+CREATE TABLE IF NOT EXISTS auth_failure_bucket (
+    source           TEXT PRIMARY KEY,    -- remote addr / channel origin of unauth failures
+    member_id        TEXT,                -- asserted identity (informational)
+    count            INTEGER NOT NULL DEFAULT 0,
+    window_start     TEXT
+);
+"""
+
+
 class FederationManager:
     def __init__(self, db_path: Optional[str] = None, base_dir: Optional[str] = None):
         base = Path(base_dir or os.path.expanduser("~/.openclaw/n2n"))
@@ -205,11 +240,35 @@ class FederationManager:
             ("member", "managed_by", "TEXT NOT NULL DEFAULT 'cold'"),
             ("member", "service_unit", "TEXT"),
             ("member", "component_scan", "TEXT"),
+            # feature 060: claw certification — channel trust state.
+            #   trust_model     — 'domain-verified' | 'pinned' | 'legacy' (pre-060)
+            #   claw_domain     — verified attribute of the unchanged identity key (FR-003a)
+            #   pinned_fp       — SHA-256 pin (pinned model); pinned_fp_next during overlap
+            #   peer_cred_*     — peer credential health last seen via heartbeat (FR-024)
+            #   verify_state    — 'verified' | 'mismatch' | 'refused-pending-patch'
+            ("federation_peer", "trust_model", "TEXT NOT NULL DEFAULT 'legacy'"),
+            ("federation_peer", "claw_domain", "TEXT"),
+            ("federation_peer", "pinned_fp", "TEXT"),
+            ("federation_peer", "pinned_fp_next", "TEXT"),
+            ("federation_peer", "peer_cred_fp", "TEXT"),
+            ("federation_peer", "peer_cred_not_after", "TEXT"),
+            ("federation_peer", "peer_renew_state", "TEXT"),
+            ("federation_peer", "verify_state", "TEXT"),
+            # feature 060: member credential provenance + health.
+            #   credential_state — 'authority' (risk-CA-issued) | 'legacy' (pre-060 pin)
+            ("member", "credential_state", "TEXT NOT NULL DEFAULT 'legacy'"),
+            ("member", "cred_fp", "TEXT"),
+            ("member", "cred_not_after", "TEXT"),
+            ("member", "renew_state", "TEXT"),
+            ("member", "enroll_fingerprint_logged", "INTEGER NOT NULL DEFAULT 0"),
         ]:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
             except sqlite3.OperationalError:
                 pass  # column already exists
+        # feature 060: new tables (credential registry, rotation audit, per-source
+        # failed-auth rate limiting). additive + idempotent (data-model.md §1/4/5).
+        self._conn.executescript(SCHEMA_060)
         self._conn.commit()
         logger.info("FederationManager ready (db=%s)", self.db_path)
 
@@ -245,6 +304,86 @@ class FederationManager:
 
     def list_peers(self) -> list:
         return [dict(r) for r in self._conn.execute("SELECT * FROM federation_peer ORDER BY identity")]
+
+    # ---- feature 060: per-peer channel trust ---------------------------
+
+    def set_peer_pin(self, ident: str, pin_fp: str, *, is_next: bool = False):
+        """Record a peer's pinned key fingerprint (pinned trust model). `is_next`
+        stores the rotation-overlap successor pin (FR-013) instead of the active."""
+        col = "pinned_fp_next" if is_next else "pinned_fp"
+        self._conn.execute(
+            f"UPDATE federation_peer SET {col}=?, updated_at=? WHERE identity=?",
+            (pin_fp, _now(), ident))
+        self._conn.commit()
+
+    def set_peer_trust(self, ident: str, trust_model: str,
+                       claw_domain: Optional[str] = None, verify_state: Optional[str] = None):
+        """Set/upgrade a peer's trust model (local operator action only — FR-007).
+        Records the claw_domain as a verified attribute of the unchanged identity."""
+        sets, vals = ["trust_model=?"], [trust_model]
+        if claw_domain is not None:
+            sets.append("claw_domain=?"); vals.append(claw_domain)
+        if verify_state is not None:
+            sets.append("verify_state=?"); vals.append(verify_state)
+        sets.append("updated_at=?"); vals.append(_now())
+        vals.append(ident)
+        self._conn.execute(
+            f"UPDATE federation_peer SET {', '.join(sets)} WHERE identity=?", vals)
+        self._conn.commit()
+
+    def set_peer_cred_health(self, ident: str, fp: str, not_after: Optional[str],
+                             renew_state: Optional[str]):
+        """Store a peer's credential health as last reported via heartbeat (FR-024)."""
+        self._conn.execute(
+            "UPDATE federation_peer SET peer_cred_fp=?, peer_cred_not_after=?, "
+            "peer_renew_state=?, updated_at=? WHERE identity=?",
+            (fp, not_after, renew_state, _now(), ident))
+        self._conn.commit()
+
+    # ---- feature 060: credential registry (rotation, HUD) --------------
+
+    def upsert_credential(self, *, kind: str, subject_identity: str, fingerprint: str,
+                          issuer: Optional[str], not_before: Optional[str],
+                          not_after: Optional[str], renew_after: Optional[str],
+                          state: str = "active", cert_pem: Optional[str] = None,
+                          key_path: Optional[str] = None) -> int:
+        """Register/refresh a managed credential (keyed by fingerprint)."""
+        now = _now()
+        existing = self._conn.execute(
+            "SELECT credential_id FROM credential WHERE fingerprint=?", (fingerprint,)).fetchone()
+        if existing:
+            self._conn.execute(
+                "UPDATE credential SET kind=?, subject_identity=?, issuer=?, not_before=?, "
+                "not_after=?, renew_after=?, state=?, cert_pem=COALESCE(?,cert_pem), "
+                "key_path=COALESCE(?,key_path), updated_at=? WHERE fingerprint=?",
+                (kind, subject_identity, issuer, not_before, not_after, renew_after, state,
+                 cert_pem, key_path, now, fingerprint))
+            self._conn.commit()
+            return existing["credential_id"]
+        cur = self._conn.execute(
+            "INSERT INTO credential (kind, subject_identity, fingerprint, issuer, not_before, "
+            "not_after, renew_after, state, cert_pem, key_path, created_at, updated_at) "
+            "VALUES (?,?,?,?,?,?,?,?,?,?,?,?)",
+            (kind, subject_identity, fingerprint, issuer, not_before, not_after, renew_after,
+             state, cert_pem, key_path, now, now))
+        self._conn.commit()
+        return cur.lastrowid
+
+    def list_credentials(self) -> list:
+        return [dict(r) for r in self._conn.execute(
+            "SELECT * FROM credential WHERE state != 'retired' ORDER BY not_after")]
+
+    def credentials_due(self, now_iso: str) -> list:
+        """Active credentials whose renew_after has passed (FR-012)."""
+        return [dict(r) for r in self._conn.execute(
+            "SELECT * FROM credential WHERE state='active' AND renew_after IS NOT NULL "
+            "AND renew_after <= ? ORDER BY renew_after", (now_iso,))]
+
+    def set_credential_state(self, fingerprint: str, state: str):
+        self._conn.execute(
+            "UPDATE credential SET state=?, updated_at=? WHERE fingerprint=?",
+            (state, _now(), fingerprint))
+        self._conn.commit()
 
     def _set_state(self, ident: str, state: PeerState):
         self._conn.execute("UPDATE federation_peer SET state=?, updated_at=? WHERE identity=?",

@@ -22,6 +22,7 @@ class _FakeChannel:
         self.peer_as = peer_as
         self.peer_router_id = router_id
         self.peer_identity = peer_identity(peer_as, router_id)
+        self.attestation = "possession"   # post-possession session: endpoint_update is tier-1
 
 
 def test_endpoint_update_from_federated_peer(tmp_path):

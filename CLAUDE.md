@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-07-14
+Auto-generated from all feature plans. Last updated: 2026-07-15
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -77,6 +77,8 @@ Auto-generated from all feature plans. Last updated: 2026-07-14
 - Extend existing SQLite `~/.openclaw/n2n/federation.db` (member health fields, per-member service binding); new **GAIT git repo** at `~/.openclaw/n2n/gait/` (unbounded, FR-012a); systemd units under `~/.config/systemd/user/`; env under `~/.openclaw/mesh.systemd.env` + per-member env files (existing pattern). (057-in2n-production-enforcement)
 - kramdown-rfc Markdown → RFCXML **v3** (via `kdrfc`); Markdown for supporting docs. No application code. + `kramdown-rfc` (Ruby gem, provides `kdrfc`), `idnits` (I-D nits checker), `xml2rfc` (invoked by `kdrfc`). Ground-truth source: the reference implementation `bgp/constants.py`, `channel.py`, `agent.py`, `internal_channel.py`, `negotiate.py`, `risk.py` (read-only; cited, not modified). Reference set: RFC 2119/8174/4271/8259 + JSON-RPC 2.0 (normative); RFC 7301/6455/7435/6335/8126, MCP, A2A, `draft-yan-a2a-device-agent-applicability` (informative). (059-ncfed-internet-draft)
 - N/A — the deliverable is a document; no runtime state. (059-ncfed-internet-draft)
+- Python 3.10+ (daemon + `bgp/federation/*`, matching 052/053/056/057); Node.js 18+/ES2022 (HUD render only); Bash (installer/patch) + Existing `bgp-daemon-v2.py` + `bgp/federation/*` (channel, internal_channel, risk, service, manager, audit, gateway, negotiate); `cryptography` (already a repo dependency — keys, CSRs, X.509 issuance/verification); **lego** (single-binary ACME client, vendored/downloaded at install, drives DNS-01 across 100+ providers); Python stdlib `ssl`/`asyncio`/`sqlite3`/`json`. No new Python packages. (060-claw-cert-security)
+- Extend existing SQLite `~/.openclaw/n2n/federation.db` (peer trust columns, credential + rotation-event tables); key material under `~/.openclaw/n2n/keys/` (CA, host credential, ACME account) with `0600`/`0700` permissions (060-claw-cert-security)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -96,9 +98,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 060-claw-cert-security: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052/053/056/057); Node.js 18+/ES2022 (HUD render only); Bash (installer/patch) + Existing `bgp-daemon-v2.py` + `bgp/federation/*` (channel, internal_channel, risk, service, manager, audit, gateway, negotiate); `cryptography` (already a repo dependency — keys, CSRs, X.509 issuance/verification); **lego** (single-binary ACME client, vendored/downloaded at install, drives DNS-01 across 100+ providers); Python stdlib `ssl`/`asyncio`/`sqlite3`/`json`. No new Python packages.
 - 059-ncfed-internet-draft: Added kramdown-rfc Markdown → RFCXML **v3** (via `kdrfc`); Markdown for supporting docs. No application code. + `kramdown-rfc` (Ruby gem, provides `kdrfc`), `idnits` (I-D nits checker), `xml2rfc` (invoked by `kdrfc`). Ground-truth source: the reference implementation `bgp/constants.py`, `channel.py`, `agent.py`, `internal_channel.py`, `negotiate.py`, `risk.py` (read-only; cited, not modified). Reference set: RFC 2119/8174/4271/8259 + JSON-RPC 2.0 (normative); RFC 7301/6455/7435/6335/8126, MCP, A2A, `draft-yan-a2a-device-agent-applicability` (informative).
 - 057-in2n-production-enforcement: Added Python 3.10+ (daemon + federation package + tooling), Bash (installer/service generator glue), Node.js 18+/ES2022 (HUD posture render only) + Existing `bgp-daemon-v2.py` + `bgp/federation/*` (service, risk, router, internal_channel, audit, gateway, manager, invocation, tasks); the installed `defenseclaw` CLI (`~/.local/bin/defenseclaw`, `docs/DEFENSECLAW.md`); the installed `openshell` CLI (`~/.local/bin/openshell`); `git` (GAIT trail); systemd `--user`. Python stdlib only (`asyncio`, `subprocess`, `sqlite3`, `json`, `pathlib`, `shutil`, `time`). No new third-party packages.
-- 056-in2n-internal-federation: Added Python 3.10+ (daemon federation layer + `n2n-mcp`, matching 052/053), Node.js 18+/ES2022 (HUD), Bash (installer), no new languages + Existing `bgp-daemon-v2.py` + `bgp/federation/*` (manager, channel, service, inventory, authorization, invocation, chat, gateway, negotiate, tasks, audit), FastMCP (`n2n-mcp`), Python stdlib `json`/`sqlite3`/`asyncio`/`ssl`/`socket`; `cryptography` (already a repo dependency, spec 003) for self-signed key generation and pinned-key verification. No new third-party packages.
 
 
 <!-- MANUAL ADDITIONS START -->

@@ -83,6 +83,17 @@ class FederationChannel:
         self._read_task: Optional[asyncio.Task] = None
         self._hb_task: Optional[asyncio.Task] = None
         self.display_name: Optional[str] = None
+        # feature 060 (FR-024): when set by the service, the heartbeat carries this
+        # claw's credential health so the peer always knows our fingerprint /
+        # days-to-expiry between reconnects. None → legacy empty-frame heartbeat.
+        self.cred_status: Optional[dict] = None
+        # eN2N possession auth (baseline, reconciled from Josh/TunnelMind's report):
+        # the acceptor issues `nonce` and refuses every method except n2n/hello
+        # until the dialer's signature over it verifies. `attestation` is
+        # "possession" once a cert is proven+pinned, else "self-asserted" (tier-0).
+        self.nonce = b""
+        self.authenticated = False
+        self.attestation = "self-asserted"
         # Per-channel handler map (owned by the FederationService that created
         # this channel) — NOT class-level, so multiple services in one process
         # (e.g. tests) don't clobber each other's handlers.
@@ -165,8 +176,14 @@ class FederationChannel:
                                         self.peer_identity, self._misses)
                     break
                 try:
-                    self.writer.write(struct.pack("!IB", 0, 0))
-                    await self.writer.drain()
+                    if self.cred_status is not None:
+                        # Carry credential health (FR-024). Still counts as a frame
+                        # for liveness; the handler updates the peer's cred columns.
+                        await self._send_frames({"jsonrpc": "2.0", "method": "n2n/heartbeat",
+                                                 "params": {"cred": self.cred_status}})
+                    else:
+                        self.writer.write(struct.pack("!IB", 0, 0))
+                        await self.writer.drain()
                 except (ConnectionError, OSError) as e:
                     self.logger.warning("Channel to %s: heartbeat send failed (%s) — closing",
                                         self.peer_identity, e)
@@ -198,6 +215,14 @@ class FederationChannel:
         req_id = msg.get("id")
         params = msg.get("params") or {}
 
+        # eN2N possession gate (mirrors iN2N pre-trust): the acceptor challenged
+        # the dialer with a nonce; only n2n/hello (which carries the proof) is
+        # dispatched until possession verifies. Initiator side is not challenged.
+        if not self.is_initiator and not self.authenticated and method != "n2n/hello":
+            if req_id is not None:
+                await self._send_frames(self._err(req_id, ERR_NOT_FEDERATED, "peer not authenticated"))
+            return
+
         # Only n2n/hello is allowed before federation is established.
         if method != "n2n/hello" and not self.manager.is_federated(self.peer_identity):
             if req_id is not None:
@@ -216,6 +241,10 @@ class FederationChannel:
         except RpcError as e:
             if req_id is not None:
                 await self._send_frames(self._err(req_id, e.code, e.message))
+            # A failed possession proof closes the channel after the reply so the
+            # forger cannot retry methods on the same unauthenticated channel.
+            if getattr(self, "_auth_failed", False):
+                await self.close()
         except Exception as e:
             self.logger.error("Handler %s failed: %s", method, e)
             if req_id is not None:

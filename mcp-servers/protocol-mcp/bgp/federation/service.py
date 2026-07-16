@@ -10,12 +10,15 @@ import asyncio
 import json
 import logging
 import os
+import secrets
 import time
 from typing import Dict, Optional
 
-from ..constants import NCFED_MAGIC
+from ..constants import NCFED_MAGIC, IN2N_NONCE_SIZE
 from .manager import FederationManager, PeerState, peer_identity
-from .channel import FederationChannel, read_handshake, build_handshake
+from .channel import (
+    FederationChannel, read_handshake, build_handshake, RpcError, ERR_NOT_FEDERATED,
+)
 from .inventory import InventoryBuilder
 from .audit import Auditor
 
@@ -35,6 +38,14 @@ class FederationService:
         self.audit = Auditor(self.manager)
         self.channels: Dict[str, FederationChannel] = {}
         os.environ["N2N_LOCAL_IDENTITY"] = self.local_identity
+
+        # ── feature 060: secured channels. Default OFF so this code changes
+        # nothing until an operator opts in; 'on' upgrades every eN2N channel to
+        # TLS + channel-bound auth; 'enforce' additionally refuses cleartext.
+        _mode = os.environ.get("N2N_CERT_MODE", "off").strip().lower()
+        self.cert_mode = _mode in ("on", "enforce", "true", "1", "yes")
+        self.cert_enforce = _mode == "enforce"
+        self._host_cred: Optional[tuple] = None   # (cert_pem, key_pem), lazily created
 
         # US2/US3 engines
         from .authorization import Authorizer
@@ -74,6 +85,7 @@ class FederationService:
             "n2n/tasks/cancel": self.invoker.handle_task_cancel,
             "n2n/chat/open": self.chat.handle_chat_open,
             "n2n/chat/message": self.chat.handle_chat_message,
+            "n2n/heartbeat": self._on_heartbeat,
         }
 
         # ── iN2N (feature 056): internal federation within one risk ──────
@@ -118,7 +130,70 @@ class FederationService:
             except Exception as e:
                 logger.warning("approval notifier failed: %s", e)
 
+    def notify_key_change(self, ident):
+        """Surface an NCFED key change for a federated peer (possible
+        impersonation) to the operator via the same approval_notifier hook the
+        iN2N quarantine path uses. Best-effort; the new key is never auto-trusted."""
+        logger.warning("eN2N ALERT: pinned key changed for federated peer %s — rejected", ident)
+        if self.approval_notifier:
+            try:
+                self.approval_notifier(None, ident, "key_change", ident)
+            except Exception:
+                pass
+
     async def _on_hello(self, channel, params):
+        # eN2N possession auth (baseline — reconciled from Josh/TunnelMind's report,
+        # closing CWE-290 by default; reuses risk.py possession primitives). Only
+        # the ACCEPTOR issued a nonce, so only it challenges.
+        #   cert present ⇒ tier-1 "possession": must prove possession + match the
+        #     TOFU pin, else hard-reject + close (active forgery / key change).
+        #   cert absent  ⇒ tier-0 "self-asserted": admitted (federated for presence
+        #     + inventory) but execution/impersonation surfaces stay default-denied
+        #     (negotiate.allows) — UNLESS cert_enforce, which requires possession.
+        # Strangers are already closed in accept_channel (FR-003).
+        if not channel.is_initiator and not channel.authenticated:
+            cert_pem = params.get("cert_pem", "")
+            signature = bytes.fromhex(params.get("signature", "") or "")
+            if cert_pem:
+                # On a TLS channel, bind the proof to this session via the
+                # tls-server-end-point value (hash of OUR certificate, which the
+                # dialer also signed over); empty on cleartext (RFC 5929).
+                binding = self._channel_binding_own()
+                if not self.risk.verify_possession(cert_pem, channel.nonce, signature, binding):
+                    logger.warning("n2n.auth.failed: possession proof failed for claimed %s",
+                                   channel.peer_identity)
+                    channel._auth_failed = True
+                    raise RpcError(ERR_NOT_FEDERATED, "possession proof failed")
+                # TOFU pin: bind this identity to its cert on first contact; a later
+                # key change is possible impersonation — reject + alert, NEVER
+                # silently re-pin.
+                if self.risk.check_peer_pin(channel.peer_identity, cert_pem) == "mismatch":
+                    logger.warning("NCFED key changed for %s", channel.peer_identity)
+                    self.notify_key_change(channel.peer_identity)
+                    channel._auth_failed = True
+                    raise RpcError(ERR_NOT_FEDERATED, "pinned key mismatch")
+                channel.attestation = "possession"
+                channel.cert_pem = cert_pem
+                # Record the pin in the peer row too (HUD/posture visibility);
+                # check_peer_pin above holds the authoritative file pin.
+                from . import certs
+                self.manager.set_peer_pin(channel.peer_identity,
+                                          certs.key_fingerprint(cert_pem))
+                self.manager.set_peer_trust(channel.peer_identity, "pinned",
+                                            verify_state="verified")
+            elif self.cert_enforce:
+                # Mandatory certs: a keyless peer cannot federate in enforce mode.
+                logger.warning("cert enforce: refusing keyless (tier-0) hello from %s",
+                               channel.peer_identity)
+                channel._auth_failed = True
+                raise RpcError(ERR_NOT_FEDERATED,
+                               "peer requires certificate-secured federation — run "
+                               "scripts/patch-claw-certs.sh")
+            channel.authenticated = True
+            if not self._register_channel(channel.peer_identity, channel):
+                channel._auth_failed = True
+                raise RpcError(ERR_NOT_FEDERATED,
+                               "identity already held by a possession-proven peer")
         channel.display_name = params.get("display_name")
         # US4: store the peer's capability descriptor (or 052 baseline if absent)
         from .negotiate import normalize, local_descriptor
@@ -133,20 +208,35 @@ class FederationService:
 
     def _register_channel(self, ident, ch):
         """Track a channel and set its on_close hook so a dead channel
-        deregisters itself (US2) — no zombie channels lingering in the registry."""
+        deregisters itself (US2) — no zombie channels lingering in the registry.
+
+        Eviction guard: refuse (return False) when a possession-proven channel
+        already holds this identity and the incoming one is an inbound, tier-0
+        (self-asserted) session — a keyless peer must not knock the pinned peer
+        offline. Our own outbound re-dials (is_initiator) always replace."""
+        existing = self.channels.get(ident)
+        if (existing is not None and getattr(existing, "attestation", "") == "possession"
+                and not ch.is_initiator and getattr(ch, "attestation", "") != "possession"):
+            logger.warning("Refusing tier-0 inbound channel for %s — possession-proven peer holds it", ident)
+            return False
         def _deregister(closed_ch):
             if self.channels.get(ident) is closed_ch:
                 self.channels.pop(ident, None)
                 logger.info("Channel to %s closed — deregistered", ident)
         ch.on_close = _deregister
         self.channels[ident] = ch
+        return True
 
     async def _on_endpoint_update(self, channel, params):
         """US3: a federated peer announced a new public endpoint over its
         authenticated channel. Trust it only for THIS channel's identity
         (FR-012), update the record, and let the supervisor re-dial (FR-011)."""
+        from .negotiate import allows
         endpoint = params.get("endpoint", "")
         ident = channel.peer_identity  # bound to the authenticated session, not attacker-supplied
+        if not allows(getattr(channel, "attestation", "self-asserted"), "endpoint_update"):
+            logger.info("tier-0 peer %s denied endpoint_update — possession proof required", ident)
+            return {"accepted": False}
         if not self.manager.is_federated(ident) or ":" not in endpoint:
             return {"accepted": False}
         host, _, port = endpoint.rpartition(":")
@@ -233,6 +323,134 @@ class FederationService:
                     return
                 await asyncio.sleep(0.2)
 
+    # ---- feature 060: secured-channel credential + upgrade ------------
+
+    async def _on_heartbeat(self, channel, params):
+        """FR-024: record the peer's reported credential health so the HUD/posture
+        never show it staler than one heartbeat interval (SC-011)."""
+        cred = params.get("cred") or {}
+        fp = cred.get("fp")
+        if fp:
+            self.manager.set_peer_cred_health(
+                channel.peer_identity, fp, cred.get("not_after"), cred.get("renew_state"))
+        return None  # notification — no reply
+
+    def _channel_binding(self, writer) -> bytes:
+        """Dialer side: the tls-server-end-point binding (SHA-256 of the peer's
+        server certificate) for the current channel, or b"" on cleartext. The
+        dialer includes this in its possession signature (RFC 5929)."""
+        if not self.cert_mode:
+            return b""
+        from . import tls
+        sslobj = writer.get_extra_info("ssl_object")
+        return (tls.binding_from_peer(sslobj) or b"") if sslobj else b""
+
+    def _channel_binding_own(self) -> bytes:
+        """Acceptor side: the same binding computed from OUR presented certificate
+        (equals the dialer's _channel_binding for the same session), or b"" on
+        cleartext."""
+        if not self.cert_mode:
+            return b""
+        from . import tls
+        try:
+            return tls.binding_from_own_cert(self.host_credential()[0])
+        except Exception:
+            return b""
+
+    def _cred_status(self) -> Optional[dict]:
+        """This claw's credential health to advertise on heartbeats (FR-024)."""
+        if not self.cert_mode:
+            return None
+        from . import certs
+        cert_pem, _ = self.host_credential()
+        try:
+            na = certs.cert_not_after(cert_pem).isoformat()
+        except Exception:
+            na = None
+        return {"fp": certs.key_fingerprint(cert_pem), "not_after": na,
+                "renew_state": "ok"}
+
+    def host_credential(self) -> tuple:
+        """The credential this claw presents on secured channels. If a domain is
+        configured and an ACME certificate exists, present that (domain-verified
+        peers validate its WebPKI chain; pinned peers pin its key). Otherwise the
+        pinned-model self-signed credential under keys/host/, created once."""
+        from . import certs
+        # Prefer the domain-verified (ACME) credential when present.
+        domain = os.environ.get("N2N_CLAW_DOMAIN")
+        if domain:
+            kd = certs.keys_dir(str(self.manager.base_dir))
+            acme_crt = kd / "acme" / "certificates" / f"{domain}.crt"
+            acme_key = kd / "acme" / "certificates" / f"{domain}.key"
+            if acme_crt.exists() and acme_key.exists():
+                return acme_crt.read_text(), acme_key.read_text()
+        if self._host_cred is None:
+            kd = certs.keys_dir(str(self.manager.base_dir))
+            crt, key = kd / "host" / "host.crt", kd / "host" / "host.key"
+            if crt.exists() and key.exists():
+                self._host_cred = (crt.read_text(), key.read_text())
+            else:
+                cert_pem, key_pem = certs.create_self_signed(self.local_identity)
+                crt.write_text(cert_pem)
+                certs._write_secret(key, key_pem)
+                self._host_cred = (cert_pem, key_pem)
+        return self._host_cred
+
+    async def _secure_dial(self, reader, writer, ident: str):
+        """Dialer side, cert_mode ENCRYPTION layer (feature 060): upgrade the
+        connection to TLS and verify the LISTENER (domain-verified WebPKI chain +
+        SAN, or pinned fingerprint / TOFU). The dialer authenticates ITSELF to the
+        listener separately, over n2n/hello (baseline possession proof). Returns
+        the upgraded (reader, writer) or None on refusal."""
+        from . import tls, certs
+        peer = self.manager.get_peer(ident) or {}
+        trust = peer.get("trust_model") or "pinned"
+        if trust == "legacy":
+            trust = "pinned"  # first secured contact with a known peer → pin it
+        claw_domain = peer.get("claw_domain")
+        cctx, server_hostname = tls.client_context(trust, claw_domain=claw_domain)
+        reader, writer = await tls.upgrade_to_tls(
+            reader, writer, cctx, server_side=False, server_hostname=server_hostname)
+        sslobj = writer.get_extra_info("ssl_object")
+        if trust == "domain-verified":
+            names = certs.san_names(tls.peer_leaf_pem(sslobj) or "")
+            if claw_domain and claw_domain not in names:
+                logger.warning("Refusing %s: cert SAN %s != claw_domain %s",
+                               ident, names, claw_domain)
+                self._cert_refuse(ident, f"SAN {names} != {claw_domain}")
+                return None
+        else:  # pinned — TOFU on first contact, else the listener key must match
+            pin = tls.leaf_key_fingerprint(sslobj)
+            stored = peer.get("pinned_fp")
+            if stored and pin not in (stored, peer.get("pinned_fp_next")):
+                logger.warning("Refusing %s: listener pinned key changed", ident)
+                self._cert_refuse(ident, "listener pinned key changed — re-verify out of band")
+                return None
+            if not stored:
+                self.manager.set_peer_pin(ident, pin)  # TOFU-pin the listener
+        self.manager.set_peer_trust(ident, trust, verify_state="verified")
+        return reader, writer
+
+    async def _secure_accept(self, reader, writer, ident: str):
+        """Listener side, cert_mode ENCRYPTION layer: present our credential and
+        upgrade to TLS. The dialer verifies OUR cert during its handshake; we
+        authenticate the DIALER separately via its n2n/hello possession proof.
+        Returns upgraded (reader, writer) or None on failure."""
+        from . import tls
+        cert_pem, key_pem = self.host_credential()
+        reader, writer = await tls.upgrade_to_tls(
+            reader, writer, tls.server_context(cert_pem, key_pem), server_side=True)
+        return reader, writer
+
+    def _cert_refuse(self, ident: str, reason: str):
+        self.manager.set_peer_trust(ident, (self.manager.get_peer(ident) or {}).get(
+            "trust_model") or "pinned", verify_state="refused-pending-patch")
+        try:
+            self.audit.record_cert_event(kind="verify-refused", subject_identity=ident,
+                                          detail=reason)
+        except Exception:
+            pass
+
     # ---- inbound channel (called from agent discrimination) -----------
 
     def _en2n_allowed(self) -> bool:
@@ -252,25 +470,51 @@ class FederationService:
                 pass
             return
         ident = peer_identity(peer_as, router_id)
-        # Channel-anchored identity check (FR-003): only accept for a peer we
-        # know and have at least locally consented / federated with.
-        peer = self.manager.get_peer(ident)
-        if not peer or peer["state"] in (PeerState.NOT_FEDERATED.value, PeerState.SEVERED.value):
-            # Learn presence but require local consent before doing anything.
-            self.manager.upsert_peer(peer_as, router_id)
-            if not self.manager._has_consent(ident, "local_grant"):
-                logger.info("NCFED from %s but no local consent — recording remote consent only", ident)
-        # Send our handshake reply
+        # FR-003 (reconciled): admit only a peer we have locally consented to
+        # (every federated / consent-pending-local peer has). A true stranger — no
+        # local_grant — is learned as presence and then closed WITHOUT a nonce/
+        # hello: no channel, not even tier-0. This keeps an un-consented forger off
+        # the wire entirely.
+        self.manager.upsert_peer(peer_as, router_id)
+        if not self.manager._has_consent(ident, "local_grant"):
+            logger.info("NCFED from %s but no local consent — closing (FR-003)", ident)
+            try:
+                writer.close()
+            except Exception:
+                pass
+            return
+        # Send our handshake reply.
         writer.write(build_handshake(self.local_as, self.router_id))
+        await writer.drain()
+        # cert_mode ENCRYPTION layer (feature 060): upgrade to TLS before anything
+        # sensitive (the possession nonce + hello then ride inside TLS).
+        if self.cert_mode:
+            try:
+                upgraded = await self._secure_accept(reader, writer, ident)
+            except Exception as e:
+                logger.warning("Secure accept from %s failed: %s", ident, e)
+                upgraded = None
+            if upgraded is None:
+                try:
+                    writer.close()
+                except Exception:
+                    pass
+                return
+            reader, writer = upgraded
+        # Possession challenge (baseline auth): the dialer must sign this nonce
+        # with the key for the cert it presents in n2n/hello (reuses risk.py).
+        nonce = secrets.token_bytes(IN2N_NONCE_SIZE)
+        writer.write(nonce)
         await writer.drain()
         ch = FederationChannel(reader, writer, local_identity=self.local_identity,
                                peer_as=peer_as, peer_router_id=router_id,
                                manager=self.manager, is_initiator=False, handlers=self.handlers)
-        self._register_channel(ident, ch)
+        ch.nonce = nonce
+        ch.cred_status = self._cred_status()
         await ch.start()
-        # The initiator sends n2n/hello; our _on_hello handler replies and, if
-        # both consents are present, advertises. Nothing more to do here.
-        logger.info("Accepted NCFED channel from %s", ident)
+        # The initiator sends n2n/hello carrying the possession proof; _on_hello
+        # verifies it, registers the channel (tier gate), and advertises.
+        logger.info("Accepted NCFED channel from %s (awaiting possession proof)", ident)
 
     # ---- outbound channel (lower-AS initiates) ------------------------
 
@@ -309,15 +553,33 @@ class FederationService:
                 logger.warning("Handshake mismatch opening channel to %s", ident)
                 writer.close()
                 return
+            # cert_mode ENCRYPTION layer (feature 060): upgrade to TLS + verify
+            # the listener (domain/pin) before anything sensitive.
+            if self.cert_mode:
+                upgraded = await self._secure_dial(reader, writer, ident)
+                if upgraded is None:
+                    writer.close()
+                    return
+                reader, writer = upgraded
+            # Read the acceptor's possession-challenge nonce (baseline auth).
+            nonce = await asyncio.wait_for(reader.readexactly(IN2N_NONCE_SIZE), timeout=10.0)
             ch = FederationChannel(reader, writer, local_identity=self.local_identity,
                                    peer_as=peer_as, peer_router_id=router_id,
                                    manager=self.manager, is_initiator=True, handlers=self.handlers)
+            ch.cred_status = self._cred_status()
             self._register_channel(ident, ch)
             await ch.start()
             from .negotiate import local_descriptor, normalize
+            # Prove possession of our key over the acceptor's nonce (reuses risk.py),
+            # bound to this TLS session by the tls-server-end-point value (the hash
+            # of the listener's certificate we just verified) when encrypted — so
+            # the proof cannot be relayed to a different session (RFC 5929).
+            binding = self._channel_binding(writer)
             resp = await ch.call("n2n/hello", {"identity": self.local_identity,
                                                "display_name": self.display_name,
                                                "versions": ["1.0"],
+                                               "cert_pem": self.risk.self_cert_pem(),
+                                               "signature": self.risk.self_sign(nonce, binding).hex(),
                                                "capabilities": local_descriptor()})
             ch.display_name = resp.get("display_name")
             self.peer_caps[ident] = normalize(resp.get("capabilities"))  # US4
@@ -522,6 +784,16 @@ class FederationService:
                           target_type="enroll", target_name=member_id,
                           decision="enrolled", outcome="success", channel_kind="in2n")
         logger.info("iN2N member %s enrolled + active", member_id)
+        # US2: bootstrap the risk CA trust anchor to the member at enrollment, and
+        # (if it challenged us) attest we are the legitimate hub.
+        anchor = self.risk.risk_ca_pem() or (self.risk.ensure_risk_ca()[0])
+        res = dict(res)
+        res["risk_ca"] = anchor
+        mnonce = params.get("member_nonce")
+        if mnonce:
+            attest = self.risk.attest_hub(bytes.fromhex(mnonce))
+            if attest:
+                res["hub_attestation"] = attest
         return res
 
     async def _in2n_on_hello(self, channel, params):
@@ -538,7 +810,13 @@ class FederationService:
               and self.risk.verify_possession(mem["pinned_key"], channel.nonce, signature)
               and self.risk.verify_member(member_id, fingerprint))
         if not ok:
-            quarantined = self.risk.record_auth_failure(member_id)
+            # FR-022: attribute the failure to its source so a foreign host cannot
+            # unpin a healthy member by spraying failing auths.
+            src = self._channel_source(channel)
+            est = (self.member_channels.get(member_id) and
+                   self._channel_source(self.member_channels[member_id]))
+            quarantined = self.risk.record_auth_failure(
+                member_id, source=src, established_source=est)
             if quarantined:
                 self.notify_member_quarantine(member_id)
             raise RpcError(_ERR_NOT_TRUSTED, "pinned-key auth failed")
@@ -546,8 +824,26 @@ class FederationService:
         channel.peer_identity = member_id
         channel.trusted = True
         self._register_member_channel(member_id, channel)
-        return {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
-                "member_state": "active"}
+        result = {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
+                  "member_state": "active"}
+        # US2 hub attestation: if the member challenged us with a nonce, prove we
+        # are the legitimate hub (CA-signed hub cert + signature over the nonce).
+        mnonce = params.get("member_nonce")
+        if mnonce:
+            attest = self.risk.attest_hub(bytes.fromhex(mnonce))
+            if attest:
+                result["hub_attestation"] = attest
+        return result
+
+    @staticmethod
+    def _channel_source(channel) -> Optional[str]:
+        """Best-effort remote address of an internal channel, for per-source
+        auth-failure accounting (FR-022)."""
+        try:
+            peer = channel.writer.get_extra_info("peername")
+            return f"{peer[0]}:{peer[1]}" if peer else None
+        except Exception:
+            return None
 
     async def _in2n_on_member_inventory(self, channel, params):
         """A member advertises its (scoped) capabilities. We already know its
@@ -816,21 +1112,41 @@ class FederationService:
         cert_pem = self.risk.self_cert_pem()
         signature = self.risk.self_sign(nonce).hex()
         member_id = self.risk.self_member_id()
+        # US2: challenge the Border to attest it is our legitimate hub.
+        member_nonce = os.urandom(32)
         if enrollment_token:
             resp = await ch.call("in2n/enroll", {
                 "token": enrollment_token, "member_id": member_id,
                 "cert_pem": cert_pem, "signature": signature,
+                "member_nonce": member_nonce.hex(),
                 "scope": list(self.member_scope) or None,
                 "runtime_kind": os.environ.get("N2N_MEMBER_RUNTIME", "process"),
                 "transport_binding": "distributed"}, timeout=30.0)
+            # Persist the CA anchor delivered at enrollment.
+            if resp.get("risk_ca"):
+                self.risk.store_risk_anchor(resp["risk_ca"])
         else:
             resp = await ch.call("in2n/hello", {
                 "member_id": member_id,
                 "key_fingerprint": self.risk.fingerprint_of(cert_pem),
+                "member_nonce": member_nonce.hex(),
                 "signature": signature}, timeout=30.0)
+        # US2 hub attestation: if we hold an anchor, the Border MUST prove it is
+        # the legitimate hub for our risk; a missing/invalid attestation aborts.
+        anchor = self.risk.risk_anchor()
+        if anchor:
+            risk_name = (member_id.split("/", 1)[0] if member_id else
+                         (self.risk.get_risk() or {}).get("risk_name") or "risk")
+            attest = resp.get("hub_attestation")
+            if not attest or not self.risk.verify_hub_attestation(
+                    attest, anchor, member_nonce, risk_name):
+                writer.close()
+                raise RuntimeError("iN2N hub attestation failed — refusing to trust Border")
+            logger.info("iN2N: verified hub attestation for %s", risk_name)
         ch.trusted = True   # we pinned the Border endpoint at provisioning
         self.border_channel = ch
-        logger.info("iN2N: dialed Border %s:%s as %s (%s)", host, port, member_id, resp)
+        logger.info("iN2N: dialed Border %s:%s as %s (%s)", host, port, member_id,
+                    {k: v for k, v in resp.items() if k not in ("risk_ca", "hub_attestation")})
         return resp
 
     async def _in2n_member_submit(self, channel, params):

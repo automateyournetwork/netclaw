@@ -2,7 +2,7 @@
 title: "The NetClaw-to-NetClaw Federation Protocol (NCFED)"
 abbrev: "NCFED"
 category: exp
-docname: draft-capobianco-ncfed-00
+docname: draft-capobianco-ncfed-01
 submissiontype: IETF
 number:
 date:
@@ -33,6 +33,10 @@ normative:
   RFC5480:
   RFC6090:
   RFC6234:
+  RFC8446:
+  RFC5929:
+  RFC8555:
+  RFC9525:
   JSONRPC:
     title: "JSON-RPC 2.0 Specification"
     target: https://www.jsonrpc.org/specification
@@ -55,7 +59,6 @@ informative:
   RFC7301:
   RFC7435:
   RFC8126:
-  RFC8446:
   WIREGUARD:
     title: "WireGuard: Next Generation Kernel Network Tunnel"
     target: https://www.wireguard.com/papers/wireguard.pdf
@@ -83,11 +86,14 @@ agents ("NetClaws") discover one another's capabilities, invoke remote tools, an
 delegate tasks over long-lived TCP sessions. NCFED multiplexes its federation
 channel with BGP-4 and an associated tunneling data plane on a single listening
 port, using first-octet protocol discrimination. Its payload is JSON-RPC 2.0
-carrying Model Context Protocol (MCP) and Agent2Agent (A2A) operations. Two trust
-models are defined: mutual operator consent for external federation between
-different trust domains (eN2N), and enrollment-token bootstrap with
-trust-on-first-use (TOFU) key pinning for hub-and-spoke federation within a single
-operator's trust domain (iN2N). NCFED does not replace MCP or A2A; it is a
+carrying Model Context Protocol (MCP) and Agent2Agent (A2A) operations. Federation
+between different trust domains (eN2N) requires mutual operator consent; within a
+single operator's trust domain (iN2N) it is hub-and-spoke, bootstrapped by an
+enrollment token. In both cases the channel is encrypted with TLS and the peer is
+cryptographically authenticated by proof of possession of the credential bound to
+its identity, under either a domain-verified (publicly certified) or a pinned
+(trust-on-first-use) model; the Border of a risk additionally attests to its members
+that it is the legitimate hub. NCFED does not replace MCP or A2A; it is a
 cross-operator federation, identity, and transport layer that carries them. This
 document describes the protocol as implemented in the open-source NetClaw project
 and is published as Experimental to enable interoperability and public review.
@@ -141,7 +147,7 @@ to them. (The Border is one member of the risk, not the risk itself.)
 NCFED assumes **long-lived sessions between a small number of mutually known
 peers**, established deliberately by their operators. It is **not** designed for
 anonymous, open, or large-scale federation, and it does not attempt spam
-resistance, discovery of unknown peers, or public-key infrastructure. These
+resistance, discovery of unknown peers, or public key infrastructure. These
 assumptions shape the trust models ({{trust}}) and the Security Considerations
 ({{seccons}}), and are the reason the current design accepts an underlay-dependent
 trust model rather than defining its own cryptographic peer authentication (see
@@ -204,7 +210,7 @@ The NCFED stack is layered as shown in {{fig-stack}}.
 +---------------------------------------------------------------+
 | Encoding: UTF-8 JSON-RPC 2.0                                  |
 +---------------------------------------------------------------+
-| Framing:  [4-octet BE length][1-octet flags][payload]        |
+| Framing:  <4-octet BE length><1-octet flags><payload>        |
 |           flags bit0 = CONTINUATION; length 0 = heartbeat     |
 +---------------------------------------------------------------+
 | Federation handshake (13 octets):                            |
@@ -264,10 +270,11 @@ cleartext at the start of the TCP byte stream. It follows that NCFED does **not*
 perform a TLS handshake on the shared port: the first octet of a TLS ClientHello
 record is 0x16 (the TLS "handshake" content type), which is not a recognized
 discriminator value, so a direct TLS connection to the shared port is closed like
-any other unrecognized preamble. Where an encrypted transport is required, it is
-supplied by an underlay or tunnel beneath TCP, or by the separate iN2N listener
-({{trust-in2n}}), not by inline TLS on the discrimination port; see {{seccons-conf}}.
-{{seccons}} discusses the security consequences of sharing a port with BGP.
+any other unrecognized preamble. NCFED therefore never begins with a TLS ClientHello;
+instead, once the NCFED preamble is recognized, the channel is upgraded to TLS in place
+after the handshake ("STARTTLS"-style; see {{channel-sec}}), which keeps the shared port
+and its discrimination unchanged. {{seccons}} discusses the security consequences of
+sharing a port with BGP.
 
 # Federation Handshake {#handshake}
 
@@ -297,24 +304,36 @@ multi-octet fields in NCFED are network byte order.
 
 The initiator (the peer that opened the connection; see {{discrimination}}) sends its
 13-octet handshake immediately. If the acceptor admits the connection, it replies with
-its own 13-octet handshake: the "NCFED" magic followed by the acceptor's AS and
-router-id. The initiator MUST verify that the reply begins with the "NCFED" magic and
-that the AS/router-id identify the peer it expected, and MUST close the connection
-otherwise. The handshake is therefore a request/reply exchange in which each side
-presents its claimed identity to the other at the binary layer. Mutual capability
-exchange and the remainder of session establishment then proceed at the JSON-RPC
-layer via `n2n/hello` ({{semantics}}, {{negotiation}}), which the initiator sends
-first. The peer identity used throughout this document is the string
+its own 13-octet handshake -- the "NCFED" magic followed by the acceptor's AS and
+router-id -- immediately followed by a 32-octet **possession challenge** (a random
+nonce; see {{channel-sec}}). The initiator MUST verify that the reply begins with the
+"NCFED" magic and that the AS/router-id identify the peer it expected, and MUST close
+the connection otherwise. The handshake is therefore a request/reply exchange in which
+each side presents its claimed identity to the other at the binary layer, and the
+acceptor additionally issues the nonce the initiator must sign to prove that identity.
+Mutual capability exchange and the remainder of session establishment then proceed at
+the JSON-RPC layer via `n2n/hello` ({{semantics}}, {{negotiation}}), which the
+initiator sends first, carrying its certificate and a signature over the nonce
+({{channel-sec}}). The peer identity used throughout this document is the string
 `as<AS>-<router-id>` (for example, `as65001-192.0.2.1`).
+
+An acceptor that has not recorded a local consent grant for the claimed identity
+({{trust-en2n}}) MUST close the connection after its handshake reply **without**
+issuing a nonce, so that a peer the operator has never consented to obtains no channel.
+When the channel is encrypted ({{channel-sec}}), the TLS upgrade occurs between the
+handshake reply and the nonce, so the nonce and all subsequent traffic are protected.
 
 To avoid a simultaneous-open ambiguity (both peers dialing at once), NCFED designates
 a deterministic initiator: of any two peers, the one with the numerically **lower** AS
 number opens the channel, and the peer with the higher or equal AS number only
 accepts. An explicit re-dial replaces any existing channel to the same peer identity.
 
-The claimed AS/router-id in the handshake is **not** cryptographically authenticated.
-Its trust properties, and the intended evolution toward cryptographic peer
-authentication, are described in {{seccons-peer-auth}}.
+The claimed AS/router-id in the handshake octets themselves is not self-authenticating;
+it is authenticated by the possession proof that follows in `n2n/hello`, and (for a
+domain-verified peer) by the certificate presented on the encrypted channel. The
+complete authentication mechanism, its two trust models, and the admission tiers are
+specified in {{channel-sec}}; the residual properties are analyzed in
+{{seccons-peer-auth}}.
 
 There is no version octet in the handshake; versioning is negotiated in-band
 ({{negotiation}}). Appending a version octet immediately after the magic is **not** a
@@ -323,6 +342,117 @@ currently the most significant octet of the AS number and cannot be repurposed
 without ambiguity for already-deployed peers. It is therefore RECOMMENDED that any
 future incompatible change be negotiated in-band ({{negotiation}}), or be introduced
 only in a form that a legacy peer rejects cleanly rather than misparses.
+
+The 32-octet possession challenge appended to the acceptor's reply in this revision is
+such an incompatible change: it appears **after** the acceptor's 13-octet handshake, so
+a peer implementing an earlier revision (which reads only 13 octets and sends
+`n2n/hello` without a signature) does not interoperate with a peer implementing this
+revision. This is intentional -- the secured channel ({{channel-sec}}) is a prerequisite
+for external federation in this revision -- and it is a coordinated upgrade rather than a
+silent wire change: an acceptor implementing this revision admits an unauthenticated
+peer only at the restricted tier described in {{channel-sec}}, and refuses it outright
+when operating in enforcing mode.
+
+# Channel Security {#channel-sec}
+
+This revision makes an NCFED channel encrypted and its peer cryptographically
+authenticated. Two properties are established before any semantic payload
+({{semantics}}) is exchanged: the transport is confidential and integrity-protected,
+and each peer proves possession of the credential bound to its claimed identity. This
+closes the peer-impersonation exposure documented in earlier revisions
+({{seccons-peer-auth}}).
+
+## Transport encryption {#channel-sec-tls}
+
+After the binary handshake ({{handshake}}) and before the possession challenge, the
+connection is upgraded in place to TLS 1.3 {{RFC8446}} (a "STARTTLS"-style upgrade on
+the already-open connection, so the shared discrimination port of {{discrimination}}
+is preserved and no additional listener or tunnel is required). The acceptor acts as
+the TLS server and presents its certificate; the initiator acts as the TLS client and
+verifies that certificate according to the peer's trust model
+({{channel-sec-models}}). The possession challenge nonce and all subsequent frames are
+carried inside this TLS session.
+
+A deployment MAY operate a channel in cleartext for a private, controlled environment
+(for example, a loopback lab). An implementation MUST treat cleartext operation as an
+explicit, operator-selected mode and MUST NOT negotiate down to it at a remote peer's
+request; in enforcing mode ({{channel-sec-tiers}}) cleartext channels are refused.
+
+## Trust models {#channel-sec-models}
+
+Each peer is authenticated under one of two per-peer trust models, recorded locally:
+
+* **Domain-verified.** The peer's identity is additionally bound to a DNS name its
+  operator controls (its "claw domain"). The operator obtains a publicly trusted
+  certificate for that name using ACME {{RFC8555}} with the DNS-01 challenge, which
+  requires no inbound reachability and therefore works behind a dynamic tunnel or NAT.
+  The verifying peer validates the certification path {{RFC5280}} and checks that the
+  certificate identifies the expected claw domain {{RFC9525}}. Identity binds to the
+  DNS name, **not** to the transport endpoint, which MAY change freely.
+
+* **Pinned.** A peer without a domain presents a self-signed certificate
+  {{RFC5280}} (ECDSA P-256 / SHA-256, as in {{trust-in2n}}). Its key is pinned on
+  first federation after the out-of-band consent of {{trust-en2n}} (trust on first
+  use); the pinned value is the SHA-256 of the certificate's SubjectPublicKeyInfo, so
+  the pin survives certificate rotation with the same key. A later connection under
+  the same identity presenting a different key MUST be refused and flagged to the
+  operator, and MUST NOT be silently re-pinned ({{seccons-tofu}}).
+
+The two models interoperate on one channel: the acceptor MAY present a domain-verified
+certificate while a pinned initiator authenticates itself with a self-signed one, or
+vice versa.
+
+## Proof of possession {#channel-sec-pop}
+
+Identity is proven by possession of the private key for the certificate a peer
+presents, over the acceptor's per-connection nonce:
+
+1. The acceptor issues a fresh 32-octet random nonce (in the handshake reply, or, on an
+   encrypted channel, immediately after the TLS upgrade; see {{handshake}}).
+2. The initiator's `n2n/hello` carries its certificate and an ECDSA (P-256, SHA-256)
+   signature over that nonce. The acceptor verifies the signature against the public
+   key in the presented certificate; a certificate the caller cannot sign for is an
+   active forgery and MUST be rejected with the channel closed.
+3. On an encrypted channel the signed value is `nonce || B`, where `B` is the
+   tls-server-end-point channel binding {{RFC5929}}: the SHA-256 of the acceptor's
+   certificate. The initiator computes `B` from the certificate it verified during
+   the TLS handshake, and the acceptor from its own certificate; the two agree only
+   for the same session, so a proof captured on one channel does not verify on
+   another even if the nonce were reused. On a cleartext channel `B` is empty and the
+   proof is over the nonce alone. Because the nonce is fresh, single-use, and -- on an
+   encrypted channel -- delivered confidentially under a verified server certificate
+   and bound to it, a proof cannot be replayed or relayed to a different session.
+
+The acceptor authenticates the initiator by this proof; the initiator authenticates the
+acceptor by verifying the acceptor's certificate during the TLS handshake
+({{channel-sec-tls}}). Authentication is therefore mutual on an encrypted channel.
+
+## Admission tiers {#channel-sec-tiers}
+
+To let a set of already-consented peers upgrade without a flag-cut outage, an acceptor
+admits a **consented** peer at one of two tiers, and refuses a non-consented one
+outright:
+
+* **possession** (full): the peer proved possession of a key (and, if pinned, matched
+  its pin). It receives the full method surface subject to the per-peer authorization
+  of {{trust-en2n}}.
+* **self-asserted** (restricted): the peer is consented but presented no certificate.
+  It is admitted for presence and capability-card exchange ({{cards}}) only. Tool
+  invocation, task delegation ({{semantics}}), chat, and endpoint update
+  ({{operational}}) MUST be denied at this tier.
+* A peer for which no local consent exists is closed before a nonce is issued
+  ({{handshake}}); it obtains no channel, not even the restricted tier.
+
+An acceptor operating in **enforcing** mode admits only the possession tier and refuses
+a self-asserted peer, making a certificate a hard prerequisite for federation. A
+restricted-tier inbound session MUST NOT displace an established possession-tier channel
+for the same identity.
+
+Certificates are rotated automatically before expiry. A successor credential is
+distributed over the existing authenticated channel before the predecessor expires, and
+both are accepted during a bounded overlap, so rotation does not drop a channel; for
+domain-verified peers the successor is validated by its certification path with no
+distribution step.
 
 # Message Framing {#framing}
 
@@ -536,8 +666,9 @@ tiered models, without revealing individual members.
 Even so, because a card enumerates skills, MCP servers, security posture, and
 reasoning-model family, it discloses metadata about the advertiser's attack surface.
 An endpoint MUST advertise only the subset a given peer is authorized to see, and
-operators SHOULD treat card contents as sensitive -- particularly while transport is
-cleartext ({{seccons-conf}}). A future revision may define a minimized or
+operators SHOULD treat card contents as sensitive -- particularly on a cleartext channel
+(the optional mode of {{channel-sec-tls}}) or when exposed to a restricted-tier peer
+({{channel-sec-tiers}}, {{seccons-priv}}). A future revision may define a minimized or
 integrity-protected card ({{seccons-priv}}).
 
 # Trust Establishment {#trust}
@@ -586,9 +717,14 @@ drops the channel (the operator kill switch); re-consent restores the local gran
 returning the peer to `not_federated`, from which it may re-federate. As noted in
 {{handshake}}, the numerically lower AS initiates the channel.
 
-The claimed AS/router-id is not cryptographically authenticated ({{seccons-peer-auth}});
-the out-of-band identity confirmation above is an administrative step, not a runtime
-cryptographic proof.
+The out-of-band identity confirmation above is the administrative root of trust. At
+runtime it is enforced cryptographically: the channel is encrypted and the peer proves
+possession of the credential bound to its identity, under the domain-verified or pinned
+trust model of {{channel-sec}}. A consented peer that presents no credential is admitted
+only at the restricted tier ({{channel-sec-tiers}}), which cannot invoke tools, delegate
+tasks, chat, or update endpoints; in enforcing mode it is refused entirely. The residual
+properties (the first-use pinning window, restricted-tier card exposure) are analyzed in
+{{seccons-peer-auth}} and {{seccons-tofu}}.
 
 ## Internal federation: iN2N {#trust-in2n}
 
@@ -641,17 +777,22 @@ than a configurable number of times is automatically quarantined -- its key unpi
 and must be re-enrolled by the operator to return. The security implications of this
 automatic quarantine are discussed in {{seccons-tofu}}.
 
-iN2N authenticates the member to the Border: the member proves possession of its
-pinned key over the Border's nonce. It does **not** authenticate the Border to the
-member. A member accepts any well-formed "IN2N1" preamble and treats the channel as
-trusted once the exchange completes, and the signed nonce proves key possession at
-session start but is not bound to the transport. An optional TLS wrapper MAY encrypt
-the iN2N socket for members reached across an untrusted network; it uses the member's
-self-signed certificate {{RFC5280}} with certificate verification disabled, so it
-supplies confidentiality only and establishes no channel binding. Consequently the
-current design does not exclude an active on-path attacker between a member and its
-Border; the intended hardening -- mutual key pinning and channel binding -- is described
-in {{seccons-peer-auth}}.
+iN2N authentication is mutual. The member proves possession of its pinned key over the
+Border's nonce, as above. The Border, in turn, proves it is the legitimate hub for the
+risk: the Border operates a risk-local certificate authority {{RFC5280}}, whose root
+the member receives at enrollment (the "trust anchor"), and issues the member's
+certificate from that authority. On each connection the member includes its own random
+nonce in `in2n/hello` or `in2n/enroll`; the Border returns a hub attestation -- its
+CA-issued hub certificate and an ECDSA (P-256, SHA-256) signature over the member's
+nonce. The member verifies that the hub certificate chains to its enrolled anchor,
+names the risk's Border, and signed the nonce, and MUST abort the connection if it does
+not. A member enrolled before this revision holds no anchor and continues without hub
+verification until it is re-enrolled, so the change is backward compatible within a
+risk.
+
+The iN2N socket MAY additionally be wrapped in TLS {{RFC8446}} for members reached
+across an untrusted network, providing confidentiality that complements the
+application-layer mutual authentication above.
 
 # Operational Considerations {#operational}
 
@@ -685,36 +826,37 @@ stall before discrimination.
 
 ## Peer authentication {#seccons-peer-auth}
 
-NCFED does **not** cryptographically authenticate an eN2N peer. The AS/router-id in
-the handshake ({{handshake}}) is a cleartext claim, and consent and per-peer grants
-are keyed to that claimed identity. Any host that can reach the shared port and
-complete the handshake can assert a claimed identity; the request/reply handshake
-confirms only that both ends present matching identities, not that either end holds a
-credential proving it. eN2N peer authenticity is therefore only as strong as (a) the
-authenticity and confidentiality of the underlay the channel runs over
-({{seccons-conf}}), and (b) the source-address controls on the shared port
-({{seccons-port}}). An attacker who can bypass those controls and reach the port can
-impersonate a peer whose AS/router-id it knows.
+NCFED cryptographically authenticates a peer ({{channel-sec}}). An eN2N peer proves
+possession of the private key for the certificate bound to its identity, over a fresh
+single-use nonce, on an encrypted channel whose server certificate the initiator has
+verified (by certification path and name for a domain-verified peer {{RFC5280}}
+{{RFC9525}}, or by pinned key for a self-signed one). A host that merely knows a peer's
+AS/router-id can no longer impersonate it: presenting the identity without the key
+fails the possession check and the channel is closed, and a consented peer that
+presents no key is confined to the restricted tier ({{channel-sec-tiers}}), which
+exposes no invocation, delegation, chat, or endpoint-update surface. iN2N is mutually
+authenticated: the member proves possession of its pinned key, and the Border proves,
+by an attestation chaining to the member's enrolled trust anchor, that it is the
+legitimate hub ({{trust-in2n}}).
 
-iN2N is stronger in one direction and weaker in the other: it authenticates the
-member to the Border (proof of possession of the pinned key over the Border's nonce),
-but it does not authenticate the Border to the member, and its optional TLS wrapper
-disables certificate verification, so it provides no channel binding
-({{trust-in2n}}). The signed nonce proves key possession at session start only; with
-verification disabled, an active on-path attacker could relay it.
+Two residual properties remain and are, by design, out of scope for the on-wire
+mechanism:
 
-This is a deliberate, documented limitation of this Experimental protocol, consistent
-with its small-set-of-known-peers applicability ({{applicability}}). A future revision
-is expected to add cryptographic peer authentication. Candidate mechanisms include
-mutually authenticated TLS with certificates ({{RFC8446}}, {{RFC5280}}); extending the
-iN2N proof-of-possession and key-pinning model to eN2N so that both peers pin each
-other's keys at consent and sign a session nonce (which would also supply channel
-binding for both trust models); or an emerging agent-identity and naming layer such
-as the Agent Name Service {{ANS}}. Until such a mechanism exists, deployments MUST NOT
-rely on NCFED alone for peer authentication; eN2N peer identity rests on BGP-derived
-operational identity confirmed out of band, strict default-deny per-peer authorization
-({{seccons-deleg}}), the deterministic-initiator and mutual-consent rules of
-{{trust-en2n}}, and the shared-port controls of {{seccons-port}}.
+* **First-use trust.** In the pinned model, and at iN2N enrollment, the initial key is
+  accepted on first contact (see {{seccons-tofu}}). An attacker who is on-path at the
+  very first federation with a never-before-seen identity could be pinned in place of
+  the legitimate peer. Every subsequent contact is protected by the pin.
+* **Restricted-tier metadata.** A consented-but-keyless peer at the restricted tier
+  can still read the advertiser's capability card ({{seccons-priv}}). A deployment that
+  considers card contents sensitive SHOULD operate in enforcing mode, which admits only
+  the possession tier.
+
+On an encrypted channel the possession proof is bound to the session by the
+tls-server-end-point channel binding ({{channel-sec-pop}}), so it cannot be relayed.
+Deployments SHOULD still apply defence in depth: the shared-port source controls of
+{{seccons-port}} and the default-deny per-peer authorization of {{seccons-deleg}}. An
+emerging agent-identity and naming layer such as the Agent Name Service {{ANS}} could in
+future supply discovery and naming above this authentication layer.
 
 ## Trust on first use {#seccons-tofu}
 
@@ -732,29 +874,32 @@ is thereby refused. This model is a deliberate instance of opportunistic securit
 small-set-of-known-peers applicability ({{applicability}}), but it is not a substitute
 for a PKI.
 
+To detect an intercepted first contact, the enrolling member's certificate fingerprint
+is surfaced to the operator on both the Border and member sides for out-of-band
+comparison; a mismatch aborts enrollment.
+
 The automatic quarantine that unpins a member after repeated failed authentications
-({{trust-in2n}}) is itself an availability hazard: an attacker who learns a member
-identifier and can reach the Border's iN2N listener can submit repeated failing
-authentications to drive that member over the quarantine threshold, unpinning it and
-removing it from routing -- a denial of service against a legitimate member. Operators
-SHOULD restrict reachability of the iN2N listener to member hosts, and a future
-revision SHOULD source-bind or rate-limit failed-authentication accounting rather than
-counting unauthenticated attempts globally (see {{impl-status}}).
+({{trust-in2n}}) was previously an availability hazard: a host that learned a member
+identifier and could reach the Border's iN2N listener could submit failing
+authentications to drive that member over the quarantine threshold and remove it from
+routing. Failed-authentication accounting is now attributed per source: failures from a
+source other than a member's established origin are rate-limited and MUST NOT count
+toward that member's quarantine, so an off-path or foreign-source attacker can no longer
+unpin a healthy member. Operators SHOULD still restrict reachability of the iN2N listener
+to member hosts.
 
 ## Confidentiality and integrity {#seccons-conf}
 
-NCFED runs in cleartext by default; it provides neither confidentiality nor
-transport-layer integrity on its own. In the reference deployment it runs over
-private, overlay, or tunneled transports between mutually known peers. For any path
-that crosses an untrusted network, deployments SHOULD carry NCFED over an encrypted
+NCFED provides its own confidentiality and integrity by upgrading the channel to TLS
+1.3 {{RFC8446}} after the handshake ({{channel-sec-tls}}), with the peer's certificate
+verified under its trust model. A deployment MAY additionally run over an encrypted
 underlay or tunnel -- for example an encrypted data-plane tunnel, a VPN such as
-WireGuard {{WIREGUARD}}, or a TLS {{RFC8446}} tunnel that terminates below NCFED.
-NCFED does not itself perform a TLS handshake on the shared discrimination port: a
-direct TLS ClientHello is not a recognized discriminator value and is closed
-({{discrimination}}). The optional iN2N TLS wrapper ({{trust-in2n}}) uses the member's
-self-signed certificate {{RFC5280}} with certificate verification disabled: it
-supplies encryption only, establishes no channel binding, and MUST NOT be relied upon
-for peer authentication ({{seccons-peer-auth}}).
+WireGuard {{WIREGUARD}}, or an outer TLS tunnel -- and the reference deployment does so
+(peers are reached over tunnels), but this is now defence in depth rather than the sole
+source of transport security. Cleartext operation remains possible as an explicit,
+operator-selected mode for a controlled environment ({{channel-sec-tls}}); it provides
+no confidentiality and MUST NOT be used across an untrusted network or negotiated at a
+remote peer's request.
 
 ## Agent-delegation hazards {#seccons-deleg}
 
@@ -866,7 +1011,13 @@ NCFED (eN2N and iN2N) is deployed and in daily use across a live three-operator 
 (AS 65001, AS 65007, AS 65099) and within one operator's risk (a Border and its
 member claws). Coverage: protocol discrimination, the 13-octet handshake, the frame
 format and heartbeat, JSON-RPC method families, in-band negotiation, and both trust
-models are all implemented and interoperating.
+models are all implemented and interoperating. The channel security of {{channel-sec}}
+is implemented: the in-place TLS 1.3 upgrade, application-layer proof of possession
+with the two trust models (domain-verified via ACME/DNS-01 and pinned/TOFU), the
+possession/self-asserted admission tiers with enforcing mode, iN2N Border-as-CA hub
+attestation, and automatic certificate rotation. The reference deployment's own claw is
+domain-verified (a publicly trusted certificate for a claw domain, obtained and
+auto-renewed via DNS-01).
 
 **Interoperability evidence (packet capture):** a 37.5-second capture of a live NCFED
 channel between johns-risk (AS 65001) and Nick (AS 65007) was taken at the initiator
@@ -896,19 +1047,19 @@ before the tunnel) or on an underlay where the operator holds the keys (e.g.,
 WireGuard); such a capture is future work and is the recommended way to demonstrate
 the frame-level behavior specified in {{framing}} and {{handshake}} directly.
 
-**Known limitations recorded for a future revision.** In preparing this document, the
-running code and this description were reconciled against the source. The following
-are known gaps in the current implementation. They are documented here honestly and
-targeted for a future NCFED revision, rather than changed in the frozen wire this
-`-00` describes:
+**Resolved since `-00`.** The peer-authentication gap that `-00` documented as a
+limitation is closed in this revision and implemented: eN2N and iN2N are now
+cryptographically, mutually authenticated ({{channel-sec}}, {{trust-in2n}}), and the
+iN2N quarantine denial-of-service is fixed by per-source failed-authentication
+accounting ({{seccons-tofu}}). A reported forged-handshake impersonation of a
+consented, tool-granted peer was reproduced on a two-daemon loopback and is closed by
+the possession proof and admission tiers of {{channel-sec}}.
 
-* eN2N performs no cryptographic peer authentication; iN2N does not authenticate the
-  Border to the member, and its optional TLS wrapper disables certificate
-  verification (no channel binding). See {{seccons-peer-auth}}.
+**Known limitations recorded for a future revision.** The following gaps remain in the
+current implementation and are targeted for a future NCFED revision:
+
 * Message reassembly enforces the 64 KiB per-frame cap but no aggregate size bound or
   reassembly timeout. See {{seccons-dos}}.
-* Repeated failed iN2N authentication auto-quarantines a member, which an attacker who
-  knows a member identifier can abuse as a denial of service. See {{seccons-tofu}}.
 * The tool and task method families carry no delegation hop count, and task-retrieval
   methods do not verify caller ownership. See {{seccons-deleg}}.
 * MEMBER_ID_TAKEN (-32022) is defined but not yet emitted; the condition is currently

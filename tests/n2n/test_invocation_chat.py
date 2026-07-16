@@ -46,6 +46,7 @@ async def _linked_channels(initiator, acceptor):
     acc_ch = FederationChannel(r_ia, w_ai, local_identity=b_ident,
                                peer_as=initiator.local_as, peer_router_id=initiator.router_id,
                                manager=acceptor.manager, is_initiator=False, handlers=acceptor.handlers)
+    acc_ch.authenticated = True; acc_ch.attestation = "possession"   # post-possession session (reconciled auth)
     initiator.channels[peer_identity(acceptor.local_as, acceptor.router_id)] = ini_ch
     acceptor.channels[peer_identity(initiator.local_as, initiator.router_id)] = acc_ch
     await ini_ch.start()

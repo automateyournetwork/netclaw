@@ -69,6 +69,7 @@ CATALOG=(
     "peering|Labs & Simulation|Protocol Peering Wizard|Configure BGP/OSPF participation + NetClaw Mesh (interactive)"
     "n2n|Labs & Simulation|N2N Federation|Peer NetClaws: capability exchange, remote tool/skill invocation, claw-to-claw chat"
     "in2n-production|Labs & Simulation|iN2N Production Enforcement|Enforce production mode (OpenShell sandbox, DefenseClaw guard, GAIT audit) + durable systemd services with honest posture"
+    "claw-certs|Labs & Simulation|Claw Certification|TLS channel security for N2N: mutual auth, risk CA hub attestation, ACME domain identity + automatic cert rotation"
 
     "servicenow|ITSM & DevOps|ServiceNow|Incidents, changes, CMDB"
     "github|ITSM & DevOps|GitHub|Issues, PRs, code search, Actions (Docker)"

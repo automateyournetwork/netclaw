@@ -71,6 +71,15 @@ classic standalone NetClaw is just "a risk of one, its own Border."
 > 13-octet handshake, framing, eN2N consent + iN2N TOFU trust models) for the IETF
 > `agentproto` effort: [`docs/ietf/draft-capobianco-ncfed-00.md`](docs/ietf/draft-capobianco-ncfed-00.md).
 
+> **Claw Certification (feature 060)** closes the eN2N crypto gap: federation
+> channels are TLS-encrypted and certificate-authenticated — **domain-verified**
+> (ACME/Let's Encrypt via DNS-01, identity bound to a DNS name you own, not the
+> tunnel) or **pinned** self-signed TOFU. The Border is its risk's CA so members
+> verify the hub (mutual auth); credentials auto-rotate before expiry. Enable with
+> `N2N_CERT_MODE=on|enforce`; existing claws upgrade in one command
+> (`scripts/patch-claw-certs.sh`). New to peering? See
+> [docs/N2N-FEDERATION-GUIDE.md](docs/N2N-FEDERATION-GUIDE.md).
+
 ### Production mode — enforced, honest, and durable (feature 057)
 
 `N2N_RISK_MODE=production` **enforces**, fail-closed, rather than merely flagging.

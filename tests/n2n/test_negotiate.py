@@ -68,6 +68,7 @@ async def _hello_exchange(tmp_path):
     acc = FederationChannel(r_ia, w_ai, local_identity=nick.local_identity, peer_as=65001,
                             peer_router_id="4.4.4.4", manager=nick.manager,
                             is_initiator=False, handlers=nick.handlers)
+    acc.authenticated = True; acc.attestation = "possession"   # post-possession session (reconciled auth)
     john._register_channel("as65007-7.7.7.7", ini)
     nick._register_channel("as65001-4.4.4.4", acc)
     await ini.start(); await acc.start()

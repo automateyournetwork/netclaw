@@ -44,6 +44,7 @@ Source of truth verified 2026-07-14 against `mcp-servers/protocol-mcp/bgp/` and
 - **Draft today:** §Semantic Payload (task note) + `seccons-deleg`.
 
 ### H4. Quarantine-as-DoS mitigation
+- **STATUS: RESOLVED** — feature 060 / draft -01. Per-source failed-auth accounting (`risk.note_source_failure`); foreign-source failures rate-limited, never count toward a member's quarantine.
 - **Gap:** repeated *unauthenticated* `in2n/hello` attempts with a known `member_id`
   drive `auth_failures` over the threshold, unpinning a legitimate member.
 - **Code:** `bgp/federation/risk.py` `record_auth_failure` (global per-member count);
@@ -73,6 +74,7 @@ Source of truth verified 2026-07-14 against `mcp-servers/protocol-mcp/bgp/` and
 ## Tier 2 — real design work (the two "Critical" review findings)
 
 ### H7. eN2N cryptographic peer authentication  *(headline gap)*
+- **STATUS: RESOLVED** — feature 060 / draft -01 §Channel Security. Encrypted (TLS 1.3) channel + application-layer proof-of-possession (signed nonce) with domain-verified (ACME) or pinned (TOFU) trust models + tier-0/tier-1 admission. Also closed the forged-handshake spoof reported by Josh/TunnelMind.
 - **Gap:** the 13-octet handshake identity (AS/router-id) is a cleartext claim; no
   cryptographic proof. Consent/grants key off the claim.
 - **Code:** `service.py` `accept_channel` / `open_channel` (identity from handshake,
@@ -88,6 +90,7 @@ Source of truth verified 2026-07-14 against `mcp-servers/protocol-mcp/bgp/` and
   path named.
 
 ### H8. iN2N Border-to-member authentication + channel binding
+- **STATUS: RESOLVED** — feature 060 / draft -01 §iN2N. Border-as-CA hub attestation: member verifies the Border's CA-signed hub cert chains to its enrolled anchor + signed the member's nonce. Mutual auth. (tls-server-end-point channel binding now wired into the primary channel path — draft §6.3.)
 - **Gap:** member authenticates to Border, but Border is **not** authenticated to the
   member; optional TLS uses `CERT_NONE` (no channel binding). MITM can relay the
   nonce / interpose post-auth.

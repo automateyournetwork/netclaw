@@ -64,3 +64,18 @@ def normalize(descriptor) -> dict:
 
 def peer_supports(peer_descriptor, feature: str) -> bool:
     return feature in normalize(peer_descriptor).get("features", [])
+
+
+# Two-tier admission (reconciled from Josh/TunnelMind's report): a consented peer
+# that proved no key is admitted at attestation "self-asserted" (tier-0) —
+# federated for presence + inventory ONLY. Every execution / impersonation /
+# state-changing surface requires a possession-proven ("possession") session:
+# tool + async-skill invocation, endpoint redirection, and chat (which runs the
+# local gateway agent under the peer's identity).
+TIER0_DENIED = frozenset({
+    "tools/call", "tasks/submit", "endpoint_update", "chat/open", "chat/message",
+})
+
+
+def allows(attestation: str, operation: str) -> bool:
+    return attestation == "possession" or operation not in TIER0_DENIED

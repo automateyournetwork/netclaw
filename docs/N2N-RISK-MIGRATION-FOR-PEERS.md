@@ -77,3 +77,69 @@ turn your own claw into a risk. It's the same tooling:
 - Different OpenClaw builds/models keep interoperating via the 053 capability
   negotiation — unchanged.
 - Questions or anything odd during John's cutover: ping the Slack thread.
+
+---
+
+# Feature 060 — Claw Certification: certify & refederate (for peers)
+
+**What changed and why it matters to you:** eN2N used to run cleartext with your
+identity asserted as a plain string — anyone who learned an endpoint could
+impersonate a federated peer, and traffic crossed the internet unencrypted.
+Feature 060 closes that: **every external federation channel is now TLS-encrypted
+and cryptographically authenticated.** Because certificates are now a
+prerequisite for eN2N, **an unpatched claw can no longer federate** — you'll be
+refused with a message telling you to run the patch. This is intentional.
+
+## The one command
+
+On your claw host:
+
+```bash
+cd ~/netclaw && git pull
+scripts/patch-claw-certs.sh
+```
+
+That's it for the **pinned model** (no domain required). It:
+- preserves all your state (peers, consent, grants, members, tasks, audit — asserted by before/after counts),
+- runs an additive DB migration, generates your claw credential (and, if you're a Border, your risk CA),
+- turns on `N2N_CERT_MODE=on` and restarts your services,
+- prints which peers are refused pending their own patch.
+
+After both ends have patched, your channel to that peer **resumes automatically**
+— TOFU-pins each other's key on the first secured contact (same out-of-band trust
+root as today's consent). Nothing else to do.
+
+## Optional: domain-verified identity
+
+If you own a DNS name and want peers to verify you against public trust (Let's
+Encrypt) instead of a pinned key:
+
+```bash
+scripts/patch-claw-certs.sh --domain claw.yourdomain.com --dns-provider cloudflare
+```
+
+- Works behind changing ngrok endpoints — identity binds to the **name**, not the
+  tunnel (issuance uses DNS-01, no inbound reachability, no A record needed).
+- Providers: `cloudflare`, `route53`, `godaddy` (needs API access), or `acme-dns`
+  (universal fallback — one CNAME `_acme-challenge.claw → delegation-zone`, then
+  automatic forever). Set the provider's credentials in `~/.openclaw/.env` per
+  lego's convention.
+
+## Rotation & visibility (automatic)
+
+Certificates renew themselves at ~2/3 of lifetime with a dual-trust overlap — no
+channel ever drops for expiry, nothing to remember. Check status anytime:
+
+```bash
+curl -s http://127.0.0.1:8179/n2n/certs | python3 -m json.tool
+```
+
+Each row shows trust model, fingerprint, days remaining (amber <30, red <14), and
+renewal state; refusals and rotations also appear in `/n2n/posture` and the audit
+trail.
+
+## If a peer can't reach you
+
+They'll see `peer requires certificate-secured federation — run
+scripts/patch-claw-certs.sh`. Send them this section. Until they patch, that
+channel stays down by design; every already-patched peer keeps working.

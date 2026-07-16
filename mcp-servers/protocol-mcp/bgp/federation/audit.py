@@ -79,6 +79,38 @@ class Auditor:
                     f" gait={gait_ref[:10]}" if gait_ref else "")
         return row_id
 
+    # feature 060: credential-lifecycle events. Written to the dedicated
+    # rotation_event table AND mirrored to GAIT so the immutable trail carries
+    # every rotation/refusal (FR-016; Constitution IV).
+    ROTATION_EVENT_KINDS = (
+        "renewed", "rotated", "overlap-opened", "overlap-closed",
+        "renewal-failed", "emergency-rekey", "verify-refused",
+    )
+
+    def record_cert_event(self, *, kind: str, subject_identity: str,
+                          credential_id: Optional[int] = None,
+                          detail: Optional[str] = None) -> int:
+        """Record a credential-lifecycle event (feature 060). Returns the row id."""
+        if kind not in self.ROTATION_EVENT_KINDS:
+            raise ValueError(f"unknown rotation event kind: {kind}")
+        conn = self.manager._conn
+        cur = conn.execute(
+            "INSERT INTO rotation_event (subject_identity, credential_id, kind, detail, at) "
+            "VALUES (?,?,?,?,?)",
+            (subject_identity, credential_id, kind, detail, _now()))
+        row_id = cur.lastrowid
+        conn.commit()
+        self._gait_ref(peer_identity=subject_identity, decision=kind, event=f"cert-{kind}",
+                       target=subject_identity, row_id=row_id)
+        logger.info("cert-event %s subject=%s%s", kind, subject_identity,
+                    f" ({detail})" if detail else "")
+        return row_id
+
+    def recent_cert_events(self, limit: int = 50) -> list:
+        rows = self.manager._conn.execute(
+            "SELECT * FROM rotation_event ORDER BY event_id DESC LIMIT ?", (limit,))
+        return [dict(r) for r in rows]
+
     def recent(self, peer_identity: Optional[str] = None, limit: int = 50) -> list:
         conn = self.manager._conn
         if peer_identity:

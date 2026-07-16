@@ -1494,7 +1494,29 @@ function renderPostureBadge() {
   return `<div class="detail-row"><span>Posture</span>
       <strong class="n2n-state-${cls}">${label}</strong></div>
     <div class="detail-row"><span>Controls</span><span class="n2n-muted">${controls}</span></div>
-    ${model}`;
+    ${model}
+    ${renderChannelSecurity()}`;
+}
+
+// 060: channel-security summary — trust models in use, degraded/legacy channels,
+// and credentials aging into amber (<30d) / red (<14d). Renders nothing on a
+// pre-060 daemon or when cert_mode is off.
+function renderChannelSecurity() {
+  const cs = state.n2n?.posture?.channel_security;
+  if (!cs || !cs.mode || cs.mode === 'off') return '';
+  const models = Object.entries(cs.by_trust_model || {})
+    .map(([m, n]) => `${m}:${n}`).join(' · ') || 'none';
+  const aging = [];
+  if (cs.red) aging.push(`<span class="n2n-state-not-federated">${cs.red} red</span>`);
+  if (cs.amber) aging.push(`<span class="consent-pending-local">${cs.amber} amber</span>`);
+  if (cs.renewals_failing) aging.push(`${cs.renewals_failing} renewals failing`);
+  const degraded = cs.degraded
+    ? `<span class="n2n-state-not-federated">${cs.degraded} degraded/legacy</span>` : 'all secured';
+  return `<div class="detail-row"><span>Channel security</span>
+      <strong class="n2n-state-federated">🔒 ${cs.mode}</strong></div>
+    <div class="detail-row"><span>Trust models</span><span class="n2n-muted">${models}</span></div>
+    <div class="detail-row"><span>Channels</span><span class="n2n-muted">${degraded}</span></div>
+    ${aging.length ? `<div class="detail-row"><span>Certs</span><span class="n2n-muted">${aging.join(' · ')}</span></div>` : ''}`;
 }
 
 // 057: a federated peer advertises its production posture + LLM capability in its

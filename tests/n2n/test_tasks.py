@@ -107,6 +107,7 @@ async def _link(initiator, acceptor):
     acc = FederationChannel(r_ia, w_ai, local_identity=acceptor.local_identity,
                             peer_as=initiator.local_as, peer_router_id=initiator.router_id,
                             manager=acceptor.manager, is_initiator=False, handlers=acceptor.handlers)
+    acc.authenticated = True; acc.attestation = "possession"   # post-possession session (reconciled auth)
     initiator._register_channel(peer_identity(acceptor.local_as, acceptor.router_id), ini)
     acceptor._register_channel(peer_identity(initiator.local_as, initiator.router_id), acc)
     await ini.start(); await acc.start()
@@ -129,7 +130,7 @@ async def _async_delegation(tmp_path):
     nick.authz.grant(john.local_identity, "skill", "cml-clone")
 
     # Stub Nick's executor to take a few seconds (proves submit is async)
-    async def slow_exec(skill, input_text):
+    async def slow_exec(skill, input_text, progress=None, peer=None):
         await asyncio.sleep(3)
         return f"built {skill}: 10 nodes, 12 links", 100
     nick.invoker._exec_skill_gateway = slow_exec

@@ -3412,3 +3412,40 @@ log_info "Skill: desktop-gui-inspect (see its SKILL.md for the full workflow ref
 echo ""
 }
 
+
+component_install_claw_certs() {
+log_step "Installing Claw Certification (N2N channel security, feature 060)..."
+# TLS credentials + risk CA + optional ACME domain identity + auto-rotation.
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+
+# Fetch the lego ACME client (only strictly needed for the domain-verified path,
+# but install it now so `--domain` works later without a second step).
+bash "$REPO_ROOT/scripts/lib/fetch-lego.sh" || log_warn "lego fetch skipped — pinned model still works; re-run for domain-verified"
+
+# Generate this claw's pinned-model credential + (on a Border) the risk CA now,
+# so a fresh claw comes up certificate-capable with no extra steps.
+python3 - "$REPO_ROOT" <<'PY'
+import sys, os
+sys.path.insert(0, os.path.join(sys.argv[1], "mcp-servers", "protocol-mcp"))
+from bgp.federation import certs
+from bgp.federation.manager import FederationManager
+from bgp.federation.risk import RiskManager
+m = FederationManager()
+kd = certs.keys_dir()
+if not (kd / "host" / "host.crt").exists():
+    cp, kp = certs.create_self_signed("netclaw-claw")
+    (kd / "host" / "host.crt").write_text(cp)
+    certs._write_secret(kd / "host" / "host.key", kp)
+rm = RiskManager(m)
+if rm.is_border():
+    rm.ensure_risk_ca(); rm.hub_credential()
+m.close()
+print("claw credential + (border) risk CA ready under ~/.openclaw/n2n/keys/")
+PY
+
+log_success "Claw Certification installed."
+log_info "Enable secured federation: set N2N_CERT_MODE=on (or 'enforce') in ~/.openclaw/.env"
+log_info "Domain-verified identity (optional): scripts/patch-claw-certs.sh --domain <name> --dns-provider <id>"
+log_info "Existing claws upgrade in one command: scripts/patch-claw-certs.sh"
+echo ""
+}

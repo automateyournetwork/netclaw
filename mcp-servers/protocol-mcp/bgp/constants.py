@@ -233,6 +233,40 @@ N2N_QUARANTINE_THRESHOLD_DEFAULT = 5     # consecutive auth/health failures → 
 # N2N_IN2N_PORT (env): optional dedicated iN2N listener on the Border; when unset
 # the Border accepts iN2N dial-ins on the shared mesh port via discrimination.
 
+# ── Claw Certification — channel security (feature 060) ─────────────
+# Secured channels share the existing mesh listening port with BGP, NCFED, and
+# NCTUN. Discrimination is by first byte: a TLS handshake record begins 0x16
+# ('CONTENT_TYPE handshake'), BGP begins its 16-byte 0xFF marker, and NCFED/NCTUN
+# begin ASCII 'N' (0x4E). The three are mutually exclusive, so the existing
+# single-byte discriminator gains one TLS branch (research.md R4).
+TLS_FIRST_BYTE = 0x16                     # TLS 1.x handshake record content type
+NCFED_ALPN = "ncfed/1"                    # ALPN offered/accepted on secured channels
+# Channel binding: the dialer signs (nonce || binding) where binding is the
+# tls-server-end-point value — SHA-256 of the listener's certificate (RFC 5929).
+# Both ends know it on every Python/TLS version (the RFC 5705 tls-exporter is
+# only exposed in Python's ssl from 3.13), and it closes the 059 "no channel
+# binding" note: a MITM's own cert yields a different binding, so a relayed
+# dialer signature fails to verify at the true listener.
+TLS_BINDING_TYPE = "tls-server-end-point"
+
+# Trust models recorded per external peer (spec FR-002). 'legacy' = a pre-060
+# cleartext peer, refused in production until it patches (FR-021).
+TRUST_DOMAIN_VERIFIED = "domain-verified"
+TRUST_PINNED = "pinned"
+TRUST_LEGACY = "legacy"
+
+# Certificate lifetime/rotation defaults (days / fraction). All env-overridable.
+CERT_MEMBER_DAYS_DEFAULT = 90             # N2N_CERT_MEMBER_DAYS — hub + member leaves
+CERT_CA_DAYS_DEFAULT = 730                # N2N_CERT_CA_DAYS — risk CA anchor (~2y)
+CERT_RENEW_FRACTION_DEFAULT = 0.667       # N2N_CERT_RENEW_FRACTION — renew at 2/3 life
+CERT_AGING_AMBER_DAYS = 30                # HUD amber under this many days remaining (FR-018)
+CERT_AGING_RED_DAYS = 14                  # HUD red under this many days remaining (FR-018)
+
+# eN2N secured-channel JSON-RPC error codes (extend the frozen -3206x band; the
+# -3200x/-3202x/-3203x ranges are already in use above).
+EN2N_ERR_LEGACY_REFUSED = -32060          # peer must adopt certificate-secured federation
+EN2N_ERR_CERT_VERIFY_FAILED = -32061      # WebPKI/SAN/pin/signature verification failed
+
 CAPABILITY_NAMES = {
     CAP_MULTIPROTOCOL: "Multiprotocol",
     CAP_ROUTE_REFRESH: "Route Refresh",

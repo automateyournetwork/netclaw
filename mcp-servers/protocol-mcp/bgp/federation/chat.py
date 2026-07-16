@@ -35,6 +35,12 @@ class ChatManager:
 
     async def handle_chat_open(self, channel, params):
         peer = channel.peer_identity
+        # Tier-0 default-deny: chat runs OUR gateway agent under the peer's
+        # identity — an impersonation + resource surface, not presence/inventory.
+        from .negotiate import allows
+        if not allows(getattr(channel, "attestation", "self-asserted"), "chat/open"):
+            return {"accepted": False,
+                    "reason": "possession proof required for chat (tier-0 self-asserted peer)"}
         row = self.manager.get_peer(peer)
         if not row or not row["chat_enabled"]:
             return {"accepted": False, "reason": "chat not enabled for this peer"}
@@ -48,6 +54,10 @@ class ChatManager:
 
     async def handle_chat_message(self, channel, params):
         peer = channel.peer_identity
+        from .negotiate import allows  # tier-0 default-deny (see handle_chat_open)
+        if not allows(getattr(channel, "attestation", "self-asserted"), "chat/message"):
+            raise RpcError(ERR_SEVERED,
+                           "possession proof required for chat (tier-0 self-asserted peer)")
         row = self.manager.get_peer(peer)
         if not row or not row["chat_enabled"]:
             raise RpcError(ERR_SEVERED, "chat not enabled")
@@ -73,7 +83,8 @@ class ChatManager:
         from .gateway import run_agent_turn
         idle = int(os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S", "300"))
         prompt = f"[A federated NetClaw peer is asking you this]\n{text}"
-        return await run_agent_turn(prompt, session_key=session_key, timeout_s=idle)
+        return await run_agent_turn(prompt, session_key=session_key, timeout_s=idle,
+                                    untrusted=True)
 
     # ---- outbound: OUR operator chats with the PEER's agent -----------
 
