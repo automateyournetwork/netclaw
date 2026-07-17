@@ -94,6 +94,18 @@ The gNMI MCP server provides 10 tools for streaming telemetry and model-driven c
 - Data: `~/.openclaw/memory/` (SQLite + ChromaDB)
 - No credentials required
 
+## RAG Knowledge Base MCP Server (NetClaw Native)
+
+10 MCP tools for the offline document knowledge base (Feature 062 — agentic retrieval over user-uploaded documents):
+- **Ingestion**: `rag_ingest` (file on disk), `rag_ingest_base64` (Slack attachments), `rag_ingest_url` (two-phase: preview depth-1 same-domain crawl scope → user confirms → ingest) — PDF/MD/HTML/TXT/DOCX/XLSX/PPTX/VSDX native, legacy DOC/XLS/PPT/VSD via LibreOffice headless
+- **Retrieval**: `rag_search` — hybrid dense (bge-small embeddings) + BM25 with reciprocal rank fusion, local cross-encoder rerank, metadata filters (doc_type, document/title, ingest-date range), `low_confidence` flagging, preformatted citations `[Title §sec, p.N — ingested date]`
+- **Management**: `rag_list` (documents + snapshots separated, staleness ages), `rag_stats` (corpus totals + retrieval telemetry), `rag_update_metadata`, `rag_delete` + `rag_reindex` (both HIIL-confirmed, GAIT-committed)
+- **Snapshots**: `rag_snapshot` — opt-in only, secret-scrubbed (typed redaction counts), timestamped `snapshot_<label>_<ISO8601>` collections, stale-flagged past 90 days
+- Transport: stdio, Python 3.10+, fully offline after install-time model download (no cloud APIs, no paid services)
+- Data: `~/.openclaw/rag/` (ChromaDB `chroma/`, SQLite `rag.db`, BM25 `bm25/*.pkl`, originals `sources/`) — strictly separate from Memory MCP (`~/.openclaw/memory/`); neither writes into the other
+- Env: `RAG_DATA_DIR`, `RAG_EMBEDDING_MODEL` (default `BAAI/bge-small-en-v1.5`), `RAG_RERANKER_MODEL`, `RAG_RERANK_ENABLED`, `RAG_RELEVANCE_FLOOR`, `RAG_MAX_DOC_MB`/`RAG_MAX_DOC_PAGES`, `RAG_CRAWL_MAX_PAGES`, `RAG_SNAPSHOT_WARN_DAYS`, `RAG_MAX_ROUNDS`
+- No credentials required
+
 ## MemPalace AI Memory
 
 19 MCP tools for persistent, structured, local-only AI memory across sessions ([source](https://github.com/milla-jovovich/mempalace)):

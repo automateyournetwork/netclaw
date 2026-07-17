@@ -98,6 +98,7 @@ CATALOG=(
     "gait|Platform Services|GAIT Audit Trail|Git-based AI audit trail (recommended for all installs)"
     "mempalace|Platform Services|MemPalace Memory|Local AI memory — 19 tools, no API keys"
     "memory-mcp|Platform Services|Memory MCP|Hybrid persistent memory — structured facts (SQLite), semantic search (ChromaDB), decision log"
+    "rag-mcp|Platform Services|RAG Knowledge Base|Offline document knowledge base — hybrid retrieval, citations, opt-in snapshots (ChromaDB + BM25 + local reranker)"
     "ollama|Platform Services|Ollama Domain Experts|Delegates structured tasks to local Ollama models on your own GPU (10 tools)"
     "humanrail|Platform Services|HumanRail|Human-in-the-loop escalation and approvals"
 )
@@ -131,7 +132,7 @@ catalog_has() {
 PROFILE_MINIMAL="pyats gait subnet-calc drawio-rfc"
 
 PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
-drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol n2n tts chrome-devtools"
+drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol n2n tts chrome-devtools rag-mcp"
 
 PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve subnet-calc drawio-rfc uml packet-buddy"

@@ -56,18 +56,21 @@ def _extract_reply(stdout: str):
     noise) and return (reply_text, tokens_used)."""
     # US5/FR-018: use raw_decode so a trailing log line after the JSON envelope
     # (e.g. "[agent] run … stopReason=stop") does NOT break parsing — plain
-    # json.loads(stdout[start:]) fails on trailing content. Try each '{' start
-    # and raw_decode the first complete object there.
+    # json.loads(stdout[start:]) fails on trailing content. Collect EVERY
+    # complete object in the stream: plugins (e.g. DefenseClaw 0.8.x's fetch
+    # interceptor) emit their own JSON lines BEFORE the agent envelope, so the
+    # first object is no longer guaranteed to be the reply.
     decoder = json.JSONDecoder()
+    objs = []
     start = stdout.find("{")
-    obj = None
     while start != -1:
         try:
-            obj, _ = decoder.raw_decode(stdout[start:])
-            break
+            obj, consumed = decoder.raw_decode(stdout[start:])
+            objs.append(obj)
+            start = stdout.find("{", start + max(consumed, 1))
         except Exception:
             start = stdout.find("{", start + 1)
-    if obj is None:
+    if not objs:
         # No JSON — return raw trailing text so the caller still gets something.
         return stdout.strip()[-2000:], 0
 
@@ -91,20 +94,35 @@ def _extract_reply(stdout: str):
                     return r
         return None
 
-    reply = _find(obj, ("finalAssistantVisibleText", "finalAssistantRawText"))
-    result = obj.get("result", obj)
+    def _extract_one(obj):
+        reply = _find(obj, ("finalAssistantVisibleText", "finalAssistantRawText"))
+        result = obj.get("result", obj) if isinstance(obj, dict) else {}
+        if not reply and isinstance(result, dict):
+            # result.payloads[*].text (concatenated), skipping obvious tool-schema dumps
+            texts = [p["text"] for p in (result.get("payloads") or [])
+                     if isinstance(p, dict) and isinstance(p.get("text"), str)
+                     and '"schemaHash"' not in p["text"]]
+            reply = "\n".join(t for t in texts if t.strip())
+        return reply, result
+
+    # The agent envelope is normally the LAST object; scan newest-first and take
+    # the first object that yields real reply text, so plugin JSON noise earlier
+    # in the stream can never masquerade as the agent's answer.
+    obj, reply, result = objs[-1], None, {}
+    for cand in reversed(objs):
+        r, res = _extract_one(cand)
+        if r:
+            obj, reply, result = cand, r, res
+            break
     if not reply:
-        # result.payloads[*].text (concatenated), skipping obvious tool-schema dumps
-        texts = [p["text"] for p in (result.get("payloads") or [])
-                 if isinstance(p, dict) and isinstance(p.get("text"), str)
-                 and '"schemaHash"' not in p["text"]]
-        reply = "\n".join(t for t in texts if t.strip())
-    if not reply:
-        for key in ("reply", "text", "message", "output", "response"):
-            v = result.get(key)
-            if isinstance(v, str) and v.strip():
-                reply = v
-                break
+        obj = objs[-1]
+        result = obj.get("result", obj) if isinstance(obj, dict) else {}
+        if isinstance(result, dict):
+            for key in ("reply", "text", "message", "output", "response"):
+                v = result.get(key)
+                if isinstance(v, str) and v.strip():
+                    reply = v
+                    break
 
     # Best-effort token count
     tokens = 0

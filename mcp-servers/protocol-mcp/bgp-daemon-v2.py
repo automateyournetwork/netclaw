@@ -487,9 +487,26 @@ async def handle_n2n(method, path, body):
             members = [{"member_id": m["member_id"], "credential_state": m.get("credential_state"),
                         "cred_fp": m.get("cred_fp"), "cred_not_after": m.get("cred_not_after")}
                        for m in fed.risk.list_members()]
+            # Feature 063 (P4/FR-012): honest per-channel key-exchange + PQ posture.
+            from bgp.federation import tls as _tls
+            kex = []
+            for ident, ch in (getattr(fed, "channels", {}) or {}).items():
+                try:
+                    sslobj = ch.writer.get_extra_info("ssl_object")
+                except Exception:
+                    sslobj = None
+                if sslobj is None:
+                    continue
+                k = _tls.channel_kex(sslobj)
+                k["identity"] = ident
+                k["pq"] = "available" if _tls.is_pq_group(k.get("kex_group")) else "unavailable"
+                kex.append(k)
             return 200, {"credentials": creds, "peers": peers, "members": members,
                          "cert_mode": "enforce" if fed.cert_enforce else
-                                      ("on" if fed.cert_mode else "off")}
+                                      ("on" if fed.cert_mode else "off"),
+                         "pq_mode": getattr(fed, "pq_mode", "opportunistic"),
+                         "pq_available": getattr(fed, "pq_available", False),
+                         "channels_kex": kex}
 
         if path == "/n2n/certs/rotate" and method == "POST":
             from bgp.federation.rotation import RotationManager

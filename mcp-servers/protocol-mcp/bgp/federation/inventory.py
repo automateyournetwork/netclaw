@@ -133,12 +133,27 @@ class InventoryBuilder:
             ).fetchall()
         except Exception:
             return []   # risk table absent (pre-056) or unreadable — no aggregate
+        # A member's scope may be a list of {name,tier} dicts (structured, from
+        # add_member) OR a flat list of skill-name strings (a member's advertised
+        # list). Handle both — a string entry carries no tier, so classify it as a
+        # specialty unless it is one of the mandatory base-floor skills.
+        try:
+            from .risk import BASE_FLOOR
+            base_names = {b["name"] for b in BASE_FLOOR}
+        except Exception:
+            base_names = set()
         names = set()
         for row in rows:
             try:
                 for e in json.loads(row["scope"] or "[]"):
-                    if e.get("tier") == "specialty" and e.get("name") not in existing_names:
-                        names.add(e["name"])
+                    if isinstance(e, dict):
+                        name, tier = e.get("name"), e.get("tier")
+                    elif isinstance(e, str):
+                        name, tier = e, ("base" if e in base_names else "specialty")
+                    else:
+                        continue
+                    if tier == "specialty" and name and name not in existing_names:
+                        names.add(name)
             except (ValueError, TypeError):
                 continue
         return [{"name": n, "invocable": True, "risk_aggregate": True} for n in sorted(names)]

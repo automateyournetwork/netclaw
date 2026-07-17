@@ -3,8 +3,11 @@ import { WebSocketServer } from 'ws';
 import http from 'http';
 import cors from 'cors';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import yaml from 'js-yaml';
+import multer from 'multer';
+import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -1409,6 +1412,209 @@ function buildChatResponse(message, activations, graph) {
 
   return response;
 }
+
+// ============================================================
+// RAG Knowledge Base (Feature 062) — /api/rag/* + WS rag_* events
+// All reads and mutations go through rag-mcp tools via the
+// mcp-call.py child-process helper (one uniform access path).
+// ============================================================
+const RAG_MCP_CALL = path.join(ROOT, 'scripts', 'mcp-call.py');
+const RAG_SERVER_CMD = `python3 -u ${path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')}`;
+const RAG_DATA_DIR = process.env.RAG_DATA_DIR
+  ? process.env.RAG_DATA_DIR.replace(/^~/, os.homedir())
+  : path.join(os.homedir(), '.openclaw', 'rag');
+const RAG_INTAKE_DIR = path.join(RAG_DATA_DIR, 'intake');
+const RAG_MAX_DOC_MB = parseInt(process.env.RAG_MAX_DOC_MB || '100', 10);
+const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
+  '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
+
+function callRagTool(tool, args = {}, timeoutSec = 300) {
+  return new Promise((resolve, reject) => {
+    execFile(
+      'python3',
+      [RAG_MCP_CALL, RAG_SERVER_CMD, tool, JSON.stringify(args)],
+      {
+        timeout: (timeoutSec + 30) * 1000,
+        maxBuffer: 64 * 1024 * 1024,
+        env: { ...process.env, MCP_CALL_TIMEOUT: String(timeoutSec) },
+      },
+      (err, stdout, stderr) => {
+        if (err) return reject(new Error(stderr || err.message));
+        try {
+          const result = JSON.parse(stdout);
+          // FastMCP: prefer structuredContent, else the JSON text content block
+          const payload = result.structuredContent
+            || (result.content && result.content[0] && JSON.parse(result.content[0].text))
+            || result;
+          resolve(payload);
+        } catch (parseErr) {
+          reject(new Error(`Unparseable rag-mcp response: ${parseErr.message}`));
+        }
+      }
+    );
+  });
+}
+
+// Progress poller: while any ingest is non-terminal, poll rag_list and
+// broadcast per-document status transitions over /ws (FR-062).
+let ragPollTimer = null;
+const ragLastStatus = new Map();
+
+function ragStartProgressPolling() {
+  if (ragPollTimer) return;
+  ragPollTimer = setInterval(async () => {
+    try {
+      const listing = await callRagTool('rag_list', {}, 60);
+      const docs = [...(listing.data?.documents || []), ...(listing.data?.snapshots || [])];
+      let anyPending = false;
+      for (const doc of docs) {
+        const prev = ragLastStatus.get(doc.id);
+        if (prev !== doc.ingest_status) {
+          ragLastStatus.set(doc.id, doc.ingest_status);
+          broadcastWS('rag_progress', {
+            document_id: doc.id,
+            title: doc.title,
+            status: doc.ingest_status,
+            error: doc.error || null,
+          });
+        }
+        if (!['ready', 'error'].includes(doc.ingest_status)) anyPending = true;
+      }
+      if (!anyPending) {
+        clearInterval(ragPollTimer);
+        ragPollTimer = null;
+        broadcastWS('rag_update', { documents_changed: true });
+      }
+    } catch {
+      clearInterval(ragPollTimer);
+      ragPollTimer = null;
+    }
+  }, 3000);
+}
+
+app.get('/api/rag/documents', async (req, res) => {
+  try {
+    const result = await callRagTool('rag_list', {}, 60);
+    if (!result.success) return res.status(500).json(result.error);
+    res.json(result.data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/rag/stats', async (req, res) => {
+  try {
+    const result = await callRagTool('rag_stats', {}, 60);
+    if (!result.success) return res.status(500).json(result.error);
+    res.json(result.data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+const ragUpload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      fs.mkdirSync(RAG_INTAKE_DIR, { recursive: true });
+      cb(null, RAG_INTAKE_DIR);
+    },
+    filename: (req, file, cb) => cb(null, path.basename(file.originalname)),
+  }),
+  limits: { fileSize: RAG_MAX_DOC_MB * 1024 * 1024 },
+});
+
+app.post('/api/rag/upload', (req, res) => {
+  ragUpload.single('file')(req, res, async (err) => {
+    if (err) {
+      if (err.code === 'LIMIT_FILE_SIZE') {
+        return res.status(413).json({
+          error: `File exceeds the ${RAG_MAX_DOC_MB} MB cap. Raise RAG_MAX_DOC_MB in .env to override.`,
+        });
+      }
+      return res.status(500).json({ error: err.message });
+    }
+    if (!req.file) return res.status(400).json({ error: 'No file supplied (field name: file).' });
+
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (!RAG_SUPPORTED_EXT.includes(ext)) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(415).json({
+        error: `'${ext}' is not supported. Supported: ${RAG_SUPPORTED_EXT.join(', ')}`,
+      });
+    }
+
+    const docType = req.body.doc_type || 'other';
+    const title = req.body.title || null;
+    res.status(202).json({ status: 'pending', filename: req.file.originalname });
+    ragStartProgressPolling();
+
+    try {
+      const result = await callRagTool('rag_ingest', {
+        file_path: req.file.path,
+        doc_type: docType,
+        ...(title ? { title } : {}),
+        source: `hud:${req.file.originalname}`,
+      }, 600);
+      if (result.success) {
+        broadcastWS('rag_progress', {
+          document_id: result.data.document_id,
+          title: result.data.title,
+          status: 'ready',
+          error: null,
+        });
+      } else {
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: req.file.originalname,
+          status: 'error',
+          error: result.error?.message || 'ingest failed',
+        });
+      }
+    } catch (ingestErr) {
+      broadcastWS('rag_progress', {
+        document_id: null,
+        title: req.file.originalname,
+        status: 'error',
+        error: ingestErr.message,
+      });
+    }
+    broadcastWS('rag_update', { documents_changed: true });
+  });
+});
+
+app.delete('/api/rag/documents/:id', async (req, res) => {
+  if (req.body?.confirm !== true) {
+    return res.status(400).json({ error: 'Deletion requires {"confirm": true} (destructive operation).' });
+  }
+  try {
+    const result = await callRagTool('rag_delete', { document_id: req.params.id, confirmed: true }, 120);
+    if (!result.success) {
+      const status = result.error?.code === 'NOT_FOUND' ? 404 : 500;
+      return res.status(status).json(result.error);
+    }
+    broadcastWS('rag_update', { documents_changed: true });
+    res.json(result.data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/rag/documents/:id/reindex', async (req, res) => {
+  if (req.body?.confirm !== true) {
+    return res.status(400).json({ error: 'Re-index requires {"confirm": true}.' });
+  }
+  try {
+    const result = await callRagTool('rag_reindex', { document_id: req.params.id, confirmed: true }, 600);
+    if (!result.success) {
+      const status = result.error?.code === 'NOT_FOUND' ? 404 : 500;
+      return res.status(status).json(result.error);
+    }
+    broadcastWS('rag_update', { documents_changed: true });
+    res.json(result.data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 function broadcastWS(type, payload) {
   const msg = JSON.stringify({ type, payload });

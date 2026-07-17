@@ -46,6 +46,19 @@ class FederationService:
         self.cert_mode = _mode in ("on", "enforce", "true", "1", "yes")
         self.cert_enforce = _mode == "enforce"
         self._host_cred: Optional[tuple] = None   # (cert_pem, key_pem), lazily created
+        # Feature 063 (P4): PQ posture. 'opportunistic' offers the hybrid where the
+        # stack supports it and accepts classical fallback; 'require' hard-refuses a
+        # classical channel — but on a stack that CANNOT do PQ at all, 'require'
+        # fails fast at startup rather than silently refusing every peer (FR-011).
+        from . import tls as _tls
+        self.pq_mode = os.environ.get("N2N_PQ_MODE", "opportunistic").strip().lower()
+        self.pq_available = _tls.pq_available()
+        if self.pq_mode == "require" and not self.pq_available:
+            raise RuntimeError(
+                "N2N_PQ_MODE=require but post-quantum key exchange is unavailable on "
+                "this crypto stack (needs OpenSSL >= 3.5 / Python >= 3.15 for "
+                "X25519MLKEM768 + negotiated-group readout). Use 'opportunistic' or "
+                "upgrade the stack.")
 
         # US2/US3 engines
         from .authorization import Authorizer
@@ -244,12 +257,10 @@ class FederationService:
             port = int(port)
         except ValueError:
             return {"accepted": False}
+        # upsert_peer bumps endpoint_updated_at whenever an endpoint is written
+        # (feature 063), so a single call persists both the address and freshness.
         self.manager.upsert_peer(channel.peer_as, channel.peer_router_id,
                                  endpoint_host=host, endpoint_port=port)
-        self.manager._conn.execute(
-            "UPDATE federation_peer SET endpoint_updated_at=? WHERE identity=?",
-            (time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), ident))
-        self.manager._conn.commit()
         # Reset backoff so the supervisor re-dials the new endpoint promptly.
         self.health.pop(ident, None)
         logger.info("Peer %s announced new endpoint %s — will re-dial", ident, endpoint)
@@ -428,6 +439,8 @@ class FederationService:
                 return None
             if not stored:
                 self.manager.set_peer_pin(ident, pin)  # TOFU-pin the listener
+        if not self._pq_ok(sslobj, ident):
+            return None
         self.manager.set_peer_trust(ident, trust, verify_state="verified")
         return reader, writer
 
@@ -440,7 +453,26 @@ class FederationService:
         cert_pem, key_pem = self.host_credential()
         reader, writer = await tls.upgrade_to_tls(
             reader, writer, tls.server_context(cert_pem, key_pem), server_side=True)
+        sslobj = writer.get_extra_info("ssl_object")
+        if not self._pq_ok(sslobj, ident):
+            return None
         return reader, writer
+
+    def _pq_ok(self, sslobj, ident: str) -> bool:
+        """Feature 063 (P4/FR-011): in 'require' mode on a PQ-capable stack, refuse
+        a channel that negotiated a classical (non-PQ) group. On a stack that can't
+        do PQ, 'require' already failed fast at startup, so this is a no-op there and
+        opportunistic mode always accepts. None (unreadable group) is not PQ."""
+        if self.pq_mode != "require" or not self.pq_available:
+            return True
+        from . import tls
+        group = tls.channel_kex(sslobj).get("kex_group")
+        if tls.is_pq_group(group):
+            return True
+        logger.warning("Refusing %s: N2N_PQ_MODE=require but negotiated classical group %r",
+                       ident, group)
+        self._cert_refuse(ident, f"PQ required but negotiated classical group {group!r}")
+        return False
 
     def _cert_refuse(self, ident: str, reason: str):
         self.manager.set_peer_trust(ident, (self.manager.get_peer(ident) or {}).get(
@@ -581,11 +613,25 @@ class FederationService:
                                                "cert_pem": self.risk.self_cert_pem(),
                                                "signature": self.risk.self_sign(nonce, binding).hex(),
                                                "capabilities": local_descriptor()})
+            # A well-behaved peer returns a dict; guard against a peer that returns
+            # a bare string or other shape so one odd hello reply can't abort the
+            # whole dial (normalize() already tolerates a non-dict descriptor).
+            if not isinstance(resp, dict):
+                logger.warning("Peer %s returned non-dict n2n/hello result (%s) — "
+                               "treating as empty", ident, type(resp).__name__)
+                resp = {}
             ch.display_name = resp.get("display_name")
             self.peer_caps[ident] = normalize(resp.get("capabilities"))  # US4
             self.manager.remote_consent(peer_as, router_id)
             if self.manager._recompute_state(ident) == PeerState.FEDERATED:
                 await self._advertise_to(ch)
+            # Feature 063 (P1/FR-001): persist the endpoint we just reached ONLY on
+            # a successful, authenticated dial — never on the failure path below —
+            # so the reconnect supervisor re-dials this current address instead of a
+            # stale one (the live bug the packet capture surfaced). A bad dial that
+            # raises before here leaves the prior good address intact.
+            self.manager.upsert_peer(peer_as, router_id,
+                                     endpoint_host=host, endpoint_port=port)
             logger.info("Opened NCFED channel to %s", ident)
             self.health[ident] = {"state": "up", "attempts": 0, "next_retry_at": 0,
                                   "last_seen": time.time()}

@@ -153,7 +153,8 @@ def main():
             "method": "tools/call",
             "params": {"name": tool_name, "arguments": args_json},
         })
-        resp = recv(proc, timeout=30, expected_id=1)
+        tool_timeout = float(os.environ.get("MCP_CALL_TIMEOUT", "30"))
+        resp = recv(proc, timeout=tool_timeout, expected_id=1)
         if resp:
             print(json.dumps(resp.get("result", resp), indent=2))
         else:

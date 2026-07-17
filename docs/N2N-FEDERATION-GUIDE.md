@@ -101,3 +101,39 @@ no channel ever drops for expiry, nothing to remember.
 That's it. Pinned mode gets two claws federating securely in a couple of minutes
 with no domain; domain-verified is a superset for operators who want public-trust
 identity.
+
+## 6. Wire hardening (feature 063)
+
+A live two-operator packet capture confirmed the 060 channel is fully encrypted
+with zero JSON-RPC leakage. Feature 063 hardens the four follow-ups that capture
+surfaced. What it means for you as a peer:
+
+- **Endpoint auto-persist (automatic, no config).** When you dial a peer and the
+  authenticated channel comes up, that current address is remembered. After a
+  restart or an ngrok address rotation the reconnect supervisor re-dials the
+  *current* endpoint — **you no longer need to re-dial every time an address
+  changes.** A failed dial never overwrites a known-good address.
+- **Post-quantum posture (`N2N_PQ_MODE`).** Default `opportunistic`: your claw
+  offers the X25519MLKEM768 hybrid where the stack supports it and accepts a
+  classical fallback, so a channel gets PQ only when *both* peers can. The
+  `/n2n/certs` and `/n2n/posture` views now show each channel's `tls_version`,
+  `cipher`, `kex_group`, and `pq: available|unavailable` — honestly. **Real PQ and
+  ECH need OpenSSL ≥ 3.5 / Python ≥ 3.13**; on the common Python-3.10/OpenSSL-3.0.2
+  host `pq_available` is `false` and `kex_group` is unreadable — that is expected,
+  not a fault. `N2N_PQ_MODE=require` fails fast at startup on a stack that can't do
+  PQ rather than silently refusing every peer.
+- **Mesh-layer TLS (P2, a coordinated flag day).** The BGP mesh/keepalive session
+  that rides alongside NCFED can now be brought under NetClaw's own TLS + auth on
+  untrusted paths, gated by the **same `N2N_CERT_MODE` flag** as the eN2N channel.
+  This is a wire change for mesh peers — enable it on **all** mesh peers together,
+  exactly like the 060 rollout; an un-upgraded mesh peer is refused with an
+  actionable reason in `enforce` mode, never silently downgraded.
+- **Accepted residuals (documented by design).** Two identity signals remain
+  observable to a passive on-path observer and are accepted on purpose: (a) the
+  13-byte NCFED preamble carries AS + router-id in the clear so the shared
+  listening port can discriminate NCFED from BGP/NCTUN *before* TLS — structural,
+  cannot move inside TLS without breaking port discrimination; (b) the TLS SNI
+  carries the claw domain until an ECH-capable stack is available (an ECH-ready
+  seam is in place and activates automatically once `ssl` exposes ECH). Both are
+  reported in `/n2n/posture` so operators can see the exposure rather than assume
+  it away.

@@ -88,6 +88,7 @@ mcp-servers/*
 !mcp-servers/nautobot-golden-config-mcp/
 !mcp-servers/nautobot-routing-mcp/
 !mcp-servers/memory-mcp/
+!mcp-servers/rag-mcp/
 !mcp-servers/claroty-mcp/
 !mcp-servers/ollama-mcp/
 !mcp-servers/twitter-mcp/

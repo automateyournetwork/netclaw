@@ -627,6 +627,25 @@
       "env": {
         "BGP_DAEMON_API": "${BGP_DAEMON_API:-http://127.0.0.1:8179}"
       }
+    },
+    "rag-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/rag-mcp/rag_mcp_server.py"
+      ],
+      "env": {
+        "RAG_DATA_DIR": "${RAG_DATA_DIR:-~/.openclaw/rag}",
+        "RAG_EMBEDDING_MODEL": "${RAG_EMBEDDING_MODEL:-BAAI/bge-small-en-v1.5}",
+        "RAG_RERANKER_MODEL": "${RAG_RERANKER_MODEL:-cross-encoder/ms-marco-MiniLM-L-6-v2}",
+        "RAG_RERANK_ENABLED": "${RAG_RERANK_ENABLED:-true}",
+        "RAG_RELEVANCE_FLOOR": "${RAG_RELEVANCE_FLOOR:-0.3}",
+        "RAG_MAX_DOC_MB": "${RAG_MAX_DOC_MB:-100}",
+        "RAG_MAX_DOC_PAGES": "${RAG_MAX_DOC_PAGES:-1000}",
+        "RAG_CRAWL_MAX_PAGES": "${RAG_CRAWL_MAX_PAGES:-30}",
+        "RAG_SNAPSHOT_WARN_DAYS": "${RAG_SNAPSHOT_WARN_DAYS:-90}",
+        "RAG_MAX_ROUNDS": "${RAG_MAX_ROUNDS:-3}"
+      }
     }
   }
 }

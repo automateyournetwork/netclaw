@@ -167,7 +167,11 @@ ENV_PREFIXES = {
     "viz": ["BLENDER_", "UE5_", "SKETCHFAB_", "MARKMAP_", "DRAWIO_"],
 }
 # Base floor every member gets (memory + GAIT + humanrail per the interview).
-BASE_MEMBER_ENV_PREFIXES = ["MEMPALACE_", "GAIT_", "HUMANRAIL_", "MEMORY_"]
+# MCP_CALL is the shared non-secret MCP-invoke helper path every profile's
+# skills shell out through; without it in the slice, skills fall back to the
+# Border's master .env — which member units mask (InaccessiblePaths, enforced
+# for real since Ubuntu 26.04's systemd).
+BASE_MEMBER_ENV_PREFIXES = ["MEMPALACE_", "GAIT_", "HUMANRAIL_", "MEMORY_", "MCP_CALL"]
 
 
 def env_slice_keys(profile, env_keys):

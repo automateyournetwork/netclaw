@@ -107,6 +107,23 @@ For **detailed infrastructure notes on specific MCP servers/skills** (GitLab, Ch
 - Data: `~/.openclaw/memory/` (SQLite + ChromaDB)
 - No credentials required
 
+## RAG Knowledge Base MCP Server (NetClaw Native)
+
+10 MCP tools for the offline, user-curated document knowledge base (separate from Memory — RAG holds what USERS upload, Memory holds NetClaw's own experience):
+- `rag_ingest` — WHEN a document file on disk should be learned
+- `rag_ingest_base64` — WHEN a Slack attachment should be learned (decode → ingest)
+- `rag_ingest_url` — WHEN the user asks to ingest a web page (always preview crawl scope first)
+- `rag_search` — WHEN a question concerns vendor procedures, customer standards, install steps, or ingested content (NEVER for live network state or past sessions)
+- `rag_list` — WHEN the user asks what the knowledge base contains
+- `rag_stats` — WHEN asked about corpus size/health or retrieval telemetry
+- `rag_update_metadata` — WHEN a document's doc_type/title/version needs fixing
+- `rag_delete` — WHEN the user asks to remove a document (confirm with the user first)
+- `rag_reindex` — WHEN chunking/embedding config changed (confirm with the user first)
+- `rag_snapshot` — ONLY when the user explicitly asks to store live output for later comparison (confirm scope; never automatic)
+- Transport: stdio, Python 3.10+, fully offline (hybrid dense+BM25 retrieval, local reranker, cited results)
+- Data: `~/.openclaw/rag/` (ChromaDB + SQLite + BM25 pickles + retained sources) — never touches `~/.openclaw/memory/`
+- No credentials required
+
 ## MemPalace AI Memory
 
 19 MCP tools for persistent, structured, local-only AI memory across sessions ([source](https://github.com/milla-jovovich/mempalace)):

@@ -3102,6 +3102,51 @@ fi
 echo ""
 }
 
+# ── RAG Knowledge Base MCP (spec 062) ─────────────────────────────────
+component_install_rag_mcp() {
+log_step "Installing RAG Knowledge Base MCP Server..."
+echo "  Built-in MCP server: mcp-servers/rag-mcp/"
+echo "  Offline document knowledge base — hybrid retrieval, citations, opt-in snapshots (Python 3.10+)"
+
+RAG_MCP_DIR="$MCP_DIR/rag-mcp"
+RAG_DATA_DIR="$HOME/.openclaw/rag"
+mkdir -p "$RAG_DATA_DIR"
+
+if [ -f "$RAG_MCP_DIR/pyproject.toml" ]; then
+    log_info "Installing RAG MCP dependencies (fastmcp, chromadb, sentence-transformers, rank_bm25, pymupdf, office parsers)..."
+    pip3 install -e "$RAG_MCP_DIR" 2>/dev/null || \
+        pip3 install --break-system-packages -e "$RAG_MCP_DIR" 2>/dev/null || \
+        log_warn "RAG MCP editable install failed"
+
+    log_warn "Pre-downloading embedding + reranker models (~250MB, one time) — the system is fully offline afterwards."
+    python3 - << 'PYEOF' 2>/dev/null || log_warn "Model pre-download failed — models will be fetched on first use (requires network once)."
+from sentence_transformers import SentenceTransformer, CrossEncoder
+import os
+SentenceTransformer(os.environ.get("RAG_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5"))
+CrossEncoder(os.environ.get("RAG_RERANKER_MODEL", "cross-encoder/ms-marco-MiniLM-L-6-v2"))
+print("models cached")
+PYEOF
+
+    if ! command -v soffice > /dev/null 2>&1 && ! command -v libreoffice > /dev/null 2>&1; then
+        echo ""
+        log_info "Optional: legacy office formats (DOC/XLS/PPT/VSD) need LibreOffice headless."
+        read -p "  Install LibreOffice for legacy document support? [y/N] " RAG_LIBRE < /dev/tty || RAG_LIBRE="n"
+        if [ "$RAG_LIBRE" = "y" ] || [ "$RAG_LIBRE" = "Y" ]; then
+            sudo apt-get install -y libreoffice 2>/dev/null || log_warn "LibreOffice install failed — legacy formats will report CONVERTER_UNAVAILABLE."
+        else
+            log_info "Skipped. Modern formats (PDF/MD/HTML/TXT/DOCX/XLSX/PPTX/VSDX) work without it."
+        fi
+    fi
+
+    log_info "RAG Knowledge Base ready. Data directory: $RAG_DATA_DIR"
+    log_info "Registered as 'rag-mcp' in config/openclaw.json (default-on component)."
+else
+    log_warn "RAG MCP pyproject.toml not found at $RAG_MCP_DIR"
+fi
+
+echo ""
+}
+
 # ── Ollama Domain Experts MCP (spec 037, backfilled for catalog parity) ─
 component_install_ollama() {
 log_step "Installing Ollama Domain Experts MCP Server..."

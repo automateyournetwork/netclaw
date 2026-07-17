@@ -1,0 +1,41 @@
+[project]
+name = "netclaw-rag-mcp"
+version = "0.1.0"
+description = "NetClaw Agentic RAG Knowledge Base - offline document knowledge base with hybrid retrieval, citations, and opt-in snapshots"
+requires-python = ">=3.10"
+dependencies = [
+    "mcp",
+    "fastmcp",
+    "chromadb>=0.4.0",
+    "sentence-transformers>=2.2.0",
+    "torch>=2.0.0",
+    "rank_bm25",
+    "pymupdf",
+    "beautifulsoup4",
+    "httpx",
+    "python-docx",
+    "openpyxl",
+    "python-pptx",
+    "vsdx",
+]
+
+[project.scripts]
+rag-mcp-server = "rag_mcp_server:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+include = [
+    "rag_mcp_server.py",
+    "config.py",
+    "scrubber.py",
+    "ingestion/",
+    "retrieval/",
+    "storage/",
+    "embeddings/",
+]
+
+[dependency-groups]
+dev = ["pytest>=7.0.0", "pytest-asyncio>=0.21.0"]

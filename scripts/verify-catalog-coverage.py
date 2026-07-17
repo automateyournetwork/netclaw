@@ -59,6 +59,7 @@ GROUPED_CONFIG_EXACT = {
     "sketchfab-mcp": "threejs-viz",
     "azure-network-mcp": "azure",
     "unreal-mcp": "ue5",
+    "rag-mcp": "rag-mcp",
 }
 
 # EXTERNAL_INTEGRATIONS names (from verify-inventory-counts.py) that this

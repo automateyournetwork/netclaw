@@ -100,10 +100,28 @@ def _channel_security(service) -> dict:
                         amber += 1
                 except Exception:
                     pass
+        # Feature 063 (P4/FR-012): PQ posture + honest per-channel KEX visibility.
+        from . import tls as _tls
+        channels_kex = []
+        for ident, ch in (getattr(service, "channels", {}) or {}).items():
+            try:
+                sslobj = ch.writer.get_extra_info("ssl_object")
+            except Exception:
+                sslobj = None
+            if sslobj is None:
+                continue
+            k = _tls.channel_kex(sslobj)
+            k["identity"] = ident
+            k["pq"] = "available" if _tls.is_pq_group(k.get("kex_group")) else "unavailable"
+            channels_kex.append(k)
         return {"mode": ("enforce" if getattr(service, "cert_enforce", False) else
                          ("on" if getattr(service, "cert_mode", False) else "off")),
                 "by_trust_model": by_model, "degraded": degraded,
-                "amber": amber, "red": red, "renewals_failing": failing}
+                "amber": amber, "red": red, "renewals_failing": failing,
+                "pq_mode": getattr(service, "pq_mode", "opportunistic"),
+                "pq_available": getattr(service, "pq_available", False),
+                "ech_available": _tls.ech_available(),
+                "channels_kex": channels_kex}
     except Exception:
         return {}
 

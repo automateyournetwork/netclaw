@@ -13,6 +13,7 @@ import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
+import { KnowledgePanel } from './panels/KnowledgePanel.js';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -2815,6 +2816,15 @@ function connectSocket() {
   const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
   const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
   state.socket = socket;
+
+  // Knowledge (RAG) panel — mounted once, rebound to each new socket on reconnect
+  if (!state.knowledgePanel) {
+    state.knowledgePanel = new KnowledgePanel(socket);
+    document.body.appendChild(state.knowledgePanel.render());
+  } else {
+    state.knowledgePanel.socket = socket;
+    state.knowledgePanel.connectSocket();
+  }
 
   socket.addEventListener('open', () => {
     dom.footerSocket.textContent = 'CONNECTED';

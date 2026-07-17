@@ -1,0 +1,240 @@
+/* KnowledgePanel — RAG Knowledge Base HUD component (Feature 062) */
+
+.knowledge-panel {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  width: 520px;
+  max-height: 70vh;
+  background: rgba(10, 14, 24, 0.92);
+  border: 1px solid rgba(76, 201, 240, 0.35);
+  border-radius: 10px;
+  color: #d7e3f4;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 12px;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  backdrop-filter: blur(6px);
+}
+
+.knowledge-panel.collapsed .kp-body {
+  display: none;
+}
+
+.kp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: rgba(76, 201, 240, 0.12);
+  cursor: default;
+  user-select: none;
+}
+
+.kp-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.kp-stats {
+  font-weight: 400;
+  opacity: 0.65;
+  font-size: 11px;
+}
+
+.kp-collapse-btn {
+  background: none;
+  border: none;
+  color: #d7e3f4;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.kp-body {
+  overflow-y: auto;
+  padding: 10px 12px 14px;
+}
+
+/* Upload */
+.kp-upload {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed rgba(76, 201, 240, 0.45);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background 0.15s ease;
+}
+
+.kp-upload.kp-dragover {
+  background: rgba(76, 201, 240, 0.15);
+}
+
+.kp-upload select,
+.kp-upload button {
+  background: rgba(76, 201, 240, 0.15);
+  color: #d7e3f4;
+  border: 1px solid rgba(76, 201, 240, 0.4);
+  border-radius: 5px;
+  padding: 4px 8px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.kp-drop-hint {
+  opacity: 0.55;
+}
+
+/* Progress chips */
+.kp-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.kp-chip {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+
+.kp-chip-busy {
+  background: rgba(255, 190, 70, 0.12);
+  border: 1px solid rgba(255, 190, 70, 0.4);
+}
+
+.kp-chip-done {
+  background: rgba(80, 220, 130, 0.1);
+  border: 1px solid rgba(80, 220, 130, 0.35);
+}
+
+.kp-chip-error {
+  background: rgba(255, 93, 115, 0.12);
+  border: 1px solid rgba(255, 93, 115, 0.45);
+}
+
+.kp-chip-status {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  opacity: 0.8;
+}
+
+.kp-error-text {
+  flex-basis: 100%;
+  color: #ff9daf;
+  white-space: pre-wrap; /* ingestion errors surface verbatim */
+}
+
+/* Tables */
+.kp-section-title {
+  margin: 10px 0 4px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-size: 10.5px;
+  opacity: 0.75;
+}
+
+.kp-table-wrap {
+  overflow-x: auto;
+}
+
+.kp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.kp-table th,
+.kp-table td {
+  text-align: left;
+  padding: 4px 6px;
+  border-bottom: 1px solid rgba(215, 227, 244, 0.08);
+  white-space: nowrap;
+}
+
+.kp-table td:first-child {
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.kp-source {
+  max-width: 120px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  opacity: 0.7;
+}
+
+.kp-empty {
+  opacity: 0.5;
+  font-style: italic;
+}
+
+.kp-type {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: rgba(215, 227, 244, 0.1);
+}
+
+.kp-type-vendor { background: rgba(76, 201, 240, 0.2); }
+.kp-type-standard { background: rgba(184, 132, 255, 0.2); }
+.kp-type-customer { background: rgba(80, 220, 130, 0.2); }
+.kp-type-install-guide { background: rgba(255, 190, 70, 0.2); }
+
+.kp-actions button {
+  background: none;
+  border: 1px solid rgba(215, 227, 244, 0.25);
+  border-radius: 4px;
+  color: #d7e3f4;
+  cursor: pointer;
+  padding: 1px 6px;
+  margin-left: 4px;
+}
+
+.kp-actions button:hover {
+  border-color: rgba(255, 93, 115, 0.7);
+}
+
+/* Snapshots — visually distinct (FR-063) */
+.kp-snap-title {
+  color: #ffbe46;
+}
+
+.kp-snap-note {
+  text-transform: none;
+  font-weight: 400;
+  opacity: 0.6;
+}
+
+.kp-snapshots {
+  border-left: 3px solid rgba(255, 190, 70, 0.5);
+  padding-left: 6px;
+  background: rgba(255, 190, 70, 0.04);
+}
+
+.kp-age-badge {
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  background: rgba(255, 190, 70, 0.18);
+  border: 1px solid rgba(255, 190, 70, 0.4);
+}
+
+.kp-age-badge.kp-stale {
+  background: rgba(255, 93, 115, 0.2);
+  border-color: rgba(255, 93, 115, 0.6);
+  color: #ff9daf;
+  font-weight: 600;
+}

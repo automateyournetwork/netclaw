@@ -285,16 +285,22 @@ class FederationManager:
                              ("endpoint_port", endpoint_port)):
                 if val is not None:
                     sets.append(f"{col}=?"); vals.append(val)
+            # Feature 063 (P1): a written endpoint bumps the freshness signal the
+            # reconnect supervisor and operator view read — do it here so every
+            # persist path (operator dial, peer endpoint_update) is consistent.
+            if endpoint_host is not None or endpoint_port is not None:
+                sets.append("endpoint_updated_at=?"); vals.append(now)
             sets.append("updated_at=?"); vals.append(now)
             vals.append(ident)
             self._conn.execute(f"UPDATE federation_peer SET {','.join(sets)} WHERE identity=?", vals)
         else:
+            endpoint_updated = now if (endpoint_host is not None or endpoint_port is not None) else None
             self._conn.execute(
                 "INSERT INTO federation_peer (identity, peer_as, router_id, display_name, "
-                "endpoint_host, endpoint_port, state, created_at, updated_at) "
-                "VALUES (?,?,?,?,?,?,?,?,?)",
+                "endpoint_host, endpoint_port, endpoint_updated_at, state, created_at, updated_at) "
+                "VALUES (?,?,?,?,?,?,?,?,?,?)",
                 (ident, peer_as, router_id, display_name, endpoint_host, endpoint_port,
-                 PeerState.NOT_FEDERATED.value, now, now))
+                 endpoint_updated, PeerState.NOT_FEDERATED.value, now, now))
         self._conn.commit()
         return ident
 

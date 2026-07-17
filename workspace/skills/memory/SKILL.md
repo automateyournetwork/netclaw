@@ -4,7 +4,9 @@
 
 ## Overview
 
-The Memory skill enables NetClaw to remember information about your network across sessions. Instead of re-explaining your topology, device names, and past issues every time, NetClaw builds a knowledge base that grows smarter with each interaction.
+The Memory skill enables NetClaw to remember information about your network across sessions. Instead of re-explaining your topology, device names, and past issues every time, NetClaw builds a memory that grows smarter with each interaction.
+
+> **Memory vs. the RAG Knowledge Base**: Memory (`memory_*` tools, `~/.openclaw/memory/`) holds NetClaw's OWN experience — facts, session summaries, decisions, entity relationships. Document content lives in the separate RAG knowledge base (`rag` skill, `rag_*` tools, `~/.openclaw/rag/`). "Remember this PDF / URL / standard" routes to `rag_ingest`, not `memory_record_fact`; "what does the vendor guide say" routes to `rag_search`, not `memory_recall`. Operational facts ("PE2 is in maintenance until Friday"), past-session questions, and decision history stay here. Neither store writes into the other.
 
 ## Capabilities
 

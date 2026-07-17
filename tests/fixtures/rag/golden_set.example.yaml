@@ -1,0 +1,33 @@
+# Golden question set for the rag-mcp evaluation harness (FR-080/FR-081).
+#
+# NO fixture documents ship with this repo (by design — you supply real ones).
+# To enable the evaluation:
+#   1. Ingest 2-3 of YOUR real documents into the knowledge base
+#      (rag_ingest / Slack / HUD), or into a dedicated eval store by pointing
+#      RAG_DATA_DIR somewhere separate.
+#   2. Copy this file to golden_set.yaml (same directory) and author >= 20
+#      entries against those documents.
+#   3. Run: pytest tests/integration/test_rag_eval.py -v
+#      Pass threshold: hit-rate@5 >= 0.85. Rerank lift and faithfulness are
+#      also reported. Without golden_set.yaml the evaluation is SKIPPED
+#      (reported as skipped, never as passed).
+#
+# Entry format:
+#   question:         the natural-language question to search with
+#   expected_doc:     title (or document id) of the document that answers it
+#   answer_facts:     substrings that must appear in the retrieved chunks
+#                     (case-insensitive) for the answer to be 'faithful'
+#   doc_type_filter:  optional doc_type to scope the search (tests filters)
+
+- question: "What are the pre-upgrade checks for the WLC 9800?"
+  expected_doc: "WLC 9800 Upgrade Guide"
+  answer_facts:
+    - "boot variable"
+    - "backup"
+  doc_type_filter: vendor
+
+- question: "What does our standard require before a controller upgrade?"
+  expected_doc: "Customer WLAN Standard"
+  answer_facts:
+    - "maintenance window"
+  doc_type_filter: customer

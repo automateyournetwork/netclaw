@@ -22,7 +22,7 @@ Verification split (mirrors how channel.py / internal_channel.py already work):
 
 Channel binding uses tls-server-end-point (RFC 5929): the SHA-256 of the
 listener's certificate. Both ends know it on every Python/TLS version (the RFC
-5705 tls-exporter is only exposed in Python's ssl module from 3.13), and it
+5705 tls-exporter is still not exposed by Python's ssl module as of 3.14), and it
 defeats relay: a MITM presenting its own cert to the dialer produces a different
 binding than the real listener expects, so the dialer's signature won't verify.
 """
@@ -51,6 +51,7 @@ def server_context(cert_chain_pem: str, key_pem: str) -> ssl.SSLContext:
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     _load_chain(ctx, cert_chain_pem, key_pem)
+    _maybe_apply_pq(ctx)  # 063 P4: accept the PQ hybrid where the stack supports it
     try:
         ctx.set_alpn_protocols([NCFED_ALPN])
     except NotImplementedError:  # pragma: no cover - old openssl
@@ -59,7 +60,8 @@ def server_context(cert_chain_pem: str, key_pem: str) -> ssl.SSLContext:
 
 
 def client_context(trust_model: str, *, claw_domain: Optional[str] = None,
-                   cafile: Optional[str] = None) -> Tuple[ssl.SSLContext, Optional[str]]:
+                   cafile: Optional[str] = None,
+                   ech_config: Optional[bytes] = None) -> Tuple[ssl.SSLContext, Optional[str]]:
     """Dialer-side context. Returns (ctx, server_hostname):
 
     * domain-verified → default WebPKI trust with hostname checking; the caller
@@ -70,6 +72,8 @@ def client_context(trust_model: str, *, claw_domain: Optional[str] = None,
     if trust_model == "domain-verified":
         ctx = ssl.create_default_context(cafile=cafile)
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        _maybe_apply_pq(ctx)             # 063 P4: offer the PQ hybrid opportunistically
+        _maybe_apply_ech(ctx, ech_config)  # 063 P3: conceal SNI on an ECH-capable stack
         _set_alpn(ctx)
         return ctx, claw_domain
     # pinned (and legacy-upgrade): encrypt, verify by fingerprint at app layer
@@ -77,6 +81,7 @@ def client_context(trust_model: str, *, claw_domain: Optional[str] = None,
     ctx.minimum_version = ssl.TLSVersion.TLSv1_2
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
+    _maybe_apply_pq(ctx)
     _set_alpn(ctx)
     return ctx, None
 
@@ -104,6 +109,102 @@ def _set_alpn(ctx: ssl.SSLContext) -> None:
         ctx.set_alpn_protocols([NCFED_ALPN])
     except NotImplementedError:  # pragma: no cover
         pass
+
+
+# ---- Feature 063 (P4/P3): PQ + KEX visibility, ECH seam -------------------
+#
+# The original 063 reference host was Python 3.10 / OpenSSL 3.0.2, which could
+# not offer the X25519MLKEM768 hybrid, control TLS groups, read the negotiated
+# group, or do ECH. These helpers degrade honestly there and activate the real
+# behaviour automatically once the ssl module exposes group control/readout
+# (`SSLContext.set_groups` + `SSLObject.group`, Python >= 3.15 — verified absent
+# on 3.14) on OpenSSL >= 3.5 (research R0/R4).
+#
+# Verified 2026-07-17 on Ubuntu 26.04 (Python 3.14.4 / OpenSSL 3.5.5): OpenSSL
+# 3.5 includes X25519MLKEM768 in its DEFAULT group list, so channels between two
+# OpenSSL>=3.5 hosts negotiate the PQ hybrid on the wire even though Python 3.14
+# can neither request nor observe it. pq_available() therefore means "can offer
+# AND verify", never "the wire is classical".
+
+# The hybrid PQ group name, offered ahead of classical curves where supported.
+_PQ_GROUPS = "X25519MLKEM768:x25519:secp256r1:x448:secp521r1:secp384r1"
+
+
+def _openssl_at_least(major: int, minor: int) -> bool:
+    try:
+        v = ssl.OPENSSL_VERSION_INFO  # (major, minor, patch, ...)
+        return (v[0], v[1]) >= (major, minor)
+    except Exception:  # pragma: no cover
+        return False
+
+
+def pq_available() -> bool:
+    """True only if this stack can BOTH offer the X25519MLKEM768 hybrid AND report
+    the negotiated group — i.e. `SSLContext.set_groups` (Python 3.15+), readable
+    `SSLObject.group` (3.15+), and OpenSSL >= 3.5 (MLKEM). False on Python <= 3.14
+    even over OpenSSL 3.5 (which may still negotiate the hybrid by default), so
+    P4 degrades honestly and never labels an unverifiable channel as PQ."""
+    return (hasattr(ssl.SSLContext, "set_groups")
+            and hasattr(ssl.SSLObject, "group")
+            and _openssl_at_least(3, 5))
+
+
+def ech_available() -> bool:
+    """True only if `ssl` exposes an ECH config API (absent through at least
+    Python 3.12 / OpenSSL 3.0.2). Gates the P3 SNI-concealment seam."""
+    return hasattr(ssl.SSLContext, "set_ech_config") or hasattr(ssl, "ECHConfig")
+
+
+def _maybe_apply_pq(ctx: ssl.SSLContext) -> None:
+    """Opportunistically offer the PQ hybrid group ahead of classical curves. A
+    documented no-op on a stack without `set_groups` — connectivity is never
+    affected, PQ simply isn't offered (FR-010)."""
+    if hasattr(ctx, "set_groups"):
+        try:
+            ctx.set_groups(_PQ_GROUPS)
+        except (ssl.SSLError, ValueError):  # pragma: no cover - stack rejects the group
+            pass
+
+
+def _maybe_apply_ech(ctx: ssl.SSLContext, ech_config: Optional[bytes]) -> None:
+    """P3 SNI-concealment seam. A single guarded point that would install an ECH
+    config on an ECH-capable stack; a documented no-op on the current stack, so
+    the claw-domain SNI remains an accepted, reported residual (FR-007)."""
+    if ech_config and hasattr(ctx, "set_ech_config"):
+        try:
+            ctx.set_ech_config(ech_config)  # pragma: no cover - no ECH on this stack
+        except Exception:  # pragma: no cover
+            pass
+
+
+def channel_kex(sslobj) -> dict:
+    """Per-channel key-exchange facts for the operator posture view (FR-012).
+    On the reference stack `kex_group` is None (not readable) while `tls_version`
+    and `cipher` populate — honest, never faked."""
+    out = {"tls_version": None, "cipher": None, "kex_group": None}
+    try:
+        out["tls_version"] = sslobj.version()
+    except Exception:
+        pass
+    try:
+        c = sslobj.cipher()
+        if c:
+            out["cipher"] = c[0]
+    except Exception:
+        pass
+    try:
+        g = getattr(sslobj, "group", None)  # SSLObject.group is 3.15+
+        if g:
+            out["kex_group"] = g
+    except Exception:
+        pass
+    return out
+
+
+def is_pq_group(kex_group: Optional[str]) -> bool:
+    """Whether a negotiated group name denotes a PQ/hybrid KEM. None (unreadable)
+    is NOT treated as PQ — honesty over optimism."""
+    return bool(kex_group) and ("mlkem" in kex_group.lower() or "kyber" in kex_group.lower())
 
 
 # ---- peer credential inspection -------------------------------------------
