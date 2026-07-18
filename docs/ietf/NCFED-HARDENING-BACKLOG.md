@@ -231,6 +231,25 @@ rendered artifacts stay FROZEN and coherent; fold the text below when cutting `-
   missing completion as failure, and SHOULD reconcile in-flight tasks after a
   channel re-establish.
 
+### H14. Tier asymmetry on dialer-initiated channels — *FIXED (found live 2026-07-18)*
+- **Reality:** `channel.attestation` was only ever set on the ACCEPTOR side
+  (`_on_hello` verifies the dialer's possession proof). On a channel the local claw
+  dialed, the LISTENER never received an attestation, so its `endpoint_update` /
+  execution requests were denied at tier-0 forever — observed as a 33-second denial
+  loop against both live mesh peers, silently disabling `endpoint_reannounce` on
+  every dialed channel (the lowest-AS claw dials everyone, so the hub saw it for all
+  peers).
+- **Fix (shipped):** on the dialer side, after `_secure_dial` verifies the
+  listener's certificate (pin / domain SAN), the TLS handshake itself constitutes
+  the listener's possession proof for that certificate; the channel now records
+  `attestation="possession"` + the listener's leaf. Cleartext channels are
+  unchanged (still self-asserted).
+- **Draft:** `-02`'s admission-tier prose should state explicitly that on an
+  encrypted channel the acceptor's tier at the initiator is established by the TLS
+  server authentication (certificate verification + the handshake's key-possession
+  property), while the initiator's tier at the acceptor is established by the
+  `n2n/hello` possession proof — the two proofs are asymmetric by construction.
+
 ### Cutting `-02` (supervised)
 **CUT 2026-07-17 at John's direction** (ahead of H12/mesh-TLS, which `-02` documents
 honestly as staged/optional rather than claiming done): `draft-capobianco-ncfed-02.md`

@@ -599,6 +599,19 @@ class FederationService:
                                    peer_as=peer_as, peer_router_id=router_id,
                                    manager=self.manager, is_initiator=True, handlers=self.handlers)
             ch.cred_status = self._cred_status()
+            sslobj = writer.get_extra_info("ssl_object")
+            if self.cert_mode and sslobj is not None:
+                # Dialer-side tier: the TLS handshake proved the LISTENER possesses
+                # the key for the certificate _secure_dial just verified (pin /
+                # domain SAN), which is the same possession property _on_hello
+                # establishes for a dialer. Without this, attestation is only ever
+                # set on the acceptor side, so a listener's endpoint_update /
+                # execution surface is tier-0 forever on every channel it did not
+                # itself dial (observed live 2026-07-18 against both mesh peers,
+                # which silently disabled endpoint_reannounce on dialed channels).
+                from . import tls as _tls
+                ch.attestation = "possession"
+                ch.cert_pem = _tls.peer_leaf_pem(sslobj)
             self._register_channel(ident, ch)
             await ch.start()
             from .negotiate import local_descriptor, normalize
