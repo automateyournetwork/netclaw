@@ -24,7 +24,7 @@ metadata:
 Always start by capturing the full running config for analysis:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_show_running_config '{"device_name":"R1"}'
 ```
 
 Scan the full config for the checks below.
@@ -50,7 +50,7 @@ Scan the full config for the checks below.
 ### Step 3: AAA Configuration
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show aaa servers"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show aaa servers"}'
 ```
 
 **AAA checks in running config:**
@@ -65,7 +65,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 ### Step 4: Access Control Lists
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip access-lists"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip access-lists"}'
 ```
 
 **ACL analysis:**
@@ -84,7 +84,7 @@ Check in running config for:
 - Protection against: ICMP floods, TTL-expired floods, fragmentation attacks, ARP storms
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show policy-map control-plane"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show policy-map control-plane"}'
 ```
 
 ### Step 6: Routing Protocol Security
@@ -127,7 +127,7 @@ Check in running config:
 ### Step 8: Encryption & Credentials
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show crypto key mypubkey rsa"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show crypto key mypubkey rsa"}'
 ```
 
 **Check:**
@@ -141,7 +141,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 ### Step 9: SNMP Security
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show snmp"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show snmp"}'
 ```
 
 **Checks:**

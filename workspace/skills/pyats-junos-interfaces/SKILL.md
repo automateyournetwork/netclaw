@@ -12,7 +12,7 @@ metadata:
 ## How to Call
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"juniper-rtr-01","command":"<command>"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"juniper-rtr-01","command":"<command>"}'
 ```
 
 ---

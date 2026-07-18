@@ -74,7 +74,10 @@ async def _run(tmp_path):
                           manager=FederationManager(base_dir=str(dialer_base)))
     a.manager.local_consent(ACCEPT_AS, ACCEPT_RID)   # dialer consents to acceptor
 
-    async with server:
+    # Not `async with server`: on Python 3.12+ Server.wait_closed() (run by
+    # __aexit__) waits for every connection handler to return — a still-open
+    # channel handler would hang the test forever (seen on the 3.14 host).
+    try:
         # 1. successful dial → endpoint persisted + fresh
         await asyncio.wait_for(a.open_channel(ACCEPT_AS, ACCEPT_RID, "127.0.0.1", port), 15)
         persisted = a.manager.get_peer(ACCEPT_IDENT)
@@ -94,6 +97,8 @@ async def _run(tmp_path):
         assert after_bad["endpoint_host"] == "127.0.0.1"
         assert after_bad["endpoint_port"] == port, "bad dial must not clobber good address"
         assert after_bad["endpoint_updated_at"] == good_freshness
+    finally:
+        server.close()
 
     # 3. simulated restart: fresh manager over the SAME db sees the persisted
     #    address — exactly what the reconnect supervisor reads to auto-redial.

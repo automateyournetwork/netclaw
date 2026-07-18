@@ -25,6 +25,14 @@ author:
     organization: "Automate Your Network"
     email: "ptcapo@gmail.com"
     uri: "https://automateyournetwork.ca"
+ -
+    fullname: "Nicholas Calcutti"
+    email: "calcuttin@gmail.com"
+    uri: "https://nicholascalcutti.substack.com"
+ -
+    fullname: "Byrn Baker"
+    email: "byrn@byrnbaker.me"
+    uri: "https://byrnbaker.me"
 
 normative:
   RFC4271:
@@ -1259,6 +1267,6 @@ result: { "risk": "<risk name>", "trusted": true,
 # Acknowledgments
 {:numbered="false"}
 
-Thanks to the operators of the first three-node NCFED mesh -- Nicholas (AS 65007) and
-Byrn (AS 65099) -- for interoperation testing, and to the reviewers of the NetClaw
-project.
+This protocol is developed and interoperation-tested by its authors on the first
+three-node NCFED mesh (AS 65001, AS 65007, and AS 65099). Thanks to the reviewers of
+the NetClaw project.

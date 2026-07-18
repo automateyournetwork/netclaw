@@ -62,7 +62,11 @@ async def _run(tmp_path):
         assert john.manager.get_peer(nick_ident)["verify_state"] == "verified"
 
         server.close()
-        await server.wait_closed()
+        # No `await server.wait_closed()`: since Python 3.12.1 it waits for
+        # every accepted-connection handler to return, and the live secured
+        # channel keeps nick's handler alive — the test would hang forever
+        # (seen on the 3.14 host). close() stops the listener; asyncio.run
+        # teardown reaps the handler task.
     finally:
         os.environ.pop("N2N_CERT_MODE", None)
 

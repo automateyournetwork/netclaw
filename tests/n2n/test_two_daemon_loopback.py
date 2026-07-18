@@ -66,7 +66,10 @@ async def _federation_end_to_end(tmp_path):
     server = await asyncio.start_server(on_conn, "127.0.0.1", 0)
     port = server.sockets[0].getsockname()[1]
 
-    async with server:
+    # Not `async with server`: on Python 3.12+ Server.wait_closed() (run by
+    # __aexit__) waits for every connection handler to return — a still-open
+    # channel handler would hang the test forever (seen on the 3.14 host).
+    try:
         # Lower-AS side dials
         await initiator.open_channel(65007, "7.7.7.7", "127.0.0.1", port)
         # Let hello + inventory exchange settle
@@ -97,3 +100,5 @@ async def _federation_end_to_end(tmp_path):
         ok = await initiator.sever_local(b_ident)
         assert ok
         assert initiator.manager.get_peer(b_ident)["state"] == PeerState.SEVERED.value
+    finally:
+        server.close()

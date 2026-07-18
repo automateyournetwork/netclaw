@@ -1,3 +1,12 @@
+---
+name: ue5-network-viz
+description: "3D network topology visualization and interactive digital twin in Unreal Engine 5.8 via the built-in UE5 MCP server."
+license: Apache-2.0
+compatibility: "Network: local HTTP/JSON-RPC to the UE5 MCP server only (UE5_MCP_URL, default localhost); no external endpoints."
+metadata:
+  { "openclaw": { "requires": { "bins": ["python3"], "env": ["UE5_MCP_URL"], "network": true } } }
+---
+
 # UE5 Network Visualization Skill
 
 **Version**: 0.2.0

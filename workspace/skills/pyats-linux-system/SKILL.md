@@ -34,7 +34,7 @@ devices:
 All commands use `pyats_run_linux_command`:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"<command>"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"<command>"}'
 ```
 
 ## Commands
@@ -44,7 +44,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 #### List All Running Processes
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ps -ef"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ps -ef"}'
 ```
 
 Returns full process listing: UID, PID, PPID, CPU time, start time, command. Use for capacity planning, runaway process detection, and baseline comparison.
@@ -52,7 +52,7 @@ Returns full process listing: UID, PID, PPID, CPU time, start time, command. Use
 #### Search for Specific Processes
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ps -ef | grep nginx"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ps -ef | grep nginx"}'
 ```
 
 Filter processes by name. Common targets:
@@ -67,7 +67,7 @@ Filter processes by name. Common targets:
 #### Container Resource Usage
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"docker stats --no-stream"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"docker stats --no-stream"}'
 ```
 
 Returns point-in-time container stats: CPU %, memory usage/limit, network I/O, block I/O, PIDs. The `--no-stream` flag captures a single snapshot (no continuous output).
@@ -83,13 +83,13 @@ Returns point-in-time container stats: CPU %, memory usage/limit, network I/O, b
 #### List Files (Current Directory)
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ls -l"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ls -l"}'
 ```
 
 #### List Files (Specific Directory)
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ls -l /var/log"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ls -l /var/log"}'
 ```
 
 Common directories to inspect:
@@ -104,7 +104,7 @@ Common directories to inspect:
 #### Check curl Version and Capabilities
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"curl -V"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"curl -V"}'
 ```
 
 Returns curl version, supported protocols (HTTP, HTTPS, FTP, SFTP, etc.), and TLS library info. Use to verify:
@@ -160,13 +160,13 @@ Run the same command across multiple Linux hosts concurrently using the pCall pa
 
 ```bash
 # Host 1
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"docker stats --no-stream"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"docker stats --no-stream"}'
 
 # Host 2
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-02","command":"docker stats --no-stream"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-02","command":"docker stats --no-stream"}'
 
 # Host 3
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-03","command":"docker stats --no-stream"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-03","command":"docker stats --no-stream"}'
 ```
 
 All hosts execute concurrently. Results aggregated by the agent.

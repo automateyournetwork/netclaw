@@ -148,8 +148,8 @@ Before asking for approval, gather the current state so the human reviewer has c
 
 ```bash
 # Capture pre-change state first
-python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" get_interface_brief '{"device":"core-rtr-01"}'
-python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" get_bgp_summary '{"device":"core-rtr-01"}'
+python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" get_interface_brief '{"device":"core-rtr-01"}'
+python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" get_bgp_summary '{"device":"core-rtr-01"}'
 ```
 
 ### Phase 2: Build Approval Request

@@ -36,7 +36,7 @@ devices:
 All commands use `pyats_run_linux_command`:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"<command>"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"<command>"}'
 ```
 
 ## Commands
@@ -46,7 +46,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 #### List All Virtual Machines
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/getallvms"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/getallvms"}'
 ```
 
 Returns a table of all VMs on the ESXi host:
@@ -72,7 +72,7 @@ Returns a table of all VMs on the ESXi host:
 #### Get VM Snapshots
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/snapshot.get 1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/snapshot.get 1"}'
 ```
 
 The parameter is the **Vmid** from `vim-cmd vmsvc/getallvms`. Returns the snapshot tree for that VM:
@@ -137,13 +137,13 @@ Run VM inventory across multiple ESXi hosts concurrently:
 
 ```bash
 # ESXi Host 1
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/getallvms"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-01","command":"vim-cmd vmsvc/getallvms"}'
 
 # ESXi Host 2
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-02","command":"vim-cmd vmsvc/getallvms"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-02","command":"vim-cmd vmsvc/getallvms"}'
 
 # ESXi Host 3
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-03","command":"vim-cmd vmsvc/getallvms"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"esxi-host-03","command":"vim-cmd vmsvc/getallvms"}'
 ```
 
 For snapshot checks, first collect VM IDs per host, then run snapshot queries in parallel across all VMs.

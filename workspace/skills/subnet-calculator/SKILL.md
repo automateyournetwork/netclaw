@@ -218,5 +218,5 @@ After calculating subnets, use pyats-config-mgmt to apply:
 python3 $MCP_CALL "python3 -u $SUBNET_MCP_SCRIPT" subnet_calculator '{"cidr":"10.1.1.0/30"}'
 
 # Then configure the interface
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_configure_device '{"device_name":"R1","config_commands":["interface GigabitEthernet2","ip address 10.1.1.1 255.255.255.252","no shutdown"]}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_configure_device '{"device_name":"R1","config_commands":["interface GigabitEthernet2","ip address 10.1.1.1 255.255.255.252","no shutdown"]}'
 ```

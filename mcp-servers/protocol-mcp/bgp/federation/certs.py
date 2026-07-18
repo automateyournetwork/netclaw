@@ -142,6 +142,11 @@ def create_risk_ca(risk_name: str, days: int = 730) -> Tuple[str, str]:
             ),
             critical=True,
         )
+        # SKI is required on CA certs by strict X.509 verification, which
+        # Python 3.13+ enables by default (VERIFY_X509_STRICT) — without it,
+        # peers on a modern stack refuse the chain outright.
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(key.public_key()),
+                       critical=False)
         .sign(key, hashes.SHA256())
     )
     return _cert_pem(cert), _key_pem(key)
@@ -171,6 +176,14 @@ def issue_cert(ca_cert_pem: str, ca_key_pem: str, subject_cn: str,
         .not_valid_after(now + datetime.timedelta(days=days))
         .add_extension(_san(san or subject_cn), critical=False)
         .add_extension(x509.BasicConstraints(ca=False, path_length=None), critical=True)
+        # AKI (+SKI) are required on CA-issued leaves by strict X.509
+        # verification, on by default since Python 3.13 — a leaf without AKI
+        # fails with "Missing Authority Key Identifier" on a modern peer.
+        .add_extension(x509.SubjectKeyIdentifier.from_public_key(leaf_key.public_key()),
+                       critical=False)
+        .add_extension(
+            x509.AuthorityKeyIdentifier.from_issuer_public_key(ca_key.public_key()),
+            critical=False)
     )
     if ekus:
         builder = builder.add_extension(x509.ExtendedKeyUsage(ekus), critical=False)

@@ -60,7 +60,12 @@ def test_route_and_delegate_completes(tmp_path):
 
 async def _route_and_delegate(tmp_path):
     border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
-    async with server:
+    # NOTE: not `async with server:` — since Python 3.12.1, Server.wait_closed()
+    # (run by __aexit__) blocks until every accepted connection finishes, and the
+    # member channel here stays open, so the block would never exit (hang seen on
+    # the 3.14 host). close() without wait_closed() is the pre-3.12 semantics
+    # these tests were written against.
+    try:
         # Operator asks the Border; it routes to risk/cml and delegates.
         out = await border.route_and_delegate("cml-lab-lifecycle", "build my lab")
         assert out["member_id"] == "risk/cml"
@@ -81,6 +86,8 @@ async def _route_and_delegate(tmp_path):
         polled = await border.poll_member_task("risk/cml", task_id, kind="result")
         assert polled["state"] == "completed"
         assert "cml-lab-lifecycle" in polled["output_text"]
+    finally:
+        server.close()
     border.manager.close(); member.manager.close()
 
 
@@ -90,9 +97,11 @@ def test_no_capable_member(tmp_path):
 
 async def _no_capable(tmp_path):
     border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
-    async with server:
+    try:
         out = await border.route_and_delegate("something-nobody-has", "x")
         assert out["error"] == "IN2N_ERR_NO_CAPABLE_MEMBER"
+    finally:
+        server.close()
     border.manager.close(); member.manager.close()
 
 
@@ -104,11 +113,13 @@ async def _out_of_scope(tmp_path):
     # Member is enrolled with cml scope, but we ask it (directly) for a capability
     # its runtime scope does not allow → ERR_OUT_OF_SCOPE (FR-023/SC-007).
     border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
-    async with server:
+    try:
         # Force-route a capability the member is NOT scoped to run.
         out = await border.delegate_to_member("risk/cml", "dangerous-config-push", "x")
         assert out["error"] == "out_of_scope"
         assert out["code"] == -32031
+    finally:
+        server.close()
     border.manager.close(); member.manager.close()
 
 

@@ -25,6 +25,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import shutil
 import time
 from pathlib import Path
@@ -252,8 +253,14 @@ async def component_scan(skills: list) -> Tuple[bool, str]:
         if rc == -1:
             return False, f"error:scan failed for {name}"
         low = out.lower()
-        # DefenseClaw exits non-zero, or reports high/critical severity, on a flag.
-        if rc != 0 or "critical" in low or "high severity" in low or "blocked" in low:
+        # DefenseClaw exits non-zero on a flag. Match verdicts, not bare
+        # substrings: 0.8.x prints "blocked=0" in EVERY summary (even CLEAN)
+        # and the word "critical" can appear in finding descriptions, so the
+        # old substring checks flagged clean scans.
+        if (rc != 0
+                or re.search(r"verdict:\s*(critical|high)", low)
+                or re.search(r"\bblocked=[1-9]", low)
+                or "high severity" in low):
             return False, f"flagged:{name}"
     return True, "pass"
 

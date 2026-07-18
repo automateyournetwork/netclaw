@@ -4,8 +4,10 @@
 
 Network Working Group                                      J. Capobianco
 Internet-Draft                                     Automate Your Network
-Intended status: Experimental                               17 July 2026
-Expires: 18 January 2027
+Intended status: Experimental                                N. Calcutti
+Expires: 19 January 2027                                                
+                                                                B. Baker
+                                                            18 July 2026
 
 
            The NetClaw-to-NetClaw Federation Protocol (NCFED)
@@ -51,9 +53,7 @@ About This Document
 
 
 
-
-
-Capobianco               Expires 18 January 2027                [Page 1]
+Capobianco, et al.       Expires 19 January 2027                [Page 1]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -73,7 +73,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on 18 January 2027.
+   This Internet-Draft will expire on 19 January 2027.
 
 Copyright Notice
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Capobianco               Expires 18 January 2027                [Page 2]
+Capobianco, et al.       Expires 19 January 2027                [Page 2]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -143,7 +143,7 @@ Internet-Draft                    NCFED                        July 2026
      C.2.  iN2N methods  . . . . . . . . . . . . . . . . . . . . . .  34
    Changes from draft-capobianco-ncfed-01  . . . . . . . . . . . . .  35
    Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  35
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  35
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  35
 
 1.  Introduction
 
@@ -165,7 +165,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 3]
+Capobianco, et al.       Expires 19 January 2027                [Page 3]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -221,7 +221,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 4]
+Capobianco, et al.       Expires 19 January 2027                [Page 4]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -277,7 +277,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 5]
+Capobianco, et al.       Expires 19 January 2027                [Page 5]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -333,7 +333,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 6]
+Capobianco, et al.       Expires 19 January 2027                [Page 6]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -389,7 +389,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 7]
+Capobianco, et al.       Expires 19 January 2027                [Page 7]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -445,7 +445,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 8]
+Capobianco, et al.       Expires 19 January 2027                [Page 8]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -501,7 +501,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027                [Page 9]
+Capobianco, et al.       Expires 19 January 2027                [Page 9]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -557,7 +557,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 10]
+Capobianco, et al.       Expires 19 January 2027               [Page 10]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -613,7 +613,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 11]
+Capobianco, et al.       Expires 19 January 2027               [Page 11]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -669,7 +669,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 12]
+Capobianco, et al.       Expires 19 January 2027               [Page 12]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -725,7 +725,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 13]
+Capobianco, et al.       Expires 19 January 2027               [Page 13]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -781,7 +781,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 14]
+Capobianco, et al.       Expires 19 January 2027               [Page 14]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -837,7 +837,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 15]
+Capobianco, et al.       Expires 19 January 2027               [Page 15]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -893,7 +893,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 16]
+Capobianco, et al.       Expires 19 January 2027               [Page 16]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -949,7 +949,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 17]
+Capobianco, et al.       Expires 19 January 2027               [Page 17]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1005,7 +1005,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 18]
+Capobianco, et al.       Expires 19 January 2027               [Page 18]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1061,7 +1061,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 19]
+Capobianco, et al.       Expires 19 January 2027               [Page 19]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1117,7 +1117,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 20]
+Capobianco, et al.       Expires 19 January 2027               [Page 20]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1173,7 +1173,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 21]
+Capobianco, et al.       Expires 19 January 2027               [Page 21]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1229,7 +1229,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 22]
+Capobianco, et al.       Expires 19 January 2027               [Page 22]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1285,7 +1285,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 23]
+Capobianco, et al.       Expires 19 January 2027               [Page 23]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1341,7 +1341,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 24]
+Capobianco, et al.       Expires 19 January 2027               [Page 24]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1397,7 +1397,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 25]
+Capobianco, et al.       Expires 19 January 2027               [Page 25]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1453,7 +1453,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 26]
+Capobianco, et al.       Expires 19 January 2027               [Page 26]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1509,7 +1509,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 27]
+Capobianco, et al.       Expires 19 January 2027               [Page 27]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1565,7 +1565,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 28]
+Capobianco, et al.       Expires 19 January 2027               [Page 28]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1621,7 +1621,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 29]
+Capobianco, et al.       Expires 19 January 2027               [Page 29]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1677,7 +1677,7 @@ Appendix B.  Implementation Status
 
 
 
-Capobianco               Expires 18 January 2027               [Page 30]
+Capobianco, et al.       Expires 19 January 2027               [Page 30]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1733,7 +1733,7 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-Capobianco               Expires 18 January 2027               [Page 31]
+Capobianco, et al.       Expires 19 January 2027               [Page 31]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1789,7 +1789,7 @@ Appendix C.  JSON-RPC Method Reference
 
 
 
-Capobianco               Expires 18 January 2027               [Page 32]
+Capobianco, et al.       Expires 19 January 2027               [Page 32]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1845,7 +1845,7 @@ C.1.  eN2N methods
 
 
 
-Capobianco               Expires 18 January 2027               [Page 33]
+Capobianco, et al.       Expires 19 January 2027               [Page 33]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1901,7 +1901,7 @@ C.2.  iN2N methods
 
 
 
-Capobianco               Expires 18 January 2027               [Page 34]
+Capobianco, et al.       Expires 19 January 2027               [Page 34]
 
 Internet-Draft                    NCFED                        July 2026
 
@@ -1936,11 +1936,11 @@ Changes from draft-capobianco-ncfed-01
 
 Acknowledgments
 
-   Thanks to the operators of the first three-node NCFED mesh --
-   Nicholas (AS 65007) and Byrn (AS 65099) -- for interoperation
-   testing, and to the reviewers of the NetClaw project.
+   This protocol is developed and interoperation-tested by its authors
+   on the first three-node NCFED mesh (AS 65001, AS 65007, and AS
+   65099).  Thanks to the reviewers of the NetClaw project.
 
-Author's Address
+Authors' Addresses
 
    John Capobianco
    Automate Your Network
@@ -1948,6 +1948,22 @@ Author's Address
    URI:   https://automateyournetwork.ca
 
 
+   Nicholas Calcutti
+   Email: calcuttin@gmail.com
+   URI:   https://nicholascalcutti.substack.com
+
+
+   Byrn Baker
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 35]
+
+Internet-Draft                    NCFED                        July 2026
+
+
+   Email: byrn@byrnbaker.me
+   URI:   https://byrnbaker.me
 
 
 
@@ -1957,4 +1973,44 @@ Author's Address
 
 
 
-Capobianco               Expires 18 January 2027               [Page 35]
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 36]

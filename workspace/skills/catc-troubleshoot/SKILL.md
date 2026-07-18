@@ -135,7 +135,7 @@ When `$PYATS_MCP_SCRIPT` and `$PYATS_TESTBED_PATH` are available and the device 
 
 ```bash
 # Attempt to connect and get basic state
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UNREACHABLE-SW-01","command":"show ip interface brief"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UNREACHABLE-SW-01","command":"show ip interface brief"}'
 ```
 
 **If pyATS connects but CatC cannot reach the device:**
@@ -149,19 +149,19 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 - Ping from an adjacent device in pyATS:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"UPSTREAM-SW-01","command":"ping 10.1.10.1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"UPSTREAM-SW-01","command":"ping 10.1.10.1"}'
 ```
 
 - Check the upstream switch's interface to the unreachable device:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UPSTREAM-SW-01","command":"show interfaces GigabitEthernet1/0/1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UPSTREAM-SW-01","command":"show interfaces GigabitEthernet1/0/1"}'
 ```
 
 - Check ARP and MAC table on the upstream switch:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UPSTREAM-SW-01","command":"show arp"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"UPSTREAM-SW-01","command":"show arp"}'
 ```
 
 ### Common Root Causes: Device Unreachable
@@ -271,19 +271,19 @@ When CatC data is insufficient (e.g., you need to check port security, 802.1X se
 
 ```bash
 # Check the specific switchport
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show interfaces GigabitEthernet1/0/15"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show interfaces GigabitEthernet1/0/15"}'
 
 # Check authentication sessions (802.1X/MAB)
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show authentication sessions"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show authentication sessions"}'
 
 # Check MAC address table for the client
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show mac address-table"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show mac address-table"}'
 
 # Check DHCP snooping bindings
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show ip dhcp snooping binding"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show ip dhcp snooping binding"}'
 
 # Check port-security
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show port-security"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"ACC-SW-01","command":"show port-security"}'
 ```
 
 ### Common Root Causes: Client Connectivity
@@ -337,19 +337,19 @@ Filter the interface response for:
 
 ```bash
 # Detailed interface statistics
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show interfaces TenGigabitEthernet1/0/1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show interfaces TenGigabitEthernet1/0/1"}'
 
 # Check for recent log messages about the interface
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"DIST-SW-01"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"DIST-SW-01"}'
 
 # Check SFP/transceiver status
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show interfaces transceiver"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show interfaces transceiver"}'
 
 # Check EtherChannel status if applicable
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show etherchannel summary"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show etherchannel summary"}'
 
 # Check spanning-tree for blocked ports
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show spanning-tree"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-01","command":"show spanning-tree"}'
 ```
 
 ### Interface Down Root Causes
@@ -445,19 +445,19 @@ If the distribution/core device is still reachable:
 
 ```bash
 # Check all interfaces on the distribution switch
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip interface brief"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip interface brief"}'
 
 # Check routing table -- are routes to the affected site present?
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip route"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip route"}'
 
 # Check OSPF/BGP adjacencies
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip ospf neighbor"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"DIST-SW-NYC","command":"show ip ospf neighbor"}'
 
 # Check for recent events in the logs
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"DIST-SW-NYC"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_show_logging '{"device_name":"DIST-SW-NYC"}'
 
 # Ping the unreachable access switches from the distribution
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"DIST-SW-NYC","command":"ping 10.1.30.1"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device '{"device_name":"DIST-SW-NYC","command":"ping 10.1.30.1"}'
 ```
 
 ### Site Outage Root Causes

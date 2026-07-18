@@ -35,7 +35,7 @@ devices:
 Use `pyats_run_show_command` with iControl REST API paths:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"bigip-01","command":"show ltm virtual"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"bigip-01","command":"show ltm virtual"}'
 ```
 
 Or for direct REST endpoints, the pyATS F5 connection maps these to iControl REST GETs.

@@ -132,7 +132,7 @@ Run version discovery across all devices, then batch-search NVD for each unique 
 
 ```bash
 # Step 1: Get version from each device
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show version"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show version"}'
 
 # Step 2: Search NVD for each unique version found
 NVD_API_KEY=$NVD_API_KEY python3 $MCP_CALL "python3 -u $NVD_MCP_SCRIPT" search_cve '{"keyword":"Cisco IOS XE 17.9.4","results":20,"concise":true}'

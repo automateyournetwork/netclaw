@@ -86,7 +86,7 @@ NetClaw runs diagnostics and posts results in the thread:
 _Checking upstream device R2 for connectivity to R1..._
 
 PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL \
-  "python3 -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device \
+  "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_ping_from_network_device \
   '{"device_name":"R2","command":"ping 10.1.1.1 repeat 10"}'
 ```
 

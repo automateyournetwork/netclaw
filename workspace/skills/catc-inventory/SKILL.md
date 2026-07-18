@@ -326,7 +326,7 @@ Compare what Catalyst Center reports vs what the device itself reports:
 CCC_HOST=$CCC_HOST CCC_USER=$CCC_USER CCC_PWD=$CCC_PWD python3 $MCP_CALL "python3 -u $CATC_MCP_SCRIPT" fetch_devices '{"hostname":["CORE-SW-01"]}'
 
 # Verify directly from the device
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"CORE-SW-01","command":"show version"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"CORE-SW-01","command":"show version"}'
 ```
 
 **Flag any discrepancy** -- this indicates Catalyst Center inventory is stale and needs a resync.
@@ -340,7 +340,7 @@ Compare Catalyst Center interface data vs live device state:
 CCC_HOST=$CCC_HOST CCC_USER=$CCC_USER CCC_PWD=$CCC_PWD python3 $MCP_CALL "python3 -u $CATC_MCP_SCRIPT" fetch_interfaces '{"device_id":"<UUID>"}'
 
 # Live interface state from the device
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"CORE-SW-01","command":"show ip interface brief"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"CORE-SW-01","command":"show ip interface brief"}'
 ```
 
 **Identify drift:** Interfaces that show UP in Catalyst Center but DOWN on the live device (or vice versa) indicate a polling lag or inventory desync.

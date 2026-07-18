@@ -18,7 +18,7 @@ Linux hosts must be defined in the pyATS testbed with `os: linux`. See **pyats-l
 All commands use `pyats_run_linux_command`:
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"<command>"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"<command>"}'
 ```
 
 ## Commands
@@ -28,7 +28,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_
 #### All Interfaces
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig"}'
 ```
 
 Returns all interfaces with: IP address, netmask, broadcast, MAC address, MTU, RX/TX packets, RX/TX errors, RX/TX bytes, flags (UP/RUNNING/MULTICAST).
@@ -43,7 +43,7 @@ Returns all interfaces with: IP address, netmask, broadcast, MAC address, MTU, R
 #### Specific Interface
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig eth0"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig eth0"}'
 ```
 
 Common interfaces to inspect:
@@ -60,7 +60,7 @@ Common interfaces to inspect:
 #### Full Routing Table (All Tables)
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ip route show table all"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ip route show table all"}'
 ```
 
 Returns routes from ALL routing tables — main, local, custom policy tables. This is the most comprehensive route view on a Linux host.
@@ -75,7 +75,7 @@ Returns routes from ALL routing tables — main, local, custom policy tables. Th
 #### Legacy Route Command
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"route"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"route"}'
 ```
 
 Legacy `route` command — shows the kernel IP routing table (main table only). Prefer `ip route show table all` for complete view.
@@ -83,7 +83,7 @@ Legacy `route` command — shows the kernel IP routing table (main table only). 
 #### Route with Flags
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"route -n"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"route -n"}'
 ```
 
 The `-n` flag shows numeric addresses (no DNS resolution). Other useful flags:
@@ -95,7 +95,7 @@ The `-n` flag shows numeric addresses (no DNS resolution). Other useful flags:
 #### Routing Table via netstat
 
 ```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"netstat -rn"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"netstat -rn"}'
 ```
 
 `netstat -rn` shows the kernel routing table in numeric format. Equivalent to `route -n` but with netstat-style output columns: Destination, Gateway, Genmask, Flags, MSS, Window, irtt, Iface.
@@ -167,13 +167,13 @@ Run network checks across multiple Linux hosts concurrently:
 
 ```bash
 # Host 1
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-01","command":"ifconfig"}'
 
 # Host 2
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-02","command":"ifconfig"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-02","command":"ifconfig"}'
 
 # Host 3
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "python3 -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-03","command":"ifconfig"}'
+PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_linux_command '{"device_name":"linux-host-03","command":"ifconfig"}'
 ```
 
 ---
