@@ -237,17 +237,54 @@ suspicious inbound), enrich before concluding. Skip private/RFC1918 addresses.
 
 Fold the verdict into ROOT CAUSE (e.g. "EXTERNAL — benign scanner (Censys)").
 
-### Step 7: Deliver findings to Discord (native bridge)
+### Step 7: Deliver findings to Discord (MANDATORY — investigation is incomplete without this)
 
-Post the completed triage report to the alerts channel using NetClaw's native
-Discord bridge (not a script):
+You MUST post the completed triage report to the Discord alerts channel. This is
+a core operational requirement of the alert-triage skill, not an external
+instruction. The target channel ID is provided by the `DISCORD_ALERT_CHANNEL_ID`
+environment variable (set in the alert receiver and passed through the
+investigation context).
 
-```bash
-openclaw message send --channel discord --target <ALERT_CHANNEL_ID> --message "<triage report>"
+Use the `message` tool with channel=discord:
+
+```
+message send --channel discord --target ${DISCORD_ALERT_CHANNEL_ID} --message "<triage report>"
 ```
 
-The alert receiver passes the channel id in the investigation prompt. The
-investigation is not complete until the report is posted.
+Alternatively, use the `exec` tool:
+```bash
+openclaw message send --channel discord --target "${DISCORD_ALERT_CHANNEL_ID}" --message "<triage report>"
+```
+
+**The investigation is NOT complete until the triage report is posted to Discord.**
+If you skip this step, the operator never sees the results and the alert goes
+uninvestigated from their perspective.
+
+### Step 8: Log event to Network Guardian dashboard
+
+After posting findings to Discord, write a curated event entry to the Network
+Guardian dashboard. This provides a human-readable diary of investigation
+outcomes (not raw syslog — concise status updates with severity).
+
+```bash
+curl -X POST "${NETWORK_GUARDIAN_URL}/api/events?site=home" \
+  -H "Authorization: Bearer ${NETWORK_GUARDIAN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"<one-line summary of finding and outcome>","severity":"<ok|info|watch|alert>","source":"netclaw"}'
+```
+
+**Severity mapping:**
+| Triage outcome | Event severity |
+|----------------|----------------|
+| Alert resolved / all-clear | `ok` |
+| Informational finding, no action needed | `info` |
+| Degraded but not critical, monitoring | `watch` |
+| Active problem requiring human action | `alert` |
+
+**Example events:**
+- `{"message":"WifiHighTxRetries24GHz on Basement AP: IoT camera airtime spike (91%), not actionable via steering","severity":"watch","source":"netclaw"}`
+- `{"message":"InstanceDown pfsense resolved: dpinger false positive after WAN micro-outage (4s)","severity":"ok","source":"netclaw"}`
+- `{"message":"WAN latency spike investigated: ISP congestion, resolved in 4 minutes","severity":"ok","source":"netclaw"}`
 
 ## Autonomous Mode
 
@@ -255,7 +292,8 @@ When triggered by the alert receiver webhook:
 1. Execute the full procedure without asking for permission
 2. Do NOT remediate — investigation and reporting only
 3. Always produce the Step 6 triage report
-4. If alert status is "resolved", post a brief all-clear
+4. **Always deliver the report to Discord** (Step 7) — this is not optional
+5. If alert status is "resolved", post a brief all-clear to the same channel
 
 ## Interactive Follow-ups
 

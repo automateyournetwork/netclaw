@@ -15,8 +15,9 @@ analysis, evidence, and actionable recommendations (including "add another AP").
 ## When to Use
 
 - User reports slow Wi-Fi, dropped connections, or poor streaming quality
-- Alert fires: `WifiHighTxRetries`, `AccessPointOffline`, `InternetDown`,
-  `WanHighLatency`, `WanHighLoss`, `SpeedtestBelowSLA`
+- Alert fires: `WifiHighTxRetries24GHz`, `WifiHighTxRetries5GHz`,
+  `WifiHighTxRetries6GHz`, `WifiTxRetriesCritical`, `AccessPointOffline`,
+  `InternetDown`, `WanHighLatency`, `WanHighLoss`, `SpeedtestBelowSLA`
 - User asks "why is my Wi-Fi slow?", "should I add an AP?", "is it the ISP?"
 - User asks to troubleshoot a specific AP or client segment
 - Periodic health review of the wireless network
@@ -243,6 +244,29 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
 
 ### Step 3: Diagnose and recommend
 
+**Before recommending band steering or min-RSSI, VERIFY their current state:**
+
+Use the `unifi-network` MCP server to check the actual AP/WLAN configuration:
+
+```
+# Check band steering / WiFi AI settings on the affected AP
+unifi_get_device_settings(device_mac="<ap_mac>")
+
+# Check WLAN/SSID settings (band steering is often per-SSID)
+unifi_list_wlan_configs(site="default")
+```
+
+Key settings to look for:
+- **Band steering mode** — `off`, `prefer_5g`, `balanced`, or `forced_5g`
+- **Min-RSSI** — enabled/disabled and threshold value (e.g., -75 dBm)
+- **802.11k/v/r roaming assistance** — enabled or disabled per SSID
+- **2.4 GHz TX power** — auto vs fixed (lower power = fewer distant clients stick)
+
+**Include the CURRENT state in your report.** Don't recommend "enable band
+steering" if it's already on — instead note that it's on but insufficient
+(suggest reducing 2.4 TX power or adding an AP). If it's OFF, flag it as a
+quick win.
+
 **Common patterns and recommendations:**
 
 | Observation | Likely cause | Recommendation |
@@ -343,11 +367,52 @@ the overloaded zone and the underserved area).
 
 ## Alerts That May Trigger This Skill
 
+### Band-Aware TX Retry Alerts (per-band thresholds)
+
+| Alert | Band | Threshold | Severity | First action |
+|-------|------|-----------|----------|--------------|
+| `WifiHighTxRetries24GHz` | 2.4 GHz | >35% for 10m | warning | Check for new interference, misbehaving client, or channel congestion beyond normal IoT noise |
+| `WifiHighTxRetries5GHz` | 5 GHz | >15% for 10m | warning | Check client density; DFS radar events in logs; AP placement/coverage |
+| `WifiHighTxRetries6GHz` | 6 GHz | >10% for 10m | warning | Check firmware; client compatibility; this band should be near-zero |
+| `WifiTxRetriesCritical` | Any | >35% for 10m | critical | Full diagnosis workflow — clients severely impacted |
+
+### Degraded Tier (informational, no autonomous triage)
+
+| Alert | Band | Threshold | Meaning |
+|-------|------|-----------|---------|
+| `WifiDegraded24GHz` | 2.4 GHz | >20% for 30m | Chronic congestion; track time-of-day correlation |
+| `WifiDegraded5GHz` | 5 GHz | >10% for 30m | Worth monitoring; investigate if sustained across hours |
+
+### Other Alerts
+
 | Alert | Meaning | First action |
 |-------|---------|--------------|
-| `WifiHighTxRetries` | TX retries >35% for 10m on a band | Check client count + both bands; correlate with time-of-day patterns |
 | `AccessPointOffline` | AP offline 5m | Check uplink (switch port), AP CPU/mem before it went down, reboot history |
 | `InternetDown` | All WAN probes fail 2m | Check pfSense gateway status, dpinger logs, ISP outage |
 | `WanHighLatency` | >80ms avg WAN RTT 5m | Speedtest to ISP-local server; dpinger; check for WAN saturation |
 | `SpeedtestBelowSLA` | <70% of 1 Gbps for 2h | Compare ISP-local vs other servers; file ISP ticket with evidence |
 | `UniFiExporterDown` | No Wi-Fi data 10m | Check the exporter pod + API key + VLAN13→controller firewall rule |
+
+## Log Event to Network Guardian Dashboard
+
+After completing a diagnosis (autonomous or interactive), write a curated event
+to the Network Guardian dashboard. This builds a human-readable diary of Wi-Fi
+health investigations — not raw metrics, but concise outcome summaries.
+
+```bash
+curl -X POST "${NETWORK_GUARDIAN_URL}/api/events?site=home" \
+  -H "Authorization: Bearer ${NETWORK_GUARDIAN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{"message":"<one-line summary>","severity":"<ok|info|watch|alert>","source":"netclaw"}'
+```
+
+**Severity badges:**
+- **ok** (green) — issue resolved or confirmed benign
+- **info** (blue) — informational finding, no action needed
+- **watch** (amber) — degraded/monitoring, not yet actionable
+- **alert** (red) — active problem requiring human intervention
+
+**Example events for Wi-Fi diagnosis:**
+- `{"message":"WifiHighTxRetries24GHz Basement AP: IoT camera on Wi-Fi instead of CAT5, airtime 91% — needs physical fix","severity":"watch","source":"netclaw"}`
+- `{"message":"Client imbalance resolved: min-RSSI enabled, clients rebalancing across APs","severity":"ok","source":"netclaw"}`
+- `{"message":"5GHz retries elevated on Sophie's Office AP: 14 clients on DFS channel, monitoring","severity":"info","source":"netclaw"}`
