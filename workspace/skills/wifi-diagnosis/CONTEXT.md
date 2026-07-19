@@ -164,7 +164,12 @@ UniFi exporter (metrics) → Prometheus (rule eval) → Alertmanager → NetClaw
 ```
 
 Alerts that trigger this skill:
-- `WifiHighTxRetries` — TX retries >35% for 10m
+- `WifiHighTxRetries24GHz` — 2.4 GHz TX retries >35% for 10m (warning)
+- `WifiHighTxRetries5GHz` — 5 GHz TX retries >15% for 10m (warning)
+- `WifiHighTxRetries6GHz` — 6 GHz TX retries >10% for 10m (warning)
+- `WifiTxRetriesCritical` — any band TX retries >35% for 10m (critical)
+- `WifiDegraded24GHz` — 2.4 GHz TX retries >20% for 30m (info, no triage)
+- `WifiDegraded5GHz` — 5 GHz TX retries >10% for 30m (info, no triage)
 - `AccessPointOffline` — AP down 5m
 - `InternetDown` — all WAN probes fail 2m
 - `WanHighLatency` — avg WAN RTT >80ms for 5m

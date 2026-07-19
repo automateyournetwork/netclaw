@@ -1,0 +1,142 @@
+# Prometheus alerting rules for band-aware Wi-Fi TX retry monitoring.
+#
+# Replaces the single flat WifiHighTxRetries (>35% all bands) with band-specific
+# thresholds that account for 2.4 GHz being inherently noisier than 5 GHz.
+#
+# Install on the OBS VM: drop into the Prometheus rules dir (referenced by
+# `rule_files:` in prometheus.yml), then reload:
+#   curl -X POST http://192.168.3.250:9090/-/reload
+#
+# NOTE: The `band` label comes from unifi-exporter and will contain values like
+# "2.4GHz", "5GHz", or "6GHz". Adjust the regex if your exporter uses different
+# label values (e.g., "2g", "5g").
+
+groups:
+  - name: wifi-tx-retries-band-aware
+    rules:
+
+      # ─────────────────────────────────────────────────────────────────────────
+      # OPTION 1: Band-specific critical alerts (replaces the flat 35% rule)
+      # ─────────────────────────────────────────────────────────────────────────
+
+      # 2.4 GHz — fires at 35% sustained for 10m.
+      # Rationale: 2.4 GHz is always noisier (neighbors, IoT, crowded spectrum).
+      # IoT-only devices (cameras, smart plugs) with no 5 GHz radio will keep
+      # retries elevated as expected background load. 35% means clients are
+      # genuinely experiencing severe degradation beyond normal IoT noise.
+      - alert: WifiHighTxRetries24GHz
+        expr: unifi_radio_tx_retries_pct{band=~"2.4.*"} > 35
+        for: 10m
+        labels:
+          severity: warning
+          service: network-guardian
+          band: "2.4GHz"
+        annotations:
+          summary: "2.4 GHz TX retries > 35% on {{ $labels.device }} ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            The 2.4 GHz radio on {{ $labels.device }} has sustained TX retries
+            above 35% for 10 minutes. At this level, clients experience severe
+            degradation beyond normal IoT background noise. Investigate: new
+            interference source, channel congestion, or a misbehaving client
+            consuming excessive airtime.
+          runbook: "wifi-diagnosis skill → Step 2.3 (TX retries analysis)"
+
+      # 5 GHz — fires at 15% sustained for 10m.
+      # Rationale: 5 GHz is cleaner spectrum; >15% sustained is a strong signal
+      # of a real problem (overloaded AP, DFS radar, hidden node, or clients at
+      # edge of coverage).
+      - alert: WifiHighTxRetries5GHz
+        expr: unifi_radio_tx_retries_pct{band=~"5.*"} > 15
+        for: 10m
+        labels:
+          severity: warning
+          service: network-guardian
+          band: "5GHz"
+        annotations:
+          summary: "5 GHz TX retries > 15% on {{ $labels.device }} ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            The 5 GHz radio on {{ $labels.device }} has sustained TX retries
+            above 15% for 10 minutes. 5 GHz spectrum is less congested than 2.4,
+            so this typically indicates too many clients on this AP, a DFS radar
+            event forcing channel changes, or clients at the edge of coverage.
+            Investigate client count and consider adding an AP.
+          runbook: "wifi-diagnosis skill → Step 2.3 (TX retries analysis)"
+
+      # 6 GHz (Wi-Fi 6E) — fires at 10% sustained for 10m.
+      # Rationale: 6 GHz is pristine spectrum with no legacy devices. Any
+      # meaningful retry rate here indicates a real problem (hardware, firmware,
+      # or extreme density).
+      - alert: WifiHighTxRetries6GHz
+        expr: unifi_radio_tx_retries_pct{band=~"6.*"} > 10
+        for: 10m
+        labels:
+          severity: warning
+          service: network-guardian
+          band: "6GHz"
+        annotations:
+          summary: "6 GHz TX retries > 10% on {{ $labels.device }} ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            The 6 GHz radio on {{ $labels.device }} has sustained TX retries
+            above 10% for 10 minutes. 6 GHz should be near-zero interference;
+            investigate AP firmware, client compatibility, or hardware issues.
+          runbook: "wifi-diagnosis skill → Step 2.3 (TX retries analysis)"
+
+      # Critical tier — any band hits the "problematic" threshold.
+      # This replaces the original WifiHighTxRetries at 35% but keeps it as
+      # the escalation path (warning → critical).
+      - alert: WifiTxRetriesCritical
+        expr: unifi_radio_tx_retries_pct > 35
+        for: 10m
+        labels:
+          severity: critical
+          service: network-guardian
+        annotations:
+          summary: "TX retries CRITICAL > 35% on {{ $labels.device }} / {{ $labels.band }} ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            TX retries on {{ $labels.device }} ({{ $labels.band }}) have exceeded
+            35% for 10 minutes. This is the "problematic" threshold — clients are
+            experiencing severe degradation. Likely causes: RF interference, far
+            too many clients, or clients at extreme edge of coverage. Immediate
+            investigation required.
+          runbook: "wifi-diagnosis skill → full diagnosis workflow"
+
+      # ─────────────────────────────────────────────────────────────────────────
+      # OPTION 2: Degraded-but-not-critical warning tier
+      # ─────────────────────────────────────────────────────────────────────────
+      # A softer "heads up" that posts to an informational channel (e.g., Discord
+      # #wifi-health) without triggering full autonomous triage. Useful for
+      # tracking chronic degradation that doesn't yet warrant an investigation.
+
+      # 2.4 GHz degraded — 20% for 30m (longer duration = not a transient spike)
+      - alert: WifiDegraded24GHz
+        expr: unifi_radio_tx_retries_pct{band=~"2.4.*"} > 20
+        for: 30m
+        labels:
+          severity: info
+          service: network-guardian
+          band: "2.4GHz"
+          tier: degraded
+        annotations:
+          summary: "2.4 GHz degraded: TX retries > 20% on {{ $labels.device }} for 30m ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            Sustained 20%+ TX retries on {{ $labels.device }} 2.4 GHz for 30
+            minutes. Not yet critical but indicates chronic congestion. Track
+            whether this correlates with time-of-day (neighbor APs active in
+            evening) or specific device additions. No autonomous triage triggered
+            — informational only.
+
+      # 5 GHz degraded — 10% for 30m
+      - alert: WifiDegraded5GHz
+        expr: unifi_radio_tx_retries_pct{band=~"5.*"} > 10
+        for: 30m
+        labels:
+          severity: info
+          service: network-guardian
+          band: "5GHz"
+          tier: degraded
+        annotations:
+          summary: "5 GHz degraded: TX retries > 10% on {{ $labels.device }} for 30m ({{ $value | printf \"%.1f\" }}%)"
+          description: >
+            Sustained 10%+ TX retries on {{ $labels.device }} 5 GHz for 30
+            minutes. Worth monitoring — if this becomes sustained across multiple
+            hours, investigate client density or interference sources.
