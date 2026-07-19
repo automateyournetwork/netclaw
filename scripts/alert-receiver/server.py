@@ -51,6 +51,13 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # the receiver's immediate "alert received" notice.
 DISCORD_ALERT_CHANNEL_ID = os.getenv("DISCORD_ALERT_CHANNEL_ID", "")
 
+# Alerts to suppress from the Discord webhook (known noise, not worth human attention).
+# Comma-separated alert names. These still trigger investigation if the gateway is
+# configured — they just don't post the "alert received" notice to Discord.
+DISCORD_SUPPRESS_ALERTS = set(
+    a.strip() for a in os.getenv("DISCORD_SUPPRESS_ALERTS", "").split(",") if a.strip()
+)
+
 # Network Guardian dashboard — curated event diary for investigation outcomes.
 # When configured, the receiver POSTs events to the Guardian API so customers
 # and operators see investigation results in the dashboard.
@@ -488,9 +495,13 @@ async def trigger_netclaw(alert: Alert, device_info: dict):
         log.warning("No OpenClaw gateway configured — logging investigation prompt")
         log.info(f"INVESTIGATION PROMPT:\n{message}")
 
-    # Post to Discord if configured
+    # Post to Discord if configured — but suppress known-noise alerts that don't
+    # warrant human attention or investigation (they just clutter the channel).
     if DISCORD_WEBHOOK_URL and alert.status == "firing":
-        await post_discord(alert, device_info)
+        if alert.labels.alertname not in DISCORD_SUPPRESS_ALERTS:
+            await post_discord(alert, device_info)
+        else:
+            log.info(f"Discord suppressed for {alert.labels.alertname} (in suppress list)")
 
     # Post event to Network Guardian dashboard diary
     await post_guardian_event(alert, device_info)
