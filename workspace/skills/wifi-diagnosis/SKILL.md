@@ -1,12 +1,9 @@
 ---
 name: wifi-diagnosis
 description: "Diagnose Wi-Fi and internet connectivity issues using the Network Guardian observability data. Analyzes UniFi AP metrics, WAN health, speedtests, and client distribution to identify problems (high retries, AP imbalance, capacity, ISP degradation) and recommend actions."
-version: 1.0.0
-license: Apache-2.0
-author: netclaw
-tags: [wifi, wireless, unifi, wan, speedtest, observability, diagnosis, network-guardian]
-priority: 10
-mcp_servers: [prometheus-mcp, unifi-network, pfsense-mcp, pyats-mcp]
+user-invocable: true
+metadata:
+  { "openclaw": { "requires": { "bins": ["python3"], "env": ["PROMETHEUS_URL"] } } }
 ---
 
 # Wi-Fi & Internet Diagnosis (Network Guardian)
@@ -45,7 +42,6 @@ k3s-server-1 redirect, or through pfSense port-forward if configured).
 ## Available Metrics
 
 ### Wi-Fi / UniFi (from unifi-exporter → Prometheus)
-
 | Metric | Labels | Meaning |
 |--------|--------|---------|
 | `unifi_up` | `site` | 1 = exporter can reach the UniFi controller |
@@ -62,7 +58,6 @@ k3s-server-1 redirect, or through pfSense port-forward if configured).
 | `unifi_site_clients_guest` | `site` | Guest-network clients |
 
 ### WAN / Internet health (from blackbox → Prometheus)
-
 | Metric | Labels | Meaning |
 |--------|--------|---------|
 | `probe_success` | `job`, `target`, `instance` | 1 = probe succeeded |
@@ -72,7 +67,6 @@ k3s-server-1 redirect, or through pfSense port-forward if configured).
 | `guardian:wan_loss_ratio:5m` | `site` | Fraction of failed probes (0-1) |
 
 ### WAN Bandwidth (speedtest → Pushgateway → Prometheus)
-
 | Metric | Labels | Meaning |
 |--------|--------|---------|
 | `speedtest_download_bits_per_second` | `server`, `provider`, `location` | Last download rate |
@@ -83,7 +77,6 @@ k3s-server-1 redirect, or through pfSense port-forward if configured).
 | `speedtest_up` | (same) | 1 = test succeeded |
 
 ### WAN Interface throughput (SNMP → VictoriaMetrics)
-
 | Metric | Labels | Meaning |
 |--------|--------|---------|
 | `interface_octets_in_bytes_total` | `device_name="pfsense"`, `interface_name` | WAN download counter |
@@ -91,7 +84,6 @@ k3s-server-1 redirect, or through pfSense port-forward if configured).
 | Use `rate(...[5m])*8` to get bits/sec. Default WAN interface: `igc0.201`. |
 
 ### Logs (Loki, for context/evidence)
-
 | Query pattern | What it returns |
 |---------------|-----------------|
 | `{device_name="unifi"}` | UniFi OS syslog — CEF-format Wi-Fi client lifecycle events |
@@ -139,13 +131,13 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
 {device_name="unifi"} |~ "Client Connected" |~ "Basement"
 
 # Flap detection: disconnect + reconnect to SAME AP within minutes
+# (look for the same AP name in both disconnect and connect within a window)
 {device_name="unifi"} |~ "Client (Connected|Disconnected)" |~ "Basement"
 ```
 
 ## Diagnosis Workflow
 
 ### Step 1: Categorize the complaint
-
 - **Slow Wi-Fi for one device** → likely client-side or AP-overload
 - **Slow for everyone** → AP problem, WAN problem, or ISP
 - **Intermittent drops** → interference, channel congestion, or flapping
@@ -222,13 +214,13 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
    ```logql
    # Are clients roaming at all? Count roam events in the last 6h:
    sum(count_over_time({device_name="unifi"} |~ "Client Roamed" [6h]))
-
+   
    # Where do roaming clients go? (direction)
    {device_name="unifi"} |~ "Client Roamed"
-
+   
    # How often do clients disconnect from the overloaded AP?
    {device_name="unifi"} |~ "Client Disconnected" |~ "Basement"
-
+   
    # Are clients flapping (disconnect + reconnect to same AP)?
    {device_name="unifi"} |~ "Client (Connected|Disconnected)" |~ "Basement"
    ```
@@ -265,7 +257,6 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
 | Speedtest good on ISP-local, poor on cloud | Upstream peering/routing issue | Not directly actionable; document for the ISP, try a different cloud provider region. |
 
 **"Should I add another AP?" decision tree:**
-
 1. Is one AP serving >70% of total clients? → Yes (imbalance)
 2. Are TX retries on that AP's 5 GHz band >15% sustained? → Yes (density problem)
 3. Is the AP's CPU >60% regularly? → Yes (hardware saturation)
@@ -286,49 +277,69 @@ the overloaded zone and the underserved area).
   MCP for a client-level lookup or check pfSense NetFlow data for that client's IP.
 - **Roaming events:** ✅ **AVAILABLE** in UniFi syslog (Loki, `device_name="unifi"`,
   event 402 "WiFi Client Roamed"). Use LogQL to count and analyze roaming direction.
+  This was previously listed as unavailable — it IS available via the SIEM syslog
+  integration, not the metrics API.
 - **Disconnect reasons (deauth codes):** the CEF log includes the event but not the
   IEEE 802.11 reason code. If you need deauth reasons, check the UniFi controller
   UI or enable debug logging (not recommended in production).
 - **Physical environment:** no data tells you about walls, floors, microwaves, or
   new neighbor APs. When interference is suspected (both bands degraded, sudden
-  onset), recommend an RF scan as the investigative step.
+  onset), recommend an RF scan as the investigative step.## Example Triage (Real Scenario)
 
-## Required MCP Servers
+**User says:** "Wi-Fi is slow in the basement, my MacBook keeps buffering."
 
-| MCP Server | Purpose |
-|-----------|---------|
-| **unifi-network** | Ad-hoc queries to the UniFi controller (list clients, device details, trigger RF scans, radio config) |
-| **pfsense** | Firewall rules, gateway status, ARP/DHCP, connectivity diagnostics, interface info |
-| **pyats-mcp** | Switch show commands (interface status, CDP neighbors, VLAN verify) — HomeSwitch01/02/03 |
+**Your analysis:**
+1. `guardian:health_score` = 99 → WAN is fine, not an internet issue
+2. `unifi_ap_clients{device="U6-Pro - Basement..."}` = 27, Sophie's Office = 7 →
+   heavy imbalance, Basement AP serves 80% of clients
+3. `unifi_radio_tx_retries_pct{device="U6-Pro - Basement...", band="2.4GHz"}` = 23% →
+   degraded (many IoT devices on 2.4 GHz)
+4. `unifi_radio_tx_retries_pct{device="U6-Pro - Basement...", band="5GHz"}` = 13% →
+   borderline; if the MacBook is on 5 GHz and still slow, the AP is loaded
+5. `speedtest_download_bits_per_second` = 910 Mbps → ISP is delivering fine
+6. **Logs (roaming analysis):**
+   - `count_over_time({device_name="unifi"} |~ "Client Roamed" [6h])` = 3 events →
+     very few roams (should be dozens with 34 clients moving around a house)
+   - `{device_name="unifi"} |~ "Client Roamed"` → all 3 roams were TO Sophie's
+     Office, none FROM Sophie's Office back to Basement → one-directional, confirms
+     clients near Sophie's AP eventually leave Basement, but most stay stuck
+   - `count_over_time({device_name="unifi"} |~ "Client Disconnected" |~ "Basement" [6h])` = 8 →
+     some clients are being dropped from Basement (signal edge?) but reconnecting
+     to the same AP (not roaming to Sophie's)
 
-### Optional (enrichment)
+**Diagnosis:**
+> The Basement AP is overloaded (27 clients, 23% 2.4 GHz retries, 13% 5 GHz retries).
+> Roaming logs confirm clients are **not roaming away** from the Basement AP — only
+> 3 roam events in 6 hours, and clients that disconnect from Basement reconnect to
+> the same AP rather than Sophie's Office. This proves the second AP's coverage
+> doesn't reach most of the house adequately enough to trigger a roam.
+>
+> The MacBook is likely on 5 GHz but competing with other 5 GHz clients on that AP,
+> and when it experiences weak signal at the edge of coverage, it stays stuck rather
+> than roaming because it has nowhere better to go.
 
-| MCP Server | Purpose |
-|-----------|---------|
-| **nautobot-mcp-v2** | Source of truth: device inventory, VLANs, IP prefixes, cabling |
-| **proxmox** | VM status (is the UniFi controller VM healthy?) |
-| **rancher** | K3s pod status (is the unifi-exporter / OTel / Prometheus running?) |
+**Recommendations:**
+1. **Short-term:** Enable min-RSSI on the Basement AP (e.g., -75 dBm) — forces
+   weak-signal clients to disassociate, giving them a chance to find a better AP.
+   Enable band steering to push capable devices to 5 GHz and free 2.4 for IoT.
+2. **Medium-term:** **Add a third AP** on the main floor between basement and
+   Sophie's office — this provides a stepping-stone that gives clients something
+   to roam *to*, reduces client density on Basement, and improves coverage overlap.
+3. **Consider 802.11k/v roaming assistance** — if not already enabled, this helps
+   clients discover nearby APs proactively rather than waiting for signal to degrade.
+4. **Verify:** After changes, monitor:
+   - `unifi_radio_tx_retries_pct` should drop on Basement bands
+   - `unifi_ap_clients` should rebalance (more clients on the new/office AP)
+   - Roaming events in Loki should increase
+   Track for 24-48h to confirm sustained improvement.
 
-## Network Topology (relevant to Wi-Fi)
+## Grafana Dashboards for Context
 
-```
-ISP (1 Gbps symmetric, Lumen/CenturyLink)
-  → pfSense (igc0.201 WAN, 192.168.100.1 gateway)
-    → HomeSwitch01/02 (Cisco 3850, core, VLAN 3 management)
-      → U6-Pro Basement Laundry Room (192.168.3.15, ~27 clients)
-      → U6-Pro Sophie's Office (192.168.3.16, ~7 clients)
-    → K3s cluster (VLAN 13, observability stack)
-      → unifi-exporter → Prometheus → Alertmanager → NetClaw webhook
-    → UniFi OS Server VM (192.168.100.10:11443, VLAN 100)
-```
-
-**Key facts:**
-- APs are on VLAN 3 (management), clients bridge to their respective VLANs
-- The UniFi controller VM is on VLAN 100 (HomeLan)
-- The observability stack is on VLAN 13 (K3s)
-- pfSense rule 95 allows VLAN13 → controller:11443 (exporter path)
-- WAN interface confirmed: `igc0.201`
-- ISP: Lumen/CenturyLink, Denver CO, 1 Gbps symmetric
+| Dashboard | UID | Shows |
+|-----------|-----|-------|
+| Network Guardian — Home Pilot | `network-guardian` | KPIs, latency/loss, throughput, AP table, TX retries, events, speedtest |
+| WAN Speedtest — Bandwidth Validation | `wan-speedtest` | Per-server download/upload history, latency, jitter, packet loss |
+| Network Interfaces | `network-interfaces` | All pfSense interface throughput/errors (deeper than the WAN panel) |
 
 ## Alerts That May Trigger This Skill
 
@@ -340,51 +351,3 @@ ISP (1 Gbps symmetric, Lumen/CenturyLink)
 | `WanHighLatency` | >80ms avg WAN RTT 5m | Speedtest to ISP-local server; dpinger; check for WAN saturation |
 | `SpeedtestBelowSLA` | <70% of 1 Gbps for 2h | Compare ISP-local vs other servers; file ISP ticket with evidence |
 | `UniFiExporterDown` | No Wi-Fi data 10m | Check the exporter pod + API key + VLAN13→controller firewall rule |
-
-## Grafana Dashboards for Context
-
-| Dashboard | UID | Shows |
-|-----------|-----|-------|
-| Network Guardian — Home Pilot | `network-guardian` | KPIs, latency/loss, throughput, AP table, TX retries, events, speedtest |
-| WAN Speedtest — Bandwidth Validation | `wan-speedtest` | Per-server download/upload history, latency, jitter, packet loss |
-| Network Interfaces | `network-interfaces` | All pfSense interface throughput/errors (deeper than the WAN panel) |
-
-## Example Triage (Real Scenario)
-
-**User says:** "Wi-Fi is slow in the basement, my MacBook keeps buffering."
-
-**Analysis:**
-1. `guardian:health_score` = 99 → WAN is fine, not an internet issue
-2. `unifi_ap_clients{device="U6-Pro - Basement..."}` = 27, Sophie's Office = 7 →
-   heavy imbalance, Basement AP serves 80% of clients
-3. `unifi_radio_tx_retries_pct{device="U6-Pro - Basement...", band="2.4GHz"}` = 23% →
-   degraded (many IoT devices on 2.4 GHz)
-4. `unifi_radio_tx_retries_pct{device="U6-Pro - Basement...", band="5GHz"}` = 13% →
-   borderline; if the MacBook is on 5 GHz and still slow, the AP is loaded
-5. `speedtest_download_bits_per_second` = 910 Mbps → ISP is delivering fine
-6. **Logs (roaming analysis):**
-   - `count_over_time({device_name="unifi"} |~ "Client Roamed" [6h])` = 3 events →
-     very few roams
-   - All 3 roams were TO Sophie's Office, none FROM Sophie's Office back to Basement
-   - `count_over_time({device_name="unifi"} |~ "Client Disconnected" |~ "Basement" [6h])` = 8 →
-     some clients being dropped but reconnecting to same AP (not roaming)
-
-**Diagnosis:**
-> The Basement AP is overloaded (27 clients, 23% 2.4 GHz retries, 13% 5 GHz retries).
-> Roaming logs confirm clients are **not roaming away** from the Basement AP — only
-> 3 roam events in 6 hours, and clients that disconnect reconnect to the same AP.
-> Coverage from Sophie's Office doesn't reach most of the house adequately.
-
-**Recommendations:**
-1. **Short-term:** Enable min-RSSI on the Basement AP (-75 dBm). Enable band steering.
-2. **Medium-term:** **Add a third AP** on the main floor between basement and
-   Sophie's office for coverage overlap and load balancing.
-3. **Consider 802.11k/v roaming assistance** if not already enabled.
-4. **Verify:** After changes, monitor TX retries + AP clients + roaming events for 24-48h.
-
-## Environment Variables
-
-| Variable | Value | Purpose |
-|----------|-------|---------|
-| `PROMETHEUS_URL` | `http://192.168.13.X:9090` (or port-forward) | PromQL queries |
-| `LOKI_URL` | `http://192.168.13.X:3100` (or port-forward) | LogQL queries |
