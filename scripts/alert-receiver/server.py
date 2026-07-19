@@ -716,31 +716,112 @@ async def snapshot_to_rag(request: Request):
     if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
         return {"status": "error", "message": "NETWORK_GUARDIAN_URL/TOKEN not configured"}
 
-    # 1. Read the full event from Guardian API
+    # 1. Read the event from Guardian API
     try:
         async with httpx.AsyncClient(timeout=10) as client:
+            # Get events and find the one we need
             resp = await client.get(
-                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit=1&status=resolved",
+                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit=100",
                 headers={"Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}"},
             )
-            # TODO: need a GET /api/events/:id endpoint for single event fetch
-            # For now, this is a placeholder — the full implementation requires
-            # the RAG MCP to be running and accessible from the alert-receiver.
             if resp.status_code != 200:
                 return {"status": "error", "message": f"Guardian API returned {resp.status_code}"}
 
+            events = resp.json().get("events", [])
+            event = next((e for e in events if e.get("id") == event_id), None)
+            if not event:
+                return {"status": "error", "message": f"Event {event_id} not found"}
     except Exception as e:
         return {"status": "error", "message": f"Failed to read event: {e}"}
 
-    # 2. Build narrative for RAG ingestion
-    # (Placeholder — requires RAG MCP integration)
-    log.info(f"Snapshot requested for event {event_id} — RAG ingestion not yet wired")
+    # 2. Build narrative document for RAG
+    parts = []
+    parts.append(f"# Investigation: {event.get('alert_name', 'Unknown Alert')}")
+    parts.append(f"Site: {site}")
+    parts.append(f"Date: {event.get('timestamp', 'unknown')}")
+    parts.append(f"Category: {event.get('category', 'general')}")
+    parts.append(f"Severity: {event.get('severity', 'info')}")
+    parts.append("")
+    parts.append(f"## Alert Summary")
+    parts.append(event.get("message", "No message"))
+    parts.append("")
+    if event.get("investigation_notes"):
+        parts.append("## Investigation Notes")
+        parts.append(event["investigation_notes"])
+        parts.append("")
+    if event.get("root_cause"):
+        parts.append(f"## Root Cause")
+        parts.append(event["root_cause"])
+        parts.append("")
+    if event.get("expert_feedback"):
+        parts.append("## Expert Feedback")
+        parts.append(event["expert_feedback"])
+        parts.append(f"Quality rating: {event.get('feedback_quality', 'unrated')}")
+        parts.append("")
 
-    return {
-        "status": "pending",
-        "message": "Snapshot requested — RAG MCP ingestion not yet wired (requires mcp-servers/rag-mcp running)",
-        "event_id": event_id,
-    }
+    content = "\n".join(parts)
+    label = event.get("alert_name", "investigation").replace(" ", "-").lower()
+
+    # 3. Call RAG snapshot directly (same machine, import the module)
+    try:
+        rag_path = REPO_ROOT / "mcp-servers" / "rag-mcp"
+        if str(rag_path) not in sys.path:
+            sys.path.insert(0, str(rag_path))
+
+        from rag_mcp_server import rag_snapshot as _rag_snapshot
+
+        result = _rag_snapshot(
+            label=label,
+            content=content,
+            source_description=f"Network Guardian investigation: {event.get('alert_name', 'unknown')}",
+            devices=[],
+            commands=[],
+        )
+
+        # Check if ingestion succeeded
+        if result.get("success"):
+            snapshot_id = result.get("data", {}).get("snapshot_id")
+            log.info(f"RAG snapshot created: {snapshot_id} for event {event_id}")
+
+            # 4. PATCH the Guardian event with the RAG document ID
+            async with httpx.AsyncClient(timeout=10) as client:
+                patch_resp = await client.patch(
+                    f"{NETWORK_GUARDIAN_URL}/api/events/{event_id}?site={site}",
+                    json={"rag_document_id": snapshot_id},
+                    headers={
+                        "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
+                        "Content-Type": "application/json",
+                    },
+                )
+                if patch_resp.status_code == 200:
+                    log.info(f"Guardian event {event_id} linked to RAG snapshot {snapshot_id}")
+                else:
+                    log.warning(f"Failed to PATCH Guardian event: {patch_resp.status_code}")
+
+            return {
+                "status": "success",
+                "snapshot_id": snapshot_id,
+                "collection": result.get("data", {}).get("collection"),
+                "chunk_count": result.get("data", {}).get("chunk_count"),
+                "event_id": event_id,
+            }
+        else:
+            error = result.get("error", {})
+            return {
+                "status": "error",
+                "message": f"RAG ingestion failed: {error.get('message', 'unknown')}",
+                "code": error.get("code"),
+            }
+    except ImportError as e:
+        log.error(f"Cannot import rag-mcp: {e} — is it installed?")
+        return {
+            "status": "error",
+            "message": "RAG MCP not available (not installed or models not cached). "
+                       "Run: pip install -e mcp-servers/rag-mcp",
+        }
+    except Exception as e:
+        log.error(f"RAG snapshot error: {e}")
+        return {"status": "error", "message": f"Snapshot failed: {e}"}
 
 
 # ---------------------------------------------------------------------------
