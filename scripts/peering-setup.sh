@@ -81,11 +81,15 @@ daemon_start() {
     # Pull only the daemon's keys from .env — values may contain JSON, and
     # other .env lines have unquoted spaces that break plain `source`.
     log_info "Starting mesh BGP daemon..."
-    env $(grep -E "^(NETCLAW_ROUTER_ID|NETCLAW_LOCAL_AS|NETCLAW_LAB_MODE|NETCLAW_MESH_ENABLED|NETCLAW_MESH_OPEN|BGP_LISTEN_PORT|BGP_API_PORT|N2N_ENABLED|N2N_DISPLAY_NAME|N2N_RATE_PER_MIN|N2N_DAILY_REQUESTS|N2N_DAILY_TOKENS|N2N_ROLE|N2N_RISK_NAME|N2N_RISK_DESCRIPTION|N2N_ENABLED_STACKS|N2N_IN2N_PORT|N2N_RISK_MODE|N2N_BORDER_ENDPOINT|N2N_QUARANTINE_THRESHOLD)=" "$OPENCLAW_ENV") \
+    env $(grep -E "^(NETCLAW_ROUTER_ID|NETCLAW_LOCAL_AS|NETCLAW_LAB_MODE|NETCLAW_MESH_ENABLED|NETCLAW_MESH_OPEN|BGP_LISTEN_PORT|BGP_API_PORT|N2N_ENABLED|N2N_DISPLAY_NAME|N2N_RATE_PER_MIN|N2N_DAILY_REQUESTS|N2N_DAILY_TOKENS|N2N_ROLE|N2N_RISK_NAME|N2N_RISK_DESCRIPTION|N2N_ENABLED_STACKS|N2N_IN2N_PORT|N2N_RISK_MODE|N2N_BORDER_ENDPOINT|N2N_QUARANTINE_THRESHOLD|N2N_CERT_MODE|N2N_CLAW_DOMAIN|N2N_ACME_DNS_PROVIDER|N2N_ACME_EMAIL|N2N_ACME_STAGING|N2N_ACME_RESOLVERS|CLOUDFLARE_DNS_API_TOKEN)=" "$OPENCLAW_ENV") \
         NETCLAW_BGP_PEERS="$(env_get NETCLAW_BGP_PEERS)" \
         nohup python3 "$BGP_DAEMON" >> "$DAEMON_OUT" 2>&1 &
     local pid=$!
     sleep 3
+
+    # Make the mesh log world-readable so rsyslog (user syslog) can forward it
+    # to the OBS stack. The daemon recreates the file on start, so re-apply here.
+    chmod 644 /tmp/bgp-daemon-v2.log 2>/dev/null || true
 
     if daemon_running; then
         log_info "Mesh daemon running (pid $pid)"
