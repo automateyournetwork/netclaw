@@ -6,9 +6,9 @@
     "defaults": {
       "workspace": "~/.openclaw/workspace",
       "model": {
-        "primary": "anthropic/claude-opus-4-6",
+        "primary": "${NETCLAW_BRAIN_MODEL}",
         "fallbacks": [
-          "anthropic/claude-sonnet-4-6"
+          "anthropic/claude-sonnet-5"
         ]
       }
     }
@@ -618,6 +618,35 @@
         "SKETCHFAB_API_KEY": "${SKETCHFAB_API_KEY}"
       }
     },
+    "pfsense-mcp": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/gensecaihq/pfsense-mcp-server",
+        "pfsense-mcp-server"
+      ],
+      "env": {
+        "PFSENSE_URL": "${PFSENSE_URL}",
+        "PFSENSE_VERSION": "${PFSENSE_VERSION}",
+        "AUTH_METHOD": "${PFSENSE_AUTH_METHOD}",
+        "PFSENSE_API_KEY": "${PFSENSE_API_KEY}",
+        "VERIFY_SSL": "${PFSENSE_VERIFY_SSL:-false}"
+      }
+    },
+    "unifi-network": {
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/chris2ao/unifi-mcp",
+        "unifi-mcp"
+      ],
+      "env": {
+        "UNIFI_HOST": "${UNIFI_HOST}",
+        "UNIFI_API_KEY": "${UNIFI_API_KEY}",
+        "UNIFI_SITE": "${UNIFI_SITE:-default}",
+        "UNIFI_VERIFY_SSL": "${UNIFI_VERIFY_SSL:-false}"
+      }
+    },
     "n2n-mcp": {
       "command": "python3",
       "args": [
@@ -645,6 +674,43 @@
         "RAG_CRAWL_MAX_PAGES": "${RAG_CRAWL_MAX_PAGES:-30}",
         "RAG_SNAPSHOT_WARN_DAYS": "${RAG_SNAPSHOT_WARN_DAYS:-90}",
         "RAG_MAX_ROUNDS": "${RAG_MAX_ROUNDS:-3}"
+      }
+    }
+  },
+  "models": {
+    "mode": "merge",
+    "providers": {
+      "anthropic": {
+        "baseUrl": "https://api.anthropic.com",
+        "api": "anthropic",
+        "apiKey": "${ANTHROPIC_API_KEY}",
+        "models": [
+          {
+            "id": "claude-sonnet-5",
+            "name": "claude-sonnet-5",
+            "reasoning": true,
+            "input": [
+              "text",
+              "image"
+            ],
+            "cost": {
+              "input": 2,
+              "output": 10,
+              "cacheRead": 0.2,
+              "cacheWrite": 2.5
+            },
+            "contextWindow": 200000,
+            "maxTokens": 64000
+          }
+        ]
+      }
+    }
+  },
+  "auth": {
+    "profiles": {
+      "anthropic:default": {
+        "provider": "anthropic",
+        "mode": "api_key"
       }
     }
   }
