@@ -3144,8 +3144,23 @@ async function boot() {
     setLoading(36, 'Spinning up scene');
     initScene();
 
-    // Build local core — shifted left to make room for peer cores
-    const hasPeers = state.bgp?.available && state.bgp.peers.length > 0;
+    // Build local core — shifted left to make room for peer cores.
+    // NCFED overlay claws with a live channel render as claw cores even when
+    // their direct BGP session is down: the overlay (not BGP) carries chat/
+    // tasks/inventory, and claw BGP sessions are inbound-only here — so a
+    // fully federated claw was invisible whenever the BGP leg was down.
+    const bgpScenePeers = state.bgp?.available ? state.bgp.peers : [];
+    const overlayScenePeers = (state.n2n?.peers || [])
+      .filter((p) => p.channel_state === 'up')
+      .map((p) => {
+        const m = /^as(\d+)-(.+)$/.exec(p.identity || '') || [];
+        return { type: 'claw', as: Number(m[1]) || undefined,
+                 routerId: m[2] || p.identity, peer: p.identity,
+                 displayName: p.display_name, state: 'Overlay', overlayOnly: true };
+      })
+      .filter((p) => p.as && !bgpScenePeers.some((b) => Number(b.as) === Number(p.as)));
+    const scenePeers = [...bgpScenePeers, ...overlayScenePeers];
+    const hasPeers = scenePeers.length > 0;
     const localPos = hasPeers ? CORE_POSITIONS.local : new THREE.Vector3(0, 0, 0);
     // 056: a Border claw is the amber center of its risk; else default cyan.
     const _isBorder = state.n2n?.risk?.role === 'border';
@@ -3166,7 +3181,7 @@ async function boot() {
 
     // Build peer cores as equal central nodes
     if (hasPeers) {
-      const uniquePeers = deduplicatePeers(state.bgp.peers);
+      const uniquePeers = deduplicatePeers(scenePeers);
       const peerPositions = [CORE_POSITIONS.peer1, CORE_POSITIONS.peer2, CORE_POSITIONS.peer3];
       uniquePeers.slice(0, 3).forEach((peer, i) => {
         const isClaw = peer.type === 'claw';

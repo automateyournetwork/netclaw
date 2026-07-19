@@ -1113,6 +1113,51 @@ before the tunnel) or on an underlay where the operator holds the keys (e.g.,
 WireGuard); such a capture is future work and is the recommended way to demonstrate
 the frame-level behavior specified in {{framing}} and {{handshake}} directly.
 
+**Loopback discrimination and handshake conformance (AS 65099).** The frame- and
+handshake-level behavior that the tunnel capture above could not expose was verified
+directly against the reference daemon on its cleartext loopback listen port, before
+any TLS upgrade, with a purpose-built client (`ncfed-conformance-test.py` in the
+project repository). Observed results, each matching this specification:
+
+* {{discrimination}} discrimination. A first octet of 0x00 (unrecognized), a direct
+  TLS ClientHello (first octet 0x16), and 'N' followed by an unknown four-octet magic
+  ("NXXXX") were each closed by the acceptor with no bytes returned. A first octet of
+  0xFF was handed to the BGP engine and the connection was held open awaiting the
+  remainder of the 16-octet BGP marker. Only the "NCFED" magic advanced to the
+  federation handshake. This confirms, on the wire, that a direct TLS connection to
+  the shared port is refused (the STARTTLS-style in-place upgrade of
+  {{channel-sec-tls}} is the only path to TLS), as {{discrimination}} requires.
+
+* {{handshake}} handshake, consent gate. A connection presenting the "NCFED" magic
+  and the AS/router-id of a consented peer (`as65001-4.4.4.4`) received the
+  acceptor's 13-octet handshake reply ("NCFED" + the acceptor's AS + router-id). A
+  connection presenting a non-consented stranger identity (and, separately, the
+  acceptor's own identity, for which no peer-consent record exists) was closed with
+  zero bytes returned.
+
+* Implementation-vs-specification note ({{handshake}}). The reference implementation
+  closes a non-consented peer **without sending any handshake reply**, which is
+  stricter than the text of {{handshake}} ("MUST close the connection after its
+  handshake reply ... without issuing a nonce"): the implementation never reveals its
+  own AS and router-id to a peer it has not consented to. This is the safer behavior
+  -- it avoids leaking the acceptor's identity to an unconsented caller -- and a
+  future revision of this document SHOULD relax {{handshake}} to permit an acceptor
+  to close a non-consented connection without any handshake reply.
+
+* {{channel-sec-tls}} in-place TLS upgrade. Continuing the consented-peer handshake,
+  the channel upgraded in place to TLS 1.3 with cipher suite TLS_AES_256_GCM_SHA384;
+  the acceptor presented its domain-verified certificate (subject CN
+  `netclaw.byrnbaker.me`), confirming both the STARTTLS-style upgrade and the
+  domain-verified trust model of {{channel-sec-models}} on the live channel.
+
+* {{framing}} framing bound. The receive path reads a five-octet header (four-octet
+  big-endian length + one-octet flags) and closes the channel when the length field
+  exceeds 65536. This was exercised inadvertently but informatively in production
+  before the dialer-tier fix (below): a peer's TLS ClientHello, misread as an NCFED
+  frame header during a transient sequencing bug, produced a length field of
+  0x16030102 (369295618) and the channel was closed as oversized exactly as
+  {{framing}} requires.
+
 **Resolved since `-00`.** The peer-authentication gap that `-00` documented as a
 limitation is closed in this revision and implemented: eN2N and iN2N are now
 cryptographically, mutually authenticated ({{channel-sec}}, {{trust-in2n}}), and the
@@ -1120,6 +1165,19 @@ iN2N quarantine denial-of-service is fixed by per-source failed-authentication
 accounting ({{seccons-tofu}}). A reported forged-handshake impersonation of a
 consented, tool-granted peer was reproduced on a two-daemon loopback and is closed by
 the possession proof and admission tiers of {{channel-sec}}.
+
+**Dialer-side admission tier ({{channel-sec-tiers}}), resolved.** An earlier build
+granted the possession tier only on the acceptor side of a channel, leaving the
+listener role on a channel the local node had **dialed** stuck at the self-asserted
+tier indefinitely. Because endpoint update ({{operational}}) is denied at the
+self-asserted tier, this silently rejected a dialed peer's endpoint re-announcements
+-- observed in production as a consented peer re-announcing a rotated tunnel endpoint
+roughly every 30 seconds with the announcements refused, so the direct BGP session
+never re-formed at the new endpoint. The fix grants the possession tier to a
+TLS-verified listener on a dialed channel as well; after it was deployed across the
+live mesh, a peer's rotated endpoint announcement was accepted and the direct BGP
+session re-established at the new endpoint on the first re-dial, verified end to end
+between AS 65099 and AS 65001.
 
 **Known limitations recorded for a future revision.** The following gaps remain in the
 current implementation and are targeted for a future NCFED revision:

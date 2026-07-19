@@ -93,7 +93,7 @@ PY
 # EnvironmentFile; fall back to mesh.systemd.env, then to ~/.openclaw/.env for a
 # non-systemd (dev) claw.
 ENVF="$(systemctl --user cat netclaw-mesh.service 2>/dev/null \
-        | sed -n 's/^EnvironmentFile=-\{0,1\}//p' | head -1)"
+        | sed -n 's/^EnvironmentFile=-\{0,1\}//p' | head -1 || true)"
 [ -z "$ENVF" ] && ENVF="$HOME/.openclaw/mesh.systemd.env"
 [ -f "$ENVF" ] || ENVF="$HOME/.openclaw/.env"
 touch "$ENVF"

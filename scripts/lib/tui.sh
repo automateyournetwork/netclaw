@@ -76,9 +76,14 @@ _tui_cleanup() { printf '\033[?25h'; stty echo 2>/dev/null || true; }
 # ── single-select menu ───────────────────────────────────────────
 # tui_menu "Title" "opt1" "opt2" ...  → sets TUI_CHOICE to selected index (0-based)
 # returns 1 if aborted
+# Scrolls inside a viewport sized to the terminal (like tui_checklist), so a
+# menu with more options than the window has rows never scrolls the screen —
+# reserving one line per option breaks the cursor-up redraw once the list is
+# taller than the terminal.
 tui_menu() {
     local title="$1"; shift
     local opts=("$@") cur=0 i key
+    local total=${#opts[@]} top=0 rows view line idx
     TUI_CHOICE=-1
 
     if ! tui_is_tty; then
@@ -87,27 +92,42 @@ tui_menu() {
         return 0
     fi
 
+    rows=$(tput lines 2>/dev/null || echo 24)
+    view=$((rows - 6)); [ "$view" -lt 3 ] && view=3; [ "$view" -gt "$total" ] && view=$total
+
     trap _tui_cleanup EXIT
     printf '\033[?25l'
     echo -e "  ${T_BOLD}${title}${T_NC}"
     echo -e "  ${T_DIM}↑/↓ move · Enter select · q quit${T_NC}"
     echo ""
-    # reserve lines
-    for i in "${!opts[@]}"; do echo ""; done
+    # reserve viewport + footer
+    for i in $(seq 1 $((view + 1))); do echo ""; done
     while true; do
-        printf '\033[%dA' "${#opts[@]}"
-        for i in "${!opts[@]}"; do
+        # keep cursor in viewport
+        [ "$cur" -lt "$top" ] && top=$cur
+        [ "$cur" -ge $((top + view)) ] && top=$((cur - view + 1))
+
+        printf '\033[%dA' $((view + 1))
+        for line in $(seq 0 $((view - 1))); do
+            idx=$((top + line))
             printf '\033[2K'
-            if [ "$i" -eq "$cur" ]; then
-                echo -e "   ${T_PINK}${T_BOLD}❯ ${opts[$i]}${T_NC}"
+            if [ "$idx" -ge "$total" ]; then echo ""; continue; fi
+            if [ "$idx" -eq "$cur" ]; then
+                echo -e "   ${T_PINK}${T_BOLD}❯ ${opts[$idx]}${T_NC}"
             else
-                echo -e "     ${opts[$i]}"
+                echo -e "     ${opts[$idx]}"
             fi
         done
+        printf '\033[2K'
+        if [ "$total" -gt "$view" ]; then
+            echo -e "  ${T_DIM}showing $((top + 1))-$(( top + view > total ? total : top + view )) of ${total}${T_NC}"
+        else
+            echo ""
+        fi
         key=$(tui_read_key)
         case "$key" in
-            up)    cur=$(( (cur + ${#opts[@]} - 1) % ${#opts[@]} )) ;;
-            down)  cur=$(( (cur + 1) % ${#opts[@]} )) ;;
+            up)    cur=$(( (cur + total - 1) % total )) ;;
+            down)  cur=$(( (cur + 1) % total )) ;;
             enter) TUI_CHOICE=$cur; printf '\033[?25h'; echo ""; return 0 ;;
             quit|esc) printf '\033[?25h'; echo ""; return 1 ;;
         esac

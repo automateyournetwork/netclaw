@@ -283,33 +283,49 @@ for t in tcp:
 }
 
 # ── N2N chat viewer ───────────────────────────────────────────────
+# Single-pass scan of all transcripts, newest activity first, into
+# parallel arrays: CHAT_FILES (path), CHAT_LABELS ("id  peers  N msgs  HH:MM"),
+# CHAT_DAYS (YYYY-MM-DD of last activity — the menu groups by this).
+chats_scan() {
+    CHAT_FILES=(); CHAT_LABELS=(); CHAT_DAYS=()
+    ls "$CHATS_DIR"/*.txt >/dev/null 2>&1 || return 1
+    local day label f
+    while IFS=$'\t' read -r day label f; do
+        CHAT_DAYS+=("$day"); CHAT_LABELS+=("$label"); CHAT_FILES+=("$f")
+    done < <(python3 - "$CHATS_DIR" <<'PY'
+import datetime, glob, os, re, sys
+files = sorted(glob.glob(os.path.join(sys.argv[1], "*.txt")),
+               key=os.path.getmtime, reverse=True)
+for f in files:
+    sid = os.path.basename(f)[:-4]
+    peers, msgs = [], 0
+    with open(f, errors="replace") as fh:
+        for line in fh:
+            m = re.match(r"\S+ \[([^\]]+)\]", line)
+            if m:
+                msgs += 1
+                if m.group(1) not in peers: peers.append(m.group(1))
+    mt = datetime.datetime.fromtimestamp(os.path.getmtime(f))
+    print("%s\t%s  %-45s %3d msgs  %s\t%s" % (
+        mt.strftime("%Y-%m-%d"), sid[:8],
+        ",".join(peers)[:45] or "-", msgs, mt.strftime("%H:%M"), f))
+PY
+)
+    [ ${#CHAT_FILES[@]} -gt 0 ]
+}
+
 chats_list() {
-    if ! ls "$CHATS_DIR"/*.txt >/dev/null 2>&1; then
+    if ! chats_scan; then
         echo -e "  ${T_DIM}No N2N chat sessions found in $CHATS_DIR${T_NC}"
         return 1
     fi
-    CHAT_FILES=()
-    while IFS= read -r f; do CHAT_FILES+=("$f"); done \
-        < <(ls -1t "$CHATS_DIR"/*.txt)
-    CHAT_LABELS=()
-    local f
-    for f in "${CHAT_FILES[@]}"; do
-        CHAT_LABELS+=("$(python3 - "$f" <<'PY'
-import os, re, sys
-f = sys.argv[1]
-sid = os.path.basename(f)[:-4]
-peers, msgs = [], 0
-with open(f, errors="replace") as fh:
-    for line in fh:
-        m = re.match(r"\S+ \[([^\]]+)\]", line)
-        if m:
-            msgs += 1
-            if m.group(1) not in peers: peers.append(m.group(1))
-import datetime
-mtime = datetime.datetime.fromtimestamp(os.path.getmtime(f)).strftime("%m-%d %H:%M")
-print("%s  %-45s %3d msgs  %s" % (sid[:8], ",".join(peers)[:45] or "-", msgs, mtime))
-PY
-)")
+    local i last=""
+    for i in "${!CHAT_FILES[@]}"; do
+        if [ "${CHAT_DAYS[$i]}" != "$last" ]; then
+            last="${CHAT_DAYS[$i]}"
+            echo -e "  ${T_PINK}${T_BOLD}${last}${T_NC}"
+        fi
+        echo "    ${CHAT_LABELS[$i]}"
     done
 }
 
@@ -318,7 +334,10 @@ chat_tail() {
     echo ""
     echo -e "  ${T_BOLD}$(basename "$f" .txt)${T_NC}  ${T_DIM}(live — Ctrl+C to go back)${T_NC}"
     echo ""
-    tail -n 40 "$f" | render_md
+    # initial backlog sized to the window, not a fixed 40 lines
+    local rows
+    rows=$(tput lines 2>/dev/null || echo 24)
+    tail -n $(( rows > 10 ? rows - 6 : 5 )) "$f" | render_md
     # poll (not `tail -f`) so new content lands in complete chunks —
     # render_md needs whole blocks to detect multi-line markdown tables.
     #
@@ -387,21 +406,52 @@ chats_watch() {
 chats_menu() {
     while true; do
         clear
-        local have_chats=0
-        chats_list || have_chats=1
-        local opts=("▶ Watch for new activity (live)")
-        [ "$have_chats" -eq 0 ] && opts+=("${CHAT_LABELS[@]}")
-        opts+=("← Back")
-        tui_menu "N2N chat sessions (newest first)" "${opts[@]}" || return 0
-        if [ "$TUI_CHOICE" -eq 0 ]; then
-            chats_watch
-            continue
-        fi
-        local idx=$((TUI_CHOICE - 1))
-        if [ "$have_chats" -ne 0 ] || [ "$idx" -ge "${#CHAT_FILES[@]}" ]; then
+        if ! chats_scan; then
+            echo -e "  ${T_DIM}No N2N chat sessions found in $CHATS_DIR${T_NC}"
+            echo ""
+            tui_menu "N2N chat sessions" "▶ Watch for new activity (live)" "← Back" || return 0
+            [ "$TUI_CHOICE" -eq 0 ] && { chats_watch; continue; }
             return 0
         fi
-        chat_tail "${CHAT_FILES[$idx]}"
+        # distinct days, newest first, with per-day session counts
+        local days=() d i n
+        for d in "${CHAT_DAYS[@]}"; do
+            case " ${days[*]-} " in *" $d "*) ;; *) days+=("$d") ;; esac
+        done
+        local latest="${CHAT_LABELS[0]%%  *}"
+        local opts=("▶ Watch for new activity (live)" "▶ Latest session ${latest} (live tail)")
+        local suffix
+        for d in "${days[@]}"; do
+            n=0
+            for i in "${!CHAT_DAYS[@]}"; do [ "${CHAT_DAYS[$i]}" = "$d" ] && n=$((n + 1)); done
+            suffix="sessions"; [ "$n" -eq 1 ] && suffix="session"
+            opts+=("$d  ·  $n $suffix")
+        done
+        opts+=("← Back")
+        tui_menu "N2N chat sessions (by day, newest first)" "${opts[@]}" || return 0
+        case "$TUI_CHOICE" in
+            0) chats_watch; continue ;;
+            1) chat_tail "${CHAT_FILES[0]}"; continue ;;
+        esac
+        local di=$((TUI_CHOICE - 2))
+        [ "$di" -ge "${#days[@]}" ] && return 0
+        chats_day_menu "${days[$di]}"
+    done
+}
+
+chats_day_menu() {
+    local day="$1"
+    while true; do
+        clear
+        local opts=() map=() i
+        for i in "${!CHAT_FILES[@]}"; do
+            [ "${CHAT_DAYS[$i]}" = "$day" ] || continue
+            opts+=("${CHAT_LABELS[$i]}"); map+=("$i")
+        done
+        opts+=("← Back")
+        tui_menu "N2N chats — $day (newest first)" "${opts[@]}" || return 0
+        [ "$TUI_CHOICE" -ge "${#map[@]}" ] && return 0
+        chat_tail "${CHAT_FILES[${map[$TUI_CHOICE]}]}"
     done
 }
 
@@ -621,7 +671,6 @@ case "${1:-}" in
             chat_tail "$f"
         else
             chats_list || exit 0
-            for l in "${CHAT_LABELS[@]}"; do echo "  $l"; done
             echo ""
             echo -e "  ${T_DIM}netclaw chats <id-prefix> to tail one${T_NC}"
         fi ;;

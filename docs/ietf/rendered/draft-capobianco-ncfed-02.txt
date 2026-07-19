@@ -138,12 +138,12 @@ Internet-Draft                    NCFED                        July 2026
      16.2.  Informative References . . . . . . . . . . . . . . . . .  29
    Appendix A.  Prior Art and Design Rationale . . . . . . . . . . .  30
    Appendix B.  Implementation Status  . . . . . . . . . . . . . . .  30
-   Appendix C.  JSON-RPC Method Reference  . . . . . . . . . . . . .  32
-     C.1.  eN2N methods  . . . . . . . . . . . . . . . . . . . . . .  33
-     C.2.  iN2N methods  . . . . . . . . . . . . . . . . . . . . . .  34
-   Changes from draft-capobianco-ncfed-01  . . . . . . . . . . . . .  35
-   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  35
-   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  35
+   Appendix C.  JSON-RPC Method Reference  . . . . . . . . . . . . .  34
+     C.1.  eN2N methods  . . . . . . . . . . . . . . . . . . . . . .  34
+     C.2.  iN2N methods  . . . . . . . . . . . . . . . . . . . . . .  35
+   Changes from draft-capobianco-ncfed-01  . . . . . . . . . . . . .  36
+   Acknowledgments . . . . . . . . . . . . . . . . . . . . . . . . .  37
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  37
 
 1.  Introduction
 
@@ -1746,6 +1746,67 @@ Internet-Draft                    NCFED                        July 2026
    is the recommended way to demonstrate the frame-level behavior
    specified in Section 7 and Section 5 directly.
 
+   *Loopback discrimination and handshake conformance (AS 65099).* The
+   frame- and handshake-level behavior that the tunnel capture above
+   could not expose was verified directly against the reference daemon
+   on its cleartext loopback listen port, before any TLS upgrade, with a
+   purpose-built client (ncfed-conformance-test.py in the project
+   repository).  Observed results, each matching this specification:
+
+   *  Section 4 discrimination.  A first octet of 0x00 (unrecognized), a
+      direct TLS ClientHello (first octet 0x16), and 'N' followed by an
+      unknown four-octet magic ("NXXXX") were each closed by the
+      acceptor with no bytes returned.  A first octet of 0xFF was handed
+      to the BGP engine and the connection was held open awaiting the
+      remainder of the 16-octet BGP marker.  Only the "NCFED" magic
+      advanced to the federation handshake.  This confirms, on the wire,
+      that a direct TLS connection to the shared port is refused (the
+      STARTTLS-style in-place upgrade of Section 6.1 is the only path to
+      TLS), as Section 4 requires.
+
+   *  Section 5 handshake, consent gate.  A connection presenting the
+      "NCFED" magic and the AS/router-id of a consented peer
+      (as65001-4.4.4.4) received the acceptor's 13-octet handshake reply
+      ("NCFED" + the acceptor's AS + router-id).  A connection
+      presenting a non-consented stranger identity (and, separately, the
+      acceptor's own identity, for which no peer-consent record exists)
+      was closed with zero bytes returned.
+
+   *  Implementation-vs-specification note (Section 5).  The reference
+      implementation closes a non-consented peer *without sending any
+      handshake reply*, which is stricter than the text of Section 5
+      ("MUST close the connection after its handshake reply ... without
+      issuing a nonce"): the implementation never reveals its own AS and
+      router-id to a peer it has not consented to.  This is the safer
+      behavior -- it avoids leaking the acceptor's identity to an
+      unconsented caller -- and a future revision of this document
+      SHOULD relax Section 5 to permit an acceptor to close a non-
+      consented connection without any handshake reply.
+
+   *  Section 6.1 in-place TLS upgrade.  Continuing the consented-peer
+      handshake, the channel upgraded in place to TLS 1.3 with cipher
+      suite TLS_AES_256_GCM_SHA384; the acceptor presented its domain-
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 32]
+
+Internet-Draft                    NCFED                        July 2026
+
+
+      verified certificate (subject CN netclaw.byrnbaker.me), confirming
+      both the STARTTLS-style upgrade and the domain-verified trust
+      model of Section 6.2 on the live channel.
+
+   *  Section 7 framing bound.  The receive path reads a five-octet
+      header (four-octet big-endian length + one-octet flags) and closes
+      the channel when the length field exceeds 65536.  This was
+      exercised inadvertently but informatively in production before the
+      dialer-tier fix (below): a peer's TLS ClientHello, misread as an
+      NCFED frame header during a transient sequencing bug, produced a
+      length field of 0x16030102 (369295618) and the channel was closed
+      as oversized exactly as Section 7 requires.
+
    *Resolved since -00.* The peer-authentication gap that -00 documented
    as a limitation is closed in this revision and implemented: eN2N and
    iN2N are now cryptographically, mutually authenticated (Section 6,
@@ -1754,6 +1815,21 @@ Internet-Draft                    NCFED                        July 2026
    reported forged-handshake impersonation of a consented, tool-granted
    peer was reproduced on a two-daemon loopback and is closed by the
    possession proof and admission tiers of Section 6.
+
+   *Dialer-side admission tier (Section 6.4), resolved.* An earlier
+   build granted the possession tier only on the acceptor side of a
+   channel, leaving the listener role on a channel the local node had
+   *dialed* stuck at the self-asserted tier indefinitely.  Because
+   endpoint update (Section 13) is denied at the self-asserted tier,
+   this silently rejected a dialed peer's endpoint re-announcements --
+   observed in production as a consented peer re-announcing a rotated
+   tunnel endpoint roughly every 30 seconds with the announcements
+   refused, so the direct BGP session never re-formed at the new
+   endpoint.  The fix grants the possession tier to a TLS-verified
+   listener on a dialed channel as well; after it was deployed across
+   the live mesh, a peer's rotated endpoint announcement was accepted
+   and the direct BGP session re-established at the new endpoint on the
+   first re-dial, verified end to end between AS 65099 and AS 65001.
 
    *Known limitations recorded for a future revision.* The following
    gaps remain in the current implementation and are targeted for a
@@ -1765,6 +1841,14 @@ Internet-Draft                    NCFED                        July 2026
    *  The tool and task method families carry no delegation hop count,
       and task-retrieval methods do not verify caller ownership.  See
       Section 14.6.
+
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 33]
+
+Internet-Draft                    NCFED                        July 2026
+
 
    *  MEMBER_ID_TAKEN (-32022) is defined but not yet emitted; the
       condition is currently reported as ENROLL_TOKEN_INVALID (-32021).
@@ -1786,14 +1870,6 @@ Appendix C.  JSON-RPC Method Reference
    signature is a lowercase hexadecimal string of a DER-encoded ECDSA
    signature [RFC6090] over the relevant nonce; a certificate is PEM-
    encoded [RFC5280]; a key fingerprint is the lowercase hexadecimal
-
-
-
-Capobianco, et al.       Expires 19 January 2027               [Page 32]
-
-Internet-Draft                    NCFED                        July 2026
-
-
    SHA-256 [RFC6234] of the certificate's SubjectPublicKeyInfo
    [RFC5480].  Examples are illustrative.
 
@@ -1823,6 +1899,13 @@ C.1.  eN2N methods
    from the named server.  Authorization failures use the codes of
    Section 9.3.
 
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 34]
+
+Internet-Draft                    NCFED                        July 2026
+
+
    params: { "tool":       "<server_id>/<tool_name>",
              "arguments":  { ...tool-specific JSON... },
              "request_id": "as65001-192.0.2.1:42" }
@@ -1836,19 +1919,6 @@ C.1.  eN2N methods
 
    n2n/tasks/status, n2n/tasks/result, n2n/tasks/cancel -- each takes
    params: { "task_id": "<opaque string>" } and returns:
-
-
-
-
-
-
-
-
-
-Capobianco, et al.       Expires 19 January 2027               [Page 33]
-
-Internet-Draft                    NCFED                        July 2026
-
 
    status: {
      "task_id": "...", "target": "<skill-name>",
@@ -1877,6 +1947,21 @@ C.2.  iN2N methods
    failure; ENROLL_TOKEN_INVALID (-32021) for a spent or expired token,
    or a member identifier already pinned to another key (Section 9.3).
 
+
+
+
+
+
+
+
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 35]
+
+Internet-Draft                    NCFED                        July 2026
+
+
    params: { "token":             "in2n_<url-safe random>",
              "member_id":         "<risk-local id>",
              "cert_pem":          "-----BEGIN CERTIFICATE----- ...",
@@ -1895,16 +1980,6 @@ C.2.  iN2N methods
              "signature":       "<hex DER ECDSA over the nonce>" }
    result: { "risk": "<risk name>", "trusted": true,
              "member_state": "active" }
-
-
-
-
-
-
-Capobianco, et al.       Expires 19 January 2027               [Page 34]
-
-Internet-Draft                    NCFED                        July 2026
-
 
 Changes from draft-capobianco-ncfed-01
 
@@ -1934,6 +2009,15 @@ Changes from draft-capobianco-ncfed-01
       guidance -- persist the last successfully authenticated endpoint;
       never overwrite it on a failed dial.
 
+
+
+
+
+Capobianco, et al.       Expires 19 January 2027               [Page 36]
+
+Internet-Draft                    NCFED                        July 2026
+
+
 Acknowledgments
 
    This protocol is developed and interoperation-tested by its authors
@@ -1954,14 +2038,6 @@ Authors' Addresses
 
 
    Byrn Baker
-
-
-
-Capobianco, et al.       Expires 19 January 2027               [Page 35]
-
-Internet-Draft                    NCFED                        July 2026
-
-
    Email: byrn@byrnbaker.me
    URI:   https://byrnbaker.me
 
@@ -1993,24 +2069,4 @@ Internet-Draft                    NCFED                        July 2026
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-Capobianco, et al.       Expires 19 January 2027               [Page 36]
+Capobianco, et al.       Expires 19 January 2027               [Page 37]
