@@ -129,6 +129,10 @@ PROFILE_MATCHERS = {
     # ── devops ──
     "github":   {"exact": ["github-ops"], "requires_env": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
                  "desc": "GitHub repository ops"},
+    # ── observability / home-network (each dedicated) ──
+    "network-guardian": {"exact": ["wifi-diagnosis", "alert-triage", "monitoring-onboard"],
+                         "requires_env": ["PROMETHEUS_URL"],
+                         "desc": "Network Guardian Wi-Fi/WAN diagnosis + alert triage (UniFi, speedtest, Loki)"},
     # ── UTILITIES: grouped, not split (interview: "maybe not utilities") ──
     "viz":      {"exact": ["threejs-network-viz", "ue5-network-viz", "blender-3d-viz",
                            "canvas-network-viz", "drawio-diagram", "markmap-viz",
@@ -164,6 +168,8 @@ ENV_PREFIXES = {
     "aws": ["AWS_"], "azure": ["AZURE_"], "gcp": ["GOOGLE_", "GCP_"],
     "netbox": ["NETBOX_"], "nautobot": ["NAUTOBOT_"], "infrahub": ["INFRAHUB_"],
     "infoblox": ["INFOBLOX_"], "github": ["GITHUB_"],
+    "network-guardian": ["PROMETHEUS_", "LOKI_", "VICTORIAMETRICS_", "GRAFANA_",
+                        "UNIFI_", "ALERTMANAGER_"],
     "viz": ["BLENDER_", "UE5_", "SKETCHFAB_", "MARKMAP_", "DRAWIO_"],
 }
 # Base floor every member gets (memory + GAIT + humanrail per the interview).
@@ -192,6 +198,7 @@ MCP_SERVERS = {
     "sdwan": ["prisma-sdwan-mcp"], "splunk": ["splunk-mcp"], "github": ["gitlab-mcp"],
     "gnmi": ["gnmi-mcp"], "checkpoint": ["chkp-management", "chkp-management-logs",
         "chkp-policy-insights", "chkp-threat-prevention", "chkp-quantum-gaia"],
+    "network-guardian": ["prometheus-mcp", "unifi-network", "pfsense-mcp", "pyats-mcp"],
     "viz": ["blender-mcp", "sketchfab-mcp"],
     # skill-driven (no dedicated MCP server): cml, pyats, aci, catalyst-center,
     # f5, ise, nso, netbox, infoblox, nmap, gtrace, itential, aap, packet, etc.
@@ -200,7 +207,7 @@ MCP_SERVERS = {
 # Model tier per member (interview: Border=Opus; heavy members=Sonnet; trivial=Haiku).
 _HEAVY = {"cml", "pyats", "itential", "aap", "nso", "aci", "catalyst-center", "f5",
           "paloalto", "ise", "forward", "ipfabric", "sdwan", "azure", "netbox",
-          "checkpoint", "fortimanager", "batfish"}
+          "checkpoint", "fortimanager", "batfish", "network-guardian"}
 def model_tier(profile: str) -> str:
     """Default Claude model id for a member of this profile (operator-overridable)."""
     return "claude-sonnet-5" if profile in _HEAVY else "claude-haiku-4-5-20251001"
