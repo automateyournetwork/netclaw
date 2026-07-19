@@ -51,6 +51,12 @@ DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
 # the receiver's immediate "alert received" notice.
 DISCORD_ALERT_CHANNEL_ID = os.getenv("DISCORD_ALERT_CHANNEL_ID", "")
 
+# Network Guardian dashboard — curated event diary for investigation outcomes.
+# When configured, the receiver POSTs events to the Guardian API so customers
+# and operators see investigation results in the dashboard.
+NETWORK_GUARDIAN_URL = os.getenv("NETWORK_GUARDIAN_URL", "").rstrip("/")
+NETWORK_GUARDIAN_TOKEN = os.getenv("NETWORK_GUARDIAN_TOKEN", "")
+
 # ---------------------------------------------------------------------------
 # Nautobot intent-reconcile (webhook → propose → Discord approval → apply).
 # Opt-in and deliberately narrow: the webhook fires for ALL interface changes,
@@ -486,6 +492,9 @@ async def trigger_netclaw(alert: Alert, device_info: dict):
     if DISCORD_WEBHOOK_URL and alert.status == "firing":
         await post_discord(alert, device_info)
 
+    # Post event to Network Guardian dashboard diary
+    await post_guardian_event(alert, device_info)
+
 
 def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
     """Build the investigation prompt NetClaw will receive."""
@@ -504,6 +513,15 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
     parts.append("")
     parts.append("INSTRUCTIONS:")
     parts.append(f"1. The device '{device_info['name']}' at IP {device_info['ip']} has triggered alert '{alert.labels.alertname}'.")
+
+    # RAG search for prior investigations
+    parts.append(
+        "1b. BEFORE investigating, search the RAG knowledge base for prior "
+        "investigations of this alert type:\n"
+        f"   rag_search(\"{alert.labels.alertname} {device_info['name']}\")\n"
+        "   If a prior investigation is found with quality=correct, reference "
+        "   its root cause and skip redundant diagnostic steps."
+    )
 
     if device_info["platform"] == "pfsense":
         parts.append("2. Use the pfSense MCP tools to investigate (get system status, interfaces, logs).")
@@ -527,6 +545,16 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
     )
     parts.append("5. Produce a triage report: what's wrong, likely cause, and recommended action.")
     parts.append("6. Do NOT remediate without explicit human approval.")
+
+    # Guardian event update instruction
+    if NETWORK_GUARDIAN_URL:
+        parts.append(
+            "\n7. AFTER producing your triage report, update the Network Guardian event:\n"
+            f"   POST to {NETWORK_GUARDIAN_URL}/api/events with your findings.\n"
+            "   If you are confident in the root cause, set status='resolved'.\n"
+            "   If you need human expert input, set status='escalated'.\n"
+            "   Include: investigation_notes (what you found), root_cause (1-line summary)."
+        )
 
     if alert.status == "resolved":
         parts = [
@@ -570,6 +598,78 @@ async def post_discord(alert: Alert, device_info: dict):
 
 
 # ---------------------------------------------------------------------------
+# Network Guardian Events API
+# ---------------------------------------------------------------------------
+
+
+async def post_guardian_event(alert: Alert, device_info: dict, status: str = "investigating"):
+    """Post an event to the Network Guardian dashboard diary.
+
+    Called when an alert is received to create the initial diary entry.
+    The investigation prompt instructs NetClaw to PATCH it with findings later.
+    """
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
+        return None
+
+    site = device_info.get("site", "home") or "home"
+    severity_map = {"critical": "alert", "warning": "watch", "info": "info"}
+    severity = severity_map.get(alert.labels.severity, "info")
+
+    # For resolved alerts, post an "ok" event
+    if alert.status == "resolved":
+        severity = "ok"
+        status = "resolved"
+
+    payload = {
+        "message": f"{alert.labels.alertname}: {alert.annotations.summary}" if alert.status == "firing"
+                   else f"{alert.labels.alertname} resolved on {device_info['name']}",
+        "severity": severity,
+        "category": categorize_alert(alert.labels.alertname),
+        "source": "netclaw",
+        "alert_name": alert.labels.alertname,
+        "alert_fingerprint": alert.fingerprint,
+        "status": status,
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.post(
+                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
+                    "Content-Type": "application/json",
+                },
+            )
+            if resp.status_code == 201:
+                event = resp.json()
+                log.info(f"Guardian event created: {event.get('id')} ({alert.labels.alertname})")
+                return event.get("id")
+            else:
+                log.warning(f"Guardian event POST failed: {resp.status_code} {resp.text[:200]}")
+                return None
+    except Exception as e:
+        log.warning(f"Guardian event POST error: {e}")
+        return None
+
+
+def categorize_alert(alert_name: str) -> str:
+    """Map alert name to a category for the Guardian dashboard."""
+    name = (alert_name or "").lower()
+    if any(k in name for k in ("internet", "wan", "latency", "loss", "edge")):
+        return "wan"
+    if any(k in name for k in ("wifi", "ap", "access", "retries", "unifi")):
+        return "wifi"
+    if any(k in name for k in ("speed", "bandwidth", "sla")):
+        return "bandwidth"
+    if any(k in name for k in ("port", "scan", "threat", "block")):
+        return "security"
+    if any(k in name for k in ("monitor", "stale", "exporter")):
+        return "monitoring"
+    return "system"
+
+
+# ---------------------------------------------------------------------------
 # FastAPI App
 # ---------------------------------------------------------------------------
 
@@ -583,6 +683,53 @@ app = FastAPI(
 @app.get("/health")
 async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.post("/snapshot")
+async def snapshot_to_rag(request: Request):
+    """Snapshot a resolved Guardian event into the RAG knowledge base.
+
+    Called by the Guardian triage panel "Snapshot to RAG" button.
+    Reads the event from Guardian API, builds a narrative, ingests into RAG,
+    and PATCHes the event with the rag_document_id.
+
+    Body: { "event_id": "uuid", "site": "home" }
+    """
+    body = await request.json()
+    event_id = body.get("event_id")
+    site = body.get("site", "home")
+
+    if not event_id:
+        return {"status": "error", "message": "event_id required"}
+
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
+        return {"status": "error", "message": "NETWORK_GUARDIAN_URL/TOKEN not configured"}
+
+    # 1. Read the full event from Guardian API
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit=1&status=resolved",
+                headers={"Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}"},
+            )
+            # TODO: need a GET /api/events/:id endpoint for single event fetch
+            # For now, this is a placeholder — the full implementation requires
+            # the RAG MCP to be running and accessible from the alert-receiver.
+            if resp.status_code != 200:
+                return {"status": "error", "message": f"Guardian API returned {resp.status_code}"}
+
+    except Exception as e:
+        return {"status": "error", "message": f"Failed to read event: {e}"}
+
+    # 2. Build narrative for RAG ingestion
+    # (Placeholder — requires RAG MCP integration)
+    log.info(f"Snapshot requested for event {event_id} — RAG ingestion not yet wired")
+
+    return {
+        "status": "pending",
+        "message": "Snapshot requested — RAG MCP ingestion not yet wired (requires mcp-servers/rag-mcp running)",
+        "event_id": event_id,
+    }
 
 
 # ---------------------------------------------------------------------------
