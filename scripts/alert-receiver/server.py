@@ -64,6 +64,13 @@ DISCORD_SUPPRESS_ALERTS = set(
 NETWORK_GUARDIAN_URL = os.getenv("NETWORK_GUARDIAN_URL", "").rstrip("/")
 NETWORK_GUARDIAN_TOKEN = os.getenv("NETWORK_GUARDIAN_TOKEN", "")
 
+# Known noisy IoT devices that generate excessive blocks but are benign.
+# Comma-separated IPs. These hosts are suppressed from ExcessiveBlocks-type
+# alerts: logged as INFO to Guardian instead of triggering a full investigation.
+NOISY_IOT_HOSTS = [
+    ip.strip() for ip in os.getenv("NOISY_IOT_HOSTS", "").split(",") if ip.strip()
+]
+
 # ---------------------------------------------------------------------------
 # Nautobot intent-reconcile (webhook → propose → Discord approval → apply).
 # Opt-in and deliberately narrow: the webhook fires for ALL interface changes,
@@ -1039,6 +1046,13 @@ async def process_alert(alert: Alert):
     device_info = await lookup_device(instance)
     log.info(f"  Device resolved: {device_info['name']} → {device_info['ip']} (source: {device_info['source']})")
 
+    # Check if this is a known noisy IoT device generating excessive blocks.
+    # If so, log as INFO to Guardian and skip full investigation + Discord.
+    if _is_noisy_iot_suppressed(alert, device_info):
+        log.info(f"  Suppressed (known noisy IoT): {alert.labels.alertname} for {device_info['ip']}")
+        await post_guardian_event(alert, device_info, status="resolved")
+        return
+
     # Scope the runtime skills directory to this alert before investigation.
     scope_gen = await scope_skills_for_alert(alert, device_info)
 
@@ -1047,6 +1061,31 @@ async def process_alert(alert: Alert):
     # After the fresh alert session has read the scoped dir, restore the full
     # catalog so interactive sessions aren't left with the reduced set.
     await restore_skills_after_trigger(scope_gen)
+
+
+def _is_noisy_iot_suppressed(alert: Alert, device_info: dict) -> bool:
+    """Check if this alert should be suppressed for a known noisy IoT device."""
+    if not NOISY_IOT_HOSTS:
+        return False
+
+    # Only suppress "excessive blocks" type alerts, not other alert types
+    alert_lower = alert.labels.alertname.lower()
+    if "excessive" not in alert_lower and "internal" not in alert_lower:
+        return False
+
+    # Check if the affected IP is in the noisy list
+    # The IP might be in the instance label, summary, or description
+    for noisy_ip in NOISY_IOT_HOSTS:
+        if noisy_ip in (device_info.get("ip", "") or ""):
+            return True
+        if noisy_ip in (alert.annotations.summary or ""):
+            return True
+        if noisy_ip in (alert.annotations.description or ""):
+            return True
+        if noisy_ip in (alert.labels.instance or ""):
+            return True
+
+    return False
 
 
 # ---------------------------------------------------------------------------
