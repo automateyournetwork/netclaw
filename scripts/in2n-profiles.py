@@ -130,9 +130,9 @@ PROFILE_MATCHERS = {
     "github":   {"exact": ["github-ops"], "requires_env": ["GITHUB_PERSONAL_ACCESS_TOKEN"],
                  "desc": "GitHub repository ops"},
     # ── observability / home-network (each dedicated) ──
-    "network-guardian": {"exact": ["wifi-diagnosis", "alert-triage", "monitoring-onboard"],
+    "network-guardian": {"exact": ["wifi-diagnosis", "alert-triage", "monitoring-onboard", "isp-sla-claim"],
                          "requires_env": ["PROMETHEUS_URL"],
-                         "desc": "Network Guardian Wi-Fi/WAN diagnosis + alert triage (UniFi, speedtest, Loki)"},
+                         "desc": "Network Guardian Wi-Fi/WAN diagnosis + alert triage + ISP SLA claims (UniFi, speedtest, Loki)"},
     # ── UTILITIES: grouped, not split (interview: "maybe not utilities") ──
     "viz":      {"exact": ["threejs-network-viz", "ue5-network-viz", "blender-3d-viz",
                            "canvas-network-viz", "drawio-diagram", "markmap-viz",
