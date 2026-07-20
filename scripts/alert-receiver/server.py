@@ -536,6 +536,27 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
 
     if device_info["platform"] == "pfsense":
         parts.append("2. Use the pfSense MCP tools to investigate (get system status, interfaces, logs).")
+        # Specific procedure for internal host excessive blocks
+        if "excessiveblocks" in alert.labels.alertname.lower() or "internal" in alert.labels.alertname.lower():
+            parts.append(
+                "\n   SPECIFIC PROCEDURE FOR INTERNAL HOST BLOCKS:\n"
+                "   a) Identify the device: use `get_arp_table` and `search_dhcp_leases`\n"
+                "      to find the hostname, MAC, and device type at the blocked IP.\n"
+                "   b) Check WHAT is being blocked: use `get_firewall_log` filtered by\n"
+                "      the source IP. Look at destination IPs, ports, and protocols.\n"
+                "   c) Enrich destination IPs: for each external destination being blocked,\n"
+                "      determine if it is a known service (AWS/Google/CDN = likely IoT cloud),\n"
+                "      use `greynoise_community_lookup` and ASN/geo lookup.\n"
+                "   d) Determine the verdict:\n"
+                "      - BENIGN: IoT device phoning home (Ring, Nest, smart TV, etc.)\n"
+                "        hitting a GeoIP or pfBlockerNG list. Recommendation: whitelist\n"
+                "        the destination or suppress the alert for this source.\n"
+                "      - SUSPICIOUS: unknown device, unusual ports (IRC, Tor, crypto mining),\n"
+                "        destinations with bad reputation. Recommendation: ESCALATE.\n"
+                "   e) Include in your report: device identity, what it tried to reach,\n"
+                "      why it was blocked (which rule), and your verdict with reasoning.\n"
+                "   f) If benign, suggest a specific fix (whitelist entry or alert exception)."
+            )
     elif device_info["platform"] in ("ios", "iosxe", "nxos"):
         parts.append("2. Use pyATS to run diagnostic commands on this device.")
     elif device_info["platform"] == "proxmox":
