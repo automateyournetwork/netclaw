@@ -146,6 +146,43 @@ async def n2n_kill(peer: str) -> str:
 # ── Capability ─────────────────────────────────────────────────────────────
 
 @mcp.tool()
+async def n2n_knowledge_route(query: str) -> str:
+    """Choose which knowledge collection should answer a question (feature 064).
+
+    Scores the query against every advertised collection description — your own
+    and federated peers' — and returns a routing decision: target ('peer',
+    'local', or 'model'), the peer identity and collection_id when a peer/local
+    collection matches, and the score. Use this BEFORE answering a document or
+    factual question so an authoritative collection answers it. If target is
+    'peer', follow up with n2n_knowledge_query; if 'model', answer normally.
+
+    Args:
+        query: The question to route.
+    """
+    data = await _post("/n2n/knowledge/route", {"query": query})
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_knowledge_query(peer: str, collection_id: str, query: str) -> str:
+    """Ask a federated peer to answer a question from its RAG collection (064).
+
+    Returns the peer's agent-composed, cited answer with provenance. The peer's
+    documents never leave its infrastructure — only the answer travels. Marked
+    remote-untrusted. The peer must have granted your claw access to the
+    collection (default-deny).
+
+    Args:
+        peer: Peer identity string (e.g. as65099-10.255.255.1).
+        collection_id: The advertised collection id (e.g. knowledge:documents).
+        query: The question to answer from that collection.
+    """
+    data = await _post("/n2n/knowledge/query",
+                       {"peer": peer, "collection_id": collection_id, "query": query})
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
 async def n2n_peer_capabilities(peer: str, query: Optional[str] = None) -> str:
     """Query a federated peer's capability inventory.
 
@@ -188,8 +225,8 @@ async def n2n_set_visibility(item_type: str, item_name: str, visibility: str,
     """Control what we advertise to federated peers.
 
     Args:
-        item_type: 'skill' or 'tool'
-        item_name: Name of the skill or tool
+        item_type: 'skill', 'mcp_server', or 'knowledge' (a RAG collection, feature 064)
+        item_name: Name of the skill / mcp_server / RAG collection
         visibility: 'all_federated', 'selected_peers', or 'hidden'
         peers: Comma-separated peer identities (for 'selected_peers' visibility)
     """
@@ -205,12 +242,13 @@ async def n2n_set_visibility(item_type: str, item_name: str, visibility: str,
 @mcp.tool()
 async def n2n_grant(peer: str, target_type: str, target_name: str,
                     requires_approval: bool = False, timeout_s: Optional[int] = None) -> str:
-    """Allowlist a tool or skill for a peer to invoke remotely.
+    """Allowlist a tool, skill, or knowledge collection for a peer to invoke.
 
     Args:
         peer: Peer identity string
-        target_type: 'tool' or 'skill'
-        target_name: Name of the tool/skill to grant (e.g. 'cml-mcp/list_labs')
+        target_type: 'tool', 'skill', or 'knowledge' (a RAG collection, feature 064)
+        target_name: Name to grant — e.g. 'cml-mcp/list_labs' (tool) or
+            'knowledge:documents' (collection; retrieval is default-deny)
         requires_approval: If True, each invocation requires explicit approval
         timeout_s: Optional grant expiry in seconds
     """

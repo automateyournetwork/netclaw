@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-07-17
+Auto-generated from all feature plans. Last updated: 2026-07-20
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -83,6 +83,8 @@ Auto-generated from all feature plans. Last updated: 2026-07-17
 - `~/.openclaw/rag/` — ChromaDB (`chroma/`, dense vectors), SQLite (`rag.db`: document registry, retrieval log, telemetry, schema version), BM25 pickles (`bm25/<collection>.pkl`), retained originals (`sources/`), intake dir (`intake/`). Never touches `~/.openclaw/memory/` (FR-030) (062-rag-mcp)
 - Python 3.10+ (daemon + `bgp/*`, `bgp/federation/*`); Bash (none new); Node/ES2022 (HUD posture render only) + existing `bgp-daemon-v2.py`, `bgp/agent.py`, `bgp/session.py`, `bgp/federation/{tls,service,manager,channel,inventory,posture}.py`; stdlib `ssl`/`asyncio`/`sqlite3`. **No new third-party packages.** (063-ncfed-wire-hardening)
 - extend existing SQLite `~/.openclaw/n2n/federation.db` (reuse `federation_peer.endpoint_host/endpoint_port/endpoint_updated_at`); reuse keys under `~/.openclaw/n2n/keys/`. No new stores. (063-ncfed-wire-hardening)
+- Python 3.10+ (daemon + `bgp/federation/*`, matching 052–063); Markdown (SOUL/skill docs + NCFED draft §11 for -01) + Existing only — `bgp/federation/inventory.py` (card), `router.py` (selection), `invocation.py`/`gateway.py` (retrieval turn), the feature-062 rag-mcp (`rag_list`, `rag_search`). No new third-party packages. (064-knowledge-capability-cards)
+- Reuses `~/.openclaw/rag/rag.db` (documents registry, read-only for advertisement) and the issued capability card. Per-peer visibility reuses existing federation.db rows. No new store. (064-knowledge-capability-cards)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -102,9 +104,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 064-knowledge-capability-cards: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052–063); Markdown (SOUL/skill docs + NCFED draft §11 for -01) + Existing only — `bgp/federation/inventory.py` (card), `router.py` (selection), `invocation.py`/`gateway.py` (retrieval turn), the feature-062 rag-mcp (`rag_list`, `rag_search`). No new third-party packages.
 - 063-ncfed-wire-hardening: Added Python 3.10+ (daemon + `bgp/*`, `bgp/federation/*`); Bash (none new); Node/ES2022 (HUD posture render only) + existing `bgp-daemon-v2.py`, `bgp/agent.py`, `bgp/session.py`, `bgp/federation/{tls,service,manager,channel,inventory,posture}.py`; stdlib `ssl`/`asyncio`/`sqlite3`. **No new third-party packages.**
 - 062-rag-mcp: Added Python 3.10+ (server, matching repo MCP convention; memory-mcp packaging style with hatchling pyproject), Node.js 18+/ES2022 (HUD panel + Express endpoints), Bash (installer step) + `fastmcp`/`mcp`, `chromadb>=0.4`, `sentence-transformers>=2.2` (+ `torch` CPU), `rank_bm25`, `pymupdf` (PDF), `beautifulsoup4` + `httpx` (HTML/URL), `python-docx`, `openpyxl`, `python-pptx`, `vsdx` (modern office), LibreOffice headless (`soffice`, optional system package) for legacy DOC/XLS/PPT/VSD conversion
-- 060-claw-cert-security: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052/053/056/057); Node.js 18+/ES2022 (HUD render only); Bash (installer/patch) + Existing `bgp-daemon-v2.py` + `bgp/federation/*` (channel, internal_channel, risk, service, manager, audit, gateway, negotiate); `cryptography` (already a repo dependency — keys, CSRs, X.509 issuance/verification); **lego** (single-binary ACME client, vendored/downloaded at install, drives DNS-01 across 100+ providers); Python stdlib `ssl`/`asyncio`/`sqlite3`/`json`. No new Python packages.
 
 
 <!-- MANUAL ADDITIONS START -->

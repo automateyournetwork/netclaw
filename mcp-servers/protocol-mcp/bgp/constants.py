@@ -198,6 +198,26 @@ NCFED_MAX_PAYLOAD = 65536         # 64 KB max per frame; larger messages chunk
 NCFED_FLAG_CONTINUATION = 0x01    # payload is a chunk; concatenate until flag clear
 NCFED_HEARTBEAT_INTERVAL = 30     # seconds of silence before sending an empty frame
 NCFED_HEARTBEAT_MISS_LIMIT = 3    # missed heartbeats before channel considered down
+NCFED_MAX_MESSAGE = 16 * 1024 * 1024  # aggregate reassembled-message bound (NCFED -00 §7/§14.7)
+NCFED_REASSEMBLY_TIMEOUT = 30.0   # seconds a partial reassembly may stay open before close
+
+
+def ncfed_initiates(local_as: int, local_router_id: str,
+                    peer_as: int, peer_router_id: str) -> bool:
+    """Deterministic-initiator rule (NCFED -00 §5): peers are ordered by the
+    tuple (AS, router-id), router-ids compared as unsigned 32-bit integers in
+    network byte order. The numerically lower tuple dials; the other accepts.
+    Equal tuples are a configuration error (two peers MUST NOT share both) —
+    neither side dials, so the misconfiguration surfaces instead of colliding."""
+    import socket
+    import struct
+
+    def _rid(rid: str) -> int:
+        try:
+            return struct.unpack("!I", socket.inet_aton(rid))[0]
+        except OSError:
+            return 0
+    return (local_as, _rid(local_router_id)) < (peer_as, _rid(peer_router_id))
 
 # ── iN2N — Internal NetClaw Federation (feature 056) ────────────────
 # iN2N reuses the NCFED wire framing above over a member-initiated internal

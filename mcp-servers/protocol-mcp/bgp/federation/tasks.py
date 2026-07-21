@@ -76,7 +76,9 @@ class TaskManager:
                 self._workers.pop(task_id, None)
         self._workers[task_id] = asyncio.create_task(_run())
 
-    def cancel(self, task_id: str) -> bool:
+    def cancel(self, task_id: str, owner: Optional[str] = None) -> bool:
+        if owner is not None and not self._owns(task_id, owner):
+            return False
         w = self._workers.get(task_id)
         if w and not w.done():
             w.cancel()
@@ -84,8 +86,23 @@ class TaskManager:
         return False
 
     # ---- queries -------------------------------------------------------
+    #
+    # `owner` binds retrieval to the submitting peer (NCFED -00 §9.2/§14.6):
+    # remote-facing handlers pass the authenticated channel identity, and a
+    # task the caller did not submit is answered exactly like a task that
+    # does not exist, so a leaked/guessed task_id is no longer a bearer
+    # capability and cannot even be probed for existence. Local callers
+    # (HUD, reconciliation) pass no owner and see everything.
 
-    def status(self, task_id: str) -> dict:
+    def _owns(self, task_id: str, owner: str) -> bool:
+        row = self.manager._conn.execute(
+            "SELECT 1 FROM delegated_task WHERE task_id=? AND direction='inbound' "
+            "AND peer_identity=?", (task_id, owner)).fetchone()
+        return row is not None
+
+    def status(self, task_id: str, owner: Optional[str] = None) -> dict:
+        if owner is not None and not self._owns(task_id, owner):
+            return {"task_id": task_id, "state": "unknown"}
         row = self.manager._conn.execute(
             "SELECT state, progress, target_name FROM delegated_task WHERE task_id=?",
             (task_id,)).fetchone()
@@ -94,7 +111,9 @@ class TaskManager:
         return {"task_id": task_id, "state": row["state"], "progress": row["progress"],
                 "target": row["target_name"]}
 
-    def result(self, task_id: str) -> dict:
+    def result(self, task_id: str, owner: Optional[str] = None) -> dict:
+        if owner is not None and not self._owns(task_id, owner):
+            return {"task_id": task_id, "state": "unknown"}
         row = self.manager._conn.execute(
             "SELECT state, result_ref, tokens_used FROM delegated_task WHERE task_id=?",
             (task_id,)).fetchone()

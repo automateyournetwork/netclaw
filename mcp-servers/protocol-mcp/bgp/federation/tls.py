@@ -49,7 +49,8 @@ def server_context(cert_chain_pem: str, key_pem: str) -> ssl.SSLContext:
     requirement here — this is what lets Let's Encrypt (server-auth-only) certs
     work for the listener."""
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    # NCFED -00 §6.1 mandates TLS 1.3; refuse any downgrade to 1.2 or below.
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     _load_chain(ctx, cert_chain_pem, key_pem)
     _maybe_apply_pq(ctx)  # 063 P4: accept the PQ hybrid where the stack supports it
     try:
@@ -71,14 +72,14 @@ def client_context(trust_model: str, *, claw_domain: Optional[str] = None,
       peer leaf fingerprint to the pin after handshake (app-layer, FR-002/006)."""
     if trust_model == "domain-verified":
         ctx = ssl.create_default_context(cafile=cafile)
-        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_3
         _maybe_apply_pq(ctx)             # 063 P4: offer the PQ hybrid opportunistically
         _maybe_apply_ech(ctx, ech_config)  # 063 P3: conceal SNI on an ECH-capable stack
         _set_alpn(ctx)
         return ctx, claw_domain
     # pinned (and legacy-upgrade): encrypt, verify by fingerprint at app layer
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-    ctx.minimum_version = ssl.TLSVersion.TLSv1_2
+    ctx.minimum_version = ssl.TLSVersion.TLSv1_3
     ctx.check_hostname = False
     ctx.verify_mode = ssl.CERT_NONE
     _maybe_apply_pq(ctx)

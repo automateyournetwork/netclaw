@@ -217,15 +217,127 @@ class Invoker:
         tm.run(task_id, worker)
         return {"task_id": task_id, "state": "submitted"}
 
+    # Retrieval is bound to the submitting peer (NCFED -00 §9.2/§14.6): the
+    # authenticated channel identity must match the task's recorded owner, and
+    # a non-owner is answered as if the task did not exist.
+
     async def handle_task_status(self, channel, params):
-        return self.service.tasks.status(params.get("task_id", ""))
+        return self.service.tasks.status(params.get("task_id", ""),
+                                         owner=channel.peer_identity)
 
     async def handle_task_result(self, channel, params):
-        return self.service.tasks.result(params.get("task_id", ""))
+        return self.service.tasks.result(params.get("task_id", ""),
+                                         owner=channel.peer_identity)
 
     async def handle_task_cancel(self, channel, params):
         task_id = params.get("task_id", "")
-        return {"task_id": task_id, "cancelled": self.service.tasks.cancel(task_id)}
+        return {"task_id": task_id,
+                "cancelled": self.service.tasks.cancel(task_id, owner=channel.peer_identity)}
+
+    # ---- feature 064: federated knowledge retrieval -------------------
+
+    async def handle_knowledge_query(self, channel, params):
+        """Server side of `n2n/knowledge/query` (a dedicated NCFED method, not the
+        MCP tools/call proxy). Default-deny + possession tier + per-peer grant,
+        no existence oracle, agent-composed cited answer, audited (FR-004/007/008)."""
+        from . import knowledge as _knowledge
+        peer = channel.peer_identity
+        collection_id = params.get("collection_id", "")
+        query = params.get("query", "")
+        req_id = params.get("request_id", "")
+        collection = collection_id.split(":", 1)[-1] if collection_id else ""
+
+        # Tier-0 default-deny: a self-asserted (keyless) peer may not retrieve.
+        from .negotiate import allows
+        if not allows(getattr(channel, "attestation", "self-asserted"), "knowledge/query"):
+            self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
+                              target_name=collection_id, request_id=req_id,
+                              decision="not_allowlisted", outcome="denied")
+            raise RpcError(ERR_NOT_ALLOWLISTED,
+                           "possession proof required for knowledge/query (tier-0 peer)")
+
+        # No existence oracle: a collection this peer may not see is answered
+        # exactly like one that does not exist (same shape), before any grant check.
+        visible = {e["collection_id"] for e in self.service.inventory._load_knowledge(peer)}
+        if collection_id not in visible:
+            self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
+                              target_name=collection_id, request_id=req_id,
+                              decision="not_found", outcome="denied")
+            return {"answer": None, "not_found": True,
+                    "provenance": {"peer": self.service.local_identity,
+                                   "collection_id": collection_id}}
+
+        # Default-deny per-peer grant (reuses the tools/call authorizer path).
+        decision = self.authz.authorize(peer, "knowledge", collection_id)
+        if not decision.allowed and decision.code != "approval_required":
+            self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
+                              target_name=collection_id, request_id=req_id,
+                              decision=decision.code, outcome="denied")
+            raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
+        if decision.code == "approval_required":
+            inv_id = self.audit.record(direction="inbound", peer_identity=peer,
+                                       target_type="knowledge", target_name=collection_id,
+                                       request_id=req_id, decision="approval_required",
+                                       outcome="pending")
+            appr = self.authz.create_approval(inv_id)
+            self.service.notify_approval(inv_id, peer, "knowledge", collection_id)
+            if not await self._await_approval(appr["approval_id"]):
+                raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
+
+        # Compose an agent-grounded, cited answer from the LIVE local RAG. The
+        # gateway agent has the rag-mcp tools; the prompt scopes it to this
+        # collection. External peer input → untrusted turn (never embedded).
+        from .gateway import run_agent_turn
+        prompt = (f"A federated peer ({peer}) asks about your knowledge collection "
+                  f"'{collection}'. Using your RAG knowledge base, answer the question "
+                  f"and cite the source document(s) and page(s). If the collection does "
+                  f"not contain the answer, say so plainly.\n\nQuestion: {query}")
+        self.authz.debit(peer, requests=1)
+        try:
+            answer, tokens = await run_agent_turn(
+                prompt, session_key=f"n2n-knowledge-{peer}", untrusted=True,
+                timeout_s=self.tool_timeout)
+        except asyncio.TimeoutError:
+            self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
+                              target_name=collection_id, request_id=req_id,
+                              decision="allowlisted", outcome="timeout")
+            raise RpcError(ERR_EXECUTION_TIMEOUT, "knowledge query timed out")
+        result = {"answer": answer,
+                  "provenance": {"peer": self.service.local_identity,
+                                 "collection_id": collection_id}}
+        ref = self.audit.store_result(req_id or f"{peer}-{collection_id}", result)
+        self.audit.record(direction="inbound", peer_identity=peer, target_type="knowledge",
+                          target_name=collection_id, request_id=req_id,
+                          decision="allowlisted", outcome="success", result_ref=ref)
+        return result
+
+    async def query_remote_knowledge(self, ident, collection_id, query, k: int = 8):
+        """Client side: ask peer `ident` to answer from its `collection_id`."""
+        ch = await self._channel(ident)
+        req_id = f"{self.service.local_identity}:{int(time.time()*1000)}"
+        self.audit.record(direction="outbound", peer_identity=ident, target_type="knowledge",
+                          target_name=collection_id, request_id=req_id,
+                          decision="requested", outcome="pending")
+        result = await ch.call("n2n/knowledge/query",
+                               {"collection_id": collection_id, "query": query,
+                                "k": k, "request_id": req_id},
+                               timeout=self.tool_timeout + 5)
+        return {"source": ident, "trust": "remote-untrusted", "result": result}
+
+    def route_knowledge(self, query: str):
+        """Choose a collection for `query` across local + cached peer cards
+        (data-model Knowledge Route Decision). eN2N selection lives in
+        knowledge.py, not the iN2N router (finding H2)."""
+        from . import knowledge as _knowledge
+        sources = [{"source": "local", "entries": _knowledge.build_entries()}]
+        for ident in list(self.service.channels):
+            if not self.service.manager.is_federated(ident):
+                continue
+            card = self.service.inventory.load_remote(ident) or {}
+            entries = card.get("knowledge") or []
+            if entries:
+                sources.append({"source": ident, "entries": entries})
+        return _knowledge.select_collection(query, sources)
 
     async def _await_approval(self, approval_id: int) -> bool:
         deadline = time.time() + self.authz.approval_window_s

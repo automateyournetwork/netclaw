@@ -12,13 +12,63 @@ generate replies without assuming a REST endpoint that doesn't exist.
 """
 
 import asyncio
+import glob
 import json
 import logging
 import os
+import re
+import shutil
 
 logger = logging.getLogger("n2n.gateway")
 
 AGENT_ID = os.environ.get("N2N_AGENT_ID", "main")
+
+
+def _openclaw_bin() -> str:
+    """Absolute path to the ``openclaw`` CLI (resolved fresh on each call — cheap
+    next to spawning the process, and robust to PATH changes over the daemon's
+    lifetime).
+
+    A ``systemd --user`` service does not source the shell rc, so an
+    nvm-managed openclaw/node -- the common install -- is NOT on the service
+    PATH even though it is in an interactive shell (nvm edits PATH only per
+    interactive shell). The confined mesh/member units (feature 057) therefore
+    could not find ``openclaw`` and every delegated agent turn failed with
+    ENOENT. Resolve it explicitly: an OPENCLAW_BIN override, then whatever is on
+    PATH, then the newest nvm node that ships it, then common prefixes."""
+    cand = os.environ.get("OPENCLAW_BIN")
+    if cand and os.path.exists(cand):
+        return cand
+    cand = shutil.which("openclaw")
+    if cand:
+        return cand
+
+    def _ver(p):
+        m = re.search(r"/v(\d+)\.(\d+)\.(\d+)/", p)
+        return tuple(int(x) for x in m.groups()) if m else (0, 0, 0)
+    nvm = sorted(glob.glob(os.path.expanduser(
+        "~/.nvm/versions/node/*/bin/openclaw")), key=_ver, reverse=True)
+    cand = next((p for p in nvm if os.path.exists(p)), None)
+    if cand:
+        return cand
+    for p in ("~/.local/bin/openclaw", "/usr/local/bin/openclaw"):
+        p = os.path.expanduser(p)
+        if os.path.exists(p):
+            return p
+    logger.warning("openclaw CLI not found via OPENCLAW_BIN, PATH, nvm, or "
+                   "common prefixes — agent turns will fail; set OPENCLAW_BIN")
+    return "openclaw"
+
+
+def _agent_env() -> dict:
+    """Child environment that can launch openclaw under a confined systemd PATH:
+    prepend the directory holding openclaw so its ``#!/usr/bin/env node`` shebang
+    (node lives beside it in the nvm bin) resolves too."""
+    env = dict(os.environ)
+    b = _openclaw_bin()
+    if os.sep in b:
+        env["PATH"] = os.path.dirname(os.path.abspath(b)) + os.pathsep + env.get("PATH", "")
+    return env
 
 
 class EnforcementRefused(RuntimeError):
@@ -189,7 +239,7 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
     from .negotiate import local_descriptor
     flag = "--" + local_descriptor().get("agent_invoke", "session-id")
     if local:
-        cmd = ["openclaw", "agent", "--local"]
+        cmd = [_openclaw_bin(), "agent", "--local"]
         if model:
             cmd += ["--model", model]
         cmd += [flag, session_key, "--json", "-m", prompt]
@@ -199,9 +249,10 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         # run unprotected. Testing mode runs unwrapped (fast iteration, FR-006).
         cmd = await _apply_production_controls(cmd, prompt)
     else:
-        cmd = ["openclaw", "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
+        cmd = [_openclaw_bin(), "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
     proc = await asyncio.create_subprocess_exec(
-        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT)
+        *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
+        env=_agent_env())
     comm = asyncio.ensure_future(proc.communicate())
     # asyncio.wait (unlike wait_for) does NOT cancel `comm` on timeout, so the
     # turn keeps running across the stall checkpoint and any extension.

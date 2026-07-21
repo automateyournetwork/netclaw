@@ -1,9 +1,9 @@
 """FederationService — wires manager + channel + inventory into the daemon.
 
 Owns the set of live NCFED channels, registers the lifecycle (n2n/hello,
-n2n/consent_state, n2n/sever) and capability (n2n/inventory, n2n/inventory_get)
+n2n/consent_state) and capability (n2n/inventory, n2n/inventory_get)
 wire methods, and drives outbound channel establishment when both consents are
-present (lower-AS initiates).
+present (lower-AS initiates). Severing is local-only — no wire method (§13).
 """
 
 import asyncio
@@ -88,7 +88,6 @@ class FederationService:
             "n2n/hello": self._on_hello,
             "n2n/consent_state": self._on_consent_state,
             "n2n/endpoint_update": self._on_endpoint_update,
-            "n2n/sever": self._on_sever,
             "n2n/inventory": self._on_inventory,
             "n2n/inventory_get": self._on_inventory_get,
             "n2n/tools/call": self.invoker.handle_tools_call,
@@ -96,6 +95,7 @@ class FederationService:
             "n2n/tasks/status": self.invoker.handle_task_status,
             "n2n/tasks/result": self.invoker.handle_task_result,
             "n2n/tasks/cancel": self.invoker.handle_task_cancel,
+            "n2n/knowledge/query": self.invoker.handle_knowledge_query,
             "n2n/chat/open": self.chat.handle_chat_open,
             "n2n/chat/message": self.chat.handle_chat_message,
             "n2n/heartbeat": self._on_heartbeat,
@@ -280,12 +280,6 @@ class FederationService:
 
     async def _on_consent_state(self, channel, params):
         return {"state": self.manager.get_peer(channel.peer_identity)["state"]}
-
-    async def _on_sever(self, channel, params):
-        self.manager.sever(channel.peer_identity)
-        await channel.close()
-        self.channels.pop(channel.peer_identity, None)
-        return {"acked": True}
 
     async def _on_inventory(self, channel, params):
         self.inventory.cache_remote(channel.peer_identity, params)
@@ -555,8 +549,9 @@ class FederationService:
             logger.info("iN2N Member role — not opening outbound eN2N channel (FR-014)")
             return
         ident = peer_identity(peer_as, router_id)
-        if self.local_as >= peer_as:
-            logger.debug("Not initiating to %s — higher/equal AS waits", ident)
+        from ..constants import ncfed_initiates
+        if not ncfed_initiates(self.local_as, self.router_id, peer_as, router_id):
+            logger.debug("Not initiating to %s — higher (AS, router-id) tuple waits", ident)
             return
         # An explicit (re)dial always replaces any existing channel. A channel
         # can silently die (ngrok resets the long-lived TCP) without being
@@ -771,13 +766,14 @@ class FederationService:
                 "backends": backends, "fault_class": fault_class}
 
     async def sever_local(self, ident: str) -> bool:
+        # Severing is a local operator action (kill switch): revoke our grant and
+        # drop the channel. There is deliberately NO peer-to-peer sever message
+        # (NCFED -00 §13) — a remote sever notification would let a peer that
+        # reached federated state revoke our grant, so the peer learns of the
+        # sever only by the channel closing and being refused on re-dial.
         ok = self.manager.sever(ident)
         ch = self.channels.pop(ident, None)
         if ch:
-            try:
-                await ch.notify("n2n/sever", {})
-            except Exception:
-                pass
             await ch.close()
         return ok
 
@@ -833,7 +829,19 @@ class FederationService:
                 display_name=params.get("display_name"),
                 transport_binding=params.get("transport_binding", "distributed"))
         except ValueError as e:
-            raise RpcError(_ERR_NOT_TRUSTED if "TRUSTED" in str(e) else -32021, str(e))
+            # Map the risk-layer sentinel to its wire code: a member_id already
+            # pinned to a different key is MEMBER_ID_TAKEN (-32022), distinct
+            # from a spent/expired token (-32021). (NCFED -00 §9.3)
+            from ..constants import (IN2N_ERR_ENROLL_TOKEN_INVALID,
+                                     IN2N_ERR_MEMBER_ID_TAKEN)
+            msg = str(e)
+            if "TRUSTED" in msg:
+                code = _ERR_NOT_TRUSTED
+            elif "MEMBER_ID_TAKEN" in msg:
+                code = IN2N_ERR_MEMBER_ID_TAKEN
+            else:
+                code = IN2N_ERR_ENROLL_TOKEN_INVALID
+            raise RpcError(code, msg)
         channel.member_id = member_id
         channel.peer_identity = member_id
         channel.trusted = True
@@ -1217,7 +1225,11 @@ class FederationService:
         from ..constants import IN2N_ERR_OUT_OF_SCOPE
         skill = params.get("skill", "")
         input_text = params.get("input_text", "")
-        border = channel.member_id or "border"
+        # Record the task's owner as the channel's peer_identity (== member_id
+        # once authenticated) so it always matches the identity the retrieval
+        # handlers authorize against (owner-bound tasks, NCFED -00 §14.6).
+        border = (getattr(channel, "peer_identity", None)
+                  or getattr(channel, "member_id", None) or "border")
         self.member_last_activity = time.time()   # reset idle-exit timer (cold/on-demand)
         if self.member_scope and skill not in self.member_scope:
             self.audit.record(direction="inbound", peer_identity=border,

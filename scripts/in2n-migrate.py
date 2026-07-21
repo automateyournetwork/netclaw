@@ -91,6 +91,17 @@ def main():
             f"N2N_MEMBER_ID={member_id}",
             f"N2N_BORDER_ENDPOINT={args.border_endpoint}",
             f"N2N_MEMBER_BASE={os.path.join(mdir, 'n2n')}",
+            # Point the member's OpenClaw runtime at the scoped home that
+            # scripts/in2n-member-home.py builds (~/.openclaw-<risk>-<member>/openclaw.json).
+            # openclaw agent --local honors OPENCLAW_CONFIG_PATH / OPENCLAW_STATE_DIR from
+            # the env (verified: OPENCLAW_PROFILE as an env var is ignored — only the
+            # --profile flag takes it). in2n-member.py loads this .env into os.environ and
+            # gateway.py spawns `openclaw agent --local` inheriting that env, so without
+            # these two vars the member silently loads the default ~/.openclaw home
+            # (scope not enforced). Path is absolute (expanduser) because the .env loader
+            # uses os.environ.setdefault with the raw string (no shell ~ expansion).
+            f"OPENCLAW_CONFIG_PATH={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}/openclaw.json",
+            f"OPENCLAW_STATE_DIR={os.path.expanduser('~/.openclaw-' + args.risk + '-' + name)}",
             f"N2N_MEMBER_SCOPE={_scope_json(info['skills'])}",
             "# Pick THIS member's provider/model (any provider incl local/Ollama):",
             "N2N_MEMBER_MODEL=anthropic/claude-sonnet-5   # <-- edit per member",

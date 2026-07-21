@@ -60,7 +60,7 @@ CREATE TABLE IF NOT EXISTS consent_record (
     revoked_at    TEXT
 );
 CREATE TABLE IF NOT EXISTS visibility_setting (
-    item_type  TEXT NOT NULL,               -- skill | mcp_server
+    item_type  TEXT NOT NULL,               -- skill | mcp_server | knowledge (feature 064)
     item_name  TEXT NOT NULL,
     visibility TEXT NOT NULL,               -- all_federated | selected_peers | hidden
     peer_list  TEXT,                        -- JSON array when selected_peers

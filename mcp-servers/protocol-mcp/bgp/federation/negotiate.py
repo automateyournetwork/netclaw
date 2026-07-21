@@ -74,6 +74,7 @@ def peer_supports(peer_descriptor, feature: str) -> bool:
 # local gateway agent under the peer's identity).
 TIER0_DENIED = frozenset({
     "tools/call", "tasks/submit", "endpoint_update", "chat/open", "chat/message",
+    "knowledge/query",
 })
 
 

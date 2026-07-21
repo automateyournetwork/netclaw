@@ -176,6 +176,11 @@ class InventoryBuilder:
         servers = [s for s in all_servers
                    if self._visibility("mcp_server", s["name"], peer_identity)]
         badges = _derive_badges([s["name"] for s in servers])
+        # Feature 064: advertise local RAG collections as content-free knowledge
+        # entries (one per collection), visibility-filtered per peer and secret-
+        # scanned. Advertised by default (FR-003); collection hidden via
+        # visibility_setting item_type "knowledge".
+        knowledge = self._load_knowledge(peer_identity)
         inv = {
             "identity": self._local_identity(),
             "issued_at": _now(),
@@ -183,12 +188,28 @@ class InventoryBuilder:
             "skills": skills,
             "mcp_servers": [{"name": s["name"], "tools": s["tools"],
                              "invocable_tools": s["tools"]} for s in servers],
+            "knowledge": knowledge,
             "badges": badges,
             "posture": self._posture_card(posture),
             "llm": self._llm_card(),
         }
         self._assert_no_secrets(inv)
         return inv
+
+    def _load_knowledge(self, peer_identity: str) -> list:
+        """Build the per-peer visible knowledge entries (feature 064). The
+        collection name is the visibility key: an operator hides a collection
+        from a peer with visibility_setting(item_type="knowledge",
+        item_name=<collection>). Each entry is asserted content-free (FR-002)."""
+        from . import knowledge as _knowledge
+        out = []
+        for entry in _knowledge.build_entries():
+            collection = entry["collection_id"].split(":", 1)[-1]
+            if not self._visibility("knowledge", collection, peer_identity):
+                continue
+            _knowledge.assert_entry_clean(entry)
+            out.append(entry)
+        return out
 
     def _posture_card(self, posture: Optional[dict]) -> dict:
         """Compact security posture for the A2A card (feature 057). Uses the live

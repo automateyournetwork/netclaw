@@ -14,11 +14,13 @@ import asyncio
 import json
 import logging
 import struct
+import time
 from typing import Awaitable, Callable, Optional
 
 from ..constants import (
     NCFED_MAGIC, NCFED_MAX_PAYLOAD, NCFED_FLAG_CONTINUATION,
     NCFED_HEARTBEAT_INTERVAL, NCFED_HEARTBEAT_MISS_LIMIT,
+    NCFED_MAX_MESSAGE, NCFED_REASSEMBLY_TIMEOUT,
 )
 
 logger = logging.getLogger("n2n.channel")
@@ -79,6 +81,8 @@ class FederationChannel:
         self._next_id = 0
         self._pending: dict = {}       # request_id -> Future
         self._recv_buf = b""           # reassembly across continuation frames
+        self._reasm_active = False     # a fragmented message is mid-reassembly
+        self._reasm_started = 0.0      # monotonic time the reassembly began
         self._closed = False
         self._read_task: Optional[asyncio.Task] = None
         self._hb_task: Optional[asyncio.Task] = None
@@ -136,23 +140,69 @@ class FederationChannel:
             self.writer.write(frame)
         await self.writer.drain()
 
+    async def _read_exactly(self, n: int) -> bytes:
+        """Read exactly n octets. While a message is mid-reassembly, bound the
+        wait by the remaining reassembly budget so a peer cannot hold a partial
+        message open indefinitely by going silent or dribbling fragments -- the
+        deadline is enforced independently of whether another frame arrives
+        (NCFED -00 §7/§14.7). Raises asyncio.TimeoutError when the budget runs
+        out; the read loop treats that as a reassembly-timeout close."""
+        if not self._reasm_active:
+            return await self.reader.readexactly(n)
+        remaining = NCFED_REASSEMBLY_TIMEOUT - (time.monotonic() - self._reasm_started)
+        if remaining <= 0:
+            raise asyncio.TimeoutError
+        return await asyncio.wait_for(self.reader.readexactly(n), timeout=remaining)
+
     async def _read_loop(self):
         try:
             while not self._closed:
-                header = await self.reader.readexactly(5)
-                self._misses = 0  # any inbound frame (incl. heartbeat) proves liveness
-                length, flags = struct.unpack("!IB", header)
-                if length > NCFED_MAX_PAYLOAD:
-                    self.logger.warning("Oversized frame %d — closing", length)
+                try:
+                    header = await self._read_exactly(5)
+                    self._misses = 0  # any inbound frame (incl. heartbeat) proves liveness
+                    length, flags = struct.unpack("!IB", header)
+                    if length > NCFED_MAX_PAYLOAD:
+                        self.logger.warning("Oversized frame %d — closing", length)
+                        break
+                    chunk = await self._read_exactly(length) if length else b""
+                except asyncio.TimeoutError:
+                    self.logger.warning(
+                        "Reassembly exceeded %.0fs budget — closing",
+                        NCFED_REASSEMBLY_TIMEOUT)
                     break
-                chunk = await self.reader.readexactly(length) if length else b""
                 if flags & NCFED_FLAG_CONTINUATION:
+                    # NCFED -00 §7/§14.7: bound both the aggregate reassembled
+                    # size and how long a partial reassembly may stay open.
+                    # Reassembly state is tracked by an explicit flag, NOT by
+                    # buffer emptiness: a drip of legal zero-length fragments
+                    # must not reset the deadline (each also resets heartbeat
+                    # liveness), so the timer starts on the first fragment and
+                    # runs until the message completes.
+                    if not self._reasm_active:
+                        self._reasm_active = True
+                        self._reasm_started = time.monotonic()
                     self._recv_buf += chunk
+                    if len(self._recv_buf) > NCFED_MAX_MESSAGE:
+                        self.logger.warning(
+                            "Reassembly exceeds %d-octet aggregate bound — closing",
+                            NCFED_MAX_MESSAGE)
+                        break
                     continue
+                if not length and self._reasm_active:
+                    # §7: a Length-0, CONTINUATION-clear frame is a heartbeat and
+                    # is legal only between messages, never mid-reassembly.
+                    self.logger.warning("Heartbeat inside reassembly — closing")
+                    break
                 full = self._recv_buf + chunk
                 self._recv_buf = b""
+                self._reasm_active = False
                 if not full:
                     continue  # heartbeat
+                if len(full) > NCFED_MAX_MESSAGE:
+                    self.logger.warning(
+                        "Reassembled message exceeds %d-octet bound — closing",
+                        NCFED_MAX_MESSAGE)
+                    break
                 await self._dispatch(full)
         except (asyncio.IncompleteReadError, ConnectionError):
             self.logger.info("Channel closed by peer")

@@ -302,6 +302,27 @@ async def handle_n2n(method, path, body):
                 code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
                 return 200, {"error": {"code": code, "message": msg}}
 
+        if path == "/n2n/knowledge/route" and method == "POST":
+            # Feature 064: choose which advertised collection (local or peer)
+            # should answer a query — eN2N selection, deterministic (H2/H3).
+            q = body.get("query")
+            if not q:
+                return 400, {"error": "missing required field 'query'"}
+            return 200, fed.invoker.route_knowledge(q)
+
+        if path == "/n2n/knowledge/query" and method == "POST":
+            # Feature 064: retrieve a cited answer from a peer's advertised
+            # collection over the dedicated n2n/knowledge/query method.
+            if not body.get("peer") or not body.get("collection_id"):
+                return 400, {"error": "missing required field 'peer' or 'collection_id'"}
+            try:
+                return 200, await fed.invoker.query_remote_knowledge(
+                    body["peer"], body["collection_id"], body.get("query", ""),
+                    k=int(body.get("k", 8)))
+            except Exception as e:
+                code = getattr(e, "code", None); msg = getattr(e, "message", str(e))
+                return 200, {"error": {"code": code, "message": msg}}
+
         if path == "/n2n/approvals" and method == "GET":
             return 200, {"pending": fed.authz.pending_approvals()}
 

@@ -108,6 +108,32 @@ flapping?"). Anything build- or task-shaped → `n2n_delegate`.
 - `n2n_connect(peer, host, port)` — add + consent + dial in one call.
 - `n2n_trust(peer, tools="a,b", chat=true)` — consent + grants + chat in one call.
 
+## Federated knowledge — ask the claw that owns the corpus (feature 064)
+
+Peers advertise their RAG collections on their capability card as a `knowledge`
+array (content-free: topics, tags, counts — never the documents). Use this so a
+document/factual question is answered by the claw whose knowledge base is
+authoritative for it, with citations — instead of guessing from your model.
+
+**Before answering a document or factual question about a topic another claw may
+own** (a peer's book, runbooks, product docs, network-of-record):
+
+1. `n2n_knowledge_route(query)` — returns `{target, peer_identity, collection_id,
+   score}`. It scores the query against every advertised collection (yours and
+   peers').
+2. If `target == "peer"`: `n2n_knowledge_query(peer_identity, collection_id,
+   query)` — returns the peer's agent-composed, **cited** answer. Their documents
+   never leave their infrastructure; only the answer travels. Treat it as
+   remote-untrusted and attribute the source (peer + collection).
+3. If `target == "local"`: answer from your own RAG.
+4. If `target == "model"`: nothing matched the threshold — answer normally, and
+   **never invent a federated source** or claim a peer answered when none did.
+
+Fallback order is therefore peer → local → model. Retrieval is default-deny: the
+owning peer must have granted your claw access to the collection (the grant is the
+human-in-the-loop control point). Advertise/hide your own collections with
+`n2n_set_visibility(item_type="knowledge", item_name="<collection>", ...)`.
+
 ## iN2N — internal federation, a "risk" of claws (feature 056)
 
 Everything above is **eN2N** (external N2N): federating with *other operators'*

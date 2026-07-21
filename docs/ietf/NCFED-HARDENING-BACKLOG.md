@@ -260,3 +260,26 @@ note (endpoint persistence) plus a "Changes from -01" appendix. Rendered via `kd
 --v3` (0 over-length lines; idnits authoritative server-side at Datatracker, per the
 `-01` checklist precedent) into `rendered/draft-capobianco-ncfed-02.{txt,xml}`.
 A future `-03` (or pre-submission refresh of `-02`) picks up H12 once mesh-TLS ships.
+
+## `-01` (next submission) seed — knowledge capability cards (spec 064, 2026-07-19)
+
+Spec 064 (implemented) adds a **knowledge** surface to the A2A capability card and a
+dedicated retrieval method. The next NCFED submission after `-00` should document it
+in the draft (FR-010):
+
+- **§11 Capability Cards:** add a `knowledge` array alongside `skills`/`mcp_servers` —
+  one content-free A2A-skill-shaped entry per RAG collection (`collection_id`, name,
+  semantic `description` of topics/titles, `tags`, doc/page/chunk counts,
+  `retrieval` = `n2n/knowledge/query`). MUST NOT contain document content, embeddings,
+  or source paths; per-peer visibility applies (item_type `knowledge`).
+- **§9 Method families / Appendix C:** add `n2n/knowledge/query` — a dedicated method
+  (NOT the MCP `tools/call` proxy) taking `{collection_id, query, k}` and returning an
+  agent-composed, cited answer `{answer, provenance:{peer, collection_id, citations}}`.
+  Default-deny + possession tier; unknown/hidden `collection_id` answered as
+  "no such collection" (no existence oracle); audited with peer + collection + GAIT.
+- **Framing note:** this is the on-wire form of *federated query* (knowledge stays
+  home, only the answer travels) — the sovereignty-preserving counterpart to the
+  deferred RAG2RAG *replication* idea (spec 065, out of scope).
+- Selection (which peer collection answers) is deterministic embedding-cosine over the
+  advertised descriptions with a configurable threshold — an implementation/agent
+  concern, not a wire element, so it need not appear in the draft beyond a sentence.
