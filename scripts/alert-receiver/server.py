@@ -20,6 +20,7 @@ import json
 import logging
 import os
 import sys
+import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
@@ -27,6 +28,7 @@ from typing import Optional
 import httpx
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request, BackgroundTasks
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel
 
 # ---------------------------------------------------------------------------
@@ -143,6 +145,79 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("alert-receiver")
+
+# ---------------------------------------------------------------------------
+# Prometheus Metrics (exposed at /metrics)
+# ---------------------------------------------------------------------------
+
+class Metrics:
+    """Simple counter/gauge metrics for the alert receiver."""
+
+    def __init__(self):
+        self.alerts_received_total = 0
+        self.alerts_firing_total = 0
+        self.alerts_resolved_total = 0
+        self.investigations_triggered_total = 0
+        self.investigations_suppressed_total = 0
+        self.discord_posts_total = 0
+        self.guardian_events_posted_total = 0
+        self.guardian_events_failed_total = 0
+        self._investigation_durations = []  # last 100
+
+    def record_investigation_duration(self, seconds: float):
+        self._investigation_durations.append(seconds)
+        if len(self._investigation_durations) > 100:
+            self._investigation_durations = self._investigation_durations[-100:]
+
+    @property
+    def avg_investigation_duration(self) -> float:
+        if not self._investigation_durations:
+            return 0.0
+        return sum(self._investigation_durations) / len(self._investigation_durations)
+
+    def render(self) -> str:
+        lines = [
+            "# HELP netclaw_alerts_received_total Total alerts received from Alertmanager",
+            "# TYPE netclaw_alerts_received_total counter",
+            f"netclaw_alerts_received_total {self.alerts_received_total}",
+            "",
+            "# HELP netclaw_alerts_firing_total Firing alerts received",
+            "# TYPE netclaw_alerts_firing_total counter",
+            f"netclaw_alerts_firing_total {self.alerts_firing_total}",
+            "",
+            "# HELP netclaw_alerts_resolved_total Resolved alerts received",
+            "# TYPE netclaw_alerts_resolved_total counter",
+            f"netclaw_alerts_resolved_total {self.alerts_resolved_total}",
+            "",
+            "# HELP netclaw_investigations_triggered_total Investigations triggered (sent to OpenClaw)",
+            "# TYPE netclaw_investigations_triggered_total counter",
+            f"netclaw_investigations_triggered_total {self.investigations_triggered_total}",
+            "",
+            "# HELP netclaw_investigations_suppressed_total Investigations suppressed (noisy IoT)",
+            "# TYPE netclaw_investigations_suppressed_total counter",
+            f"netclaw_investigations_suppressed_total {self.investigations_suppressed_total}",
+            "",
+            "# HELP netclaw_discord_posts_total Discord notifications sent",
+            "# TYPE netclaw_discord_posts_total counter",
+            f"netclaw_discord_posts_total {self.discord_posts_total}",
+            "",
+            "# HELP netclaw_guardian_events_posted_total Events posted to Guardian API",
+            "# TYPE netclaw_guardian_events_posted_total counter",
+            f"netclaw_guardian_events_posted_total {self.guardian_events_posted_total}",
+            "",
+            "# HELP netclaw_guardian_events_failed_total Failed Guardian API posts",
+            "# TYPE netclaw_guardian_events_failed_total counter",
+            f"netclaw_guardian_events_failed_total {self.guardian_events_failed_total}",
+            "",
+            "# HELP netclaw_investigation_duration_seconds_avg Average investigation duration (last 100)",
+            "# TYPE netclaw_investigation_duration_seconds_avg gauge",
+            f"netclaw_investigation_duration_seconds_avg {self.avg_investigation_duration:.2f}",
+            "",
+        ]
+        return "\n".join(lines) + "\n"
+
+
+metrics = Metrics()
 
 # ---------------------------------------------------------------------------
 # Models (Alertmanager webhook payload)
@@ -493,6 +568,7 @@ async def trigger_netclaw(alert: Alert, device_info: dict):
                 )
                 if resp.status_code in (200, 202):
                     log.info(f"Triggered NetClaw investigation for {alert.labels.alertname} on {device_info['name']}")
+                    metrics.investigations_triggered_total += 1
                 else:
                     log.error(f"OpenClaw gateway returned {resp.status_code}: {resp.text[:200]}")
         except Exception as e:
@@ -632,6 +708,7 @@ async def post_discord(alert: Alert, device_info: dict):
     try:
         async with httpx.AsyncClient(timeout=10) as client:
             await client.post(DISCORD_WEBHOOK_URL, json={"content": content})
+            metrics.discord_posts_total += 1
     except Exception as e:
         log.warning(f"Discord post failed: {e}")
 
@@ -683,9 +760,11 @@ async def post_guardian_event(alert: Alert, device_info: dict, status: str = "in
             if resp.status_code == 201:
                 event = resp.json()
                 log.info(f"Guardian event created: {event.get('id')} ({alert.labels.alertname})")
+                metrics.guardian_events_posted_total += 1
                 return event.get("id")
             else:
                 log.warning(f"Guardian event POST failed: {resp.status_code} {resp.text[:200]}")
+                metrics.guardian_events_failed_total += 1
                 return None
     except Exception as e:
         log.warning(f"Guardian event POST error: {e}")
@@ -722,6 +801,12 @@ app = FastAPI(
 @app.get("/health")
 async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def prometheus_metrics():
+    """Prometheus-compatible metrics endpoint."""
+    return metrics.render()
 
 
 @app.post("/snapshot")
@@ -1022,6 +1107,12 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
             f"severity={alert.labels.severity} | "
             f"status={alert.status}"
         )
+        # Track metrics
+        metrics.alerts_received_total += 1
+        if alert.status == "firing":
+            metrics.alerts_firing_total += 1
+        else:
+            metrics.alerts_resolved_total += 1
         # Process each alert in the background so we return 200 quickly
         background_tasks.add_task(process_alert, alert)
 
@@ -1050,6 +1141,7 @@ async def process_alert(alert: Alert):
     # If so, log as INFO to Guardian and skip full investigation + Discord.
     if _is_noisy_iot_suppressed(alert, device_info):
         log.info(f"  Suppressed (known noisy IoT): {alert.labels.alertname} for {device_info['ip']}")
+        metrics.investigations_suppressed_total += 1
         await post_guardian_event(alert, device_info, status="resolved")
         return
 
