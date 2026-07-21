@@ -8,7 +8,7 @@ Lightweight webhook server that accepts Prometheus Alertmanager notifications, e
 Prometheus (alert rules fire)
     │
     ▼
-Alertmanager (192.168.3.250:9093)
+Alertmanager (192.168.13.204:9093)
     │
     │ POST /webhook
     ▼

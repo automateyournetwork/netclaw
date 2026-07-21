@@ -1,4 +1,4 @@
-# Add this to your Alertmanager config on the OBS VM (192.168.3.250)
+# Add this to your Alertmanager config on the K3s cluster (Alertmanager at 192.168.13.204)
 # Location: ~/observability-stack/alertmanager/alertmanager.yml
 #
 # This replaces the placeholder 192.0.2.1 webhook with the real NetClaw endpoint.

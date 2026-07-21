@@ -41,7 +41,7 @@ Query Prometheus for recent WAN outages:
 min_over_time(probe_success{job="blackbox_wan_icmp"}[1h])
 
 # Check the InternetDown alert history (Alertmanager)
-# GET http://192.168.3.250:9093/api/v2/alerts?filter=alertname="InternetDown"
+# GET http://192.168.13.204:9093/api/v2/alerts?filter=alertname="InternetDown"
 ```
 
 **Claim-worthy thresholds:**

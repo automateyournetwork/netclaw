@@ -21,11 +21,11 @@ Investigate alerts received from the observability stack (Prometheus → Alertma
 
 | Service | Address | Query via | Use |
 |---------|---------|-----------|-----|
-| Prometheus | http://192.168.3.250:9090 | `prometheus-mcp` | Metrics, targets, `up`/probe status |
-| Grafana | http://192.168.3.250:3000 | `grafana-mcp` | Dashboards + query Loki/VictoriaMetrics datasources |
-| Loki | http://192.168.3.250:3100 | `grafana-mcp` (Loki datasource) | Logs, syslog, **NetFlow flow records** |
+| Prometheus | https://grafana.internal.byrnbaker.me/api/datasources/proxy/uid/prometheus | `prometheus-mcp` | Metrics, targets, `up`/probe status |
+| Grafana | https://grafana.internal.byrnbaker.me | `grafana-mcp` | Dashboards + query Loki/VictoriaMetrics datasources |
+| Loki | https://grafana.internal.byrnbaker.me/api/datasources/proxy/uid/loki | `grafana-mcp` (Loki datasource) | Logs, syslog, **NetFlow flow records** |
 | VictoriaMetrics | (Grafana datasource) | `grafana-mcp` | `goflow2_*` flow metrics |
-| Alertmanager | http://192.168.3.250:9093 | HTTP `/api/v2/alerts` | Check firing alerts |
+| Alertmanager | http://192.168.13.204:9093 | HTTP `/api/v2/alerts` | Check firing alerts |
 
 ### NetFlow / connection data (IMPORTANT — this exists, use it)
 
@@ -46,7 +46,7 @@ that infrastructure is already running. To find **what a host is connecting to
   `bytes`, `packets`, `etype`, `type`, `time_received_ns`.
   Note: `proto` and `etype` are **strings** (`"TCP"`, `"IPv6"`) — filter with quotes
   (`dst_port="179"`), a numeric filter like `dst_port=179` will not match.
-- **VictoriaMetrics** (via `grafana-mcp`, `192.168.3.250:8428`): `goflow2_*` counters
+- **VictoriaMetrics** (via `grafana-mcp`, `grafana.internal.byrnbaker.me (VictoriaMetrics proxy)`): `goflow2_*` counters
   for volume/rate, labels `sampler_address`, `dst_port`, etc.
 - Grafana dashboard: `lab-network/netflow-traffic.json`.
 
@@ -57,7 +57,7 @@ running. Before concluding, check data is actually present — query
 say so and fall back to `search_firewall_states` (live pfSense connections). Do not
 tell the user to "enable NetFlow" — the pipeline exists; if it's empty it needs
 restarting (`docker compose ... -f docker-compose.netflow.yml up -d` on the OBS host)
-or pfSense isn't sending IPFIX to `192.168.3.250:4739`.
+or pfSense isn't sending IPFIX to `K3s cluster (goflow2 IPFIX)`.
 
 ## Alert Context
 
@@ -106,7 +106,7 @@ Query Prometheus or Alertmanager to verify the alert is still firing:
 up{instance="<device_name>"} == 0
 
 # Or check Alertmanager API
-GET http://192.168.3.250:9093/api/v2/alerts?filter=alertname="<alertname>"
+GET http://192.168.13.204:9093/api/v2/alerts?filter=alertname="<alertname>"
 ```
 
 **GATE:** If alert already resolved, post brief all-clear and stop.

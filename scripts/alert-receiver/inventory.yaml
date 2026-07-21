@@ -28,7 +28,7 @@ devices:
 
   # OBS VM (monitoring self-monitoring)
   home-obs-stack:
-    ip: "192.168.3.250"
+    ip: "192.168.13.204"
     platform: linux
     role: monitoring
     site: home

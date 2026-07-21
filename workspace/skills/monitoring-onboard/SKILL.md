@@ -8,7 +8,7 @@ metadata:
 
 # Monitoring Onboard
 
-Configure network devices and infrastructure to report into the existing observability stack at **192.168.3.250** (Prometheus, Grafana, Loki, Alertmanager, goflow2).
+Configure network devices and infrastructure to report into the existing observability stack on the **K3s observability cluster** (192.168.13.0/24) (Prometheus, Grafana, Loki, Alertmanager, goflow2).
 
 ## When to Use
 
@@ -21,14 +21,14 @@ Configure network devices and infrastructure to report into the existing observa
 
 | Service | Address | Accepts |
 |---------|---------|---------|
-| Prometheus | 192.168.3.250:9090 | Scrapes HTTP /metrics endpoints |
-| Loki | 192.168.3.250:514 (TCP+UDP) | Syslog (RFC3164/RFC5424) |
-| goflow2 | 192.168.3.250:2055/udp | NetFlow/IPFIX |
-| goflow2 | 192.168.3.250:6343/udp | sFlow |
-| Alertmanager | 192.168.3.250:9093 | Receives alerts from Prometheus |
-| Grafana | 192.168.3.250:3000 | Dashboard UI |
+| Prometheus | K3s cluster (access via Grafana proxy or expose via LB) | Scrapes HTTP /metrics endpoints |
+| Loki | K3s cluster Loki syslog ingress (TCP+UDP) | Syslog (RFC3164/RFC5424) |
+| goflow2 | K3s cluster goflow2 NetFlow/udp | NetFlow/IPFIX |
+| goflow2 | K3s cluster goflow2 sFlow/udp | sFlow |
+| Alertmanager | 192.168.13.204:9093 | Receives alerts from Prometheus |
+| Grafana | grafana.internal.byrnbaker.me | Dashboard UI |
 
-Prometheus remote-write receiver is enabled at: `POST http://192.168.3.250:9090/api/v1/write`
+Prometheus remote-write receiver is enabled at: `POST http://K3s cluster (access via Grafana proxy or expose via LB)/api/v1/write`
 
 ## Procedure by Device Type
 
@@ -40,12 +40,12 @@ Prometheus remote-write receiver is enabled at: `POST http://192.168.3.250:9090/
 
 2. **Syslog** — Configure remote syslog:
    - Status → System Logs → Settings → Remote Log Servers
-   - Add: `192.168.3.250:514` (UDP), log: firewall, system, resolver
+   - Add: `K3s cluster Loki syslog ingress` (UDP), log: firewall, system, resolver
    - Or use pfSense MCP to push syslog config
 
 3. **NetFlow** — Install softflowd package:
    - Diagnostics → Package Manager → install `softflowd`
-   - Configure: interface=LAN/WAN, collector=192.168.3.250:2055, version=9
+   - Configure: interface=LAN/WAN, collector=K3s cluster goflow2 NetFlow, version=9
 
 4. **Prometheus scrape** — pfSense doesn't have native node_exporter. Options:
    - Install `prometheus-node-exporter-lite` package if available
@@ -58,16 +58,16 @@ Use pyATS MCP to configure:
 ```
 ! SNMP
 snmp-server community public RO
-snmp-server host 192.168.3.250 version 2c public
+snmp-server host K3s cluster version 2c public
 
 ! Syslog
-logging host 192.168.3.250 transport udp port 514
+logging host K3s cluster transport udp port 514
 logging trap informational
 logging source-interface <mgmt-interface>
 
 ! NetFlow (IOS-XE with Flexible NetFlow)
 flow exporter NETCLAW-EXPORT
- destination 192.168.3.250
+ destination K3s cluster
  transport udp 2055
  export-protocol netflow-v9
  source <mgmt-interface>
@@ -91,7 +91,7 @@ interface <monitored-interface>
 
 2. **Syslog** — Configure rsyslog forwarding:
    ```bash
-   echo '*.* @192.168.3.250:514' > /etc/rsyslog.d/50-obs.conf
+   echo '*.* @K3s cluster Loki syslog ingress' > /etc/rsyslog.d/50-obs.conf
    systemctl restart rsyslog
    ```
 
@@ -110,7 +110,7 @@ interface <monitored-interface>
 
 2. **Syslog**:
    ```bash
-   echo '*.* @192.168.3.250:514' | sudo tee /etc/rsyslog.d/50-obs.conf
+   echo '*.* @K3s cluster Loki syslog ingress' | sudo tee /etc/rsyslog.d/50-obs.conf
    sudo systemctl restart rsyslog
    ```
 
@@ -119,8 +119,8 @@ interface <monitored-interface>
 After configuring devices, generate the scrape config addition:
 
 ```yaml
-# Add to prometheus.yml on OBS VM (192.168.3.250)
-# Then reload: curl -X POST http://192.168.3.250:9090/-/reload
+# Add to prometheus.yml on OBS VM (K3s cluster)
+# Then reload: curl -X POST http://K3s cluster (access via Grafana proxy or expose via LB)/-/reload
 
   - job_name: 'network_devices'
     scrape_interval: 30s
@@ -198,7 +198,7 @@ groups:
 2. **Configure device** — Push SNMP/syslog/NetFlow config using appropriate MCP or SSH
 3. **Generate scrape config** — Produce the prometheus.yml snippet
 4. **Generate alert rules** — Produce device-specific alerting rules
-5. **Reload Prometheus** — `curl -X POST http://192.168.3.250:9090/-/reload`
+5. **Reload Prometheus** — `curl -X POST http://K3s cluster (access via Grafana proxy or expose via LB)/-/reload`
 6. **Verify** — Query Prometheus for `up{instance="<device>"}` to confirm scrape works
 7. **Update inventory** — Add device to `scripts/alert-receiver/inventory.yaml` or Nautobot
 
