@@ -113,3 +113,37 @@ docker compose exec -it netclaw-convergence openclaw tui
 **Workaround**: The updated HEARTBEAT.md tells the agent to immediately reply HEARTBEAT_OK and do nothing, minimizing token waste.
 
 **Future fix**: OpenClaw may support disabling heartbeat entirely via `openclaw.json` configuration.
+
+
+---
+
+## Alert Delegation to guardian-claw Removed (needs proper re-implementation)
+
+**Problem**: The alert-triage hook no longer delegates investigations to the
+`guardian-claw` iN2N member. The border investigates directly on `claude-sonnet-5`,
+which is expensive (~$0.73 input-token cost per alert due to the 243K MCP tool
+schema bloat).
+
+**Why it was removed**: The old hook `messageTemplate` said "Route this alert
+investigation to the guardian-claw member via n2n_route, do NOT investigate
+directly." That instruction, arriving inside an untrusted webhook payload, was
+correctly flagged by Sonnet as prompt injection and refused — which broke the
+whole pipeline. To get investigations working again, the routing instruction was
+stripped from the payload (see docs/blog/2026-07-21-alert-investigation-debugging.md).
+
+**The right fix**: Move the delegation instruction into the **alert-triage skill
+file** (trusted content the model honors), not the webhook payload (untrusted).
+Same pattern already used for Discord delivery (Step 7) and Guardian events
+(Step 8). The skill should instruct: "delegate this investigation to guardian-claw
+via n2n_route" — Sonnet will follow a skill directive because it is trusted, not
+injected webhook content.
+
+**Benefits of restoring delegation**:
+- guardian-claw runs on cheap kimi-k3 (free) instead of the border on Sonnet 5
+- guardian-claw has a scoped MCP config (observability servers only), so it does
+  NOT carry the 243K tool-schema bloat — solves both the cost AND context-overflow
+  problems at once
+- The border's routing turn becomes small and cheap
+
+**Status**: Flagged. Interim state works (direct investigation on Sonnet 5), but
+the cost-saving delegation architecture should be restored the trusted way.
