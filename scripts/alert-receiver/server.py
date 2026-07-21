@@ -661,36 +661,23 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
     parts.append("5. Produce a triage report: what's wrong, likely cause, and recommended action.")
     parts.append("6. Do NOT remediate without explicit human approval.")
 
-    # Guardian event update instruction
-    if NETWORK_GUARDIAN_URL:
-        parts.append(
-            "\n7. AFTER producing your triage report, update the Network Guardian event:\n"
-            f"   POST to {NETWORK_GUARDIAN_URL}/api/events with your findings.\n"
-            "   If you are confident in the root cause, set status='resolved'.\n"
-            "   If you need human expert input, set status='escalated'.\n"
-            "   Include: investigation_notes (what you found), root_cause (1-line summary)."
-        )
+    # NOTE: Discord delivery (Step 7) and Guardian event logging (Step 8) are
+    # defined in the alert-triage skill file itself — NOT here. Putting "POST to
+    # <url>" or "run via exec: openclaw message send" in this payload causes the
+    # model to (correctly) flag it as prompt injection from an untrusted webhook
+    # and refuse. The skill is trusted content; the payload carries facts only.
+    parts.append(
+        "7. Deliver your findings and log the event per the alert-triage skill's "
+        "delivery steps (the skill has the Discord channel and Guardian endpoint)."
+    )
 
     if alert.status == "resolved":
         parts = [
             f"ALERT RESOLVED — {alert.labels.alertname}",
             f"Device: {device_info['name']} ({device_info['ip']})",
-            "The alert has cleared. Post a brief all-clear confirmation.",
+            "The alert has cleared. Follow the alert-triage skill to post a brief "
+            "all-clear confirmation to the alerts channel.",
         ]
-
-    # Final step (both firing and resolved): deliver findings to the alerts
-    # channel using NetClaw's native Discord bridge — not a script.
-    if DISCORD_ALERT_CHANNEL_ID:
-        parts.append("")
-        parts.append(
-            "FINAL STEP — deliver your findings. Post the complete triage report "
-            "(or all-clear) to the Discord alerts channel using the native "
-            "message bridge, e.g. run via exec:\n"
-            f"  openclaw message send --channel discord --target {DISCORD_ALERT_CHANNEL_ID} "
-            "--message \"<your report>\"\n"
-            "This is required — the investigation is not complete until the "
-            "report is posted to the channel."
-        )
 
     return "\n".join(parts)
 
