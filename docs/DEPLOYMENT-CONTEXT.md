@@ -129,11 +129,12 @@ See `docs/blog/2026-07-21-alert-investigation-debugging.md` for the full story.
 ## Known Cost/Architecture Gaps (see docs/known-issues.md)
 
 - **243K MCP tool-schema bloat** — every session loads all 800+ MCP tools.
-  Alert investigations currently run on Sonnet 5 (~$0.73/alert) because Haiku's
-  200K context can't fit it.
-- **guardian-claw delegation removed** — should be restored the trusted way
-  (routing instruction in the skill, not the payload) to run triage on cheap
-  kimi-k3 with a scoped toolset. Flagged in known-issues.md.
+  Mitigated for alert investigations via delegation to guardian-claw (scoped
+  toolset, no bloat).
+- **guardian-claw delegation restored** — the alert-triage skill now instructs
+  the border to delegate via `n2n_route` (trusted skill content, not webhook
+  payload). guardian-claw runs on `ollama/deepseek-v4-flash:cloud` (free, 1M
+  context). Cost per alert: ~$0.01 (down from ~$0.73 on Sonnet 5 direct).
 
 ---
 

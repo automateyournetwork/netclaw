@@ -658,6 +658,18 @@ An endpoint advertises its capabilities in a card exchanged via `n2n/inventory` 
 * `llm`: the advertiser's reasoning-model capability, as
   `{ "primary_model", "guarded" }` -- the model family/tier and whether its
   input/output is routed through a guardrail.
+* `knowledge` (feature 064): one content-free, A2A-style entry per local RAG
+  collection the advertiser is willing to expose to this peer -- a stable
+  `collection_id`, a human/semantic description of its topics, coarse tags,
+  document/page/chunk counts, and the retrieval method name
+  (`n2n/knowledge/query`). No chunk text, embeddings, or source paths ever
+  appear here; `n2n/knowledge/query` composes a grounded, cited answer from
+  the advertiser's own live RAG rather than exposing raw content. Each entry
+  additionally carries `embedding_model` (feature 065) -- the identifier of
+  the model that produced that collection's vectors, so a peer considering
+  chroma-to-chroma vector replication (a distinct, higher-consent operation
+  from query, gated by its own grant type and not detailed further in this
+  revision) can check compatibility before requesting anything.
 
 A card MUST NOT contain secrets, credentials, or per-member topology of a risk. A
 Border advertises its own reasoning model and MAY note that members run their own

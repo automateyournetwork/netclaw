@@ -134,6 +134,38 @@ owning peer must have granted your claw access to the collection (the grant is t
 human-in-the-loop control point). Advertise/hide your own collections with
 `n2n_set_visibility(item_type="knowledge", item_name="<collection>", ...)`.
 
+## Knowledge replication — copy a peer's corpus into your own RAG (feature 065)
+
+This is a **different, heavier action from knowledge query above** — query never
+moves content (only the answer travels); replication copies the actual vectors,
+chunk text, and metadata into your own local Chroma store, with no re-embedding.
+Only reach for it when the operator actually wants a standing local/offline copy
+(e.g. "replicate John's book so I can answer about it without calling out every
+time") — for a one-off question, use `n2n_knowledge_query` instead.
+
+1. Check the peer's card for the collection's `embedding_model` (feature 065
+   extends the `knowledge` array with this field) and confirm it matches your
+   own RAG's configured embedder — a mismatch means replication would produce
+   garbage vectors and is refused before any transfer anyway.
+2. Replication requires a **`knowledge_replica` grant**, distinct from and in
+   addition to the `knowledge` (query-only) grant — holding one does not grant
+   the other. The peer operator grants it explicitly
+   (`n2n_grant(peer, "knowledge_replica", collection_id)`).
+3. `n2n_replicate(peer, collection_id)` triggers the copy and returns a
+   `task_id` **immediately** — it does not block. Poll with the existing
+   `n2n_task_status(task_id)` / fetch with `n2n_task_result(task_id)`, same as
+   any other delegated task, until `state` is `completed` or `failed`.
+4. Once complete, the replica is queryable through your own local RAG exactly
+   like a locally-authored collection — no further federated round trip
+   needed. It is visibly marked with its source peer/collection/timestamp in
+   `rag_list(kind="replicas")`, and is never re-advertised as your own
+   knowledge or replicated onward to a third peer.
+5. If the source collection changes later, `n2n_replicate_resync(peer,
+   collection_id)` refreshes it (full replace, same async polling pattern).
+   `n2n_replicate_delete(peer, collection_id)` removes a replica you no longer
+   want — revoking the grant only blocks *future* replication/re-sync, it does
+   not delete data already copied.
+
 ## iN2N — internal federation, a "risk" of claws (feature 056)
 
 Everything above is **eN2N** (external N2N): federating with *other operators'*

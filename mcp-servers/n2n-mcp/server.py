@@ -2,7 +2,7 @@
 """
 N2N Federation MCP Server — thin proxy over bgp-daemon-v2 /n2n/* HTTP API.
 
-Provides 15 operator-facing tools for claw-to-claw federation:
+Provides operator-facing tools for claw-to-claw federation:
   Status:     n2n_status
   Consent:    n2n_consent, n2n_kill
   Capability: n2n_peer_capabilities, n2n_compare_capabilities, n2n_set_visibility
@@ -12,6 +12,7 @@ Provides 15 operator-facing tools for claw-to-claw federation:
   Approvals:  n2n_approvals, n2n_approve, n2n_deny
   Audit:      n2n_audit
   Config:     n2n_config
+  Replication: n2n_replicate, n2n_replicate_resync, n2n_replicate_delete (feature 065)
 
 All calls proxy to the local bgp-daemon-v2 HTTP API (default http://127.0.0.1:8179).
 """
@@ -246,9 +247,15 @@ async def n2n_grant(peer: str, target_type: str, target_name: str,
 
     Args:
         peer: Peer identity string
-        target_type: 'tool', 'skill', or 'knowledge' (a RAG collection, feature 064)
+        target_type: 'tool', 'skill', 'knowledge' (query-retrieval, feature 064),
+            or 'knowledge_replica' (replication, feature 065) — these last two
+            are DISTINCT grants for the same collection_id: 'knowledge' lets a
+            peer ask questions and get a cited answer (no content leaves you);
+            'knowledge_replica' lets a peer copy the actual vectors/text into
+            their own store. Granting one does not grant the other.
         target_name: Name to grant — e.g. 'cml-mcp/list_labs' (tool) or
-            'knowledge:documents' (collection; retrieval is default-deny)
+            'knowledge:documents' (collection; retrieval/replication is
+            default-deny either way)
         requires_approval: If True, each invocation requires explicit approval
         timeout_s: Optional grant expiry in seconds
     """
@@ -450,6 +457,64 @@ async def n2n_task_result(task_id: str) -> str:
 async def n2n_task_cancel(task_id: str) -> str:
     """Cancel an in-flight delegated task."""
     return _gcf_dumps(await _post(f"/n2n/tasks/{task_id}/cancel", {}))
+
+
+# ── Chroma-to-chroma vector replication (feature 065) ───────────────────────
+
+@mcp.tool()
+async def n2n_replicate(peer: str, collection_id: str) -> str:
+    """Replicate a consenting peer's RAG collection into your own local Chroma
+    store — vectors, chunk text, and metadata copied as-is, with no
+    re-embedding. Requires a 'knowledge_replica' grant for this peer/collection
+    (distinct from, and in addition to, a 'knowledge' query-retrieval grant —
+    see n2n_grant). Refused up front, before any data transfers, if the
+    source's advertised embedding_model doesn't match your own, or if the
+    collection exceeds the configured size limit.
+
+    Returns a task_id immediately — this does not block until the transfer
+    finishes. Poll with n2n_task_status / fetch with n2n_task_result, same as
+    any other delegated task.
+
+    Args:
+        peer: Peer identity string (the source claw)
+        collection_id: The advertised collection id, e.g. 'knowledge:documents'
+    """
+    data = await _post("/n2n/replicate", {"peer": peer, "collection_id": collection_id})
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_replicate_resync(peer: str, collection_id: str) -> str:
+    """Refresh a previously replicated collection to match the peer's current
+    content — a full replace (added source documents appear, removed ones
+    disappear, unchanged chunks are not duplicated), not an incremental merge.
+    Re-runs the same consent and compatibility checks as n2n_replicate. If the
+    grant has since been revoked, the re-sync is refused and your existing
+    local replica is left untouched (revocation is not retroactive).
+
+    Returns a task_id immediately, same polling pattern as n2n_replicate.
+
+    Args:
+        peer: Peer identity string (the source claw)
+        collection_id: The advertised collection id, e.g. 'knowledge:documents'
+    """
+    data = await _post("/n2n/replicate/resync", {"peer": peer, "collection_id": collection_id})
+    return _gcf_dumps(data)
+
+
+@mcp.tool()
+async def n2n_replicate_delete(peer: str, collection_id: str) -> str:
+    """Delete a local replica entirely — every chunk and registry row for it.
+    This is separate from revoking the replication grant: revoking a grant
+    only blocks future replication/re-sync, it does not delete data already
+    replicated. Use this tool to actually remove a replica you no longer want.
+
+    Args:
+        peer: The source peer identity the replica came from
+        collection_id: The source collection id the replica came from
+    """
+    data = await _delete(f"/n2n/replicate/{peer}/{collection_id}")
+    return _gcf_dumps(data)
 
 
 # ── Health & one-step connect/trust (feature 053, US6) ──────────────────────

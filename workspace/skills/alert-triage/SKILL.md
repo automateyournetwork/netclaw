@@ -10,6 +10,29 @@ metadata:
 
 Investigate alerts received from the observability stack (Prometheus → Alertmanager → NetClaw Alert Receiver).
 
+## Delegation (MANDATORY — do this FIRST)
+
+If you are the **Border** (i.e. you have `n2n_route` available and are NOT already
+a member executing a delegated task), you MUST delegate this investigation to the
+`guardian-claw` member rather than investigating directly. guardian-claw has a
+scoped toolset (observability MCP servers only) and runs on a cost-efficient model.
+
+**How to delegate:**
+1. Call `n2n_route(request_text="<the full alert context you received>", target_hint="alert-triage")`
+2. You will get back a `task_id` and `member_id`.
+3. Poll `n2n_task_status(task_id=<task_id>)` until state is `completed` or `failed`.
+4. Retrieve the result with `n2n_task_result(task_id=<task_id>)`.
+5. Return the member's findings to the caller — do NOT add your own investigation.
+6. **STOP HERE.** Do NOT execute Steps 7 or 8 (Discord delivery, Network Guardian).
+   The member handles the full investigation lifecycle including delivery.
+   Your only job is routing and returning the result.
+
+**When to skip delegation (investigate directly):**
+- You ARE the guardian-claw member (already executing a delegated task)
+- `n2n_route` returns an error (no capable member / member unreachable) — fall back
+  to direct investigation using the procedure below
+- The user explicitly asks YOU to investigate (interactive session, not a hook trigger)
+
 ## When to Use
 
 - Alert receiver triggers investigation (autonomous mode)

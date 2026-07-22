@@ -24,12 +24,15 @@ NC='\033[0m'
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 SCRIPT_DIR="$NETCLAW_DIR/scripts"
-OPENCLAW_DIR="$HOME/.openclaw"
-OPENCLAW_ENV="$OPENCLAW_DIR/.env"
 
-# Shared helpers: logo (tui.sh) + component manifest awareness (common.sh)
+# Shared helpers: logo (tui.sh) + component manifest awareness (common.sh).
+# common.sh resolves the runtime (OpenClaw/Hermes) and its state-dir paths.
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/tui.sh"
+
+# Credentials land in the selected runtime's .env (~/.openclaw or ~/.hermes).
+OPENCLAW_DIR="$RUNTIME_HOME"
+OPENCLAW_ENV="$RUNTIME_ENV"
 
 # ───────────────────────────────────────────
 # Helpers
@@ -113,7 +116,7 @@ if [ "$(id -u)" = "0" ] && [ -n "${SUDO_USER:-}" ] && [ "${NETCLAW_ALLOW_ROOT:-0
 fi
 
 if [ ! -d "$OPENCLAW_DIR" ]; then
-    echo -e "${RED}Error: ~/.openclaw not found. Run install.sh first.${NC}"
+    echo -e "${RED}Error: $OPENCLAW_DIR not found. Run install.sh first.${NC}"
     exit 1
 fi
 
@@ -127,10 +130,14 @@ netclaw_logo
 echo -e "${BOLD}    NetClaw Platform Setup${NC}"
 echo ""
 echo -e "  Configure your network platform credentials."
-echo -e "  AI provider and channels (Slack, WebEx, etc.) were set up by ${BOLD}openclaw onboard${NC}."
+if [ "$RUNTIME" = "hermes" ]; then
+    echo -e "  AI provider and channels were set up by ${BOLD}hermes setup${NC}."
+else
+    echo -e "  AI provider and channels (Slack, WebEx, etc.) were set up by ${BOLD}openclaw onboard${NC}."
+fi
 echo -e "  Re-run anytime: ${BOLD}./scripts/setup.sh${NC}"
 echo ""
-echo -e "  ${DIM}All credentials are stored in ~/.openclaw/.env (never committed to git)${NC}"
+echo -e "  ${DIM}All credentials are stored in $OPENCLAW_ENV (never committed to git)${NC}"
 if [ -f "$NETCLAW_MANIFEST" ]; then
     echo -e "  ${DIM}Only platforms selected during install are offered below — re-run ./scripts/install.sh to add more.${NC}"
 fi
@@ -851,8 +858,9 @@ prompt USER_NAME "Your name" ""
 prompt USER_ROLE "Your role (e.g., Network Engineer, NetOps Lead)" "Network Engineer"
 prompt USER_TZ "Your timezone (e.g., US/Eastern, UTC)" ""
 
-USER_MD="$OPENCLAW_DIR/workspace/USER.md"
+USER_MD="$RUNTIME_WORKSPACE/USER.md"
 if [ -n "$USER_NAME" ] || [ -n "$USER_ROLE" ] || [ -n "$USER_TZ" ]; then
+    mkdir -p "$RUNTIME_WORKSPACE"
     cat > "$USER_MD" << USEREOF
 # About My Human
 
@@ -880,7 +888,7 @@ fi
 
 section "Setup Complete"
 
-echo "  Platform credentials saved to: ~/.openclaw/.env"
+echo "  Platform credentials saved to: $OPENCLAW_ENV"
 echo ""
 echo "  What's configured:"
 
@@ -924,10 +932,19 @@ grep -q "^TWILIO_ACCOUNT_SID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Twilio Voice" 
 echo ""
 echo -e "  ${BOLD}Ready to go:${NC}"
 echo ""
-echo -e "    ${CYAN}openclaw gateway${NC}          # Terminal 1"
-echo -e "    ${CYAN}openclaw chat --new${NC}       # Terminal 2"
-echo ""
-echo -e "  Reconfigure anytime:"
-echo -e "    ${CYAN}openclaw configure${NC}        # AI provider, gateway, channels"
-echo -e "    ${CYAN}./scripts/setup.sh${NC}        # Network platform credentials"
+if [ "$RUNTIME" = "hermes" ]; then
+    echo -e "    ${CYAN}hermes gateway start${NC}      # background service"
+    echo -e "    ${CYAN}hermes chat${NC}              # or: hermes --tui"
+    echo ""
+    echo -e "  Reconfigure anytime:"
+    echo -e "    ${CYAN}hermes setup${NC}             # AI provider, gateway, channels"
+    echo -e "    ${CYAN}./scripts/setup.sh${NC}        # Network platform credentials"
+else
+    echo -e "    ${CYAN}openclaw gateway${NC}          # Terminal 1"
+    echo -e "    ${CYAN}openclaw chat --new${NC}       # Terminal 2"
+    echo ""
+    echo -e "  Reconfigure anytime:"
+    echo -e "    ${CYAN}openclaw configure${NC}        # AI provider, gateway, channels"
+    echo -e "    ${CYAN}./scripts/setup.sh${NC}        # Network platform credentials"
+fi
 echo ""

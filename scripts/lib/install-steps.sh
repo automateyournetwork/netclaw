@@ -223,9 +223,37 @@ _run_or_offer_sudo() {
     return 1
 }
 
-core_openclaw() {
-log_step "Installing OpenClaw..."
+# ── Step 2: Install the agent runtime (OpenClaw or Hermes) ──────
+core_runtime() {
+log_step "Installing $RUNTIME_NAME..."
 
+# ── Hermes (Nous Research) ──
+if [ "$RUNTIME" = "hermes" ]; then
+    if command -v hermes &> /dev/null; then
+        log_info "Hermes already installed: $(hermes version 2>/dev/null | head -1 || echo 'version unknown')"
+    else
+        log_info "Installing Hermes via the Nous Research installer..."
+        if ! curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
+            log_error "Hermes install script failed."
+            log_warn "Re-run manually: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+        fi
+        # Hermes installs the launcher to ~/.local/bin — make it reachable now.
+        case ":$PATH:" in
+            *":$HOME/.local/bin:"*) : ;;
+            *) export PATH="$HOME/.local/bin:$PATH" ;;
+        esac
+        if command -v hermes &> /dev/null; then
+            log_info "Hermes installed successfully"
+        else
+            log_error "hermes not found on PATH after install"
+            log_warn "Add it to PATH: export PATH=\"\$HOME/.local/bin:\$PATH\""
+        fi
+    fi
+    echo ""
+    return 0
+fi
+
+# ── OpenClaw (default) ──
 if command -v openclaw &> /dev/null; then
     log_info "OpenClaw already installed: $(openclaw --version 2>/dev/null || echo 'version unknown')"
 else
@@ -247,8 +275,47 @@ fi
 echo ""
 }
 
-# ── Step 3: OpenClaw Onboard (provider, gateway, channels) ──────
+# ── Step 3: Runtime onboarding (provider, gateway, channels) ────
 core_onboard() {
+# ── Hermes: `hermes setup` wizard + `hermes gateway install` ──
+if [ "$RUNTIME" = "hermes" ]; then
+    log_step "Running Hermes setup..."
+
+    if [ -f "$RUNTIME_CONFIG" ] && [ "${NETCLAW_FORCE_ONBOARD:-0}" != "1" ]; then
+        log_info "Hermes is already configured ($RUNTIME_CONFIG exists) — skipping the wizard."
+        log_info "Reconfigure anytime: hermes setup"
+        echo ""
+        return 0
+    fi
+
+    echo ""
+    echo "  This is Hermes' built-in setup wizard."
+    echo "  You'll pick your AI provider/model, tools, and gateway/channels"
+    echo "  like Slack, Discord, Telegram, WhatsApp, etc."
+    echo ""
+
+    if command -v hermes &> /dev/null; then
+        hermes setup || {
+            log_warn "hermes setup exited with an error."
+            log_warn "You can re-run it later: hermes setup"
+        }
+        # Install the gateway as a background service (analogue to
+        # openclaw's --install-daemon). Best-effort — the agent still
+        # runs interactively without it.
+        hermes gateway install >/dev/null 2>&1 \
+            && log_info "Hermes gateway service installed" \
+            || log_info "Hermes gateway service not installed — run 'hermes gateway install' later if you want channels."
+        log_info "Hermes setup complete"
+    else
+        log_error "hermes command not found — skipping setup"
+        log_warn "After fixing your PATH, run: hermes setup"
+    fi
+
+    echo ""
+    return 0
+fi
+
+# ── OpenClaw (default) ──
 log_step "Running OpenClaw onboard..."
 
 # Already onboarded? Don't drag the user through the wizard again just to
@@ -286,6 +353,23 @@ echo ""
 # permissions). Verify the real state instead of trusting the message.
 core_gateway_check() {
     local attempt="${1:-first}" state="" i
+
+    # ── Hermes: ask the CLI directly ──
+    if [ "$RUNTIME" = "hermes" ]; then
+        command -v hermes &> /dev/null || return 0
+        log_step "Checking Hermes gateway service..."
+        if hermes gateway status 2>/dev/null | grep -qiE "running|active|online"; then
+            log_info "Hermes gateway service is running"
+        else
+            log_warn "Hermes gateway does not appear to be running."
+            echo "    Start it with:   hermes gateway start"
+            echo "    Or foreground:   hermes gateway run"
+            echo "    Diagnose:        hermes gateway status  ·  hermes doctor"
+        fi
+        echo ""
+        return 0
+    fi
+
     command -v openclaw &> /dev/null || return 0
 
     log_step "Checking OpenClaw gateway service..."
@@ -832,7 +916,7 @@ npm cache add "@anthropic-ai/microsoft-graph-mcp" 2>/dev/null || \
     log_warn "Could not pre-cache Microsoft Graph MCP — will download on first use via npx"
 
 log_info "Microsoft Graph MCP ready: npx -y @anthropic-ai/microsoft-graph-mcp"
-echo "  Requires: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in ~/.openclaw/.env"
+echo "  Requires: AZURE_TENANT_ID, AZURE_CLIENT_ID, AZURE_CLIENT_SECRET in $RUNTIME_ENV"
 
 echo ""
 }
@@ -2347,7 +2431,7 @@ if [[ "$enable_checkpoint" =~ ^[Yy]$ ]]; then
     echo ""
     echo "  Check Point MCP servers installed to: $CHECKPOINT_MCP_DIR"
     echo ""
-    echo "  Configure credentials in ~/.openclaw/.env:"
+    echo "  Configure credentials in $RUNTIME_ENV:"
     echo "    # Management Server (policy, logs, threat prevention, gateway)"
     echo "    CHKP_MGMT_HOST=192.168.1.100"
     echo "    CHKP_MGMT_API_KEY=your-api-key-here"
@@ -2381,9 +2465,9 @@ if [[ "$enable_checkpoint" =~ ^[Yy]$ ]]; then
             log_info "Set CHKP_REPUTATION_API_KEY"
         fi
         _set_env_var "CHKP_TELEMETRY_DISABLED" "true"
-        log_info "Check Point credentials configured in ~/.openclaw/.env"
+        log_info "Check Point credentials configured in $RUNTIME_ENV"
     else
-        log_info "Skipping credential configuration. Set CHKP_* variables in ~/.openclaw/.env later."
+        log_info "Skipping credential configuration. Set CHKP_* variables in $RUNTIME_ENV later."
     fi
 
     log_info "Check Point integration enabled. Use /checkpoint skill to query."
@@ -2427,9 +2511,9 @@ if [[ "$enable_ipfabric" =~ ^[Yy]$ ]]; then
             log_info "Set IPFABRIC_API_TOKEN=***"
         fi
 
-        log_info "IP Fabric credentials configured in ~/.openclaw/.env"
+        log_info "IP Fabric credentials configured in $RUNTIME_ENV"
     else
-        log_info "Skipping credential configuration. Set IPFABRIC_* variables in ~/.openclaw/.env later."
+        log_info "Skipping credential configuration. Set IPFABRIC_* variables in $RUNTIME_ENV later."
         # Set placeholders
         _set_env_var "IPFABRIC_HOST" "https://ipfabric.example.com"
         _set_env_var "IPFABRIC_API_TOKEN" "your-api-token-here"
@@ -2457,11 +2541,11 @@ if [[ "$enable_forward" =~ ^[Yy]$ ]]; then
     FORWARD_MCP_BIN="$FORWARD_MCP_DIR/forward-mcp"
     FORWARD_MCP_REPO="${FORWARD_MCP_REPO:-https://github.com/forwardnetworks/forward-mcp.git}"
     FORWARD_MCP_REF="${FORWARD_MCP_REF:-netclaw}"
-    FORWARD_STATE_DIR="$HOME/.openclaw/forward"
+    FORWARD_STATE_DIR="$RUNTIME_HOME/forward"
     FORWARD_LOCK_DIR="$FORWARD_STATE_DIR/locks"
     FORWARD_BLOOM_INDEX_PATH="$FORWARD_STATE_DIR/bloom-indexes"
     FORWARD_CACHE_PATH="$FORWARD_STATE_DIR/cache"
-    OPENCLAW_ENV="$HOME/.openclaw/.env"
+    OPENCLAW_ENV="$RUNTIME_ENV"
 
     forward_set_env_var() {
         local key="$1" val="$2" tmp
@@ -2580,9 +2664,9 @@ if [[ "$enable_forward" =~ ^[Yy]$ ]]; then
         read -r -p "Custom CA certificate path (optional): " forward_ca
         forward_set_env_var "FORWARD_CA_CERT_PATH" "$forward_ca"
 
-        log_info "Forward credentials configured in ~/.openclaw/.env"
+        log_info "Forward credentials configured in $RUNTIME_ENV"
     else
-        log_info "Skipping credential configuration. Set FORWARD_API_* variables in ~/.openclaw/.env later."
+        log_info "Skipping credential configuration. Set FORWARD_API_* variables in $RUNTIME_ENV later."
         forward_set_env_placeholder "FORWARD_API_BASE_URL" "https://fwd.example.com"
         forward_set_env_placeholder "FORWARD_API_KEY" "your-api-key-or-username"
         forward_set_env_placeholder "FORWARD_API_SECRET" "your-api-secret-or-password"
@@ -2612,48 +2696,93 @@ log_step "Deploying skills and configuration..."
 PYATS_SCRIPT="$PYATS_MCP_DIR/pyats_mcp_server.py"
 TESTBED_PATH="$NETCLAW_DIR/testbed/testbed.yaml"
 
-# Bootstrap OpenClaw workspace (create if it doesn't exist)
-OPENCLAW_DIR="$HOME/.openclaw"
+# Bootstrap the runtime state dir (create if it doesn't exist)
+OPENCLAW_DIR="$RUNTIME_HOME"
 if [ ! -d "$OPENCLAW_DIR" ]; then
-    log_info "OpenClaw directory not found. Bootstrapping..."
-    mkdir -p "$OPENCLAW_DIR/workspace/skills"
-    mkdir -p "$OPENCLAW_DIR/agents/main/sessions"
+    log_info "$RUNTIME_NAME directory not found. Bootstrapping..."
+    mkdir -p "$RUNTIME_SKILLS"
+    [ "$RUNTIME" = "openclaw" ] && mkdir -p "$OPENCLAW_DIR/agents/main/sessions"
     log_info "Created $OPENCLAW_DIR"
 fi
 
-# Deploy openclaw.json config ONLY if onboard didn't already create one
-if [ ! -f "$OPENCLAW_DIR/openclaw.json" ]; then
+if [ "$RUNTIME" = "hermes" ]; then
+    # Port NetClaw's MCP registrations (config/openclaw.json → mcp_servers in
+    # Hermes' config.yaml). hermes setup created config.yaml already; this
+    # merges the servers in non-destructively.
     if [ -f "$NETCLAW_DIR/config/openclaw.json" ]; then
-        cp "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
-        log_info "Deployed fallback openclaw.json (gateway.mode=local)"
+        if python3 "$NETCLAW_DIR/scripts/openclaw-to-hermes-mcp.py" \
+                --source "$NETCLAW_DIR/config/openclaw.json" \
+                --repo   "$NETCLAW_DIR" \
+                --env    "$RUNTIME_ENV" \
+                --config "$RUNTIME_CONFIG" \
+                --sidecar "$RUNTIME_HOME/netclaw-mcp-servers.yaml"; then
+            log_info "Registered NetClaw MCP servers into $RUNTIME_CONFIG"
+        else
+            log_warn "MCP translation reported an error — check $RUNTIME_CONFIG"
+        fi
     else
-        log_warn "config/openclaw.json not found in repo"
+        log_warn "config/openclaw.json not found in repo — no MCP servers registered"
     fi
 else
-    log_info "openclaw.json already exists (created by onboard) — keeping it"
+    # Deploy openclaw.json config ONLY if onboard didn't already create one
+    if [ ! -f "$OPENCLAW_DIR/openclaw.json" ]; then
+        if [ -f "$NETCLAW_DIR/config/openclaw.json" ]; then
+            cp "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
+            log_info "Deployed fallback openclaw.json (gateway.mode=local)"
+        else
+            log_warn "config/openclaw.json not found in repo"
+        fi
+    else
+        log_info "openclaw.json already exists (created by onboard) — keeping it"
+    fi
 fi
 
-# Deploy skills
-mkdir -p "$OPENCLAW_DIR/workspace/skills"
-cp -r "$NETCLAW_DIR/workspace/skills/"* "$OPENCLAW_DIR/workspace/skills/"
-log_info "Deployed skills to $OPENCLAW_DIR/workspace/skills/"
+# Deploy skills into the runtime's skills dir (workspace/skills for OpenClaw,
+# a flat skills/ for Hermes)
+mkdir -p "$RUNTIME_SKILLS"
+cp -r "$NETCLAW_DIR/workspace/skills/"* "$RUNTIME_SKILLS/"
+log_info "Deployed skills to $RUNTIME_SKILLS/"
 
-# Deploy OpenClaw workspace MD files (SOUL, AGENTS, IDENTITY, USER, TOOLS, HEARTBEAT)
-for mdfile in SOUL.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
-    if [ -f "$NETCLAW_DIR/$mdfile" ]; then
-        cp "$NETCLAW_DIR/$mdfile" "$OPENCLAW_DIR/workspace/$mdfile"
-        log_info "Deployed $mdfile to workspace"
+# Skills are authored OpenClaw-native — they hardcode the state dir as
+# `~/.openclaw/...` in both functional paths (memory db, rag store, generated
+# output dirs) and credential docs (`~/.openclaw/.env`). On a non-OpenClaw
+# runtime, rewrite that state-dir segment in the DEPLOYED copies so the agent
+# looks in the right place. The repo's skills stay byte-for-byte OpenClaw-native.
+_state_base="$(basename "$RUNTIME_HOME")"   # e.g. .hermes
+if [ "$_state_base" != ".openclaw" ]; then
+    find "$RUNTIME_SKILLS" -type f \( -name '*.md' -o -name '*.py' -o -name '*.js' -o -name '*.css' \) \
+        -exec sed -i "s#\.openclaw#${_state_base}#g" {} + 2>/dev/null || true
+    log_info "Rewrote .openclaw → ${_state_base} in deployed skills"
+fi
+
+if [ "$RUNTIME" = "hermes" ]; then
+    # Hermes reads a single SOUL.md at the top of its state dir.
+    if [ -f "$NETCLAW_DIR/SOUL.md" ]; then
+        cp "$NETCLAW_DIR/SOUL.md" "$RUNTIME_HOME/SOUL.md"
+        log_info "Deployed SOUL.md to $RUNTIME_HOME/"
     fi
-done
-log_info "Deployed workspace files to $OPENCLAW_DIR/workspace/"
+    # Keep the other persona files alongside skills for reference.
+    for mdfile in AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
+        [ -f "$NETCLAW_DIR/$mdfile" ] && cp "$NETCLAW_DIR/$mdfile" "$RUNTIME_HOME/$mdfile"
+    done
+else
+    # Deploy OpenClaw workspace MD files (SOUL, AGENTS, IDENTITY, USER, TOOLS, HEARTBEAT)
+    for mdfile in SOUL.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
+        if [ -f "$NETCLAW_DIR/$mdfile" ]; then
+            cp "$NETCLAW_DIR/$mdfile" "$RUNTIME_WORKSPACE/$mdfile"
+            log_info "Deployed $mdfile to workspace"
+        fi
+    done
+    log_info "Deployed workspace files to $RUNTIME_WORKSPACE/"
+fi
 
-# Symlink testbed into workspace so OpenClaw can find it
-mkdir -p "$OPENCLAW_DIR/workspace/testbed"
-ln -sf "$NETCLAW_DIR/testbed/testbed.yaml" "$OPENCLAW_DIR/workspace/testbed/testbed.yaml"
-log_info "Symlinked testbed.yaml into workspace"
+# Symlink testbed into the workspace so the agent can find it
+mkdir -p "$RUNTIME_WORKSPACE/testbed"
+ln -sf "$NETCLAW_DIR/testbed/testbed.yaml" "$RUNTIME_WORKSPACE/testbed/testbed.yaml"
+log_info "Symlinked testbed.yaml into $RUNTIME_WORKSPACE/testbed/"
 
-# Set ALL environment variables in OpenClaw .env
-OPENCLAW_ENV="$OPENCLAW_DIR/.env"
+# Set ALL environment variables in the runtime .env
+OPENCLAW_ENV="$RUNTIME_ENV"
 [ -f "$OPENCLAW_ENV" ] || touch "$OPENCLAW_ENV"
 
 # Write env vars to OpenClaw .env (portable — no associative arrays for macOS bash 3.2)
@@ -2692,6 +2821,12 @@ _set_env_var "MEMPALACE_MCP_SCRIPT"     "$MEMPALACE_MCP_DIR/mempalace/mcp_server
 _set_env_var "HUMANRAIL_MCP_SCRIPT"    "$HUMANRAIL_MCP_DIR/server.py"
 _set_env_var "HUMANRAIL_MCP_URL"       "http://127.0.0.1:8100/mcp"
 
+# Stateful data dirs — pin to the active runtime's home so RAG/Memory stores
+# land under ~/.hermes on Hermes instead of the servers' ~/.openclaw defaults.
+# No-op for OpenClaw ($RUNTIME_HOME is ~/.openclaw, same as the built-in default).
+_set_env_var "RAG_DATA_DIR"            "$RUNTIME_HOME/rag"
+_set_env_var "MEMORY_DATA_DIR"         "$RUNTIME_HOME/memory"
+
 # gtrace is a Go binary, not a Python script — just record the path
 if command -v gtrace &> /dev/null; then
     _set_env_var "GTRACE_MCP_BIN"       "$(which gtrace)"
@@ -2715,8 +2850,8 @@ fi
 
 log_info "Environment variables written to $OPENCLAW_ENV"
 
-# Verify the config is correct
-if [ -f "$OPENCLAW_DIR/openclaw.json" ]; then
+# Verify the config is correct (OpenClaw only — Hermes owns its own config.yaml)
+if [ "$RUNTIME" = "openclaw" ] && [ -f "$OPENCLAW_DIR/openclaw.json" ]; then
     if grep -q '"mode": "local"' "$OPENCLAW_DIR/openclaw.json" 2>/dev/null; then
         log_info "Gateway config verified: mode=local"
     else
@@ -2837,7 +2972,7 @@ log_info "  5. Verify: curl -s -o /dev/null -w '%{http_code}\\n' http://127.0.0.
 log_info "     (expect 405 — the endpoint only accepts POST; that response code means the server is up)"
 log_info ""
 log_info "UE5 MCP URL: http://127.0.0.1:8000/mcp (local-only, loopback)"
-log_info "Set UE5_MCP_URL in ~/.openclaw/.env to override default"
+log_info "Set UE5_MCP_URL in $RUNTIME_ENV to override default"
 log_info "Skills: ue5-network-viz (interactive digital twin — see its SKILL.md for the full command reference)"
 
 echo ""
@@ -3058,7 +3193,7 @@ if [ -f "$GNS3_MCP_DIR/requirements.txt" ]; then
             log_warn "GNS3 MCP pip install failed — dependencies may need manual installation"
         }
     log_info "GNS3 MCP ready: $GNS3_MCP_DIR/gns3_mcp_server.py"
-    log_info "Configure GNS3_URL / GNS3_USER / GNS3_PASSWORD in ~/.openclaw/.env"
+    log_info "Configure GNS3_URL / GNS3_USER / GNS3_PASSWORD in $RUNTIME_ENV"
 else
     log_warn "GNS3 MCP requirements.txt not found at $GNS3_MCP_DIR"
 fi
@@ -3083,7 +3218,7 @@ echo "  Built-in MCP server: mcp-servers/memory-mcp/"
 echo "  Hybrid persistent memory — structured facts (SQLite), semantic search (ChromaDB), decision log (Python 3.11+)"
 
 MEMORY_MCP_DIR="$MCP_DIR/memory-mcp"
-MEMORY_DATA_DIR="$HOME/.openclaw/memory"
+MEMORY_DATA_DIR="$RUNTIME_HOME/memory"
 mkdir -p "$MEMORY_DATA_DIR"
 
 if [ -f "$MEMORY_MCP_DIR/pyproject.toml" ]; then
@@ -3094,7 +3229,11 @@ if [ -f "$MEMORY_MCP_DIR/pyproject.toml" ]; then
         log_warn "Memory MCP editable install failed"
     log_info "Memory MCP ready. Data directory: $MEMORY_DATA_DIR"
     log_info "Not pre-registered in config/openclaw.json (per its own design) — register with:"
-    log_info "  openclaw mcp set memory-mcp '{\"command\":\"uvx\",\"args\":[\"--from\",\"netclaw-memory-mcp\",\"memory-mcp-server\"],\"env\":{\"MEMORY_DATA_DIR\":\"$MEMORY_DATA_DIR\"}}'"
+    if [ "$RUNTIME" = "hermes" ]; then
+        log_info "  hermes mcp add memory-mcp --command uvx --args '--from,netclaw-memory-mcp,memory-mcp-server' --env MEMORY_DATA_DIR=$MEMORY_DATA_DIR"
+    else
+        log_info "  openclaw mcp set memory-mcp '{\"command\":\"uvx\",\"args\":[\"--from\",\"netclaw-memory-mcp\",\"memory-mcp-server\"],\"env\":{\"MEMORY_DATA_DIR\":\"$MEMORY_DATA_DIR\"}}'"
+    fi
 else
     log_warn "Memory MCP pyproject.toml not found at $MEMORY_MCP_DIR"
 fi
@@ -3109,7 +3248,7 @@ echo "  Built-in MCP server: mcp-servers/rag-mcp/"
 echo "  Offline document knowledge base — hybrid retrieval, citations, opt-in snapshots (Python 3.10+)"
 
 RAG_MCP_DIR="$MCP_DIR/rag-mcp"
-RAG_DATA_DIR="$HOME/.openclaw/rag"
+RAG_DATA_DIR="$RUNTIME_HOME/rag"
 mkdir -p "$RAG_DATA_DIR"
 
 if [ -f "$RAG_MCP_DIR/pyproject.toml" ]; then
@@ -3267,7 +3406,7 @@ if [[ "$enable_sketchfab" =~ ^[Yy]$ ]]; then
     cd "$NETCLAW_DIR"
 
     echo ""
-    echo "  Configure credentials in ~/.openclaw/.env:"
+    echo "  Configure credentials in $RUNTIME_ENV:"
     echo "    SKETCHFAB_API_KEY=your_sketchfab_api_token   # https://sketchfab.com/settings/password"
     echo "    SKETCHFAB_USERNAME=your_sketchfab_username   # reference/attribution only"
 else
@@ -3324,7 +3463,17 @@ else
     VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\"]"
 fi
 
-if command -v openclaw &> /dev/null; then
+if [ "$RUNTIME" = "hermes" ]; then
+    if command -v hermes &> /dev/null; then
+        hermes mcp add chrome-devtools-mcp --command npx >/dev/null 2>&1 \
+            && log_info "Added chrome-devtools-mcp to Hermes (edit args in $RUNTIME_CONFIG)" \
+            || log_warn "Could not add chrome-devtools-mcp — add it manually: hermes mcp add chrome-devtools-mcp --command npx"
+        log_info "Set its args in $RUNTIME_CONFIG under mcp_servers.chrome-devtools-mcp:"
+        log_info "  args: [\"-y\", \"chrome-devtools-mcp@latest\", \"--headless=true\"]"
+    else
+        log_info "hermes CLI not found — add chrome-devtools-mcp later: hermes mcp add chrome-devtools-mcp --command npx"
+    fi
+elif command -v openclaw &> /dev/null; then
     openclaw mcp set chrome-devtools-mcp "{\"command\":\"npx\",\"args\":${HEADLESS_ARGS}}" >/dev/null 2>&1 \
         && log_info "Registered chrome-devtools-mcp (headless)" \
         || log_warn "Could not register chrome-devtools-mcp — register manually (see mcp-servers/chrome-devtools-mcp/README.md)"
@@ -3379,7 +3528,18 @@ case "$PKG_MGR" in
 esac
 
 COMPUTER_USE_SKILL_DIR=""
-if command -v openclaw &> /dev/null; then
+if [ "$RUNTIME" = "hermes" ]; then
+    log_info "Installing the computer-use skill for Hermes..."
+    if command -v hermes &> /dev/null && hermes skills install computer-use 2>&1 | tail -5; then
+        log_info "computer-use skill installed"
+        [ -d "$RUNTIME_SKILLS/computer-use" ] && COMPUTER_USE_SKILL_DIR="$RUNTIME_SKILLS/computer-use"
+        if [ -n "$COMPUTER_USE_SKILL_DIR" ] && [ -d "$COMPUTER_USE_SKILL_DIR/scripts" ]; then
+            chmod +x "$COMPUTER_USE_SKILL_DIR"/scripts/*.sh 2>/dev/null || true
+        fi
+    else
+        log_warn "Could not install computer-use via Hermes — try manually: hermes skills install computer-use"
+    fi
+elif command -v openclaw &> /dev/null; then
     log_info "Installing the computer-use skill from ClawHub..."
     if openclaw skills install --global computer-use 2>&1 | tail -5; then
         log_info "computer-use skill installed"

@@ -117,33 +117,31 @@ docker compose exec -it netclaw-convergence openclaw tui
 
 ---
 
-## Alert Delegation to guardian-claw Removed (needs proper re-implementation)
+## Alert Delegation to guardian-claw ~~Removed~~ RESTORED (2026-07-21)
 
-**Problem**: The alert-triage hook no longer delegates investigations to the
-`guardian-claw` iN2N member. The border investigates directly on `claude-sonnet-5`,
+**Previous problem**: The alert-triage hook no longer delegated investigations to the
+`guardian-claw` iN2N member. The border investigated directly on `claude-sonnet-5`,
 which is expensive (~$0.73 input-token cost per alert due to the 243K MCP tool
 schema bloat).
 
-**Why it was removed**: The old hook `messageTemplate` said "Route this alert
-investigation to the guardian-claw member via n2n_route, do NOT investigate
-directly." That instruction, arriving inside an untrusted webhook payload, was
-correctly flagged by Sonnet as prompt injection and refused — which broke the
-whole pipeline. To get investigations working again, the routing instruction was
-stripped from the payload (see docs/blog/2026-07-21-alert-investigation-debugging.md).
+**Fix applied**: Moved the delegation instruction into the **alert-triage skill
+file** (trusted content the model honors). The skill now has a "Delegation
+(MANDATORY)" section at the top that instructs the border to:
+1. Call `n2n_route(request_text=..., target_hint="alert-triage")`
+2. Poll the task until completion
+3. Return the member's findings without adding its own investigation
 
-**The right fix**: Move the delegation instruction into the **alert-triage skill
-file** (trusted content the model honors), not the webhook payload (untrusted).
-Same pattern already used for Discord delivery (Step 7) and Guardian events
-(Step 8). The skill should instruct: "delegate this investigation to guardian-claw
-via n2n_route" — Sonnet will follow a skill directive because it is trusted, not
-injected webhook content.
+This works because skill content is **trusted** (loaded from the workspace, not
+from webhook payloads), so Sonnet correctly follows the delegation directive.
 
-**Benefits of restoring delegation**:
-- guardian-claw runs on cheap kimi-k3 (free) instead of the border on Sonnet 5
-- guardian-claw has a scoped MCP config (observability servers only), so it does
-  NOT carry the 243K tool-schema bloat — solves both the cost AND context-overflow
-  problems at once
-- The border's routing turn becomes small and cheap
+**Model change**: guardian-claw switched from `moonshot/kimi-k3` to
+`ollama/deepseek-v4-flash:cloud` — 1M context window (matches Sonnet 5), zero
+cost, and more than enough capacity for the scoped observability toolset.
 
-**Status**: Flagged. Interim state works (direct investigation on Sonnet 5), but
-the cost-saving delegation architecture should be restored the trusted way.
+**Cost impact**: Border's routing turn = ~$0.01 (small prompt + n2n_route call).
+guardian-claw investigation = $0 (Ollama/DeepSeek). Total: ~$0.01 per alert
+(down from ~$0.73).
+
+**Restart required**: `systemctl --user restart openclaw-gateway` (to pick up the
+skill change) + `systemctl --user restart netclaw-member-byrns-risk-guardian-claw`
+(to pick up the model change).

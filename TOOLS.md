@@ -124,6 +124,16 @@ For **detailed infrastructure notes on specific MCP servers/skills** (GitLab, Ch
 - Data: `~/.openclaw/rag/` (ChromaDB + SQLite + BM25 pickles + retained sources) — never touches `~/.openclaw/memory/`
 - No credentials required
 
+## N2N Federation MCP Server (NetClaw Native)
+
+37 MCP tools proxying the local `bgp-daemon-v2` HTTP API for claw-to-claw federation over NCFED. Replication-specific tools (feature 065, chroma-to-chroma vector replication — see `workspace/skills/n2n-federation/SKILL.md` for when/how to use them):
+- `n2n_replicate` — WHEN the user wants a standing local copy of a consenting peer's RAG collection (not just a one-off answer — use `n2n_knowledge_query` for that). Returns a `task_id` immediately; does not block.
+- `n2n_replicate_resync` — WHEN a previously replicated collection needs refreshing to match the source's current content (full replace, same async pattern)
+- `n2n_replicate_delete` — WHEN the user wants a local replica removed entirely (distinct from revoking the grant, which only blocks *future* replication)
+- Requires a `knowledge_replica` grant via `n2n_grant`, distinct from the `knowledge` (query-only) grant feature 064 uses
+- Config: `N2N_REPLICATION_MAX_CHUNKS` (default `20000`) caps the size of a collection replication will transfer; `N2N_REPLICATION_BATCH_SIZE` (default `200`) sizes each page pulled from the source
+- No new credentials — reuses existing NCFED peer identity/consent state
+
 ## MemPalace AI Memory
 
 19 MCP tools for persistent, structured, local-only AI memory across sessions ([source](https://github.com/milla-jovovich/mempalace)):

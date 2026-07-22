@@ -1468,6 +1468,22 @@ function renderRiskSection() {
     </div>`;
 }
 
+// 065: chroma-to-chroma replication jobs — status/progress for in-flight and
+// recent n2n_replicate/n2n_replicate_resync runs. Renders nothing on a
+// pre-065 daemon or when no job has ever run.
+function renderReplicationJobs() {
+  const jobs = state.n2n?.replicationJobs || [];
+  if (!jobs.length) return '';
+  const stCls = (s) => (s === 'completed' ? 'federated'
+    : s === 'failed' ? 'not-federated' : 'consent-pending-local');
+  const rows = jobs.slice(0, 8).map((j) => `<li>
+      <strong class="n2n-state-${stCls(j.state)}">${j.state}</strong>
+      <span class="n2n-muted">${j.target_name || ''} · ${j.peer_identity || ''}</span>
+      ${j.progress ? `<span class="n2n-muted">· ${j.progress}</span>` : ''}
+      <span class="n2n-muted">· ${(j.updated_at || '').replace('T', ' ').replace('Z', '')}</span></li>`).join('');
+  return `<h4>Replication jobs (chroma-to-chroma)</h4><ul class="n2n-list">${rows}</ul>`;
+}
+
 // 057: recent GAIT immutable audit events (delegation/enrollment/removal/quarantine).
 function renderGaitTrail() {
   const events = state.n2n?.gait || [];
@@ -1632,6 +1648,7 @@ function setDetail(kind, payload, related = []) {
       <h2>This NetClaw</h2>
       <p>${state.n2n?.identity || 'local claw'}</p>
       ${renderRiskSection()}
+      ${renderReplicationJobs()}
     `;
     return;
   }

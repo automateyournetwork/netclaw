@@ -17,15 +17,18 @@ import uuid
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 NON_TERMINAL_STATES = ("pending", "parsing", "chunking", "embedding")
 TERMINAL_STATES = ("ready", "error")
 
-_SCHEMA = """
+# Kept separate from _SCHEMA so a v1->v2 migration (feature 065) can recreate
+# just the `documents` table with the widened `kind` CHECK constraint without
+# touching retrieval_log/schema_version.
+_SCHEMA_DOCUMENTS = """
 CREATE TABLE IF NOT EXISTS documents (
     id TEXT PRIMARY KEY,
-    kind TEXT NOT NULL CHECK (kind IN ('document', 'snapshot')),
+    kind TEXT NOT NULL CHECK (kind IN ('document', 'snapshot', 'replica')),
     title TEXT NOT NULL,
     source TEXT NOT NULL,
     doc_type TEXT NOT NULL DEFAULT 'other',
@@ -41,11 +44,17 @@ CREATE TABLE IF NOT EXISTS documents (
     capture_ts TEXT,
     capture_devices TEXT,
     capture_commands TEXT,
-    redaction_counts TEXT
+    redaction_counts TEXT,
+    source_peer_identity TEXT,
+    source_collection_id TEXT,
+    source_embedding_model TEXT,
+    replicated_at TEXT
 );
 CREATE UNIQUE INDEX IF NOT EXISTS idx_documents_hash_kind
     ON documents (content_hash, kind);
+"""
 
+_SCHEMA = _SCHEMA_DOCUMENTS + """
 CREATE TABLE IF NOT EXISTS retrieval_log (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     ts TEXT NOT NULL,
@@ -80,11 +89,46 @@ class Registry:
         with self._lock, self._conn:
             self._conn.executescript(_SCHEMA)
             cur = self._conn.execute("SELECT version FROM schema_version")
-            if cur.fetchone() is None:
+            row = cur.fetchone()
+            if row is None:
                 self._conn.execute(
                     "INSERT INTO schema_version (version) VALUES (?)",
                     (SCHEMA_VERSION,),
                 )
+            elif row["version"] < SCHEMA_VERSION:
+                self._migrate_to_current(row["version"])
+
+    def _migrate_to_current(self, from_version: int) -> None:
+        """Idempotent, additive-only migrations (feature 065: v1 -> v2 widens
+        documents.kind to include 'replica' and adds replica provenance
+        columns). SQLite CHECK constraints can't be altered in place, so the
+        kind widening rebuilds the table; new installs get the current schema
+        directly from _SCHEMA and never hit this path."""
+        if from_version < 2:
+            cols = {r["name"] for r in self._conn.execute("PRAGMA table_info(documents)")}
+            for col in ("source_peer_identity", "source_collection_id",
+                        "source_embedding_model", "replicated_at"):
+                if col not in cols:
+                    self._conn.execute(f"ALTER TABLE documents ADD COLUMN {col} TEXT")
+            ddl_row = self._conn.execute(
+                "SELECT sql FROM sqlite_master WHERE type='table' AND name='documents'"
+            ).fetchone()
+            if ddl_row and "'replica'" not in (ddl_row["sql"] or ddl_row[0]):
+                self._conn.execute("ALTER TABLE documents RENAME TO documents_v1")
+                self._conn.executescript(_SCHEMA_DOCUMENTS)
+                self._conn.execute(
+                    "INSERT INTO documents (id, kind, title, source, doc_type, version, "
+                    "content_hash, collection, ingest_ts, page_count, chunk_count, "
+                    "source_path, ingest_status, error, capture_ts, capture_devices, "
+                    "capture_commands, redaction_counts, source_peer_identity, "
+                    "source_collection_id, source_embedding_model, replicated_at) "
+                    "SELECT id, kind, title, source, doc_type, version, content_hash, "
+                    "collection, ingest_ts, page_count, chunk_count, source_path, "
+                    "ingest_status, error, capture_ts, capture_devices, capture_commands, "
+                    "redaction_counts, source_peer_identity, source_collection_id, "
+                    "source_embedding_model, replicated_at FROM documents_v1")
+                self._conn.execute("DROP TABLE documents_v1")
+        self._conn.execute("UPDATE schema_version SET version = ?", (SCHEMA_VERSION,))
 
     # ------------------------------------------------------------------
     # Documents
@@ -102,16 +146,22 @@ class Registry:
         capture_ts: Optional[str] = None,
         capture_devices: Optional[List[str]] = None,
         capture_commands: Optional[List[str]] = None,
+        source_peer_identity: Optional[str] = None,
+        source_collection_id: Optional[str] = None,
+        source_embedding_model: Optional[str] = None,
+        replicated_at: Optional[str] = None,
     ) -> str:
-        prefix = "doc" if kind == "document" else "snap"
+        prefix = {"document": "doc", "snapshot": "snap", "replica": "repl"}.get(kind, "doc")
         doc_id = f"{prefix}_{uuid.uuid4().hex[:12]}"
         with self._lock, self._conn:
             self._conn.execute(
                 """INSERT INTO documents
                    (id, kind, title, source, doc_type, version, content_hash,
                     collection, ingest_ts, source_path, ingest_status,
-                    capture_ts, capture_devices, capture_commands)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?)""",
+                    capture_ts, capture_devices, capture_commands,
+                    source_peer_identity, source_collection_id,
+                    source_embedding_model, replicated_at)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?, ?, ?, ?, ?, ?, ?)""",
                 (
                     doc_id,
                     kind,
@@ -126,9 +176,20 @@ class Registry:
                     capture_ts,
                     json.dumps(capture_devices) if capture_devices else None,
                     json.dumps(capture_commands) if capture_commands else None,
+                    source_peer_identity,
+                    source_collection_id,
+                    source_embedding_model,
+                    replicated_at,
                 ),
             )
         return doc_id
+
+    def delete_by_collection(self, collection: str) -> int:
+        """Delete every documents row for a given collection value (used by
+        replication's full-replace re-sync and by replica deletion, feature 065)."""
+        with self._lock, self._conn:
+            cur = self._conn.execute("DELETE FROM documents WHERE collection = ?", (collection,))
+            return cur.rowcount
 
     def set_source_path(self, doc_id: str, source_path: str) -> None:
         with self._lock, self._conn:

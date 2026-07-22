@@ -31,6 +31,12 @@ source "$SCRIPT_DIR/lib/install-steps.sh"
 
 define_paths
 
+# Agent runtime (openclaw default | hermes). Exported so setup.sh and the
+# `netclaw` launcher inherit the same choice. --runtime / the TUI can change it.
+# If it was set in the environment, treat it as explicit (skip the TUI prompt).
+[ -n "${NETCLAW_RUNTIME:-}" ] && NETCLAW_RUNTIME_EXPLICIT=1
+export NETCLAW_RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+
 TOTAL_COMPONENTS=$(catalog_ids | wc -l | tr -d ' ')
 
 # ═══════════════════════════════════════════
@@ -41,6 +47,8 @@ usage() {
     echo "Usage: ./scripts/install.sh [options]"
     echo ""
     echo "  (no options)              interactive TUI installer"
+    echo "  --runtime <name>          agent runtime to install: openclaw (default) or hermes"
+    echo "                            (or set NETCLAW_RUNTIME=hermes)"
     echo "  --profile <name>          install a profile without the TUI"
     echo "                            ($PROFILE_NAMES)"
     echo "  --components \"id id ...\"  install an exact component list (see --list);"
@@ -79,6 +87,13 @@ ADD_MODE=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
+        --runtime)
+            [ $# -ge 2 ] || { log_error "--runtime needs a value (openclaw|hermes)"; usage; exit 1; }
+            case "$2" in
+                openclaw|hermes) NETCLAW_RUNTIME="$2"; NETCLAW_RUNTIME_EXPLICIT=1; define_runtime ;;
+                *) log_error "Unknown runtime: $2 (valid: openclaw, hermes)"; exit 1 ;;
+            esac
+            shift 2 ;;
         --profile)
             [ $# -ge 2 ] || { log_error "--profile needs a value"; usage; exit 1; }
             SELECTED="$(profile_components "$2")" || { log_error "Unknown profile: $2 (valid: $PROFILE_NAMES)"; exit 1; }
@@ -140,17 +155,28 @@ DETECTED_GATEWAY=0
 DETECTED_COMPONENTS=""
 
 detect_existing() {
-    if command -v openclaw &> /dev/null; then
-        DETECTED_OPENCLAW="$(openclaw --version 2>/dev/null | head -1 || true)"
+    DETECTED_OPENCLAW=""; DETECTED_ONBOARDED=0; DETECTED_GATEWAY=0
+    if command -v "$RUNTIME_CMD" &> /dev/null; then
+        if [ "$RUNTIME" = "hermes" ]; then
+            DETECTED_OPENCLAW="$(hermes version 2>/dev/null | head -1 || true)"
+        else
+            DETECTED_OPENCLAW="$(openclaw --version 2>/dev/null | head -1 || true)"
+        fi
         DETECTED_OPENCLAW="${DETECTED_OPENCLAW:-unknown version}"
     fi
-    [ -f "$HOME/.openclaw/openclaw.json" ] && DETECTED_ONBOARDED=1
-    if command -v systemctl &> /dev/null && \
+    [ -f "$RUNTIME_CONFIG" ] && DETECTED_ONBOARDED=1
+    if [ "$RUNTIME" = "hermes" ]; then
+        if command -v hermes &> /dev/null && \
+           hermes gateway status 2>/dev/null | grep -qiE "running|active|online"; then
+            DETECTED_GATEWAY=1
+        fi
+    elif command -v systemctl &> /dev/null && \
        [ "$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)" = "active" ]; then
         DETECTED_GATEWAY=1
     elif (exec 3<>/dev/tcp/127.0.0.1/18789) 2>/dev/null; then
         DETECTED_GATEWAY=1
     fi
+    DETECTED_COMPONENTS=""
     if [ -f "$NETCLAW_MANIFEST" ]; then
         # `|| true` guards pipefail: grep -v exits 1 on a comments-only manifest
         DETECTED_COMPONENTS="$(grep -v '^#' "$NETCLAW_MANIFEST" 2>/dev/null | tr '\n' ' ' | tr -s ' ' || true)"
@@ -170,7 +196,7 @@ detect_banner() {
             parts="$parts ${T_DIM}·${T_NC} $(echo "$DETECTED_COMPONENTS" | wc -w | tr -d ' ') components installed"
         fi
     else
-        parts="OpenClaw not installed $no ${T_DIM}— full setup will run${T_NC}"
+        parts="$RUNTIME_NAME not installed $no ${T_DIM}— full setup will run${T_NC}"
     fi
     echo -e "  ${T_BOLD}Detected:${T_NC} $parts"
     echo ""
@@ -201,8 +227,29 @@ build_checklist() {
     done
 }
 
+select_runtime() {
+    # Let the user pick the agent runtime interactively. Skipped when
+    # --runtime / NETCLAW_RUNTIME was already given explicitly.
+    [ "${NETCLAW_RUNTIME_EXPLICIT:-0}" = "1" ] && return 0
+
+    local rt_opts=(
+        "OpenClaw   — default NetClaw runtime (npm), fully integrated"
+        "Hermes     — Nous Research agent (installed via its own installer)"
+    )
+    tui_menu "Which agent runtime should NetClaw run on?" "${rt_opts[@]}" || return 0
+    case "$TUI_CHOICE" in
+        0) NETCLAW_RUNTIME="openclaw" ;;
+        1) NETCLAW_RUNTIME="hermes" ;;
+    esac
+    export NETCLAW_RUNTIME
+    define_runtime
+}
+
 select_components() {
     netclaw_logo
+    select_runtime
+    # Re-probe against the chosen runtime (detection at startup used the default).
+    detect_existing
     detect_banner
 
     # Preselect previously installed components on a re-run
@@ -315,7 +362,7 @@ echo ""
 # ═══════════════════════════════════════════
 
 core_prereqs
-core_openclaw
+core_runtime
 core_onboard
 core_gateway_check
 core_mcpdir
@@ -329,7 +376,7 @@ core_mcpdir
 # terminal scrollback. NETCLAW_VERBOSE=1 streams everything like before.
 # Components whose installers prompt for input keep the terminal.
 
-INSTALL_LOG_DIR="$HOME/.openclaw/logs/install"
+INSTALL_LOG_DIR="$RUNTIME_HOME/logs/install"
 mkdir -p "$INSTALL_LOG_DIR"
 INTERACTIVE_COMPONENTS=" checkpoint forward ipfabric threejs-viz "
 
@@ -612,14 +659,26 @@ echo "========================================="
 echo "  Next Steps"
 echo "========================================="
 echo ""
-echo "  1. nano testbed/testbed.yaml        # Add your network devices"
-echo "  2. openclaw gateway                 # Start the gateway"
-echo "  3. openclaw chat --new              # Talk to NetClaw"
-echo ""
-echo "  Re-run setup anytime:"
-echo "    openclaw onboard --install-daemon  # AI provider, gateway, channels"
-echo "    ./scripts/setup.sh                 # Network platform credentials"
-echo "    ./scripts/install.sh               # Add or remove MCP servers"
+if [ "$RUNTIME" = "hermes" ]; then
+    echo "  1. nano testbed/testbed.yaml        # Add your network devices"
+    echo "  2. hermes gateway start             # Start the gateway (or: hermes gateway run)"
+    echo "  3. hermes chat                      # Talk to NetClaw (or: hermes --tui)"
+    echo ""
+    echo "  Re-run setup anytime:"
+    echo "    hermes setup                       # AI provider, gateway, channels"
+    echo "    hermes mcp list                    # See registered MCP servers"
+    echo "    ./scripts/setup.sh                 # Network platform credentials"
+    echo "    ./scripts/install.sh --runtime hermes   # Add or remove MCP servers"
+else
+    echo "  1. nano testbed/testbed.yaml        # Add your network devices"
+    echo "  2. openclaw gateway                 # Start the gateway"
+    echo "  3. openclaw chat --new              # Talk to NetClaw"
+    echo ""
+    echo "  Re-run setup anytime:"
+    echo "    openclaw onboard --install-daemon  # AI provider, gateway, channels"
+    echo "    ./scripts/setup.sh                 # Network platform credentials"
+    echo "    ./scripts/install.sh               # Add or remove MCP servers"
+fi
 echo ""
 
 # ═══════════════════════════════════════════

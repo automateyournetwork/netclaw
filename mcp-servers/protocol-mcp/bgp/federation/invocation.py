@@ -324,6 +324,133 @@ class Invoker:
                                timeout=self.tool_timeout + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}
 
+    # ---- feature 065: chroma-to-chroma replication ----------------------
+    #
+    # `knowledge_replica` is a distinct target_type from `knowledge` (FR-002)
+    # — holding a query-retrieval grant does NOT authorize replication, and
+    # vice versa. Gating otherwise mirrors handle_knowledge_query exactly
+    # (tier-0 denial, no-existence-oracle visibility, default-deny grant,
+    # audit) — replication is at least as sensitive as query, so it reuses
+    # the same shape rather than inventing a lighter one.
+
+    async def _replicate_gate(self, channel, params, method_name: str):
+        """Shared tier/visibility/grant checks for both replicate_manifest and
+        replicate_batch. Returns (peer, collection_id, req_id) on success, or
+        raises/returns a not-found dict exactly like handle_knowledge_query."""
+        from .negotiate import allows
+        peer = channel.peer_identity
+        collection_id = params.get("collection_id", "")
+        req_id = params.get("request_id", "")
+
+        if not allows(getattr(channel, "attestation", "self-asserted"), "knowledge/replicate"):
+            self.audit.record(direction="inbound", peer_identity=peer,
+                              target_type="knowledge_replica", target_name=collection_id,
+                              request_id=req_id, decision="not_allowlisted", outcome="denied")
+            raise RpcError(ERR_NOT_ALLOWLISTED,
+                           "possession proof required for knowledge/replicate (tier-0 peer)")
+
+        # No existence oracle — same visible set query-retrieval uses (FR-013).
+        # A kind='replica' row is never in this set (knowledge.py excludes it),
+        # so a third peer can't discover or replicate a replica this way either
+        # (FR-009's onward-propagation clause).
+        visible = {e["collection_id"] for e in self.service.inventory._load_knowledge(peer)}
+        if collection_id not in visible:
+            self.audit.record(direction="inbound", peer_identity=peer,
+                              target_type="knowledge_replica", target_name=collection_id,
+                              request_id=req_id, decision="not_found", outcome="denied")
+            return None, {"not_found": True}
+
+        # Distinct grant type from query-retrieval (FR-002).
+        decision = self.authz.authorize(peer, "knowledge_replica", collection_id)
+        if not decision.allowed and decision.code != "approval_required":
+            self.audit.record(direction="inbound", peer_identity=peer,
+                              target_type="knowledge_replica", target_name=collection_id,
+                              request_id=req_id, decision=decision.code, outcome="denied")
+            raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
+        if decision.code == "approval_required":
+            inv_id = self.audit.record(direction="inbound", peer_identity=peer,
+                                       target_type="knowledge_replica", target_name=collection_id,
+                                       request_id=req_id, decision="approval_required",
+                                       outcome="pending")
+            appr = self.authz.create_approval(inv_id)
+            self.service.notify_approval(inv_id, peer, "knowledge_replica", collection_id)
+            if not await self._await_approval(appr["approval_id"]):
+                raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
+        return (peer, collection_id, req_id), None
+
+    async def handle_replicate_manifest(self, channel, params):
+        """Server side of `n2n/knowledge/replicate_manifest`: returns the
+        embedding model + total chunk count for a collection so the requester
+        can refuse locally (mismatch/over-cap) before any batch is requested
+        (FR-003/FR-017) — zero content in this response either way."""
+        gated, not_found = await self._replicate_gate(channel, params, "replicate_manifest")
+        if not_found is not None:
+            return not_found
+        peer, collection_id, req_id = gated
+        from . import knowledge as _knowledge
+        collection = collection_id.split(":", 1)[-1] if collection_id else ""
+        entries = {e["collection_id"]: e for e in _knowledge.build_entries()}
+        entry = entries.get(collection_id)
+        if entry is None:
+            # Advertised to this peer (passed visibility) but the collection
+            # vanished between grant and now (renamed/deleted) — refused, not
+            # a fabricated manifest (spec Edge Cases).
+            self.audit.record(direction="inbound", peer_identity=peer,
+                              target_type="knowledge_replica", target_name=collection_id,
+                              request_id=req_id, decision="not_found", outcome="denied")
+            return {"not_found": True}
+        from .chroma_store_bridge import chunk_count_for
+        result = {"collection_id": collection_id, "embedding_model": entry["embedding_model"],
+                  "chunk_count": chunk_count_for(collection)}
+        self.audit.record(direction="inbound", peer_identity=peer,
+                          target_type="knowledge_replica", target_name=collection_id,
+                          request_id=req_id, decision="allowlisted", outcome="success")
+        return result
+
+    async def handle_replicate_batch(self, channel, params):
+        """Server side of `n2n/knowledge/replicate_batch`: one page of
+        {ids, embeddings, texts, metadatas} for a collection (FR-004/FR-005)."""
+        gated, not_found = await self._replicate_gate(channel, params, "replicate_batch")
+        if not_found is not None:
+            return not_found
+        peer, collection_id, req_id = gated
+        collection = collection_id.split(":", 1)[-1] if collection_id else ""
+        offset = int(params.get("offset", 0))
+        limit = int(params.get("limit", 200))
+        from .chroma_store_bridge import get_chunks_page
+        # Metadata is forwarded exactly as ingestion stored it (title,
+        # document_id, doc_type, breadcrumb, section, page, ...) — no
+        # additional filtering beyond what ingestion already scrubbed
+        # (FR-014); source_path/content_hash/capture_commands are registry
+        # columns, never chunk metadata, so they were never here to leak.
+        page = get_chunks_page(collection, offset, limit)
+        self.audit.record(direction="inbound", peer_identity=peer,
+                          target_type="knowledge_replica", target_name=collection_id,
+                          request_id=req_id, decision="allowlisted", outcome="success")
+        return {"collection_id": collection_id, "offset": offset,
+                "returned": len(page["ids"]), **page}
+
+    async def fetch_replicate_manifest(self, ident: str, collection_id: str) -> dict:
+        """Client side: ask peer `ident` for the manifest of `collection_id`."""
+        ch = await self._channel(ident)
+        req_id = f"{self.service.local_identity}:{int(time.time()*1000)}"
+        self.audit.record(direction="outbound", peer_identity=ident,
+                          target_type="knowledge_replica", target_name=collection_id,
+                          request_id=req_id, decision="requested", outcome="pending")
+        return await ch.call("n2n/knowledge/replicate_manifest",
+                             {"collection_id": collection_id, "request_id": req_id},
+                             timeout=self.tool_timeout)
+
+    async def fetch_replicate_batch(self, ident: str, collection_id: str,
+                                    offset: int, limit: int) -> dict:
+        """Client side: pull one page of `collection_id`'s chunks from peer `ident`."""
+        ch = await self._channel(ident)
+        req_id = f"{self.service.local_identity}:{int(time.time()*1000)}"
+        return await ch.call("n2n/knowledge/replicate_batch",
+                             {"collection_id": collection_id, "offset": offset,
+                              "limit": limit, "request_id": req_id},
+                             timeout=self.tool_timeout)
+
     def route_knowledge(self, query: str):
         """Choose a collection for `query` across local + cached peer cards
         (data-model Knowledge Route Decision). eN2N selection lives in
@@ -431,7 +558,11 @@ class Invoker:
 
         prompt = (f"A federated NetClaw peer has requested you run the '{skill}' skill. "
                   f"Execute it for the following request and return only the result:\n\n{input_text}")
-        return await run_agent_turn(prompt, session_key=f"n2n-skill-{skill}",
+        # Use a unique session key per invocation to prevent session-file takeover
+        # when multiple delegations of the same skill run concurrently.
+        import uuid
+        session_key = f"n2n-skill-{skill}-{uuid.uuid4().hex[:8]}"
+        return await run_agent_turn(prompt, session_key=session_key,
                                     timeout_s=self.skill_timeout,
                                     untrusted=True, on_stall=on_stall)
 

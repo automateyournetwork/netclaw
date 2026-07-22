@@ -119,3 +119,51 @@ class ChromaStore:
             self._client.delete_collection(collection)
         except Exception:
             pass
+
+    # ---- replication (feature 065) --------------------------------------
+
+    def get_chunks_page(
+        self, collection: str, offset: int, limit: int
+    ) -> Dict[str, Any]:
+        """Paginated export of a whole collection's raw chunks (source side of
+        replication). Deterministic order (Chroma's own stored order), so the
+        same {offset, limit} always returns the same page — safe to retry."""
+        coll = self._collection(collection)
+        res = coll.get(limit=limit, offset=offset,
+                       include=["embeddings", "documents", "metadatas"])
+        embeddings = res.get("embeddings")
+        return {
+            "ids": res["ids"],
+            "embeddings": [list(map(float, v)) for v in embeddings]
+                           if embeddings is not None else [],
+            "texts": res["documents"] or [],
+            "metadatas": res["metadatas"] or [],
+        }
+
+    def upsert_chunks(
+        self,
+        collection: str,
+        ids: List[str],
+        embeddings: List[List[float]],
+        texts: List[str],
+        metadatas: List[Dict[str, Any]],
+    ) -> None:
+        """Idempotent write for replication (FR-005): unlike add_chunks()'s
+        add() (which errors/duplicates on a repeated id), upsert() applied to
+        the same batch twice is a no-op the second time — safe for a single
+        retried page without restarting the whole job."""
+        clean = [{k: v for k, v in m.items() if v is not None} for m in metadatas]
+        self._collection(collection).upsert(
+            ids=ids, embeddings=embeddings, documents=texts, metadatas=clean
+        )
+
+    def promote_staging(self, staging_name: str, stable_name: str) -> None:
+        """Atomic-enough rename-on-verify for re-sync (D7): drop the previous
+        stable collection (if any), then rename the verified staging collection
+        into the stable name every query/replicate call actually addresses."""
+        try:
+            self._client.delete_collection(stable_name)
+        except Exception:
+            pass
+        staging = self._collection(staging_name)
+        staging.modify(name=stable_name)

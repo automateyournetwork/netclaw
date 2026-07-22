@@ -38,17 +38,64 @@ clone_or_pull() {
     fi
 }
 
-# Write KEY=VALUE into ~/.openclaw/.env (create or update in place).
+# ───────────────────────────────────────────
+# Agent runtime abstraction.
+# NetClaw runs on top of an agent runtime — OpenClaw (default) or Hermes
+# (Nous Research). Everything downstream (state dir, config file, skills
+# dir, env file, lifecycle commands) is derived from the selected runtime
+# so the installer, deploy, and verify steps are runtime-agnostic.
+#
+# openclaw keeps its historical layout exactly:
+#   ~/.openclaw/openclaw.json, ~/.openclaw/workspace/skills, ~/.openclaw/.env
+# hermes uses its native layout (overridable with $HERMES_HOME):
+#   ~/.hermes/config.yaml, ~/.hermes/skills, ~/.hermes/.env
+#
+# Call after NETCLAW_RUNTIME is known; safe to call again if the choice
+# changes (e.g. after a --runtime flag or the TUI prompt).
+# ───────────────────────────────────────────
+define_runtime() {
+    RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+    case "$RUNTIME" in
+        openclaw)
+            RUNTIME_CMD="openclaw"
+            RUNTIME_NAME="OpenClaw"
+            RUNTIME_HOME="${OPENCLAW_HOME:-$HOME/.openclaw}"
+            RUNTIME_CONFIG="$RUNTIME_HOME/openclaw.json"
+            RUNTIME_WORKSPACE="$RUNTIME_HOME/workspace"
+            RUNTIME_SKILLS="$RUNTIME_HOME/workspace/skills"
+            ;;
+        hermes)
+            RUNTIME_CMD="hermes"
+            RUNTIME_NAME="Hermes"
+            RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"
+            RUNTIME_CONFIG="$RUNTIME_HOME/config.yaml"
+            RUNTIME_WORKSPACE="$RUNTIME_HOME"
+            RUNTIME_SKILLS="$RUNTIME_HOME/skills"
+            ;;
+        *)
+            log_error "Unknown runtime: $RUNTIME (valid: openclaw, hermes)"
+            exit 1
+            ;;
+    esac
+    RUNTIME_ENV="$RUNTIME_HOME/.env"
+
+    # The component manifest lives under the runtime's state dir unless the
+    # caller pinned NETCLAW_MANIFEST explicitly in the environment (captured
+    # once at source time so re-deriving on a runtime switch still works).
+    NETCLAW_MANIFEST="${_NETCLAW_MANIFEST_ENV:-$RUNTIME_HOME/netclaw-components.conf}"
+}
+
+# Write KEY=VALUE into the runtime .env (create or update in place).
 # Portable — no associative arrays for macOS bash 3.2.
 _set_env_var() {
     local key="$1" val="$2"
-    OPENCLAW_ENV="${OPENCLAW_ENV:-$HOME/.openclaw/.env}"
-    mkdir -p "$(dirname "$OPENCLAW_ENV")"
-    [ -f "$OPENCLAW_ENV" ] || touch "$OPENCLAW_ENV"
-    if grep -q "^${key}=" "$OPENCLAW_ENV" 2>/dev/null; then
-        sed -i.bak "s|^${key}=.*|${key}=${val}|" "$OPENCLAW_ENV" && rm -f "$OPENCLAW_ENV.bak"
+    local env_file="${RUNTIME_ENV:-${OPENCLAW_ENV:-$HOME/.openclaw/.env}}"
+    mkdir -p "$(dirname "$env_file")"
+    [ -f "$env_file" ] || touch "$env_file"
+    if grep -q "^${key}=" "$env_file" 2>/dev/null; then
+        sed -i.bak "s|^${key}=.*|${key}=${val}|" "$env_file" && rm -f "$env_file.bak"
     else
-        echo "${key}=${val}" >> "$OPENCLAW_ENV"
+        echo "${key}=${val}" >> "$env_file"
     fi
 }
 
@@ -58,6 +105,9 @@ _set_env_var() {
 # subset of components was selected.
 # ───────────────────────────────────────────
 define_paths() {
+    # Resolve the agent runtime (OpenClaw/Hermes) and its state-dir paths first.
+    define_runtime
+
     MCP_DIR="$NETCLAW_DIR/mcp-servers"
 
     PYATS_MCP_DIR="$MCP_DIR/pyATS_MCP"
@@ -126,9 +176,12 @@ define_paths() {
 
 # ───────────────────────────────────────────
 # Component manifest — records which MCPs were selected at install
-# time so setup.sh only prompts for credentials that matter.
+# time so setup.sh only prompts for credentials that matter. The path is
+# derived per-runtime in define_runtime(); an explicit NETCLAW_MANIFEST in
+# the environment still wins (captured here before define_runtime overwrites
+# the variable).
 # ───────────────────────────────────────────
-NETCLAW_MANIFEST="${NETCLAW_MANIFEST:-$HOME/.openclaw/netclaw-components.conf}"
+_NETCLAW_MANIFEST_ENV="${NETCLAW_MANIFEST:-}"
 
 manifest_write() {
     # $@ = selected component ids
@@ -146,3 +199,9 @@ component_selected() {
     [ -f "$NETCLAW_MANIFEST" ] || return 0
     grep -qx "$1" "$NETCLAW_MANIFEST" 2>/dev/null
 }
+
+# Resolve the runtime (and NETCLAW_MANIFEST / RUNTIME_* paths) on source, so
+# consumers that don't call define_paths (e.g. setup.sh, peering-setup.sh)
+# still get them. Honors NETCLAW_RUNTIME from the environment; install.sh
+# re-derives after a --runtime flag or the TUI prompt. Idempotent.
+define_runtime

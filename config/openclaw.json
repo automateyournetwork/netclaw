@@ -12,7 +12,6 @@
         ]
       },
       "models": {
-        "moonshot/kimi-k3": {},
         "anthropic/*": {},
         "ollama/*": {}
       }
@@ -679,6 +678,325 @@
         "RAG_CRAWL_MAX_PAGES": "${RAG_CRAWL_MAX_PAGES:-30}",
         "RAG_SNAPSHOT_WARN_DAYS": "${RAG_SNAPSHOT_WARN_DAYS:-90}",
         "RAG_MAX_ROUNDS": "${RAG_MAX_ROUNDS:-3}"
+      }
+    },
+    "cml-mcp": {
+      "command": "/usr/bin/python3 -m cml_mcp",
+      "env": {
+        "CML_URL": "${CML_URL}",
+        "CML_USERNAME": "${CML_USERNAME}",
+        "CML_PASSWORD": "${CML_PASSWORD}",
+        "CML_VERIFY_SSL": "${CML_VERIFY_SSL:-false}"
+      }
+    },
+    "nso-mcp": {
+      "command": "cisco-nso-mcp-server",
+      "env": {
+        "NSO_ADDRESS": "${NSO_ADDRESS}",
+        "NSO_USERNAME": "${NSO_USERNAME}",
+        "NSO_PASSWORD": "${NSO_PASSWORD}",
+        "NSO_SCHEME": "${NSO_SCHEME:-http}",
+        "NSO_PORT": "${NSO_PORT:-8080}",
+        "NSO_TIMEOUT": "${NSO_TIMEOUT:-30}"
+      }
+    },
+    "itential-mcp": {
+      "command": "itential-mcp",
+      "args": [
+        "run"
+      ],
+      "env": {
+        "ITENTIAL_MCP_PLATFORM_HOST": "${ITENTIAL_MCP_PLATFORM_HOST}",
+        "ITENTIAL_MCP_PLATFORM_USER": "${ITENTIAL_MCP_PLATFORM_USER}",
+        "ITENTIAL_MCP_PLATFORM_PASSWORD": "${ITENTIAL_MCP_PLATFORM_PASSWORD}",
+        "ITENTIAL_MCP_PLATFORM_PORT": "${ITENTIAL_MCP_PLATFORM_PORT:-443}"
+      }
+    },
+    "prometheus-mcp": {
+      "command": "prometheus-mcp-server",
+      "env": {
+        "PROMETHEUS_URL": "${PROMETHEUS_URL}"
+      }
+    },
+    "grafana-mcp": {
+      "command": "uvx",
+      "args": [
+        "mcp-grafana"
+      ],
+      "env": {
+        "GRAFANA_URL": "${GRAFANA_URL}",
+        "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
+      }
+    },
+    "meraki-magic-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/meraki-magic-mcp-community/meraki-mcp-dynamic.py"
+      ],
+      "env": {
+        "MERAKI_API_KEY": "${MERAKI_API_KEY}",
+        "MERAKI_ORG_ID": "${MERAKI_ORG_ID}",
+        "MERAKI_BASE_URL": "${MERAKI_BASE_URL:-https://api.meraki.com/api/v1}"
+      }
+    },
+    "radkit-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/radkit-mcp-server-community/mcp_server.py"
+      ],
+      "env": {
+        "RADKIT_IDENTITY": "${RADKIT_IDENTITY}",
+        "RADKIT_DEFAULT_SERVICE_SERIAL": "${RADKIT_DEFAULT_SERVICE_SERIAL}"
+      }
+    },
+    "junos-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/junos-mcp-server/jmcp.py",
+        "-f",
+        "mcp-servers/junos-mcp-server/devices.json",
+        "-t",
+        "stdio"
+      ],
+      "env": {
+        "JUNOS_TIMEOUT": "${JUNOS_TIMEOUT:-360}"
+      }
+    },
+    "arista-cvp-mcp": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--directory",
+        "mcp-servers/mcp-cvp-fun",
+        "--with",
+        "fastmcp",
+        "fastmcp",
+        "run",
+        "mcp_server_rest.py"
+      ],
+      "env": {
+        "CVP": "${CVP}",
+        "CVPTOKEN": "${CVPTOKEN}"
+      }
+    },
+    "cisco-fmc-mcp": {
+      "url": "http://localhost:8000/mcp"
+    },
+    "thousandeyes-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/thousandeyes-mcp-community/src/server.py"
+      ],
+      "env": {
+        "TE_TOKEN": "${TE_TOKEN}"
+      }
+    },
+    "github-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-e",
+        "GITHUB_PERSONAL_ACCESS_TOKEN",
+        "ghcr.io/github/github-mcp-server"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_PERSONAL_ACCESS_TOKEN}"
+      }
+    },
+    "aws-network-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-network-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "aws-cloudwatch-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.cloudwatch-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "aws-iam-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.iam-mcp-server@latest",
+        "--readonly"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "aws-cloudtrail-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.cloudtrail-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "aws-cost-explorer-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.cost-explorer-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_ACCESS_KEY_ID": "${AWS_ACCESS_KEY_ID}",
+        "AWS_SECRET_ACCESS_KEY": "${AWS_SECRET_ACCESS_KEY}",
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "aws-diagram-mcp": {
+      "command": "uvx",
+      "args": [
+        "awslabs.aws-diagram-mcp-server@latest"
+      ],
+      "env": {
+        "AWS_REGION": "${AWS_REGION:-us-east-1}"
+      }
+    },
+    "gcp-compute-mcp": {
+      "url": "https://compute.googleapis.com/mcp",
+      "env": {
+        "GCP_PROJECT_ID": "${GCP_PROJECT_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+      }
+    },
+    "gcp-monitoring-mcp": {
+      "url": "https://monitoring.googleapis.com/mcp",
+      "env": {
+        "GCP_PROJECT_ID": "${GCP_PROJECT_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+      }
+    },
+    "gcp-logging-mcp": {
+      "url": "https://logging.googleapis.com/mcp",
+      "env": {
+        "GCP_PROJECT_ID": "${GCP_PROJECT_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+      }
+    },
+    "gcp-resource-manager-mcp": {
+      "url": "https://cloudresourcemanager.googleapis.com/mcp",
+      "env": {
+        "GCP_PROJECT_ID": "${GCP_PROJECT_ID}",
+        "GOOGLE_APPLICATION_CREDENTIALS": "${GOOGLE_APPLICATION_CREDENTIALS}"
+      }
+    },
+    "thousandeyes-official-mcp": {
+      "url": "https://api.thousandeyes.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${TE_TOKEN}"
+      }
+    },
+    "kubeshark-mcp": {
+      "url": "${KUBESHARK_MCP_URL:-http://localhost:8898/mcp}"
+    },
+    "uml-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/uml-mcp/server.py"
+      ],
+      "env": {
+        "MCP_OUTPUT_DIR": "${MCP_OUTPUT_DIR:-./output}",
+        "PLANTUML_SERVER": "${PLANTUML_SERVER:-http://plantuml-server:8080}",
+        "KROKI_SERVER": "${KROKI_SERVER:-https://kroki.io}",
+        "USE_LOCAL_PLANTUML": "${USE_LOCAL_PLANTUML:-false}",
+        "USE_LOCAL_KROKI": "${USE_LOCAL_KROKI:-false}",
+        "LOG_LEVEL": "${LOG_LEVEL:-INFO}"
+      }
+    },
+    "protocol-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/protocol-mcp/server.py"
+      ],
+      "env": {
+        "NETCLAW_ROUTER_ID": "${NETCLAW_ROUTER_ID:-4.4.4.4}",
+        "NETCLAW_LOCAL_AS": "${NETCLAW_LOCAL_AS:-65001}",
+        "NETCLAW_BGP_PEERS": "${NETCLAW_BGP_PEERS:-[]}",
+        "NETCLAW_OSPF_AREAS": "${NETCLAW_OSPF_AREAS:-[]}",
+        "NETCLAW_GRE_TUNNELS": "${NETCLAW_GRE_TUNNELS:-[]}",
+        "NETCLAW_LAB_MODE": "${NETCLAW_LAB_MODE:-false}",
+        "BGP_DAEMON_API": "${BGP_DAEMON_API:-http://127.0.0.1:8179}"
+      }
+    },
+    "ollama-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/ollama-mcp/server.py"
+      ],
+      "env": {
+        "OLLAMA_BASE_URL": "${OLLAMA_BASE_URL:-http://localhost:11434}",
+        "OLLAMA_TIMEOUT": "${OLLAMA_TIMEOUT:-120}"
+      }
+    },
+    "fwrule-mcp": {
+      "command": "fwrule-mcp",
+      "env": {
+        "FWRULE_LOG_LEVEL": "${FWRULE_LOG_LEVEL:-WARNING}"
+      }
+    },
+    "aap-ansible-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/AAP-Enterprise-MCP-Server/ansible.py"
+      ],
+      "env": {
+        "AAP_URL": "${AAP_URL}",
+        "AAP_TOKEN": "${AAP_TOKEN}"
+      }
+    },
+    "aap-eda-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/AAP-Enterprise-MCP-Server/eda.py"
+      ],
+      "env": {
+        "EDA_URL": "${EDA_URL}",
+        "EDA_TOKEN": "${EDA_TOKEN}"
+      }
+    },
+    "aap-lint-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/AAP-Enterprise-MCP-Server/ansible-lint.py"
+      ]
+    },
+    "aap-docs-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/AAP-Enterprise-MCP-Server/redhat_docs.py"
+      ],
+      "env": {
+        "REDHAT_USERNAME": "${REDHAT_USERNAME:-}",
+        "REDHAT_PASSWORD": "${REDHAT_PASSWORD:-}"
       }
     }
   },

@@ -640,23 +640,40 @@ def _doc_public(row: Dict[str, Any]) -> Dict[str, Any]:
                 "stale": days is not None and days > config.SNAPSHOT_WARN_DAYS,
             }
         )
+    if row["kind"] == "replica":
+        # feature 065 FR-008: a replica must be visibly distinguishable from
+        # a locally-authored document everywhere collections are listed.
+        out.update(
+            {
+                "source_peer_identity": row.get("source_peer_identity"),
+                "source_collection_id": row.get("source_collection_id"),
+                "source_embedding_model": row.get("source_embedding_model"),
+                "replicated_at": row.get("replicated_at"),
+            }
+        )
     return out
 
 
 def _do_list(kind: str = "all") -> Dict[str, Any]:
-    documents, snapshots = [], []
+    documents, snapshots, replicas = [], [], []
     for row in registry.list_documents():
         if row["kind"] == "document" and kind in ("all", "documents"):
             documents.append(_doc_public(row))
         elif row["kind"] == "snapshot" and kind in ("all", "snapshots"):
             snapshots.append(_doc_public(row))
-    return success_response({"documents": documents, "snapshots": snapshots})
+        elif row["kind"] == "replica" and kind in ("all", "replicas"):
+            replicas.append(_doc_public(row))
+    return success_response({"documents": documents, "snapshots": snapshots, "replicas": replicas})
 
 
 @mcp.tool()
 def rag_list(kind: str = "all") -> Dict[str, Any]:
-    """List indexed documents and snapshots (separately) with full metadata.
-    kind: documents|snapshots|all."""
+    """List indexed documents, snapshots, and replicas (separately) with full
+    metadata. Replicas (feature 065) are collections copied in from a
+    federated peer's RAG via n2n replication — each carries its source peer
+    identity, source collection id, source embedding model, and replication
+    timestamp, distinguishing it from a locally-authored document.
+    kind: documents|snapshots|replicas|all."""
     return _do_list(kind)
 
 

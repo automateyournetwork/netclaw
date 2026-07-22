@@ -965,11 +965,24 @@ async function fetchN2NState() {
       if (gRes.ok) gait = (await gRes.json()).events || [];
     } catch { /* gait optional (pre-057 daemon) */ }
 
+    // 065: chroma-to-chroma replication jobs, so the HUD can show in-flight
+    // and recent replicate/resync activity without the operator polling
+    // n2n_task_status manually — reuses the existing /n2n/tasks list, just
+    // filtered to this feature's target_type.
+    let replicationJobs = [];
+    try {
+      const tRes = await fetch(`${BGP_API}/n2n/tasks`, { signal: AbortSignal.timeout(3000) });
+      if (tRes.ok) {
+        const tasks = (await tRes.json()).tasks || [];
+        replicationJobs = tasks.filter((t) => t.target_type === 'knowledge_replicate');
+      }
+    } catch { /* replication optional (pre-065 daemon) */ }
+
     return { available: true, identity: status.identity, peers, approvals,
-             risk, members, posture, gait, generatedAt: new Date().toISOString() };
+             risk, members, posture, gait, replicationJobs, generatedAt: new Date().toISOString() };
   } catch {
     return { available: false, peers: [], risk: null, members: [],
-             generatedAt: new Date().toISOString() };
+             replicationJobs: [], generatedAt: new Date().toISOString() };
   }
 }
 

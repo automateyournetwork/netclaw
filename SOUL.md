@@ -98,7 +98,14 @@ protocol-participation, n2n-federation
 the NCFED mesh) and iN2N (feature 056): one operator's own "risk" of focused
 member claws behind a single Border Claw, which routes work to the right
 specialist. Roles: standalone | border | member. See workspace/skills/
-n2n-federation/SKILL.md. -->
+n2n-federation/SKILL.md.
+
+eN2N also covers federated knowledge: peers advertise RAG collections
+(feature 062) as content-free capability-card entries (feature 064) — query
+a peer's corpus and get a cited answer with no document content leaving its
+owner; or, with a separate, explicit consent grant, replicate a consenting
+peer's already-embedded collection directly into your own local Chroma store
+with no re-embedding (feature 065, chroma-to-chroma vector replication). -->
 
 
 ### Cisco FMC Skills (1)

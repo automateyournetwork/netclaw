@@ -22,15 +22,15 @@ def _make_rag_db(dirpath, docs):
     db = dirpath / "rag.db"
     conn = sqlite3.connect(db)
     conn.execute(
-        "CREATE TABLE documents (id TEXT, collection TEXT, title TEXT, doc_type TEXT, "
-        "page_count INT, chunk_count INT, ingest_status TEXT, source_path TEXT, "
-        "content_hash TEXT)")
+        "CREATE TABLE documents (id TEXT, kind TEXT, collection TEXT, title TEXT, "
+        "doc_type TEXT, page_count INT, chunk_count INT, ingest_status TEXT, "
+        "source_path TEXT, content_hash TEXT)")
     for i, d in enumerate(docs):
         conn.execute(
-            "INSERT INTO documents VALUES (?,?,?,?,?,?,?,?,?)",
-            (f"doc_{i}", d.get("collection", "documents"), d.get("title"),
-             d.get("doc_type"), d.get("page_count", 0), d.get("chunk_count", 0),
-             d.get("ingest_status", "ready"),
+            "INSERT INTO documents VALUES (?,?,?,?,?,?,?,?,?,?)",
+            (f"doc_{i}", d.get("kind", "document"), d.get("collection", "documents"),
+             d.get("title"), d.get("doc_type"), d.get("page_count", 0),
+             d.get("chunk_count", 0), d.get("ingest_status", "ready"),
              "/home/secret/path/original.pdf", "deadbeefcafe" * 4))
     conn.commit()
     conn.close()

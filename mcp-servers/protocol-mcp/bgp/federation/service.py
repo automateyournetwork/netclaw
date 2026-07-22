@@ -70,6 +70,8 @@ class FederationService:
         self.chat = ChatManager(self)
         self.tasks = TaskManager(self.manager, self.audit,
                                  retention_s=int(os.environ.get("N2N_TASK_RETENTION_S", "3600")))
+        from .replication import ReplicationManager
+        self.replication = ReplicationManager(self)
         # Optional callback the daemon sets to push approval prompts to the
         # operator's channels (Slack/Webex/CLI) via the gateway (FR-013).
         self.approval_notifier = None
@@ -96,6 +98,8 @@ class FederationService:
             "n2n/tasks/result": self.invoker.handle_task_result,
             "n2n/tasks/cancel": self.invoker.handle_task_cancel,
             "n2n/knowledge/query": self.invoker.handle_knowledge_query,
+            "n2n/knowledge/replicate_manifest": self.invoker.handle_replicate_manifest,
+            "n2n/knowledge/replicate_batch": self.invoker.handle_replicate_batch,
             "n2n/chat/open": self.chat.handle_chat_open,
             "n2n/chat/message": self.chat.handle_chat_message,
             "n2n/heartbeat": self._on_heartbeat,

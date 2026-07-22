@@ -278,10 +278,22 @@ async def handle_n2n(method, path, body):
                     return 400, {"error": f"missing required field '{k}'"}
             gid = fed.authz.grant(body["peer"], body["target_type"], body["target_name"],
                                   bool(body.get("requires_approval", False)), body.get("timeout_s"))
+            # FR-012 / research D12: grant/revoke was never audited before feature
+            # 065 (verified during /speckit.analyze) — fixed generically here, for
+            # every target_type, not just the new "knowledge_replica" one.
+            fed.audit.record(direction="local", peer_identity=body["peer"],
+                             target_type=body["target_type"], target_name=body["target_name"],
+                             decision="granted", outcome="success")
             return 200, {"grant_id": gid}
 
         if len(parts) == 3 and parts[1] == "grants" and method == "DELETE":
+            grants_before = {g["id"]: g for g in fed.authz.list_grants()}
             fed.authz.revoke(int(parts[2]))
+            g = grants_before.get(int(parts[2]))
+            if g:
+                fed.audit.record(direction="local", peer_identity=g["peer_identity"],
+                                 target_type=g["target_type"], target_name=g["target_name"],
+                                 decision="revoked", outcome="success")
             return 200, {"revoked": int(parts[2])}
 
         if path == "/n2n/invoke" and method == "POST":
@@ -353,6 +365,22 @@ async def handle_n2n(method, path, body):
 
         if path == "/n2n/chats" and method == "GET":
             return 200, {"sessions": fed.chat.list_sessions()}
+
+        # ---- feature 065: chroma-to-chroma replication ----
+        if path == "/n2n/replicate" and method == "POST":
+            if not body.get("peer") or not body.get("collection_id"):
+                return 400, {"error": "missing required field 'peer' or 'collection_id'"}
+            task_id = fed.replication.start(body["peer"], body["collection_id"])
+            return 200, {"task_id": task_id}
+
+        if path == "/n2n/replicate/resync" and method == "POST":
+            if not body.get("peer") or not body.get("collection_id"):
+                return 400, {"error": "missing required field 'peer' or 'collection_id'"}
+            task_id = fed.replication.resync(body["peer"], body["collection_id"])
+            return 200, {"task_id": task_id}
+
+        if len(parts) == 4 and parts[1] == "replicate" and method == "DELETE":
+            return 200, fed.replication.delete(parts[2], parts[3])
 
         # ---- US1: async delegated tasks ----
         if path == "/n2n/tasks" and method == "POST":
@@ -442,10 +470,16 @@ async def handle_n2n(method, path, body):
             # Status; if the task is an outbound one, fetch fresh from the peer
             task_id = parts[2]
             row = mgr._conn.execute(
-                "SELECT direction, peer_identity, state FROM delegated_task WHERE task_id=?",
-                (task_id,)).fetchone()
+                "SELECT direction, peer_identity, target_type, state, progress "
+                "FROM delegated_task WHERE task_id=?", (task_id,)).fetchone()
             if not row:
                 return 404, {"error": "unknown task"}
+            # feature 065: a replication/re-sync job is direction="inbound" on
+            # purpose, even though the operator triggered it locally — the
+            # pull loop makes its own outbound manifest/batch calls, so the
+            # job has no peer-side delegated_task counterpart to poll (unlike
+            # a delegated skill). This condition is therefore already False
+            # for replication jobs without a target_type special-case.
             if row["direction"] == "outbound" and row["state"] not in ("completed", "failed", "cancelled"):
                 try:
                     # iN2N tasks live on a MEMBER channel, not the eN2N mesh —
@@ -454,8 +488,12 @@ async def handle_n2n(method, path, body):
                         return 200, await fed.poll_member_task(row["peer_identity"], task_id, kind="result")
                     return 200, await fed.invoker.poll_remote_task(row["peer_identity"], task_id, kind="result")
                 except Exception:
-                    return 200, fed.tasks.result(task_id)
-            return 200, fed.tasks.result(task_id)
+                    pass
+            # result() doesn't carry chunk/batch progress (FR-015/SC-007) —
+            # merge it in from the row read above rather than a second query.
+            out = fed.tasks.result(task_id)
+            out["progress"] = row["progress"]
+            return 200, out
 
         # ── iN2N: internal federation (feature 056) ──────────────────
         if path == "/n2n/risk" and method == "GET":

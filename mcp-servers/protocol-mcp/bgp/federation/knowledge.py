@@ -22,12 +22,24 @@ RETRIEVAL_METHOD = "n2n/knowledge/query"
 # the documents table (source_path, content_hash, capture_commands, ...) is
 # deliberately NOT read, so no path/secret can reach the card.
 _SAFE_KEYS = {"collection_id", "name", "description", "tags",
-              "doc_count", "page_count", "chunk_count", "retrieval"}
+              "doc_count", "page_count", "chunk_count", "retrieval",
+              "embedding_model"}
 
 
 def _rag_db_path() -> Path:
     base = os.environ.get("RAG_DATA_DIR", "~/.openclaw/rag")
     return Path(os.path.expanduser(base)) / "rag.db"
+
+
+def _embedding_model() -> str:
+    """The model this claw's own RAG currently uses (feature 065 FR-001) —
+    same env var/default as rag-mcp's own config.py, read directly rather
+    than imported (config.py is rag-mcp-package-local, same reasoning as
+    _rag_db_path() above). Distinct from RAG_EMBED_MODEL below (`_embed_texts()`),
+    which embeds *descriptions* for query routing, not documents — a
+    difference research D5 documents explicitly so the two are never
+    conflated."""
+    return os.environ.get("RAG_EMBEDDING_MODEL", "BAAI/bge-small-en-v1.5")
 
 
 def _topic_only_default() -> bool:
@@ -49,9 +61,14 @@ def build_entries(topic_only: Optional[bool] = None,
     conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
     conn.row_factory = sqlite3.Row
     try:
+        # kind != 'replica': a replicated collection is never advertised as
+        # this claw's own knowledge (FR-009) — it was replicated FROM a peer,
+        # not authored locally, and re-advertising it would let a third peer
+        # discover and replicate it onward without the original source's
+        # consent (feature 065).
         rows = conn.execute(
             "SELECT collection, title, doc_type, page_count, chunk_count "
-            "FROM documents WHERE ingest_status='ready'").fetchall()
+            "FROM documents WHERE ingest_status='ready' AND kind != 'replica'").fetchall()
     except sqlite3.Error:
         return []
     finally:
@@ -96,6 +113,7 @@ def build_entries(topic_only: Optional[bool] = None,
             "page_count": agg["page_count"],
             "chunk_count": agg["chunk_count"],
             "retrieval": RETRIEVAL_METHOD,
+            "embedding_model": _embedding_model(),
         })
     return entries
 

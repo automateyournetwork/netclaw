@@ -26,9 +26,19 @@ NETCLAW_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
 # shellcheck source=lib/tui.sh
 source "$NETCLAW_ROOT/scripts/lib/tui.sh"
 
+# Agent runtime (openclaw default | hermes). The n2n federation subsystem
+# is OpenClaw-native; only the runtime binary and state-dir base are switched
+# here so `netclaw tui` and .env reads follow the chosen runtime.
+NETCLAW_RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+if [ "$NETCLAW_RUNTIME" = "hermes" ]; then
+    RUNTIME_CMD="hermes"; RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"; RUNTIME_TUI=(hermes --tui)
+else
+    RUNTIME_CMD="openclaw"; RUNTIME_HOME="$HOME/.openclaw"; RUNTIME_TUI=(openclaw tui)
+fi
+
 BGP_API="${NETCLAW_BGP_API:-http://127.0.0.1:8179}"
 NGROK_API="${NETCLAW_NGROK_API:-http://127.0.0.1:4040}"
-CHATS_DIR="${NETCLAW_N2N_CHATS:-$HOME/.openclaw/n2n/chats}"
+CHATS_DIR="${NETCLAW_N2N_CHATS:-$RUNTIME_HOME/n2n/chats}"
 RENDER_MD="$NETCLAW_ROOT/scripts/lib/render_md.py"
 
 render_md() { python3 "$RENDER_MD"; }
@@ -43,7 +53,7 @@ ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
 
 daemon_up() { api_get /status | grep -q '"running"'; }
 
-env_get() { grep -m1 "^${1}=" "$HOME/.openclaw/.env" 2>/dev/null | cut -d= -f2-; }
+env_get() { grep -m1 "^${1}=" "$RUNTIME_HOME/.env" 2>/dev/null | cut -d= -f2-; }
 
 ngrok_up() { pgrep -f 'ngrok (tcp|start)' >/dev/null 2>&1; }
 
@@ -55,7 +65,7 @@ ngrok_start() {
     local port
     port="$(env_get BGP_LISTEN_PORT)"
     if [ -z "$port" ]; then
-        echo -e "  ${T_YELLOW}BGP_LISTEN_PORT not set in ~/.openclaw/.env — run peering-setup.sh first.${T_NC}"
+        echo -e "  ${T_YELLOW}BGP_LISTEN_PORT not set in $RUNTIME_HOME/.env — run peering-setup.sh first.${T_NC}"
         return 1
     fi
     echo -e "  ${T_DIM}starting ngrok tcp $port...${T_NC}"
@@ -618,7 +628,7 @@ main_menu() {
             "Risk (iN2N members)" \
             "Exit" || exit 0
         case "$TUI_CHOICE" in
-            0) exec openclaw tui ;;
+            0) exec "${RUNTIME_TUI[@]}" ;;
             1) exec "$NETCLAW_ROOT/scripts/install.sh" ;;
             2) peering_menu ;;
             3) risk_menu ;;
@@ -637,7 +647,7 @@ do_link() {
 # ── entry ─────────────────────────────────────────────────────────
 case "${1:-}" in
     "")        main_menu ;;
-    tui)       exec openclaw tui ;;
+    tui)       exec "${RUNTIME_TUI[@]}" ;;
     install)   shift; exec "$NETCLAW_ROOT/scripts/install.sh" "$@" ;;
     peering)
         case "${2:-status}" in

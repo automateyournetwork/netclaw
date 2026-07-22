@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-07-20
+Auto-generated from all feature plans. Last updated: 2026-07-22
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -85,6 +85,8 @@ Auto-generated from all feature plans. Last updated: 2026-07-20
 - extend existing SQLite `~/.openclaw/n2n/federation.db` (reuse `federation_peer.endpoint_host/endpoint_port/endpoint_updated_at`); reuse keys under `~/.openclaw/n2n/keys/`. No new stores. (063-ncfed-wire-hardening)
 - Python 3.10+ (daemon + `bgp/federation/*`, matching 052–063); Markdown (SOUL/skill docs + NCFED draft §11 for -01) + Existing only — `bgp/federation/inventory.py` (card), `router.py` (selection), `invocation.py`/`gateway.py` (retrieval turn), the feature-062 rag-mcp (`rag_list`, `rag_search`). No new third-party packages. (064-knowledge-capability-cards)
 - Reuses `~/.openclaw/rag/rag.db` (documents registry, read-only for advertisement) and the issued capability card. Per-peer visibility reuses existing federation.db rows. No new store. (064-knowledge-capability-cards)
+- Python 3.10+ (daemon + `bgp/federation/*`, matching 052–064) + Existing only — `bgp/federation/replication.py` (NEW: manifest/batch client+server logic, size-cap check, task worker), `tasks.py` (`TaskManager`/`delegated_task`, reused as-is for the async job), `authorization.py` (reused, new `target_type="knowledge_replica"` grant), `negotiate.py` (`TIER0_DENIED` gains `"knowledge/replicate"`), `channel.py` (existing `ch.call()` framing, already chunks messages >64 KB), `knowledge.py`/`inventory.py` (card gains `embedding_model`; `build_entries()` excludes `kind='replica'` rows), rag-mcp's `storage/chroma_store.py` (gains a paginated collection-export read and a rename-on-verify write path) and `storage/registry.py` (`documents.kind` gains `'replica'`; new nullable provenance columns). No new third-party packages. (065-chroma-vector-replication)
+- Extends the existing rag-mcp `documents` table in `~/.openclaw/rag/rag.db` (feature 062) with a `'replica'` `kind` and new nullable columns (`source_peer_identity`, `source_collection_id`, `source_embedding_model`, `replicated_at`). Extends the existing Chroma store at `~/.openclaw/rag/chroma/` with one collection per replica, named from source peer + source `collection_id` (FR-016) — no new database, no new top-level store. (065-chroma-vector-replication)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -104,9 +106,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 065-chroma-vector-replication: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052–064) + Existing only — `bgp/federation/replication.py` (NEW: manifest/batch client+server logic, size-cap check, task worker), `tasks.py` (`TaskManager`/`delegated_task`, reused as-is for the async job), `authorization.py` (reused, new `target_type="knowledge_replica"` grant), `negotiate.py` (`TIER0_DENIED` gains `"knowledge/replicate"`), `channel.py` (existing `ch.call()` framing, already chunks messages >64 KB), `knowledge.py`/`inventory.py` (card gains `embedding_model`; `build_entries()` excludes `kind='replica'` rows), rag-mcp's `storage/chroma_store.py` (gains a paginated collection-export read and a rename-on-verify write path) and `storage/registry.py` (`documents.kind` gains `'replica'`; new nullable provenance columns). No new third-party packages.
 - 064-knowledge-capability-cards: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052–063); Markdown (SOUL/skill docs + NCFED draft §11 for -01) + Existing only — `bgp/federation/inventory.py` (card), `router.py` (selection), `invocation.py`/`gateway.py` (retrieval turn), the feature-062 rag-mcp (`rag_list`, `rag_search`). No new third-party packages.
 - 063-ncfed-wire-hardening: Added Python 3.10+ (daemon + `bgp/*`, `bgp/federation/*`); Bash (none new); Node/ES2022 (HUD posture render only) + existing `bgp-daemon-v2.py`, `bgp/agent.py`, `bgp/session.py`, `bgp/federation/{tls,service,manager,channel,inventory,posture}.py`; stdlib `ssl`/`asyncio`/`sqlite3`. **No new third-party packages.**
-- 062-rag-mcp: Added Python 3.10+ (server, matching repo MCP convention; memory-mcp packaging style with hatchling pyproject), Node.js 18+/ES2022 (HUD panel + Express endpoints), Bash (installer step) + `fastmcp`/`mcp`, `chromadb>=0.4`, `sentence-transformers>=2.2` (+ `torch` CPU), `rank_bm25`, `pymupdf` (PDF), `beautifulsoup4` + `httpx` (HTML/URL), `python-docx`, `openpyxl`, `python-pptx`, `vsdx` (modern office), LibreOffice headless (`soffice`, optional system package) for legacy DOC/XLS/PPT/VSD conversion
 
 
 <!-- MANUAL ADDITIONS START -->
