@@ -264,24 +264,24 @@ export class HomeView {
       </div>
       <div class="home-kpi-grid" role="group" aria-label="Home health metrics">
         <div class="home-kpi">
-          <div class="label">Health score</div>
-          <div class="value ${statusClass(scoreStatus)}">${score != null ? esc(score) : '—'}</div>
+          <div class="home-kpi-label">Health score</div>
+          <div class="home-kpi-value ${statusClass(scoreStatus)}">${score != null ? esc(score) : '—'}</div>
         </div>
         <div class="home-kpi">
-          <div class="label">WAN latency</div>
-          <div class="value ${statusClass(h.wanLatency?.status)}">${lat != null ? esc(Number(lat).toFixed(1)) : '—'}<span class="unit"> ms</span></div>
+          <div class="home-kpi-label">WAN latency</div>
+          <div class="home-kpi-value ${statusClass(h.wanLatency?.status)}">${lat != null ? esc(Number(lat).toFixed(1)) : '—'}<span class="unit"> ms</span></div>
         </div>
         <div class="home-kpi">
-          <div class="label">Packet loss</div>
-          <div class="value ${statusClass(h.wanLoss?.status)}">${loss != null ? esc(loss) : '—'}<span class="unit">%</span></div>
+          <div class="home-kpi-label">Packet loss</div>
+          <div class="home-kpi-value ${statusClass(h.wanLoss?.status)}">${loss != null ? esc(loss) : '—'}<span class="unit">%</span></div>
         </div>
         <div class="home-kpi">
-          <div class="label">Speedtest</div>
-          <div class="value ${statusClass(h.speedtest?.status)}">${dl != null ? esc(dl) : '—'}<span class="unit"> / ${ul != null ? esc(ul) : '—'} Mbps</span></div>
+          <div class="home-kpi-label">Speedtest</div>
+          <div class="home-kpi-value ${statusClass(h.speedtest?.status)}">${dl != null ? esc(dl) : '—'}<span class="unit"> / ${ul != null ? esc(ul) : '—'} Mbps</span></div>
         </div>
         <div class="home-kpi">
-          <div class="label">Firing alerts</div>
-          <div class="value ${firing > 0 ? 'warn' : 'ok'}">${esc(firing)}</div>
+          <div class="home-kpi-label">Firing alerts</div>
+          <div class="home-kpi-value ${firing > 0 ? 'warn' : 'ok'}">${esc(firing)}</div>
         </div>
       </div>
       <p class="home-section-title">Pipeline</p>
@@ -328,10 +328,10 @@ export class HomeView {
         <span class="home-badge">Live · unifi_*</span>
       </div>
       <div class="home-kpi-grid home-kpi-grid-4">
-        <div class="home-kpi"><div class="label">Wireless</div><div class="value">${esc(clients.wireless ?? '—')}</div></div>
-        <div class="home-kpi"><div class="label">Wired</div><div class="value">${esc(clients.wired ?? '—')}</div></div>
-        <div class="home-kpi"><div class="label">Guest</div><div class="value">${esc(clients.guest ?? '—')}</div></div>
-        <div class="home-kpi"><div class="label">Total</div><div class="value">${esc(clients.total ?? '—')}</div></div>
+        <div class="home-kpi"><div class="home-kpi-label">Wireless</div><div class="home-kpi-value">${esc(clients.wireless ?? '—')}</div></div>
+        <div class="home-kpi"><div class="home-kpi-label">Wired</div><div class="home-kpi-value">${esc(clients.wired ?? '—')}</div></div>
+        <div class="home-kpi"><div class="home-kpi-label">Guest</div><div class="home-kpi-value">${esc(clients.guest ?? '—')}</div></div>
+        <div class="home-kpi"><div class="home-kpi-label">Total</div><div class="home-kpi-value">${esc(clients.total ?? '—')}</div></div>
       </div>
       <p class="home-section-title">TX retries by AP / band</p>
       <div class="home-table-wrap">

@@ -258,41 +258,53 @@
   align-items: center;
   justify-content: flex-start;
   min-width: 0;
+  overflow: hidden;
 }
 
-.home-kpi .label {
+/*
+ * Do NOT reuse global .label — that class is for CSS2D scene markers and
+ * applies transform: translate(-50%, -120%), which shoves KPI titles left.
+ */
+.home-kpi-label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--muted);
   margin: 0 0 10px;
+  padding: 0;
   width: 100%;
   text-align: center;
   line-height: 1.35;
-  /* avoid letter-spacing making titles look left-heavy in narrow tiles */
+  white-space: normal;
   overflow-wrap: anywhere;
+  border: 0;
+  background: transparent;
+  border-radius: 0;
+  transform: none;
+  box-sizing: border-box;
 }
 
-.home-kpi .value {
+.home-kpi-value {
   font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 600;
   letter-spacing: 0.02em;
   text-align: center;
   width: 100%;
   line-height: 1.15;
+  transform: none;
 }
 
-.home-kpi .value .unit {
+.home-kpi-value .unit {
   font-size: 12px;
   font-weight: 500;
   color: var(--muted);
   letter-spacing: 0.04em;
 }
 
-.home-kpi .value.ok { color: var(--ok); }
-.home-kpi .value.warn { color: var(--accent-warm); }
-.home-kpi .value.crit { color: #ff5d6c; }
+.home-kpi-value.ok { color: var(--ok); }
+.home-kpi-value.warn { color: var(--accent-warm); }
+.home-kpi-value.crit { color: #ff5d6c; }
 
 .home-kpi-grid-4 {
   grid-template-columns: repeat(4, minmax(0, 1fr));
