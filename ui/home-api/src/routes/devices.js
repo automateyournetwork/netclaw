@@ -5,7 +5,7 @@ const router = express.Router();
 const { instantQuery } = require('../lib/queryEngine');
 const { vmInstantQuery } = require('../lib/queryEngine');
 const { formatUptime } = require('../lib/formatters');
-const { getSiteConfig } = require('../lib/config');
+const { getSiteConfig, getMgmtUrls } = require('../lib/config');
 
 /**
  * GET /api/devices?site=X
@@ -15,6 +15,7 @@ const { getSiteConfig } = require('../lib/config');
 router.get('/', async (req, res) => {
   const site = req.site;
   const config = getSiteConfig(site);
+  const mgmt = getMgmtUrls(site);
 
   try {
     const [
@@ -89,14 +90,17 @@ router.get('/', async (req, res) => {
       for (const r of edgeStatus.value) {
         const name = r.metric.device_name || config?.deviceName || 'edge';
         const key = r.metric.instance || name;
+        const endpoint = r.metric.instance || key;
         edge.push({
           name,
           role: 'firewall',
           model: r.metric.model || 'pfSense / edge',
           status: parseFloat(r.value[1]) === 1 ? 'online' : 'offline',
-          endpoint: r.metric.instance || key,
+          endpoint,
           latencyMs: edgeDur.get(key) ?? edgeDur.get(r.metric.instance) ?? null,
-          source: 'blackbox'
+          source: 'blackbox',
+          // Prefer dedicated mgmt URL; fall back to probe target if https
+          mgmtUrl: mgmt.pfsense || (/^https?:\/\//i.test(String(endpoint)) ? String(endpoint) : null)
         });
       }
     }
@@ -125,7 +129,8 @@ router.get('/', async (req, res) => {
           cpu: Math.round(cpuMap.get(name) || 0),
           memory: Math.round(memMap.get(name) || 0),
           uptime: formatUptime(upMap.get(name)),
-          source: 'unifi'
+          source: 'unifi',
+          mgmtUrl: mgmt.unifi || null
         });
       }
     }
@@ -161,7 +166,9 @@ router.get('/', async (req, res) => {
           cpu: Math.round(cpuMap.get(name) || 0),
           memory: Math.round(memMap.get(name) || 0),
           uptime: formatUptime(uptimeMap.get(name)),
-          mac: r.metric.mac || ''
+          mac: r.metric.mac || '',
+          // UniFi Network app has no stable per-AP public deep link; open controller
+          mgmtUrl: mgmt.unifi || null
         });
       }
     }
@@ -192,7 +199,8 @@ router.get('/', async (req, res) => {
           cpu: Math.round(cpuMap.get(name) || 0),
           memory: Math.round(memMap.get(name) || 0),
           uptime: formatUptime(upMap.get(name)),
-          source: 'unifi'
+          source: 'unifi',
+          mgmtUrl: mgmt.unifi || null
         });
       }
     }
@@ -248,6 +256,7 @@ router.get('/', async (req, res) => {
       firewall: edge, // alias for older UI
       accessPoints,
       switches,
+      mgmt,
       sources: {
         unifi: accessPoints.length > 0 || switches.some((s) => s.source === 'unifi'),
         snmpSwitches: switches.some((s) => s.source === 'snmp'),

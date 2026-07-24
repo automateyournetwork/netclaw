@@ -58,6 +58,15 @@ function statusClass(status) {
   return '';
 }
 
+/** Device name → external management GUI (pfSense / UniFi) when mgmtUrl present. */
+function nameLink(label, url, title) {
+  const text = esc(label || '—');
+  if (!url || !/^https?:\/\//i.test(String(url))) return text;
+  const href = esc(url);
+  const tip = esc(title || `Open management GUI: ${url}`);
+  return `<a class="home-mgmt-link" href="${href}" target="_blank" rel="noopener noreferrer" title="${tip}">${text}</a>`;
+}
+
 export class HomeView {
   constructor(rootEl) {
     this.root = rootEl;
@@ -318,8 +327,10 @@ export class HomeView {
       .map((d) => {
         const b24 = d.bands.find((b) => /2\.4/i.test(b.band || ''));
         const b5 = d.bands.find((b) => /5/i.test(b.band || ''));
+        // Prefer per-row mgmtUrl; fall back to wifi.mgmt.unifi
+        const link = nameLink(d.name, d.bands[0]?.mgmtUrl || w.mgmt?.unifi, 'Open UniFi Network console');
         return `<tr>
-          <td>${esc(d.name)}</td>
+          <td>${link}</td>
           <td class="${statusClass(b24?.status)}">${b24 ? `${esc(b24.value)}%` : '—'}</td>
           <td class="${statusClass(b5?.status)}">${b5 ? `${esc(b5.value)}%` : '—'}</td>
         </tr>`;
@@ -399,7 +410,7 @@ export class HomeView {
           e.endpoint,
         ].filter(Boolean).join(' · ');
         return `<tr>
-          <td>${esc(e.name || '—')}</td>
+          <td>${nameLink(e.name || '—', e.mgmtUrl, 'Open pfSense / edge management')}</td>
           <td>${esc(e.role || 'firewall')}</td>
           <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : 'unhealthy')}">${esc(st || '—')}</td>
           <td>${esc(detail)}</td>
@@ -417,7 +428,7 @@ export class HomeView {
           ap.uptime || null,
         ].filter(Boolean).join(' · ');
         return `<tr>
-          <td>${esc(ap.name || ap.device || '—')}</td>
+          <td>${nameLink(ap.name || ap.device || '—', ap.mgmtUrl || d.mgmt?.unifi, 'Open UniFi Network console')}</td>
           <td>${esc(ap.model || 'AP')}</td>
           <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : 'unhealthy')}">${esc(st || '—')}</td>
           <td>${esc(detail || ap.mac || '')}</td>
@@ -437,7 +448,7 @@ export class HomeView {
           sw.source ? `src:${sw.source}` : null,
         ].filter(Boolean).join(' · ');
         return `<tr>
-          <td>${esc(sw.name || sw.device_name || '—')}</td>
+          <td>${nameLink(sw.name || sw.device_name || '—', sw.mgmtUrl, 'Open switch management')}</td>
           <td>Switch</td>
           <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : st)}">${esc(st || '—')}</td>
           <td>${esc(detail)}</td>

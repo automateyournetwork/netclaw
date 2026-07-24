@@ -395,6 +395,25 @@
 .home-table td.warn { color: var(--accent-warm); }
 .home-table td.crit { color: #ff5d6c; }
 
+/* Management GUI deep-links (pfSense, UniFi, …) */
+.home-mgmt-link {
+  color: var(--accent);
+  text-decoration: none;
+  border-bottom: 1px solid rgba(101, 195, 255, 0.35);
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.home-mgmt-link:hover {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.home-mgmt-link::after {
+  content: ' ↗';
+  font-size: 0.85em;
+  opacity: 0.65;
+}
+
 @media (max-width: 900px) {
   .home-root {
     top: 168px;

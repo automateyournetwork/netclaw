@@ -103,6 +103,11 @@ services:
       API_KEYS: ${API_KEYS}
       USERS: ${USERS:-[]}
       SITES_CONFIG: ${SITES_CONFIG}
+      # Device name → management GUI deep-links (HOME Devices / Wi‑Fi)
+      UNIFI_HOST: ${UNIFI_HOST:-}
+      UNIFI_MGMT_URL: ${UNIFI_MGMT_URL:-${UNIFI_HOST:-}}
+      PFSENSE_MGMT_URL: ${PFSENSE_MGMT_URL:-https://192.168.13.1:440}
+      EDGE_MGMT_URL: ${EDGE_MGMT_URL:-${PFSENSE_MGMT_URL:-}}
     ports:
       - "${HOME_API_HOST_PORT:-3080}:3000"
     healthcheck:

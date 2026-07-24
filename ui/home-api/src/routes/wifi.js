@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const { instantQuery, extractScalar } = require('../lib/queryEngine');
-const { getSiteConfig, getThresholdStatus } = require('../lib/config');
+const { getSiteConfig, getThresholdStatus, getMgmtUrls } = require('../lib/config');
 
 /**
  * GET /api/wifi?site=X
@@ -13,6 +13,7 @@ router.get('/', async (req, res) => {
   const site = req.site;
   const config = getSiteConfig(site);
   const thresholds = config?.thresholds?.txRetries || { green: 20, yellow: 35 };
+  const mgmt = getMgmtUrls(site);
 
   try {
     const [wireless, wired, guest, total, retries] = await Promise.allSettled([
@@ -45,12 +46,13 @@ router.get('/', async (req, res) => {
           device: r.metric.device || 'unknown',
           band: r.metric.band || 'unknown',
           value: Math.round(value * 10) / 10,
-          status: getThresholdStatus(value, thresholds)
+          status: getThresholdStatus(value, thresholds),
+          mgmtUrl: mgmt.unifi || null
         });
       }
     }
 
-    res.json({ site, clients, txRetries });
+    res.json({ site, clients, txRetries, mgmt });
   } catch (err) {
     console.error('WiFi endpoint error:', err.message);
     res.status(502).json({ error: 'Failed to fetch WiFi data', detail: err.message });

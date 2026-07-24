@@ -77,11 +77,42 @@ function getThresholdStatus(value, thresholds, lowerIsBetter = true) {
   }
 }
 
+/**
+ * Management GUI base URLs for device name deep-links in HOME Devices / Wi‑Fi.
+ * Prefer SITES_CONFIG.home.mgmt.* then env overrides.
+ *
+ * Env:
+ *   PFSENSE_MGMT_URL / EDGE_MGMT_URL  e.g. https://192.168.13.1:440
+ *   UNIFI_MGMT_URL / UNIFI_HOST       e.g. https://192.168.100.10:11443
+ */
+function getMgmtUrls(siteId) {
+  const site = getSiteConfig(siteId) || {};
+  const mgmt = site.mgmt || {};
+  const unifi =
+    mgmt.unifi ||
+    process.env.UNIFI_MGMT_URL ||
+    process.env.UNIFI_HOST ||
+    '';
+  const pfsense =
+    mgmt.pfsense ||
+    mgmt.edge ||
+    process.env.PFSENSE_MGMT_URL ||
+    process.env.EDGE_MGMT_URL ||
+    '';
+  const strip = (u) => (u ? String(u).trim().replace(/\/$/, '') : '');
+  return {
+    unifi: strip(unifi),
+    pfsense: strip(pfsense),
+    edge: strip(pfsense),
+  };
+}
+
 module.exports = {
   getSiteConfig,
   getPrimaryProvider,
   getAllSiteIds,
   getThresholdStatus,
+  getMgmtUrls,
   PROMETHEUS_URL: process.env.PROMETHEUS_URL || 'http://prometheus:9090',
   VICTORIAMETRICS_URL: process.env.VICTORIAMETRICS_URL || 'http://victoriametrics:8428',
   LOKI_URL: process.env.LOKI_URL || 'http://loki:3100',
