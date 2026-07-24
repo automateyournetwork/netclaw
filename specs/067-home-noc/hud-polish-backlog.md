@@ -3,9 +3,9 @@
 **Status**: Active backlog — pick up when returning to Visual HUD UX  
 **Spec home**: `specs/067-home-noc/`  
 **Code home**: `ui/netclaw-visual/`  
-**Last updated**: 2026-07-24  
+**Last updated**: 2026-07-24 (H001–H003 + H006 shipped)
 
-Capture of improvements identified while shipping Home tab layout fixes, panel collapse, floating terminal, and first-pass mobile layout. **Do not lose these** when context rotates to Docker/K3s/installer work.
+Capture of improvements identified while shipping Home tab layout fixes, panel collapse, floating terminal, and mobile layout. **Do not lose these** when context rotates to Docker/K3s/installer work.
 
 ---
 
@@ -17,6 +17,10 @@ Capture of improvements identified while shipping Home tab layout fixes, panel c
 | Panel collapse | Left/right/footer slide off-screen; FILTERS / DETAIL / STATUS reopen; taller topbar z-index fix | `8933e55` |
 | Floating terminal | Drag header, corner resize, collapse `_`/`+`, desktop geometry in `localStorage` | `8933e55` |
 | Mobile layout v1 | `#app.mobile-layout` via `src/app-shell/mobile-layout.js`; bottom-sheet sidebars; bottom thumb chips; terminal bottom sheet; auto FOCUS quality + capped DPR; `visualViewport` resize; Home 2-col KPIs; safe-area insets | `e840909` |
+| H001 Landscape | `#app.landscape-layout` on short landscape; compact topbar (hide eyebrow); shorter terminal sheet; auto-collapse chat on landscape enter; FOV bump | this session |
+| H002 Reduced motion | `#app.reduced-motion`; freeze `.scan-beam`; GSAP `timeScale(40)`; skip cinematic burst; auto FOCUS | this session |
+| H003 Long-press | Canvas long-press (~480ms) selects node, opens DETAIL sheet, optional `vibrate`; cancels on orbit drag | this session |
+| H006 Smoke checklist | HUD README mobile/landscape checklist | this session |
 
 **Key files**
 
@@ -32,41 +36,16 @@ Capture of improvements identified while shipping Home tab layout fixes, panel c
 
 Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (orthogonal to product Phases 3–7).
 
-### P1 — High impact, small–medium effort
+### P1 — Shipped this session (kept for history)
 
-#### H001 — Landscape mode chrome
-**Why**: Phones in landscape crush the tall topbar + bottom chips; graph and Home content get a thin strip.  
-**Do**:
-- Detect `orientation: landscape` + short height (or `max-height: 500px`)
-- Compact topbar: hide long eyebrow, shrink brand, single-row COMMAND|HOME + metrics
-- Raise bottom sheets / terminal max-height % when landscape
-- Optional: auto-collapse terminal to header strip on landscape enter  
-**Touch**: `mobile-layout.js` snapshot + CSS under `#app.mobile-layout.landscape` (or media query pair)  
-**Accept**: On a phone landscape, COMMAND graph has ≥50% viewport height free of chrome; HOME Overview KPIs remain readable without horizontal scroll.
-
-#### H002 — `prefers-reduced-motion`
-**Why**: Scan-beam, GSAP focus tweens, and bloom-ish motion can be harsh / battery-heavy; a11y expectation.  
-**Do**:
-- On `matchMedia('(prefers-reduced-motion: reduce)')`:
-  - Disable or freeze `.scan-beam` animation
-  - Skip GSAP ornamental pulses; keep functional camera moves short or instant
-  - Prefer quality FOCUS if user has not pinned quality
-- Document in HUD README  
-**Touch**: `styles.css`, `main.js` animate/GSAP sites, `mobile-layout.js` or small `a11y.js`  
-**Accept**: With OS “reduce motion” on, no continuous full-screen scan animation; scene still navigable.
-
-#### H003 — Touch long-press node detail
-**Why**: Desktop uses hover tooltip + click; mobile has no reliable hover; mis-taps orbit the camera.  
-**Do**:
-- 400–500ms press on canvas hit → open right detail sheet (or bottom DETAIL) without requiring precise double-tap
-- Cancel long-press if pointer moves beyond small threshold (orbit gesture)
-- Haptic `navigator.vibrate(10)` when supported (optional, gated)  
-**Touch**: `main.js` `onPointerMove` / `onClick` / new pointerdown timer on `renderer.domElement`  
-**Accept**: On coarse pointer, long-press selects a node and opens DETAIL sheet; drag still orbits.
+- **H001** Landscape mode chrome — done  
+- **H002** `prefers-reduced-motion` — done  
+- **H003** Touch long-press node detail — done  
+- **H006** Mobile smoke checklist — done  
 
 ---
 
-### P2 — Product polish
+### P2 — Product polish (next HUD session)
 
 #### H004 — PWA shell (installable HUD)
 **Why**: Operators want home-screen launch; better standalone mobile chrome.  
@@ -85,16 +64,7 @@ Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (ort
 - Keep chat UI mounted; show gateway offline (already partially present)  
 **Accept**: Kill home-api/graph for one request → HUD still shows last topology with clear STALE badge.
 
-#### H006 — Mobile smoke checklist
-**Why**: No automated mobile CI; regressions will return.  
-**Do**: Add checklist section to `quickstart.md` or `ui/netclaw-visual/README.md`:
-- [ ] Phone width ≤720: FILTERS + DETAIL chips visible; left filters not permanently gone
-- [ ] Collapse / reopen sidebars
-- [ ] Terminal drag, resize, collapse
-- [ ] HOME KPIs 2-col, tabs tappable (44px)
-- [ ] iOS keyboard open does not permanently mis-size canvas
-- [ ] Landscape (H001 once done)  
-**Accept**: Manual run takes &lt;10 minutes; checklist linked from 067 tasks.
+#### H006 — Mobile smoke checklist — **shipped** (see HUD README)
 
 ---
 
@@ -126,13 +96,10 @@ Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (ort
 
 When next opening a **HUD UX** session (not blocked on deploy):
 
-1. **H001** landscape + **H002** reduced motion (same CSS/media pass)  
-2. **H003** long-press select  
-3. **H006** smoke checklist (lock the above)  
-4. **H004** / **H005** if installable / field use matters  
-5. **H007–H010** as time allows  
+1. **H004** / **H005** if installable / field use matters  
+2. **H007–H010** as time allows  
 
-Product path (Docker → K3s → installer → triage) remains **Phase 3+** in `tasks.md` and should stay the default fork-main sequence unless operator asks for HUD polish.
+Product path (Docker → K3s → installer → triage) remains **Phase 3+** in `tasks.md` and can resume when HUD polish is paused.
 
 ---
 

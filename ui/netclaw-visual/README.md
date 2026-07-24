@@ -250,10 +250,24 @@ npm run preview
 | **NetClaw Terminal** | Drag the header to move, corner handle to resize, `_` / `+` to collapse. Desktop position is remembered. |
 | **Mobile** | Narrow / touch viewports get `#app.mobile-layout`: bottom-sheet panels, auto FOCUS quality, capped DPR, terminal as a bottom sheet. |
 
-**Backlog (landscape, reduced-motion, long-press select, PWA, offline graph, …)** lives in Spec Kit so it is not lost between sessions:
+**Remaining backlog (PWA, offline graph, knowledge sheet, …)** lives in Spec Kit:
 
 - [`specs/067-home-noc/hud-polish-backlog.md`](../../specs/067-home-noc/hud-polish-backlog.md)
 - Task checkboxes: Phase H in [`specs/067-home-noc/tasks.md`](../../specs/067-home-noc/tasks.md)
+
+### Mobile / landscape smoke checklist (H006)
+
+Run in DevTools device mode or on a phone (&lt;10 min):
+
+- [ ] **Phone width ≤720**: `FILTERS` + `DETAIL` chips visible; left filters not permanently gone
+- [ ] Collapse / reopen sidebars via chips; only one drawer open at a time
+- [ ] Terminal: expand/collapse (`_` / `+`); drag header; resize corner
+- [ ] **HOME**: KPIs 2-col, sub-nav / refresh ≥44px touch targets
+- [ ] **Landscape**: compact topbar (no long eyebrow); graph/Home keeps most of the short axis; terminal collapses to strip on enter
+- [ ] **Long-press** a node (~0.5s, don’t drag): DETAIL sheet opens with selection
+- [ ] Drag/orbit still works (long-press cancels if finger moves)
+- [ ] **Reduce motion** (OS setting): scan-beam frozen; quality drops to FOCUS if not user-pinned
+- [ ] iOS keyboard open does not permanently mis-size the canvas (visualViewport)
 
 ### The 3D Scene
 
@@ -263,7 +277,7 @@ The center of the HUD is a Three.js 3D scene. Use your mouse to navigate:
 |--------|---------|
 | **Orbit** | Click and drag (one-finger rotate on touch) |
 | **Zoom** | Scroll wheel (pinch on touch) |
-| **Select node** | Click on a node |
+| **Select node** | Click on a node (long-press on touch / mobile) |
 | **Deselect** | Click the local NetClaw core or empty space |
 
 ### Core Nodes

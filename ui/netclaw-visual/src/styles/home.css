@@ -492,3 +492,20 @@
     min-height: 44px;
   }
 }
+
+/* Landscape Home: more columns when width allows */
+#app.landscape-layout .home-toolbar {
+  flex-direction: row;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+#app.landscape-layout .home-segmented {
+  display: flex;
+  flex-wrap: wrap;
+  width: auto;
+}
+
+#app.landscape-layout .home-panel-header h2 {
+  font-size: 18px;
+}

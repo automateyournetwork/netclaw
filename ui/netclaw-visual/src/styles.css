@@ -65,12 +65,34 @@ input {
   animation: sweep 8s linear infinite;
 }
 
+/* H002 — OS reduce motion: freeze continuous full-screen scan */
+#app.reduced-motion .scan-beam,
+html.reduced-motion .scan-beam {
+  animation: none;
+  opacity: 0.04;
+  transform: none;
+}
+
+#app.reduced-motion .sidebar,
+#app.reduced-motion .footer,
+#app.reduced-motion .chat-drawer,
+#app.reduced-motion .panel-reopen {
+  transition-duration: 0.01ms !important;
+}
+
 @keyframes sweep {
   from {
     transform: translateY(-100%);
   }
   to {
     transform: translateY(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scan-beam {
+    animation: none;
+    opacity: 0.04;
   }
 }
 
@@ -1395,6 +1417,162 @@ input {
   max-width: none;
   bottom: max(10px, env(safe-area-inset-bottom, 0px));
   max-height: 55vh;
+}
+
+/* ── H001 Landscape chrome (short height + landscape) ───────────── */
+/* Goal: ≥50% of the short axis free for the graph / Home content */
+
+#app.landscape-layout .topbar {
+  top: max(6px, env(safe-area-inset-top, 0px));
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  padding: 6px 10px;
+  border-radius: 12px;
+  gap: 8px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  z-index: 48;
+}
+
+#app.landscape-layout .topbar-brand-block {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+#app.landscape-layout .topbar-brand-block > .eyebrow {
+  display: none; /* free vertical space */
+}
+
+#app.landscape-layout .brand {
+  font-size: clamp(16px, 3.2vh, 22px);
+  letter-spacing: 0.08em;
+  line-height: 1;
+}
+
+#app.landscape-layout .app-tabs {
+  width: auto;
+}
+
+#app.landscape-layout .app-tab {
+  padding: 8px 12px;
+  min-height: 36px;
+  font-size: 10px;
+}
+
+#app.landscape-layout .topbar-stats {
+  width: auto;
+  flex: 0 1 auto;
+  grid-template-columns: repeat(4, minmax(52px, 1fr));
+  gap: 6px;
+}
+
+#app.landscape-layout .metric {
+  padding: 6px 8px;
+  border-radius: 10px;
+}
+
+#app.landscape-layout .metric-value {
+  font-size: 14px;
+}
+
+#app.landscape-layout .metric-label {
+  font-size: 8px;
+}
+
+/* Side sheets use less vertical share in landscape */
+#app.landscape-layout .sidebar {
+  position: fixed;
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  top: auto;
+  bottom: max(48px, calc(env(safe-area-inset-bottom, 0px) + 40px));
+  width: auto;
+  height: min(48vh, 280px);
+  max-height: calc(100dvh - 100px);
+  border-radius: 14px;
+  z-index: 46;
+}
+
+#app.landscape-layout .sidebar.left.collapsed,
+#app.landscape-layout .sidebar.right.collapsed {
+  transform: translateY(calc(100% + 40px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+#app.landscape-layout .footer {
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+  bottom: max(6px, env(safe-area-inset-bottom, 0px));
+  padding: 6px 10px;
+  border-radius: 12px;
+}
+
+#app.landscape-layout .footer-row span {
+  font-size: 9px;
+}
+
+#app.landscape-layout .panel-reopen {
+  z-index: 47;
+  min-height: 34px;
+  padding: 8px 12px;
+  font-size: 9px;
+  writing-mode: horizontal-tb;
+  border-radius: 999px;
+}
+
+#app.landscape-layout .reopen-left {
+  left: max(10px, env(safe-area-inset-left, 0px));
+  top: auto;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  transform: none;
+}
+
+#app.landscape-layout .reopen-right {
+  right: max(10px, env(safe-area-inset-right, 0px));
+  top: auto;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  transform: none;
+}
+
+#app.landscape-layout .reopen-footer {
+  left: 50%;
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+}
+
+#app.landscape-layout .chat-drawer {
+  z-index: 49;
+  border-radius: 12px;
+}
+
+#app.landscape-layout .chat-header {
+  min-height: 40px;
+  padding: 6px 10px;
+}
+
+#app.landscape-layout.home-mode .home-root {
+  top: max(72px, calc(env(safe-area-inset-top, 0px) + 64px));
+  bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  left: max(8px, env(safe-area-inset-left, 0px));
+  right: max(8px, env(safe-area-inset-right, 0px));
+}
+
+#app.landscape-layout .home-kpi-grid {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+#app.landscape-layout .home-kpi {
+  padding: 8px 6px;
+}
+
+#app.landscape-layout .home-kpi-value {
+  font-size: clamp(14px, 3.5vh, 20px);
 }
 
 /* Pure CSS fallback when JS class not yet applied */

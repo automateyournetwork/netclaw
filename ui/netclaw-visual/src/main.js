@@ -105,6 +105,12 @@ const state = {
   qualityUserPinned: false,
   /** Chat: user dragged/resized on this session — don't re-sheet on every vv resize */
   chatUserPositioned: false,
+  /** H002 — OS prefers-reduced-motion */
+  reducedMotion: false,
+  /** H003 — suppress synthetic click after long-press select */
+  suppressNextClick: false,
+  /** Open command chrome panel (wired in wireUI) */
+  openPanel: null,
 };
 
 const dom = {
@@ -182,6 +188,7 @@ function cycleQualityMode() {
 
 // Temporarily enable cinematic effects during activations
 function enableCinematicBurst() {
+  if (state.reducedMotion) return; // H002 — no cinematic burst
   if (state.qualityMode === 'broadcast') return; // already on
   if (state.afterimagePass) state.afterimagePass.enabled = true;
   if (state.filmPass) state.filmPass.enabled = true;
@@ -192,6 +199,16 @@ function enableCinematicBurst() {
       if (state.filmPass) state.filmPass.enabled = state.qualityMode !== 'focus';
     }
   }, 6000);
+}
+
+/** H002 — apply reduced-motion policy to GSAP + quality */
+function applyReducedMotion(enabled) {
+  state.reducedMotion = !!enabled;
+  // Near-instant timelines when reduced; restore normal speed otherwise
+  gsap.globalTimeline.timeScale(enabled ? 40 : 1);
+  if (enabled && !state.qualityUserPinned) {
+    setQualityMode('focus');
+  }
 }
 
 // ── Chat Focus Mode ─────────────────────────────────────────────
@@ -2603,12 +2620,34 @@ function getInteractiveObjects() {
   return nodes;
 }
 
-function onPointerMove(event) {
-  state.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
-  state.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+function clientToNdc(clientX, clientY) {
+  const { width, height } = viewportSize();
+  // visualViewport offset for iOS chrome
+  const ox = window.visualViewport?.offsetLeft ?? 0;
+  const oy = window.visualViewport?.offsetTop ?? 0;
+  const x = clientX - ox;
+  const y = clientY - oy;
+  return {
+    x: (x / width) * 2 - 1,
+    y: -(y / height) * 2 + 1,
+  };
+}
 
+function pickInteractiveAt(clientX, clientY) {
+  const ndc = clientToNdc(clientX, clientY);
+  state.mouse.x = ndc.x;
+  state.mouse.y = ndc.y;
   state.raycaster.setFromCamera(state.mouse, state.camera);
-  const hit = state.raycaster.intersectObjects(getInteractiveObjects())[0];
+  return state.raycaster.intersectObjects(getInteractiveObjects())[0] || null;
+}
+
+function onPointerMove(event) {
+  // Skip heavy hover tooltips on coarse pointers (mobile) — long-press selects instead
+  if (state.mobileLayout?.snapshot?.()?.coarse && !state.longPress?.active) {
+    return;
+  }
+
+  const hit = pickInteractiveAt(event.clientX, event.clientY);
   if (!hit) {
     dom.tooltip.classList.remove('visible');
     document.body.style.cursor = 'default';
@@ -2634,10 +2673,13 @@ function onPointerMove(event) {
       subtitle = `${p.state} • ${p.routesReceived} routes`;
     }
   }
-  dom.tooltip.innerHTML = `<strong>${title}</strong><br>${subtitle}`;
-  dom.tooltip.style.left = `${event.clientX + 18}px`;
-  dom.tooltip.style.top = `${event.clientY + 18}px`;
-  dom.tooltip.classList.add('visible');
+  // Tooltips only when fine pointer (hover is meaningful)
+  if (!state.mobileLayout?.snapshot?.()?.coarse) {
+    dom.tooltip.innerHTML = `<strong>${title}</strong><br>${subtitle}`;
+    dom.tooltip.style.left = `${event.clientX + 18}px`;
+    dom.tooltip.style.top = `${event.clientY + 18}px`;
+    dom.tooltip.classList.add('visible');
+  }
   document.body.style.cursor = 'pointer';
 
   if (state.hovered && state.hovered !== hit.object) state.hovered.scale.setScalar(1);
@@ -2645,32 +2687,28 @@ function onPointerMove(event) {
   state.hovered.scale.setScalar(1.22);
 }
 
-function onClick(event) {
-  if (event.target.closest('.panel') || event.target.closest('.tooltip') || event.target.closest('.panel-reopen')) return;
-  state.raycaster.setFromCamera(state.mouse, state.camera);
-  const hit = state.raycaster.intersectObjects(getInteractiveObjects())[0];
+/** Select the object under client coords (click + long-press share this). */
+function selectAtClient(clientX, clientY, { fromLongPress = false } = {}) {
+  const hit = pickInteractiveAt(clientX, clientY);
   if (!hit) {
-    clearSelection();
-    return;
+    if (!fromLongPress) clearSelection();
+    return false;
   }
 
-  // Check if any core nucleus was clicked
   const hitCore = state.cores.find((c) => c.nucleus === hit.object);
   if (hitCore) {
     if (hitCore === state.localCore) {
       clearSelection();
       focusTarget(state.localCore.position.clone());
-      setDetail('local-core');            // 056: show this claw's risk view (role + member spokes)
+      setDetail('local-core');
       state.selected = { kind: 'local-core' };
     } else if (hitCore.isMember) {
-      // 056: member claw selected — focus it and show its detail
       clearSelection();
       hitCore.nucleus.material.emissiveIntensity = 1.8;
       focusTarget(hitCore.position.clone());
       setDetail('member-core', hitCore.memberPayload);
       state.selected = { kind: 'member-core', member: hitCore.memberPayload?.member_id };
     } else {
-      // Peer core selected — show detail
       clearSelection();
       hitCore.nucleus.material.emissiveIntensity = 1.8;
       if (hitCore.routeDendrites) {
@@ -2680,10 +2718,86 @@ function onClick(event) {
       setDetail('peer-core', hitCore.peerPayload, hitCore);
       state.selected = { kind: 'peer-core', peer: hitCore.peerPayload?.peer };
     }
-    return;
+  } else {
+    selectObject(hit.object);
   }
 
-  selectObject(hit.object);
+  // Mobile / landscape: surface the DETAIL sheet after a deliberate select
+  if (fromLongPress || state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.()) {
+    state.openPanel?.(dom.sidebarRight, dom.reopenRight);
+  }
+  return true;
+}
+
+function onClick(event) {
+  if (state.suppressNextClick) {
+    state.suppressNextClick = false;
+    return;
+  }
+  if (event.target.closest('.panel') || event.target.closest('.tooltip') || event.target.closest('.panel-reopen') || event.target.closest('.chat-drawer')) return;
+  selectAtClient(event.clientX, event.clientY, { fromLongPress: false });
+}
+
+/**
+ * H003 — long-press on canvas to select a node (touch-friendly).
+ * Cancels if the pointer moves (orbit gesture).
+ */
+function wireLongPressSelect() {
+  const canvas = state.renderer?.domElement;
+  if (!canvas) return;
+
+  const LONG_MS = 480;
+  const MOVE_PX = 14;
+  let press = null;
+
+  const clearPress = () => {
+    if (press?.timer) clearTimeout(press.timer);
+    press = null;
+  };
+
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    if (state.appTab === 'home') return;
+    // Only arm long-press on coarse pointers or when mobile-layout is active
+    const coarse = state.mobileLayout?.snapshot?.()?.coarse;
+    const mobile = state.mobileLayout?.isMobile?.();
+    if (!coarse && !mobile) return;
+
+    clearPress();
+    press = {
+      x: e.clientX,
+      y: e.clientY,
+      id: e.pointerId,
+      timer: setTimeout(() => {
+        if (!press) return;
+        const ok = selectAtClient(press.x, press.y, { fromLongPress: true });
+        if (ok) {
+          state.suppressNextClick = true;
+          try {
+            navigator.vibrate?.(12);
+          } catch {
+            /* ignore */
+          }
+        }
+        press = null;
+      }, LONG_MS),
+    };
+  });
+
+  canvas.addEventListener('pointermove', (e) => {
+    if (!press || press.id !== e.pointerId) return;
+    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_PX) {
+      clearPress();
+    }
+  });
+
+  const end = (e) => {
+    if (!press || (e.pointerId != null && press.id !== e.pointerId)) return;
+    clearPress();
+  };
+  canvas.addEventListener('pointerup', end);
+  canvas.addEventListener('pointercancel', end);
+  canvas.addEventListener('pointerleave', end);
 }
 
 function animate() {
@@ -2869,10 +2983,17 @@ function onResize() {
   if (state.smaaPass && state.renderer) {
     state.smaaPass.setSize(width * dpr, height * dpr);
   }
-  // Soft FOV bump on very short viewports so the graph isn't cropped by chrome
+  // Soft FOV bump on short / landscape viewports so the graph isn't cropped by chrome
   if (state.camera) {
     const mobile = state.mobileLayout?.isMobile?.() ?? width <= 720;
-    state.camera.fov = mobile ? (height < 560 ? 56 : 52) : 48;
+    const landscape = state.mobileLayout?.isLandscape?.() ?? false;
+    if (landscape) {
+      state.camera.fov = height < 400 ? 58 : 54;
+    } else if (mobile) {
+      state.camera.fov = height < 560 ? 56 : 52;
+    } else {
+      state.camera.fov = 48;
+    }
     state.camera.updateProjectionMatrix();
   }
 }
@@ -2988,8 +3109,12 @@ function initChatWindow() {
     };
   }
 
+  function isCompactChrome() {
+    return !!(state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.());
+  }
+
   function minW() {
-    return state.mobileLayout?.isMobile?.() ? 260 : minWDesktop;
+    return isCompactChrome() ? 260 : minWDesktop;
   }
 
   function applyGeometry({ left, top, width, height, collapsed }) {
@@ -3028,8 +3153,8 @@ function initChatWindow() {
   }
 
   function saveGeometry() {
-    // Don't persist transient mobile sheet geometry over a desktop layout
-    if (state.mobileLayout?.isMobile?.()) return;
+    // Don't persist transient mobile/landscape sheet geometry over a desktop layout
+    if (isCompactChrome()) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentGeometry()));
     } catch {
@@ -3060,9 +3185,9 @@ function initChatWindow() {
     });
   }
 
-  /** Snap to mobile bottom sheet when layout is mobile (unless user moved it). */
+  /** Snap to bottom sheet when layout is mobile/landscape (unless user moved it). */
   function applyMobileSheet(force = false) {
-    if (!state.mobileLayout?.isMobile?.()) return;
+    if (!isCompactChrome()) return;
     if (!force && state.chatUserPositioned) {
       applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
       return;
@@ -3082,8 +3207,8 @@ function initChatWindow() {
     ensurePositioned,
   };
 
-  // Initial geometry: mobile sheet, else saved desktop layout
-  if (state.mobileLayout?.isMobile?.()) {
+  // Initial geometry: mobile/landscape sheet, else saved desktop layout
+  if (isCompactChrome()) {
     applyMobileSheet(true);
   } else {
     const saved = loadGeometry();
@@ -3113,7 +3238,7 @@ function initChatWindow() {
     } else {
       drawer.classList.remove('collapsed');
       dom.chatToggle.textContent = '_';
-      if (state.mobileLayout?.isMobile?.() && !state.chatUserPositioned) {
+      if (isCompactChrome() && !state.chatUserPositioned) {
         applyMobileSheet(true);
         saveGeometry();
         return;
@@ -3215,7 +3340,7 @@ function initChatWindow() {
 
   // Keep window on-screen after viewport changes
   const onVpChange = () => {
-    if (state.mobileLayout?.isMobile?.()) {
+    if (isCompactChrome()) {
       applyMobileSheet(false);
       return;
     }
@@ -3259,18 +3384,23 @@ function wireUI() {
     newSessionBtn.addEventListener('click', resetChatSession);
   }
 
-  // Mobile / narrow layout (auto-collapse chrome, chat sheet, perf)
+  // Mobile / landscape / a11y layout (auto-collapse chrome, chat sheet, perf)
   state.mobileLayout = createMobileLayout({
-    onChange: (mobile) => {
-      if (mobile && !state.qualityUserPinned) {
+    onChange: (mobile, detail = {}) => {
+      const landscape = !!detail.landscape;
+      const reduced = !!detail.reducedMotion;
+
+      applyReducedMotion(reduced);
+
+      if ((mobile || landscape || reduced) && !state.qualityUserPinned) {
         setQualityMode('focus');
       }
       if (state.controls) {
-        state.controls.rotateSpeed = mobile ? 0.95 : 0.85;
-        state.controls.dampingFactor = mobile ? 0.08 : 0.06;
+        state.controls.rotateSpeed = mobile || landscape ? 0.95 : 0.85;
+        state.controls.dampingFactor = mobile || landscape ? 0.08 : 0.06;
       }
       // Reset sheet snap when crossing breakpoints unless user dragged
-      if (mobile) state.chatUserPositioned = false;
+      if (mobile || landscape) state.chatUserPositioned = false;
       state.chatWindow?.applyMobileSheet?.(true);
       onResize();
     },
@@ -3279,6 +3409,9 @@ function wireUI() {
 
   // Chat: collapse + floating move/resize (persist geometry)
   initChatWindow();
+
+  // H003 long-press select on canvas
+  wireLongPressSelect();
 
   // Panel collapse/expand (left/right slide off-screen; footer slides down)
   function togglePanel(panel, reopenBtn) {
@@ -3301,11 +3434,11 @@ function wireUI() {
     togglePanel(dom.footerPanel, dom.reopenFooter);
   });
 
-  // On mobile, opening one drawer closes the other so the graph stays usable
+  // On mobile/landscape, opening one drawer closes the other so the graph stays usable
   function openPanel(panel, reopenBtn) {
     if (!panel || !reopenBtn) return;
-    const mobile = state.mobileLayout?.isMobile?.();
-    if (mobile) {
+    const compact = state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.();
+    if (compact) {
       for (const [p, r] of [
         [dom.sidebarLeft, dom.reopenLeft],
         [dom.sidebarRight, dom.reopenRight],
@@ -3318,6 +3451,7 @@ function wireUI() {
     panel.classList.remove('collapsed');
     reopenBtn.classList.remove('visible');
   }
+  state.openPanel = openPanel;
 
   dom.reopenLeft?.addEventListener('click', () => openPanel(dom.sidebarLeft, dom.reopenLeft));
   dom.reopenRight?.addEventListener('click', () => openPanel(dom.sidebarRight, dom.reopenRight));

@@ -109,27 +109,27 @@
 **Detail doc**: [`hud-polish-backlog.md`](./hud-polish-backlog.md) (acceptance criteria, files, resume steps).  
 **Default priority**: After Phase 3+ product path unless operator asks for HUD UX next.
 
-### Already shipped (HUD shell hardening, 2026-07-24)
+### Already shipped (HUD shell hardening, 2026-07-24+)
 
 - [x] H000a Home Overview KPI headers centered (no global `.label` transform leak)
 - [x] H000b Left/right/footer panel collapse + edge reopen chips; z-index vs taller topbar
 - [x] H000c NetClaw Terminal drag / resize / collapse + desktop geometry persistence
 - [x] H000d Mobile layout v1 (`mobile-layout.js`, bottom sheets, FOCUS/DPR, visualViewport, Home 2-col)
+- [x] H001 Landscape mode chrome (`#app.landscape-layout`, compact topbar, short terminal sheet)
+- [x] H002 `prefers-reduced-motion` (scan-beam off, GSAP timeScale, auto FOCUS)
+- [x] H003 Touch long-press → node detail (cancel on orbit drag; optional haptic; opens DETAIL)
+- [x] H006 Mobile / landscape smoke checklist in HUD README
 
 ### Worth doing next
 
-- [ ] H001 [P] Landscape mode chrome (compact topbar, taller usable graph/Home)
-- [ ] H002 [P] `prefers-reduced-motion` (scan-beam / GSAP / auto FOCUS)
-- [ ] H003 Touch long-press → node detail (cancel on orbit drag; optional haptic)
 - [ ] H004 PWA shell (manifest, icons, optional shell+graph cache SW)
 - [ ] H005 Offline / stale graph boot banner when `/api/graph` fails
-- [ ] H006 Mobile smoke checklist in HUD README or 067 quickstart
 - [ ] H007 [P] Knowledge panel mobile bottom-sheet + default collapsed
 - [ ] H008 Dynamic `--topbar-height` via ResizeObserver (replace hard-coded offsets)
 - [ ] H009 Persist quality mode + user pin in localStorage
 - [ ] H010 Mobile terminal snap points (collapsed / peek / expanded)
 
-**Suggested HUD-only session order**: H001+H002 → H003 → H006 → H004/H005 → H007–H010.
+**Suggested HUD-only session order**: H004/H005 → H007–H010 (or return to Phase 3 Docker).
 
 ---
 
