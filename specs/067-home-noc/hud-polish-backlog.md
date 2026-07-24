@@ -27,10 +27,11 @@ Capture of improvements identified while shipping Home tab layout fixes, panel c
 **Key files**
 
 - `ui/netclaw-visual/src/app-shell/mobile-layout.js`
-- `ui/netclaw-visual/src/main.js` — `initChatWindow`, `onResize` / `viewportSize`, mobile wire in `wireUI`
-- `ui/netclaw-visual/src/styles.css` — `#app.mobile-layout …` block
-- `ui/netclaw-visual/src/styles/home.css` — mobile Home surface
-- `ui/netclaw-visual/index.html` — `viewport-fit=cover`, chat resize handle
+- `ui/netclaw-visual/src/app-shell/graph-cache.js` / `register-sw.js`
+- `ui/netclaw-visual/public/sw.js`, `manifest.webmanifest`, `icons/*`
+- `ui/netclaw-visual/src/main.js` — `fetchGraph`, stale banner, chat window, mobile wire
+- `ui/netclaw-visual/src/styles.css` — mobile/landscape + `.stale-banner`
+- `ui/netclaw-visual/index.html` — PWA meta, stale banner, chat resize handle
 
 ---
 
