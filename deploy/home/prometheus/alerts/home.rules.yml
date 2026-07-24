@@ -67,11 +67,11 @@ groups:
           description: "Prometheus cannot reach unifi-exporter:9899. Enable profile unifi or fix UNIFI_* env."
 
       - alert: HomeApiDown
-        expr: up{job="home-api"} == 0
+        expr: probe_success{job="home-api"} == 0
         for: 2m
         labels:
           severity: critical
           site: home
         annotations:
           summary: "home-api unreachable"
-          description: "Prometheus scrape of home-api /healthz is failing."
+          description: "Blackbox HTTP probe of home-api /healthz is failing."

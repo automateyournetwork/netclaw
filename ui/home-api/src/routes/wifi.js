@@ -23,11 +23,17 @@ router.get('/', async (req, res) => {
       instantQuery(`unifi_radio_tx_retries_pct{site="${site}"}`)
     ]);
 
+    // null when series missing (exporter down) — do not coerce empty to 0
+    const scalarOrNull = (settled) => {
+      if (settled.status !== 'fulfilled') return null;
+      const v = extractScalar(settled.value);
+      return v == null ? null : v;
+    };
     const clients = {
-      wireless: wireless.status === 'fulfilled' ? extractScalar(wireless.value) || 0 : null,
-      wired: wired.status === 'fulfilled' ? extractScalar(wired.value) || 0 : null,
-      guest: guest.status === 'fulfilled' ? extractScalar(guest.value) || 0 : null,
-      total: total.status === 'fulfilled' ? extractScalar(total.value) || 0 : null
+      wireless: scalarOrNull(wireless),
+      wired: scalarOrNull(wired),
+      guest: scalarOrNull(guest),
+      total: scalarOrNull(total)
     };
 
     // TX retries per AP/band

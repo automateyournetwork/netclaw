@@ -17,14 +17,24 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
+  # home-api liveness via blackbox HTTP (JSON /healthz is not Prometheus textformat)
   - job_name: home-api
-    metrics_path: /healthz
     scrape_interval: 30s
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
     static_configs:
-      - targets: ["home-api:3000"]
+      - targets: ["http://home-api:3000/healthz"]
         labels:
           site: home
           service: home-api
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
 
   # WAN TCP probes via blackbox (public well-known targets)
   - job_name: blackbox_wan_tcp

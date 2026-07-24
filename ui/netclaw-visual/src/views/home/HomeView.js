@@ -148,6 +148,8 @@ export class HomeView {
       }
       if (this.subview === 'diary' || force) {
         this.cache.events = await homeFetch(`/events?site=${SITE}&limit=30`);
+        // Firing alerts help when diary DB is still empty (fresh Docker)
+        this.cache.alerts = await homeFetch(`/alerts?site=${SITE}`).catch(() => null);
       }
       if (this.subview === 'triage' || force) {
         this.cache.escalated = await homeFetch(`/events/escalated?site=${SITE}`).catch(async () =>
@@ -296,10 +298,15 @@ export class HomeView {
     const w = this.cache.wifi;
     if (!w) {
       return `<div class="home-panel-header"><div><p class="eyebrow">Wireless</p><h2>WI‑FI</h2></div></div>
-        <p class="home-muted">No Wi‑Fi data loaded.</p>`;
+        <p class="home-muted">No Wi‑Fi data loaded. Click Refresh.</p>`;
     }
     const clients = w.clients || {};
     const retries = Array.isArray(w.txRetries) ? w.txRetries : [];
+    const hasAnyClient =
+      [clients.wireless, clients.wired, clients.guest, clients.total].some(
+        (v) => v != null && Number(v) > 0,
+      );
+    const hasSeries = hasAnyClient || retries.length > 0;
     // Group by device
     const byDev = new Map();
     for (const r of retries) {
@@ -319,14 +326,27 @@ export class HomeView {
       })
       .join('');
 
+    const emptyHint = !hasSeries
+      ? `<div class="home-banner home-banner-config" style="margin:12px 0">
+          <span class="home-badge mock">No unifi_* metrics</span>
+          <p class="home-muted" style="margin:8px 0 0">
+            Wi‑Fi KPIs need the UniFi exporter. On Docker Home:
+            set <code>UNIFI_HOST</code> + <code>UNIFI_API_KEY</code> in <code>deploy/home/.env</code>, then
+            <code>docker compose -f deploy/home/docker-compose.yml --env-file deploy/home/.env --profile unifi up -d</code>.
+            Until then Overview WAN probes still work; this tab will stay empty.
+          </p>
+        </div>`
+      : '';
+
     return `
       <div class="home-panel-header">
         <div>
           <p class="eyebrow">Wireless · ${esc(clients.wireless ?? '—')} clients</p>
           <h2>WI‑FI</h2>
         </div>
-        <span class="home-badge">Live · unifi_*</span>
+        <span class="home-badge${hasSeries ? '' : ' mock'}">${hasSeries ? 'Live · unifi_*' : 'Waiting · unifi'}</span>
       </div>
+      ${emptyHint}
       <div class="home-kpi-grid home-kpi-grid-4">
         <div class="home-kpi"><div class="home-kpi-label">Wireless</div><div class="home-kpi-value">${esc(clients.wireless ?? '—')}</div></div>
         <div class="home-kpi"><div class="home-kpi-label">Wired</div><div class="home-kpi-value">${esc(clients.wired ?? '—')}</div></div>
@@ -337,10 +357,9 @@ export class HomeView {
       <div class="home-table-wrap">
         <table class="home-table">
           <thead><tr><th>AP</th><th>2.4 GHz retries</th><th>5 GHz retries</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="3">No retry series</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="3">No retry series yet</td></tr>'}</tbody>
         </table>
       </div>
-      <p class="home-muted" style="margin-top:12px">Channel/width from Integration API lands with agent tools; this view uses Prometheus export.</p>
     `;
   }
 
@@ -348,11 +367,53 @@ export class HomeView {
     const d = this.cache.devices;
     if (!d) {
       return `<div class="home-panel-header"><div><p class="eyebrow">Inventory</p><h2>DEVICES</h2></div></div>
-        <p class="home-muted">No device data loaded.</p>`;
+        <p class="home-muted">No device data loaded. Click Refresh.</p>`;
     }
-    // API shape may be { devices: [...] } or array
-    const list = Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : d.items || [];
-    const rows = list
+
+    // home-api shape: { wanProbes, accessPoints, switches } (not a flat devices[])
+    const probes = Array.isArray(d.wanProbes) ? d.wanProbes : [];
+    const aps = Array.isArray(d.accessPoints) ? d.accessPoints : [];
+    const switches = Array.isArray(d.switches) ? d.switches : [];
+    // Flat fallback for older/pilot shapes
+    const flat = Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : d.items || [];
+
+    const probeRows = probes
+      .map((p) => {
+        const st = p.status || '';
+        return `<tr>
+          <td>${esc(p.target || p.endpoint || '—')}</td>
+          <td>${esc(p.type || 'probe')}</td>
+          <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : st === 'offline' || st === 'down' ? 'unhealthy' : st)}">${esc(st || '—')}</td>
+          <td>${p.latencyMs != null ? `${esc(p.latencyMs)} ms` : '—'}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const apRows = aps
+      .map((ap) => {
+        const st = ap.status || (ap.up === 1 || ap.up === true ? 'online' : ap.up === 0 ? 'offline' : '');
+        return `<tr>
+          <td>${esc(ap.name || ap.device || '—')}</td>
+          <td>AP</td>
+          <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : 'unhealthy')}">${esc(st || '—')}</td>
+          <td>${esc(ap.clients != null ? `${ap.clients} clients` : ap.mac || '')}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const swRows = switches
+      .map((sw) => {
+        const st = sw.status || '';
+        return `<tr>
+          <td>${esc(sw.name || sw.device_name || '—')}</td>
+          <td>Switch</td>
+          <td class="${statusClass(st)}">${esc(st || '—')}</td>
+          <td>${esc(sw.portsUp != null ? `${sw.portsUp}/${sw.portsTotal ?? '—'} up` : '')}</td>
+        </tr>`;
+      })
+      .join('');
+
+    const flatRows = flat
       .map((dev) => {
         const name = dev.name || dev.device || dev.id || '—';
         const role = dev.role || dev.type || '';
@@ -367,24 +428,58 @@ export class HomeView {
       })
       .join('');
 
+    const hasStructured = probes.length || aps.length || switches.length;
+    const body = hasStructured
+      ? `
+      ${probes.length ? `
+        <p class="home-section-title">WAN / blackbox probes</p>
+        <div class="home-table-wrap">
+          <table class="home-table">
+            <thead><tr><th>Target</th><th>Type</th><th>Status</th><th>Latency</th></tr></thead>
+            <tbody>${probeRows}</tbody>
+          </table>
+        </div>` : ''}
+      ${aps.length ? `
+        <p class="home-section-title">Access points</p>
+        <div class="home-table-wrap">
+          <table class="home-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
+            <tbody>${apRows}</tbody>
+          </table>
+        </div>` : `
+        <p class="home-section-title">Access points</p>
+        <p class="home-muted">No APs yet — enable UniFi exporter (<code>--profile unifi</code>) for AP inventory.</p>`}
+      ${switches.length ? `
+        <p class="home-section-title">Switches</p>
+        <div class="home-table-wrap">
+          <table class="home-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
+            <tbody>${swRows}</tbody>
+          </table>
+        </div>` : ''}
+      `
+      : `
+      <div class="home-table-wrap">
+        <table class="home-table">
+          <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>IP / instance</th></tr></thead>
+          <tbody>${flatRows || '<tr><td colspan="4">No devices in response</td></tr>'}</tbody>
+        </table>
+      </div>`;
+
     return `
       <div class="home-panel-header">
         <div><p class="eyebrow">Edge · APs · probes</p><h2>DEVICES</h2></div>
         <span class="home-badge">Live</span>
       </div>
-      <div class="home-table-wrap">
-        <table class="home-table">
-          <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>IP / instance</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="4">No devices in response — check API shape</td></tr>'}</tbody>
-        </table>
-      </div>
-      ${!list.length ? `<pre class="home-muted" style="font-size:11px;overflow:auto">${esc(JSON.stringify(d, null, 2).slice(0, 800))}</pre>` : ''}
+      ${body}
     `;
   }
 
   htmlDiary() {
     const ev = this.cache.events;
     const events = ev?.events || ev?.items || [];
+    const alerts = this.cache.alerts;
+    const firing = alerts?.firing || alerts?.alerts || [];
     const rows = events
       .map((e) => `<tr>
         <td>${esc((e.timestamp || e.created_at || '').toString().slice(0, 19))}</td>
@@ -395,17 +490,40 @@ export class HomeView {
       </tr>`)
       .join('');
 
+    const alertRows = (Array.isArray(firing) ? firing : [])
+      .map((a) => `<tr>
+        <td>${esc((a.startsAt || a.starts_at || '').toString().slice(0, 19))}</td>
+        <td class="${statusClass(a.severity)}">${esc(a.severity || '')}</td>
+        <td>${esc(a.name || a.alertname || a.labels?.alertname || '')}</td>
+        <td>${esc(a.summary || a.annotations?.summary || a.duration || '')}</td>
+      </tr>`)
+      .join('');
+
     return `
       <div class="home-panel-header">
         <div><p class="eyebrow">Investigations</p><h2>DIARY</h2></div>
         <span class="home-badge">Live · events</span>
       </div>
+      ${!events.length ? `
+        <p class="home-muted" style="margin-bottom:12px">
+          Diary rows are written when alert-receiver / guardian-claw posts investigations to
+          <code>POST /api/events</code>. An empty table is normal on a fresh Docker stack until
+          alerts flow through the host webhook (Alertmanager → :8099 → NetClaw).
+        </p>` : ''}
       <div class="home-table-wrap">
         <table class="home-table">
           <thead><tr><th>When</th><th>Status</th><th>Sev</th><th>Alert</th><th>Message</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="5">No events</td></tr>'}</tbody>
+          <tbody>${rows || '<tr><td colspan="5">No diary events yet</td></tr>'}</tbody>
         </table>
       </div>
+      ${alertRows ? `
+        <p class="home-section-title">Firing alerts (Alertmanager)</p>
+        <div class="home-table-wrap">
+          <table class="home-table">
+            <thead><tr><th>Since</th><th>Sev</th><th>Alert</th><th>Summary</th></tr></thead>
+            <tbody>${alertRows}</tbody>
+          </table>
+        </div>` : ''}
     `;
   }
 
@@ -426,7 +544,10 @@ export class HomeView {
         <div><p class="eyebrow">Operator queue</p><h2>TRIAGE</h2></div>
         <span class="home-badge">Live · escalated</span>
       </div>
-      <p class="home-muted" style="margin-bottom:12px">Feedback buttons + reinvestigate land in a later 067 phase. Review notes here for now.</p>
+      <p class="home-muted" style="margin-bottom:12px">
+        Escalated cases appear after investigations mark events <code>escalated</code>.
+        Feedback + reinvestigate UI is Phase 6. Empty queue is expected until the agent posts events.
+      </p>
       <div class="home-table-wrap">
         <table class="home-table">
           <thead><tr><th>When</th><th>Alert</th><th>Message</th><th>Root cause</th></tr></thead>
