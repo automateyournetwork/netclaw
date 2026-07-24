@@ -370,11 +370,11 @@ export class HomeView {
         <p class="home-muted">No device data loaded. Click Refresh.</p>`;
     }
 
-    // home-api shape: { wanProbes, accessPoints, switches } (not a flat devices[])
+    // home-api shape: { wanProbes, edge/firewall, accessPoints, switches }
     const probes = Array.isArray(d.wanProbes) ? d.wanProbes : [];
+    const edge = Array.isArray(d.edge) ? d.edge : (Array.isArray(d.firewall) ? d.firewall : []);
     const aps = Array.isArray(d.accessPoints) ? d.accessPoints : [];
     const switches = Array.isArray(d.switches) ? d.switches : [];
-    // Flat fallback for older/pilot shapes
     const flat = Array.isArray(d.devices) ? d.devices : Array.isArray(d) ? d : d.items || [];
 
     const probeRows = probes
@@ -389,14 +389,38 @@ export class HomeView {
       })
       .join('');
 
+    const edgeRows = edge
+      .map((e) => {
+        const st = e.status || '';
+        const detail = [
+          e.model,
+          e.latencyMs != null ? `${e.latencyMs} ms` : null,
+          e.cpu != null && e.cpu > 0 ? `CPU ${e.cpu}%` : null,
+          e.endpoint,
+        ].filter(Boolean).join(' · ');
+        return `<tr>
+          <td>${esc(e.name || '—')}</td>
+          <td>${esc(e.role || 'firewall')}</td>
+          <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : 'unhealthy')}">${esc(st || '—')}</td>
+          <td>${esc(detail)}</td>
+        </tr>`;
+      })
+      .join('');
+
     const apRows = aps
       .map((ap) => {
         const st = ap.status || (ap.up === 1 || ap.up === true ? 'online' : ap.up === 0 ? 'offline' : '');
+        const detail = [
+          ap.clients != null ? `${ap.clients} clients` : null,
+          ap.cpu != null ? `CPU ${ap.cpu}%` : null,
+          ap.memory != null ? `Mem ${ap.memory}%` : null,
+          ap.uptime || null,
+        ].filter(Boolean).join(' · ');
         return `<tr>
           <td>${esc(ap.name || ap.device || '—')}</td>
-          <td>AP</td>
+          <td>${esc(ap.model || 'AP')}</td>
           <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : 'unhealthy')}">${esc(st || '—')}</td>
-          <td>${esc(ap.clients != null ? `${ap.clients} clients` : ap.mac || '')}</td>
+          <td>${esc(detail || ap.mac || '')}</td>
         </tr>`;
       })
       .join('');
@@ -404,11 +428,19 @@ export class HomeView {
     const swRows = switches
       .map((sw) => {
         const st = sw.status || '';
+        const portsUp = sw.portsUp ?? sw.interfacesUp;
+        const portsTotal = sw.portsTotal ?? sw.interfacesTotal;
+        const detail = [
+          portsUp != null ? `${portsUp}/${portsTotal ?? '—'} ports up` : null,
+          sw.model,
+          sw.cpu != null && sw.cpu > 0 ? `CPU ${sw.cpu}%` : null,
+          sw.source ? `src:${sw.source}` : null,
+        ].filter(Boolean).join(' · ');
         return `<tr>
           <td>${esc(sw.name || sw.device_name || '—')}</td>
           <td>Switch</td>
-          <td class="${statusClass(st)}">${esc(st || '—')}</td>
-          <td>${esc(sw.portsUp != null ? `${sw.portsUp}/${sw.portsTotal ?? '—'} up` : '')}</td>
+          <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : st)}">${esc(st || '—')}</td>
+          <td>${esc(detail)}</td>
         </tr>`;
       })
       .join('');
@@ -428,9 +460,19 @@ export class HomeView {
       })
       .join('');
 
-    const hasStructured = probes.length || aps.length || switches.length;
+    const hasStructured = probes.length || edge.length || aps.length || switches.length;
     const body = hasStructured
       ? `
+      ${edge.length ? `
+        <p class="home-section-title">Firewall / edge</p>
+        <div class="home-table-wrap">
+          <table class="home-table">
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
+            <tbody>${edgeRows}</tbody>
+          </table>
+        </div>` : `
+        <p class="home-section-title">Firewall / edge</p>
+        <p class="home-muted">No edge probe yet. Docker stack probes pfSense HTTPS when <code>blackbox_edge</code> is configured.</p>`}
       ${probes.length ? `
         <p class="home-section-title">WAN / blackbox probes</p>
         <div class="home-table-wrap">
@@ -440,15 +482,15 @@ export class HomeView {
           </table>
         </div>` : ''}
       ${aps.length ? `
-        <p class="home-section-title">Access points</p>
+        <p class="home-section-title">Access points (UniFi)</p>
         <div class="home-table-wrap">
           <table class="home-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
+            <thead><tr><th>Name</th><th>Model</th><th>Status</th><th>Detail</th></tr></thead>
             <tbody>${apRows}</tbody>
           </table>
         </div>` : `
         <p class="home-section-title">Access points</p>
-        <p class="home-muted">No APs yet — enable UniFi exporter (<code>--profile unifi</code>) for AP inventory.</p>`}
+        <p class="home-muted">No APs — enable UniFi exporter (<code>--profile unifi</code>).</p>`}
       ${switches.length ? `
         <p class="home-section-title">Switches</p>
         <div class="home-table-wrap">
@@ -456,7 +498,12 @@ export class HomeView {
             <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
             <tbody>${swRows}</tbody>
           </table>
-        </div>` : ''}
+        </div>` : `
+        <p class="home-section-title">Switches</p>
+        <p class="home-muted">
+          No switch series on this stack. UniFi switches appear when adopted in the controller.
+          Cisco <code>HomeSwitch*</code> need SNMP → VictoriaMetrics (pilot OBS), not Docker minimal.
+        </p>`}
       `
       : `
       <div class="home-table-wrap">
