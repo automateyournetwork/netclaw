@@ -262,22 +262,22 @@ export class HomeView {
         </div>
         <span class="home-badge${dual ? '' : ''}">${dual ? 'Dual-run · pilot Guardian' : 'Live'}</span>
       </div>
-      <div class="home-kpi-grid">
+      <div class="home-kpi-grid" role="group" aria-label="Home health metrics">
         <div class="home-kpi">
           <div class="label">Health score</div>
           <div class="value ${statusClass(scoreStatus)}">${score != null ? esc(score) : '—'}</div>
         </div>
         <div class="home-kpi">
           <div class="label">WAN latency</div>
-          <div class="value ${statusClass(h.wanLatency?.status)}">${lat != null ? esc(Number(lat).toFixed(1)) : '—'}<span style="font-size:14px;color:var(--muted)"> ms</span></div>
+          <div class="value ${statusClass(h.wanLatency?.status)}">${lat != null ? esc(Number(lat).toFixed(1)) : '—'}<span class="unit"> ms</span></div>
         </div>
         <div class="home-kpi">
           <div class="label">Packet loss</div>
-          <div class="value ${statusClass(h.wanLoss?.status)}">${loss != null ? esc(loss) : '—'}%</div>
+          <div class="value ${statusClass(h.wanLoss?.status)}">${loss != null ? esc(loss) : '—'}<span class="unit">%</span></div>
         </div>
         <div class="home-kpi">
           <div class="label">Speedtest</div>
-          <div class="value ${statusClass(h.speedtest?.status)}">${dl != null ? esc(dl) : '—'}<span style="font-size:12px;color:var(--muted)"> / ${ul != null ? esc(ul) : '—'} Mbps</span></div>
+          <div class="value ${statusClass(h.speedtest?.status)}">${dl != null ? esc(dl) : '—'}<span class="unit"> / ${ul != null ? esc(ul) : '—'} Mbps</span></div>
         </div>
         <div class="home-kpi">
           <div class="label">Firing alerts</div>
@@ -327,7 +327,7 @@ export class HomeView {
         </div>
         <span class="home-badge">Live · unifi_*</span>
       </div>
-      <div class="home-kpi-grid">
+      <div class="home-kpi-grid home-kpi-grid-4">
         <div class="home-kpi"><div class="label">Wireless</div><div class="value">${esc(clients.wireless ?? '—')}</div></div>
         <div class="home-kpi"><div class="label">Wired</div><div class="value">${esc(clients.wired ?? '—')}</div></div>
         <div class="home-kpi"><div class="label">Guest</div><div class="value">${esc(clients.guest ?? '—')}</div></div>

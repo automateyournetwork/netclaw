@@ -80,9 +80,10 @@
   flex-direction: column;
   min-height: 100%;
   width: 100%;
-  max-width: 1120px;
+  max-width: min(1280px, 100%);
   margin: 0 auto;
   box-sizing: border-box;
+  padding: 0 4px;
 }
 
 /* Shared horizontal inset so toolbar and KPI card share the same edges */
@@ -92,6 +93,7 @@
   gap: 12px;
   width: 100%;
   box-sizing: border-box;
+  align-items: stretch;
 }
 
 .home-toolbar {
@@ -207,8 +209,9 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  align-items: flex-start;
-  margin-bottom: 18px;
+  align-items: center;
+  margin-bottom: 20px;
+  width: 100%;
 }
 
 .home-panel-header h2 {
@@ -227,6 +230,7 @@
   border: 1px solid var(--line);
   color: var(--accent);
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .home-badge.mock {
@@ -234,38 +238,81 @@
   border-color: rgba(255, 123, 84, 0.35);
 }
 
+/* Even full-width KPI strip — no left-clumped partial row */
 .home-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 12px;
   margin-bottom: 18px;
+  width: 100%;
 }
 
 .home-kpi {
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 14px 14px 12px;
+  padding: 16px 12px 14px;
   background: rgba(0, 0, 0, 0.22);
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-width: 0;
 }
 
 .home-kpi .label {
   font-family: 'IBM Plex Mono', monospace;
   font-size: 10px;
-  letter-spacing: 0.16em;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--muted);
-  margin-bottom: 8px;
+  margin: 0 0 10px;
+  width: 100%;
+  text-align: center;
+  line-height: 1.35;
+  /* avoid letter-spacing making titles look left-heavy in narrow tiles */
+  overflow-wrap: anywhere;
 }
 
 .home-kpi .value {
-  font-size: 28px;
+  font-size: clamp(22px, 2.4vw, 28px);
   font-weight: 600;
+  letter-spacing: 0.02em;
+  text-align: center;
+  width: 100%;
+  line-height: 1.15;
+}
+
+.home-kpi .value .unit {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
   letter-spacing: 0.04em;
 }
 
 .home-kpi .value.ok { color: var(--ok); }
 .home-kpi .value.warn { color: var(--accent-warm); }
 .home-kpi .value.crit { color: #ff5d6c; }
+
+.home-kpi-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+@media (max-width: 1100px) {
+  .home-kpi-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .home-kpi-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 640px) {
+  .home-kpi-grid,
+  .home-kpi-grid-4 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
 
 .home-section-title {
   margin: 8px 0 10px;
