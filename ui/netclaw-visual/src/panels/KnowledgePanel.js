@@ -87,13 +87,30 @@ export class KnowledgePanel {
   }
 
   setupEventListeners() {
-    this.element.querySelector('.kp-collapse-btn').addEventListener('click', () => {
-      this.isCollapsed = !this.isCollapsed;
+    const setCollapsed = (collapsed) => {
+      this.isCollapsed = collapsed;
       this.element.classList.toggle('collapsed', this.isCollapsed);
+      const btn = this.element.querySelector('.kp-collapse-btn');
+      if (btn) {
+        btn.title = this.isCollapsed ? 'Expand knowledge base' : 'Collapse knowledge base';
+        btn.setAttribute('aria-expanded', this.isCollapsed ? 'false' : 'true');
+      }
+    };
+
+    this.element.querySelector('.kp-collapse-btn').addEventListener('click', (e) => {
+      e.stopPropagation();
+      setCollapsed(!this.isCollapsed);
+    });
+    // Header tap toggles on coarse pointers (H007)
+    this.element.querySelector('.kp-header').addEventListener('click', (e) => {
+      if (e.target.closest('.kp-collapse-btn')) return;
+      const coarse = window.matchMedia('(pointer: coarse)').matches
+        || document.getElementById('app')?.classList.contains('mobile-layout');
+      if (!coarse) return;
+      setCollapsed(!this.isCollapsed);
     });
     this.element.querySelector('.kp-header').addEventListener('dblclick', () => {
-      this.isCollapsed = !this.isCollapsed;
-      this.element.classList.toggle('collapsed', this.isCollapsed);
+      setCollapsed(!this.isCollapsed);
     });
 
     const input = this.element.querySelector('#kp-file-input');

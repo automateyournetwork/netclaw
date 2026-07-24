@@ -3,7 +3,7 @@
 **Status**: Active backlog — pick up when returning to Visual HUD UX  
 **Spec home**: `specs/067-home-noc/`  
 **Code home**: `ui/netclaw-visual/`  
-**Last updated**: 2026-07-24 (H001–H006 shipped; H004/H005 this session)
+**Last updated**: 2026-07-24 (H001–H010 shipped — Phase H complete)
 
 Capture of improvements identified while shipping Home tab layout fixes, panel collapse, floating terminal, and mobile layout. **Do not lose these** when context rotates to Docker/K3s/installer work.
 
@@ -22,7 +22,11 @@ Capture of improvements identified while shipping Home tab layout fixes, panel c
 | H003 Long-press | Canvas long-press (~480ms) selects node, opens DETAIL sheet, optional `vibrate`; cancels on orbit drag | this session |
 | H006 Smoke checklist | HUD README mobile/landscape checklist | earlier |
 | H004 PWA shell | `manifest.webmanifest`, icons 192/512/maskable, `sw.js` shell+graph cache, register on boot | this session |
-| H005 Stale graph | `graph-cache.js` localStorage; fetchGraph fallback; STALE banner + Retry; SW network-first `/api/graph` | this session |
+| H005 Stale graph | `graph-cache.js` localStorage; fetchGraph fallback; STALE banner + Retry; SW network-first `/api/graph` | earlier |
+| H007 Knowledge mobile | Bottom sheet when expanded; collapsed pill chip; header tap on coarse pointer | this session |
+| H008 Topbar height | `ResizeObserver` → `--topbar-height` for sidebars + Home root | this session |
+| H009 Quality persist | `localStorage` mode + pin; survives reload / mobile auto-FOCUS when pinned | this session |
+| H010 Terminal snaps | collapsed → peek (~30%) → expanded (~55%); cycle toggle; drag snaps nearest | this session |
 
 **Key files**
 
@@ -57,38 +61,23 @@ Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (ort
 
 ---
 
-### P3 — Nice-to-have (next HUD session)
+### P3 — Shipped (Phase H complete)
 
-#### H007 — Knowledge panel mobile pass
-**Why**: RAG panel is fixed large width; can cover terminal on phones.  
-**Do**: Same bottom-sheet pattern as sidebars; collapse by default on `mobile-layout`.  
-**Touch**: `panels/KnowledgePanel.js` + CSS
-
-#### H008 — Dynamic topbar height measurement
-**Why**: Hard-coded `top: 168px` / Home root offsets break if brand/tabs change again.  
-**Do**: JS `ResizeObserver` on `.topbar` → set `--topbar-height` CSS variable; position sidebars/Home from var.  
-**Touch**: `mobile-layout.js` or `main.js`, `styles.css`, `home.css`
-
-#### H009 — Quality mode persistence
-**Why**: Auto FOCUS on mobile is good; desktop users who pick BROADCAST lose it on reload.  
-**Do**: Persist `qualityMode` + `qualityUserPinned` in `localStorage`.  
-**Touch**: `main.js` `setQualityMode` / boot
-
-#### H010 — One-handed terminal peek
-**Why**: Expanded sheet covers graph during long tool output.  
-**Do**: Half-height snap points (collapsed / peek ~30% / expanded ~55%) on mobile swipe of chat header.  
-**Touch**: `initChatWindow` + CSS
+- **H007** Knowledge panel mobile pass — done  
+- **H008** Dynamic topbar height — done  
+- **H009** Quality mode persistence — done  
+- **H010** Terminal snap points — done  
 
 ---
 
 ## Suggested pickup order
 
-When next opening a **HUD UX** session (not blocked on deploy):
+**Phase H (H000–H010) is complete.** Next default:
 
-1. **H007–H010** as time allows  
-2. Or resume product **Phase 3 Docker**
+1. Product **Phase 3 Docker** (`tasks.md` T030+)  
+2. Ad-hoc HUD bugs only as they appear  
 
-Product path (Docker → K3s → installer → triage) remains **Phase 3+** in `tasks.md` and can resume when HUD polish is paused.
+Product path (Docker → K3s → installer → triage) remains **Phase 3+** in `tasks.md`.
 
 ---
 

@@ -273,8 +273,8 @@ html.reduced-motion .scan-beam {
 }
 
 .sidebar {
-  /* Clear taller topbar (brand + COMMAND/HOME tabs) so collapse toggles stay clickable */
-  top: 168px;
+  /* H008 — --topbar-height from ResizeObserver; fallback for first paint */
+  top: calc(var(--topbar-height, 140px) + 18px);
   bottom: 102px;
   width: min(24vw, 330px);
   border-radius: 24px;
@@ -597,11 +597,20 @@ html.reduced-motion .scan-beam {
 }
 
 .chat-drawer.collapsed {
-  height: 42px !important;
-  min-height: 42px;
-  max-height: 42px;
+  height: 48px !important;
+  min-height: 48px;
+  max-height: 48px;
   overflow: hidden;
   resize: none;
+}
+
+/* H010 snap affordance */
+.chat-drawer[data-snap='peek'] {
+  box-shadow: var(--shadow), 0 0 0 1px rgba(101, 195, 255, 0.12);
+}
+
+.chat-drawer[data-snap='expanded'] .chat-messages {
+  min-height: 80px;
 }
 
 .chat-drawer.dragging,
@@ -1514,15 +1523,7 @@ html.reduced-motion .scan-beam {
   max-width: 96%;
 }
 
-/* Knowledge / floating extras — don't crush the phone UI */
-#app.mobile-layout .knowledge-panel {
-  left: 10px !important;
-  right: 10px !important;
-  width: auto !important;
-  max-width: none;
-  bottom: max(10px, env(safe-area-inset-bottom, 0px));
-  max-height: 55vh;
-}
+/* Knowledge panel mobile rules live in panels/KnowledgePanel.css (H007) */
 
 /* ── H001 Landscape chrome (short height + landscape) ───────────── */
 /* Goal: ≥50% of the short axis free for the graph / Home content */
@@ -1661,7 +1662,7 @@ html.reduced-motion .scan-beam {
 }
 
 #app.landscape-layout.home-mode .home-root {
-  top: max(72px, calc(env(safe-area-inset-top, 0px) + 64px));
+  top: calc(var(--topbar-height, 72px) + 8px);
   bottom: max(8px, env(safe-area-inset-bottom, 0px));
   left: max(8px, env(safe-area-inset-left, 0px));
   right: max(8px, env(safe-area-inset-right, 0px));

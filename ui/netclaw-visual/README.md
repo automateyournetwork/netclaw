@@ -250,10 +250,16 @@ npm run preview
 | **NetClaw Terminal** | Drag the header to move, corner handle to resize, `_` / `+` to collapse. Desktop position is remembered. |
 | **Mobile** | Narrow / touch viewports get `#app.mobile-layout`: bottom-sheet panels, auto FOCUS quality, capped DPR, terminal as a bottom sheet. |
 
-**Remaining backlog (knowledge sheet, topbar height, quality persist, terminal snaps)** lives in Spec Kit:
+**Phase H (mobile/PWA/polish H001–H010) is complete.** History + optional notes:
 
 - [`specs/067-home-noc/hud-polish-backlog.md`](../../specs/067-home-noc/hud-polish-backlog.md)
 - Task checkboxes: Phase H in [`specs/067-home-noc/tasks.md`](../../specs/067-home-noc/tasks.md)
+
+| Extra control | Behavior |
+|---------------|----------|
+| **Knowledge** | Collapsed by default; on mobile a pill chip expands to a bottom sheet |
+| **Quality** | FOCUS / BALANCED / BROADCAST remembered in `localStorage` when you cycle it |
+| **Terminal snaps** | On phone: toggle cycles collapsed → peek → expanded (`+` / `□` / `_`); drag header snaps to nearest |
 
 ### PWA + offline (H004 / H005)
 

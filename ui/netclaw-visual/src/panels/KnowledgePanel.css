@@ -17,6 +17,7 @@
   flex-direction: column;
   overflow: hidden;
   backdrop-filter: blur(6px);
+  transition: max-height 220ms ease, width 220ms ease, border-radius 180ms ease;
 }
 
 .knowledge-panel.collapsed .kp-body {
@@ -29,8 +30,9 @@
   align-items: center;
   padding: 8px 12px;
   background: rgba(76, 201, 240, 0.12);
-  cursor: default;
+  cursor: pointer;
   user-select: none;
+  min-height: 40px;
 }
 
 .kp-title {
@@ -49,10 +51,79 @@
 
 .kp-collapse-btn {
   background: none;
-  border: none;
+  border: 1px solid rgba(76, 201, 240, 0.35);
+  border-radius: 8px;
   color: #d7e3f4;
   cursor: pointer;
   font-size: 14px;
+  min-width: 36px;
+  min-height: 36px;
+  display: grid;
+  place-items: center;
+}
+
+.kp-collapse-btn:hover {
+  border-color: rgba(76, 201, 240, 0.7);
+  background: rgba(76, 201, 240, 0.12);
+}
+
+/* H007 — mobile / landscape: bottom sheet; collapsed = pill chip */
+#app.mobile-layout .knowledge-panel,
+#app.landscape-layout .knowledge-panel {
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: max(58px, calc(env(safe-area-inset-bottom, 0px) + 50px));
+  width: auto;
+  max-height: min(52vh, 400px);
+  z-index: 47;
+  border-radius: 16px 16px 12px 12px;
+}
+
+#app.mobile-layout .knowledge-panel.collapsed,
+#app.landscape-layout .knowledge-panel.collapsed {
+  left: auto;
+  right: max(12px, env(safe-area-inset-right, 0px));
+  bottom: max(58px, calc(env(safe-area-inset-bottom, 0px) + 50px));
+  width: auto;
+  max-width: min(220px, calc(100vw - 24px));
+  max-height: none;
+  border-radius: 999px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+}
+
+#app.mobile-layout .knowledge-panel.collapsed .kp-header,
+#app.landscape-layout .knowledge-panel.collapsed .kp-header {
+  padding: 8px 10px 8px 14px;
+  min-height: 44px;
+  background: rgba(76, 201, 240, 0.16);
+}
+
+#app.mobile-layout .knowledge-panel.collapsed .kp-stats,
+#app.landscape-layout .knowledge-panel.collapsed .kp-stats {
+  display: none;
+}
+
+#app.mobile-layout .kp-collapse-btn,
+#app.landscape-layout .kp-collapse-btn {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+#app.mobile-layout .kp-upload,
+#app.landscape-layout .kp-upload {
+  flex-wrap: wrap;
+}
+
+#app.mobile-layout .kp-upload button,
+#app.mobile-layout .kp-upload select,
+#app.landscape-layout .kp-upload button,
+#app.landscape-layout .kp-upload select {
+  min-height: 40px;
+  padding: 8px 10px;
+}
+
+#app.landscape-layout .knowledge-panel:not(.collapsed) {
+  max-height: min(48vh, 280px);
 }
 
 .kp-body {

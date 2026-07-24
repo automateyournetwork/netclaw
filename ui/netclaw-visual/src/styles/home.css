@@ -65,8 +65,8 @@
 
 .home-root {
   position: fixed;
-  /* Clear taller topbar (brand + COMMAND/HOME tabs) */
-  top: 128px;
+  /* H008 — track live topbar height */
+  top: calc(var(--topbar-height, 128px) + 12px);
   left: 18px;
   right: 18px;
   bottom: 88px;
@@ -431,7 +431,7 @@
 
 /* Phone / mobile-layout Home surface */
 #app.mobile-layout.home-mode .home-root {
-  top: max(148px, calc(env(safe-area-inset-top, 0px) + 132px));
+  top: calc(var(--topbar-height, 140px) + 10px);
   bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px));
   left: max(10px, env(safe-area-inset-left, 0px));
   right: max(10px, env(safe-area-inset-right, 0px));
@@ -477,7 +477,7 @@
 
 @media (max-width: 720px) {
   .home-root {
-    top: 150px;
+    top: calc(var(--topbar-height, 140px) + 10px);
     bottom: 12px;
     left: 10px;
     right: 10px;

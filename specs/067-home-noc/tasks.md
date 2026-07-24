@@ -121,15 +121,17 @@
 - [x] H004 PWA shell (manifest, icons, service worker shell+graph cache)
 - [x] H005 Offline / stale graph boot banner + localStorage last-good graph
 - [x] H006 Mobile / landscape smoke checklist in HUD README
+- [x] H007 Knowledge panel mobile bottom-sheet + collapsed pill chip
+- [x] H008 Dynamic `--topbar-height` via ResizeObserver
+- [x] H009 Persist quality mode + user pin in localStorage
+- [x] H010 Mobile terminal snap points (collapsed / peek / expanded)
 
 ### Worth doing next
 
-- [ ] H007 [P] Knowledge panel mobile bottom-sheet + default collapsed
-- [ ] H008 Dynamic `--topbar-height` via ResizeObserver (replace hard-coded offsets)
-- [ ] H009 Persist quality mode + user pin in localStorage
-- [ ] H010 Mobile terminal snap points (collapsed / peek / expanded)
+- Phase H complete for tracked items — optional polish only.
+- Product path: **Phase 3 Docker** (`T030+`) when leaving HUD work.
 
-**Suggested HUD-only session order**: H007–H010 (or return to Phase 3 Docker).
+**Suggested next**: Phase 3 Docker minimal (or ad-hoc HUD bugs).
 
 ---
 

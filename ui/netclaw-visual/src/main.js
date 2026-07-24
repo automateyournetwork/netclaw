@@ -155,7 +155,39 @@ const dom = {
 };
 
 // ── Quality mode switching ──────────────────────────────────────────
-function setQualityMode(mode) {
+const QUALITY_STORAGE_KEY = 'netclaw.hud.quality.v1';
+
+function loadQualityPreference() {
+  try {
+    const raw = localStorage.getItem(QUALITY_STORAGE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    if (!QUALITY_MODES.includes(parsed.mode)) return null;
+    return {
+      mode: parsed.mode,
+      pinned: !!parsed.pinned,
+    };
+  } catch {
+    return null;
+  }
+}
+
+function persistQualityPreference() {
+  try {
+    localStorage.setItem(
+      QUALITY_STORAGE_KEY,
+      JSON.stringify({
+        mode: state.qualityMode,
+        pinned: !!state.qualityUserPinned,
+      }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
+function setQualityMode(mode, { persist = false } = {}) {
+  if (!QUALITY_MODES.includes(mode)) mode = 'balanced';
   state.qualityMode = mode;
   const isFocus = mode === 'focus';
   const isBroadcast = mode === 'broadcast';
@@ -182,13 +214,30 @@ function setQualityMode(mode) {
   // Update UI label
   const btn = document.getElementById('quality-toggle');
   if (btn) btn.textContent = QUALITY_LABELS[mode];
+
+  // H009 — persist when user-pinned or explicit persist
+  if (persist || state.qualityUserPinned) {
+    persistQualityPreference();
+  }
 }
 
 function cycleQualityMode() {
   const idx = QUALITY_MODES.indexOf(state.qualityMode);
   const next = QUALITY_MODES[(idx + 1) % QUALITY_MODES.length];
   state.qualityUserPinned = true;
-  setQualityMode(next);
+  setQualityMode(next, { persist: true });
+}
+
+/** H009 — restore last quality mode before mobile auto-FOCUS may apply */
+function applyStoredQualityOrDefault() {
+  const pref = loadQualityPreference();
+  if (pref) {
+    state.qualityUserPinned = pref.pinned;
+    setQualityMode(pref.mode, { persist: false });
+    return pref;
+  }
+  setQualityMode('balanced', { persist: false });
+  return null;
 }
 
 // Temporarily enable cinematic effects during activations
@@ -3165,14 +3214,15 @@ function connectSocket() {
 }
 
 /**
- * Floating NetClaw Terminal: drag (header), resize (corner handle), collapse (_/+).
- * On mobile becomes a bottom sheet; geometry restored from localStorage on desktop.
+ * Floating NetClaw Terminal: drag, resize, collapse.
+ * H010 — mobile snap points: collapsed → peek (~30%) → expanded (~55%).
  */
 function initChatWindow() {
   const drawer = dom.chatDrawer;
   if (!drawer || !dom.chatToggle) return;
 
   const STORAGE_KEY = 'netclaw.hud.chatWindow.v1';
+  const SNAP_KEY = 'netclaw.hud.chatSnap.v1';
   const header = document.getElementById('chat-header') || drawer.querySelector('.chat-header');
   let resizeHandle = document.getElementById('chat-resize');
   if (!resizeHandle) {
@@ -3187,7 +3237,10 @@ function initChatWindow() {
   const minWDesktop = 320;
   const minH = 160;
   const collapsedH = 48;
+  const SNAP_ORDER = ['collapsed', 'peek', 'expanded'];
   let expandedHeight = 320;
+  /** @type {'collapsed'|'peek'|'expanded'} */
+  let snapLevel = 'peek';
   let dragState = null;
   let resizeState = null;
 
@@ -3211,6 +3264,26 @@ function initChatWindow() {
 
   function minW() {
     return isCompactChrome() ? 260 : minWDesktop;
+  }
+
+  /** H010 snap heights for current viewport */
+  function snapHeights() {
+    const vp = viewport();
+    const landscape = !!state.mobileLayout?.isLandscape?.();
+    return {
+      collapsed: collapsedH,
+      peek: Math.max(120, Math.round(vp.h * (landscape ? 0.28 : 0.3))),
+      expanded: Math.min(
+        Math.round(vp.h * (landscape ? 0.48 : 0.55)),
+        landscape ? 260 : 480,
+      ),
+    };
+  }
+
+  function toggleLabelForSnap(level) {
+    if (level === 'collapsed') return '+';
+    if (level === 'peek') return '□';
+    return '_';
   }
 
   function applyGeometry({ left, top, width, height, collapsed }) {
@@ -3245,16 +3318,23 @@ function initChatWindow() {
       width: rect.width,
       height: drawer.classList.contains('collapsed') ? expandedHeight : rect.height,
       collapsed: drawer.classList.contains('collapsed'),
+      snap: snapLevel,
     };
   }
 
   function saveGeometry() {
-    // Don't persist transient mobile/landscape sheet geometry over a desktop layout
-    if (isCompactChrome()) return;
+    if (isCompactChrome()) {
+      try {
+        localStorage.setItem(SNAP_KEY, snapLevel);
+      } catch {
+        /* ignore */
+      }
+      return;
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentGeometry()));
     } catch {
-      /* ignore quota / private mode */
+      /* ignore */
     }
   }
 
@@ -3268,7 +3348,16 @@ function initChatWindow() {
     }
   }
 
-  /** Convert centered default into absolute left/top so drag/resize work cleanly. */
+  function loadSnapLevel() {
+    try {
+      const s = localStorage.getItem(SNAP_KEY);
+      if (SNAP_ORDER.includes(s)) return s;
+    } catch {
+      /* ignore */
+    }
+    return 'peek';
+  }
+
   function ensurePositioned() {
     if (drawer.classList.contains('chat-positioned')) return;
     const rect = drawer.getBoundingClientRect();
@@ -3281,64 +3370,119 @@ function initChatWindow() {
     });
   }
 
-  /** Snap to bottom sheet when layout is mobile/landscape (unless user moved it). */
+  /** Dock as bottom sheet at a snap level (compact layouts). */
+  function applySnap(level, { markUser = false } = {}) {
+    if (!SNAP_ORDER.includes(level)) level = 'peek';
+    snapLevel = level;
+    drawer.dataset.snap = level;
+    const heights = snapHeights();
+    const h = heights[level];
+    const collapsed = level === 'collapsed';
+    drawer.classList.toggle('collapsed', collapsed);
+    dom.chatToggle.textContent = toggleLabelForSnap(level);
+    dom.chatToggle.title =
+      level === 'collapsed'
+        ? 'Expand terminal (peek)'
+        : level === 'peek'
+          ? 'Expand terminal (full sheet)'
+          : 'Collapse terminal';
+
+    const vp = viewport();
+    const margin = state.mobileLayout?.isLandscape?.() ? 8 : 10;
+    const width = Math.max(minW(), vp.w - margin * 2);
+    const left = vp.ox + margin;
+    const top = vp.oy + vp.h - h - margin;
+    if (!collapsed) expandedHeight = h;
+    applyGeometry({ left, top, width, height: h, collapsed });
+    if (markUser) state.chatUserPositioned = true;
+    saveGeometry();
+  }
+
+  function nearestSnap(height) {
+    const heights = snapHeights();
+    let best = 'peek';
+    let bestDist = Infinity;
+    for (const level of SNAP_ORDER) {
+      const d = Math.abs(heights[level] - height);
+      if (d < bestDist) {
+        bestDist = d;
+        best = level;
+      }
+    }
+    return best;
+  }
+
+  function cycleSnap() {
+    const idx = SNAP_ORDER.indexOf(snapLevel);
+    const next = SNAP_ORDER[(idx + 1) % SNAP_ORDER.length];
+    applySnap(next, { markUser: true });
+  }
+
+  /** Snap to bottom sheet when layout is mobile/landscape. */
   function applyMobileSheet(force = false) {
     if (!isCompactChrome()) return;
     if (!force && state.chatUserPositioned) {
-      applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
+      applySnap(snapLevel, { markUser: false });
       return;
     }
-    const sheet = state.mobileLayout.chatSheetGeometry();
-    if (!sheet) return;
-    const collapsed = drawer.classList.contains('collapsed');
-    if (!collapsed) expandedHeight = sheet.height;
-    applyGeometry({ ...sheet, collapsed });
+    // Landscape enter often collapses — respect that class if set by layout controller
+    if (drawer.classList.contains('collapsed') && snapLevel !== 'collapsed') {
+      snapLevel = 'collapsed';
+    }
+    applySnap(snapLevel, { markUser: false });
   }
 
-  // Expose for mobile layout controller
   state.chatWindow = {
     applyMobileSheet,
     applyGeometry,
     currentGeometry,
     ensurePositioned,
+    applySnap,
+    cycleSnap,
   };
 
-  // Initial geometry: mobile/landscape sheet, else saved desktop layout
+  // Initial geometry
   if (isCompactChrome()) {
-    applyMobileSheet(true);
+    snapLevel = loadSnapLevel();
+    // Fresh landscape auto-collapse from layout controller wins once
+    if (drawer.classList.contains('collapsed')) snapLevel = 'collapsed';
+    applySnap(snapLevel);
   } else {
     const saved = loadGeometry();
     if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
       if (saved.collapsed) {
         drawer.classList.add('collapsed');
+        snapLevel = 'collapsed';
         dom.chatToggle.textContent = '+';
       }
       if (typeof saved.height === 'number' && saved.height > collapsedH) {
         expandedHeight = saved.height;
+        snapLevel = 'expanded';
       }
       applyGeometry(saved);
     }
   }
 
-  // Collapse / expand (kept; do not remove)
+  // Collapse / expand — on compact, cycle snap points (H010)
   dom.chatToggle.addEventListener('click', (e) => {
     e.stopPropagation();
     ensurePositioned();
+    if (isCompactChrome()) {
+      cycleSnap();
+      return;
+    }
     const willCollapse = !drawer.classList.contains('collapsed');
     if (willCollapse) {
       const rect = drawer.getBoundingClientRect();
       if (rect.height > collapsedH) expandedHeight = rect.height;
       drawer.classList.add('collapsed');
+      snapLevel = 'collapsed';
       dom.chatToggle.textContent = '+';
       drawer.style.height = `${collapsedH}px`;
     } else {
       drawer.classList.remove('collapsed');
+      snapLevel = 'expanded';
       dom.chatToggle.textContent = '_';
-      if (isCompactChrome() && !state.chatUserPositioned) {
-        applyMobileSheet(true);
-        saveGeometry();
-        return;
-      }
       drawer.style.height = `${expandedHeight}px`;
     }
     const geo = currentGeometry();
@@ -3346,18 +3490,28 @@ function initChatWindow() {
     saveGeometry();
   });
 
-  // Drag from header (ignore interactive controls)
+  // Drag from header
   if (header) {
+    header.title = isCompactChrome()
+      ? 'Drag to move · double-tap to cycle peek/expand'
+      : 'Drag to move';
+
     header.addEventListener('pointerdown', (e) => {
       if (e.button !== 0) return;
       if (e.target.closest('button, a, input, textarea, select, .chat-header-actions')) return;
       e.preventDefault();
       ensurePositioned();
+      // Expanding from collapsed via drag start on compact → peek
+      if (isCompactChrome() && snapLevel === 'collapsed') {
+        applySnap('peek', { markUser: true });
+      }
       const rect = drawer.getBoundingClientRect();
       dragState = {
         id: e.pointerId,
         offsetX: e.clientX - rect.left,
         offsetY: e.clientY - rect.top,
+        startY: e.clientY,
+        startH: rect.height,
       };
       drawer.classList.add('dragging');
       header.setPointerCapture?.(e.pointerId);
@@ -3367,6 +3521,21 @@ function initChatWindow() {
       if (!dragState || dragState.id !== e.pointerId) return;
       const vp = viewport();
       const w = drawer.offsetWidth;
+      // On compact: vertical drag resizes toward snap; keep full width
+      if (isCompactChrome()) {
+        const dy = dragState.startY - e.clientY; // drag up → taller
+        const nextH = clamp(dragState.startH + dy, collapsedH, Math.round(vp.h * 0.7));
+        const width = Math.max(minW(), vp.w - 20);
+        const left = vp.ox + 10;
+        const top = vp.oy + vp.h - nextH - 10;
+        drawer.classList.toggle('collapsed', nextH <= collapsedH + 8);
+        drawer.style.width = `${width}px`;
+        drawer.style.height = `${nextH}px`;
+        drawer.style.left = `${left}px`;
+        drawer.style.top = `${top}px`;
+        expandedHeight = nextH;
+        return;
+      }
       const h = drawer.offsetHeight;
       const left = clamp(e.clientX - dragState.offsetX, vp.ox, vp.ox + vp.w - w);
       const top = clamp(e.clientY - dragState.offsetY, vp.oy, vp.oy + vp.h - h);
@@ -3376,13 +3545,27 @@ function initChatWindow() {
 
     const endDrag = (e) => {
       if (!dragState || (e.pointerId != null && dragState.id !== e.pointerId)) return;
+      const wasCompact = isCompactChrome();
+      const endH = drawer.offsetHeight;
       dragState = null;
       drawer.classList.remove('dragging');
       state.chatUserPositioned = true;
-      saveGeometry();
+      if (wasCompact) {
+        applySnap(nearestSnap(endH), { markUser: true });
+      } else {
+        saveGeometry();
+      }
     };
     header.addEventListener('pointerup', endDrag);
     header.addEventListener('pointercancel', endDrag);
+
+    // Double-click / double-tap header cycles snaps on compact
+    header.addEventListener('dblclick', (e) => {
+      if (e.target.closest('button, .chat-header-actions')) return;
+      if (!isCompactChrome()) return;
+      e.preventDefault();
+      cycleSnap();
+    });
   }
 
   // Resize from corner handle
@@ -3426,15 +3609,19 @@ function initChatWindow() {
 
   const endResize = (e) => {
     if (!resizeState || (e.pointerId != null && resizeState.id !== e.pointerId)) return;
+    const endH = drawer.offsetHeight;
     resizeState = null;
     drawer.classList.remove('resizing');
     state.chatUserPositioned = true;
-    saveGeometry();
+    if (isCompactChrome()) {
+      applySnap(nearestSnap(endH), { markUser: true });
+    } else {
+      saveGeometry();
+    }
   };
   resizeHandle.addEventListener('pointerup', endResize);
   resizeHandle.addEventListener('pointercancel', endResize);
 
-  // Keep window on-screen after viewport changes
   const onVpChange = () => {
     if (isCompactChrome()) {
       applyMobileSheet(false);
@@ -3873,7 +4060,8 @@ async function boot() {
     state.renderer.compile(state.scene, state.camera);
 
     setLoading(84, 'Setting quality budget');
-    setQualityMode('balanced');
+    // H009 — restore user quality preference (pinned survives mobile auto-FOCUS)
+    applyStoredQualityOrDefault();
 
     setLoading(86, 'Wiring command deck');
     renderSidebar(state.graph);

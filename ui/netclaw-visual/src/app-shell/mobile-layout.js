@@ -154,6 +154,32 @@ export function createMobileLayout({ onChange } = {}) {
     return detail;
   }
 
+  /**
+   * H008 — measure topbar and publish --topbar-height for sidebars / Home root.
+   */
+  function wireTopbarHeight() {
+    const app = document.getElementById('app');
+    const topbar = document.querySelector('.topbar');
+    if (!app || !topbar || typeof ResizeObserver === 'undefined') {
+      // Fallback estimate
+      document.documentElement.style.setProperty('--topbar-height', '140px');
+      return null;
+    }
+    const publish = () => {
+      const rect = topbar.getBoundingClientRect();
+      const h = Math.max(64, Math.ceil(rect.height));
+      const value = `${h}px`;
+      app.style.setProperty('--topbar-height', value);
+      document.documentElement.style.setProperty('--topbar-height', value);
+    };
+    publish();
+    const ro = new ResizeObserver(() => publish());
+    ro.observe(topbar);
+    window.addEventListener('resize', publish);
+    window.visualViewport?.addEventListener('resize', publish);
+    return ro;
+  }
+
   function wire() {
     const handler = () => apply();
     const mqs = [phoneMq, narrowMq, coarseMq, landscapeShortMq, landscapeMq, reducedMotionMq];
@@ -167,6 +193,7 @@ export function createMobileLayout({ onChange } = {}) {
       window.visualViewport.addEventListener('scroll', handler);
     }
 
+    wireTopbarHeight();
     apply();
   }
 
@@ -178,6 +205,7 @@ export function createMobileLayout({ onChange } = {}) {
     prefersReducedMotion,
     snapshot,
     chatSheetGeometry,
+    wireTopbarHeight,
     get applied() {
       return applied;
     },
