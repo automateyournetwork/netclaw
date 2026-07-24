@@ -15,6 +15,7 @@ import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
 import { createTabRouter } from './app-shell/tab-router.js';
+import { createMobileLayout, mobilePixelRatio } from './app-shell/mobile-layout.js';
 import { HomeView } from './views/home/HomeView.js';
 import './styles/home.css';
 
@@ -99,6 +100,11 @@ const state = {
   appTab: 'command',
   tabRouter: null,
   homeView: null,
+  mobileLayout: null,
+  /** User explicitly cycled quality — don't auto-override on mobile enter */
+  qualityUserPinned: false,
+  /** Chat: user dragged/resized on this session — don't re-sheet on every vv resize */
+  chatUserPositioned: false,
 };
 
 const dom = {
@@ -170,6 +176,7 @@ function setQualityMode(mode) {
 function cycleQualityMode() {
   const idx = QUALITY_MODES.indexOf(state.qualityMode);
   const next = QUALITY_MODES[(idx + 1) % QUALITY_MODES.length];
+  state.qualityUserPinned = true;
   setQualityMode(next);
 }
 
@@ -394,8 +401,8 @@ function initScene() {
   state.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 260);
   state.camera.position.set(12, 55, 110);
 
-  state.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
-  state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  state.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
+  state.renderer.setPixelRatio(mobilePixelRatio());
   state.renderer.setSize(window.innerWidth, window.innerHeight);
   state.renderer.toneMapping = THREE.ACESFilmicToneMapping;
   state.renderer.toneMappingExposure = 1.15;
@@ -450,6 +457,14 @@ function initScene() {
   state.controls.maxDistance = 180;
   state.controls.maxPolarAngle = Math.PI * 0.48;
   state.controls.target.set(CORE_CENTROID.x, CORE_CENTROID.y, CORE_CENTROID.z);
+  // Touch-friendly defaults (phones / tablets)
+  state.controls.rotateSpeed = 0.85;
+  state.controls.zoomSpeed = 0.9;
+  state.controls.panSpeed = 0.7;
+  state.controls.touches = {
+    ONE: THREE.TOUCH.ROTATE,
+    TWO: THREE.TOUCH.DOLLY_PAN,
+  };
 
   // ── Enhanced lighting (Section E) ─────────────────────────────
   state.scene.add(new THREE.AmbientLight(0x4a7cb5, 0.35));
@@ -2832,12 +2847,34 @@ function animate() {
   state.labels.render(state.scene, state.camera);
 }
 
+function viewportSize() {
+  const vv = window.visualViewport;
+  // Prefer visualViewport so iOS keyboard / URL-bar resizes the canvas correctly
+  const width = Math.max(1, Math.round(vv?.width ?? window.innerWidth));
+  const height = Math.max(1, Math.round(vv?.height ?? window.innerHeight));
+  return { width, height };
+}
+
 function onResize() {
-  state.camera.aspect = window.innerWidth / window.innerHeight;
+  const { width, height } = viewportSize();
+  const dpr = mobilePixelRatio();
+  state.camera.aspect = width / height;
   state.camera.updateProjectionMatrix();
-  state.renderer.setSize(window.innerWidth, window.innerHeight);
-  state.labels.setSize(window.innerWidth, window.innerHeight);
-  state.composer.setSize(window.innerWidth, window.innerHeight);
+  if (state.renderer) {
+    state.renderer.setPixelRatio(dpr);
+    state.renderer.setSize(width, height, false);
+  }
+  if (state.labels) state.labels.setSize(width, height);
+  if (state.composer) state.composer.setSize(width, height);
+  if (state.smaaPass && state.renderer) {
+    state.smaaPass.setSize(width * dpr, height * dpr);
+  }
+  // Soft FOV bump on very short viewports so the graph isn't cropped by chrome
+  if (state.camera) {
+    const mobile = state.mobileLayout?.isMobile?.() ?? width <= 720;
+    state.camera.fov = mobile ? (height < 560 ? 56 : 52) : 48;
+    state.camera.updateProjectionMatrix();
+  }
 }
 
 function connectSocket() {
@@ -2912,7 +2949,7 @@ function connectSocket() {
 
 /**
  * Floating NetClaw Terminal: drag (header), resize (corner handle), collapse (_/+).
- * Geometry is restored from localStorage when available.
+ * On mobile becomes a bottom sheet; geometry restored from localStorage on desktop.
  */
 function initChatWindow() {
   const drawer = dom.chatDrawer;
@@ -2930,9 +2967,9 @@ function initChatWindow() {
     drawer.appendChild(resizeHandle);
   }
 
-  const minW = 320;
+  const minWDesktop = 320;
   const minH = 160;
-  const collapsedH = 42;
+  const collapsedH = 48;
   let expandedHeight = 320;
   let dragState = null;
   let resizeState = null;
@@ -2942,21 +2979,31 @@ function initChatWindow() {
   }
 
   function viewport() {
-    return { w: window.innerWidth, h: window.innerHeight };
+    const vv = window.visualViewport;
+    return {
+      w: vv?.width ?? window.innerWidth,
+      h: vv?.height ?? window.innerHeight,
+      ox: vv?.offsetLeft ?? 0,
+      oy: vv?.offsetTop ?? 0,
+    };
+  }
+
+  function minW() {
+    return state.mobileLayout?.isMobile?.() ? 260 : minWDesktop;
   }
 
   function applyGeometry({ left, top, width, height, collapsed }) {
     const vp = viewport();
-    const w = clamp(width ?? (drawer.offsetWidth || 620), minW, vp.w - 16);
+    const w = clamp(width ?? (drawer.offsetWidth || 620), minW(), vp.w - 12);
     let h = height ?? (drawer.offsetHeight || 320);
     if (collapsed) {
       h = collapsedH;
     } else {
-      h = clamp(h, minH, vp.h - 16);
+      h = clamp(h, minH, vp.h - 12);
       expandedHeight = h;
     }
-    const l = clamp(left ?? 0, 0, Math.max(0, vp.w - w));
-    const t = clamp(top ?? 0, 0, Math.max(0, vp.h - h));
+    const l = clamp(left ?? vp.ox, vp.ox, Math.max(vp.ox, vp.ox + vp.w - w));
+    const t = clamp(top ?? vp.oy, vp.oy, Math.max(vp.oy, vp.oy + vp.h - h));
 
     drawer.classList.add('chat-positioned');
     drawer.style.left = `${l}px`;
@@ -2966,6 +3013,7 @@ function initChatWindow() {
     drawer.style.transform = 'none';
     drawer.style.width = `${w}px`;
     if (!collapsed) drawer.style.height = `${h}px`;
+    else drawer.style.height = `${collapsedH}px`;
   }
 
   function currentGeometry() {
@@ -2980,6 +3028,8 @@ function initChatWindow() {
   }
 
   function saveGeometry() {
+    // Don't persist transient mobile sheet geometry over a desktop layout
+    if (state.mobileLayout?.isMobile?.()) return;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(currentGeometry()));
     } catch {
@@ -3010,17 +3060,43 @@ function initChatWindow() {
     });
   }
 
-  // Restore saved geometry
-  const saved = loadGeometry();
-  if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
-    if (saved.collapsed) {
-      drawer.classList.add('collapsed');
-      dom.chatToggle.textContent = '+';
+  /** Snap to mobile bottom sheet when layout is mobile (unless user moved it). */
+  function applyMobileSheet(force = false) {
+    if (!state.mobileLayout?.isMobile?.()) return;
+    if (!force && state.chatUserPositioned) {
+      applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
+      return;
     }
-    if (typeof saved.height === 'number' && saved.height > collapsedH) {
-      expandedHeight = saved.height;
+    const sheet = state.mobileLayout.chatSheetGeometry();
+    if (!sheet) return;
+    const collapsed = drawer.classList.contains('collapsed');
+    if (!collapsed) expandedHeight = sheet.height;
+    applyGeometry({ ...sheet, collapsed });
+  }
+
+  // Expose for mobile layout controller
+  state.chatWindow = {
+    applyMobileSheet,
+    applyGeometry,
+    currentGeometry,
+    ensurePositioned,
+  };
+
+  // Initial geometry: mobile sheet, else saved desktop layout
+  if (state.mobileLayout?.isMobile?.()) {
+    applyMobileSheet(true);
+  } else {
+    const saved = loadGeometry();
+    if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+      if (saved.collapsed) {
+        drawer.classList.add('collapsed');
+        dom.chatToggle.textContent = '+';
+      }
+      if (typeof saved.height === 'number' && saved.height > collapsedH) {
+        expandedHeight = saved.height;
+      }
+      applyGeometry(saved);
     }
-    applyGeometry(saved);
   }
 
   // Collapse / expand (kept; do not remove)
@@ -3037,9 +3113,13 @@ function initChatWindow() {
     } else {
       drawer.classList.remove('collapsed');
       dom.chatToggle.textContent = '_';
+      if (state.mobileLayout?.isMobile?.() && !state.chatUserPositioned) {
+        applyMobileSheet(true);
+        saveGeometry();
+        return;
+      }
       drawer.style.height = `${expandedHeight}px`;
     }
-    // Keep on-screen after height change
     const geo = currentGeometry();
     applyGeometry({ ...geo, collapsed: drawer.classList.contains('collapsed') });
     saveGeometry();
@@ -3067,8 +3147,8 @@ function initChatWindow() {
       const vp = viewport();
       const w = drawer.offsetWidth;
       const h = drawer.offsetHeight;
-      const left = clamp(e.clientX - dragState.offsetX, 0, vp.w - w);
-      const top = clamp(e.clientY - dragState.offsetY, 0, vp.h - h);
+      const left = clamp(e.clientX - dragState.offsetX, vp.ox, vp.ox + vp.w - w);
+      const top = clamp(e.clientY - dragState.offsetY, vp.oy, vp.oy + vp.h - h);
       drawer.style.left = `${left}px`;
       drawer.style.top = `${top}px`;
     });
@@ -3077,6 +3157,7 @@ function initChatWindow() {
       if (!dragState || (e.pointerId != null && dragState.id !== e.pointerId)) return;
       dragState = null;
       drawer.classList.remove('dragging');
+      state.chatUserPositioned = true;
       saveGeometry();
     };
     header.addEventListener('pointerup', endDrag);
@@ -3107,8 +3188,16 @@ function initChatWindow() {
   resizeHandle.addEventListener('pointermove', (e) => {
     if (!resizeState || resizeState.id !== e.pointerId) return;
     const vp = viewport();
-    const width = clamp(resizeState.startW + (e.clientX - resizeState.startX), minW, vp.w - resizeState.startL - 8);
-    const height = clamp(resizeState.startH + (e.clientY - resizeState.startY), minH, vp.h - resizeState.startT - 8);
+    const width = clamp(
+      resizeState.startW + (e.clientX - resizeState.startX),
+      minW(),
+      vp.ox + vp.w - resizeState.startL - 8,
+    );
+    const height = clamp(
+      resizeState.startH + (e.clientY - resizeState.startY),
+      minH,
+      vp.oy + vp.h - resizeState.startT - 8,
+    );
     drawer.style.width = `${width}px`;
     drawer.style.height = `${height}px`;
     expandedHeight = height;
@@ -3118,16 +3207,24 @@ function initChatWindow() {
     if (!resizeState || (e.pointerId != null && resizeState.id !== e.pointerId)) return;
     resizeState = null;
     drawer.classList.remove('resizing');
+    state.chatUserPositioned = true;
     saveGeometry();
   };
   resizeHandle.addEventListener('pointerup', endResize);
   resizeHandle.addEventListener('pointercancel', endResize);
 
   // Keep window on-screen after viewport changes
-  window.addEventListener('resize', () => {
+  const onVpChange = () => {
+    if (state.mobileLayout?.isMobile?.()) {
+      applyMobileSheet(false);
+      return;
+    }
     if (!drawer.classList.contains('chat-positioned')) return;
     applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
-  });
+  };
+  window.addEventListener('resize', onVpChange);
+  window.visualViewport?.addEventListener('resize', onVpChange);
+  window.visualViewport?.addEventListener('scroll', onVpChange);
 }
 
 function wireUI() {
@@ -3162,6 +3259,24 @@ function wireUI() {
     newSessionBtn.addEventListener('click', resetChatSession);
   }
 
+  // Mobile / narrow layout (auto-collapse chrome, chat sheet, perf)
+  state.mobileLayout = createMobileLayout({
+    onChange: (mobile) => {
+      if (mobile && !state.qualityUserPinned) {
+        setQualityMode('focus');
+      }
+      if (state.controls) {
+        state.controls.rotateSpeed = mobile ? 0.95 : 0.85;
+        state.controls.dampingFactor = mobile ? 0.08 : 0.06;
+      }
+      // Reset sheet snap when crossing breakpoints unless user dragged
+      if (mobile) state.chatUserPositioned = false;
+      state.chatWindow?.applyMobileSheet?.(true);
+      onResize();
+    },
+  });
+  state.mobileLayout.wire();
+
   // Chat: collapse + floating move/resize (persist geometry)
   initChatWindow();
 
@@ -3186,18 +3301,27 @@ function wireUI() {
     togglePanel(dom.footerPanel, dom.reopenFooter);
   });
 
-  dom.reopenLeft?.addEventListener('click', () => {
-    dom.sidebarLeft?.classList.remove('collapsed');
-    dom.reopenLeft?.classList.remove('visible');
-  });
-  dom.reopenRight?.addEventListener('click', () => {
-    dom.sidebarRight?.classList.remove('collapsed');
-    dom.reopenRight?.classList.remove('visible');
-  });
-  dom.reopenFooter?.addEventListener('click', () => {
-    dom.footerPanel?.classList.remove('collapsed');
-    dom.reopenFooter?.classList.remove('visible');
-  });
+  // On mobile, opening one drawer closes the other so the graph stays usable
+  function openPanel(panel, reopenBtn) {
+    if (!panel || !reopenBtn) return;
+    const mobile = state.mobileLayout?.isMobile?.();
+    if (mobile) {
+      for (const [p, r] of [
+        [dom.sidebarLeft, dom.reopenLeft],
+        [dom.sidebarRight, dom.reopenRight],
+      ]) {
+        if (!p || p === panel) continue;
+        p.classList.add('collapsed');
+        r?.classList.add('visible');
+      }
+    }
+    panel.classList.remove('collapsed');
+    reopenBtn.classList.remove('visible');
+  }
+
+  dom.reopenLeft?.addEventListener('click', () => openPanel(dom.sidebarLeft, dom.reopenLeft));
+  dom.reopenRight?.addEventListener('click', () => openPanel(dom.sidebarRight, dom.reopenRight));
+  dom.reopenFooter?.addEventListener('click', () => openPanel(dom.footerPanel, dom.reopenFooter));
 
   // Quality budget toggle
   const qualityToggle = document.getElementById('quality-toggle');

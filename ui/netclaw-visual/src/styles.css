@@ -1164,32 +1164,274 @@ input {
   }
 }
 
+/* ── Mobile layout (driven by JS: #app.mobile-layout) ───────────── */
+
+#app.mobile-layout {
+  /* iOS notch / home indicator tokens */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+}
+
+#app.mobile-layout .topbar {
+  top: max(10px, env(safe-area-inset-top, 0px));
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  padding: 10px 12px;
+  border-radius: 16px;
+  gap: 10px;
+  flex-direction: column;
+  align-items: stretch;
+  z-index: 48;
+}
+
+#app.mobile-layout .brand {
+  font-size: clamp(22px, 7vw, 30px);
+  letter-spacing: 0.1em;
+}
+
+#app.mobile-layout .eyebrow {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+
+#app.mobile-layout .app-tabs {
+  width: 100%;
+  justify-content: stretch;
+}
+
+#app.mobile-layout .app-tab {
+  flex: 1;
+  text-align: center;
+  padding: 10px 12px;
+  min-height: 44px;
+}
+
+#app.mobile-layout .topbar-stats {
+  width: 100%;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 6px;
+}
+
+#app.mobile-layout .metric {
+  min-width: 0;
+  padding: 8px 6px;
+  border-radius: 12px;
+}
+
+#app.mobile-layout .metric-value {
+  font-size: 16px;
+}
+
+#app.mobile-layout .metric-label {
+  font-size: 8px;
+  letter-spacing: 0.04em;
+}
+
+/* Bottom sheets instead of side rails — both Filters AND Detail stay available */
+#app.mobile-layout .sidebar {
+  position: fixed;
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  top: auto;
+  bottom: max(72px, calc(env(safe-area-inset-bottom, 0px) + 64px));
+  width: auto;
+  height: min(52vh, 420px);
+  max-height: calc(100dvh - 160px);
+  border-radius: 18px 18px 14px 14px;
+  z-index: 46;
+  display: flex;
+  /* override old 720px display:none on left */
+}
+
+#app.mobile-layout .sidebar.left,
+#app.mobile-layout .sidebar.right {
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  transform: none;
+}
+
+#app.mobile-layout .sidebar.left.collapsed,
+#app.mobile-layout .sidebar.right.collapsed {
+  transform: translateY(calc(100% + 48px));
+  opacity: 0;
+  pointer-events: none;
+}
+
+#app.mobile-layout .sidebar .panel-toggle {
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  top: 8px;
+}
+
+#app.mobile-layout .sidebar.left .panel-toggle { right: 8px; left: auto; }
+#app.mobile-layout .sidebar.right .panel-toggle { right: 8px; left: auto; }
+
+#app.mobile-layout .footer {
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  z-index: 44;
+}
+
+#app.mobile-layout .footer .panel-toggle {
+  width: 36px;
+  height: 36px;
+  top: -34px;
+}
+
+#app.mobile-layout .footer-row {
+  gap: 8px;
+}
+
+#app.mobile-layout .footer-row span {
+  font-size: 10px;
+}
+
+/* Edge reopen chips → bottom dock (easy thumbs) */
+#app.mobile-layout .panel-reopen {
+  z-index: 47;
+  opacity: 0;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  min-height: 40px;
+  padding: 10px 14px;
+  border-radius: 999px;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  border: 1px solid var(--line-strong);
+  background: rgba(5, 12, 24, 0.94);
+  box-shadow: var(--shadow);
+}
+
+#app.mobile-layout .panel-reopen.visible {
+  opacity: 1;
+}
+
+#app.mobile-layout .reopen-left {
+  left: max(12px, env(safe-area-inset-left, 0px));
+  right: auto;
+  top: auto;
+  bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+  transform: none;
+  border-radius: 999px;
+  border-left: 1px solid var(--line-strong);
+}
+
+#app.mobile-layout .reopen-right {
+  right: max(12px, env(safe-area-inset-right, 0px));
+  left: auto;
+  top: auto;
+  bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+  transform: none;
+  border-radius: 999px;
+  border-right: 1px solid var(--line-strong);
+}
+
+#app.mobile-layout .reopen-footer {
+  left: 50%;
+  right: auto;
+  bottom: max(14px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+  transform: translateX(-50%);
+  border-radius: 999px;
+  border-bottom: 1px solid var(--line-strong);
+}
+
+/* Terminal: bottom sheet feel, larger controls */
+#app.mobile-layout .chat-drawer {
+  z-index: 49;
+  border-radius: 16px;
+  min-width: 0;
+  max-width: none;
+}
+
+#app.mobile-layout .chat-header {
+  padding: 10px 12px 8px;
+  min-height: 48px;
+}
+
+#app.mobile-layout .chat-toggle-btn,
+#app.mobile-layout .new-session-btn {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 8px 12px;
+  font-size: 12px;
+}
+
+#app.mobile-layout .chat-input {
+  min-height: 44px;
+  font-size: 16px; /* prevents iOS zoom-on-focus */
+  padding: 10px 12px;
+}
+
+#app.mobile-layout .chat-send {
+  min-height: 44px;
+  min-width: 64px;
+  font-size: 12px;
+}
+
+#app.mobile-layout .chat-resize-handle {
+  width: 28px;
+  height: 28px;
+  right: 6px;
+  bottom: 6px;
+  opacity: 0.75;
+}
+
+#app.mobile-layout .chat-msg {
+  font-size: 12px;
+  max-width: 96%;
+}
+
+/* Knowledge / floating extras — don't crush the phone UI */
+#app.mobile-layout .knowledge-panel {
+  left: 10px !important;
+  right: 10px !important;
+  width: auto !important;
+  max-width: none;
+  bottom: max(10px, env(safe-area-inset-bottom, 0px));
+  max-height: 55vh;
+}
+
+/* Pure CSS fallback when JS class not yet applied */
 @media (max-width: 720px) {
-  .topbar,
+  .topbar {
+    left: 10px;
+    right: 10px;
+    top: 10px;
+    padding: 10px 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .topbar-stats {
+    width: 100%;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .metric {
+    min-width: 0;
+    padding: 8px 6px;
+  }
+
+  .metric-value {
+    font-size: 16px;
+  }
+
   .footer {
     left: 10px;
     right: 10px;
   }
 
-  .sidebar {
-    position: absolute;
-    width: calc(100% - 20px);
-    height: 210px;
-    left: 10px;
-    right: 10px;
-    bottom: 84px;
-  }
-
+  /* Do NOT display:none the left sidebar — mobile-layout JS collapses it */
   .sidebar.left {
-    display: none;
-  }
-
-  .sidebar.right {
-    top: auto;
-  }
-
-  .metric {
-    min-width: 0;
+    display: flex;
   }
 }
 

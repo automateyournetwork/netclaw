@@ -428,3 +428,67 @@
     text-align: center;
   }
 }
+
+/* Phone / mobile-layout Home surface */
+#app.mobile-layout.home-mode .home-root {
+  top: max(148px, calc(env(safe-area-inset-top, 0px) + 132px));
+  bottom: max(12px, calc(env(safe-area-inset-bottom, 0px) + 8px));
+  left: max(10px, env(safe-area-inset-left, 0px));
+  right: max(10px, env(safe-area-inset-right, 0px));
+  /* Leave room for floating terminal when expanded */
+  padding-bottom: 8px;
+}
+
+#app.mobile-layout .home-panel {
+  padding: 14px 14px 18px;
+  min-height: 0;
+  border-radius: 16px;
+}
+
+#app.mobile-layout .home-kpi-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+#app.mobile-layout .home-kpi-grid-4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+#app.mobile-layout .home-kpi {
+  padding: 12px 10px;
+  border-radius: 12px;
+}
+
+#app.mobile-layout .home-kpi-value {
+  font-size: clamp(18px, 5.5vw, 24px);
+}
+
+#app.mobile-layout .home-sub-btn,
+#app.mobile-layout .home-refresh-btn {
+  min-height: 44px;
+  padding: 12px 14px;
+}
+
+#app.mobile-layout .home-table th,
+#app.mobile-layout .home-table td {
+  padding: 10px 8px;
+  font-size: 12px;
+}
+
+@media (max-width: 720px) {
+  .home-root {
+    top: 150px;
+    bottom: 12px;
+    left: 10px;
+    right: 10px;
+  }
+
+  .home-kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-sub-btn,
+  .home-refresh-btn {
+    min-height: 44px;
+  }
+}
