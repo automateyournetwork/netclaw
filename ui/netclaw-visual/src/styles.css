@@ -93,6 +93,11 @@ input {
   justify-content: space-between;
   padding: 16px 20px;
   border-radius: 22px;
+  z-index: 40;
+}
+
+.topbar-stats.hidden {
+  display: none;
 }
 
 .eyebrow {

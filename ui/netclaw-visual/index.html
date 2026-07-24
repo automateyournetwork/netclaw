@@ -19,11 +19,16 @@
       <div class="scan-beam"></div>
 
       <header class="topbar panel">
-        <div>
+        <div class="topbar-brand-block">
           <p class="eyebrow">NetClaw Visual Command Deck</p>
           <h1 class="brand">NETCLAW</h1>
+          <!-- 067-home-noc: top-level product tabs -->
+          <nav class="app-tabs" id="app-tabs" aria-label="Primary views">
+            <button type="button" class="app-tab active" data-app-tab="command">COMMAND</button>
+            <button type="button" class="app-tab" data-app-tab="home">HOME</button>
+          </nav>
         </div>
-        <div class="topbar-stats">
+        <div class="topbar-stats" id="topbar-stats-command">
           <div class="metric">
             <span class="metric-value" id="metric-integrations">--</span>
             <span class="metric-label">Integrations</span>
@@ -41,7 +46,28 @@
             <span class="metric-label">Tool Est.</span>
           </div>
         </div>
+        <div class="topbar-stats hidden" id="topbar-stats-home">
+          <div class="metric">
+            <span class="metric-value" id="home-metric-health">--</span>
+            <span class="metric-label">Health</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="home-metric-latency">--</span>
+            <span class="metric-label">WAN ms</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="home-metric-wifi">--</span>
+            <span class="metric-label">Wi‑Fi</span>
+          </div>
+          <div class="metric">
+            <span class="metric-value" id="home-metric-alerts">--</span>
+            <span class="metric-label">Alerts</span>
+          </div>
+        </div>
       </header>
+
+      <!-- 067-home-noc: Home product surface (HUD-styled; not external iframe) -->
+      <div id="home-root" class="home-root hidden" aria-hidden="true"></div>
 
       <aside class="sidebar panel left" id="sidebar-left">
         <button class="panel-toggle" id="toggle-left" type="button" aria-label="Collapse left sidebar">&lsaquo;</button>

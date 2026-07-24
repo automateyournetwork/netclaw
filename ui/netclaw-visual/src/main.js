@@ -14,6 +14,9 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
+import { createTabRouter } from './app-shell/tab-router.js';
+import { HomeView } from './views/home/HomeView.js';
+import './styles/home.css';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -92,6 +95,10 @@ const state = {
     litIntegrations: new Set(),  // integration ids currently lit
     litTools: new Map(),         // tool name → { integrationId, spriteIndex }
   },
+  // 067-home-noc: top-level product tab (command | home)
+  appTab: 'command',
+  tabRouter: null,
+  homeView: null,
 };
 
 const dom = {
@@ -2666,6 +2673,10 @@ function onClick(event) {
 
 function animate() {
   requestAnimationFrame(animate);
+  // 067: pause Three.js work while HOME tab is active (canvas hidden)
+  if (state.appTab === 'home') {
+    return;
+  }
   const elapsed = state.clock.getElapsedTime();
   const frozen = !!state.selected;
 
@@ -2966,6 +2977,26 @@ function wireUI() {
   if (qualityToggle) {
     qualityToggle.addEventListener('click', cycleQualityMode);
   }
+
+  // 067-home-noc: COMMAND | HOME top-level tabs
+  const homeRoot = document.getElementById('home-root');
+  if (homeRoot && !state.homeView) {
+    state.homeView = new HomeView(homeRoot);
+    state.homeView.mount();
+  }
+  state.tabRouter = createTabRouter({
+    onChange: (tab) => {
+      state.appTab = tab;
+      if (tab === 'home' && state.homeView) {
+        state.homeView.syncTopbarMetrics();
+      }
+      // Force a resize when returning to Command so canvas matches viewport
+      if (tab === 'command') {
+        window.dispatchEvent(new Event('resize'));
+      }
+    },
+  });
+  state.tabRouter.wire();
 
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('click', onClick);
