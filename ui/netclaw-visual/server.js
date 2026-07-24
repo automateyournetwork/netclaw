@@ -17,6 +17,9 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Serve the frontend static files (dist/ built from src/)
+app.use(express.static(path.join(__dirname, 'dist')));
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -802,6 +805,67 @@ export { buildGraph };
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'netclaw-visual-api', generatedAt: new Date().toISOString() });
+});
+
+// ── 067-home-noc: proxy HOME tab → home-api / Network Guardian (dual-run) ──
+// Prefer HOME_API_URL; fall back to NETWORK_GUARDIAN_URL for pilot.
+// Auth: HOME_API_TOKEN or NETWORK_GUARDIAN_TOKEN as Bearer (API key).
+function homeApiConfig() {
+  const env = { ...parseEnvFile(), ...process.env };
+  const base = (env.HOME_API_URL || env.NETWORK_GUARDIAN_URL || '').replace(/\/$/, '');
+  const token = env.HOME_API_TOKEN || env.NETWORK_GUARDIAN_TOKEN || '';
+  return { base, token };
+}
+
+app.get('/api/home/status', (req, res) => {
+  const { base, token } = homeApiConfig();
+  res.json({
+    configured: Boolean(base && token),
+    base: base || null,
+    tokenConfigured: Boolean(token),
+    dualRun: Boolean(base && /network-guardian|guardian/i.test(base)),
+  });
+});
+
+// Mount: browser → /api/home/health?site=home → upstream /api/health?site=home
+app.use('/api/home', async (req, res, next) => {
+  // Let /api/home/status fall through if not already handled (GET only above)
+  if (req.path === '/status' || req.path === 'status') return next();
+
+  const { base, token } = homeApiConfig();
+  if (!base) {
+    return res.status(503).json({
+      error: 'Home API not configured',
+      hint: 'Set HOME_API_URL (or NETWORK_GUARDIAN_URL) and HOME_API_TOKEN (or NETWORK_GUARDIAN_TOKEN) in ~/.openclaw/.env',
+    });
+  }
+  // req.url is relative to mount, e.g. /health?site=home
+  const rel = req.url.startsWith('/') ? req.url : `/${req.url}`;
+  const url = `${base}/api${rel}`;
+  try {
+    const headers = {
+      Accept: 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const hasBody = !['GET', 'HEAD'].includes(req.method) && req.body && Object.keys(req.body).length > 0;
+    if (hasBody) headers['Content-Type'] = 'application/json';
+    const upstream = await fetch(url, {
+      method: req.method,
+      headers,
+      body: hasBody ? JSON.stringify(req.body) : undefined,
+      signal: AbortSignal.timeout(20000),
+    });
+    const text = await upstream.text();
+    res.status(upstream.status);
+    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
+    res.send(text);
+  } catch (err) {
+    res.status(502).json({
+      error: 'Home API unreachable',
+      detail: err.message,
+      target: base,
+    });
+  }
 });
 
 app.get('/api/graph', (req, res) => {

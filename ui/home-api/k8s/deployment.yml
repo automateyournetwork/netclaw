@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: network-guardian-web
+  namespace: observability
+  labels:
+    app: network-guardian-web
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: network-guardian-web
+  template:
+    metadata:
+      labels:
+        app: network-guardian-web
+    spec:
+      # Image is linux/amd64 only (built on Netclaw). Pin until multi-arch push.
+      nodeSelector:
+        kubernetes.io/hostname: k3s-worker-macmini-1
+      imagePullSecrets:
+        - name: ghcr-pull
+      containers:
+        - name: web
+          # Stage 6 bake — also tagged latest on ghcr 2026-07-24
+          image: ghcr.io/byrn-baker/network-guardian-web:stage6-baked
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          envFrom:
+            - configMapRef:
+                name: network-guardian-web-config
+            - secretRef:
+                name: network-guardian-web-secret
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10

@@ -1,0 +1,40 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: network-guardian-web-config
+  namespace: observability
+data:
+  PORT: "3000"
+  NODE_ENV: "production"
+  PROMETHEUS_URL: "http://prometheus:9090"
+  VICTORIAMETRICS_URL: "http://victoriametrics:8428"
+  LOKI_URL: "http://loki:3100"
+  ALERTMANAGER_URL: "http://alertmanager:9093"
+  PGHOST: "guardian-postgres"
+  PGPORT: "5432"
+  PGDATABASE: "guardian"
+  PGUSER: "guardian"
+  NAUTOBOT_URL: "http://nautobot.nautobot.svc:8080"
+  PUBLIC_URL: "https://guardian.byrnbaker.me"
+  SITES_CONFIG: |
+    {
+      "home": {
+        "name": "Home Pilot",
+        "deviceName": "pfsense",
+        "providers": [
+          {
+            "id": "quantum-fiber",
+            "name": "Quantum Fiber",
+            "wanInterface": "igc0.201",
+            "speedtestTarget": 1000000000,
+            "servers": ["auto-nearest", "lumen-denver", "comcast-denver"]
+          }
+        ],
+        "thresholds": {
+          "latency": { "green": 40, "yellow": 80 },
+          "loss": { "green": 0, "yellow": 5 },
+          "txRetries": { "green": 20, "yellow": 35 },
+          "speedtest": { "green": 900000000, "yellow": 700000000 }
+        }
+      }
+    }

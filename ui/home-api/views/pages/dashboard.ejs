@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0a1628">
+  <title>Network Guardian</title>
+  <link rel="manifest" href="/manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            'guardian-bg': '#0a1628',
+            'guardian-card': '#0f1f38',
+            'guardian-border': '#1a2d4a',
+            'guardian-accent': '#22d3a7',
+            'guardian-blue': '#3b82f6',
+            'guardian-amber': '#f59e0b',
+            'guardian-red': '#ef4444'
+          }
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.30/dist/uPlot.min.css">
+  <script src="https://unpkg.com/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-guardian-bg text-slate-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-guardian-border px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-guardian-accent/20 flex items-center justify-center">
+          <svg class="w-4 h-4 text-guardian-accent" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        </div>
+        <div>
+          <div class="font-semibold text-white">Network Guardian</div>
+          <div class="text-xs text-slate-400" id="site-subtitle">Home Pilot · Castle Rock</div>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-guardian-accent/20 text-guardian-accent" id="live-badge">
+            <span class="w-1.5 h-1.5 rounded-full bg-guardian-accent animate-pulse"></span>
+            LIVE
+          </span>
+          <span class="text-xs text-slate-400" id="last-updated">Updated just now</span>
+        </div>
+        <button id="logout-btn" class="text-slate-400 hover:text-white text-sm">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- KPI Bar -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs text-slate-400 mb-1">Health score</div>
+        <div class="text-4xl font-bold text-white" id="health-value">—</div>
+        <div class="text-xs mt-1" id="health-subtitle">
+          <span class="text-guardian-accent">Stable · 30d</span>
+        </div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs text-slate-400 mb-1">WAN latency</div>
+        <div class="flex items-baseline gap-1">
+          <span class="text-4xl font-bold text-white" id="latency-value">—</span>
+          <span class="text-sm text-slate-400">ms</span>
+        </div>
+        <div class="text-xs mt-1" id="latency-subtitle">
+          <span class="text-guardian-accent">Within SLA</span>
+        </div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs text-slate-400 mb-1">Bandwidth</div>
+        <div class="flex items-baseline gap-1">
+          <span class="text-4xl font-bold text-white" id="speed-down">—</span>
+          <span class="text-sm text-slate-400">↓</span>
+          <span class="text-2xl font-bold text-white" id="speed-up">—</span>
+          <span class="text-sm text-slate-400">↑ Mbps</span>
+        </div>
+        <div class="text-xs mt-1" id="speed-subtitle">
+          <span class="text-guardian-accent" id="isp-name">—</span>
+        </div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs text-slate-400 mb-1">Packet loss</div>
+        <div class="flex items-baseline gap-1">
+          <span class="text-4xl font-bold text-white" id="loss-value">—</span>
+          <span class="text-sm text-slate-400">%</span>
+        </div>
+        <div class="text-xs mt-1" id="loss-subtitle">
+          <span class="text-guardian-accent">Nominal</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Connectivity (last 60 samples)</div>
+        <div id="wan-chart"></div>
+        <div class="flex items-center gap-4 mt-3 text-xs text-slate-400">
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-guardian-blue inline-block"></span> Latency (ms)</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-guardian-accent inline-block"></span> Loss ×100</span>
+        </div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Bandwidth (Mbps)</div>
+        <div id="throughput-chart"></div>
+        <div class="flex items-center gap-4 mt-3 text-xs text-slate-400">
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-guardian-blue inline-block"></span> Download</span>
+          <span class="flex items-center gap-1"><span class="w-3 h-0.5 bg-guardian-amber inline-block"></span> Upload</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Security + Equipment + Events Row -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <!-- Security Summary -->
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Security</div>
+        <div class="space-y-4">
+          <div>
+            <div class="text-xs text-slate-400 mb-1">Threats blocked (24h)</div>
+            <div class="text-3xl font-bold text-white" id="blocked-24h">—</div>
+          </div>
+          <div>
+            <div class="text-xs text-slate-400 mb-1">Blocked this hour</div>
+            <div class="text-xl font-bold text-white" id="blocked-1h">—</div>
+          </div>
+          <div class="pt-2 border-t border-guardian-border">
+            <div class="text-xs text-slate-400 mb-2">Top blocked sources (1h)</div>
+            <div id="top-sources" class="space-y-1 text-xs">
+              <div class="text-slate-500">Loading...</div>
+            </div>
+          </div>
+          <div class="pt-2 border-t border-guardian-border">
+            <div class="flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-guardian-accent"></span>
+              <span class="text-xs text-slate-400" id="security-status">Firewall active</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Monitored Equipment -->
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Monitored Equipment</div>
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs text-slate-500 border-b border-guardian-border">
+              <th class="text-left pb-2 font-medium">Device</th>
+              <th class="text-left pb-2 font-medium">Role</th>
+              <th class="text-left pb-2 font-medium">Status</th>
+              <th class="text-left pb-2 font-medium">Signal / load</th>
+            </tr>
+          </thead>
+          <tbody id="equipment-table" class="divide-y divide-guardian-border/50">
+            <tr><td colspan="4" class="py-3 text-slate-500">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Recent Events (curated diary from Postgres) -->
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Recent Events</div>
+        <div id="events-feed" class="space-y-3 max-h-[400px] overflow-y-auto">
+          <div class="text-slate-500 text-sm">Loading...</div>
+        </div>
+        <div class="mt-4 pt-3 border-t border-guardian-border">
+          <p class="text-xs text-slate-500">
+            Events are generated by automated monitoring and investigation. Alerts trigger triage, and resolutions are logged here.
+          </p>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="/js/charts.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

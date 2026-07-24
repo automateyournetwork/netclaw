@@ -1,0 +1,6 @@
+node_modules/
+.env
+*.log
+k8s/secret.yml
+k8s/postgres-secret.yml
+data/events.json

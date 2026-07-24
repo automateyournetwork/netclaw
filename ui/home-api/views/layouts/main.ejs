@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="theme-color" content="#0f172a">
+  <title><%= title %></title>
+  <link rel="manifest" href="/manifest.json">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://unpkg.com/uplot@1.6.30/dist/uPlot.min.css">
+  <script src="https://unpkg.com/uplot@1.6.30/dist/uPlot.iife.min.js"></script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen">
+  <!-- Navigation -->
+  <nav class="sticky top-0 z-50 bg-slate-800 border-b border-slate-700 px-4 py-3">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <h1 class="text-lg font-bold text-blue-400">⚡ Network Guardian</h1>
+        <select id="site-selector" class="bg-slate-700 text-slate-200 text-sm rounded px-2 py-1 border border-slate-600">
+          <option value="home">Home Pilot</option>
+        </select>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="alert-badge" class="hidden bg-red-500 text-white text-xs font-bold rounded-full px-2 py-0.5">0</span>
+        <button id="logout-btn" class="text-slate-400 hover:text-white text-sm">Logout</button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main content -->
+  <main class="max-w-7xl mx-auto px-4 py-6">
+    <%- body %>
+  </main>
+
+  <script src="/js/charts.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -41,3 +41,14 @@ systemctl --user restart netclaw-hud.service
 | K3s | Already run OBS in cluster (like this pilot) |
 
 Agent + **guardian-claw** stay on the NetClaw host by default.
+
+## Dual-run (live pilot Guardian)
+
+```bash
+# ~/.openclaw/.env
+HOME_API_URL=https://network-guardian.localedgedatacenter.com
+HOME_API_TOKEN=<api-key>
+# or NETWORK_GUARDIAN_URL / NETWORK_GUARDIAN_TOKEN
+systemctl --user restart netclaw-hud.service
+# HOME tab → Overview should show live health
+```

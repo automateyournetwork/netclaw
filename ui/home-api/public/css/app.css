@@ -1,0 +1,55 @@
+/* Network Guardian — Client Portal Styles */
+
+/* Chart containers */
+#wan-chart,
+#throughput-chart {
+  display: block;
+  width: 100%;
+  min-height: 200px;
+}
+
+/* uPlot cursor tooltip */
+.u-cursor-pt {
+  border-radius: 50%;
+}
+.u-legend {
+  display: none !important;
+}
+
+/* Scrollbar styling */
+#events-feed::-webkit-scrollbar {
+  width: 5px;
+}
+#events-feed::-webkit-scrollbar-track {
+  background: transparent;
+}
+#events-feed::-webkit-scrollbar-thumb {
+  background: #1a2d4a;
+  border-radius: 3px;
+}
+
+/* Status badges */
+.status-online {
+  color: #22d3a7;
+}
+.status-degraded {
+  color: #f59e0b;
+}
+.status-offline {
+  color: #ef4444;
+}
+
+/* Live pulse */
+@keyframes live-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+.animate-pulse {
+  animation: live-pulse 2s ease-in-out infinite;
+}
+
+/* Event severity colors */
+.event-ok { color: #22d3a7; }
+.event-info { color: #3b82f6; }
+.event-watch { color: #f59e0b; }
+.event-alert { color: #ef4444; }

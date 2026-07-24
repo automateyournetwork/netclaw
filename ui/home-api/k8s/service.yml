@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: network-guardian-web
+  namespace: observability
+  labels:
+    app: network-guardian-web
+spec:
+  selector:
+    app: network-guardian-web
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http

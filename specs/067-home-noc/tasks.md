@@ -44,13 +44,13 @@
 
 ## Phase 2: home-api + live data (PR2) — US2
 
-- [ ] T020 Create `ui/home-api/` (or `services/home-api/`) by lifting `network-guardian-web` Express API routes
-- [ ] T021 Prefer API-first; document deprecation path for EJS pages
-- [ ] T022 [P] Add `HOME_API_URL`, `NETWORK_GUARDIAN_*` aliases to `.env.example` with comments
-- [ ] T023 HUD `server.js`: proxy `/api/home/*` → home-api with auth forwarding
-- [ ] T024 Home Overview/Wi‑Fi/Devices/Diary fetch live pilot endpoints
-- [ ] T025 Degraded UI when home-api unreachable
-- [ ] T026 Dual-run doc: point at existing K3s Guardian during transition
+- [x] T020 Create `ui/home-api/` (or `services/home-api/`) by lifting `network-guardian-web` Express API routes
+- [x] T021 Prefer API-first; document deprecation path for EJS pages
+- [x] T022 [P] Add `HOME_API_URL`, `NETWORK_GUARDIAN_*` aliases to `.env.example` with comments
+- [x] T023 HUD `server.js`: proxy `/api/home/*` → home-api with auth forwarding
+- [x] T024 Home Overview/Wi‑Fi/Devices/Diary fetch live pilot endpoints
+- [x] T025 Degraded UI when home-api unreachable
+- [x] T026 Dual-run doc: point at existing K3s Guardian during transition
 
 ---
 

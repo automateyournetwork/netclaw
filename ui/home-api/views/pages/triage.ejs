@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Triage — Network Guardian</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'guardian-bg': '#0a1628', 'guardian-card': '#0f1f38',
+        'guardian-border': '#1a2d4a', 'guardian-accent': '#22d3a7'
+      }}}
+    }
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-guardian-bg text-slate-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-guardian-border px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/dashboard" class="text-slate-400 hover:text-white text-sm">← Dashboard</a>
+        <h1 class="text-lg font-semibold text-white">Investigation Triage</h1>
+      </div>
+      <div class="flex items-center gap-3">
+        <span class="text-xs text-slate-400">Operator view</span>
+        <button id="logout-btn" class="text-slate-400 hover:text-white text-sm">Logout</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Stats Bar -->
+    <div class="grid grid-cols-4 gap-4">
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-guardian-amber" id="stat-escalated">—</div>
+        <div class="text-xs text-slate-400 mt-1">Awaiting Review</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-guardian-blue" id="stat-investigating">—</div>
+        <div class="text-xs text-slate-400 mt-1">Investigating</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-guardian-accent" id="stat-resolved">—</div>
+        <div class="text-xs text-slate-400 mt-1">Resolved (7d)</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-purple-400" id="stat-rag">—</div>
+        <div class="text-xs text-slate-400 mt-1">In Knowledge Base</div>
+      </div>
+    </div>
+
+    <!-- Escalated Investigations -->
+    <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Escalated — Awaiting Expert Review</div>
+        <button id="refresh-btn" class="text-xs text-guardian-accent hover:text-white">Refresh</button>
+      </div>
+      <div id="escalated-list" class="space-y-4">
+        <div class="text-slate-500 text-sm">Loading...</div>
+      </div>
+    </div>
+
+    <!-- Recent Resolved -->
+    <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+      <div class="text-xs font-medium text-slate-400 uppercase tracking-wider mb-4">Recently Resolved</div>
+      <div id="resolved-list" class="space-y-3">
+        <div class="text-slate-500 text-sm">Loading...</div>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    var API = {
+      token: localStorage.getItem('guardian_token'),
+      site: new URLSearchParams(window.location.search).get('site') || 'home',
+      fetch: function(endpoint) {
+        var sep = endpoint.includes('?') ? '&' : '?';
+        var url = '/api' + endpoint + sep + 'site=' + this.site;
+        return fetch(url, { headers: { 'Authorization': 'Bearer ' + this.token } })
+          .then(function(r) { return r.ok ? r.json() : null; })
+          .catch(function() { return null; });
+      },
+      patch: function(endpoint, body) {
+        var sep = endpoint.includes('?') ? '&' : '?';
+        var url = '/api' + endpoint + sep + 'site=' + this.site;
+        return fetch(url, {
+          method: 'PATCH',
+          headers: { 'Authorization': 'Bearer ' + this.token, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        }).then(function(r) { return r.ok ? r.json() : null; });
+      }
+    };
+
+    if (!API.token) window.location.href = '/login';
+
+    function loadTriage() {
+      // Load escalated events
+      API.fetch('/events/escalated').then(function(data) {
+        if (!data) return;
+        var el = document.getElementById('escalated-list');
+        var statEl = document.getElementById('stat-escalated');
+        if (statEl) statEl.textContent = data.events.length;
+
+        if (data.events.length === 0) {
+          el.innerHTML = '<div class="text-slate-500 text-sm">No escalated investigations. All clear.</div>';
+          return;
+        }
+
+        el.innerHTML = data.events.map(function(ev) {
+          var time = new Date(ev.timestamp).toLocaleString();
+          return '<div class="border border-guardian-border rounded-lg p-4" data-id="' + ev.id + '">' +
+            '<div class="flex items-start justify-between mb-2">' +
+              '<div>' +
+                '<div class="font-medium text-white">' + (ev.alert_name || 'Investigation') + '</div>' +
+                '<div class="text-xs text-slate-400">' + time + ' · ' + (ev.category || 'general') + '</div>' +
+              '</div>' +
+              '<span class="text-xs px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-400">Escalated</span>' +
+            '</div>' +
+            '<div class="text-sm text-slate-300 mb-3">' + ev.message + '</div>' +
+            (ev.investigation_notes ? '<div class="bg-guardian-bg rounded p-3 mb-3 text-xs"><div class="text-slate-400 mb-1 font-medium">NetClaw Investigation:</div><div class="text-slate-300">' + ev.investigation_notes + '</div></div>' : '') +
+            (ev.root_cause ? '<div class="text-xs text-slate-400 mb-3">Root cause: <span class="text-slate-200">' + ev.root_cause + '</span></div>' : '') +
+            '<div class="border-t border-guardian-border pt-3">' +
+              '<textarea class="w-full bg-guardian-bg border border-guardian-border rounded p-2 text-sm text-slate-200 placeholder-slate-500" rows="2" placeholder="Add your expert feedback..." data-feedback-id="' + ev.id + '"></textarea>' +
+              '<div class="flex gap-2 mt-2">' +
+                '<button onclick="submitFeedback(\'' + ev.id + '\', \'correct\')" class="text-xs px-3 py-1 bg-guardian-accent/20 text-guardian-accent rounded hover:bg-guardian-accent/30">✓ Correct</button>' +
+                '<button onclick="submitFeedback(\'' + ev.id + '\', \'partially_correct\')" class="text-xs px-3 py-1 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30">~ Partial</button>' +
+                '<button onclick="submitFeedback(\'' + ev.id + '\', \'incorrect\')" class="text-xs px-3 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30">✗ Incorrect</button>' +
+                '<button onclick="submitFeedback(\'' + ev.id + '\', \'needs_more_context\')" class="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30">? Need More</button>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      });
+
+      // Load resolved events
+      API.fetch('/events?status=resolved&limit=10').then(function(data) {
+        if (!data) return;
+        var el = document.getElementById('resolved-list');
+        var statEl = document.getElementById('stat-resolved');
+        if (statEl) statEl.textContent = data.events.length;
+
+        if (data.events.length === 0) {
+          el.innerHTML = '<div class="text-slate-500 text-sm">No resolved events yet.</div>';
+          return;
+        }
+
+        el.innerHTML = data.events.map(function(ev) {
+          var time = new Date(ev.timestamp).toLocaleString();
+          var ragBadge = ev.rag_document_id ? '<span class="text-xs text-purple-400">📚 In RAG</span>' : '<button onclick="event.stopPropagation(); snapshotToRag(\'' + ev.id + '\')" class="text-xs px-2 py-0.5 bg-purple-500/20 text-purple-300 rounded hover:bg-purple-500/30">📸 Snapshot to RAG</button>';
+          var fbBadge = ev.feedback_quality ? '<span class="text-xs text-blue-400">feedback: ' + ev.feedback_quality + '</span>' : '';
+          return '<div class="border-b border-guardian-border/50 py-3">' +
+            '<div class="flex items-start justify-between cursor-pointer" onclick="toggleResolved(this)">' +
+              '<div>' +
+                '<div class="text-sm text-white">' + (ev.alert_name || ev.message.slice(0, 60)) + '</div>' +
+                '<div class="text-xs text-slate-400">' + time + (ev.root_cause ? ' · ' + ev.root_cause : '') + '</div>' +
+              '</div>' +
+              '<div class="flex items-center gap-2">' + ragBadge + fbBadge +
+                '<span class="text-xs text-guardian-accent">Resolved</span>' +
+                '<span class="text-slate-500 text-xs">▼</span>' +
+              '</div>' +
+            '</div>' +
+            '<div class="hidden mt-3 pl-2 border-l-2 border-guardian-border space-y-2">' +
+              '<div class="text-xs text-slate-400">Message:</div>' +
+              '<div class="text-sm text-slate-300">' + (ev.message || 'No message') + '</div>' +
+              (ev.investigation_notes ? '<div class="text-xs text-slate-400 mt-2">Investigation Notes:</div><div class="text-sm text-slate-300 bg-guardian-bg rounded p-2 whitespace-pre-wrap">' + ev.investigation_notes + '</div>' : '<div class="text-xs text-slate-500 italic">No investigation notes recorded</div>') +
+              (ev.root_cause ? '<div class="text-xs text-slate-400 mt-2">Root Cause:</div><div class="text-sm text-white font-medium">' + ev.root_cause + '</div>' : '') +
+              (ev.expert_feedback ? '<div class="text-xs text-slate-400 mt-2">Expert Feedback:</div><div class="text-sm text-slate-300">' + ev.expert_feedback + ' <span class="text-xs text-slate-500">(' + (ev.feedback_quality || 'unrated') + ')</span></div>' : '') +
+              '<div class="border-t border-guardian-border pt-3 mt-2" onclick="event.stopPropagation()">' +
+                '<textarea class="w-full bg-guardian-bg border border-guardian-border rounded p-2 text-sm text-slate-200 placeholder-slate-500" rows="2" placeholder="Operator feedback / what to dig into next..." data-feedback-id="' + ev.id + '"></textarea>' +
+                '<div class="flex flex-wrap gap-2 mt-2">' +
+                  '<button onclick="submitFeedback(\'' + ev.id + '\', \'correct\')" class="text-xs px-3 py-1 bg-guardian-accent/20 text-guardian-accent rounded hover:bg-guardian-accent/30">✓ Correct</button>' +
+                  '<button onclick="submitFeedback(\'' + ev.id + '\', \'partially_correct\')" class="text-xs px-3 py-1 bg-amber-500/20 text-amber-400 rounded hover:bg-amber-500/30">~ Partial</button>' +
+                  '<button onclick="submitFeedback(\'' + ev.id + '\', \'incorrect\')" class="text-xs px-3 py-1 bg-red-500/20 text-red-400 rounded hover:bg-red-500/30">✗ Incorrect</button>' +
+                  '<button onclick="submitFeedback(\'' + ev.id + '\', \'needs_more_context\')" class="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded hover:bg-blue-500/30">? Need More (re-investigate)</button>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+          '</div>';
+        }).join('');
+      });
+
+      // Stats
+      API.fetch('/events?status=investigating&limit=100').then(function(data) {
+        if (data) document.getElementById('stat-investigating').textContent = data.events.length;
+      });
+    }
+
+    function toggleResolved(el) {
+      var detail = el.nextElementSibling;
+      if (detail) {
+        detail.classList.toggle('hidden');
+        var arrow = el.querySelector('.text-slate-500');
+        if (arrow) arrow.textContent = detail.classList.contains('hidden') ? '▼' : '▲';
+      }
+    }
+
+    function submitFeedback(eventId, quality) {
+      var textarea = document.querySelector('[data-feedback-id="' + eventId + '"]');
+      var feedback = textarea ? textarea.value : '';
+
+      // "Need More" re-opens the case and re-triggers NetClaw investigation.
+      if (quality === 'needs_more_context') {
+        fetch('http://192.168.3.252:8099/reinvestigate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            event_id: eventId,
+            site: API.site,
+            expert_feedback: feedback || 'Operator requested more investigation depth from triage board'
+          })
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(result) {
+          if (result.status === 'accepted') {
+            alert('Re-investigation started. Case moved to Investigating; NetClaw will dig deeper.');
+            loadTriage();
+          } else {
+            alert('Reinvestigate failed: ' + (result.message || JSON.stringify(result)));
+          }
+        })
+        .catch(function(err) {
+          alert('Could not reach NetClaw reinvestigate: ' + err.message);
+        });
+        return;
+      }
+
+      API.patch('/events/' + eventId, {
+        status: 'resolved',
+        expert_feedback: feedback || null,
+        feedback_quality: quality
+      }).then(function(result) {
+        if (result) {
+          loadTriage(); // Refresh the list
+        }
+      });
+    }
+
+    function snapshotToRag(eventId) {
+      var site = API.site;
+      // Call the NetClaw alert-receiver /snapshot endpoint
+      fetch('http://192.168.3.252:8099/snapshot', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ event_id: eventId, site: site })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(result) {
+        if (result.status === 'success') {
+          alert('✅ Snapshotted to RAG knowledge base (ID: ' + result.snapshot_id + ')');
+          loadTriage();
+        } else {
+          alert('❌ Snapshot failed: ' + (result.message || 'unknown error'));
+        }
+      })
+      .catch(function(err) {
+        alert('❌ Could not reach NetClaw: ' + err.message);
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadTriage();
+      document.getElementById('refresh-btn').addEventListener('click', loadTriage);
+      document.getElementById('logout-btn').addEventListener('click', function() {
+        localStorage.removeItem('guardian_token');
+        window.location.href = '/login';
+      });
+    });
+  </script>
+</body>
+</html>

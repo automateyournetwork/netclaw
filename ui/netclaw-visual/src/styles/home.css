@@ -252,6 +252,21 @@
   padding: 8px 2px;
 }
 
+.home-banner {
+  margin-bottom: 4px;
+}
+
+.home-banner-down .home-badge,
+.home-banner-error .home-badge,
+.home-banner-config .home-badge {
+  color: var(--accent-warm);
+  border-color: rgba(255, 123, 84, 0.4);
+}
+
+.home-table td.ok { color: var(--ok); }
+.home-table td.warn { color: var(--accent-warm); }
+.home-table td.crit { color: #ff5d6c; }
+
 @media (max-width: 900px) {
   .home-root {
     top: 150px;

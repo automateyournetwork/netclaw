@@ -1,0 +1,27 @@
+{
+  "name": "netclaw-home-api",
+  "version": "1.0.0",
+  "description": "NetClaw Home API \u2014 health, wifi, devices, events (067-home-noc). Lifted from network-guardian-web; API-first for HUD.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "network",
+    "monitoring",
+    "prometheus",
+    "dashboard"
+  ],
+  "author": "Brian Baker",
+  "license": "MIT",
+  "dependencies": {
+    "bcrypt": "^5.1.1",
+    "dotenv": "^16.4.5",
+    "ejs": "^3.1.10",
+    "express": "^4.21.0",
+    "express-rate-limit": "^7.4.1",
+    "jsonwebtoken": "^9.0.2",
+    "pg": "^8.22.0"
+  }
+}

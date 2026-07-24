@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= title %></title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: {
+        'guardian-bg': '#0a1628', 'guardian-card': '#0f1f38',
+        'guardian-border': '#1a2d4a', 'guardian-accent': '#22d3a7'
+      }}}
+    }
+  </script>
+  <link rel="stylesheet" href="/css/app.css">
+</head>
+<body class="bg-guardian-bg text-slate-100 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-guardian-border px-6 py-4">
+    <div class="max-w-7xl mx-auto flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <a href="/dashboard" class="text-slate-400 hover:text-white text-sm">← Dashboard</a>
+        <h1 class="text-lg font-semibold text-white"><%= deviceName %></h1>
+      </div>
+      <button id="logout-btn" class="text-slate-400 hover:text-white text-sm">Logout</button>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-6 py-6 space-y-6">
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-guardian-accent" id="stat-up">—</div>
+        <div class="text-xs text-slate-400 mt-1">Ports Up</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-slate-400" id="stat-down">—</div>
+        <div class="text-xs text-slate-400 mt-1">Ports Down</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-blue-400" id="stat-in">—</div>
+        <div class="text-xs text-slate-400 mt-1">Total In</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold text-amber-400" id="stat-out">—</div>
+        <div class="text-xs text-slate-400 mt-1">Total Out</div>
+      </div>
+      <div class="bg-guardian-card border border-guardian-border rounded-lg p-4 text-center">
+        <div class="text-2xl font-bold" id="stat-errors">—</div>
+        <div class="text-xs text-slate-400 mt-1">Errors/s</div>
+      </div>
+    </div>
+
+    <!-- Interface Table -->
+    <div class="bg-guardian-card border border-guardian-border rounded-lg p-5">
+      <div class="flex items-center justify-between mb-4">
+        <div class="text-xs font-medium text-slate-400 uppercase tracking-wider">Interfaces</div>
+        <div class="flex gap-2">
+          <button id="filter-all" class="text-xs px-2 py-1 rounded bg-guardian-accent/20 text-guardian-accent">All</button>
+          <button id="filter-up" class="text-xs px-2 py-1 rounded bg-guardian-border text-slate-400">Up Only</button>
+          <button id="filter-errors" class="text-xs px-2 py-1 rounded bg-guardian-border text-slate-400">With Errors</button>
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead>
+            <tr class="text-xs text-slate-500 border-b border-guardian-border">
+              <th class="text-left pb-2 font-medium">Interface</th>
+              <th class="text-left pb-2 font-medium">Description</th>
+              <th class="text-left pb-2 font-medium">Status</th>
+              <th class="text-left pb-2 font-medium">Connected To</th>
+              <th class="text-right pb-2 font-medium">In (bps)</th>
+              <th class="text-right pb-2 font-medium">Out (bps)</th>
+              <th class="text-right pb-2 font-medium">Errors</th>
+            </tr>
+          </thead>
+          <tbody id="interface-table" class="divide-y divide-guardian-border/50">
+            <tr><td colspan="6" class="py-3 text-slate-500">Loading...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    var DEVICE_NAME = '<%= deviceName %>';
+    var API = {
+      token: localStorage.getItem('guardian_token'),
+      site: new URLSearchParams(window.location.search).get('site') || 'home',
+      fetch: function(endpoint) {
+        var sep = endpoint.includes('?') ? '&' : '?';
+        var url = '/api' + endpoint + sep + 'site=' + this.site;
+        return fetch(url, { headers: { 'Authorization': 'Bearer ' + this.token } })
+          .then(function(r) { if (r.status === 401) { window.location.href = '/login'; return null; } return r.ok ? r.json() : null; })
+          .catch(function() { return null; });
+      }
+    };
+
+    if (!API.token) window.location.href = '/login';
+
+    var allInterfaces = [];
+    var currentFilter = 'all';
+
+    function formatBps(bps) {
+      if (bps >= 1e9) return (bps / 1e9).toFixed(1) + ' Gbps';
+      if (bps >= 1e6) return (bps / 1e6).toFixed(1) + ' Mbps';
+      if (bps >= 1e3) return (bps / 1e3).toFixed(0) + ' Kbps';
+      return bps + ' bps';
+    }
+
+    function loadDevice() {
+      API.fetch('/device/' + DEVICE_NAME).then(function(data) {
+        if (!data) return;
+
+        // Summary stats
+        document.getElementById('stat-up').textContent = data.summary.up;
+        document.getElementById('stat-down').textContent = data.summary.down;
+        document.getElementById('stat-in').textContent = formatBps(data.summary.totalInBps);
+        document.getElementById('stat-out').textContent = formatBps(data.summary.totalOutBps);
+        var errEl = document.getElementById('stat-errors');
+        errEl.textContent = data.summary.totalErrors.toFixed(2);
+        errEl.className = 'text-2xl font-bold ' + (data.summary.totalErrors > 0 ? 'text-red-400' : 'text-guardian-accent');
+
+        allInterfaces = data.interfaces;
+        renderTable();
+      });
+    }
+
+    function renderTable() {
+      var filtered = allInterfaces;
+      if (currentFilter === 'up') filtered = allInterfaces.filter(function(i) { return i.status === 'up'; });
+      if (currentFilter === 'errors') filtered = allInterfaces.filter(function(i) { return i.errorsIn > 0 || i.errorsOut > 0; });
+
+      var tbody = document.getElementById('interface-table');
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" class="py-3 text-slate-500">No interfaces match filter</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = filtered.map(function(iface) {
+        var statusColor = iface.status === 'up' ? 'text-[#22d3a7]' : 'text-slate-500';
+        var statusDot = iface.status === 'up' ? 'bg-[#22d3a7]' : 'bg-slate-500';
+        var errClass = (iface.errorsIn > 0 || iface.errorsOut > 0) ? 'text-red-400' : 'text-slate-400';
+        var totalErrors = iface.errorsIn + iface.errorsOut;
+
+        // For WAN probes, show latency instead of throughput
+        var col5 = iface.latencyMs != null ? '<td class="py-2 pr-3 text-right text-blue-400">' + iface.latencyMs + ' ms</td>' :
+          '<td class="py-2 pr-3 text-right text-blue-400">' + (iface.inBps > 0 ? formatBps(iface.inBps) : '—') + '</td>';
+        var col6 = iface.latencyMs != null ? '<td class="py-2 pr-3 text-right text-amber-400">—</td>' :
+          '<td class="py-2 pr-3 text-right text-amber-400">' + (iface.outBps > 0 ? formatBps(iface.outBps) : '—') + '</td>';
+
+        return '<tr class="text-sm hover:bg-guardian-border/20">' +
+          '<td class="py-2 pr-3 font-mono text-white whitespace-nowrap">' + iface.name + '</td>' +
+          '<td class="py-2 pr-3 text-slate-400 max-w-[200px] truncate" title="' + (iface.description || '').replace(/"/g, '&quot;') + '">' + (iface.description || '<span class=\"text-slate-600\">—</span>') + '</td>' +
+          '<td class="py-2 pr-3"><span class="inline-flex items-center gap-1.5 ' + statusColor + '"><span class="w-1.5 h-1.5 rounded-full ' + statusDot + '"></span>' + iface.status + '</span></td>' +
+          '<td class="py-2 pr-3 text-slate-400 text-xs">' + (iface.cablePeer || '<span class=\"text-slate-600\">—</span>') + '</td>' +
+          col5 + col6 +
+          '<td class="py-2 text-right ' + errClass + '">' + (totalErrors > 0 ? totalErrors.toFixed(3) : '0') + '</td>' +
+          '</tr>';
+      }).join('');
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      loadDevice();
+      setInterval(loadDevice, 30000);
+
+      document.getElementById('filter-all').addEventListener('click', function() { currentFilter = 'all'; updateFilterButtons(); renderTable(); });
+      document.getElementById('filter-up').addEventListener('click', function() { currentFilter = 'up'; updateFilterButtons(); renderTable(); });
+      document.getElementById('filter-errors').addEventListener('click', function() { currentFilter = 'errors'; updateFilterButtons(); renderTable(); });
+      document.getElementById('logout-btn').addEventListener('click', function() { localStorage.removeItem('guardian_token'); window.location.href = '/login'; });
+    });
+
+    function updateFilterButtons() {
+      ['all', 'up', 'errors'].forEach(function(f) {
+        var btn = document.getElementById('filter-' + f);
+        if (f === currentFilter) {
+          btn.className = 'text-xs px-2 py-1 rounded bg-guardian-accent/20 text-guardian-accent';
+        } else {
+          btn.className = 'text-xs px-2 py-1 rounded bg-guardian-border text-slate-400';
+        }
+      });
+    }
+  </script>
+</body>
+</html>
