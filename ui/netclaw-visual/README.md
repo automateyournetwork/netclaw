@@ -242,14 +242,27 @@ npm run preview
 
 ## 6. Using the HUD
 
+### Panels, terminal, and mobile
+
+| Control | Behavior |
+|---------|----------|
+| **Left / right / footer collapse** | Use the ‹ › ↓ chrome buttons; panels slide off-screen. Edge chips **FILTERS** / **DETAIL** / **STATUS** (bottom dock on phones) reopen them. |
+| **NetClaw Terminal** | Drag the header to move, corner handle to resize, `_` / `+` to collapse. Desktop position is remembered. |
+| **Mobile** | Narrow / touch viewports get `#app.mobile-layout`: bottom-sheet panels, auto FOCUS quality, capped DPR, terminal as a bottom sheet. |
+
+**Backlog (landscape, reduced-motion, long-press select, PWA, offline graph, …)** lives in Spec Kit so it is not lost between sessions:
+
+- [`specs/067-home-noc/hud-polish-backlog.md`](../../specs/067-home-noc/hud-polish-backlog.md)
+- Task checkboxes: Phase H in [`specs/067-home-noc/tasks.md`](../../specs/067-home-noc/tasks.md)
+
 ### The 3D Scene
 
 The center of the HUD is a Three.js 3D scene. Use your mouse to navigate:
 
 | Action | Control |
 |--------|---------|
-| **Orbit** | Click and drag |
-| **Zoom** | Scroll wheel |
+| **Orbit** | Click and drag (one-finger rotate on touch) |
+| **Zoom** | Scroll wheel (pinch on touch) |
 | **Select node** | Click on a node |
 | **Deselect** | Click the local NetClaw core or empty space |
 

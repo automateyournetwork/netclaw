@@ -103,12 +103,43 @@
 
 ---
 
+## Phase H: HUD polish backlog (deferred — not blocking PR3+)
+
+**Purpose**: Capture Visual HUD UX / mobile follow-ups so they survive context switches.  
+**Detail doc**: [`hud-polish-backlog.md`](./hud-polish-backlog.md) (acceptance criteria, files, resume steps).  
+**Default priority**: After Phase 3+ product path unless operator asks for HUD UX next.
+
+### Already shipped (HUD shell hardening, 2026-07-24)
+
+- [x] H000a Home Overview KPI headers centered (no global `.label` transform leak)
+- [x] H000b Left/right/footer panel collapse + edge reopen chips; z-index vs taller topbar
+- [x] H000c NetClaw Terminal drag / resize / collapse + desktop geometry persistence
+- [x] H000d Mobile layout v1 (`mobile-layout.js`, bottom sheets, FOCUS/DPR, visualViewport, Home 2-col)
+
+### Worth doing next
+
+- [ ] H001 [P] Landscape mode chrome (compact topbar, taller usable graph/Home)
+- [ ] H002 [P] `prefers-reduced-motion` (scan-beam / GSAP / auto FOCUS)
+- [ ] H003 Touch long-press → node detail (cancel on orbit drag; optional haptic)
+- [ ] H004 PWA shell (manifest, icons, optional shell+graph cache SW)
+- [ ] H005 Offline / stale graph boot banner when `/api/graph` fails
+- [ ] H006 Mobile smoke checklist in HUD README or 067 quickstart
+- [ ] H007 [P] Knowledge panel mobile bottom-sheet + default collapsed
+- [ ] H008 Dynamic `--topbar-height` via ResizeObserver (replace hard-coded offsets)
+- [ ] H009 Persist quality mode + user pin in localStorage
+- [ ] H010 Mobile terminal snap points (collapsed / peek / expanded)
+
+**Suggested HUD-only session order**: H001+H002 → H003 → H006 → H004/H005 → H007–H010.
+
+---
+
 ## Dependencies
 
 - Phase 1 blocks on Phase 0  
 - Phase 2 blocks Phase 3–4 for real data but Phase 1 can demo alone  
 - Phase 5 can start after Phase 0; ideally after Phase 2–3 for real components  
 - Phase 6 needs Phase 2  
+- Phase H does **not** block Phases 3–7; can interleave after Phase 1  
 
 ## Parallel opportunities
 
@@ -116,3 +147,5 @@
 - T022 parallel with T020  
 - T032 parallel with T030  
 - T050–T052 parallel with deploy work once contracts stable  
+- H001 ∥ H002 ∥ H007 once mobile-layout.js is baseline (shipped)  
+
