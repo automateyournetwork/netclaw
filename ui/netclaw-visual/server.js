@@ -720,6 +720,69 @@ function parseConfig() {
   }
 }
 
+/**
+ * Resolve ${VAR} / $VAR placeholders against OpenClaw .env + process.env.
+ * Leaves unknown placeholders unchanged so misconfig is still visible.
+ */
+function resolveEnvTemplates(value, envMap) {
+  if (value == null) return value;
+  if (typeof value === 'string') {
+    // ${NAME} form (OpenClaw / NetClaw brain model style)
+    let out = value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name) => {
+      if (envMap && envMap[name] != null && String(envMap[name]).length) return String(envMap[name]);
+      if (process.env[name] != null && String(process.env[name]).length) return String(process.env[name]);
+      return match;
+    });
+    // bare $NAME (common shell style) — only when whole token-ish
+    out = out.replace(/(?<![A-Za-z0-9_])\$([A-Za-z_][A-Za-z0-9_]*)\b/g, (match, name) => {
+      if (envMap && envMap[name] != null && String(envMap[name]).length) return String(envMap[name]);
+      if (process.env[name] != null && String(process.env[name]).length) return String(process.env[name]);
+      return match;
+    });
+    return out;
+  }
+  if (Array.isArray(value)) return value.map((v) => resolveEnvTemplates(v, envMap));
+  if (typeof value === 'object') {
+    const out = {};
+    for (const [k, v] of Object.entries(value)) {
+      out[k] = resolveEnvTemplates(v, envMap);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Shorten provider/model ids for HUD chrome (anthropic/claude-… → claude-…). */
+function displayModelId(raw) {
+  if (raw == null || raw === '') return 'unknown';
+  const s = String(raw).trim();
+  if (!s) return 'unknown';
+  // Still a template → surface clearly so operators know env is missing
+  if (/\$\{[A-Za-z_][A-Za-z0-9_]*\}/.test(s) || /^\$[A-Za-z_]/.test(s)) {
+    return s;
+  }
+  return s.replace(/^[a-z0-9._-]+\//i, '');
+}
+
+/**
+ * Return config with agents.defaults.model (and only that subtree) env-resolved
+ * for client display — avoids expanding unrelated secret templates into the browser.
+ */
+function configForClient(config) {
+  const envMap = parseEnvFile();
+  const copy = config && typeof config === 'object' ? { ...config } : {};
+  if (copy.agents && typeof copy.agents === 'object') {
+    copy.agents = { ...copy.agents };
+    if (copy.agents.defaults && typeof copy.agents.defaults === 'object') {
+      copy.agents.defaults = { ...copy.agents.defaults };
+      if (copy.agents.defaults.model != null) {
+        copy.agents.defaults.model = resolveEnvTemplates(copy.agents.defaults.model, envMap);
+      }
+    }
+  }
+  return copy;
+}
+
 function parseIdentity() {
   const raw = readText(IDENTITY_FILE) || readText(SOUL_FILE);
   return {
@@ -756,12 +819,21 @@ function buildIntegrations(skills) {
 }
 
 function buildSettings(config, devices) {
-  const modelPrimary = config?.agents?.defaults?.model?.primary || 'unknown';
-  const modelFallbacks = config?.agents?.defaults?.model?.fallbacks || [];
+  const envMap = parseEnvFile();
+  const modelBlock = resolveEnvTemplates(config?.agents?.defaults?.model || {}, envMap);
+  const modelPrimary = modelBlock?.primary || config?.agents?.defaults?.model?.primary || 'unknown';
+  const modelFallbacks = Array.isArray(modelBlock?.fallbacks)
+    ? modelBlock.fallbacks
+    : (config?.agents?.defaults?.model?.fallbacks || []);
   return [
     { label: 'Gateway Mode', value: config?.gateway?.mode || 'unknown' },
-    { label: 'Primary Model', value: modelPrimary.replace('anthropic/', '') },
-    { label: 'Fallback Models', value: modelFallbacks.length ? modelFallbacks.join(', ').replaceAll('anthropic/', '') : 'none' },
+    { label: 'Primary Model', value: displayModelId(modelPrimary) },
+    {
+      label: 'Fallback Models',
+      value: modelFallbacks.length
+        ? modelFallbacks.map((m) => displayModelId(m)).join(', ')
+        : 'none',
+    },
     { label: 'Workspace', value: config?.agents?.defaults?.workspace || 'unknown' },
     { label: 'Command Mode', value: config?.commands?.native || 'unknown' },
     { label: 'Devices in Testbed', value: String(devices.length) },
@@ -770,7 +842,8 @@ function buildSettings(config, devices) {
 
 function buildGraph() {
   const identity = parseIdentity();
-  const config = parseConfig();
+  const configRaw = parseConfig();
+  const config = configForClient(configRaw);
   const skills = parseSkills();
   const devices = parseDevices();
   const integrations = buildIntegrations(skills);
@@ -785,7 +858,7 @@ function buildGraph() {
   return {
     identity,
     config,
-    settings: buildSettings(config, devices),
+    settings: buildSettings(configRaw, devices),
     integrations,
     skills,
     devices,

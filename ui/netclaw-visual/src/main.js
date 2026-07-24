@@ -1394,7 +1394,17 @@ function renderMetrics(graph) {
   dom.stats.skills.textContent = graph.stats.skillCount;
   dom.stats.devices.textContent = graph.stats.deviceCount;
   dom.stats.tools.textContent = graph.stats.toolEstimate;
-  dom.footerModel.textContent = graph.config?.agents?.defaults?.model?.primary?.replace('anthropic/', '') || 'unknown';
+  // Prefer settings (server already env-resolves ${NETCLAW_BRAIN_MODEL}); fall back to config primary
+  const settingsModel = Array.isArray(graph.settings)
+    ? graph.settings.find((s) => s.label === 'Primary Model')?.value
+    : null;
+  const rawPrimary = graph.config?.agents?.defaults?.model?.primary;
+  const modelLabel = settingsModel
+    || (rawPrimary
+      ? String(rawPrimary).replace(/^[a-z0-9._-]+\//i, '')
+      : null)
+    || 'unknown';
+  dom.footerModel.textContent = modelLabel;
   dom.footerGateway.textContent = graph.config?.gateway?.mode || 'unknown';
   dom.footerUpdated.textContent = new Date(graph.generatedAt).toLocaleTimeString();
 }
