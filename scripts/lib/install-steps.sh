@@ -3654,3 +3654,193 @@ log_info "Domain-verified identity (optional): scripts/patch-claw-certs.sh --dom
 log_info "Existing claws upgrade in one command: scripts/patch-claw-certs.sh"
 echo ""
 }
+
+# ═══════════════════════════════════════════════════════════════════
+# NetClaw Home (067-home-noc) — Phase 5 installer components
+# Function names: component_install_<id with hyphens→underscores>
+# ═══════════════════════════════════════════════════════════════════
+
+component_install_home_noc_core() {
+log_step "Installing Home NOC Core (home-api + config)..."
+echo "  home-api: ui/home-api/  |  config: config/home-noc.example.yaml"
+echo "  Deploy (later in setup): Docker deploy/home/ or K3s deploy/home/k8s/"
+
+HOME_API_DIR="$NETCLAW_DIR/ui/home-api"
+if [ -f "$HOME_API_DIR/package.json" ]; then
+    if command -v npm >/dev/null 2>&1; then
+        log_info "Installing home-api npm dependencies..."
+        (cd "$HOME_API_DIR" && npm install --omit=dev 2>/dev/null) || \
+            log_warn "home-api npm install failed — run: cd ui/home-api && npm install"
+    else
+        log_warn "npm not found — install Node.js 20+ for home-api"
+    fi
+else
+    log_warn "ui/home-api not found at $HOME_API_DIR"
+fi
+
+# Seed operator config from example if missing
+EX_CFG="$NETCLAW_DIR/config/home-noc.example.yaml"
+DST_CFG="$RUNTIME_HOME/home-noc.yaml"
+REPO_CFG="$NETCLAW_DIR/config/home-noc.yaml"
+if [ -f "$EX_CFG" ]; then
+    if [ ! -f "$DST_CFG" ] && [ ! -f "$REPO_CFG" ]; then
+        mkdir -p "$RUNTIME_HOME"
+        cp "$EX_CFG" "$DST_CFG"
+        log_info "Wrote $DST_CFG (edit adapters / deploy mode)"
+    else
+        log_info "Home config already present (not overwriting)"
+    fi
+else
+    log_warn "config/home-noc.example.yaml missing — re-pull repo"
+fi
+
+log_info "Home NOC core ready. Set HOME_API_URL / HOME_API_TOKEN in $RUNTIME_ENV after deploy."
+echo "  Docs: specs/067-home-noc/quickstart.md  deploy/home/README.md"
+echo ""
+}
+
+component_install_home_noc_metrics() {
+log_step "Installing Home Metrics Stack packaging..."
+echo "  Docker: deploy/home/docker-compose.yml (postgres, prom, am, blackbox, home-api)"
+echo "  K3s:    deploy/home/k8s/ (kustomize greenfield overlay)"
+
+if [ -f "$NETCLAW_DIR/deploy/home/docker-compose.yml" ]; then
+    log_info "Docker Home stack present"
+    if command -v docker >/dev/null 2>&1; then
+        log_info "docker available — after setup: ./deploy/home/render-config.sh && docker compose -f deploy/home/docker-compose.yml --env-file deploy/home/.env up -d --build"
+    else
+        log_warn "docker not found — install Docker Engine for Docker deploy mode"
+    fi
+else
+    log_warn "deploy/home/docker-compose.yml missing"
+fi
+
+if [ -d "$NETCLAW_DIR/deploy/home/k8s/base" ]; then
+    log_info "K3s Home kustomize base present"
+    if command -v kubectl >/dev/null 2>&1; then
+        if kubectl kustomize "$NETCLAW_DIR/deploy/home/k8s/overlays/greenfield" >/dev/null 2>&1; then
+            log_info "kustomize greenfield build OK"
+        else
+            log_warn "kustomize build failed — check deploy/home/k8s/"
+        fi
+    else
+        log_info "kubectl not required unless choosing k3s deploy mode"
+    fi
+else
+    log_warn "deploy/home/k8s base missing"
+fi
+
+# Seed deploy/home/.env from example if missing
+if [ -f "$NETCLAW_DIR/deploy/home/.env.example" ] && [ ! -f "$NETCLAW_DIR/deploy/home/.env" ]; then
+    cp "$NETCLAW_DIR/deploy/home/.env.example" "$NETCLAW_DIR/deploy/home/.env"
+    log_info "Seeded deploy/home/.env from .env.example (edit secrets before compose up)"
+fi
+
+echo ""
+}
+
+component_install_home_noc_unifi() {
+log_step "Installing Home UniFi adapter packaging..."
+echo "  Exporter: deploy/home/adapters/unifi/exporter.py"
+echo "  Docker profile: docker compose --profile unifi"
+echo "  K3s: unifi-exporter in deploy/home/k8s base"
+
+if [ -f "$NETCLAW_DIR/deploy/home/adapters/unifi/exporter.py" ]; then
+    log_info "UniFi exporter present"
+else
+    log_warn "UniFi exporter missing under deploy/home/adapters/unifi/"
+fi
+
+log_info "Credentials (setup prompts when this component is selected):"
+echo "  UNIFI_HOST=https://<controller>   UNIFI_API_KEY=<Integration API key>"
+echo "  Optional: UNIFI_MGMT_URL for HOME Devices/Wi‑Fi deep-links"
+echo ""
+}
+
+component_install_home_noc_pfsense() {
+log_step "Installing Home pfSense / edge firewall adapter packaging..."
+echo "  Management GUI links: PFSENSE_MGMT_URL / EDGE_MGMT_URL (home-api + HUD)"
+echo "  Investigations: pfsense-mcp when present under mcp-servers/ (optional)"
+
+if [ -d "$MCP_DIR/pfsense-mcp" ] || [ -d "$HOME/pfsense-mcp" ] || [ -d "/home/ubuntu/pfsense-mcp" ]; then
+    log_info "pfSense MCP tree found (use for alert-triage investigations)"
+else
+    log_info "pfSense MCP not required for metrics path — edge blackbox probe uses HTTPS mgmt URL"
+fi
+
+log_info "Configure in setup: PFSENSE_MGMT_URL (default often https://192.168.x.x:440)"
+echo ""
+}
+
+component_install_home_noc_sot_nautobot() {
+log_step "Home SoT Nautobot stub..."
+echo "  v1: inventory binding stub — full adapter lands in Phase 7 (T070)"
+if component_selected nautobot 2>/dev/null || [ ! -f "${NETCLAW_MANIFEST:-/dev/null}" ]; then
+    log_info "Prefer installing catalog component 'nautobot' for live SoT MCP"
+fi
+log_info "home-noc.yaml sot.type: nautobot  (env: NAUTOBOT_URL / NAUTOBOT_TOKEN)"
+echo ""
+}
+
+component_install_home_noc_sot_netbox() {
+log_step "Home SoT NetBox stub..."
+echo "  v1: inventory binding stub — full adapter lands in Phase 7 (T070)"
+if component_selected netbox 2>/dev/null || [ ! -f "${NETCLAW_MANIFEST:-/dev/null}" ]; then
+    log_info "Prefer installing catalog component 'netbox' for live SoT MCP"
+fi
+log_info "home-noc.yaml sot.type: netbox  (env: NETBOX_URL / NETBOX_TOKEN)"
+echo ""
+}
+
+component_install_visual_hud() {
+log_step "Installing Visual HUD (COMMAND | HOME)..."
+echo "  Path: ui/netclaw-visual/  default port 3001"
+
+HUD_DIR="$NETCLAW_DIR/ui/netclaw-visual"
+if [ ! -f "$HUD_DIR/package.json" ]; then
+    log_warn "ui/netclaw-visual not found"
+    echo ""
+    return 0
+fi
+
+if ! command -v npm >/dev/null 2>&1; then
+    log_warn "npm not found — install Node.js 20+ then re-run visual-hud install"
+    echo ""
+    return 0
+fi
+
+log_info "npm install + build..."
+(cd "$HUD_DIR" && npm install 2>/dev/null && npm run build 2>/dev/null) || \
+    log_warn "HUD npm install/build failed — fix Node and re-run"
+
+# Install systemd user unit from checked-in template
+UNIT_TMPL="$NETCLAW_DIR/scripts/systemd/netclaw-hud.service"
+UNIT_DST="$HOME/.config/systemd/user/netclaw-hud.service"
+if [ -f "$UNIT_TMPL" ]; then
+    mkdir -p "$HOME/.config/systemd/user"
+    NODE_BIN="$(command -v node || true)"
+    if [ -z "$NODE_BIN" ] && [ -x "$HOME/.nvm/versions/node" ]; then
+        NODE_BIN="$(find "$HOME/.nvm/versions/node" -type f -name node 2>/dev/null | sort -V | tail -1)"
+    fi
+    NODE_BIN="${NODE_BIN:-/usr/bin/node}"
+    NODE_DIR="$(dirname "$NODE_BIN")"
+    sed -e "s|@REPO@|$NETCLAW_DIR|g" \
+        -e "s|@HOME@|$HOME|g" \
+        -e "s|@NODE@|$NODE_BIN|g" \
+        -e "s|@NODE_DIR@|$NODE_DIR|g" \
+        "$UNIT_TMPL" > "$UNIT_DST"
+    log_info "Wrote $UNIT_DST"
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user daemon-reload 2>/dev/null || true
+        systemctl --user enable --now netclaw-hud.service 2>/dev/null || \
+            log_warn "Could not enable netclaw-hud.service (start later: systemctl --user enable --now netclaw-hud)"
+        log_info "Visual HUD service: systemctl --user status netclaw-hud"
+    fi
+else
+    log_warn "Missing template scripts/systemd/netclaw-hud.service"
+fi
+
+echo "  Open http://localhost:3001 → COMMAND | HOME"
+echo "  Point HOME at API: HOME_API_URL + HOME_API_TOKEN in $RUNTIME_ENV"
+echo ""
+}

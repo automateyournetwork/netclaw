@@ -845,6 +845,194 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
+# Home NOC (067) — adapters + deploy + guardian ensure
+# ═══════════════════════════════════════════
+
+section "Home NOC (optional)"
+
+HOME_NOC_TOUCHED=0
+HOME_DEPLOY_MODE="none"
+HOME_API_SUMMARY_URL=""
+HOME_INVESTIGATOR="-"
+HOME_RISK_NAME="-"
+
+if component_selected home-noc-core || component_selected home-noc-metrics \
+   || component_selected visual-hud || component_selected home-noc-unifi \
+   || component_selected home-noc-pfsense; then
+    HOME_NOC_TOUCHED=1
+    echo "  Configure Home tab pipeline (home-api, metrics, adapters, investigator)."
+    echo "  Spec: specs/067-home-noc/  |  Deploy: deploy/home/"
+    echo ""
+
+    # ── Deploy mode ──
+    if component_selected home-noc-metrics || component_selected home-noc-core; then
+        echo "  Deploy mode for OBS + home-api:"
+        echo "    1) docker  — single host compose (recommended lab)"
+        echo "    2) k3s     — kustomize under deploy/home/k8s/"
+        echo "    3) none    — dual-run pilot / already deployed"
+        echo "    4) skip prompts (leave env as-is)"
+        prompt HOME_DEPLOY_CHOICE "Choose [1-4]" "1"
+        case "${HOME_DEPLOY_CHOICE}" in
+            2) HOME_DEPLOY_MODE="k3s" ;;
+            3) HOME_DEPLOY_MODE="none" ;;
+            4) HOME_DEPLOY_MODE="skip" ;;
+            *) HOME_DEPLOY_MODE="docker" ;;
+        esac
+        if [ "$HOME_DEPLOY_MODE" != "skip" ]; then
+            # Persist deploy preference into home-noc.yaml if present
+            for cfg in "$OPENCLAW_DIR/home-noc.yaml" "$NETCLAW_DIR/config/home-noc.yaml"; do
+                if [ -f "$cfg" ]; then
+                    if grep -q '^deploy:' "$cfg"; then
+                        sed -i "s|^deploy:.*|deploy: ${HOME_DEPLOY_MODE}|" "$cfg"
+                    fi
+                    break
+                fi
+            done
+        fi
+    fi
+
+    # ── home-api URL for HUD ──
+    if component_selected home-noc-core || component_selected visual-hud; then
+        case "$HOME_DEPLOY_MODE" in
+            docker) _def_api="http://127.0.0.1:3080" ;;
+            k3s)    _def_api="http://127.0.0.1:30080" ;;
+            *)      _def_api="${HOME_API_URL:-http://127.0.0.1:3080}" ;;
+        esac
+        # shellcheck disable=SC2153
+        prompt HOME_API_URL_VAL "HOME_API_URL (HUD proxy target)" "$_def_api"
+        [ -n "$HOME_API_URL_VAL" ] && set_env "HOME_API_URL" "$HOME_API_URL_VAL"
+        HOME_API_SUMMARY_URL="${HOME_API_URL_VAL:-$_def_api}"
+        prompt_secret HOME_API_TOKEN_VAL "HOME_API_TOKEN (must match home-api API_KEYS key; empty=skip)"
+        [ -n "${HOME_API_TOKEN_VAL:-}" ] && set_env "HOME_API_TOKEN" "$HOME_API_TOKEN_VAL"
+        # Keep aliases in sync for skills that still use NETWORK_GUARDIAN_*
+        [ -n "$HOME_API_URL_VAL" ] && set_env "NETWORK_GUARDIAN_URL" "$HOME_API_URL_VAL"
+        [ -n "${HOME_API_TOKEN_VAL:-}" ] && set_env "NETWORK_GUARDIAN_TOKEN" "$HOME_API_TOKEN_VAL"
+    fi
+
+    # ── Metrics URL for investigator ──
+    if component_selected home-noc-metrics || component_selected home-noc-core; then
+        prompt PROM_URL_VAL "PROMETHEUS_URL for investigations" "${PROMETHEUS_URL:-http://127.0.0.1:9090}"
+        [ -n "$PROM_URL_VAL" ] && set_env "PROMETHEUS_URL" "$PROM_URL_VAL"
+    fi
+
+    # ── Firewall adapter (only if component selected) ──
+    if component_selected home-noc-pfsense; then
+        if yesno "Configure pfSense / edge management URL?" "y"; then
+            prompt PFSENSE_MGMT "PFSENSE_MGMT_URL" "${PFSENSE_MGMT_URL:-https://192.168.13.1:440}"
+            [ -n "$PFSENSE_MGMT" ] && set_env "PFSENSE_MGMT_URL" "$PFSENSE_MGMT"
+            [ -n "$PFSENSE_MGMT" ] && set_env "EDGE_MGMT_URL" "$PFSENSE_MGMT"
+        fi
+    fi
+
+    # ── Wireless adapter ──
+    if component_selected home-noc-unifi; then
+        if yesno "Configure UniFi Integration API (wireless metrics)?" "y"; then
+            prompt UNIFI_HOST_VAL "UNIFI_HOST" "${UNIFI_HOST:-https://192.168.100.10:11443}"
+            [ -n "$UNIFI_HOST_VAL" ] && set_env "UNIFI_HOST" "$UNIFI_HOST_VAL"
+            [ -n "$UNIFI_HOST_VAL" ] && set_env "UNIFI_MGMT_URL" "$UNIFI_HOST_VAL"
+            prompt_secret UNIFI_KEY_VAL "UNIFI_API_KEY (Integration API key)"
+            [ -n "${UNIFI_KEY_VAL:-}" ] && set_env "UNIFI_API_KEY" "$UNIFI_KEY_VAL"
+            # Mirror into deploy/home/.env for compose profile unifi when present
+            if [ -f "$NETCLAW_DIR/deploy/home/.env" ]; then
+                _dh="$NETCLAW_DIR/deploy/home/.env"
+                if [ -n "$UNIFI_HOST_VAL" ]; then
+                    if grep -q '^UNIFI_HOST=' "$_dh"; then
+                        sed -i "s|^UNIFI_HOST=.*|UNIFI_HOST=${UNIFI_HOST_VAL}|" "$_dh"
+                    else
+                        echo "UNIFI_HOST=${UNIFI_HOST_VAL}" >> "$_dh"
+                    fi
+                fi
+                if [ -n "${UNIFI_KEY_VAL:-}" ]; then
+                    if grep -q '^UNIFI_API_KEY=' "$_dh"; then
+                        sed -i "s|^UNIFI_API_KEY=.*|UNIFI_API_KEY=${UNIFI_KEY_VAL}|" "$_dh"
+                    else
+                        echo "UNIFI_API_KEY=${UNIFI_KEY_VAL}" >> "$_dh"
+                    fi
+                fi
+            fi
+        fi
+    fi
+
+    # ── SoT stubs (only if selected — no credential prompt for type=none) ──
+    if component_selected home-noc-sot-nautobot; then
+        if yesno "Bind Home SoT to Nautobot credentials now?" "n"; then
+            prompt NAUTOBOT_URL_H "NAUTOBOT_URL" "${NAUTOBOT_URL:-}"
+            prompt_secret NAUTOBOT_TOKEN_H "NAUTOBOT_TOKEN"
+            [ -n "${NAUTOBOT_URL_H:-}" ] && set_env "NAUTOBOT_URL" "$NAUTOBOT_URL_H"
+            [ -n "${NAUTOBOT_TOKEN_H:-}" ] && set_env "NAUTOBOT_TOKEN" "$NAUTOBOT_TOKEN_H"
+        fi
+    fi
+    if component_selected home-noc-sot-netbox; then
+        if yesno "Bind Home SoT to NetBox credentials now?" "n"; then
+            prompt NETBOX_URL_H "NETBOX_URL" "${NETBOX_URL:-}"
+            prompt_secret NETBOX_TOKEN_H "NETBOX_TOKEN"
+            [ -n "${NETBOX_URL_H:-}" ] && set_env "NETBOX_URL" "$NETBOX_URL_H"
+            [ -n "${NETBOX_TOKEN_H:-}" ] && set_env "NETBOX_TOKEN" "$NETBOX_TOKEN_H"
+        fi
+    fi
+
+    # ── Alert-receiver webhook for Docker AM ──
+    if [ "$HOME_DEPLOY_MODE" = "docker" ] && [ -x "$NETCLAW_DIR/deploy/home/render-config.sh" ]; then
+        prompt AR_URL "ALERT_RECEIVER_URL for Alertmanager" \
+            "${ALERT_RECEIVER_URL:-http://host.docker.internal:8099/webhook}"
+        if [ -n "$AR_URL" ]; then
+            # write into deploy/home/.env for render-config.sh
+            _dh="$NETCLAW_DIR/deploy/home/.env"
+            [ -f "$_dh" ] || cp "$NETCLAW_DIR/deploy/home/.env.example" "$_dh" 2>/dev/null || touch "$_dh"
+            if grep -q '^ALERT_RECEIVER_URL=' "$_dh" 2>/dev/null; then
+                sed -i "s|^ALERT_RECEIVER_URL=.*|ALERT_RECEIVER_URL=${AR_URL}|" "$_dh"
+            else
+                echo "ALERT_RECEIVER_URL=${AR_URL}" >> "$_dh"
+            fi
+            (cd "$NETCLAW_DIR/deploy/home" && ./render-config.sh) || true
+        fi
+    fi
+
+    # ── Risk detect + ensure guardian-claw (T054) ──
+    if yesno "Ensure guardian-claw investigator on this risk (idempotent)?" "y"; then
+        if [ -f "$NETCLAW_DIR/scripts/ensure-guardian-claw.py" ]; then
+            # shellcheck disable=SC1091
+            ENSURE_OUT="$(python3 "$NETCLAW_DIR/scripts/ensure-guardian-claw.py" --json 2>/dev/null || true)"
+            if [ -n "$ENSURE_OUT" ]; then
+                HOME_RISK_NAME="$(printf '%s' "$ENSURE_OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("risk") or "-")' 2>/dev/null || echo "-")"
+                HOME_INVESTIGATOR="$(printf '%s' "$ENSURE_OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("investigator") or "-")' 2>/dev/null || echo "-")"
+                ACTION="$(printf '%s' "$ENSURE_OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("action") or "")' 2>/dev/null || true)"
+                MSG="$(printf '%s' "$ENSURE_OUT" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("message") or "")' 2>/dev/null || true)"
+                echo "  risk=$HOME_RISK_NAME investigator=$HOME_INVESTIGATOR action=$ACTION"
+                [ -n "$MSG" ] && echo "  $MSG"
+                ok "guardian-claw ensure ($ACTION)"
+            else
+                skip "guardian-claw ensure (script failed — mesh/DB unavailable?)"
+            fi
+        else
+            skip "ensure-guardian-claw.py missing"
+        fi
+    else
+        skip "guardian-claw ensure"
+    fi
+
+    # ── Optional: start Docker stack now ──
+    if [ "$HOME_DEPLOY_MODE" = "docker" ] && command -v docker >/dev/null 2>&1; then
+        if yesno "Start Docker Home stack now (compose up -d --build)?" "n"; then
+            (cd "$NETCLAW_DIR" && \
+                docker compose -f deploy/home/docker-compose.yml \
+                    --env-file deploy/home/.env up -d --build) && \
+                ok "Docker Home stack started" || skip "Docker Home stack start failed"
+        fi
+    fi
+
+    if [ "$HOME_DEPLOY_MODE" = "k3s" ]; then
+        echo "  K3s apply (when ready):"
+        echo "    kubectl apply -f deploy/home/k8s/secret.yaml"
+        echo "    kubectl apply -k deploy/home/k8s/overlays/greenfield"
+        echo "    ./deploy/home/k8s/smoke-k8s.sh"
+    fi
+else
+    skip "Home NOC (install with: ./scripts/install.sh --profile home)"
+fi
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 3: Your Identity
 # ═══════════════════════════════════════════
 
@@ -891,6 +1079,32 @@ section "Setup Complete"
 echo "  Platform credentials saved to: $OPENCLAW_ENV"
 echo ""
 echo "  What's configured:"
+
+# ── Home NOC summary line (T058) ──
+if [ "${HOME_NOC_TOUCHED:-0}" = "1" ]; then
+    # Fill gaps from env if ensure was skipped
+    if [ "${HOME_RISK_NAME:-}" = "-" ] || [ -z "${HOME_RISK_NAME:-}" ]; then
+        HOME_RISK_NAME="$(grep -E '^N2N_RISK_NAME=' "$OPENCLAW_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)"
+        HOME_RISK_NAME="${HOME_RISK_NAME:--}"
+    fi
+    if [ "${HOME_INVESTIGATOR:-}" = "-" ] || [ -z "${HOME_INVESTIGATOR:-}" ]; then
+        if [ -f "$NETCLAW_DIR/scripts/ensure-guardian-claw.py" ]; then
+            HOME_INVESTIGATOR="$(python3 "$NETCLAW_DIR/scripts/ensure-guardian-claw.py" --json 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get("investigator") or "-")' 2>/dev/null || echo "-")"
+        fi
+    fi
+    if [ -z "${HOME_API_SUMMARY_URL:-}" ]; then
+        HOME_API_SUMMARY_URL="$(grep -E '^HOME_API_URL=' "$OPENCLAW_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)"
+        HOME_API_SUMMARY_URL="${HOME_API_SUMMARY_URL:-$(grep -E '^NETWORK_GUARDIAN_URL=' "$OPENCLAW_ENV" 2>/dev/null | head -1 | cut -d= -f2- || true)}"
+        HOME_API_SUMMARY_URL="${HOME_API_SUMMARY_URL:--}"
+    fi
+    echo ""
+    echo -e "  ${BOLD}Home NOC:${NC}"
+    echo "    risk=${HOME_RISK_NAME} investigator=${HOME_INVESTIGATOR} home-api=${HOME_API_SUMMARY_URL} deploy=${HOME_DEPLOY_MODE}"
+    grep -q "^HOME_API_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "HOME_API_URL" || skip "HOME_API_URL"
+    grep -q "^UNIFI_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "UniFi adapter key" || true
+    grep -q "^PFSENSE_MGMT_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "pfSense mgmt URL" || true
+    echo ""
+fi
 
 grep -q "^NETBOX_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "NetBox" || skip "NetBox"
 grep -q "^NAUTOBOT_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Nautobot" || skip "Nautobot"

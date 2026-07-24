@@ -23,9 +23,17 @@ All responses use the envelope `{"success": bool, "data": ..., "error": {"code",
 
 ## Supported formats
 
-- **Native**: PDF (pymupdf — pages, TOC headings, tables), Markdown, HTML, TXT
+- **Native**: PDF (pymupdf — pages, TOC headings, tables), Markdown, HTML, TXT, **JSON**
+  - OpenAPI 3 / Swagger 2 → structured sections (overview, each method+path, schema list)
+  - Other JSON → pretty-printed text sections
 - **Modern office**: DOCX, XLSX, PPTX, VSDX (Python parsers)
 - **Legacy office**: DOC, XLS, PPT, VSD via LibreOffice headless (`soffice`) conversion — optional system package; other formats work without it
+
+## URL fetch (home-lab aware)
+
+- `RAG_URL_VERIFY_SSL=auto` (default): skip TLS verify for private/local hosts (UniFi/pfSense self-signed)
+- Preview may return `spa_shell` / `thin` / `warning` when the HTML is a JS app shell
+- Private-host transport: system **`curl --http2`** first (UniFi OS often hangs on HTTP/1.1 and on httpx HTTP/2), with short retries
 
 ## Retrieval pipeline
 
@@ -55,6 +63,7 @@ Structure-aware: heading boundaries first, then paragraphs, 400–800 tokens (em
 | `RAG_RELEVANCE_FLOOR` | `0.3` | low_confidence threshold |
 | `RAG_MAX_DOC_MB` / `RAG_MAX_DOC_PAGES` | `100` / `1000` | Per-document caps |
 | `RAG_CRAWL_MAX_PAGES` | `30` | Depth-1 preview bound |
+| `RAG_URL_VERIFY_SSL` | `auto` | `auto` / `true` / `false` — LAN self-signed handling |
 | `RAG_SNAPSHOT_WARN_DAYS` | `90` | Staleness warning |
 | `RAG_MAX_ROUNDS` | `3` | Retrieval rounds per sub-query |
 

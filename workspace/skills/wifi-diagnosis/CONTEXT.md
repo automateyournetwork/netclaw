@@ -188,3 +188,9 @@ Alerts that trigger this skill:
 
 The MCP servers (unifi-network, pfsense, pyats-mcp) are configured separately in
 their own `mcp.json` blocks — NetClaw calls them by name, not by URL.
+
+## UniFi SNMP (enabled 2026-07-24)
+
+SNMP is enabled on the UniFi controller/APs for future monitoring. Prefer Integration API
+(`unifi-network` MCP + unifi-exporter) for channel/width/retries. SNMP may later fill gaps
+the Integration API does not expose (e.g. TX power, airtime) via snmp-exporter — not wired yet.

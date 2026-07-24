@@ -59,6 +59,34 @@ Re-render after changing the URL:
 docker compose -f deploy/home/docker-compose.yml --env-file deploy/home/.env up -d alertmanager
 ```
 
+## Installer profile (Phase 5)
+
+```bash
+./scripts/install.sh --profile home
+./scripts/setup.sh    # adapters + deploy mode + ensure guardian-claw
+python3 scripts/ensure-guardian-claw.py   # idempotent alone
+```
+
+Config example: `config/home-noc.example.yaml`  
+Pilot cutover: [DEPRECATION-PILOT.md](./DEPRECATION-PILOT.md)
+
+## K3s (Phase 4)
+
+Same services via kustomize under [`k8s/`](./k8s/). Namespace **`netclaw-home`**.
+
+```bash
+cp deploy/home/k8s/secret.example.yaml deploy/home/k8s/secret.yaml
+# edit secrets; set alertmanager webhook URL in k8s/base/configs/alertmanager.yml
+docker build -t netclaw-home-api:local ui/home-api
+# load image into cluster (k3s example)
+docker save netclaw-home-api:local | sudo k3s ctr images import -
+kubectl apply -f deploy/home/k8s/secret.yaml
+kubectl apply -k deploy/home/k8s/overlays/greenfield
+./deploy/home/k8s/smoke-k8s.sh
+```
+
+See [k8s/README.md](./k8s/README.md), [k8s/OVERLAY-PILOT.md](./k8s/OVERLAY-PILOT.md) (vs pilot OBS), [k8s/SMOKE.md](./k8s/SMOKE.md).
+
 ## Files
 
 ```text
@@ -71,4 +99,5 @@ prometheus/alerts/home.rules.yml
 alertmanager/alertmanager.yml[.tmpl]
 blackbox/blackbox.yml
 adapters/unifi/
+k8s/                    # Phase 4 kustomize base + overlays
 ```

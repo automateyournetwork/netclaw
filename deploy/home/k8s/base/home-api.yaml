@@ -1,0 +1,163 @@
+# home-api — HUD HOME backend (Docker service: home-api)
+# Build: docker build -t netclaw-home-api:local ui/home-api
+# Load into k3s: docker save netclaw-home-api:local | sudo k3s ctr images import -
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-api
+  labels:
+    app.kubernetes.io/name: home-api
+    app.kubernetes.io/part-of: netclaw-home
+    app.kubernetes.io/component: api
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: home-api
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+---
+# Optional NodePort for single-host lab access from the NetClaw host / HUD.
+# Change type or add Ingress in an overlay for production.
+apiVersion: v1
+kind: Service
+metadata:
+  name: home-api-node
+  labels:
+    app.kubernetes.io/name: home-api
+    app.kubernetes.io/part-of: netclaw-home
+    app.kubernetes.io/component: api
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: home-api
+  ports:
+    - name: http
+      port: 3000
+      targetPort: 3000
+      nodePort: 30080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: home-api
+  labels:
+    app.kubernetes.io/name: home-api
+    app.kubernetes.io/part-of: netclaw-home
+    app.kubernetes.io/component: api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: home-api
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: home-api
+        app.kubernetes.io/part-of: netclaw-home
+        app.kubernetes.io/component: api
+    spec:
+      containers:
+        - name: home-api
+          image: netclaw-home-api:local
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              name: http
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: PORT
+              value: "3000"
+            - name: PUBLIC_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: PUBLIC_URL
+            - name: PGHOST
+              value: postgres
+            - name: PGPORT
+              value: "5432"
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: PGDATABASE
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: PGUSER
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: PGPASSWORD
+            - name: PROMETHEUS_URL
+              value: http://prometheus:9090
+            - name: ALERTMANAGER_URL
+              value: http://alertmanager:9093
+            - name: JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: JWT_SECRET
+            - name: API_KEYS
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: API_KEYS
+            - name: USERS
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: USERS
+            - name: SITES_CONFIG
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: SITES_CONFIG
+            - name: UNIFI_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: UNIFI_HOST
+                  optional: true
+            - name: UNIFI_MGMT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: UNIFI_MGMT_URL
+                  optional: true
+            - name: PFSENSE_MGMT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: PFSENSE_MGMT_URL
+                  optional: true
+            - name: EDGE_MGMT_URL
+              valueFrom:
+                configMapKeyRef:
+                  name: home-api-config
+                  key: EDGE_MGMT_URL
+                  optional: true
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 30

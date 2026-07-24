@@ -7,6 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent / "mcp-servers" / "rag-mcp"))
 
 from ingestion.url_fetcher import (  # noqa: E402
+    assess_html_quality,
     discover_links,
     filename_for_url,
     page_title,
@@ -75,3 +76,27 @@ def test_filename_for_url_stable_and_typed():
     assert fpdf.endswith(".pdf")
     froot = filename_for_url("https://vendor.example/", "text/html")
     assert froot.endswith(".html")
+
+
+def test_assess_html_quality_flags_unifi_spa_shell():
+    spa = (
+        '<!doctype html><html><head><title>UniFi OS</title>'
+        '<script defer src="/main~0.js"></script>'
+        '<script defer src="/main~2.js"></script></head>'
+        '<body><div id="portal-root"></div></body></html>'
+    )
+    q = assess_html_quality(spa, linked_count=0)
+    assert q["spa_shell"] is True
+    assert q["thin"] is True
+    assert q["warning"] and "SPA" in q["warning"]
+
+
+def test_assess_html_quality_ok_for_real_docs():
+    docs = (
+        "<html><head><title>API Guide</title></head><body>"
+        + ("<p>Endpoint documentation for the Network application. " * 20)
+        + '<a href="/docs/auth">Auth</a></body></html>'
+    )
+    q = assess_html_quality(docs, linked_count=1)
+    assert q["spa_shell"] is False
+    assert q["thin"] is False

@@ -4,13 +4,13 @@ Skills define *how* tools work. This file is for *your* specifics — the enviro
 details unique to this deployment.
 
 > **Scope:** NetClaw looks after a **live home/production network** (site "House").
-> The source of truth is **Nautobot at https://192.168.3.253**. A separate
+> The source of truth is **Nautobot at https://nautobot.internal.byrnbaker.me**. A separate
 > ContainerLab demo lab exists on VLAN 220 — see the note at the bottom — but that is
 > NOT the network you monitor for alerts.
 
 ## Source of Truth — Nautobot
 
-- **URL:** https://192.168.3.253
+- **URL:** https://nautobot.internal.byrnbaker.me
 - **Token:** in `~/.openclaw/.env` as `NAUTOBOT_TOKEN` (never hard-code it)
 - Authoritative inventory for all managed devices, VMs, IPs, and VLANs.
 - Query it first (via `nautobot-mcp`) before falling back to the local
@@ -26,6 +26,7 @@ details unique to this deployment.
 | U6-Pro - Basement Laundry Room | 192.168.3.15 | wireless-ap | Ubiquiti | U6-Pro |
 | U6-Pro - Sophies Office | 192.168.3.16 | wireless-ap | Ubiquiti | U6-Pro |
 | r640-pve | proxmox.home.byrnbaker.me:443 | hypervisor | Proxmox VE | Dell PowerEdge R640 |
+| UniFi OS Server | 192.168.100.10:11443 | wireless controller | UniFi OS / Network 10.4.57 | UOS Server |
 
 Credentials for device access are in `~/.openclaw/.env`
 (`NETCLAW_USERNAME` / `NETCLAW_PASSWORD`), consumed by the pyATS testbed via
@@ -131,8 +132,31 @@ this document.
 ```
 Reference only — actual values in .env:
 - Device SSH (switches) → NETCLAW_USERNAME, NETCLAW_PASSWORD
-- Nautobot              → NAUTOBOT_URL (https://192.168.3.253), NAUTOBOT_TOKEN
+- Nautobot              → NAUTOBOT_URL (https://nautobot.internal.byrnbaker.me), NAUTOBOT_TOKEN
 - pfSense               → PFSENSE_URL, PFSENSE_USERNAME, PFSENSE_PASSWORD
+- UniFi                 → UNIFI_HOST, UNIFI_API_KEY, UNIFI_MGMT_URL
 - Proxmox               → PROXMOX_HOST, PROXMOX_TOKEN_NAME, PROXMOX_TOKEN_VALUE
 - pyATS testbed         → PYATS_TESTBED_PATH
+- RAG store             → RAG_DATA_DIR (~/.openclaw/rag)
 ```
+
+## UniFi OS Server + Network Integration API
+
+- **UI / SPA:** `https://192.168.100.10:11443` (self-signed; browser login for Integrations UI)
+- **Integration API base:** `/proxy/network/integration/v1/`
+  - With `X-API-KEY`: `GET …/info` (app version), `GET …/sites`, devices/clients under site id
+- **Not useful for unauthenticated RAG crawl:**
+  - `/unifi-api/network` — SPA shell only (no static docs tree)
+  - `/proxy/network/api-docs/integration.json` — hangs / empty body on this UOS build
+- **OpenAPI for Knowledge (preferred):**
+  `https://developer.ui.com/network/v10.4.57/openapi.json`
+  Ingest as type **vendor** (URL **Ingest page** or file **Upload** — `.json` supported).
+- **TLS:** prefer HTTP/2 (`curl -k --http2`). LAN RAG fetch uses system curl first (httpx hangs on UniFi OS).
+
+## RAG Knowledge (Feature 062) — operator notes
+
+- HUD **Knowledge** panel → same `documents` collection as `rag-mcp` / guardian-claw
+- Formats: PDF, MD, HTML, TXT, **JSON (OpenAPI-aware)**, office suites
+- URL preview flags **SPA shells**; multi-page crawl is for static HTML docs sites
+- Snapshots in the panel = past **investigations**, not crawls
+- Runbook: `docs/runbooks/knowledge-rag-home-ops.md`

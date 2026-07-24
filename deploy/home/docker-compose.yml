@@ -99,6 +99,8 @@ services:
       PGPASSWORD: ${PGPASSWORD:-home_dev_change_me}
       PROMETHEUS_URL: http://prometheus:9090
       ALERTMANAGER_URL: http://alertmanager:9093
+      # Host alert-receiver for Triage "Need More" → /reinvestigate (strip /webhook if present)
+      ALERT_RECEIVER_URL: ${ALERT_RECEIVER_URL:-http://host.docker.internal:8099/webhook}
       JWT_SECRET: ${JWT_SECRET:-change-me-home-api-jwt}
       API_KEYS: ${API_KEYS}
       USERS: ${USERS:-[]}

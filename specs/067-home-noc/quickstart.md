@@ -77,11 +77,71 @@ See [deploy/home/README.md](../../deploy/home/README.md) and [adapters/unifi](..
 | blackbox | 9115 |
 | unifi-exporter | 9899 |
 
-## Later — Full pipeline (PR5)
+## PR4 — K3s minimal
+
+Same logical services as Docker, namespace `netclaw-home` (does not replace pilot `observability`).
+
 ```bash
-./scripts/install.sh --profile home   # when catalog lands
-# Setup ensures risk + guardian-claw; preserves any existing risk
+cd /path/to/netclaw
+
+# 1. Secrets
+cp deploy/home/k8s/secret.example.yaml deploy/home/k8s/secret.yaml
+# edit PGPASSWORD, JWT_SECRET, API_KEYS; optional UNIFI_API_KEY
+kubectl apply -f deploy/home/k8s/secret.yaml
+
+# 2. Alert webhook → agent alert-receiver (edit before apply)
+#    deploy/home/k8s/base/configs/alertmanager.yml
+
+# 3. Image on cluster nodes
+docker build -t netclaw-home-api:local ui/home-api
+docker save netclaw-home-api:local | sudo k3s ctr images import -
+
+# 4. Apply + smoke
+kubectl apply -k deploy/home/k8s/overlays/greenfield
+./deploy/home/k8s/smoke-k8s.sh
+# Full checklist: deploy/home/k8s/SMOKE.md
+# Pilot dual-run notes: deploy/home/k8s/OVERLAY-PILOT.md
+
+# 5. HUD
+# kubectl -n netclaw-home port-forward svc/home-api 3080:3000
+# or NodePort :30080
+# HOME_API_URL=http://127.0.0.1:3080
+# HOME_API_TOKEN=<API_KEYS key>
 ```
+
+## PR5 — Installer + guardian ensure
+
+```bash
+cd /path/to/netclaw
+
+# Install Home components (catalog profile)
+./scripts/install.sh --profile home
+# Or add: ./scripts/install.sh --add "home-noc-core home-noc-metrics visual-hud"
+
+# Credentials + adapters (only prompts for selected components)
+./scripts/setup.sh
+# Summary line: risk=… investigator=… home-api=… deploy=…
+
+# Idempotent investigator ensure (standalone OK anytime)
+python3 scripts/ensure-guardian-claw.py
+# Existing guardian-claw → no-op; missing → provision + staging scaffold
+
+# Config example
+cp config/home-noc.example.yaml ~/.openclaw/home-noc.yaml
+
+# HUD unit template: scripts/systemd/netclaw-hud.service
+# Pilot deprecation path: deploy/home/DEPRECATION-PILOT.md
+```
+
+## PR6 — HOME Triage loop
+
+1. Open HUD → **HOME** → **Triage**
+2. Escalated cases list on the left; select one for notes + feedback
+3. **Correct / Partial / Incorrect / Resolve** → `PATCH /api/events/:id`
+4. **Need More** → `POST /api/events/:id/reinvestigate` (reopens as investigating; home-api may call host `ALERT_RECEIVER_URL` `/reinvestigate`)
+5. Diary and triage show **RAG id** when `rag_document_id` is set
+
+Contract: `specs/067-home-noc/contracts/home-api.md`
 
 ## Deploy mode choice
 | Mode | Use when |

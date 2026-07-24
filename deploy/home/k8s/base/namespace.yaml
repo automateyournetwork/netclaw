@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netclaw-home
+  labels:
+    app.kubernetes.io/part-of: netclaw-home
+    app.kubernetes.io/name: netclaw-home

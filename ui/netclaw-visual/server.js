@@ -1596,14 +1596,78 @@ function buildChatResponse(message, activations, graph) {
 // mcp-call.py child-process helper (one uniform access path).
 // ============================================================
 const RAG_MCP_CALL = path.join(ROOT, 'scripts', 'mcp-call.py');
-const RAG_SERVER_CMD = `python3 -u ${path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')}`;
+// Prefer project venv (has beautifulsoup4/httpx/etc for URL ingest); fall back to PATH python3.
+const RAG_PYTHON = (() => {
+  const candidates = [
+    process.env.RAG_PYTHON,
+    path.join(ROOT, '.venv', 'bin', 'python3'),
+    path.join(os.homedir(), 'netclaw', '.venv', 'bin', 'python3'),
+  ].filter(Boolean);
+  for (const c of candidates) {
+    try {
+      if (fs.existsSync(c)) return c;
+    } catch {
+      /* ignore */
+    }
+  }
+  return 'python3';
+})();
+const RAG_SERVER_CMD = `${RAG_PYTHON} -u ${path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')}`;
 const RAG_DATA_DIR = process.env.RAG_DATA_DIR
   ? process.env.RAG_DATA_DIR.replace(/^~/, os.homedir())
   : path.join(os.homedir(), '.openclaw', 'rag');
 const RAG_INTAKE_DIR = path.join(RAG_DATA_DIR, 'intake');
 const RAG_MAX_DOC_MB = parseInt(process.env.RAG_MAX_DOC_MB || '100', 10);
-const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
+const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt', '.json',
   '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
+
+/** Normalize FastMCP / mcp-call.py tool results into { success, data } | { success:false, error }. */
+function normalizeRagToolResult(result) {
+  if (!result || typeof result !== 'object') {
+    return { success: false, error: { message: String(result) } };
+  }
+  // Already in our success_response / error_response shape
+  if (typeof result.success === 'boolean') return result;
+
+  // FastMCP error tool result: { content: [{text: "Error calling tool..."}], isError: true }
+  if (result.isError) {
+    const text = result.content?.[0]?.text || result.message || 'rag tool error';
+    return { success: false, error: { message: String(text) } };
+  }
+
+  if (result.structuredContent && typeof result.structuredContent === 'object') {
+    return normalizeRagToolResult(result.structuredContent);
+  }
+
+  const text = result.content?.[0]?.text;
+  if (typeof text === 'string' && text.trim()) {
+    const trimmed = text.trim();
+    // JSON string body (NETCLAW_GCF_MODE=off → gcf_dumps does json.dumps)
+    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+      try {
+        return normalizeRagToolResult(JSON.parse(trimmed));
+      } catch {
+        /* fall through */
+      }
+    }
+    // GCF compact text (legacy / accidental): surface a clear error
+    if (trimmed.startsWith('GCF profile=') || trimmed.includes('success=true')) {
+      return {
+        success: false,
+        error: {
+          message:
+            'rag-mcp returned GCF-encoded text; HUD needs JSON. '
+            + 'Ensure NETCLAW_GCF_MODE=off for the HUD rag-mcp child process.',
+          raw: trimmed.slice(0, 400),
+        },
+      };
+    }
+    // Plain-text tool error
+    return { success: false, error: { message: trimmed } };
+  }
+
+  return { success: true, data: result };
+}
 
 function callRagTool(tool, args = {}, timeoutSec = 300) {
   return new Promise((resolve, reject) => {
@@ -1613,20 +1677,47 @@ function callRagTool(tool, args = {}, timeoutSec = 300) {
       {
         timeout: (timeoutSec + 30) * 1000,
         maxBuffer: 64 * 1024 * 1024,
-        env: { ...process.env, MCP_CALL_TIMEOUT: String(timeoutSec) },
+        env: {
+          ...process.env,
+          MCP_CALL_TIMEOUT: String(timeoutSec),
+          RAG_DATA_DIR,
+          // Ensure nested python from server cmd sees the venv libs
+          PATH: `${path.dirname(RAG_PYTHON)}${path.delimiter}${process.env.PATH || ''}`,
+          // HUD needs machine-readable JSON tool results — not GCF compact text
+          // (agents keep NETCLAW_GCF_MODE for token savings; this child process does not).
+          NETCLAW_GCF_MODE: 'off',
+        },
       },
       (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        try {
-          const result = JSON.parse(stdout);
-          // FastMCP: prefer structuredContent, else the JSON text content block
-          const payload = result.structuredContent
-            || (result.content && result.content[0] && JSON.parse(result.content[0].text))
-            || result;
-          resolve(payload);
-        } catch (parseErr) {
-          reject(new Error(`Unparseable rag-mcp response: ${parseErr.message}`));
+        if (err) {
+          const detail = (stderr || '').trim() || err.message;
+          return reject(new Error(detail));
         }
+        const out = (stdout || '').trim();
+        if (!out) {
+          return reject(new Error(`Empty rag-mcp response${stderr ? `: ${stderr.trim()}` : ''}`));
+        }
+        // mcp-call.py prints json.dumps(..., indent=2) — multi-line object is normal.
+        // Also tolerate any log lines before/after the JSON object.
+        let parsed = null;
+        try {
+          parsed = JSON.parse(out);
+        } catch {
+          const start = out.indexOf('{');
+          const end = out.lastIndexOf('}');
+          if (start >= 0 && end > start) {
+            try {
+              parsed = JSON.parse(out.slice(start, end + 1));
+            } catch {
+              /* fall through */
+            }
+          }
+        }
+        if (!parsed) {
+          const snippet = out.slice(0, 200).replace(/\s+/g, ' ');
+          return reject(new Error(`Unparseable rag-mcp response: ${snippet}`));
+        }
+        resolve(normalizeRagToolResult(parsed));
       }
     );
   });
@@ -1639,24 +1730,41 @@ const ragLastStatus = new Map();
 
 function ragStartProgressPolling() {
   if (ragPollTimer) return;
+  // First tick only seeds status map — do NOT broadcast every historical
+  // ready snapshot (that flooded the Knowledge panel with wifidegraded24ghz etc.).
+  let seeded = false;
   ragPollTimer = setInterval(async () => {
     try {
       const listing = await callRagTool('rag_list', {}, 60);
       const docs = [...(listing.data?.documents || []), ...(listing.data?.snapshots || [])];
       let anyPending = false;
       for (const doc of docs) {
+        const status = doc.ingest_status || 'ready';
         const prev = ragLastStatus.get(doc.id);
-        if (prev !== doc.ingest_status) {
-          ragLastStatus.set(doc.id, doc.ingest_status);
+        if (prev === undefined) {
+          // Seed baseline; only broadcast if this is a truly new non-terminal job
+          ragLastStatus.set(doc.id, status);
+          if (!seeded && !['ready', 'error'].includes(status)) {
+            broadcastWS('rag_progress', {
+              document_id: doc.id,
+              title: doc.title,
+              status,
+              error: doc.error || null,
+            });
+          }
+        } else if (prev !== status) {
+          ragLastStatus.set(doc.id, status);
           broadcastWS('rag_progress', {
             document_id: doc.id,
             title: doc.title,
-            status: doc.ingest_status,
+            status,
             error: doc.error || null,
+            chunk_count: doc.chunk_count,
           });
         }
-        if (!['ready', 'error'].includes(doc.ingest_status)) anyPending = true;
+        if (!['ready', 'error'].includes(status)) anyPending = true;
       }
+      seeded = true;
       if (!anyPending) {
         clearInterval(ragPollTimer);
         ragPollTimer = null;
@@ -1698,6 +1806,270 @@ const ragUpload = multer({
     filename: (req, file, cb) => cb(null, path.basename(file.originalname)),
   }),
   limits: { fileSize: RAG_MAX_DOC_MB * 1024 * 1024 },
+});
+
+/**
+ * Two-phase URL ingest (rag_ingest_url).
+ * POST { url, mode: "preview"|"ingest", include_linked?, scope_token?, doc_type?, title? }
+ */
+app.post('/api/rag/ingest-url', async (req, res) => {
+  const url = String(req.body?.url || '').trim();
+  const mode = (req.body?.mode || 'preview').toLowerCase();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ error: 'url is required (http or https)' });
+  }
+  if (mode !== 'preview' && mode !== 'ingest') {
+    return res.status(400).json({ error: "mode must be 'preview' or 'ingest'" });
+  }
+  const args = {
+    url,
+    mode,
+    include_linked: Boolean(req.body?.include_linked),
+    doc_type: req.body?.doc_type || 'other',
+  };
+  if (req.body?.scope_token) args.scope_token = req.body.scope_token;
+  if (req.body?.title) args.title = req.body.title;
+  // Self-signed local gear (UniFi :11443, pfSense, etc.)
+  if (req.body?.verify_ssl === false || req.body?.insecure === true) {
+    args.verify_ssl = false;
+  } else if (req.body?.verify_ssl === true) {
+    args.verify_ssl = true;
+  }
+
+  try {
+    if (mode === 'ingest') {
+      res.status(202).json({ status: 'pending', url, mode: 'ingest' });
+      ragStartProgressPolling();
+      try {
+        const result = await callRagTool('rag_ingest_url', args, 900);
+        if (result.success) {
+          const pages = result.data?.pages || [];
+          const firstOk = pages.find((p) => p?.success || p?.data?.document_id);
+          const docId = firstOk?.data?.document_id || firstOk?.document_id || null;
+          const title = firstOk?.data?.title || result.data?.title || url;
+          broadcastWS('rag_progress', {
+            document_id: docId,
+            title,
+            status: 'ready',
+            error: null,
+            pages_ingested: result.data?.ingested,
+          });
+        } else {
+          broadcastWS('rag_progress', {
+            document_id: null,
+            title: url,
+            status: 'error',
+            error: result.error?.message || 'URL ingest failed',
+          });
+        }
+      } catch (ingestErr) {
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: url,
+          status: 'error',
+          error: ingestErr.message,
+        });
+      }
+      broadcastWS('rag_update', { documents_changed: true });
+      return;
+    }
+
+    // preview — synchronous so the UI can show linked pages + scope_token
+    const result = await callRagTool('rag_ingest_url', args, 120);
+    if (!result.success) {
+      return res.status(500).json(result.error || { error: 'preview failed' });
+    }
+    res.json(result.data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+/**
+ * Multi-page docs-site crawl → Markdown → rag_ingest (HUD "Crawl site to RAG").
+ * Body: { url, max_pages?, depth?, insecure?, doc_type?, title? }
+ * Runs async (202); progress via rag_progress / rag_update WS events.
+ */
+app.post('/api/rag/crawl-site', async (req, res) => {
+  const url = String(req.body?.url || '').trim();
+  if (!url || !/^https?:\/\//i.test(url)) {
+    return res.status(400).json({ error: 'url is required (http or https)' });
+  }
+  const maxPages = Math.min(Math.max(parseInt(req.body?.max_pages, 10) || 60, 1), 150);
+  const depth = Math.min(Math.max(parseInt(req.body?.depth, 10) || 2, 0), 5);
+  const insecure = Boolean(
+    req.body?.insecure === true
+    || req.body?.verify_ssl === false
+  );
+  const docType = req.body?.doc_type || 'vendor';
+  const titleHint = req.body?.title || null;
+
+  const hostSafe = url.replace(/^https?:\/\//i, '').replace(/[^\w.-]+/g, '_').slice(0, 80);
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+  fs.mkdirSync(RAG_INTAKE_DIR, { recursive: true });
+  const outBase = path.join(RAG_INTAKE_DIR, `crawl_${hostSafe}_${stamp}`);
+  const outPdf = `${outBase}.pdf`;
+  const outMd = `${outBase}.md`;
+  const script = path.join(ROOT, 'scripts', 'docs-site-to-pdf.py');
+  if (!fs.existsSync(script)) {
+    return res.status(500).json({ error: 'docs-site-to-pdf.py not found in repo' });
+  }
+
+  const label = `crawl:${url}`;
+  res.status(202).json({
+    status: 'pending',
+    url,
+    max_pages: maxPages,
+    depth,
+    out_pdf: outPdf,
+    out_md: outMd,
+  });
+
+  broadcastWS('rag_progress', {
+    document_id: null,
+    title: label,
+    status: 'crawling',
+    error: null,
+  });
+  ragStartProgressPolling();
+
+  const args = [
+    script,
+    '--start-url', url,
+    '--out', outPdf,
+    '--max-pages', String(maxPages),
+    '--depth', String(depth),
+    '--delay', '0.25',
+    '--markdown',
+  ];
+  if (insecure) args.push('--insecure');
+
+  execFile(
+    RAG_PYTHON,
+    args,
+    {
+      timeout: 30 * 60 * 1000,
+      maxBuffer: 16 * 1024 * 1024,
+      env: {
+        ...process.env,
+        PATH: `${path.dirname(RAG_PYTHON)}${path.delimiter}${process.env.PATH || ''}`,
+        RAG_DATA_DIR,
+        NETCLAW_GCF_MODE: 'off',
+      },
+    },
+    async (err, stdout, stderr) => {
+      const outText = `${stdout || ''}\n${stderr || ''}`.trim();
+      // Script prints "[  3/60] d=0 'Title'" per page and "Writing PDF (N pages)"
+      const pageHits = [...outText.matchAll(/\[\s*(\d+)\//g)].map((m) => parseInt(m[1], 10));
+      const pagesFromLog = pageHits.length ? Math.max(...pageHits) : 0;
+      const writingMatch = outText.match(/Writing PDF \((\d+) pages\)/i);
+      const pagesReported = writingMatch ? parseInt(writingMatch[1], 10) : pagesFromLog;
+
+      if (err) {
+        const msg = (stderr || err.message || 'crawl failed').toString().slice(0, 800);
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: label,
+          status: 'error',
+          error: msg,
+          detail: pagesReported ? `crawl stopped after ~${pagesReported} page(s)` : null,
+        });
+        broadcastWS('rag_update', { documents_changed: true });
+        return;
+      }
+
+      // Prefer Markdown for RAG chunking; fall back to PDF
+      const ingestPath = fs.existsSync(outMd) ? outMd : outPdf;
+      if (!fs.existsSync(ingestPath)) {
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: label,
+          status: 'error',
+          error: `Crawl finished but no output file. Often means every page was empty HTML (JS-only SPA). stdout: ${(stdout || '').slice(0, 240)}`,
+        });
+        broadcastWS('rag_update', { documents_changed: true });
+        return;
+      }
+
+      const byteSize = fs.statSync(ingestPath).size;
+      const textSample = ingestPath.endsWith('.md')
+        ? fs.readFileSync(ingestPath, 'utf8')
+        : '';
+      const charCount = textSample.length;
+      // Quality gate: refuse clearly empty / SPA-shell crawls
+      const minPages = 2;
+      const minChars = 1500;
+      const thin =
+        (pagesReported > 0 && pagesReported < minPages)
+        || (charCount > 0 && charCount < minChars)
+        || (byteSize < 2500 && pagesReported <= 1);
+
+      if (thin) {
+        const reason = [
+          pagesReported ? `${pagesReported} page(s) crawled` : 'unknown page count',
+          charCount ? `${charCount} chars in markdown` : `${byteSize} byte file`,
+          'Too thin for useful API docs — site is likely a JS SPA shell, not server-rendered HTML.',
+          'Try an official public docs URL, or export/print PDF from the browser, then Upload file.',
+        ].join(' · ');
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: label,
+          status: 'error',
+          error: reason,
+          pages_crawled: pagesReported,
+          file_bytes: byteSize,
+        });
+        broadcastWS('rag_update', { documents_changed: true });
+        return;
+      }
+
+      broadcastWS('rag_progress', {
+        document_id: null,
+        title: label,
+        status: 'parsing',
+        error: null,
+        detail: `crawled ${pagesReported || '?'} page(s), ${(byteSize / 1024).toFixed(0)} KiB → indexing`,
+      });
+
+      try {
+        const result = await callRagTool('rag_ingest', {
+          file_path: ingestPath,
+          doc_type: docType,
+          source: `hud-crawl:${url}`,
+          ...(titleHint ? { title: titleHint } : {
+            title: `Docs crawl: ${url.replace(/^https?:\/\//, '').slice(0, 80)} (${pagesReported || '?'} pages)`,
+          }),
+        }, 900);
+        if (result.success) {
+          broadcastWS('rag_progress', {
+            document_id: result.data?.document_id || null,
+            title: result.data?.title || label,
+            status: 'ready',
+            error: null,
+            detail: `OK · ${pagesReported || '?'} pages · ${result.data?.chunk_count ?? '?'} chunks`,
+            pages_crawled: pagesReported,
+            file: ingestPath,
+            chunk_count: result.data?.chunk_count,
+          });
+        } else {
+          broadcastWS('rag_progress', {
+            document_id: null,
+            title: label,
+            status: 'error',
+            error: result.error?.message || 'rag_ingest after crawl failed',
+          });
+        }
+      } catch (ingestErr) {
+        broadcastWS('rag_progress', {
+          document_id: null,
+          title: label,
+          status: 'error',
+          error: ingestErr.message,
+        });
+      }
+      broadcastWS('rag_update', { documents_changed: true });
+    },
+  );
 });
 
 app.post('/api/rag/upload', (req, res) => {

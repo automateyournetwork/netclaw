@@ -13,10 +13,19 @@ const SUBVIEWS = [
 
 const SITE = 'home';
 
-async function homeFetch(path) {
+async function homeFetch(path, options = {}) {
+  const method = (options.method || 'GET').toUpperCase();
+  const headers = { Accept: 'application/json', ...(options.headers || {}) };
+  let body;
+  if (options.body != null && method !== 'GET' && method !== 'HEAD') {
+    headers['Content-Type'] = 'application/json';
+    body = typeof options.body === 'string' ? options.body : JSON.stringify(options.body);
+  }
   const res = await fetch(`/api/home${path}`, {
-    headers: { Accept: 'application/json' },
-    signal: AbortSignal.timeout(20000),
+    method,
+    headers,
+    body,
+    signal: AbortSignal.timeout(options.timeoutMs || 25000),
   });
   const text = await res.text();
   let data = null;
@@ -75,6 +84,10 @@ export class HomeView {
     this.cache = {};
     this.lastError = null;
     this.loading = false;
+    /** @type {string|null} selected escalated event id */
+    this.selectedEventId = null;
+    this.triageBusy = false;
+    this.triageFlash = null; // { kind, message }
   }
 
   mount() {
@@ -126,6 +139,118 @@ export class HomeView {
       });
     });
     this.element.querySelector('#home-refresh')?.addEventListener('click', () => this.refresh(true));
+
+    // Triage actions (event delegation — panel body is re-rendered often)
+    this.element.addEventListener('click', (ev) => {
+      const sel = ev.target.closest('[data-triage-select]');
+      if (sel) {
+        this.selectedEventId = sel.getAttribute('data-triage-select');
+        this.renderSubview();
+        return;
+      }
+      const actionBtn = ev.target.closest('[data-triage-action]');
+      if (actionBtn && !this.triageBusy) {
+        const action = actionBtn.getAttribute('data-triage-action');
+        const id = actionBtn.getAttribute('data-event-id') || this.selectedEventId;
+        if (id && action) this.handleTriageAction(action, id);
+      }
+    });
+  }
+
+  getEscalatedEvents() {
+    const raw = this.cache.escalated;
+    return raw?.events || raw?.items || (Array.isArray(raw) ? raw : []);
+  }
+
+  getSelectedEvent() {
+    const events = this.getEscalatedEvents();
+    if (!events.length) return null;
+    if (this.selectedEventId) {
+      const found = events.find((e) => String(e.id) === String(this.selectedEventId));
+      if (found) return found;
+    }
+    return events[0];
+  }
+
+  notesFromForm(eventId) {
+    const elId = `triage-notes-${String(eventId)}`;
+    const ta = this.element?.querySelector(`textarea[id="${elId}"]`);
+    return (ta?.value || '').trim();
+  }
+
+  async handleTriageAction(action, eventId) {
+    if (this.triageBusy) return;
+    this.triageBusy = true;
+    this.triageFlash = null;
+    this.renderSubview();
+    const notes = this.notesFromForm(eventId);
+    try {
+      if (action === 'need_more') {
+        const res = await homeFetch(`/events/${encodeURIComponent(eventId)}/reinvestigate?site=${SITE}`, {
+          method: 'POST',
+          body: { expert_feedback: notes || undefined, site: SITE },
+        });
+        const st = res?.reinvestigate?.status || 'accepted';
+        this.triageFlash = {
+          kind: st === 'error' ? 'error' : 'ok',
+          message:
+            st === 'skipped'
+              ? 'Case reopened as investigating. Alert-receiver not configured on home-api (set ALERT_RECEIVER_URL to re-hook guardian-claw).'
+              : st === 'error'
+                ? `Reinvestigate partial: case reopened, but receiver error: ${res?.reinvestigate?.reason || res?.reinvestigate?.detail?.message || 'unknown'}`
+                : 'Need More sent — case is investigating; investigator will re-run.',
+        };
+        this.selectedEventId = null;
+      } else {
+        // Feedback buttons: correct | partial | incorrect | resolve
+        const qualityMap = {
+          correct: 'correct',
+          partial: 'partially_correct',
+          incorrect: 'incorrect',
+          resolve: null,
+        };
+        const feedback_quality = qualityMap[action];
+        const body = {
+          expert_feedback: notes || undefined,
+        };
+        if (feedback_quality) body.feedback_quality = feedback_quality;
+        if (action === 'correct' || action === 'resolve') {
+          body.status = 'resolved';
+          body.severity = action === 'correct' ? 'ok' : undefined;
+        }
+        // incorrect / partial stay escalated unless notes say otherwise
+        await homeFetch(`/events/${encodeURIComponent(eventId)}?site=${SITE}`, {
+          method: 'PATCH',
+          body,
+        });
+        this.triageFlash = {
+          kind: 'ok',
+          message:
+            action === 'correct'
+              ? 'Marked correct and resolved.'
+              : action === 'partial'
+                ? 'Marked partially correct — still escalated for follow-up.'
+                : action === 'incorrect'
+                  ? 'Marked incorrect — still escalated; add notes and Need More if re-run needed.'
+                  : 'Case resolved.',
+        };
+        if (action === 'correct' || action === 'resolve') this.selectedEventId = null;
+      }
+      // Refresh queue
+      this.cache.escalated = await homeFetch(`/events/escalated?site=${SITE}`).catch(async () =>
+        homeFetch(`/events?site=${SITE}&status=escalated&limit=20`),
+      );
+      // Keep diary warm
+      this.cache.events = await homeFetch(`/events?site=${SITE}&limit=30`).catch(() => this.cache.events);
+    } catch (err) {
+      this.triageFlash = {
+        kind: 'error',
+        message: err.message || String(err),
+      };
+    } finally {
+      this.triageBusy = false;
+      this.renderSubview();
+    }
   }
 
   async refresh(force = false) {
@@ -539,13 +664,19 @@ export class HomeView {
     const alerts = this.cache.alerts;
     const firing = alerts?.firing || alerts?.alerts || [];
     const rows = events
-      .map((e) => `<tr>
+      .map((e) => {
+        const rag = e.rag_document_id
+          ? `<code class="home-rag-id" title="RAG snapshot id">${esc(e.rag_document_id)}</code>`
+          : '<span class="home-muted">—</span>';
+        return `<tr>
         <td>${esc((e.timestamp || e.created_at || '').toString().slice(0, 19))}</td>
         <td class="${statusClass(e.status)}">${esc(e.status)}</td>
         <td class="${statusClass(e.severity)}">${esc(e.severity)}</td>
         <td>${esc(e.alert_name || e.category || '')}</td>
-        <td>${esc((e.message || '').slice(0, 120))}</td>
-      </tr>`)
+        <td>${esc((e.message || '').slice(0, 100))}</td>
+        <td>${rag}</td>
+      </tr>`;
+      })
       .join('');
 
     const alertRows = (Array.isArray(firing) ? firing : [])
@@ -570,8 +701,8 @@ export class HomeView {
         </p>` : ''}
       <div class="home-table-wrap">
         <table class="home-table">
-          <thead><tr><th>When</th><th>Status</th><th>Sev</th><th>Alert</th><th>Message</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="5">No diary events yet</td></tr>'}</tbody>
+          <thead><tr><th>When</th><th>Status</th><th>Sev</th><th>Alert</th><th>Message</th><th>RAG id</th></tr></thead>
+          <tbody>${rows || '<tr><td colspan="6">No diary events yet</td></tr>'}</tbody>
         </table>
       </div>
       ${alertRows ? `
@@ -586,31 +717,119 @@ export class HomeView {
   }
 
   htmlTriage() {
-    const raw = this.cache.escalated;
-    const events = raw?.events || raw?.items || (Array.isArray(raw) ? raw : []);
-    const rows = events
-      .map((e) => `<tr>
-        <td>${esc((e.timestamp || '').toString().slice(0, 19))}</td>
-        <td>${esc(e.alert_name || '')}</td>
-        <td>${esc((e.message || '').slice(0, 100))}</td>
-        <td>${esc((e.root_cause || '').slice(0, 80))}</td>
-      </tr>`)
+    const events = this.getEscalatedEvents();
+    const selected = this.getSelectedEvent();
+    const flash = this.triageFlash
+      ? `<div class="home-banner home-banner-${esc(this.triageFlash.kind === 'error' ? 'error' : 'ok')}" style="margin-bottom:12px">
+           <span class="home-badge">${this.triageFlash.kind === 'error' ? 'Error' : 'Done'}</span>
+           <p class="home-muted" style="margin:8px 0 0">${esc(this.triageFlash.message)}</p>
+         </div>`
+      : '';
+    const busy = this.triageBusy ? ' is-busy' : '';
+
+    const list = events
+      .map((e) => {
+        const active = selected && String(e.id) === String(selected.id) ? ' active' : '';
+        const when = (e.escalated_at || e.timestamp || '').toString().slice(0, 19);
+        return `
+          <button type="button" class="home-triage-item${active}" data-triage-select="${esc(e.id)}">
+            <span class="home-triage-item-when">${esc(when)}</span>
+            <span class="home-triage-item-alert">${esc(e.alert_name || 'case')}</span>
+            <span class="home-triage-item-msg">${esc((e.message || '').slice(0, 90))}</span>
+            ${e.rag_document_id ? '<span class="home-rag-chip" title="RAG document">RAG</span>' : ''}
+          </button>`;
+      })
       .join('');
+
+    let detail = `
+      <div class="home-triage-empty">
+        <p class="home-muted">No escalated cases. Cases appear when the investigator sets
+        <code>status=escalated</code> (needs human action). Use Diary for the full timeline.</p>
+      </div>`;
+
+    if (selected) {
+      const id = selected.id;
+      const ragBlock = selected.rag_document_id
+        ? `<div class="home-triage-field">
+             <span class="home-triage-label">RAG document</span>
+             <code class="home-rag-id">${esc(selected.rag_document_id)}</code>
+             ${selected.rag_snapshotted_at ? `<span class="home-muted"> · ${esc(String(selected.rag_snapshotted_at).slice(0, 19))}</span>` : ''}
+           </div>`
+        : `<div class="home-triage-field">
+             <span class="home-triage-label">RAG document</span>
+             <span class="home-muted">Not snapshotted yet</span>
+           </div>`;
+
+      detail = `
+        <div class="home-triage-detail${busy}">
+          <div class="home-triage-detail-head">
+            <div>
+              <p class="eyebrow">${esc(selected.alert_name || 'Investigation')}</p>
+              <h3 class="home-triage-title">${esc(selected.message || 'Escalated case')}</h3>
+            </div>
+            <span class="home-badge crit">escalated</span>
+          </div>
+          <div class="home-triage-meta">
+            <span>id <code>${esc(String(id).slice(0, 8))}…</code></span>
+            <span class="${statusClass(selected.severity)}">sev ${esc(selected.severity || '—')}</span>
+            <span>${esc((selected.escalated_at || selected.timestamp || '').toString().slice(0, 19))}</span>
+          </div>
+          <div class="home-triage-field">
+            <span class="home-triage-label">Root cause</span>
+            <p>${esc(selected.root_cause || '—')}</p>
+          </div>
+          <div class="home-triage-field">
+            <span class="home-triage-label">Investigation notes</span>
+            <pre class="home-triage-notes-pre">${esc(selected.investigation_notes || '—')}</pre>
+          </div>
+          ${ragBlock}
+          ${selected.expert_feedback ? `
+            <div class="home-triage-field">
+              <span class="home-triage-label">Prior operator feedback</span>
+              <p>${esc(selected.expert_feedback)}
+                ${selected.feedback_quality ? ` <span class="home-muted">(${esc(selected.feedback_quality)})</span>` : ''}
+              </p>
+            </div>` : ''}
+          <label class="home-triage-field" for="triage-notes-${esc(id)}">
+            <span class="home-triage-label">Your notes (optional)</span>
+            <textarea id="triage-notes-${esc(id)}" class="home-triage-textarea" rows="3"
+              placeholder="Context for the investigator or diary…"></textarea>
+          </label>
+          <div class="home-triage-actions" role="group" aria-label="Feedback">
+            <button type="button" class="home-triage-btn ok" data-triage-action="correct" data-event-id="${esc(id)}"
+              ${this.triageBusy ? 'disabled' : ''}>Correct</button>
+            <button type="button" class="home-triage-btn warn" data-triage-action="partial" data-event-id="${esc(id)}"
+              ${this.triageBusy ? 'disabled' : ''}>Partial</button>
+            <button type="button" class="home-triage-btn crit" data-triage-action="incorrect" data-event-id="${esc(id)}"
+              ${this.triageBusy ? 'disabled' : ''}>Incorrect</button>
+            <button type="button" class="home-triage-btn accent" data-triage-action="need_more" data-event-id="${esc(id)}"
+              ${this.triageBusy ? 'disabled' : ''}>Need More</button>
+            <button type="button" class="home-triage-btn ghost" data-triage-action="resolve" data-event-id="${esc(id)}"
+              ${this.triageBusy ? 'disabled' : ''}>Resolve</button>
+          </div>
+          <p class="home-muted home-triage-hint">
+            <strong>Need More</strong> reopens the case as <code>investigating</code> and re-triggers the host
+            investigation pipe when alert-receiver is reachable. Other buttons write operator feedback via PATCH.
+          </p>
+        </div>`;
+    }
 
     return `
       <div class="home-panel-header">
         <div><p class="eyebrow">Operator queue</p><h2>TRIAGE</h2></div>
-        <span class="home-badge">Live · escalated</span>
+        <span class="home-badge">Live · ${esc(String(events.length))} escalated</span>
       </div>
+      ${flash}
       <p class="home-muted" style="margin-bottom:12px">
-        Escalated cases appear after investigations mark events <code>escalated</code>.
-        Feedback + reinvestigate UI is Phase 6. Empty queue is expected until the agent posts events.
+        Review escalated investigations, leave feedback, or request a deeper re-run without leaving the HUD.
       </p>
-      <div class="home-table-wrap">
-        <table class="home-table">
-          <thead><tr><th>When</th><th>Alert</th><th>Message</th><th>Root cause</th></tr></thead>
-          <tbody>${rows || '<tr><td colspan="4">No escalated cases</td></tr>'}</tbody>
-        </table>
+      <div class="home-triage-layout">
+        <div class="home-triage-list" role="listbox" aria-label="Escalated cases">
+          ${list || '<p class="home-muted">Queue empty</p>'}
+        </div>
+        <div class="home-triage-detail-wrap">
+          ${detail}
+        </div>
       </div>
     `;
   }

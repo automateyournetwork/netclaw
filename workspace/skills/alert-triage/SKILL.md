@@ -1,37 +1,68 @@
 ---
 name: alert-triage
-description: "Investigate alerts from the home network observability stack. Receives enriched alert context (device name, IP, platform, role) from the alert receiver webhook and uses appropriate MCP tools to diagnose. Covers pfSense, Cisco switches, Proxmox nodes, and Linux hosts."
+description: "Investigate alerts from the home/edge observability stack via adapters (firewall, wireless, SoT). Receives enriched alert context (device name, IP, platform, role) from the alert receiver webhook and uses MCP tools matched to platform. Multi-vendor: edge firewalls (pfSense first), wireless controllers (UniFi first), switches, hypervisors, and Linux hosts."
 user-invocable: true
 metadata:
-  { "openclaw": { "requires": { "bins": ["python3"], "env": ["PROMETHEUS_URL"] } } }
+  { "openclaw": { "requires": { "bins": ["python3"], "env": ["PROMETHEUS_URL"] }, "optional": { "env": ["RAG_DATA_DIR"] } } }
 ---
 
 # Alert Triage
 
 Investigate alerts received from the observability stack (Prometheus → Alertmanager → NetClaw Alert Receiver).
 
-## Delegation (MANDATORY — do this FIRST)
+## Delegation (MANDATORY for Border — iN2N / Risk of NetClaws)
 
-If you are the **Border** (i.e. you have `n2n_route` available and are NOT already
-a member executing a delegated task), you MUST delegate this investigation to the
-`guardian-claw` member rather than investigating directly. guardian-claw has a
-scoped toolset (observability MCP servers only) and runs on a cost-efficient model.
+This install is an iN2N **risk** (name from `N2N_RISK_NAME`, e.g. a home pilot):
+the Border (main gateway) is the **brain** — it understands the request and
+**follows skill direction**. Heavy investigation runs on **member claws** with
+scoped tools and their own models (typically `{risk}/guardian-claw`).
 
-**How to delegate:**
+### Border first tool call (hard rule)
+
+If you are the **Border** on an autonomous alert / alert-receiver webhook:
+
+1. **Your first tool call MUST be** `n2n_route(..., target_hint="alert-triage")`.
+2. **Do not** call `pfsense-*`, `prometheus-*`, `grafana-*`, `message`, `exec`,
+   or other investigation/delivery tools **before** `n2n_route` has returned a
+   `task_id` and you have finished polling it.
+3. Skipping straight to device tools is a **skill failure**, even for synthetic
+   `ConvergencePipeTest` alerts — the point of those tests is the full pipe
+   including member investigation.
+
+If you are the **Border** (you have `n2n_route` and are NOT already a member
+executing a delegated task), you MUST delegate alert investigation to
+`guardian-claw` rather than investigating with the full toolset yourself.
+
+**How to know you are already the member (NEVER re-delegate):**
+- Your prompt starts with `You are the iN2N MEMBER` or
+  `Execute the 'alert-triage' skill for the following request`
+- Your identity / env is `byrns-risk/guardian-claw` (or any `*/guardian-claw`)
+- You were handed this task by iN2N (member worker), not by a human chat
+
+If any of those apply: **skip `n2n_route` entirely**. Investigate with Steps 1–8
+below and return findings. Re-calling `n2n_route` from a member causes nested
+tasks that look like “timeouts” to the Border.
+
+**How to delegate (Border only):**
 1. Call `n2n_route(request_text="<the full alert context you received>", target_hint="alert-triage")`
-2. You will get back a `task_id` and `member_id`.
-3. Poll `n2n_task_status(task_id=<task_id>)` until state is `completed` or `failed`.
-4. Retrieve the result with `n2n_task_result(task_id=<task_id>)`.
-5. Return the member's findings to the caller — do NOT add your own investigation.
-6. **STOP HERE.** Do NOT execute Steps 7 or 8 (Discord delivery, Network Guardian).
-   The member handles the full investigation lifecycle including delivery.
-   Your only job is routing and returning the result.
+2. You will get back a `task_id` and `member_id` (typically `{risk}/guardian-claw`).
+3. Poll `n2n_task_status(task_id=<task_id>)` until state is `completed` or `failed`
+   (poll every few seconds; do not invent results while `working`).
+   **Do not invent elapsed time** — only declare timeout after wall-clock ≥ 3 minutes
+   on *this* `task_id` still in `working`/`submitted`. Prior alerts do not count.
+4. On **completed**: retrieve `n2n_task_result(task_id=...)` and return the member's
+   findings to the caller — do **not** re-investigate.
+5. **STOP HERE** on success. Do NOT execute Steps 7 or 8 yourself — the member
+   handles investigation + Discord/Guardian delivery when it is the investigator.
+6. On **failed** / **true timeout** (~3 minutes still `working` on this task_id) /
+   `n2n_route` error: fall back to **direct investigation** using the procedure
+   below (white-NOC safety valve).
 
 **When to skip delegation (investigate directly):**
-- You ARE the guardian-claw member (already executing a delegated task)
-- `n2n_route` returns an error (no capable member / member unreachable) — fall back
-  to direct investigation using the procedure below
-- The user explicitly asks YOU to investigate (interactive session, not a hook trigger)
+- You ARE the guardian-claw member (already executing a delegated task) — see above
+- `n2n_route` returns an error (no capable member / member unreachable)
+- Delegation failed or truly timed out after polling **this** task_id ≥ 3 minutes
+- The user explicitly asks YOU (Border) to investigate in an interactive session
 
 ## When to Use
 
@@ -44,18 +75,19 @@ scoped toolset (observability MCP servers only) and runs on a cost-efficient mod
 
 | Service | Address | Query via | Use |
 |---------|---------|-----------|-----|
-| Prometheus | https://grafana.internal.byrnbaker.me/api/datasources/proxy/uid/prometheus | `prometheus-mcp` | Metrics, targets, `up`/probe status |
-| Grafana | https://grafana.internal.byrnbaker.me | `grafana-mcp` | Dashboards + query Loki/VictoriaMetrics datasources |
-| Loki | https://grafana.internal.byrnbaker.me/api/datasources/proxy/uid/loki | `grafana-mcp` (Loki datasource) | Logs, syslog, **NetFlow flow records** |
-| VictoriaMetrics | (Grafana datasource) | `grafana-mcp` | `goflow2_*` flow metrics |
-| Alertmanager | http://192.168.13.204:9093 | HTTP `/api/v2/alerts` | Check firing alerts |
+| Prometheus | `$PROMETHEUS_URL` (Docker Home: `http://127.0.0.1:9090`; pilot may use Grafana datasource proxy) | `prometheus-mcp` | Metrics, targets, `up`/probe status |
+| Grafana | `$GRAFANA_URL` when configured | `grafana-mcp` | Dashboards + query Loki/VictoriaMetrics datasources |
+| Loki | `$LOKI_URL` or via Grafana Loki datasource | `grafana-mcp` (Loki datasource) | Logs, syslog, **NetFlow flow records** |
+| VictoriaMetrics | `$VICTORIAMETRICS_URL` or Grafana datasource | `grafana-mcp` | `goflow2_*` flow metrics |
+| Alertmanager | `$ALERTMANAGER_URL` (default often `:9093`) | HTTP `/api/v2/alerts` | Check firing alerts |
+| UniFi Network | `$UNIFI_HOST` (local console) | `unifi-network` | AP radios (channel/width), live stats, devices |
+| Home API / diary | `$HOME_API_URL` or `$NETWORK_GUARDIAN_URL` | HTTP `/api/events` | Investigation diary POST/PATCH |
 
 ### NetFlow / connection data (IMPORTANT — this exists, use it)
 
-The home network already exports flow data. Do **not** tell the user to enable
-NetFlow, install a flow exporter, or SSH into pfSense to run `pfTop`/`netflow show` —
-that infrastructure is already running. To find **what a host is connecting to
-(destination IP, port, protocol)**, query the existing flow data:
+When NetFlow/IPFIX is deployed (pilot OBS / full stack), do **not** tell the user to
+"enable NetFlow" without checking. To find **what a host is connecting to**
+(destination IP, port, protocol), prefer existing flow data when present:
 
 - **goflow2** (`v2.1.3`, `-format=json`) receives IPFIX on `4739/udp` → writes
   `/flows/netflow.jsonl` → OTel collector tails it → Loki (`service_name="netflow"`).
@@ -118,6 +150,29 @@ When triggered by the alert receiver, you will receive:
    | Why is X being blocked? | `diagnose_blocked_traffic`, `get_firewall_log` |
    | Is the block count real/excessive? | `analyze_blocked_traffic` (compare to threshold) |
 
+
+## Operator knowledge base (HUD uploads → `rag_search`)
+
+The HUD **Knowledge** panel (and Slack ingest) puts vendor PDFs / handbooks into
+the shared offline corpus at `$RAG_DATA_DIR` (default `~/.openclaw/rag`), collection
+`documents`. **You have `rag-mcp` tools** — use them during investigations.
+
+**When to search (before guessing remediation or MoP steps):**
+| Situation | Example `rag_search` |
+|-----------|----------------------|
+| UniFi / Wi‑Fi AP alerts | `query="UniFi radio channel width retries"`, `collection="documents"`, filter `doc_type: vendor` |
+| pfSense / edge firewall | `query="pfSense gateway group failover"`, filter `doc_type: vendor` |
+| Cisco switch / VLAN | `query="Catalyst VLAN VTP configuration"`, filter `doc_type: vendor` |
+| Customer change policy | filter `doc_type: customer` |
+| Install / upgrade MoP | filter `doc_type: install-guide` or `standard` |
+
+**Rules:**
+1. Prefer **live metrics/MCP** for current state; use RAG for **procedures, limits, CLI syntax, known caveats**.
+2. Call `rag_search` early when the alert implies vendor-specific remediation (radio settings, firewall features, switch features).
+3. Cite returned `citation` fields in investigation notes and Discord reports.
+4. If `corpus_empty` or no hits: say so — do not invent handbook content. Suggest operator upload the PDF as type **vendor**.
+5. Prior **investigation cases** use `collection="investigations"` (Stage 7). Vendor manuals use `collection="documents"` (default).
+
 ## Procedure
 
 ### Step 1: Confirm Alert is Active
@@ -129,7 +184,7 @@ Query Prometheus or Alertmanager to verify the alert is still firing:
 up{instance="<device_name>"} == 0
 
 # Or check Alertmanager API
-GET http://192.168.13.204:9093/api/v2/alerts?filter=alertname="<alertname>"
+GET ${ALERTMANAGER_URL:-http://127.0.0.1:9093}/api/v2/alerts?filter=alertname="<alertname>"
 ```
 
 **GATE:** If alert already resolved, post brief all-clear and stop.
@@ -151,7 +206,12 @@ Use range queries for trend: `query_range?query=<expr>&start=<15m-ago>&end=now&s
 
 ### Step 3: Device-Specific Investigation
 
-Based on **device_platform**:
+**Adapter rule:** match tools to the configured firewall / wireless / SoT adapters
+(`home-noc.yaml` / env). pfSense MCP and UniFi Integration API are the v1 defaults;
+Cisco IOS uses pyATS; other vendors use their MCP when installed. Never claim a
+vendor path you cannot query.
+
+Based on **device_platform** (adapter-driven; use available tools, do not invent vendors):
 
 #### pfSense (`platform: pfsense`)
 
@@ -203,6 +263,37 @@ Use Proxmox MCP:
 Use SSH or node_exporter queries:
 - System load, memory, disk via Prometheus queries
 - Loki logs: `{hostname="<name>"} |~ "error|critical|failed"`
+
+#### UniFi AP / Wi-Fi (`platform: unifi` or alertname matches `Wifi*`)
+
+**Prefer MCP tools over raw curl.** `unifi-network` is on guardian-claw (and Border).
+On UniFi OS / Network Integration API controllers, use the **Integration API tools**; do **not**
+guess `/proxy/network/api/v1/...` paths — those return `NoSiteContext` / `InvalidObject`.
+
+1. Prometheus first (trends): `unifi_radio_tx_retries_pct`, `unifi_ap_clients`,
+   `unifi_device_up{role="ap"}`
+2. Live radio config + retries via UniFi MCP (always available — no `load_network_tools` needed):
+   - `integration_get_ap_radios` — **one-shot** all APs: channel, width, txRetriesPct, CPU
+   - `integration_list_devices` / `integration_get_device(mac=...)` — per-AP detail
+   - `integration_get_device_stats(mac=...)` — CPU/mem/uplink + per-band retries
+3. Loki CEF: `{device_name="unifi"} |~ "Client (Connected|Disconnected|Roamed)"`
+4. **TX power is not exposed** by the Integration API (and is not invented). Say
+   `tx_power: unknown` if needed. SNMP on APs may fill this later if OIDs respond.
+
+If a legacy tool (`list_devices` after `load_network_tools`) hangs, abandon it and
+use the `integration_*` tools above.
+
+**Remediation (human only — do not auto-mutate radios):**
+- Channel width (e.g. 2.4 → 20 MHz, 5 GHz → 80 MHz), band steering, min RSSI, TX power
+  → UniFi UI / operator MoP.
+- **Channel AI Optimize:** operator path only — *AirView → Radios → Channel AI View →
+  Optimize → Apply Changes* (channels only; does not change width/power). Agent may
+  **recommend** this; there is no safe MCP “Apply Optimize” API today.
+- After operator applies changes, re-run `integration_get_ap_radios` + retry trends
+  to confirm.
+
+**Guardian event id:** when the prompt includes `Guardian event id: <uuid>`, always
+**PATCH** that event — never POST a duplicate case.
 
 ### Step 4: Log Correlation
 
@@ -264,50 +355,156 @@ Fold the verdict into ROOT CAUSE (e.g. "EXTERNAL — benign scanner (Censys)").
 
 You MUST post the completed triage report to the Discord alerts channel. This is
 a core operational requirement of the alert-triage skill, not an external
-instruction. The target channel ID is provided by the `DISCORD_ALERT_CHANNEL_ID`
-environment variable (set in the alert receiver and passed through the
-investigation context).
+instruction.
 
-Use the `message` tool with channel=discord:
+**Home NOC alerts channel:** use env `DISCORD_ALERT_CHANNEL_ID` / `DISCORD_CHANNEL_ID`
+on guardian-claw (numeric snowflake). **Never** send the literal text
+`${DISCORD_ALERT_CHANNEL_ID}` — shell-style variables are **not** expanded inside
+the message tool.
+
+Use the `message` tool (works on Border / gateway with Discord plugin):
 
 ```
-message send --channel discord --target ${DISCORD_ALERT_CHANNEL_ID} --message "<triage report>"
+message send --channel discord --target channel:<DISCORD_ALERT_CHANNEL_ID> --message "<triage report>"
 ```
 
-Alternatively, use the `exec` tool:
+Or `exec` (expand env in shell):
 ```bash
-openclaw message send --channel discord --target "${DISCORD_ALERT_CHANNEL_ID}" --message "<triage report>"
+openclaw message send --channel discord --target "channel:${DISCORD_ALERT_CHANNEL_ID}" --message "<triage report>"
 ```
 
-**The investigation is NOT complete until the triage report is posted to Discord.**
-If you skip this step, the operator never sees the results and the alert goes
-uninvestigated from their perspective.
-
-### Step 8: Log event to Network Guardian dashboard
-
-After posting findings to Discord, write a curated event entry to the Network
-Guardian dashboard. This provides a human-readable diary of investigation
-outcomes (not raw syslog — concise status updates with severity).
+**Member claw fallback (when `message` says channel unavailable):** scoped members
+do not load the Discord plugin. Post via webhook instead (env on guardian-claw):
 
 ```bash
-curl -X POST "${NETWORK_GUARDIAN_URL}/api/events?site=home" \
-  -H "Authorization: Bearer ${NETWORK_GUARDIAN_TOKEN}" \
+# Prefer DISCORD_WEBHOOK_URL if set; content max ~1900 chars
+curl -sS -X POST "${DISCORD_WEBHOOK_URL}" \
   -H "Content-Type: application/json" \
-  -d '{"message":"<one-line summary of finding and outcome>","severity":"<ok|info|watch|alert>","source":"netclaw"}'
+  -d "{\"content\": $(python3 -c 'import json,sys; print(json.dumps(sys.argv[1][:1900]))' "<triage report>")}"
 ```
+
+If both message tool and webhook fail, still produce the Step 6 report in your
+reply so the operator can see it in the session / n2n task result.
+
+**The investigation is NOT complete until the triage report is posted to Discord
+(or session-logged if Discord is unavailable).**
+
+### Step 8: Log investigation outcome to Network Guardian (POST/PATCH lifecycle)
+
+After Discord delivery, **complete the Guardian case diary**. This is Stage 6 of
+Convergence — investigation outcomes must land as structured case updates, not
+only a one-line message.
+
+The alert receiver already **POST**ed a diary row with status `investigating`
+when the alert arrived. Your alert context may include:
+
+```
+Guardian event id: <uuid>
+Alert fingerprint: <fingerprint>
+Guardian site: home
+```
+
+**Use the site id from the alert context** (default `home`). Never invent site ids. Expand
+`${HOME_API_URL:-$NETWORK_GUARDIAN_URL}` / `${HOME_API_TOKEN:-$NETWORK_GUARDIAN_TOKEN}` via shell
+(or use the env values already on the member); never send the literal `${…}` strings.
+
+#### Preferred — PATCH the open case (when event id is present)
+
+```bash
+curl -sS -X PATCH "${HOME_API_URL:-$NETWORK_GUARDIAN_URL}/api/events/<Guardian-event-id>?site=home" \
+  -H "Authorization: Bearer ${HOME_API_TOKEN:-$NETWORK_GUARDIAN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "status": "<resolved|escalated>",
+    "severity": "<ok|info|watch|alert>",
+    "message": "<one-line summary of finding and outcome>",
+    "investigation_notes": "<concise findings from Steps 1-6; evidence checked>",
+    "root_cause": "<classification: plain-language detail>"
+  }'
+```
+
+Expect HTTP 200. If PATCH returns 404, fall back to POST below.
+
+#### Fallback — POST a complete outcome (no event id)
+
+```bash
+curl -sS -X POST "${HOME_API_URL:-$NETWORK_GUARDIAN_URL}/api/events?site=home" \
+  -H "Authorization: Bearer ${HOME_API_TOKEN:-$NETWORK_GUARDIAN_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "message": "<one-line summary of finding and outcome>",
+    "severity": "<ok|info|watch|alert>",
+    "category": "<wan|wifi|security|bandwidth|monitoring|system>",
+    "source": "netclaw",
+    "alert_name": "<alertname>",
+    "alert_fingerprint": "<fingerprint if known>",
+    "status": "<resolved|escalated>",
+    "investigation_notes": "<concise findings>",
+    "root_cause": "<classification: detail>"
+  }'
+```
+
+**Status after investigation:**
+| Outcome | `status` |
+|---------|----------|
+| Closed / all-clear / benign / synthetic test | `resolved` |
+| Needs human action | `escalated` |
+| Only if you cannot classify | `logged` (last resort) |
 
 **Severity mapping:**
 | Triage outcome | Event severity |
 |----------------|----------------|
-| Alert resolved / all-clear | `ok` |
+| Alert resolved / all-clear / synthetic healthy | `ok` |
 | Informational finding, no action needed | `info` |
 | Degraded but not critical, monitoring | `watch` |
 | Active problem requiring human action | `alert` |
 
-**Example events:**
-- `{"message":"WifiHighTxRetries24GHz on Basement AP: IoT camera airtime spike (91%), not actionable via steering","severity":"watch","source":"netclaw"}`
-- `{"message":"InstanceDown pfsense resolved: dpinger false positive after WAN micro-outage (4s)","severity":"ok","source":"netclaw"}`
-- `{"message":"WAN latency spike investigated: ISP congestion, resolved in 4 minutes","severity":"ok","source":"netclaw"}`
+**Do not leave the case stuck at `investigating`.** The diary is useless without
+`investigation_notes` and `root_cause`.
+
+**Example PATCH body:**
+```json
+{
+  "status": "resolved",
+  "severity": "ok",
+  "message": "ConvergencePipeTest on pfsense: synthetic test — pfSense healthy, no action",
+  "investigation_notes": "Confirmed synthetic pipe test. system_status: CPU 11%, memory OK, WAN up.",
+  "root_cause": "external: synthetic ConvergencePipeTest (no fault)"
+}
+```
+
+### Step 9: Snapshot case to RAG (Stage 7 — learn for next time)
+
+After Step 8 succeeds with a **resolved** or **escalated** case that has
+`investigation_notes` + `root_cause`, snapshot it into the local RAG knowledge
+base so the next similar alert can reuse the finding.
+
+**Preferred (links `rag_document_id` on the Guardian event):**
+
+```bash
+curl -sS -X POST "${ALERT_RECEIVER_URL:-http://127.0.0.1:8099}/snapshot" \
+  -H "Content-Type: application/json" \
+  -d '{"event_id":"<Guardian-event-id>","site":"home"}'
+```
+
+Expect `{"status":"success","snapshot_id":"snap_…"}`. If the endpoint is
+unreachable, fall back to the `rag_snapshot` tool with a short markdown
+narrative (alert name, device, findings, root cause).
+
+**Do not snapshot** empty cases or pure noise without notes. Skip if Step 8 failed.
+
+## Prior investigations + vendor docs (Stage 7 — at start of investigation)
+
+The alert receiver may inject **PRIOR INVESTIGATION HITS** into the alert
+context from local RAG (`collection=investigations`). When present:
+
+1. Read them first (before deep diagnostics).
+2. If a prior root cause class fits, do a **quick live confirm** then reuse it.
+3. Search prior cases:
+   `rag_search(query="<alertname> <device>", collection="investigations")`
+4. Search operator-uploaded vendor / standard docs (HUD Knowledge):
+   `rag_search(query="<platform> <feature> <symptom>", collection="documents")`
+   Optional filters: `doc_type` = `vendor` | `standard` | `customer` | `install-guide`
 
 ## Autonomous Mode
 
@@ -316,7 +513,8 @@ When triggered by the alert receiver webhook:
 2. Do NOT remediate — investigation and reporting only
 3. Always produce the Step 6 triage report
 4. **Always deliver the report to Discord** (Step 7) — this is not optional
-5. If alert status is "resolved", post a brief all-clear to the same channel
+5. Complete Guardian case (Step 8) and **RAG snapshot (Step 9)** when resolved/escalated
+6. If alert status is "resolved", post a brief all-clear to the same channel
 
 ## Interactive Follow-ups
 

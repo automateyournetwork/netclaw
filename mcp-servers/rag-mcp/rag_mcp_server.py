@@ -263,7 +263,7 @@ def _do_ingest(
 # ---------------------------------------------------------------------
 # Tools: ingestion (FR-001–FR-009)
 # ---------------------------------------------------------------------
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_ingest(
     file_path: str,
     doc_type: str = "other",
@@ -295,7 +295,7 @@ def _do_ingest_base64(
     )
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_ingest_base64(
     filename: str,
     content_base64: str,
@@ -336,9 +336,10 @@ def _do_ingest_url(
     scope_token_value: Optional[str] = None,
     doc_type: str = "other",
     title: Optional[str] = None,
+    verify_ssl: Optional[bool] = None,
 ) -> Dict[str, Any]:
     try:
-        content, content_type = fetch(url)
+        content, content_type = fetch(url, verify_ssl=verify_ssl)
     except FetchError as exc:
         return error_response("FETCH_FAILED", exc.message)
 
@@ -362,16 +363,25 @@ def _do_ingest_url(
         html = content.decode("utf-8", errors="replace")
         links = discover_links(html, url, config.CRAWL_MAX_PAGES)
         linked_urls = [p["url"] for p in links["linked_pages"]]
-        return success_response(
-            {
-                "url": url,
-                "title": page_title(html, url),
-                "content_type": content_type,
-                "linked_pages": links["linked_pages"],
-                "truncated": links["truncated"],
-                "scope_token": scope_token(url, linked_urls),
-            }
-        )
+        from ingestion.url_fetcher import assess_html_quality
+
+        quality = assess_html_quality(html, linked_count=len(linked_urls))
+        payload = {
+            "url": url,
+            "title": page_title(html, url),
+            "content_type": content_type,
+            "linked_pages": links["linked_pages"],
+            "truncated": links["truncated"],
+            "scope_token": scope_token(url, linked_urls),
+            "text_chars": quality["text_chars"],
+            "thin": quality["thin"],
+            "spa_shell": quality["spa_shell"],
+        }
+        if quality.get("warning"):
+            payload["warning"] = quality["warning"]
+            payload["message"] = quality["warning"]
+        return success_response(payload)
+
 
     if mode != "ingest":
         return error_response("PARSE_FAILED", f"Unknown mode '{mode}' — use preview|ingest.")
@@ -395,7 +405,7 @@ def _do_ingest_url(
             )
         for page_url in linked_urls:
             try:
-                page_content, page_type = fetch(page_url)
+                page_content, page_type = fetch(page_url, verify_ssl=verify_ssl)
                 results.append(
                     _ingest_fetched(page_url, page_content, page_type, doc_type, None)
                 )
@@ -411,7 +421,7 @@ def _do_ingest_url(
     return success_response({"pages": results, "ingested": ok, "failed": len(results) - ok})
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_ingest_url(
     url: str,
     mode: str = "preview",
@@ -419,11 +429,17 @@ def rag_ingest_url(
     scope_token: Optional[str] = None,
     doc_type: str = "other",
     title: Optional[str] = None,
+    verify_ssl: Optional[bool] = None,
 ) -> Dict[str, Any]:
     """Two-phase URL ingestion. mode='preview' returns the page title, same-domain
     depth-1 linked pages, and a scope_token — no ingestion. After the user confirms
-    scope, call mode='ingest' (echoing scope_token when include_linked=true)."""
-    return _do_ingest_url(url, mode, include_linked, scope_token, doc_type, title)
+    scope, call mode='ingest' (echoing scope_token when include_linked=true).
+
+    verify_ssl: set false for self-signed local gear (UniFi/pfSense). Default auto:
+    skips verification for private IP / localhost hosts."""
+    return _do_ingest_url(
+        url, mode, include_linked, scope_token, doc_type, title, verify_ssl=verify_ssl
+    )
 
 
 # ---------------------------------------------------------------------
@@ -494,6 +510,37 @@ def _passes_date_filters(meta: Dict[str, Any], filters: Optional[Dict[str, Any]]
     return True
 
 
+def _investigation_collections() -> list:
+    """Snapshot collections used for Guardian investigation reuse (Stage 7)."""
+    cols = []
+    for row in registry.list_documents():
+        if row.get("kind") == "snapshot" and row.get("collection"):
+            cols.append(row["collection"])
+    # de-dupe preserve order
+    seen = set()
+    out = []
+    for c in cols:
+        if c not in seen:
+            seen.add(c)
+            out.append(c)
+    return out
+
+
+def _resolve_search_collections(collection: str) -> list:
+    """Expand special collection aliases for Stage 7 multi-corpus search.
+
+    - documents (default): vendor/docs corpus only
+    - investigations / snapshots: all snapshot_* investigation collections
+    - all / *: documents + investigations
+    """
+    c = (collection or "documents").strip().lower()
+    if c in ("investigations", "snapshots", "cases"):
+        return _investigation_collections() or []
+    if c in ("all", "*", "any"):
+        return [config.DOCUMENTS_COLLECTION] + _investigation_collections()
+    return [collection]
+
+
 def _do_search(
     query: str,
     k: int = 5,
@@ -503,26 +550,56 @@ def _do_search(
     sub_query_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     start = time.monotonic()
+    collections = _resolve_search_collections(collection)
+    if not collections:
+        return success_response(
+            {
+                "results": [],
+                "corpus_empty": True,
+                "collection": collection,
+                "collections_searched": [],
+                "latency_ms": 0,
+                "message": (
+                    f"No collections to search for alias '{collection}' "
+                    "(no investigation snapshots indexed yet)."
+                ),
+            }
+        )
+
     try:
-        if chroma.count(collection) == 0:
+        nonempty = [c for c in collections if chroma.count(c) > 0]
+        if not nonempty:
             registry.log_retrieval(query, collection, filters, k, [], [], 0, 0, round, sub_query_id)
             return success_response(
                 {
                     "results": [],
                     "corpus_empty": True,
                     "collection": collection,
+                    "collections_searched": collections,
                     "latency_ms": 0,
-                    "message": f"Collection '{collection}' is empty — nothing indexed yet.",
+                    "message": f"Collection(s) empty — nothing indexed yet: {collections}",
                 }
             )
         query_embedding = embedder.embed_query(query)
     except ModelsNotCachedError as exc:
         return error_response("MODELS_NOT_CACHED", str(exc))
 
-    # Hybrid: dense + BM25 legs fused by RRF (FR-021)
-    candidates = hybrid_retrieve(
-        chroma, bm25, collection, query, query_embedding, where=_chroma_where(filters)
-    )
+    # Hybrid per collection, then fuse by score for multi-corpus Stage 7 search
+    candidates = []
+    for coll in nonempty:
+        try:
+            hits = hybrid_retrieve(
+                chroma, bm25, coll, query, query_embedding, where=_chroma_where(filters)
+            )
+            for h in hits:
+                h = dict(h)
+                meta = dict(h.get("metadata") or {})
+                meta.setdefault("collection", coll)
+                h["metadata"] = meta
+                candidates.append(h)
+        except Exception as exc:
+            log.warning("search skip collection %s: %s", coll, exc)
+
     # Date-range + (BM25-leg) metadata post-filters
     candidates = [
         c
@@ -561,12 +638,13 @@ def _do_search(
             "results": results,
             "corpus_empty": False,
             "collection": collection,
+            "collections_searched": nonempty,
             "latency_ms": latency_ms,
         }
     )
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_search(
     query: str,
     k: int = 5,
@@ -576,6 +654,12 @@ def rag_search(
     sub_query_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Search the knowledge base. Returns top-k chunks with citation metadata.
+
+    collection:
+      - documents (default): vendor/docs corpus
+      - investigations | snapshots | cases: Guardian investigation snapshots only
+      - all | *: documents + all investigation snapshots (Stage 7 reuse)
+
     Filters: doc_type, document_id, title, ingested_after, ingested_before.
     Results below the relevance floor are flagged low_confidence, never dropped."""
     return _do_search(query, k, collection, filters, round, sub_query_id)
@@ -666,7 +750,7 @@ def _do_list(kind: str = "all") -> Dict[str, Any]:
     return success_response({"documents": documents, "snapshots": snapshots, "replicas": replicas})
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_list(kind: str = "all") -> Dict[str, Any]:
     """List indexed documents, snapshots, and replicas (separately) with full
     metadata. Replicas (feature 065) are collections copied in from a
@@ -700,7 +784,7 @@ def _do_stats() -> Dict[str, Any]:
     )
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_stats() -> Dict[str, Any]:
     """Corpus totals (docs, chunks, disk usage, models, collections) plus rolling
     retrieval telemetry (query count, mean latency, re-retrieval and low-confidence rates)."""
@@ -728,7 +812,7 @@ def _do_update_metadata(
     return success_response(_doc_public(updated))
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_update_metadata(
     document_id: str,
     doc_type: Optional[str] = None,
@@ -766,7 +850,7 @@ def _do_delete(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     return success_response({"deleted": True, "chunks_removed": removed, "title": row["title"]})
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_delete(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     """Delete a document or snapshot: removes chunks from dense AND keyword
     indexes plus the retained original. Requires confirmed=true after the user
@@ -797,7 +881,7 @@ def _do_reindex(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     return result
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_reindex(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     """Re-chunk and re-embed a document from its retained original (use after
     chunking/embedding config changes). Requires confirmed=true after the user
@@ -902,7 +986,7 @@ def _do_snapshot(
     )
 
 
-@mcp.tool()
+@mcp.tool(output_schema=None)
 def rag_snapshot(
     label: str,
     content: str,
@@ -920,6 +1004,16 @@ def rag_snapshot(
 
 
 def main() -> None:
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _src = _Path(__file__).resolve().parents[2] / "src"
+        if _src.is_dir() and str(_src) not in _sys.path:
+            _sys.path.insert(0, str(_src))
+        from netclaw_tokens.mcp_gcf import install_gcf_on_fastmcp
+        install_gcf_on_fastmcp(mcp, label="rag-mcp")
+    except Exception as e:
+        log.warning("GCF install skipped: %s", e)
     log.info(
         f"rag-mcp ready (embedding={config.EMBEDDING_MODEL}, "
         f"reranker={config.RERANKER_MODEL}, rerank_enabled={config.RERANK_ENABLED})"

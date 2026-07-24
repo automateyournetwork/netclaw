@@ -1,0 +1,55 @@
+# NetClaw Home NOC — example adapter / deploy config (067 Phase 5)
+# Copy to ~/.openclaw/home-noc.yaml or config/home-noc.yaml and edit.
+# Secrets stay in ~/.openclaw/.env (and deploy/home/.env for Docker) — never commit them.
+
+site: home
+deploy: docker   # docker | k3s | none
+
+firewall:
+  type: pfsense   # none | pfsense | generic-snmp
+  # env (optional MCP): PFSENSE_*
+  mgmt_url: https://192.168.13.1:440   # → PFSENSE_MGMT_URL / EDGE_MGMT_URL
+
+wireless:
+  type: unifi     # none | unifi | generic-snmp
+  unifi:
+    host: https://192.168.100.10:11443
+    site: default
+    # env: UNIFI_API_KEY (required when type=unifi)
+    mgmt_url: https://192.168.100.10:11443   # → UNIFI_MGMT_URL
+
+sot:
+  type: none      # none | nautobot | netbox
+  # env: NAUTOBOT_URL / NAUTOBOT_TOKEN  or  NETBOX_URL / NETBOX_TOKEN
+
+metrics:
+  # After Docker Home: http://127.0.0.1:9090
+  # After K3s Home (port-forward): http://127.0.0.1:9090
+  # Pilot OBS dual-run: cluster Prometheus via Grafana proxy or ClusterIP
+  prometheus_url: http://127.0.0.1:9090
+  # optional:
+  # loki_url: http://127.0.0.1:3100
+  # victoriametrics_url: http://127.0.0.1:8428
+
+home_api:
+  # HUD HOME_API_URL — Docker default host port 3080; K3s NodePort 30080
+  url: http://127.0.0.1:3080
+  # token matches API_KEYS[].key in deploy/home/.env or k8s secret
+  # env: HOME_API_TOKEN
+
+agent:
+  alert_receiver_url: http://127.0.0.1:8099/webhook
+  # investigator_member: auto resolves guardian-claw (or network-guardian profile)
+  investigator_member: auto
+  discord_enabled: true
+
+thresholds:
+  latency:
+    green: 40
+    yellow: 80
+  loss:
+    green: 0
+    yellow: 5
+  txRetries:
+    green: 20
+    yellow: 35

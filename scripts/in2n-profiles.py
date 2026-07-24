@@ -169,7 +169,8 @@ ENV_PREFIXES = {
     "netbox": ["NETBOX_"], "nautobot": ["NAUTOBOT_"], "infrahub": ["INFRAHUB_"],
     "infoblox": ["INFOBLOX_"], "github": ["GITHUB_"],
     "network-guardian": ["PROMETHEUS_", "LOKI_", "VICTORIAMETRICS_", "GRAFANA_",
-                        "UNIFI_", "ALERTMANAGER_"],
+                        "UNIFI_", "ALERTMANAGER_", "HOME_API_", "NETWORK_GUARDIAN_",
+                        "PFSENSE_", "EDGE_", "DISCORD_", "ALERT_RECEIVER_", "RAG_"],
     "viz": ["BLENDER_", "UE5_", "SKETCHFAB_", "MARKMAP_", "DRAWIO_"],
 }
 # Base floor every member gets (memory + GAIT + humanrail per the interview).
@@ -177,7 +178,9 @@ ENV_PREFIXES = {
 # skills shell out through; without it in the slice, skills fall back to the
 # Border's master .env — which member units mask (InaccessiblePaths, enforced
 # for real since Ubuntu 26.04's systemd).
-BASE_MEMBER_ENV_PREFIXES = ["MEMPALACE_", "GAIT_", "HUMANRAIL_", "MEMORY_", "MCP_CALL"]
+# RAG_DATA_DIR: members that include rag-mcp (e.g. guardian-claw) must share the
+# Border's ~/.openclaw/rag corpus so HUD-uploaded vendor PDFs are searchable.
+BASE_MEMBER_ENV_PREFIXES = ["MEMPALACE_", "GAIT_", "HUMANRAIL_", "MEMORY_", "MCP_CALL", "RAG_"]
 
 
 def env_slice_keys(profile, env_keys):
@@ -198,7 +201,15 @@ MCP_SERVERS = {
     "sdwan": ["prisma-sdwan-mcp"], "splunk": ["splunk-mcp"], "github": ["gitlab-mcp"],
     "gnmi": ["gnmi-mcp"], "checkpoint": ["chkp-management", "chkp-management-logs",
         "chkp-policy-insights", "chkp-threat-prevention", "chkp-quantum-gaia"],
-    "network-guardian": ["prometheus-mcp", "unifi-network", "pfsense-mcp", "pyats-mcp"],
+    "network-guardian": [
+        "prometheus-mcp", "grafana-mcp", "pfsense-mcp", "pyats-mcp",
+        "greynoise-community-mcp", "threatintel-mcp", "rag-mcp", "ollama-mcp",
+    ],
+    # Live member name alias (Risk uses guardian-claw; profile id is network-guardian)
+    "guardian-claw": [
+        "prometheus-mcp", "grafana-mcp", "pfsense-mcp", "pyats-mcp",
+        "greynoise-community-mcp", "threatintel-mcp", "rag-mcp", "ollama-mcp",
+    ],
     "viz": ["blender-mcp", "sketchfab-mcp"],
     # skill-driven (no dedicated MCP server): cml, pyats, aci, catalyst-center,
     # f5, ise, nso, netbox, infoblox, nmap, gtrace, itential, aap, packet, etc.

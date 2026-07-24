@@ -1,0 +1,11 @@
+# Greenfield: full Home stack in namespace netclaw-home
+# (no coexisting pilot observability stack)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+# Optional: apply secrets from repo-local secret.yaml via:
+#   kubectl apply -k deploy/home/k8s/overlays/greenfield
+# after: kubectl apply -f deploy/home/k8s/secret.yaml

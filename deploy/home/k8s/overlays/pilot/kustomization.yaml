@@ -1,0 +1,30 @@
+# Pilot dual-run overlay — intentionally minimal.
+#
+# On clusters that already run k3s-observability-stack (namespace observability
+# with prometheus, alertmanager, blackbox-exporter, unifi-exporter, guardian
+# postgres / network-guardian-web), do NOT apply the full greenfield base.
+#
+# Default resource set here: none. Use this overlay as a documentation hook
+# and starting point for patches. See OVERLAY-PILOT.md for the decision matrix.
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+# Uncomment only when deliberately deploying Home greenfield alongside pilot
+# (separate namespace — preferred dual-run path):
+# resources:
+#   - ../../base
+
+# Example: if you later want home-api only, pointing at pilot OBS services,
+# add a thin resource set + patches (names differ — see OVERLAY-PILOT.md):
+# resources:
+#   - ../../base/namespace.yaml
+#   - ../../base/postgres.yaml
+#   - ../../base/home-api.yaml
+# patches:
+#   - target:
+#       kind: Deployment
+#       name: home-api
+#     patch: |-
+#       - op: replace
+#         path: /spec/template/spec/containers/0/env/name=PROMETHEUS_URL/value
+#         ... use strategic merge instead; see OVERLAY-PILOT.md

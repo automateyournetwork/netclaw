@@ -8,7 +8,7 @@ metadata:
 
 # Monitoring Onboard
 
-Configure network devices and infrastructure to report into the existing observability stack on the **K3s observability cluster** (192.168.13.0/24) (Prometheus, Grafana, Loki, Alertmanager, goflow2).
+Configure network devices and infrastructure to report into the existing observability stack (Docker Home, K3s Home `netclaw-home`, or pilot OBS). Prefer env URLs: `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `GRAFANA_URL`.
 
 ## When to Use
 
@@ -210,3 +210,14 @@ groups:
 | `pfsense-*` | pfSense device configuration |
 | `pyats-*` | Cisco device configuration |
 | `proxmox-*` | Proxmox node management |
+
+## Vendor documentation (RAG)
+
+When onboarding devices, if the operator has uploaded vendor install/config guides
+into the HUD Knowledge base, search them for scrape targets, SNMP OIDs, and port
+requirements:
+
+`rag_search(query="<vendor> <device> monitoring snmp syslog", collection="documents")`
+
+Prefer live discovery when possible; RAG fills procedure gaps. Cite sources.
+

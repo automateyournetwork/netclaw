@@ -53,7 +53,7 @@ When a user posts a file attachment in the Slack channel and asks NetClaw to lea
 5. If the response is `deduplicated: true`, say the document was already indexed. If `reindexed: true`, say the prior version was replaced.
 6. Errors (unsupported format, size cap, parse failure) are reported verbatim — never silently swallowed.
 
-Supported formats: PDF, Markdown, HTML, TXT, DOCX, XLSX, PPTX, VSDX natively; legacy DOC/XLS/PPT/VSD when LibreOffice is installed.
+Supported formats: PDF, Markdown, HTML, TXT, **JSON** (OpenAPI/Swagger expanded to per-endpoint sections; other JSON pretty-printed), DOCX, XLSX, PPTX, VSDX natively; legacy DOC/XLS/PPT/VSD when LibreOffice is installed.
 
 ## Workflow: URL Ingestion (always preview first)
 
@@ -64,9 +64,13 @@ When a user asks to ingest a web page:
 3. **Ingest**:
    - Single page: `rag_ingest_url {"url": "...", "mode": "ingest"}`
    - Page + linked pages (only after explicit confirmation): `rag_ingest_url {"url": "...", "mode": "ingest", "include_linked": true, "scope_token": "<from preview>"}`
-4. Confirm as with file ingestion. Each page records its own URL as source. PDFs served at URLs are handled automatically.
+4. Confirm as with file ingestion. Each page records its own URL as source. PDFs and OpenAPI JSON served at URLs are handled automatically.
 
 Never call `mode="ingest"` with `include_linked=true` without having shown the preview and obtained the user's confirmation — the server rejects a missing/stale `scope_token`.
+
+**SPA / thin pages:** If preview reports `spa_shell: true` or ~0 linked pages with tiny `text_chars` (common for UniFi OS `/unifi-api/*`), do **not** recommend crawl — point the user at static docs or OpenAPI JSON instead (e.g. `developer.ui.com/network/v{version}/openapi.json`).
+
+**TLS / LAN:** Private IPs skip cert verification by default. Self-signed gear may need `verify_ssl=false`. UniFi OS is flaky under pure HTTP/1.1 and under httpx; the fetcher prefers system `curl --http2` for private hosts.
 
 ## The Agentic Retrieval Protocol
 
@@ -161,3 +165,25 @@ User: (attaches customer-wlan-standard.docx) learn this, it's our customer stand
 NetClaw: Learned "Customer WLAN Standard" (customer, 24 pages, 61 chunks, documents).
          Try asking: "What does our standard 'Customer WLAN Standard' say about maintenance windows?"
 ```
+
+## Home NOC / Convergence (operational use)
+
+Documents uploaded via the Visual HUD **Knowledge** panel land in the same
+`documents` collection used by Border and **guardian-claw** (`RAG_DATA_DIR` shared).
+
+**Typical operator uploads for Home:**
+| doc_type | Examples |
+|----------|----------|
+| `vendor` | UniFi OpenAPI JSON (`developer.ui.com/network/v10.4.57/openapi.json`), pfSense handbook, Cisco IOS/Catalyst guides |
+| `install-guide` | Lab install MoPs, site turn-up checklists |
+| `standard` | Change windows, escalation policy |
+| `customer` | Site-specific design (SSID plan, VLAN map) |
+
+**UniFi local controller is not a docs site for crawl:** SPA shell + auth-gated UI. Prefer version-matched public OpenAPI; live API calls use `X-API-KEY` against `/proxy/network/integration/v1/` (see `workspace/TOOLS.md`).
+
+**Investigators (alert-triage / wifi-diagnosis)** must `rag_search` this corpus when
+remediation steps or vendor limits matter — not only when the human asks "search the knowledge base."
+
+**Tags:** Prefer accurate titles on upload; filter with `doc_type: vendor` when the
+question is clearly a vendor procedure.
+

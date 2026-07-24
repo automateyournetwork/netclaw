@@ -65,7 +65,8 @@ router.post('/', async (req, res) => {
   const {
     message, severity, category, source,
     alert_name, alert_fingerprint,
-    investigation_notes, root_cause, status
+    investigation_notes, root_cause, status,
+    rag_document_id, expert_feedback, feedback_quality,
   } = req.body;
 
   if (!message) {
@@ -79,11 +80,16 @@ router.post('/', async (req, res) => {
     // Stage 6: never 500 on missing site_id — auto-seed the row.
     await ensureSite(site);
 
+    const st = status || 'logged';
+    const ragId = rag_document_id || null;
     const result = await query(
       `INSERT INTO events (site_id, message, severity, category, source,
-        alert_name, alert_fingerprint, investigation_notes, root_cause, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING id, timestamp, message, severity, status, alert_name, alert_fingerprint`,
+        alert_name, alert_fingerprint, investigation_notes, root_cause, status,
+        rag_document_id, expert_feedback, feedback_quality,
+        escalated_at, rag_snapshotted_at)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
+       RETURNING id, timestamp, message, severity, status, alert_name, alert_fingerprint,
+                 rag_document_id, escalated_at`,
       [
         site,
         message,
@@ -94,7 +100,12 @@ router.post('/', async (req, res) => {
         alert_fingerprint || null,
         investigation_notes || null,
         root_cause || null,
-        status || 'logged'
+        st,
+        ragId,
+        expert_feedback || null,
+        feedback_quality || null,
+        st === 'escalated' ? new Date().toISOString() : null,
+        ragId ? new Date().toISOString() : null,
       ]
     );
 
@@ -191,21 +202,131 @@ router.patch('/:id', async (req, res) => {
 /**
  * GET /api/events/escalated?site=X
  * Returns events awaiting expert review (the operator triage panel).
+ * Registered before /:id so path is not swallowed.
  */
 router.get('/escalated', async (req, res) => {
   const site = req.site;
 
   try {
     const result = await query(
-      `SELECT * FROM events
+      `SELECT id, site_id, timestamp, message, severity, category, source, status,
+              alert_name, alert_fingerprint, root_cause, investigation_notes,
+              expert_feedback, feedback_quality, rag_document_id, rag_snapshotted_at,
+              escalated_at, investigation_started_at, investigation_completed_at,
+              feedback_provided_at, created_at, updated_at
+       FROM events
        WHERE site_id = $1 AND status = 'escalated'
-       ORDER BY escalated_at DESC`,
+       ORDER BY escalated_at DESC NULLS LAST, timestamp DESC`,
       [site]
     );
     res.json({ site, events: result.rows });
   } catch (err) {
     console.error('Escalated events error:', err.message);
     res.json({ site, events: [] });
+  }
+});
+
+/**
+ * GET /api/events/:id?site=X
+ * Single event (for triage detail / RAG id display).
+ */
+router.get('/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const result = await query(`SELECT * FROM events WHERE id = $1`, [id]);
+    if (result.rows.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    res.json(result.rows[0]);
+  } catch (err) {
+    console.error('Event GET error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch event' });
+  }
+});
+
+/**
+ * POST /api/events/:id/reinvestigate
+ * Operator "Need More" — mark needs_more_context, re-open as investigating,
+ * optionally forward to host alert-receiver /reinvestigate (hooks guardian-claw).
+ *
+ * Body: { expert_feedback?: string, site?: string }
+ * Query: ?site=home (preferred for multi-tenant)
+ */
+router.post('/:id/reinvestigate', async (req, res) => {
+  const { id } = req.params;
+  const site = req.site || req.body?.site || req.query?.site || 'home';
+  const expert_feedback = String(req.body?.expert_feedback || '').trim();
+
+  try {
+    const existing = await query(`SELECT * FROM events WHERE id = $1`, [id]);
+    if (existing.rows.length === 0) {
+      return res.status(404).json({ error: 'Event not found' });
+    }
+    const prev = existing.rows[0];
+    const noteAppend = expert_feedback
+      ? `\n\n[operator:needs_more_context] ${expert_feedback}`
+      : '\n\n[operator:needs_more_context] Operator requested deeper investigation.';
+    const notes = ((prev.investigation_notes || '') + noteAppend).trim();
+
+    const updated = await query(
+      `UPDATE events SET
+         status = 'investigating',
+         investigation_started_at = COALESCE(investigation_started_at, NOW()),
+         investigation_notes = $1,
+         expert_feedback = $2,
+         feedback_quality = 'needs_more_context',
+         feedback_provided_at = NOW()
+       WHERE id = $3
+       RETURNING *`,
+      [
+        notes,
+        expert_feedback || prev.expert_feedback || 'Operator requested more context',
+        id,
+      ]
+    );
+
+    // Forward to host alert-receiver when configured (same contract as pilot)
+    let reinvestigate = { status: 'skipped', reason: 'ALERT_RECEIVER_URL not set' };
+    const receiverBase = (process.env.ALERT_RECEIVER_URL || '')
+      .replace(/\/webhook\/?$/, '')
+      .replace(/\/$/, '');
+    if (receiverBase) {
+      try {
+        const r = await fetch(`${receiverBase}/reinvestigate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+          body: JSON.stringify({
+            event_id: id,
+            site,
+            expert_feedback: expert_feedback || undefined,
+          }),
+          signal: AbortSignal.timeout(25000),
+        });
+        const text = await r.text();
+        let body = null;
+        try {
+          body = text ? JSON.parse(text) : null;
+        } catch {
+          body = { raw: text };
+        }
+        reinvestigate = {
+          status: r.ok ? (body?.status || 'accepted') : 'error',
+          http: r.status,
+          detail: body,
+        };
+      } catch (err) {
+        reinvestigate = { status: 'error', reason: err.message };
+      }
+    }
+
+    res.json({
+      event: updated.rows[0],
+      reinvestigate,
+      site,
+    });
+  } catch (err) {
+    console.error('Reinvestigate error:', err.message);
+    res.status(500).json({ error: 'Failed to reinvestigate', detail: err.message });
   }
 });
 

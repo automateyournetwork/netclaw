@@ -56,9 +56,25 @@ def main():
     border = json.load(open(args.border_config))
     m = copy.deepcopy(border)
 
-    # 1. scope MCP servers
+    # 1. scope MCP servers and expand ${NETCLAW_DIR} (member .env may not export it;
+    #    unexpanded paths make every MCP fail with EPIPE / not found).
+    netclaw_dir = os.environ.get("NETCLAW_DIR") or REPO
     all_servers = border.get("mcp", {}).get("servers", {})
-    m.setdefault("mcp", {})["servers"] = {k: v for k, v in all_servers.items() if k in keep}
+
+    def _expand(obj):
+        if isinstance(obj, str):
+            return obj.replace("${NETCLAW_DIR}", netclaw_dir).replace(
+                "${HOME}", HOME
+            )
+        if isinstance(obj, list):
+            return [_expand(x) for x in obj]
+        if isinstance(obj, dict):
+            return {k: _expand(v) for k, v in obj.items()}
+        return obj
+
+    m.setdefault("mcp", {})["servers"] = {
+        k: _expand(v) for k, v in all_servers.items() if k in keep
+    }
 
     # 2. strip comms plugins/channels that break --local; keep defenseclaw (guardrails)
     pl = m.get("plugins", {})
@@ -71,17 +87,34 @@ def main():
                            if not any(c in str(x).lower() for c in COMMS_PLUGINS)]
     m["channels"] = {}
 
-    # 3. register a DIRECT Anthropic provider at the member's tier model, AND
-    #    whitelist that model for agent "main" (agents.defaults.models) — the
-    #    agent rejects a --model override that isn't in its allow-list.
-    key = _anthropic_key(args.anthropic_key_from)
-    m.setdefault("models", {}).setdefault("providers", {})["anthropic"] = {
-        "baseUrl": "https://api.anthropic.com", "apiKey": key, "api": "anthropic-messages",
-        "models": [{"id": model, "name": model, "reasoning": False,
-                    "input": ["text", "image"], "contextWindow": 200000, "maxTokens": 64000}],
-    }
+    # 3. Register the member's model provider + whitelist it for agent "main".
+    #    Supports anthropic/* (default tier) and ollama/* (N2N_MEMBER_MODEL).
+    #    Agent rejects a --model override that isn't in agents.defaults.models.
     allow = m.setdefault("agents", {}).setdefault("defaults", {}).setdefault("models", {})
-    allow.setdefault(f"anthropic/{model}", {"alias": "member"})
+    if model.startswith("ollama/") or "/" not in model and "claude" not in model:
+        # Prefer Border's existing ollama provider block (baseUrl + apiKey).
+        ollama_model = model if model.startswith("ollama/") else f"ollama/{model}"
+        border_ollama = (
+            border.get("models", {}).get("providers", {}).get("ollama")
+            or {}
+        )
+        m.setdefault("models", {}).setdefault("providers", {})["ollama"] = border_ollama or {
+            "baseUrl": os.environ.get("OLLAMA_BASE_URL", "https://ollama.com"),
+            "apiKey": os.environ.get("OLLAMA_API_KEY", ""),
+            "api": "ollama",
+        }
+        allow.setdefault(ollama_model, {"alias": "member"})
+        model = ollama_model
+    else:
+        key = _anthropic_key(args.anthropic_key_from)
+        anthropic_id = model.split("/", 1)[-1] if model.startswith("anthropic/") else model
+        m.setdefault("models", {}).setdefault("providers", {})["anthropic"] = {
+            "baseUrl": "https://api.anthropic.com", "apiKey": key, "api": "anthropic-messages",
+            "models": [{"id": anthropic_id, "name": anthropic_id, "reasoning": False,
+                        "input": ["text", "image"], "contextWindow": 200000, "maxTokens": 64000}],
+        }
+        allow.setdefault(f"anthropic/{anthropic_id}", {"alias": "member"})
+        model = f"anthropic/{anthropic_id}" if not model.startswith("anthropic/") else model
 
     # 4. write the scoped home + share the workspace (identity/skills) via symlink
     mh = f"{HOME}/.openclaw-{args.risk}-{name}"
@@ -94,7 +127,7 @@ def main():
 
     print(f"scoped home: {mh}")
     print(f"  mcp.servers: {list(m['mcp']['servers'].keys())}")
-    print(f"  model: {model}  (anthropic key: {'present' if key else 'MISSING'})")
+    print(f"  model: {model}")
     print(f"  OPENCLAW_STATE_DIR={mh}")
     print(f"  OPENCLAW_CONFIG_PATH={mh}/openclaw.json")
     print(f"  N2N_MEMBER_MODEL={model}")

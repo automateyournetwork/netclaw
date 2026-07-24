@@ -66,32 +66,32 @@
 
 ## Phase 4: K3s minimal (PR4) — US3
 
-- [ ] T040 `deploy/home/k8s/` kustomize base for same services
-- [ ] T041 Overlay notes for existing pilot cluster
-- [ ] T042 Smoke checklist for kubectl apply
+- [x] T040 `deploy/home/k8s/` kustomize base for same services
+- [x] T041 Overlay notes for existing pilot cluster
+- [x] T042 Smoke checklist for kubectl apply
 
 ---
 
 ## Phase 5: Installer + risk/guardian ensure (PR5) — US4, US5
 
-- [ ] T050 Catalog ids: `home-noc-core`, `home-noc-metrics`, `home-noc-unifi`, `home-noc-pfsense`, `visual-hud`, SoT stubs
-- [ ] T051 Profile `home` in `catalog.sh`
-- [ ] T052 `component_install_*` in `install-steps.sh`
-- [ ] T053 setup.sh / home-noc-setup: adapter prompts only for selected components
-- [ ] T054 **Risk detect + ensure guardian-claw** via `in2n-profiles` / member generators (idempotent)
-- [ ] T055 Check in `scripts/systemd/netclaw-hud.service` template
-- [ ] T056 config/home-noc.example.yaml
-- [ ] T057 Framework cleanup: remove pilot-only hardcodes from skills where possible; document external-stack deprecation path
-- [ ] T058 Print setup summary `risk=` `investigator=` `home-api=` `deploy=`
+- [x] T050 Catalog ids: `home-noc-core`, `home-noc-metrics`, `home-noc-unifi`, `home-noc-pfsense`, `visual-hud`, SoT stubs
+- [x] T051 Profile `home` in `catalog.sh`
+- [x] T052 `component_install_*` in `install-steps.sh`
+- [x] T053 setup.sh / home-noc-setup: adapter prompts only for selected components
+- [x] T054 **Risk detect + ensure guardian-claw** via `in2n-profiles` / member generators (idempotent)
+- [x] T055 Check in `scripts/systemd/netclaw-hud.service` template
+- [x] T056 config/home-noc.example.yaml
+- [x] T057 Framework cleanup: remove pilot-only hardcodes from skills where possible; document external-stack deprecation path
+- [x] T058 Print setup summary `risk=` `investigator=` `home-api=` `deploy=`
 
 ---
 
 ## Phase 6: Triage loop in HOME (PR6) — US6
 
-- [ ] T060 Triage sub-view: escalated list, notes, feedback buttons
-- [ ] T061 Need More → reinvestigate API
-- [ ] T062 RAG document id display when present
-- [ ] T063 Skill wording: multi-vendor / adapter language in alert-triage + wifi-diagnosis
+- [x] T060 Triage sub-view: escalated list, notes, feedback buttons
+- [x] T061 Need More → reinvestigate API
+- [x] T062 RAG document id display when present
+- [x] T063 Skill wording: multi-vendor / adapter language in alert-triage + wifi-diagnosis
 
 ---
 
@@ -131,7 +131,7 @@
 - Phase H complete for tracked items — optional polish only.
 - Product path: **Phase 3 Docker** (`T030+`) when leaving HUD work.
 
-**Suggested next**: Phase 3 Docker minimal (or ad-hoc HUD bugs).
+**Suggested next**: Phase 7+ adapters (T070 NetBox stub, T071 wireless stub, T072 full compose) or live triage smoke with an escalated event.
 
 ---
 

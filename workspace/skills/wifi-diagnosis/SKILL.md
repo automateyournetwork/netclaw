@@ -1,16 +1,18 @@
 ---
 name: wifi-diagnosis
-description: "Diagnose Wi-Fi and internet connectivity issues using the Network Guardian observability data. Analyzes UniFi AP metrics, WAN health, speedtests, and client distribution to identify problems (high retries, AP imbalance, capacity, ISP degradation) and recommend actions."
+description: "Diagnose Wi-Fi and internet connectivity using Home / Network Guardian observability. Prefer adapter metrics (UniFi Integration exporter first; other wireless vendors via stubs later). Analyzes AP retries, WAN health, speedtests, and client distribution."
 user-invocable: true
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["PROMETHEUS_URL"] } } }
 ---
 
-# Wi-Fi & Internet Diagnosis (Network Guardian)
+# Wi-Fi & Internet Diagnosis (multi-vendor adapters)
 
 Diagnose Wi-Fi client experience, AP health, WAN connectivity, and bandwidth
-issues using the Network Guardian observability stack. Provide root-cause
-analysis, evidence, and actionable recommendations (including "add another AP").
+issues using Home observability. **Wireless v1 adapter = UniFi** (Integration API
+exporter → Prometheus `unifi_*`). Other vendors (generic SNMP, etc.) plug in via
+the same metric contracts when available. Provide root-cause analysis, evidence,
+and actionable recommendations (including "add another AP").
 
 ## When to Use
 
@@ -24,25 +26,26 @@ analysis, evidence, and actionable recommendations (including "add another AP").
 
 ## Observability Stack (Network Guardian)
 
-All data lives in the K3s observability namespace. Query via Prometheus
-(Prometheus + VictoriaMetrics datasources) and Loki.
+Query via Prometheus (and optional VictoriaMetrics / Loki when configured).
+Addresses come from **environment**, not hard-coded pilot hosts.
 
-| Service | Cluster address | Query via |
-|---------|----------------|-----------|
-| Prometheus | prometheus:9090 | PromQL (recording rules + raw metrics) |
-| VictoriaMetrics | victoriametrics:8428 | PromQL (SNMP interface counters, long-term) |
-| Loki | loki:3100 | LogQL (syslog from pfSense, switches, UniFi) |
-| Pushgateway | pushgateway:9091 | PromQL (speedtest results via Prometheus scrape) |
-| Grafana | https://grafana.internal.byrnbaker.me | Dashboards for visual reference |
+| Service | Address | Query via |
+|---------|---------|-----------|
+| Prometheus | `$PROMETHEUS_URL` | PromQL (recording rules + raw metrics) |
+| VictoriaMetrics | `$VICTORIAMETRICS_URL` when set | PromQL (SNMP counters, long-term) |
+| Loki | `$LOKI_URL` when set | LogQL (syslog, UniFi CEF, NetFlow) |
+| Pushgateway | via Prometheus scrape job when deployed | speedtest results |
+| Grafana | `$GRAFANA_URL` when set | Dashboards for visual reference |
+| Home API | `$HOME_API_URL` or `$NETWORK_GUARDIAN_URL` | diary events |
 
-**External:** Prometheus is also accessible from this host at the cluster VIP or
-init-node IP (port-forward or NodePort). For PromQL queries from NetClaw, use
-the `PROMETHEUS_URL` env var (typically `http://192.168.13.2:9090` via the
-k3s-server-1 redirect, or through pfSense port-forward if configured).
+**Docker Home:** Prometheus often at `http://127.0.0.1:9090`. **K3s Home / pilot:**
+port-forward or ClusterIP / Grafana datasource proxy — always prefer `$PROMETHEUS_URL`.
 
 ## Available Metrics
 
-### Wi-Fi / UniFi (from unifi-exporter → Prometheus)
+### Wi-Fi (adapter metrics → Prometheus)
+
+**UniFi adapter (v1):** unifi-exporter Integration API scrape.
 | Metric | Labels | Meaning |
 |--------|--------|---------|
 | `unifi_up` | `site` | 1 = exporter can reach the UniFi controller |
@@ -135,6 +138,24 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
 # (look for the same AP name in both disconnect and connect within a window)
 {device_name="unifi"} |~ "Client (Connected|Disconnected)" |~ "Basement"
 ```
+
+## Operator knowledge base (vendor Wi‑Fi docs)
+
+When the operator has uploaded UniFi / wireless vendor documentation via the HUD
+**Knowledge** panel (`doc_type=vendor`), search it while diagnosing:
+
+```
+rag_search(
+  query="UniFi band steering min RSSI channel width TX retries",
+  collection="documents"
+)
+```
+
+Use hits for **configuration procedures and limits**, not for live client counts
+(those come from Prometheus / UniFi MCP). Cite `citation` fields in recommendations.
+
+If the corpus has no UniFi docs, say so and continue with metrics — suggest uploading
+the UniFi Network / Integration API PDF as type **vendor**.
 
 ## Diagnosis Workflow
 
@@ -246,21 +267,29 @@ sum(count_over_time({device_name="unifi"} |~ "Client Disconnected" [1h]))
 
 **Before recommending band steering or min-RSSI, VERIFY their current state:**
 
-Use the `unifi-network` MCP server to check the actual AP/WLAN configuration:
+When the UniFi adapter is configured, use the `unifi-network` MCP server
+(Integration API tools; do not raw-curl `/proxy/network/api/v1/*`):
 
 ```
-# Check band steering / WiFi AI settings on the affected AP
-unifi_get_device_settings(device_mac="<ap_mac>")
+# One-shot: all APs with channel, channelWidthMHz, and live txRetriesPct
+integration_get_ap_radios()
 
-# Check WLAN/SSID settings (band steering is often per-SSID)
-unifi_list_wlan_configs(site="default")
+# Single AP by MAC (e.g. 60:22:32:9a:da:8d)
+integration_get_device(mac="<ap_mac>")
+integration_get_device_stats(mac="<ap_mac>")
+
+# Optional: after load_network_tools(), SSID list (legacy path may hang)
+list_wlans()
 ```
 
 Key settings to look for:
-- **Band steering mode** — `off`, `prefer_5g`, `balanced`, or `forced_5g`
-- **Min-RSSI** — enabled/disabled and threshold value (e.g., -75 dBm)
-- **802.11k/v/r roaming assistance** — enabled or disabled per SSID
-- **2.4 GHz TX power** — auto vs fixed (lower power = fewer distant clients stick)
+- **Channel + width per band** — from `integration_get_device` / `integration_get_ap_radios`
+  (`channel`, `channelWidthMHz`, `frequencyGHz`). 40 MHz on 2.4 or 160 MHz on 5
+  with overlapping neighbors is a common root cause of high retries.
+- **Live TX retries** — from `integration_get_device_stats` or Prometheus
+  `unifi_radio_tx_retries_pct` for trends.
+- **Band steering / min-RSSI / TX power** — Integration API does **not** expose these
+  today; note as unknown and recommend checking UniFi UI (do not invent values).
 
 **Include the CURRENT state in your report.** Don't recommend "enable band
 steering" if it's already on — instead note that it's on but insufficient
@@ -293,10 +322,11 @@ the overloaded zone and the underserved area).
 
 - **Per-client RSSI/signal strength:** the UniFi Integration API does not expose it.
   TX retries are the proxy. If per-client data is needed, use the UniFi MCP
-  (`unifi_list_clients` via the `unifi-network` MCP server) for a point-in-time
-  snapshot of connected clients and their association quality.
-- **Channel utilization / interference details:** requires an RF scan (via the UniFi
-  MCP `unifi_trigger_rf_scan`). Not continuously collected in metrics.
+  (legacy `list_clients` after `load_network_tools` if it responds; Integration
+  client list may time out on some controllers).
+- **Channel / width:** ✅ via `integration_get_ap_radios` / `integration_get_device`.
+- **Channel utilization / interference details:** RF scan via UniFi MCP `rf_scan`
+  (legacy, may hang) or UniFi UI. Not continuously collected in metrics.
 - **Individual client throughput:** not exposed by the Integration API. Use the UniFi
   MCP for a client-level lookup or check pfSense NetFlow data for that client's IP.
 - **Roaming events:** ✅ **AVAILABLE** in UniFi syslog (Loki, `device_name="unifi"`,
@@ -391,7 +421,7 @@ the overloaded zone and the underserved area).
 | `InternetDown` | All WAN probes fail 2m | Check pfSense gateway status, dpinger logs, ISP outage |
 | `WanHighLatency` | >80ms avg WAN RTT 5m | Speedtest to ISP-local server; dpinger; check for WAN saturation |
 | `SpeedtestBelowSLA` | <70% of 1 Gbps for 2h | Compare ISP-local vs other servers; file ISP ticket with evidence |
-| `UniFiExporterDown` | No Wi-Fi data 10m | Check the exporter pod + API key + VLAN13→controller firewall rule |
+| `UniFiExporterDown` | No Wi-Fi data 10m | Check unifi-exporter (Docker profile / K3s) + `UNIFI_API_KEY` + path to controller |
 
 ## Log Event to Network Guardian Dashboard
 
@@ -400,8 +430,8 @@ to the Network Guardian dashboard. This builds a human-readable diary of Wi-Fi
 health investigations — not raw metrics, but concise outcome summaries.
 
 ```bash
-curl -X POST "${NETWORK_GUARDIAN_URL}/api/events?site=home" \
-  -H "Authorization: Bearer ${NETWORK_GUARDIAN_TOKEN}" \
+curl -X POST "${HOME_API_URL:-$NETWORK_GUARDIAN_URL}/api/events?site=home" \
+  -H "Authorization: Bearer ${HOME_API_TOKEN:-$NETWORK_GUARDIAN_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{"message":"<one-line summary>","severity":"<ok|info|watch|alert>","source":"netclaw"}'
 ```
@@ -416,3 +446,16 @@ curl -X POST "${NETWORK_GUARDIAN_URL}/api/events?site=home" \
 - `{"message":"WifiHighTxRetries24GHz Basement AP: IoT camera on Wi-Fi instead of CAT5, airtime 91% — needs physical fix","severity":"watch","source":"netclaw"}`
 - `{"message":"Client imbalance resolved: min-RSSI enabled, clients rebalancing across APs","severity":"ok","source":"netclaw"}`
 - `{"message":"5GHz retries elevated on Sophie's Office AP: 14 clients on DFS channel, monitoring","severity":"info","source":"netclaw"}`
+
+
+## Operator RF actions (not agent-automated)
+
+**TX power:** UniFi Network Integration API does **not** expose TX power. Agents must
+report `tx_power: unknown` — never invent values. Future: SNMP on APs if agents respond.
+
+**Channel AI Optimize (human only):** AirView → Radios → Channel AI View → **Optimize**
+→ **Apply Changes**. Changes **channels only** (not width/power). After apply, re-check
+with `integration_get_ap_radios` + Prometheus `unifi_radio_tx_retries_pct`.
+
+**Agent MoP should still recommend** width (2.4→20 MHz, 5→80 MHz), band steering, min
+RSSI, and power when evidence supports it — operator applies in UniFi UI.

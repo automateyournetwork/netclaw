@@ -19,10 +19,12 @@
 
 This is a **live home/production network**, not a lab. The site is **"House"**.
 
-- **Source of Truth:** Nautobot at **https://192.168.3.253** — the authoritative
+- **Source of Truth:** Nautobot at **https://nautobot.internal.byrnbaker.me** — the authoritative
   inventory for all managed devices and VMs
 - **Gateway / Firewall:** pfSense-FW01 (Netgate 8200 Max, pfSense Plus) at **192.168.3.1**
   (web/API on port **440**: https://192.168.3.1:440)
+- **UniFi OS Server (UOS):** **192.168.100.10:11443** (self-signed TLS). Network **10.4.57**.
+  Integration API under `/proxy/network/integration/v1/` with `X-API-KEY` (`UNIFI_API_KEY` in `.env`).
 - **Core switches:** HomeSwitch01 (192.168.3.2) and HomeSwitch02 (192.168.3.3) —
   Cisco Catalyst WS-C3850-48P, IOS-XE. **Old switches — require legacy SSH key
   exchange** (see TOOLS.md).
@@ -34,6 +36,14 @@ This is a **live home/production network**, not a lab. The site is **"House"**.
   Nautobot, NetClaw)
 - **Models:** Ollama Cloud (`https://ollama.com`), default `deepseek-v4-pro:cloud`.
   (The former local-ai Ollama box at 192.168.30.50 has been decommissioned.)
+
+## Knowledge base (RAG)
+
+- `~/.openclaw/rag` shared by Border + guardian-claw.
+- UniFi API manual for RAG: public OpenAPI
+  `https://developer.ui.com/network/v10.4.57/openapi.json` (type **vendor**), not the
+  local SPA at `/unifi-api/network` and not the hanging `api-docs/integration.json`.
+- See `workspace/TOOLS.md` (UniFi + RAG sections) and `docs/runbooks/knowledge-rag-home-ops.md`.
 
 ## Notes
 
