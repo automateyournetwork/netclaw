@@ -65,6 +65,111 @@ input {
   animation: sweep 8s linear infinite;
 }
 
+/* ── H005 Stale / offline graph banner ──────────────────────────── */
+.stale-banner {
+  position: fixed;
+  top: max(10px, env(safe-area-inset-top, 0px));
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: min(720px, calc(100vw - 24px));
+  padding: 10px 12px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 123, 84, 0.45);
+  background: rgba(28, 14, 10, 0.94);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  color: var(--text);
+}
+
+.stale-banner.hidden {
+  display: none !important;
+}
+
+.stale-banner-badge {
+  flex: none;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  font-size: 10px;
+  color: #041018;
+  background: linear-gradient(180deg, #ff9a6b, var(--accent-warm));
+}
+
+.stale-banner-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.35;
+  color: rgba(231, 241, 255, 0.88);
+}
+
+.stale-banner-retry {
+  flex: none;
+  appearance: none;
+  border: 1px solid var(--line-strong);
+  background: rgba(101, 195, 255, 0.12);
+  color: var(--accent);
+  border-radius: 999px;
+  padding: 8px 12px;
+  min-height: 36px;
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.stale-banner-retry:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.stale-banner-retry:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.stale-banner-dismiss {
+  flex: none;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  width: 32px;
+  height: 32px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.stale-banner-dismiss:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+#app.has-stale-banner .topbar {
+  /* keep topbar clear of the banner on mobile */
+  margin-top: 0;
+}
+
+@media (max-width: 720px) {
+  .stale-banner {
+    top: max(8px, env(safe-area-inset-top, 0px));
+    left: max(8px, env(safe-area-inset-left, 0px));
+    right: max(8px, env(safe-area-inset-right, 0px));
+    transform: none;
+    max-width: none;
+    flex-wrap: wrap;
+  }
+}
+
 /* H002 — OS reduce motion: freeze continuous full-screen scan */
 #app.reduced-motion .scan-beam,
 html.reduced-motion .scan-beam {

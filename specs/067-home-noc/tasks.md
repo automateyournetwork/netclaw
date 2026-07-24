@@ -118,18 +118,18 @@
 - [x] H001 Landscape mode chrome (`#app.landscape-layout`, compact topbar, short terminal sheet)
 - [x] H002 `prefers-reduced-motion` (scan-beam off, GSAP timeScale, auto FOCUS)
 - [x] H003 Touch long-press → node detail (cancel on orbit drag; optional haptic; opens DETAIL)
+- [x] H004 PWA shell (manifest, icons, service worker shell+graph cache)
+- [x] H005 Offline / stale graph boot banner + localStorage last-good graph
 - [x] H006 Mobile / landscape smoke checklist in HUD README
 
 ### Worth doing next
 
-- [ ] H004 PWA shell (manifest, icons, optional shell+graph cache SW)
-- [ ] H005 Offline / stale graph boot banner when `/api/graph` fails
 - [ ] H007 [P] Knowledge panel mobile bottom-sheet + default collapsed
 - [ ] H008 Dynamic `--topbar-height` via ResizeObserver (replace hard-coded offsets)
 - [ ] H009 Persist quality mode + user pin in localStorage
 - [ ] H010 Mobile terminal snap points (collapsed / peek / expanded)
 
-**Suggested HUD-only session order**: H004/H005 → H007–H010 (or return to Phase 3 Docker).
+**Suggested HUD-only session order**: H007–H010 (or return to Phase 3 Docker).
 
 ---
 

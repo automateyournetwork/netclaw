@@ -3,7 +3,7 @@
 **Status**: Active backlog — pick up when returning to Visual HUD UX  
 **Spec home**: `specs/067-home-noc/`  
 **Code home**: `ui/netclaw-visual/`  
-**Last updated**: 2026-07-24 (H001–H003 + H006 shipped)
+**Last updated**: 2026-07-24 (H001–H006 shipped; H004/H005 this session)
 
 Capture of improvements identified while shipping Home tab layout fixes, panel collapse, floating terminal, and mobile layout. **Do not lose these** when context rotates to Docker/K3s/installer work.
 
@@ -20,7 +20,9 @@ Capture of improvements identified while shipping Home tab layout fixes, panel c
 | H001 Landscape | `#app.landscape-layout` on short landscape; compact topbar (hide eyebrow); shorter terminal sheet; auto-collapse chat on landscape enter; FOV bump | this session |
 | H002 Reduced motion | `#app.reduced-motion`; freeze `.scan-beam`; GSAP `timeScale(40)`; skip cinematic burst; auto FOCUS | this session |
 | H003 Long-press | Canvas long-press (~480ms) selects node, opens DETAIL sheet, optional `vibrate`; cancels on orbit drag | this session |
-| H006 Smoke checklist | HUD README mobile/landscape checklist | this session |
+| H006 Smoke checklist | HUD README mobile/landscape checklist | earlier |
+| H004 PWA shell | `manifest.webmanifest`, icons 192/512/maskable, `sw.js` shell+graph cache, register on boot | this session |
+| H005 Stale graph | `graph-cache.js` localStorage; fetchGraph fallback; STALE banner + Retry; SW network-first `/api/graph` | this session |
 
 **Key files**
 
@@ -45,30 +47,16 @@ Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (ort
 
 ---
 
-### P2 — Product polish (next HUD session)
+### P2 — Shipped this session
 
-#### H004 — PWA shell (installable HUD)
-**Why**: Operators want home-screen launch; better standalone mobile chrome.  
-**Do**:
-- `manifest.webmanifest` (name NetClaw Visual, theme `#07111f`, `display: standalone`)
-- Icons (192 / 512) under `ui/netclaw-visual/public/`
-- Link from `index.html`; optional minimal service worker that caches shell + last `/api/graph` snapshot only (no secrets)
-- HTTPS note in quickstart (required for install)  
-**Accept**: “Add to Home Screen” works on iOS Safari + Chromium; standalone launch shows COMMAND|HOME without browser URL bar clutter.
+- **H004** PWA shell — done (`public/manifest.webmanifest`, `public/sw.js`, `public/icons/*`)  
+- **H005** Offline / stale graph — done (`graph-cache.js`, stale banner, SW graph cache)  
 
-#### H005 — Offline / degraded shell
-**Why**: Gateway or graph API blips leave a dead loading screen; mobile networks are flaky.  
-**Do**:
-- Cache last good graph JSON in `sessionStorage` / Cache API
-- Boot with “stale graph” banner + last-updated time when `/api/graph` fails
-- Keep chat UI mounted; show gateway offline (already partially present)  
-**Accept**: Kill home-api/graph for one request → HUD still shows last topology with clear STALE badge.
-
-#### H006 — Mobile smoke checklist — **shipped** (see HUD README)
+**Install note**: Chromium “Install app” / iOS Share → Add to Home Screen needs **HTTPS** (or localhost). LAN HTTP will still run the HUD but may not prompt install.
 
 ---
 
-### P3 — Nice-to-have
+### P3 — Nice-to-have (next HUD session)
 
 #### H007 — Knowledge panel mobile pass
 **Why**: RAG panel is fixed large width; can cover terminal on phones.  
@@ -96,8 +84,8 @@ Prioritized for **operator value / effort**. IDs `H###` are HUD-polish only (ort
 
 When next opening a **HUD UX** session (not blocked on deploy):
 
-1. **H004** / **H005** if installable / field use matters  
-2. **H007–H010** as time allows  
+1. **H007–H010** as time allows  
+2. Or resume product **Phase 3 Docker**
 
 Product path (Docker → K3s → installer → triage) remains **Phase 3+** in `tasks.md` and can resume when HUD polish is paused.
 

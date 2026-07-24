@@ -3,7 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#07111f" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="NetClaw" />
     <title>NetClaw Visual</title>
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -17,6 +26,14 @@
       <div id="scene-root"></div>
       <div class="noise"></div>
       <div class="scan-beam"></div>
+
+      <!-- H005: offline / stale topology banner -->
+      <div id="stale-banner" class="stale-banner hidden" role="status" aria-live="polite">
+        <span class="stale-banner-badge">STALE</span>
+        <span id="stale-banner-text" class="stale-banner-text">Showing last saved topology</span>
+        <button type="button" id="stale-banner-retry" class="stale-banner-retry">Retry</button>
+        <button type="button" id="stale-banner-dismiss" class="stale-banner-dismiss" aria-label="Dismiss">×</button>
+      </div>
 
       <header class="topbar panel">
         <div class="topbar-brand-block">

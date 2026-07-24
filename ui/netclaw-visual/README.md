@@ -250,10 +250,18 @@ npm run preview
 | **NetClaw Terminal** | Drag the header to move, corner handle to resize, `_` / `+` to collapse. Desktop position is remembered. |
 | **Mobile** | Narrow / touch viewports get `#app.mobile-layout`: bottom-sheet panels, auto FOCUS quality, capped DPR, terminal as a bottom sheet. |
 
-**Remaining backlog (PWA, offline graph, knowledge sheet, …)** lives in Spec Kit:
+**Remaining backlog (knowledge sheet, topbar height, quality persist, terminal snaps)** lives in Spec Kit:
 
 - [`specs/067-home-noc/hud-polish-backlog.md`](../../specs/067-home-noc/hud-polish-backlog.md)
 - Task checkboxes: Phase H in [`specs/067-home-noc/tasks.md`](../../specs/067-home-noc/tasks.md)
+
+### PWA + offline (H004 / H005)
+
+| Feature | Behavior |
+|---------|----------|
+| **Install** | `manifest.webmanifest` + icons; Chromium install / iOS Add to Home Screen. Requires **HTTPS** (or `localhost`). |
+| **Service worker** | `/sw.js` caches app shell and the last good `/api/graph` only — not chat, secrets, or other APIs. |
+| **Stale topology** | Last graph is also stored in `localStorage`. If `/api/graph` fails, the HUD boots with a **STALE** banner (Retry / dismiss). Footer **Updated** shows `STALE …`. Chat still mounts; gateway indicator is independent. |
 
 ### Mobile / landscape smoke checklist (H006)
 
@@ -268,6 +276,8 @@ Run in DevTools device mode or on a phone (&lt;10 min):
 - [ ] Drag/orbit still works (long-press cancels if finger moves)
 - [ ] **Reduce motion** (OS setting): scan-beam frozen; quality drops to FOCUS if not user-pinned
 - [ ] iOS keyboard open does not permanently mis-size the canvas (visualViewport)
+- [ ] **PWA**: manifest loads; SW registers on secure context (Application tab)
+- [ ] **Stale**: after one successful load, stop HUD API briefly and reload → STALE banner + last topology
 
 ### The 3D Scene
 

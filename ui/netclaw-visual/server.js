@@ -17,6 +17,33 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// H004 — service worker must be no-cache and scoped to origin root
+app.get('/sw.js', (req, res) => {
+  res.set({
+    'Content-Type': 'application/javascript; charset=utf-8',
+    'Cache-Control': 'no-cache, no-store, must-revalidate',
+    'Service-Worker-Allowed': '/',
+  });
+  res.sendFile(path.join(__dirname, 'dist', 'sw.js'), (err) => {
+    if (err) {
+      // Dev fallback: public/ before vite build
+      res.sendFile(path.join(__dirname, 'public', 'sw.js'), (err2) => {
+        if (err2) res.status(404).send('// sw.js not found — run npm run build');
+      });
+    }
+  });
+});
+
+app.get('/manifest.webmanifest', (req, res) => {
+  res.set({
+    'Content-Type': 'application/manifest+json; charset=utf-8',
+    'Cache-Control': 'no-cache',
+  });
+  const distPath = path.join(__dirname, 'dist', 'manifest.webmanifest');
+  const pubPath = path.join(__dirname, 'public', 'manifest.webmanifest');
+  res.sendFile(fs.existsSync(distPath) ? distPath : pubPath);
+});
+
 // Serve the frontend static files (dist/ built from src/)
 app.use(express.static(path.join(__dirname, 'dist')));
 

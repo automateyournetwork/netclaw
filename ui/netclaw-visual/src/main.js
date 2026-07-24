@@ -16,6 +16,8 @@ import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
 import { createTabRouter } from './app-shell/tab-router.js';
 import { createMobileLayout, mobilePixelRatio } from './app-shell/mobile-layout.js';
+import { saveGraphCache, loadGraphCache, formatCacheAge } from './app-shell/graph-cache.js';
+import { registerServiceWorker } from './app-shell/register-sw.js';
 import { HomeView } from './views/home/HomeView.js';
 import './styles/home.css';
 
@@ -111,6 +113,9 @@ const state = {
   suppressNextClick: false,
   /** Open command chrome panel (wired in wireUI) */
   openPanel: null,
+  /** H005 — booted from localStorage / SW stale graph */
+  graphStale: false,
+  graphStaleAt: null,
 };
 
 const dom = {
@@ -403,10 +408,84 @@ function setLoading(progress, text) {
   dom.loadingText.textContent = text;
 }
 
+/**
+ * H005 — fetch live graph; on failure use last good snapshot (localStorage).
+ * Sets state.graphStale when serving cache.
+ */
 async function fetchGraph() {
-  const response = await fetch('/api/graph');
-  if (!response.ok) throw new Error(`API returned ${response.status}`);
-  return response.json();
+  state.graphStale = false;
+  state.graphStaleAt = null;
+  try {
+    const response = await fetch('/api/graph', { cache: 'no-cache' });
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+    const graph = await response.json();
+    // SW may serve a stale body with 200 + X-NetClaw-Graph-Cache: stale
+    const cacheHdr = response.headers.get('X-NetClaw-Graph-Cache');
+    const cachedAtHdr = response.headers.get('X-NetClaw-Graph-Cached-At');
+    if (cacheHdr === 'stale') {
+      state.graphStale = true;
+      state.graphStaleAt = cachedAtHdr || loadGraphCache()?.cachedAt || null;
+      if (!graph.generatedAt && state.graphStaleAt) {
+        graph.generatedAt = state.graphStaleAt;
+      }
+      return graph;
+    }
+    if (!graph.generatedAt) graph.generatedAt = new Date().toISOString();
+    saveGraphCache(graph);
+    return graph;
+  } catch (err) {
+    const cached = loadGraphCache();
+    if (cached?.graph) {
+      state.graphStale = true;
+      state.graphStaleAt = cached.cachedAt;
+      const graph = cached.graph;
+      if (!graph.generatedAt) graph.generatedAt = cached.cachedAt;
+      console.warn('[netclaw-hud] Using stale graph cache:', err.message);
+      return graph;
+    }
+    throw err;
+  }
+}
+
+/** H005 — top banner when topology is from cache / offline */
+function showStaleBanner({ cachedAt, reason } = {}) {
+  const el = document.getElementById('stale-banner');
+  const text = document.getElementById('stale-banner-text');
+  if (!el || !text) return;
+  const age = formatCacheAge(cachedAt || state.graphStaleAt);
+  const why = reason || 'API unreachable';
+  text.textContent = `Showing last saved topology (${age}). ${why}. Chat may still work if the gateway is up.`;
+  el.classList.remove('hidden');
+  document.getElementById('app')?.classList.add('has-stale-banner');
+}
+
+function hideStaleBanner() {
+  document.getElementById('stale-banner')?.classList.add('hidden');
+  document.getElementById('app')?.classList.remove('has-stale-banner');
+}
+
+function wireStaleBanner() {
+  document.getElementById('stale-banner-dismiss')?.addEventListener('click', () => hideStaleBanner());
+  document.getElementById('stale-banner-retry')?.addEventListener('click', async () => {
+    const btn = document.getElementById('stale-banner-retry');
+    if (btn) btn.disabled = true;
+    try {
+      const graph = await fetchGraph();
+      if (!state.graphStale) {
+        state.graph = graph;
+        renderSidebar(graph);
+        renderMetrics(graph);
+        hideStaleBanner();
+        dom.footerUpdated.textContent = new Date(graph.generatedAt || Date.now()).toLocaleTimeString();
+      } else {
+        showStaleBanner({ cachedAt: state.graphStaleAt, reason: 'Still offline' });
+      }
+    } catch (e) {
+      showStaleBanner({ cachedAt: state.graphStaleAt, reason: e.message || 'Retry failed' });
+    } finally {
+      if (btn) btn.disabled = false;
+    }
+  });
 }
 
 function initScene() {
@@ -1406,7 +1485,14 @@ function renderMetrics(graph) {
     || 'unknown';
   dom.footerModel.textContent = modelLabel;
   dom.footerGateway.textContent = graph.config?.gateway?.mode || 'unknown';
-  dom.footerUpdated.textContent = new Date(graph.generatedAt).toLocaleTimeString();
+  if (state.graphStale) {
+    dom.footerUpdated.textContent = `STALE ${formatCacheAge(state.graphStaleAt || graph.generatedAt)}`;
+  } else {
+    const ts = graph.generatedAt ? new Date(graph.generatedAt) : new Date();
+    dom.footerUpdated.textContent = Number.isNaN(ts.getTime())
+      ? '—'
+      : ts.toLocaleTimeString();
+  }
 }
 
 function applyFilters() {
@@ -3671,6 +3757,9 @@ async function boot() {
   try {
     setLoading(12, 'Loading graph data');
     state.graph = await fetchGraph();
+    if (state.graphStale) {
+      setLoading(18, 'Using cached topology (offline)');
+    }
 
     setLoading(30, 'Fetching BGP topology');
     try {
@@ -3791,7 +3880,18 @@ async function boot() {
     renderMetrics(state.graph);
     setDetail('overview');
     wireUI();
+    wireStaleBanner();
     applyFilters();
+
+    if (state.graphStale) {
+      showStaleBanner({
+        cachedAt: state.graphStaleAt,
+        reason: 'Live /api/graph unavailable',
+      });
+      if (dom.footerUpdated) {
+        dom.footerUpdated.textContent = `STALE ${formatCacheAge(state.graphStaleAt)}`;
+      }
+    }
 
     setLoading(94, 'Bringing telemetry online');
     connectSocket();
@@ -3803,10 +3903,15 @@ async function boot() {
     }, 30000);
     animate();
 
-    setLoading(100, 'Visual layer online');
+    // H004 — PWA service worker (shell + last graph snapshot)
+    registerServiceWorker();
+
+    setLoading(100, state.graphStale ? 'Visual layer online (stale graph)' : 'Visual layer online');
     setTimeout(() => dom.loading.classList.add('hidden'), 300);
   } catch (error) {
     dom.loadingText.textContent = `Boot failure: ${error.message}`;
+    // Still try to register SW so next visit can use shell cache
+    registerServiceWorker();
     throw error;
   }
 }
