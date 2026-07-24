@@ -87,12 +87,21 @@ export class HomeView {
         `<button type="button" class="home-sub-btn${s.id === this.subview ? ' active' : ''}" data-home-sub="${s.id}">${s.label}</button>`,
     ).join('');
     return `
-      <div class="home-subnav">
-        <p class="eyebrow">NetClaw Home</p>
-        ${buttons}
-        <button type="button" class="home-sub-btn" id="home-refresh" title="Refresh">↻ Refresh</button>
+      <div class="home-frame">
+        <div class="home-toolbar">
+          <div class="home-toolbar-left">
+            <p class="eyebrow home-toolbar-title">NetClaw Home</p>
+            <div class="home-segmented" role="tablist" aria-label="Home sections">
+              ${buttons}
+            </div>
+          </div>
+          <button type="button" class="home-refresh-btn" id="home-refresh" title="Refresh data">
+            <span class="home-refresh-icon" aria-hidden="true">↻</span>
+            <span>Refresh</span>
+          </button>
+        </div>
+        <section class="home-panel" id="home-panel-body"></section>
       </div>
-      <section class="home-panel" id="home-panel-body"></section>
     `;
   }
 

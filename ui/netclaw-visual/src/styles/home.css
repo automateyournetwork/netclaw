@@ -1,4 +1,4 @@
-/* 067-home-noc — Home tab shell (HUD design tokens from styles.css :root) */
+/* 067-home-noc — Home tab (HUD design tokens from styles.css :root) */
 
 .topbar-brand-block {
   display: flex;
@@ -9,11 +9,11 @@
 
 .app-tabs {
   display: inline-flex;
-  gap: 6px;
+  gap: 4px;
   padding: 4px;
   border-radius: 999px;
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.25);
+  background: rgba(0, 0, 0, 0.28);
   width: fit-content;
 }
 
@@ -21,7 +21,7 @@
   appearance: none;
   border: 0;
   cursor: pointer;
-  padding: 6px 14px;
+  padding: 8px 16px;
   border-radius: 999px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
@@ -43,8 +43,7 @@
 }
 
 .topbar-stats.hidden,
-.home-root.hidden,
-#app.home-mode .command-chrome {
+.home-root.hidden {
   display: none !important;
 }
 
@@ -62,52 +61,90 @@
   display: none !important;
 }
 
-/* Chat + footer stay available */
+/* ── Home layout: one column, toolbar + content card aligned ── */
 
 .home-root {
   position: fixed;
-  top: 110px;
+  /* Clear taller topbar (brand + COMMAND/HOME tabs) */
+  top: 128px;
   left: 18px;
   right: 18px;
-  bottom: 72px;
+  bottom: 88px;
   z-index: 20;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
   overflow: auto;
-  padding-bottom: 12px;
+  padding: 0;
 }
 
 .home-shell {
   display: flex;
   flex-direction: column;
-  gap: 14px;
   min-height: 100%;
+  width: 100%;
+  max-width: 1120px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
-.home-subnav {
+/* Shared horizontal inset so toolbar and KPI card share the same edges */
+.home-frame {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.home-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 14px 18px;
+  border-radius: 18px;
+  border: 1px solid var(--line);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), transparent),
+    var(--bg-soft);
+  box-shadow: var(--shadow);
+  backdrop-filter: blur(18px);
+  box-sizing: border-box;
+}
+
+.home-toolbar-left {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.home-toolbar-title {
+  margin: 0;
+}
+
+/* Segmented sub-nav — matches Command deck .segmented look */
+.home-segmented {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-}
-
-.home-subnav .eyebrow {
-  margin-right: 8px;
+  gap: 6px;
+  width: 100%;
 }
 
 .home-sub-btn {
   appearance: none;
   border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.28);
+  background: rgba(255, 255, 255, 0.04);
   color: var(--muted);
-  padding: 8px 12px;
-  border-radius: 12px;
+  padding: 10px 14px;
+  border-radius: 999px;
   font-family: 'IBM Plex Mono', monospace;
   font-size: 11px;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   cursor: pointer;
+  line-height: 1.2;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
 }
 
 .home-sub-btn:hover {
@@ -117,10 +154,40 @@
 
 .home-sub-btn.active {
   color: var(--text);
-  border-color: var(--accent);
-  box-shadow: inset 0 0 0 1px rgba(101, 195, 255, 0.25);
+  border-color: var(--line-strong);
+  background: linear-gradient(90deg, rgba(101, 195, 255, 0.22), rgba(255, 123, 84, 0.16));
 }
 
+.home-refresh-btn {
+  appearance: none;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: rgba(0, 0, 0, 0.28);
+  color: var(--muted);
+  padding: 10px 14px;
+  border-radius: 999px;
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  align-self: flex-end;
+}
+
+.home-refresh-btn:hover {
+  color: var(--text);
+  border-color: var(--accent);
+}
+
+.home-refresh-icon {
+  font-size: 14px;
+  line-height: 1;
+}
+
+/* Content card — same column width as toolbar above */
 .home-panel {
   flex: 1;
   border-radius: 22px;
@@ -130,8 +197,10 @@
     var(--bg-soft);
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
-  padding: 18px 20px 22px;
+  padding: 20px 22px 24px;
   min-height: 280px;
+  box-sizing: border-box;
+  width: 100%;
 }
 
 .home-panel-header {
@@ -139,7 +208,7 @@
   justify-content: space-between;
   gap: 12px;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 18px;
 }
 
 .home-panel-header h2 {
@@ -167,7 +236,7 @@
 
 .home-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
   gap: 12px;
   margin-bottom: 18px;
 }
@@ -269,13 +338,34 @@
 
 @media (max-width: 900px) {
   .home-root {
-    top: 150px;
+    top: 168px;
     bottom: 100px;
+    left: 12px;
+    right: 12px;
   }
 
   .topbar {
     flex-direction: column;
     align-items: stretch;
     gap: 12px;
+  }
+
+  .home-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .home-refresh-btn {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .home-segmented {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .home-sub-btn {
+    text-align: center;
   }
 }
