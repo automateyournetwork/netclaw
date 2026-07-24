@@ -137,3 +137,8 @@ docs/ietf/*.txt
 docs/ietf/*.html
 docs/ietf/.refcache/
 docs/ietf/kdrfc-err.txt
+
+# Local Convergence / agentic NOC context (private ops notes — not for public repo)
+docs/architecture/convergence-context/
+# Home Docker local secrets
+deploy/home/.env

@@ -1,0 +1,14 @@
+# Rendered by smoke-docker.sh / render-config.sh via envsubst.
+# ALERT_RECEIVER_URL — host alert-receiver webhook (default host.docker.internal:8099)
+route:
+  receiver: netclaw
+  group_by: ["alertname", "instance"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: netclaw
+    webhook_configs:
+      - url: "${ALERT_RECEIVER_URL}"
+        send_resolved: true

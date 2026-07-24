@@ -1,0 +1,18 @@
+# Optional fragment — already included in ../docker-compose.yml under profile "unifi".
+# Kept for documentation / include-style tooling.
+services:
+  unifi-exporter:
+    profiles: ["unifi"]
+    image: python:3.12-slim
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python", "-u", "/app/exporter.py"]
+    environment:
+      UNIFI_HOST: ${UNIFI_HOST:-https://192.168.1.1}
+      UNIFI_API_KEY: ${UNIFI_API_KEY:-}
+      SITE_LABEL: ${SITE_LABEL:-home}
+      LISTEN_PORT: "9899"
+    volumes:
+      - ./exporter.py:/app/exporter.py:ro
+    ports:
+      - "${UNIFI_EXPORTER_HOST_PORT:-9899}:9899"

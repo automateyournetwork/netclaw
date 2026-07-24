@@ -1,0 +1,77 @@
+# NetClaw Home — recording + alert rules (067 Phase 3)
+# Compatible with home-api health queries (guardian:* recording names).
+groups:
+  - name: netclaw-home.recording
+    interval: 15s
+    rules:
+      - record: guardian:wan_loss_ratio:5m
+        expr: 1 - avg(avg_over_time(probe_success{job="blackbox_wan_tcp"}[5m]))
+        labels:
+          site: home
+
+      - record: guardian:wan_latency_ms:avg
+        expr: 1000 * avg(probe_duration_seconds{job="blackbox_wan_tcp"})
+        labels:
+          site: home
+
+      - record: guardian:health_score
+        expr: |
+          clamp_min(
+            100
+            - 45 * (1 - avg(avg_over_time(probe_success{job="blackbox_wan_tcp"}[5m])))
+            - clamp_max(1000 * avg(probe_duration_seconds{job="blackbox_wan_tcp"}) / 4, 25)
+          , 0)
+        labels:
+          site: home
+
+  - name: netclaw-home.alerts
+    rules:
+      - alert: InternetDown
+        expr: max(probe_success{job=~"blackbox_wan_.*"}) == 0
+        for: 2m
+        labels:
+          severity: critical
+          site: home
+        annotations:
+          summary: "Internet appears DOWN (all WAN probes failing)"
+          description: "No WAN probe has succeeded for 2m from the Home stack vantage point."
+
+      - alert: WanTargetUnreachable
+        expr: probe_success{job="blackbox_wan_tcp"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          site: home
+        annotations:
+          summary: "WAN target {{ $labels.target }} unreachable"
+          description: "TCP probe to {{ $labels.instance }} has failed for 5m."
+
+      - alert: WanHighLatency
+        expr: 1000 * avg(probe_duration_seconds{job="blackbox_wan_tcp"}) > 80
+        for: 5m
+        labels:
+          severity: warning
+          site: home
+        annotations:
+          summary: "WAN latency elevated"
+          description: "Average WAN TCP probe duration > 80ms for 5m."
+
+      - alert: UniFiExporterDown
+        expr: up{job="unifi"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          site: home
+        annotations:
+          summary: "UniFi exporter not scraping"
+          description: "Prometheus cannot reach unifi-exporter:9899. Enable profile unifi or fix UNIFI_* env."
+
+      - alert: HomeApiDown
+        expr: up{job="home-api"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          site: home
+        annotations:
+          summary: "home-api unreachable"
+          description: "Prometheus scrape of home-api /healthz is failing."

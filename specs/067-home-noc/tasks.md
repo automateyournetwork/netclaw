@@ -56,11 +56,11 @@
 
 ## Phase 3: Docker minimal (PR3) — US3
 
-- [ ] T030 `deploy/home/docker-compose.yml` (postgres, prom, am, blackbox, home-api, unifi-exporter)
-- [ ] T031 Alertmanager receiver → host alert-receiver URL configurable
-- [ ] T032 [P] `deploy/home/adapters/unifi/` fragment
-- [ ] T033 Smoke script `deploy/home/smoke-docker.sh`
-- [ ] T034 quickstart.md Docker path
+- [x] T030 `deploy/home/docker-compose.yml` (postgres, prom, am, blackbox, home-api; unifi profile)
+- [x] T031 Alertmanager receiver → host alert-receiver URL configurable (`render-config.sh` + `ALERT_RECEIVER_URL`)
+- [x] T032 [P] `deploy/home/adapters/unifi/` fragment (exporter.py + profile + README)
+- [x] T033 Smoke script `deploy/home/smoke-docker.sh`
+- [x] T034 quickstart.md Docker path
 
 ---
 
