@@ -2910,6 +2910,226 @@ function connectSocket() {
   });
 }
 
+/**
+ * Floating NetClaw Terminal: drag (header), resize (corner handle), collapse (_/+).
+ * Geometry is restored from localStorage when available.
+ */
+function initChatWindow() {
+  const drawer = dom.chatDrawer;
+  if (!drawer || !dom.chatToggle) return;
+
+  const STORAGE_KEY = 'netclaw.hud.chatWindow.v1';
+  const header = document.getElementById('chat-header') || drawer.querySelector('.chat-header');
+  let resizeHandle = document.getElementById('chat-resize');
+  if (!resizeHandle) {
+    resizeHandle = document.createElement('div');
+    resizeHandle.id = 'chat-resize';
+    resizeHandle.className = 'chat-resize-handle';
+    resizeHandle.title = 'Drag to resize';
+    resizeHandle.setAttribute('aria-hidden', 'true');
+    drawer.appendChild(resizeHandle);
+  }
+
+  const minW = 320;
+  const minH = 160;
+  const collapsedH = 42;
+  let expandedHeight = 320;
+  let dragState = null;
+  let resizeState = null;
+
+  function clamp(n, lo, hi) {
+    return Math.max(lo, Math.min(hi, n));
+  }
+
+  function viewport() {
+    return { w: window.innerWidth, h: window.innerHeight };
+  }
+
+  function applyGeometry({ left, top, width, height, collapsed }) {
+    const vp = viewport();
+    const w = clamp(width ?? (drawer.offsetWidth || 620), minW, vp.w - 16);
+    let h = height ?? (drawer.offsetHeight || 320);
+    if (collapsed) {
+      h = collapsedH;
+    } else {
+      h = clamp(h, minH, vp.h - 16);
+      expandedHeight = h;
+    }
+    const l = clamp(left ?? 0, 0, Math.max(0, vp.w - w));
+    const t = clamp(top ?? 0, 0, Math.max(0, vp.h - h));
+
+    drawer.classList.add('chat-positioned');
+    drawer.style.left = `${l}px`;
+    drawer.style.top = `${t}px`;
+    drawer.style.right = 'auto';
+    drawer.style.bottom = 'auto';
+    drawer.style.transform = 'none';
+    drawer.style.width = `${w}px`;
+    if (!collapsed) drawer.style.height = `${h}px`;
+  }
+
+  function currentGeometry() {
+    const rect = drawer.getBoundingClientRect();
+    return {
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: drawer.classList.contains('collapsed') ? expandedHeight : rect.height,
+      collapsed: drawer.classList.contains('collapsed'),
+    };
+  }
+
+  function saveGeometry() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentGeometry()));
+    } catch {
+      /* ignore quota / private mode */
+    }
+  }
+
+  function loadGeometry() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch {
+      return null;
+    }
+  }
+
+  /** Convert centered default into absolute left/top so drag/resize work cleanly. */
+  function ensurePositioned() {
+    if (drawer.classList.contains('chat-positioned')) return;
+    const rect = drawer.getBoundingClientRect();
+    applyGeometry({
+      left: rect.left,
+      top: rect.top,
+      width: rect.width,
+      height: drawer.classList.contains('collapsed') ? expandedHeight : rect.height,
+      collapsed: drawer.classList.contains('collapsed'),
+    });
+  }
+
+  // Restore saved geometry
+  const saved = loadGeometry();
+  if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
+    if (saved.collapsed) {
+      drawer.classList.add('collapsed');
+      dom.chatToggle.textContent = '+';
+    }
+    if (typeof saved.height === 'number' && saved.height > collapsedH) {
+      expandedHeight = saved.height;
+    }
+    applyGeometry(saved);
+  }
+
+  // Collapse / expand (kept; do not remove)
+  dom.chatToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    ensurePositioned();
+    const willCollapse = !drawer.classList.contains('collapsed');
+    if (willCollapse) {
+      const rect = drawer.getBoundingClientRect();
+      if (rect.height > collapsedH) expandedHeight = rect.height;
+      drawer.classList.add('collapsed');
+      dom.chatToggle.textContent = '+';
+      drawer.style.height = `${collapsedH}px`;
+    } else {
+      drawer.classList.remove('collapsed');
+      dom.chatToggle.textContent = '_';
+      drawer.style.height = `${expandedHeight}px`;
+    }
+    // Keep on-screen after height change
+    const geo = currentGeometry();
+    applyGeometry({ ...geo, collapsed: drawer.classList.contains('collapsed') });
+    saveGeometry();
+  });
+
+  // Drag from header (ignore interactive controls)
+  if (header) {
+    header.addEventListener('pointerdown', (e) => {
+      if (e.button !== 0) return;
+      if (e.target.closest('button, a, input, textarea, select, .chat-header-actions')) return;
+      e.preventDefault();
+      ensurePositioned();
+      const rect = drawer.getBoundingClientRect();
+      dragState = {
+        id: e.pointerId,
+        offsetX: e.clientX - rect.left,
+        offsetY: e.clientY - rect.top,
+      };
+      drawer.classList.add('dragging');
+      header.setPointerCapture?.(e.pointerId);
+    });
+
+    header.addEventListener('pointermove', (e) => {
+      if (!dragState || dragState.id !== e.pointerId) return;
+      const vp = viewport();
+      const w = drawer.offsetWidth;
+      const h = drawer.offsetHeight;
+      const left = clamp(e.clientX - dragState.offsetX, 0, vp.w - w);
+      const top = clamp(e.clientY - dragState.offsetY, 0, vp.h - h);
+      drawer.style.left = `${left}px`;
+      drawer.style.top = `${top}px`;
+    });
+
+    const endDrag = (e) => {
+      if (!dragState || (e.pointerId != null && dragState.id !== e.pointerId)) return;
+      dragState = null;
+      drawer.classList.remove('dragging');
+      saveGeometry();
+    };
+    header.addEventListener('pointerup', endDrag);
+    header.addEventListener('pointercancel', endDrag);
+  }
+
+  // Resize from corner handle
+  resizeHandle.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0) return;
+    if (drawer.classList.contains('collapsed')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    ensurePositioned();
+    const rect = drawer.getBoundingClientRect();
+    resizeState = {
+      id: e.pointerId,
+      startX: e.clientX,
+      startY: e.clientY,
+      startW: rect.width,
+      startH: rect.height,
+      startL: rect.left,
+      startT: rect.top,
+    };
+    drawer.classList.add('resizing');
+    resizeHandle.setPointerCapture?.(e.pointerId);
+  });
+
+  resizeHandle.addEventListener('pointermove', (e) => {
+    if (!resizeState || resizeState.id !== e.pointerId) return;
+    const vp = viewport();
+    const width = clamp(resizeState.startW + (e.clientX - resizeState.startX), minW, vp.w - resizeState.startL - 8);
+    const height = clamp(resizeState.startH + (e.clientY - resizeState.startY), minH, vp.h - resizeState.startT - 8);
+    drawer.style.width = `${width}px`;
+    drawer.style.height = `${height}px`;
+    expandedHeight = height;
+  });
+
+  const endResize = (e) => {
+    if (!resizeState || (e.pointerId != null && resizeState.id !== e.pointerId)) return;
+    resizeState = null;
+    drawer.classList.remove('resizing');
+    saveGeometry();
+  };
+  resizeHandle.addEventListener('pointerup', endResize);
+  resizeHandle.addEventListener('pointercancel', endResize);
+
+  // Keep window on-screen after viewport changes
+  window.addEventListener('resize', () => {
+    if (!drawer.classList.contains('chat-positioned')) return;
+    applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
+  });
+}
+
 function wireUI() {
   dom.search.addEventListener('input', (event) => {
     state.filters.query = event.target.value;
@@ -2942,34 +3162,41 @@ function wireUI() {
     newSessionBtn.addEventListener('click', resetChatSession);
   }
 
-  // Chat toggle collapse/expand
-  dom.chatToggle.addEventListener('click', () => {
-    dom.chatDrawer.classList.toggle('collapsed');
-    dom.chatToggle.textContent = dom.chatDrawer.classList.contains('collapsed') ? '+' : '_';
-  });
+  // Chat: collapse + floating move/resize (persist geometry)
+  initChatWindow();
 
-  // Panel collapse/expand
-  function togglePanel(panel, reopenBtn, arrowCollapsed, arrowExpanded) {
+  // Panel collapse/expand (left/right slide off-screen; footer slides down)
+  function togglePanel(panel, reopenBtn) {
+    if (!panel || !reopenBtn) return;
     panel.classList.toggle('collapsed');
     const isCollapsed = panel.classList.contains('collapsed');
     reopenBtn.classList.toggle('visible', isCollapsed);
   }
 
-  dom.toggleLeft.addEventListener('click', () => togglePanel(dom.sidebarLeft, dom.reopenLeft));
-  dom.toggleRight.addEventListener('click', () => togglePanel(dom.sidebarRight, dom.reopenRight));
-  dom.toggleFooter.addEventListener('click', () => togglePanel(dom.footerPanel, dom.reopenFooter));
+  dom.toggleLeft?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePanel(dom.sidebarLeft, dom.reopenLeft);
+  });
+  dom.toggleRight?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePanel(dom.sidebarRight, dom.reopenRight);
+  });
+  dom.toggleFooter?.addEventListener('click', (e) => {
+    e.stopPropagation();
+    togglePanel(dom.footerPanel, dom.reopenFooter);
+  });
 
-  dom.reopenLeft.addEventListener('click', () => {
-    dom.sidebarLeft.classList.remove('collapsed');
-    dom.reopenLeft.classList.remove('visible');
+  dom.reopenLeft?.addEventListener('click', () => {
+    dom.sidebarLeft?.classList.remove('collapsed');
+    dom.reopenLeft?.classList.remove('visible');
   });
-  dom.reopenRight.addEventListener('click', () => {
-    dom.sidebarRight.classList.remove('collapsed');
-    dom.reopenRight.classList.remove('visible');
+  dom.reopenRight?.addEventListener('click', () => {
+    dom.sidebarRight?.classList.remove('collapsed');
+    dom.reopenRight?.classList.remove('visible');
   });
-  dom.reopenFooter.addEventListener('click', () => {
-    dom.footerPanel.classList.remove('collapsed');
-    dom.reopenFooter.classList.remove('visible');
+  dom.reopenFooter?.addEventListener('click', () => {
+    dom.footerPanel?.classList.remove('collapsed');
+    dom.reopenFooter?.classList.remove('visible');
   });
 
   // Quality budget toggle

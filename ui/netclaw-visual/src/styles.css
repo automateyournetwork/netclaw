@@ -146,12 +146,36 @@ input {
 }
 
 .sidebar {
-  top: 118px;
+  /* Clear taller topbar (brand + COMMAND/HOME tabs) so collapse toggles stay clickable */
+  top: 168px;
   bottom: 102px;
   width: min(24vw, 330px);
   border-radius: 24px;
+  padding: 0;
+  overflow: hidden;
+  z-index: 35;
+  display: flex;
+  flex-direction: column;
+  isolation: isolate;
+}
+
+.sidebar > .panel-toggle {
+  position: absolute;
+  z-index: 6;
+  flex: none;
+}
+
+.sidebar > section {
   padding: 18px;
   overflow: auto;
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.sidebar > section.sidebar-section {
+  flex: 0 1 auto;
+  max-height: 40%;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
 }
 
 .sidebar.left {
@@ -315,6 +339,7 @@ input {
   bottom: 18px;
   padding: 14px 18px;
   border-radius: 20px;
+  z-index: 35;
 }
 
 .footer-row {
@@ -417,24 +442,46 @@ input {
   transform: translate(-50%, -120%);
 }
 
-/* ── Chat Drawer ─────────────────────────────────────────────────── */
+/* ── Chat Drawer (floating, draggable, resizable, collapsible) ─── */
 .chat-drawer {
   position: fixed;
+  /* Default docked position; JS may override with left/top after drag */
   bottom: 84px;
   left: 50%;
   transform: translateX(-50%);
   width: min(620px, calc(100vw - 40px));
-  max-height: 320px;
+  height: 320px;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  min-width: 320px;
+  min-height: 42px;
   border-radius: 18px;
   display: flex;
   flex-direction: column;
-  z-index: 40;
-  transition: max-height 300ms ease, opacity 200ms ease;
+  z-index: 45;
+  transition: max-height 300ms ease, opacity 200ms ease, box-shadow 180ms ease;
+  overflow: hidden;
+}
+
+.chat-drawer.chat-positioned {
+  /* After first drag/resize: use explicit left/top, drop centering transform */
+  transform: none;
+  bottom: auto;
 }
 
 .chat-drawer.collapsed {
+  height: 42px !important;
+  min-height: 42px;
   max-height: 42px;
   overflow: hidden;
+  resize: none;
+}
+
+.chat-drawer.dragging,
+.chat-drawer.resizing {
+  transition: none;
+  user-select: none;
+  box-shadow: 0 22px 70px rgba(0, 0, 0, 0.55), 0 0 0 1px rgba(101, 195, 255, 0.25);
 }
 
 .chat-header {
@@ -443,6 +490,50 @@ input {
   align-items: center;
   padding: 8px 14px 4px;
   flex: none;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+
+.chat-header:active {
+  cursor: grabbing;
+}
+
+.chat-header .chat-header-actions,
+.chat-header .chat-header-actions * {
+  cursor: pointer;
+  user-select: auto;
+}
+
+.chat-resize-handle {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  width: 16px;
+  height: 16px;
+  cursor: nwse-resize;
+  z-index: 3;
+  touch-action: none;
+  opacity: 0.55;
+  background:
+    linear-gradient(135deg, transparent 50%, rgba(101, 195, 255, 0.15) 50%),
+    repeating-linear-gradient(
+      -45deg,
+      transparent,
+      transparent 2px,
+      rgba(101, 195, 255, 0.55) 2px,
+      rgba(101, 195, 255, 0.55) 3px
+    );
+  border-radius: 0 0 12px 0;
+  clip-path: polygon(100% 0, 100% 100%, 0 100%);
+}
+
+.chat-drawer.collapsed .chat-resize-handle {
+  display: none;
+}
+
+.chat-resize-handle:hover {
+  opacity: 1;
 }
 
 .chat-header .eyebrow {
@@ -495,8 +586,9 @@ input {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  min-height: 80px;
-  max-height: 200px;
+  min-height: 0;
+  /* Grow/shrink with floating window height instead of fixed max */
+  max-height: none;
 }
 
 .chat-messages::-webkit-scrollbar { width: 4px; }
@@ -897,28 +989,32 @@ input {
 /* ── Collapsible Panels ─────────────────────────────────────────── */
 .panel-toggle {
   position: absolute;
-  z-index: 2;
-  width: 24px;
-  height: 24px;
-  border-radius: 6px;
-  border: 1px solid var(--line);
-  background: rgba(0, 0, 0, 0.4);
-  color: var(--muted);
+  z-index: 6;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: rgba(5, 12, 24, 0.92);
+  color: var(--text);
   cursor: pointer;
-  font-size: 12px;
+  font-size: 14px;
+  line-height: 1;
   display: grid;
   place-items: center;
-  transition: color 180ms ease, border-color 180ms ease;
+  transition: color 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
 }
 
 .panel-toggle:hover {
-  color: var(--text);
+  color: #041018;
   border-color: var(--accent);
+  background: linear-gradient(180deg, var(--accent), #3a9ad4);
+  box-shadow: 0 0 16px rgba(101, 195, 255, 0.35);
 }
 
-.sidebar.left .panel-toggle { top: 8px; right: 8px; }
-.sidebar.right .panel-toggle { top: 8px; left: 8px; }
-.footer .panel-toggle { top: -28px; right: 12px; }
+.sidebar.left .panel-toggle { top: 10px; right: 10px; }
+.sidebar.right .panel-toggle { top: 10px; left: 10px; }
+.footer .panel-toggle { top: -30px; right: 12px; }
 
 .sidebar.left {
   transition: transform 350ms cubic-bezier(.4, 0, .2, 1), opacity 250ms ease;
@@ -950,7 +1046,7 @@ input {
 
 .panel-reopen {
   position: fixed;
-  z-index: 30;
+  z-index: 50;
   background: var(--bg-strong);
   border: 1px solid var(--line);
   color: var(--muted);
@@ -1056,6 +1152,7 @@ input {
     top: auto;
     bottom: 102px;
     height: 280px;
+    z-index: 35;
   }
 
   .sidebar.left {
