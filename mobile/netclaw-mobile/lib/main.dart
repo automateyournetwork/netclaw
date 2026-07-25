@@ -15,6 +15,7 @@ import 'ncfed/edge_identity.dart';
 import 'ncfed/enrollment_store.dart';
 import 'ncfed/heartbeat.dart';
 import 'ncfed/message_feed.dart';
+import 'ncfed/notification_deep_link.dart';
 import 'ncfed/push_registration.dart';
 import 'ncfed/reconnect_supervisor.dart';
 import 'screens/approvals_screen.dart';
@@ -198,6 +199,7 @@ class _HomeShellState extends State<HomeShell> {
   CapabilityRegistration? _capabilities;
   DeviceDeepLinkListener? _deepLinkListener;
   ReconnectSupervisor<void>? _reconnectSupervisor;
+  DateTime? _highlightPushedAt;
 
   @override
   void initState() {
@@ -269,13 +271,35 @@ class _HomeShellState extends State<HomeShell> {
   /// `google-services.json`/`GoogleService-Info.plist`): any failure here
   /// just means the push-notification fallback isn't available yet, never
   /// something that blocks or crashes the rest of the app.
+  ///
+  /// Notification-tap deep-linking (T032) is wired here too, and only on the
+  /// success path — `NotificationDeepLink` calls into `FirebaseMessaging`,
+  /// which throws if `initializeApp` didn't succeed.
   Future<void> _tryRegisterPush() async {
     try {
       await Firebase.initializeApp();
       await PushRegistration(widget.client).registerCurrentToken();
+      await _wireNotificationDeepLink();
     } catch (e) {
       debugPrint('push registration unavailable (no Firebase project configured?): $e');
     }
+  }
+
+  /// Tapping a delivered push (or cold-starting from one) jumps to the Feed
+  /// tab with the referenced message scrolled into view and highlighted.
+  Future<void> _wireNotificationDeepLink() async {
+    final feedStore = _feedStore;
+    if (feedStore == null) return;
+    await NotificationDeepLink(
+      store: feedStore,
+      openMessage: (message) {
+        if (!mounted) return;
+        setState(() {
+          _tab = 1; // Feed
+          _highlightPushedAt = message.pushedAt;
+        });
+      },
+    ).wire();
   }
 
   @override
@@ -311,7 +335,7 @@ class _HomeShellState extends State<HomeShell> {
     }
     final pages = [
       ChatScreen(askClient: _askClient!, store: _conversationStore!),
-      FeedScreen(store: _feedStore!),
+      FeedScreen(store: _feedStore!, highlightPushedAt: _highlightPushedAt),
       ApprovalsScreen(approvalClient: _approvalClient!),
       SettingsScreen(capabilities: _capabilities!),
     ];

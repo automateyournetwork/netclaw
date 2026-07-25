@@ -12,7 +12,13 @@ import 'empty_state.dart';
 class FeedScreen extends StatefulWidget {
   final MessageFeedStore store;
 
-  const FeedScreen({super.key, required this.store});
+  /// When a push notification is tapped (T032, `NotificationDeepLink`), the
+  /// message it referred to is scrolled into view and highlighted. Identified
+  /// by `pushedAt` because that is the field the FCM/APNs `data` payload
+  /// carries — see `findMessageForNotificationData`.
+  final DateTime? highlightPushedAt;
+
+  const FeedScreen({super.key, required this.store, this.highlightPushedAt});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -20,12 +26,31 @@ class FeedScreen extends StatefulWidget {
 
 class _FeedScreenState extends State<FeedScreen> {
   bool _loading = true;
+  final _highlightKey = GlobalKey();
 
   @override
   void initState() {
     super.initState();
     widget.store.load().then((_) {
       if (mounted) setState(() => _loading = false);
+      _scrollToHighlight();
+    });
+  }
+
+  @override
+  void didUpdateWidget(FeedScreen old) {
+    super.didUpdateWidget(old);
+    // A second notification tap while the feed is already open.
+    if (widget.highlightPushedAt != old.highlightPushedAt) _scrollToHighlight();
+  }
+
+  /// Deferred to the next frame: the target tile only has a render object
+  /// once the list has been laid out.
+  void _scrollToHighlight() {
+    if (widget.highlightPushedAt == null) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _highlightKey.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, alignment: 0.3);
     });
   }
 
@@ -44,20 +69,38 @@ class _FeedScreenState extends State<FeedScreen> {
     }
     return ListView.builder(
       itemCount: messages.length,
-      itemBuilder: (context, index) => _MessageTile(message: messages[index]),
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        final highlighted = widget.highlightPushedAt != null &&
+            message.pushedAt == widget.highlightPushedAt;
+        return _MessageTile(
+          key: highlighted ? _highlightKey : null,
+          message: message,
+          highlighted: highlighted,
+        );
+      },
     );
   }
 }
 
 class _MessageTile extends StatelessWidget {
   final EdgeMessage message;
+  final bool highlighted;
 
-  const _MessageTile({required this.message});
+  const _MessageTile({super.key, required this.message, this.highlighted = false});
 
   @override
   Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: highlighted ? scheme.secondaryContainer : null,
+      shape: highlighted
+          ? RoundedRectangleBorder(
+              side: BorderSide(color: scheme.secondary, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(

@@ -1,4 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The edge node talks to the Border over a WSS channel, so the release
+         build genuinely needs this. It was previously declared only in the
+         debug and profile manifests and reached release builds purely as a
+         manifest-merge side-effect of firebase_messaging — dropping that
+         dependency would have silently broken networking in release with no
+         compile-time error. Declared explicitly here instead. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
     <application
         android:label="NetClaw"
         android:name="${applicationName}"

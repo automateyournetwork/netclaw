@@ -1,4 +1,4 @@
-package ca.automateyournetwork.netclaw.netclaw_mobile
+package ca.automateyournetwork.netclaw.mobile
 
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
@@ -23,10 +23,11 @@ private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
  * and sign a challenge — there is no method anywhere in this class that
  * returns private key bytes.
  *
- * UNVERIFIED ON A REAL DEVICE as of this commit — written and reviewed on a
- * Linux dev container with no Android SDK/emulator available. Build and
- * exercise on real Android hardware (or an emulator with Keystore support)
- * before relying on it.
+ * Verified on an API-34 emulator (2026-07-23 onward): this plugin links and
+ * runs, and a full enrollment + ask round trip against the real Border
+ * succeeds. Keygen and signing have not been exercised on a device with a
+ * hardware-backed keymaster (StrongBox) — the emulator's Keystore is
+ * software-backed, so hardware attestation remains unproven.
  */
 class MainActivity : FlutterFragmentActivity() {
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

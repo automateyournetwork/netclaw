@@ -24,9 +24,11 @@ lib/
     edge_client.dart          # WebSocket JSON-RPC client (mirrors edge.py's EdgeChannel)
     enrollment_flow.dart      # QR -> parse -> domain check -> dial -> outcome
     message_feed.dart         # local persisted store for Border-pushed messages (066)
-    reconnect_supervisor.dart # generic bounded-retry loop (ports _in2n_member_dialer)
+    enrollment_store.dart     # persisted enrollment, so a restart redials instead of re-enrolling
+    reconnect_supervisor.dart # bounded-retry loop; drives the app's auto-redial
+    heartbeat.dart            # answers the Border's n2n/edge/heartbeat + self_status probes
     push_registration.dart    # FCM/APNs token registration
-    notification_deep_link.dart
+    notification_deep_link.dart # notification tap -> jump to that message in the feed
     edge_ask_client.dart      # n2n/edge/ask + task status/result/cancel (067)
     conversation_store.dart   # per-device persisted chat history (067)
     voice_transcription.dart  # on-device speech-to-text -> ask() (067, US4)
@@ -35,7 +37,9 @@ lib/
     capability_registration.dart # advertises/toggles capture capabilities (068, US3)
     capture_client.dart       # phone-initiated attach + Border-requested capture handler (068, US2/US3)
   screens/
-    enrollment_screen.dart    # "Scan Border QR Code" (one-time, pre-enrollment)
+    enrollment_screen.dart    # "Scan Border QR Code" + "Can't scan? Enter manually"
+    manual_enrollment_screen.dart # domain/port/token typed by hand (no camera needed)
+    empty_state.dart          # shared illustrated empty state
     feed_screen.dart          # renders pushed messages (066)
     chat_screen.dart          # request/answer history, cancel, voice, camera (067/068)
     device_scan_screen.dart   # "Scan Device" -- any time, post-enrollment (067, US5)
@@ -54,11 +58,51 @@ ios/Runner/X509SelfSigned.swift                    # manual self-signed cert bui
    the daemon (`mcp-servers/protocol-mcp/bgp-daemon-v2.py`).
 2. Issue a QR: `netclaw risk token --edge [label]`.
 3. `flutter pub get`, then `flutter run` (Android) to launch the app and scan it.
+   No usable camera (emulator, Simulator)? Tap **"Can't scan? Enter manually"** on
+   the enrollment screen and type the domain, port, and token instead — it
+   synthesizes exactly the payload a scan would produce.
+
+Once enrolled, the app persists the enrollment (`enrollment_store.dart`) and
+redials automatically on restart or a dropped connection, so steps 2–3 are
+one-time. A Border that revokes the device returns `-32023`, which drops the app
+back to the enrollment screen rather than retrying forever.
 
 ```bash
 flutter analyze
 flutter test
 ```
+
+## Building a release
+
+`flutter build appbundle` reads signing material from `android/key.properties`:
+
+```properties
+storeFile=/absolute/path/to/upload-keystore.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+That file and any `*.jks`/`*.keystore` are gitignored and must never be
+committed. **If it's absent the build still succeeds but signs with the debug
+key** (Gradle prints a warning) — such an artifact cannot be uploaded to Play.
+The release build type has R8 minification and resource shrinking enabled; keep
+rules live in `android/app/proguard-rules.pro`.
+
+## Docs
+
+| Doc | What it covers |
+|---|---|
+| [`MOBILE-ONBOARDING.md`](MOBILE-ONBOARDING.md) | **How to securely enroll a phone against your own Border** — operator side (token/QR) and phone side, plus the security model. Start here. |
+| [`TESTER-INSTRUCTIONS.md`](TESTER-INSTRUCTIONS.md) | Copy-paste handout for sending a build to someone else to test. |
+| [`PLAY-STORE-ROADMAP.md`](PLAY-STORE-ROADMAP.md) | Google Play publication path, sequenced against this repo's build config. |
+| [`MAC-IOS-HANDOFF.md`](MAC-IOS-HANDOFF.md) | Read before starting iOS work on a Mac. |
+| [`ASSETS.md`](ASSETS.md) | Icon/splash regeneration and brand rationale. |
+
+The app ships with no hostnames or credentials — it is a generic NCFED edge
+client, bound to whichever Border enrolls it. Any reference to
+`netclaw.automateyournetwork.ca` in this repo is the maintainer's own test
+Border, not a dependency.
 
 ## Platform-specific notes
 
@@ -82,6 +126,11 @@ flutter test
   emulator has no provisioned fingerprint/Face-unlock enrollment and its virtual
   camera only produces a synthetic test pattern, not a real capture; both need
   either a real device or a properly provisioned emulator, done in a later pass.
+  **A full production round trip has since been verified** (2026-07-25): a question
+  asked from the emulated phone against the operator's real Border fanned out to
+  the `cml` and `pyats` risk members and returned a 1583-byte answer to the handset
+  in 2m13s, with GAIT audit records for each delegation. Enrollment, the edge WS
+  transport, delegation/routing, and result delivery are all proven end to end.
 - **iOS**: building, signing, and running the app — and exercising
   `EdgeIdentityPlugin.swift`'s Secure Enclave key generation — **requires Xcode,
   which only runs on macOS.** That code was written and reviewed without a Mac
@@ -95,15 +144,22 @@ flutter test
   Developer credentials configured on the Border (`.env.example`'s
   `FCM_SERVICE_ACCOUNT_JSON`/`APNS_*` vars) and a real `Firebase.initializeApp()`
   setup in the app (`google-services.json` / `GoogleService-Info.plist`) — neither
-  exists in this repo; wire them in with your own project's credentials.
+  exists in this repo; wire them in with your own project's credentials. Note that
+  `main.dart`'s `_tryRegisterPush()` swallows the resulting failure to a
+  `debugPrint`, so **push silently does nothing rather than erroring** until those
+  credentials exist. Notification-tap deep-linking is wired on the same success
+  path: it jumps to the Feed tab and highlights the referenced message.
 - Voice transcription (`speech_to_text`, feature 067 US4) and the device deep link
   (`app_links`, feature 067 US5) are wired in and pass their unit tests, but — like
   push notifications — haven't been exercised against a real microphone or a real
   tapped/scanned link on either platform.
 - Feature 068's `local_auth`/`camera` packages need no manual `AndroidManifest.xml`
   permission entries — both merge their own required permissions (`CAMERA`,
-  `RECORD_AUDIO`, `USE_BIOMETRIC`) in automatically via Gradle manifest merging;
-  `AndroidManifest.xml` itself declares zero `<uses-permission>` for either. On
+  `RECORD_AUDIO`, `USE_BIOMETRIC`) in automatically via Gradle manifest merging.
+  `INTERNET` is the exception and **is** declared explicitly in
+  `android/app/src/main/AndroidManifest.xml`: it previously reached release builds
+  only as a merge side-effect of `firebase_messaging`, so dropping that dependency
+  would have silently broken networking in release with no compile-time error. On
   iOS, `local_auth`'s Face ID needs `NSFaceIDUsageDescription` (Touch ID/Android's
   BiometricPrompt need no key at all) — added to `Info.plist` alongside the
   existing camera/microphone keys, which now also cover the `camera` package's

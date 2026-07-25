@@ -53,7 +53,19 @@ ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
 
 daemon_up() { api_get /status | grep -q '"running"'; }
 
-env_get() { grep -m1 "^${1}=" "$RUNTIME_HOME/.env" 2>/dev/null | cut -d= -f2-; }
+# Reads a setting from the runtime env. Checks .env first, then
+# mesh.systemd.env: the durable mesh units (features 056/057) keep daemon-only
+# settings such as N2N_EDGE_WS_PORT in the systemd env file rather than .env,
+# and looking at only the first file made `netclaw risk token --edge` fail with
+# no output on a correctly-configured Border.
+env_get() {
+    local f v
+    for f in "$RUNTIME_HOME/.env" "$RUNTIME_HOME/mesh.systemd.env"; do
+        v="$(grep -m1 "^${1}=" "$f" 2>/dev/null | cut -d= -f2-)"
+        [ -n "$v" ] && { printf '%s\n' "$v"; return 0; }
+    done
+    return 0
+}
 
 ngrok_up() { pgrep -f 'ngrok (tcp|start)' >/dev/null 2>&1; }
 
