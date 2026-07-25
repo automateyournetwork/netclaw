@@ -2,7 +2,7 @@
 
 **Feature Branch**: `067-convergence`  
 **Created**: 2026-07-24  
-**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry largely shipped; Phase 9 investigation policy spec’d)  
+**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry largely shipped; Phase 9 investigation policy + thin T2 agent implemented)  
 **Input**: Productize the Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless / **device SNMP** / **agent observability**), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
 
 **Greenfield optional PR (Phase 8)**: Campus switch SNMP, device syslog, NetClaw

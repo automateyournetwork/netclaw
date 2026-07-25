@@ -2,7 +2,7 @@
 
 **Feature**: 067-convergence  
 **Phase**: 9 (optional PR after Phase 8 telemetry)  
-**Status**: Spec’d  
+**Status**: Implemented (engine + thin T2 agent profile)  
 **Working notes** (gitignored): `docs/architecture/convergence-context/token-burn-remediation-plan.md`
 
 ## Problem
@@ -107,6 +107,27 @@ markmap, RFC, wiki, ollama-mcp domain router, full pyATS (escalate to domain
 member instead).
 
 Interactive `main` may keep a rich MCP set; **hooks must not share it**.
+
+### Implementation (T106)
+
+| Piece | Location |
+|-------|----------|
+| Seed allowlist | `deploy/convergence/config/alert-agent.example.json` |
+| Apply / show / validate | `scripts/netclaw-alert-agent-profile.sh` |
+| OpenClaw agent id | `alert` in `agents.list` with explicit `tools.allow` |
+| Hook routing | `hooks.mappings` match `path=alert` → `agentId: alert` |
+| Policy field | `tiers.T2.agent: alert` in investigation-policy YAML |
+
+```bash
+./scripts/netclaw-alert-agent-profile.sh show
+./scripts/netclaw-alert-agent-profile.sh apply   # validates + restarts openclaw-gateway
+./scripts/netclaw-alert-agent-profile.sh validate
+```
+
+Thin `tools.allow` defaults (server globs): `prometheus-mcp__*`, `grafana-mcp__*`,
+`rag-mcp__*`, `memory-mcp__*`, `mempalace-mcp__*`, `pfsense-mcp__*`,
+`unifi-network__*`, `n2n-mcp__*`, plus `read` / `memory_*` / `session_status` /
+`web_fetch`. Fat MCPs are absent from the allowlist (deny-by-omission).
 
 ## Domain claws (not per-tool claws)
 

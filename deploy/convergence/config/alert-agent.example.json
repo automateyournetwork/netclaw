@@ -1,0 +1,50 @@
+{
+  "_comment": "067 Phase 9 T106 — thin alert orchestrator agent for hook:alert T2. Apply with scripts/netclaw-alert-agent-profile.sh apply. Interactive main keeps full MCP; hooks must not share it.",
+  "agent": {
+    "id": "alert",
+    "name": "Alert Orchestrator",
+    "workspace": "${HOME}/.openclaw/workspace",
+    "tools": {
+      "allow": [
+        "session_status",
+        "read",
+        "memory_search",
+        "memory_get",
+        "web_fetch",
+        "prometheus-mcp__*",
+        "grafana-mcp__*",
+        "rag-mcp__*",
+        "memory-mcp__*",
+        "mempalace-mcp__*",
+        "pfsense-mcp__*",
+        "unifi-network__*",
+        "n2n-mcp__*"
+      ]
+    }
+  },
+  "exclude_from_auto_t2": [
+    "pyats-mcp",
+    "gait-mcp",
+    "nautobot-mcp",
+    "nautobot-routing-mcp",
+    "nautobot-golden-config-mcp",
+    "cml-mcp",
+    "github-mcp",
+    "drawio-mcp",
+    "markmap-mcp",
+    "rfc-mcp",
+    "wikipedia-mcp",
+    "ollama-mcp",
+    "protocol-mcp",
+    "proxmox-mcp",
+    "threatintel-mcp",
+    "greynoise-community-mcp",
+    "nmap-mcp",
+    "subnet-calculator-mcp"
+  ],
+  "hook": {
+    "path": "alert",
+    "agentId": "alert",
+    "note": "hooks.mappings match path=alert should set agentId=alert; allowedAgentIds must include alert"
+  }
+}

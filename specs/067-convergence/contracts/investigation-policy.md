@@ -28,7 +28,17 @@ Missing or invalid file → **tier T0** + warning log (fail-safe).
 |------|---------------------|
 | **T0** | Not call multi-tool OpenClaw investigate hook; optional diary/Discord only |
 | **T1** | At most one-shot summarize (0–1 tools); hard completion token cap; no full MCP farm |
-| **T2** | Existing investigate hook with **thin tool profile** (or dedicated agent id); subject to budgets |
+| **T2** | Existing investigate hook with **thin tool profile** (dedicated agent id `alert`); subject to budgets |
+
+## Thin T2 agent (OpenClaw)
+
+| Item | Value |
+|------|--------|
+| Agent id | `alert` |
+| Seed | `deploy/convergence/config/alert-agent.example.json` |
+| Apply | `scripts/netclaw-alert-agent-profile.sh apply` |
+| Tools | Explicit `tools.allow` (prometheus / rag / memory / pfsense / unifi / …) — not full `main` MCP set |
+| Hook | `hooks.mappings` path `alert` → `agentId: alert`; `allowedAgentIds` includes `alert` |
 
 ## Budgets
 

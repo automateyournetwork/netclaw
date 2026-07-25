@@ -46,7 +46,11 @@ alert (e.g. per-switch-port) must never open dozens of concurrent sessions.
 |------|----------|
 | T0 | Diary / optional critical Discord — **no multi-tool OpenClaw hook** |
 | T1 | Cheap notify/summary — no full MCP investigation |
-| T2 | Multi-tool hook (only if `allow_t2` matches + budgets) |
+| T2 | Multi-tool hook (only if `allow_t2` matches + budgets) via thin agent id `alert` |
+
+**Thin T2 agent (T106):** `./scripts/netclaw-alert-agent-profile.sh apply`  
+routes `hooks/alert` to OpenClaw agent `alert` with a slim MCP allowlist
+(prometheus/rag/memory/pfsense/unifi…). Interactive `main` keeps the full set.
 
 See **`docs/CONVERGENCE-ALERT-SAFETY.md`**. Metrics: `netclaw_investigations_by_tier`,
 `netclaw_investigation_budget_trips_total`, `netclaw_investigations_suppressed_*`.

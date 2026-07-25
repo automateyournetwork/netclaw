@@ -231,5 +231,19 @@ Seed example (after T107): `deploy/convergence/config/investigation-policy.examp
 alertname, reload policy (≤60s cache or SIGHUP). See
 [`investigation-policy.md`](./investigation-policy.md).
 
+**Thin T2 agent (required before real auto-investigate is affordable):**
+
+```bash
+# Ensure hook:alert runs as agent id `alert` with a slim MCP allowlist
+# (interactive `main` keeps the full zoo).
+./scripts/netclaw-alert-agent-profile.sh apply
+./scripts/netclaw-alert-agent-profile.sh validate
+./scripts/netclaw-investigation-policy.sh show
+```
+
+Without the thin profile, an allowlisted T2 still hits the full interactive MCP
+set on `main` — high schema tax. Seed:
+`deploy/convergence/config/alert-agent.example.json`.
+
 Related safety for SNMP: do not reintroduce per-idle-port investigate=true rules
 ([`docs/CONVERGENCE-ALERT-SAFETY.md`](../../docs/CONVERGENCE-ALERT-SAFETY.md)).

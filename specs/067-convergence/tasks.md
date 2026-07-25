@@ -187,9 +187,12 @@ setup/quickstart). Does **not** block Phase 8 telemetry ship.
       `tier=… rule=…` per decision
 - [x] T104 T0 path: no multi-tool OpenClaw hook (diary/Discord only as configured)
 - [x] T105 T1 path: one-shot summarize (0–1 tools) — diary + Discord notify; no multi-tool hook
-- [ ] T106 T2 path: existing hook only when allowlisted; wire thin tool profile or agent id
+- [x] T106 T2 path: existing hook only when allowlisted; wire thin tool profile or agent id
       (prometheus-centric; escalate domain claws — no full interactive zoo)
-      **Partial:** T2 gated by policy + budgets; thin MCP agent profile still TODO
+      `deploy/convergence/config/alert-agent.example.json` +
+      `scripts/netclaw-alert-agent-profile.sh apply` → agents.list id=`alert`
+      tools.allow (prom/rag/memory/pfsense/unifi/…) + hooks.mappings path=alert
+      `agentId=alert`
 
 ### Installer / operator UX
 
@@ -198,6 +201,10 @@ setup/quickstart). Does **not** block Phase 8 telemetry ship.
 - [x] T108 CLI: `scripts/netclaw-investigation-policy.sh show|seed-observe-only` + `GET /policy/status`
 - [x] T109 Quickstart: nuclear start (T0 empty allow_t2) → open one T2 alertname
 - [x] T110 `.env.example` notes (`INVESTIGATION_POLICY_PATH`, cache TTL)
+
+**Phase 9 checkpoint**: policy engine (T0 default, budgets, metrics) + thin T2
+agent profile live. Nuclear posture: empty `allow_t2` until operator opens names.
+Optional follow-ups: first real `allow_t2` row after hygiene, T088 Phase 8 smoke.
 
 ### Independent test
 
