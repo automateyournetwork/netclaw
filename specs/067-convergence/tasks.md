@@ -153,6 +153,57 @@ site does not depend on `k3s-observability-stack`.
 agent-metrics → Prom has switch series and `netclaw_model_*` without applying
 anything to namespace `observability`.
 
+**Suggested next (product)**: Phase 9 investigation policy — or finish T088 smoke.
+
+---
+
+## Phase 9: Investigation policy & token economics (optional PR)
+
+**Purpose**: Productize **when** the Convergence alert path spends LLM tokens so
+Agentic NOC stays operable and affordable. Default cheap/safe (T0); operators open
+T1/T2 as alert hygiene improves without code deploys.
+
+**PR framing**: `convergence-investigation-policy` (alert-receiver + seed config +
+setup/quickstart). Does **not** block Phase 8 telemetry ship.
+
+**Detail**: [`investigation-policy.md`](./investigation-policy.md)
+
+### Spec & contracts
+
+- [x] T096 Author `investigation-policy.md` (tiers, policy file, thin T2 profile, budgets)
+- [x] T097 Extend `spec.md` US8 + FR-013–FR-020 + SC-007–SC-009
+- [x] T098 Contract: alert-receiver policy path, resolution order, metrics names
+      (`contracts/investigation-policy.md`)
+
+### Policy engine (alert-receiver)
+
+- [ ] T099 Load `~/.openclaw/investigation-policy.yaml` (seed from
+      `deploy/convergence/config/investigation-policy.example.yaml`); cache ≤60s or SIGHUP
+- [ ] T100 Resolve tier T0/T1/T2 per alert (force_t0, allow_t2, allow_t1, default_tier,
+      Prom `investigate=false`)
+- [ ] T101 Fail-safe: missing/invalid policy → T0 + clear log warning
+- [ ] T102 Budgets: max concurrent T2 + max T2 per hour (or equivalent); clamp tier on trip
+- [ ] T103 Metrics: `netclaw_investigations_by_tier` (+ budget trip counter); log
+      `tier=… rule=…` per decision
+- [ ] T104 T0 path: no multi-tool OpenClaw hook (diary/Discord only as configured)
+- [ ] T105 T1 path: one-shot summarize (0–1 tools, hard completion cap) — stub OK if
+      documented; must not open full MCP farm
+- [ ] T106 T2 path: existing hook only when allowlisted; wire thin tool profile or agent id
+      (prometheus-centric; escalate domain claws — no full interactive zoo)
+
+### Installer / operator UX
+
+- [ ] T107 Seed example policy on setup; document presets
+      `observe-only` | `triage-cheap` | `investigate-critical`
+- [ ] T108 Optional CLI or setup snippet: show current default tier / allowlists
+- [ ] T109 Quickstart: nuclear start (T0 empty allow_t2) → open one T2 alertname
+- [ ] T110 `.env.example` / catalog notes if new keys (policy path, mode preset)
+
+### Independent test
+
+default_tier T0 + empty allow_t2 → synthetic warning does not multi-tool investigate;
+add allow_t2 rule → that alertname can T2; budget trip → clamp; Prom/API stay up.
+
 ---
 
 ## Phase H: HUD polish backlog (deferred — not blocking PR3+)

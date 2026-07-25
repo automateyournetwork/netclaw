@@ -5,7 +5,7 @@
 
 ## Summary
 
-Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (spec’d for upstream PR — not a pilot migration). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
+Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (largely shipped; T088 smoke remaining) and **Phase 9 investigation policy & token economics** (when the alert path spends LLM tokens — T0/T1/T2, allowlists, budgets). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) / [`investigation-policy.md`](./investigation-policy.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
 
 ## Technical Context
 
@@ -100,6 +100,8 @@ workspace/skills/         # multi-vendor wording updates
 | 5 | US4–US5 installer, setup, guardian-claw ensure, framework cleanup |
 | 6 | US6 Triage UI |
 | 7+ | Adapter expansion |
+| 8 | Optional greenfield device SNMP + agent observability |
+| 9 | Investigation policy (T0/T1/T2) + token economics |
 
 ## Complexity Tracking
 
