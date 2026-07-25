@@ -16,7 +16,7 @@ fi
 
 dc() { docker compose "${COMPOSE_ARGS[@]}" "$@"; }
 
-HOME_API_PORT="${HOME_API_HOST_PORT:-3080}"
+HOME_API_PORT="${CONVERGENCE_API_HOST_PORT:-3080}"
 PROM_PORT="${PROMETHEUS_HOST_PORT:-9090}"
 AM_PORT="${ALERTMANAGER_HOST_PORT:-9093}"
 
@@ -108,6 +108,6 @@ if (( FAIL > 0 )); then
   exit 1
 fi
 echo "OK — HUD env:"
-echo "  HOME_API_URL=http://127.0.0.1:${HOME_API_PORT}"
-echo "  HOME_API_TOKEN=${API_KEY}"
+echo "  CONVERGENCE_API_URL=http://127.0.0.1:${HOME_API_PORT}"
+echo "  CONVERGENCE_API_TOKEN=${API_KEY}"
 exit 0

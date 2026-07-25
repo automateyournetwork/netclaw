@@ -38,36 +38,94 @@ Alertmanager → alert-receiver → guardian-claw loop.
 
 ---
 
-## Quick start
+## Quick start — local Docker (primary path)
+
+Same host runs: agent plane + compose stack + alert-receiver.
 
 ```bash
-# 1) Install profile
-./scripts/install.sh --profile convergence
-./scripts/setup.sh
+# 1) Install profile (once)
+./scripts/install.sh --profile convergence && ./scripts/setup.sh
 
-# 2) Stack env (compose secrets only)
-cp deploy/convergence/.env.example deploy/convergence/.env
-# Set API_KEYS[].key and match agent-plane token below
+# 2) Stack env
+cp -n deploy/convergence/.env.example deploy/convergence/.env
+# Edit: API_KEYS[].key, PGPASSWORD, JWT_SECRET, UNIFI_* if using Wi‑Fi metrics
 
-# 3) Agent plane (HUD + skills)
-# ~/.openclaw/.env:
+# 3) Agent plane (~/.openclaw/.env) — match token to API_KEYS
 #   CONVERGENCE_API_URL=http://127.0.0.1:3080
-#   CONVERGENCE_API_TOKEN=<same key as API_KEYS>
+#   CONVERGENCE_API_TOKEN=<same as API_KEYS[].key>
 
-# 4) Alert receiver (host)
-cd services/alert-receiver && cp .env.example .env   # or share root secrets
-# sudo cp scripts/systemd/netclaw-alert-receiver.service /etc/systemd/system/
-# sudo systemctl enable --now netclaw-alert-receiver
+# 4) Alert receiver (host systemd) — diary URL = local API
+# services/alert-receiver/.env:
+#   NETWORK_GUARDIAN_URL=http://127.0.0.1:3080
+#   NETWORK_GUARDIAN_TOKEN=<same key>
+#   OPENCLAW_GATEWAY_URL=http://127.0.0.1:18789
+#   OPENCLAW_HOOK_TOKEN=<gateway hook token>
+sudo cp scripts/systemd/netclaw-alert-receiver.service /etc/systemd/system/
+sudo systemctl daemon-reload && sudo systemctl enable --now netclaw-alert-receiver
+curl -fsS http://127.0.0.1:8099/health
 
-# 5) Bring stack up
-./deploy/convergence/render-config.sh
-docker compose -f deploy/convergence/docker-compose.yml \
-  --env-file deploy/convergence/.env up -d --build
-./deploy/convergence/smoke-docker.sh
+# 5) Bring stack up (optional --profile unifi)
+cd deploy/convergence
+./render-config.sh    # writes AM webhook → host.docker.internal:8099
+docker compose -f docker-compose.yml --env-file .env --profile unifi up -d --build
+./smoke-docker.sh
+
+# 6) HUD
+systemctl --user restart netclaw-hud.service
+# Open http://127.0.0.1:3001 → HOME  (status: /api/home/status → configured:true)
 ```
 
-Full OBS overlay: `docker-compose.full.yml` + `--profile full`  
-K3s: `deploy/convergence/k8s/` (namespace `netclaw-convergence`)
+**Verified path:** Alertmanager → `host.docker.internal:8099/webhook` → alert-receiver
+→ gateway/investigation → POST diary on `convergence-api` (`/api/events`).
+
+Full OBS overlay: `docker-compose.full.yml` + `--profile full`
+
+### Tear down old `netclaw-home` stack
+
+```bash
+docker compose -p netclaw-home down --remove-orphans
+docker volume rm netclaw-home_home-amdata netclaw-home_home-pgdata netclaw-home_home-promdata 2>/dev/null || true
+```
+
+---
+
+## Flip Docker → K3s (same agent plane)
+
+Agent plane (HUD, alert-receiver, OpenClaw) stays on the host. Only the **stack**
+moves into the cluster.
+
+| | Docker local | K3s |
+|--|--------------|-----|
+| Namespace / project | compose `netclaw-convergence` | K8s NS `netclaw-convergence` |
+| API reachability | `http://127.0.0.1:3080` | NodePort **30080** or port-forward |
+| AM → webhook | `host.docker.internal:8099` | Host IP or NodePort to alert-receiver (e.g. `http://192.168.3.252:8099/webhook`) |
+| Agent env | `CONVERGENCE_API_URL=http://127.0.0.1:3080` | `CONVERGENCE_API_URL=http://<node>:30080` |
+
+```bash
+# A) Stop Docker stack (optional — free ports)
+cd deploy/convergence
+docker compose -f docker-compose.yml --env-file .env --profile unifi down
+
+# B) Secrets + apply
+cp deploy/convergence/k8s/secret.example.yaml /tmp/convergence-secret.yaml
+# fill API_KEYS, PGPASSWORD, JWT, UNIFI_API_KEY
+kubectl apply -f /tmp/convergence-secret.yaml
+kubectl apply -k deploy/convergence/k8s/overlays/greenfield
+# or greenfield-full for Loki/VM/Grafana components
+
+# C) Point agent plane at NodePort
+# ~/.openclaw/.env  CONVERGENCE_API_URL=http://127.0.0.1:30080
+# services/alert-receiver/.env  NETWORK_GUARDIAN_URL=http://127.0.0.1:30080
+sudo systemctl restart netclaw-alert-receiver
+systemctl --user restart netclaw-hud.service
+
+# D) Patch Alertmanager webhook if not using host.docker.internal
+# In secret/config: ALERT_RECEIVER_URL=http://<host-LAN-IP>:8099/webhook
+```
+
+Smoke: `deploy/convergence/k8s/SMOKE.md` · offline `./deploy/convergence/k8s/smoke-k8s.sh`
+
+**Do not** deploy into the pilot `observability` namespace (legacy Network Guardian).
 
 ---
 
