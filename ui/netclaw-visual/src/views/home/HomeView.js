@@ -254,7 +254,11 @@ export class HomeView {
   }
 
   async refresh(force = false) {
-    if (this.loading) return;
+    // Coalesce concurrent refreshes; still run one more pass if requested while busy
+    if (this.loading) {
+      this._refreshAgain = true;
+      return;
+    }
     this.loading = true;
     this.lastError = null;
     this.renderSubview(); // show loading
@@ -271,7 +275,7 @@ export class HomeView {
         return;
       }
 
-      // Health + wifi always (topbar metrics need both)
+      // Health + wifi always — top-right Command Deck metrics (Health / WAN / Wi‑Fi / Alerts)
       this.cache.health = await homeFetch(`/health?site=${SITE}`);
       this.cache.wifi = await homeFetch(`/wifi?site=${SITE}`).catch(() => this.cache.wifi || null);
 
@@ -296,10 +300,15 @@ export class HomeView {
         message: err.message || String(err),
         detail: err.payload,
       };
-      this.syncTopbarMetrics(null);
+      // Keep last good topbar values if we have them
+      this.syncTopbarMetrics(this.cache.health || null);
     } finally {
       this.loading = false;
       this.renderSubview();
+      if (this._refreshAgain) {
+        this._refreshAgain = false;
+        this.refresh(true);
+      }
     }
   }
 

@@ -7,7 +7,8 @@
  */
 /* eslint-disable no-restricted-globals */
 
-const SHELL_CACHE = 'netclaw-hud-shell-v1';
+// Bump SHELL_CACHE when shipping UI fixes so navigations don't stick on stale index.html
+const SHELL_CACHE = 'netclaw-hud-shell-v2';
 const GRAPH_CACHE = 'netclaw-hud-graph-v1';
 const GRAPH_URL_PATH = '/api/graph';
 
@@ -108,6 +109,38 @@ async function networkFirstGraph(request) {
   }
 }
 
+/** Network-first for HTML so tab/metric JS fixes ship without a manual cache wipe. */
+async function networkFirstNavigate(request) {
+  const cache = await caches.open(SHELL_CACHE);
+  try {
+    const fresh = await fetch(request, { cache: 'no-cache' });
+    if (fresh.ok) {
+      cache.put(request, fresh.clone());
+      // Also refresh bare index entries used as offline fallback
+      try {
+        const u = new URL(request.url);
+        if (u.pathname === '/' || u.pathname.endsWith('/index.html')) {
+          cache.put('/index.html', fresh.clone());
+          cache.put('/', fresh.clone());
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    return fresh;
+  } catch {
+    const cached =
+      (await cache.match(request, { ignoreSearch: true })) ||
+      (await cache.match('/index.html')) ||
+      (await cache.match('/'));
+    if (cached) return cached;
+    return new Response('NetClaw Visual offline', {
+      status: 503,
+      headers: { 'Content-Type': 'text/plain' },
+    });
+  }
+}
+
 async function cacheFirstShell(request) {
   const cache = await caches.open(SHELL_CACHE);
   const cached = await cache.match(request, { ignoreSearch: true });
@@ -154,9 +187,9 @@ self.addEventListener('fetch', (event) => {
     // Never cache other APIs (home, chat proxies, credentials)
     return;
   }
-  // Navigations + static shell
+  // Navigations: always prefer network so UI fixes (topbar metrics) apply quickly
   if (request.mode === 'navigate' || request.destination === 'document') {
-    event.respondWith(cacheFirstShell(request));
+    event.respondWith(networkFirstNavigate(request));
     return;
   }
   if (request.destination === 'script' || request.destination === 'style' || request.destination === 'image' || request.destination === 'font') {
