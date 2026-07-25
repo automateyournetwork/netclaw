@@ -47,7 +47,16 @@ render_md() { python3 "$RENDER_MD"; }
 # already-handled condition downstream — it must never trip `set -e` and
 # kill the whole TUI when called bare from a menu case (e.g. `peering_overview; pause`).
 api_get() { curl -s --max-time 3 "$BGP_API$1" 2>/dev/null || true; }
-api_post() { curl -s --max-time 30 -H 'Content-Type: application/json' -d "${2:-{}}" "$BGP_API$1" 2>/dev/null || true; }
+# NB: do not inline the default as "${2:-{}}" — bash ends the expansion at the
+# first `}`, so that reads as ${2:-{} followed by a literal `}` and appends a
+# stray brace to every body. The daemon then fails to parse it, logs "Bad JSON
+# body", and silently falls back to {} — so every POST payload (enrollment
+# labels, route request_text, member params) was being discarded.
+api_post() {
+    local body="${2-}"
+    [ -n "$body" ] || body='{}'
+    curl -s --max-time 30 -H 'Content-Type: application/json' -d "$body" "$BGP_API$1" 2>/dev/null || true
+}
 
 ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
 
