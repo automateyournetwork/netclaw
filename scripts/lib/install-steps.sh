@@ -3797,8 +3797,10 @@ log_step "Convergence device SNMP (campus switches)..."
 echo "  Greenfield Phase 8 — IF-MIB via snmp_exporter (profile device-snmp)"
 echo "  Docs: deploy/convergence/adapters/device-snmp/README.md"
 echo "  Spec: specs/067-convergence/device-telemetry-greenfield.md"
+log_info "Setup wizard prompts for targets + community when this component is selected"
 log_info "Edit prometheus job device_snmp targets (or render-device-snmp-scrape.py)"
 log_info "Docker: cd deploy/convergence && docker compose --env-file .env --profile device-snmp up -d"
+log_info "K3s:    kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry"
 echo ""
 }
 
@@ -3806,8 +3808,10 @@ component_install_convergence_device_syslog() {
 log_step "Convergence device syslog..."
 echo "  Greenfield Phase 8 — Promtail UDP :1514 → Loki"
 echo "  Docs: deploy/convergence/adapters/device-syslog/README.md"
+echo "  K3s:  deploy/convergence/k8s/components/device-syslog/ (T091)"
 log_info "Docker: compose -f docker-compose.yml -f docker-compose.full.yml --profile full --profile device-syslog up -d"
-log_info "Point switches: logging host <this-host> transport udp port 1514"
+log_info "K3s:    include components/device-syslog (requires full-stack Loki)"
+log_info "Point switches: logging host <this-host|node-ip> transport udp port 1514"
 echo ""
 }
 
@@ -3850,6 +3854,7 @@ log_step "Convergence Grafana dashboards..."
 echo "  Provisioned under deploy/convergence/grafana/provisioning/dashboards/"
 echo "  Enable: docker compose -f docker-compose.yml -f docker-compose.full.yml --profile full up -d"
 log_info "NetClaw quota board: grafana/provisioning/dashboards/json/netclaw-quota.json"
+log_info "Campus switches:     grafana/provisioning/dashboards/json/device-snmp-switches.json"
 echo ""
 }
 

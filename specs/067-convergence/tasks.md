@@ -122,7 +122,7 @@ site does not depend on `k3s-observability-stack`.
 - [x] T080 Author `device-telemetry-greenfield.md` (goals, US, architecture, config)
 - [x] T081 Extend `contracts/adapters.md` with `device_telemetry` + `agent_observability`
 - [x] T082 Catalog IDs + profile bits in `scripts/lib/catalog.sh` / `.env.example` docs
-- [ ] T083 Setup wizard prompts only when components selected (SNMP targets, community)
+- [x] T083 Setup wizard prompts only when components selected (SNMP targets, community)
 
 ### Device SNMP (switches / wired)
 
@@ -130,14 +130,14 @@ site does not depend on `k3s-observability-stack`.
       with example switch targets from `convergence.yaml`
 - [x] T085 Prometheus scrape + alert rules (device.rules.yml) (interface down, exporter down)
 - [x] T086 K3s component `deploy/convergence/k8s/components/device-snmp/` `deploy/convergence/k8s/components/device-snmp/`
-- [ ] T087 HOME Devices / optional Overview KPI when metrics present
+- [x] T087 HOME Devices / optional Overview KPI when metrics present
 - [ ] T088 Smoke: mock SNMP or lab switch → metrics labeled `device_name`
 
 ### Device syslog
 
 - [x] T089 Syslog/UDP receiver → Loki (promtail profile full|device-syslog) (depends on full Loki or slim log service)
 - [x] T090 hostname/app labels via promtail syslog relabel (tune per site); docs for switch syslog destination
-- [ ] T091 K3s parity for syslog receiver (promtail component)
+- [x] T091 K3s parity for syslog receiver (promtail component)
 
 ### NetClaw agent observability
 

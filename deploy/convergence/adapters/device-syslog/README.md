@@ -40,7 +40,7 @@ curl -sG 'http://127.0.0.1:3100/loki/api/v1/query_range' \
 
 ## Agent logs (T093)
 
-Host rsyslog template: `scripts/rsyslog-netclaw-forward.conf`  
+Host rsyslog template: `scripts/rsyslog-netclaw-convergence.conf`  
 Point `*.* @127.0.0.1:1514` (or host LAN IP) when using this Promtail receiver
 instead of the pilot OBS collector.
 
@@ -51,3 +51,18 @@ Optional: bind-mount host logs into Promtail:
 volumes:
   - /tmp/bgp-daemon-v2.log:/var/log/netclaw/mesh.log:ro
 ```
+
+## K3s (T091)
+
+```bash
+# Overlay: base + full-stack (Loki) + device-snmp + device-syslog
+kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
+```
+
+Component: `deploy/convergence/k8s/components/device-syslog/`
+
+- Promtail Deployment with **hostPort 1514/UDP** (node IP = syslog destination)
+- Pushes to in-cluster `http://loki:3100/loki/api/v1/push`
+- Labels match Docker: `job=device-syslog`, `device_name` from syslog hostname
+
+See component README for smoke curls and IOS-XE examples.

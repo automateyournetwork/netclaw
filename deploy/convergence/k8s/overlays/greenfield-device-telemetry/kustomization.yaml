@@ -1,0 +1,23 @@
+# Greenfield + Phase 8 device telemetry:
+#   base Home stack + full-stack (Loki/VM/Grafana/speedtest)
+#   + campus device SNMP + syslog → Loki
+#
+# Namespace: netclaw-convergence (isolated from pilot observability).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+resources:
+  - ../../base
+
+components:
+  - ../../components/full-stack
+  - ../../components/device-snmp
+  - ../../components/device-syslog
+
+# Before apply:
+#   kubectl apply -f deploy/convergence/k8s/secret.yaml
+#   kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
+#
+# Prometheus scrape job device_snmp: patch prometheus-config the same way as
+# Docker prometheus/prometheus.yml (see components/device-snmp/README.md).
+# Syslog: UDP hostPort 1514 on the node — see components/device-syslog/README.md.

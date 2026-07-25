@@ -432,6 +432,15 @@ export class HomeView {
           <div class="home-kpi-label">Firing alerts</div>
           <div class="home-kpi-value ${firing > 0 ? 'warn' : 'ok'}">${esc(firing)}</div>
         </div>
+        ${h.devices?.snmpSwitches != null ? `
+        <div class="home-kpi" title="Greenfield device_snmp — campus switches">
+          <div class="home-kpi-label">Switches (SNMP)</div>
+          <div class="home-kpi-value ${statusClass(h.devices.status)}">${esc(h.devices.snmpSwitches)}<span class="unit">${
+            h.devices.portsUp != null
+              ? ` · ${esc(h.devices.portsUp)}/${esc(h.devices.portsTotal ?? '—')} if`
+              : ''
+          }</span></div>
+        </div>` : ''}
       </div>
       <p class="home-section-title">Pipeline</p>
       <p class="home-muted">
@@ -650,8 +659,10 @@ export class HomeView {
         </div>` : `
         <p class="home-section-title">Switches</p>
         <p class="home-muted">
-          No switch series on this stack. UniFi switches appear when adopted in the controller.
-          Cisco <code>HomeSwitch*</code> need SNMP → VictoriaMetrics (pilot OBS), not Docker minimal.
+          No switch series yet. UniFi switches appear when adopted in the controller.
+          Campus Cisco IF-MIB: <code>docker compose --profile device-snmp up -d</code>
+          (or K3s <code>components/device-snmp</code>). Greenfield metrics use
+          <code>ifOperStatus{job="device_snmp"}</code>.
         </p>`}
       `
       : `

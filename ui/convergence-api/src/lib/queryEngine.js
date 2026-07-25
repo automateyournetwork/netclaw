@@ -70,13 +70,17 @@ async function rangeQuery(query, range = '1h', step = '30s') {
   return data.data.result;
 }
 
+// Pilot dual-run optional path: fail fast when VictoriaMetrics is not deployed
+// (Docker minimal / greenfield without full-stack).
+const VM_OPTIONAL_TIMEOUT = 1500;
+
 /**
  * VictoriaMetrics instant query (for SNMP/interface metrics stored in VM).
- * Same PromQL API, different backend.
+ * Same PromQL API, different backend. Short timeout — optional dual-run only.
  */
 async function vmInstantQuery(query) {
   const url = `${VICTORIAMETRICS_URL}/api/v1/query?query=${encodeURIComponent(query)}`;
-  const data = await fetchWithTimeout(url);
+  const data = await fetchWithTimeout(url, {}, VM_OPTIONAL_TIMEOUT);
 
   if (data.status !== 'success') {
     throw new Error(`VictoriaMetrics query failed: ${data.error || 'unknown'}`);
@@ -99,7 +103,7 @@ async function vmRangeQuery(query, range = '1h', step = '30s') {
   });
 
   const url = `${VICTORIAMETRICS_URL}/api/v1/query_range?${params}`;
-  const data = await fetchWithTimeout(url);
+  const data = await fetchWithTimeout(url, {}, VM_OPTIONAL_TIMEOUT);
 
   if (data.status !== 'success') {
     throw new Error(`VictoriaMetrics range query failed: ${data.error || 'unknown'}`);

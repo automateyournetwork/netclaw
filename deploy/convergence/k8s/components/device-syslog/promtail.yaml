@@ -1,0 +1,79 @@
+# Promtail syslog UDP receiver → Loki (Phase 8 T091).
+# Pair with components/full-stack (Loki). Exposes hostPort 1514/udp so campus
+# devices can log to the node IP without a LoadBalancer.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: promtail-device-syslog
+  labels:
+    app.kubernetes.io/name: promtail-device-syslog
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: device-syslog
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: promtail-device-syslog
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: promtail-device-syslog
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: device-syslog
+    spec:
+      containers:
+        - name: promtail
+          image: grafana/promtail:3.1.0
+          args:
+            - -config.file=/etc/promtail/config.yml
+          ports:
+            - name: syslog
+              containerPort: 1514
+              protocol: UDP
+              hostPort: 1514
+            - name: http
+              containerPort: 9080
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/promtail/config.yml
+              subPath: promtail-config.yml
+              readOnly: true
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 256Mi
+      volumes:
+        - name: config
+          configMap:
+            name: promtail-device-syslog-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: promtail-device-syslog
+  labels:
+    app.kubernetes.io/name: promtail-device-syslog
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: device-syslog
+spec:
+  selector:
+    app.kubernetes.io/name: promtail-device-syslog
+  ports:
+    - name: http
+      port: 9080
+      targetPort: http
+      protocol: TCP
+    - name: syslog
+      port: 1514
+      targetPort: syslog
+      protocol: UDP

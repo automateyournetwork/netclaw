@@ -21,7 +21,8 @@ router.get('/', async (req, res) => {
 
   try {
     // Parallel queries for all KPIs
-    const [healthResult, latencyResult, lossResult, speedDl, speedUl, alerts, uptime30d, lastIncident] = await Promise.allSettled([
+    const [healthResult, latencyResult, lossResult, speedDl, speedUl, alerts, uptime30d, lastIncident,
+      snmpDevices, snmpIfUp, snmpIfTotal] = await Promise.allSettled([
       instantQuery(`convergence:health_score{site="${site}"}`),
       instantQuery(`convergence:wan_latency_ms:avg{site="${site}"}`),
       instantQuery(`100 * convergence:wan_loss_ratio:5m{site="${site}"}`),
@@ -32,7 +33,11 @@ router.get('/', async (req, res) => {
       // 30-day uptime: % of time health score was >= 70 (not degraded/unhealthy)
       instantQuery(`avg_over_time((convergence:health_score{site="${site}"} >= bool 70)[30d:5m]) * 100`),
       // Last incident: most recent alert start time (from Alertmanager resolved alerts)
-      queryAlertmanager({})
+      queryAlertmanager({}),
+      // Optional Overview KPI — greenfield device_snmp (Phase 8 T087)
+      instantQuery(`count(count by (device_name) (up{job="device_snmp"} == 1))`),
+      instantQuery(`count(ifOperStatus{job="device_snmp"} == 1)`),
+      instantQuery(`count(ifOperStatus{job="device_snmp"})`)
     ]);
 
     const healthScore = healthResult.status === 'fulfilled' ? extractScalar(healthResult.value) : null;
@@ -41,6 +46,9 @@ router.get('/', async (req, res) => {
     const avgDownBps = speedDl.status === 'fulfilled' ? extractScalar(speedDl.value) : null;
     const avgUpBps = speedUl.status === 'fulfilled' ? extractScalar(speedUl.value) : null;
     const uptimePct = uptime30d.status === 'fulfilled' ? extractScalar(uptime30d.value) : null;
+    const snmpDeviceCount = snmpDevices.status === 'fulfilled' ? extractScalar(snmpDevices.value) : null;
+    const snmpPortsUp = snmpIfUp.status === 'fulfilled' ? extractScalar(snmpIfUp.value) : null;
+    const snmpPortsTotal = snmpIfTotal.status === 'fulfilled' ? extractScalar(snmpIfTotal.value) : null;
 
     // Calculate time since last incident from Alertmanager resolved alerts
     let timeSinceIncident = null;
@@ -118,7 +126,19 @@ router.get('/', async (req, res) => {
         status: speedStatus,
         ispName
       },
-      alertCount
+      alertCount,
+      // Present only when device_snmp has series (optional Overview KPI)
+      devices: snmpDeviceCount != null && snmpDeviceCount > 0
+        ? {
+            snmpSwitches: Math.round(snmpDeviceCount),
+            portsUp: snmpPortsUp != null ? Math.round(snmpPortsUp) : null,
+            portsTotal: snmpPortsTotal != null ? Math.round(snmpPortsTotal) : null,
+            status: snmpPortsTotal != null && snmpPortsUp != null && snmpPortsTotal > 0
+              ? (snmpPortsUp / snmpPortsTotal >= 0.9 ? 'healthy'
+                : snmpPortsUp / snmpPortsTotal >= 0.5 ? 'degraded' : 'unhealthy')
+              : 'healthy'
+          }
+        : null
     });
   } catch (err) {
     console.error('Health endpoint error:', err.message);

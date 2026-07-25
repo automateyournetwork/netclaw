@@ -1,0 +1,13 @@
+# Phase 8 greenfield — device syslog → Loki (optional component)
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - promtail.yaml
+
+configMapGenerator:
+  - name: promtail-device-syslog-config
+    files:
+      - promtail-config.yml=configs/promtail-config.yml
+    options:
+      disableNameSuffixHash: true

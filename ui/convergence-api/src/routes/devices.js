@@ -10,7 +10,8 @@ const { getSiteConfig, getMgmtUrls } = require('../lib/config');
 /**
  * GET /api/devices?site=X
  * Equipment status: WAN probes, edge/firewall, UniFi APs/switches/gateways,
- * optional Cisco switches from VictoriaMetrics SNMP (pilot).
+ * greenfield device_snmp (ifOperStatus via Prometheus), and optional pilot
+ * VictoriaMetrics SNMP (interface_status).
  */
 router.get('/', async (req, res) => {
   const site = req.site;
@@ -24,6 +25,9 @@ router.get('/', async (req, res) => {
       apStatus, apClients, apCpu, apMemory, apUptime,
       gwStatus, gwCpu, gwMemory, gwUptime,
       swUnifiStatus, swUnifiCpu, swUnifiMemory, swUnifiUptime,
+      // Greenfield Phase 8: snmp_exporter IF-MIB in Convergence Prometheus
+      gfIfUp, gfIfTotal, gfErrors, gfSnmpUp,
+      // Pilot OBS VictoriaMetrics (optional dual-run; fails soft on Docker-only)
       switchIfUp, switchIfTotal, switchErrors
     ] = await Promise.allSettled([
       instantQuery(`probe_success{job=~"blackbox_wan_tcp|blackbox_wan_http|blackbox_wan_dns|blackbox_http"}`),
@@ -44,7 +48,12 @@ router.get('/', async (req, res) => {
       instantQuery(`unifi_device_cpu_pct{role="switch", site="${site}"}`),
       instantQuery(`unifi_device_memory_pct{role="switch", site="${site}"}`),
       instantQuery(`unifi_device_uptime_seconds{role="switch", site="${site}"}`),
-      // Cisco switches from pilot VictoriaMetrics SNMP (optional; fails soft on Docker)
+      // Greenfield: ifOperStatus 1=up (job device_snmp; site label optional)
+      instantQuery(`count by (device_name) (ifOperStatus{job="device_snmp"} == 1)`),
+      instantQuery(`count by (device_name) (ifOperStatus{job="device_snmp"})`),
+      instantQuery(`sum by (device_name) (rate(ifInErrors{job="device_snmp"}[5m]) + rate(ifOutErrors{job="device_snmp"}[5m]))`),
+      instantQuery(`up{job="device_snmp"}`),
+      // Pilot VictoriaMetrics SNMP (HomeSwitch* interface_status)
       vmInstantQuery(`count by (device_name) (interface_status{device_name=~"HomeSwitch.*"} == 1)`),
       vmInstantQuery(`count by (device_name) (interface_status{device_name=~"HomeSwitch.*"})`),
       vmInstantQuery(`sum by (device_name) (rate(interface_errors_in_total{device_name=~"HomeSwitch.*"}[5m]) + rate(interface_errors_out_total{device_name=~"HomeSwitch.*"}[5m]))`)
@@ -173,8 +182,9 @@ router.get('/', async (req, res) => {
       }
     }
 
-    // Switches: UniFi first, then Cisco SNMP via VictoriaMetrics (pilot)
+    // Switches: UniFi first, then greenfield device_snmp, then pilot VM SNMP
     const switches = [];
+    const seenSwitchNames = new Set();
 
     if (swUnifiStatus.status === 'fulfilled') {
       const cpuMap = new Map();
@@ -191,6 +201,7 @@ router.get('/', async (req, res) => {
       }
       for (const r of swUnifiStatus.value) {
         const name = r.metric.device || 'switch';
+        seenSwitchNames.add(name);
         switches.push({
           name,
           model: r.metric.model || 'UniFi Switch',
@@ -211,43 +222,82 @@ router.get('/', async (req, res) => {
       HomeSwitch04: 'Cisco WS-C3650-48P'
     };
 
-    if (switchIfUp.status === 'fulfilled') {
+    // Map device_name → scrape up (exporter path healthy) for greenfield
+    const gfScrapeUp = new Map();
+    if (gfSnmpUp.status === 'fulfilled') {
+      for (const r of gfSnmpUp.value) {
+        const name = r.metric.device_name || r.metric.instance || '';
+        if (name) gfScrapeUp.set(name, parseFloat(r.value[1]) === 1);
+      }
+    }
+
+    function pushSnmpSwitches(ifUpResult, ifTotalResult, errResult, source) {
+      if (ifUpResult.status !== 'fulfilled') return;
       const totalMap = new Map();
       const errorMap = new Map();
-
-      if (switchIfTotal.status === 'fulfilled') {
-        for (const r of switchIfTotal.value) {
+      if (ifTotalResult.status === 'fulfilled') {
+        for (const r of ifTotalResult.value) {
           totalMap.set(r.metric.device_name, parseInt(r.value[1], 10));
         }
       }
-      if (switchErrors.status === 'fulfilled') {
-        for (const r of switchErrors.value) {
+      if (errResult.status === 'fulfilled') {
+        for (const r of errResult.value) {
           errorMap.set(r.metric.device_name, parseFloat(r.value[1]));
         }
       }
-
-      for (const r of switchIfUp.value) {
+      for (const r of ifUpResult.value) {
         const name = r.metric.device_name;
+        if (!name || seenSwitchNames.has(name)) continue;
+        seenSwitchNames.add(name);
         const ifUp = parseInt(r.value[1], 10);
         const ifTotal = totalMap.get(name) || ifUp;
         const errorRate = errorMap.get(name) || 0;
-
+        const scrapeOk = source === 'snmp-greenfield'
+          ? (gfScrapeUp.has(name) ? gfScrapeUp.get(name) : true)
+          : true;
         switches.push({
           name,
           model: switchModels[name] || 'Cisco Switch',
-          status: 'online',
+          status: scrapeOk ? 'online' : 'offline',
           interfacesUp: ifUp,
           interfacesTotal: ifTotal,
           portsUp: ifUp,
           portsTotal: ifTotal,
           errorRate: Math.round(errorRate * 100) / 100,
-          source: 'snmp'
+          source
+        });
+      }
+    }
+
+    // Prefer greenfield Prometheus metrics when present
+    pushSnmpSwitches(gfIfUp, gfIfTotal, gfErrors, 'snmp-greenfield');
+    // Pilot dual-run residual (names already present are skipped)
+    pushSnmpSwitches(switchIfUp, switchIfTotal, switchErrors, 'snmp');
+
+    // Devices that only appear as scrape targets (exporter up, no ifOperStatus yet)
+    if (gfSnmpUp.status === 'fulfilled') {
+      for (const r of gfSnmpUp.value) {
+        const name = r.metric.device_name;
+        if (!name || seenSwitchNames.has(name)) continue;
+        seenSwitchNames.add(name);
+        switches.push({
+          name,
+          model: switchModels[name] || 'SNMP switch',
+          status: parseFloat(r.value[1]) === 1 ? 'online' : 'offline',
+          interfacesUp: null,
+          interfacesTotal: null,
+          portsUp: null,
+          portsTotal: null,
+          errorRate: null,
+          source: 'snmp-greenfield'
         });
       }
     }
 
     switches.sort((a, b) => String(a.name).localeCompare(String(b.name)));
     accessPoints.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+
+    const snmpSwitches = switches.filter((s) => s.source === 'snmp' || s.source === 'snmp-greenfield');
 
     res.json({
       site,
@@ -256,10 +306,19 @@ router.get('/', async (req, res) => {
       firewall: edge, // alias for older UI
       accessPoints,
       switches,
+      summary: {
+        switchCount: switches.length,
+        snmpSwitchCount: snmpSwitches.length,
+        snmpPortsUp: snmpSwitches.reduce((n, s) => n + (s.portsUp || 0), 0),
+        snmpPortsTotal: snmpSwitches.reduce((n, s) => n + (s.portsTotal || 0), 0),
+        apCount: accessPoints.length,
+        edgeCount: edge.length
+      },
       mgmt,
       sources: {
         unifi: accessPoints.length > 0 || switches.some((s) => s.source === 'unifi'),
-        snmpSwitches: switches.some((s) => s.source === 'snmp'),
+        snmpSwitches: snmpSwitches.length > 0,
+        snmpGreenfield: switches.some((s) => s.source === 'snmp-greenfield'),
         edgeProbe: edge.some((e) => e.source === 'blackbox')
       }
     });

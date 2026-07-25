@@ -1,0 +1,33 @@
+# Phase 8 — device syslog → Convergence Loki (K3s parity of Docker promtail)
+# Clients: switches / firewall / host rsyslog → UDP hostPort 1514
+# Requires full-stack component (Loki service name: loki) in the same namespace.
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: device-syslog
+    syslog:
+      listen_address: 0.0.0.0:1514
+      listen_protocol: udp
+      idle_timeout: 60s
+      label_structured_data: true
+      labels:
+        job: device-syslog
+        site: home
+    relabel_configs:
+      - source_labels: [__syslog_message_hostname]
+        target_label: host
+      - source_labels: [__syslog_message_hostname]
+        target_label: device_name
+      - source_labels: [__syslog_message_app_name]
+        target_label: app
+      - source_labels: [__syslog_connection_hostname]
+        target_label: peer_ip

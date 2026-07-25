@@ -197,3 +197,16 @@ logger -n 127.0.0.1 -P 1514 -d -t HomeSwitch01 'test'
 ```
 
 Agent rsyslog: `sudo cp scripts/rsyslog-netclaw-convergence.conf /etc/rsyslog.d/60-netclaw-convergence.conf`
+
+### K3s greenfield device telemetry (Phase 8)
+
+```bash
+kubectl apply -f deploy/convergence/k8s/secret.yaml
+kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
+# Patch prometheus-config with device_snmp scrape targets (see device-snmp README)
+# Syslog: hostPort 1514/udp on the node — logging host <node-ip> transport udp port 1514
+```
+
+HOME Devices and Overview pick up `ifOperStatus{job="device_snmp"}` automatically
+when Prometheus has series (no pilot OBS required). Grafana board:
+**Convergence — Campus Switches (device_snmp)** under full-stack / Docker full.

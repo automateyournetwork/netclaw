@@ -184,10 +184,12 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
 
 | Capability | Status | How to enable |
 |------------|--------|----------------|
-| Campus switch IF-MIB SNMP | **Shipped** | `--profile device-snmp` |
+| Campus switch IF-MIB SNMP | **Shipped** | `--profile device-snmp` / K3s `device-snmp` |
 | Device syslog → Loki | **Shipped** | `--profile full` + promtail (UDP 1514) |
+| K3s syslog component | **Shipped** | `k8s/components/device-syslog` (T091) |
+| HOME Devices + Overview SNMP KPI | **Shipped** | `ifOperStatus{job="device_snmp"}` (T087) |
+| Setup wizard SNMP/syslog prompts | **Shipped** | when `convergence-device-snmp` / `-syslog` selected (T083) |
 | NetClaw token/cost metrics | **Shipped** | `openclaw-token-exporter` + job `netclaw-openclaw` |
 | NetClaw agent log ship | **Template** | `scripts/rsyslog-netclaw-convergence.conf` |
 | Grafana NetClaw quota board | **Shipped** | `--profile full` provisions dashboards |
-| Network switch Grafana boards | Planned | T094 remaining boards |
-| K3s syslog component | Planned | T091 |
+| Network switch Grafana board | **Shipped** | `device-snmp-switches.json` |

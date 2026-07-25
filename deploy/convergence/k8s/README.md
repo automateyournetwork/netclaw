@@ -68,35 +68,45 @@ HOME_API_TOKEN=dev-convergence-api-key-change-me   # must match API_KEYS[].key
 systemctl --user restart netclaw-hud.service
 ```
 
-## Optional components (T071, T072)
+## Optional components (T071, T072, Phase 8)
 
-Two Kustomize [Components](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/#components)
+Kustomize [Components](https://kubernetes.io/docs/tasks/manage-kubernetes-objects/kustomization/#components)
 extend the base stack — same idea as Docker Compose profiles:
 
 | Component | Adds | K8s equivalent of Docker profile |
 |-----------|------|-----------------------------------|
 | [`components/generic-snmp-wireless/`](./components/generic-snmp-wireless/) | Second wireless vendor via `snmp_exporter` (T071) | `generic-snmp-wireless` |
 | [`components/full-stack/`](./components/full-stack/) | Loki, VictoriaMetrics, Grafana, speedtest CronJob (T072) | `full` / `speedtest` |
+| [`components/device-snmp/`](./components/device-snmp/) | Campus switch IF-MIB via snmp_exporter (Phase 8) | `device-snmp` |
+| [`components/device-syslog/`](./components/device-syslog/) | Promtail UDP 1514 → Loki (Phase 8 T091) | `full` + `device-syslog` |
 
-Apply both together via the prebuilt overlay:
+Prebuilt overlays:
 
 ```bash
+# T071 + T072
 kubectl apply -k deploy/convergence/k8s/overlays/greenfield-full
+
+# Phase 8 device telemetry (full-stack + SNMP + syslog)
+kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 ```
 
-Or add either component to your own overlay's `kustomization.yaml`:
+Or add components to your own overlay:
 
 ```yaml
 resources:
   - ../../base
 components:
-  - ../../components/generic-snmp-wireless   # and/or
   - ../../components/full-stack
+  - ../../components/device-snmp
+  - ../../components/device-syslog
 ```
 
-Each component's README documents a **manual Prometheus config edit** —
+Each SNMP component's README documents a **manual Prometheus config edit** —
 kustomize's `configMapGenerator` embeds file contents verbatim and cannot
 merge scrape jobs into the existing `prometheus.yml` ConfigMap.
+
+Syslog uses **hostPort 1514/UDP** on the node running Promtail — point campus
+devices at the node IP (see `components/device-syslog/README.md`).
 
 ## Pilot cluster
 
