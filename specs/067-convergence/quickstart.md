@@ -210,3 +210,26 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 HOME Devices and Overview pick up `ifOperStatus{job="device_snmp"}` automatically
 when Prometheus has series (no pilot OBS required). Grafana board:
 **Convergence — Campus Switches (device_snmp)** under full-stack / Docker full.
+## Investigation policy (Phase 9 — cost control)
+
+**Default product posture:** most alerts should **not** open multi-tool LLM
+investigations. Policy file (when Phase 9 is implemented):
+
+```text
+~/.openclaw/investigation-policy.yaml
+```
+
+Seed example (after T107): `deploy/convergence/config/investigation-policy.example.yaml`
+
+| Preset | Behavior |
+|--------|----------|
+| `observe-only` | T0 only — metrics / Discord / diary; no auto multi-tool LLM |
+| `triage-cheap` | T1 one-shot summarize allowed where configured |
+| `investigate-critical` | T2 only for explicit allowlisted alertnames |
+
+**Open T2 as hygiene improves** (no code deploy): add an `allow_t2` entry for the
+alertname, reload policy (≤60s cache or SIGHUP). See
+[`investigation-policy.md`](./investigation-policy.md).
+
+Related safety for SNMP: do not reintroduce per-idle-port investigate=true rules
+([`docs/CONVERGENCE-ALERT-SAFETY.md`](../../docs/CONVERGENCE-ALERT-SAFETY.md)).
