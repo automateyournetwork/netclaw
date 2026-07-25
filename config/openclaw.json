@@ -17,14 +17,8 @@
       }
     }
   },
-  "tokenOptimization": {
-    "enabled": true,
-    "libraryPath": "src/netclaw_tokens",
-    "gcfSerializationDefault": true,
-    "footerDisplay": "always",
-    "sessionTracking": true,
-    "pricingOverrideEnvVar": "NETCLAW_TOKEN_PRICING_OVERRIDE"
-  },
+  "_comment_tokenOptimization": "Do NOT put tokenOptimization in live ~/.openclaw/openclaw.json — OpenClaw schema rejects it (gateway exit 78). Use ~/.openclaw/netclaw-token-optimization.json instead. See docs/TOKEN-OPTIMIZATION.md.",
+
   "commands": {
     "native": "auto",
     "nativeSkills": "auto",
@@ -1068,6 +1062,14 @@
       "anthropic:default": {
         "provider": "anthropic",
         "mode": "api_key"
+      }
+    }
+  },
+  "mcp": {
+    "servers": {
+      "unifi-network": {
+        "command": "/home/ubuntu/netclaw/scripts/run-unifi-mcp.sh",
+        "args": []
       }
     }
   }

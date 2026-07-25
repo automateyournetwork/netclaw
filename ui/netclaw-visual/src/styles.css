@@ -773,6 +773,24 @@ html.reduced-motion .scan-beam {
   color: var(--ok);
 }
 
+.footer-tokens {
+  font-variant-numeric: tabular-nums;
+  gap: 1rem;
+}
+.footer-tokens strong {
+  color: #7dd3fc;
+  font-weight: 600;
+}
+.token-footer {
+  display: block;
+  margin-top: 8px;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  color: #7dd3fc;
+  opacity: 0.9;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+}
+
 .chat-badge {
   display: inline-block;
   font-size: 9px;

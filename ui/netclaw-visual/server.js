@@ -1179,6 +1179,134 @@ app.post('/api/n2n/chat', async (req, res) => {
   }
 });
 
+// ── Token usage (Prometheus exporter :9110 + last chat turn) ─────
+// Backs the HUD footer strip. Source: openclaw-token-exporter scrape
+// of ~/.openclaw/agents/*/sessions/*.jsonl (same counters as Grafana).
+const TOKEN_EXPORTER_URL =
+  process.env.TOKEN_EXPORTER_URL || 'http://127.0.0.1:9110/metrics';
+
+let _lastChatUsage = null; // { input, output, total, model, at }
+
+function parsePromCounters(text) {
+  const byModel = new Map(); // model -> { input, output, cost, calls, provider }
+  let totalIn = 0;
+  let totalOut = 0;
+  let totalCost = 0;
+  let totalCalls = 0;
+  for (const line of String(text || '').split('\n')) {
+    if (!line || line.startsWith('#')) continue;
+    const m = line.match(
+      /^(netclaw_model_(?:input_tokens|output_tokens|cost_usd|calls)_total)\{([^}]*)\}\s+([0-9.eE+-]+)/,
+    );
+    if (!m) continue;
+    const [, metric, labels, valStr] = m;
+    const val = parseFloat(valStr);
+    if (!Number.isFinite(val)) continue;
+    const lab = {};
+    for (const part of labels.split(',')) {
+      const eq = part.indexOf('=');
+      if (eq < 1) continue;
+      lab[part.slice(0, eq)] = part.slice(eq + 1).replace(/^"|"$/g, '');
+    }
+    const model = lab.model || 'unknown';
+    const provider = lab.provider || 'unknown';
+    const row = byModel.get(model) || {
+      model,
+      provider,
+      input: 0,
+      output: 0,
+      cost: 0,
+      calls: 0,
+    };
+    if (metric.includes('input_tokens')) {
+      row.input = val;
+      totalIn += val;
+    } else if (metric.includes('output_tokens')) {
+      row.output = val;
+      totalOut += val;
+    } else if (metric.includes('cost_usd')) {
+      row.cost = val;
+      totalCost += val;
+    } else if (metric.includes('calls_total')) {
+      row.calls = val;
+      totalCalls += val;
+    }
+    byModel.set(model, row);
+  }
+  // Prefer summing unique models once (input/output counted above may double-count
+  // if we add every metric line — recompute from map)
+  totalIn = 0;
+  totalOut = 0;
+  totalCost = 0;
+  totalCalls = 0;
+  const models = [...byModel.values()].sort((a, b) => b.input - a.input);
+  for (const r of models) {
+    totalIn += r.input || 0;
+    totalOut += r.output || 0;
+    totalCost += r.cost || 0;
+    totalCalls += r.calls || 0;
+  }
+  return { models, totalIn, totalOut, totalCost, totalCalls };
+}
+
+app.get('/api/tokens/summary', async (req, res) => {
+  let exporter = null;
+  let exporterError = null;
+  try {
+    const r = await fetch(TOKEN_EXPORTER_URL, { signal: AbortSignal.timeout(2500) });
+    if (!r.ok) throw new Error(`exporter HTTP ${r.status}`);
+    const text = await r.text();
+    exporter = parsePromCounters(text);
+  } catch (err) {
+    exporterError = err.message;
+  }
+
+  // NetClaw-owned token optimization flags (NOT openclaw.json — OpenClaw schema rejects unknown keys)
+  let tokenOptimization = null;
+  try {
+    const optPath = path.join(
+      process.env.HOME || '/root',
+      '.openclaw',
+      'netclaw-token-optimization.json',
+    );
+    tokenOptimization = JSON.parse(readText(optPath) || 'null');
+  } catch {
+    /* ignore */
+  }
+
+  const top = (exporter?.models || []).slice(0, 5).map((m) => ({
+    model: m.model,
+    provider: m.provider,
+    input: Math.round(m.input),
+    output: Math.round(m.output),
+    calls: Math.round(m.calls),
+  }));
+
+  res.json({
+    ok: !exporterError,
+    exporterError,
+    exporterUrl: TOKEN_EXPORTER_URL,
+    lifetime: exporter
+      ? {
+          input: Math.round(exporter.totalIn),
+          output: Math.round(exporter.totalOut),
+          costUsd: Math.round(exporter.totalCost * 10000) / 10000,
+          calls: Math.round(exporter.totalCalls),
+        }
+      : null,
+    topModels: top,
+    lastTurn: _lastChatUsage,
+    tokenOptimization: tokenOptimization
+      ? {
+          enabled: Boolean(tokenOptimization.enabled),
+          footerDisplay: tokenOptimization.footerDisplay || null,
+          gcfSerializationDefault: Boolean(tokenOptimization.gcfSerializationDefault),
+        }
+      : { enabled: false },
+    timestamp: new Date().toISOString(),
+  });
+});
+
 // ── Gateway status endpoint ───────────────────────────────────────
 app.get('/api/gateway/status', async (req, res) => {
   const gw = getGatewayConfig();
@@ -1331,6 +1459,7 @@ app.post('/api/chat', async (req, res) => {
   // Try to proxy through the real OpenClaw gateway with streaming
   let responseText = '';
   let fromGateway = false;
+  let usage = null;
   const gw = getGatewayConfig();
 
   try {
@@ -1362,6 +1491,20 @@ app.post('/api/chat', async (req, res) => {
           responseText =
             gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
           fromGateway = Boolean(responseText);
+          // OpenAI-compat usage block (prompt_tokens / completion_tokens)
+          const u = gwData.usage || {};
+          const input = Number(u.prompt_tokens ?? u.input_tokens ?? u.input ?? 0) || 0;
+          const output = Number(u.completion_tokens ?? u.output_tokens ?? u.output ?? 0) || 0;
+          if (input || output) {
+            usage = {
+              input,
+              output,
+              total: Number(u.total_tokens ?? input + output) || input + output,
+              model: gwData.model || 'openclaw',
+              at: new Date().toISOString(),
+            };
+            _lastChatUsage = usage;
+          }
         } else {
           // Gateway is up but model/auth/rate-limit failed — surface real error
           // instead of the misleading "gateway is offline" local heuristic.
@@ -1397,6 +1540,11 @@ app.post('/api/chat', async (req, res) => {
     responseText = buildChatResponse(message, activations, graph);
   }
 
+  // Append compact token footer when we have usage (tokenOptimization.footerDisplay)
+  if (usage && (usage.input || usage.output)) {
+    responseText += `\n\n<span class="token-footer">Tokens: ${usage.input.toLocaleString()} in / ${usage.output.toLocaleString()} out / ${usage.total.toLocaleString()} total</span>`;
+  }
+
   chatHistory.push({ role: 'assistant', text: responseText, timestamp: new Date().toISOString() });
 
   // After gateway response, scan latest transcript for tool_use events
@@ -1413,6 +1561,7 @@ app.post('/api/chat', async (req, res) => {
     response: responseText,
     activations,
     fromGateway,
+    usage,
     timestamp,
   });
 });

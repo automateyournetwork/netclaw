@@ -131,6 +131,10 @@ const dom = {
   footerModel: document.getElementById('footer-model'),
   footerGateway: document.getElementById('footer-gateway'),
   footerUpdated: document.getElementById('footer-updated'),
+  footerTokensLifetime: document.getElementById('footer-tokens-lifetime'),
+  footerTokensLast: document.getElementById('footer-tokens-last'),
+  footerTokensOpt: document.getElementById('footer-tokens-opt'),
+  footerTokensTop: document.getElementById('footer-tokens-top'),
   chatDrawer: document.getElementById('chat-drawer'),
   chatMessages: document.getElementById('chat-messages'),
   chatForm: document.getElementById('chat-form'),
@@ -2280,6 +2284,54 @@ function addChatMessage(role, text, activations) {
   dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
 }
 
+function formatTokenCount(n) {
+  if (n == null || Number.isNaN(n)) return '—';
+  const v = Number(n);
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}k`;
+  return String(Math.round(v));
+}
+
+async function refreshTokenSummary() {
+  try {
+    const res = await fetch('/api/tokens/summary');
+    const data = await res.json();
+    if (dom.footerTokensLifetime) {
+      if (data.lifetime) {
+        dom.footerTokensLifetime.textContent = `${formatTokenCount(data.lifetime.input)} in / ${formatTokenCount(data.lifetime.output)} out · ${formatTokenCount(data.lifetime.calls)} calls`;
+      } else {
+        dom.footerTokensLifetime.textContent = data.exporterError
+          ? `exporter offline (${data.exporterError})`
+          : '—';
+      }
+    }
+    if (dom.footerTokensLast) {
+      if (data.lastTurn) {
+        dom.footerTokensLast.textContent = `${formatTokenCount(data.lastTurn.input)} in / ${formatTokenCount(data.lastTurn.output)} out`;
+      } else {
+        dom.footerTokensLast.textContent = '—';
+      }
+    }
+    if (dom.footerTokensOpt) {
+      const on = data.tokenOptimization?.enabled;
+      const gcf = data.tokenOptimization?.gcfSerializationDefault;
+      dom.footerTokensOpt.textContent = on
+        ? `ON${gcf ? ' · GCF' : ''}`
+        : 'OFF';
+      dom.footerTokensOpt.style.color = on ? 'var(--ok)' : '#ff7b54';
+    }
+    if (dom.footerTokensTop) {
+      const top = (data.topModels || [])[0];
+      dom.footerTokensTop.textContent = top
+        ? `top: ${top.model} (${formatTokenCount(top.input)} in)`
+        : '';
+    }
+  } catch {
+    if (dom.footerTokensLifetime) dom.footerTokensLifetime.textContent = '—';
+  }
+}
+
 async function checkGatewayStatus() {
   try {
     const res = await fetch('/api/gateway/status');
@@ -2287,7 +2339,7 @@ async function checkGatewayStatus() {
     const el = dom.gatewayStatus;
     if (el) {
       if (data.online) {
-        el.textContent = 'LIVE';
+        el.textContent = data.chatApi ? 'LIVE' : 'LIVE (no chat API)';
         el.className = 'gateway-indicator online';
       } else {
         el.textContent = 'OFFLINE';
@@ -2300,6 +2352,8 @@ async function checkGatewayStatus() {
       dom.gatewayStatus.className = 'gateway-indicator offline';
     }
   }
+  // Keep token strip warm whenever we probe gateway
+  refreshTokenSummary();
 }
 
 async function sendChatMessage(message) {
@@ -2325,6 +2379,12 @@ async function sendChatMessage(message) {
       ? '<div style="margin-bottom:4px;font-size:10px;color:#ff7b54">Gateway offline — showing local heuristic response</div>'
       : '';
     addChatMessage('assistant', badge + warning + data.response, data.activations);
+
+    // Update last-turn strip immediately when chat returns usage
+    if (data.usage && dom.footerTokensLast) {
+      dom.footerTokensLast.textContent = `${formatTokenCount(data.usage.input)} in / ${formatTokenCount(data.usage.output)} out`;
+    }
+    refreshTokenSummary();
 
     // Trigger activation visualization from HTTP response
     if (data.activations) {
