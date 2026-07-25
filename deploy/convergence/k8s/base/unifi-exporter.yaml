@@ -1,0 +1,94 @@
+# UniFi Integration API exporter (Docker profile: unifi)
+# Optional for Wi‑Fi metrics; Prometheus still lists the scrape target.
+# Script is generated into ConfigMap unifi-exporter-script via kustomization.
+apiVersion: v1
+kind: Service
+metadata:
+  name: unifi-exporter
+  labels:
+    app.kubernetes.io/name: unifi-exporter
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: exporter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: unifi-exporter
+  ports:
+    - name: metrics
+      port: 9899
+      targetPort: 9899
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unifi-exporter
+  labels:
+    app.kubernetes.io/name: unifi-exporter
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: unifi-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: unifi-exporter
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: exporter
+    spec:
+      containers:
+        - name: unifi-exporter
+          image: python:3.12-slim
+          command: ["python", "-u", "/app/exporter.py"]
+          env:
+            - name: UNIFI_HOST
+              valueFrom:
+                configMapKeyRef:
+                  name: unifi-exporter-config
+                  key: UNIFI_HOST
+            - name: SITE_LABEL
+              valueFrom:
+                configMapKeyRef:
+                  name: unifi-exporter-config
+                  key: SITE_LABEL
+            - name: LISTEN_PORT
+              value: "9899"
+            - name: GUEST_ACCESS_TYPES
+              valueFrom:
+                configMapKeyRef:
+                  name: unifi-exporter-config
+                  key: GUEST_ACCESS_TYPES
+            - name: UNIFI_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: home-secrets
+                  key: UNIFI_API_KEY
+                  optional: true
+          ports:
+            - containerPort: 9899
+              name: metrics
+          resources:
+            requests:
+              cpu: 25m
+              memory: 48Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: app
+              mountPath: /app
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9899
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: app
+          configMap:
+            name: unifi-exporter-script
+            items:
+              - key: exporter.py
+                path: exporter.py

@@ -34,9 +34,9 @@ the cluster at `http://prometheus:9090`).
 **Key queries for Wi-Fi diagnosis:**
 ```promql
 # Health overview
-guardian:health_score
-guardian:wan_latency_ms:avg
-guardian:wan_loss_ratio:5m
+convergence:health_score
+convergence:wan_latency_ms:avg
+convergence:wan_loss_ratio:5m
 
 # Per-AP Wi-Fi quality
 unifi_radio_tx_retries_pct                    # by device + band

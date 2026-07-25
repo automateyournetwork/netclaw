@@ -275,9 +275,10 @@ select_components() {
         "Security        — ISE, FMC, Panorama, FortiManager, Check Point, Zscaler..."
         "Labs            — CML, ContainerLab, Batfish, protocol peering, SuzieQ"
         "Observability   — Grafana, Prometheus, Datadog, Splunk, ThousandEyes..."
+        "Convergence     — Home NOC pipeline: metrics, adapters, HUD, investigator (067)"
         "Minimal         — pyATS + audit trail + core utilities"
     )
-    profiles+=(recommended custom full cisco multivendor cloud security labs observability minimal)
+    profiles+=(recommended custom full cisco multivendor cloud security labs observability convergence minimal)
 
     tui_menu "How do you want to set up NetClaw?" "${options[@]}" || { log_warn "Install cancelled."; exit 1; }
     local choice="${profiles[$TUI_CHOICE]}"

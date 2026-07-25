@@ -1,0 +1,75 @@
+# VictoriaMetrics — long-term metrics (T072 full stack)
+apiVersion: v1
+kind: Service
+metadata:
+  name: victoriametrics
+  labels:
+    app.kubernetes.io/name: victoriametrics
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: metrics-longterm
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: victoriametrics
+  ports:
+    - name: http
+      port: 8428
+      targetPort: 8428
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: victoriametrics
+  labels:
+    app.kubernetes.io/name: victoriametrics
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: metrics-longterm
+spec:
+  serviceName: victoriametrics
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: victoriametrics
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: victoriametrics
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: metrics-longterm
+    spec:
+      securityContext:
+        fsGroup: 1000
+      containers:
+        - name: victoriametrics
+          image: victoriametrics/victoria-metrics:latest
+          args:
+            - -retentionPeriod=365d
+            - -storageDataPath=/victoria-metrics-data
+            - -httpListenAddr=:8428
+          ports:
+            - containerPort: 8428
+              name: http
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-metrics-data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8428
+            initialDelaySeconds: 5
+            periodSeconds: 10
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 10Gi

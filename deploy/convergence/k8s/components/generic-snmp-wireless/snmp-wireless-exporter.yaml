@@ -1,0 +1,71 @@
+# Generic SNMP wireless adapter (T071) — second wireless vendor path.
+# K8s equivalent of Docker Compose profile "generic-snmp-wireless".
+# Part of the generic-snmp-wireless Kustomize Component — opt in from an
+# overlay (see ./README.md) so clusters without a second AP vendor don't run
+# an idle exporter.
+apiVersion: v1
+kind: Service
+metadata:
+  name: snmp-wireless-exporter
+  labels:
+    app.kubernetes.io/name: snmp-wireless-exporter
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: exporter
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: snmp-wireless-exporter
+  ports:
+    - name: metrics
+      port: 9116
+      targetPort: 9116
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: snmp-wireless-exporter
+  labels:
+    app.kubernetes.io/name: snmp-wireless-exporter
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: snmp-wireless-exporter
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: snmp-wireless-exporter
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: exporter
+    spec:
+      containers:
+        - name: snmp-wireless-exporter
+          image: prom/snmp-exporter:v0.26.0
+          args:
+            - --config.file=/etc/snmp_exporter/snmp.yml
+          ports:
+            - containerPort: 9116
+              name: metrics
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: config
+              mountPath: /etc/snmp_exporter/snmp.yml
+              subPath: snmp.yml
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 9116
+            initialDelaySeconds: 10
+            periodSeconds: 30
+      volumes:
+        - name: config
+          configMap:
+            name: snmp-wireless-exporter-config

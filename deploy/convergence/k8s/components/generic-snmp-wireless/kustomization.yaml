@@ -1,0 +1,30 @@
+# Generic SNMP wireless adapter — Kustomize Component (T071)
+# Opt-in second wireless vendor path (Omada / Aruba Instant On / MikroTik / ...).
+#
+# Use from an overlay:
+#
+#   apiVersion: kustomize.config.k8s.io/v1beta1
+#   kind: Kustomization
+#   resources:
+#     - ../../base
+#   components:
+#     - ../../components/generic-snmp-wireless
+#
+# After applying, you MUST also add a scrape job to
+# base/configs/prometheus.yml (Prometheus config is a generated ConfigMap;
+# kustomize does not merge YAML file contents). See README.md in this
+# directory for the exact snippet — same manual-edit convention already used
+# for the blackbox_edge target IP.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - snmp-wireless-exporter.yaml
+
+configMapGenerator:
+  - name: snmp-wireless-exporter-config
+    files:
+      - snmp.yml=configs/snmp.yml
+
+generatorOptions:
+  disableNameSuffixHash: true

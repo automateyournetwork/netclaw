@@ -9,6 +9,25 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 ## Resources
 
 - [NetClaw Overview](https://www.seanmahoney.ai/guides/netclaw-overview/) — community guide
+- [Setup instructions](docs/setup-instructions.md) — Ubuntu prerequisites and install path
+
+### Active workstreams (this fork / Convergence)
+
+| Area | Spec / docs | Deploy / code |
+|------|-------------|----------------|
+| **NetClaw Convergence** (site OBS + HOME tab + investigator) | [`specs/067-convergence/`](specs/067-convergence/) · [tasks](specs/067-convergence/tasks.md) · [quickstart](specs/067-convergence/quickstart.md) | [`deploy/convergence/`](deploy/convergence/) · [`ui/convergence-api/`](ui/convergence-api/) · HUD HOME tab |
+| **Knowledge / RAG** (vendor docs, OpenAPI JSON, UniFi) | Feature 062 · [runbook](docs/runbooks/knowledge-rag-home-ops.md) · [rag-mcp README](mcp-servers/rag-mcp/README.md) | HUD **Knowledge** panel · `mcp-servers/rag-mcp/` |
+| **iN2N risk / federation** | [docs/N2N-RISK.md](docs/N2N-RISK.md) · [federation guide](docs/N2N-FEDERATION-GUIDE.md) | Border + members (`guardian-claw` investigator) |
+
+Install Convergence profile:
+
+```bash
+./scripts/install.sh --profile convergence
+# Deploy stack: see deploy/convergence/README.md
+#   docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/convergence/.env up -d --build
+```
+
+> **Naming:** product paths use **Convergence** (`deploy/convergence`, `ui/convergence-api`, catalog `convergence-*`, K8s namespace `netclaw-convergence`). The HUD top tab is still labeled **HOME** (product surface). Docker/K8s service name `home-api` is a legacy service id (image: `netclaw-convergence-api`) — env vars `HOME_API_URL` / `HOME_API_TOKEN` remain for HUD dual-run with pilot Network Guardian.
 
 ---
 

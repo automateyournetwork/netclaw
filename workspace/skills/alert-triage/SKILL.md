@@ -207,7 +207,7 @@ Use range queries for trend: `query_range?query=<expr>&start=<15m-ago>&end=now&s
 ### Step 3: Device-Specific Investigation
 
 **Adapter rule:** match tools to the configured firewall / wireless / SoT adapters
-(`home-noc.yaml` / env). pfSense MCP and UniFi Integration API are the v1 defaults;
+(`convergence.yaml` / env). pfSense MCP and UniFi Integration API are the v1 defaults;
 Cisco IOS uses pyATS; other vendors use their MCP when installed. Never claim a
 vendor path you cannot query.
 

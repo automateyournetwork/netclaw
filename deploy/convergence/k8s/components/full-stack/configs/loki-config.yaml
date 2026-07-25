@@ -1,0 +1,42 @@
+# NetClaw Convergence — Loki config (T072 full stack, K3s component)
+# Mirrors deploy/convergence/loki/loki-config.yaml (Docker path) and
+# k3s-observability-stack/k8s/observability/loki.yml, trimmed for a
+# single-replica in-cluster instance (no ingress, no HA ring).
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: "2024-01-01"
+      store: tsdb
+      object_store: filesystem
+      schema: v13
+      index:
+        prefix: index_
+        period: 24h
+
+limits_config:
+  retention_period: 336h   # 14d — matches pilot Loki retention
+  reject_old_samples: true
+  reject_old_samples_max_age: 336h
+  allow_structured_metadata: false
+
+compactor:
+  working_directory: /loki/compactor
+  retention_enabled: true
+  compaction_interval: 10m
+  delete_request_store: filesystem

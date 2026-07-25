@@ -3656,99 +3656,99 @@ echo ""
 }
 
 # ═══════════════════════════════════════════════════════════════════
-# NetClaw Home (067-home-noc) — Phase 5 installer components
+# NetClaw Convergence (067-convergence) — Phase 5 installer components
 # Function names: component_install_<id with hyphens→underscores>
 # ═══════════════════════════════════════════════════════════════════
 
-component_install_home_noc_core() {
-log_step "Installing Home NOC Core (home-api + config)..."
-echo "  home-api: ui/home-api/  |  config: config/home-noc.example.yaml"
-echo "  Deploy (later in setup): Docker deploy/home/ or K3s deploy/home/k8s/"
+component_install_convergence_core() {
+log_step "Installing Convergence Core (home-api + config)..."
+echo "  home-api: ui/convergence-api/  |  config: config/convergence.example.yaml"
+echo "  Deploy (later in setup): Docker deploy/convergence/ or K3s deploy/convergence/k8s/"
 
-HOME_API_DIR="$NETCLAW_DIR/ui/home-api"
+HOME_API_DIR="$NETCLAW_DIR/ui/convergence-api"
 if [ -f "$HOME_API_DIR/package.json" ]; then
     if command -v npm >/dev/null 2>&1; then
         log_info "Installing home-api npm dependencies..."
         (cd "$HOME_API_DIR" && npm install --omit=dev 2>/dev/null) || \
-            log_warn "home-api npm install failed — run: cd ui/home-api && npm install"
+            log_warn "home-api npm install failed — run: cd ui/convergence-api && npm install"
     else
         log_warn "npm not found — install Node.js 20+ for home-api"
     fi
 else
-    log_warn "ui/home-api not found at $HOME_API_DIR"
+    log_warn "ui/convergence-api not found at $HOME_API_DIR"
 fi
 
 # Seed operator config from example if missing
-EX_CFG="$NETCLAW_DIR/config/home-noc.example.yaml"
-DST_CFG="$RUNTIME_HOME/home-noc.yaml"
-REPO_CFG="$NETCLAW_DIR/config/home-noc.yaml"
+EX_CFG="$NETCLAW_DIR/config/convergence.example.yaml"
+DST_CFG="$RUNTIME_HOME/convergence.yaml"
+REPO_CFG="$NETCLAW_DIR/config/convergence.yaml"
 if [ -f "$EX_CFG" ]; then
     if [ ! -f "$DST_CFG" ] && [ ! -f "$REPO_CFG" ]; then
         mkdir -p "$RUNTIME_HOME"
         cp "$EX_CFG" "$DST_CFG"
         log_info "Wrote $DST_CFG (edit adapters / deploy mode)"
     else
-        log_info "Home config already present (not overwriting)"
+        log_info "Convergence config already present (not overwriting)"
     fi
 else
-    log_warn "config/home-noc.example.yaml missing — re-pull repo"
+    log_warn "config/convergence.example.yaml missing — re-pull repo"
 fi
 
-log_info "Home NOC core ready. Set HOME_API_URL / HOME_API_TOKEN in $RUNTIME_ENV after deploy."
-echo "  Docs: specs/067-home-noc/quickstart.md  deploy/home/README.md"
+log_info "Convergence core ready. Set HOME_API_URL / HOME_API_TOKEN in $RUNTIME_ENV after deploy."
+echo "  Docs: specs/067-convergence/quickstart.md  deploy/convergence/README.md"
 echo ""
 }
 
-component_install_home_noc_metrics() {
-log_step "Installing Home Metrics Stack packaging..."
-echo "  Docker: deploy/home/docker-compose.yml (postgres, prom, am, blackbox, home-api)"
-echo "  K3s:    deploy/home/k8s/ (kustomize greenfield overlay)"
+component_install_convergence_metrics() {
+log_step "Installing Convergence Metrics Stack packaging..."
+echo "  Docker: deploy/convergence/docker-compose.yml (postgres, prom, am, blackbox, home-api)"
+echo "  K3s:    deploy/convergence/k8s/ (kustomize greenfield overlay)"
 
-if [ -f "$NETCLAW_DIR/deploy/home/docker-compose.yml" ]; then
-    log_info "Docker Home stack present"
+if [ -f "$NETCLAW_DIR/deploy/convergence/docker-compose.yml" ]; then
+    log_info "Docker Convergence stack present"
     if command -v docker >/dev/null 2>&1; then
-        log_info "docker available — after setup: ./deploy/home/render-config.sh && docker compose -f deploy/home/docker-compose.yml --env-file deploy/home/.env up -d --build"
+        log_info "docker available — after setup: ./deploy/convergence/render-config.sh && docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/convergence/.env up -d --build"
     else
         log_warn "docker not found — install Docker Engine for Docker deploy mode"
     fi
 else
-    log_warn "deploy/home/docker-compose.yml missing"
+    log_warn "deploy/convergence/docker-compose.yml missing"
 fi
 
-if [ -d "$NETCLAW_DIR/deploy/home/k8s/base" ]; then
-    log_info "K3s Home kustomize base present"
+if [ -d "$NETCLAW_DIR/deploy/convergence/k8s/base" ]; then
+    log_info "K3s Convergence kustomize base present"
     if command -v kubectl >/dev/null 2>&1; then
-        if kubectl kustomize "$NETCLAW_DIR/deploy/home/k8s/overlays/greenfield" >/dev/null 2>&1; then
+        if kubectl kustomize "$NETCLAW_DIR/deploy/convergence/k8s/overlays/greenfield" >/dev/null 2>&1; then
             log_info "kustomize greenfield build OK"
         else
-            log_warn "kustomize build failed — check deploy/home/k8s/"
+            log_warn "kustomize build failed — check deploy/convergence/k8s/"
         fi
     else
         log_info "kubectl not required unless choosing k3s deploy mode"
     fi
 else
-    log_warn "deploy/home/k8s base missing"
+    log_warn "deploy/convergence/k8s base missing"
 fi
 
-# Seed deploy/home/.env from example if missing
-if [ -f "$NETCLAW_DIR/deploy/home/.env.example" ] && [ ! -f "$NETCLAW_DIR/deploy/home/.env" ]; then
-    cp "$NETCLAW_DIR/deploy/home/.env.example" "$NETCLAW_DIR/deploy/home/.env"
-    log_info "Seeded deploy/home/.env from .env.example (edit secrets before compose up)"
+# Seed deploy/convergence/.env from example if missing
+if [ -f "$NETCLAW_DIR/deploy/convergence/.env.example" ] && [ ! -f "$NETCLAW_DIR/deploy/convergence/.env" ]; then
+    cp "$NETCLAW_DIR/deploy/convergence/.env.example" "$NETCLAW_DIR/deploy/convergence/.env"
+    log_info "Seeded deploy/convergence/.env from .env.example (edit secrets before compose up)"
 fi
 
 echo ""
 }
 
-component_install_home_noc_unifi() {
-log_step "Installing Home UniFi adapter packaging..."
-echo "  Exporter: deploy/home/adapters/unifi/exporter.py"
+component_install_convergence_unifi() {
+log_step "Installing Convergence UniFi adapter packaging..."
+echo "  Exporter: deploy/convergence/adapters/unifi/exporter.py"
 echo "  Docker profile: docker compose --profile unifi"
-echo "  K3s: unifi-exporter in deploy/home/k8s base"
+echo "  K3s: unifi-exporter in deploy/convergence/k8s base"
 
-if [ -f "$NETCLAW_DIR/deploy/home/adapters/unifi/exporter.py" ]; then
+if [ -f "$NETCLAW_DIR/deploy/convergence/adapters/unifi/exporter.py" ]; then
     log_info "UniFi exporter present"
 else
-    log_warn "UniFi exporter missing under deploy/home/adapters/unifi/"
+    log_warn "UniFi exporter missing under deploy/convergence/adapters/unifi/"
 fi
 
 log_info "Credentials (setup prompts when this component is selected):"
@@ -3757,8 +3757,8 @@ echo "  Optional: UNIFI_MGMT_URL for HOME Devices/Wi‑Fi deep-links"
 echo ""
 }
 
-component_install_home_noc_pfsense() {
-log_step "Installing Home pfSense / edge firewall adapter packaging..."
+component_install_convergence_pfsense() {
+log_step "Installing Convergence pfSense / edge firewall adapter packaging..."
 echo "  Management GUI links: PFSENSE_MGMT_URL / EDGE_MGMT_URL (home-api + HUD)"
 echo "  Investigations: pfsense-mcp when present under mcp-servers/ (optional)"
 
@@ -3772,23 +3772,23 @@ log_info "Configure in setup: PFSENSE_MGMT_URL (default often https://192.168.x.
 echo ""
 }
 
-component_install_home_noc_sot_nautobot() {
-log_step "Home SoT Nautobot stub..."
-echo "  v1: inventory binding stub — full adapter lands in Phase 7 (T070)"
+component_install_convergence_sot_nautobot() {
+log_step "Convergence SoT Nautobot adapter..."
+echo "  Live adapter (T070): ui/convergence-api/src/lib/adapters/sot.js"
 if component_selected nautobot 2>/dev/null || [ ! -f "${NETCLAW_MANIFEST:-/dev/null}" ]; then
     log_info "Prefer installing catalog component 'nautobot' for live SoT MCP"
 fi
-log_info "home-noc.yaml sot.type: nautobot  (env: NAUTOBOT_URL / NAUTOBOT_TOKEN)"
+log_info "convergence.yaml sot.type: nautobot  (env: NAUTOBOT_URL / NAUTOBOT_TOKEN)"
 echo ""
 }
 
-component_install_home_noc_sot_netbox() {
-log_step "Home SoT NetBox stub..."
-echo "  v1: inventory binding stub — full adapter lands in Phase 7 (T070)"
+component_install_convergence_sot_netbox() {
+log_step "Convergence SoT NetBox stub..."
+echo "  v1: inventory binding stub — NetBox adapter is a stub in sot.js (Nautobot is the live path)"
 if component_selected netbox 2>/dev/null || [ ! -f "${NETCLAW_MANIFEST:-/dev/null}" ]; then
     log_info "Prefer installing catalog component 'netbox' for live SoT MCP"
 fi
-log_info "home-noc.yaml sot.type: netbox  (env: NETBOX_URL / NETBOX_TOKEN)"
+log_info "convergence.yaml sot.type: netbox  (env: NETBOX_URL / NETBOX_TOKEN)"
 echo ""
 }
 

@@ -1,0 +1,114 @@
+# WAN speedtest — active bandwidth validation (T072 full stack)
+# Mirrors k3s-observability-stack/k8s/observability/speedtest.yml pattern:
+# CronJob (Ookla CLI) -> Pushgateway -> Prometheus scrape.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pushgateway
+  labels:
+    app.kubernetes.io/name: pushgateway
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: speedtest
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: pushgateway
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: pushgateway
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: speedtest
+    spec:
+      containers:
+        - name: pushgateway
+          image: prom/pushgateway:v1.10.0
+          args:
+            - --persistence.file=/data/pushgateway.store
+            - --persistence.interval=5m
+          ports:
+            - containerPort: 9091
+              name: http
+          resources:
+            requests:
+              cpu: 25m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: pushgateway
+  labels:
+    app.kubernetes.io/name: pushgateway
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: speedtest
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: pushgateway
+  ports:
+    - name: http
+      port: 9091
+      targetPort: 9091
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: speedtest
+  labels:
+    app.kubernetes.io/name: speedtest
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: speedtest
+spec:
+  # Default hourly at :17 past — matches pilot cadence, edit as needed.
+  schedule: "17 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 900
+      backoffLimit: 1
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: speedtest
+              image: python:3.12-slim
+              command: ["python", "/app/run.py"]
+              env:
+                - name: OOKLA_VERSION
+                  value: "1.2.0"
+                - name: PUSHGATEWAY_URL
+                  value: "http://pushgateway:9091"
+                - name: SITE_LABEL
+                  value: "home"
+                - name: SPEEDTEST_SERVER_ID
+                  value: ""
+              resources:
+                requests:
+                  cpu: 250m
+                  memory: 128Mi
+                limits:
+                  cpu: 2
+                  memory: 512Mi
+              volumeMounts:
+                - name: runner
+                  mountPath: /app
+          volumes:
+            - name: runner
+              configMap:
+                name: speedtest-runner
+                items:
+                  - key: run.py
+                    path: run.py

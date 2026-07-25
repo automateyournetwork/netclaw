@@ -252,8 +252,8 @@ npm run preview
 
 **Phase H (mobile/PWA/polish H001–H010) is complete.** History + optional notes:
 
-- [`specs/067-home-noc/hud-polish-backlog.md`](../../specs/067-home-noc/hud-polish-backlog.md)
-- Task checkboxes: Phase H in [`specs/067-home-noc/tasks.md`](../../specs/067-home-noc/tasks.md)
+- [`specs/067-convergence/hud-polish-backlog.md`](../../specs/067-convergence/hud-polish-backlog.md)
+- Task checkboxes: Phase H in [`specs/067-convergence/tasks.md`](../../specs/067-convergence/tasks.md)
 
 | Extra control | Behavior |
 |---------------|----------|

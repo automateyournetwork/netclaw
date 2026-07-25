@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: netclaw-convergence
+  labels:
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/name: netclaw-convergence

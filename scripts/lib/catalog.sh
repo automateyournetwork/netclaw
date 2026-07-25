@@ -47,13 +47,13 @@ CATALOG=(
     "terraform|Cloud|Terraform Cloud|Workspaces, runs, state, variables (remote)"
     "vault|Cloud|HashiCorp Vault|KV, PKI, transit, auth methods (remote)"
 
-    "home-noc-core|Home NOC|Home NOC Core|home-api + HOME tab config (067) — diary API, shared adapter config"
-    "home-noc-metrics|Home NOC|Home Metrics Stack|Prometheus + Alertmanager + blackbox (Docker or K3s deploy/home)"
-    "home-noc-unifi|Home NOC|Home UniFi Adapter|UniFi Integration API exporter + UNIFI_* env for Wi‑Fi metrics"
-    "home-noc-pfsense|Home NOC|Home pfSense Adapter|Edge firewall deep-links + optional pfSense MCP for investigations"
-    "home-noc-sot-nautobot|Home NOC|Home SoT (Nautobot)|Stub: bind Home inventory to Nautobot (requires nautobot component)"
-    "home-noc-sot-netbox|Home NOC|Home SoT (NetBox)|Stub: bind Home inventory to NetBox (requires netbox component)"
-    "visual-hud|Home NOC|Visual HUD|NetClaw Visual HUD (COMMAND|HOME) on :3001 + systemd user unit"
+    "convergence-core|Convergence|Convergence Core|convergence-api + HOME tab config (067) — diary API, inventory SoT, shared adapter config"
+    "convergence-metrics|Convergence|Convergence Metrics Stack|Prometheus + Alertmanager + blackbox (Docker or K3s deploy/convergence)"
+    "convergence-unifi|Convergence|Convergence UniFi Adapter|UniFi Integration API exporter + UNIFI_* env for Wi‑Fi metrics"
+    "convergence-pfsense|Convergence|Convergence pfSense Adapter|Edge firewall deep-links + optional pfSense MCP for investigations"
+    "convergence-sot-nautobot|Convergence|Convergence SoT (Nautobot)|Stub: bind Convergence inventory to Nautobot (requires nautobot component)"
+    "convergence-sot-netbox|Convergence|Convergence SoT (NetBox)|Stub: bind Convergence inventory to NetBox (requires netbox component)"
+    "visual-hud|Convergence|Visual HUD|NetClaw Visual HUD (COMMAND|HOME) on :3001 + systemd user unit"
 
     "grafana|Observability|Grafana|Dashboards, Prometheus, Loki, alerting, OnCall (75+ tools)"
     "prometheus|Observability|Prometheus|PromQL queries, metric discovery, target health (6 tools)"
@@ -158,9 +158,9 @@ PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzi
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
 suzieq kubeshark gtrace gait"
 
-# Home Convergence pipeline (067): OBS + home-api + HUD + investigator path.
+# NetClaw Convergence pipeline (067): OBS + home-api + HUD + investigator path.
 # n2n is included so risk/guardian-claw ensure can enroll the investigator member.
-PROFILE_HOME="home-noc-core home-noc-metrics home-noc-unifi home-noc-pfsense visual-hud \
+PROFILE_CONVERGENCE="convergence-core convergence-metrics convergence-unifi convergence-pfsense visual-hud \
 prometheus gait n2n rag-mcp"
 
 profile_components() {
@@ -173,10 +173,10 @@ profile_components() {
         security)       echo "$PROFILE_SECURITY" ;;
         labs)           echo "$PROFILE_LABS" ;;
         observability)  echo "$PROFILE_OBSERVABILITY" ;;
-        home)           echo "$PROFILE_HOME" ;;
+        convergence)    echo "$PROFILE_CONVERGENCE" ;;
         full)           catalog_ids | tr '\n' ' ' ;;
         *)              return 1 ;;
     esac
 }
 
-PROFILE_NAMES="minimal recommended cisco multivendor cloud security labs observability home full"
+PROFILE_NAMES="minimal recommended cisco multivendor cloud security labs observability convergence full"

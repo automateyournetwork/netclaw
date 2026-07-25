@@ -1,0 +1,24 @@
+# Nautobot SoT adapter — Docker Compose fragment
+#
+# Unlike UniFi (which needs a local exporter container), Nautobot is an external
+# API service. This fragment documents the env vars that home-api needs and
+# provides an optional healthcheck sidecar if desired.
+#
+# Include by adding to main docker-compose.yml environment section for home-api:
+#   NAUTOBOT_URL=${NAUTOBOT_URL}
+#   NAUTOBOT_TOKEN=${NAUTOBOT_TOKEN}
+#   SOT_TYPE=nautobot
+#
+# No additional service container is required — home-api calls Nautobot REST
+# directly.
+
+services:
+  # Optional: connectivity probe for Nautobot (useful in smoke tests)
+  nautobot-probe:
+    image: curlimages/curl:latest
+    profiles: ["nautobot-probe"]
+    entrypoint: ["sh", "-c", "while true; do curl -sf -o /dev/null -w '%{http_code}' -H 'Authorization: Token ${NAUTOBOT_TOKEN}' ${NAUTOBOT_URL}/api/status/ && echo ' OK' || echo ' FAIL'; sleep 60; done"]
+    environment:
+      NAUTOBOT_URL: ${NAUTOBOT_URL:-http://nautobot:8080}
+      NAUTOBOT_TOKEN: ${NAUTOBOT_TOKEN:-changeme}
+    restart: unless-stopped

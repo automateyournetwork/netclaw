@@ -1,0 +1,14 @@
+# Generic SNMP wireless adapter — Docker Compose fragment (T071)
+#
+# Already included in ../../docker-compose.yml under profile
+# "generic-snmp-wireless". Kept here for documentation / include-style tooling.
+services:
+  snmp-wireless-exporter:
+    profiles: ["generic-snmp-wireless"]
+    image: prom/snmp-exporter:v0.26.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/snmp_exporter/snmp.yml"]
+    volumes:
+      - ./adapters/generic-snmp-wireless/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
+    ports:
+      - "${SNMP_WIRELESS_EXPORTER_HOST_PORT:-9116}:9116"

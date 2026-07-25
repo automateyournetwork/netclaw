@@ -1,5 +1,5 @@
 /**
- * 067-home-noc — Home product view (HUD-styled).
+ * 067-convergence — Home product view (HUD-styled).
  * Live data via HUD proxy /api/home/* → home-api / Network Guardian (dual-run).
  */
 
@@ -112,8 +112,8 @@ export class HomeView {
       <div class="home-frame">
         <div class="home-toolbar">
           <div class="home-toolbar-left">
-            <p class="eyebrow home-toolbar-title">NetClaw Home</p>
-            <div class="home-segmented" role="tablist" aria-label="Home sections">
+            <p class="eyebrow home-toolbar-title">NetClaw Convergence</p>
+            <div class="home-segmented" role="tablist" aria-label="Convergence sections">
               ${buttons}
             </div>
           </div>
@@ -265,7 +265,7 @@ export class HomeView {
       if (!status.configured) {
         this.lastError = {
           kind: 'config',
-          message: 'Home API not configured. Set NETWORK_GUARDIAN_URL + NETWORK_GUARDIAN_TOKEN (or HOME_API_*) in ~/.openclaw/.env',
+          message: 'Convergence API not configured. Set HOME_API_URL + HOME_API_TOKEN (or NETWORK_GUARDIAN_* for pilot dual-run) in ~/.openclaw/.env',
         };
         this.syncTopbarMetrics(null);
         return;
@@ -466,9 +466,9 @@ export class HomeView {
       ? `<div class="home-banner home-banner-config" style="margin:12px 0">
           <span class="home-badge mock">No unifi_* metrics</span>
           <p class="home-muted" style="margin:8px 0 0">
-            Wi‑Fi KPIs need the UniFi exporter. On Docker Home:
-            set <code>UNIFI_HOST</code> + <code>UNIFI_API_KEY</code> in <code>deploy/home/.env</code>, then
-            <code>docker compose -f deploy/home/docker-compose.yml --env-file deploy/home/.env --profile unifi up -d</code>.
+            Wi‑Fi KPIs need the UniFi exporter. On Docker Convergence:
+            set <code>UNIFI_HOST</code> + <code>UNIFI_API_KEY</code> in <code>deploy/convergence/.env</code>, then
+            <code>docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/convergence/.env --profile unifi up -d</code>.
             Until then Overview WAN probes still work; this tab will stay empty.
           </p>
         </div>`

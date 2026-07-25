@@ -907,7 +907,7 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'netclaw-visual-api', generatedAt: new Date().toISOString() });
 });
 
-// ── 067-home-noc: proxy HOME tab → home-api / Network Guardian (dual-run) ──
+// ── 067-convergence: proxy HOME tab → home-api / Network Guardian (dual-run) ──
 // Prefer HOME_API_URL; fall back to NETWORK_GUARDIAN_URL for pilot.
 // Auth: HOME_API_TOKEN or NETWORK_GUARDIAN_TOKEN as Bearer (API key).
 function homeApiConfig() {

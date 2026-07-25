@@ -1,0 +1,39 @@
+# NetClaw Convergence — Full stack Kustomize Component (T072)
+# K8s equivalent of Docker Compose --profile full / --profile speedtest.
+# Adds long-term storage + dashboards + active bandwidth testing on top of
+# the base minimal stack: Loki, VictoriaMetrics, Grafana, speedtest.
+#
+# Use from an overlay:
+#
+#   apiVersion: kustomize.config.k8s.io/v1beta1
+#   kind: Kustomization
+#   resources:
+#     - ../../base
+#   components:
+#     - ../../components/full-stack
+#
+# This component does NOT modify base/configs/prometheus.yml. Wiring
+# Prometheus remote_write to VictoriaMetrics, or a scrape job for
+# pushgateway:9091, requires a manual edit — see README.md.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - loki.yaml
+  - victoriametrics.yaml
+  - grafana.yaml
+  - speedtest.yaml
+
+configMapGenerator:
+  - name: loki-config
+    files:
+      - loki-config.yaml=configs/loki-config.yaml
+  - name: grafana-datasources
+    files:
+      - datasources.yml=configs/datasources.yml
+  - name: speedtest-runner
+    files:
+      - run.py=configs/speedtest-run.py
+
+generatorOptions:
+  disableNameSuffixHash: true

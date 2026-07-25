@@ -1,0 +1,26 @@
+# NetClaw Convergence — Grafana datasource provisioning (T072 full stack)
+# Mirrors k3s-observability-stack/k8s/observability/grafana.yml datasource list,
+# trimmed to what the Home Docker full stack actually runs.
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    uid: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+    editable: true
+  - name: Loki
+    type: loki
+    access: proxy
+    uid: loki
+    url: http://loki:3100
+    isDefault: false
+    editable: true
+  - name: VictoriaMetrics - Long Term
+    type: prometheus
+    access: proxy
+    uid: victoriametrics-longterm
+    url: http://victoriametrics:8428
+    isDefault: false
+    editable: true

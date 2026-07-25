@@ -1,0 +1,113 @@
+# NetClaw Convergence — Docker FULL stack overlay (067 Phase 7+, T072)
+#
+# Adds long-term storage + dashboards + active bandwidth testing on top of the
+# minimal stack (docker-compose.yml): Loki, VictoriaMetrics, Grafana, speedtest.
+#
+# This is an ADDITIVE overlay — always run with the base file first:
+#
+#   docker compose \
+#     -f deploy/convergence/docker-compose.yml \
+#     -f deploy/convergence/docker-compose.full.yml \
+#     --env-file deploy/convergence/.env \
+#     up -d --build
+#
+# Core Prometheus in docker-compose.yml does not remote_write anywhere by
+# default (minimal stack, 15d local retention). This overlay does NOT modify
+# prometheus.yml — VictoriaMetrics here is deployed for later wiring (long-term
+# retention via remote_write) and for direct PromQL querying if you choose to
+# point Grafana / home-api at it. See "Wiring remote_write" below.
+#
+# Everything here is optional. Only start what you need:
+#   --profile full           → loki + victoriametrics + grafana
+#   --profile speedtest       → pushgateway + speedtest runner (also add
+#                                pushgateway as a Prometheus scrape target,
+#                                see prometheus/prometheus.yml comment)
+
+name: netclaw-convergence
+
+services:
+  loki:
+    profiles: ["full"]
+    image: grafana/loki:3.1.0
+    restart: unless-stopped
+    command: ["-config.file=/etc/loki/local-config.yaml"]
+    volumes:
+      - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
+      - convergence-lokidata:/loki
+    ports:
+      - "${LOKI_HOST_PORT:-3100}:3100"
+    networks: [convergence]
+
+  victoriametrics:
+    profiles: ["full"]
+    image: victoriametrics/victoria-metrics:latest
+    restart: unless-stopped
+    command:
+      - -retentionPeriod=365d
+      - -storageDataPath=/victoria-metrics-data
+      - -httpListenAddr=:8428
+    volumes:
+      - convergence-vmdata:/victoria-metrics-data
+    ports:
+      - "${VICTORIAMETRICS_HOST_PORT:-8428}:8428"
+    networks: [convergence]
+
+  grafana:
+    profiles: ["full"]
+    image: grafana/grafana:latest
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: "Viewer"
+      GF_SERVER_ROOT_URL: ${GRAFANA_ROOT_URL:-http://localhost:3300}
+    volumes:
+      - convergence-grafanadata:/var/lib/grafana
+      - ./grafana/provisioning/datasources/datasources.yml:/etc/grafana/provisioning/datasources/datasources.yml:ro
+    depends_on:
+      - loki
+      - victoriametrics
+    ports:
+      - "${GRAFANA_HOST_PORT:-3300}:3000"
+    networks: [convergence]
+
+  # --- WAN speedtest (active bandwidth validation) ---
+  pushgateway:
+    profiles: ["speedtest", "full"]
+    image: prom/pushgateway:v1.10.0
+    restart: unless-stopped
+    command:
+      - --persistence.file=/data/pushgateway.store
+      - --persistence.interval=5m
+    volumes:
+      - convergence-pushgwdata:/data
+    ports:
+      - "${PUSHGATEWAY_HOST_PORT:-9091}:9091"
+    networks: [convergence]
+
+  speedtest:
+    profiles: ["speedtest", "full"]
+    image: python:3.12-slim
+    restart: unless-stopped
+    working_dir: /app
+    command: ["python", "-u", "/app/run.py"]
+    environment:
+      OOKLA_VERSION: "1.2.0"
+      PUSHGATEWAY_URL: "http://pushgateway:9091"
+      SITE_LABEL: ${SITE_LABEL:-home}
+      SPEEDTEST_INTERVAL_SECONDS: ${SPEEDTEST_INTERVAL_SECONDS:-3600}
+      SPEEDTEST_SERVER_ID: ${SPEEDTEST_SERVER_ID:-}
+    volumes:
+      - ./speedtest/run.py:/app/run.py:ro
+    depends_on:
+      - pushgateway
+    networks: [convergence]
+
+networks:
+  convergence:
+    name: netclaw-convergence
+
+volumes:
+  convergence-lokidata:
+  convergence-vmdata:
+  convergence-grafanadata:
+  convergence-pushgwdata:

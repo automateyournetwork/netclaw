@@ -1,5 +1,5 @@
 /**
- * 067-home-noc — top-level COMMAND | HOME tab router.
+ * 067-convergence — top-level COMMAND | HOME tab router.
  * Keeps Three.js mounted; toggles visibility + app mode class.
  */
 

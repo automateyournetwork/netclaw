@@ -112,8 +112,8 @@ When a WAN outage resolves (InternetDown alert → resolved), NetClaw can:
 | What we measure | Prometheus metric | Claim evidence |
 |-----------------|-------------------|----------------|
 | Complete outage | `probe_success == 0` sustained | "Internet was down from X to Y" |
-| High latency | `guardian:wan_latency_ms:avg > 80` | "Service degraded, not meeting advertised performance" |
-| Packet loss | `guardian:wan_loss_ratio:5m > 0.01` | "Experiencing packet loss affecting service quality" |
+| High latency | `convergence:wan_latency_ms:avg > 80` | "Service degraded, not meeting advertised performance" |
+| Packet loss | `convergence:wan_loss_ratio:5m > 0.01` | "Experiencing packet loss affecting service quality" |
 | Speed below advertised | `speedtest_download_bits_per_second < 700000000` sustained | "Not receiving advertised 940 Mbps speeds" |
 | Gateway unreachable | pfSense dpinger alarm state | "Your gateway was unreachable from my equipment" |
 

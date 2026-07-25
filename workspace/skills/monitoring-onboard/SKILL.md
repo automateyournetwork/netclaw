@@ -8,7 +8,7 @@ metadata:
 
 # Monitoring Onboard
 
-Configure network devices and infrastructure to report into the existing observability stack (Docker Home, K3s Home `netclaw-home`, or pilot OBS). Prefer env URLs: `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `GRAFANA_URL`.
+Configure network devices and infrastructure to report into the existing observability stack (Docker Convergence, K3s Convergence `netclaw-convergence`, or pilot OBS). Prefer env URLs: `PROMETHEUS_URL`, `ALERTMANAGER_URL`, `GRAFANA_URL`.
 
 ## When to Use
 

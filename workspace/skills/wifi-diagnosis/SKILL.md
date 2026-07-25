@@ -66,9 +66,9 @@ port-forward or ClusterIP / Grafana datasource proxy — always prefer `$PROMETH
 |--------|--------|---------|
 | `probe_success` | `job`, `target`, `instance` | 1 = probe succeeded |
 | `probe_duration_seconds` | (same) | Probe RTT (TCP connect latency) |
-| `guardian:health_score` | `site` | Derived 0-100. Penalized for loss/latency/edge-down. |
-| `guardian:wan_latency_ms:avg` | `site` | Average WAN latency in ms |
-| `guardian:wan_loss_ratio:5m` | `site` | Fraction of failed probes (0-1) |
+| `convergence:health_score` | `site` | Derived 0-100. Penalized for loss/latency/edge-down. |
+| `convergence:wan_latency_ms:avg` | `site` | Average WAN latency in ms |
+| `convergence:wan_loss_ratio:5m` | `site` | Fraction of failed probes (0-1) |
 
 ### WAN Bandwidth (speedtest → Pushgateway → Prometheus)
 | Metric | Labels | Meaning |
@@ -169,7 +169,7 @@ the UniFi Network / Integration API PDF as type **vendor**.
 
 1. **Health overview** — single query gives the big picture:
    ```promql
-   {guardian:health_score, guardian:wan_latency_ms:avg, guardian:wan_loss_ratio:5m}
+   {convergence:health_score, convergence:wan_latency_ms:avg, convergence:wan_loss_ratio:5m}
    ```
    If health <90, WAN latency >40ms, or loss >0: it's a WAN/ISP issue, not Wi-Fi.
 
@@ -343,7 +343,7 @@ the overloaded zone and the underserved area).
 **User says:** "Wi-Fi is slow in the basement, my MacBook keeps buffering."
 
 **Your analysis:**
-1. `guardian:health_score` = 99 → WAN is fine, not an internet issue
+1. `convergence:health_score` = 99 → WAN is fine, not an internet issue
 2. `unifi_ap_clients{device="U6-Pro - Basement..."}` = 27, Sophie's Office = 7 →
    heavy imbalance, Basement AP serves 80% of clients
 3. `unifi_radio_tx_retries_pct{device="U6-Pro - Basement...", band="2.4GHz"}` = 23% →

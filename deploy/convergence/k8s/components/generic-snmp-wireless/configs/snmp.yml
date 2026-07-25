@@ -1,0 +1,51 @@
+# Minimal snmp_exporter config for generic wireless APs/controllers (T071).
+# Mirrors deploy/convergence/adapters/generic-snmp-wireless/snmp.yml (Docker path).
+# Vendor-neutral IF-MIB baseline — extend with vendor MIBs before alerting on it.
+auths:
+  public_v2:
+    community: public
+    security_level: noAuthNoPriv
+    version: 2
+
+modules:
+  if_mib:
+    walk:
+      - 1.3.6.1.2.1.2.2.1.2   # ifDescr
+      - 1.3.6.1.2.1.2.2.1.7   # ifAdminStatus
+      - 1.3.6.1.2.1.2.2.1.8   # ifOperStatus
+      - 1.3.6.1.2.1.31.1.1.1.6   # ifHCInOctets
+      - 1.3.6.1.2.1.31.1.1.1.10  # ifHCOutOctets
+    metrics:
+      - name: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+        indexes:
+          - labelname: ifIndex
+            type: gauge
+      - name: ifAdminStatus
+        oid: 1.3.6.1.2.1.2.2.1.7
+        type: gauge
+        indexes:
+          - labelname: ifIndex
+            type: gauge
+      - name: ifOperStatus
+        oid: 1.3.6.1.2.1.2.2.1.8
+        type: gauge
+        indexes:
+          - labelname: ifIndex
+            type: gauge
+      - name: ifHCInOctets
+        oid: 1.3.6.1.2.1.31.1.1.1.6
+        type: counter
+        indexes:
+          - labelname: ifIndex
+            type: gauge
+      - name: ifHCOutOctets
+        oid: 1.3.6.1.2.1.31.1.1.1.10
+        type: counter
+        indexes:
+          - labelname: ifIndex
+            type: gauge
+    version: 2
+    auth:
+      community: public

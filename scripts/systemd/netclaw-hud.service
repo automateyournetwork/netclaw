@@ -1,0 +1,18 @@
+[Unit]
+Description=NetClaw Visual HUD — COMMAND | HOME network operations dashboard
+After=network-online.target
+Documentation=file://@REPO@/specs/067-convergence/quickstart.md
+
+[Service]
+Type=simple
+WorkingDirectory=@REPO@/ui/netclaw-visual
+# Runtime secrets for HOME proxy (HOME_API_URL / HOME_API_TOKEN) live in OpenClaw .env
+EnvironmentFile=-@HOME@/.openclaw/.env
+Environment=NODE_ENV=production
+Environment=PATH=@NODE_DIR@:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=@NODE@ server.js
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

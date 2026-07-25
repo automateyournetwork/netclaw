@@ -1,0 +1,15 @@
+# NetClaw Convergence — Alertmanager (067 Phase 4 K3s)
+# Edit url before apply: host alert-receiver webhook (NetClaw agent plane).
+# Pilot default host was 192.168.3.252:8099 — replace with your agent IP.
+route:
+  receiver: netclaw
+  group_by: ["alertname", "instance"]
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: netclaw
+    webhook_configs:
+      - url: "http://192.168.3.252:8099/webhook"
+        send_resolved: true

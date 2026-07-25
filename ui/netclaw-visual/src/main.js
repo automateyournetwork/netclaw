@@ -98,7 +98,7 @@ const state = {
     litIntegrations: new Set(),  // integration ids currently lit
     litTools: new Map(),         // tool name → { integrationId, spriteIndex }
   },
-  // 067-home-noc: top-level product tab (command | home)
+  // 067-convergence: top-level product tab (command | home)
   appTab: 'command',
   tabRouter: null,
   homeView: null,
@@ -3746,7 +3746,7 @@ function wireUI() {
     qualityToggle.addEventListener('click', cycleQualityMode);
   }
 
-  // 067-home-noc: COMMAND | HOME top-level tabs
+  // 067-convergence: COMMAND | HOME top-level tabs
   const homeRoot = document.getElementById('home-root');
   if (homeRoot && !state.homeView) {
     state.homeView = new HomeView(homeRoot);

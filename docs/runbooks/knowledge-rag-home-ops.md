@@ -1,4 +1,4 @@
-# Knowledge RAG for Home / Convergence ops
+# Knowledge RAG for NetClaw Convergence ops
 
 ## What it is
 
