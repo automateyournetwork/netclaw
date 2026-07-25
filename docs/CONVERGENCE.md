@@ -159,7 +159,7 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
 | Concept | Name |
 |---------|------|
 | Product / paths | **Convergence** |
-| HUD top tab | **HOME** (product surface label) |
+| HUD top tab | **CONVERGENCE** (internal route id remains `home`) |
 | Docker/K8s service | **`convergence-api`** |
 | Image | `netclaw-convergence-api:local` |
 | Agent env (preferred) | `CONVERGENCE_API_URL` / `CONVERGENCE_API_TOKEN` |

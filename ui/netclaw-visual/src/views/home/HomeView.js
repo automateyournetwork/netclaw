@@ -423,7 +423,7 @@ export class HomeView {
       <p class="home-section-title">Pipeline</p>
       <p class="home-muted">
         Metrics → Alertmanager → alert-receiver → risk investigator (guardian-claw) → diary / triage.
-        HOME tab proxies <code>/api/home/*</code> to convergence-api (or pilot Network Guardian during dual-run).
+        Convergence tab proxies <code>/api/home/*</code> to convergence-api (or pilot Network Guardian during dual-run).
       </p>
     `;
   }

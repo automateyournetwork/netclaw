@@ -24,7 +24,7 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 # Stack: docs/CONVERGENCE.md · deploy/convergence/README.md
 ```
 
-> **Naming:** Docker/K8s service **`convergence-api`**. Prefer **`CONVERGENCE_API_URL` / `CONVERGENCE_API_TOKEN`** (`HOME_API_*` and `NETWORK_GUARDIAN_*` still work). HUD tab label remains **HOME**.
+> **Naming:** Docker/K8s service **`convergence-api`**. Prefer **`CONVERGENCE_API_URL` / `CONVERGENCE_API_TOKEN`** (`HOME_API_*` and `NETWORK_GUARDIAN_*` still work). HUD top tab label: **CONVERGENCE** (internal id `home`).
 
 ---
 
