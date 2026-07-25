@@ -70,6 +70,23 @@ services:
       - "${GRAFANA_HOST_PORT:-3300}:3000"
     networks: [convergence]
 
+  # --- Log ship: device syslog + optional agent files → Loki (Phase 8) ---
+  promtail:
+    profiles: ["full", "device-syslog"]
+    image: grafana/promtail:3.1.0
+    restart: unless-stopped
+    command: ["-config.file=/etc/promtail/config.yml"]
+    volumes:
+      - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
+      # Optional agent flat logs (create dir / empty ok)
+      - netclaw-agent-logs:/var/log/netclaw:ro
+    ports:
+      - "${SYSLOG_HOST_PORT:-1514}:1514/udp"
+      - "${PROMTAIL_HTTP_PORT:-9080}:9080"
+    depends_on:
+      - loki
+    networks: [convergence]
+
   # --- WAN speedtest (active bandwidth validation) ---
   pushgateway:
     profiles: ["speedtest", "full"]
@@ -110,4 +127,5 @@ volumes:
   convergence-lokidata:
   convergence-vmdata:
   convergence-grafanadata:
+  netclaw-agent-logs:
   convergence-pushgwdata:

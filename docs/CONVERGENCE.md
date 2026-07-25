@@ -180,12 +180,14 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
   [`specs/067-convergence/device-telemetry-greenfield.md`](../specs/067-convergence/device-telemetry-greenfield.md)
   (distinct from optional AP-only `generic-snmp-wireless`)
 
-### What is *not* in the tree yet (planned Phase 8)
+### Phase 8 greenfield status
 
-| Capability | Today | Planned greenfield component |
-|------------|--------|------------------------------|
-| Cisco/switch interface SNMP | Pilot OBS OTEL only | `convergence-device-snmp` |
-| Device syslog → Loki | Pilot OBS | `convergence-device-syslog` |
-| NetClaw token/cost metrics | `scripts/openclaw-metrics` (host, unwired) | `convergence-agent-metrics` |
-| NetClaw gateway/mesh log ship | rsyslog template → pilot | `convergence-agent-logs` |
-| Provisioned Grafana boards | Datasources only in `full` | network + agent dashboard JSON |
+| Capability | Status | How to enable |
+|------------|--------|----------------|
+| Campus switch IF-MIB SNMP | **Shipped** | `--profile device-snmp` |
+| Device syslog → Loki | **Shipped** | `--profile full` + promtail (UDP 1514) |
+| NetClaw token/cost metrics | **Shipped** | `openclaw-token-exporter` + job `netclaw-openclaw` |
+| NetClaw agent log ship | **Template** | `scripts/rsyslog-netclaw-convergence.conf` |
+| Grafana NetClaw quota board | **Shipped** | `--profile full` provisions dashboards |
+| Network switch Grafana boards | Planned | T094 remaining boards |
+| K3s syslog component | Planned | T091 |

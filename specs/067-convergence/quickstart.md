@@ -185,3 +185,15 @@ systemctl --user enable --now openclaw-token-exporter   # scripts/openclaw-metri
 ```
 
 Full detail: [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md).
+
+### Device syslog + Loki (optional)
+
+```bash
+cd deploy/convergence
+docker compose -f docker-compose.yml -f docker-compose.full.yml \
+  --env-file .env --profile full --profile device-syslog up -d
+# switches: logging host <this-ip> transport udp port 1514
+logger -n 127.0.0.1 -P 1514 -d -t HomeSwitch01 'test'
+```
+
+Agent rsyslog: `sudo cp scripts/rsyslog-netclaw-convergence.conf /etc/rsyslog.d/60-netclaw-convergence.conf`

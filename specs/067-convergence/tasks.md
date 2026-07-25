@@ -135,15 +135,15 @@ site does not depend on `k3s-observability-stack`.
 
 ### Device syslog
 
-- [ ] T089 Syslog/UDP receiver → Loki (depends on full Loki or slim log service)
-- [ ] T090 IP → `device_name` attribute mapping; docs for switch syslog destination
-- [ ] T091 K3s parity for syslog receiver
+- [x] T089 Syslog/UDP receiver → Loki (promtail profile full|device-syslog) (depends on full Loki or slim log service)
+- [x] T090 hostname/app labels via promtail syslog relabel (tune per site); docs for switch syslog destination
+- [ ] T091 K3s parity for syslog receiver (promtail component)
 
 ### NetClaw agent observability
 
 - [x] T092 Package openclaw-metrics install-step + Prom scrape job netclaw-openclaw as `convergence-agent-metrics` (systemd unit
       under `scripts/systemd/` or `services/`) + Prometheus scrape from stack
-- [ ] T093 Agent log forward (rsyslog/journal) → Convergence Loki; template from
+- [x] T093 Agent log forward template rsyslog-netclaw-convergence.conf → Promtail :1514 (rsyslog/journal) → Convergence Loki; template from
       `scripts/rsyslog-netclaw-forward.conf` rewritten for greenfield Loki URL
 - [x] T094 Provision Grafana dashboards path (netclaw-quota JSON under full profile): network (switches) + NetClaw quota JSON
 - [x] T095 Quickstart section: greenfield device-snmp path: greenfield “switches + agent metrics” path

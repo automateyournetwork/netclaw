@@ -3804,8 +3804,10 @@ echo ""
 
 component_install_convergence_device_syslog() {
 log_step "Convergence device syslog..."
-echo "  Greenfield Phase 8 — syslog → Loki (requires --profile full for Loki)"
-log_info "Runtime receiver TBD (T089); configure switch syslog to host:1514 when implemented"
+echo "  Greenfield Phase 8 — Promtail UDP :1514 → Loki"
+echo "  Docs: deploy/convergence/adapters/device-syslog/README.md"
+log_info "Docker: compose -f docker-compose.yml -f docker-compose.full.yml --profile full --profile device-syslog up -d"
+log_info "Point switches: logging host <this-host> transport udp port 1514"
 echo ""
 }
 
@@ -3833,9 +3835,13 @@ echo ""
 
 component_install_convergence_agent_logs() {
 log_step "Convergence agent log forward..."
-echo "  Template: scripts/rsyslog-netclaw-forward.conf"
-echo "  Point UDP forward at Convergence Loki (full profile) or OTEL when T093 lands"
-log_info "Copy/adapt rsyslog conf and restart rsyslog after editing remote host"
+echo "  Greenfield template: scripts/rsyslog-netclaw-convergence.conf → Promtail :1514"
+echo "  Pilot OBS template (legacy): scripts/rsyslog-netclaw-forward.conf"
+if [ -f "$NETCLAW_DIR/scripts/rsyslog-netclaw-convergence.conf" ]; then
+    log_info "Install: sudo cp $NETCLAW_DIR/scripts/rsyslog-netclaw-convergence.conf /etc/rsyslog.d/60-netclaw-convergence.conf && sudo systemctl restart rsyslog"
+else
+    log_warn "rsyslog-netclaw-convergence.conf missing"
+fi
 echo ""
 }
 

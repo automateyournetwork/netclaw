@@ -1,0 +1,48 @@
+# Phase 8 — greenfield log ship into Convergence Loki
+# Profiles: full | device-syslog
+#
+# 1) Syslog UDP :1514 — switches/firewall (map peer IP → device_name via pipeline)
+# 2) Docker/journal optional later
+#
+# Clients push to Loki at http://loki:3100
+
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  # Device / network syslog (UDP) — Phase 8 T089
+  - job_name: device-syslog
+    syslog:
+      listen_address: 0.0.0.0:1514
+      listen_protocol: udp
+      idle_timeout: 60s
+      label_structured_data: true
+      labels:
+        job: device-syslog
+        site: home
+    relabel_configs:
+      - source_labels: [__syslog_message_hostname]
+        target_label: host
+      - source_labels: [__syslog_message_hostname]
+        target_label: device_name
+      - source_labels: [__syslog_message_app_name]
+        target_label: app
+      - source_labels: [__syslog_connection_hostname]
+        target_label: peer_ip
+
+  # Optional: scrape host agent log files bind-mounted at /var/log/netclaw
+  # Mount host paths in compose when agent log_forward is enabled.
+  - job_name: netclaw-agent-files
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: netclaw-agent
+          site: home
+          __path__: /var/log/netclaw/*.log

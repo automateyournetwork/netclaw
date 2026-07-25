@@ -1,0 +1,23 @@
+# Systemd (user) service for the OpenClaw token/cost Prometheus exporter.
+# Install (user service, same manager that runs openclaw-gateway):
+#   cp openclaw-token-exporter.service ~/.config/systemd/user/
+#   systemctl --user daemon-reload
+#   systemctl --user enable --now openclaw-token-exporter
+#
+# Then add a scrape job on the OBS Prometheus (see README.md).
+
+[Unit]
+Description=OpenClaw Token/Cost Prometheus Exporter (pull)
+After=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/home/ubuntu/netclaw/.venv/bin/python /home/ubuntu/netclaw/scripts/openclaw-metrics/exporter.py
+Restart=on-failure
+RestartSec=5
+Environment=NETCLAW_INSTANCE=netclaw
+Environment=EXPORTER_PORT=9110
+Environment=OPENCLAW_HOME=/home/ubuntu/.openclaw
+
+[Install]
+WantedBy=default.target
