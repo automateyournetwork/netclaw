@@ -1,0 +1,86 @@
+# Local device inventory — fallback when Nautobot is unavailable,
+# and alias map for short Prometheus/Alertmanager labels.
+#
+# Lookup order in the alert receiver:
+#   1. Nautobot (exact → case-insensitive exact → name contains → q=)
+#   2. This file (key, aliases, IP)
+#
+# Optional fields:
+#   aliases:        short labels that should resolve to this entry
+#   nautobot_name:  preferred SoT display name when inventory wins
+
+devices:
+  # pfSense firewall (Nautobot: pfSense-FW01)
+  pfSense-FW01:
+    ip: "192.168.3.1"
+    platform: pfsense
+    role: firewall
+    site: home
+    aliases:
+      - pfsense
+      - pfSense
+      - pfsense-fw01
+
+  # Switches
+  HomeSwitch01:
+    ip: "192.168.3.2"
+    platform: ios
+    role: home_switch
+    site: home
+    aliases:
+      - homeswitch01
+
+  HomeSwitch02:
+    ip: "192.168.3.3"
+    platform: ios
+    role: home_switch
+    site: home
+    aliases:
+      - homeswitch02
+
+  HomeSwitch04:
+    ip: "192.168.3.5"
+    platform: ios
+    role: access-switch
+    site: home
+    aliases:
+      - homeswitch04
+
+  # UniFi APs (alert labels may use short forms)
+  U6-Pro - Basement Laundry Room:
+    ip: "192.168.3.15"
+    platform: unifi
+    role: wireless-ap
+    site: home
+    aliases:
+      - basement
+      - basement-ap
+
+  U6-Pro - Sophies Office:
+    ip: "192.168.3.16"
+    platform: unifi
+    role: wireless-ap
+    site: home
+    aliases:
+      - sophies-office
+      - sophie-ap
+
+  # Hypervisor
+  r640-pve:
+    ip: "192.168.100.20"
+    platform: proxmox
+    role: hypervisor
+    site: home
+    aliases:
+      - r640
+      - proxmox
+
+  # OBS / self-monitoring (not always in Nautobot under this label)
+  home-obs-stack:
+    ip: "192.168.13.204"
+    platform: linux
+    role: monitoring
+    site: home
+    aliases:
+      - unifi-exporter
+      - prometheus

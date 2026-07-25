@@ -65,6 +65,25 @@ DISCORD_SUPPRESS_ALERTS = set(
 # and operators see investigation results in the dashboard.
 NETWORK_GUARDIAN_URL = os.getenv("NETWORK_GUARDIAN_URL", "").rstrip("/")
 NETWORK_GUARDIAN_TOKEN = os.getenv("NETWORK_GUARDIAN_TOKEN", "")
+# Home pilot only has site id "home" in Guardian Postgres. Nautobot location
+# names (e.g. "House") and unresolved devices ("unknown") must map here or
+# POST fails with FK 500s.
+GUARDIAN_DEFAULT_SITE = os.getenv("GUARDIAN_DEFAULT_SITE", "home").strip() or "home"
+# Comma-separated aliases that normalize to GUARDIAN_DEFAULT_SITE.
+_GUARDIAN_SITE_ALIASES = {
+    a.strip().casefold()
+    for a in os.getenv(
+        "GUARDIAN_SITE_ALIASES",
+        "house,home,unknown,unresolved,,none,null",
+    ).split(",")
+}
+
+# Stage 7 — prior-case RAG search injected into investigation prompts.
+# Opt-out with RAG_PRIOR_SEARCH=false if models not cached / RAG down.
+RAG_PRIOR_SEARCH = os.getenv("RAG_PRIOR_SEARCH", "true").lower() in ("1", "true", "yes")
+RAG_PRIOR_K = int(os.getenv("RAG_PRIOR_K", "3"))
+# Auto-snapshot resolved Guardian cases that already have notes but no rag_document_id
+# when /snapshot is called, and optional backfill endpoint.
 
 # Known noisy IoT devices that generate excessive blocks but are benign.
 # Comma-separated IPs. These hosts are suppressed from ExcessiveBlocks-type
@@ -266,72 +285,168 @@ class AlertmanagerPayload(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+def _nested_name(obj) -> str:
+    """Nautobot nested objects expose 'name'; brief refs expose 'display'."""
+    if isinstance(obj, dict):
+        return obj.get("name") or obj.get("display") or ""
+    return ""
+
+
+def _ip_from_nautobot_device(device: dict) -> str:
+    """Extract mgmt IP from a Nautobot *device* (dcim.devices).
+
+    Modern Nautobot (2.x/3.x) exposes primary_ip4 / primary_ip6, not the older
+    combined ``primary_ip`` field. Prefer IPv4, then IPv6. Use ``host`` when
+    present, else strip the prefix from ``address`` / ``display``.
+    """
+    for key in ("primary_ip4", "primary_ip6", "primary_ip"):
+        obj = device.get(key)
+        if not obj:
+            continue
+        if isinstance(obj, str):
+            return obj.split("/")[0].strip()
+        if not isinstance(obj, dict):
+            continue
+        host = (obj.get("host") or "").strip()
+        if host:
+            return host
+        for addr_key in ("address", "display"):
+            raw = (obj.get(addr_key) or "").strip()
+            if raw:
+                # "192.168.3.1/24" or "192.168.3.1/24: Global"
+                return raw.split("/")[0].split(":")[0].strip()
+    return ""
+
+
+def _device_dict_from_nautobot(device: dict, fallback_name: str) -> dict:
+    status = device.get("status")
+    if isinstance(status, dict):
+        status_val = status.get("value") or status.get("label") or status.get("name") or ""
+    else:
+        status_val = str(status or "")
+    return {
+        "name": device.get("name", fallback_name),
+        "ip": _ip_from_nautobot_device(device),
+        "platform": _nested_name(device.get("platform")),
+        "role": _nested_name(device.get("role")),
+        "site": _nested_name(device.get("location")),
+        "status": status_val,
+        "source": "nautobot",
+    }
+
+
+def _pick_best_nautobot_device(results: list, query: str) -> Optional[dict]:
+    """Choose the best device when Nautobot returns multiple name matches.
+
+    Alert labels are often short (pfsense, r640) while SoT names are longer
+    (pfSense-FW01, r640-pve). Prefer exact casefold name, then startswith,
+    then shortest name containing the query.
+    """
+    if not results:
+        return None
+    if len(results) == 1:
+        return results[0]
+
+    q = (query or "").casefold()
+    scored = []
+    for d in results:
+        name = d.get("name") or ""
+        n = name.casefold()
+        if n == q:
+            score = (0, len(n))
+        elif n.startswith(q) or q.startswith(n):
+            score = (1, len(n))
+        elif q in n or n in q:
+            score = (2, len(n))
+        else:
+            score = (3, len(n))
+        scored.append((score, d))
+    scored.sort(key=lambda x: x[0])
+    return scored[0][1]
+
+
 async def lookup_device_nautobot(hostname: str) -> Optional[dict]:
-    """Query Nautobot for device info by hostname."""
+    """Query Nautobot for device info by hostname / short alert label.
+
+    Tries exact name, case-insensitive exact (name__ie), then substring
+    (name__ic), then free-text q=. Picks the best match when multiple hit.
+    """
     if not NAUTOBOT_URL or not NAUTOBOT_TOKEN:
         return None
 
+    headers = {
+        "Authorization": f"Token {NAUTOBOT_TOKEN}",
+        "Accept": "application/json",
+    }
+    # depth=1 expands role/platform/location so they carry a "name".
+    attempts = [
+        {"name": hostname, "depth": 1},
+        {"name__ie": hostname, "depth": 1},
+        {"name__ic": hostname, "depth": 1},
+        {"q": hostname, "depth": 1},
+    ]
+
     try:
         async with httpx.AsyncClient(timeout=10, verify=False) as client:
-            resp = await client.get(
-                f"{NAUTOBOT_URL}/api/dcim/devices/",
-                # depth=1 expands nested objects (role, platform, location) so they
-                # carry a "name"; without it Nautobot returns brief refs and the
-                # role gate sees an empty role and wrongly skips the device.
-                params={"name": hostname, "depth": 1},
-                headers={
-                    "Authorization": f"Token {NAUTOBOT_TOKEN}",
-                    "Accept": "application/json",
-                },
-            )
-            if resp.status_code != 200:
-                log.warning(f"Nautobot returned {resp.status_code} for device '{hostname}'")
-                return None
+            for params in attempts:
+                resp = await client.get(
+                    f"{NAUTOBOT_URL}/api/dcim/devices/",
+                    params=params,
+                    headers=headers,
+                )
+                if resp.status_code != 200:
+                    # Unknown filter on some Nautobot versions — try next strategy
+                    if resp.status_code == 400:
+                        continue
+                    log.warning(
+                        f"Nautobot returned {resp.status_code} for device '{hostname}' "
+                        f"(params={list(params.keys())})"
+                    )
+                    continue
 
-            data = resp.json()
-            results = data.get("results", [])
-            if not results:
-                log.info(f"Device '{hostname}' not found in Nautobot")
-                return None
+                results = (resp.json() or {}).get("results") or []
+                if not results:
+                    continue
 
-            device = results[0]
-            primary_ip = device.get("primary_ip", {})
+                device = _pick_best_nautobot_device(results, hostname)
+                if not device:
+                    continue
 
-            def _nested_name(obj) -> str:
-                # Nautobot nested objects expose "name"; brief refs expose "display".
-                if isinstance(obj, dict):
-                    return obj.get("name") or obj.get("display") or ""
-                return ""
+                info = _device_dict_from_nautobot(device, hostname)
+                if info["name"].casefold() != hostname.casefold():
+                    log.info(
+                        f"Nautobot resolved alert host '{hostname}' → '{info['name']}' "
+                        f"(via {list(params.keys())[0]})"
+                    )
+                return info
 
-            return {
-                "name": device.get("name", hostname),
-                "ip": primary_ip.get("address", "").split("/")[0] if primary_ip else "",
-                "platform": _nested_name(device.get("platform")),
-                "role": _nested_name(device.get("role")),
-                "site": _nested_name(device.get("location")),
-                "status": device.get("status", {}).get("value", "") if isinstance(device.get("status"), dict) else str(device.get("status", "")),
-                "source": "nautobot",
-            }
+            log.info(f"Device '{hostname}' not found in Nautobot")
+            return None
     except Exception as e:
         log.warning(f"Nautobot lookup failed for '{hostname}': {e}")
         return None
 
 
 async def lookup_device_inventory(hostname: str) -> Optional[dict]:
-    """Fallback lookup from local inventory.yaml."""
+    """Fallback lookup from local inventory.yaml.
+
+    Supports:
+      - exact and case-insensitive key match
+      - IP match
+      - optional per-device ``aliases: [pfsense, fw01]`` lists
+    """
     if not INVENTORY_FILE.exists():
         return None
 
     try:
         import yaml
         inventory = yaml.safe_load(INVENTORY_FILE.read_text()) or {}
-        devices = inventory.get("devices", {})
+        devices = inventory.get("devices", {}) or {}
+        q = (hostname or "").casefold()
 
-        # Try direct hostname match first
-        if hostname in devices:
-            dev = devices[hostname]
+        def _from_entry(name: str, dev: dict) -> dict:
             return {
-                "name": hostname,
+                "name": dev.get("nautobot_name") or name,
                 "ip": dev.get("ip", ""),
                 "platform": dev.get("platform", ""),
                 "role": dev.get("role", ""),
@@ -340,18 +455,26 @@ async def lookup_device_inventory(hostname: str) -> Optional[dict]:
                 "source": "local-inventory",
             }
 
-        # Try matching by IP address
+        # Direct / case-insensitive key
+        if hostname in devices:
+            return _from_entry(hostname, devices[hostname])
+        for name, dev in devices.items():
+            if name.casefold() == q:
+                return _from_entry(name, dev)
+
+        # Aliases
+        for name, dev in devices.items():
+            aliases = dev.get("aliases") or []
+            if not isinstance(aliases, list):
+                continue
+            for alias in aliases:
+                if str(alias).casefold() == q:
+                    return _from_entry(name, dev)
+
+        # IP match
         for name, dev in devices.items():
             if dev.get("ip") == hostname:
-                return {
-                    "name": name,
-                    "ip": dev.get("ip", ""),
-                    "platform": dev.get("platform", ""),
-                    "role": dev.get("role", ""),
-                    "site": dev.get("site", ""),
-                    "status": "active",
-                    "source": "local-inventory",
-                }
+                return _from_entry(name, dev)
     except Exception as e:
         log.warning(f"Local inventory lookup failed: {e}")
 
@@ -528,8 +651,27 @@ async def restore_skills_after_trigger(scope_gen: int) -> None:
 
 
 async def trigger_netclaw(alert: Alert, device_info: dict):
-    """Send enriched alert to OpenClaw gateway to trigger investigation."""
-    message = build_investigation_prompt(alert, device_info)
+    """Send enriched alert to OpenClaw gateway to trigger investigation.
+
+    Stage 6 lifecycle: open (or complete) the Guardian case *before* the hook
+    so the investigation prompt can carry ``guardian_event_id`` for PATCH.
+    """
+    guardian_event_id = None
+    if alert.status == "resolved":
+        # Prefer closing the open investigating case over a second diary row.
+        guardian_event_id = await complete_guardian_event_resolved(alert, device_info)
+        if not guardian_event_id:
+            guardian_event_id = await post_guardian_event(
+                alert, device_info, status="resolved"
+            )
+    else:
+        guardian_event_id = await post_guardian_event(
+            alert, device_info, status="investigating"
+        )
+
+    message = build_investigation_prompt(
+        alert, device_info, guardian_event_id=guardian_event_id
+    )
 
     if OPENCLAW_GATEWAY_URL and OPENCLAW_HOOK_TOKEN:
         try:
@@ -552,6 +694,11 @@ async def trigger_netclaw(alert: Alert, device_info: dict):
                             "summary": alert.annotations.summary,
                             "description": alert.annotations.description,
                             "investigation_prompt": message,
+                            **(
+                                {"guardian_event_id": guardian_event_id}
+                                if guardian_event_id
+                                else {}
+                            ),
                         },
                     }
                 ],
@@ -586,11 +733,64 @@ async def trigger_netclaw(alert: Alert, device_info: dict):
         else:
             log.info(f"Discord suppressed for {alert.labels.alertname} (in suppress list)")
 
-    # Post event to Network Guardian dashboard diary
-    await post_guardian_event(alert, device_info)
+
+def _search_prior_investigations(alert: Alert, device_info: dict) -> list:
+    """Stage 7: query RAG for prior investigation snapshots (fail-open).
+
+    Searches collection alias ``investigations`` (all snapshot_* corpora).
+    Returns a list of short hit dicts for prompt injection.
+    """
+    if not RAG_PRIOR_SEARCH:
+        return []
+    query = f"{alert.labels.alertname} {device_info.get('name', '')} {alert.annotations.summary or ''}".strip()
+    if not query:
+        return []
+    try:
+        rag_path = REPO_ROOT / "mcp-servers" / "rag-mcp"
+        if str(rag_path) not in sys.path:
+            sys.path.insert(0, str(rag_path))
+        from rag_mcp_server import rag_search as _rag_search
+
+        result = _rag_search(query=query, k=RAG_PRIOR_K, collection="investigations")
+        if not result.get("success"):
+            log.warning(
+                "RAG prior search failed: %s",
+                (result.get("error") or {}).get("message", result),
+            )
+            return []
+        data = result.get("data") or {}
+        hits = []
+        for r in data.get("results") or []:
+            text = (r.get("chunk_text") or r.get("text") or "").strip()
+            if not text:
+                continue
+            meta = r.get("metadata") or {}
+            hits.append({
+                "score": r.get("score"),
+                "low_confidence": r.get("low_confidence"),
+                "title": meta.get("title") or meta.get("document_id") or "",
+                "collection": meta.get("collection") or data.get("collection"),
+                "excerpt": text[:600],
+            })
+        if hits:
+            log.info(
+                "RAG prior search: %d hit(s) for %s (collections=%s, %sms)",
+                len(hits),
+                alert.labels.alertname,
+                data.get("collections_searched"),
+                data.get("latency_ms"),
+            )
+        return hits
+    except Exception as e:
+        log.warning("RAG prior search error (continuing without priors): %s", e)
+        return []
 
 
-def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
+def build_investigation_prompt(
+    alert: Alert,
+    device_info: dict,
+    guardian_event_id: Optional[str] = None,
+) -> str:
     """Build the investigation prompt NetClaw will receive."""
     parts = [
         f"ALERT RECEIVED — {alert.labels.alertname}",
@@ -599,22 +799,50 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
         f"Device: {device_info['name']} ({device_info['ip']})",
         f"Role: {device_info['role']} | Platform: {device_info['platform']} | Site: {device_info['site']}",
         f"Summary: {alert.annotations.summary}",
+        f"Alert fingerprint: {alert.fingerprint}",
+        f"Guardian site: {normalize_guardian_site(device_info.get('site'))}",
     ]
+    if guardian_event_id:
+        parts.append(f"Guardian event id: {guardian_event_id}")
 
     if alert.annotations.description:
         parts.append(f"Description: {alert.annotations.description}")
+
+    # Stage 7: inject prior investigation hits as FACTS (receiver already searched).
+    # Avoids relying on the model to call rag_search before tools.
+    prior_hits = _search_prior_investigations(alert, device_info)
+    if prior_hits:
+        parts.append("")
+        parts.append("PRIOR INVESTIGATION HITS (from local RAG — Stage 7):")
+        for i, h in enumerate(prior_hits, 1):
+            conf = "low-confidence" if h.get("low_confidence") else "ok"
+            parts.append(
+                f"  [{i}] score={h.get('score')} ({conf}) "
+                f"title={h.get('title') or 'n/a'}"
+            )
+            parts.append(f"      {h['excerpt'].replace(chr(10), ' ')[:400]}")
+        parts.append(
+            "  Use these priors to skip redundant diagnostics when the root "
+            "cause class matches; still verify live state on the device."
+        )
+    else:
+        parts.append("")
+        parts.append(
+            "PRIOR INVESTIGATION HITS: none indexed yet for this alert "
+            "(or RAG unavailable)."
+        )
 
     parts.append("")
     parts.append("INSTRUCTIONS:")
     parts.append(f"1. The device '{device_info['name']}' at IP {device_info['ip']} has triggered alert '{alert.labels.alertname}'.")
 
-    # RAG search for prior investigations
+    # RAG search for prior investigations (member path may still re-query)
     parts.append(
-        "1b. BEFORE investigating, search the RAG knowledge base for prior "
-        "investigations of this alert type:\n"
-        f"   rag_search(\"{alert.labels.alertname} {device_info['name']}\")\n"
-        "   If a prior investigation is found with quality=correct, reference "
-        "   its root cause and skip redundant diagnostic steps."
+        "1b. Review PRIOR INVESTIGATION HITS above. Optionally re-query RAG:\n"
+        f"   rag_search(query=\"{alert.labels.alertname} {device_info['name']}\", "
+        "collection=\"investigations\")\n"
+        "   If a prior investigation matches, reference its root cause and skip "
+        "redundant diagnostic steps after a quick live confirm."
     )
 
     if device_info["platform"] == "pfsense":
@@ -666,18 +894,28 @@ def build_investigation_prompt(alert: Alert, device_info: dict) -> str:
     # <url>" or "run via exec: openclaw message send" in this payload causes the
     # model to (correctly) flag it as prompt injection from an untrusted webhook
     # and refuse. The skill is trusted content; the payload carries facts only.
+    # Role fact (not a URL/command): Border must n2n_route first per skill.
     parts.append(
-        "7. Deliver your findings and log the event per the alert-triage skill's "
-        "delivery steps (the skill has the Discord channel and Guardian endpoint)."
+        "7. You are the Border brain for this alert. Per the alert-triage skill, "
+        "your first tool call is n2n_route(target_hint=\"alert-triage\"); then "
+        "poll until completed. Do not investigate with device tools first. "
+        "Member delivery (Discord/Guardian) is defined in the skill."
     )
 
     if alert.status == "resolved":
         parts = [
             f"ALERT RESOLVED — {alert.labels.alertname}",
             f"Device: {device_info['name']} ({device_info['ip']})",
-            "The alert has cleared. Follow the alert-triage skill to post a brief "
-            "all-clear confirmation to the alerts channel.",
+            f"Alert fingerprint: {alert.fingerprint}",
+            f"Guardian site: {normalize_guardian_site(device_info.get('site'))}",
         ]
+        if guardian_event_id:
+            parts.append(f"Guardian event id: {guardian_event_id}")
+        parts.append(
+            "The alert has cleared. Follow the alert-triage skill to post a brief "
+            "all-clear confirmation to the alerts channel and complete the Guardian "
+            "case (PATCH if event id present)."
+        )
 
     return "\n".join(parts)
 
@@ -705,16 +943,40 @@ async def post_discord(alert: Alert, device_info: dict):
 # ---------------------------------------------------------------------------
 
 
+def normalize_guardian_site(site: Optional[str]) -> str:
+    """Map inventory/Nautobot location names onto a Guardian ``sites.id``.
+
+    Home pilot Guardian only seeds ``home``. Nautobot location ``House`` and
+    unresolved ``unknown`` must not be POSTed raw — they FK-fail with HTTP 500.
+    """
+    raw = (site or "").strip()
+    if not raw or raw.casefold() in _GUARDIAN_SITE_ALIASES:
+        return GUARDIAN_DEFAULT_SITE
+    if raw.casefold() == GUARDIAN_DEFAULT_SITE.casefold():
+        return GUARDIAN_DEFAULT_SITE
+    # Free-text location display names (spaces, mixed case) → default.
+    if " " in raw or not raw.replace("-", "").replace("_", "").isalnum():
+        return GUARDIAN_DEFAULT_SITE
+    return raw.casefold() if raw.casefold() != "unknown" else GUARDIAN_DEFAULT_SITE
+
+
+def _guardian_headers() -> dict:
+    return {
+        "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
+        "Content-Type": "application/json",
+    }
+
+
 async def post_guardian_event(alert: Alert, device_info: dict, status: str = "investigating"):
     """Post an event to the Network Guardian dashboard diary.
 
     Called when an alert is received to create the initial diary entry.
-    The investigation prompt instructs NetClaw to PATCH it with findings later.
+    Returns the event UUID so the investigation prompt can carry it for PATCH.
     """
     if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
         return None
 
-    site = device_info.get("site", "home") or "home"
+    site = normalize_guardian_site(device_info.get("site"))
     severity_map = {"critical": "alert", "warning": "watch", "info": "info"}
     severity = severity_map.get(alert.labels.severity, "info")
 
@@ -739,14 +1001,14 @@ async def post_guardian_event(alert: Alert, device_info: dict, status: str = "in
             resp = await client.post(
                 f"{NETWORK_GUARDIAN_URL}/api/events?site={site}",
                 json=payload,
-                headers={
-                    "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
-                    "Content-Type": "application/json",
-                },
+                headers=_guardian_headers(),
             )
             if resp.status_code == 201:
                 event = resp.json()
-                log.info(f"Guardian event created: {event.get('id')} ({alert.labels.alertname})")
+                log.info(
+                    f"Guardian event created: {event.get('id')} "
+                    f"({alert.labels.alertname}) site={site}"
+                )
                 metrics.guardian_events_posted_total += 1
                 return event.get("id")
             else:
@@ -755,7 +1017,116 @@ async def post_guardian_event(alert: Alert, device_info: dict, status: str = "in
                 return None
     except Exception as e:
         log.warning(f"Guardian event POST error: {e}")
+        metrics.guardian_events_failed_total += 1
         return None
+
+
+async def patch_guardian_event(
+    event_id: str,
+    site: str,
+    *,
+    status: Optional[str] = None,
+    severity: Optional[str] = None,
+    message: Optional[str] = None,
+    investigation_notes: Optional[str] = None,
+    root_cause: Optional[str] = None,
+) -> bool:
+    """PATCH an existing Guardian diary entry (investigation outcome lifecycle)."""
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN or not event_id:
+        return False
+
+    body = {}
+    if status is not None:
+        body["status"] = status
+    if severity is not None:
+        body["severity"] = severity
+    if message is not None:
+        body["message"] = message
+    if investigation_notes is not None:
+        body["investigation_notes"] = investigation_notes
+    if root_cause is not None:
+        body["root_cause"] = root_cause
+    if not body:
+        return False
+
+    site = normalize_guardian_site(site)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.patch(
+                f"{NETWORK_GUARDIAN_URL}/api/events/{event_id}?site={site}",
+                json=body,
+                headers=_guardian_headers(),
+            )
+            if resp.status_code == 200:
+                log.info(f"Guardian event patched: {event_id} status={status}")
+                return True
+            log.warning(
+                f"Guardian event PATCH failed: {resp.status_code} {resp.text[:200]}"
+            )
+            metrics.guardian_events_failed_total += 1
+            return False
+    except Exception as e:
+        log.warning(f"Guardian event PATCH error: {e}")
+        metrics.guardian_events_failed_total += 1
+        return False
+
+
+async def find_open_guardian_event(
+    fingerprint: str, site: str, *, limit: int = 50
+) -> Optional[str]:
+    """Find the newest open (investigating/logged) event for an alert fingerprint."""
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN or not fingerprint:
+        return None
+
+    site = normalize_guardian_site(site)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            resp = await client.get(
+                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit={limit}"
+                f"&fingerprint={fingerprint}",
+                headers=_guardian_headers(),
+            )
+            if resp.status_code != 200:
+                # Older Guardian builds may lack fingerprint filter — fall back.
+                resp = await client.get(
+                    f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit={limit}",
+                    headers=_guardian_headers(),
+                )
+            if resp.status_code != 200:
+                return None
+            events = resp.json().get("events") or []
+            open_statuses = {"investigating", "logged"}
+            for ev in events:
+                if ev.get("alert_fingerprint") != fingerprint:
+                    continue
+                if ev.get("status") in open_statuses:
+                    return ev.get("id")
+    except Exception as e:
+        log.warning(f"Guardian event lookup error: {e}")
+    return None
+
+
+async def complete_guardian_event_resolved(
+    alert: Alert, device_info: dict
+) -> Optional[str]:
+    """On alert resolve: PATCH open case by fingerprint if one exists."""
+    site = normalize_guardian_site(device_info.get("site"))
+    event_id = await find_open_guardian_event(alert.fingerprint, site)
+    if not event_id:
+        return None
+    ok = await patch_guardian_event(
+        event_id,
+        site,
+        status="resolved",
+        severity="ok",
+        message=f"{alert.labels.alertname} resolved on {device_info['name']}",
+        root_cause="alert-cleared",
+        investigation_notes=(
+            f"Alertmanager resolved {alert.labels.alertname} on "
+            f"{device_info['name']} ({device_info['ip']})."
+        ),
+    )
+    return event_id if ok else None
 
 
 def categorize_alert(alert_name: str) -> str:
@@ -796,11 +1167,118 @@ async def prometheus_metrics():
     return metrics.render()
 
 
+async def _fetch_guardian_event(event_id: str, site: str) -> Optional[dict]:
+    """Load one Guardian event by scanning recent pages (home pilot scale)."""
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
+        return None
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit=100",
+            headers={"Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}"},
+        )
+        if resp.status_code != 200:
+            return None
+        events = resp.json().get("events", [])
+        return next((e for e in events if e.get("id") == event_id), None)
+
+
+async def _snapshot_event_to_rag(event: dict, site: str) -> dict:
+    """Build narrative + rag_snapshot + PATCH rag_document_id. Shared by /snapshot."""
+    event_id = event.get("id")
+    if event.get("rag_document_id"):
+        return {
+            "status": "skipped",
+            "message": "already linked",
+            "snapshot_id": event.get("rag_document_id"),
+            "event_id": event_id,
+        }
+    if not (event.get("investigation_notes") or event.get("root_cause")):
+        return {
+            "status": "skipped",
+            "message": "no investigation_notes or root_cause to snapshot",
+            "event_id": event_id,
+        }
+
+    parts = [
+        f"# Investigation: {event.get('alert_name', 'Unknown Alert')}",
+        f"Site: {site}",
+        f"Date: {event.get('timestamp', 'unknown')}",
+        f"Category: {event.get('category', 'general')}",
+        f"Severity: {event.get('severity', 'info')}",
+        f"Status: {event.get('status', 'unknown')}",
+        "",
+        "## Alert Summary",
+        event.get("message", "No message"),
+        "",
+    ]
+    if event.get("investigation_notes"):
+        parts += ["## Investigation Notes", event["investigation_notes"], ""]
+    if event.get("root_cause"):
+        parts += ["## Root Cause", event["root_cause"], ""]
+    if event.get("expert_feedback"):
+        parts += [
+            "## Expert Feedback",
+            event["expert_feedback"],
+            f"Quality rating: {event.get('feedback_quality', 'unrated')}",
+            "",
+        ]
+    content = "\n".join(parts)
+    label = (event.get("alert_name") or "investigation").replace(" ", "-").lower()
+    # Keep label filesystem-safe for snapshot collection names
+    label = "".join(ch if ch.isalnum() or ch in "-_" else "-" for ch in label)[:80]
+
+    rag_path = REPO_ROOT / "mcp-servers" / "rag-mcp"
+    if str(rag_path) not in sys.path:
+        sys.path.insert(0, str(rag_path))
+    from rag_mcp_server import rag_snapshot as _rag_snapshot
+
+    result = _rag_snapshot(
+        label=label,
+        content=content,
+        source_description=f"Network Guardian investigation: {event.get('alert_name', 'unknown')}",
+        devices=[],
+        commands=[],
+    )
+    if not result.get("success"):
+        error = result.get("error", {}) or {}
+        return {
+            "status": "error",
+            "message": f"RAG ingestion failed: {error.get('message', 'unknown')}",
+            "code": error.get("code"),
+            "event_id": event_id,
+        }
+
+    snapshot_id = result.get("data", {}).get("snapshot_id")
+    log.info(f"RAG snapshot created: {snapshot_id} for event {event_id}")
+
+    async with httpx.AsyncClient(timeout=10) as client:
+        patch_resp = await client.patch(
+            f"{NETWORK_GUARDIAN_URL}/api/events/{event_id}?site={site}",
+            json={"rag_document_id": snapshot_id},
+            headers={
+                "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
+                "Content-Type": "application/json",
+            },
+        )
+        if patch_resp.status_code == 200:
+            log.info(f"Guardian event {event_id} linked to RAG snapshot {snapshot_id}")
+        else:
+            log.warning(f"Failed to PATCH Guardian event: {patch_resp.status_code}")
+
+    return {
+        "status": "success",
+        "snapshot_id": snapshot_id,
+        "collection": result.get("data", {}).get("collection"),
+        "chunk_count": result.get("data", {}).get("chunk_count"),
+        "event_id": event_id,
+    }
+
+
 @app.post("/snapshot")
 async def snapshot_to_rag(request: Request):
     """Snapshot a resolved Guardian event into the RAG knowledge base.
 
-    Called by the Guardian triage panel "Snapshot to RAG" button.
+    Called by: alert-triage skill Step 9, Guardian "Snapshot to RAG" button.
     Reads the event from Guardian API, builds a narrative, ingests into RAG,
     and PATCHes the event with the rag_document_id.
 
@@ -816,102 +1294,11 @@ async def snapshot_to_rag(request: Request):
     if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
         return {"status": "error", "message": "NETWORK_GUARDIAN_URL/TOKEN not configured"}
 
-    # 1. Read the event from Guardian API
     try:
-        async with httpx.AsyncClient(timeout=10) as client:
-            # Get events and find the one we need
-            resp = await client.get(
-                f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit=100",
-                headers={"Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}"},
-            )
-            if resp.status_code != 200:
-                return {"status": "error", "message": f"Guardian API returned {resp.status_code}"}
-
-            events = resp.json().get("events", [])
-            event = next((e for e in events if e.get("id") == event_id), None)
-            if not event:
-                return {"status": "error", "message": f"Event {event_id} not found"}
-    except Exception as e:
-        return {"status": "error", "message": f"Failed to read event: {e}"}
-
-    # 2. Build narrative document for RAG
-    parts = []
-    parts.append(f"# Investigation: {event.get('alert_name', 'Unknown Alert')}")
-    parts.append(f"Site: {site}")
-    parts.append(f"Date: {event.get('timestamp', 'unknown')}")
-    parts.append(f"Category: {event.get('category', 'general')}")
-    parts.append(f"Severity: {event.get('severity', 'info')}")
-    parts.append("")
-    parts.append(f"## Alert Summary")
-    parts.append(event.get("message", "No message"))
-    parts.append("")
-    if event.get("investigation_notes"):
-        parts.append("## Investigation Notes")
-        parts.append(event["investigation_notes"])
-        parts.append("")
-    if event.get("root_cause"):
-        parts.append(f"## Root Cause")
-        parts.append(event["root_cause"])
-        parts.append("")
-    if event.get("expert_feedback"):
-        parts.append("## Expert Feedback")
-        parts.append(event["expert_feedback"])
-        parts.append(f"Quality rating: {event.get('feedback_quality', 'unrated')}")
-        parts.append("")
-
-    content = "\n".join(parts)
-    label = event.get("alert_name", "investigation").replace(" ", "-").lower()
-
-    # 3. Call RAG snapshot directly (same machine, import the module)
-    try:
-        rag_path = REPO_ROOT / "mcp-servers" / "rag-mcp"
-        if str(rag_path) not in sys.path:
-            sys.path.insert(0, str(rag_path))
-
-        from rag_mcp_server import rag_snapshot as _rag_snapshot
-
-        result = _rag_snapshot(
-            label=label,
-            content=content,
-            source_description=f"Network Guardian investigation: {event.get('alert_name', 'unknown')}",
-            devices=[],
-            commands=[],
-        )
-
-        # Check if ingestion succeeded
-        if result.get("success"):
-            snapshot_id = result.get("data", {}).get("snapshot_id")
-            log.info(f"RAG snapshot created: {snapshot_id} for event {event_id}")
-
-            # 4. PATCH the Guardian event with the RAG document ID
-            async with httpx.AsyncClient(timeout=10) as client:
-                patch_resp = await client.patch(
-                    f"{NETWORK_GUARDIAN_URL}/api/events/{event_id}?site={site}",
-                    json={"rag_document_id": snapshot_id},
-                    headers={
-                        "Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}",
-                        "Content-Type": "application/json",
-                    },
-                )
-                if patch_resp.status_code == 200:
-                    log.info(f"Guardian event {event_id} linked to RAG snapshot {snapshot_id}")
-                else:
-                    log.warning(f"Failed to PATCH Guardian event: {patch_resp.status_code}")
-
-            return {
-                "status": "success",
-                "snapshot_id": snapshot_id,
-                "collection": result.get("data", {}).get("collection"),
-                "chunk_count": result.get("data", {}).get("chunk_count"),
-                "event_id": event_id,
-            }
-        else:
-            error = result.get("error", {})
-            return {
-                "status": "error",
-                "message": f"RAG ingestion failed: {error.get('message', 'unknown')}",
-                "code": error.get("code"),
-            }
+        event = await _fetch_guardian_event(event_id, site)
+        if not event:
+            return {"status": "error", "message": f"Event {event_id} not found"}
+        return await _snapshot_event_to_rag(event, site)
     except ImportError as e:
         log.error(f"Cannot import rag-mcp: {e} — is it installed?")
         return {
@@ -922,6 +1309,194 @@ async def snapshot_to_rag(request: Request):
     except Exception as e:
         log.error(f"RAG snapshot error: {e}")
         return {"status": "error", "message": f"Snapshot failed: {e}"}
+
+
+@app.post("/reinvestigate")
+async def reinvestigate(request: Request):
+    """Operator feedback loop: re-open a Guardian case and re-trigger alert-triage.
+
+    Called when the triage board marks a case ``needs_more_context`` (Need More).
+
+    Body: {
+      "event_id": "uuid",
+      "site": "home",
+      "expert_feedback": "optional free text from operator"
+    }
+    """
+    body = await request.json()
+    event_id = body.get("event_id")
+    site = body.get("site", "home")
+    expert_feedback = (body.get("expert_feedback") or "").strip()
+
+    if not event_id:
+        return {"status": "error", "message": "event_id required"}
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
+        return {"status": "error", "message": "NETWORK_GUARDIAN_URL/TOKEN not configured"}
+    if not (OPENCLAW_GATEWAY_URL and OPENCLAW_HOOK_TOKEN):
+        return {"status": "error", "message": "OpenClaw gateway not configured"}
+
+    event = await _fetch_guardian_event(event_id, site)
+    if not event:
+        return {"status": "error", "message": f"Event {event_id} not found"}
+
+    # Re-open case so it appears under Investigating (not lost as "resolved")
+    await patch_guardian_event(
+        event_id,
+        site,
+        status="investigating",
+        investigation_notes=(
+            (event.get("investigation_notes") or "")
+            + ("\n\n[operator:needs_more_context] " + expert_feedback if expert_feedback else
+               "\n\n[operator:needs_more_context] Operator requested deeper investigation.")
+        ),
+    )
+    # Store feedback quality on the event (status already set above)
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            await client.patch(
+                f"{NETWORK_GUARDIAN_URL}/api/events/{event_id}?site={site}",
+                json={
+                    "expert_feedback": expert_feedback or "Operator requested more context",
+                    "feedback_quality": "needs_more_context",
+                },
+                headers=_guardian_headers(),
+            )
+    except Exception as e:
+        log.warning(f"Failed to store operator feedback on reinvestigate: {e}")
+
+    alert_name = event.get("alert_name") or "ManualReinvestigate"
+    summary = event.get("message") or f"Re-investigate {alert_name}"
+    # Prefer device hints from message / notes
+    device_name = "unknown"
+    for token in (summary, event.get("investigation_notes") or ""):
+        # crude: first "on <name>" or known patterns
+        if " on " in token:
+            tail = token.split(" on ", 1)[1]
+            device_name = tail.split(":")[0].split("(")[0].strip()[:80]
+            break
+
+    device_info = await lookup_device(device_name if device_name != "unknown" else "pfsense")
+    # Build a follow-up prompt (facts only + prior notes + operator ask)
+    parts = [
+        f"OPERATOR FOLLOW-UP — needs more context",
+        f"Guardian event id: {event_id}",
+        f"Alert name: {alert_name}",
+        f"Device: {device_info.get('name')} ({device_info.get('ip')})",
+        f"Prior root_cause: {event.get('root_cause') or 'n/a'}",
+        f"Prior message: {summary}",
+        "",
+        "PRIOR INVESTIGATION NOTES:",
+        event.get("investigation_notes") or "(none)",
+        "",
+        "OPERATOR REQUEST:",
+        expert_feedback or "Provide more diagnostic depth. The prior conclusion was too shallow.",
+        "",
+        "INSTRUCTIONS:",
+        "1. You are the Border brain. First tool call: n2n_route(target_hint=\"alert-triage\").",
+        "2. Do not restate the shallow 'chronic interference, no action' answer without NEW evidence.",
+        "3. Gather deeper data: radio channel/power/width if available, client counts per band,",
+        "   neighboring AP overlap, time-series retries, and whether 5 GHz capacity can absorb load.",
+        "4. Update the SAME Guardian event via PATCH (do not open a duplicate case).",
+        "5. Discord + RAG snapshot per alert-triage skill when complete.",
+        "6. If still non-actionable, say exactly what config change would fix it (channel, width,",
+        "   band steering, min RSSI) even if human must approve.",
+    ]
+    message = "\n".join(parts)
+
+    try:
+        payload = {
+            "status": "firing",
+            "alerts": [
+                {
+                    "status": "firing",
+                    "fingerprint": event.get("alert_fingerprint") or f"reinvest-{event_id[:8]}",
+                    "labels": {
+                        "alertname": alert_name,
+                        "instance": device_info.get("ip") or device_info.get("name") or "unknown",
+                        "severity": "warning",
+                        "device_name": device_info.get("name"),
+                        "device_ip": device_info.get("ip"),
+                        "device_role": device_info.get("role"),
+                        "device_platform": device_info.get("platform"),
+                    },
+                    "annotations": {
+                        "summary": f"Operator reinvestigate: {summary[:120]}",
+                        "description": expert_feedback or "needs_more_context",
+                        "investigation_prompt": message,
+                        "guardian_event_id": event_id,
+                    },
+                }
+            ],
+        }
+        async with httpx.AsyncClient(timeout=30) as client:
+            resp = await client.post(
+                f"{OPENCLAW_GATEWAY_URL}/hooks/alert",
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {OPENCLAW_HOOK_TOKEN}",
+                    "Content-Type": "application/json",
+                },
+            )
+            if resp.status_code not in (200, 202):
+                return {
+                    "status": "error",
+                    "message": f"gateway {resp.status_code}: {resp.text[:200]}",
+                    "event_id": event_id,
+                }
+        metrics.investigations_triggered_total += 1
+        log.info(f"Reinvestigate triggered for event {event_id} ({alert_name})")
+        return {
+            "status": "accepted",
+            "event_id": event_id,
+            "message": "Case reopened as investigating; alert-triage re-triggered",
+        }
+    except Exception as e:
+        log.error(f"Reinvestigate failed: {e}")
+        return {"status": "error", "message": str(e), "event_id": event_id}
+
+
+@app.post("/snapshot/backfill")
+async def snapshot_backfill(request: Request):
+    """Stage 7 helper: snapshot recent resolved Guardian events missing rag_document_id.
+
+    Body (optional): { "site": "home", "limit": 30, "status": "resolved" }
+    """
+    try:
+        body = await request.json()
+    except Exception:
+        body = {}
+    site = (body or {}).get("site", "home")
+    limit = min(int((body or {}).get("limit") or 30), 100)
+    status = (body or {}).get("status", "resolved")
+
+    if not NETWORK_GUARDIAN_URL or not NETWORK_GUARDIAN_TOKEN:
+        return {"status": "error", "message": "NETWORK_GUARDIAN_URL/TOKEN not configured"}
+
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.get(
+            f"{NETWORK_GUARDIAN_URL}/api/events?site={site}&limit={limit}&status={status}",
+            headers={"Authorization": f"Bearer {NETWORK_GUARDIAN_TOKEN}"},
+        )
+        if resp.status_code != 200:
+            return {"status": "error", "message": f"Guardian API {resp.status_code}"}
+        events = resp.json().get("events") or []
+
+    results = []
+    for event in events:
+        if event.get("rag_document_id"):
+            results.append({"event_id": event.get("id"), "status": "skipped", "reason": "already linked"})
+            continue
+        if not (event.get("investigation_notes") or event.get("root_cause")):
+            results.append({"event_id": event.get("id"), "status": "skipped", "reason": "no notes"})
+            continue
+        try:
+            r = await _snapshot_event_to_rag(event, site)
+            results.append(r)
+        except Exception as e:
+            results.append({"event_id": event.get("id"), "status": "error", "message": str(e)})
+
+    ok = sum(1 for r in results if r.get("status") == "success")
+    return {"status": "done", "snapshotted": ok, "total": len(results), "results": results}
 
 
 # ---------------------------------------------------------------------------

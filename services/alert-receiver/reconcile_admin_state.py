@@ -37,7 +37,7 @@ load_env(REPO / ".env")
 load_env(Path.home() / ".openclaw/.env")
 os.environ.setdefault("PYATS_TESTBED_PATH", str(REPO / "testbed/testbed.yaml"))
 
-NB = (os.environ.get("NAUTOBOT_URL") or "https://192.168.3.253").rstrip("/")
+NB = (os.environ.get("NAUTOBOT_URL") or "https://nautobot.internal.byrnbaker.me").rstrip("/")
 TOK = os.environ.get("NAUTOBOT_TOKEN", "")
 CTX = ssl.create_default_context()
 CTX.check_hostname = False

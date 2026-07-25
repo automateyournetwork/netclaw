@@ -49,12 +49,12 @@ OID across vendors.
 
 - No per-radio band/retry metrics (vendor MIB dependent — extend `snmp.yml`)
 - No Wi‑Fi client breakdown in the Home Wi‑Fi view (`wifi.js` still reads
-  `unifi_*` series only — see "Wiring into home-api" below)
+  `unifi_*` series only — see "Wiring into convergence-api" below)
 - No install-wizard credential prompt yet (UniFi remains the only prompted
   wireless adapter in `setup.sh`; add a `home-noc-wireless-snmp` catalog
   component when a real vendor MIB set is validated)
 
-## Wiring into home-api (future work)
+## Wiring into convergence-api (future work)
 
 To surface generic-SNMP wireless health in the Home Wi‑Fi view, add fallback
 PromQL in `ui/convergence-api/src/routes/wifi.js` for a `generic_snmp_wireless`

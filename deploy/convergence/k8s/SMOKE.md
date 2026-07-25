@@ -50,7 +50,7 @@ kubectl -n netclaw-convergence rollout status sts/prometheus --timeout=180s
 | [ ] prometheus | Pod Running, Ready 1/1 |
 | [ ] alertmanager | Pod Running, Ready 1/1 |
 | [ ] blackbox | Pod Running, Ready 1/1 |
-| [ ] home-api | Pod Running, Ready 1/1 |
+| [ ] convergence-api | Pod Running, Ready 1/1 |
 | [ ] unifi-exporter | Running (may be Ready with empty metrics if no API key) |
 | [ ] PVCs | Bound (postgres-data, prometheus-data) |
 
@@ -59,14 +59,14 @@ kubectl -n netclaw-convergence rollout status sts/prometheus --timeout=180s
 Port-forward (or use NodePort 30080 on a node IP):
 
 ```bash
-kubectl -n netclaw-convergence port-forward svc/home-api 3080:3000 &
+kubectl -n netclaw-convergence port-forward svc/convergence-api 3080:3000 &
 kubectl -n netclaw-convergence port-forward svc/prometheus 9090:9090 &
 kubectl -n netclaw-convergence port-forward svc/alertmanager 9093:9093 &
 ```
 
 | Check | Command / expectation |
 |-------|------------------------|
-| [ ] home-api healthz | `curl -fsS http://127.0.0.1:3080/healthz` → 200 |
+| [ ] convergence-api healthz | `curl -fsS http://127.0.0.1:3080/healthz` → 200 |
 | [ ] prometheus ready | `curl -fsS http://127.0.0.1:9090/-/ready` → 200 |
 | [ ] alertmanager ready | `curl -fsS http://127.0.0.1:9093/-/ready` → 200 |
 | [ ] authenticated health | `curl -fsS -H "Authorization: Bearer <API_KEYS.key>" 'http://127.0.0.1:3080/api/health?site=home'` → 200 JSON |
@@ -78,7 +78,7 @@ kubectl -n netclaw-convergence port-forward svc/alertmanager 9093:9093 &
 | Check | Pass criteria |
 |-------|----------------|
 | [ ] Alertmanager webhook | ConfigMap `alertmanager-config` contains agent webhook URL (not empty) |
-| [ ] Prometheus scrape DNS | Targets resolve `blackbox:9115`, `home-api` probe, `unifi-exporter:9899` |
+| [ ] Prometheus scrape DNS | Targets resolve `blackbox:9115`, `convergence-api` probe, `unifi-exporter:9899` |
 | [ ] Secrets not in git | `secret.yaml` untracked / gitignored |
 
 ## HUD wire-up

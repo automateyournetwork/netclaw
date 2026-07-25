@@ -26,7 +26,7 @@ systemctl --user restart netclaw-hud.service
 
 ## PR3 — Docker minimal (this host)
 
-Single-host stack: **postgres + prometheus + alertmanager + blackbox + home-api**  
+Single-host stack: **postgres + prometheus + alertmanager + blackbox + convergence-api**  
 Optional: **unifi-exporter** (`--profile unifi`).
 
 ```bash
@@ -48,10 +48,10 @@ docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/conver
 # 4. Smoke
 ./deploy/convergence/smoke-docker.sh
 
-# 5. Point HUD at local home-api
+# 5. Point HUD at local convergence-api
 # ~/.openclaw/.env
 #   HOME_API_URL=http://127.0.0.1:3080
-#   HOME_API_TOKEN=dev-home-api-key-change-me   # must match API_KEYS[].key
+#   HOME_API_TOKEN=dev-convergence-api-key-change-me   # must match API_KEYS[].key
 systemctl --user restart netclaw-hud.service
 # Open http://localhost:3001 → HOME
 ```
@@ -71,7 +71,7 @@ See [deploy/convergence/README.md](../../deploy/convergence/README.md) and [adap
 
 | Service | Port |
 |---------|------|
-| home-api | 3080 |
+| convergence-api | 3080 |
 | prometheus | 9090 |
 | alertmanager | 9093 |
 | blackbox | 9115 |
@@ -103,7 +103,7 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield
 # Pilot dual-run notes: deploy/convergence/k8s/OVERLAY-PILOT.md
 
 # 5. HUD
-# kubectl -n netclaw-convergence port-forward svc/home-api 3080:3000
+# kubectl -n netclaw-convergence port-forward svc/convergence-api 3080:3000
 # or NodePort :30080
 # HOME_API_URL=http://127.0.0.1:3080
 # HOME_API_TOKEN=<API_KEYS key>
@@ -120,7 +120,7 @@ cd /path/to/netclaw
 
 # Credentials + adapters (only prompts for selected components)
 ./scripts/setup.sh
-# Summary line: risk=… investigator=… home-api=… deploy=…
+# Summary line: risk=… investigator=… convergence-api=… deploy=…
 
 # Idempotent investigator ensure (standalone OK anytime)
 python3 scripts/ensure-guardian-claw.py
@@ -138,10 +138,10 @@ cp config/convergence.example.yaml ~/.openclaw/convergence.yaml
 1. Open HUD → **HOME** → **Triage**
 2. Escalated cases list on the left; select one for notes + feedback
 3. **Correct / Partial / Incorrect / Resolve** → `PATCH /api/events/:id`
-4. **Need More** → `POST /api/events/:id/reinvestigate` (reopens as investigating; home-api may call host `ALERT_RECEIVER_URL` `/reinvestigate`)
+4. **Need More** → `POST /api/events/:id/reinvestigate` (reopens as investigating; convergence-api may call host `ALERT_RECEIVER_URL` `/reinvestigate`)
 5. Diary and triage show **RAG id** when `rag_document_id` is set
 
-Contract: `specs/067-convergence/contracts/home-api.md`
+Contract: `specs/067-convergence/contracts/convergence-api.md`
 
 ## Deploy mode choice
 | Mode | Use when |

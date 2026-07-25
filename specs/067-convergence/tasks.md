@@ -19,7 +19,7 @@
 
 - [x] T001 Create `specs/067-convergence/` with spec.md, plan.md, tasks.md, research.md, data-model.md, quickstart.md, contracts/, checklists/
 - [x] T002 [P] Author FR/user stories including risk preserve + guardian-claw ensure (any operator)
-- [x] T003 [P] Author contracts for home-api, adapters, install wizard
+- [x] T003 [P] Author contracts for convergence-api, adapters, install wizard
 - [x] T004 Constitution Check recorded in plan.md
 - [ ] T005 Checklist requirements.md pass (self-review before PR1 code)
 
@@ -42,21 +42,21 @@
 
 ---
 
-## Phase 2: home-api + live data (PR2) — US2
+## Phase 2: convergence-api + live data (PR2) — US2
 
-- [x] T020 Create `ui/convergence-api/` (or `services/home-api/`) by lifting `network-guardian-web` Express API routes
+- [x] T020 Create `ui/convergence-api/` (or `services/convergence-api/`) by lifting `network-guardian-web` Express API routes
 - [x] T021 Prefer API-first; document deprecation path for EJS pages
 - [x] T022 [P] Add `HOME_API_URL`, `NETWORK_GUARDIAN_*` aliases to `.env.example` with comments
-- [x] T023 HUD `server.js`: proxy `/api/home/*` → home-api with auth forwarding
+- [x] T023 HUD `server.js`: proxy `/api/home/*` → convergence-api with auth forwarding
 - [x] T024 Home Overview/Wi‑Fi/Devices/Diary fetch live pilot endpoints
-- [x] T025 Degraded UI when home-api unreachable
+- [x] T025 Degraded UI when convergence-api unreachable
 - [x] T026 Dual-run doc: point at existing K3s Guardian during transition
 
 ---
 
 ## Phase 3: Docker minimal (PR3) — US3
 
-- [x] T030 `deploy/convergence/docker-compose.yml` (postgres, prom, am, blackbox, home-api; unifi profile)
+- [x] T030 `deploy/convergence/docker-compose.yml` (postgres, prom, am, blackbox, convergence-api; unifi profile)
 - [x] T031 Alertmanager receiver → host alert-receiver URL configurable (`render-config.sh` + `ALERT_RECEIVER_URL`)
 - [x] T032 [P] `deploy/convergence/adapters/unifi/` fragment (exporter.py + profile + README)
 - [x] T033 Smoke script `deploy/convergence/smoke-docker.sh`
@@ -82,7 +82,7 @@
 - [x] T055 Check in `scripts/systemd/netclaw-hud.service` template
 - [x] T056 config/convergence.example.yaml
 - [x] T057 Framework cleanup: remove pilot-only hardcodes from skills where possible; document external-stack deprecation path
-- [x] T058 Print setup summary `risk=` `investigator=` `home-api=` `deploy=`
+- [x] T058 Print setup summary `risk=` `investigator=` `convergence-api=` `deploy=`
 
 ---
 

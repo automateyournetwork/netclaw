@@ -13,7 +13,7 @@ setup + test procedure (the design rationale lives in
 ## The pipeline (what talks to what)
 
 ```
-Nautobot (192.168.3.253)
+Nautobot (https://nautobot.internal.byrnbaker.me)
   │  interface create/update/delete  → Webhook (HMAC-SHA512 signed)
   ▼
 Alert Receiver  http://192.168.3.252:8099/nautobot-webhook
@@ -45,7 +45,7 @@ Every hop must be configured. A break at any hop = no proposal.
 
 ---
 
-## Step 1 — Alert Receiver config (`scripts/alert-receiver/.env`)
+## Step 1 — Alert Receiver config (`services/alert-receiver/.env`)
 
 This file is gitignored. Set:
 
@@ -101,7 +101,7 @@ Under `hooks.rules`, a rule maps the `reconcile` path to an agent session:
 Idempotent helper (reads the secret from the receiver `.env`, nothing hard-coded):
 
 ```bash
-.venv/bin/python scripts/alert-receiver/create_webhook.py
+.venv/bin/python services/alert-receiver/create_webhook.py
 ```
 
 Or create it manually (REST / Admin → Extensibility → Webhooks) with:
@@ -197,7 +197,7 @@ those MCP servers before relying on real reconciles.
 
 ## Turn it off / roll back
 
-- **Pause quickly:** `RECONCILE_ENABLED=false` in `scripts/alert-receiver/.env`,
+- **Pause quickly:** `RECONCILE_ENABLED=false` in `services/alert-receiver/.env`,
   then `sudo systemctl restart netclaw-alert-receiver`.
 - **Or disable at source:** set the Nautobot webhook `enabled: false` (or delete
   it).
@@ -207,9 +207,9 @@ those MCP servers before relying on real reconciles.
 
 | File | Role |
 |------|------|
-| `scripts/alert-receiver/server.py` | `/nautobot-webhook` endpoint, HMAC verify, role gate, prompt, POST to gateway |
-| `scripts/alert-receiver/.env` | reconcile flags + shared secret (gitignored) |
-| `scripts/alert-receiver/create_webhook.py` | idempotent Nautobot webhook creator |
+| `services/alert-receiver/server.py` | `/nautobot-webhook` endpoint, HMAC verify, role gate, prompt, POST to gateway |
+| `services/alert-receiver/.env` | reconcile flags + shared secret (gitignored) |
+| `services/alert-receiver/create_webhook.py` | idempotent Nautobot webhook creator |
 | `~/.openclaw/openclaw.json` | `hooks.rules` → `reconcile` agent mapping |
 | `workspace/skills/intent-reconcile/SKILL.md` | agent behavior: intent-vs-actual diff, propose/approve/apply |
 | `~/.ssh/config` + `testbed/testbed.yaml` | legacy SSH so pyATS can read the switches |

@@ -158,7 +158,7 @@ PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzi
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
 suzieq kubeshark gtrace gait"
 
-# NetClaw Convergence pipeline (067): OBS + home-api + HUD + investigator path.
+# NetClaw Convergence pipeline (067): OBS + convergence-api + HUD + investigator path.
 # n2n is included so risk/guardian-claw ensure can enroll the investigator member.
 PROFILE_CONVERGENCE="convergence-core convergence-metrics convergence-unifi convergence-pfsense visual-hud \
 prometheus gait n2n rag-mcp"

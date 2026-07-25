@@ -1,6 +1,6 @@
 # NetClaw Convergence — Docker minimal stack (067-convergence Phase 3)
 #
-# Core: postgres, prometheus, alertmanager, blackbox, home-api
+# Core: postgres, prometheus, alertmanager, blackbox, convergence-api
 # Optional: unifi-exporter  →  docker compose --profile unifi up -d
 #
 # From repo root:
@@ -9,9 +9,9 @@
 #   docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/convergence/.env up -d --build
 #   ./deploy/convergence/smoke-docker.sh
 #
-# Point HUD:
-#   HOME_API_URL=http://127.0.0.1:3080
-#   HOME_API_TOKEN=<same as API key in .env>
+# Point HUD (root ~/.openclaw/.env or repo .env):
+#   CONVERGENCE_API_URL=http://127.0.0.1:3080
+#   CONVERGENCE_API_TOKEN=<same as API_KEYS[].key in deploy/convergence/.env>
 
 name: netclaw-convergence
 
@@ -75,7 +75,7 @@ services:
       - "${BLACKBOX_HOST_PORT:-9115}:9115"
     networks: [convergence]
 
-  home-api:
+  convergence-api:
     build:
       context: ../../ui/convergence-api
       dockerfile: Dockerfile
@@ -101,7 +101,7 @@ services:
       ALERTMANAGER_URL: http://alertmanager:9093
       # Host alert-receiver for Triage "Need More" → /reinvestigate (strip /webhook if present)
       ALERT_RECEIVER_URL: ${ALERT_RECEIVER_URL:-http://host.docker.internal:8099/webhook}
-      JWT_SECRET: ${JWT_SECRET:-change-me-home-api-jwt}
+      JWT_SECRET: ${JWT_SECRET:-change-me-convergence-api-jwt}
       API_KEYS: ${API_KEYS}
       USERS: ${USERS:-[]}
       SITES_CONFIG: ${SITES_CONFIG}
@@ -115,7 +115,7 @@ services:
       NAUTOBOT_URL: ${NAUTOBOT_URL:-}
       NAUTOBOT_TOKEN: ${NAUTOBOT_TOKEN:-}
     ports:
-      - "${HOME_API_HOST_PORT:-3080}:3000"
+      - "${CONVERGENCE_API_HOST_PORT:-${HOME_API_HOST_PORT:-3080}}:3000"
     healthcheck:
       test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3000/healthz"]
       interval: 15s

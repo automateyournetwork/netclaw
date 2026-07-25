@@ -6,7 +6,7 @@
 |----------|----------|----------------------|
 | Full OBS + Grafana + VM + Loki | `~/k3s-observability-stack/` (external repo) | Live metrics + dashboards |
 | Network Guardian Web | `network-guardian-web` Deployment in `observability` NS | Pilot diary + API |
-| Pilot home-api k8s | `netclaw/ui/convergence-api/k8s/` | Deploys Guardian Web into pilot NS |
+| Pilot convergence-api k8s | `netclaw/ui/convergence-api/k8s/` | Deploys Guardian Web into pilot NS |
 
 ## Product path (in-repo)
 
@@ -14,7 +14,7 @@
 |----------|----------|
 | Docker Home | `netclaw/deploy/convergence/docker-compose.yml` |
 | K3s Home | `netclaw/deploy/convergence/k8s/` |
-| home-api source | `netclaw/ui/convergence-api/` |
+| convergence-api source | `netclaw/ui/convergence-api/` |
 | HUD | `netclaw/ui/netclaw-visual/` |
 | Install profile | `./scripts/install.sh --profile convergence` |
 
@@ -22,7 +22,7 @@
 
 1. **Dual-run** — HUD `HOME_API_URL` may still point at pilot Guardian.
 2. **Docker or K3s Convergence** — stand up `netclaw-convergence` / compose; smoke.
-3. **Point HUD** — `HOME_API_URL` + `HOME_API_TOKEN` to product home-api.
+3. **Point HUD** — `HOME_API_URL` + `HOME_API_TOKEN` to product convergence-api.
 4. **Ensure guardian-claw** — `python3 scripts/ensure-guardian-claw.py` (idempotent).
 5. **Alertmanager** — webhook stays on host alert-receiver (`:8099`).
 6. **Decommission pilot Guardian Deployment only** after diary + HOME tab parity.

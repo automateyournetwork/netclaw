@@ -25,7 +25,7 @@ An operator running the NetClaw Visual HUD opens a **HOME** top-level tab next t
 
 ### User Story 2 - See live home health without leaving NetClaw (Priority: P2)
 
-From the HOME tab Overview (and Wi‑Fi / Devices / Diary sub-views), the operator sees health score, WAN, Wi‑Fi, and investigation diary data via NetClaw-hosted APIs (`/api/home/*` proxy → home-api), not by browsing a separate product origin.
+From the HOME tab Overview (and Wi‑Fi / Devices / Diary sub-views), the operator sees health score, WAN, Wi‑Fi, and investigation diary data via NetClaw-hosted APIs (`/api/home/*` proxy → convergence-api), not by browsing a separate product origin.
 
 **Why this priority**: Core value of embedding Network Guardian into NetClaw.
 
@@ -33,18 +33,18 @@ From the HOME tab Overview (and Wi‑Fi / Devices / Diary sub-views), the operat
 
 **Acceptance Scenarios**:
 
-1. **Given** `HOME_API_URL` (or equivalent) points at a live home-api, **When** Overview loads, **Then** health/latency/loss/alert counts render from API data.
-2. **Given** home-api is down, **When** Overview loads, **Then** the UI shows a clear degraded state (not a blank crash).
+1. **Given** `HOME_API_URL` (or equivalent) points at a live convergence-api, **When** Overview loads, **Then** health/latency/loss/alert counts render from API data.
+2. **Given** convergence-api is down, **When** Overview loads, **Then** the UI shows a clear degraded state (not a blank crash).
 
 ---
 
 ### User Story 3 - Install Home OBS stack with Docker or K3s (Priority: P2)
 
-An operator chooses **Docker Compose** or **K3s** for metrics + home-api (+ exporters). Agent plane defaults to host NetClaw. Env and adapter config are shared between modes.
+An operator chooses **Docker Compose** or **K3s** for metrics + convergence-api (+ exporters). Agent plane defaults to host NetClaw. Env and adapter config are shared between modes.
 
 **Why this priority**: Upstream installability without requiring the internal observability-stack repo.
 
-**Independent Test**: `docker compose -f deploy/convergence/docker-compose.yml up` (minimal) reaches home-api `/healthz` and Prometheus targets up.
+**Independent Test**: `docker compose -f deploy/convergence/docker-compose.yml up` (minimal) reaches convergence-api `/healthz` and Prometheus targets up.
 
 **Acceptance Scenarios**:
 
@@ -110,12 +110,12 @@ Operators review escalated investigations in HOME → Triage, submit feedback, a
 - **FR-001**: HUD MUST provide top-level tabs **COMMAND** and **HOME** without removing Command capabilities.
 - **FR-002**: HOME UI MUST use existing HUD design tokens (CSS variables, typography, panel language).
 - **FR-003**: Browser MUST call only HUD-origin APIs for Home data (`/api/home/*`); secrets stay server-side.
-- **FR-004**: System MUST support deploy modes **docker** and **k3s** for OBS + home-api with shared adapter config.
+- **FR-004**: System MUST support deploy modes **docker** and **k3s** for OBS + convergence-api with shared adapter config.
 - **FR-005**: Full pipeline setup MUST ensure an investigator member (`guardian-claw` / `network-guardian` profile) exists on the operator’s risk.
 - **FR-006**: Setup MUST NOT destroy or rename an existing risk or non-Home members.
 - **FR-007**: Setup MUST be idempotent for guardian-claw ensure and config generation.
 - **FR-008**: Adapter config MUST model firewall, wireless, and SoT types; UniFi wireless is required for v1 path; others may be stubs.
-- **FR-009**: Alert path MUST remain Alertmanager → alert-receiver → Border → guardian → home-api events → optional Discord/RAG.
+- **FR-009**: Alert path MUST remain Alertmanager → alert-receiver → Border → guardian → convergence-api events → optional Discord/RAG.
 - **FR-010**: Installer integration MUST use `scripts/lib/catalog.sh` + `install-steps.sh` + `.env.example` (no parallel framework).
 - **FR-011**: Feature work MUST be tracked in `specs/067-convergence/tasks.md` with PR-aligned phases.
 - **FR-012**: Skills and scripts introduced for Home MUST follow NetClaw conventions (GCF, skill scoping, no invented metrics).
@@ -136,7 +136,7 @@ Operators review escalated investigations in HOME → Triage, submit feedback, a
 - **SC-002**: Greenfield full Home setup produces a live guardian member without manual member authoring.
 - **SC-003**: Existing multi-member risk loses zero members after Home setup re-run.
 - **SC-004**: Synthetic or real WifiDegraded produces a diary event visible in HOME within investigation SLA (same order as pilot, not worse).
-- **SC-005**: Docker minimal stack reaches healthy home-api + Prometheus without external k3s-observability-stack checkout.
+- **SC-005**: Docker minimal stack reaches healthy convergence-api + Prometheus without external k3s-observability-stack checkout.
 - **SC-006**: `.env.example` documents every new Home env key with comments and empty/safe defaults.
 
 ## Assumptions

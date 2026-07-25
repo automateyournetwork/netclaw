@@ -1,6 +1,6 @@
 /**
  * 067-convergence — Home product view (HUD-styled).
- * Live data via HUD proxy /api/home/* → home-api / Network Guardian (dual-run).
+ * Live data via HUD proxy /api/home/* → convergence-api / Network Guardian (dual-run).
  */
 
 const SUBVIEWS = [
@@ -195,7 +195,7 @@ export class HomeView {
           kind: st === 'error' ? 'error' : 'ok',
           message:
             st === 'skipped'
-              ? 'Case reopened as investigating. Alert-receiver not configured on home-api (set ALERT_RECEIVER_URL to re-hook guardian-claw).'
+              ? 'Case reopened as investigating. Alert-receiver not configured on convergence-api (set ALERT_RECEIVER_URL to re-hook guardian-claw).'
               : st === 'error'
                 ? `Reinvestigate partial: case reopened, but receiver error: ${res?.reinvestigate?.reason || res?.reinvestigate?.detail?.message || 'unknown'}`
                 : 'Need More sent — case is investigating; investigator will re-run.',
@@ -265,7 +265,7 @@ export class HomeView {
       if (!status.configured) {
         this.lastError = {
           kind: 'config',
-          message: 'Convergence API not configured. Set HOME_API_URL + HOME_API_TOKEN (or NETWORK_GUARDIAN_* for pilot dual-run) in ~/.openclaw/.env',
+          message: 'Convergence API not configured. Set CONVERGENCE_API_URL + CONVERGENCE_API_TOKEN (aliases: HOME_API_* / NETWORK_GUARDIAN_*) in ~/.openclaw/.env',
         };
         this.syncTopbarMetrics(null);
         return;
@@ -423,7 +423,7 @@ export class HomeView {
       <p class="home-section-title">Pipeline</p>
       <p class="home-muted">
         Metrics → Alertmanager → alert-receiver → risk investigator (guardian-claw) → diary / triage.
-        HOME tab proxies <code>/api/home/*</code> to home-api (or pilot Network Guardian during dual-run).
+        HOME tab proxies <code>/api/home/*</code> to convergence-api (or pilot Network Guardian during dual-run).
       </p>
     `;
   }
@@ -506,7 +506,7 @@ export class HomeView {
         <p class="home-muted">No device data loaded. Click Refresh.</p>`;
     }
 
-    // home-api shape: { wanProbes, edge/firewall, accessPoints, switches }
+    // convergence-api shape: { wanProbes, edge/firewall, accessPoints, switches }
     const probes = Array.isArray(d.wanProbes) ? d.wanProbes : [];
     const edge = Array.isArray(d.edge) ? d.edge : (Array.isArray(d.firewall) ? d.firewall : []);
     const aps = Array.isArray(d.accessPoints) ? d.accessPoints : [];

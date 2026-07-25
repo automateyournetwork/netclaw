@@ -26,7 +26,7 @@ Alert Receiver (192.168.3.252:8099)
 ## Setup
 
 ```bash
-cd scripts/alert-receiver
+cd services/alert-receiver
 pip install -r requirements.txt
 cp .env.example .env
 # Edit .env with your values

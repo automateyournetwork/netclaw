@@ -14,7 +14,7 @@ Pilot source of truth (this host / fork):
 |---------|-----------|----------------------------|
 | Namespace | `observability` | `netclaw-convergence` |
 | Postgres | `guardian-postgres` (db/user `guardian`) | `postgres` (db/user `home`) |
-| home-api / web | `network-guardian-web` Service port **80** → 3000 | `home-api` Service port **3000**; NodePort **30080** |
+| convergence-api / web | `network-guardian-web` Service port **80** → 3000 | `convergence-api` Service port **3000**; NodePort **30080** |
 | Prometheus | `prometheus` ClusterIP | same name, **different namespace** |
 | Alertmanager | `alertmanager` | same name, different NS |
 | Blackbox | Service **`blackbox-exporter`**, often `hostNetwork` | Service **`blackbox`** (Docker-aligned DNS); no hostNetwork |
@@ -49,19 +49,19 @@ Do **not** apply `deploy/convergence/k8s` until cutover. Docker Home (`deploy/co
 # From a node IP reachable by the HUD host:
 HOME_API_URL=http://<node-ip>:30080
 # or:
-kubectl -n netclaw-convergence port-forward svc/home-api 3080:3000
+kubectl -n netclaw-convergence port-forward svc/convergence-api 3080:3000
 HOME_API_URL=http://127.0.0.1:3080
 HOME_API_TOKEN=<key from home-secrets API_KEYS>
 ```
 
 4. Cut traffic over when Overview/Wi‑Fi/Devices look good; then decommission pilot Guardian Deployment (optional).
 
-### C — home-api only, reuse pilot Prometheus/AM
+### C — convergence-api only, reuse pilot Prometheus/AM
 
 Avoid running two Prometheuses if you only need API + diary:
 
-1. Deploy only `namespace`, `postgres`, `home-api` (and secrets) into `netclaw-convergence`.
-2. Patch home-api env:
+1. Deploy only `namespace`, `postgres`, `convergence-api` (and secrets) into `netclaw-convergence`.
+2. Patch convergence-api env:
 
 | Env | Pilot value |
 |-----|-------------|
@@ -85,7 +85,7 @@ Avoid running two Prometheuses if you only need API + diary:
 | Nautobot SoT (T070) | `SOT_TYPE`/`NAUTOBOT_*` in `deploy/convergence/.env` | `configMapGenerator` literals + `home-secrets.NAUTOBOT_TOKEN` |
 | Generic SNMP wireless (T071) | compose profile `generic-snmp-wireless` | Component `k8s/components/generic-snmp-wireless/` |
 | Full stack (T072) | `docker-compose.full.yml` `--profile full`/`speedtest` | Component `k8s/components/full-stack/` |
-| Ports on host | 3080 / 9090 / 9093 / 9115 / 9899 / 9116 / 3300 / 8428 / 3100 / 9091 | ClusterIP + NodePort **30080** (home-api), **30300** (grafana, if full-stack component enabled) |
+| Ports on host | 3080 / 9090 / 9093 / 9115 / 9899 / 9116 / 3300 / 8428 / 3100 / 9091 | ClusterIP + NodePort **30080** (convergence-api), **30300** (grafana, if full-stack component enabled) |
 
 ## StorageClass (this pilot cluster)
 
@@ -130,7 +130,7 @@ spec:
 ## Cutover checklist (pilot → Home)
 
 - [ ] Secrets created in `netclaw-convergence` (API key rotated or matched to HUD token)
-- [ ] `kubectl apply -k deploy/convergence/k8s/overlays/greenfield` (or home-api-only path)
+- [ ] `kubectl apply -k deploy/convergence/k8s/overlays/greenfield` (or convergence-api-only path)
 - [ ] Smoke checklist green (`SMOKE.md` / `./smoke-k8s.sh`)
 - [ ] HUD `HOME_API_URL` / `HOME_API_TOKEN` updated and HUD restarted
 - [ ] Confirm Overview KPIs + Devices/Wi‑Fi against Home stack

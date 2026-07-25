@@ -14,7 +14,7 @@ VLAN create/update/delete is a planned next phase.**
 > **Setting it up?** See the step-by-step runbook (config, webhook creation, SSH,
 > testing, troubleshooting): `docs/runbooks/intent-reconcile-webhook-setup.md`.
 
-- Receiver endpoint: `scripts/alert-receiver/server.py` → `/nautobot-webhook`
+- Receiver endpoint: `services/alert-receiver/server.py` → `/nautobot-webhook`
 - Skill: `workspace/skills/intent-reconcile/SKILL.md`
 - Gateway hook mapping: `reconcile` (in `openclaw.json`)
 - Daily job: `daily-switch-reconcile` (OpenClaw cron, disabled by default)
@@ -92,7 +92,7 @@ Enable when ready: `openclaw cron enable daily-switch-reconcile`.
 
 ## Configuration
 
-`scripts/alert-receiver/.env` (all off by default):
+`services/alert-receiver/.env` (all off by default):
 
 ```dotenv
 RECONCILE_ENABLED=false
@@ -127,7 +127,7 @@ Then set `RECONCILE_ENABLED=true` and restart the receiver.
 
 | Path | Role |
 |------|------|
-| `scripts/alert-receiver/server.py` | `/nautobot-webhook` endpoint, signature + gating |
+| `services/alert-receiver/server.py` | `/nautobot-webhook` endpoint, signature + gating |
 | `workspace/skills/intent-reconcile/SKILL.md` | propose / approve / apply / daily drift |
 | `openclaw.json` → `hooks.mappings[reconcile]` | wakes the agent (runtime config) |
 | OpenClaw cron `daily-switch-reconcile` | daily drift report (runtime, disabled) |

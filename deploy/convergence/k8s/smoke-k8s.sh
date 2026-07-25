@@ -47,7 +47,7 @@ for kind in Namespace StatefulSet Deployment Service ConfigMap; do
 done
 
 # Service names match Docker DNS expectations
-for svc in postgres prometheus alertmanager blackbox home-api unifi-exporter; do
+for svc in postgres prometheus alertmanager blackbox convergence-api unifi-exporter; do
   if printf '%s\n' "$out" | grep -q "name: ${svc}$"; then
     ok "resource name $svc present"
   else
@@ -97,7 +97,7 @@ wait_ready() {
   fi
 }
 
-wait_ready deploy home-api 180
+wait_ready deploy convergence-api 180
 wait_ready deploy alertmanager 120
 wait_ready deploy blackbox 120
 wait_ready sts postgres 180
@@ -113,7 +113,7 @@ cleanup_pf() {
 }
 trap cleanup_pf EXIT
 
-kubectl -n "$NS" port-forward svc/home-api 13080:3000 >/dev/null 2>&1 &
+kubectl -n "$NS" port-forward svc/convergence-api 13080:3000 >/dev/null 2>&1 &
 PF_PIDS="$!"
 kubectl -n "$NS" port-forward svc/prometheus 19090:9090 >/dev/null 2>&1 &
 PF_PIDS="$PF_PIDS $!"
@@ -131,22 +131,22 @@ wait_http() {
   return 1
 }
 
-if wait_http "http://127.0.0.1:13080/healthz"; then ok "home-api /healthz"; else bad "home-api /healthz"; fi
+if wait_http "http://127.0.0.1:13080/healthz"; then ok "convergence-api /healthz"; else bad "convergence-api /healthz"; fi
 if wait_http "http://127.0.0.1:19090/-/ready"; then ok "prometheus ready"; else bad "prometheus ready"; fi
 if wait_http "http://127.0.0.1:19093/-/ready"; then ok "alertmanager ready"; else bad "alertmanager ready"; fi
 
-API_KEY="dev-home-api-key-change-me"
-if kubectl -n "$NS" get secret home-secrets -o jsonpath='{.data.API_KEYS}' 2>/dev/null | base64 -d >/tmp/home-api-keys.json 2>/dev/null; then
-  API_KEY="$(python3 -c 'import json; k=json.load(open("/tmp/home-api-keys.json")); print(k[0]["key"] if k else "")' 2>/dev/null || echo "$API_KEY")"
+API_KEY="dev-convergence-api-key-change-me"
+if kubectl -n "$NS" get secret home-secrets -o jsonpath='{.data.API_KEYS}' 2>/dev/null | base64 -d >/tmp/convergence-api-keys.json 2>/dev/null; then
+  API_KEY="$(python3 -c 'import json; k=json.load(open("/tmp/convergence-api-keys.json")); print(k[0]["key"] if k else "")' 2>/dev/null || echo "$API_KEY")"
 fi
 
-code=$(curl -sS -o /tmp/home-api-health.json -w '%{http_code}' \
+code=$(curl -sS -o /tmp/convergence-api-health.json -w '%{http_code}' \
   -H "Authorization: Bearer ${API_KEY}" \
   "http://127.0.0.1:13080/api/health?site=home" || echo "000")
 if [[ "$code" == "200" ]]; then
   ok "GET /api/health?site=home"
 else
-  echo "  status=$code body=$(head -c 160 /tmp/home-api-health.json 2>/dev/null || true)"
+  echo "  status=$code body=$(head -c 160 /tmp/convergence-api-health.json 2>/dev/null || true)"
   bad "GET /api/health?site=home (got $code)"
 fi
 

@@ -1,4 +1,4 @@
-# Postgres — events diary for home-api (Docker service: postgres)
+# Postgres — events diary for convergence-api (Docker service: postgres)
 apiVersion: v1
 kind: Service
 metadata:

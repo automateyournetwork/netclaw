@@ -860,13 +860,13 @@ if component_selected convergence-core || component_selected convergence-metrics
    || component_selected visual-hud || component_selected convergence-unifi \
    || component_selected convergence-pfsense; then
     HOME_NOC_TOUCHED=1
-    echo "  Configure Convergence pipeline (home-api, metrics, adapters, investigator)."
+    echo "  Configure Convergence pipeline (convergence-api, metrics, adapters, investigator)."
     echo "  Spec: specs/067-convergence/  |  Deploy: deploy/convergence/"
     echo ""
 
     # ── Deploy mode ──
     if component_selected convergence-metrics || component_selected convergence-core; then
-        echo "  Deploy mode for OBS + home-api:"
+        echo "  Deploy mode for OBS + convergence-api:"
         echo "    1) docker  — single host compose (recommended lab)"
         echo "    2) k3s     — kustomize under deploy/convergence/k8s/"
         echo "    3) none    — dual-run pilot / already deployed"
@@ -891,18 +891,20 @@ if component_selected convergence-core || component_selected convergence-metrics
         fi
     fi
 
-    # ── home-api URL for HUD ──
+    # ── convergence-api URL for HUD ──
     if component_selected convergence-core || component_selected visual-hud; then
         case "$HOME_DEPLOY_MODE" in
             docker) _def_api="http://127.0.0.1:3080" ;;
             k3s)    _def_api="http://127.0.0.1:30080" ;;
-            *)      _def_api="${HOME_API_URL:-http://127.0.0.1:3080}" ;;
+            *)      _def_api="${CONVERGENCE_API_URL:-${HOME_API_URL:-http://127.0.0.1:3080}}" ;;
         esac
         # shellcheck disable=SC2153
-        prompt HOME_API_URL_VAL "HOME_API_URL (HUD proxy target)" "$_def_api"
+        prompt HOME_API_URL_VAL "CONVERGENCE_API_URL (HUD proxy target)" "$_def_api"
+        [ -n "$HOME_API_URL_VAL" ] && set_env "CONVERGENCE_API_URL" "$HOME_API_URL_VAL"
         [ -n "$HOME_API_URL_VAL" ] && set_env "HOME_API_URL" "$HOME_API_URL_VAL"
         HOME_API_SUMMARY_URL="${HOME_API_URL_VAL:-$_def_api}"
-        prompt_secret HOME_API_TOKEN_VAL "HOME_API_TOKEN (must match home-api API_KEYS key; empty=skip)"
+        prompt_secret HOME_API_TOKEN_VAL "CONVERGENCE_API_TOKEN (must match convergence-api API_KEYS key; empty=skip)"
+        [ -n "${HOME_API_TOKEN_VAL:-}" ] && set_env "CONVERGENCE_API_TOKEN" "$HOME_API_TOKEN_VAL"
         [ -n "${HOME_API_TOKEN_VAL:-}" ] && set_env "HOME_API_TOKEN" "$HOME_API_TOKEN_VAL"
         # Keep aliases in sync for skills that still use NETWORK_GUARDIAN_*
         [ -n "$HOME_API_URL_VAL" ] && set_env "NETWORK_GUARDIAN_URL" "$HOME_API_URL_VAL"
@@ -1099,7 +1101,7 @@ if [ "${HOME_NOC_TOUCHED:-0}" = "1" ]; then
     fi
     echo ""
     echo -e "  ${BOLD}Convergence:${NC}"
-    echo "    risk=${HOME_RISK_NAME} investigator=${HOME_INVESTIGATOR} home-api=${HOME_API_SUMMARY_URL} deploy=${HOME_DEPLOY_MODE}"
+    echo "    risk=${HOME_RISK_NAME} investigator=${HOME_INVESTIGATOR} convergence-api=${HOME_API_SUMMARY_URL} deploy=${HOME_DEPLOY_MODE}"
     grep -q "^HOME_API_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "HOME_API_URL" || skip "HOME_API_URL"
     grep -q "^UNIFI_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "UniFi adapter key" || true
     grep -q "^PFSENSE_MGMT_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "pfSense mgmt URL" || true

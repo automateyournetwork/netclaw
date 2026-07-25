@@ -1,5 +1,5 @@
 # NetClaw Convergence — recording + alert rules (067 Phase 3)
-# Compatible with home-api health queries (convergence:* recording names).
+# Compatible with convergence-api health queries (convergence:* recording names).
 groups:
   - name: netclaw-convergence.recording
     interval: 15s
@@ -66,12 +66,12 @@ groups:
           summary: "UniFi exporter not scraping"
           description: "Prometheus cannot reach unifi-exporter:9899. Enable profile unifi or fix UNIFI_* env."
 
-      - alert: HomeApiDown
-        expr: probe_success{job="home-api"} == 0
+      - alert: ConvergenceApiDown
+        expr: probe_success{job="convergence-api"} == 0
         for: 2m
         labels:
           severity: critical
           site: home
         annotations:
-          summary: "home-api unreachable"
-          description: "Blackbox HTTP probe of home-api /healthz is failing."
+          summary: "convergence-api unreachable"
+          description: "Blackbox HTTP probe of convergence-api /healthz is failing."

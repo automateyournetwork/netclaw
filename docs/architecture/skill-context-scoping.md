@@ -126,7 +126,7 @@ alert-receiver, scoped to each incoming alert:
 alert fires → receiver enriches with SoT → scope_skills_for_alert() → OpenClaw triage runs
 ```
 
-The integration lives in `scripts/alert-receiver/server.py` (`scope_skills_for_alert`),
+The integration lives in `services/alert-receiver/server.py` (`scope_skills_for_alert`),
 called from `process_alert` after device resolution and before `trigger_netclaw`.
 It is **opt-in and fail-open**:
 
@@ -145,7 +145,7 @@ It is **opt-in and fail-open**:
   `SKILL_RESTORE_DELAY` (default 8s).
 
 Enable and tune it via the receiver's `.env` (see
-`scripts/alert-receiver/.env.example`):
+`services/alert-receiver/.env.example`):
 
 ```bash
 SKILL_SCOPING_ENABLED=true
@@ -278,6 +278,6 @@ investigation, with no gateway restart needed.
 |------|---------|
 | `scripts/skill-selector/select_skills.py` | Scope runtime skills dir by relevance |
 | `scripts/model-harness/triage_harness.py` | Measure token burn + tool-calling |
-| `scripts/alert-receiver/server.py` | Auto-scopes per alert (`scope_skills_for_alert`) |
-| `scripts/alert-receiver/.env.example` | Scoping config (`SKILL_SCOPING_*`) |
+| `services/alert-receiver/server.py` | Auto-scopes per alert (`scope_skills_for_alert`) |
+| `services/alert-receiver/.env.example` | Scoping config (`SKILL_SCOPING_*`) |
 | `docs/architecture/skill-context-scoping.md` | This document |

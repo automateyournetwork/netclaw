@@ -17,17 +17,17 @@ scrape_configs:
     static_configs:
       - targets: ["localhost:9090"]
 
-  # home-api liveness via blackbox HTTP (JSON /healthz is not Prometheus textformat)
-  - job_name: home-api
+  # convergence-api liveness via blackbox HTTP (JSON /healthz is not Prometheus textformat)
+  - job_name: convergence-api
     scrape_interval: 30s
     metrics_path: /probe
     params:
       module: [http_2xx]
     static_configs:
-      - targets: ["http://home-api:3000/healthz"]
+      - targets: ["http://convergence-api:3000/healthz"]
         labels:
           site: home
-          service: home-api
+          service: convergence-api
     relabel_configs:
       - source_labels: [__address__]
         target_label: __param_target

@@ -34,7 +34,7 @@ Content-Type: application/json
 Effects:
 1. Event `status` → `investigating`; `feedback_quality` → `needs_more_context`
 2. Appends operator note to `investigation_notes`
-3. If `ALERT_RECEIVER_URL` is set on home-api, POSTs to `{receiver}/reinvestigate` so the host pipe re-triggers `alert-triage` / guardian-claw
+3. If `ALERT_RECEIVER_URL` is set on convergence-api, POSTs to `{receiver}/reinvestigate` so the host pipe re-triggers `alert-triage` / guardian-claw
 
 ### Feedback quality (PATCH)
 

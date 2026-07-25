@@ -15,19 +15,16 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 
 | Area | Spec / docs | Deploy / code |
 |------|-------------|----------------|
-| **NetClaw Convergence** (site OBS + HOME tab + investigator) | [`specs/067-convergence/`](specs/067-convergence/) · [tasks](specs/067-convergence/tasks.md) · [quickstart](specs/067-convergence/quickstart.md) | [`deploy/convergence/`](deploy/convergence/) · [`ui/convergence-api/`](ui/convergence-api/) · HUD HOME tab |
-| **Knowledge / RAG** (vendor docs, OpenAPI JSON, UniFi) | Feature 062 · [runbook](docs/runbooks/knowledge-rag-home-ops.md) · [rag-mcp README](mcp-servers/rag-mcp/README.md) | HUD **Knowledge** panel · `mcp-servers/rag-mcp/` |
-| **iN2N risk / federation** | [docs/N2N-RISK.md](docs/N2N-RISK.md) · [federation guide](docs/N2N-FEDERATION-GUIDE.md) | Border + members (`guardian-claw` investigator) |
-
-Install Convergence profile:
+| **NetClaw Convergence** | **[docs/CONVERGENCE.md](docs/CONVERGENCE.md)** · [ENV layout](docs/ENV-AND-LAYOUT.md) · [spec 067](specs/067-convergence/) | [`deploy/convergence/`](deploy/convergence/) · [`ui/convergence-api/`](ui/convergence-api/) · [`services/alert-receiver/`](services/alert-receiver/) · HUD HOME |
+| **Knowledge / RAG** | [runbook](docs/runbooks/knowledge-rag-home-ops.md) · [rag-mcp](mcp-servers/rag-mcp/README.md) | HUD **Knowledge** · `mcp-servers/rag-mcp/` |
+| **iN2N risk / federation** | [docs/N2N-RISK.md](docs/N2N-RISK.md) · [federation guide](docs/N2N-FEDERATION-GUIDE.md) | Border + **guardian-claw** investigator |
 
 ```bash
-./scripts/install.sh --profile convergence
-# Deploy stack: see deploy/convergence/README.md
-#   docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/convergence/.env up -d --build
+./scripts/install.sh --profile convergence && ./scripts/setup.sh
+# Stack: docs/CONVERGENCE.md · deploy/convergence/README.md
 ```
 
-> **Naming:** product paths use **Convergence** (`deploy/convergence`, `ui/convergence-api`, catalog `convergence-*`, K8s namespace `netclaw-convergence`). The HUD top tab is still labeled **HOME** (product surface). Docker/K8s service name `home-api` is a legacy service id (image: `netclaw-convergence-api`) — env vars `HOME_API_URL` / `HOME_API_TOKEN` remain for HUD dual-run with pilot Network Guardian.
+> **Naming:** Docker/K8s service **`convergence-api`**. Prefer **`CONVERGENCE_API_URL` / `CONVERGENCE_API_TOKEN`** (`HOME_API_*` and `NETWORK_GUARDIAN_*` still work). HUD tab label remains **HOME**.
 
 ---
 

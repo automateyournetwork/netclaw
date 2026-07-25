@@ -20,7 +20,7 @@ HOME_API_PORT="${HOME_API_HOST_PORT:-3080}"
 PROM_PORT="${PROMETHEUS_HOST_PORT:-9090}"
 AM_PORT="${ALERTMANAGER_HOST_PORT:-9093}"
 
-API_KEY="dev-home-api-key-change-me"
+API_KEY="dev-convergence-api-key-change-me"
 if [[ -n "${API_KEYS:-}" ]]; then
   API_KEY="$(API_KEYS="$API_KEYS" python3 -c 'import json,os; k=json.loads(os.environ["API_KEYS"]); print(k[0]["key"] if k else "")' 2>/dev/null || echo "$API_KEY")"
 fi
@@ -39,7 +39,7 @@ echo "-- compose config"
 if dc config --quiet; then ok "compose config validates"; else bad "compose config validates"; fi
 
 echo "-- bring up core services"
-dc up -d --build postgres prometheus alertmanager blackbox home-api
+dc up -d --build postgres prometheus alertmanager blackbox convergence-api
 
 wait_http() {
   local url="$1" n=0
@@ -54,7 +54,7 @@ wait_http() {
 }
 
 echo "-- containers"
-for svc in postgres prometheus alertmanager blackbox home-api; do
+for svc in postgres prometheus alertmanager blackbox convergence-api; do
   if [[ -n "$(dc ps -q "$svc" 2>/dev/null)" ]]; then
     ok "$svc container present"
   else
@@ -64,23 +64,23 @@ done
 
 echo "-- HTTP"
 if wait_http "http://127.0.0.1:${HOME_API_PORT}/healthz"; then
-  ok "home-api /healthz"
+  ok "convergence-api /healthz"
 else
-  bad "home-api /healthz"
-  dc logs --tail=40 home-api || true
+  bad "convergence-api /healthz"
+  dc logs --tail=40 convergence-api || true
 fi
 if wait_http "http://127.0.0.1:${PROM_PORT}/-/ready"; then ok "prometheus ready"; else bad "prometheus ready"; fi
 if wait_http "http://127.0.0.1:${AM_PORT}/-/ready"; then ok "alertmanager ready"; else bad "alertmanager ready"; fi
 
 echo "-- authenticated API"
-code=$(curl -sS -o /tmp/home-api-health.json -w '%{http_code}' \
+code=$(curl -sS -o /tmp/convergence-api-health.json -w '%{http_code}' \
   -H "Authorization: Bearer ${API_KEY}" \
   "http://127.0.0.1:${HOME_API_PORT}/api/health?site=home" || echo "000")
 if [[ "$code" == "200" ]]; then
   ok "GET /api/health?site=home"
-  head -c 220 /tmp/home-api-health.json; echo
+  head -c 220 /tmp/convergence-api-health.json; echo
 else
-  echo "  status=$code body=$(head -c 160 /tmp/home-api-health.json 2>/dev/null || true)"
+  echo "  status=$code body=$(head -c 160 /tmp/convergence-api-health.json 2>/dev/null || true)"
   bad "GET /api/health?site=home (got $code)"
 fi
 
@@ -104,7 +104,7 @@ fi
 echo
 echo "Summary: $PASS passed, $FAIL failed"
 if (( FAIL > 0 )); then
-  echo "Tips: dc logs --tail=80 home-api"
+  echo "Tips: dc logs --tail=80 convergence-api"
   exit 1
 fi
 echo "OK — HUD env:"

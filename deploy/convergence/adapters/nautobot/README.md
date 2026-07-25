@@ -1,7 +1,7 @@
 # Nautobot SoT adapter (Home Docker / K3s)
 
 Provides device inventory lookup from Nautobot as the Source of Truth for the
-NetClaw Convergence pipeline. Used by `home-api` to enrich device views and
+NetClaw Convergence pipeline. Used by `convergence-api` to enrich device views and
 triage panels with authoritative inventory data (roles, locations, IPs, platforms).
 
 ## Enable
@@ -20,7 +20,7 @@ NAUTOBOT_URL=https://nautobot.internal.byrnbaker.me
 NAUTOBOT_TOKEN=<your-api-token>
 ```
 
-The adapter is a library module inside `home-api` — no separate container needed.
+The adapter is a library module inside `convergence-api` — no separate container needed.
 It calls the Nautobot REST/GraphQL API directly from the Node.js process.
 
 ## What it provides
@@ -38,7 +38,7 @@ Never commit tokens. Only set `NAUTOBOT_TOKEN` in `.env` (gitignored).
 
 ## Dependencies
 
-Requires `home-api` to be running (the adapter is imported as a library module).
+Requires `convergence-api` to be running (the adapter is imported as a library module).
 No additional containers or exporters are needed — Nautobot is an existing
 external service.
 

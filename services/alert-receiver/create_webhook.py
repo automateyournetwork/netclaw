@@ -2,7 +2,7 @@
 """One-shot: create the Nautobot intent-reconcile webhook.
 
 Reads NAUTOBOT_URL/NAUTOBOT_TOKEN from netclaw/.env and the shared
-NAUTOBOT_WEBHOOK_SECRET from scripts/alert-receiver/.env, then creates (or
+NAUTOBOT_WEBHOOK_SECRET from services/alert-receiver/.env, then creates (or
 reports) the webhook pointing at the alert receiver. Safe to re-run.
 """
 import json
@@ -27,9 +27,9 @@ def read_env(path: Path) -> dict:
 
 
 root_env = read_env(REPO / ".env")
-recv_env = read_env(REPO / "scripts/alert-receiver/.env")
+recv_env = read_env(REPO / "services/alert-receiver/.env")
 
-nb = (root_env.get("NAUTOBOT_URL") or "https://192.168.3.253").rstrip("/")
+nb = (root_env.get("NAUTOBOT_URL") or "https://nautobot.internal.byrnbaker.me").rstrip("/")
 tok = root_env.get("NAUTOBOT_TOKEN", "")
 secret = recv_env.get("NAUTOBOT_WEBHOOK_SECRET", "")
 

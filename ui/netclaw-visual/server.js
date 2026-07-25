@@ -907,13 +907,22 @@ app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'netclaw-visual-api', generatedAt: new Date().toISOString() });
 });
 
-// ── 067-convergence: proxy HOME tab → home-api / Network Guardian (dual-run) ──
-// Prefer HOME_API_URL; fall back to NETWORK_GUARDIAN_URL for pilot.
-// Auth: HOME_API_TOKEN or NETWORK_GUARDIAN_TOKEN as Bearer (API key).
+// ── 067-convergence: proxy HOME tab → convergence-api / Network Guardian (dual-run) ──
+// Prefer CONVERGENCE_API_*; aliases HOME_API_* and NETWORK_GUARDIAN_* for dual-run / legacy.
 function homeApiConfig() {
   const env = { ...parseEnvFile(), ...process.env };
-  const base = (env.HOME_API_URL || env.NETWORK_GUARDIAN_URL || '').replace(/\/$/, '');
-  const token = env.HOME_API_TOKEN || env.NETWORK_GUARDIAN_TOKEN || '';
+  const base = (
+    env.CONVERGENCE_API_URL
+    || env.HOME_API_URL
+    || env.NETWORK_GUARDIAN_URL
+    || ''
+  ).replace(/\/$/, '');
+  const token = (
+    env.CONVERGENCE_API_TOKEN
+    || env.HOME_API_TOKEN
+    || env.NETWORK_GUARDIAN_TOKEN
+    || ''
+  );
   return { base, token };
 }
 
@@ -935,8 +944,8 @@ app.use('/api/home', async (req, res, next) => {
   const { base, token } = homeApiConfig();
   if (!base) {
     return res.status(503).json({
-      error: 'Home API not configured',
-      hint: 'Set HOME_API_URL (or NETWORK_GUARDIAN_URL) and HOME_API_TOKEN (or NETWORK_GUARDIAN_TOKEN) in ~/.openclaw/.env',
+      error: 'Convergence API not configured',
+      hint: 'Set CONVERGENCE_API_URL + CONVERGENCE_API_TOKEN (aliases: HOME_API_* or NETWORK_GUARDIAN_*) in ~/.openclaw/.env',
     });
   }
   // req.url is relative to mount, e.g. /health?site=home

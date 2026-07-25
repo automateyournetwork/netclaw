@@ -200,7 +200,7 @@ groups:
 4. **Generate alert rules** — Produce device-specific alerting rules
 5. **Reload Prometheus** — `curl -X POST http://K3s cluster (access via Grafana proxy or expose via LB)/-/reload`
 6. **Verify** — Query Prometheus for `up{instance="<device>"}` to confirm scrape works
-7. **Update inventory** — Add device to `scripts/alert-receiver/inventory.yaml` or Nautobot
+7. **Update inventory** — Add device to `services/alert-receiver/inventory.yaml` or Nautobot
 
 ## Integration
 

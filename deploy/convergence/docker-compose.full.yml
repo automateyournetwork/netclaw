@@ -15,7 +15,7 @@
 # default (minimal stack, 15d local retention). This overlay does NOT modify
 # prometheus.yml — VictoriaMetrics here is deployed for later wiring (long-term
 # retention via remote_write) and for direct PromQL querying if you choose to
-# point Grafana / home-api at it. See "Wiring remote_write" below.
+# point Grafana / convergence-api at it. See "Wiring remote_write" below.
 #
 # Everything here is optional. Only start what you need:
 #   --profile full           → loki + victoriametrics + grafana

@@ -8,7 +8,7 @@
 **Alternatives**: KnowledgePanel-style overlay (faster but not “app mode”).
 
 ### D2 — Agent plane location
-**Decision**: Host NetClaw + iN2N risk by default; Docker/K3s for OBS + home-api.  
+**Decision**: Host NetClaw + iN2N risk by default; Docker/K3s for OBS + convergence-api.  
 **Rationale**: Matches pilot; preserves any existing risk; guardian-claw is a host member unit.  
 **Alternatives**: All-in-Docker agent profile for greenfield only.
 
@@ -18,7 +18,7 @@
 **Alternatives**: Manual member creation (rejected for full pipeline).
 
 ### D4 — Move Guardian into netclaw
-**Decision**: Lift home-api under `netclaw/ui/convergence-api` (or `services/home-api`); HUD-native UI replaces EJS as primary.  
+**Decision**: Lift convergence-api under `netclaw/ui/convergence-api` (or `services/convergence-api`); HUD-native UI replaces EJS as primary.  
 **Rationale**: Upstream self-containment; external k3s-observability-stack remains pilot until parity.  
 **Alternatives**: Forever proxy to external repo (poor upstream UX).
 

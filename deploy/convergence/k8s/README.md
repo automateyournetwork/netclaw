@@ -8,7 +8,7 @@ Minimal stack matching Docker Home (`deploy/convergence/docker-compose.yml`):
 | prometheus | StatefulSet + PVC | Metrics + rules |
 | alertmanager | Deployment | Webhook → host **alert-receiver** |
 | blackbox | Deployment | WAN / edge probes |
-| home-api | Deployment + ClusterIP + NodePort **30080** | HOME tab API |
+| convergence-api | Deployment + ClusterIP + NodePort **30080** | HOME tab API |
 | unifi-exporter | Deployment | Optional Wi‑Fi metrics (needs `UNIFI_API_KEY`) |
 
 Namespace: **`netclaw-convergence`** (isolated from pilot `observability`).
@@ -43,7 +43,7 @@ kubectl apply -f deploy/convergence/k8s/secret.yaml
 # 2. Alert webhook (agent plane host)
 # edit deploy/convergence/k8s/base/configs/alertmanager.yml  →  your alert-receiver URL
 
-# 3. Build & load home-api image (k3s example)
+# 3. Build & load convergence-api image (k3s example)
 docker build -t netclaw-convergence-api:local ui/convergence-api
 docker save netclaw-convergence-api:local | sudo k3s ctr images import -
 
@@ -59,12 +59,12 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield
 
 ```bash
 # Port-forward:
-kubectl -n netclaw-convergence port-forward svc/home-api 3080:3000
+kubectl -n netclaw-convergence port-forward svc/convergence-api 3080:3000
 # Or NodePort on a node IP: http://<node-ip>:30080
 
 # ~/.openclaw/.env
 HOME_API_URL=http://127.0.0.1:3080
-HOME_API_TOKEN=dev-home-api-key-change-me   # must match API_KEYS[].key
+HOME_API_TOKEN=dev-convergence-api-key-change-me   # must match API_KEYS[].key
 systemctl --user restart netclaw-hud.service
 ```
 

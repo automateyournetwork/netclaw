@@ -5,15 +5,15 @@
 
 ## Summary
 
-Productize the home Convergence pipeline as a **HOME** top-level tab in the Visual HUD, with home-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 tracked in `tasks.md`. Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
+Productize the home Convergence pipeline as a **HOME** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 tracked in `tasks.md`. Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
 
 ## Technical Context
 
-**Language/Version**: JavaScript (HUD, home-api Node 20), Python 3.12 (alert-receiver, exporters, install helpers)  
+**Language/Version**: JavaScript (HUD, convergence-api Node 20), Python 3.12 (alert-receiver, exporters, install helpers)  
 **Primary Dependencies**: Express, Three.js/Vite (HUD), Postgres, Prometheus, Alertmanager, OpenClaw gateway, iN2N mesh  
 **Storage**: Postgres (events diary); Prometheus/VM (metrics); optional RAG under `~/.openclaw/rag`  
 **Testing**: Manual HUD smoke; compose smoke scripts; unit tests for adapter config generation where practical  
-**Target Platform**: Linux host (NetClaw agent + HUD) + Docker Compose or K3s for OBS/home-api  
+**Target Platform**: Linux host (NetClaw agent + HUD) + Docker Compose or K3s for OBS/convergence-api  
 **Project Type**: multi-package (ui + deploy + scripts) inside monorepo `netclaw`  
 **Performance Goals**: HUD tab switch <1s; Overview API p95 <2s on LAN  
 **Constraints**: No wipe of existing risks; no browser secrets for UniFi/API keys; Constitution-compliant artifact coherence  
@@ -43,7 +43,7 @@ specs/067-convergence/
 ├── data-model.md
 ├── quickstart.md
 ├── contracts/
-│   ├── home-api.md
+│   ├── convergence-api.md
 │   ├── adapters.md
 │   └── install-wizard.md
 ├── checklists/requirements.md
@@ -73,7 +73,7 @@ scripts/systemd/netclaw-hud.service
 workspace/skills/         # multi-vendor wording updates
 ```
 
-**Structure Decision**: HUD + deploy packages inside `netclaw/`; agent remains host NetClaw + iN2N; OBS/home-api via Docker or K3s.
+**Structure Decision**: HUD + deploy packages inside `netclaw/`; agent remains host NetClaw + iN2N; OBS/convergence-api via Docker or K3s.
 
 ## Delivery strategy (operator decision)
 
@@ -82,7 +82,7 @@ workspace/skills/         # multi-vendor wording updates
 | Layer | Practice |
 |-------|----------|
 | Day-to-day | Develop and commit on **this fork’s `main`** (`origin` = `byrn-baker/netclaw-convergence`) |
-| Internal slices | Still implement in **task phases** (HUD → home-api → Docker → K3s → installer → triage) and keep `tasks.md` checkboxes current |
+| Internal slices | Still implement in **task phases** (HUD → convergence-api → Docker → K3s → installer → triage) and keep `tasks.md` checkboxes current |
 | Upstream | When Home is solid end-to-end (install + test), open **one** PR: fork `main` (or a release branch cut from it) → `automateyournetwork/netclaw` `main` |
 | Reviewability | Prefer a clean history (logical commits, no secrets, no pilot-only dirt) before that PR; optional squash at PR time |
 
@@ -94,7 +94,7 @@ workspace/skills/         # multi-vendor wording updates
 |-------|-------------|
 | 0 | Spec kit complete (this folder) |
 | 1 | US1 HUD tabs + Home shell |
-| 2 | US2 home-api move + live Overview |
+| 2 | US2 convergence-api move + live Overview |
 | 3 | US3 Docker minimal |
 | 4 | US4 K3s minimal |
 | 5 | US4–US5 installer, setup, guardian-claw ensure, framework cleanup |

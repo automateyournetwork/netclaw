@@ -16,7 +16,7 @@ resources:
   - prometheus.yaml
   - alertmanager.yaml
   - blackbox.yaml
-  - home-api.yaml
+  - convergence-api.yaml
   - unifi-exporter.yaml
 
 configMapGenerator:
@@ -32,7 +32,7 @@ configMapGenerator:
   - name: blackbox-config
     files:
       - blackbox.yml=configs/blackbox.yml
-  - name: home-api-config
+  - name: convergence-api-config
     literals:
       - PUBLIC_URL=http://127.0.0.1:30080
       - UNIFI_HOST=https://192.168.100.10:11443

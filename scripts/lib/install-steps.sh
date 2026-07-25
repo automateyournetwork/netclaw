@@ -3661,18 +3661,18 @@ echo ""
 # ═══════════════════════════════════════════════════════════════════
 
 component_install_convergence_core() {
-log_step "Installing Convergence Core (home-api + config)..."
-echo "  home-api: ui/convergence-api/  |  config: config/convergence.example.yaml"
+log_step "Installing Convergence Core (convergence-api + config)..."
+echo "  convergence-api: ui/convergence-api/  |  config: config/convergence.example.yaml"
 echo "  Deploy (later in setup): Docker deploy/convergence/ or K3s deploy/convergence/k8s/"
 
 HOME_API_DIR="$NETCLAW_DIR/ui/convergence-api"
 if [ -f "$HOME_API_DIR/package.json" ]; then
     if command -v npm >/dev/null 2>&1; then
-        log_info "Installing home-api npm dependencies..."
+        log_info "Installing convergence-api npm dependencies..."
         (cd "$HOME_API_DIR" && npm install --omit=dev 2>/dev/null) || \
-            log_warn "home-api npm install failed — run: cd ui/convergence-api && npm install"
+            log_warn "convergence-api npm install failed — run: cd ui/convergence-api && npm install"
     else
-        log_warn "npm not found — install Node.js 20+ for home-api"
+        log_warn "npm not found — install Node.js 20+ for convergence-api"
     fi
 else
     log_warn "ui/convergence-api not found at $HOME_API_DIR"
@@ -3694,14 +3694,14 @@ else
     log_warn "config/convergence.example.yaml missing — re-pull repo"
 fi
 
-log_info "Convergence core ready. Set HOME_API_URL / HOME_API_TOKEN in $RUNTIME_ENV after deploy."
+log_info "Convergence core ready. Set CONVERGENCE_API_URL / CONVERGENCE_API_TOKEN in $RUNTIME_ENV after deploy (HOME_API_* aliases still work)."
 echo "  Docs: specs/067-convergence/quickstart.md  deploy/convergence/README.md"
 echo ""
 }
 
 component_install_convergence_metrics() {
 log_step "Installing Convergence Metrics Stack packaging..."
-echo "  Docker: deploy/convergence/docker-compose.yml (postgres, prom, am, blackbox, home-api)"
+echo "  Docker: deploy/convergence/docker-compose.yml (postgres, prom, am, blackbox, convergence-api)"
 echo "  K3s:    deploy/convergence/k8s/ (kustomize greenfield overlay)"
 
 if [ -f "$NETCLAW_DIR/deploy/convergence/docker-compose.yml" ]; then
@@ -3759,7 +3759,7 @@ echo ""
 
 component_install_convergence_pfsense() {
 log_step "Installing Convergence pfSense / edge firewall adapter packaging..."
-echo "  Management GUI links: PFSENSE_MGMT_URL / EDGE_MGMT_URL (home-api + HUD)"
+echo "  Management GUI links: PFSENSE_MGMT_URL / EDGE_MGMT_URL (convergence-api + HUD)"
 echo "  Investigations: pfsense-mcp when present under mcp-servers/ (optional)"
 
 if [ -d "$MCP_DIR/pfsense-mcp" ] || [ -d "$HOME/pfsense-mcp" ] || [ -d "/home/ubuntu/pfsense-mcp" ]; then
@@ -3841,6 +3841,6 @@ else
 fi
 
 echo "  Open http://localhost:3001 → COMMAND | HOME"
-echo "  Point HOME at API: HOME_API_URL + HOME_API_TOKEN in $RUNTIME_ENV"
+echo "  Point HOME at API: CONVERGENCE_API_URL + CONVERGENCE_API_TOKEN in $RUNTIME_ENV"
 echo ""
 }

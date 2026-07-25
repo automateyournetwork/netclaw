@@ -1,18 +1,18 @@
-# home-api — HUD HOME backend (Docker service: home-api)
+# convergence-api — HUD HOME backend (Docker service: convergence-api)
 # Build: docker build -t netclaw-convergence-api:local ui/convergence-api
 # Load into k3s: docker save netclaw-convergence-api:local | sudo k3s ctr images import -
 apiVersion: v1
 kind: Service
 metadata:
-  name: home-api
+  name: convergence-api
   labels:
-    app.kubernetes.io/name: home-api
+    app.kubernetes.io/name: convergence-api
     app.kubernetes.io/part-of: netclaw-convergence
     app.kubernetes.io/component: api
 spec:
   type: ClusterIP
   selector:
-    app.kubernetes.io/name: home-api
+    app.kubernetes.io/name: convergence-api
   ports:
     - name: http
       port: 3000
@@ -23,15 +23,15 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: home-api-node
+  name: convergence-api-node
   labels:
-    app.kubernetes.io/name: home-api
+    app.kubernetes.io/name: convergence-api
     app.kubernetes.io/part-of: netclaw-convergence
     app.kubernetes.io/component: api
 spec:
   type: NodePort
   selector:
-    app.kubernetes.io/name: home-api
+    app.kubernetes.io/name: convergence-api
   ports:
     - name: http
       port: 3000
@@ -41,25 +41,25 @@ spec:
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: home-api
+  name: convergence-api
   labels:
-    app.kubernetes.io/name: home-api
+    app.kubernetes.io/name: convergence-api
     app.kubernetes.io/part-of: netclaw-convergence
     app.kubernetes.io/component: api
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app.kubernetes.io/name: home-api
+      app.kubernetes.io/name: convergence-api
   template:
     metadata:
       labels:
-        app.kubernetes.io/name: home-api
+        app.kubernetes.io/name: convergence-api
         app.kubernetes.io/part-of: netclaw-convergence
         app.kubernetes.io/component: api
     spec:
       containers:
-        - name: home-api
+        - name: convergence-api
           image: netclaw-convergence-api:local
           imagePullPolicy: IfNotPresent
           ports:
@@ -73,7 +73,7 @@ spec:
             - name: PUBLIC_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: PUBLIC_URL
             - name: PGHOST
               value: postgres
@@ -116,42 +116,42 @@ spec:
             - name: SITES_CONFIG
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: SITES_CONFIG
             - name: UNIFI_HOST
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: UNIFI_HOST
                   optional: true
             - name: UNIFI_MGMT_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: UNIFI_MGMT_URL
                   optional: true
             - name: PFSENSE_MGMT_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: PFSENSE_MGMT_URL
                   optional: true
             - name: EDGE_MGMT_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: EDGE_MGMT_URL
                   optional: true
             - name: SOT_TYPE
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: SOT_TYPE
                   optional: true
             - name: NAUTOBOT_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: NAUTOBOT_URL
                   optional: true
             - name: NAUTOBOT_TOKEN
@@ -163,7 +163,7 @@ spec:
             - name: NETBOX_URL
               valueFrom:
                 configMapKeyRef:
-                  name: home-api-config
+                  name: convergence-api-config
                   key: NETBOX_URL
                   optional: true
             - name: NETBOX_TOKEN

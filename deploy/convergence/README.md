@@ -6,7 +6,7 @@ Single-host OBS + **convergence-api** stack for the HUD **HOME** tab
 
 | Service | Host port (default) | Role |
 |---------|---------------------|------|
-| home-api *(service id)* / image `netclaw-convergence-api` | 3080 | Health / wifi / devices / events / inventory API |
+| convergence-api *(service id)* / image `netclaw-convergence-api` | 3080 | Health / wifi / devices / events / inventory API |
 | prometheus | 9090 | Metrics + rules |
 | alertmanager | 9093 | Routes alerts → host **alert-receiver** |
 | blackbox | 9115 | WAN TCP/HTTP probes |
@@ -34,7 +34,7 @@ docker compose -f deploy/convergence/docker-compose.yml --env-file deploy/conver
 ```bash
 # ~/.openclaw/.env
 HOME_API_URL=http://127.0.0.1:3080
-HOME_API_TOKEN=dev-home-api-key-change-me   # must match API_KEYS[].key
+HOME_API_TOKEN=dev-convergence-api-key-change-me   # must match API_KEYS[].key
 systemctl --user restart netclaw-hud.service
 ```
 
@@ -96,7 +96,7 @@ Open Grafana at http://localhost:3300 (anonymous viewer access by default).
 Alertmanager posts to `ALERT_RECEIVER_URL` (default
 `http://host.docker.internal:8099/webhook`). Compose sets
 `extra_hosts: host.docker.internal:host-gateway` so Linux can reach the NetClaw
-host where `scripts/alert-receiver` listens.
+host where `services/alert-receiver` listens.
 
 Re-render after changing the URL:
 

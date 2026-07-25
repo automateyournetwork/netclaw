@@ -14,7 +14,7 @@ details unique to this deployment.
 - **Token:** in `~/.openclaw/.env` as `NAUTOBOT_TOKEN` (never hard-code it)
 - Authoritative inventory for all managed devices, VMs, IPs, and VLANs.
 - Query it first (via `nautobot-mcp`) before falling back to the local
-  `scripts/alert-receiver/inventory.yaml`.
+  `services/alert-receiver/inventory.yaml`.
 
 ## Managed Devices (from Nautobot, site "House")
 

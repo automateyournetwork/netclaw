@@ -14,16 +14,16 @@ kind: Kustomization
 # resources:
 #   - ../../base
 
-# Example: if you later want home-api only, pointing at pilot OBS services,
+# Example: if you later want convergence-api only, pointing at pilot OBS services,
 # add a thin resource set + patches (names differ — see OVERLAY-PILOT.md):
 # resources:
 #   - ../../base/namespace.yaml
 #   - ../../base/postgres.yaml
-#   - ../../base/home-api.yaml
+#   - ../../base/convergence-api.yaml
 # patches:
 #   - target:
 #       kind: Deployment
-#       name: home-api
+#       name: convergence-api
 #     patch: |-
 #       - op: replace
 #         path: /spec/template/spec/containers/0/env/name=PROMETHEUS_URL/value
