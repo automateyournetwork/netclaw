@@ -1,5 +1,9 @@
-# snmp_exporter v0.26+ for generic wireless (T071) — auth-split format
-# IF-MIB baseline. Distinct from device-snmp (campus switches) only by profile/targets.
+# Campus/wired device SNMP (switches) — Phase 8 greenfield
+# snmp_exporter v0.26+ auth-split format:
+#   https://github.com/prometheus/snmp_exporter/blob/main/auth-split-migration.md
+# IF-MIB: ifDescr, admin/oper status, HC octets, errors
+# Distinct from adapters/generic-snmp-wireless (AP path).
+
 auths:
   public_v2:
     community: public

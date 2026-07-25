@@ -96,6 +96,7 @@ scrape_configs:
     metrics_path: /snmp
     params:
       module: [if_mib]
+      auth: [public_v2]
     static_configs:
       - targets:
           - 192.168.1.20   # <-- set to your AP/controller IP
@@ -119,6 +120,53 @@ scrape_configs:
       - targets: ["pushgateway:9091"]
         labels:
           site: home
+
+  # Campus/wired device SNMP (compose profile: device-snmp, Phase 8)
+  # Distinct from generic_snmp_wireless (APs). Targets = switch mgmt IPs.
+  # Regenerate static_configs via:
+  #   python3 scripts/render-device-snmp-scrape.py --targets adapters/device-snmp/targets.example.yml
+  # Target down / profile off is ok.
+  - job_name: device_snmp
+    scrape_interval: 60s
+    metrics_path: /snmp
+    params:
+      module: [if_mib]
+      auth: [public_v2]
+    static_configs:
+      - targets: ["192.168.3.2"]
+        labels:
+          site: home
+          device_name: HomeSwitch01
+          role: switch
+      - targets: ["192.168.3.3"]
+        labels:
+          site: home
+          device_name: HomeSwitch02
+          role: switch
+      - targets: ["192.168.3.5"]
+        labels:
+          site: home
+          device_name: HomeSwitch04
+          role: switch
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: snmp-device-exporter:9116
+
+  # NetClaw agent token/cost exporter on host (Phase 8 — profile not required)
+  # Enable: systemctl --user enable --now openclaw-token-exporter  (scripts/openclaw-metrics)
+  # Target down is ok when exporter is not installed.
+  - job_name: netclaw-openclaw
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:9110"]
+        labels:
+          site: home
+          instance: netclaw
 
   # Edge firewall (pfSense) HTTPS management UI — override target via file edit or extra job
   - job_name: blackbox_edge

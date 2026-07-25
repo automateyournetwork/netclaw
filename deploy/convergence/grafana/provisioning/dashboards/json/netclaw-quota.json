@@ -1,0 +1,146 @@
+{
+  "title": "NetClaw — Model Usage & DeepSeek Quota Watch",
+  "uid": "netclaw-quota-watch",
+  "tags": ["netclaw", "openclaw", "quota"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "1m",
+  "time": {"from": "now-7d", "to": "now"},
+  "templating": {
+    "list": [
+      {
+        "name": "datasource",
+        "label": "Prometheus",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {},
+        "hide": 0
+      },
+      {
+        "name": "weekly_token_budget",
+        "label": "Weekly token budget (calibrate from Ollama dashboard)",
+        "type": "constant",
+        "query": "200000000",
+        "current": {"text": "200000000", "value": "200000000"},
+        "hide": 0
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "DeepSeek — 7-day token burn (quota proxy)",
+      "type": "gauge",
+      "gridPos": {"h": 8, "w": 8, "x": 0, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "green", "value": 0},
+            {"color": "yellow", "value": 70},
+            {"color": "red", "value": 90}
+          ]}
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "100 * (sum(increase(netclaw_model_input_tokens_total{model=~\"deepseek.*\"}[7d])) + sum(increase(netclaw_model_output_tokens_total{model=~\"deepseek.*\"}[7d]))) / ${weekly_token_budget}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Projected weekly DeepSeek burn (current daily rate x7)",
+      "type": "stat",
+      "gridPos": {"h": 8, "w": 8, "x": 8, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "thresholds": {"mode": "absolute", "steps": [
+            {"color": "green", "value": 0},
+            {"color": "yellow", "value": 80},
+            {"color": "red", "value": 100}
+          ]}
+        }
+      },
+      "options": {"colorMode": "background", "graphMode": "area"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "100 * 7 * (sum(increase(netclaw_model_input_tokens_total{model=~\"deepseek.*\"}[1d])) + sum(increase(netclaw_model_output_tokens_total{model=~\"deepseek.*\"}[1d]))) / ${weekly_token_budget}"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Model calls (7d) — local qwen vs cloud DeepSeek",
+      "type": "piechart",
+      "gridPos": {"h": 8, "w": 8, "x": 16, "y": 0},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (model) (increase(netclaw_model_calls_total[7d]))",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "id": 4,
+      "title": "Tokens/day by model (input + output)",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 24, "x": 0, "y": 8},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "short", "custom": {"drawStyle": "bars", "stacking": {"mode": "normal"}}}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "sum by (model) (increase(netclaw_model_input_tokens_total[1d]) + increase(netclaw_model_output_tokens_total[1d]))",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "DeepSeek token rate (per hour)",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 12, "x": 0, "y": 17},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "short"}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "3600 * (sum(rate(netclaw_model_input_tokens_total{model=~\"deepseek.*\"}[30m])) + sum(rate(netclaw_model_output_tokens_total{model=~\"deepseek.*\"}[30m])))",
+          "legendFormat": "deepseek tokens/hr"
+        }
+      ]
+    },
+    {
+      "id": 6,
+      "title": "Estimated cost / hour (set model prices for real $)",
+      "type": "timeseries",
+      "gridPos": {"h": 9, "w": 12, "x": 12, "y": 17},
+      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "fieldConfig": {"defaults": {"unit": "currencyUSD"}},
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {"type": "prometheus", "uid": "${datasource}"},
+          "expr": "3600 * sum by (model) (rate(netclaw_model_cost_usd_total[30m]))",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    }
+  ]
+}

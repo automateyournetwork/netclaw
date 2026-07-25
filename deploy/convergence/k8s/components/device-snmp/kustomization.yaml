@@ -1,0 +1,13 @@
+# Phase 8 greenfield — campus device SNMP (optional component)
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - snmp-device-exporter.yaml
+
+configMapGenerator:
+  - name: snmp-device-config
+    files:
+      - snmp.yml=configs/snmp.yml
+    options:
+      disableNameSuffixHash: true

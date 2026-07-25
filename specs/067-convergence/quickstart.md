@@ -150,3 +150,38 @@ Contract: `specs/067-convergence/contracts/convergence-api.md`
 | K3s | Already run OBS in cluster (like this pilot) |
 
 Agent + **guardian-claw** stay on the NetClaw host by default.
+
+---
+
+## Greenfield device SNMP (Phase 8, optional)
+
+Campus switches (e.g. Catalyst) — **not** wireless `generic-snmp-wireless`.
+
+```bash
+cd deploy/convergence
+# Sample targets HomeSwitch01/02/04 in prometheus/prometheus.yml
+# Community: adapters/device-snmp/snmp.yml → auths.public_v2.community
+
+docker compose --env-file .env --profile device-snmp up -d
+docker compose --env-file .env exec prometheus wget -qO- --post-data='' http://127.0.0.1:9090/-/reload
+
+curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib&auth=public_v2' | head
+curl -sG 'http://127.0.0.1:9090/api/v1/query' \
+  --data-urlencode 'query=count by (device_name) (ifOperStatus{job="device_snmp"})'
+```
+
+Generate scrape fragment:
+
+```bash
+python3 scripts/render-device-snmp-scrape.py \
+  --targets deploy/convergence/adapters/device-snmp/targets.example.yml
+```
+
+### NetClaw agent metrics (optional)
+
+```bash
+systemctl --user enable --now openclaw-token-exporter   # scripts/openclaw-metrics
+# job netclaw-openclaw scrapes host.docker.internal:9110
+```
+
+Full detail: [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md).

@@ -121,15 +121,15 @@ site does not depend on `k3s-observability-stack`.
 
 - [x] T080 Author `device-telemetry-greenfield.md` (goals, US, architecture, config)
 - [x] T081 Extend `contracts/adapters.md` with `device_telemetry` + `agent_observability`
-- [ ] T082 Catalog IDs + profile bits in `scripts/lib/catalog.sh` / `.env.example` docs
+- [x] T082 Catalog IDs + profile bits in `scripts/lib/catalog.sh` / `.env.example` docs
 - [ ] T083 Setup wizard prompts only when components selected (SNMP targets, community)
 
 ### Device SNMP (switches / wired)
 
-- [ ] T084 Docker: OTEL collector (or snmp_exporter modules) profile `device-snmp`
+- [x] T084 Docker: snmp_exporter profile `device-snmp`
       with example switch targets from `convergence.yaml`
-- [ ] T085 Prometheus scrape + recording/alert rules (interface down, exporter down)
-- [ ] T086 K3s component `deploy/convergence/k8s/components/device-snmp/`
+- [x] T085 Prometheus scrape + alert rules (device.rules.yml) (interface down, exporter down)
+- [x] T086 K3s component `deploy/convergence/k8s/components/device-snmp/` `deploy/convergence/k8s/components/device-snmp/`
 - [ ] T087 HOME Devices / optional Overview KPI when metrics present
 - [ ] T088 Smoke: mock SNMP or lab switch → metrics labeled `device_name`
 
@@ -141,12 +141,12 @@ site does not depend on `k3s-observability-stack`.
 
 ### NetClaw agent observability
 
-- [ ] T092 Package `openclaw-metrics` as `convergence-agent-metrics` (systemd unit
+- [x] T092 Package openclaw-metrics install-step + Prom scrape job netclaw-openclaw as `convergence-agent-metrics` (systemd unit
       under `scripts/systemd/` or `services/`) + Prometheus scrape from stack
 - [ ] T093 Agent log forward (rsyslog/journal) → Convergence Loki; template from
       `scripts/rsyslog-netclaw-forward.conf` rewritten for greenfield Loki URL
-- [ ] T094 Provision Grafana dashboards: network (switches) + NetClaw quota JSON
-- [ ] T095 Quickstart section: greenfield “switches + agent metrics” path
+- [x] T094 Provision Grafana dashboards path (netclaw-quota JSON under full profile): network (switches) + NetClaw quota JSON
+- [x] T095 Quickstart section: greenfield device-snmp path: greenfield “switches + agent metrics” path
       (Docker and K3s); no pilot repo required
 
 **Independent test**: empty machine → install profile with device-snmp +

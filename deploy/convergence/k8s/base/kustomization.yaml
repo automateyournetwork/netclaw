@@ -26,6 +26,7 @@ configMapGenerator:
   - name: prometheus-alerts
     files:
       - home.rules.yml=configs/home.rules.yml
+      - device.rules.yml=configs/device.rules.yml
   - name: alertmanager-config
     files:
       - alertmanager.yml=configs/alertmanager.yml

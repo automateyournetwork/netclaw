@@ -29,19 +29,51 @@ sot:
   # env: NAUTOBOT_URL / NAUTOBOT_TOKEN  or  NETBOX_URL / NETBOX_TOKEN
 
 metrics:
-  # After Docker Home: http://127.0.0.1:9090
-  # After K3s Home (port-forward): http://127.0.0.1:9090
-  # Pilot OBS dual-run: cluster Prometheus via Grafana proxy or ClusterIP
+  # After Docker: http://127.0.0.1:9090
+  # After K3s (port-forward / NodePort): http://127.0.0.1:9090 or :30080 API
   prometheus_url: http://127.0.0.1:9090
-  # optional:
+  # optional (compose --profile full):
   # loki_url: http://127.0.0.1:3100
   # victoriametrics_url: http://127.0.0.1:8428
 
+# Phase 8 greenfield — campus switches (NOT wireless generic-snmp)
+# Compose: --profile device-snmp   · community in adapters/device-snmp/snmp.yml
+device_telemetry:
+  snmp:
+    enabled: false
+    engine: snmp_exporter
+    version: v2c
+    poll_interval: 60s
+    targets:
+      - name: HomeSwitch01
+        ip: 192.168.3.2
+        role: switch
+      - name: HomeSwitch02
+        ip: 192.168.3.3
+        role: switch
+      - name: HomeSwitch04
+        ip: 192.168.3.5
+        role: switch
+  syslog:
+    enabled: false
+    listen: "0.0.0.0:1514"
+
+# Phase 8 — NetClaw host metrics/logs (optional)
+agent_observability:
+  token_exporter:
+    enabled: false   # systemctl --user enable --now openclaw-token-exporter
+    port: 9110
+  log_forward:
+    enabled: false   # rsyslog → Convergence Loki when full profile is up
+
+grafana:
+  provision_network_dashboards: true
+  provision_agent_dashboards: true
+
 home_api:
-  # HUD HOME_API_URL — Docker default host port 3080; K3s NodePort 30080
+  # Prefer CONVERGENCE_API_URL — Docker :3080; K3s NodePort :30080
   url: http://127.0.0.1:3080
-  # token matches API_KEYS[].key in deploy/convergence/.env or k8s secret
-  # env: HOME_API_TOKEN
+  # env: CONVERGENCE_API_TOKEN (or HOME_API_TOKEN)
 
 agent:
   alert_receiver_url: http://127.0.0.1:8099/webhook

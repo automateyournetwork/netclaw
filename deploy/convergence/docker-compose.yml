@@ -35,6 +35,8 @@ services:
   prometheus:
     image: prom/prometheus:v2.54.1
     restart: unless-stopped
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command:
       - --config.file=/etc/prometheus/prometheus.yml
       - --storage.tsdb.path=/prometheus
@@ -153,6 +155,20 @@ services:
       - ./adapters/generic-snmp-wireless/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
     ports:
       - "${SNMP_WIRELESS_EXPORTER_HOST_PORT:-9116}:9116"
+    networks: [convergence]
+
+  # Campus/wired switch SNMP (Phase 8 greenfield) — NOT wireless APs
+  # Edit job device_snmp targets in prometheus/prometheus.yml (device_name labels).
+  snmp-device-exporter:
+    profiles: ["device-snmp"]
+    image: prom/snmp-exporter:v0.26.0
+    restart: unless-stopped
+    command: ["--config.file=/etc/snmp_exporter/snmp.yml"]
+    volumes:
+      - ./adapters/device-snmp/snmp.yml:/etc/snmp_exporter/snmp.yml:ro
+    ports:
+      # container listens :9116; host default 9117 so it does not clash with wireless exporter
+      - "${SNMP_DEVICE_EXPORTER_HOST_PORT:-9117}:9116"
     networks: [convergence]
 
 networks:

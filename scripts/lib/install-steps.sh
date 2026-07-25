@@ -3792,6 +3792,61 @@ log_info "convergence.yaml sot.type: netbox  (env: NETBOX_URL / NETBOX_TOKEN)"
 echo ""
 }
 
+component_install_convergence_device_snmp() {
+log_step "Convergence device SNMP (campus switches)..."
+echo "  Greenfield Phase 8 — IF-MIB via snmp_exporter (profile device-snmp)"
+echo "  Docs: deploy/convergence/adapters/device-snmp/README.md"
+echo "  Spec: specs/067-convergence/device-telemetry-greenfield.md"
+log_info "Edit prometheus job device_snmp targets (or render-device-snmp-scrape.py)"
+log_info "Docker: cd deploy/convergence && docker compose --env-file .env --profile device-snmp up -d"
+echo ""
+}
+
+component_install_convergence_device_syslog() {
+log_step "Convergence device syslog..."
+echo "  Greenfield Phase 8 — syslog → Loki (requires --profile full for Loki)"
+log_info "Runtime receiver TBD (T089); configure switch syslog to host:1514 when implemented"
+echo ""
+}
+
+component_install_convergence_agent_metrics() {
+log_step "Convergence agent metrics (openclaw-token-exporter)..."
+EXP_SRC="$NETCLAW_DIR/scripts/openclaw-metrics"
+UNIT_SRC="$EXP_SRC/openclaw-token-exporter.service"
+UNIT_DST="$HOME/.config/systemd/user/openclaw-token-exporter.service"
+if [ -f "$UNIT_SRC" ]; then
+    mkdir -p "$HOME/.config/systemd/user"
+    # Point WorkingDirectory at repo openclaw-metrics if unit uses placeholders
+    cp "$UNIT_SRC" "$UNIT_DST" 2>/dev/null || true
+    if command -v systemctl >/dev/null 2>&1; then
+        systemctl --user daemon-reload 2>/dev/null || true
+        systemctl --user enable --now openclaw-token-exporter 2>/dev/null && \
+            log_info "openclaw-token-exporter enabled (:9110)" || \
+            log_warn "Could not start openclaw-token-exporter — see scripts/openclaw-metrics/README.md"
+    fi
+else
+    log_warn "scripts/openclaw-metrics unit not found"
+fi
+log_info "Prometheus already scrapes host.docker.internal:9110 (job netclaw-openclaw)"
+echo ""
+}
+
+component_install_convergence_agent_logs() {
+log_step "Convergence agent log forward..."
+echo "  Template: scripts/rsyslog-netclaw-forward.conf"
+echo "  Point UDP forward at Convergence Loki (full profile) or OTEL when T093 lands"
+log_info "Copy/adapt rsyslog conf and restart rsyslog after editing remote host"
+echo ""
+}
+
+component_install_convergence_grafana_dashboards() {
+log_step "Convergence Grafana dashboards..."
+echo "  Provisioned under deploy/convergence/grafana/provisioning/dashboards/"
+echo "  Enable: docker compose -f docker-compose.yml -f docker-compose.full.yml --profile full up -d"
+log_info "NetClaw quota board: grafana/provisioning/dashboards/json/netclaw-quota.json"
+echo ""
+}
+
 component_install_visual_hud() {
 log_step "Installing Visual HUD (COMMAND | HOME)..."
 echo "  Path: ui/netclaw-visual/  default port 3001"
