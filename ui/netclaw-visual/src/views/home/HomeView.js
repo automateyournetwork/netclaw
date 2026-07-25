@@ -271,12 +271,10 @@ export class HomeView {
         return;
       }
 
-      if (this.subview === 'overview' || force) {
-        this.cache.health = await homeFetch(`/health?site=${SITE}`);
-      }
-      if (this.subview === 'wifi' || force) {
-        this.cache.wifi = await homeFetch(`/wifi?site=${SITE}`);
-      }
+      // Health + wifi always (topbar metrics need both)
+      this.cache.health = await homeFetch(`/health?site=${SITE}`);
+      this.cache.wifi = await homeFetch(`/wifi?site=${SITE}`).catch(() => this.cache.wifi || null);
+
       if (this.subview === 'devices' || force) {
         this.cache.devices = await homeFetch(`/devices?site=${SITE}`);
       }
@@ -291,10 +289,6 @@ export class HomeView {
         );
       }
 
-      // Always refresh health for topbar when possible
-      if (!this.cache.health) {
-        this.cache.health = await homeFetch(`/health?site=${SITE}`);
-      }
       this.syncTopbarMetrics(this.cache.health);
     } catch (err) {
       this.lastError = {
@@ -314,16 +308,18 @@ export class HomeView {
       const el = document.getElementById(id);
       if (el) el.textContent = v;
     };
-    if (!health) {
+    // Allow no-arg call to re-use cache (tab switch)
+    const h = health === undefined ? this.cache?.health : health;
+    if (!h) {
       set('home-metric-health', '—');
       set('home-metric-latency', '—');
       set('home-metric-wifi', '—');
       set('home-metric-alerts', '—');
       return;
     }
-    const hs = health.healthScore?.value ?? health.health_score ?? '—';
-    const lat = health.wanLatency?.value ?? health.latency ?? '—';
-    const alerts = health.alertCount?.firing ?? health.alerts?.firing ?? '—';
+    const hs = h.healthScore?.value ?? h.health_score ?? '—';
+    const lat = h.wanLatency?.value ?? h.latency ?? '—';
+    const alerts = h.alertCount?.firing ?? h.alerts?.firing ?? '—';
     set('home-metric-health', String(hs));
     set('home-metric-latency', lat === '—' ? '—' : String(Math.round(Number(lat) * 10) / 10));
     set('home-metric-wifi', this.cache.wifi?.clients?.wireless != null
@@ -413,7 +409,15 @@ export class HomeView {
         </div>
         <div class="home-kpi">
           <div class="home-kpi-label">Speedtest</div>
-          <div class="home-kpi-value ${statusClass(h.speedtest?.status)}">${dl != null ? esc(dl) : '—'}<span class="unit"> / ${ul != null ? esc(ul) : '—'} Mbps</span></div>
+          <div class="home-kpi-value ${statusClass(h.speedtest?.status)}" title="${
+            dl == null
+              ? 'No speedtest metrics — enable full stack: docker compose -f docker-compose.yml -f docker-compose.full.yml --profile full up -d'
+              : ''
+          }">${
+            dl != null
+              ? `${esc(dl)}<span class="unit"> / ${ul != null ? esc(ul) : '—'} Mbps</span>`
+              : 'n/a<span class="unit"> (no runner)</span>'
+          }</div>
         </div>
         <div class="home-kpi">
           <div class="home-kpi-label">Firing alerts</div>

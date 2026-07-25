@@ -3756,7 +3756,10 @@ function wireUI() {
     onChange: (tab) => {
       state.appTab = tab;
       if (tab === 'home' && state.homeView) {
-        state.homeView.syncTopbarMetrics();
+        // Re-paint topbar from cache and refresh (do NOT call syncTopbarMetrics()
+        // with no args — that clears metrics to "—").
+        state.homeView.syncTopbarMetrics(state.homeView.cache?.health || null);
+        state.homeView.refresh(true);
       }
       // Force a resize when returning to Command so canvas matches viewport
       if (tab === 'command') {
