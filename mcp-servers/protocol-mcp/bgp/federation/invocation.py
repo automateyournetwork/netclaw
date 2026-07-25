@@ -231,8 +231,27 @@ class Invoker:
 
     async def handle_task_cancel(self, channel, params):
         task_id = params.get("task_id", "")
-        return {"task_id": task_id,
-                "cancelled": self.service.tasks.cancel(task_id, owner=channel.peer_identity)}
+        cancelled = self.service.tasks.cancel(task_id, owner=channel.peer_identity)
+        # The phone's own Cancel button (chat_screen.dart _cancel()) never
+        # reads this RPC's return value -- it waits for a pushed
+        # n2n/edge/ask_result, exactly like a normal completion (mirrors
+        # _edge_on_ask's _push_result_when_done). A task cancelled via the
+        # live-worker path already gets that push from there; a task
+        # cancelled via tasks.py's no-live-worker fallback (e.g. orphaned by
+        # a daemon restart) never goes through that code at all, so without
+        # this the phone would show the fixed-up task as "cancelled" server
+        # side while its UI stays stuck on "Working..." forever.
+        if cancelled and self.service.edge_channels.get(channel.peer_identity) is channel:
+            result = self.service.tasks.result(task_id)
+            if result.get("state") == "cancelled":
+                try:
+                    await channel.notify("n2n/edge/ask_result", {
+                        "task_id": task_id, "state": "cancelled",
+                        "output_text": None, "tokens_used": 0,
+                    })
+                except Exception:
+                    pass
+        return {"task_id": task_id, "cancelled": cancelled}
 
     # ---- feature 064: federated knowledge retrieval -------------------
 

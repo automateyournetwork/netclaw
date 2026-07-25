@@ -87,6 +87,19 @@ class TaskManager:
         if w and not w.done():
             w.cancel()
             return True
+        # No live worker for this task_id in THIS process. Usually that just
+        # means it already reached a terminal state -- but if a daemon
+        # restart happened while the task was in flight, the in-memory
+        # asyncio.Task that would run OR cancel it was destroyed while the
+        # DB row is still stuck at "submitted"/"working" forever, with
+        # nothing left alive to ever finish or cancel it (found via a real
+        # stuck edge_ask task whose phone-side Cancel button silently did
+        # nothing). Only a task genuinely still open is fixed up here.
+        row = self.manager._conn.execute(
+            "SELECT state FROM delegated_task WHERE task_id=?", (task_id,)).fetchone()
+        if row and row["state"] in ("submitted", "working"):
+            self._set(task_id, state="cancelled", completed_at=_now())
+            return True
         return False
 
     # ---- queries -------------------------------------------------------

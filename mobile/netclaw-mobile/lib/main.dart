@@ -61,7 +61,7 @@ class EnrollmentGate extends StatefulWidget {
   State<EnrollmentGate> createState() => _EnrollmentGateState();
 }
 
-enum _GateState { loading, reconnecting, needsEnrollment }
+enum _GateState { loading, reconnecting, reconnectFailed, needsEnrollment }
 
 class _EnrollmentGateState extends State<EnrollmentGate> {
   static const _identity = EdgeIdentity();
@@ -97,14 +97,16 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (_) => HomeShell(client: client, stored: stored)),
       );
-    } catch (_) {
-      // Revoked, or the Border is genuinely unreachable right now -- fall
-      // back to the QR scanner rather than getting stuck on a spinner
-      // forever. A transient outage costs a rescan today; distinguishing
-      // "revoked" from "temporarily down" would need a richer error type
-      // than EdgeClientException currently carries.
-      await store.clear();
-      if (mounted) setState(() => _state = _GateState.needsEnrollment);
+    } catch (e) {
+      if (isRevokedByBorder(e)) {
+        await store.clear();
+        if (mounted) setState(() => _state = _GateState.needsEnrollment);
+      } else if (mounted) {
+        // Plausibly transient (timeout, connection_error, a dropped TLS
+        // handshake, DNS failure) -- keep the persisted enrollment intact
+        // so a later launch can still reconnect as the same device.
+        setState(() => _state = _GateState.reconnectFailed);
+      }
     }
   }
 
@@ -133,6 +135,38 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
             MaterialPageRoute(builder: (_) => HomeShell(client: client, stored: stored)),
           );
         },
+      );
+    }
+    if (_state == _GateState.reconnectFailed) {
+      return Scaffold(
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  "Couldn't reconnect — this may just be a momentary "
+                  'network blip. Your enrollment is still saved.',
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                FilledButton(
+                  onPressed: () {
+                    setState(() => _state = _GateState.reconnecting);
+                    _init();
+                  },
+                  child: const Text('Retry'),
+                ),
+                const SizedBox(height: 8),
+                TextButton(
+                  onPressed: () => setState(() => _state = _GateState.needsEnrollment),
+                  child: const Text('Enter enrollment details instead'),
+                ),
+              ],
+            ),
+          ),
+        ),
       );
     }
     return const Scaffold(body: Center(child: CircularProgressIndicator()));

@@ -19,6 +19,17 @@ class EdgeClientException implements Exception {
   String toString() => 'EdgeClientException($code): $message';
 }
 
+/// -32023 is `_ERR_NOT_TRUSTED` (`internal_channel.py`) — the ONLY reply
+/// that means the Border itself rejected this exact pinned key (e.g. an
+/// operator explicitly removed the device), so the persisted enrollment
+/// really is dead and safe to discard. Every other failure a reconnect
+/// attempt can produce (`timeout`, `connection_error`, a raw socket/TLS
+/// exception that never reached the Border at all) is plausibly transient
+/// — a crash, a network blip, the Border restarting — and must NOT be
+/// treated the same way, or a momentary outage permanently burns a working
+/// enrollment (068 polish, found via a real crash-and-relaunch report).
+bool isRevokedByBorder(Object error) => error is EdgeClientException && error.code == '-32023';
+
 typedef EdgeMethodHandler = FutureOr<Map<String, dynamic>> Function(Map<String, dynamic> params);
 
 /// Anything that can register a handler for a Border-initiated method —

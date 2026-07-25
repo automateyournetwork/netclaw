@@ -405,9 +405,22 @@ async def handle_n2n(method, path, body):
             return 200, {"tasks": fed.tasks.list_recent()}
 
         if len(parts) == 4 and parts[1] == "tasks" and parts[3] == "cancel" and method == "POST":
-            row = mgr._conn.execute("SELECT peer_identity FROM delegated_task WHERE task_id=?",
-                                    (parts[2],)).fetchone()
+            row = mgr._conn.execute(
+                "SELECT peer_identity, direction FROM delegated_task WHERE task_id=?",
+                (parts[2],)).fetchone()
             if row:
+                # An "inbound" task (a peer/edge-node asked the Border to run
+                # something, e.g. a phone's edge_ask) is executed BY this
+                # process -- there is no remote channel to ask, cancelling it
+                # is purely local, exactly like tasks.py's own no-live-worker
+                # fallback for a task orphaned by a daemon restart. Routing
+                # this through the outbound member/remote-channel branch
+                # below always failed with "member not connected" (edge
+                # nodes live in fed.edge_channels, never fed.member_channels,
+                # so the lookup could never succeed even when the phone
+                # itself was connected).
+                if row["direction"] == "inbound":
+                    return 200, {"task_id": parts[2], "cancelled": fed.tasks.cancel(parts[2])}
                 try:
                     if fed.is_member_task(row["peer_identity"]):
                         ch = fed.member_channels.get(row["peer_identity"])
