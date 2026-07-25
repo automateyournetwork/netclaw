@@ -213,6 +213,33 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 HOME Devices and Overview pick up `ifOperStatus{job="device_snmp"}` automatically
 when Prometheus has series (no pilot OBS required). Grafana board:
 **Convergence — Campus Switches (device_snmp)** under full-stack / Docker full.
+## Models (brain vs alert triage)
+
+**Source of truth:** repo `.env` (or Convergence tab → **Models**):
+
+| Variable | Used for |
+|----------|----------|
+| `NETCLAW_BRAIN_MODEL` | Interactive main / HUD chat (`agents.defaults`) |
+| `NETCLAW_ALERT_TRIAGE_MODEL` | T2 investigations (`hooks.mappings[alert].model` + agent `alert`) |
+| `NETCLAW_ALERT_FALLBACK_MODEL` | Optional alert fallback |
+| `OLLAMA_BASE_URL` / `OLLAMA_API_KEY` | Synced into `~/.openclaw/gateway.systemd.env` |
+
+```bash
+# Edit netclaw/.env, then project into live OpenClaw + restart gateway:
+./scripts/netclaw-apply-models.sh show
+./scripts/netclaw-apply-models.sh apply
+./scripts/netclaw-apply-models.sh preset cloud-flash   # or local | split
+./scripts/netclaw-apply-models.sh set \
+  --brain ollama/voytas26/openclaw-qwen3vl-8b-opt \
+  --alert ollama/deepseek-v4-flash:cloud
+```
+
+HUD: **Convergence → Models** → edit / preset → **Apply & restart gateway**
+(`POST /api/models` on the HUD server).
+
+OpenClaw does **not** auto-reload model ids from `.env` alone — always run apply
+(or the HUD button) so `openclaw.json` + `gateway.systemd.env` stay in sync.
+
 ## Investigation policy (Phase 9 — cost control)
 
 **Default product posture:** most alerts should **not** open multi-tool LLM

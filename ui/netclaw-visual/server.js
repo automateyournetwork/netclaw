@@ -1384,6 +1384,208 @@ app.put('/api/env', (req, res) => {
   }
 });
 
+// ── Model SoT (067 Phase 9) — NETCLAW_BRAIN_MODEL / NETCLAW_ALERT_TRIAGE_MODEL ──
+// Operator edits live in repo .env (or via Convergence → Models), then apply projects
+// into ~/.openclaw/openclaw.json + gateway.systemd.env and restarts the gateway.
+const APPLY_MODELS_SCRIPT = path.join(ROOT, 'scripts', 'netclaw-apply-models.sh');
+const MODEL_ENV_KEYS = [
+  'NETCLAW_BRAIN_MODEL',
+  'NETCLAW_ALERT_TRIAGE_MODEL',
+  'NETCLAW_ALERT_FALLBACK_MODEL',
+  'OLLAMA_BASE_URL',
+  'OLLAMA_API_KEY',
+];
+
+function readOpenclawModelsLive() {
+  try {
+    const raw = readText(path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json'));
+    if (!raw) return {};
+    const d = JSON.parse(raw);
+    const defaults = d?.agents?.defaults?.model || {};
+    let alertAgent = null;
+    for (const a of d?.agents?.list || []) {
+      if (a?.id === 'alert') alertAgent = a.model || null;
+    }
+    let hookAlert = null;
+    for (const m of d?.hooks?.mappings || []) {
+      if (m?.match?.path === 'alert') {
+        hookAlert = { model: m.model || null, agentId: m.agentId || null };
+      }
+    }
+    return {
+      defaultsPrimary: defaults.primary || null,
+      alertAgent,
+      hookAlert,
+    };
+  } catch {
+    return {};
+  }
+}
+
+function writeModelEnvKeys(updates) {
+  // Prefer repo .env as operator SoT; also mirror into ~/.openclaw/.env
+  const targets = [ROOT_ENV];
+  if (fs.existsSync(OPENCLAW_ENV) || fs.existsSync(path.dirname(OPENCLAW_ENV))) {
+    targets.push(OPENCLAW_ENV);
+  }
+  for (const targetFile of targets) {
+    let text = readText(targetFile);
+    if (!text) text = '';
+    for (const [key, value] of Object.entries(updates)) {
+      if (value == null || value === '') continue;
+      if (!MODEL_ENV_KEYS.includes(key) && !key.startsWith('NETCLAW_') && !key.startsWith('OLLAMA_')) {
+        continue;
+      }
+      const regex = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=.*$`, 'm');
+      const newLine = `${key}=${value}`;
+      if (regex.test(text)) text = text.replace(regex, newLine);
+      else text = `${text.trimEnd()}\n${newLine}\n`;
+    }
+    try {
+      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
+      fs.writeFileSync(targetFile, text, 'utf8');
+    } catch (err) {
+      console.warn(`[models] write ${targetFile}: ${err.message}`);
+    }
+  }
+}
+
+function runApplyModels({ restart = true } = {}) {
+  return new Promise((resolve, reject) => {
+    if (!fs.existsSync(APPLY_MODELS_SCRIPT)) {
+      reject(new Error(`Missing ${APPLY_MODELS_SCRIPT}`));
+      return;
+    }
+    const args = ['apply'];
+    if (!restart) args.push('--no-restart');
+    execFile(
+      APPLY_MODELS_SCRIPT,
+      args,
+      {
+        cwd: ROOT,
+        env: { ...process.env, NETCLAW_DIR: ROOT, NETCLAW_ENV_FILE: ROOT_ENV },
+        timeout: 120000,
+        maxBuffer: 2 * 1024 * 1024,
+      },
+      (err, stdout, stderr) => {
+        if (err) {
+          err.stdout = stdout;
+          err.stderr = stderr;
+          reject(err);
+          return;
+        }
+        resolve({ stdout: String(stdout || ''), stderr: String(stderr || '') });
+      },
+    );
+  });
+}
+
+app.get('/api/models', (req, res) => {
+  const env = parseEnvFile();
+  // Prefer repo .env values for display when both set
+  const rootEnv = parseOneEnvFile(ROOT_ENV);
+  const brain = rootEnv.NETCLAW_BRAIN_MODEL || env.NETCLAW_BRAIN_MODEL || '';
+  const alert = rootEnv.NETCLAW_ALERT_TRIAGE_MODEL || env.NETCLAW_ALERT_TRIAGE_MODEL || '';
+  const fallback = rootEnv.NETCLAW_ALERT_FALLBACK_MODEL || env.NETCLAW_ALERT_FALLBACK_MODEL || '';
+  const live = readOpenclawModelsLive();
+  res.json({
+    sot: {
+      file: ROOT_ENV,
+      brain,
+      alert,
+      fallback,
+      ollamaBaseUrl: rootEnv.OLLAMA_BASE_URL || env.OLLAMA_BASE_URL || '',
+      ollamaKeySet: Boolean(rootEnv.OLLAMA_API_KEY || env.OLLAMA_API_KEY),
+    },
+    live,
+    presets: {
+      local: {
+        brain: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
+        alert: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
+        fallback: '',
+      },
+      'cloud-flash': {
+        brain: 'ollama/deepseek-v4-flash:cloud',
+        alert: 'ollama/deepseek-v4-flash:cloud',
+        fallback: 'ollama/glm-5.2:cloud',
+      },
+      split: {
+        brain: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
+        alert: 'ollama/deepseek-v4-flash:cloud',
+        fallback: 'ollama/glm-5.2:cloud',
+      },
+    },
+    applyScript: 'scripts/netclaw-apply-models.sh',
+    generatedAt: new Date().toISOString(),
+  });
+});
+
+app.post('/api/models', async (req, res) => {
+  try {
+    const body = req.body || {};
+    const restart = body.restart !== false;
+    const preset = body.preset ? String(body.preset) : null;
+
+    if (preset) {
+      await new Promise((resolve, reject) => {
+        const args = ['preset', preset];
+        if (!restart) args.push('--no-restart');
+        execFile(
+          APPLY_MODELS_SCRIPT,
+          args,
+          {
+            cwd: ROOT,
+            env: { ...process.env, NETCLAW_DIR: ROOT, NETCLAW_ENV_FILE: ROOT_ENV },
+            timeout: 120000,
+            maxBuffer: 2 * 1024 * 1024,
+          },
+          (err, stdout, stderr) => {
+            if (err) {
+              err.stdout = stdout;
+              err.stderr = stderr;
+              reject(err);
+              return;
+            }
+            resolve({ stdout, stderr });
+          },
+        );
+      });
+    } else {
+      const updates = {};
+      if (body.brain) updates.NETCLAW_BRAIN_MODEL = String(body.brain).trim();
+      if (body.alert) updates.NETCLAW_ALERT_TRIAGE_MODEL = String(body.alert).trim();
+      if (body.fallback != null && body.fallback !== '') {
+        updates.NETCLAW_ALERT_FALLBACK_MODEL = String(body.fallback).trim();
+      }
+      if (body.ollamaBaseUrl) updates.OLLAMA_BASE_URL = String(body.ollamaBaseUrl).trim();
+      if (!Object.keys(updates).length) {
+        return res.status(400).json({
+          error: 'Expected { brain, alert } or { preset: "local"|"cloud-flash"|"split" }',
+        });
+      }
+      writeModelEnvKeys(updates);
+      await runApplyModels({ restart });
+    }
+
+    broadcastWS('config:updated', {
+      keys: ['NETCLAW_BRAIN_MODEL', 'NETCLAW_ALERT_TRIAGE_MODEL'],
+      generatedAt: new Date().toISOString(),
+    });
+    res.json({
+      ok: true,
+      restarted: restart,
+      sot: parseOneEnvFile(ROOT_ENV),
+      live: readOpenclawModelsLive(),
+    });
+  } catch (err) {
+    console.error('[models] apply failed:', err.message, err.stderr || '');
+    res.status(500).json({
+      error: err.message || 'apply failed',
+      detail: String(err.stderr || err.stdout || '').slice(0, 2000),
+    });
+  }
+});
+
 // ── Testbed device config ──────────────────────────────────────────
 app.get('/api/testbed/raw', (req, res) => {
   res.type('text/yaml').send(readText(TESTBED_FILE) || '# No testbed found');

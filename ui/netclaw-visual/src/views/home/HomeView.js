@@ -9,6 +9,7 @@ const SUBVIEWS = [
   { id: 'devices', label: 'Devices' },
   { id: 'diary', label: 'Diary' },
   { id: 'triage', label: 'Triage' },
+  { id: 'models', label: 'Models' },
 ];
 
 const SITE = 'home';
@@ -88,6 +89,10 @@ export class HomeView {
     this.selectedEventId = null;
     this.triageBusy = false;
     this.triageFlash = null; // { kind, message }
+    this.modelsBusy = false;
+    this.modelsFlash = null; // { kind, message }
+    /** @type {{ brain?: string, alert?: string, fallback?: string }|null} */
+    this.modelsDraft = null;
   }
 
   mount() {
@@ -139,6 +144,22 @@ export class HomeView {
       });
     });
     this.element.querySelector('#home-refresh')?.addEventListener('click', () => this.refresh(true));
+
+    // Models panel actions
+    this.element.addEventListener('click', (ev) => {
+      const btn = ev.target.closest('[data-models-action]');
+      if (!btn || !this.element.contains(btn)) return;
+      const action = btn.getAttribute('data-models-action');
+      if (action === 'apply') this.handleModelsApply(false);
+      else if (action === 'preset') this.handleModelsApply(true, btn.getAttribute('data-preset'));
+      else if (action === 'reload') this.refreshModels();
+    });
+    this.element.addEventListener('input', (ev) => {
+      const t = ev.target;
+      if (!t || !t.getAttribute || !t.getAttribute('data-models-field')) return;
+      if (!this.modelsDraft) this.modelsDraft = {};
+      this.modelsDraft[t.getAttribute('data-models-field')] = t.value;
+    });
 
     // Triage actions (event delegation — panel body is re-rendered often)
     this.element.addEventListener('click', (ev) => {
@@ -292,6 +313,9 @@ export class HomeView {
           homeFetch(`/events?site=${SITE}&status=escalated&limit=20`),
         );
       }
+      if (this.subview === 'models' || force) {
+        await this.refreshModels(false);
+      }
 
       this.syncTopbarMetrics(this.cache.health);
     } catch (err) {
@@ -373,8 +397,165 @@ export class HomeView {
       devices: () => this.htmlDevices(),
       diary: () => this.htmlDiary(),
       triage: () => this.htmlTriage(),
+      models: () => this.htmlModels(),
     };
     return (map[this.subview] || map.overview)();
+  }
+
+  async refreshModels(render = true) {
+    try {
+      const res = await fetch('/api/models', {
+        headers: { Accept: 'application/json' },
+        signal: AbortSignal.timeout(10000),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || `HTTP ${res.status}`);
+      this.cache.models = data;
+      if (!this.modelsDraft) {
+        this.modelsDraft = {
+          brain: data.sot?.brain || '',
+          alert: data.sot?.alert || '',
+          fallback: data.sot?.fallback || '',
+        };
+      }
+    } catch (err) {
+      this.cache.models = { error: err.message || String(err) };
+    }
+    if (render && this.subview === 'models') this.renderSubview();
+  }
+
+  async handleModelsApply(isPreset, presetName) {
+    if (this.modelsBusy) return;
+    this.modelsBusy = true;
+    this.modelsFlash = { kind: 'ok', message: isPreset ? `Applying preset ${presetName}…` : 'Applying models…' };
+    this.renderSubview();
+    try {
+      // Capture current form values (re-render may wipe inputs)
+      const body = isPreset
+        ? { preset: presetName, restart: true }
+        : {
+            brain: this.modelsDraft?.brain || this.element?.querySelector('[data-models-field="brain"]')?.value,
+            alert: this.modelsDraft?.alert || this.element?.querySelector('[data-models-field="alert"]')?.value,
+            fallback:
+              this.modelsDraft?.fallback ??
+              this.element?.querySelector('[data-models-field="fallback"]')?.value ??
+              '',
+            restart: true,
+          };
+      const res = await fetch('/api/models', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+        body: JSON.stringify(body),
+        signal: AbortSignal.timeout(120000),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || data?.detail || `HTTP ${res.status}`);
+      }
+      this.modelsDraft = {
+        brain: data.sot?.NETCLAW_BRAIN_MODEL || body.brain || this.modelsDraft?.brain,
+        alert: data.sot?.NETCLAW_ALERT_TRIAGE_MODEL || body.alert || this.modelsDraft?.alert,
+        fallback: data.sot?.NETCLAW_ALERT_FALLBACK_MODEL || body.fallback || this.modelsDraft?.fallback,
+      };
+      this.modelsFlash = {
+        kind: 'ok',
+        message: 'Applied to .env + openclaw.json; gateway restarted. Investigations use alert model; chat uses brain.',
+      };
+      await this.refreshModels(false);
+    } catch (err) {
+      this.modelsFlash = { kind: 'error', message: err.message || String(err) };
+    } finally {
+      this.modelsBusy = false;
+      this.renderSubview();
+    }
+  }
+
+  htmlModels() {
+    const m = this.cache.models;
+    const err = m?.error;
+    const sot = m?.sot || {};
+    const live = m?.live || {};
+    const draft = this.modelsDraft || {
+      brain: sot.brain || '',
+      alert: sot.alert || '',
+      fallback: sot.fallback || '',
+    };
+    const flash = this.modelsFlash
+      ? `<p class="home-flash home-flash-${esc(this.modelsFlash.kind)}">${esc(this.modelsFlash.message)}</p>`
+      : '';
+    if (err && !sot.file) {
+      return `
+        <div class="home-panel-header">
+          <div><p class="eyebrow">OpenClaw</p><h2>MODELS</h2></div>
+        </div>
+        ${flash}
+        <p class="home-muted">Could not load model status: ${esc(err)}</p>`;
+    }
+    const liveBrain = live.defaultsPrimary || '—';
+    const liveHook = live.hookAlert?.model || '—';
+    const liveAgent = live.alertAgent?.primary || live.alertAgent || '—';
+    return `
+      <div class="home-panel-header">
+        <div>
+          <p class="eyebrow">SoT · netclaw/.env</p>
+          <h2>MODELS</h2>
+        </div>
+        <button type="button" class="home-refresh-btn" data-models-action="reload" ${this.modelsBusy ? 'disabled' : ''}>Reload</button>
+      </div>
+      ${flash}
+      <p class="home-muted">
+        One place to set brains. Edit fields (or pick a preset), then <strong>Apply &amp; restart gateway</strong>.
+        Writes <code>NETCLAW_BRAIN_MODEL</code> / <code>NETCLAW_ALERT_TRIAGE_MODEL</code> in
+        <code>${esc(sot.file || '…/netclaw/.env')}</code>, projects into
+        <code>~/.openclaw/openclaw.json</code> + <code>gateway.systemd.env</code>.
+        CLI: <code>./scripts/netclaw-apply-models.sh show|apply|preset cloud-flash</code>
+      </p>
+      <div class="home-models-grid">
+        <div class="home-models-card">
+          <p class="home-section-title">Source of truth</p>
+          <label class="home-models-label">Brain (interactive main / HUD chat)
+            <input type="text" class="home-models-input" data-models-field="brain"
+              value="${esc(draft.brain)}" placeholder="ollama/deepseek-v4-flash:cloud"
+              ${this.modelsBusy ? 'disabled' : ''} />
+          </label>
+          <label class="home-models-label">Alert triage (T2 hooks / thin alert agent)
+            <input type="text" class="home-models-input" data-models-field="alert"
+              value="${esc(draft.alert)}" placeholder="ollama/deepseek-v4-flash:cloud"
+              ${this.modelsBusy ? 'disabled' : ''} />
+          </label>
+          <label class="home-models-label">Alert fallback (optional)
+            <input type="text" class="home-models-input" data-models-field="fallback"
+              value="${esc(draft.fallback)}" placeholder="ollama/glm-5.2:cloud"
+              ${this.modelsBusy ? 'disabled' : ''} />
+          </label>
+          <div class="home-models-actions">
+            <button type="button" class="home-action-btn primary" data-models-action="apply" ${this.modelsBusy ? 'disabled' : ''}>
+              ${this.modelsBusy ? 'Applying…' : 'Apply & restart gateway'}
+            </button>
+          </div>
+          <p class="home-section-title" style="margin-top:1rem">Presets</p>
+          <div class="home-models-presets">
+            <button type="button" class="home-action-btn" data-models-action="preset" data-preset="split" ${this.modelsBusy ? 'disabled' : ''} title="Local chat + cloud investigations">split</button>
+            <button type="button" class="home-action-btn" data-models-action="preset" data-preset="cloud-flash" ${this.modelsBusy ? 'disabled' : ''}>cloud-flash</button>
+            <button type="button" class="home-action-btn" data-models-action="preset" data-preset="local" ${this.modelsBusy ? 'disabled' : ''}>local</button>
+          </div>
+        </div>
+        <div class="home-models-card">
+          <p class="home-section-title">Live OpenClaw</p>
+          <div class="home-detail-rows">
+            <div class="home-detail-row"><span>defaults.primary</span><strong>${esc(liveBrain)}</strong></div>
+            <div class="home-detail-row"><span>hooks.alert.model</span><strong>${esc(liveHook)}</strong></div>
+            <div class="home-detail-row"><span>agent alert.primary</span><strong>${esc(typeof liveAgent === 'object' ? liveAgent.primary || JSON.stringify(liveAgent) : liveAgent)}</strong></div>
+            <div class="home-detail-row"><span>hook agentId</span><strong>${esc(live.hookAlert?.agentId || '—')}</strong></div>
+            <div class="home-detail-row"><span>OLLAMA_BASE_URL</span><strong>${esc(sot.ollamaBaseUrl || '—')}</strong></div>
+            <div class="home-detail-row"><span>OLLAMA_API_KEY</span><strong>${sot.ollamaKeySet ? 'set' : '—'}</strong></div>
+          </div>
+          <p class="home-muted" style="margin-top:0.75rem">
+            After Apply, new T2 investigations use the alert model. In-flight sessions keep their original model.
+          </p>
+        </div>
+      </div>
+    `;
   }
 
   htmlOverview() {
