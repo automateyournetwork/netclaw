@@ -121,8 +121,12 @@ See `docs/blog/2026-07-21-alert-investigation-debugging.md` for the full story.
    burns tokens (243K context × every 30 min).
 5. **Always restart via systemd**, never `kill -HUP`:
    `systemctl --user restart openclaw-gateway`.
-6. **Model routing:** border = `NETCLAW_BRAIN_MODEL` (Sonnet 5); alert hook =
+6. **Model routing:** border = `NETCLAW_BRAIN_MODEL`; alert hook =
    `NETCLAW_ALERT_TRIAGE_MODEL`; members set per-member `N2N_MEMBER_MODEL`.
+   **SoT + apply:** edit repo `.env`, then `./scripts/netclaw-apply-models.sh apply`
+   (or Convergence → Models). Do not rely on hand-edited `openclaw.json` alone.
+   Recommended Anthropic pair when funded: brain `anthropic/claude-sonnet-5`,
+   alert `anthropic/claude-haiku-4-5-20251001` (full guide: `docs/MODELS.md`).
 
 ---
 

@@ -537,6 +537,7 @@ export class HomeView {
           <div class="home-models-presets">
             <button type="button" class="home-action-btn" data-models-action="preset" data-preset="split" ${this.modelsBusy ? 'disabled' : ''} title="Local chat + cloud investigations">split</button>
             <button type="button" class="home-action-btn" data-models-action="preset" data-preset="cloud-flash" ${this.modelsBusy ? 'disabled' : ''}>cloud-flash</button>
+            <button type="button" class="home-action-btn" data-models-action="preset" data-preset="anthropic" ${this.modelsBusy ? 'disabled' : ''} title="Sonnet brain + Haiku alert">anthropic</button>
             <button type="button" class="home-action-btn" data-models-action="preset" data-preset="local" ${this.modelsBusy ? 'disabled' : ''}>local</button>
           </div>
         </div>

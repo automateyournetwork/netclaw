@@ -1514,6 +1514,11 @@ app.get('/api/models', (req, res) => {
         alert: 'ollama/deepseek-v4-flash:cloud',
         fallback: 'ollama/glm-5.2:cloud',
       },
+      anthropic: {
+        brain: 'anthropic/claude-sonnet-5',
+        alert: 'anthropic/claude-haiku-4-5-20251001',
+        fallback: '',
+      },
     },
     applyScript: 'scripts/netclaw-apply-models.sh',
     generatedAt: new Date().toISOString(),

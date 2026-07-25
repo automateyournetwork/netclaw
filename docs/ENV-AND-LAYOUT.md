@@ -46,6 +46,34 @@ ALERT_RECEIVER_URL=http://host.docker.internal:8099/webhook
 
 Templates: [`.env.example`](../.env.example), [`deploy/convergence/.env.example`](../deploy/convergence/.env.example), [`services/alert-receiver/.env.example`](../services/alert-receiver/.env.example).
 
+### LLM models (brain vs alert triage)
+
+**Do not** hand-edit model ids only in `~/.openclaw/openclaw.json` as your long-term
+workflow. Use the model SoT variables in **repo `.env`** (or Convergence → Models),
+then apply:
+
+| Variable | Role |
+|----------|------|
+| `NETCLAW_BRAIN_MODEL` | Interactive main / HUD chat |
+| `NETCLAW_ALERT_TRIAGE_MODEL` | T2 investigation hooks (thin `alert` agent) |
+| `NETCLAW_ALERT_FALLBACK_MODEL` | Optional alert fallback |
+| `OLLAMA_BASE_URL` / `OLLAMA_API_KEY` | Synced into gateway systemd env on apply |
+
+```bash
+# Edit netclaw/.env, then:
+./scripts/netclaw-apply-models.sh show
+./scripts/netclaw-apply-models.sh apply
+# or presets / one-shot:
+./scripts/netclaw-apply-models.sh preset split|cloud-flash|local
+./scripts/netclaw-apply-models.sh set --brain anthropic/claude-sonnet-5 \
+  --alert anthropic/claude-haiku-4-5-20251001
+```
+
+Full guide (including Sonnet/Haiku recommendations): **[MODELS.md](./MODELS.md)**.
+
+Editing `.env` alone does **not** reconfigure a running gateway — always **apply**
+(script or HUD **Convergence → Models → Apply & restart gateway**).
+
 ---
 
 ## Repository map (Convergence-focused)
@@ -56,16 +84,20 @@ netclaw/
 ├── docs/
 │   ├── CONVERGENCE.md        # This product path (start here)
 │   ├── ENV-AND-LAYOUT.md     # This file
+│   ├── MODELS.md             # Brain / alert model SoT + apply script
 │   └── runbooks/             # Operator procedures
 ├── specs/067-convergence/    # Spec kit + tasks
 ├── ui/
-│   ├── netclaw-visual/       # HUD (COMMAND | HOME)
+│   ├── netclaw-visual/       # HUD (COMMAND | HOME | Models)
 │   └── convergence-api/      # HOME backend (Node)
 ├── deploy/convergence/       # Docker + K3s for OBS + convergence-api
 ├── services/
 │   └── alert-receiver/       # Alertmanager / Nautobot webhooks (host systemd)
 ├── scripts/
 │   ├── install.sh / setup.sh # Installer
+│   ├── netclaw-apply-models.sh  # .env → openclaw models + gateway restart
+│   ├── netclaw-investigation-policy.sh
+│   ├── netclaw-alert-agent-profile.sh
 │   ├── lib/                  # catalog, install-steps
 │   ├── systemd/              # unit templates
 │   └── in2n-*.py             # risk / member helpers

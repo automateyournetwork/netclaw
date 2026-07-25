@@ -12,6 +12,22 @@ Alertmanager → alert-receiver → guardian-claw loop.
 **Not renamed:** `guardian-claw` (iN2N investigator identity).  
 **Legacy pilot:** external `network-guardian-web` in k3s-observability-stack (dual-run via env aliases).
 
+### Models (brain vs alert triage)
+
+Set once in **repo `.env`**, apply with script or HUD:
+
+| SoT | Apply |
+|-----|--------|
+| `NETCLAW_BRAIN_MODEL` | Interactive Border / chat |
+| `NETCLAW_ALERT_TRIAGE_MODEL` | T2 investigation hooks |
+
+```bash
+./scripts/netclaw-apply-models.sh show|apply|preset split
+# HUD: Convergence → Models → Apply & restart gateway
+```
+
+Full operator guide: [`docs/MODELS.md`](./MODELS.md) · env layout: [`ENV-AND-LAYOUT.md`](./ENV-AND-LAYOUT.md).
+
 ---
 
 ## Planes (where things run)

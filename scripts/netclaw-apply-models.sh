@@ -1,16 +1,22 @@
 #!/usr/bin/env bash
 # Apply NetClaw model SoT from .env → live OpenClaw + gateway env.
 #
-# Source of truth (first existing wins for *reading*, writes go to NETCLAW_DIR/.env):
+# Operator guide: docs/MODELS.md
+#
+# Source of truth (preferred write target = NETCLAW_DIR/.env):
 #   1) $NETCLAW_ENV_FILE
 #   2) $NETCLAW_DIR/.env          (repo — preferred operator SoT)
-#   3) ~/.openclaw/.env           (merged for missing keys)
+#   3) ~/.openclaw/.env           (filled for missing keys on read)
 #
 # Variables:
 #   NETCLAW_BRAIN_MODEL          Interactive main / agents.defaults (provider/model)
 #   NETCLAW_ALERT_TRIAGE_MODEL   T2 hooks + agents.list[alert] (provider/model)
 #   NETCLAW_ALERT_FALLBACK_MODEL Optional fallback for alert agent
 #   OLLAMA_BASE_URL / OLLAMA_API_KEY  Passed through to gateway.systemd.env
+#
+# Recommended Anthropic pair (when ANTHROPIC_API_KEY is funded):
+#   --brain anthropic/claude-sonnet-5
+#   --alert anthropic/claude-haiku-4-5-20251001
 #
 # Usage:
 #   ./scripts/netclaw-apply-models.sh show
@@ -415,9 +421,13 @@ do_preset() {
       # Cheap interactive local + capable cloud investigations
       write_sot "$local_m" "$flash" "$glm"
       ;;
+    anthropic|sonnet-haiku)
+      # Strong chat + cheaper structured alert triage (needs ANTHROPIC_API_KEY)
+      write_sot "anthropic/claude-sonnet-5" "anthropic/claude-haiku-4-5-20251001" ""
+      ;;
     *)
       echo "Unknown preset: $name" >&2
-      echo "Presets: local | cloud-flash | split" >&2
+      echo "Presets: local | cloud-flash | split | anthropic" >&2
       exit 2
       ;;
   esac
