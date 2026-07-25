@@ -1,4 +1,7 @@
 # Phase 8 — campus device SNMP + agent exporter alerts (greenfield)
+# Keep in sync with deploy/convergence/prometheus/alerts/device.rules.yml
+#
+# SAFETY: no per-idle-port investigation storms — see docs/CONVERGENCE-ALERT-SAFETY.md
 groups:
   - name: netclaw-convergence.device
     interval: 30s
@@ -9,6 +12,7 @@ groups:
         labels:
           severity: warning
           site: home
+          investigate: "true"
         annotations:
           summary: "Device SNMP target not scraping ({{ $labels.device_name }})"
           description: >-
@@ -16,21 +20,46 @@ groups:
             Enable compose profile device-snmp, check SNMP community/reachability,
             or remove stale targets from prometheus.yml.
 
-      - alert: SwitchInterfaceDown
-        # ifOperStatus 2 = down; ifAdminStatus 1 = up → unexpected operational down
+      - alert: SwitchIdlePortsPresent
         expr: |
-          ifOperStatus{job="device_snmp",role="switch"} == 2
+          count by (device_name, instance, site) (
+            ifOperStatus{job="device_snmp",role="switch"} == 2
+            and on(instance, ifIndex, device_name)
+            ifAdminStatus{job="device_snmp",role="switch"} == 1
+          ) > 0
+        for: 30m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+          cardinality: high
+        annotations:
+          summary: "Idle admin-up ports on {{ $labels.device_name }} ({{ $value }})"
+          description: >-
+            {{ $value }} interfaces on {{ $labels.device_name }} are admin-up but
+            oper-down. Expected for unused ports — not an investigation trigger.
+
+      - alert: SwitchLinkLost
+        expr: |
+          (
+            ifOperStatus{job="device_snmp",role="switch"} == 2
+            and on(instance, ifIndex, device_name)
+            ifAdminStatus{job="device_snmp",role="switch"} == 1
+          )
           and on(instance, ifIndex, device_name)
-          ifAdminStatus{job="device_snmp",role="switch"} == 1
-        for: 5m
+          (
+            ifOperStatus{job="device_snmp",role="switch"} offset 15m == 1
+          )
+        for: 3m
         labels:
           severity: warning
           site: home
+          investigate: "true"
         annotations:
-          summary: "Switch interface down ({{ $labels.device_name }} ifIndex={{ $labels.ifIndex }})"
+          summary: "Link lost on {{ $labels.device_name }} ifIndex={{ $labels.ifIndex }}"
           description: >-
-            Interface admin-up but oper-down on {{ $labels.device_name }}
-            ({{ $labels.instance }}). Tune drops for unused ports if noisy.
+            Interface was operationally up 15m ago and is now down (admin still up)
+            on {{ $labels.device_name }} ({{ $labels.instance }}).
 
       - alert: NetclawAgentMetricsDown
         expr: up{job="netclaw-openclaw"} == 0
@@ -38,6 +67,7 @@ groups:
         labels:
           severity: info
           site: home
+          investigate: "false"
         annotations:
           summary: "NetClaw openclaw-token-exporter not scraping"
           description: >-

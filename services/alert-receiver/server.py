@@ -93,6 +93,45 @@ NOISY_IOT_HOSTS = [
 ]
 
 # ---------------------------------------------------------------------------
+# Investigation safety rails (prevent OpenClaw MCP fan-out storms)
+# ---------------------------------------------------------------------------
+# Cap concurrent hook triggers. Each investigation can spawn a full MCP set.
+MAX_CONCURRENT_INVESTIGATIONS = max(
+    1, int(os.getenv("MAX_CONCURRENT_INVESTIGATIONS", "2"))
+)
+# Reject new investigations once this many have been accepted in the last 60s.
+MAX_INVESTIGATIONS_PER_MINUTE = max(
+    1, int(os.getenv("MAX_INVESTIGATIONS_PER_MINUTE", "3"))
+)
+# Do not re-hook the same fingerprint within this window (seconds).
+INVESTIGATION_DEDUP_TTL = max(
+    60, int(os.getenv("INVESTIGATION_DEDUP_TTL", "1800"))
+)
+# Minimum severity that may auto-investigate: info | warning | critical
+# (info is excluded by default — dashboard-only signals).
+INVESTIGATE_MIN_SEVERITY = os.getenv("INVESTIGATE_MIN_SEVERITY", "warning").strip().lower()
+# Comma-separated alertnames that never auto-investigate (legacy noisy rules).
+INVESTIGATE_DENY_ALERTNAMES = {
+    a.strip()
+    for a in os.getenv(
+        "INVESTIGATE_DENY_ALERTNAMES",
+        "SwitchInterfaceDown,SwitchIdlePortsPresent,NetclawAgentMetricsDown",
+    ).split(",")
+    if a.strip()
+}
+# Comma-separated alertnames always allowed even if severity is info.
+INVESTIGATE_ALLOW_ALERTNAMES = {
+    a.strip()
+    for a in os.getenv("INVESTIGATE_ALLOW_ALERTNAMES", "").split(",")
+    if a.strip()
+}
+# Honor label investigate=false|no|0|never (default true when absent).
+# Set INVESTIGATE_REQUIRE_LABEL=true to only investigate when investigate=true.
+INVESTIGATE_REQUIRE_LABEL = os.getenv(
+    "INVESTIGATE_REQUIRE_LABEL", "false"
+).lower() in ("1", "true", "yes")
+
+# ---------------------------------------------------------------------------
 # Nautobot intent-reconcile (webhook → propose → Discord approval → apply).
 # Opt-in and deliberately narrow: the webhook fires for ALL interface changes,
 # but the receiver only proposes for allowed models on allowed device roles.
@@ -178,6 +217,11 @@ class Metrics:
         self.alerts_resolved_total = 0
         self.investigations_triggered_total = 0
         self.investigations_suppressed_total = 0
+        self.investigations_suppressed_policy_total = 0
+        self.investigations_suppressed_dedup_total = 0
+        self.investigations_suppressed_rate_total = 0
+        self.investigations_suppressed_concurrency_total = 0
+        self.investigations_in_flight = 0
         self.discord_posts_total = 0
         self.guardian_events_posted_total = 0
         self.guardian_events_failed_total = 0
@@ -212,9 +256,29 @@ class Metrics:
             "# TYPE netclaw_investigations_triggered_total counter",
             f"netclaw_investigations_triggered_total {self.investigations_triggered_total}",
             "",
-            "# HELP netclaw_investigations_suppressed_total Investigations suppressed (noisy IoT)",
+            "# HELP netclaw_investigations_suppressed_total Investigations suppressed (all reasons)",
             "# TYPE netclaw_investigations_suppressed_total counter",
             f"netclaw_investigations_suppressed_total {self.investigations_suppressed_total}",
+            "",
+            "# HELP netclaw_investigations_suppressed_policy_total Suppressed by investigate label/deny list/severity",
+            "# TYPE netclaw_investigations_suppressed_policy_total counter",
+            f"netclaw_investigations_suppressed_policy_total {self.investigations_suppressed_policy_total}",
+            "",
+            "# HELP netclaw_investigations_suppressed_dedup_total Suppressed by fingerprint dedup TTL",
+            "# TYPE netclaw_investigations_suppressed_dedup_total counter",
+            f"netclaw_investigations_suppressed_dedup_total {self.investigations_suppressed_dedup_total}",
+            "",
+            "# HELP netclaw_investigations_suppressed_rate_total Suppressed by per-minute rate limit",
+            "# TYPE netclaw_investigations_suppressed_rate_total counter",
+            f"netclaw_investigations_suppressed_rate_total {self.investigations_suppressed_rate_total}",
+            "",
+            "# HELP netclaw_investigations_suppressed_concurrency_total Suppressed by concurrency cap",
+            "# TYPE netclaw_investigations_suppressed_concurrency_total counter",
+            f"netclaw_investigations_suppressed_concurrency_total {self.investigations_suppressed_concurrency_total}",
+            "",
+            "# HELP netclaw_investigations_in_flight Currently running investigation hooks",
+            "# TYPE netclaw_investigations_in_flight gauge",
+            f"netclaw_investigations_in_flight {self.investigations_in_flight}",
             "",
             "# HELP netclaw_discord_posts_total Discord notifications sent",
             "# TYPE netclaw_discord_posts_total counter",
@@ -237,6 +301,137 @@ class Metrics:
 
 
 metrics = Metrics()
+
+# Investigation admission control (process-wide)
+_investigation_sem: Optional[asyncio.Semaphore] = None
+_investigation_recent: list[float] = []  # timestamps of accepted triggers
+_investigation_dedup: dict[str, float] = {}  # fingerprint -> last trigger mono time
+_investigation_gate_lock: Optional[asyncio.Lock] = None
+
+
+def _get_investigation_sem() -> asyncio.Semaphore:
+    global _investigation_sem
+    if _investigation_sem is None:
+        _investigation_sem = asyncio.Semaphore(MAX_CONCURRENT_INVESTIGATIONS)
+    return _investigation_sem
+
+
+def _get_investigation_gate_lock() -> asyncio.Lock:
+    global _investigation_gate_lock
+    if _investigation_gate_lock is None:
+        _investigation_gate_lock = asyncio.Lock()
+    return _investigation_gate_lock
+
+
+def _label_get(labels: "AlertLabel", key: str, default: str = "") -> str:
+    """Read a label including AM extra labels (investigate, device_name, …)."""
+    val = getattr(labels, key, None)
+    if val is not None and str(val) != "":
+        return str(val)
+    extra = getattr(labels, "model_extra", None) or {}
+    if key in extra and extra[key] is not None and str(extra[key]) != "":
+        return str(extra[key])
+    # pydantic v2 sometimes stores extras as attributes when extra=allow
+    try:
+        data = labels.model_dump() if hasattr(labels, "model_dump") else {}
+        if key in data and data[key] is not None and str(data[key]) != "":
+            return str(data[key])
+    except Exception:
+        pass
+    return default
+
+
+_SEVERITY_RANK = {"info": 0, "none": 0, "": 0, "warning": 1, "warn": 1, "critical": 2, "error": 2}
+
+
+def should_auto_investigate(alert: "Alert") -> tuple[bool, str]:
+    """Policy gate: may this firing alert open an OpenClaw hook session?
+
+    Returns (allowed, reason). Resolved alerts never investigate.
+    """
+    if alert.status != "firing":
+        return False, "resolved"
+
+    name = (alert.labels.alertname or "").strip()
+    if name in INVESTIGATE_DENY_ALERTNAMES:
+        return False, f"deny_list:{name}"
+
+    inv = _label_get(alert.labels, "investigate", "").strip().lower()
+    if inv in ("false", "no", "0", "never", "off"):
+        return False, "label:investigate=false"
+    if INVESTIGATE_REQUIRE_LABEL and inv not in ("true", "yes", "1", "on"):
+        return False, "label:investigate_required"
+
+    if name in INVESTIGATE_ALLOW_ALERTNAMES:
+        return True, "allow_list"
+
+    sev = (alert.labels.severity or "warning").strip().lower()
+    min_rank = _SEVERITY_RANK.get(INVESTIGATE_MIN_SEVERITY, 1)
+    if _SEVERITY_RANK.get(sev, 1) < min_rank:
+        return False, f"severity:{sev}<{INVESTIGATE_MIN_SEVERITY}"
+
+    # High-cardinality signals must opt in via investigate=true (already checked)
+    if _label_get(alert.labels, "cardinality", "").strip().lower() == "high" and inv not in (
+        "true",
+        "yes",
+        "1",
+        "on",
+    ):
+        return False, "cardinality:high"
+
+    return True, "ok"
+
+
+async def admit_investigation(fingerprint: str) -> tuple[bool, str]:
+    """Rate limit + dedup + concurrency. Call release_investigation() after work.
+
+    Concurrency is non-blocking: at capacity we suppress rather than queue,
+    because a queue re-creates the storm when the gateway recovers from OOM.
+    """
+    now = time.monotonic()
+    fp = fingerprint or f"anon-{now}"
+    sem = _get_investigation_sem()
+
+    async with _get_investigation_gate_lock():
+        global _investigation_recent
+        _investigation_recent = [t for t in _investigation_recent if now - t < 60.0]
+        cutoff = now - float(INVESTIGATION_DEDUP_TTL)
+        for k in [k for k, t in _investigation_dedup.items() if t < cutoff]:
+            _investigation_dedup.pop(k, None)
+
+        last = _investigation_dedup.get(fp)
+        if last is not None and (now - last) < float(INVESTIGATION_DEDUP_TTL):
+            metrics.investigations_suppressed_dedup_total += 1
+            metrics.investigations_suppressed_total += 1
+            return False, "dedup"
+
+        if len(_investigation_recent) >= MAX_INVESTIGATIONS_PER_MINUTE:
+            metrics.investigations_suppressed_rate_total += 1
+            metrics.investigations_suppressed_total += 1
+            return False, "rate_limit"
+
+    # Non-blocking semaphore acquire (outside lock to avoid deadlock)
+    try:
+        await asyncio.wait_for(sem.acquire(), timeout=0.01)
+    except asyncio.TimeoutError:
+        metrics.investigations_suppressed_concurrency_total += 1
+        metrics.investigations_suppressed_total += 1
+        return False, "concurrency"
+
+    async with _get_investigation_gate_lock():
+        _investigation_dedup[fp] = time.monotonic()
+        _investigation_recent.append(time.monotonic())
+        metrics.investigations_in_flight += 1
+    return True, "admitted"
+
+
+def release_investigation() -> None:
+    """Release concurrency slot after trigger_netclaw finishes."""
+    try:
+        _get_investigation_sem().release()
+    except ValueError:
+        pass
+    metrics.investigations_in_flight = max(0, metrics.investigations_in_flight - 1)
 
 # ---------------------------------------------------------------------------
 # Models (Alertmanager webhook payload)
@@ -1686,11 +1881,23 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
 
 
 async def process_alert(alert: Alert):
-    """Enrich alert with device info and trigger NetClaw."""
+    """Enrich alert with device info and maybe trigger NetClaw investigation.
+
+    Investigation is gated by policy (investigate label / deny list / severity),
+    fingerprint dedup, per-minute rate limit, and a concurrency semaphore so a
+    high-cardinality alert never opens dozens of OpenClaw hook sessions (each
+    of which eagerly spawns the full MCP set).
+    """
     instance = alert.labels.instance
     if not instance:
         # Try to extract hostname from other labels
-        instance = alert.labels.model_extra.get("device_name", "") or alert.labels.model_extra.get("host", "")
+        extra = alert.labels.model_extra or {}
+        instance = (
+            _label_get(alert.labels, "device_name")
+            or extra.get("device_name", "")
+            or extra.get("host", "")
+            or _label_get(alert.labels, "host")
+        )
 
     if not instance:
         log.warning(f"Alert {alert.labels.alertname} has no instance/device_name label — skipping")
@@ -1698,6 +1905,11 @@ async def process_alert(alert: Alert):
 
     device_info = await lookup_device(instance)
     log.info(f"  Device resolved: {device_info['name']} → {device_info['ip']} (source: {device_info['source']})")
+
+    # Resolved → diary only (complete open case); never start a new investigation.
+    if alert.status == "resolved":
+        await complete_guardian_event_resolved(alert, device_info)
+        return
 
     # Check if this is a known noisy IoT device generating excessive blocks.
     # If so, log as INFO to Guardian and skip full investigation + Discord.
@@ -1707,14 +1919,47 @@ async def process_alert(alert: Alert):
         await post_guardian_event(alert, device_info, status="resolved")
         return
 
-    # Scope the runtime skills directory to this alert before investigation.
-    scope_gen = await scope_skills_for_alert(alert, device_info)
+    allowed, policy_reason = should_auto_investigate(alert)
+    if not allowed:
+        log.info(
+            f"  Investigation skipped ({policy_reason}): "
+            f"{alert.labels.alertname} fp={alert.fingerprint[:12] if alert.fingerprint else '-'}"
+        )
+        metrics.investigations_suppressed_policy_total += 1
+        metrics.investigations_suppressed_total += 1
+        # Still record a light diary entry for visibility without hooking OpenClaw
+        await post_guardian_event(alert, device_info, status="logged")
+        # Optional Discord for non-suppressed names at info severity is intentional no-op
+        if (
+            alert.labels.alertname not in DISCORD_SUPPRESS_ALERTS
+            and (alert.labels.severity or "").lower() in ("warning", "critical")
+            and policy_reason.startswith("deny_list")
+        ):
+            # Deny-listed but still human-visible once (optional) — skip by default
+            pass
+        return
 
-    await trigger_netclaw(alert, device_info)
+    admitted, admit_reason = await admit_investigation(alert.fingerprint or instance)
+    if not admitted:
+        log.warning(
+            f"  Investigation admission denied ({admit_reason}): "
+            f"{alert.labels.alertname} fp={alert.fingerprint[:12] if alert.fingerprint else '-'} "
+            f"— diary only (prevents MCP fan-out)"
+        )
+        await post_guardian_event(alert, device_info, status="logged")
+        return
 
-    # After the fresh alert session has read the scoped dir, restore the full
-    # catalog so interactive sessions aren't left with the reduced set.
-    await restore_skills_after_trigger(scope_gen)
+    try:
+        # Scope the runtime skills directory to this alert before investigation.
+        scope_gen = await scope_skills_for_alert(alert, device_info)
+
+        await trigger_netclaw(alert, device_info)
+
+        # After the fresh alert session has read the scoped dir, restore the full
+        # catalog so interactive sessions aren't left with the reduced set.
+        await restore_skills_after_trigger(scope_gen)
+    finally:
+        release_investigation()
 
 
 def _is_noisy_iot_suppressed(alert: Alert, device_info: dict) -> bool:

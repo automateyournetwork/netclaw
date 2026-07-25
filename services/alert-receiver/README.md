@@ -8,20 +8,36 @@ Lightweight webhook server that accepts Prometheus Alertmanager notifications, e
 Prometheus (alert rules fire)
     │
     ▼
-Alertmanager (192.168.13.204:9093)
+Alertmanager
     │
     │ POST /webhook
     ▼
-Alert Receiver (192.168.3.252:8099)
+Alert Receiver (:8099)
     │
     ├── 1. Parse Alertmanager payload
     ├── 2. Extract hostname/instance from labels
     ├── 3. Lookup device in Nautobot (or local inventory.yaml)
+    ├── 3b. Investigation safety rails (policy + dedup + rate + concurrency)
     ├── 4. Build investigation prompt with device context
     ├── 4b. (Optional) Scope runtime skills to the alert — shrinks token cost
-    ├── 5. POST to OpenClaw gateway → triggers NetClaw skill
+    ├── 5. POST to OpenClaw gateway → triggers NetClaw skill (if admitted)
     └── 6. (Optional) Post notification to Discord
 ```
+
+### Investigation safety rails
+
+Each OpenClaw hook session can spawn the **full MCP set**. A high-cardinality
+alert (e.g. per-switch-port) must never open dozens of concurrent sessions.
+
+| Control | Default | Env |
+|---------|---------|-----|
+| Policy (`investigate` label, deny-list, min severity) | skip `info` + deny noisy names | `INVESTIGATE_*` |
+| Fingerprint dedup | 30 min | `INVESTIGATION_DEDUP_TTL` |
+| Rate limit | 3 / minute | `MAX_INVESTIGATIONS_PER_MINUTE` |
+| Concurrency | 2 in-flight (no queue) | `MAX_CONCURRENT_INVESTIGATIONS` |
+
+See **`docs/CONVERGENCE-ALERT-SAFETY.md`** for the 2026-07 incident and the
+alert-authoring checklist. Metrics: `netclaw_investigations_suppressed_*` on `/metrics`.
 
 ## Setup
 

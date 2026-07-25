@@ -44,11 +44,17 @@ Labels: `device_name`, `role=switch`, `site`, `instance` (device IP).
 
 ## Alerts
 
-`prometheus/alerts/device.rules.yml`:
+`prometheus/alerts/device.rules.yml` (see **`docs/CONVERGENCE-ALERT-SAFETY.md`**):
 
-- `DeviceSnmpExporterDown` — snmp-device-exporter scrape failed  
-- `SwitchInterfaceDown` — oper down while admin up (noisy interfaces may need
-  relabel drop; tune in prod)
+| Alert | Investigate? | Notes |
+|-------|----------------|-------|
+| `DeviceSnmpExporterDown` | yes | scrape failed |
+| `SwitchLinkLost` | yes | was oper-up 15m ago, now down (real link loss) |
+| `SwitchIdlePortsPresent` | **no** | aggregate idle admin-up ports — dashboard only |
+| ~~`SwitchInterfaceDown`~~ | removed | caused per-port OpenClaw MCP storms |
+
+Do **not** reintroduce per-`ifIndex` admin-up/oper-down as `investigate=true`.
+Idle access ports look identical to “down” in IF-MIB.
 
 ## Config (convergence.yaml)
 

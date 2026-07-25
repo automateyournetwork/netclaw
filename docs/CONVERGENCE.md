@@ -193,3 +193,4 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
 | NetClaw agent log ship | **Template** | `scripts/rsyslog-netclaw-convergence.conf` |
 | Grafana NetClaw quota board | **Shipped** | `--profile full` provisions dashboards |
 | Network switch Grafana board | **Shipped** | `device-snmp-switches.json` |
+| Alert → investigation safety rails | **Shipped** | [CONVERGENCE-ALERT-SAFETY.md](./CONVERGENCE-ALERT-SAFETY.md) |

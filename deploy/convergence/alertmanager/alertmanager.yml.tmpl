@@ -2,10 +2,27 @@
 # ALERT_RECEIVER_URL — host alert-receiver webhook (default host.docker.internal:8099)
 route:
   receiver: netclaw
-  group_by: ["alertname", "instance"]
-  group_wait: 30s
+  group_by: ["alertname", "device_name", "instance", "severity"]
+  group_wait: 45s
   group_interval: 5m
   repeat_interval: 4h
+  routes:
+    - matchers:
+        - investigate="false"
+      receiver: netclaw
+      group_by: ["alertname", "device_name"]
+      group_wait: 2m
+      group_interval: 30m
+      repeat_interval: 12h
+      continue: false
+    - matchers:
+        - severity="info"
+      receiver: netclaw
+      group_by: ["alertname", "device_name"]
+      group_wait: 2m
+      group_interval: 30m
+      repeat_interval: 12h
+      continue: false
 
 receivers:
   - name: netclaw
