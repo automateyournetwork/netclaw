@@ -5,7 +5,7 @@
 
 ## Summary
 
-Productize the home Convergence pipeline as a **HOME** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 tracked in `tasks.md`. Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
+Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (spec’d for upstream PR — not a pilot migration). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
 
 ## Technical Context
 
