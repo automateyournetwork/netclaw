@@ -168,6 +168,9 @@ docker compose --env-file .env exec prometheus wget -qO- --post-data='' http://1
 curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib&auth=public_v2' | head
 curl -sG 'http://127.0.0.1:9090/api/v1/query' \
   --data-urlencode 'query=count by (device_name) (ifOperStatus{job="device_snmp"})'
+
+# Formal smoke (T088) — requires ≥1 healthy device_snmp target + device_name labels
+./deploy/convergence/smoke-device-snmp.sh
 ```
 
 Generate scrape fragment:
@@ -228,8 +231,14 @@ Seed example (after T107): `deploy/convergence/config/investigation-policy.examp
 | `investigate-critical` | T2 only for explicit allowlisted alertnames |
 
 **Open T2 as hygiene improves** (no code deploy): add an `allow_t2` entry for the
-alertname, reload policy (≤60s cache or SIGHUP). See
-[`investigation-policy.md`](./investigation-policy.md).
+alertname, reload policy (≤60s cache or SIGHUP). Preset for a small critical set:
+
+```bash
+./scripts/netclaw-investigation-policy.sh seed-investigate-critical
+# opens WanHardDown / SwitchLinkLost(critical) / DeviceSnmpExporterDown only
+```
+
+See [`investigation-policy.md`](./investigation-policy.md).
 
 **Thin T2 agent (required before real auto-investigate is affordable):**
 

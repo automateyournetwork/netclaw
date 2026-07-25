@@ -131,7 +131,8 @@ site does not depend on `k3s-observability-stack`.
 - [x] T085 Prometheus scrape + alert rules (device.rules.yml) (interface down, exporter down)
 - [x] T086 K3s component `deploy/convergence/k8s/components/device-snmp/` `deploy/convergence/k8s/components/device-snmp/`
 - [x] T087 HOME Devices / optional Overview KPI when metrics present
-- [ ] T088 Smoke: mock SNMP or lab switch → metrics labeled `device_name`
+- [x] T088 Smoke: mock SNMP or lab switch → metrics labeled `device_name`
+      (`deploy/convergence/smoke-device-snmp.sh`; live: HomeSwitch01/02/04)
 
 ### Device syslog
 
@@ -202,9 +203,12 @@ setup/quickstart). Does **not** block Phase 8 telemetry ship.
 - [x] T109 Quickstart: nuclear start (T0 empty allow_t2) → open one T2 alertname
 - [x] T110 `.env.example` notes (`INVESTIGATION_POLICY_PATH`, cache TTL)
 
+**Phase 8 checkpoint**: T080–T095 + T088 smoke green on lab switches.
+
 **Phase 9 checkpoint**: policy engine (T0 default, budgets, metrics) + thin T2
 agent profile live. Nuclear posture: empty `allow_t2` until operator opens names.
-Optional follow-ups: first real `allow_t2` row after hygiene, T088 Phase 8 smoke.
+Optional follow-ups: first real `allow_t2` row (e.g. `SwitchLinkLost` / `WanHardDown`)
+after hygiene; dual-stack Docker vs k3s-obs choice.
 
 ### Independent test
 

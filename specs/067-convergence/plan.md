@@ -5,7 +5,7 @@
 
 ## Summary
 
-Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (largely shipped; T088 smoke remaining) and **Phase 9 investigation policy & token economics** (T0/T1/T2 policy engine + thin `alert` agent profile — T096–T110 done). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) / [`investigation-policy.md`](./investigation-policy.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
+Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (shipped including T088 smoke) and **Phase 9 investigation policy & token economics** (T0/T1/T2 policy engine + thin `alert` agent profile — T096–T110 done). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) / [`investigation-policy.md`](./investigation-policy.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
 
 ## Technical Context
 

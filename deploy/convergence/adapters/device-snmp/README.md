@@ -22,11 +22,14 @@ docker compose --env-file .env --profile device-snmp up -d
 docker compose kill -s SIGHUP prometheus
 ```
 
-4. Check:
+4. Check / smoke (T088):
 
 ```bash
+# Formal smoke (targets up + ifOperStatus labeled device_name)
+./deploy/convergence/smoke-device-snmp.sh
+
+# Ad-hoc
 curl -s 'http://127.0.0.1:9090/api/v1/query?query=ifOperStatus' | head -c 400
-# or
 curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib' | head
 ```
 
