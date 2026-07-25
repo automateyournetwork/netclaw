@@ -1183,15 +1183,32 @@ app.post('/api/n2n/chat', async (req, res) => {
 app.get('/api/gateway/status', async (req, res) => {
   const gw = getGatewayConfig();
   try {
-    // The gateway's /v1 API requires the bearer token — without it we get 401
-    // and the HUD falsely shows "offline". Send the token like the chat call does.
-    const health = await fetch(`http://127.0.0.1:${gw.port}/v1/models`, {
-      headers: gw.token ? { 'Authorization': `Bearer ${gw.token}` } : {},
+    // Prefer lightweight /healthz (always on). Fall back to authenticated /v1/models
+    // when chatCompletions is enabled — proves the OpenAI-compatible path works.
+    const live = await fetch(`http://127.0.0.1:${gw.port}/healthz`, {
       signal: AbortSignal.timeout(2000),
     });
-    res.json({ online: health.ok, port: gw.port });
+    let chatApi = false;
+    if (live.ok && gw.token && !gw.token.includes('${')) {
+      try {
+        const models = await fetch(`http://127.0.0.1:${gw.port}/v1/models`, {
+          headers: { Authorization: `Bearer ${gw.token}` },
+          signal: AbortSignal.timeout(2000),
+        });
+        const ct = models.headers.get('content-type') || '';
+        chatApi = models.ok && ct.includes('json');
+      } catch {
+        chatApi = false;
+      }
+    }
+    res.json({
+      online: live.ok,
+      chatApi,
+      port: gw.port,
+      tokenConfigured: Boolean(gw.token && !String(gw.token).includes('${')),
+    });
   } catch {
-    res.json({ online: false, port: gw.port });
+    res.json({ online: false, chatApi: false, port: gw.port, tokenConfigured: false });
   }
 });
 
@@ -1263,17 +1280,33 @@ app.put('/api/testbed/raw', (req, res) => {
 // heuristic response if the gateway is unavailable.
 const chatHistory = [];
 
-// Read OpenClaw gateway config for auth
+// Read OpenClaw gateway config for auth (expand ${OPENCLAW_GATEWAY_TOKEN} from .env)
 function getGatewayConfig() {
   try {
     const configPath = path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json');
-    const config = JSON.parse(readText(configPath));
+    const config = JSON.parse(readText(configPath) || '{}');
+    const envMap = parseEnvFile();
+    const rawToken =
+      config?.gateway?.auth?.token ||
+      process.env.OPENCLAW_GATEWAY_TOKEN ||
+      envMap.OPENCLAW_GATEWAY_TOKEN ||
+      '';
+    const token = resolveEnvTemplates(String(rawToken), envMap);
+    // Reject unresolved templates so we never send literal "${...}" as Bearer
+    const resolved =
+      token && !token.includes('${') && !token.startsWith('$')
+        ? token
+        : envMap.OPENCLAW_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
     return {
-      port: config?.gateway?.port || 18789,
-      token: config?.gateway?.auth?.token || '',
+      port: Number(config?.gateway?.port) || 18789,
+      token: resolved || '',
     };
   } catch {
-    return { port: 18789, token: '' };
+    const envMap = parseEnvFile();
+    return {
+      port: 18789,
+      token: envMap.OPENCLAW_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '',
+    };
   }
 }
 
@@ -1301,31 +1334,63 @@ app.post('/api/chat', async (req, res) => {
   const gw = getGatewayConfig();
 
   try {
-    const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${gw.token}`,
-        'Content-Type': 'application/json',
-        'x-openclaw-agent-id': 'main',
-      },
-      body: JSON.stringify({
-        model: 'openclaw',
-        messages: chatHistory
-          .filter((m) => m.role === 'user' || m.role === 'assistant')
-          .slice(-10)
-          .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
-        stream: false,
-      }),
-      signal: AbortSignal.timeout(300000),
-    });
+    if (!gw.token) {
+      console.warn('[chat] No OPENCLAW_GATEWAY_TOKEN resolved — gateway chat skipped');
+    } else {
+      const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${gw.token}`,
+          'Content-Type': 'application/json',
+          'x-openclaw-agent-id': 'main',
+        },
+        body: JSON.stringify({
+          model: 'openclaw',
+          messages: chatHistory
+            .filter((m) => m.role === 'user' || m.role === 'assistant')
+            .slice(-10)
+            .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
+          stream: false,
+        }),
+        signal: AbortSignal.timeout(300000),
+      });
 
-    if (gwRes.ok) {
-      const gwData = await gwRes.json();
-      responseText = gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
-      fromGateway = true;
+      const ct = gwRes.headers.get('content-type') || '';
+      if (ct.includes('json')) {
+        const gwData = await gwRes.json();
+        if (gwRes.ok) {
+          responseText =
+            gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
+          fromGateway = Boolean(responseText);
+        } else {
+          // Gateway is up but model/auth/rate-limit failed — surface real error
+          // instead of the misleading "gateway is offline" local heuristic.
+          const errMsg =
+            gwData?.error?.message ||
+            gwData?.error ||
+            gwData?.message ||
+            JSON.stringify(gwData).slice(0, 400);
+          responseText = `OpenClaw gateway error (HTTP ${gwRes.status}): ${errMsg}`;
+          fromGateway = true;
+          console.warn(`[chat] gateway HTTP ${gwRes.status}: ${String(errMsg).slice(0, 200)}`);
+        }
+      } else if (!gwRes.ok) {
+        const errBody = await gwRes.text().catch(() => '');
+        responseText = `OpenClaw gateway error (HTTP ${gwRes.status}): ${errBody.slice(0, 300)}`;
+        fromGateway = true;
+        console.warn(
+          `[chat] gateway HTTP ${gwRes.status}: ${errBody.slice(0, 200)}`,
+        );
+      } else {
+        // SPA HTML fallback means chatCompletions endpoint is disabled
+        console.warn(
+          '[chat] gateway returned non-JSON for /v1/chat/completions — enable gateway.http.endpoints.chatCompletions.enabled',
+        );
+      }
     }
-  } catch {
+  } catch (err) {
     // Gateway not reachable — fall back to local heuristic
+    console.warn(`[chat] gateway proxy failed: ${err.message}`);
   }
 
   if (!responseText) {
