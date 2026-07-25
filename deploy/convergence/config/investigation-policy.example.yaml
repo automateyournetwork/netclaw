@@ -1,0 +1,57 @@
+# Convergence investigation policy (067 Phase 9)
+# Live path: ~/.openclaw/investigation-policy.yaml
+# Override: INVESTIGATION_POLICY_PATH
+#
+# Default = nuclear / cost-controlled: no multi-tool auto-investigation.
+# Open T2 as alert hygiene improves by adding allow_t2 rows (no code deploy).
+#
+# Tiers:
+#   T0 — observe only (metrics / optional Discord / diary) — no multi-tool LLM
+#   T1 — cheap one-shot summary (no full MCP farm)
+#   T2 — multi-tool investigate (thin profile; budgets apply)
+
+version: 1
+default_tier: T0
+
+tiers:
+  T0:
+    llm: none
+  T1:
+    llm: summarize
+    max_tools: 0
+    max_completion_tokens: 4000
+  T2:
+    llm: investigate
+    agent: alert
+    max_turns: 8
+    max_tokens: 200000
+
+# Explicit multi-tool investigate (empty = no automatic T2)
+allow_t2: []
+# Examples when ready:
+# allow_t2:
+#   - alertname: WanHardDown
+#   - alertname: SwitchLinkLost
+#     severity: critical
+
+# Optional cheap summaries (empty = no T1)
+allow_t1: []
+# Example:
+# allow_t1:
+#   - severity: warning
+
+# Always observe-only (even if default_tier were higher)
+force_t0:
+  - alertname: SwitchIdlePortsPresent
+  - alertname: SwitchInterfaceDown
+  - alertname: NetclawAgentMetricsDown
+  - label: investigate=false
+
+budgets:
+  max_t2_per_hour: 3
+  max_concurrent_t2: 2
+  dedup_ttl_seconds: 1800
+
+degrade:
+  # null | T0 | T1 — clamp max tier when set (e.g. cloud quota exhausted)
+  force_max_tier: null

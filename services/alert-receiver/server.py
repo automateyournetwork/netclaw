@@ -222,6 +222,8 @@ class Metrics:
         self.investigations_suppressed_rate_total = 0
         self.investigations_suppressed_concurrency_total = 0
         self.investigations_in_flight = 0
+        self.investigations_by_tier = {"T0": 0, "T1": 0, "T2": 0}
+        self.investigation_budget_trips_total = {"hourly": 0, "concurrent": 0}
         self.discord_posts_total = 0
         self.guardian_events_posted_total = 0
         self.guardian_events_failed_total = 0
@@ -279,6 +281,17 @@ class Metrics:
             "# HELP netclaw_investigations_in_flight Currently running investigation hooks",
             "# TYPE netclaw_investigations_in_flight gauge",
             f"netclaw_investigations_in_flight {self.investigations_in_flight}",
+            "",
+            "# HELP netclaw_investigations_by_tier Alerts handled by investigation tier (Phase 9)",
+            "# TYPE netclaw_investigations_by_tier counter",
+            f'netclaw_investigations_by_tier{{tier="T0"}} {self.investigations_by_tier.get("T0", 0)}',
+            f'netclaw_investigations_by_tier{{tier="T1"}} {self.investigations_by_tier.get("T1", 0)}',
+            f'netclaw_investigations_by_tier{{tier="T2"}} {self.investigations_by_tier.get("T2", 0)}',
+            "",
+            "# HELP netclaw_investigation_budget_trips_total T2 budget trips (Phase 9)",
+            "# TYPE netclaw_investigation_budget_trips_total counter",
+            f'netclaw_investigation_budget_trips_total{{budget="hourly"}} {self.investigation_budget_trips_total.get("hourly", 0)}',
+            f'netclaw_investigation_budget_trips_total{{budget="concurrent"}} {self.investigation_budget_trips_total.get("concurrent", 0)}',
             "",
             "# HELP netclaw_discord_posts_total Discord notifications sent",
             "# TYPE netclaw_discord_posts_total counter",
@@ -1356,6 +1369,27 @@ async def health():
     return {"status": "ok", "timestamp": datetime.now(timezone.utc).isoformat()}
 
 
+@app.get("/policy/status")
+async def policy_status():
+    """Phase 9: current investigation policy snapshot (operator debug)."""
+    from investigation_policy import DEFAULT_POLICY_PATH, load_policy, policy_fail_safe, t2_in_flight
+
+    pol = load_policy()
+    return {
+        "path": str(DEFAULT_POLICY_PATH),
+        "fail_safe": policy_fail_safe(),
+        "default_tier": pol.get("default_tier"),
+        "allow_t2_count": len(pol.get("allow_t2") or []),
+        "allow_t1_count": len(pol.get("allow_t1") or []),
+        "force_t0_count": len(pol.get("force_t0") or []),
+        "budgets": pol.get("budgets"),
+        "degrade": pol.get("degrade"),
+        "t2_in_flight": t2_in_flight(),
+        "by_tier": metrics.investigations_by_tier,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+    }
+
+
 @app.get("/metrics", response_class=PlainTextResponse)
 async def prometheus_metrics():
     """Prometheus-compatible metrics endpoint."""
@@ -1881,16 +1915,20 @@ async def receive_webhook(request: Request, background_tasks: BackgroundTasks):
 
 
 async def process_alert(alert: Alert):
-    """Enrich alert with device info and maybe trigger NetClaw investigation.
+    """Enrich alert with device info; apply Phase 9 investigation tiers.
 
-    Investigation is gated by policy (investigate label / deny list / severity),
-    fingerprint dedup, per-minute rate limit, and a concurrency semaphore so a
-    high-cardinality alert never opens dozens of OpenClaw hook sessions (each
-    of which eagerly spawns the full MCP set).
+    T0 — observe only (diary/Discord policy; no multi-tool OpenClaw hook)
+    T1 — cheap summary (diary + Discord; no full MCP investigation)
+    T2 — multi-tool hook (legacy safety rails + budgets still apply)
     """
+    from investigation_policy import (
+        admit_t2,
+        release_t2,
+        resolve_tier,
+    )
+
     instance = alert.labels.instance
     if not instance:
-        # Try to extract hostname from other labels
         extra = alert.labels.model_extra or {}
         instance = (
             _label_get(alert.labels, "device_name")
@@ -1906,60 +1944,110 @@ async def process_alert(alert: Alert):
     device_info = await lookup_device(instance)
     log.info(f"  Device resolved: {device_info['name']} → {device_info['ip']} (source: {device_info['source']})")
 
-    # Resolved → diary only (complete open case); never start a new investigation.
     if alert.status == "resolved":
         await complete_guardian_event_resolved(alert, device_info)
         return
 
-    # Check if this is a known noisy IoT device generating excessive blocks.
-    # If so, log as INFO to Guardian and skip full investigation + Discord.
     if _is_noisy_iot_suppressed(alert, device_info):
         log.info(f"  Suppressed (known noisy IoT): {alert.labels.alertname} for {device_info['ip']}")
         metrics.investigations_suppressed_total += 1
+        metrics.investigations_by_tier["T0"] = metrics.investigations_by_tier.get("T0", 0) + 1
         await post_guardian_event(alert, device_info, status="resolved")
         return
 
+    decision = resolve_tier(alert)
+    tier = decision.tier
+    log.info(
+        "investigation_policy tier=%s rule=%s alertname=%s fingerprint=%s",
+        tier,
+        decision.rule,
+        alert.labels.alertname,
+        (alert.fingerprint or "-")[:16],
+    )
+
+    def _count_tier(t: str) -> None:
+        metrics.investigations_by_tier[t] = metrics.investigations_by_tier.get(t, 0) + 1
+
+    # ── T0: observe only ───────────────────────────────────────────
+    if tier == "T0":
+        _count_tier("T0")
+        metrics.investigations_suppressed_policy_total += 1
+        metrics.investigations_suppressed_total += 1
+        await post_guardian_event(alert, device_info, status="logged")
+        if (
+            alert.labels.alertname not in DISCORD_SUPPRESS_ALERTS
+            and (alert.labels.severity or "").lower() == "critical"
+        ):
+            try:
+                await post_discord(alert, device_info)
+            except Exception as e:
+                log.warning(f"T0 Discord notify failed: {e}")
+        return
+
+    # ── T1: cheap summarize (no multi-tool OpenClaw farm) ───────────
+    if tier == "T1":
+        _count_tier("T1")
+        await post_guardian_event(alert, device_info, status="logged")
+        if alert.labels.alertname not in DISCORD_SUPPRESS_ALERTS:
+            try:
+                await post_discord(alert, device_info)
+            except Exception as e:
+                log.warning(f"T1 Discord notify failed: {e}")
+        log.info(
+            "T1 summarize (no multi-tool hook): %s on %s — %s",
+            alert.labels.alertname,
+            device_info.get("name"),
+            (alert.annotations.summary or "")[:120],
+        )
+        return
+
+    # ── T2: multi-tool investigate ──────────────────────────────────
     allowed, policy_reason = should_auto_investigate(alert)
     if not allowed:
         log.info(
-            f"  Investigation skipped ({policy_reason}): "
-            f"{alert.labels.alertname} fp={alert.fingerprint[:12] if alert.fingerprint else '-'}"
+            f"  T2 blocked by legacy safety ({policy_reason}): "
+            f"{alert.labels.alertname}"
         )
+        _count_tier("T0")
         metrics.investigations_suppressed_policy_total += 1
         metrics.investigations_suppressed_total += 1
-        # Still record a light diary entry for visibility without hooking OpenClaw
         await post_guardian_event(alert, device_info, status="logged")
-        # Optional Discord for non-suppressed names at info severity is intentional no-op
-        if (
-            alert.labels.alertname not in DISCORD_SUPPRESS_ALERTS
-            and (alert.labels.severity or "").lower() in ("warning", "critical")
-            and policy_reason.startswith("deny_list")
-        ):
-            # Deny-listed but still human-visible once (optional) — skip by default
-            pass
+        return
+
+    ok_budget, budget_reason = admit_t2(decision.budgets or {})
+    if not ok_budget:
+        log.warning(
+            "investigation_policy budget trip budget=%s alertname=%s — clamp to T0",
+            budget_reason,
+            alert.labels.alertname,
+        )
+        _count_tier("T0")
+        metrics.investigation_budget_trips_total[budget_reason] = (
+            metrics.investigation_budget_trips_total.get(budget_reason, 0) + 1
+        )
+        metrics.investigations_suppressed_total += 1
+        await post_guardian_event(alert, device_info, status="logged")
         return
 
     admitted, admit_reason = await admit_investigation(alert.fingerprint or instance)
     if not admitted:
+        release_t2()
+        _count_tier("T0")
         log.warning(
             f"  Investigation admission denied ({admit_reason}): "
-            f"{alert.labels.alertname} fp={alert.fingerprint[:12] if alert.fingerprint else '-'} "
-            f"— diary only (prevents MCP fan-out)"
+            f"{alert.labels.alertname} — diary only"
         )
         await post_guardian_event(alert, device_info, status="logged")
         return
 
+    _count_tier("T2")
     try:
-        # Scope the runtime skills directory to this alert before investigation.
         scope_gen = await scope_skills_for_alert(alert, device_info)
-
         await trigger_netclaw(alert, device_info)
-
-        # After the fresh alert session has read the scoped dir, restore the full
-        # catalog so interactive sessions aren't left with the reduced set.
         await restore_skills_after_trigger(scope_gen)
     finally:
         release_investigation()
+        release_t2()
 
 
 def _is_noisy_iot_suppressed(alert: Alert, device_info: dict) -> bool:

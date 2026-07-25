@@ -177,27 +177,27 @@ setup/quickstart). Does **not** block Phase 8 telemetry ship.
 
 ### Policy engine (alert-receiver)
 
-- [ ] T099 Load `~/.openclaw/investigation-policy.yaml` (seed from
-      `deploy/convergence/config/investigation-policy.example.yaml`); cache ≤60s or SIGHUP
-- [ ] T100 Resolve tier T0/T1/T2 per alert (force_t0, allow_t2, allow_t1, default_tier,
+- [x] T099 Load `~/.openclaw/investigation-policy.yaml` (seed from
+      `deploy/convergence/config/investigation-policy.example.yaml`); cache TTL (~30s)
+- [x] T100 Resolve tier T0/T1/T2 per alert (force_t0, allow_t2, allow_t1, default_tier,
       Prom `investigate=false`)
-- [ ] T101 Fail-safe: missing/invalid policy → T0 + clear log warning
-- [ ] T102 Budgets: max concurrent T2 + max T2 per hour (or equivalent); clamp tier on trip
-- [ ] T103 Metrics: `netclaw_investigations_by_tier` (+ budget trip counter); log
+- [x] T101 Fail-safe: missing/invalid policy → T0 + clear log warning
+- [x] T102 Budgets: max concurrent T2 + max T2 per hour (or equivalent); clamp tier on trip
+- [x] T103 Metrics: `netclaw_investigations_by_tier` (+ budget trip counter); log
       `tier=… rule=…` per decision
-- [ ] T104 T0 path: no multi-tool OpenClaw hook (diary/Discord only as configured)
-- [ ] T105 T1 path: one-shot summarize (0–1 tools, hard completion cap) — stub OK if
-      documented; must not open full MCP farm
+- [x] T104 T0 path: no multi-tool OpenClaw hook (diary/Discord only as configured)
+- [x] T105 T1 path: one-shot summarize (0–1 tools) — diary + Discord notify; no multi-tool hook
 - [ ] T106 T2 path: existing hook only when allowlisted; wire thin tool profile or agent id
       (prometheus-centric; escalate domain claws — no full interactive zoo)
+      **Partial:** T2 gated by policy + budgets; thin MCP agent profile still TODO
 
 ### Installer / operator UX
 
-- [ ] T107 Seed example policy on setup; document presets
-      `observe-only` | `triage-cheap` | `investigate-critical`
-- [ ] T108 Optional CLI or setup snippet: show current default tier / allowlists
-- [ ] T109 Quickstart: nuclear start (T0 empty allow_t2) → open one T2 alertname
-- [ ] T110 `.env.example` / catalog notes if new keys (policy path, mode preset)
+- [x] T107 Seed example policy (`deploy/convergence/config/investigation-policy.example.yaml` +
+      `scripts/netclaw-investigation-policy.sh seed-observe-only`)
+- [x] T108 CLI: `scripts/netclaw-investigation-policy.sh show|seed-observe-only` + `GET /policy/status`
+- [x] T109 Quickstart: nuclear start (T0 empty allow_t2) → open one T2 alertname
+- [x] T110 `.env.example` notes (`INVESTIGATION_POLICY_PATH`, cache TTL)
 
 ### Independent test
 

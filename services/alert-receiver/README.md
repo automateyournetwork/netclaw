@@ -31,13 +31,25 @@ alert (e.g. per-switch-port) must never open dozens of concurrent sessions.
 
 | Control | Default | Env |
 |---------|---------|-----|
+| **Phase 9 policy file** (T0/T1/T2) | `default_tier: T0`, empty `allow_t2` | `INVESTIGATION_POLICY_PATH` |
 | Policy (`investigate` label, deny-list, min severity) | skip `info` + deny noisy names | `INVESTIGATE_*` |
 | Fingerprint dedup | 30 min | `INVESTIGATION_DEDUP_TTL` |
 | Rate limit | 3 / minute | `MAX_INVESTIGATIONS_PER_MINUTE` |
 | Concurrency | 2 in-flight (no queue) | `MAX_CONCURRENT_INVESTIGATIONS` |
 
-See **`docs/CONVERGENCE-ALERT-SAFETY.md`** for the 2026-07 incident and the
-alert-authoring checklist. Metrics: `netclaw_investigations_suppressed_*` on `/metrics`.
+**Policy file:** `~/.openclaw/investigation-policy.yaml`  
+**Seed:** `./scripts/netclaw-investigation-policy.sh seed-observe-only`  
+**Status:** `GET /policy/status`  
+**Spec:** `specs/067-convergence/investigation-policy.md`
+
+| Tier | Behavior |
+|------|----------|
+| T0 | Diary / optional critical Discord — **no multi-tool OpenClaw hook** |
+| T1 | Cheap notify/summary — no full MCP investigation |
+| T2 | Multi-tool hook (only if `allow_t2` matches + budgets) |
+
+See **`docs/CONVERGENCE-ALERT-SAFETY.md`**. Metrics: `netclaw_investigations_by_tier`,
+`netclaw_investigation_budget_trips_total`, `netclaw_investigations_suppressed_*`.
 
 ## Setup
 
