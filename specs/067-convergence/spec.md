@@ -2,8 +2,13 @@
 
 **Feature Branch**: `067-convergence`  
 **Created**: 2026-07-24  
-**Status**: Draft  
-**Input**: Productize the home Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
+**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry spec’d)  
+**Input**: Productize the Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless / **device SNMP** / **agent observability**), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
+
+**Greenfield optional PR (Phase 8)**: Campus switch SNMP, device syslog, NetClaw
+agent metrics/logs, and Grafana dashboards as **installable components** — not a
+migration from any pilot observability repo. Detail:
+[`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -77,6 +82,42 @@ Installer/setup asks which firewall, SoT (none/Nautobot/NetBox), and wireless ve
 **Why this priority**: Multi-home productization; UniFi first implementation.
 
 **Independent Test**: Select UniFi + pfSense + no SoT; setup writes config; Home Wi‑Fi view uses UniFi metrics path.
+
+---
+
+### User Story 6 - Greenfield campus switch SNMP + agent observability (Priority: P2)
+
+An operator deploying **Convergence only** (no pilot observability stack) enables
+optional components for **wired device SNMP** (e.g. Cisco Catalyst access/core
+switches), **device syslog**, and **NetClaw agent** token metrics + log ship.
+Prometheus, Loki, and Grafana on the Convergence deploy surface the same class of
+signals used for switch monitoring and agent health — fully greenfield and
+documented for an upstream PR.
+
+**Why this priority**: Switch interface health and agent cost/logs are major
+operational surfaces; they must not require a second private OBS repo.
+
+**Independent Test**: On a clean host, install `convergence-core` +
+`convergence-device-snmp` + `convergence-agent-metrics` with lab or mock SNMP;
+Prometheus shows labeled switch metrics and `netclaw_model_*` without namespace
+`observability` from any other project.
+
+**Acceptance Scenarios**:
+
+1. **Given** device SNMP targets in `convergence.yaml` and the device-snmp
+   profile/component is enabled, **When** the stack starts, **Then** interface
+   status/octets/errors (or documented equivalents) exist per `device_name`.
+2. **Given** agent metrics component is enabled, **When** the host exporter runs,
+   **Then** Convergence Prometheus scrapes it and a provisioned Grafana board
+   (or Prom UI) shows token counters.
+3. **Given** agent/device log forward is enabled and Loki is up, **When** a test
+   log line is emitted, **Then** it is queryable with stable labels
+   (`device_name` / `service`).
+4. **Given** only minimal WAN+UniFi components, **When** device/agent options are
+   off, **Then** install and runtime behave as today (no extra containers).
+
+**Detail**: [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) ·
+tasks T080–T095.
 
 **Acceptance Scenarios**:
 

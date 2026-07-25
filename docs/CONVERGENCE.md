@@ -175,3 +175,17 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
 - [deploy/convergence/README.md](../deploy/convergence/README.md)  
 - [specs/067-convergence/quickstart.md](../specs/067-convergence/quickstart.md)  
 - [services/alert-receiver/README.md](../services/alert-receiver/README.md)  
+- **Greenfield PR (not built yet):** campus switch SNMP + NetClaw agent
+  metrics/logs as optional components —
+  [`specs/067-convergence/device-telemetry-greenfield.md`](../specs/067-convergence/device-telemetry-greenfield.md)
+  (distinct from optional AP-only `generic-snmp-wireless`)
+
+### What is *not* in the tree yet (planned Phase 8)
+
+| Capability | Today | Planned greenfield component |
+|------------|--------|------------------------------|
+| Cisco/switch interface SNMP | Pilot OBS OTEL only | `convergence-device-snmp` |
+| Device syslog → Loki | Pilot OBS | `convergence-device-syslog` |
+| NetClaw token/cost metrics | `scripts/openclaw-metrics` (host, unwired) | `convergence-agent-metrics` |
+| NetClaw gateway/mesh log ship | rsyslog template → pilot | `convergence-agent-logs` |
+| Provisioned Grafana boards | Datasources only in `full` | network + agent dashboard JSON |

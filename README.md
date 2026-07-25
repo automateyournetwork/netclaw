@@ -15,7 +15,7 @@ A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github
 
 | Area | Spec / docs | Deploy / code |
 |------|-------------|----------------|
-| **NetClaw Convergence** | **[docs/CONVERGENCE.md](docs/CONVERGENCE.md)** · [ENV layout](docs/ENV-AND-LAYOUT.md) · [spec 067](specs/067-convergence/) | [`deploy/convergence/`](deploy/convergence/) · [`ui/convergence-api/`](ui/convergence-api/) · [`services/alert-receiver/`](services/alert-receiver/) · HUD HOME |
+| **NetClaw Convergence** | **[docs/CONVERGENCE.md](docs/CONVERGENCE.md)** · [ENV layout](docs/ENV-AND-LAYOUT.md) · [spec 067](specs/067-convergence/) · [greenfield device/agent telemetry (Phase 8)](specs/067-convergence/device-telemetry-greenfield.md) | [`deploy/convergence/`](deploy/convergence/) · [`ui/convergence-api/`](ui/convergence-api/) · [`services/alert-receiver/`](services/alert-receiver/) · HUD CONVERGENCE |
 | **Knowledge / RAG** | [runbook](docs/runbooks/knowledge-rag-home-ops.md) · [rag-mcp](mcp-servers/rag-mcp/README.md) | HUD **Knowledge** · `mcp-servers/rag-mcp/` |
 | **iN2N risk / federation** | [docs/N2N-RISK.md](docs/N2N-RISK.md) · [federation guide](docs/N2N-FEDERATION-GUIDE.md) | Border + **guardian-claw** investigator |
 

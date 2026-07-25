@@ -102,9 +102,56 @@
 - [x] T072 docker-compose.full.yml (Loki, VM, Grafana, speedtest)
 - [x] T073 K3s equivalents of T070/T071/T072 (`deploy/convergence/k8s/components/`, `overlays/greenfield-full/`)
 
-**Suggested next**: Phase 7+ is complete (Docker + K3s parity). Consider live
-triage smoke with an escalated event, or building a real vendor MIB module
-for the generic-snmp-wireless component (currently IF-MIB baseline only).
+**Suggested next**: Phase 8 greenfield device telemetry + agent observability
+(optional PR feature) — **not** a pilot migration. Spec:
+[`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md).
+
+---
+
+## Phase 8: Greenfield device SNMP + agent observability (optional PR)
+
+**Purpose**: Ship campus switch SNMP, device syslog, NetClaw agent metrics/logs,
+and Grafana dashboards as **optional greenfield** install components so a new
+site does not depend on `k3s-observability-stack`.
+
+**PR framing**: multi-PR optional feature (`convergence-device-snmp`,
+`convergence-agent-metrics`, …). Default install remains minimal WAN + UniFi.
+
+### Spec & contracts
+
+- [x] T080 Author `device-telemetry-greenfield.md` (goals, US, architecture, config)
+- [x] T081 Extend `contracts/adapters.md` with `device_telemetry` + `agent_observability`
+- [ ] T082 Catalog IDs + profile bits in `scripts/lib/catalog.sh` / `.env.example` docs
+- [ ] T083 Setup wizard prompts only when components selected (SNMP targets, community)
+
+### Device SNMP (switches / wired)
+
+- [ ] T084 Docker: OTEL collector (or snmp_exporter modules) profile `device-snmp`
+      with example switch targets from `convergence.yaml`
+- [ ] T085 Prometheus scrape + recording/alert rules (interface down, exporter down)
+- [ ] T086 K3s component `deploy/convergence/k8s/components/device-snmp/`
+- [ ] T087 HOME Devices / optional Overview KPI when metrics present
+- [ ] T088 Smoke: mock SNMP or lab switch → metrics labeled `device_name`
+
+### Device syslog
+
+- [ ] T089 Syslog/UDP receiver → Loki (depends on full Loki or slim log service)
+- [ ] T090 IP → `device_name` attribute mapping; docs for switch syslog destination
+- [ ] T091 K3s parity for syslog receiver
+
+### NetClaw agent observability
+
+- [ ] T092 Package `openclaw-metrics` as `convergence-agent-metrics` (systemd unit
+      under `scripts/systemd/` or `services/`) + Prometheus scrape from stack
+- [ ] T093 Agent log forward (rsyslog/journal) → Convergence Loki; template from
+      `scripts/rsyslog-netclaw-forward.conf` rewritten for greenfield Loki URL
+- [ ] T094 Provision Grafana dashboards: network (switches) + NetClaw quota JSON
+- [ ] T095 Quickstart section: greenfield “switches + agent metrics” path
+      (Docker and K3s); no pilot repo required
+
+**Independent test**: empty machine → install profile with device-snmp +
+agent-metrics → Prom has switch series and `netclaw_model_*` without applying
+anything to namespace `observability`.
 
 ---
 
