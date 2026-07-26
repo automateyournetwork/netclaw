@@ -1,0 +1,684 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "Token usage, cost, and model call metrics from the NetClaw gateway (OpenClaw session logs, pulled via exporter on 192.168.3.252:9110)",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "id": 100,
+      "title": "Overview",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 100000
+              },
+              {
+                "color": "red",
+                "value": 1000000
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "id": 1,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Total Input Tokens",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(netclaw_model_input_tokens_total{instance=\"netclaw\"})",
+          "legendFormat": "Input Tokens"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 50000
+              },
+              {
+                "color": "red",
+                "value": 500000
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "id": 2,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Total Output Tokens",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(netclaw_model_output_tokens_total{instance=\"netclaw\"})",
+          "legendFormat": "Output Tokens"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 0.5
+              },
+              {
+                "color": "red",
+                "value": 5.0
+              }
+            ]
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "id": 3,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Total Cost (USD)",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(netclaw_model_cost_usd_total{instance=\"netclaw\"})",
+          "legendFormat": "Cost"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 10
+              },
+              {
+                "color": "yellow",
+                "value": 50
+              }
+            ]
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "id": 4,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "title": "Total Model Calls",
+      "type": "stat",
+      "targets": [
+        {
+          "expr": "sum(netclaw_model_calls_total{instance=\"netclaw\"})",
+          "legendFormat": "Calls"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      },
+      "id": 101,
+      "title": "Token Usage Over Time",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 20,
+            "gradientMode": "scheme",
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 6
+      },
+      "id": 5,
+      "title": "Token Rate (tokens/min) by Type",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(netclaw_model_input_tokens_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "Input tokens/min"
+        },
+        {
+          "expr": "sum(rate(netclaw_model_output_tokens_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "Output tokens/min"
+        },
+        {
+          "expr": "sum(rate(netclaw_model_cache_read_tokens_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "Cache read tokens/min"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 6
+      },
+      "id": 6,
+      "title": "Cost Rate ($/hr)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(netclaw_model_cost_usd_total{instance=\"netclaw\"}[5m])) * 3600",
+          "legendFormat": "Cost $/hr"
+        },
+        {
+          "expr": "sum by (model) (rate(netclaw_model_cost_usd_total{instance=\"netclaw\"}[5m])) * 3600",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      },
+      "id": 102,
+      "title": "Per-Model Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 80,
+            "stacking": {
+              "mode": "normal"
+            }
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "id": 7,
+      "title": "Tokens by Model (cumulative)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (model) (netclaw_model_input_tokens_total{instance=\"netclaw\"} + netclaw_model_output_tokens_total{instance=\"netclaw\"})",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "id": 8,
+      "title": "Cost by Model",
+      "type": "piechart",
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (model) (netclaw_model_cost_usd_total{instance=\"netclaw\"})",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "id": 103,
+      "title": "Per-Provider Breakdown",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "id": 9,
+      "title": "Tokens by Provider",
+      "type": "piechart",
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider) (netclaw_model_input_tokens_total{instance=\"netclaw\"} + netclaw_model_output_tokens_total{instance=\"netclaw\"})",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "id": 10,
+      "title": "Cost by Provider",
+      "type": "piechart",
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right"
+        }
+      },
+      "targets": [
+        {
+          "expr": "sum by (provider) (netclaw_model_cost_usd_total{instance=\"netclaw\"})",
+          "legendFormat": "{{provider}}"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 32
+      },
+      "id": 104,
+      "title": "Cache Efficiency",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "green",
+                "value": 60
+              }
+            ]
+          },
+          "unit": "percent",
+          "min": 0,
+          "max": 100
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 33
+      },
+      "id": 11,
+      "title": "Cache Hit Rate",
+      "type": "gauge",
+      "targets": [
+        {
+          "expr": "sum(netclaw_model_cache_read_tokens_total{instance=\"netclaw\"}) / (sum(netclaw_model_input_tokens_total{instance=\"netclaw\"}) + sum(netclaw_model_cache_read_tokens_total{instance=\"netclaw\"})) * 100",
+          "legendFormat": "Cache %"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 33
+      },
+      "id": 12,
+      "title": "Cache Tokens Over Time",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum(rate(netclaw_model_cache_read_tokens_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "Cache reads/min"
+        },
+        {
+          "expr": "sum(rate(netclaw_model_cache_write_tokens_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "Cache writes/min"
+        }
+      ]
+    },
+    {
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      },
+      "id": 105,
+      "title": "Session Metrics",
+      "type": "row"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "ms"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 42
+      },
+      "id": 13,
+      "title": "Model Call Duration",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "netclaw_model_call_duration_ms{instance=\"netclaw\"}",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          },
+          "unit": "short"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 42
+      },
+      "id": 14,
+      "title": "Model Calls Rate (calls/min)",
+      "type": "timeseries",
+      "targets": [
+        {
+          "expr": "sum by (model) (rate(netclaw_model_calls_total{instance=\"netclaw\"}[5m])) * 60",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "netclaw",
+    "tokens",
+    "ai",
+    "cost",
+    "convergence",
+    "from-pilot"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-4h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "",
+  "title": "NetClaw \u2014 Token Usage & Cost",
+  "uid": "netclaw-tokens",
+  "version": 1
+}

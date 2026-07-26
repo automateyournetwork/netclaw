@@ -1,0 +1,1089 @@
+{
+  "uid": "network-guardian",
+  "title": "Network Guardian \u2014 Home Pilot",
+  "description": "Operator view of internet (WAN) health + Wi-Fi client experience for the home network. Proving ground for the Network Guardian product before going live. WAN metrics from blackbox (TCP/HTTP/DNS to public targets, VLAN13 vantage); throughput from pfSense SNMP; Wi-Fi/AP/client telemetry from the UniFi API-key exporter (Integration API). Mirrors the /demo client-portal layout with real data.",
+  "tags": [
+    "network-guardian",
+    "wan",
+    "wifi",
+    "internet",
+    "pilot",
+    "convergence",
+    "from-pilot"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "wan_if",
+        "label": "pfSense WAN interface",
+        "type": "query",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "victoriametrics-longterm"
+        },
+        "query": "label_values(interface_octets_in_bytes_total{device_name=\"pfsense\"}, interface_name)",
+        "refresh": 2,
+        "includeAll": false,
+        "multi": false,
+        "current": {
+          "text": "igc0.201",
+          "value": "igc0.201"
+        },
+        "description": "WAN interface for throughput panels. Default set per-deployment from group_vars wan_interface; pick from the dropdown if it differs."
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "KPIs",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 1,
+      "title": "Health score",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Derived 0-100 score (guardian:health_score). Starts at 100, penalized for WAN loss, latency, and edge-router reachability.",
+      "targets": [
+        {
+          "expr": "guardian:health_score{site=\"home\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "WAN latency",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Average TCP-connect RTT to public WAN targets (~ round-trip latency).",
+      "targets": [
+        {
+          "expr": "guardian:wan_latency_ms:avg{site=\"home\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 40
+              },
+              {
+                "color": "red",
+                "value": 80
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Throughput (WAN)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics-longterm"
+      },
+      "description": "pfSense WAN bits/sec (down = in, up = out) from SNMP interface counters. Pick the right interface via the $wan_if variable.",
+      "targets": [
+        {
+          "expr": "rate(interface_octets_in_bytes_total{device_name=\"pfsense\", interface_name=~\"$wan_if\"}[5m]) * 8",
+          "legendFormat": "Download",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(interface_octets_out_bytes_total{device_name=\"pfsense\", interface_name=~\"$wan_if\"}[5m]) * 8",
+          "legendFormat": "Upload",
+          "refId": "B"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area",
+        "textMode": "value_and_name"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Packet loss (WAN, 5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Percentage of failed WAN probes over the last 5 minutes.",
+      "targets": [
+        {
+          "expr": "100 * guardian:wan_loss_ratio:5m{site=\"home\"}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "min": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Connectivity & Bandwidth",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      }
+    },
+    {
+      "id": 10,
+      "title": "Connectivity \u2014 latency & loss",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "WAN latency (ms) and packet loss (%) over time \u2014 the core internet-health trend.",
+      "targets": [
+        {
+          "expr": "guardian:wan_latency_ms:avg{site=\"home\"}",
+          "legendFormat": "Latency (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "100 * (1 - avg(avg_over_time(probe_success{job=\"blackbox_wan_tcp\"}[1m])))",
+          "legendFormat": "Loss (%)",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Latency (ms)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "blue",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "ms"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Loss (%)"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              },
+              {
+                "id": "unit",
+                "value": "percent"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Bandwidth (WAN)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 7
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "victoriametrics-longterm"
+      },
+      "description": "pfSense WAN download/upload throughput from SNMP counters.",
+      "targets": [
+        {
+          "expr": "rate(interface_octets_in_bytes_total{device_name=\"pfsense\", interface_name=~\"$wan_if\"}[5m]) * 8",
+          "legendFormat": "Download",
+          "refId": "A"
+        },
+        {
+          "expr": "rate(interface_octets_out_bytes_total{device_name=\"pfsense\", interface_name=~\"$wan_if\"}[5m]) * 8",
+          "legendFormat": "Upload",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Download"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Upload"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "yellow",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Monitored Equipment",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      }
+    },
+    {
+      "id": 20,
+      "title": "WAN targets & edge router",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Reachability of each upstream WAN target and the pfSense edge router. 1 = Online, 0 = Offline.",
+      "targets": [
+        {
+          "expr": "probe_success{job=~\"blackbox_wan_tcp|blackbox_wan_http|blackbox_wan_dns|blackbox_http\"}",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "site": true,
+              "probe": true,
+              "device_name": true,
+              "role": true,
+              "module": true
+            },
+            "renameByName": {
+              "instance": "Endpoint",
+              "target": "Target",
+              "job": "Check",
+              "Value": "Status"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "0": {
+                        "text": "Offline",
+                        "color": "red",
+                        "index": 0
+                      },
+                      "1": {
+                        "text": "Online",
+                        "color": "green",
+                        "index": 1
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-background"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Status",
+            "desc": false
+          }
+        ]
+      }
+    },
+    {
+      "id": 21,
+      "title": "Access Points (UniFi)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Per-AP associated client count from the UniFi Integration API exporter. Metric: unifi_ap_clients.",
+      "targets": [
+        {
+          "expr": "unifi_ap_clients{site=\"home\"}",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "instance": true,
+              "site": true,
+              "unifi_site": true,
+              "mac": true
+            },
+            "renameByName": {
+              "device": "Access Point",
+              "Value": "Clients"
+            }
+          }
+        }
+      ],
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Clients",
+            "desc": true
+          }
+        ]
+      }
+    },
+    {
+      "type": "row",
+      "id": 103,
+      "title": "Wi-Fi Client Experience",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      }
+    },
+    {
+      "id": 30,
+      "title": "Total Wi-Fi clients",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 25
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Wireless clients across the site (UniFi Integration API exporter).",
+      "targets": [
+        {
+          "expr": "sum(unifi_site_clients_wireless{site=\"home\"})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "blue"
+          }
+        }
+      }
+    },
+    {
+      "id": 31,
+      "title": "Guest SSID sessions",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 25
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Guest-network clients (UniFi exporter, unifi_site_clients_guest). Guest detection depends on GUEST_ACCESS_TYPES \u2014 verify against real .access.type values.",
+      "targets": [
+        {
+          "expr": "sum(unifi_site_clients_guest{site=\"home\"})",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          }
+        }
+      }
+    },
+    {
+      "id": 32,
+      "title": "Wi-Fi TX retries by AP / band",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 25
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Per-radio TX retry percentage (the Integration API's client-experience signal; it does not expose per-client RSSI). Sustained high values indicate RF congestion/interference and poor Wi-Fi experience. Metric: unifi_radio_tx_retries_pct.",
+      "targets": [
+        {
+          "expr": "unifi_radio_tx_retries_pct{site=\"home\"}",
+          "legendFormat": "{{device}} {{band}}",
+          "refId": "A"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 35
+              }
+            ]
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 104,
+      "title": "Recent Events",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      }
+    },
+    {
+      "id": 40,
+      "title": "Edge & infrastructure events",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 31
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Recent gateway/WAN/DHCP/DNS/link events from pfSense and core switches (syslog via OTel \u2192 Loki). Closest real analog to the demo event stream until product-level monitoring events exist.",
+      "targets": [
+        {
+          "expr": "{device_name=~\"pfsense|HomeSwitch01|HomeSwitch02\"} |~ \"(?i)(gateway|wan|dhcp|dns|link (up|down)|carrier|dpinger|interface)\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    },
+    {
+      "type": "row",
+      "id": 105,
+      "title": "WAN Bandwidth Validation (Speedtest)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 41
+      }
+    },
+    {
+      "id": 106,
+      "title": "Speedtest Download",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 42
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Latest measured download bandwidth (Ookla speedtest). Green \u2265900, yellow \u2265700, red <700 Mbps (1 Gbps paid service).",
+      "targets": [
+        {
+          "expr": "speedtest_download_bits_per_second",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 700000000
+              },
+              {
+                "color": "green",
+                "value": 900000000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 107,
+      "title": "Speedtest Upload",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 42
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Latest measured upload bandwidth (symmetric 1 Gbps expected).",
+      "targets": [
+        {
+          "expr": "speedtest_upload_bits_per_second",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 700000000
+              },
+              {
+                "color": "green",
+                "value": 900000000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 108,
+      "title": "% of paid rate",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 42
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Latest download as percentage of 1 Gbps paid service.",
+      "targets": [
+        {
+          "expr": "100 * speedtest_download_bits_per_second / 1e9",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 110,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "green",
+                "value": 90
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 109,
+      "title": "Speedtest latency",
+      "type": "stat",
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 42
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "speedtest_ping_latency_ms",
+          "legendFormat": "{{server}}",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 30
+              },
+              {
+                "color": "red",
+                "value": 60
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 110,
+      "title": "Speedtest history (by server)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 47
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Download and upload over time, per server (from the dedicated WAN Speedtest dashboard for deeper analysis, linked via uid wan-speedtest).",
+      "targets": [
+        {
+          "expr": "speedtest_download_bits_per_second",
+          "legendFormat": "{{server}} download",
+          "refId": "A"
+        },
+        {
+          "expr": "speedtest_upload_bits_per_second",
+          "legendFormat": "{{server}} upload",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bps",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2,
+            "pointSize": 5,
+            "showPoints": "always"
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "min",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    }
+  ]
+}

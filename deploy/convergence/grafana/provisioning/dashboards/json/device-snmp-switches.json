@@ -1,12 +1,21 @@
 {
-  "title": "Convergence — Campus Switches (device_snmp)",
+  "title": "Convergence \u2014 Campus Switches (device_snmp)",
   "uid": "convergence-device-snmp",
-  "tags": ["netclaw", "convergence", "snmp", "switches", "phase8"],
+  "tags": [
+    "netclaw",
+    "convergence",
+    "snmp",
+    "switches",
+    "phase8"
+  ],
   "timezone": "browser",
   "schemaVersion": 39,
   "version": 1,
   "refresh": "1m",
-  "time": {"from": "now-6h", "to": "now"},
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
   "templating": {
     "list": [
       {
@@ -21,11 +30,17 @@
         "name": "device",
         "label": "Device",
         "type": "query",
-        "datasource": {"type": "prometheus", "uid": "${datasource}"},
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
         "query": "label_values(up{job=\"device_snmp\"}, device_name)",
         "includeAll": true,
         "multi": true,
-        "current": {"text": "All", "value": "$__all"},
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
         "refresh": 2
       }
     ]
@@ -35,17 +50,42 @@
       "id": 1,
       "title": "SNMP scrape targets up",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 6, "x": 0, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "green", "value": 1}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
       "targets": [
         {
           "refId": "A",
@@ -58,18 +98,46 @@
       "id": 2,
       "title": "Interfaces up",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 6, "x": 6, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "red", "value": 0},
-            {"color": "yellow", "value": 1},
-            {"color": "green", "value": 10}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "green",
+                "value": 10
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
       "targets": [
         {
           "refId": "A",
@@ -82,18 +150,46 @@
       "id": 3,
       "title": "Interfaces down (admin up)",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 6, "x": 12, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": 0},
-            {"color": "yellow", "value": 1},
-            {"color": "red", "value": 5}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 1
+              },
+              {
+                "color": "red",
+                "value": 5
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "background", "graphMode": "none", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "options": {
+        "colorMode": "background",
+        "graphMode": "none",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
       "targets": [
         {
           "refId": "A",
@@ -106,19 +202,47 @@
       "id": 4,
       "title": "Error rate (in+out)",
       "type": "stat",
-      "gridPos": {"h": 5, "w": 6, "x": 18, "y": 0},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 5,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "ops",
-          "thresholds": {"mode": "absolute", "steps": [
-            {"color": "green", "value": 0},
-            {"color": "yellow", "value": 0.1},
-            {"color": "red", "value": 1}
-          ]}
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": 0
+              },
+              {
+                "color": "yellow",
+                "value": 0.1
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
         }
       },
-      "options": {"colorMode": "value", "graphMode": "area", "reduceOptions": {"calcs": ["lastNotNull"]}},
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
       "targets": [
         {
           "refId": "A",
@@ -131,25 +255,49 @@
       "id": 5,
       "title": "Interface traffic by device (bits/s)",
       "type": "timeseries",
-      "gridPos": {"h": 10, "w": 12, "x": 0, "y": 5},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "bps",
-          "custom": {"drawStyle": "line", "lineWidth": 1, "fillOpacity": 10, "stacking": {"mode": "none"}}
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "stacking": {
+              "mode": "none"
+            }
+          }
         }
       },
-      "options": {"legend": {"displayMode": "table", "placement": "bottom", "calcs": ["mean", "max"]}},
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "mean",
+            "max"
+          ]
+        }
+      },
       "targets": [
         {
           "refId": "A",
           "expr": "sum by (device_name) (rate(ifHCInOctets{job=\"device_snmp\", device_name=~\"$device\"}[5m]) * 8)",
-          "legendFormat": "{{device_name}} in"
+          "legendFormat": "{{device_name}} {{ifName}}"
         },
         {
           "refId": "B",
           "expr": "sum by (device_name) (rate(ifHCOutOctets{job=\"device_snmp\", device_name=~\"$device\"}[5m]) * 8)",
-          "legendFormat": "{{device_name}} out"
+          "legendFormat": "{{device_name}} {{ifName}}"
         }
       ]
     },
@@ -157,15 +305,32 @@
       "id": 6,
       "title": "Ports up / total by device",
       "type": "timeseries",
-      "gridPos": {"h": 10, "w": 12, "x": 12, "y": 5},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 5
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
       "fieldConfig": {
         "defaults": {
           "unit": "short",
-          "custom": {"drawStyle": "line", "lineWidth": 2, "fillOpacity": 0}
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0
+          }
         }
       },
-      "options": {"legend": {"displayMode": "list", "placement": "bottom"}},
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        }
+      },
       "targets": [
         {
           "refId": "A",
@@ -183,23 +348,49 @@
       "id": 7,
       "title": "Interface oper status (1=up 2=down)",
       "type": "table",
-      "gridPos": {"h": 12, "w": 24, "x": 0, "y": 15},
-      "datasource": {"type": "prometheus", "uid": "${datasource}"},
-      "options": {"showHeader": true, "sortBy": [{"displayName": "Value", "desc": false}]},
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": false
+          }
+        ]
+      },
       "targets": [
         {
           "refId": "A",
           "expr": "ifOperStatus{job=\"device_snmp\", device_name=~\"$device\"}",
           "format": "table",
-          "instant": true
+          "instant": true,
+          "legendFormat": "{{device_name}} {{ifName}} {{ifDescr}} ({{ifIndex}})"
         }
       ],
       "transformations": [
-        {"id": "labelsToFields", "options": {}},
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
         {
           "id": "organize",
           "options": {
-            "excludeByName": {"Time": true, "__name__": true, "job": true, "site": true, "role": true},
+            "excludeByName": {
+              "Time": true,
+              "__name__": true,
+              "job": true,
+              "site": true,
+              "role": true
+            },
             "renameByName": {
               "device_name": "Device",
               "ifIndex": "ifIndex",

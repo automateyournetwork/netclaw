@@ -63,10 +63,13 @@ groups:
           site: home
           investigate: "true"
         annotations:
-          summary: "Link lost on {{ $labels.device_name }} ifIndex={{ $labels.ifIndex }}"
+          summary: >-
+            Link lost on {{ $labels.device_name }}
+            {{ with $labels.ifDescr }}{{ . }}{{ else }}{{ with $labels.ifName }}{{ . }}{{ else }}ifIndex={{ $labels.ifIndex }}{{ end }}{{ end }}
           description: >-
             Interface was operationally up 15m ago and is now down (admin still up)
             on {{ $labels.device_name }} ({{ $labels.instance }}).
+            ifIndex={{ $labels.ifIndex }} ifDescr={{ $labels.ifDescr }} ifName={{ $labels.ifName }}.
 
       - alert: NetclawAgentMetricsDown
         expr: up{job="netclaw-openclaw"} == 0

@@ -41,9 +41,23 @@ curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib' | head
 | `ifAdminStatus` | admin state |
 | `ifHCInOctets` / `ifHCOutOctets` | traffic counters |
 | `ifInErrors` / `ifOutErrors` | error counters |
-| `ifDescr` | interface description |
 
-Labels: `device_name`, `role=switch`, `site`, `instance` (device IP).
+**Labels on every series (after snmp.yml lookups):**  
+`device_name`, `role=switch`, `site`, `instance` (device IP), **`ifIndex`**, **`ifDescr`**, **`ifName`**.
+
+### Pilot-compatible recording rules
+
+Prometheus also evaluates `device-recording.rules.yml` so k3s-built dashboards work:
+
+| Recording name | Source |
+|----------------|--------|
+| `interface_status` | `ifOperStatus` + `interface_name` from `ifDescr` |
+| `interface_octets_in_bytes_total` | `ifHCInOctets` |
+| `interface_octets_out_bytes_total` | `ifHCOutOctets` |
+| `interface_errors_in_total` / `_out_total` | `ifInErrors` / `ifOutErrors` |
+
+Grafana (host **:3300**): folder **Convergence** — includes **Network Interfaces**
+ported from `k3s-observability-stack` plus campus switches board.
 
 ## Alerts
 

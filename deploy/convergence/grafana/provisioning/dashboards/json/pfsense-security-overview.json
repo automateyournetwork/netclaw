@@ -1,0 +1,614 @@
+{
+  "uid": "pfsense-security-overview",
+  "title": "pfSense \u2014 Security Operations Overview",
+  "description": "Breach detection pane of glass for pfSense. Firewall blocks, threat activity, lateral movement, auth, and DNS threat indicators. Sourced from pfSense syslog via OTEL \u2192 Loki (device_name=pfsense).",
+  "tags": [
+    "pfsense",
+    "security",
+    "firewall",
+    "breach-detection",
+    "convergence",
+    "from-pilot"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "window",
+        "type": "custom",
+        "query": "1m,5m,15m,1h",
+        "current": {
+          "text": "5m",
+          "value": "5m"
+        },
+        "includeAll": false,
+        "multi": false,
+        "label": "Rate window"
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "Threat Summary",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 1,
+      "title": "Blocked Connections (5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Total firewall block events in the last 5 minutes. A sudden spike indicates a scan, probe, or attack.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" [5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 500
+              },
+              {
+                "color": "red",
+                "value": 3000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Auth Failures (1h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 5,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Failed authentication attempts (WebGUI, SSH, VPN) in the last hour. Bursts indicate brute force.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |~ \"(?i)(authentication failure|failed password|login failed|sshguard)\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 5
+              },
+              {
+                "color": "red",
+                "value": 20
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "Config Changes (6h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 10,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Firewall configuration changes in the last 6 hours. Should be zero outside planned maintenance windows.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |~ \"config.xml|configuration change\" [6h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "DNSBL Blocks (1h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 5,
+        "x": 15,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Domains blocked at DNS level by pfBlockerNG DNSBL in the last hour. Each is a device that tried to reach a blocked (malicious/ad/tracking) domain.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"DNSBL\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "NetFlow: pfSense Flow Rate",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 4,
+        "x": 20,
+        "y": 1
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Flow data bytes/sec received from pfSense (192.168.13.1, softflowd sourced from the VLAN13 interface) via NetFlow v9 \u2192 goflow2. Confirms flow export is alive.",
+      "targets": [
+        {
+          "expr": "rate(goflow2_flow_traffic_bytes_total{remote_ip=\"192.168.13.1\"}[5m])",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "value",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Firewall Activity",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "id": 10,
+      "title": "Firewall Events \u2014 Block vs Pass",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Blocked vs passed connections over time. Spike in blocks = possible attack/scan. Unexpected drop in blocks = possible rule bypass.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" [1m]))",
+          "legendFormat": "block",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"pass\" [1m]))",
+          "legendFormat": "pass",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "events/min",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "block"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "pass"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "green",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 11,
+      "title": "Top Blocked Source IPs (15m)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Most frequently blocked source IPs over the last 15 minutes. External IPs = internet scans/probes. Internal IPs (192.168.x) = misconfigured or potentially compromised devices worth investigating. Window is 15m to stay within Loki's per-query series limit (unique sources exceed 500 over 1h).",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (src) (count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" | json | line_format \"{{.body}}\" | regexp \"(?P<src>[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+),[0-9]+[.][0-9]+[.][0-9]+[.][0-9]+,[0-9]+,[0-9]+,\" | src != \"\" [15m])))",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "options": {
+        "showHeader": true
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "src": "Source IP",
+              "Value": "Blocks"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Interface & Protocol Breakdown",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "id": 20,
+      "title": "Blocks by Interface (VLAN)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Where blocks are happening. WAN (igc0.201) = external scans. Internal VLANs generating blocks toward other VLANs can indicate lateral movement or misconfigured devices.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"igc0.201\" [$window]))",
+          "legendFormat": "WAN",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"lagg0.100\" [$window]))",
+          "legendFormat": "HomeLan",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"lagg0.102\" [$window]))",
+          "legendFormat": "IoT",
+          "refId": "C"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"lagg0.30\" [$window]))",
+          "legendFormat": "K3S",
+          "refId": "D"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"lagg0.3\" [$window]))",
+          "legendFormat": "DeviceMgmt",
+          "refId": "E"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineWidth": 2
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "id": 21,
+      "title": "WAN Inbound Blocks by Protocol",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Protocol breakdown of blocked WAN traffic. TCP = port scans. UDP = reflection/amplification probes. ICMP = ping sweeps.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"igc0.201\" |= \",tcp,\" [$window]))",
+          "legendFormat": "TCP",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"igc0.201\" |= \",udp,\" [$window]))",
+          "legendFormat": "UDP",
+          "refId": "B"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"filterlog\" |= \"block\" |= \"igc0.201\" |= \",icmp,\" [$window]))",
+          "legendFormat": "ICMP",
+          "refId": "C"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineWidth": 1,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 103,
+      "title": "Live Security Event Stream",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 22
+      }
+    },
+    {
+      "id": 30,
+      "title": "Security Events \u2014 Blocks, Auth Failures, Threat Feeds, Config Changes",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Real-time stream of security-relevant pfSense events. Use during active incident investigation.",
+      "targets": [
+        {
+          "expr": "{device_name=\"pfsense\"} | json | line_format \"{{.body}}\" |~ \"(?i)(block|authentication failure|failed password|pfBlockerNG|DNSBL|configuration change)\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "sortOrder": "Descending",
+        "dedupStrategy": "none"
+      }
+    }
+  ]
+}

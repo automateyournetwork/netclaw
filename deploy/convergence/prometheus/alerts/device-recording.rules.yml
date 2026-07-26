@@ -1,0 +1,46 @@
+# Recording rules: snmp_exporter IF-MIB → pilot (k3s-observability-stack) names.
+# Pilot OTel SNMP metrics:
+#   interface_status, interface_octets_{in,out}_bytes_total,
+#   interface_errors_{in,out}_total
+# with labels: device_name, interface_name
+#
+# Docker scrapes snmp_exporter as ifOperStatus / ifHCInOctets / … with ifDescr
+# (and ifName after lookups). These rules keep pilot dashboards usable.
+groups:
+  - name: netclaw-convergence.device-recording
+    interval: 60s
+    rules:
+      - record: interface_status
+        expr: |
+          label_replace(
+            ifOperStatus{job="device_snmp"},
+            "interface_name", "$1", "ifDescr", "(.+)"
+          )
+
+      - record: interface_octets_in_bytes_total
+        expr: |
+          label_replace(
+            ifHCInOctets{job="device_snmp"},
+            "interface_name", "$1", "ifDescr", "(.+)"
+          )
+
+      - record: interface_octets_out_bytes_total
+        expr: |
+          label_replace(
+            ifHCOutOctets{job="device_snmp"},
+            "interface_name", "$1", "ifDescr", "(.+)"
+          )
+
+      - record: interface_errors_in_total
+        expr: |
+          label_replace(
+            ifInErrors{job="device_snmp"},
+            "interface_name", "$1", "ifDescr", "(.+)"
+          )
+
+      - record: interface_errors_out_total
+        expr: |
+          label_replace(
+            ifOutErrors{job="device_snmp"},
+            "interface_name", "$1", "ifDescr", "(.+)"
+          )

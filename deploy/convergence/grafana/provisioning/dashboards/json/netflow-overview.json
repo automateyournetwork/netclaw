@@ -1,0 +1,267 @@
+{
+  "uid": "netflow-overview",
+  "title": "NetFlow Overview",
+  "description": "NetFlow/IPFIX collection from pfSense via goflow2",
+  "tags": [
+    "network",
+    "netflow",
+    "goflow2",
+    "convergence",
+    "from-pilot"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Flow Records Received (rate)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(goflow2_flow_process_nf_flowset_records_total{type=\"DataFlowSet\"}[5m])",
+          "legendFormat": "{{router}} (v{{version}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "records/s",
+          "custom": {
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "NetFlow Packets Received (rate)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(goflow2_flow_traffic_packets_total[5m])",
+          "legendFormat": "{{remote_ip}} ({{type}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "pps",
+          "custom": {
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 3,
+      "title": "NetFlow Traffic Volume (bytes/sec)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(goflow2_flow_traffic_bytes_total[5m])",
+          "legendFormat": "{{remote_ip}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "custom": {
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "Total Flow Records Processed",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 12,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum(goflow2_flow_process_nf_flowset_records_total{type=\"DataFlowSet\"})",
+          "legendFormat": "Total Records"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 5,
+      "title": "Total NetFlow Messages",
+      "type": "stat",
+      "gridPos": {
+        "h": 8,
+        "w": 6,
+        "x": 18,
+        "y": 8
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum(goflow2_flow_process_nf_total)",
+          "legendFormat": "Messages"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      }
+    },
+    {
+      "id": 6,
+      "title": "Flow Processing Delay",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "goflow2_flow_process_nf_delay_seconds{quantile=\"0.9\"}",
+          "legendFormat": "p90 delay ({{router}})"
+        },
+        {
+          "expr": "goflow2_flow_process_nf_delay_seconds{quantile=\"0.5\"}",
+          "legendFormat": "p50 delay ({{router}})"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "fillOpacity": 5
+          }
+        }
+      }
+    },
+    {
+      "id": 7,
+      "title": "Flow Decoding Errors",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "rate(goflow2_flow_decoder_error_total[5m])",
+          "legendFormat": "{{name}} errors"
+        },
+        {
+          "expr": "rate(goflow2_flow_process_nf_errors_total[5m])",
+          "legendFormat": "{{error}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "err/s"
+        }
+      }
+    },
+    {
+      "id": 8,
+      "title": "Active NetFlow Templates",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "count(goflow2_flow_process_nf_template_entries)",
+          "legendFormat": "Templates"
+        }
+      ]
+    },
+    {
+      "id": 9,
+      "title": "Flow Sources (Routers)",
+      "type": "table",
+      "gridPos": {
+        "h": 4,
+        "w": 12,
+        "x": 12,
+        "y": 24
+      },
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "expr": "sum by (router, version) (goflow2_flow_process_nf_total)",
+          "format": "table",
+          "instant": true
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,372 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "description": "DeepSeek quota early-warning for the NetClaw gateway. 7-day token burn and projected weekly burn vs a configurable budget, plus local-vs-cloud call split. Proxy/early-warning only \u2014 the Ollama GPU-time dashboard remains authoritative for the real quota.",
+  "editable": true,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "templating": {
+    "list": [
+      {
+        "name": "weekly_token_budget",
+        "label": "Weekly token budget",
+        "type": "textbox",
+        "query": "200000000",
+        "current": {
+          "text": "200000000",
+          "value": "200000000"
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 100,
+      "title": "DeepSeek Quota (early warning)",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 1,
+      "title": "DeepSeek 7-Day Token Burn (% of weekly budget)",
+      "type": "gauge",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "DeepSeek input+output tokens over the last 7 days as a percentage of the configured weekly budget. Green <70%, yellow 70-90%, red >90%. NOTE: increase() measures growth within Prometheus's sample window \u2014 accuracy ramps up as scrape history accumulates toward 7 days.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "showThresholdMarkers": true
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 70
+              },
+              {
+                "color": "red",
+                "value": 90
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(increase(netclaw_model_input_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[7d])) + sum(increase(netclaw_model_output_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[7d]))) / $weekly_token_budget * 100"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Projected Weekly Burn (from current daily rate)",
+      "type": "stat",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "The early-warning number: current DeepSeek daily token rate extrapolated to 7 days. If this trends toward the budget, you'll hit quota before week's end.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 1
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 160000000
+              },
+              {
+                "color": "red",
+                "value": 180000000
+              }
+            ]
+          }
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(netclaw_model_input_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[1d])) + sum(rate(netclaw_model_output_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[1d]))) * 86400 * 7"
+        }
+      ]
+    },
+    {
+      "id": 3,
+      "title": "Local vs Cloud Call Split",
+      "type": "piechart",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "How many model calls stayed local (qwen, free) vs went to DeepSeek cloud over the dashboard time range. The whole point of the local-first setup is keeping the qwen slice large.",
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 1
+      },
+      "options": {
+        "pieType": "donut",
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "values": [
+            "value",
+            "percent"
+          ]
+        }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum(increase(netclaw_model_calls_total{instance=\"netclaw\", model=~\"qwen.*\"}[$__range]))",
+          "legendFormat": "qwen (local)"
+        },
+        {
+          "refId": "B",
+          "expr": "sum(increase(netclaw_model_calls_total{instance=\"netclaw\", model=~\"deepseek.*\"}[$__range]))",
+          "legendFormat": "DeepSeek (cloud)"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 101,
+      "title": "Burn Trends",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 9
+      }
+    },
+    {
+      "id": 4,
+      "title": "Tokens/Day by Model",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Daily token consumption per model (input+output). Watch for DeepSeek models climbing while qwen stays flat.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 70,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (model) (increase(netclaw_model_input_tokens_total{instance=\"netclaw\"}[1d])) + sum by (model) (increase(netclaw_model_output_tokens_total{instance=\"netclaw\"}[1d]))",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "DeepSeek Token Rate (tokens/hour)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Live DeepSeek token burn rate per hour. The steeper this is, the faster you approach quota.",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 10
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 15
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "(sum(rate(netclaw_model_input_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[5m])) + sum(rate(netclaw_model_output_tokens_total{instance=\"netclaw\", model=~\"deepseek.*\"}[5m]))) * 3600",
+          "legendFormat": "DeepSeek tokens/hr"
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 102,
+      "title": "Cost",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      }
+    },
+    {
+      "id": 6,
+      "title": "Cost Rate ($/hour)",
+      "type": "timeseries",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "description": "Spend rate per hour. Reads ~$0 until per-model prices are set in openclaw.json (NETCLAW_TOKEN_PRICING_OVERRIDE). Token counts above are accurate regardless.",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 19
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "currencyUSD",
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 10
+          }
+        }
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "expr": "sum by (model) (rate(netclaw_model_cost_usd_total{instance=\"netclaw\"}[5m])) * 3600",
+          "legendFormat": "{{model}}"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "tags": [
+    "netclaw",
+    "quota",
+    "cost",
+    "deepseek",
+    "openclaw",
+    "convergence",
+    "from-pilot"
+  ],
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timezone": "",
+  "title": "NetClaw \u2014 DeepSeek Quota Watch",
+  "uid": "netclaw-quota-watch",
+  "version": 1
+}

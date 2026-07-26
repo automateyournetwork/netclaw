@@ -1,0 +1,444 @@
+{
+  "uid": "pfsense-dns-security",
+  "title": "pfSense \u2014 DNS Security Monitor",
+  "description": "DNS breach indicators from pfSense Unbound query/reply logs (log-queries/log-replies), shipped via syslog -> OTEL -> Loki (device_name=pfsense). Query volume, NXDOMAIN (DGA) rate excluding reverse lookups, tunneling detection, and per-client activity. Migrated from the retired Pi-hole source 2026-07-11.",
+  "tags": [
+    "pfsense",
+    "dns",
+    "security",
+    "breach-detection",
+    "unbound",
+    "convergence",
+    "from-pilot"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 3,
+  "refresh": "30s",
+  "time": {
+    "from": "now-3h",
+    "to": "now"
+  },
+  "templating": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "row",
+      "id": 200,
+      "title": "DNS Threat Indicators",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": 201,
+      "title": "DNS Queries (5m)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Total DNS queries handled by pfSense Unbound in the last 5 minutes. Establishes baseline query volume; spikes can indicate tunneling or amplification.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"query:\" [5m]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 202,
+      "title": "NXDOMAIN \u2014 DGA (1h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "NXDOMAIN replies (domain does not exist) in the last hour, excluding reverse (PTR) lookups. A high rate from a single device suggests DGA malware cycling through random domains to find a live C2.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"reply:\" |= \"NXDOMAIN\" != \"in-addr.arpa\" != \"ip6.arpa\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 300
+              },
+              {
+                "color": "red",
+                "value": 1000
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 203,
+      "title": "DNS Tunneling Suspects (1h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "DNS queries with unusually long labels (>52 chars). DNS tunneling tools (iodine, dnscat2) encode exfiltrated data in long subdomain strings. Home baseline should be near zero.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"query:\" | regexp \"query: (?P<client>[0-9.]+) (?P<qname>[^ ]+) (?P<qtype>[A-Z]+) IN\" | qname =~ \"[^ ]{52,}\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": 204,
+      "title": "SERVFAIL (1h)",
+      "type": "stat",
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 1
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "SERVFAIL replies from Unbound in the last hour (resolution failures / DNSSEC validation failures / unreachable upstreams). NOTE: pfBlockerNG DNSBL block events are NOT in the Unbound syslog stream; to see blocked-domain counts, ship the pfBlockerNG DNSBL log (/var/log/pfblockerng/dnsbl.log) to the collector.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"reply:\" |= \"SERVFAIL\" [1h]))",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 20
+              },
+              {
+                "color": "red",
+                "value": 200
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 210,
+      "title": "DNS Query Patterns",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 5
+      }
+    },
+    {
+      "id": 211,
+      "title": "DNS Query Volume vs NXDOMAIN",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Total DNS query volume with NXDOMAIN (non-reverse) overlaid. A rising NXDOMAIN ratio is a strong DGA / malware beaconing indicator.",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"query:\" [1m]))",
+          "legendFormat": "All queries",
+          "refId": "A"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"reply:\" |= \"NXDOMAIN\" != \"in-addr.arpa\" != \"ip6.arpa\" [1m]))",
+          "legendFormat": "NXDOMAIN",
+          "refId": "B"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "queries/min",
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineWidth": 2
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "NXDOMAIN"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "orange",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      }
+    },
+    {
+      "type": "row",
+      "id": 220,
+      "title": "Per-Client DNS Behavior",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 14
+      }
+    },
+    {
+      "id": 221,
+      "title": "Top DNS Clients (30m)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 15
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Devices making the most DNS queries. A compromised device performing C2 beaconing often shows elevated, regular query counts.",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (client) (count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"query:\" | regexp \"query: (?P<client>[0-9.]+) \" | client != \"\" [30m])))",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "client": "Client IP",
+              "Value": "Queries"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 222,
+      "title": "Top NXDOMAIN Domains (1h)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 15
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Domains most frequently returning NXDOMAIN (reverse lookups excluded). A cluster of random-looking domains is a strong DGA malware indicator.",
+      "targets": [
+        {
+          "expr": "topk(10, sum by (qname) (count_over_time({device_name=\"pfsense\"} |= \"unbound\" |= \"reply:\" |= \"NXDOMAIN\" != \"in-addr.arpa\" != \"ip6.arpa\" | regexp \"reply: [0-9.]+ (?P<qname>[^ ]+) \" | qname != \"\" [1h])))",
+          "refId": "A",
+          "instant": true,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "qname": "Domain",
+              "Value": "NXDOMAIN"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "type": "row",
+      "id": 230,
+      "title": "DNS Log Streams",
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 23
+      }
+    },
+    {
+      "id": 231,
+      "title": "DNS Tunneling Suspect Queries (long labels)",
+      "type": "logs",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 24
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Live view of DNS queries with abnormally long labels. Investigate the source client and destination domain \u2014 this is where DNS exfiltration shows up.",
+      "targets": [
+        {
+          "expr": "{device_name=\"pfsense\"} |= \"unbound\" |= \"query:\" | regexp \"query: (?P<client>[0-9.]+) (?P<qname>[^ ]+) (?P<qtype>[A-Z]+) IN\" | qname =~ \"[^ ]{52,}\"",
+          "refId": "A"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}

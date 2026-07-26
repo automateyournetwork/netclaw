@@ -1,0 +1,273 @@
+{
+  "uid": "network-syslog",
+  "title": "Network Syslog",
+  "description": "Syslog from switches and firewall (Loki short-term + VictoriaLogs long-term)",
+  "tags": [
+    "network",
+    "syslog",
+    "logs",
+    "convergence",
+    "from-pilot"
+  ],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "device",
+        "type": "custom",
+        "query": "pfsense,HomeSwitch01,HomeSwitch02,local-ai",
+        "current": {
+          "text": "All",
+          "value": "$__all"
+        },
+        "includeAll": true,
+        "multi": true
+      },
+      {
+        "name": "datasource",
+        "type": "custom",
+        "query": "Loki,VictoriaLogs - Long Term",
+        "current": {
+          "text": "Loki",
+          "value": "Loki"
+        },
+        "includeAll": false,
+        "multi": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "title": "Log Volume by Device",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "sum by (device_name) (count_over_time({service_name=\"network-devices\", device_name=~\"$device\"} [1m]))",
+          "legendFormat": "{{device_name}}"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/min",
+          "custom": {
+            "fillOpacity": 20,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": 2,
+      "title": "Recent Syslog Messages",
+      "type": "logs",
+      "gridPos": {
+        "h": 14,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"network-devices\", device_name=~\"$device\"}",
+          "maxLines": 200
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 3,
+      "title": "pfSense Firewall Blocks (filterlog)",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 22
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "count_over_time({device_name=\"pfsense\"} |= \"block\" [1m])",
+          "legendFormat": "Blocked"
+        },
+        {
+          "expr": "count_over_time({device_name=\"pfsense\"} |= \"pass\" [1m])",
+          "legendFormat": "Passed"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "events/min",
+          "custom": {
+            "fillOpacity": 15
+          }
+        }
+      }
+    },
+    {
+      "id": 4,
+      "title": "pfSense Top Blocked Sources (last hour)",
+      "type": "table",
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 22
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "topk(10, sum by (src) (count_over_time({device_name=\"pfsense\"} |= \"block\" | pattern `<_>,<_>,<_>,<_>,<_>,match,block,<dir>,<ipver>,<_>,<_>,<_>,<_>,<_>,<proto>,<_>,<_>,<src>,<dst>,<_>` [1h])))",
+          "legendFormat": "{{src}}",
+          "instant": true
+        }
+      ]
+    },
+    {
+      "id": 5,
+      "title": "Switch Log Messages",
+      "type": "logs",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 30
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "expr": "{service_name=\"network-devices\", device_name=~\"HomeSwitch.*\"}",
+          "maxLines": 100
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    },
+    {
+      "id": 6,
+      "title": "local-ai \u2014 Log Rate & Errors",
+      "type": "timeseries",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 40
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Log volume from local-ai (192.168.30.50, VLAN 30) with error lines overlaid. Newly onboarded onto the OTel syslog path (device_name=local-ai).",
+      "targets": [
+        {
+          "expr": "sum(count_over_time({device_name=\"local-ai\"} [1m]))",
+          "legendFormat": "all lines/min"
+        },
+        {
+          "expr": "sum(count_over_time({device_name=\"local-ai\"} |~ \"(?i)(error|fatal|panic|failed)\" [1m]))",
+          "legendFormat": "errors/min"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/min",
+          "custom": {
+            "fillOpacity": 15
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "errors/min"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "fixedColor": "red",
+                  "mode": "fixed"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": 7,
+      "title": "local-ai (Ollama) Log Messages",
+      "type": "logs",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Live log stream from local-ai. Filter examples: |= \"error\", |= \"ollama\", |= \"GIN\".",
+      "targets": [
+        {
+          "expr": "{device_name=\"local-ai\"}",
+          "maxLines": 200
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": true,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "enableLogDetails": true,
+        "sortOrder": "Descending"
+      }
+    }
+  ]
+}
