@@ -27,6 +27,7 @@ class ChatScreen extends StatefulWidget {
 
 class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
+  final _scroll = ScrollController();
   bool _loading = true;
 
   @override
@@ -34,11 +35,47 @@ class _ChatScreenState extends State<ChatScreen> {
     super.initState();
     widget.store.load().then((_) async {
       if (mounted) setState(() => _loading = false);
+      _jumpToNewest();
       await _reconcileStaleTurns();
     });
     widget.askClient.updates.listen((update) async {
       await _applyUpdate(update);
     });
+  }
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  /// Turns are rendered oldest-first, so offset 0 is the OLDEST message —
+  /// opening the chat there means scrolling all the way down to find what you
+  /// were just reading. A chat should open on the newest message, so jump to
+  /// the bottom once the list has been laid out.
+  ///
+  /// Deferred to the next frame because `maxScrollExtent` is meaningless until
+  /// the ListView has measured its children.
+  void _jumpToNewest({bool animate = false}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_scroll.hasClients) return;
+      final target = _scroll.position.maxScrollExtent;
+      if (animate) {
+        _scroll.animateTo(target,
+            duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+      } else {
+        _scroll.jumpTo(target);
+      }
+    });
+  }
+
+  /// Only follow the newest message when the operator is already at (or near)
+  /// the bottom. Yanking the view down while they're reading back through
+  /// history is worse than not following at all.
+  bool get _isNearBottom {
+    if (!_scroll.hasClients) return true;
+    return _scroll.position.maxScrollExtent - _scroll.position.pixels < 120;
   }
 
   Future<void> _applyUpdate(TaskUpdate update) async {
@@ -49,8 +86,10 @@ class _ChatScreenState extends State<ChatScreen> {
       TaskState.working => 'working',
       _ => 'pending',
     };
+    final follow = _isNearBottom;
     await widget.store.updateState(update.taskId, stateName, answerText: update.outputText);
     if (mounted) setState(() {});
+    if (follow) _jumpToNewest(animate: true);
   }
 
   /// A task that finishes while this device is disconnected (or whose
@@ -85,6 +124,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final taskId = await widget.askClient.ask(text);
     await widget.store.addPending(taskId, text);
     setState(() {});
+    _jumpToNewest(animate: true);
   }
 
   Future<void> _recordVoice() async {
@@ -93,6 +133,7 @@ class _ChatScreenState extends State<ChatScreen> {
     final (taskId, text) = result;
     await widget.store.addPending(taskId, text);
     if (mounted) setState(() {});
+    _jumpToNewest(animate: true);
   }
 
   Future<void> _capturePhoto() async {
@@ -107,6 +148,7 @@ class _ChatScreenState extends State<ChatScreen> {
     if (taskId == null) return;
     await widget.store.addPending(taskId, '[Photo]');
     if (mounted) setState(() {});
+    _jumpToNewest(animate: true);
   }
 
   Future<void> _cancel(String taskId) async {
@@ -129,6 +171,7 @@ class _ChatScreenState extends State<ChatScreen> {
           child: turns.isEmpty
               ? const Center(child: Text('Ask your Border something.'))
               : ListView.builder(
+                  controller: _scroll,
                   itemCount: turns.length,
                   itemBuilder: (context, index) => _TurnTile(
                     turn: turns[index],

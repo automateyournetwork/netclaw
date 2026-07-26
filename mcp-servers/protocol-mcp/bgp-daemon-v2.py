@@ -43,6 +43,11 @@ BGP_PEERS   = json.loads(os.environ.get("NETCLAW_BGP_PEERS", "[]"))
 API_PORT    = int(os.environ.get("BGP_API_PORT", "8179"))
 BGP_LISTEN_PORT = int(os.environ.get("BGP_LISTEN_PORT", "1179"))
 MESH_OPEN   = os.environ.get("NETCLAW_MESH_OPEN", "true").lower() in ("true", "1", "yes")
+# feature 066 edge (phone) WebSocket keepalive — see _start_edge_ws_listener().
+# Overridable for operators whose carrier NAT is more aggressive than the
+# default 90s window.
+EDGE_WS_PING_INTERVAL = int(os.environ.get("N2N_EDGE_WS_PING_INTERVAL", "30"))
+EDGE_WS_PING_TIMEOUT  = int(os.environ.get("N2N_EDGE_WS_PING_TIMEOUT", "90"))
 MESH_ENDPOINT = os.environ.get("NETCLAW_MESH_ENDPOINT", "")
 LOCAL_IPV6  = os.environ.get("NETCLAW_LOCAL_IPV6", "")
 DRY_RUN     = os.environ.get("NETCLAW_DRY_RUN", "").lower() in ("true", "1", "yes")
@@ -856,7 +861,22 @@ async def _start_edge(fed):
             except Exception as e:
                 logger.warning("Edge WS accept failed: %s", e)
 
-        server = await websockets.serve(_on_ws, "0.0.0.0", port, ssl=ctx)
+        # Keepalive tuned for phones, not servers. The websockets defaults
+        # (ping_interval=20, ping_timeout=20) drop a peer that stays silent for
+        # ~20s — and Android suspends an app's Dart isolate the moment the
+        # screen locks, which stops the protocol-level pong. Observed with a
+        # real device: connections lived 25-32s while backgrounded (ping
+        # timeout + latency) vs 85-190s while actively used, reconnecting in a
+        # loop all day. A 90s timeout rides out brief suspensions.
+        #
+        # Liveness is NOT weakened by this: the Border tracks it separately via
+        # the application-level n2n/edge/heartbeat call, so a genuinely dead
+        # peer is still detected there rather than by the socket timeout.
+        server = await websockets.serve(
+            _on_ws, "0.0.0.0", port, ssl=ctx,
+            ping_interval=EDGE_WS_PING_INTERVAL,
+            ping_timeout=EDGE_WS_PING_TIMEOUT,
+        )
         fed._edge_server = server  # keep a ref
         logger.info("Edge (NetClaw Mobile) WS listener on 0.0.0.0:%d (risk=%s)",
                    port, fed.risk.get_risk().get("risk_name"))

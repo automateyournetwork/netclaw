@@ -69,6 +69,26 @@ class ConversationStore {
     await _file().writeAsString(jsonEncode(_turns.map((t) => t.toJson()).toList()));
   }
 
+  /// Deletes the local conversation history. On-device only — the Border keeps
+  /// its own audit trail (GAIT) and this does not and must not touch it, so
+  /// clearing here is a display convenience, never an audit-evasion path.
+  ///
+  /// In-progress turns go too. That's deliberate: the Border keeps working and
+  /// `_reconcileStaleTurns()` no longer has a local row to reconcile against,
+  /// so a cleared in-flight answer simply never appears. Callers should warn
+  /// when anything is still running — see the confirmation in `main.dart`.
+  Future<void> clear() async {
+    await load();
+    _turns.clear();
+    final file = _file();
+    if (await file.exists()) await file.delete();
+  }
+
+  /// True when at least one turn is still awaiting an answer — lets the UI warn
+  /// before [clear] discards it.
+  bool get hasInProgressTurns =>
+      _turns.any((t) => t.state == 'pending' || t.state == 'working');
+
   Future<void> addPending(String taskId, String requestText) async {
     await load();
     _turns.add(ConversationTurn(

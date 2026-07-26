@@ -82,6 +82,17 @@ class MessageFeedStore {
       flush: true,
     );
   }
+
+  /// Deletes every Border-pushed message held on this device. On-device only —
+  /// the Border's own audit trail is untouched, and a message cleared here
+  /// cannot be re-fetched (the Border never re-pushes spontaneously), so this
+  /// is destructive from the phone's point of view and should be confirmed.
+  Future<void> clear() async {
+    await load();
+    _messages.clear();
+    final file = _file();
+    if (await file.exists()) await file.delete();
+  }
 }
 
 /// Registers the SINGLE `n2n/edge/message` handler for the whole app —
@@ -91,17 +102,25 @@ class MessageFeedStore {
 /// text/voice/image is appended to `store` (066, contracts/
 /// edge-enrollment-and-push.md §3); a push with `content_type='approval'`
 /// (068, research D5) is instead handed to `onApproval` — never both.
+/// [onMessage] fires after a non-approval push has been persisted, so the UI
+/// can surface that something arrived (unread badge, repaint). Without it a
+/// push lands silently in the feed and the operator has no way to know —
+/// observed with a real tester, where a successfully delivered push went
+/// completely unnoticed because they were sitting on the Chat tab.
 void wireMessageFeed(
   EdgeMethodSource client,
   MessageFeedStore store, {
   void Function(Map<String, dynamic> params)? onApproval,
+  void Function(EdgeMessage message)? onMessage,
 }) {
   client.on('n2n/edge/message', (params) async {
     if (params['content_type'] == 'approval') {
       onApproval?.call(params);
       return {'received': true};
     }
-    await store.append(EdgeMessage.fromWire(params));
+    final message = EdgeMessage.fromWire(params);
+    await store.append(message);
+    onMessage?.call(message);
     return {'received': true};
   });
 }

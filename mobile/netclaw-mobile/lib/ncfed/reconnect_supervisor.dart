@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import 'edge_client.dart' show isRevokedByBorder;
+
 /// Ports `_in2n_member_dialer`'s exact backoff bounds (`bgp-daemon-v2.py`,
 /// research D4) to Dart: there is no missing Python reconnect capability to
 /// build here, only a port, since Dart and Python code cannot literally be
@@ -29,9 +31,17 @@ class ReconnectSupervisor<T> {
   bool _stopped = false;
   bool _connected;
 
+  /// Called instead of retrying when a dial fails in a way that retrying can
+  /// never fix — currently only a Border revocation (`-32023`). Without this
+  /// the loop treated revocation as a transient error and re-dialled a dead
+  /// enrollment forever, at a 60s ceiling, with the operator seeing nothing but
+  /// a permanent spinner.
+  final void Function()? onUnrecoverable;
+
   ReconnectSupervisor({
     required this.dial,
     required this.onConnected,
+    this.onUnrecoverable,
     Future<void> Function(Duration duration)? sleep,
     bool initiallyConnected = false,
   })  : _sleep = sleep ?? Future.delayed,
@@ -52,7 +62,14 @@ class ReconnectSupervisor<T> {
           _connected = true;
           _backoff = initialBackoff; // reset on success (T034)
           onConnected(client);
-        } catch (_) {
+        } catch (e) {
+          if (isRevokedByBorder(e)) {
+            // Terminal: this identity is gone. Stop the loop and hand control
+            // back so the app can return to enrollment.
+            _stopped = true;
+            onUnrecoverable?.call();
+            return;
+          }
           final doubled = _backoff * 2;
           _backoff = doubled > maxBackoff ? maxBackoff : doubled;
         }

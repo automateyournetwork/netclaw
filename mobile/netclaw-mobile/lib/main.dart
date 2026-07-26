@@ -200,6 +200,7 @@ class _HomeShellState extends State<HomeShell> {
   DeviceDeepLinkListener? _deepLinkListener;
   ReconnectSupervisor<void>? _reconnectSupervisor;
   DateTime? _highlightPushedAt;
+  int _unreadFeed = 0;
 
   @override
   void initState() {
@@ -210,7 +211,16 @@ class _HomeShellState extends State<HomeShell> {
       final conversationStore = ConversationStore(dir);
       final approvalClient = ApprovalClient(widget.client);
       final capabilities = CapabilityRegistration(widget.client);
-      wireMessageFeed(widget.client, feedStore, onApproval: approvalClient.receiveApproval);
+      wireMessageFeed(
+        widget.client,
+        feedStore,
+        onApproval: approvalClient.receiveApproval,
+        onMessage: (_) {
+          if (!mounted) return;
+          // Don't badge the tab the operator is already looking at.
+          setState(() { if (_tab != 1) _unreadFeed++; });
+        },
+      );
       wireHeartbeat(widget.client);
       CaptureClient(
         askClient: askClient,
@@ -256,6 +266,11 @@ class _HomeShellState extends State<HomeShell> {
       onConnected: (_) {
         if (mounted) setState(() => _connected = true);
       },
+      // Revoked mid-session: the pinned identity is gone and no amount of
+      // retrying brings it back. Drop the persisted enrollment and return to
+      // the enrollment gate, matching what a cold start already does — rather
+      // than spinning on a dead identity forever.
+      onUnrecoverable: _handleRevoked,
       initiallyConnected: true,
     );
     widget.client.onDisconnected = () {
@@ -355,19 +370,130 @@ class _HomeShellState extends State<HomeShell> {
               ),
             ),
           IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: _scanDevice),
+          _buildOverflowMenu(),
         ],
       ),
-      body: pages[_tab],
+      // IndexedStack, not `pages[_tab]`. Indexing keeps only the selected page
+      // in the tree, so switching tabs DISPOSES the previous page's State —
+      // which reset the chat's scroll position (and re-ran its load + stale-turn
+      // reconciliation) every single time you came back to it. IndexedStack
+      // keeps all four mounted and just changes which is painted.
+      body: IndexedStack(index: _tab, children: pages),
       bottomNavigationBar: NavigationBar(
         selectedIndex: _tab,
-        onDestinationSelected: (i) => setState(() => _tab = i),
-        destinations: const [
-          NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
-          NavigationDestination(icon: Icon(Icons.notifications), label: 'Feed'),
-          NavigationDestination(icon: Icon(Icons.verified_user), label: 'Approvals'),
-          NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+        onDestinationSelected: (i) => setState(() {
+          _tab = i;
+          // Opening the Feed is what marks it read; clear the badge and the
+          // one-shot notification highlight together.
+          if (i == 1) {
+            _unreadFeed = 0;
+            _highlightPushedAt = null;
+          }
+        }),
+        destinations: [
+          const NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
+          NavigationDestination(
+            // Without this the operator has no way to know a Border push
+            // arrived — messages land silently in the Feed while they sit on
+            // Chat. Observed with a real tester: a push delivered successfully
+            // and went unnoticed entirely.
+            icon: Badge(
+              isLabelVisible: _unreadFeed > 0,
+              label: Text('$_unreadFeed'),
+              child: const Icon(Icons.notifications),
+            ),
+            label: 'Feed',
+          ),
+          const NavigationDestination(icon: Icon(Icons.verified_user), label: 'Approvals'),
+          const NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
         ],
       ),
     );
+  }
+
+  /// The Border revoked this device while it was running. Clear the persisted
+  /// enrollment and send the operator back to the enrollment gate with an
+  /// explanation, so the state on screen matches reality.
+  Future<void> _handleRevoked() async {
+    final dir = await getApplicationDocumentsDirectory();
+    await EnrollmentStore(dir).clear();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const EnrollmentGate()),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+      content: Text('This device was removed by your Border. Enroll again to reconnect.'),
+      duration: Duration(seconds: 6),
+    ));
+  }
+
+  /// Per-tab destructive actions, behind a confirmation. Both clears are
+  /// on-device only — the Border keeps its own GAIT audit trail either way.
+  Widget _buildOverflowMenu() {
+    return PopupMenuButton<String>(
+      onSelected: (v) {
+        if (v == 'clear_chat') _confirmClearChat();
+        if (v == 'clear_feed') _confirmClearFeed();
+      },
+      itemBuilder: (context) => [
+        if (_tab == 0)
+          const PopupMenuItem(value: 'clear_chat', child: Text('Clear chat history')),
+        if (_tab == 1)
+          const PopupMenuItem(value: 'clear_feed', child: Text('Clear all messages')),
+      ],
+    );
+  }
+
+  Future<bool> _confirm(String title, String body, String action) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(title),
+        content: Text(body),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: Text(action)),
+        ],
+      ),
+    );
+    return ok ?? false;
+  }
+
+  Future<void> _confirmClearChat() async {
+    final store = _conversationStore;
+    if (store == null) return;
+    // Warn specifically when something is still running — the Border keeps
+    // working on it, but a cleared turn has nothing left to reconcile into, so
+    // that answer will never appear on this device.
+    final extra = store.hasInProgressTurns
+        ? '\n\nA request is still in progress. The Border will finish it, but '
+            'the answer will no longer appear here.'
+        : '';
+    if (!await _confirm('Clear chat history?',
+        'Deletes this conversation from this phone. Your Border keeps its own '
+        'audit record.$extra',
+        'Clear')) {
+      return;
+    }
+    await store.clear();
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _confirmClearFeed() async {
+    final store = _feedStore;
+    if (store == null) return;
+    if (!await _confirm('Clear all messages?',
+        'Deletes every message your Border has pushed to this phone. They '
+        'cannot be retrieved again from here.',
+        'Clear')) {
+      return;
+    }
+    await store.clear();
+    if (mounted) {
+      setState(() {
+        _unreadFeed = 0;
+        _highlightPushedAt = null;
+      });
+    }
   }
 }
