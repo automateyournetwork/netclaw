@@ -38,3 +38,8 @@ Skills under `workspace/skills/` may still mention pilot hostnames as **examples
 - `DISCORD_ALERT_CHANNEL_ID` (not hard-coded channel ids in new docs)
 
 `ensure-guardian-claw.py` and install profile `convergence` are the supported enrollment path; external-stack-only install is legacy dual-run.
+
+## 2026-07-26 — local pilot scaled down
+
+On this host the k3s `observability` namespace was **scaled to 0** for Docker-only
+E2E testing. See [`docs/runbooks/docker-only-convergence.md`](../../docs/runbooks/docker-only-convergence.md).
