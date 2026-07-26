@@ -55,6 +55,19 @@ abstract class EdgeRpcSource implements EdgeMethodSource {
 /// JSON-RPC 2.0 messages over `.send()`/the message stream, no byte framing
 /// (a WebSocket connection already frames each message).
 class EdgeClient implements EdgeRpcSource {
+  /// Client-side WebSocket keepalive. `IOWebSocketChannel.connect()` sends
+  /// nothing of its own by default, so an idle socket depended entirely on the
+  /// Border's pings surviving the carrier/NAT path — and the client had no way
+  /// to notice a half-open socket at all. Kept comfortably under the Border's
+  /// 90s ping_timeout so both ends agree the connection is alive.
+  ///
+  /// This does NOT make a socket survive the app being backgrounded: iOS and
+  /// Android both suspend the isolate, and no keepalive interval changes that.
+  /// Reliable delivery to a backgrounded app needs push (see
+  /// MOBILE-ONBOARDING.md); this only covers the foregrounded and
+  /// idle-but-awake cases.
+  static const _clientPingInterval = Duration(seconds: 20);
+
   WebSocketChannel _channel;
   final EdgeIdentity identity;
   int _nextId = 0;
@@ -132,11 +145,23 @@ class EdgeClient implements EdgeRpcSource {
   }) async {
     verifyClawDomainBeforeDial(payload);
     final uri = Uri(scheme: 'wss', host: payload.clawDomain, port: payload.borderPort);
-    final channel = IOWebSocketChannel.connect(uri);
+    final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
+    // Cancelling the subscription stops us READING the old socket but does not
+    // close it: without the sink close below, the previous WebSocket stayed
+    // open with nobody listening until the OS or the network tore it down,
+    // which the Border logs as `no close frame received or sent`. Confirmed on
+    // the live Border: 8 abandoned sockets in one day, each one a redial.
+    final previous = _channel;
     await _sub?.cancel();
     _channel = channel;
     _closed = false;
     _listen();
+    // Fire-and-forget: a close that fails (socket already dead) is exactly the
+    // case we don't care about, and must not delay the new connection.
+    // `close()` returns a Future, so a synchronous try/catch would NOT catch a
+    // rejection — that would surface as an unhandled async error precisely when
+    // the old socket is already gone. Suppress on the Future itself.
+    previous.sink.close().catchError((Object _) {});
 
     final challenge = Completer<Uint8List>();
     _connectionWaiters.add(challenge);
@@ -225,7 +250,7 @@ class EdgeClient implements EdgeRpcSource {
     // trust store) happens automatically here — a mismatched/untrusted
     // certificate makes this connection fail outright (research D7); no
     // custom certificate inspection code exists anywhere in this client.
-    final channel = IOWebSocketChannel.connect(uri);
+    final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
     final client = EdgeClient._(channel, identity);
 
     final challenge = Completer<Uint8List>();
@@ -268,7 +293,7 @@ class EdgeClient implements EdgeRpcSource {
   }) async {
     verifyClawDomainBeforeDial(payload);
     final uri = Uri(scheme: 'wss', host: payload.clawDomain, port: payload.borderPort);
-    final channel = IOWebSocketChannel.connect(uri);
+    final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
     final client = EdgeClient._(channel, identity);
 
     final challenge = Completer<Uint8List>();
