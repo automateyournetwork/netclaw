@@ -105,6 +105,8 @@ __all__ = [
     "get_pricing",
     "serialize_response",
     "format_footer",
+    "gcf_dumps",
+    "install_gcf_on_fastmcp",
     # Classes
     "SessionLedger",
 ]
@@ -127,4 +129,7 @@ def __getattr__(name: str):
     if name == "SessionLedger":
         from .session_ledger import SessionLedger
         return SessionLedger
+    if name in ("gcf_dumps", "install_gcf_on_fastmcp"):
+        from .mcp_gcf import gcf_dumps, install_gcf_on_fastmcp
+        return gcf_dumps if name == "gcf_dumps" else install_gcf_on_fastmcp
     raise AttributeError(f"module 'netclaw_tokens' has no attribute {name!r}")

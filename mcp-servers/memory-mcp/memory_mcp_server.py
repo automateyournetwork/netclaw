@@ -401,6 +401,16 @@ def memory_query_graph(
 # ---------------------------------------------------------------------
 def main():
     """Run the Memory MCP Server."""
+    try:
+        import sys as _sys
+        from pathlib import Path as _Path
+        _src = _Path(__file__).resolve().parents[2] / "src"
+        if _src.is_dir() and str(_src) not in _sys.path:
+            _sys.path.insert(0, str(_src))
+        from netclaw_tokens.mcp_gcf import install_gcf_on_fastmcp
+        install_gcf_on_fastmcp(mcp, label="memory-mcp")
+    except Exception as e:
+        log.warning("GCF install skipped: %s", e)
     log.info("Memory MCP Server ready")
     mcp.run()
 

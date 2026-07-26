@@ -18,6 +18,8 @@ matters on context-limited models).
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 import httpx
 from mcp.server.fastmcp import FastMCP
@@ -85,6 +87,16 @@ def greynoise_community_lookup(ip: str) -> dict:
     except ValueError:
         return {"ip": ip, "error": "non-JSON response from GreyNoise"}
 
+
+# Token-efficient tool results (GCF) for Convergence triage.
+try:
+    _src = Path(__file__).resolve().parents[2] / "src"
+    if _src.is_dir() and str(_src) not in sys.path:
+        sys.path.insert(0, str(_src))
+    from netclaw_tokens.mcp_gcf import install_gcf_on_fastmcp
+    install_gcf_on_fastmcp(mcp, label="greynoise-community-mcp")
+except Exception:
+    pass
 
 if __name__ == "__main__":
     mcp.run()

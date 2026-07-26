@@ -39,7 +39,30 @@ def wrap_json_response(json_str: str) -> GCFResponse:
             fallback_used=True,
         )
 
-    return serialize_response(data)
+    return _as_gcf_response(serialize_response(data))
+
+
+def _as_gcf_response(result: Any) -> GCFResponse:
+    """Normalize serialize_response output (dict) into GCFResponse."""
+    if isinstance(result, GCFResponse):
+        return result
+    if isinstance(result, dict):
+        return GCFResponse(
+            gcf_data=result.get("encoded_data") or result.get("gcf_data") or "",
+            json_token_count=int(result.get("json_token_count") or 0),
+            gcf_token_count=int(result.get("gcf_token_count") or 0),
+            savings_tokens=int(result.get("savings_tokens") or 0),
+            savings_pct=float(result.get("savings_pct") or 0.0),
+            fallback_used=bool(result.get("fallback_used")),
+        )
+    # Unexpected type — stringify
+    text = str(result)
+    return GCFResponse(
+        gcf_data=text,
+        json_token_count=max(1, len(text) // 4),
+        gcf_token_count=max(1, len(text) // 4),
+        fallback_used=True,
+    )
 
 
 def wrap_mcp_tool_result(result: Union[str, dict, list, Any]) -> str:
@@ -58,7 +81,7 @@ def wrap_mcp_tool_result(result: Union[str, dict, list, Any]) -> str:
         response = wrap_json_response(result)
         return response.gcf_data
     elif isinstance(result, (dict, list)):
-        response = serialize_response(result)
+        response = _as_gcf_response(serialize_response(result))
         return response.gcf_data
     elif isinstance(result, (bytes, bytearray)):
         # Binary data -- pass through as-is
@@ -83,7 +106,7 @@ def validate_gcf_integration(data: Any) -> dict:
         fallback_used, error (str or None).
     """
     try:
-        response = serialize_response(data)
+        response = _as_gcf_response(serialize_response(data))
         return {
             "success": True,
             "gcf_size": len(response.gcf_data),

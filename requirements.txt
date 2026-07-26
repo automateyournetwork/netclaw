@@ -55,3 +55,4 @@ prometheus-mcp-server
 # Pillow for UML/diagram rendering
 pillow
 graphviz
+gcf-python==2.2.1
