@@ -1378,24 +1378,53 @@ class FederationService:
         worker_task = self.tasks.run(task_id, worker)
 
         async def _push_result_when_done():
-            # Best-effort: only reaches the phone if it's still connected
-            # when the task finishes (contract §2) -- a disconnected phone
-            # recovers via n2n/tasks/status|result on reconnect instead.
+            # Best-effort: only reaches the phone if it's connected when the
+            # task finishes (contract §2) -- otherwise it recovers via
+            # n2n/tasks/status|result on reconnect.
+            #
+            # This deliberately targets the member's CURRENT channel rather
+            # than the object that submitted the request. It used to require
+            # `ch is channel`, so any reconnect during the turn meant the
+            # answer was never pushed at all -- not attempted, not logged.
+            # Phones reconnect constantly (a real iPhone reconnected 4x during
+            # one 2-minute turn), so on a long request that was the common
+            # case, not the edge case: the work completed, the answer existed,
+            # and the phone sat on "Working" forever.
+            #
+            # Object identity was never the security property; the member
+            # identity and the channel's trusted flag are. Both are checked.
             try:
                 await worker_task
             except asyncio.CancelledError:
                 pass
             result = self.tasks.result(task_id)
             ch = self.edge_channels.get(member_id)
-            if ch and ch is channel:
-                try:
-                    await ch.notify("n2n/edge/ask_result", {
-                        "task_id": task_id, "state": result.get("state"),
-                        "output_text": result.get("output_text"),
-                        "tokens_used": result.get("tokens_used"),
-                    })
-                except Exception as e:
-                    logger.warning("edge ask_result push to %s failed: %s", member_id, e)
+            if ch is None:
+                logger.info(
+                    "edge ask_result for %s not pushed — no live channel; the "
+                    "phone recovers this via n2n/tasks/result on reconnect", member_id)
+                return
+            if not getattr(ch, "trusted", False):
+                logger.warning(
+                    "edge ask_result for %s not pushed — channel is not trusted", member_id)
+                return
+            if ch is not channel:
+                # Normal after a reconnect. Worth recording, because a silent
+                # skip here is exactly what hid this bug.
+                logger.info("edge ask_result for %s pushing to a reconnected channel",
+                            member_id)
+            try:
+                await ch.notify("n2n/edge/ask_result", {
+                    "task_id": task_id, "state": result.get("state"),
+                    "output_text": result.get("output_text"),
+                    # A failed task carries its reason under `error`, not
+                    # `output_text` -- forward it so the phone can say why
+                    # instead of showing a bare "failed" with no text.
+                    "error": result.get("error"),
+                    "tokens_used": result.get("tokens_used"),
+                })
+            except Exception as e:
+                logger.warning("edge ask_result push to %s failed: %s", member_id, e)
         asyncio.create_task(_push_result_when_done())
         return {"task_id": task_id}
 

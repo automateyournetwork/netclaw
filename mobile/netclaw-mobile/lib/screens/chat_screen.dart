@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../ncfed/capture_client.dart';
 import '../ncfed/conversation_store.dart';
 import '../ncfed/edge_ask_client.dart';
+import '../ncfed/turn_reconciler.dart';
 import '../ncfed/voice_transcription.dart';
 import 'capture_screen.dart';
 
@@ -103,29 +104,12 @@ class _ChatScreenState extends State<ChatScreen> {
     if (follow) _jumpToNewest(animate: true);
   }
 
-  /// A task that finishes while this device is disconnected (or whose
-  /// `ask_result` push simply never arrives — e.g. a connection already
-  /// going stale by the time the answer was ready) has no other way to
-  /// reach the phone; the Border never re-pushes a result spontaneously.
-  /// Called once after the store loads: for every turn still `pending`/
-  /// `working` locally, ask the Border directly whether it actually
-  /// finished already.
+  /// First-load recovery. The same reconciliation also runs on every
+  /// reconnect, driven by HomeShell — see [reconcileStaleTurns] for why it must
+  /// not depend on this widget's lifecycle.
   Future<void> _reconcileStaleTurns() async {
-    final staleTaskIds = widget.store.turns
-        .where((t) => t.state == 'pending' || t.state == 'working')
-        .map((t) => t.taskId)
-        .toList();
-    for (final taskId in staleTaskIds) {
-      try {
-        final update = await widget.askClient.result(taskId);
-        if (update.state != TaskState.pending && update.state != TaskState.unknown) {
-          await _applyUpdate(update);
-        }
-      } catch (_) {
-        // Still disconnected, or the Border is unreachable right now --
-        // the next reconnect will retry; never blocks the rest of the UI.
-      }
-    }
+    await reconcileStaleTurns(widget.askClient, widget.store,
+        onChanged: () { if (mounted) setState(() {}); });
   }
 
   Future<void> _send() async {

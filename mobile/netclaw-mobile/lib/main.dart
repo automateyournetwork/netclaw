@@ -18,6 +18,7 @@ import 'ncfed/message_feed.dart';
 import 'ncfed/notification_deep_link.dart';
 import 'ncfed/push_registration.dart';
 import 'ncfed/reconnect_supervisor.dart';
+import 'ncfed/turn_reconciler.dart';
 import 'screens/approvals_screen.dart';
 import 'screens/capture_screen.dart';
 import 'screens/chat_screen.dart';
@@ -265,6 +266,10 @@ class _HomeShellState extends State<HomeShell> {
       ),
       onConnected: (_) {
         if (mounted) setState(() => _connected = true);
+        // A reconnect is the moment to collect anything that finished while we
+        // were away: `ask_result` is best-effort and is simply not sent when no
+        // channel is live, and the Border never re-pushes spontaneously.
+        _reconcileAfterReconnect();
       },
       // Revoked mid-session: the pinned identity is gone and no amount of
       // retrying brings it back. Drop the persisted enrollment and return to
@@ -409,6 +414,18 @@ class _HomeShellState extends State<HomeShell> {
         ],
       ),
     );
+  }
+
+  /// Pull in the outcome of any turn that finished while this device was
+  /// disconnected. Driven by the reconnect supervisor rather than by widget
+  /// construction, so it keeps working now that IndexedStack keeps every tab
+  /// mounted for the lifetime of the session.
+  Future<void> _reconcileAfterReconnect() async {
+    final askClient = _askClient;
+    final store = _conversationStore;
+    if (askClient == null || store == null) return; // not wired up yet
+    await reconcileStaleTurns(askClient, store,
+        onChanged: () { if (mounted) setState(() {}); });
   }
 
   /// The Border revoked this device while it was running. Clear the persisted
