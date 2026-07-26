@@ -800,7 +800,14 @@ class FederationService:
         member_fault = backend_fault = False
         for m in self.risk.list_members():
             mid = m["member_id"]
-            live = mid in self.member_channels
+            # An edge (phone) member's live connection lives in edge_channels,
+            # never member_channels (agent members only) -- checking only the
+            # latter reported every connected phone as down, and since its DB
+            # row is `active` that also tripped member_fault, mislabelling the
+            # WHOLE risk fault_class="member" when nothing was wrong. Same bug
+            # class fixed in ec7acdd for GET /n2n/members and
+            # /n2n/members/health; this third call site was missed.
+            live = mid in self.member_channels or mid in self.edge_channels
             will_cold = (not live) and bool(m.get("launch_cmd")) and (
                 bool(m.get("on_demand")) or self.risk.managed_by(mid) == "service")
             members[mid] = {"state": "up" if live else "down", "will_cold_start": will_cold}
