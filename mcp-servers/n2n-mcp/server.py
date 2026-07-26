@@ -30,13 +30,17 @@ mcp = FastMCP("n2n-mcp")
 
 
 def _gcf_dumps(data) -> str:
-    """Serialize response (JSON fallback; GCF/TOON when available)."""
+    """Serialize response via Dayna GCF (graph/session/delta); JSON fallback."""
     try:
         import sys
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))
-        from netclaw_tokens.toon_serializer import serialize_response
-        result = serialize_response(data)
-        return result.toon_data
+        from netclaw_tokens.gcf_serializer import serialize_response
+        result = serialize_response(data, use_session=True, use_delta=True)
+        # serialize_response returns a dict with encoded_data
+        if isinstance(result, dict):
+            return result.get("encoded_data") or json.dumps(data, indent=2, default=str)
+        # Legacy object shape (toon/gcf dataclass)
+        return getattr(result, "gcf_data", None) or getattr(result, "toon_data", None) or str(result)
     except Exception:
         return json.dumps(data, indent=2, default=str)
 
@@ -444,6 +448,74 @@ async def n2n_task_status(task_id: str) -> str:
     """Check a delegated task's state (submitted/working/completed/failed/
     cancelled) and progress. Short call."""
     return _gcf_dumps(await _get(f"/n2n/tasks/{task_id}"))
+
+
+@mcp.tool()
+async def n2n_task_wait(
+    task_id: str,
+    timeout_seconds: int = 45,
+    poll_interval_seconds: float = 5.0,
+) -> str:
+    """Block until a delegated task reaches a terminal state (or this slice ends).
+
+    Prefer this on Border alert-triage after n2n_route instead of abandoning after
+    one n2n_task_status=working.
+
+    MCP clients often time out tool calls ~60s, so each wait slice is capped at
+    50s. If state is still working/submitted, call n2n_task_wait AGAIN with the
+    same task_id (repeat until completed/failed or wall-clock ~3 minutes).
+
+    Args:
+        task_id: From n2n_route / n2n_delegate
+        timeout_seconds: Max wait for THIS call (default 45, clamp 10–50)
+        poll_interval_seconds: Sleep between status checks (default 5, clamp 2–15)
+    """
+    import asyncio
+    import time
+
+    # Stay under typical MCP tool client timeouts (~60s)
+    timeout = max(10, min(int(timeout_seconds or 45), 50))
+    interval = max(2.0, min(float(poll_interval_seconds or 5.0), 15.0))
+    deadline = time.monotonic() + timeout
+    last: dict = {}
+    terminal = {"completed", "failed", "cancelled", "canceled", "error"}
+
+    while True:
+        try:
+            last = await _get(f"/n2n/tasks/{task_id}")
+        except Exception as e:
+            last = {"task_id": task_id, "state": "error", "error": str(e)}
+            break
+        if not isinstance(last, dict):
+            last = {"task_id": task_id, "raw": last}
+        state = last.get("state") or last.get("status") or ""
+        result_blob = last.get("result")
+        if not state and isinstance(result_blob, dict):
+            state = result_blob.get("state") or result_blob.get("status") or ""
+        state = str(state).lower()
+        # also parse GCF plain text result blob
+        if not state and isinstance(result_blob, str):
+            low = result_blob.lower()
+            for token in ("completed", "failed", "working", "submitted"):
+                if token in low:
+                    state = token
+                    break
+        if state in terminal:
+            break
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            last = {
+                **last,
+                "task_id": task_id,
+                "state": state or "working",
+                "still_running": True,
+                "wait_slice_seconds": timeout,
+                "hint": "still working — call n2n_task_wait again with the same task_id",
+            }
+            break
+        await asyncio.sleep(min(interval, remaining))
+
+    return _gcf_dumps(last)
 
 
 @mcp.tool()

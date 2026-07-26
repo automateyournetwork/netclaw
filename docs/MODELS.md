@@ -166,6 +166,18 @@ Keeps interactive chat cheap while investigations stay capable.
 
 ---
 
+## Alert loop (efficient T2)
+
+Autonomous T2 path (host agent + Docker diary):
+
+1. Docker AM / synthetic → host `alert-receiver` → diary **POST** on Docker `:3080`  
+2. OpenClaw hook `agentId=alert`, **`deliver=false`** (no Discord channel required)  
+3. Border: `n2n_route` → **`n2n_task_wait`** → member `guardian-claw` investigates  
+4. Member: Discord webhook + **PATCH same diary** (`NETWORK_GUARDIAN_URL` must match receiver)
+
+Member env SoT: `migration-staging/members/guardian-claw/.env`  
+Must use the same diary base URL as `services/alert-receiver/.env` (`http://127.0.0.1:3080` for Docker Convergence).
+
 ## How this relates to investigation policy (Phase 9)
 
 Models control **which LLM** runs when an investigation is admitted.  

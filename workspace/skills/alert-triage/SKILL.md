@@ -43,20 +43,23 @@ If any of those apply: **skip `n2n_route` entirely**. Investigate with Steps 1�
 below and return findings. Re-calling `n2n_route` from a member causes nested
 tasks that look like “timeouts” to the Border.
 
-**How to delegate (Border only):**
+**How to delegate (Border only — efficient path):**
 1. Call `n2n_route(request_text="<the full alert context you received>", target_hint="alert-triage")`
 2. You will get back a `task_id` and `member_id` (typically `{risk}/guardian-claw`).
-3. Poll `n2n_task_status(task_id=<task_id>)` until state is `completed` or `failed`
-   (poll every few seconds; do not invent results while `working`).
-   **Do not invent elapsed time** — only declare timeout after wall-clock ≥ 3 minutes
-   on *this* `task_id` still in `working`/`submitted`. Prior alerts do not count.
-4. On **completed**: retrieve `n2n_task_result(task_id=...)` and return the member's
-   findings to the caller — do **not** re-investigate.
-5. **STOP HERE** on success. Do NOT execute Steps 7 or 8 yourself — the member
-   handles investigation + Discord/Guardian delivery when it is the investigator.
-6. On **failed** / **true timeout** (~3 minutes still `working` on this task_id) /
-   `n2n_route` error: fall back to **direct investigation** using the procedure
-   below (white-NOC safety valve).
+3. **Prefer `n2n_task_wait(task_id, timeout_seconds=45)`** (repeat until terminal).  
+   Each call waits up to ~45s (MCP-safe). If response has `still_running` or state
+   `working`/`submitted`, **call `n2n_task_wait` again** with the same `task_id`.  
+   Members often take 30–120s — **never** stop after one `working` status.
+4. If `n2n_task_wait` is unavailable, poll `n2n_task_status` **until terminal**
+   (every ~5–15s). Only declare timeout after **≥ 3 minutes** wall-clock on
+   *this* `task_id`.
+5. On **completed**: call `n2n_task_result(task_id=...)` if the wait payload has no
+   findings body, then **return the member's findings** — do **not** re-investigate.
+6. **STOP HERE** on success. Do NOT execute Steps 7 or 8 yourself — the member
+   handles Discord + Guardian diary when it is the investigator. Your job is wait +
+   surface the member report (hook sessions use `deliver=false`; diary is SoT).
+7. On **failed** / **true timeout** / `n2n_route` error: fall back to **direct
+   investigation** using the procedure below (white-NOC safety valve).
 
 **When to skip delegation (investigate directly):**
 - You ARE the guardian-claw member (already executing a delegated task) — see above
@@ -407,6 +410,12 @@ Guardian site: home
 **Use the site id from the alert context** (default `home`). Never invent site ids. Expand
 `${HOME_API_URL:-$NETWORK_GUARDIAN_URL}` / `${HOME_API_TOKEN:-$NETWORK_GUARDIAN_TOKEN}` via shell
 (or use the env values already on the member); never send the literal `${…}` strings.
+
+**Critical (Convergence Docker diary):** diary URL must be the **same stack** the
+alert-receiver used when it created the case (usually `http://127.0.0.1:3080` for
+Docker Convergence). Do **not** open a second case on a different host. When
+`Guardian event id` is present, **always PATCH that id** — never POST a new event
+unless PATCH returns 404.
 
 #### Preferred — PATCH the open case (when event id is present)
 

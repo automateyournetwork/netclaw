@@ -186,12 +186,16 @@ if alert_map is None:
     }
     mappings.insert(0, alert_map)
 alert_map["agentId"] = "alert"
-# Keep existing model if present; do not invent a cloud pin
+# Hook sessions have no chat channel — disable outbound delivery (diary/Discord
+# are owned by alert-receiver + guardian-claw). Prevents "Channel is required".
+alert_map["deliver"] = False
+if int(alert_map.get("timeoutSeconds") or 0) < 900:
+    alert_map["timeoutSeconds"] = 900
 
 cfg_path.write_text(json.dumps(d, indent=2) + "\n")
 print(f"Wrote {cfg_path}")
 print("  agents.list: main (default, full tools) + alert (thin allowlist)")
-print("  hooks.mappings[alert].agentId = alert")
+print("  hooks.mappings[alert].agentId = alert, deliver=false")
 print("  hooks.allowedAgentIds includes alert")
 PY
 
@@ -250,14 +254,20 @@ if "alert" not in (hooks.get("allowedAgentIds") or []):
     print("FAIL: hooks.allowedAgentIds missing alert")
     sys.exit(1)
 ok = False
+deliver_ok = False
 for m in hooks.get("mappings") or []:
     if isinstance(m, dict) and (m.get("match") or {}).get("path") == "alert":
         if m.get("agentId") == "alert":
             ok = True
+        if m.get("deliver") is False:
+            deliver_ok = True
 if not ok:
     print("FAIL: hooks.mappings alert path agentId != alert")
     sys.exit(1)
-print("OK: thin alert agent profile present and hooked")
+if not deliver_ok:
+    print("FAIL: hooks.mappings alert path must set deliver=false (no chat channel on hooks)")
+    sys.exit(1)
+print("OK: thin alert agent profile present and hooked (deliver=false)")
 PY
 }
 

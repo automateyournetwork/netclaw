@@ -29,6 +29,14 @@ services/alert-receiver/.env  ← can symlink values from openclaw or stay small
 
 Keep **tokens identical** across planes where they must match (HUD token ↔ `API_KEYS[].key`).
 
+**Investigation diary alignment (critical for T2 close-out):**  
+`services/alert-receiver` and **guardian-claw** must write to the **same** diary API.
+For Docker Convergence that is `http://127.0.0.1:3080` with the same
+`API_KEYS` / `NETWORK_GUARDIAN_TOKEN`.  
+Member SoT: `migration-staging/members/guardian-claw/.env`  
+(`NETWORK_GUARDIAN_URL` / `HOME_API_URL`). If the member still points at the
+k3s pilot Guardian URL, cases open on Docker and close on pilot (or nowhere).
+
 Agent env (preferred names):
 
 ```bash
