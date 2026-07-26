@@ -16,7 +16,7 @@ The v2 server replaces v1 with a complete Nautobot integration:
 - ITSM-gated write operations
 - Live-vs-SoT reconciliation using pyATS data
 
-### Nautobot 3.1.0 API Facts (verified against live instance at 192.168.3.253)
+### Nautobot 3.1.0 API Facts (verified against live instance at nautobot.internal.byrnbaker.me)
 
 - GraphQL via graphene_django 3.2.3 — queries only, no mutations
 - `locations` replaces the deprecated `site` field (Nautobot 3.x change)
@@ -179,7 +179,7 @@ As a network engineer, I want to compare live device state (from pyATS) against 
 - Nautobot 3.1.0 does NOT expose GraphQL mutations — all writes go through the REST API.
 - Nautobot 3.x uses `locations` (not `sites`) — the v2 server must use the 3.x data model throughout.
 - pyATS MCP server is functional and can reach the same devices that are registered in Nautobot (required for reconciliation only).
-- The Nautobot instance at 192.168.3.253 is the target deployment with 3 devices (HomeSwitch01, HomeSwitch02, pfSense-FW01), 34 VLANs, 2 prefixes, and 2 cables.
+- The Nautobot instance at nautobot.internal.byrnbaker.me is the target deployment with 3 devices (HomeSwitch01, HomeSwitch02, pfSense-FW01), 34 VLANs, 2 prefixes, and 2 cables.
 - ITSM gating follows the same pattern as other NetClaw write-capable MCP servers (ITSM_ENABLED, ITSM_LAB_MODE environment variables).
 - The v2 server replaces the v1 mcp-nautobot entry in openclaw.json — it is not an additional server.
 - Reconciliation compares interface names, IP addresses, enabled state, and description. VLAN assignment comparison is a stretch goal.

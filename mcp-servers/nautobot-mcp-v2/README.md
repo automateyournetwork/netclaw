@@ -44,7 +44,7 @@ Replaces the v1 mcp-nautobot (5 IPAM-only REST tools) with 13 tools covering dev
 
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
-| `NAUTOBOT_URL` | Yes | — | Nautobot base URL (e.g., `https://192.168.3.253`) |
+| `NAUTOBOT_URL` | Yes | — | Nautobot base URL (e.g., `https://nautobot.internal.byrnbaker.me`) |
 | `NAUTOBOT_TOKEN` | Yes | — | API token with read+write permissions |
 | `NAUTOBOT_VERIFY_SSL` | No | `false` | Verify SSL certificates |
 | `NAUTOBOT_TIMEOUT` | No | `30` | Request timeout in seconds |
@@ -61,7 +61,7 @@ pip install -r requirements.txt
 ## Standalone Test
 
 ```bash
-export NAUTOBOT_URL="https://192.168.3.253"
+export NAUTOBOT_URL="https://nautobot.internal.byrnbaker.me"
 export NAUTOBOT_TOKEN="your-token"
 export NAUTOBOT_VERIFY_SSL="false"
 python3 -u server.py

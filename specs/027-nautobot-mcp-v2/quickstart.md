@@ -22,7 +22,7 @@ pip install -r requirements.txt
 ### 2. Configure environment variables
 
 ```bash
-export NAUTOBOT_URL="https://192.168.3.253"
+export NAUTOBOT_URL="https://nautobot.internal.byrnbaker.me"
 export NAUTOBOT_TOKEN="your-nautobot-api-token"
 
 # Optional

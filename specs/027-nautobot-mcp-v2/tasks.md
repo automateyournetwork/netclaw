@@ -239,7 +239,7 @@
 1. Phase 1: Setup (T001-T003)
 2. Phase 2: Foundational (T004-T006)
 3. Phase 3: US1 — devices + interfaces (T007-T008)
-4. **STOP and VALIDATE**: Test against live Nautobot at 192.168.3.253
+4. **STOP and VALIDATE**: Test against live Nautobot at nautobot.internal.byrnbaker.me
 5. Deploy if ready
 
 ### Incremental Delivery
@@ -260,4 +260,4 @@
 - v2 server lives in new directory; v1 preserved for reference
 - openclaw.json entry name stays "nautobot-mcp" — just points to new server
 - ITSM defaults: ITSM_ENABLED=false, ITSM_LAB_MODE=true (safe for home lab)
-- All GraphQL queries verified working against live Nautobot 3.1.0 at 192.168.3.253
+- All GraphQL queries verified working against live Nautobot (SoT: nautobot.internal.byrnbaker.me)

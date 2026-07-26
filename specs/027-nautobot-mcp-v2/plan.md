@@ -12,7 +12,7 @@ Replace the existing mcp-nautobot (v1, 5 REST-only IPAM tools) with a comprehens
 **Language/Version**: Python 3.10+ (3.13 in Docker)
 **Primary Dependencies**: FastMCP (mcp SDK), httpx (async HTTP), python-dotenv
 **Storage**: N/A (stateless proxy to Nautobot API)
-**Testing**: Manual validation against live Nautobot at 192.168.3.253
+**Testing**: Manual validation against live Nautobot at nautobot.internal.byrnbaker.me
 **Target Platform**: Linux (Docker container, stdio MCP transport)
 **Project Type**: MCP server (stdio transport)
 **Performance Goals**: Query responses within 3 seconds (SC-001)

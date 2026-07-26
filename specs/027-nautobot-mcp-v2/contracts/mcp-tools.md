@@ -390,7 +390,7 @@ nautobot_reconcile(
 
 | Variable | Required | Description |
 |----------|----------|-------------|
-| NAUTOBOT_URL | Yes | Nautobot base URL (e.g., https://192.168.3.253) |
+| NAUTOBOT_URL | Yes | Nautobot base URL (e.g., https://nautobot.internal.byrnbaker.me) |
 | NAUTOBOT_TOKEN | Yes | Nautobot API token with read+write permissions |
 | NAUTOBOT_VERIFY_SSL | No | Verify SSL certificates (default: false for self-signed) |
 | NAUTOBOT_TIMEOUT | No | Request timeout in seconds (default: 30) |

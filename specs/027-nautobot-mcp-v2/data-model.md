@@ -108,7 +108,7 @@ Output of the reconcile tool.
 
 ## Nautobot 3.1.0 GraphQL Type Reference
 
-Verified via introspection on 192.168.3.253:
+Verified via introspection on nautobot.internal.byrnbaker.me:
 
 ### DeviceType fields (used)
 `id`, `name`, `serial`, `status { name }`, `role { name }`, `platform { name }`, `location { name }`, `device_type { model manufacturer { name } }`, `primary_ip4 { address }`, `primary_ip6 { address }`, `interfaces { ... }`, `comments`

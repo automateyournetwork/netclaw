@@ -44,4 +44,4 @@
 
 - All items pass. Spec is ready for implementation.
 - Key architectural decision: GraphQL for reads, REST for writes — driven by Nautobot 3.1.0 not exposing GraphQL mutations.
-- The spec was validated against the live instance at 192.168.3.253 during research phase.
+- The spec was validated against the live instance at nautobot.internal.byrnbaker.me during research phase.

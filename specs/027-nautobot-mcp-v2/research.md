@@ -7,7 +7,7 @@
 
 **Decision**: Use GraphQL (POST /api/graphql/) for all reads, REST API (POST/PATCH/DELETE to /api/dcim/*, /api/ipam/*) for all writes.
 
-**Rationale**: Verified against live instance at 192.168.3.253. Nautobot 3.1.0 uses graphene_django 3.2.3 which exposes GraphQL queries but **no mutations**. The `__schema { mutationType }` introspection returns null. REST API endpoints confirm PUT and POST actions via OPTIONS requests. This hybrid approach gives us the best of both worlds: efficient field selection and nested queries for reads, and full CRUD for writes.
+**Rationale**: Verified against live instance at nautobot.internal.byrnbaker.me. Nautobot 3.1.0 uses graphene_django 3.2.3 which exposes GraphQL queries but **no mutations**. The `__schema { mutationType }` introspection returns null. REST API endpoints confirm PUT and POST actions via OPTIONS requests. This hybrid approach gives us the best of both worlds: efficient field selection and nested queries for reads, and full CRUD for writes.
 
 **Alternatives considered**:
 - REST-only (like v1): Rejected because GraphQL provides dramatically better query efficiency — one request can fetch a device with all its interfaces, IPs, and VLANs instead of 4+ REST calls.
@@ -131,7 +131,7 @@ Alternative approach: a single reconcile tool that accepts just a device name an
 
 ## R10: Existing Data in Nautobot
 
-**Verified data on 192.168.3.253**:
+**Verified data on nautobot.internal.byrnbaker.me**:
 - 3 devices: HomeSwitch01 (FOC1733X062), HomeSwitch02 (FOC1724V1R9), pfSense-FW01
 - All at location "House", all status "Active"
 - HomeSwitch01/02: role "home_switch", platform "cisco_ios"

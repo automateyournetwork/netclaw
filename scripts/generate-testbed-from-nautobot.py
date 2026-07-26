@@ -9,7 +9,7 @@ Usage:
     .venv/bin/python3 scripts/generate-testbed-from-nautobot.py
 
 Environment:
-    NAUTOBOT_URL      - Nautobot base URL (e.g., https://192.168.3.253/)
+    NAUTOBOT_URL      - Nautobot base URL (e.g., https://nautobot.internal.byrnbaker.me/)
     NAUTOBOT_TOKEN    - API token
     NAUTOBOT_VERIFY_SSL - "true" or "false" (default: false)
     NETCLAW_USERNAME  - Default device SSH username
