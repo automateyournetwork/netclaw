@@ -141,4 +141,6 @@ docs/ietf/kdrfc-err.txt
 # Local Convergence / agentic NOC context (private ops notes — not for public repo)
 docs/architecture/convergence-context/
 # Home Docker local secrets
-deploy/home/.env
+deploy/convergence/.env
+deploy/convergence/k8s/secret.yaml
+docs/architecture/convergence-context
