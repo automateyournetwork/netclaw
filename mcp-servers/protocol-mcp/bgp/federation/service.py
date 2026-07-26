@@ -1253,10 +1253,26 @@ class FederationService:
             from .gateway import run_agent_turn
             member_model = os.environ.get("N2N_MEMBER_MODEL")
             if self.risk.role() == "member":
-                prompt = (f"Execute the '{skill}' skill for the following request "
-                          f"and return only the result:\n\n{input_text}")
+                # Unique session per task: shared `in2n-{skill}` sessions accumulate
+                # Border history and cause the member to re-n2n_route itself (false
+                # "timeouts"). Also pin the role in the prompt so skills that say
+                # "if you have n2n_route, you are Border" cannot re-delegate.
+                member_id = (
+                    os.environ.get("N2N_MEMBER_ID")
+                    or getattr(self.risk, "member_id", None)
+                    or "member"
+                )
+                prompt = (
+                    f"You are the iN2N MEMBER `{member_id}` executing a delegated "
+                    f"task. You are NOT the Border brain. Do NOT call n2n_route, "
+                    f"n2n_task_status, or n2n_task_result. Investigate and deliver "
+                    f"directly using your tools and the skill procedure.\n\n"
+                    f"Execute the '{skill}' skill for the following request and "
+                    f"return only the result:\n\n{input_text}"
+                )
+                session_key = f"in2n-{skill}-{task_id[:8]}"
                 output, tokens = await run_agent_turn(
-                    prompt, session_key=f"in2n-{skill}",
+                    prompt, session_key=session_key,
                     timeout_s=self.invoker.skill_timeout, local=True, model=member_model)
             else:
                 output, tokens = await self.invoker._exec_skill_gateway(skill, input_text)

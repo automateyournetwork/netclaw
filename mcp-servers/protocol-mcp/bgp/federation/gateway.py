@@ -184,6 +184,67 @@ def _extract_reply(stdout: str):
     return reply or "(no reply text in agent response)", int(tokens or 0)
 
 
+def _reply_from_session_file(session_key: str) -> str:
+    """Fallback when `openclaw agent --json` stdout lacks finalAssistantVisibleText
+    (common on exit code 1 after long tool runs). Harvest the last assistant text
+    from the session transcript under OPENCLAW_STATE_DIR."""
+    if not session_key:
+        return ""
+    state = os.environ.get("OPENCLAW_STATE_DIR") or os.path.expanduser("~/.openclaw")
+    # session-id and session-key both land under agents/<id>/sessions/<key>.jsonl
+    agent = os.environ.get("N2N_AGENT_ID", "main")
+    candidates = [
+        os.path.join(state, "agents", agent, "sessions", f"{session_key}.jsonl"),
+        os.path.join(state, "agents", "main", "sessions", f"{session_key}.jsonl"),
+        os.path.join(state, "sessions", f"{session_key}.jsonl"),
+    ]
+    path = next((p for p in candidates if os.path.isfile(p)), None)
+    if not path:
+        # newest matching prefix (task-id suffix)
+        root = os.path.join(state, "agents", agent, "sessions")
+        if os.path.isdir(root):
+            matches = sorted(
+                (os.path.join(root, n) for n in os.listdir(root)
+                 if n.startswith(session_key) and n.endswith(".jsonl")
+                 and not n.endswith(".trajectory.jsonl")),
+                key=lambda p: os.path.getmtime(p), reverse=True)
+            path = matches[0] if matches else None
+    if not path:
+        return ""
+    last_text = ""
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    obj = json.loads(line)
+                except Exception:
+                    continue
+                if obj.get("type") != "message":
+                    continue
+                msg = obj.get("message") or {}
+                if msg.get("role") != "assistant":
+                    continue
+                content = msg.get("content")
+                parts = []
+                if isinstance(content, list):
+                    for c in content:
+                        if isinstance(c, dict) and c.get("type") == "text":
+                            t = (c.get("text") or "").strip()
+                            if t:
+                                parts.append(t)
+                elif isinstance(content, str) and content.strip():
+                    parts.append(content.strip())
+                if parts:
+                    last_text = "\n".join(parts)
+    except Exception as e:
+        logger.warning("session fallback read failed for %s: %s", session_key, e)
+        return ""
+    return last_text
+
+
 async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int = 300,
                          local: bool = False, model: str = None,
                          untrusted: bool = False, on_stall=None,
@@ -283,4 +344,18 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
     stdout = out.decode(errors="replace") if out else ""
     if proc.returncode != 0:
         logger.warning("openclaw agent exited %s", proc.returncode)
-    return _extract_reply(stdout)
+    reply, tokens = _extract_reply(stdout)
+    # Local member turns sometimes exit non-zero after a successful tool run and
+    # leave only a placeholder in stdout. Pull the real answer from the session.
+    if (
+        local
+        and (not reply or reply.startswith("(no reply text in agent response)"))
+    ):
+        fallback = _reply_from_session_file(session_key)
+        if fallback:
+            logger.info(
+                "recovered %d chars of reply from session file for %s",
+                len(fallback), session_key,
+            )
+            reply = fallback
+    return reply, tokens
