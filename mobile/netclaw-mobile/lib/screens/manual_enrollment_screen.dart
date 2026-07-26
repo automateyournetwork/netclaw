@@ -53,6 +53,9 @@ class _ManualEnrollmentScreenState extends State<ManualEnrollmentScreen> {
   final _domainController = TextEditingController();
   final _portController = TextEditingController(text: '8443');
   final _tokenController = TextEditingController();
+  /// Optional. Blank falls back to a derived label — the Border is never
+  /// sent a null display_name again (see defaultDeviceLabel).
+  final _nameController = TextEditingController();
   bool _busy = false;
   String? _errorText;
 
@@ -61,6 +64,7 @@ class _ManualEnrollmentScreenState extends State<ManualEnrollmentScreen> {
     _domainController.dispose();
     _portController.dispose();
     _tokenController.dispose();
+    _nameController.dispose();
     super.dispose();
   }
 
@@ -85,6 +89,7 @@ class _ManualEnrollmentScreenState extends State<ManualEnrollmentScreen> {
       raw,
       memberId: widget.memberId,
       identity: widget.identity,
+      displayName: _nameController.text,
     );
     switch (outcome) {
       case EnrollmentSuccess(client: final client, payload: final payload):
@@ -140,6 +145,16 @@ class _ManualEnrollmentScreenState extends State<ManualEnrollmentScreen> {
                 autocorrect: false,
                 minLines: 1,
                 maxLines: 3,
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: _nameController,
+                enabled: !_busy,
+                decoration: const InputDecoration(
+                  labelText: 'Device name (optional)',
+                  hintText: "e.g. John's iPhone",
+                  helperText: 'Helps the Border tell your devices apart',
+                ),
               ),
               const SizedBox(height: 20),
               if (_errorText != null)

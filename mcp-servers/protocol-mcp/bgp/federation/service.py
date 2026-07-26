@@ -800,14 +800,10 @@ class FederationService:
         member_fault = backend_fault = False
         for m in self.risk.list_members():
             mid = m["member_id"]
-            # An edge (phone) member's live connection lives in edge_channels,
-            # never member_channels (agent members only) -- checking only the
-            # latter reported every connected phone as down, and since its DB
-            # row is `active` that also tripped member_fault, mislabelling the
-            # WHOLE risk fault_class="member" when nothing was wrong. Same bug
-            # class fixed in ec7acdd for GET /n2n/members and
-            # /n2n/members/health; this third call site was missed.
-            live = mid in self.member_channels or mid in self.edge_channels
+            # Shared definition -- see member_liveness(). Computing this
+            # inline is what let three call sites drift into reporting every
+            # connected phone as down.
+            live = self.member_liveness(m)["live"]
             will_cold = (not live) and bool(m.get("launch_cmd")) and (
                 bool(m.get("on_demand")) or self.risk.managed_by(mid) == "service")
             members[mid] = {"state": "up" if live else "down", "will_cold_start": will_cold}
@@ -996,6 +992,37 @@ class FederationService:
     # names (in2n/enroll, in2n/hello) as agent-member iN2N enrollment (contract
     # §2) — only consume_token()'s new node_type="edge" argument (T006) and a
     # separate registry (self.edge_channels, T008) distinguish it.
+
+    # ---- member liveness (one definition, used everywhere) --------------
+
+    def member_liveness(self, m) -> dict:
+        """The single source of truth for "is this member reachable right now".
+
+        Every caller that reported liveness used to compute it inline, and they
+        drifted: three separate call sites checked only `member_channels` and so
+        reported every connected PHONE as down (an edge member's channel lives
+        in `edge_channels`). Two were fixed in ec7acdd and a third in the
+        health_report() fix; this exists so there is no fourth.
+
+        `heartbeat_age_s` is included because `state` alone is genuinely
+        misleading on a phone. `state` is written on connect/disconnect, and a
+        phone reconnects constantly (82 deregistrations and 94 dial-ins in one
+        day on this Border), so two reads seconds apart can honestly disagree —
+        which reads to an operator as endpoints contradicting each other. The
+        heartbeat age is what actually distinguishes "briefly between sockets"
+        from "gone", and without it `state: active` next to a stale heartbeat,
+        or `state: unreachable` next to a 20s-old one, both look like lies.
+        """
+        mid = m["member_id"]
+        live = mid in self.member_channels or mid in self.edge_channels
+        age = None
+        try:
+            hb = (json.loads(m["health"]) if m["health"] else {}).get("last_heartbeat")
+            if hb:
+                age = round(max(0.0, time.time() - float(hb)), 1)
+        except (ValueError, TypeError, KeyError):
+            age = None
+        return {"live": live, "heartbeat_age_s": age}
 
     # ---- edge (phone) agent-turn budget --------------------------------
 

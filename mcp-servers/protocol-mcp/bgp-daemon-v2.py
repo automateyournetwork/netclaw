@@ -645,16 +645,12 @@ async def handle_n2n(method, path, body):
                  "node_type": m["node_type"],
                  "specialty_count": fed.risk.specialty_count(m["scope"]),
                  "skills": _spec_names(m["scope"]),
-                 # An edge (phone) member's live connection lives in
-                 # edge_channels, never member_channels (agent members
-                 # only) -- checking only the latter meant every edge node
-                 # showed live=false forever regardless of actual
-                 # connection health, and the HUD's own edge-node panel
-                 # (node_type filter) silently rendered nothing since 066
-                 # first shipped, since node_type wasn't even in this
-                 # response at all until this fix.
-                 "live": m["member_id"] in fed.member_channels
-                         or m["member_id"] in fed.edge_channels}
+                 # Liveness comes from ONE shared definition
+                 # (FederationService.member_liveness) so this endpoint and
+                 # /n2n/members/health can never drift apart again, and both
+                 # carry heartbeat_age_s -- `state` alone flips constantly on a
+                 # phone and reads as endpoints contradicting each other.
+                 **fed.member_liveness(m)}
                 for m in fed.risk.list_members()]}
 
         if path == "/n2n/members/health" and method == "GET":
@@ -667,8 +663,7 @@ async def handle_n2n(method, path, body):
                     health = {}
                 out.append({"member_id": m["member_id"], "state": m["state"],
                             "auth_failures": m["auth_failures"],
-                            "live": m["member_id"] in fed.member_channels
-                                    or m["member_id"] in fed.edge_channels,
+                            **fed.member_liveness(m),
                             "health": health})
             return 200, {"members": out}
 
