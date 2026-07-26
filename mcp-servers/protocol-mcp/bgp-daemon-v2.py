@@ -867,10 +867,22 @@ async def _start_edge(fed):
         # Liveness is NOT weakened by this: the Border tracks it separately via
         # the application-level n2n/edge/heartbeat call, so a genuinely dead
         # peer is still detected there rather than by the socket timeout.
+        # max_size MUST be set. The websockets default is 1 MiB, but the
+        # protocol's own bound is NCFED_MAX_MESSAGE (16 MiB) and the phone caps
+        # a capture at 8 MiB of raw bytes -- which base64-encodes to ~10.7 MiB
+        # on the wire. So every photo over ~768 KiB raw exceeded the transport
+        # limit even though both the protocol and the client considered it
+        # legal, and websockets closed the connection with 1009 (message too
+        # big): the request failed AND the socket died, indistinguishably from
+        # the reconnect churn we were already chasing.
+        #
+        # Aligned to the protocol constant so transport and protocol agree.
+        from bgp.constants import NCFED_MAX_MESSAGE
         server = await websockets.serve(
             _on_ws, "0.0.0.0", port, ssl=ctx,
             ping_interval=EDGE_WS_PING_INTERVAL,
             ping_timeout=EDGE_WS_PING_TIMEOUT,
+            max_size=NCFED_MAX_MESSAGE,
         )
         fed._edge_server = server  # keep a ref
         logger.info("Edge (NetClaw Mobile) WS listener on 0.0.0.0:%d (risk=%s)",
