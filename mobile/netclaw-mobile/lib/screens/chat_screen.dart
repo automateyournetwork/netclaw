@@ -29,6 +29,7 @@ class _ChatScreenState extends State<ChatScreen> {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
   bool _loading = true;
+  bool _listening = false;
 
   @override
   void initState() {
@@ -128,9 +129,47 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _recordVoice() async {
-    final result = await widget.voiceTranscription.recordAndAsk(widget.askClient);
-    if (result == null) return; // nothing heard — no request sent
-    final (taskId, text) = result;
+    if (_listening) return; // already recording — ignore a double tap
+    setState(() => _listening = true);
+    try {
+      final result = await widget.voiceTranscription.recordAndAsk(
+        widget.askClient,
+        // Previously every voice failure was a silent no-op: the operator
+        // tapped the mic and nothing whatsoever happened. Always say why.
+        onFailure: (failure) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            content: Text(failure.message ?? 'Voice request failed.'),
+            duration: const Duration(seconds: 4),
+          ));
+        },
+      );
+      if (result == null) return; // nothing sent; the operator has been told why
+      final (taskId, text) = result;
+      await widget.store.addPending(taskId, text);
+      if (mounted) setState(() {});
+      _jumpToNewest(animate: true);
+    } finally {
+      if (mounted) setState(() => _listening = false);
+    }
+  }
+
+  /// Re-sends a turn's original request as a NEW turn, leaving the failed one
+  /// in place as a record. Requested by a tester: a failed turn was a dead end
+  /// with no way to try again short of retyping the whole thing.
+  Future<void> _retry(ConversationTurn turn) async {
+    final text = turn.requestText;
+    if (text.trim().isEmpty || text == '[Photo]') {
+      // A photo turn's bytes aren't retained locally, so there is nothing to
+      // resend — say so rather than silently doing nothing.
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          content: Text('Take the photo again to retry.'),
+        ));
+      }
+      return;
+    }
+    final taskId = await widget.askClient.ask(text);
     await widget.store.addPending(taskId, text);
     if (mounted) setState(() {});
     _jumpToNewest(animate: true);
@@ -176,6 +215,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemBuilder: (context, index) => _TurnTile(
                     turn: turns[index],
                     onCancel: () => _cancel(turns[index].taskId),
+                    onRetry: () => _retry(turns[index]),
                   ),
                 ),
         ),
@@ -192,7 +232,15 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 IconButton(icon: const Icon(Icons.camera_alt), onPressed: _capturePhoto),
-                IconButton(icon: const Icon(Icons.mic), onPressed: _recordVoice),
+                IconButton(
+                  // Visible listening state — the mic previously gave no
+                  // indication it was live, so a working recording looked
+                  // identical to a broken one.
+                  icon: Icon(_listening ? Icons.mic : Icons.mic_none,
+                      color: _listening ? Theme.of(context).colorScheme.error : null),
+                  tooltip: _listening ? 'Listening…' : 'Voice request',
+                  onPressed: _listening ? null : _recordVoice,
+                ),
                 IconButton(icon: const Icon(Icons.send), onPressed: _send),
               ],
             ),
@@ -206,13 +254,43 @@ class _ChatScreenState extends State<ChatScreen> {
 class _TurnTile extends StatelessWidget {
   final ConversationTurn turn;
   final VoidCallback onCancel;
+  final VoidCallback onRetry;
 
-  const _TurnTile({required this.turn, required this.onCancel});
+  const _TurnTile({
+    required this.turn,
+    required this.onCancel,
+    required this.onRetry,
+  });
+
+  bool get _isRetryable => turn.state == 'failed' || turn.state == 'cancelled';
 
   bool get _inProgress => turn.state == 'pending' || turn.state == 'working';
 
   @override
   Widget build(BuildContext context) {
+    final card = _card(context);
+    // "Or if you click on fail it asks to retry" — make the whole tile a retry
+    // affordance, not just the button, so a failed turn is never a dead end.
+    if (!_isRetryable) return card;
+    return InkWell(onTap: () => _confirmRetry(context), child: card);
+  }
+
+  Future<void> _confirmRetry(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Retry this request?'),
+        content: Text(turn.requestText),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Retry')),
+        ],
+      ),
+    );
+    if (ok ?? false) onRetry();
+  }
+
+  Widget _card(BuildContext context) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       child: Padding(
@@ -234,9 +312,26 @@ class _TurnTile extends StatelessWidget {
                 ],
               )
             else if (turn.state == 'cancelled')
-              const Text('Cancelled', style: TextStyle(color: Colors.grey))
+              Row(children: [
+                const Text('Cancelled', style: TextStyle(color: Colors.grey)),
+                const Spacer(),
+                TextButton.icon(
+                    onPressed: onRetry,
+                    icon: const Icon(Icons.refresh, size: 18),
+                    label: const Text('Retry')),
+              ])
             else if (turn.state == 'failed')
-              Text(turn.answerText ?? 'Failed', style: const TextStyle(color: Colors.red))
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(turn.answerText ?? 'Failed',
+                    style: const TextStyle(color: Colors.red)),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                      onPressed: onRetry,
+                      icon: const Icon(Icons.refresh, size: 18),
+                      label: const Text('Retry')),
+                ),
+              ])
             else
               Text(turn.answerText ?? ''),
           ],

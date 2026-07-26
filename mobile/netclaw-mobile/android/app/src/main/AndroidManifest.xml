@@ -6,6 +6,12 @@
          dependency would have silently broken networking in release with no
          compile-time error. Declared explicitly here instead. -->
     <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Voice requests (feature 067, US4). speech_to_text declares nothing
+         itself; until now RECORD_AUDIO reached the merged manifest only as a
+         side-effect of camera_android_camerax, so dropping the camera
+         dependency would have silently broken the microphone. Same accidental
+         -dependency class as INTERNET above — declared explicitly. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
     <application
         android:label="NetClaw"
         android:name="${applicationName}"
@@ -54,6 +60,16 @@
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT"/>
             <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- REQUIRED for speech_to_text (voice requests, feature 067 US4).
+             speech_to_text 7.4.0 ships a deliberately EMPTY AndroidManifest and
+             its README requires the host app to declare this itself. Without it,
+             Android 11+ (API 30) package-visibility rules hide every
+             RecognitionService from us, so SpeechToText.initialize() returns
+             false and the mic button did nothing at all — no prompt, no error.
+             Reported by a real tester as "microphone option isn't working". -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
         </intent>
     </queries>
 </manifest>
