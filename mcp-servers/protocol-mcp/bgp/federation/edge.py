@@ -55,6 +55,12 @@ EDGE_METHODS = (
     # result/cancel) -- reused as-is, not reimplemented, per research D4.
     "n2n/edge/ask",
     "n2n/edge/ask_result",
+    # Border-initiated, best-effort, fire-and-forget: a turn that is still
+    # alive at the stall checkpoint says so rather than leaving the phone on a
+    # silent spinner for the whole (now much longer) budget. An app build with
+    # no handler for it drops the notification silently on both sides, so this
+    # is safe against version skew in either direction.
+    "n2n/edge/task_progress",
     "n2n/tasks/status",
     "n2n/tasks/result",
     "n2n/tasks/cancel",

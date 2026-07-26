@@ -27,18 +27,33 @@ class TaskUpdate {
   final String? outputText;
   final int? tokensUsed;
 
+  /// Set only by an `n2n/edge/task_progress` notification — a still-alive turn
+  /// reporting in. Never persisted; purely a live hint for the UI.
+  final String? progressDetail;
+
   const TaskUpdate({
     required this.taskId,
     required this.state,
     this.outputText,
     this.tokensUsed,
+    this.progressDetail,
   });
 
   factory TaskUpdate.fromAskResult(Map<String, dynamic> params) => TaskUpdate(
         taskId: params['task_id'] as String,
         state: _parseTaskState(params['state'] as String?),
-        outputText: params['output_text'] as String?,
+        // A failed task carries its reason under `error`, not `output_text`
+        // (TaskManager.run stores {"error": ...} on exception). Reading only
+        // output_text dropped every failure explanation on the floor, so a
+        // timeout showed as a bare "Failed" with no text at all.
+        outputText: (params['output_text'] ?? params['error']) as String?,
         tokensUsed: params['tokens_used'] as int?,
+      );
+
+  factory TaskUpdate.fromProgress(Map<String, dynamic> params) => TaskUpdate(
+        taskId: params['task_id'] as String,
+        state: TaskState.working,
+        progressDetail: params['detail'] as String?,
       );
 }
 
@@ -53,6 +68,12 @@ class EdgeAskClient {
   EdgeAskClient(this.client) {
     client.on('n2n/edge/ask_result', (params) {
       _updates.add(TaskUpdate.fromAskResult(params));
+      return <String, dynamic>{};
+    });
+    // Best-effort liveness for a long turn. A Border that never sends this
+    // (older build) simply produces no progress updates — nothing breaks.
+    client.on('n2n/edge/task_progress', (params) {
+      _updates.add(TaskUpdate.fromProgress(params));
       return <String, dynamic>{};
     });
   }

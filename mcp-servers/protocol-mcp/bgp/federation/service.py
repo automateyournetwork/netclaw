@@ -997,6 +997,45 @@ class FederationService:
     # §2) — only consume_token()'s new node_type="edge" argument (T006) and a
     # separate registry (self.edge_channels, T008) distinguish it.
 
+    # ---- edge (phone) agent-turn budget --------------------------------
+
+    def _edge_ask_timeout(self) -> int:
+        """Wall-clock budget for one phone request's agent turn.
+
+        MUST be >= the member `skill_timeout` this turn may delegate into,
+        otherwise the parent dies while its own child is still running (see
+        _edge_on_ask). Defaults to the member budget plus headroom for the
+        Border's own reasoning either side of the delegation.
+        """
+        override = os.environ.get("N2N_EDGE_ASK_TIMEOUT_S")
+        if override:
+            try:
+                return max(60, int(override))
+            except ValueError:
+                logger.warning("N2N_EDGE_ASK_TIMEOUT_S=%r is not an int — ignoring", override)
+        member_budget = getattr(self.invoker, "skill_timeout", 600)
+        return int(member_budget) + self._edge_ask_stall_extension()
+
+    def _edge_ask_stall_extension(self) -> int:
+        """Extra seconds granted when a turn is still alive at the stall
+        checkpoint. Also the headroom added on top of the member budget."""
+        try:
+            return max(30, int(os.environ.get("N2N_EDGE_ASK_STALL_EXTENSION_S", "180")))
+        except ValueError:
+            return 180
+
+    async def _edge_notify_progress(self, member_id: str, task_id: str, text: str):
+        """Best-effort progress ping to a phone mid-turn. Never raises: a
+        disconnected phone just doesn't get it, and the turn continues."""
+        ch = self.edge_channels.get(member_id)
+        if not ch:
+            return
+        try:
+            await ch.notify("n2n/edge/task_progress",
+                            {"task_id": task_id, "detail": text})
+        except Exception as e:
+            logger.debug("edge progress notify to %s failed: %s", member_id, e)
+
     def _register_edge_channel(self, member_id, ch):
         """Track an edge node's channel; deregister on close and start its
         Border-driven heartbeat loop (T011) — the BASE_FLOOR-equivalent
@@ -1294,9 +1333,41 @@ class FederationService:
                 # contains one, so it must be sanitized here, unlike peer/
                 # skill identifiers elsewhere in this file which never do.
                 session_key = "n2n-edge-" + member_id.replace("/", "_")
+
+                # A phone request routinely delegates to an in-risk member,
+                # and that member's own agent turn gets `skill_timeout`
+                # (default 600s). Passing no timeout here inherited
+                # run_agent_turn's 300s default, so the INNER budget was twice
+                # the OUTER one: a delegating request was allowed to outlive
+                # the request that started it, and the phone's turn was killed
+                # while its own delegation was still legitimately running.
+                #
+                # Observed twice on a real device (2026-07-26): identical CML
+                # questions failed at exactly 300s while their `cml-node-
+                # operations` delegation completed *afterwards* — the work
+                # succeeded and the answer had nowhere to land. A third,
+                # warm-cache run finished in 114s and looked fine, which is the
+                # worst failure profile: it passes on a retry and fails cold.
+                #
+                # The phone's budget must therefore always be >= the member
+                # budget it may have to wait on.
+                timeout_s = self._edge_ask_timeout()
+
+                def on_stall(waited_s):
+                    # The turn is alive but slow. Tell the phone rather than
+                    # leaving it on a silent spinner, and extend instead of
+                    # dying on a blind deadline. Scheduled, not awaited:
+                    # run_agent_turn calls on_stall synchronously.
+                    self.tasks._set(task_id, progress="still working…")
+                    asyncio.create_task(self._edge_notify_progress(
+                        member_id, task_id,
+                        f"Still working on this — {int(waited_s)}s so far."))
+                    return self._edge_ask_stall_extension()
+
                 output, tokens = await run_agent_turn(
                     prompt, session_key=session_key, untrusted=False,
-                    message_file=message_file)
+                    message_file=message_file,
+                    timeout_s=timeout_s, on_stall=on_stall)
             finally:
                 if message_file:
                     try:

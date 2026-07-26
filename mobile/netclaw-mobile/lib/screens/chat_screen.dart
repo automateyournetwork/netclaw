@@ -30,6 +30,8 @@ class _ChatScreenState extends State<ChatScreen> {
   final _scroll = ScrollController();
   bool _loading = true;
   bool _listening = false;
+  /// taskId -> latest progress detail from n2n/edge/task_progress.
+  final Map<String, String> _progress = {};
 
   @override
   void initState() {
@@ -80,6 +82,14 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   Future<void> _applyUpdate(TaskUpdate update) async {
+    // A progress ping is a liveness hint, not a state change — record the
+    // detail and repaint, but don't touch the persisted turn.
+    if (update.progressDetail != null) {
+      _progress[update.taskId] = update.progressDetail!;
+      if (mounted) setState(() {});
+      return;
+    }
+    _progress.remove(update.taskId); // terminal update supersedes any hint
     final stateName = switch (update.state) {
       TaskState.completed => 'completed',
       TaskState.failed => 'failed',
@@ -214,6 +224,7 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: turns.length,
                   itemBuilder: (context, index) => _TurnTile(
                     turn: turns[index],
+                    progressDetail: _progress[turns[index].taskId],
                     onCancel: () => _cancel(turns[index].taskId),
                     onRetry: () => _retry(turns[index]),
                   ),
@@ -256,10 +267,16 @@ class _TurnTile extends StatelessWidget {
   final VoidCallback onCancel;
   final VoidCallback onRetry;
 
+  /// Live detail from the Border for an in-progress turn (e.g. "Still working
+  /// on this — 120s so far"). Null when there's nothing to add beyond
+  /// "Working…".
+  final String? progressDetail;
+
   const _TurnTile({
     required this.turn,
     required this.onCancel,
     required this.onRetry,
+    this.progressDetail,
   });
 
   bool get _isRetryable => turn.state == 'failed' || turn.state == 'cancelled';
@@ -306,8 +323,7 @@ class _TurnTile extends StatelessWidget {
                   const SizedBox(
                       width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)),
                   const SizedBox(width: 8),
-                  const Text('Working…'),
-                  const Spacer(),
+                  Expanded(child: Text(progressDetail ?? 'Working…')),
                   TextButton(onPressed: onCancel, child: const Text('Cancel')),
                 ],
               )
