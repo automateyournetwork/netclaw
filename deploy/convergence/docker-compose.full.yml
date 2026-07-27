@@ -94,26 +94,69 @@ services:
       - loki
     networks: [convergence]
 
-  # --- Syslog gateway: vendor-default RFC3164 → RFC5424 → promtail (T141) ---
-  # Promtail's syslog target parses RFC5424 only; Cisco IOS-XE and pfSense emit
-  # RFC3164. This front-end accepts vendor-default syslog so devices need no
-  # reconfiguration (spec FR-035). Operator-facing port stays :1514.
-  syslog-gateway:
+  # --- OTel Collector: device telemetry hub (Phase 11 / T146-T147) ---
+  # Parses vendor-default RFC3164 syslog into structured fields at ingest and
+  # dual-exports to Loki (14d, interactive) + VictoriaLogs (365d, long-term).
+  # Decision record: specs/067-convergence/otel-convergence.md
+  #
+  # Replaces the T141 syslog-gateway (syslog-ng RFC3164→RFC5424 front-end), which
+  # only existed because promtail's syslog target speaks RFC5424 only. The OTel
+  # syslog receiver speaks rfc3164 natively, so the extra hop is gone.
+  #
+  # SNMP receivers arrive in Phase 11 PR3 (T151-T153); snmp_exporter still owns
+  # metrics for now.
+  # One-shot: Docker creates named volumes root-owned, but the collector image
+  # runs as UID 10001, so the persistent send queue would be unwritable. Fix the
+  # ownership once here rather than running the collector as root — it listens on
+  # a network port, so it should stay unprivileged.
+  otel-queue-init:
     profiles: ["full", "device-syslog"]
-    image: linuxserver/syslog-ng:4.8.1
-    restart: unless-stopped
-    environment:
-      PUID: "${SYSLOG_GATEWAY_PUID:-1000}"
-      PGID: "${SYSLOG_GATEWAY_PGID:-1000}"
-      TZ: "${TZ:-Etc/UTC}"
+    image: busybox:1.36
+    command: ["sh", "-c", "mkdir -p /var/lib/otelcol && chown -R 10001:10001 /var/lib/otelcol"]
     volumes:
-      - ./syslog-gateway/syslog-ng.conf:/config/syslog-ng.conf:ro
-      - convergence-syslog-buffer:/config/syslog-buffer
+      - convergence-otel-queue:/var/lib/otelcol
+    networks: [convergence]
+
+  otel-collector:
+    profiles: ["full", "device-syslog"]
+    image: otel/opentelemetry-collector-contrib:0.104.0
+    restart: unless-stopped
+    command: ["--config=/etc/otel/config.yaml"]
+    user: "10001:10001"
+    volumes:
+      - ./otel/otel-config.yaml:/etc/otel/config.yaml:ro
+      - convergence-otel-queue:/var/lib/otelcol
     ports:
+      # Operator-facing syslog destination — unchanged from the gateway, so
+      # generated device checklists and existing device config stay valid.
       - "${SYSLOG_HOST_PORT:-1514}:1514/udp"
       - "${SYSLOG_HOST_PORT:-1514}:1514/tcp"
+      - "${OTEL_HEALTH_PORT:-13133}:13133"
+      - "${OTEL_METRICS_PORT:-8888}:8888"
     depends_on:
-      - promtail
+      loki:
+        condition: service_started
+      victorialogs:
+        condition: service_started
+      otel-queue-init:
+        condition: service_completed_successfully
+    networks: [convergence]
+
+  # --- VictoriaLogs: long-term (365d) structured log store ---
+  # Loki keeps 14d for interactive querying; VictoriaLogs keeps a year without
+  # Loki's label-cardinality constraints. This is the reason for the dual write.
+  victorialogs:
+    profiles: ["full", "device-syslog"]
+    image: victoriametrics/victoria-logs:v1.52.0
+    restart: unless-stopped
+    command:
+      - -retentionPeriod=${VICTORIALOGS_RETENTION:-365d}
+      - -storageDataPath=/victoria-logs-data
+      - -httpListenAddr=:9428
+    volumes:
+      - convergence-vlogsdata:/victoria-logs-data
+    ports:
+      - "${VICTORIALOGS_HOST_PORT:-9428}:9428"
     networks: [convergence]
 
   # --- WAN speedtest (active bandwidth validation) ---
@@ -158,4 +201,5 @@ volumes:
   convergence-grafanadata:
   netclaw-agent-logs:
   convergence-pushgwdata:
-  convergence-syslog-buffer:
+  convergence-otel-queue:
+  convergence-vlogsdata:

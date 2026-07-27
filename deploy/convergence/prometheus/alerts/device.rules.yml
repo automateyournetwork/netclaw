@@ -113,29 +113,48 @@ groups:
       # is being dropped on the floor and the Security board's log panels go
       # quiet while everything *looks* fine — that is the failure mode this
       # alert exists to make loud.
-      - alert: SyslogIngestParseFailing
-        expr: rate(promtail_syslog_target_parsing_errors_total{job="promtail"}[10m]) > 0
+      # Repointed from promtail to the OTel Collector in Phase 11 (T148):
+      # device syslog no longer passes through promtail at all, so the promtail
+      # counters would have sat flat at zero forever — an alert that can never
+      # fire is worse than no alert.
+      - alert: SyslogIngestRefusing
+        expr: rate(otelcol_receiver_refused_log_records{job="otel-collector"}[10m]) > 0
         for: 10m
         labels:
           severity: warning
           site: home
           investigate: "false"
         annotations:
-          summary: "Syslog ingest is rejecting messages (promtail parse errors)"
+          summary: "OTel Collector is refusing log records"
           description: >-
-            promtail_syslog_target_parsing_errors_total is increasing
-            ({{ $value | humanize }}/s). Promtail's syslog target parses RFC5424
-            only, so this usually means something is sending BSD/RFC3164 straight
-            at promtail :1601 instead of via syslog-gateway :1514, or the gateway
-            is misconfigured. Check `docker logs netclaw-convergence-promtail-1`
-            and `deploy/convergence/syslog-gateway/syslog-ng.conf`.
+            otelcol_receiver_refused_log_records is increasing
+            ({{ $value | humanize }}/s) on receiver {{ $labels.receiver }} —
+            records are arriving and being rejected rather than stored. Check
+            `docker logs netclaw-convergence-otel-collector-1` and
+            `deploy/convergence/otel/otel-config.yaml`.
 
-      # Received nothing at all for an hour while the gateway is up: either no
+      # Export failures: received fine, but not landing in Loki/VictoriaLogs.
+      - alert: LogExportFailing
+        expr: rate(otelcol_exporter_send_failed_log_records{job="otel-collector"}[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "Log export failing to {{ $labels.exporter }}"
+          description: >-
+            otelcol_exporter_send_failed_log_records is increasing on exporter
+            {{ $labels.exporter }}. Logs are being received but not stored. The
+            persistent send queue absorbs short outages; sustained failure means
+            Loki or VictoriaLogs is unreachable or rejecting writes.
+
+      # Received nothing at all for an hour while the collector is up: either no
       # device is configured for syslog yet, or the path is broken upstream.
       - alert: SyslogIngestNoEntries
         expr: |
-          up{job="promtail"} == 1
-          and increase(promtail_syslog_target_entries_total{job="promtail"}[1h]) == 0
+          up{job="otel-collector"} == 1
+          and sum(increase(otelcol_receiver_accepted_log_records{job="otel-collector"}[1h])) == 0
         for: 1h
         labels:
           severity: info
@@ -144,11 +163,24 @@ groups:
         annotations:
           summary: "No syslog entries ingested in the last hour"
           description: >-
-            promtail is up but has ingested zero syslog entries for 1h. Expected
+            The collector is up but has accepted zero log records for 1h. Expected
             on a site with no device syslog configured yet — see the generated
             device config checklist for the syslog destination host:port.
 
-      - alert: LogShipDown
+      - alert: LogIngestDown
+        expr: up{job="otel-collector"} == 0
+        for: 15m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "OTel Collector not scraping"
+          description: >-
+            Job otel-collector is down, so device syslog is not reaching Loki or
+            VictoriaLogs. Enable the full or device-syslog compose profile.
+
+      - alert: HostLogShipDown
         expr: up{job="promtail"} == 0
         for: 15m
         labels:
@@ -156,7 +188,7 @@ groups:
           site: home
           investigate: "false"
         annotations:
-          summary: "Promtail log ship not scraping"
+          summary: "Promtail host log ship not scraping"
           description: >-
-            Job promtail is down, so device syslog and agent/journal logs are not
-            reaching Loki. Enable the full or device-syslog compose profile.
+            Job promtail is down, so OpenClaw file logs and the systemd journal
+            are not reaching Loki. Device syslog is unaffected (OTel Collector).

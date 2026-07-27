@@ -451,15 +451,44 @@ T126/T128. Both remain in place until the phase that retires them.
 
 ### Logs (PR1) — smallest blast radius, retires the newest component
 
-- [ ] T146 `deploy/convergence/otel/otel-config.yaml` — `syslog` receiver
-      (`protocol: rfc3164`, udp+tcp :1514, `on_error: send`), transform for
-      `device_name` from sender IP, bounded label promotion (FR-042)
-- [ ] T147 Compose service `otel-collector` (profiles `full`|`device-syslog`);
-      add **VictoriaLogs** service (:9428); exporters `loki` + `otlphttp/victorialogs`
-- [ ] T148 Retire syslog-gateway + promtail `device-syslog` job; keep promtail
-      for host files/journal until T150 decides
-- [ ] T149 Security board: query structured attributes instead of `app` label /
-      line filters; verify a line lands in **both** Loki and VictoriaLogs (SC-017)
+- [x] T146 `deploy/convergence/otel/otel-config.yaml` — `syslog` receiver
+      (`protocol: rfc3164`, udp+tcp :1514), device identity from sender IP →
+      message hostname → IP, receive-time stamping, clean parsed body,
+      bounded label promotion via `groupbyattrs` (FR-042).
+      **Two defects found and fixed while building:**
+      (a) writing `resource.attributes` from a log-context transform smears the
+      resource across a batch — one record from 172.19.0.1 came out carrying
+      resource `device_ip=192.168.3.1`, i.e. one device's logs mislabelled as
+      another's. `groupbyattrs/device` re-partitions per attribute set and is the
+      correct primitive.
+      (b) Cisco IOS syslog is **not RFC3164-compliant** (`<189>1834: *Jul 27
+      22:12:00.456: %LINK-3-UPDOWN: ...`) so the rfc3164 parser fails and forwards
+      it raw — not dropped, but not structured. Added a `regex_parser` operator
+      extracting `priority`/`sequence`/`device_time`/`mnemonic`/`sev_level`/`message`.
+      This is why the pilot used raw `udplog`.
+      Note: `on_error` is not a valid top-level key on this receiver in 0.104.0;
+      default behaviour already forwards unparsed entries (FR-035 holds).
+- [x] T147 Compose services `otel-collector` + `victorialogs` (v1.52.0 pinned,
+      365d) on profiles `full`|`device-syslog`; exporters `loki` +
+      `otlphttp/victorialogs`, both with persistent file-storage send queues.
+      `otel-queue-init` one-shot fixes named-volume ownership so the collector
+      runs unprivileged (UID 10001) rather than as root on a network listener.
+      Prometheus scrape job `otel-collector` added.
+- [x] T148 Retired syslog-gateway (container removed, compose service deleted)
+      and the promtail `device-syslog` job; promtail keeps host files + journal.
+      Repointed the ingest alert pack off promtail counters onto
+      `otelcol_*` — `SyslogIngestRefusing`, `LogExportFailing`,
+      `SyslogIngestNoEntries`, `LogIngestDown`, plus `HostLogShipDown` for
+      promtail. The old promtail-based rules would have sat flat at zero forever;
+      an alert that cannot fire is worse than no alert.
+- [x] T149 Security board queries structured fields
+      (`| json | attributes_appname=~...`, `attributes_mnemonic=~...`) instead of
+      the retired `app` label; `grafana/patch-t149.py` (idempotent).
+      `smoke-log-panels.sh` now counts lines via `count_over_time` instead of
+      asking `/series` — an idle source reported 0 streams while the same
+      selector returned real lines, so the verification tool was itself
+      misleading. **SC-017 verified**: the same line is queryable in Loki
+      (bounded labels) and VictoriaLogs (full structured fields).
 
 ### Agent logs (PR2)
 

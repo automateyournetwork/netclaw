@@ -150,6 +150,25 @@ Promoted Loki labels stay bounded and explicit: `device_name`, `site`,
 `service.name`, `severity`. Everything else rides as structured metadata /
 VictoriaLogs fields.
 
+### Vendor format reality (measured during Phase 2)
+
+| Vendor | What it actually sends | Result |
+|---|---|---|
+| pfSense | RFC3164, often **without a hostname** | parses; `device_name` from sender IP map |
+| Cisco IOS/IOS-XE | **not RFC3164**: `<189>1834: *Jul 27 22:12:00.456: %LINK-3-UPDOWN: ...` | rfc3164 parse fails → vendor `regex_parser` extracts `priority`/`sequence`/`device_time`/`mnemonic`/`sev_level`/`message` |
+| unknown | — | raw body retained, `device_name` still correct, never dropped (FR-035) |
+
+This explains the pilot's choice of the raw `udplog` receiver: strict syslog
+parsing does fail on this fleet. Convergence keeps the structured parse and adds a
+vendor fallback rather than giving up on structure.
+
+**Resource-attribute smearing.** Promoting labels with
+`set(resource.attributes[...], attributes[...])` in a log-context transform is
+wrong: a resource is shared by every record in its group, so the last device
+processed wins for the whole batch. Measured live — a record from 172.19.0.1 came
+out with resource `device_ip=192.168.3.1`. Use `groupbyattrs`, which re-partitions
+records into one resource per distinct attribute set.
+
 ## Phased cutover
 
 Logs first: smaller blast radius, and it retires a component that is one day old

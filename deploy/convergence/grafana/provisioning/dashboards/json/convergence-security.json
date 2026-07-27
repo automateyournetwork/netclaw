@@ -644,7 +644,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (device_name) (rate({job=\"device-syslog\", app=~\"filterlog|snort|suricata\"} |~ \"(?i)(,block,|,reject,|blocked|denied)\" [5m]))",
+          "expr": "sum by (device_name) (rate({job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" |~ \"(?i)(,block,|,reject,|blocked|denied)\" [5m]))",
           "legendFormat": "{{device_name}}",
           "queryType": "range"
         }
@@ -693,7 +693,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (device_name) (rate({job=\"device-syslog\", app=\"unbound\"}[5m]))",
+          "expr": "sum by (device_name) (rate({job=\"device-syslog\"} | json | attributes_appname=\"unbound\" [5m]))",
           "legendFormat": "{{device_name}}",
           "queryType": "range"
         }
@@ -752,7 +752,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=\"device-syslog\", app=~\"filterlog|snort|suricata\"} |~ \"(?i)(,block,|,reject,|blocked|denied)\"",
+          "expr": "{job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" |~ \"(?i)(,block,|,reject,|blocked|denied)\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -788,7 +788,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=\"device-syslog\", app=~\"sshd|sudo|su|login|nginx|openvpn\"} |~ \"(?i)(fail|invalid|accepted|authenticat)\"",
+          "expr": "{job=\"device-syslog\"} | json | attributes_appname=~\"sshd|sudo|su|login|nginx|openvpn\" or attributes_mnemonic=~\"SEC_LOGIN.*|SYS-\\\\d-LOG(IN|OUT).*|AAA.*\" |~ \"(?i)(fail|invalid|accepted|authenticat|login|logout)\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"

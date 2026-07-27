@@ -1,44 +1,80 @@
-# Device syslog → Loki (Phase 8 greenfield, Phase 10 T141)
+# Device syslog → OTel Collector → Loki + VictoriaLogs
 
-Receives syslog from switches/firewalls and ships it to Convergence **Loki**.
+**Phase 11 (T146–T149).** Decision record:
+[`specs/067-convergence/otel-convergence.md`](../../../../specs/067-convergence/otel-convergence.md)
 
 ## Path
 
 ```text
-devices --RFC3164/BSD--> syslog-gateway :1514 udp+tcp
-        --RFC5424 octet-framed--> promtail :1601 --> Loki
+devices --syslog RFC3164--> otel-collector :1514 udp+tcp
+                              ├── parse to structured fields
+                              ├──> Loki          (14d, interactive, bounded labels)
+                              └──> VictoriaLogs  (365d, long-term, full fields)
 ```
 
-**Why the gateway exists.** Promtail's `syslog` target parses IETF **RFC5424
-only**. Cisco IOS-XE and pfSense emit **RFC3164/BSD** by default, and promtail
-rejects those streams outright:
+One collector, no gateway hop. The T141 syslog-ng front-end is **retired** — it
+existed only because promtail's syslog target parses RFC5424 only, and the OTel
+syslog receiver speaks rfc3164 natively.
 
-```text
-error parsing syslog stream: expecting a version value in the range 1-999
+Promtail still runs, but only for **host** sources (OpenClaw file logs, systemd
+journal). It no longer touches device syslog.
+
+## What you get per log line
+
+| Field | Source | Loki | VictoriaLogs |
+|---|---|---|---|
+| `device_name` | inventory map on sender IP → message hostname → sender IP | label | field |
+| `site`, `service.name` | static | label | field |
+| `level` / `severity_text` | parsed priority | label (`level`) | field |
+| `appname`, `facility`, `priority`, `proc_id` | RFC3164 parse | field | field |
+| `mnemonic`, `sev_level`, `sequence` | Cisco vendor parse | field | field |
+| `message` | parsed body | line body | `_msg` |
+
+**Labels are a bounded set on purpose.** `appname` and `mnemonic` are structured
+fields, never labels — see the cardinality note below.
+
+## Vendor reality (measured, not assumed)
+
+| Vendor | Format actually sent | Handling |
+|---|---|---|
+| pfSense | RFC3164, frequently **without a hostname** | Parsed by the rfc3164 receiver; `device_name` comes from the sender IP via the inventory map |
+| Cisco IOS/IOS-XE | **Not RFC3164-compliant** — `<189>1834: *Jul 27 22:12:00.456: %LINK-3-UPDOWN: ...` (sequence number, `*`-prefixed timestamp, no hostname) | rfc3164 parse fails, then a `regex_parser` operator extracts `priority`, `sequence`, `device_time`, `mnemonic`, `sev_level`, `message` |
+| Anything else | unknown | Passes through with a raw body and a correct `device_name`. **Never dropped** (FR-035). |
+
+That Cisco quirk is why the pilot stack used a raw `udplog` receiver. Here the
+lines are structured instead, which is the point of the migration.
+
+## Why labels stay bounded
+
+The previous promtail path derived an `app` **label** from the first token before
+the colon. On Cisco that token is the mnemonic (`%SEC_LOGIN-5-LOGIN_SUCCESS`), and
+IOS has hundreds — so every new message type minted a new Loki stream. Unbounded
+label cardinality. The collector keeps those values as fields and promotes only
+`device_name`, `site`, `service.name` (plus Loki's own `level`).
+
+## Timestamps
+
+The collector stamps **receive time** (`set(time, observed_time)`), not the
+device's timestamp. RFC3164 carries no timezone and no year; trusting it put live
+pfSense lines ~6h in the past — outside every "last 15m" panel while ingest
+metrics looked healthy. Devices with NTP and RFC5424 could keep device time; this
+fleet cannot.
+
+## Device identity mapping
+
+`otel-config.yaml` holds a generated block:
+
+```yaml
+# BEGIN netclaw-convergence-device-map
+- set(attributes["device_name"], "HomeSwitch01") where attributes["net.peer.ip"] == "192.168.3.2"
+# END netclaw-convergence-device-map
 ```
 
-That failure is silent from the operator's side — the port is open, packets
-arrive, and Loki stays empty. Reconfiguring every customer device to emit RFC5424
-is not an acceptable product default (spec FR-035), so a syslog-ng front-end
-accepts vendor-default syslog and re-emits RFC5424.
+Sender IP wins over the hostname in the message: it is authoritative, present on
+every datagram, and cannot be shaped by message content. T154 will generate this
+block from `convergence.yaml` inventory so operators never hand-edit it.
 
-**Do not point devices at :1601.** That bypasses the gateway and re-creates the
-silent drop.
-
-### Timestamps
-
-The gateway stamps messages with **receive time** (`keep-timestamp(no)`), not the
-device's own timestamp. RFC3164 carries no timezone and no year, so trusting it
-shifts every line by the device's UTC offset — observed live on pfSense: lines
-landed ~6h in the past, outside every "last 15m" dashboard window while ingest
-metrics looked perfectly healthy. Operators whose devices are NTP-synced and emit
-RFC5424 (with real offsets) can set `keep-timestamp(yes)` in
-`deploy/convergence/syslog-gateway/syslog-ng.conf`.
-
-## Requirements
-
-- Loki up (`--profile full` on `docker-compose.full.yml`)
-- Promtail + syslog-gateway (`--profile full` or `--profile device-syslog`)
+## Run it
 
 ```bash
 cd deploy/convergence
@@ -46,82 +82,51 @@ docker compose -f docker-compose.yml -f docker-compose.full.yml \
   --env-file .env --profile full --profile device-syslog up -d
 ```
 
-Default listen: **UDP + TCP 1514** on the host (`SYSLOG_HOST_PORT`).
+Listens on **UDP + TCP 1514** (`SYSLOG_HOST_PORT`) — unchanged from the gateway,
+so existing device config and generated checklists stay valid.
 
-## Labels
-
-| Label | Source |
-|-------|--------|
-| `job` | static `device-syslog` |
-| `device_name`, `host` | syslog message hostname; falls back to the sending IP |
-| `app` | syslog app-name / program (`filterlog`, `unbound`, `kea-dhcp4`, …) |
-| `level` | syslog severity |
-| `site` | static |
-
-`device_name` lands as the sending **IP** when the device does not put a hostname
-in the header (common on Cisco unless `logging origin-id hostname` is set, and on
-some pfSense builds). Prefer configuring the device to send its hostname so
-`device_name` matches the SNMP inventory (e.g. `HomeSwitch01`).
-
-## Device config (example IOS-XE)
+## Device config
 
 ```text
+! Cisco IOS-XE
 logging host <netclaw-host-ip> transport udp port 1514
 logging trap informational
-logging origin-id hostname          ! makes device_name = hostname, not IP
-service timestamps log datetime msec localtime show-timezone
-ntp server <ntp-host>               ! keep clocks honest
+logging origin-id hostname     ! optional; sender-IP mapping already names the device
 ```
 
-pfSense: Status → System Logs → Settings → Remote Logging, target
+pfSense: **Status → System Logs → Settings → Remote Logging**, target
 `<netclaw-host-ip>:1514`.
 
-## Test
+## Verify
 
 ```bash
-# BSD/RFC3164 — the vendor default. This must work end to end.
-printf '<134>Jul 27 20:59:02 pfsense filterlog[12345]: smoke test\n' \
-  | nc -u -w1 127.0.0.1 1514
+# ingest health — accepted climbing, refused flat at 0
+curl -s http://127.0.0.1:8888/metrics | grep -E \
+  '^otelcol_(receiver_(accepted|refused)|exporter_(sent|send_failed))_log_records'
 
-# Ingest health: entries climbing, parse errors flat at 0
-curl -s http://127.0.0.1:9080/metrics \
-  | grep -E 'promtail_syslog_target_(entries|parsing_errors)_total'
+# Loki (bounded labels)
+curl -sG http://127.0.0.1:3100/loki/api/v1/query \
+  --data-urlencode 'query=sum by (device_name) (count_over_time({job="device-syslog"}[5m]))'
 
-# Query Loki
-curl -sG 'http://127.0.0.1:3100/loki/api/v1/query_range' \
-  --data-urlencode 'query={job="device-syslog"}' \
-  --data-urlencode 'limit=5' --data-urlencode 'direction=backward' | head -c 500
+# VictoriaLogs (same line, full structured fields)
+curl -sG http://127.0.0.1:9428/select/logsql/query --data-urlencode 'query=* | stats count() as n'
+
+# every provisioned board query: OK / EMPTY / FAIL
+./deploy/convergence/smoke-log-panels.sh
 ```
 
-Prometheus scrapes promtail (`job=promtail`) so this can never regress silently.
-Alerts: `SyslogIngestParseFailing`, `SyslogIngestNoEntries`, `LogShipDown` in
-`prometheus/alerts/device.rules.yml`.
+Prometheus scrapes the collector as `job=otel-collector`. Alerts:
+`SyslogIngestRefusing`, `LogExportFailing`, `SyslogIngestNoEntries`,
+`LogIngestDown` (and `HostLogShipDown` for promtail).
 
-## Agent logs (T093)
+## Known cosmetic artifact
 
-Host rsyslog template: `scripts/rsyslog-netclaw-convergence.conf`  
-Point `*.* @127.0.0.1:1514` (or host LAN IP) at the gateway.
+The `loki.resource.labels` hint attribute is visible as a field in VictoriaLogs.
+Both exporters share one pipeline, so the hint cannot be stripped for one branch
+without splitting pipelines via a `forward` connector — not worth the complexity
+for a metadata field.
 
-Optional: bind-mount host logs into Promtail:
+## K3s
 
-```yaml
-# compose override idea
-volumes:
-  - /tmp/bgp-daemon-v2.log:/var/log/netclaw/mesh.log:ro
-```
-
-## K3s (T091 + T141)
-
-```bash
-# Overlay: base + full-stack (Loki) + device-snmp + device-syslog
-kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
-```
-
-Component: `deploy/convergence/k8s/components/device-syslog/`
-
-- One Deployment, two containers: `syslog-gateway` (syslog-ng, **hostPort 1514
-  udp+tcp** = the syslog destination) and `promtail` (RFC5424 on pod-local 1601)
-- Pushes to in-cluster `http://loki:3100/loki/api/v1/push`
-- Labels match Docker
-
-See component README for smoke curls and IOS-XE examples.
+Still the promtail-based `components/device-syslog` until **T156** ports this
+collector. Docker is the leading edge of Phase 11.

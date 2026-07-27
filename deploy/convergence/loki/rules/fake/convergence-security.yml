@@ -1,0 +1,70 @@
+# Loki recording rules → Prometheus remote-write (Phase 10 / T143)
+#
+# WHY: pfSense exposes no block/DNS counters over SNMP, and there is no
+# installable pfSense metrics exporter in this repo — so the Security board could
+# only ever show posture, alerts and raw logs (spec FR-033). But the events are
+# already in Loki via the T141 syslog gateway (`filterlog` for firewall verdicts,
+# `unbound` for DNS). Deriving metrics from those logs closes the gap without
+# adding an exporter or asking the operator to install anything on pfSense.
+#
+# Output lands in Prometheus via the Loki ruler's remote_write, so these series
+# are usable by ordinary Prometheus alert rules and boards.
+#
+# COST NOTE: each rule evaluates a LogQL metric query over the interval below.
+# Line filters (`|=`) are used instead of regex wherever possible because they are
+# substring matches and far cheaper. Keep this rule set small — it runs on the
+# same host as everything else.
+#
+# filterlog CSV field order (pfSense):
+#   1 rulenr, 2 subrulenr, 3 anchor, 4 tracker, 5 interface,
+#   6 reason, 7 action(pass|block), 8 direction, 9 ipversion, ...
+# so `,block,` / `,pass,` match the action field.
+
+groups:
+  - name: convergence-security-firewall
+    interval: 1m
+    rules:
+      - record: pfsense:filterlog_blocks:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog", app="filterlog"} |= ",block," [5m])
+          )
+
+      - record: pfsense:filterlog_pass:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog", app="filterlog"} |= ",pass," [5m])
+          )
+
+      # Blocks broken out by interface — the "which segment is being hammered"
+      # view. Regex extraction is only affordable here because blocks are a small
+      # fraction of total filterlog volume, so the line filter runs first.
+      - record: pfsense:filterlog_blocks_by_interface:rate5m
+        expr: |
+          sum by (device_name, iface, direction) (
+            rate({job="device-syslog", app="filterlog"}
+              |= ",block,"
+              | regexp "^[^,]*,[^,]*,[^,]*,[^,]*,(?P<iface>[^,]*),[^,]*,[^,]*,(?P<direction>[^,]*)"
+              [5m])
+          )
+
+  - name: convergence-security-dns
+    interval: 1m
+    rules:
+      - record: pfsense:dns_queries:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog", app="unbound"} |= "query:" [5m])
+          )
+
+      - record: pfsense:dns_nxdomain:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog", app="unbound"} |= "NXDOMAIN" [5m])
+          )
+
+      - record: pfsense:dns_servfail:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog", app="unbound"} |= "SERVFAIL" [5m])
+          )

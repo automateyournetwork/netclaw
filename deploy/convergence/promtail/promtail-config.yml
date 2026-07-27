@@ -1,7 +1,9 @@
-# Convergence log ship → Loki (Phase 8/10)
+# Convergence HOST log ship → Loki (Phase 8/10; device syslog moved out in T148)
 # Profiles: full | device-syslog
 #
-# 1) Syslog RFC5424 TCP :1601 from syslog-gateway (devices → :1514 RFC3164)
+# Device syslog is handled by the OTel Collector, not here.
+#
+# 1) (removed — see note below)
 # 2) OpenClaw gateway files (/var/log/openclaw from host /tmp/openclaw)
 # 3) Optional flat agent logs (/var/log/netclaw)
 # 4) Host journal (user + system) for mesh / members / gateway units
@@ -17,35 +19,15 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Device / network syslog — switches, pfSense, etc.
+  # Device / network syslog — REMOVED (Phase 11 / T148).
   #
-  # Devices send vendor-default RFC3164/BSD to syslog-gateway on :1514; that
-  # gateway re-emits RFC5424 with octet-counted framing to this TCP listener.
-  # Do NOT point devices straight at this port: promtail's syslog target parses
-  # RFC5424 only and silently discards BSD-format streams (spec FR-035 / T141).
-  - job_name: device-syslog
-    syslog:
-      listen_address: 0.0.0.0:1601
-      listen_protocol: tcp
-      idle_timeout: 120s
-      use_incoming_timestamp: true
-      label_structured_data: true
-      labels:
-        job: device-syslog
-        site: home
-    relabel_configs:
-      - source_labels: [__syslog_message_hostname]
-        target_label: host
-      - source_labels: [__syslog_message_hostname]
-        target_label: device_name
-      - source_labels: [__syslog_message_app_name]
-        target_label: app
-      - source_labels: [__syslog_message_severity]
-        target_label: level
-      # NOTE: __syslog_connection_hostname is the syslog-gateway, not the device
-      # (the gateway is the TCP peer), so it is deliberately not labelled here.
-      # Device identity comes from __syslog_message_hostname, which syslog-ng
-      # preserves (keep-hostname) or fills with the sending IP.
+  # Device syslog is now received by the OTel Collector (:1514 udp+tcp), parsed
+  # into structured fields, and dual-exported to Loki + VictoriaLogs. See
+  # deploy/convergence/otel/otel-config.yaml and
+  # specs/067-convergence/otel-convergence.md.
+  #
+  # Promtail keeps only the host-side sources below (OpenClaw files, systemd
+  # journal), which it handles well and which T150 will evaluate for migration.
 
   # OpenClaw gateway file logs (host /tmp/openclaw → container /var/log/openclaw)
   - job_name: openclaw-gateway

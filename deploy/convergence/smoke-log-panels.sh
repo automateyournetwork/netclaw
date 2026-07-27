@@ -59,14 +59,19 @@ for row in "${rows[@]}"; do
         n=$(printf '%s' "$body" | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("data",{}).get("result",[])))' 2>/dev/null || echo 0)
         kind="series"
     else
-        # Strip line filters — /series takes the stream selector only.
-        sel=$(printf '%s' "$expr" | sed 's/}[[:space:]]*|.*/}/')
-        body=$(curl -sG --max-time 20 "$LOKI_URL/loki/api/v1/series" \
-            --data-urlencode "match[]=$sel" \
-            --data-urlencode "start=${start}000000000" --data-urlencode "end=${end}000000000")
+        # Count matching lines rather than asking /series for streams.
+        #
+        # /series answers from the index at chunk granularity, so a sparse but
+        # healthy source can report 0 streams while count_over_time on the same
+        # selector returns real lines (observed with an idle openclaw-gateway:
+        # 0 streams vs 4 lines). Counting lines exercises the actual query the
+        # panel runs, including its line filters.
+        wrapped="sum(count_over_time($expr [${WINDOW}s]))"
+        body=$(curl -sG --max-time 25 "$LOKI_URL/loki/api/v1/query" \
+            --data-urlencode "query=$wrapped" --data-urlencode "time=${end}000000000")
         status=$(printf '%s' "$body" | python3 -c 'import sys,json;print(json.load(sys.stdin).get("status","error"))' 2>/dev/null || echo error)
-        n=$(printf '%s' "$body" | python3 -c 'import sys,json;print(len(json.load(sys.stdin).get("data",[])))' 2>/dev/null || echo 0)
-        kind="streams"
+        n=$(printf '%s' "$body" | python3 -c 'import sys,json;r=json.load(sys.stdin).get("data",{}).get("result",[]);print(int(float(r[0]["value"][1])) if r else 0)' 2>/dev/null || echo 0)
+        kind="lines"
     fi
 
     if [ "$status" != "success" ]; then

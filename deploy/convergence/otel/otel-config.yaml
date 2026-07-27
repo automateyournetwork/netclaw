@@ -1,0 +1,226 @@
+# Convergence OTel Collector — device telemetry hub (Phase 11 / T146)
+#
+# Decision record: specs/067-convergence/otel-convergence.md
+#
+#   devices --syslog RFC3164--> :1514 udp+tcp --> Loki (14d) + VictoriaLogs (365d)
+#
+# This phase covers LOGS only. SNMP receivers land in Phase 11 PR3 (T151-T153);
+# snmp_exporter keeps collecting metrics until then.
+#
+# Why the syslog receiver and not the pilot's `udplog`:
+#   udplog treats each datagram as an opaque line, so every consumer has to regex
+#   the body. The syslog receiver parses at ingest, giving typed fields
+#   (facility, severity, hostname, appname, message) — the whole point of moving
+#   to OTel. It also speaks rfc3164 natively, which is why the T141 syslog-ng
+#   gateway is no longer needed.
+
+receivers:
+  # Cisco IOS-XE and pfSense both emit RFC3164/BSD by default. Accept the vendor
+  # default; never ask an operator to reconfigure a fleet to be observable.
+  #
+  # NOTE on parse failures: the receiver's default behaviour forwards an entry it
+  # could not parse rather than discarding it, which is what we want (FR-035) —
+  # a line we failed to parse is still evidence. `on_error` is not a valid
+  # top-level key on this receiver in 0.104.0, so this is left at the default
+  # instead of being set explicitly. Verified by smoke test with a malformed line.
+  syslog/devices:
+    protocol: rfc3164
+    location: UTC
+    udp:
+      listen_address: 0.0.0.0:1514
+      add_attributes: true      # exposes net.peer.ip for device identification
+    # Cisco IOS/IOS-XE is NOT RFC3164-compliant: it emits
+    #   <189>1834: *Jul 27 22:10:00.123: %LINK-3-UPDOWN: Interface Gi1/0/9, ...
+    # i.e. a sequence number and a '*'-prefixed timestamp where the spec wants
+    # `Mmm dd hh:mm:ss host tag`. Measured: the rfc3164 parser fails on it and
+    # forwards the entry with a raw body and no attributes — not dropped
+    # (FR-035 holds), but not structured either, which defeats the point.
+    #
+    # So: route the leftovers through a Cisco parser. Anything that is neither
+    # valid RFC3164 nor Cisco keeps its raw body and still carries device_name.
+    operators:
+      - type: router
+        routes:
+          - output: cisco_ios_parser
+            expr: 'body != nil and body matches "^<[0-9]+>[0-9]*: ?\\*?[A-Z][a-z]{2} "'
+        default: noop
+      - id: cisco_ios_parser
+        type: regex_parser
+        parse_from: body
+        on_error: send
+        regex: '^<(?P<priority>\d+)>(?P<sequence>\d+): \*?(?P<device_time>[A-Z][a-z]{2} +\d+ [\d:.]+): %(?P<mnemonic>[A-Z0-9_]+-(?P<sev_level>\d)-[A-Z0-9_]+): (?P<message>.*)$'
+        output: noop
+      - id: noop
+        type: noop
+
+  # Some devices (and rsyslog relays) prefer TCP. Same parser, same pipeline.
+  syslog/devices_tcp:
+    protocol: rfc3164
+    location: UTC
+    tcp:
+      listen_address: 0.0.0.0:1514
+      add_attributes: true
+
+processors:
+  # --- Device identity ------------------------------------------------------
+  # Resolution order is deliberate:
+  #   1. sender IP mapped against inventory  — authoritative, cannot be spoofed
+  #      by message content, and present on every datagram
+  #   2. hostname from the message           — only when the device bothers to
+  #      send one (Cisco needs `logging origin-id hostname`)
+  #   3. raw sender IP                       — always better than "unknown"
+  #
+  # T154 will generate this mapping from convergence.yaml device_telemetry
+  # inventory so operators never hand-edit collector config.
+  transform/device_identity:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          # 1) inventory mapping (generated — edit inventory, not this block)
+          # BEGIN netclaw-convergence-device-map
+          - set(attributes["device_name"], "pfsense")      where attributes["net.peer.ip"] == "192.168.3.1"
+          - set(attributes["device_name"], "HomeSwitch01") where attributes["net.peer.ip"] == "192.168.3.2"
+          - set(attributes["device_name"], "HomeSwitch02") where attributes["net.peer.ip"] == "192.168.3.3"
+          - set(attributes["device_name"], "HomeSwitch03") where attributes["net.peer.ip"] == "192.168.3.4"
+          - set(attributes["device_name"], "HomeSwitch04") where attributes["net.peer.ip"] == "192.168.3.5"
+          - set(attributes["device_name"], "netclaw")      where attributes["net.peer.ip"] == "192.168.3.252"
+          # END netclaw-convergence-device-map
+
+          # 2) fall back to the hostname the device sent
+          - set(attributes["device_name"], attributes["hostname"])
+            where attributes["device_name"] == nil and attributes["hostname"] != nil
+
+          # 3) last resort: the sending IP
+          - set(attributes["device_name"], attributes["net.peer.ip"])
+            where attributes["device_name"] == nil and attributes["net.peer.ip"] != nil
+
+          - set(attributes["device_ip"], attributes["net.peer.ip"])
+            where attributes["net.peer.ip"] != nil
+
+  # --- Timestamps -----------------------------------------------------------
+  # Use receive time, not the device's own timestamp.
+  #
+  # RFC3164 carries no timezone and no year. Trusting it is not a cosmetic
+  # problem: measured on this fleet, pfSense lines landed ~6h in the past, which
+  # puts every line outside a "last 15m" dashboard window while ingest metrics
+  # look perfectly healthy. Device clock drift compounds it.
+  transform/receive_time:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(time, observed_time)
+
+  # --- Clean body -----------------------------------------------------------
+  # Replace the raw datagram with the parsed message. The PRI header, timestamp,
+  # hostname and tag are already structured attributes; keeping them duplicated
+  # in the body is what makes people reach for regex.
+  transform/clean_body:
+    error_mode: ignore
+    log_statements:
+      - context: log
+        statements:
+          - set(body, attributes["message"]) where attributes["message"] != nil
+
+  # --- Label cardinality ----------------------------------------------------
+  # Promote a small, fixed set of labels and nothing else.
+  #
+  # groupbyattrs — NOT a transform writing resource.attributes.
+  #
+  # A resource is shared by every log record in its group, so
+  # `set(resource.attributes["device_name"], attributes["device_name"])` in a log
+  # context smears whichever device happened to be processed last across the
+  # whole batch. Measured live: a record from 172.19.0.1 came out carrying
+  # resource device_ip 192.168.3.1, which would mislabel one device's logs as
+  # another's. groupbyattrs re-partitions records into one resource per distinct
+  # attribute set, which is the correct primitive for this.
+  #
+  # This is also the guard against the T142 failure: syslog-ng derived an `app`
+  # label from the first token before the colon, which on Cisco is the *mnemonic*
+  # (%SEC_LOGIN-5-LOGIN_SUCCESS). IOS has hundreds, so every new message type
+  # minted a new Loki stream. appname stays a structured field here — queryable,
+  # but never a label. (FR-042)
+  groupbyattrs/device:
+    keys: [device_name, device_ip]
+
+  resource/devices:
+    attributes:
+      - key: site
+        value: home
+        action: upsert
+      # Loki exporter derives job from service.name — keeping it as
+      # `device-syslog` means existing board queries and smoke checks that select
+      # {job="device-syslog"} keep working across the cutover.
+      - key: service.name
+        value: device-syslog
+        action: upsert
+      # Explicit allow-list of labels the Loki exporter may promote.
+      - key: loki.resource.labels
+        value: device_name,site,service.name
+        action: insert
+
+  batch:
+    timeout: 5s
+    send_batch_size: 1024
+    send_batch_max_size: 2048
+
+  memory_limiter:
+    check_interval: 5s
+    limit_percentage: 75
+    spike_limit_percentage: 15
+
+exporters:
+  # Interactive retention (14d) — what the Grafana boards query.
+  loki:
+    endpoint: http://loki:3100/loki/api/v1/push
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
+      storage: file_storage/otel
+
+  # Long-term retention (365d). Structured fields survive here without Loki's
+  # label-cardinality constraints, which is the reason for the dual write.
+  otlphttp/victorialogs:
+    logs_endpoint: http://victorialogs:9428/insert/opentelemetry/v1/logs
+    tls:
+      insecure: true
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+    sending_queue:
+      enabled: true
+      storage: file_storage/otel
+
+extensions:
+  health_check:
+    endpoint: 0.0.0.0:13133
+  # Persist the send queue so a collector restart does not drop device logs the
+  # way an unbuffered hop would.
+  file_storage/otel:
+    directory: /var/lib/otelcol
+    timeout: 10s
+
+service:
+  extensions: [health_check, file_storage/otel]
+  telemetry:
+    metrics:
+      # Scraped by Prometheus as job=otel-collector so ingest health is
+      # observable and alertable — the T141 lesson.
+      address: 0.0.0.0:8888
+    logs:
+      level: info
+  pipelines:
+    logs/devices:
+      receivers: [syslog/devices, syslog/devices_tcp]
+      processors:
+        - memory_limiter
+        - transform/device_identity
+        - transform/receive_time
+        - transform/clean_body
+        - groupbyattrs/device
+        - resource/devices
+        - batch
+      exporters: [loki, otlphttp/victorialogs]

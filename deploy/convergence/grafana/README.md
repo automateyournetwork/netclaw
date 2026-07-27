@@ -35,15 +35,21 @@ Posture and access, not random stats:
 | Edge & wireless | edge probe, guest vs wireless clients |
 | Syslog / auth | Loki `device-syslog`, block/deny keywords, login noise |
 
-**Data needs:** devices send syslog → host **:1514** (udp or tcp) → syslog-gateway
-(RFC3164 → RFC5424) → promtail → Loki. Vendor-default BSD format is fine; see
-`adapters/device-syslog/README.md`. Without a syslog source the log panels stay
-empty while posture/alert/edge/wireless panels still work (spec FR-033).
+**Data needs:** devices send syslog → host **:1514** (udp or tcp) →
+**otel-collector** → Loki (14d) + VictoriaLogs (365d). Vendor-default RFC3164 is
+parsed into structured fields; see `adapters/device-syslog/README.md`. Without a
+syslog source the log panels stay empty while posture/alert/edge/wireless panels
+still work (spec FR-033).
 
-Ingest health is scraped (`job=promtail`) and alerted on
-(`SyslogIngestParseFailing`, `SyslogIngestNoEntries`, `LogShipDown`), because the
-original failure mode here was a **silent** drop: port open, packets arriving,
-Loki empty.
+Log panels query **structured fields**, not labels:
+`{job="device-syslog"} | json | attributes_appname="filterlog"`. Labels stay a
+bounded set (`device_name`, `site`, `job`, `service_name`, `level`) — `appname`
+and Cisco `mnemonic` are fields precisely so they cannot explode stream count.
+
+Ingest health is scraped (`job=otel-collector`) and alerted on
+(`SyslogIngestRefusing`, `LogExportFailing`, `SyslogIngestNoEntries`,
+`LogIngestDown`), because the original failure mode here was a **silent** drop:
+port open, packets arriving, Loki empty.
 
 ### 3. NetClaw (`convergence-netclaw`)
 
