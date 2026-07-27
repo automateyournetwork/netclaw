@@ -1,0 +1,12 @@
+site: home
+targets:
+- name: HomeSwitch01
+  ip: 192.168.3.2
+  role: switch
+  vendor: cisco
+  template: cisco
+- name: HomeSwitch04
+  ip: 192.168.3.5
+  role: switch
+  vendor: cisco
+  template: cisco

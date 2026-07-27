@@ -602,6 +602,104 @@
       "panels": []
     },
     {
+      "id": 83,
+      "type": "timeseries",
+      "title": "Firewall block rate by device",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 23
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (device_name) (rate({job=\"device-syslog\", app=~\"filterlog|snort|suricata\"} |~ \"(?i)(,block,|,reject,|blocked|denied)\" [5m]))",
+          "legendFormat": "{{device_name}}",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
+      "id": 84,
+      "type": "timeseries",
+      "title": "DNS resolver activity (unbound)",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 23
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (device_name) (rate({job=\"device-syslog\", app=\"unbound\"}[5m]))",
+          "legendFormat": "{{device_name}}",
+          "queryType": "range"
+        }
+      ]
+    },
+    {
       "id": 80,
       "title": "Device syslog (job=device-syslog)",
       "type": "logs",
@@ -609,7 +707,7 @@
         "h": 10,
         "w": 24,
         "x": 0,
-        "y": 23
+        "y": 30
       },
       "datasource": {
         "type": "loki",
@@ -639,13 +737,13 @@
     },
     {
       "id": 81,
-      "title": "pfSense / filter / block keywords",
+      "title": "Firewall blocks (filterlog / IDS)",
       "type": "logs",
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 33
+        "y": 40
       },
       "datasource": {
         "type": "loki",
@@ -654,7 +752,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=~\"device-syslog|netclaw-agent|openclaw-gateway\"} |~ \"(?i)(block|deny|filterlog|suricata|attack|fail|invalid|unauthorized)\"",
+          "expr": "{job=\"device-syslog\", app=~\"filterlog|snort|suricata\"} |~ \"(?i)(,block,|,reject,|blocked|denied)\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -681,7 +779,7 @@
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 33
+        "y": 40
       },
       "datasource": {
         "type": "loki",
@@ -690,7 +788,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=~\"device-syslog|openclaw-gateway|netclaw-mesh\"} |~ \"(?i)(login|auth|ssh|failed password|accepted)\"",
+          "expr": "{job=\"device-syslog\", app=~\"sshd|sudo|su|login|nginx|openvpn\"} |~ \"(?i)(fail|invalid|accepted|authenticat)\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"

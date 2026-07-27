@@ -70,7 +70,11 @@ scrape_configs:
   - job_name: netclaw-journal
     journal:
       path: /var/log/journal
-      max_age: 24h
+      # 7d, not 24h: mesh/member units are event-driven and can sit quiet for a
+      # day, which made the NetClaw board's N2N panel look broken (and invited a
+      # message-regex workaround) when the units were simply idle. The unit keep
+      # list below bounds the volume, and the positions file stops re-shipping.
+      max_age: 168h
       labels:
         job: netclaw-journal
         site: home

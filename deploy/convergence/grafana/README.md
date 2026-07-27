@@ -54,7 +54,7 @@ Agent plane end-to-end:
 | LLM by provider | `netclaw_model_*` rates + cost by `provider` / `model` / `agent` |
 | Totals | input tokens table, sessions, USD total |
 | Investigation pipe | alerts received, T0/T1/T2 tiers, suppressions, budget trips |
-| Gateway & N2N logs | OpenClaw files + journal mesh/member units |
+| Gateway & N2N logs | OpenClaw files + journal mesh/member units, selected by `job`/`unit` labels |
 
 **Data needs:**
 
@@ -63,7 +63,22 @@ Agent plane end-to-end:
 | Token/cost metrics | `openclaw-token-exporter` → Prom job `netclaw-openclaw` (:9110) |
 | Investigation metrics | host `alert-receiver` → Prom job `netclaw-alert-receiver` (:8099) |
 | Gateway logs | host `/tmp/openclaw/*.log` mounted into promtail |
-| Mesh / N2N / members | promtail journal scrape of user units |
+| Mesh / N2N / members | promtail journal scrape of user units (`job=netclaw-mesh`, `job=netclaw-member`) |
+
+### Reading an empty log panel
+
+Log panels select streams by label (`job`, `unit`, `app`, `device_name`) — never by
+message-content regex, which cannot distinguish "no matching wording" from "no
+data" (spec FR-034). An empty panel therefore means the source is not deployed or
+the unit is idle, not that the query missed. Mesh/member units in particular are
+event-driven and can sit quiet for a day; promtail's journal window is 7d so their
+recent history survives a collector restart.
+
+Confirm which panels resolve to real streams:
+
+```bash
+./deploy/convergence/smoke-log-panels.sh      # OK / EMPTY / FAIL per panel
+```
 
 ## Datasource UIDs
 

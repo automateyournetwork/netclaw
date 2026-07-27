@@ -251,7 +251,7 @@ Datasource UIDs and provisioning path stay under
 |-----|--------|------|
 | ~~Log receiver parses RFC5424 only; Cisco/pfSense emit RFC3164~~ | **Closed (T141)** — `syslog-gateway` converts RFC3164 → RFC5424; ingest is scraped and alerted on | T141 |
 | No pfSense block/DNS **metrics** exporter | `filterlog`/`unbound` logs land via T141, but there are no block/DNS metric series for alerting or long-term trend | T143 |
-| Mesh/N2N log panels select on message regex | brittle; breaks silently when volume returns | T142 |
+| ~~Mesh/N2N log panels select on message regex~~ | **Closed (T142)** — all log panels select by label; `smoke-log-panels.sh` reports OK/EMPTY/FAIL per panel | T142 |
 | Switches not yet sending syslog (device-side config) | campus log panels only show the firewall | operator, per generated checklist |
 
 ## Alert packs

@@ -290,10 +290,15 @@ Doc: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/R
 
 Legacy pilot boards are under `grafana/provisioning/dashboards/legacy/` (not loaded).
 
-Open items on this suite (spec US10): pfSense block/DNS **metrics** depth still has
-no installable exporter (T143) — though `filterlog` and `unbound` **logs** now
-reach Loki via T141, so Security's log sections are live. Mesh/N2N log panels
-should move off message-regex onto `job`/`unit` selectors (T142).
+Open item on this suite (spec US10): pfSense block/DNS **metrics** depth still has
+no installable exporter (T143). `filterlog` and `unbound` **logs** reach Loki via
+T141, so Security's log sections and block/DNS rate panels are live.
+
+Verify every board's Loki query resolves (OK / EMPTY / FAIL per panel):
+
+```bash
+./deploy/convergence/smoke-log-panels.sh
+```
 
 #### Independent test (SC-010–SC-013)
 

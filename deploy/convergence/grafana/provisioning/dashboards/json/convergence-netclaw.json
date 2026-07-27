@@ -1044,7 +1044,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=~\"openclaw-gateway|netclaw-journal\"} |~ \"(?i)(gateway|agent|discord|ws |hook)\"",
+          "expr": "{job=\"openclaw-gateway\"}",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -1080,7 +1080,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=~\"openclaw-gateway|netclaw-journal|netclaw-mesh|netclaw-member\"} |~ \"(?i)(n2n|mesh|peer|route|member|border|bgp|channel)\"",
+          "expr": "{job=~\"netclaw-mesh|netclaw-member\"}",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -1116,7 +1116,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=~\"openclaw-gateway|netclaw-journal|netclaw-mesh|netclaw-member|netclaw-agent\"} |~ \"(?i)(error|fail|exception|oom|crash|timeout)\"",
+          "expr": "{job=~\"openclaw-gateway|netclaw-mesh|netclaw-member|netclaw-agent|netclaw-hud|netclaw-journal\"} |~ \"(?i)(error|fail|exception|oom|crash|timeout)\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"

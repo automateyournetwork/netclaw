@@ -324,12 +324,25 @@ every provisioned panel traceable to an installable collector.
       · Operator follow-up (device side, not code): switches are not sending
         syslog yet; add `logging host <host> transport udp port 1514` +
         `logging origin-id hostname` per the generated checklist
-- [ ] T142 Log-panel selectors: replace message-content regex on the NetClaw
-      board mesh/N2N panels with `job` / `unit` selectors (FR-034). Note: the
-      journal relabel chain is correct — `unit=openclaw-gateway.service` proves
-      user units resolve; mesh/member panels are empty because those units are
-      idle beyond `max_age`, not mislabelled. Stale pre-restart
-      `job=netclaw-journal` streams (no `unit` label) are an artifact, not a bug.
+- [x] T142 Log-panel selectors (FR-034) — all Loki panels now select streams by
+      label, never by message-content regex. Confirmed the journal relabel chain
+      was never broken: `job=netclaw-mesh` / `unit=netclaw-mesh.service` resolve
+      correctly, so the regex workaround was covering for **idle units**, not
+      mislabelling.
+      · NetClaw: gateway `{job="openclaw-gateway"}`; N2N/mesh
+        `{job=~"netclaw-mesh|netclaw-member"}`; errors panel keeps a line filter
+        (content filtering is its purpose) but selects streams by job
+      · Security: block + auth panels move onto the `app` label published by the
+        T141 gateway (`filterlog|snort|suricata`, `sshd|sudo|su|login|nginx|openvpn`)
+      · New Security rate panels — firewall block rate by device, unbound DNS
+        activity — the log-shaped half of the T143 gap
+      · promtail journal `max_age` 24h → 168h so event-driven mesh/member units
+        keep recent history across a collector restart (unit keep list bounds
+        volume; positions file prevents re-ship)
+      · `deploy/convergence/smoke-log-panels.sh` asserts every board query is
+        valid LogQL and reports OK / **EMPTY** / FAIL per panel, so "empty" is
+        always attributable — 8/8 queries valid, 0 failures
+      · patch script retained at `grafana/patch-t142.py` (idempotent)
 - [ ] T143 Security depth collector (FR-031/FR-033) — pfSense block/DNS/filterlog
       signals currently have **no** installable exporter, so Security is posture +
       alerts + logs only. Either add the collector or remove/annotate the panels
