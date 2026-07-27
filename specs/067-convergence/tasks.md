@@ -21,7 +21,8 @@
 - [x] T002 [P] Author FR/user stories including risk preserve + guardian-claw ensure (any operator)
 - [x] T003 [P] Author contracts for convergence-api, adapters, install wizard
 - [x] T004 Constitution Check recorded in plan.md
-- [ ] T005 Checklist requirements.md pass (self-review before PR1 code)
+- [x] T005 Checklist requirements.md pass — signed off 2026-07-27 with a review log
+      and a pre-PR drift guard (see `checklists/requirements.md`)
 
 ---
 
