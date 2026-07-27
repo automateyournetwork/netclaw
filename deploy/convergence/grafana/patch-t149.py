@@ -34,10 +34,13 @@ BOARD = (
     / "convergence-security.json"
 )
 
+# T157: filterlog is parsed at ingest, so select the action FIELD instead of
+# keyword-matching the raw CSV. `,block,` also matched pass lines whose payload
+# happened to contain the string.
 FIREWALL_SEL = (
     '{job="device-syslog"} | json '
     '| attributes_appname=~"filterlog|snort|suricata" '
-    '|~ "(?i)(,block,|,reject,|blocked|denied)"'
+    '| attributes_action=~"block|reject"'
 )
 
 AUTH_SEL = (
@@ -54,7 +57,7 @@ PANELS = {
         "Firewall block rate by device",
         'sum by (device_name) (rate({job="device-syslog"} | json '
         '| attributes_appname=~"filterlog|snort|suricata" '
-        '|~ "(?i)(,block,|,reject,|blocked|denied)" [5m]))',
+        '| attributes_action=~"block|reject" [5m]))',
     ),
     84: (
         "DNS resolver activity (unbound)",

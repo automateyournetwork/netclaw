@@ -516,6 +516,42 @@ T126/T128. Both remain in place until the phase that retires them.
 - [ ] T156 K3s: `components/otel-collector` replaces `components/device-syslog`;
       greenfield overlays updated; VictoriaLogs added to `full-stack`
 
+### Firewall detail (PR1b) — restores a pilot capability
+
+- [x] T157 Parse pfSense `filterlog` CSV into structured fields at ingest and
+      restore the firewall-detail panels the three-board consolidation dropped.
+      **Capability regression found by the operator**: the pilot boards had "Top
+      Blocked Source IPs", "Blocks by Interface (VLAN)" and "WAN Inbound Blocks by
+      Protocol"; they were left behind in `legacy/` when the suite was
+      consolidated, even though the data was always there.
+      · collector: `filterlog_v4` / `filterlog_v6` / `filterlog_common` regex
+        operators → `action`, `reason`, `fw_interface`, `direction`, `ip_version`,
+        `protocol`, `proto_id`, `src_ip`, `dst_ip`, `src_port`, `dst_port`, `tracker`
+      · parse from `attributes.message`, **not** `body` — the first version parsed
+        the raw datagram and only worked because the syslog prefix happens to
+        contain no commas
+      · ports made optional after measuring 400 live lines: v4 appears with 23 and
+        29 fields, v6 with 20 and 22, and 11/400 carry no ports. Requiring ports
+        silently dropped ~35% of records — coverage went 64.9% → **100%**
+      · protocol case normalised at ingest (v4 `tcp` vs v6 `TCP`) so one protocol
+        does not split into two series
+      · Security board: new "Firewall detail" row (top blocked sources, blocks by
+        interface, WAN inbound by protocol, block vs pass) + `wan_interface`
+        template variable instead of a hardcoded `igc0.201`
+      · panels 81/83 moved off `|~ ",block,"` keyword matching onto
+        `attributes_action` — the keyword also matched pass lines whose payload
+        contained the string
+      · **T143 largely closed**: the Loki ruler rules now derive block/DNS metrics
+        from fields (`pfsense:filterlog_blocks_by_interface:rate5m`,
+        `..._by_protocol:rate5m`), all 7 verified against live data
+      · `src_ip`/`dst_ip` stay **fields, never labels** — external scanner IPs are
+        unbounded (FR-042). Top-talker analysis is a query-time aggregation.
+      · GeoIP/ASN enrichment stays OUT of ingest by decision: the `geoip`
+        processor does not exist in contrib 0.104.0, and NetClaw's
+        `pfsense-threat-intel` skill already enriches at investigation time where
+        rate-limited APIs (AbuseIPDB 1k/day, GreyNoise) are only spent on IPs that
+        survive triage.
+
 ### Independent test
 
 Cisco + pfSense syslog → structured fields in Loki **and** VictoriaLogs, no

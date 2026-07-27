@@ -50,6 +50,10 @@ for row in "${rows[@]}"; do
     expr="${rest#*$'\t'}"
     checked=$((checked + 1))
 
+    # Substitute Grafana template variables so the query is valid LogQL.
+    expr="${expr//\$__range/${WINDOW}s}"
+    expr="${expr//\$wan_interface/${WAN_INTERFACE:-igc0.201}}"
+
     # Metric queries (rate/sum) go to /query; stream selectors go to /series so we
     # can count resolved streams rather than scan lines.
     if [[ "$expr" == *"rate("* || "$expr" == *"count_over_time"* ]]; then

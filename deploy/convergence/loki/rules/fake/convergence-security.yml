@@ -1,24 +1,25 @@
-# Loki recording rules → Prometheus remote-write (Phase 10 / T143)
+# Loki recording rules → Prometheus remote-write (T143, rewritten for T157)
 #
-# WHY: pfSense exposes no block/DNS counters over SNMP, and there is no
-# installable pfSense metrics exporter in this repo — so the Security board could
-# only ever show posture, alerts and raw logs (spec FR-033). But the events are
-# already in Loki via the T141 syslog gateway (`filterlog` for firewall verdicts,
-# `unbound` for DNS). Deriving metrics from those logs closes the gap without
-# adding an exporter or asking the operator to install anything on pfSense.
+# WHY: pfSense exposes no block/DNS counters over SNMP and there is no installable
+# pfSense metrics exporter in this repo, so the Security board could only show
+# posture, alerts and raw logs (FR-033). The events are already in Loki via the
+# OTel Collector, so deriving metrics from them closes the gap without adding an
+# exporter or installing anything on pfSense.
 #
-# Output lands in Prometheus via the Loki ruler's remote_write, so these series
-# are usable by ordinary Prometheus alert rules and boards.
+# T157 rewrite: these rules originally keyword-matched the raw CSV
+# (`|= ",block,"`). filterlog is now parsed at ingest, so they select real fields
+# — `attributes_action`, `attributes_fw_interface`, `attributes_direction`,
+# `attributes_protocol`. That is both correct (`,block,` could match a pass line
+# whose payload contained the string) and stable against pfSense changing CSV
+# field order.
 #
-# COST NOTE: each rule evaluates a LogQL metric query over the interval below.
-# Line filters (`|=`) are used instead of regex wherever possible because they are
-# substring matches and far cheaper. Keep this rule set small — it runs on the
-# same host as everything else.
+# CARDINALITY: deliberately NO src_ip dimension. External scanner IPs are
+# unbounded and these become Prometheus series. Top-talker analysis stays a
+# query-time Loki aggregation on the board; only bounded dimensions
+# (device, interface, direction, protocol) become metrics.
 #
-# filterlog CSV field order (pfSense):
-#   1 rulenr, 2 subrulenr, 3 anchor, 4 tracker, 5 interface,
-#   6 reason, 7 action(pass|block), 8 direction, 9 ipversion, ...
-# so `,block,` / `,pass,` match the action field.
+# COST: each rule evaluates a LogQL metric query over the interval. Keep this set
+# small — it runs on the same host as everything else.
 
 groups:
   - name: convergence-security-firewall
@@ -27,25 +28,31 @@ groups:
       - record: pfsense:filterlog_blocks:rate5m
         expr: |
           sum by (device_name) (
-            rate({job="device-syslog", app="filterlog"} |= ",block," [5m])
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block" [5m])
           )
 
       - record: pfsense:filterlog_pass:rate5m
         expr: |
           sum by (device_name) (
-            rate({job="device-syslog", app="filterlog"} |= ",pass," [5m])
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="pass" [5m])
           )
 
-      # Blocks broken out by interface — the "which segment is being hammered"
-      # view. Regex extraction is only affordable here because blocks are a small
-      # fraction of total filterlog volume, so the line filter runs first.
+      # "Which segment is being hammered" — bounded by interface count.
       - record: pfsense:filterlog_blocks_by_interface:rate5m
         expr: |
-          sum by (device_name, iface, direction) (
-            rate({job="device-syslog", app="filterlog"}
-              |= ",block,"
-              | regexp "^[^,]*,[^,]*,[^,]*,[^,]*,(?P<iface>[^,]*),[^,]*,[^,]*,(?P<direction>[^,]*)"
-              [5m])
+          sum by (device_name, attributes_fw_interface, attributes_direction) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block" [5m])
+          )
+
+      # Protocol mix of blocked traffic — case normalised at ingest.
+      - record: pfsense:filterlog_blocks_by_protocol:rate5m
+        expr: |
+          sum by (device_name, attributes_protocol) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block" [5m])
           )
 
   - name: convergence-security-dns
@@ -54,17 +61,20 @@ groups:
       - record: pfsense:dns_queries:rate5m
         expr: |
           sum by (device_name) (
-            rate({job="device-syslog", app="unbound"} |= "query:" [5m])
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "query:" [5m])
           )
 
       - record: pfsense:dns_nxdomain:rate5m
         expr: |
           sum by (device_name) (
-            rate({job="device-syslog", app="unbound"} |= "NXDOMAIN" [5m])
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "NXDOMAIN" [5m])
           )
 
       - record: pfsense:dns_servfail:rate5m
         expr: |
           sum by (device_name) (
-            rate({job="device-syslog", app="unbound"} |= "SERVFAIL" [5m])
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "SERVFAIL" [5m])
           )

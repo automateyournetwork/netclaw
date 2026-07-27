@@ -40,16 +40,75 @@ receivers:
     # valid RFC3164 nor Cisco keeps its raw body and still carries device_name.
     operators:
       - type: router
+        id: vendor_router
         routes:
+          # Cisco IOS/IOS-XE — non-compliant, still has the raw datagram as body
           - output: cisco_ios_parser
             expr: 'body != nil and body matches "^<[0-9]+>[0-9]*: ?\\*?[A-Z][a-z]{2} "'
+          # pfSense filterlog, IPv4 (ipversion is CSV field 9)
+          - output: filterlog_v4
+            expr: 'attributes["appname"] == "filterlog" and attributes["message"] != nil and attributes["message"] matches "^([^,]*,){8}4,"'
+          # pfSense filterlog, IPv6
+          - output: filterlog_v6
+            expr: 'attributes["appname"] == "filterlog" and attributes["message"] != nil and attributes["message"] matches "^([^,]*,){8}6,"'
+          # filterlog we cannot fully decode — still recover the verdict fields
+          - output: filterlog_common
+            expr: 'attributes["appname"] == "filterlog"'
         default: noop
+
       - id: cisco_ios_parser
         type: regex_parser
         parse_from: body
         on_error: send
         regex: '^<(?P<priority>\d+)>(?P<sequence>\d+): \*?(?P<device_time>[A-Z][a-z]{2} +\d+ [\d:.]+): %(?P<mnemonic>[A-Z0-9_]+-(?P<sev_level>\d)-[A-Z0-9_]+): (?P<message>.*)$'
         output: noop
+
+      # --- pfSense filterlog CSV → structured fields --------------------------
+      # The pilot extracted these at QUERY time with positional `| regexp` /
+      # `| pattern` in each dashboard panel. That is fragile: the field offsets are
+      # baked into every query, substring filters like `|= "lagg0.100"` match the
+      # interface name anywhere in the line (an IP or port can collide), and
+      # nothing can alert on it. Parsing once at ingest gives real fields to Loki,
+      # VictoriaLogs and the Loki ruler alike.
+      #
+      # CSV layout (pfSense filterlog):
+      #   1 rulenr  2 subrulenr  3 anchor  4 tracker  5 interface
+      #   6 reason  7 action     8 direction  9 ipversion
+      #   IPv4: 10 tos 11 ecn 12 ttl 13 id 14 offset 15 flags
+      #         16 protoid 17 proto 18 length 19 src 20 dst 21 srcport 22 dstport
+      #   IPv6: 10 class 11 flowlabel 12 hoplimit 13 protoname 14 protonum
+      #         15 length 16 src 17 dst 18 srcport 19 dstport
+      #
+      # CARDINALITY: src_ip/dst_ip stay *fields*. External scanner IPs are
+      # effectively unbounded — promoting them to labels is the same trap as the
+      # Cisco mnemonic (FR-042).
+      - id: filterlog_v4
+        type: regex_parser
+        parse_from: attributes.message
+        on_error: send
+        # Ports are optional: ICMP and some v4 variants end at dst. Measured
+        # against 400 live lines — 23-field and 29-field v4 layouts both occur,
+        # and 11 of 400 carried no ports. Requiring them dropped ~35% of records.
+        regex: '^(?P<rule_nr>[^,]*),(?P<sub_rule_nr>[^,]*),(?P<anchor>[^,]*),(?P<tracker>[^,]*),(?P<fw_interface>[^,]*),(?P<reason>[^,]*),(?P<action>[^,]*),(?P<direction>[^,]*),(?P<ip_version>4),[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,[^,]*,(?P<proto_id>[^,]*),(?P<protocol>[^,]*),[^,]*,(?P<src_ip>[^,]*),(?P<dst_ip>[^,]*)(?:,(?P<src_port>[0-9]*),(?P<dst_port>[0-9]*))?'
+        output: noop
+
+      - id: filterlog_v6
+        type: regex_parser
+        parse_from: attributes.message
+        on_error: send
+        # IPv6 puts protoname before protonum, and ICMPv6/mDNS lines end at dst.
+        regex: '^(?P<rule_nr>[^,]*),(?P<sub_rule_nr>[^,]*),(?P<anchor>[^,]*),(?P<tracker>[^,]*),(?P<fw_interface>[^,]*),(?P<reason>[^,]*),(?P<action>[^,]*),(?P<direction>[^,]*),(?P<ip_version>6),[^,]*,[^,]*,[^,]*,(?P<protocol>[^,]*),(?P<proto_id>[^,]*),[^,]*,(?P<src_ip>[^,]*),(?P<dst_ip>[^,]*)(?:,(?P<src_port>[0-9]*),(?P<dst_port>[0-9]*))?'
+        output: noop
+
+      # Verdict-only fallback: ICMP/ARP/truncated variants still yield
+      # action + interface + direction so block accounting stays correct.
+      - id: filterlog_common
+        type: regex_parser
+        parse_from: attributes.message
+        on_error: send
+        regex: '^(?P<rule_nr>[^,]*),(?P<sub_rule_nr>[^,]*),(?P<anchor>[^,]*),(?P<tracker>[^,]*),(?P<fw_interface>[^,]*),(?P<reason>[^,]*),(?P<action>[^,]*),(?P<direction>[^,]*)'
+        output: noop
+
       - id: noop
         type: noop
 
@@ -122,6 +181,10 @@ processors:
       - context: log
         statements:
           - set(body, attributes["message"]) where attributes["message"] != nil
+          # v4 filterlog reports `tcp`, v6 reports `TCP`/`ICMPv6` — normalise so
+          # `sum by (protocol)` does not split one protocol across two series.
+          - set(attributes["protocol"], ConvertCase(attributes["protocol"], "lower"))
+            where attributes["protocol"] != nil
 
   # --- Label cardinality ----------------------------------------------------
   # Promote a small, fixed set of labels and nothing else.

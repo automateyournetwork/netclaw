@@ -28,6 +28,8 @@ journal). It no longer touches device syslog.
 | `level` / `severity_text` | parsed priority | label (`level`) | field |
 | `appname`, `facility`, `priority`, `proc_id` | RFC3164 parse | field | field |
 | `mnemonic`, `sev_level`, `sequence` | Cisco vendor parse | field | field |
+| `action`, `reason`, `direction`, `fw_interface`, `protocol`, `ip_version` | pfSense filterlog parse | field | field |
+| `src_ip`, `dst_ip`, `src_port`, `dst_port`, `tracker` | pfSense filterlog parse | field (**never a label**) | field |
 | `message` | parsed body | line body | `_msg` |
 
 **Labels are a bounded set on purpose.** `appname` and `mnemonic` are structured
@@ -118,6 +120,36 @@ curl -sG http://127.0.0.1:9428/select/logsql/query --data-urlencode 'query=* | s
 Prometheus scrapes the collector as `job=otel-collector`. Alerts:
 `SyslogIngestRefusing`, `LogExportFailing`, `SyslogIngestNoEntries`,
 `LogIngestDown` (and `HostLogShipDown` for promtail).
+
+## Firewall log detail (filterlog)
+
+pfSense `filterlog` CSV is parsed at ingest into fields, so firewall analysis is
+field-based rather than positional-regex-based:
+
+```logql
+# top blocked sources
+topk(15, sum by (attributes_src_ip) (count_over_time(
+  {job="device-syslog"} | json | attributes_appname="filterlog"
+  | attributes_action="block" [1h])))
+
+# blocks by segment
+sum by (attributes_fw_interface) (rate(
+  {job="device-syslog"} | json | attributes_appname="filterlog"
+  | attributes_action="block" [5m]))
+```
+
+Measured coverage: **100%** of live filterlog lines. v4 appears with 23 and 29
+fields, v6 with 20 and 22, and ICMP variants carry no ports — so the port group is
+optional. Requiring it dropped ~35% of records in the first cut.
+
+**src_ip and dst_ip are fields, never labels.** External scanner IPs are unbounded;
+promoting them would explode Loki stream count. Grouping at query time is safe.
+
+**Enrichment is not done here.** GeoIP/ASN/reputation lookups happen in NetClaw's
+`pfsense-threat-intel` skill at investigation time, where AbuseIPDB (1k/day) and
+GreyNoise budgets are spent only on IPs that survive triage — not on every one of
+~17k filterlog lines per 30 minutes. pfBlockerNG on pfSense itself continues to do
+reputation-based blocking before anything reaches this pipeline.
 
 ## Known cosmetic artifact
 

@@ -18,7 +18,20 @@
     "to": "now"
   },
   "templating": {
-    "list": []
+    "list": [
+      {
+        "name": "wan_interface",
+        "label": "WAN interface",
+        "type": "textbox",
+        "query": "igc0.201",
+        "current": {
+          "text": "igc0.201",
+          "value": "igc0.201"
+        },
+        "options": [],
+        "hide": 0
+      }
+    ]
   },
   "annotations": {
     "list": []
@@ -644,7 +657,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (device_name) (rate({job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" |~ \"(?i)(,block,|,reject,|blocked|denied)\" [5m]))",
+          "expr": "sum by (device_name) (rate({job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" | attributes_action=~\"block|reject\" [5m]))",
           "legendFormat": "{{device_name}}",
           "queryType": "range"
         }
@@ -752,7 +765,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "{job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" |~ \"(?i)(,block,|,reject,|blocked|denied)\"",
+          "expr": "{job=\"device-syslog\"} | json | attributes_appname=~\"filterlog|snort|suricata\" | attributes_action=~\"block|reject\"",
           "datasource": {
             "type": "loki",
             "uid": "loki"
@@ -805,6 +818,231 @@
         "enableLogDetails": true,
         "sortOrder": "Descending",
         "dedupStrategy": "none"
+      }
+    },
+    {
+      "id": 210,
+      "type": "row",
+      "title": "Firewall detail (parsed filterlog)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 48
+      },
+      "panels": []
+    },
+    {
+      "id": 90,
+      "type": "table",
+      "title": "Top blocked source IPs",
+      "description": "External IPs are a structured field, not a label \u2014 unbounded values cannot explode Loki stream count. Enrichment (AbuseIPDB/GreyNoise/OTX) is done by NetClaw's pfsense-threat-intel skill at investigation time, deliberately not at ingest, so rate-limited APIs are only spent on IPs that survive triage.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 49
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "topk(15, sum by (attributes_src_ip) (count_over_time({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" | attributes_action=\"block\" [$__range])))",
+          "legendFormat": "{{attributes_src_ip}}",
+          "queryType": "instant",
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "Value",
+            "desc": true
+          }
+        ]
+      },
+      "transformations": [
+        {
+          "id": "labelsToFields",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "attributes_src_ip": "Source IP",
+              "Value": "Blocks"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": 91,
+      "type": "timeseries",
+      "title": "Blocks by interface (VLAN)",
+      "description": "Selects the parsed interface field. The pilot substring-matched the interface name anywhere in the raw line, which false-positives when an IP or port contains the same digits.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 49
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (attributes_fw_interface) (rate({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" | attributes_action=\"block\" [5m]))",
+          "legendFormat": "{{attributes_fw_interface}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 92,
+      "type": "timeseries",
+      "title": "WAN inbound blocks by protocol",
+      "description": "Protocol case is normalised at ingest (v4 sends `tcp`, v6 sends `TCP`), so one protocol does not split across two series.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 57
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (attributes_protocol) (rate({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" | attributes_action=\"block\" | attributes_direction=\"in\" | attributes_fw_interface=~\"$wan_interface\" [5m]))",
+          "legendFormat": "{{attributes_protocol}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      }
+    },
+    {
+      "id": 93,
+      "type": "timeseries",
+      "title": "Block vs pass rate",
+      "description": "Verdict accounting. Parse coverage is 100% of live filterlog lines; a gap here means the CSV layout changed.",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 57
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (attributes_action) (rate({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" [5m]))",
+          "legendFormat": "{{attributes_action}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "logs/s",
+          "custom": {
+            "lineWidth": 1,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
       }
     }
   ],
