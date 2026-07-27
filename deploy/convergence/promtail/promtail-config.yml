@@ -1,7 +1,7 @@
 # Convergence log ship → Loki (Phase 8/10)
 # Profiles: full | device-syslog
 #
-# 1) Syslog UDP :1514 — switches/firewall
+# 1) Syslog RFC5424 TCP :1601 from syslog-gateway (devices → :1514 RFC3164)
 # 2) OpenClaw gateway files (/var/log/openclaw from host /tmp/openclaw)
 # 3) Optional flat agent logs (/var/log/netclaw)
 # 4) Host journal (user + system) for mesh / members / gateway units
@@ -17,12 +17,18 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Device / network syslog (UDP) — switches, pfSense, etc.
+  # Device / network syslog — switches, pfSense, etc.
+  #
+  # Devices send vendor-default RFC3164/BSD to syslog-gateway on :1514; that
+  # gateway re-emits RFC5424 with octet-counted framing to this TCP listener.
+  # Do NOT point devices straight at this port: promtail's syslog target parses
+  # RFC5424 only and silently discards BSD-format streams (spec FR-035 / T141).
   - job_name: device-syslog
     syslog:
-      listen_address: 0.0.0.0:1514
-      listen_protocol: udp
-      idle_timeout: 60s
+      listen_address: 0.0.0.0:1601
+      listen_protocol: tcp
+      idle_timeout: 120s
+      use_incoming_timestamp: true
       label_structured_data: true
       labels:
         job: device-syslog
@@ -34,8 +40,12 @@ scrape_configs:
         target_label: device_name
       - source_labels: [__syslog_message_app_name]
         target_label: app
-      - source_labels: [__syslog_connection_hostname]
-        target_label: peer_ip
+      - source_labels: [__syslog_message_severity]
+        target_label: level
+      # NOTE: __syslog_connection_hostname is the syslog-gateway, not the device
+      # (the gateway is the TCP peer), so it is deliberately not labelled here.
+      # Device identity comes from __syslog_message_hostname, which syslog-ng
+      # preserves (keep-hostname) or fills with the sending IP.
 
   # OpenClaw gateway file logs (host /tmp/openclaw → container /var/log/openclaw)
   - job_name: openclaw-gateway

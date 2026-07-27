@@ -11,3 +11,9 @@ configMapGenerator:
       - promtail-config.yml=configs/promtail-config.yml
     options:
       disableNameSuffixHash: true
+  # RFC3164 → RFC5424 gateway (T141)
+  - name: syslog-gateway-config
+    files:
+      - syslog-ng.conf=configs/syslog-ng.conf
+    options:
+      disableNameSuffixHash: true

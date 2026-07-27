@@ -36,15 +36,23 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 
 | Path | How |
 |------|-----|
-| Campus devices → node | **hostPort 1514/UDP** on the node running the pod |
-| In-cluster Service | `promtail-device-syslog:1514/udp` |
+| Campus devices → node | **hostPort 1514 udp+tcp** on the node running the pod (syslog-ng sidecar) |
+| In-cluster Service | `promtail-device-syslog:1514` (udp or tcp) |
+| Sidecar → promtail | pod-local `127.0.0.1:1601` TCP, RFC5424 octet-framed |
 | Host rsyslog (agent) | `*.* @<node-ip>:1514` — see `scripts/rsyslog-netclaw-convergence.conf` |
+
+The pod runs **two** containers (T141): `syslog-gateway` (syslog-ng) accepts
+vendor-default RFC3164/BSD and re-emits RFC5424 to `promtail`, whose syslog target
+parses RFC5424 only. Pointing devices at 1601 directly would be silently dropped.
+Timestamps are gateway receive time — see
+`deploy/convergence/adapters/device-syslog/README.md` for why.
 
 IOS-XE example:
 
 ```text
 logging host <k3s-node-ip> transport udp port 1514
 logging trap informational
+logging origin-id hostname     ! device_name = hostname instead of sending IP
 ```
 
 Prefer a hostname that matches SNMP `device_name` labels (e.g. `HomeSwitch01`).

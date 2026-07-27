@@ -290,9 +290,10 @@ Doc: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/R
 
 Legacy pilot boards are under `grafana/provisioning/dashboards/legacy/` (not loaded).
 
-Open items on this suite (spec US10 / tasks T141–T143): Security's syslog/auth
-panels stay empty until vendor-default (RFC3164) syslog ingest lands, and pfSense
-block/DNS depth has no installable exporter yet.
+Open items on this suite (spec US10): pfSense block/DNS **metrics** depth still has
+no installable exporter (T143) — though `filterlog` and `unbound` **logs** now
+reach Loki via T141, so Security's log sections are live. Mesh/N2N log panels
+should move off message-regex onto `job`/`unit` selectors (T142).
 
 #### Independent test (SC-010–SC-013)
 
@@ -314,12 +315,21 @@ curl -sG 'http://127.0.0.1:9090/api/v1/query' \
 ls deploy/convergence/grafana/provisioning/dashboards/json/    # 3 files
 ls deploy/convergence/grafana/provisioning/dashboards/legacy/   # inert pilot boards
 
-# SC-016 — vendor-default syslog ingest (OPEN — tasks.md T141)
-# Devices are sending, but promtail's syslog target parses RFC5424 only, so
-# RFC3164/BSD from Cisco/pfSense is dropped. Verify with:
-docker logs --since 10m netclaw-convergence-promtail-1 2>&1 | grep -c 'error parsing syslog'
-# Expected once fixed: 0, and device_syslog streams present:
-curl -sG http://127.0.0.1:3100/loki/api/v1/label/job/values | grep device-syslog
+# SC-016 — vendor-default (RFC3164) syslog ingest  [T141 — shipped]
+# devices -> :1514 syslog-gateway (RFC3164->RFC5424) -> promtail :1601 -> Loki
+printf '<134>Jul 27 20:59:02 pfsense filterlog[12345]: smoke test\n' \
+  | nc -u -w1 127.0.0.1 1514
+
+# entries climbing, parse errors must stay 0
+curl -s http://127.0.0.1:9080/metrics \
+  | grep -E 'promtail_syslog_target_(entries|parsing_errors)_total'
+
+# streams labelled by device_name / app, stamped at receive time (not 6h behind)
+curl -sG http://127.0.0.1:3100/loki/api/v1/query \
+  --data-urlencode 'query=sum by (device_name,app) (count_over_time({job="device-syslog"}[5m]))'
+
+# ingest can no longer fail silently — promtail is scraped and alerted on
+curl -sG 'http://127.0.0.1:9090/api/v1/query' --data-urlencode 'query=up{job="promtail"}'
 
 # SC-013 — checklist has syslog host:port + SNMP_COMMUNITY env name
 grep -E 'SNMP_COMMUNITY|Syslog destination|1514' \

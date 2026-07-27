@@ -1,6 +1,10 @@
-# Promtail syslog UDP receiver → Loki (Phase 8 T091).
-# Pair with components/full-stack (Loki). Exposes hostPort 1514/udp so campus
+# Device syslog → Loki (Phase 8 T091 + Phase 10 T141).
+# Pair with components/full-stack (Loki). Exposes hostPort 1514 udp+tcp so campus
 # devices can log to the node IP without a LoadBalancer.
+#
+# Two containers: syslog-ng accepts vendor-default RFC3164 on :1514 and re-emits
+# RFC5424 to promtail on pod-local :1601, because promtail's syslog target only
+# parses RFC5424 (spec FR-035).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -22,15 +26,47 @@ spec:
         app.kubernetes.io/component: device-syslog
     spec:
       containers:
+        # RFC3164 → RFC5424 front-end. Owns the operator-facing hostPort.
+        - name: syslog-gateway
+          image: linuxserver/syslog-ng:4.8.1
+          env:
+            - name: PUID
+              value: "1000"
+            - name: PGID
+              value: "1000"
+          ports:
+            - name: syslog-udp
+              containerPort: 1514
+              protocol: UDP
+              hostPort: 1514
+            - name: syslog-tcp
+              containerPort: 1514
+              protocol: TCP
+              hostPort: 1514
+          volumeMounts:
+            - name: syslog-gateway-config
+              mountPath: /config/syslog-ng.conf
+              subPath: syslog-ng.conf
+              readOnly: true
+            - name: syslog-buffer
+              mountPath: /var/lib/syslog-ng
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 300m
+              memory: 256Mi
         - name: promtail
           image: grafana/promtail:3.1.0
           args:
             - -config.file=/etc/promtail/config.yml
           ports:
-            - name: syslog
-              containerPort: 1514
-              protocol: UDP
-              hostPort: 1514
+            # RFC5424 from the sidecar only — deliberately no hostPort, pointing
+            # devices here directly would silently drop BSD-format syslog.
+            - name: syslog-in
+              containerPort: 1601
+              protocol: TCP
             - name: http
               containerPort: 9080
               protocol: TCP
@@ -56,6 +92,11 @@ spec:
         - name: config
           configMap:
             name: promtail-device-syslog-config
+        - name: syslog-gateway-config
+          configMap:
+            name: syslog-gateway-config
+        - name: syslog-buffer
+          emptyDir: {}
 ---
 apiVersion: v1
 kind: Service
@@ -73,7 +114,11 @@ spec:
       port: 9080
       targetPort: http
       protocol: TCP
-    - name: syslog
+    - name: syslog-udp
       port: 1514
-      targetPort: syslog
+      targetPort: syslog-udp
       protocol: UDP
+    - name: syslog-tcp
+      port: 1514
+      targetPort: syslog-tcp
+      protocol: TCP

@@ -35,7 +35,15 @@ Posture and access, not random stats:
 | Edge & wireless | edge probe, guest vs wireless clients |
 | Syslog / auth | Loki `device-syslog`, block/deny keywords, login noise |
 
-**Data needs:** devices should send syslog → host UDP **:1514** (promtail). Without that, log panels stay empty; Prom/UniFi/edge panels still work.
+**Data needs:** devices send syslog → host **:1514** (udp or tcp) → syslog-gateway
+(RFC3164 → RFC5424) → promtail → Loki. Vendor-default BSD format is fine; see
+`adapters/device-syslog/README.md`. Without a syslog source the log panels stay
+empty while posture/alert/edge/wireless panels still work (spec FR-033).
+
+Ingest health is scraped (`job=promtail`) and alerted on
+(`SyslogIngestParseFailing`, `SyslogIngestNoEntries`, `LogShipDown`), because the
+original failure mode here was a **silent** drop: port open, packets arriving,
+Loki empty.
 
 ### 3. NetClaw (`convergence-netclaw`)
 

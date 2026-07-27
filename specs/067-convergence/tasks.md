@@ -301,14 +301,29 @@ every provisioned panel traceable to an installable collector.
 - [x] T140 Wire supporting scrapes/log sources: Prom job
       `netclaw-alert-receiver` (investigation tiers/suppressions/budget trips);
       promtail `/tmp/openclaw/*.log` + systemd journal (mesh / members / gateway)
-- [ ] T141 **Vendor-default syslog ingest** (FR-035, SC-016) — promtail's
-      `syslog` target only parses RFC5424; Cisco IOS-XE and pfSense emit
-      RFC3164/BSD, so 100% of the received stream is currently dropped
-      (`syslogtarget.go` `expecting a version value in the range 1-999`).
-      Pick and ship one: (a) rsyslog/syslog-ng front-end reformatting to RFC5424
-      before Loki, (b) swap receiver to Grafana Alloy `loki.source.syslog` with
-      `syslog_format = "rfc3164"`, (c) documented device-side RFC5424 (NOT a
-      product default). Must expose parse-failure volume.
+- [x] T141 **Vendor-default syslog ingest** (FR-035, SC-016) — chose option (a):
+      `syslog-gateway` (syslog-ng 4.8.1, multi-arch) accepts RFC3164/BSD on
+      **:1514 udp+tcp** and re-emits RFC5424 octet-framed to promtail **:1601**.
+      Devices need no reconfiguration and the operator-facing port is unchanged,
+      so generated checklists stay valid.
+      · `deploy/convergence/syslog-gateway/syslog-ng.conf` + compose service
+      (profiles `full`|`device-syslog`)
+      · promtail syslog target → tcp :1601, `+level` label, no `peer_ip`
+        (the TCP peer is now the gateway, not the device)
+      · **Timestamps**: gateway stamps receive time — RFC3164 has no timezone, and
+        trusting it put live pfSense lines ~6h in the past (outside every "last
+        15m" panel) while ingest metrics looked healthy
+      · Observability: Prom job `promtail` + alerts `SyslogIngestParseFailing`,
+        `SyslogIngestNoEntries`, `LogShipDown` — the original bug was a *silent*
+        drop, so parse failures are now loud
+      · K3s parity: syslog-ng sidecar in `components/device-syslog` (hostPort
+        1514 udp+tcp, promtail on pod-local 1601)
+      · Verified live: 0 parse errors, ~1.1k lines/2m from pfSense with
+        `device_name`/`app`/`level` labels (`filterlog`, `unbound`, `kea-dhcp4`,
+        `nginx`), stamped at real time
+      · Operator follow-up (device side, not code): switches are not sending
+        syslog yet; add `logging host <host> transport udp port 1514` +
+        `logging origin-id hostname` per the generated checklist
 - [ ] T142 Log-panel selectors: replace message-content regex on the NetClaw
       board mesh/N2N panels with `job` / `unit` selectors (FR-034). Note: the
       journal relabel chain is correct — `unit=openclaw-gateway.service` proves
@@ -318,7 +333,10 @@ every provisioned panel traceable to an installable collector.
 - [ ] T143 Security depth collector (FR-031/FR-033) — pfSense block/DNS/filterlog
       signals currently have **no** installable exporter, so Security is posture +
       alerts + logs only. Either add the collector or remove/annotate the panels
-      that assume it.
+      that assume it. **Partially relieved by T141**: `filterlog` (block/pass) and
+      `unbound` (DNS) now land in Loki with `app` labels, so Security's log-based
+      block/DNS panels have real data — what is still missing is *metric*-shaped
+      block/DNS series for alerting and long-term trend.
 - [x] T144 Spec realignment (drift close-out) — US10 + FR-030–FR-035 +
       SC-014–SC-016; FR-027 / SC-010 / SC-012 retargeted off retired board names;
       `plan.md` PR4 row; `telemetry-setup.md` + `contracts/telemetry-setup.md`

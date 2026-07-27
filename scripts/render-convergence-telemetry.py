@@ -286,14 +286,22 @@ def render_checklist(
             "",
             "## Syslog — device side",
             "",
-            f"Send device syslog to **{host}:{syslog_port}** (UDP) when "
+            f"Send device syslog to **{host}:{syslog_port}** (UDP or TCP) when "
             "`device_telemetry.syslog.enabled` / profile `device-syslog` is on.",
+            "",
+            "Vendor-default **RFC3164/BSD** is accepted — the Convergence syslog "
+            "gateway converts it to RFC5424 for Loki, so no special log format is "
+            "required on the device.",
             "",
             "### Cisco",
             "",
             "```text",
             f"logging host {host} transport udp port {syslog_port}",
             "logging trap informational",
+            "! send the hostname so Loki device_name matches this inventory",
+            "! (otherwise device_name falls back to the sending IP)",
+            "logging origin-id hostname",
+            "service timestamps log datetime msec localtime show-timezone",
             "```",
             "",
             "### pfSense",

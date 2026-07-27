@@ -1,5 +1,12 @@
-# Phase 8 — device syslog → Convergence Loki (K3s parity of Docker promtail)
-# Clients: switches / firewall / host rsyslog → UDP hostPort 1514
+# Phase 8/10 — device syslog → Convergence Loki (K3s parity of Docker promtail)
+#
+# Path: devices --RFC3164--> syslog-ng sidecar hostPort 1514 udp/tcp
+#                --RFC5424 octet-framed--> promtail 127.0.0.1:1601 --> Loki
+#
+# Do NOT point devices at :1601. Promtail's syslog target parses RFC5424 only and
+# silently discards BSD/RFC3164 streams — that is exactly the failure this
+# component's sidecar exists to prevent (spec FR-035 / T141).
+#
 # Requires full-stack component (Loki service name: loki) in the same namespace.
 
 server:
@@ -15,9 +22,10 @@ clients:
 scrape_configs:
   - job_name: device-syslog
     syslog:
-      listen_address: 0.0.0.0:1514
-      listen_protocol: udp
-      idle_timeout: 60s
+      listen_address: 127.0.0.1:1601
+      listen_protocol: tcp
+      idle_timeout: 120s
+      use_incoming_timestamp: true
       label_structured_data: true
       labels:
         job: device-syslog
@@ -29,5 +37,8 @@ scrape_configs:
         target_label: device_name
       - source_labels: [__syslog_message_app_name]
         target_label: app
-      - source_labels: [__syslog_connection_hostname]
-        target_label: peer_ip
+      - source_labels: [__syslog_message_severity]
+        target_label: level
+      # __syslog_connection_hostname is the sidecar, not the device, so it is
+      # deliberately not labelled. Device identity comes from the message
+      # hostname, which syslog-ng preserves or fills with the sending IP.

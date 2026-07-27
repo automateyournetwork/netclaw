@@ -87,10 +87,33 @@ services:
       - /run/log/journal:/run/log/journal:ro
       - /etc/machine-id:/etc/machine-id:ro
     ports:
-      - "${SYSLOG_HOST_PORT:-1514}:1514/udp"
+      # Device syslog is received by syslog-gateway (RFC3164 → RFC5424), not here.
+      # promtail listens for RFC5424 on internal :1601 only.
       - "${PROMTAIL_HTTP_PORT:-9080}:9080"
     depends_on:
       - loki
+    networks: [convergence]
+
+  # --- Syslog gateway: vendor-default RFC3164 → RFC5424 → promtail (T141) ---
+  # Promtail's syslog target parses RFC5424 only; Cisco IOS-XE and pfSense emit
+  # RFC3164. This front-end accepts vendor-default syslog so devices need no
+  # reconfiguration (spec FR-035). Operator-facing port stays :1514.
+  syslog-gateway:
+    profiles: ["full", "device-syslog"]
+    image: linuxserver/syslog-ng:4.8.1
+    restart: unless-stopped
+    environment:
+      PUID: "${SYSLOG_GATEWAY_PUID:-1000}"
+      PGID: "${SYSLOG_GATEWAY_PGID:-1000}"
+      TZ: "${TZ:-Etc/UTC}"
+    volumes:
+      - ./syslog-gateway/syslog-ng.conf:/config/syslog-ng.conf:ro
+      - convergence-syslog-buffer:/config/syslog-buffer
+    ports:
+      - "${SYSLOG_HOST_PORT:-1514}:1514/udp"
+      - "${SYSLOG_HOST_PORT:-1514}:1514/tcp"
+    depends_on:
+      - promtail
     networks: [convergence]
 
   # --- WAN speedtest (active bandwidth validation) ---
@@ -135,3 +158,4 @@ volumes:
   convergence-grafanadata:
   netclaw-agent-logs:
   convergence-pushgwdata:
+  convergence-syslog-buffer:

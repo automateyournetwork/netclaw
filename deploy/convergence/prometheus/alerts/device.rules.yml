@@ -90,8 +90,8 @@ groups:
           description: >-
             Aggregate in+out IF-MIB error rate ≈ {{ $value | humanize }} /s on
             device_name={{ $labels.device_name }} instance={{ $labels.instance }} for 10m.
-            Open Campus Interfaces (Grafana :3300) and filter by device_name —
-            series are named via interface_name (ifDescr/ifName).
+            Open the Network board → Campus switching (Grafana :3300) and filter
+            by device_name — series are named via interface_name (ifDescr/ifName).
             Aggregated by device only (no per-ifIndex alert) to avoid storms.
 
       - alert: NetclawAgentMetricsDown
@@ -106,3 +106,57 @@ groups:
           description: >-
             Job netclaw-openclaw is down. Enable openclaw-token-exporter on the host
             (scripts/openclaw-metrics) or ignore if agent observability is disabled.
+
+      # --- Log ship health (T141 / FR-035) ---------------------------------
+      # Devices send vendor-default RFC3164 to syslog-gateway, which re-emits
+      # RFC5424 to promtail. If promtail is rejecting what it receives, syslog
+      # is being dropped on the floor and the Security board's log panels go
+      # quiet while everything *looks* fine — that is the failure mode this
+      # alert exists to make loud.
+      - alert: SyslogIngestParseFailing
+        expr: rate(promtail_syslog_target_parsing_errors_total{job="promtail"}[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "Syslog ingest is rejecting messages (promtail parse errors)"
+          description: >-
+            promtail_syslog_target_parsing_errors_total is increasing
+            ({{ $value | humanize }}/s). Promtail's syslog target parses RFC5424
+            only, so this usually means something is sending BSD/RFC3164 straight
+            at promtail :1601 instead of via syslog-gateway :1514, or the gateway
+            is misconfigured. Check `docker logs netclaw-convergence-promtail-1`
+            and `deploy/convergence/syslog-gateway/syslog-ng.conf`.
+
+      # Received nothing at all for an hour while the gateway is up: either no
+      # device is configured for syslog yet, or the path is broken upstream.
+      - alert: SyslogIngestNoEntries
+        expr: |
+          up{job="promtail"} == 1
+          and increase(promtail_syslog_target_entries_total{job="promtail"}[1h]) == 0
+        for: 1h
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "No syslog entries ingested in the last hour"
+          description: >-
+            promtail is up but has ingested zero syslog entries for 1h. Expected
+            on a site with no device syslog configured yet — see the generated
+            device config checklist for the syslog destination host:port.
+
+      - alert: LogShipDown
+        expr: up{job="promtail"} == 0
+        for: 15m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "Promtail log ship not scraping"
+          description: >-
+            Job promtail is down, so device syslog and agent/journal logs are not
+            reaching Loki. Enable the full or device-syslog compose profile.
