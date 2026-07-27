@@ -1,67 +1,85 @@
-# Convergence Grafana (Phase 10 curated suite)
+# Convergence Grafana — holistic suite (Phase 10)
 
 ## Access
 
 | Item | Value |
 |------|--------|
-| **Host URL** | `http://127.0.0.1:3300` (Docker full stack — **not** :3000) |
-| **Default login** | see `deploy/convergence/.env` / compose (`GF_SECURITY_ADMIN_*`) |
-| **Folder** | **Convergence** (file provider) |
+| **URL** | **http://127.0.0.1:3300** (not :3000) |
+| **Folder** | Convergence |
+| **Primary boards** | **Network** · **Security** · **NetClaw** |
 
-Compose: `docker compose -f docker-compose.yml -f docker-compose.full.yml --profile full up -d grafana`
+Cross-links between the three boards are in each dashboard header.
 
-## Datasource UIDs (provisioned)
+## The three boards
 
-| UID | Name | URL (in-network) |
-|-----|------|------------------|
-| `prometheus` | Prometheus | `http://prometheus:9090` |
-| `loki` | Loki | `http://loki:3100` |
-| `victoriametrics-longterm` | VictoriaMetrics - Long Term | `http://victoriametrics:8428` |
+### 1. Network (`convergence-network`)
 
-Defined in `provisioning/datasources/datasources.yml`.
+Site-wide network health as one story:
 
-## Curated suite (default operator path)
+| Section | Data |
+|---------|------|
+| Site overview | `convergence:health_score`, WAN latency/loss, SNMP/Wi‑Fi counts |
+| WAN | blackbox `probe_success` / latency |
+| Campus switching | named `interface_*` traffic, ports up, errors, down table |
+| Wi‑Fi | UniFi clients, TX retries, AP uplink |
+| Edge | blackbox edge HTTPS |
 
-| Board title | UID | Purpose |
-|-------------|-----|---------|
-| **Home NOC — Network Guardian** | `network-guardian` | Site health, WAN probes, UniFi, edge traffic (`convergence:*`) |
-| **Campus Interfaces** | `network-interfaces` | Named IF traffic/status (`interface_*` + `interface_name`) |
-| **Campus Switches (summary)** | `convergence-device-snmp` | device_snmp KPIs + named status table |
-| **WAN Speedtest — Bandwidth Validation** | `wan-speedtest` | WAN/edge bandwidth checks |
-| **NetClaw Agent — Tokens & Cost** | `netclaw-tokens` | `netclaw_model_*` agent metrics |
+### 2. Security (`convergence-security`)
 
-Tags: `curated`, `phase10`, plus board-specific tags.
+Posture and access, not random stats:
 
-## Optional / not default-curated
+| Section | Data |
+|---------|------|
+| Posture KPIs | firing/critical ALERTS, edge mgmt, UniFi up, guest clients |
+| Active alerts | `ALERTS{alertstate="firing"}` table (+ investigate label) |
+| Edge & wireless | edge probe, guest vs wireless clients |
+| Syslog / auth | Loki `device-syslog`, block/deny keywords, login noise |
 
-Boards titled **`[optional] …`** and tagged `optional` / `not-default-curated`:
+**Data needs:** devices should send syslog → host UDP **:1514** (promtail). Without that, log panels stay empty; Prom/UniFi/edge panels still work.
 
-| Board | Why optional |
-|-------|----------------|
-| NetFlow Overview | Needs goflow2 collector (not default full stack) |
-| NetClaw Logs / Operations | Loki + log forward deep-dive |
-| Model quota watch variants | Secondary to tokens board |
+### 3. NetClaw (`convergence-netclaw`)
 
-## Metric contract (dashboards)
+Agent plane end-to-end:
 
-Prefer recording rules from `prometheus/alerts/device-recording.rules.yml`:
+| Section | Data |
+|---------|------|
+| LLM by provider | `netclaw_model_*` rates + cost by `provider` / `model` / `agent` |
+| Totals | input tokens table, sessions, USD total |
+| Investigation pipe | alerts received, T0/T1/T2 tiers, suppressions, budget trips |
+| Gateway & N2N logs | OpenClaw files + journal mesh/member units |
 
-- `interface_status`, `interface_octets_{in,out}_bytes_total`, `interface_errors_{in,out}_total`
-- Label **`interface_name`** (from ifDescr, else ifName) — never ifIndex-only legends
+**Data needs:**
 
-WAN health: `convergence:health_score`, `convergence:wan_latency_ms:avg`, `convergence:wan_loss_ratio:5m`.
+| Source | How |
+|--------|-----|
+| Token/cost metrics | `openclaw-token-exporter` → Prom job `netclaw-openclaw` (:9110) |
+| Investigation metrics | host `alert-receiver` → Prom job `netclaw-alert-receiver` (:8099) |
+| Gateway logs | host `/tmp/openclaw/*.log` mounted into promtail |
+| Mesh / N2N / members | promtail journal scrape of user units |
 
-## Reload
+## Datasource UIDs
 
-Dashboards auto-reload every 30s from the bind-mounted JSON path. After git pull:
+| UID | Service |
+|-----|---------|
+| `prometheus` | Prometheus :9090 |
+| `loki` | Loki :3100 |
+| `victoriametrics-longterm` | VictoriaMetrics (optional long-term; primary boards use Prometheus) |
+
+## Legacy boards
+
+Pilot/ported JSON lives under `provisioning/dashboards/legacy/` and is **not**
+provisioned. Re-enable only if you intentionally re-add files to `json/`.
+
+## Reload after changes
 
 ```bash
-# optional hard restart
-docker compose -f deploy/convergence/docker-compose.yml \
-  -f deploy/convergence/docker-compose.full.yml --env-file deploy/convergence/.env \
-  restart grafana
+cd deploy/convergence
+docker compose -f docker-compose.yml -f docker-compose.full.yml --env-file .env \
+  up -d promtail grafana
+curl -s -X POST http://127.0.0.1:9090/-/reload
+# Open http://127.0.0.1:3300 → Convergence → Network | Security | NetClaw
 ```
 
 ## Spec
 
-`specs/067-convergence/telemetry-setup.md` · tasks T132–T133 · SC-012.
+`specs/067-convergence/telemetry-setup.md` · Phase 10 curated suite.

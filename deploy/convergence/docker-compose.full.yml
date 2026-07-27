@@ -80,6 +80,12 @@ services:
       - ./promtail/promtail-config.yml:/etc/promtail/config.yml:ro
       # Optional agent flat logs (create dir / empty ok)
       - netclaw-agent-logs:/var/log/netclaw:ro
+      # OpenClaw gateway logs (host default path)
+      - ${OPENCLAW_LOG_DIR:-/tmp/openclaw}:/var/log/openclaw:ro
+      # systemd journal for mesh / members / gateway (NetClaw dashboard)
+      - /var/log/journal:/var/log/journal:ro
+      - /run/log/journal:/run/log/journal:ro
+      - /etc/machine-id:/etc/machine-id:ro
     ports:
       - "${SYSLOG_HOST_PORT:-1514}:1514/udp"
       - "${PROMTAIL_HTTP_PORT:-9080}:9080"

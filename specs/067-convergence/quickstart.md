@@ -277,20 +277,18 @@ curl -sG 'http://127.0.0.1:9090/api/v1/query' \
 # Generated checklist (after apply): deploy/convergence/generated/device-config-checklist.md
 ```
 
-### Curated Grafana + independent test (PR3 — T132–T134, T138) ✅
+### Holistic Grafana suite (Network · Security · NetClaw)
 
 Grafana: **http://127.0.0.1:3300** → folder **Convergence**  
 Doc: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md)
 
-| Curated board | UID |
-|---------------|-----|
-| Home NOC — Network Guardian | `network-guardian` |
-| Campus Interfaces | `network-interfaces` |
-| Campus Switches (summary) | `convergence-device-snmp` |
-| WAN Speedtest | `wan-speedtest` |
-| NetClaw Agent — Tokens & Cost | `netclaw-tokens` |
+| Board | UID | Story |
+|-------|-----|--------|
+| **Network** | `convergence-network` | Health, WAN, named campus IF, UniFi, edge |
+| **Security** | `convergence-security` | Firing alerts, edge/guest access, syslog/auth |
+| **NetClaw** | `convergence-netclaw` | Tokens by provider, investigations T0–T2, gateway/N2N logs |
 
-Optional boards are titled `[optional] …` (NetFlow, deep log ops).
+Legacy pilot boards are under `grafana/provisioning/dashboards/legacy/` (not loaded).
 
 #### Independent test (SC-010–SC-013)
 

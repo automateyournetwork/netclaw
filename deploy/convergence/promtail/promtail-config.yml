@@ -1,10 +1,10 @@
-# Phase 8 — greenfield log ship into Convergence Loki
+# Convergence log ship → Loki (Phase 8/10)
 # Profiles: full | device-syslog
 #
-# 1) Syslog UDP :1514 — switches/firewall (map peer IP → device_name via pipeline)
-# 2) Docker/journal optional later
-#
-# Clients push to Loki at http://loki:3100
+# 1) Syslog UDP :1514 — switches/firewall
+# 2) OpenClaw gateway files (/var/log/openclaw from host /tmp/openclaw)
+# 3) Optional flat agent logs (/var/log/netclaw)
+# 4) Host journal (user + system) for mesh / members / gateway units
 
 server:
   http_listen_port: 9080
@@ -17,7 +17,7 @@ clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-  # Device / network syslog (UDP) — Phase 8 T089
+  # Device / network syslog (UDP) — switches, pfSense, etc.
   - job_name: device-syslog
     syslog:
       listen_address: 0.0.0.0:1514
@@ -37,12 +37,59 @@ scrape_configs:
       - source_labels: [__syslog_connection_hostname]
         target_label: peer_ip
 
-  # Optional: scrape host agent log files bind-mounted at /var/log/netclaw
-  # Mount host paths in compose when agent log_forward is enabled.
-  - job_name: netclaw-agent-files
+  # OpenClaw gateway file logs (host /tmp/openclaw → container /var/log/openclaw)
+  - job_name: openclaw-gateway
+    static_configs:
+      - targets: [localhost]
+        labels:
+          job: openclaw-gateway
+          service: openclaw
+          site: home
+          __path__: /var/log/openclaw/*.log
+
+  # Optional agent flat logs
+  - job_name: netclaw-agent
     static_configs:
       - targets: [localhost]
         labels:
           job: netclaw-agent
           site: home
           __path__: /var/log/netclaw/*.log
+
+  # systemd journal — mesh, members, gateway (user units under user@UID)
+  - job_name: netclaw-journal
+    journal:
+      path: /var/log/journal
+      max_age: 24h
+      labels:
+        job: netclaw-journal
+        site: home
+    relabel_configs:
+      # Prefer user unit (mesh/members/gateway); fall back to system unit
+      - source_labels: ["__journal__systemd_unit"]
+        target_label: unit
+      - source_labels: ["__journal__systemd_user_unit"]
+        regex: "(.+)"
+        target_label: unit
+      # Keep only NetClaw / OpenClaw related units
+      - source_labels: ["unit"]
+        regex: "(netclaw-mesh\\.service|netclaw-member-.*\\.service|openclaw-gateway\\.service|netclaw-hud\\.service|openclaw-token-exporter\\.service)"
+        action: keep
+      - source_labels: ["unit"]
+        regex: "netclaw-mesh\\.service"
+        target_label: job
+        replacement: netclaw-mesh
+      - source_labels: ["unit"]
+        regex: "netclaw-member-.*\\.service"
+        target_label: job
+        replacement: netclaw-member
+      - source_labels: ["unit"]
+        regex: "openclaw-gateway\\.service"
+        target_label: job
+        replacement: openclaw-gateway
+      - source_labels: ["unit"]
+        regex: "netclaw-hud\\.service"
+        target_label: job
+        replacement: netclaw-hud
+      - source_labels: ["__journal_priority_keyword"]
+        target_label: level

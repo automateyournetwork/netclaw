@@ -175,6 +175,16 @@ scrape_configs:
           site: home
           instance: netclaw
 
+  # Host alert-receiver (investigation pipeline metrics for NetClaw dashboard)
+  - job_name: netclaw-alert-receiver
+    scrape_interval: 30s
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["host.docker.internal:8099"]
+        labels:
+          site: home
+          instance: alert-receiver
+
   # Edge firewall (pfSense) HTTPS management UI — override target via file edit or extra job
   - job_name: blackbox_edge
     scrape_interval: 30s

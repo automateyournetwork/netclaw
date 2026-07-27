@@ -2,7 +2,9 @@
 
 **Feature**: 067-convergence  
 **Phase**: 10 (optional PR after Phase 8 plumbing + Phase 9 investigation policy)  
-**Status**: Spec'd; **PR1–PR3 implemented** (render/apply, wizard/SoT, curated boards + safe alerts).  
+**Status**: Spec'd; **PR1–PR3 implemented**. Dashboards rationalized to three primary
+boards (**Network**, **Security**, **NetClaw**) with data wiring for tokens,
+alert-receiver, gateway/journal logs.  
 **Related**: [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) (Phase 8 collectors),  
 [`investigation-policy.md`](./investigation-policy.md) (Phase 9 when to investigate)
 
