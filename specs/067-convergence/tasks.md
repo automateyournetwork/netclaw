@@ -344,13 +344,28 @@ every provisioned panel traceable to an installable collector.
         valid LogQL and reports OK / **EMPTY** / FAIL per panel, so "empty" is
         always attributable — 8/8 queries valid, 0 failures
       · patch script retained at `grafana/patch-t142.py` (idempotent)
-- [ ] T143 Security depth collector (FR-031/FR-033) — pfSense block/DNS/filterlog
-      signals currently have **no** installable exporter, so Security is posture +
-      alerts + logs only. Either add the collector or remove/annotate the panels
-      that assume it. **Partially relieved by T141**: `filterlog` (block/pass) and
-      `unbound` (DNS) now land in Loki with `app` labels, so Security's log-based
-      block/DNS panels have real data — what is still missing is *metric*-shaped
-      block/DNS series for alerting and long-term trend.
+- [x] T143 Security depth collector (FR-031/FR-033) — closed **without** writing a
+      pfSense exporter. The events were already in Loki as structured fields
+      (T157), so the Loki **ruler** derives metrics from them and remote-writes to
+      Prometheus, where the existing alerting engine and boards use them like any
+      other series.
+      · `loki-config.yaml`: ruler with local file store (rules read-only,
+        GitOps-managed, API off) + `remote_write` → `prometheus:9090/api/v1/write`
+      · `prometheus`: `--web.enable-remote-write-receiver`
+      · 7 recording rules live: `pfsense:filterlog_blocks:rate5m`,
+        `..._pass:rate5m`, `..._blocks_by_interface:rate5m`,
+        `..._blocks_by_protocol:rate5m`, `pfsense:dns_{queries,nxdomain,servfail}:rate5m`
+      · `| label_format` renames Loki's `attributes_*` fields to clean Prometheus
+        labels (`interface`, `direction`, `protocol`) **before** anything depends
+        on them — renaming a series' labels after alerts reference it is breaking
+      · gotcha: the ruler's remote-write WAL defaults to a *relative* path
+        (`ruler-wal`) in a non-writable CWD and crash-loops with "permission
+        denied"; pinned to `/loki/ruler-wal` on the data volume
+      · verified: 14 clean series in Prometheus (blocks 6.18/s, pass 11.32/s,
+        per-interface and per-protocol breakdowns), 0 WAL errors
+      · still open (T152): nothing remote-writes to **VictoriaMetrics** yet, so
+        long-term retention of these series is not real until the SNMP cutover
+
 - [x] T144 Spec realignment (drift close-out) — US10 + FR-030–FR-035 +
       SC-014–SC-016; FR-027 / SC-010 / SC-012 retargeted off retired board names;
       `plan.md` PR4 row; `telemetry-setup.md` + `contracts/telemetry-setup.md`

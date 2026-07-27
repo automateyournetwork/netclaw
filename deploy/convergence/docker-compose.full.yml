@@ -34,6 +34,8 @@ services:
     volumes:
       - ./loki/loki-config.yaml:/etc/loki/local-config.yaml:ro
       - convergence-lokidata:/loki
+      # Ruler rules, file-managed (read-only). Single-tenant Loki reads <dir>/fake/.
+      - ./loki/rules:/loki/rules:ro
     ports:
       - "${LOKI_HOST_PORT:-3100}:3100"
     networks: [convergence]

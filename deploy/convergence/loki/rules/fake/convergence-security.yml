@@ -13,6 +13,12 @@
 # whose payload contained the string) and stable against pfSense changing CSV
 # field order.
 #
+# LABEL NAMES: `| label_format` renames the Loki JSON-parser fields
+# (attributes_fw_interface, ...) to clean Prometheus label names (interface,
+# direction, protocol) BEFORE aggregation. Doing this now is deliberate — once
+# alerts and dashboards reference a series, renaming its labels is a breaking
+# change.
+#
 # CARDINALITY: deliberately NO src_ip dimension. External scanner IPs are
 # unbounded and these become Prometheus series. Top-talker analysis stays a
 # query-time Loki aggregation on the board; only bounded dimensions
@@ -42,17 +48,19 @@ groups:
       # "Which segment is being hammered" — bounded by interface count.
       - record: pfsense:filterlog_blocks_by_interface:rate5m
         expr: |
-          sum by (device_name, attributes_fw_interface, attributes_direction) (
+          sum by (device_name, interface, direction) (
             rate({job="device-syslog"} | json
-              | attributes_appname="filterlog" | attributes_action="block" [5m])
+              | attributes_appname="filterlog" | attributes_action="block"
+              | label_format interface=attributes_fw_interface, direction=attributes_direction [5m])
           )
 
       # Protocol mix of blocked traffic — case normalised at ingest.
       - record: pfsense:filterlog_blocks_by_protocol:rate5m
         expr: |
-          sum by (device_name, attributes_protocol) (
+          sum by (device_name, protocol) (
             rate({job="device-syslog"} | json
-              | attributes_appname="filterlog" | attributes_action="block" [5m])
+              | attributes_appname="filterlog" | attributes_action="block"
+              | label_format protocol=attributes_protocol [5m])
           )
 
   - name: convergence-security-dns

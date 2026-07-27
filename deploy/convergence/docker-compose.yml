@@ -42,6 +42,12 @@ services:
       - --storage.tsdb.path=/prometheus
       - --storage.tsdb.retention.time=15d
       - --web.enable-lifecycle
+      # Accept remote-write from the Loki ruler, which turns log-derived
+      # recording rules (pfsense:filterlog_*, pfsense:dns_*) into ordinary
+      # Prometheus series usable by alerts and dashboards (T143).
+      # Note: no auth on this endpoint — same posture as the rest of the stack,
+      # which is bound to the local Docker network.
+      - --web.enable-remote-write-receiver
     volumes:
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - ./prometheus/alerts:/etc/prometheus/alerts:ro
