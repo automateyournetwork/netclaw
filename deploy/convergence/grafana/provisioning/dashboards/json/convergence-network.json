@@ -278,7 +278,7 @@
     },
     {
       "id": 5,
-      "title": "Switches SNMP up",
+      "title": "SNMP devices reporting",
       "type": "stat",
       "gridPos": {
         "h": 4,
@@ -293,7 +293,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "count(up{job=\"device_snmp\"} == 1) or vector(0)",
+          "expr": "count(count by (device_name) (interface_status{job=\"device_snmp\"}))",
           "legendFormat": "Switches SNMP up",
           "datasource": {
             "type": "prometheus",
@@ -330,7 +330,8 @@
           ]
         },
         "textMode": "value_and_name"
-      }
+      },
+      "description": "Devices whose SNMP metrics are arriving. Replaces count(up{job=\"device_snmp\"}) \u2014 SNMP is remote-written by the OTel Collector now, so there is no scrape target to be \"up\" (T153)."
     },
     {
       "id": 6,

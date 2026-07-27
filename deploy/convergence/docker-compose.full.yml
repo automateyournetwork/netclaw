@@ -125,6 +125,10 @@ services:
     restart: unless-stopped
     command: ["--config=/etc/otel/config.yaml"]
     user: "10001:10001"
+    environment:
+      # SNMP read community for the device receivers. Stays in env, never in the
+      # committed config (FR-022).
+      SNMP_COMMUNITY: "${SNMP_COMMUNITY:-public}"
     volumes:
       - ./otel/otel-config.yaml:/etc/otel/config.yaml:ro
       - convergence-otel-queue:/var/lib/otelcol

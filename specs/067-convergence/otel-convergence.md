@@ -193,7 +193,7 @@ duplicate-series risk is called out — see Risks.
 | Duplicate series during SNMP dual-run (snmp_exporter + OTel both emitting `interface_status{job="device_snmp"}`) | Do **not** dual-run identical `job` labels. Cut over per device, or stage OTel with `service.name: device_snmp_otel`, compare, then flip. |
 | VictoriaMetrics has no writer today, so the 365d claim is currently fiction | Phase 4 wires `prometheusremotewrite` → VictoriaMetrics. Until then docs must not claim 365d. |
 | OTel config is heavier for a new operator than a scrape config | The wizard (Phase 5) generates it; operators edit `convergence.yaml`, never the collector config by hand. |
-| Losing `ifIndex` breaks anything keyed on it | Confirmed nothing on the provisioned boards or in the alert pack selects `ifIndex`; it was display-only and already removed. |
+| Losing `ifIndex` breaks anything keyed on it | **This risk assessment was wrong.** During the T151 cutover, `SwitchIdlePortsPresent` and `SwitchLinkLost` were found joining on `on(instance, ifIndex, device_name)` *and* selecting the raw `ifOperStatus`/`ifAdminStatus` names — not display-only at all. Both were rewritten onto `interface_status`/`interface_admin_status` joined on `interface_name`, and `SwitchInterfaceErrorsHigh` onto `interface_errors_*`. Two board panels also selected `up{job="device_snmp"}`, which stops existing when the scrape job goes away. Lesson: grep the alert pack and boards for the *raw* metric names, not just the label. |
 | `on_error: send` could ingest garbage as log bodies | Preferred over silent drop (FR-035 lesson). Parse failures remain countable in collector metrics. |
 
 ## Non-goals for this migration

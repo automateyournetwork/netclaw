@@ -1,3 +1,13 @@
+> **Phase 11 / T153: snmp_exporter is retired.** Device SNMP is collected by the
+> OTel Collector and remote-written to Prometheus (15d) and VictoriaMetrics (365d).
+> Metric names are unchanged (`interface_status`, `interface_octets_*_bytes_total`,
+> `interface_errors_*_total`) and `interface_admin_status` is new. Labels lose
+> `ifIndex`/`ifName`/`ifDescr`/`snmp_module`. See
+> [`../../otel/snmp-receivers.md`](../../otel/snmp-receivers.md) and
+> [`../../../specs/067-convergence/otel-convergence.md`](../../../specs/067-convergence/otel-convergence.md).
+> The `snmp.yml` module pack here is still used by the wireless exporter and is the
+> input the T154 generator reads for OID/vendor mapping.
+
 # Device SNMP (campus switches) — Phase 8 plumbing + Phase 10 apply
 
 Polls **wired infrastructure** (Cisco Catalyst, pfSense IF-MIB, etc.) via

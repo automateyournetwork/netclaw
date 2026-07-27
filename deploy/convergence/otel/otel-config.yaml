@@ -120,6 +120,162 @@ receivers:
       listen_address: 0.0.0.0:1514
       add_attributes: true
 
+  # --- SNMP: campus switches (T151) --------------------------------------------
+  # Metric names and OIDs: see otel/snmp-receivers.md. Chosen so
+  # prometheusremotewrite emits exactly the names Convergence already uses, which
+  # is why this cutover needs no dashboard or alert changes.
+  # T154 generates these blocks from convergence.yaml inventory.
+  snmp/homeswitch01:
+    collection_interval: 60s
+    initial_delay: 0s
+    endpoint: udp://192.168.3.2:161
+    version: v2c
+    community: ${env:SNMP_COMMUNITY}
+    timeout: 30s
+    resource_attributes:
+      interface.name:
+        oid: 1.3.6.1.2.1.2.2.1.2
+    metrics:
+      interface.octets.in:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.6
+            resource_attributes: [interface.name]
+      interface.octets.out:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.10
+            resource_attributes: [interface.name]
+      interface.errors.in:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.14
+            resource_attributes: [interface.name]
+      interface.errors.out:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.20
+            resource_attributes: [interface.name]
+      interface.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.8
+            resource_attributes: [interface.name]
+      # NEW: ifAdminStatus. With interface.status this separates
+      # administratively-shut from link-failed, which SwitchLinkLost currently
+      # has to infer from "was oper-up 15m ago".
+      interface.admin.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.7
+            resource_attributes: [interface.name]
+  snmp/homeswitch02:
+    collection_interval: 60s
+    initial_delay: 5s
+    endpoint: udp://192.168.3.3:161
+    version: v2c
+    community: ${env:SNMP_COMMUNITY}
+    timeout: 30s
+    resource_attributes:
+      interface.name:
+        oid: 1.3.6.1.2.1.2.2.1.2
+    metrics:
+      interface.octets.in:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.6
+            resource_attributes: [interface.name]
+      interface.octets.out:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.10
+            resource_attributes: [interface.name]
+      interface.errors.in:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.14
+            resource_attributes: [interface.name]
+      interface.errors.out:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.20
+            resource_attributes: [interface.name]
+      interface.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.8
+            resource_attributes: [interface.name]
+      # NEW: ifAdminStatus. With interface.status this separates
+      # administratively-shut from link-failed, which SwitchLinkLost currently
+      # has to infer from "was oper-up 15m ago".
+      interface.admin.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.7
+            resource_attributes: [interface.name]
+  snmp/homeswitch04:
+    collection_interval: 60s
+    initial_delay: 10s
+    endpoint: udp://192.168.3.5:161
+    version: v2c
+    community: ${env:SNMP_COMMUNITY}
+    timeout: 30s
+    resource_attributes:
+      interface.name:
+        oid: 1.3.6.1.2.1.2.2.1.2
+    metrics:
+      interface.octets.in:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.6
+            resource_attributes: [interface.name]
+      interface.octets.out:
+        unit: By
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.10
+            resource_attributes: [interface.name]
+      interface.errors.in:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.14
+            resource_attributes: [interface.name]
+      interface.errors.out:
+        unit: "{errors}"
+        sum: {value_type: int, aggregation: cumulative, monotonic: true}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.20
+            resource_attributes: [interface.name]
+      interface.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.8
+            resource_attributes: [interface.name]
+      # NEW: ifAdminStatus. With interface.status this separates
+      # administratively-shut from link-failed, which SwitchLinkLost currently
+      # has to infer from "was oper-up 15m ago".
+      interface.admin.status:
+        unit: "{state}"
+        gauge: {value_type: int}
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.7
+            resource_attributes: [interface.name]
+
 processors:
   # --- Device identity ------------------------------------------------------
   # Resolution order is deliberate:
@@ -233,6 +389,42 @@ processors:
     limit_percentage: 75
     spike_limit_percentage: 15
 
+  # --- Per-device metric identity (T151) ---------------------------------------
+  # job comes from service.name and instance from service.instance.id, so setting
+  # them here preserves every existing selector (job="device_snmp", instance=<ip>)
+  # through the cutover.
+  #
+  # CUT OVER (T153). Parity was proven side by side under
+  # service.name=device_snmp_otel before this flip: identical series counts
+  # (interface_status 300, octets 172, errors 190), zero set differences in either
+  # direction, and zero value mismatches. snmp_exporter, its scrape job and
+  # device-recording.rules.yml were removed in the same change — never leave two
+  # writers on the same job label.
+  resource/homeswitch01:
+    attributes:
+      - {key: service.name,        value: device_snmp,      action: upsert}
+      - {key: service.instance.id, value: "192.168.3.2",           action: upsert}
+      - {key: device_name,         value: HomeSwitch01,           action: upsert}
+      - {key: role,                value: switch,           action: upsert}
+      - {key: vendor,              value: cisco,         action: upsert}
+      - {key: site,                value: home,             action: upsert}
+  resource/homeswitch02:
+    attributes:
+      - {key: service.name,        value: device_snmp,      action: upsert}
+      - {key: service.instance.id, value: "192.168.3.3",           action: upsert}
+      - {key: device_name,         value: HomeSwitch02,           action: upsert}
+      - {key: role,                value: switch,           action: upsert}
+      - {key: vendor,              value: cisco,         action: upsert}
+      - {key: site,                value: home,             action: upsert}
+  resource/homeswitch04:
+    attributes:
+      - {key: service.name,        value: device_snmp,      action: upsert}
+      - {key: service.instance.id, value: "192.168.3.5",           action: upsert}
+      - {key: device_name,         value: HomeSwitch04,           action: upsert}
+      - {key: role,                value: switch,           action: upsert}
+      - {key: vendor,              value: cisco,         action: upsert}
+      - {key: site,                value: home,             action: upsert}
+
 exporters:
   # Interactive retention (14d) — what the Grafana boards query.
   loki:
@@ -256,6 +448,26 @@ exporters:
     sending_queue:
       enabled: true
       storage: file_storage/otel
+
+  # --- Metrics out --------------------------------------------------------------
+  # Prometheus (15d) is what the boards and alert rules query; VictoriaMetrics
+  # (365d) is long-term. Before this task nothing had ever written to
+  # VictoriaMetrics, so the 365d retention claim was fiction.
+  prometheusremotewrite/prometheus:
+    endpoint: http://prometheus:9090/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
+
+  prometheusremotewrite/victoriametrics:
+    endpoint: http://victoriametrics:8428/api/v1/write
+    resource_to_telemetry_conversion:
+      enabled: true
+    timeout: 30s
+    retry_on_failure:
+      enabled: true
 
 extensions:
   health_check:
@@ -287,3 +499,16 @@ service:
         - resource/devices
         - batch
       exporters: [loki, otlphttp/victorialogs]
+
+    metrics/homeswitch01:
+      receivers: [snmp/homeswitch01]
+      processors: [memory_limiter, resource/homeswitch01, batch]
+      exporters: [prometheusremotewrite/prometheus, prometheusremotewrite/victoriametrics]
+    metrics/homeswitch02:
+      receivers: [snmp/homeswitch02]
+      processors: [memory_limiter, resource/homeswitch02, batch]
+      exporters: [prometheusremotewrite/prometheus, prometheusremotewrite/victoriametrics]
+    metrics/homeswitch04:
+      receivers: [snmp/homeswitch04]
+      processors: [memory_limiter, resource/homeswitch04, batch]
+      exporters: [prometheusremotewrite/prometheus, prometheusremotewrite/victoriametrics]

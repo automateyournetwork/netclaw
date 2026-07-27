@@ -10,28 +10,37 @@ groups:
   - name: netclaw-convergence.device
     interval: 30s
     rules:
-      - alert: DeviceSnmpExporterDown
-        expr: up{job="device_snmp"} == 0
-        for: 10m
+      # SNMP is collected by the OTel Collector, so there is no `up{job="device_snmp"}`
+      # to watch. Detect staleness instead: a device that stopped answering SNMP
+      # stops refreshing its series. Device-agnostic — no hardcoded inventory.
+      - alert: DeviceSnmpStale
+        expr: |
+          (time() - max by (device_name, site) (timestamp(interface_status{job="device_snmp"}))) > 300
+        for: 5m
         labels:
           severity: warning
           site: home
           investigate: "true"
         annotations:
-          summary: "Device SNMP target not scraping ({{ $labels.device_name }})"
+          summary: "Device SNMP data is stale ({{ $labels.device_name }})"
           description: >-
-            Prometheus cannot scrape device_snmp for device_name={{ $labels.device_name }}
-            instance={{ $labels.instance }}.
-            Enable profile device-snmp / re-run convergence-telemetry-apply.sh,
-            check SNMP_COMMUNITY and reachability, or remove stale targets.
+            No fresh SNMP metrics for device_name={{ $labels.device_name }} in over
+            5 minutes. Check the collector (`docker logs
+            netclaw-convergence-otel-collector-1`), SNMP_COMMUNITY, and device
+            reachability. Collector-wide failure shows as up{job="otel-collector"}==0.
 
       # Aggregate idle-port inventory for dashboards only — never auto-investigate.
+      #
+      # Rewritten in T153: the OTel path emits interface_status /
+      # interface_admin_status (not raw ifOperStatus / ifAdminStatus) and carries no
+      # ifIndex label, so the join moved to interface_name. interface_name is
+      # stable and human-readable, which also makes the annotations honest.
       - alert: SwitchIdlePortsPresent
         expr: |
           count by (device_name, instance, site) (
-            ifOperStatus{job="device_snmp",role="switch"} == 2
-            and on(instance, ifIndex, device_name)
-            ifAdminStatus{job="device_snmp",role="switch"} == 1
+            interface_status{job="device_snmp",role="switch"} == 2
+            and on(instance, interface_name, device_name)
+            interface_admin_status{job="device_snmp",role="switch"} == 1
           ) > 0
         for: 30m
         labels:
@@ -46,17 +55,21 @@ groups:
             oper-down. Expected for unused ports — dashboard only (investigate=false).
 
       # Real fault: link was UP recently and is now DOWN while admin-up.
-      # Annotations prefer human names (ifDescr / ifName / interface_name).
+      #
+      # interface_admin_status arrived with the OTel cutover (T152). Before it, the
+      # only way to tell "administratively shut" from "link failed" was this
+      # offset-15m heuristic. The admin-status term is now authoritative and the
+      # offset check only distinguishes a *recent* loss from a long-idle port.
       - alert: SwitchLinkLost
         expr: |
           (
-            ifOperStatus{job="device_snmp",role="switch"} == 2
-            and on(instance, ifIndex, device_name)
-            ifAdminStatus{job="device_snmp",role="switch"} == 1
+            interface_status{job="device_snmp",role="switch"} == 2
+            and on(instance, interface_name, device_name)
+            interface_admin_status{job="device_snmp",role="switch"} == 1
           )
-          and on(instance, ifIndex, device_name)
+          and on(instance, interface_name, device_name)
           (
-            ifOperStatus{job="device_snmp",role="switch"} offset 15m == 1
+            interface_status{job="device_snmp",role="switch"} offset 15m == 1
           )
         for: 3m
         labels:
@@ -64,21 +77,19 @@ groups:
           site: home
           investigate: "true"
         annotations:
-          summary: >-
-            Link lost on {{ $labels.device_name }}
-            {{ with $labels.ifDescr }}{{ . }}{{ else }}{{ with $labels.ifName }}{{ . }}{{ else }}ifIndex={{ $labels.ifIndex }}{{ end }}{{ end }}
+          summary: "Link lost on {{ $labels.device_name }} {{ $labels.interface_name }}"
           description: >-
-            Interface was oper-up 15m ago and is now down (admin still up)
-            on device_name={{ $labels.device_name }} instance={{ $labels.instance }}.
-            ifDescr={{ $labels.ifDescr }} ifName={{ $labels.ifName }}
-            ifIndex={{ $labels.ifIndex }}.
+            Interface {{ $labels.interface_name }} was oper-up 15m ago and is now
+            down while still admin-up, on device_name={{ $labels.device_name }}
+            instance={{ $labels.instance }}. Admin-shut ports are excluded by the
+            interface_admin_status term.
 
       # Aggregate error rate by device — NOT per-ifIndex (safe cardinality).
       - alert: SwitchInterfaceErrorsHigh
         expr: |
           sum by (device_name, instance, site) (
-            rate(ifInErrors{job="device_snmp",role="switch"}[5m])
-            + rate(ifOutErrors{job="device_snmp",role="switch"}[5m])
+            rate(interface_errors_in_total{job="device_snmp",role="switch"}[5m])
+            + rate(interface_errors_out_total{job="device_snmp",role="switch"}[5m])
           ) > 5
         for: 10m
         labels:

@@ -514,14 +514,41 @@ T126/T128. Both remain in place until the phase that retires them.
 
 ### SNMP (PR3) — the rename-free cutover
 
-- [ ] T151 OTel `snmp/<device>` receivers generated per inventory target, with
+- [x] T151 OTel `snmp/<device>` receivers per inventory target with
       `service.name: device_snmp` + `service.instance.id: <ip>` so `job`/`instance`
-      selectors survive (FR-040)
-- [ ] T152 Add `interface.admin.status`; wire `prometheusremotewrite` →
-      VictoriaMetrics (first real writer — the 365d retention claim becomes true)
-- [ ] T153 Retire `device-recording.rules.yml` (OTel emits final names directly)
-      and the snmp_exporter service. **Do not dual-run identical `job` labels** —
-      cut over per device or stage under a distinct `service.name`, compare, flip.
+      selectors survive (FR-040). Reference shape documented in
+      `deploy/convergence/otel/snmp-receivers.md` (T154 generates it).
+      **Staged first** under `service.name: device_snmp_otel` and run alongside
+      snmp_exporter to prove parity: identical series counts (interface_status 300,
+      octets 172, errors 190), **0 set differences** in either direction, **0 value
+      mismatches**. Then flipped.
+- [x] T152 `interface.admin.status` (ifAdminStatus) added — 300 series, and 79
+      interfaces are administratively shut, which was previously indistinguishable
+      from link-failed. `prometheusremotewrite` wired to **both** Prometheus (15d,
+      what boards and alerts query) and **VictoriaMetrics** (365d). VictoriaMetrics
+      had **zero series ever written** before this; the 365d retention claim in the
+      docs was fiction until now — 2,648 series present.
+- [x] T153 Retired `snmp_exporter` (service + container), the `device_snmp` scrape
+      job, and `device-recording.rules.yml` — OTel emits the final metric names
+      directly, so the `label_replace` chain that synthesised them is redundant.
+      **The T145 risk assessment about `ifIndex` was wrong** and this task found it:
+      `SwitchIdlePortsPresent` and `SwitchLinkLost` joined on
+      `on(instance, ifIndex, device_name)` *and* selected the raw
+      `ifOperStatus`/`ifAdminStatus` names; `SwitchInterfaceErrorsHigh` used
+      `ifInErrors`/`ifOutErrors`; two board panels selected `up{job="device_snmp"}`,
+      which ceases to exist without a scrape job. All rewritten:
+      · joins → `on(instance, interface_name, device_name)`
+      · raw names → `interface_status` / `interface_admin_status` / `interface_errors_*`
+      · `DeviceSnmpExporterDown` → `DeviceSnmpStale` (freshness via `timestamp()`,
+        device-agnostic, no exporter to watch)
+      · `SwitchLinkLost` annotations use `interface_name`; the admin-status term is
+        now authoritative rather than inferred from a 15m offset heuristic
+      · board panels → `count(count by (device_name) (interface_status))`, which
+        measures data arriving rather than a scrape target being up
+      Verified: 10 rules load, all four rewritten rules `health=ok`; 3 devices
+      reporting; up/down counts 58/63/35; 12/12 log-panel queries pass.
+      Lesson recorded in the decision record: grep for the **raw metric names**,
+      not just the label, before claiming a label is display-only.
 
 ### Wizard & K3s (PR4)
 
