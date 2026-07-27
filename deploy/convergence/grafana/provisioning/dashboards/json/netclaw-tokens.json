@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "Token usage, cost, and model call metrics from the NetClaw gateway (OpenClaw session logs, pulled via exporter on 192.168.3.252:9110)",
+  "description": "Curated agent observability (Phase 10). netclaw_model_* from host openclaw-token-exporter. Grafana :3300.",
   "editable": true,
   "fiscalYearStartMonth": 0,
   "graphTooltip": 1,
@@ -662,12 +662,15 @@
   ],
   "schemaVersion": 39,
   "tags": [
-    "netclaw",
-    "tokens",
+    "agent-tokens",
     "ai",
-    "cost",
     "convergence",
-    "from-pilot"
+    "cost",
+    "curated",
+    "from-pilot",
+    "netclaw",
+    "phase10",
+    "tokens"
   ],
   "templating": {
     "list": []
@@ -678,7 +681,7 @@
   },
   "timepicker": {},
   "timezone": "",
-  "title": "NetClaw \u2014 Token Usage & Cost",
+  "title": "NetClaw Agent \u2014 Tokens & Cost",
   "uid": "netclaw-tokens",
   "version": 1
 }

@@ -2,7 +2,7 @@
   "annotations": {
     "list": []
   },
-  "description": "DeepSeek quota early-warning for the NetClaw gateway. 7-day token burn and projected weekly burn vs a configurable budget, plus local-vs-cloud call split. Proxy/early-warning only \u2014 the Ollama GPU-time dashboard remains authoritative for the real quota.",
+  "description": "DeepSeek quota early-warning for the NetClaw gateway. 7-day token burn and projected weekly burn vs a configurable budget, plus local-vs-cloud call split. Proxy/early-warning only \u2014 the Ollama GPU-time dashboard remains authoritative for the real quota.\nOptional deep-dive; primary agent board is netclaw-tokens.",
   "editable": true,
   "graphTooltip": 1,
   "id": null,
@@ -353,13 +353,15 @@
   ],
   "schemaVersion": 39,
   "tags": [
-    "netclaw",
-    "quota",
+    "agent-tokens",
+    "convergence",
     "cost",
     "deepseek",
+    "from-pilot",
+    "netclaw",
     "openclaw",
-    "convergence",
-    "from-pilot"
+    "optional",
+    "quota"
   ],
   "time": {
     "from": "now-7d",

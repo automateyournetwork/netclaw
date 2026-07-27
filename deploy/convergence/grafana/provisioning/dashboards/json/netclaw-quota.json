@@ -1,12 +1,15 @@
 {
   "title": "NetClaw \u2014 Model Usage & DeepSeek Quota Watch",
-  "uid": "netclaw-quota-watch",
+  "uid": "netclaw-quota",
   "tags": [
+    "agent-tokens",
+    "convergence",
+    "from-pilot",
     "netclaw",
     "openclaw",
+    "phase10",
     "quota",
-    "convergence",
-    "from-pilot"
+    "optional"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

@@ -277,6 +277,46 @@ curl -sG 'http://127.0.0.1:9090/api/v1/query' \
 # Generated checklist (after apply): deploy/convergence/generated/device-config-checklist.md
 ```
 
+### Curated Grafana + independent test (PR3 — T132–T134, T138) ✅
+
+Grafana: **http://127.0.0.1:3300** → folder **Convergence**  
+Doc: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md)
+
+| Curated board | UID |
+|---------------|-----|
+| Home NOC — Network Guardian | `network-guardian` |
+| Campus Interfaces | `network-interfaces` |
+| Campus Switches (summary) | `convergence-device-snmp` |
+| WAN Speedtest | `wan-speedtest` |
+| NetClaw Agent — Tokens & Cost | `netclaw-tokens` |
+
+Optional boards are titled `[optional] …` (NetFlow, deep log ops).
+
+#### Independent test (SC-010–SC-013)
+
+```bash
+# SC-010 — apply lab inventory → named interfaces within ~5m
+./scripts/convergence-telemetry-apply.sh --config config/convergence.example.yaml
+./deploy/convergence/smoke-device-snmp.sh
+curl -sG 'http://127.0.0.1:9090/api/v1/query' \
+  --data-urlencode 'query=count(interface_status{interface_name!=""})'
+
+# SC-011 — Nautobot select → yaml (no live apply required)
+./deploy/convergence/smoke-telemetry-setup.sh   # MODE=nautobot
+
+# SC-012 — Grafana Campus Interfaces with named legends (:3300)
+# Open http://127.0.0.1:3300 → Convergence → Campus Interfaces
+# Legends/table show interface_name (e.g. GigabitEthernet1/0/1), not ifIndex-only
+
+# SC-013 — checklist has syslog host:port + SNMP_COMMUNITY env name
+grep -E 'SNMP_COMMUNITY|Syslog destination|1514' \
+  deploy/convergence/generated/device-config-checklist.md
+
+# Alerts: investigate labels + named-interface annotations
+curl -s http://127.0.0.1:9090/api/v1/rules | python3 -c \
+  "import sys,json; print([r['name'] for g in json.load(sys.stdin)['data']['groups'] for r in g['rules'] if r.get('type')=='alerting'])"
+```
+
 ## Models (brain vs alert triage)
 
 **Source of truth:** repo `.env` (or Convergence tab → **Models**):

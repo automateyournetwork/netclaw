@@ -1,12 +1,15 @@
 {
   "uid": "netclaw-operations",
-  "title": "NetClaw Operations",
-  "description": "Alert receiver metrics, investigation pipeline health, and operational status",
+  "title": "[optional] NetClaw Operations",
+  "description": "Alert receiver metrics, investigation pipeline health, and operational status\n\n[Phase 10] OPTIONAL \u2014 Loki operations deep-dive; optional. Not part of the default curated suite.",
   "tags": [
-    "netclaw",
-    "operations",
     "convergence",
-    "from-pilot"
+    "from-pilot",
+    "netclaw",
+    "not-default-curated",
+    "operations",
+    "optional",
+    "phase10"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

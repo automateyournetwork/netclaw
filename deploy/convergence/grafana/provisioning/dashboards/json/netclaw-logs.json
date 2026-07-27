@@ -317,10 +317,13 @@
   ],
   "schemaVersion": 39,
   "tags": [
-    "netclaw",
-    "logs",
     "convergence",
-    "from-pilot"
+    "from-pilot",
+    "logs",
+    "netclaw",
+    "not-default-curated",
+    "optional",
+    "phase10"
   ],
   "templating": {
     "list": []
@@ -331,7 +334,8 @@
   },
   "timepicker": {},
   "timezone": "browser",
-  "title": "NetClaw Logs",
+  "title": "[optional] NetClaw Logs",
   "uid": "netclaw-logs",
-  "version": 1
+  "version": 1,
+  "description": "\n\n[Phase 10] OPTIONAL \u2014 Useful when Loki + agent log forward enabled; optional. Not part of the default curated suite."
 }

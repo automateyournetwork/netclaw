@@ -1,15 +1,19 @@
 {
   "uid": "network-guardian",
-  "title": "Network Guardian \u2014 Home Pilot",
-  "description": "Operator view of internet (WAN) health + Wi-Fi client experience for the home network. Proving ground for the Network Guardian product before going live. WAN metrics from blackbox (TCP/HTTP/DNS to public targets, VLAN13 vantage); throughput from pfSense SNMP; Wi-Fi/AP/client telemetry from the UniFi API-key exporter (Integration API). Mirrors the /demo client-portal layout with real data.",
+  "title": "Home NOC \u2014 Network Guardian",
+  "description": "Curated Convergence Home NOC (Phase 10). Health score, WAN probes, UniFi, and WAN interface traffic. Uses convergence:* recording rules + Prometheus.",
   "tags": [
-    "network-guardian",
-    "wan",
-    "wifi",
-    "internet",
-    "pilot",
     "convergence",
-    "from-pilot"
+    "curated",
+    "from-pilot",
+    "home-noc",
+    "internet",
+    "netclaw",
+    "network-guardian",
+    "phase10",
+    "pilot",
+    "wan",
+    "wifi"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -27,7 +31,7 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "victoriametrics-longterm"
+          "uid": "prometheus"
         },
         "query": "label_values(interface_octets_in_bytes_total{device_name=\"pfsense\"}, interface_name)",
         "refresh": 2,
@@ -67,10 +71,10 @@
         "type": "prometheus",
         "uid": "prometheus"
       },
-      "description": "Derived 0-100 score (guardian:health_score). Starts at 100, penalized for WAN loss, latency, and edge-router reachability.",
+      "description": "Derived 0-100 score (convergence:health_score). Starts at 100, penalized for WAN loss, latency, and edge-router reachability.",
       "targets": [
         {
-          "expr": "guardian:health_score{site=\"home\"}",
+          "expr": "convergence:health_score{site=\"home\"}",
           "refId": "A"
         }
       ],
@@ -127,7 +131,7 @@
       "description": "Average TCP-connect RTT to public WAN targets (~ round-trip latency).",
       "targets": [
         {
-          "expr": "guardian:wan_latency_ms:avg{site=\"home\"}",
+          "expr": "convergence:wan_latency_ms:avg{site=\"home\"}",
           "refId": "A"
         }
       ],
@@ -178,7 +182,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "description": "pfSense WAN bits/sec (down = in, up = out) from SNMP interface counters. Pick the right interface via the $wan_if variable.",
       "targets": [
@@ -230,7 +234,7 @@
       "description": "Percentage of failed WAN probes over the last 5 minutes.",
       "targets": [
         {
-          "expr": "100 * guardian:wan_loss_ratio:5m{site=\"home\"}",
+          "expr": "100 * convergence:wan_loss_ratio:5m{site=\"home\"}",
           "refId": "A"
         }
       ],
@@ -298,7 +302,7 @@
       "description": "WAN latency (ms) and packet loss (%) over time \u2014 the core internet-health trend.",
       "targets": [
         {
-          "expr": "guardian:wan_latency_ms:avg{site=\"home\"}",
+          "expr": "convergence:wan_latency_ms:avg{site=\"home\"}",
           "legendFormat": "Latency (ms)",
           "refId": "A"
         },
@@ -379,7 +383,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "description": "pfSense WAN download/upload throughput from SNMP counters.",
       "targets": [

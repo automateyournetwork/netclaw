@@ -1,13 +1,16 @@
 {
   "uid": "netflow-overview",
-  "title": "NetFlow Overview",
-  "description": "NetFlow/IPFIX collection from pfSense via goflow2",
+  "title": "[optional] NetFlow Overview",
+  "description": "NetFlow/IPFIX collection from pfSense via goflow2\n\n[Phase 10] OPTIONAL \u2014 Requires goflow2 NetFlow collector \u2014 not in default Convergence full stack. Not part of the default curated suite.",
   "tags": [
-    "network",
-    "netflow",
-    "goflow2",
     "convergence",
-    "from-pilot"
+    "from-pilot",
+    "goflow2",
+    "netflow",
+    "network",
+    "not-default-curated",
+    "optional",
+    "phase10"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

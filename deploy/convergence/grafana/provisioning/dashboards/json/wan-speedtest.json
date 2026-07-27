@@ -1,15 +1,18 @@
 {
   "uid": "wan-speedtest",
   "title": "WAN Speedtest \u2014 Bandwidth Validation",
-  "description": "Active download/upload/latency measurements against configurable Ookla servers (ISP-local, geo-close, cloud) to validate the paid rate and compare paths. Data: speedtest CronJob \u2192 Pushgateway \u2192 Prometheus. Use the $server selector to focus a path. See docs/NETWORK_GUARDIAN.md.",
+  "description": "Active download/upload/latency measurements against configurable Ookla servers (ISP-local, geo-close, cloud) to validate the paid rate and compare paths. Data: speedtest CronJob \u2192 Pushgateway \u2192 Prometheus. Use the $server selector to focus a path. See docs/NETWORK_GUARDIAN.md.\nCurated WAN/edge board (Phase 10). Grafana :3300.",
   "tags": [
-    "network-guardian",
-    "wan",
-    "speedtest",
     "bandwidth",
-    "isp",
     "convergence",
-    "from-pilot"
+    "curated",
+    "from-pilot",
+    "isp",
+    "network-guardian",
+    "phase10",
+    "speedtest",
+    "wan",
+    "wan-edge"
   ],
   "timezone": "browser",
   "schemaVersion": 39,

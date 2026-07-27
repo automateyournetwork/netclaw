@@ -1,9 +1,11 @@
-# Phase 8 — campus device SNMP + agent exporter alerts (greenfield)
+# Phase 8/10 — campus device SNMP + agent exporter alerts (greenfield)
 #
 # SAFETY (2026-07-25): Do NOT fire per-ifIndex "admin-up oper-down" as a
 # pageable/investigated alert. On campus switches that matches every idle
 # access port and storms Alertmanager → alert-receiver → OpenClaw hooks
 # (one full MCP farm per fingerprint). See docs/CONVERGENCE-ALERT-SAFETY.md.
+#
+# Phase 10 (T134): interface identity in annotations; investigate labels on all rules.
 groups:
   - name: netclaw-convergence.device
     interval: 30s
@@ -18,12 +20,12 @@ groups:
         annotations:
           summary: "Device SNMP target not scraping ({{ $labels.device_name }})"
           description: >-
-            Prometheus cannot scrape device_snmp for {{ $labels.instance }}.
-            Enable compose profile device-snmp, check SNMP community/reachability,
-            or remove stale targets from prometheus.yml.
+            Prometheus cannot scrape device_snmp for device_name={{ $labels.device_name }}
+            instance={{ $labels.instance }}.
+            Enable profile device-snmp / re-run convergence-telemetry-apply.sh,
+            check SNMP_COMMUNITY and reachability, or remove stale targets.
 
       # Aggregate idle-port inventory for dashboards only — never auto-investigate.
-      # Admin-up + oper-down is normal for unused access ports.
       - alert: SwitchIdlePortsPresent
         expr: |
           count by (device_name, instance, site) (
@@ -41,11 +43,10 @@ groups:
           summary: "Idle admin-up ports on {{ $labels.device_name }} ({{ $value }})"
           description: >-
             {{ $value }} interfaces on {{ $labels.device_name }} are admin-up but
-            oper-down. This is expected for unused ports — metrics/dashboard only.
-            Not an investigation trigger.
+            oper-down. Expected for unused ports — dashboard only (investigate=false).
 
-      # Real fault signal: link was UP recently and is now DOWN while admin-up.
-      # Idle ports never satisfy the offset==1 clause, so they do not fire.
+      # Real fault: link was UP recently and is now DOWN while admin-up.
+      # Annotations prefer human names (ifDescr / ifName / interface_name).
       - alert: SwitchLinkLost
         expr: |
           (
@@ -67,9 +68,31 @@ groups:
             Link lost on {{ $labels.device_name }}
             {{ with $labels.ifDescr }}{{ . }}{{ else }}{{ with $labels.ifName }}{{ . }}{{ else }}ifIndex={{ $labels.ifIndex }}{{ end }}{{ end }}
           description: >-
-            Interface was operationally up 15m ago and is now down (admin still up)
-            on {{ $labels.device_name }} ({{ $labels.instance }}).
-            ifIndex={{ $labels.ifIndex }} ifDescr={{ $labels.ifDescr }} ifName={{ $labels.ifName }}.
+            Interface was oper-up 15m ago and is now down (admin still up)
+            on device_name={{ $labels.device_name }} instance={{ $labels.instance }}.
+            ifDescr={{ $labels.ifDescr }} ifName={{ $labels.ifName }}
+            ifIndex={{ $labels.ifIndex }}.
+
+      # Aggregate error rate by device — NOT per-ifIndex (safe cardinality).
+      - alert: SwitchInterfaceErrorsHigh
+        expr: |
+          sum by (device_name, instance, site) (
+            rate(ifInErrors{job="device_snmp",role="switch"}[5m])
+            + rate(ifOutErrors{job="device_snmp",role="switch"}[5m])
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "true"
+        annotations:
+          summary: "High interface error rate on {{ $labels.device_name }}"
+          description: >-
+            Aggregate in+out IF-MIB error rate ≈ {{ $value | humanize }} /s on
+            device_name={{ $labels.device_name }} instance={{ $labels.instance }} for 10m.
+            Open Campus Interfaces (Grafana :3300) and filter by device_name —
+            series are named via interface_name (ifDescr/ifName).
+            Aggregated by device only (no per-ifIndex alert) to avoid storms.
 
       - alert: NetclawAgentMetricsDown
         expr: up{job="netclaw-openclaw"} == 0
@@ -79,7 +102,7 @@ groups:
           site: home
           investigate: "false"
         annotations:
-          summary: "NetClaw openclaw-token-exporter not scraping"
+          summary: "NetClaw agent metrics exporter not scraping"
           description: >-
-            Enable scripts/openclaw-metrics (user systemd) on the NetClaw host
-            or ignore if agent_observability.token_exporter is intentionally off.
+            Job netclaw-openclaw is down. Enable openclaw-token-exporter on the host
+            (scripts/openclaw-metrics) or ignore if agent observability is disabled.

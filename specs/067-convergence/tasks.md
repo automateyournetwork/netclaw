@@ -273,11 +273,15 @@ remains minimal WAN + UniFi until device-snmp / telemetry setup is selected.
 
 ### Dashboards & alerts (PR3)
 
-- [ ] T132 Curated dashboard suite (Home NOC, Campus Interfaces, WAN/edge, agent)
-- [ ] T133 Retire/tag empty boards; document datasource UIDs and Grafana **:3300**
-- [ ] T134 Alert pack expansion (safe cardinality) + interface names in
-      annotations; honor `investigate` labels
-- [ ] T138 Independent test steps in quickstart (SC-010–SC-013)
+- [x] T132 Curated dashboard suite (Home NOC, Campus Interfaces, WAN/edge, agent)
+      — `network-guardian` (convergence:*), `network-interfaces`,
+      `device-snmp-switches`, `wan-speedtest`, `netclaw-tokens`
+- [x] T133 Retire/tag empty boards (`[optional]` titles); Grafana README with
+      datasource UIDs and **:3300**
+- [x] T134 Alert pack expansion (safe cardinality) + interface names in
+      annotations; `investigate` labels on home + device rules; `WanHardDown`,
+      `SwitchInterfaceErrorsHigh`, `EdgeMgmtUnreachable`
+- [x] T138 Independent test steps in quickstart (SC-010–SC-013)
 
 **Phase 10 checkpoint**: Spec Kit green (T120–T124); then PR1 re-applyable lab
 without hand-editing Prometheus; PR2 SoT wizard; PR3 curated boards + safe alerts.

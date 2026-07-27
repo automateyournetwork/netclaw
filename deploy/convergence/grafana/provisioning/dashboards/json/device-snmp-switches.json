@@ -1,12 +1,15 @@
 {
-  "title": "Convergence \u2014 Campus Switches (device_snmp)",
+  "title": "Campus Switches (summary)",
   "uid": "convergence-device-snmp",
   "tags": [
-    "netclaw",
+    "campus-interfaces",
     "convergence",
+    "curated",
+    "netclaw",
+    "phase10",
+    "phase8",
     "snmp",
-    "switches",
-    "phase8"
+    "switches"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -253,7 +256,7 @@
     },
     {
       "id": 5,
-      "title": "Interface traffic by device (bits/s)",
+      "title": "Traffic by interface (bits/s)",
       "type": "timeseries",
       "gridPos": {
         "h": 10,
@@ -291,13 +294,13 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "sum by (device_name) (rate(ifHCInOctets{job=\"device_snmp\", device_name=~\"$device\"}[5m]) * 8)",
-          "legendFormat": "{{device_name}} {{ifName}}"
+          "expr": "topk(20, rate(interface_octets_in_bytes_total{device_name=~\"$device\"}[5m]) * 8)",
+          "legendFormat": "{{device_name}} {{interface_name}} in"
         },
         {
           "refId": "B",
-          "expr": "sum by (device_name) (rate(ifHCOutOctets{job=\"device_snmp\", device_name=~\"$device\"}[5m]) * 8)",
-          "legendFormat": "{{device_name}} {{ifName}}"
+          "expr": "topk(20, rate(interface_octets_out_bytes_total{device_name=~\"$device\"}[5m]) * 8)",
+          "legendFormat": "{{device_name}} {{interface_name}} out"
         }
       ]
     },
@@ -346,7 +349,7 @@
     },
     {
       "id": 7,
-      "title": "Interface oper status (1=up 2=down)",
+      "title": "Interface oper status (named)",
       "type": "table",
       "gridPos": {
         "h": 12,
@@ -370,10 +373,10 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "ifOperStatus{job=\"device_snmp\", device_name=~\"$device\"}",
+          "expr": "interface_status{device_name=~\"$device\"}",
           "format": "table",
           "instant": true,
-          "legendFormat": "{{device_name}} {{ifName}} {{ifDescr}} ({{ifIndex}})"
+          "legendFormat": "{{device_name}} {{interface_name}}"
         }
       ],
       "transformations": [
@@ -389,17 +392,24 @@
               "__name__": true,
               "job": true,
               "site": true,
-              "role": true
+              "role": true,
+              "ifIndex": false,
+              "ifDescr": true,
+              "ifName": true,
+              "snmp_module": true,
+              "vendor": true
             },
             "renameByName": {
               "device_name": "Device",
-              "ifIndex": "ifIndex",
+              "interface_name": "Interface",
               "instance": "IP",
-              "Value": "ifOperStatus"
+              "Value": "Status (1=up 2=down)",
+              "ifIndex": "ifIndex"
             }
           }
         }
       ]
     }
-  ]
+  ],
+  "description": "Curated device_snmp summary (Phase 10). Prefer interface_* recording rules and human interface names in legends."
 }

@@ -1,13 +1,17 @@
 {
   "uid": "network-interfaces",
-  "title": "Network Interfaces",
-  "description": "SNMP interface counters from switches and firewall (VictoriaMetrics long-term storage)\n\nUniFi AP SNMP targets (Basement 192.168.3.15, Sophie 192.168.3.16) use the same interface_* metrics with device_name labels. Filter device_name for \"U6-Pro\" once SNMP agents respond. TX power not yet scraped.",
+  "title": "Campus Interfaces",
+  "description": "Curated campus switch/firewall interface metrics (Phase 10). Uses interface_* recording rules with interface_name (ifDescr/ifName). Datasource: Prometheus (uid=prometheus). Grafana host port :3300.",
   "tags": [
-    "network",
-    "snmp",
-    "interfaces",
+    "campus-interfaces",
     "convergence",
-    "from-pilot"
+    "curated",
+    "interfaces",
+    "named-interfaces",
+    "network",
+    "phase10",
+    "snmp",
+    "from-pilot-ported"
   ],
   "timezone": "browser",
   "schemaVersion": 39,
@@ -24,9 +28,9 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "victoriametrics-longterm"
+          "uid": "prometheus"
         },
-        "query": "label_values(interface_octets_in_bytes_total, device_name)",
+        "query": "label_values(interface_status, device_name)",
         "current": {
           "text": "All",
           "value": "$__all"
@@ -40,9 +44,9 @@
         "type": "query",
         "datasource": {
           "type": "prometheus",
-          "uid": "victoriametrics-longterm"
+          "uid": "prometheus"
         },
-        "query": "label_values(interface_octets_in_bytes_total{device_name=~\"$device\"}, interface_name)",
+        "query": "label_values(interface_status{device_name=~\"$device\"}, interface_name)",
         "current": {
           "text": "All",
           "value": "$__all"
@@ -66,13 +70,14 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
           "expr": "interface_status{device_name=~\"$device\", interface_name=~\"$interface\"}",
           "format": "table",
-          "instant": true
+          "instant": true,
+          "legendFormat": "{{device_name}} {{interface_name}}"
         }
       ],
       "transformations": [
@@ -136,7 +141,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
@@ -165,7 +170,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
@@ -194,7 +199,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
@@ -223,7 +228,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
@@ -252,7 +257,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
@@ -279,7 +284,7 @@
       },
       "datasource": {
         "type": "prometheus",
-        "uid": "victoriametrics-longterm"
+        "uid": "prometheus"
       },
       "targets": [
         {
