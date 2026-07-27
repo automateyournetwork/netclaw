@@ -273,25 +273,69 @@ remains minimal WAN + UniFi until device-snmp / telemetry setup is selected.
 
 ### Dashboards & alerts (PR3)
 
-- [x] T132 Curated dashboard suite (Home NOC, Campus Interfaces, WAN/edge, agent)
-      — `network-guardian` (convergence:*), `network-interfaces`,
-      `device-snmp-switches`, `wan-speedtest`, `netclaw-tokens`
-- [x] T133 Retire/tag empty boards (`[optional]` titles); Grafana README with
-      datasource UIDs and **:3300**
+- [x] T132 First curated dashboard pass — ported pilot boards
+      (`network-guardian` (convergence:*), `network-interfaces`,
+      `device-snmp-switches`, `wan-speedtest`, `netclaw-tokens`).
+      **Superseded by T139** (consolidated into 3 boards; these now sit unloaded
+      in `grafana/provisioning/dashboards/legacy/`)
+- [x] T133 Retire/tag empty boards; Grafana README with datasource UIDs and
+      **:3300**. **Superseded by T139** — strategy changed from `[optional]`
+      tagging to wholesale consolidation + `legacy/` parking
 - [x] T134 Alert pack expansion (safe cardinality) + interface names in
       annotations; `investigate` labels on home + device rules; `WanHardDown`,
       `SwitchInterfaceErrorsHigh`, `EdgeMgmtUnreachable`
 - [x] T138 Independent test steps in quickstart (SC-010–SC-013)
 
-**Phase 10 checkpoint**: Spec Kit green (T120–T124); then PR1 re-applyable lab
-without hand-editing Prometheus; PR2 SoT wizard; PR3 curated boards + safe alerts.
+### Holistic board suite + log ingest (PR4) — US10
+
+**Purpose**: Replace scattered ported boards with three narrative boards, and make
+every provisioned panel traceable to an installable collector.
+**Detail**: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md)
+· spec US10 / FR-030–FR-035 / SC-014–SC-016.
+
+- [x] T139 Consolidate to three provisioned boards — `convergence-network`,
+      `convergence-security`, `convergence-netclaw` under
+      `grafana/provisioning/dashboards/json/`; park ported pilot boards in
+      `legacy/` with README; document data dependencies per board
+      (commits `4bed668`, `45c22f1`)
+- [x] T140 Wire supporting scrapes/log sources: Prom job
+      `netclaw-alert-receiver` (investigation tiers/suppressions/budget trips);
+      promtail `/tmp/openclaw/*.log` + systemd journal (mesh / members / gateway)
+- [ ] T141 **Vendor-default syslog ingest** (FR-035, SC-016) — promtail's
+      `syslog` target only parses RFC5424; Cisco IOS-XE and pfSense emit
+      RFC3164/BSD, so 100% of the received stream is currently dropped
+      (`syslogtarget.go` `expecting a version value in the range 1-999`).
+      Pick and ship one: (a) rsyslog/syslog-ng front-end reformatting to RFC5424
+      before Loki, (b) swap receiver to Grafana Alloy `loki.source.syslog` with
+      `syslog_format = "rfc3164"`, (c) documented device-side RFC5424 (NOT a
+      product default). Must expose parse-failure volume.
+- [ ] T142 Log-panel selectors: replace message-content regex on the NetClaw
+      board mesh/N2N panels with `job` / `unit` selectors (FR-034). Note: the
+      journal relabel chain is correct — `unit=openclaw-gateway.service` proves
+      user units resolve; mesh/member panels are empty because those units are
+      idle beyond `max_age`, not mislabelled. Stale pre-restart
+      `job=netclaw-journal` streams (no `unit` label) are an artifact, not a bug.
+- [ ] T143 Security depth collector (FR-031/FR-033) — pfSense block/DNS/filterlog
+      signals currently have **no** installable exporter, so Security is posture +
+      alerts + logs only. Either add the collector or remove/annotate the panels
+      that assume it.
+- [x] T144 Spec realignment (drift close-out) — US10 + FR-030–FR-035 +
+      SC-014–SC-016; FR-027 / SC-010 / SC-012 retargeted off retired board names;
+      `plan.md` PR4 row; `telemetry-setup.md` + `contracts/telemetry-setup.md`
+      board + log-ingest contracts; quickstart SC-012/014/016 steps;
+      `checklists/requirements.md` sign-off + drift guard
+
+**Phase 10 checkpoint**: Spec Kit green (T120–T124); PR1 re-applyable lab
+without hand-editing Prometheus; PR2 SoT wizard; PR3 curated boards + safe alerts;
+PR4 three-board suite (T139–T140 done; T141–T143 open).
 
 ### Independent test
 
 empty targets → wizard ≥2 Cisco switches → apply → `device_snmp` up + non-empty
 interface name labels within 5m; Nautobot mode writes selection to yaml; Grafana
-Campus Interfaces named legends on :3300; checklist has syslog host:port +
-`SNMP_COMMUNITY` env name only.
+**Network** board campus switching shows named legends on :3300; checklist has
+syslog host:port + `SNMP_COMMUNITY` env name only; folder Convergence provisions
+exactly three boards with `legacy/` unloaded.
 
 ---
 

@@ -122,15 +122,28 @@ present; raw `if*` remains valid for debug.
 
 ## Dashboard suite (provisioned)
 
-| Board | Min acceptance |
-|-------|----------------|
-| Home NOC / Network Guardian | Site KPIs |
-| Campus Interfaces | Named interfaces (not ifIndex-only legends) |
-| WAN / edge | Edge/blackbox |
-| Agent / tokens | `netclaw_model_*` |
+Exactly three boards are provisioned:
+
+| Board | UID | Min acceptance |
+|-------|-----|----------------|
+| Network | `convergence-network` | Site KPIs (`convergence:*`), WAN blackbox, named campus interfaces (not ifIndex-only legends), UniFi, edge |
+| Security | `convergence-security` | Prom `ALERTS` posture + edge/guest access render without any log source; log sections labelled as syslog-dependent |
+| NetClaw | `convergence-netclaw` | `netclaw_model_*` cost/tokens by provider, `netclaw_investigations_by_tier` + suppressions/budget trips, gateway/mesh logs selected by `job`/`unit` |
+
+Contract rules:
+
+- Ported / single-subject pilot boards are **not** provisioned; they live unloaded
+  in `dashboards/legacy/` with a README pointing at the active suite.
+- Every provisioned panel MUST be backed by a collector installable from this repo
+  (Docker profile or K3s component). No dependency on pilot `k3s-observability-stack`.
+- Log panels MUST select by `job` / `unit` / `device_name` / `service`, never by
+  message-content regex.
+- Each board MUST declare its data dependencies so an empty panel reads as "source
+  not deployed", not "healthy".
 
 Grafana URL (Docker Convergence): host port **3300**.  
-Path: `deploy/convergence/grafana/provisioning/dashboards/`.
+Path: `deploy/convergence/grafana/provisioning/dashboards/` (`json/` provisioned,
+`legacy/` inert).
 
 ## Alerts
 
@@ -160,6 +173,19 @@ modes: manual | nautobot | netbox | yaml | interactive
 → SoT filters: exclude wireless + servers/k3s by default
 Smoke: deploy/convergence/smoke-telemetry-setup.sh (T137)
 ```
+
+## Log ingest (device + agent)
+
+| Requirement | Contract |
+|-------------|----------|
+| Wire format | Receiver MUST accept **vendor-default** syslog (RFC3164/BSD) as shipped. Cisco IOS-XE and pfSense do not emit RFC5424 by default; requiring device-side RFC5424 is NOT an acceptable product default. |
+| Implementation | Reformatting front-end (rsyslog/syslog-ng → RFC5424 → Loki) **or** an rfc3164-capable receiver (e.g. Alloy `loki.source.syslog`, `syslog_format = "rfc3164"`). |
+| Failure visibility | Parse failures MUST be countable/observable; silent discard is a contract violation. |
+| Labels | `device_name`, `host`, `app`, `site` for device syslog; `job`, `unit`, `service` for agent/journal streams. |
+| Consumer rule | Dashboards select on these labels only — never message-content regex. |
+
+Current state: promtail's `syslog` target (RFC5424-only) drops the entire
+received device stream — see `tasks.md` T141.
 
 ## Non-requirements (Phase 10 v1)
 

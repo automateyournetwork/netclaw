@@ -39,8 +39,9 @@ feeds better, named signals into that pipe.
 5. **Human interface names**: every interface series exposes `ifDescr` and/or
    `ifName`; recording rules produce `interface_*` + `interface_name` for
    dashboards and alerts.  
-6. **Curated Grafana**: Home NOC, Campus Interfaces, WAN/edge, agent tokens
-   (minimum suite); document Grafana **:3300**.  
+6. **Curated Grafana**: three narrative boards — **Network**, **Security**,
+   **NetClaw** — every panel backed by an installable collector; document
+   Grafana **:3300**.  
 7. **Safe alerts**: cardinality-safe rules with interface identity in
    annotations; honor investigation-policy labels.  
 8. **Device checklist**: generated markdown with site-specific SNMP/syslog
@@ -224,19 +225,32 @@ including:
 
 Grafana host port for Convergence Docker: **:3300** (not :3000).
 
-| Board (minimum) | Purpose |
-|-----------------|---------|
-| Home NOC / Network Guardian | Site health overview |
-| Campus Interfaces | Switch/firewall IF-MIB with **named** interfaces |
-| WAN / edge | Blackbox + edge signals |
-| NetClaw agent / tokens | `netclaw_model_*` quota and cost |
+The provisioned suite is **three narrative boards**, not one board per subject:
 
-**Acceptance:** Campus Interfaces legends show `ifDescr`/`interface_name`, not
-ifIndex-only. Empty or pilot-only dump boards are retired or tagged, not left as
-the default suite.
+| Board | UID | Story | Data dependencies |
+|-------|-----|-------|-------------------|
+| **Network** | `convergence-network` | Site health → WAN → named campus IF → Wi‑Fi → edge | `convergence:*` rules, `device_snmp`, UniFi exporter, blackbox |
+| **Security** | `convergence-security` | Posture → firing alerts → edge/guest access → syslog/auth | Prom `ALERTS` + UniFi + blackbox edge; Loki `device-syslog` for log sections |
+| **NetClaw** | `convergence-netclaw` | Token/cost by provider → T0/T1/T2 investigations → gateway/mesh logs | Prom jobs `netclaw-openclaw` (:9110) + `netclaw-alert-receiver` (:8099); promtail files + journal |
+
+**Acceptance:** the Network board's campus switching section shows
+`ifDescr`/`interface_name` legends, not ifIndex-only. Ported pilot boards are
+**not provisioned** — they sit unloaded under
+`provisioning/dashboards/legacy/`. Every provisioned panel must be backed by a
+collector installable from this repo; no provisioned panel may depend on the pilot
+`k3s-observability-stack`. Log-backed sections may be empty when the source is not
+deployed, and each board documents which source populates which section.
 
 Datasource UIDs and provisioning path stay under
-`deploy/convergence/grafana/provisioning/`.
+`deploy/convergence/grafana/provisioning/`; see
+[`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md).
+
+### Known open items
+
+| Gap | Effect | Task |
+|-----|--------|------|
+| Log receiver parses RFC5424 only; Cisco/pfSense emit RFC3164 | received syslog is dropped wholesale; Security log panels empty | T141 |
+| No pfSense block/DNS/filterlog exporter | Security is posture + alerts + logs, not full firewall depth | T143 |
 
 ## Alert packs
 
@@ -269,8 +283,9 @@ such as `investigate=false` remain force-T0 under Phase 9 policy.
    `ifOperStatus`) with **non-empty** interface name labels.  
 2. **Nautobot mode**: lists devices and writes the selected set into
    `convergence.yaml` without manual IP typing.  
-3. **Grafana**: folder Convergence shows Campus Interfaces with named interfaces
-   for lab switches (port **:3300**).  
+3. **Grafana**: folder Convergence provisions exactly Network / Security /
+   NetClaw, and the **Network** board campus switching section shows named
+   interfaces for lab switches (port **:3300**).  
 4. **Checklist**: includes site-specific syslog host:port and SNMP community
    **env name** (not the committed secret).  
 5. **Idempotent apply**: second apply does not duplicate jobs or wipe unrelated

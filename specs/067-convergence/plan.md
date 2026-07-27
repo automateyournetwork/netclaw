@@ -116,11 +116,12 @@ workspace/skills/         # multi-vendor wording updates
 | PR0 Spec | T120–T124 | Spec Kit complete (this folder) |
 | PR1 Render/apply | T125–T128, T135–T136 | Lab re-applyable without hand-editing Prom |
 | PR2 Wizard + SoT | T129–T131, T137 | Manual + Nautobot inventory path |
-| PR3 Boards + alerts | T132–T134, T138 | Curated Grafana + safe named-interface alerts |
+| PR3 Boards + alerts | T132–T134, T138 | First curated Grafana pass + safe named-interface alerts |
+| PR4 Holistic suite | T139–T143 | Three narrative boards (Network · Security · NetClaw); T141–T143 open (syslog ingest, log selectors, pfSense depth) |
 
-Operator path: setup → named interfaces → Home NOC + Campus Interfaces
-(Grafana **:3300**) → safe alerts → investigation policy. No day-1 dependency
-on k3s `observability` pilot.
+Operator path: setup → named interfaces → Grafana **:3300** folder Convergence
+(**Network** · **Security** · **NetClaw**) → safe alerts → investigation policy.
+No day-1 dependency on the k3s `observability` pilot.
 
 ## Complexity Tracking
 

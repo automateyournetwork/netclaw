@@ -290,6 +290,10 @@ Doc: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/R
 
 Legacy pilot boards are under `grafana/provisioning/dashboards/legacy/` (not loaded).
 
+Open items on this suite (spec US10 / tasks T141–T143): Security's syslog/auth
+panels stay empty until vendor-default (RFC3164) syslog ingest lands, and pfSense
+block/DNS depth has no installable exporter yet.
+
 #### Independent test (SC-010–SC-013)
 
 ```bash
@@ -302,9 +306,20 @@ curl -sG 'http://127.0.0.1:9090/api/v1/query' \
 # SC-011 — Nautobot select → yaml (no live apply required)
 ./deploy/convergence/smoke-telemetry-setup.sh   # MODE=nautobot
 
-# SC-012 — Grafana Campus Interfaces with named legends (:3300)
-# Open http://127.0.0.1:3300 → Convergence → Campus Interfaces
+# SC-012 — named campus interface legends (:3300)
+# Open http://127.0.0.1:3300 → Convergence → Network → "Campus switching"
 # Legends/table show interface_name (e.g. GigabitEthernet1/0/1), not ifIndex-only
+
+# SC-014 — exactly three provisioned boards, legacy parked
+ls deploy/convergence/grafana/provisioning/dashboards/json/    # 3 files
+ls deploy/convergence/grafana/provisioning/dashboards/legacy/   # inert pilot boards
+
+# SC-016 — vendor-default syslog ingest (OPEN — tasks.md T141)
+# Devices are sending, but promtail's syslog target parses RFC5424 only, so
+# RFC3164/BSD from Cisco/pfSense is dropped. Verify with:
+docker logs --since 10m netclaw-convergence-promtail-1 2>&1 | grep -c 'error parsing syslog'
+# Expected once fixed: 0, and device_syslog streams present:
+curl -sG http://127.0.0.1:3100/loki/api/v1/label/job/values | grep device-syslog
 
 # SC-013 — checklist has syslog host:port + SNMP_COMMUNITY env name
 grep -E 'SNMP_COMMUNITY|Syslog destination|1514' \

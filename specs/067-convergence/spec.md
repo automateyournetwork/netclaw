@@ -2,7 +2,7 @@
 
 **Feature Branch**: `067-convergence`  
 **Created**: 2026-07-24  
-**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry plumbing shipped; Phase 9 investigation policy + thin T2 agent implemented; Phase 10 telemetry setup productization **spec'd**)  
+**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry plumbing shipped; Phase 9 investigation policy + thin T2 agent implemented; Phase 10 PR1–PR3 shipped — inventory/apply/wizard + holistic Network·Security·NetClaw board suite; **open**: vendor-default syslog ingest → Security log panels, pfSense security-depth collector)  
 **Input**: Productize the Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless / **device SNMP** / **agent observability**), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
 
 **Greenfield optional PR (Phase 8)**: Campus switch SNMP, device syslog, NetClaw
@@ -20,6 +20,11 @@ Default cheap/safe; easy to open as alert hygiene improves. Detail:
 curated Grafana boards, safe alerts, and device config checklists — without
 hand-editing Prometheus or cloning the pilot OBS stack. Detail:
 [`telemetry-setup.md`](./telemetry-setup.md).
+
+**Board suite (Phase 10 PR3+)**: The provisioned Grafana suite is **three**
+narrative boards — **Network**, **Security**, **NetClaw** — not the ported pilot
+board set (parked unloaded under `grafana/provisioning/dashboards/legacy/`).
+Reference: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -202,8 +207,8 @@ investigation with better signals.
 **Independent Test**: From empty `device_snmp` targets, run setup wizard with ≥2
 Cisco lab switches, apply; within 5 minutes Prometheus shows healthy
 `device_snmp` scrapes and `interface_status` (or `ifOperStatus`) with non-empty
-interface name labels; Grafana Campus Interfaces (**:3300**) legends are not
-ifIndex-only.
+interface name labels; the Grafana **Network** board (`convergence-network`,
+**:3300**) campus switching section legends are not ifIndex-only.
 
 **Acceptance Scenarios**:
 
@@ -214,8 +219,8 @@ ifIndex-only.
    devices from the list, **Then** selected devices are written into
    `convergence.yaml` targets without manual IP typing.
 3. **Given** apply completed for lab switches, **When** the operator opens Grafana
-   folder Convergence on **:3300**, **Then** Campus Interfaces shows named
-   interfaces (not ifIndex-only legends).
+   folder Convergence on **:3300**, **Then** the **Network** board campus
+   switching section shows named interfaces (not ifIndex-only legends).
 4. **Given** apply completed, **When** the operator opens the generated checklist,
    **Then** it includes site-specific syslog host:port and the SNMP community
    **env name** (not a committed secret).
@@ -225,6 +230,52 @@ ifIndex-only.
    **Then** managed Prometheus sections are updated idempotently (no duplicate jobs).
 
 **Detail**: [`telemetry-setup.md`](./telemetry-setup.md) · tasks T120–T138.
+
+---
+
+### User Story 10 - Three holistic boards instead of scattered stats (Priority: P2)
+
+An operator opening Grafana folder Convergence finds **three** narrative boards —
+**Network**, **Security**, **NetClaw** — each telling one story end to end, rather
+than a pile of ported single-subject boards that are half empty because no
+matching collector is installed. Every panel on a provisioned board must be
+backed by a collector that the Convergence deploy can actually install, and each
+board must state its data dependencies so an operator can tell "not deployed"
+from "broken".
+
+**Why this priority**: Phase 8/10 PR1–PR2 shipped collectors and ported ~13 pilot
+boards. Scattered, mostly-empty boards are worse than fewer complete ones: they
+train operators to ignore Grafana and they hide genuine collector gaps (e.g. no
+pfSense block/DNS exporter) behind panels that merely look unpopulated.
+
+**Independent Test**: On a Docker install with device-snmp + UniFi + agent
+metrics, Grafana **:3300** folder Convergence lists exactly Network, Security,
+NetClaw; every panel on Network and NetClaw returns data; Security's Prometheus
+panels return data and its log panels are documented as requiring device syslog.
+
+**Acceptance Scenarios**:
+
+1. **Given** a provisioned Convergence deploy, **When** the operator opens folder
+   Convergence, **Then** exactly the three primary boards are provisioned and
+   pilot/ported boards are parked unloaded under
+   `grafana/provisioning/dashboards/legacy/`.
+2. **Given** the Network board, **When** it loads with device-snmp + UniFi +
+   blackbox up, **Then** it shows site health, WAN, named campus interfaces,
+   Wi‑Fi, and edge without empty panels.
+3. **Given** the Security board, **When** device syslog is **not** yet ingesting,
+   **Then** posture/alert/edge/wireless panels still render from Prometheus and
+   the board (or its README) states that log panels require syslog → promtail.
+4. **Given** the NetClaw board, **When** the token exporter and alert-receiver
+   scrapes are up, **Then** cost/token by provider and T0/T1/T2 investigation
+   counters render, and log panels select on `job`/`unit` labels (not message
+   regex).
+5. **Given** a board panel whose metric has no installable collector in this
+   repo, **When** the suite is reviewed, **Then** that panel is removed or the
+   collector is added — a provisioned board MUST NOT depend on the pilot
+   `k3s-observability-stack`.
+
+**Detail**: [`deploy/convergence/grafana/README.md`](../../deploy/convergence/grafana/README.md)
+· tasks T139–T144.
 
 ---
 
@@ -241,6 +292,9 @@ ifIndex-only.
 - snmp_exporter module-level lookups invalid for auth-split format: templates MUST use per-metric lookups for ifDescr/ifName.
 - Empty ifDescr on some interfaces: recording rules SHOULD fall back to ifName; dashboards must not show blank legends when either is present.
 - Apply with partial failure (Prom reload fails): report error; leave previous managed section intact when possible.
+- Devices emit BSD syslog (RFC3164) while the log receiver only parses RFC5424: receiver MUST NOT silently discard the stream; the shipped receiver path MUST accept vendor-default syslog format (front-end reformat or an rfc3164-capable receiver) rather than requiring device reconfiguration.
+- Security board with no log source: Prometheus-backed panels MUST still render; log panels MUST be identifiable as "source not deployed", not "network healthy".
+- Quiet agent units (mesh/members idle beyond the log retention window): empty log panels are expected; boards MUST still select on `job`/`unit` labels so data reappears without dashboard edits.
 
 ## Requirements *(mandatory)*
 
@@ -272,9 +326,15 @@ ifIndex-only.
 - **FR-024**: Apply MUST generate/update Prometheus scrape config and snmp_exporter config **idempotently** (managed section markers).
 - **FR-025**: Interface metrics MUST expose human names (`ifDescr` and/or `ifName`; recording rules produce `interface_*` with `interface_name` for dashboards).
 - **FR-026**: Setup MUST emit device-side config guidance for SNMP and syslog destination (Convergence host:port) without auto-pushing config in v1.
-- **FR-027**: Grafana MUST provision a curated Convergence dashboard folder covering Home NOC, campus interfaces, WAN/edge, and agent tokens (at minimum); document host port **:3300**.
+- **FR-027**: Grafana MUST provision a curated Convergence dashboard folder consisting of **three** primary boards — **Network** (`convergence-network`: site health, WAN, named campus interfaces, Wi‑Fi, edge), **Security** (`convergence-security`: posture, firing alerts, edge/guest access, syslog/auth), **NetClaw** (`convergence-netclaw`: token/cost by provider, T0/T1/T2 investigations, gateway/mesh logs); document host port **:3300**.
 - **FR-028**: Alert rules for device/WAN MUST include interface identity in annotations where applicable and MUST honor investigation-policy labels (`investigate`).
 - **FR-029**: Installer/catalog component for device SNMP MUST invoke or document the telemetry setup/apply path (not docs-only).
+- **FR-030**: Ported pilot / single-subject boards MUST NOT be provisioned; they are retained unloaded under `grafana/provisioning/dashboards/legacy/` with a README pointing at the active suite.
+- **FR-031**: Every panel on a provisioned board MUST be backed by a collector installable from this repo (Docker profile or K3s component). No provisioned panel may depend on the pilot `k3s-observability-stack`.
+- **FR-032**: Each provisioned board MUST document its data dependencies (which collector/scrape/log source populates which section) so an unpopulated panel is attributable to "not deployed" rather than "healthy".
+- **FR-033**: The **Security** board MUST render its Prometheus-backed posture (firing/critical alerts with `investigate` label, edge reachability, wireless/guest access) independently of log availability; log-backed sections MAY be empty until a log source is ingesting.
+- **FR-034**: Log panels MUST select streams by stable labels (`job`, `unit`, `device_name`, `service`) rather than message-content regex.
+- **FR-035**: The device/agent log receiver MUST ingest vendor-default syslog (RFC3164/BSD) as shipped — via a reformatting front-end or an rfc3164-capable receiver — and MUST surface parse-failure volume rather than dropping silently.
 
 ### Key Entities
 
@@ -304,8 +364,11 @@ ifIndex-only.
 - **SC-009**: Budget trip is observable (log and/or metric) and does not take down Prometheus or convergence-api.
 - **SC-010**: From empty targets + wizard with ≥2 Cisco switches, apply → Prometheus has `device_snmp` up and `interface_status` (or `ifOperStatus`) with non-empty interface name labels within 5 minutes.
 - **SC-011**: Nautobot mode lists devices and writes the selected set into `convergence.yaml` without manual IP typing.
-- **SC-012**: Grafana folder Convergence shows Campus Interfaces with named interfaces (not ifIndex-only legends) for lab switches (**:3300**).
+- **SC-012**: Grafana folder Convergence shows the **Network** board campus switching section with named interfaces (not ifIndex-only legends) for lab switches (**:3300**).
 - **SC-013**: Generated checklist includes site-specific syslog host:port and SNMP community env name (not a committed secret).
+- **SC-014**: Grafana folder Convergence provisions exactly three boards (Network, Security, NetClaw); the `legacy/` directory is present and unloaded.
+- **SC-015**: With device-snmp + UniFi + blackbox + agent metrics installed, every panel on Network and NetClaw returns a non-empty series (or an explicitly documented "requires X" note); Security's Prometheus panels return data with no log source deployed.
+- **SC-016**: With a Cisco or pfSense device sending vendor-default syslog to the Convergence receiver, log lines are queryable within 5 minutes with `device_name` and `app` labels, and receiver parse-failure count for that stream is zero.
 
 ## Assumptions
 
