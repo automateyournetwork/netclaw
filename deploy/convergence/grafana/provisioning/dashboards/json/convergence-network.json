@@ -681,7 +681,8 @@
     },
     {
       "id": 23,
-      "title": "Interfaces currently down (oper)",
+      "title": "Interface status",
+      "description": "IF-MIB ifOperStatus per switch interface. UP/DOWN is the operational state; an admin-down port also reports DOWN. Sorted DOWN first.",
       "type": "table",
       "gridPos": {
         "h": 7,
@@ -696,7 +697,7 @@
       "targets": [
         {
           "refId": "A",
-          "expr": "interface_status{job=\"device_snmp\"} == 2",
+          "expr": "interface_status{job=\"device_snmp\"}",
           "format": "table",
           "instant": true,
           "datasource": {
@@ -709,8 +710,126 @@
         "showHeader": true,
         "sortBy": [
           {
-            "displayName": "Value",
+            "displayName": "Status",
             "desc": true
+          }
+        ]
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "1": {
+                        "text": "UP",
+                        "color": "green",
+                        "index": 0
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "2": {
+                        "text": "DOWN",
+                        "color": "red",
+                        "index": 1
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "3": {
+                        "text": "TESTING",
+                        "color": "yellow",
+                        "index": 2
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "4": {
+                        "text": "UNKNOWN",
+                        "color": "text",
+                        "index": 3
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "5": {
+                        "text": "DORMANT",
+                        "color": "blue",
+                        "index": 4
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "6": {
+                        "text": "NOT PRESENT",
+                        "color": "text",
+                        "index": 5
+                      }
+                    }
+                  },
+                  {
+                    "type": "value",
+                    "options": {
+                      "7": {
+                        "text": "LOWER LAYER DOWN",
+                        "color": "orange",
+                        "index": 6
+                      }
+                    }
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "custom.width",
+                "value": 170
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Device"
+            },
+            "properties": [
+              {
+                "id": "custom.width",
+                "value": 160
+              }
+            ]
           }
         ]
       },
@@ -730,12 +849,19 @@
               "instance": true,
               "role": true,
               "vendor": true,
-              "snmp_module": true
+              "snmp_module": true,
+              "ifIndex": true,
+              "ifName": true,
+              "ifDescr": true
+            },
+            "indexByName": {
+              "device_name": 0,
+              "interface_name": 1,
+              "Value": 2
             },
             "renameByName": {
               "device_name": "Device",
               "interface_name": "Interface",
-              "ifIndex": "ifIndex",
               "Value": "Status"
             }
           }
