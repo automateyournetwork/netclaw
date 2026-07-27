@@ -1,39 +1,60 @@
-# Device SNMP (campus switches) — Phase 8 greenfield
+# Device SNMP (campus switches) — Phase 8 plumbing + Phase 10 apply
 
-Polls **wired infrastructure** (Cisco Catalyst, etc.) via Prometheus
-`snmp_exporter` + IF-MIB. **Not** the wireless AP path
+Polls **wired infrastructure** (Cisco Catalyst, pfSense IF-MIB, etc.) via
+Prometheus `snmp_exporter`. **Not** the wireless AP path
 (`generic-snmp-wireless`).
 
-## Enable (Docker)
-
-1. Edit switch list in `deploy/convergence/prometheus/prometheus.yml` under
-   job `device_snmp` (or regenerate from `config/convergence.yaml` — see
-   `scripts/render-device-snmp-scrape.py`).
-
-2. Community string: edit `adapters/device-snmp/snmp.yml` auth `community`
-   (default `public`) or use SNMP v3 with the upstream generator later.
-
-3. Start:
+## Recommended path (Phase 10)
 
 ```bash
-cd deploy/convergence
-docker compose --env-file .env --profile device-snmp up -d
-# reload prom if already running:
-docker compose kill -s SIGHUP prometheus
+# 1. Inventory wizard (manual | nautobot | netbox | yaml)
+./scripts/convergence-telemetry-setup.sh
+# or non-interactive:
+./scripts/convergence-telemetry-setup.sh --mode nautobot --select all --write
+
+# 2. Secrets: SNMP_COMMUNITY in deploy/convergence/.env
+
+# 3. Apply (managed Prom section + snmp modules + checklist)
+./scripts/convergence-telemetry-apply.sh
+# dry-run:
+./scripts/convergence-telemetry-apply.sh --dry-run
+
+# 4. Smoke
+./deploy/convergence/smoke-telemetry-setup.sh   # inventory path (T137)
+./deploy/convergence/smoke-device-snmp.sh       # live metrics (T136)
 ```
 
-4. Check / smoke (T088):
+Device config MoP: [`device-config-snippets.md`](./device-config-snippets.md).
+
+Apply will:
+
+1. Render snmp modules (`cisco` / `pfsense` / `generic` + `if_mib` alias)
+2. Inject managed Prometheus section (`# BEGIN/END netclaw-convergence-device-snmp`)
+3. Write device config checklist → `deploy/convergence/generated/device-config-checklist.md`
+4. Start/restart `snmp-device-exporter` and reload Prometheus
+
+### Render only
 
 ```bash
-# Formal smoke (targets up + ifOperStatus labeled device_name)
-./deploy/convergence/smoke-device-snmp.sh
-
-# Ad-hoc
-curl -s 'http://127.0.0.1:9090/api/v1/query?query=ifOperStatus' | head -c 400
-curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib' | head
+python3 scripts/render-convergence-telemetry.py \
+  --config config/convergence.example.yaml \
+  --out-scrape /tmp/scrape.yml \
+  --out-snmp deploy/convergence/adapters/device-snmp/snmp.yml \
+  --out-checklist /tmp/checklist.md
 ```
 
-## Metrics (baseline)
+### Vendor templates
+
+| template | Module file | Notes |
+|----------|-------------|-------|
+| `cisco` | `modules/cisco.yml` | Catalyst / IOS-XE IF-MIB |
+| `pfsense` | `modules/pfsense.yml` | pfSense IF-MIB |
+| `generic` | `modules/generic.yml` | Any IF-MIB device |
+| `if_mib` | alias | Phase 8 scrape compatibility |
+
+All modules use **per-metric** `ifDescr` / `ifName` lookups.
+
+## Metrics
 
 | Metric | Meaning |
 |--------|---------|
@@ -42,46 +63,41 @@ curl -s 'http://127.0.0.1:9117/snmp?target=192.168.3.2&module=if_mib' | head
 | `ifHCInOctets` / `ifHCOutOctets` | traffic counters |
 | `ifInErrors` / `ifOutErrors` | error counters |
 
-**Labels on every series (after snmp.yml lookups):**  
-`device_name`, `role=switch`, `site`, `instance` (device IP), **`ifIndex`**, **`ifDescr`**, **`ifName`**.
+**Labels:** `device_name`, `role`, `site`, `vendor`, `instance`, `ifIndex`,
+`ifDescr`, `ifName`, `snmp_module`.
 
-### Pilot-compatible recording rules
+### Recording rules (pilot-compatible)
 
-Prometheus also evaluates `device-recording.rules.yml` so k3s-built dashboards work:
+| Recording name | Source + `interface_name` |
+|----------------|---------------------------|
+| `interface_status` | `ifOperStatus` (ifDescr, else ifName) |
+| `interface_octets_*` | HC octets |
+| `interface_errors_*` | error counters |
 
-| Recording name | Source |
-|----------------|--------|
-| `interface_status` | `ifOperStatus` + `interface_name` from `ifDescr` |
-| `interface_octets_in_bytes_total` | `ifHCInOctets` |
-| `interface_octets_out_bytes_total` | `ifHCOutOctets` |
-| `interface_errors_in_total` / `_out_total` | `ifInErrors` / `ifOutErrors` |
+Grafana (host **:3300**): folder **Convergence**.
 
-Grafana (host **:3300**): folder **Convergence** — includes **Network Interfaces**
-ported from `k3s-observability-stack` plus campus switches board.
+## Manual / legacy enable (Phase 8)
+
+```bash
+cd deploy/convergence
+docker compose --env-file .env --profile device-snmp up -d
+# Edit prometheus job device_snmp or re-run apply
+./deploy/convergence/smoke-device-snmp.sh
+```
 
 ## Alerts
 
-`prometheus/alerts/device.rules.yml` (see **`docs/CONVERGENCE-ALERT-SAFETY.md`**):
-
-| Alert | Investigate? | Notes |
-|-------|----------------|-------|
-| `DeviceSnmpExporterDown` | yes | scrape failed |
-| `SwitchLinkLost` | yes | was oper-up 15m ago, now down (real link loss) |
-| `SwitchIdlePortsPresent` | **no** | aggregate idle admin-up ports — dashboard only |
-| ~~`SwitchInterfaceDown`~~ | removed | caused per-port OpenClaw MCP storms |
+See `prometheus/alerts/device.rules.yml` and
+[`docs/CONVERGENCE-ALERT-SAFETY.md`](../../../../docs/CONVERGENCE-ALERT-SAFETY.md).
 
 Do **not** reintroduce per-`ifIndex` admin-up/oper-down as `investigate=true`.
-Idle access ports look identical to “down” in IF-MIB.
 
-## Config (convergence.yaml)
+## Config
 
-See `config/convergence.example.yaml` → `device_telemetry.snmp`.
+See `config/convergence.example.yaml` → `device_telemetry.snmp` and
+`specs/067-convergence/telemetry-setup.md`.
 
 ## K3s
 
 `deploy/convergence/k8s/components/device-snmp/` — include from an overlay.
-
-## Relation to pilot OBS
-
-Pilot `k3s-observability-stack` OTEL SNMP is a **design reference** only.
-This component is self-contained for greenfield PRs.
+Phase 10 Docker apply is the primary greenfield path; K3s ConfigMap render follows.

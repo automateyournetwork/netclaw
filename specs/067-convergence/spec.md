@@ -2,7 +2,7 @@
 
 **Feature Branch**: `067-convergence`  
 **Created**: 2026-07-24  
-**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry largely shipped; Phase 9 investigation policy + thin T2 agent implemented)  
+**Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry plumbing shipped; Phase 9 investigation policy + thin T2 agent implemented; Phase 10 telemetry setup productization **spec'd**)  
 **Input**: Productize the Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless / **device SNMP** / **agent observability**), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
 
 **Greenfield optional PR (Phase 8)**: Campus switch SNMP, device syslog, NetClaw
@@ -14,6 +14,12 @@ migration from any pilot observability repo. Detail:
 spends LLM tokens (T0 observe / T1 summarize / T2 investigate allowlist + budgets).
 Default cheap/safe; easy to open as alert hygiene improves. Detail:
 [`investigation-policy.md`](./investigation-policy.md).
+
+**Telemetry setup (Phase 10)**: Productize **how** operators declare inventory
+(manual or SoT), apply vendor SNMP templates, get named-interface metrics,
+curated Grafana boards, safe alerts, and device config checklists — without
+hand-editing Prometheus or cloning the pilot OBS stack. Detail:
+[`telemetry-setup.md`](./telemetry-setup.md).
 
 ## User Scenarios & Testing *(mandatory)*
 
@@ -179,6 +185,49 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 
 ---
 
+### User Story 9 - Greenfield telemetry setup from inventory (Priority: P2)
+
+An operator installing Convergence can declare a device inventory (**manual**
+list or **Nautobot/NetBox select**), apply **vendor SNMP templates** (Cisco and
+pfSense first), enable scrapes and recording rules that expose **human interface
+names**, provision a **curated** Grafana suite, and receive a **site-specific
+device config checklist** for SNMP/syslog — without hand-editing Prometheus or
+cloning `k3s-observability-stack`.
+
+**Why this priority**: Phase 8 shipped collectors and partial boards; operators
+still cannot easily go from empty site → named interfaces + usable dashboards.
+Productizing setup closes the greenfield day-1 gap and feeds Phase 9
+investigation with better signals.
+
+**Independent Test**: From empty `device_snmp` targets, run setup wizard with ≥2
+Cisco lab switches, apply; within 5 minutes Prometheus shows healthy
+`device_snmp` scrapes and `interface_status` (or `ifOperStatus`) with non-empty
+interface name labels; Grafana Campus Interfaces (**:3300**) legends are not
+ifIndex-only.
+
+**Acceptance Scenarios**:
+
+1. **Given** empty device targets and wizard mode `manual` with ≥2 Cisco switches,
+   **When** apply runs, **Then** Prometheus has `device_snmp` up and interface
+   series with `ifDescr`/`ifName`/`interface_name` labels within 5 minutes.
+2. **Given** `sot.type=nautobot` and mode `nautobot`, **When** the operator selects
+   devices from the list, **Then** selected devices are written into
+   `convergence.yaml` targets without manual IP typing.
+3. **Given** apply completed for lab switches, **When** the operator opens Grafana
+   folder Convergence on **:3300**, **Then** Campus Interfaces shows named
+   interfaces (not ifIndex-only legends).
+4. **Given** apply completed, **When** the operator opens the generated checklist,
+   **Then** it includes site-specific syslog host:port and the SNMP community
+   **env name** (not a committed secret).
+5. **Given** device telemetry options off, **When** install/runtime runs, **Then**
+   minimal WAN+UniFi behavior is unchanged (no extra containers).
+6. **Given** a second apply with the same inventory, **When** apply re-runs,
+   **Then** managed Prometheus sections are updated idempotently (no duplicate jobs).
+
+**Detail**: [`telemetry-setup.md`](./telemetry-setup.md) · tasks T120–T138.
+
+---
+
 ### Edge Cases
 
 - Home-api unreachable: degraded banners, no uncaught exceptions.
@@ -188,6 +237,10 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 - Operator has non-standard investigator name: if it matches network-guardian profile skills, reuse rather than force rename (document policy).
 - Investigation policy file missing: alert-receiver MUST fail safe to T0 (no multi-tool auto) and log a clear warning.
 - Policy reload mid-flight: in-flight T2 may complete; new alerts use new policy within documented cache TTL (≤60s) or on SIGHUP.
+- Nautobot/NetBox unreachable during wizard: clear error; allow fallback to manual inventory without wiping existing targets.
+- snmp_exporter module-level lookups invalid for auth-split format: templates MUST use per-metric lookups for ifDescr/ifName.
+- Empty ifDescr on some interfaces: recording rules SHOULD fall back to ifName; dashboards must not show blank legends when either is present.
+- Apply with partial failure (Prom reload fails): report error; leave previous managed section intact when possible.
 
 ## Requirements *(mandatory)*
 
@@ -213,6 +266,15 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 - **FR-018**: Auto T2 path MUST use a **thin tool profile** (or equivalent deny-list) distinct from the full interactive MCP set; deep device work SHOULD escalate to domain members (e.g. pyATS / guardian) rather than loading every MCP on the border for every alert.
 - **FR-019**: Prom labels such as `investigate=false` and high-cardinality inventory alerts MUST be forceable to T0 even if default_tier is higher.
 - **FR-020**: Setup MUST seed or document an example investigation policy and optional mode presets (`observe-only`, `triage-cheap`, `investigate-critical`).
+- **FR-021**: Telemetry setup MUST support inventory entry via **manual** device list and via **Nautobot** (NetBox SHOULD when env present).
+- **FR-022**: Inventory MUST record name, IP, vendor/template, and role for each SNMP target; secrets (community) MUST stay in env (`SNMP_COMMUNITY`), never in committed yaml.
+- **FR-023**: System MUST provide vendor SNMP module templates for **Cisco** and **pfSense** (generic IF-MIB fallback allowed).
+- **FR-024**: Apply MUST generate/update Prometheus scrape config and snmp_exporter config **idempotently** (managed section markers).
+- **FR-025**: Interface metrics MUST expose human names (`ifDescr` and/or `ifName`; recording rules produce `interface_*` with `interface_name` for dashboards).
+- **FR-026**: Setup MUST emit device-side config guidance for SNMP and syslog destination (Convergence host:port) without auto-pushing config in v1.
+- **FR-027**: Grafana MUST provision a curated Convergence dashboard folder covering Home NOC, campus interfaces, WAN/edge, and agent tokens (at minimum); document host port **:3300**.
+- **FR-028**: Alert rules for device/WAN MUST include interface identity in annotations where applicable and MUST honor investigation-policy labels (`investigate`).
+- **FR-029**: Installer/catalog component for device SNMP MUST invoke or document the telemetry setup/apply path (not docs-only).
 
 ### Key Entities
 
@@ -223,6 +285,9 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 - **Adapter binding**: firewall | wireless | sot type + connection env refs.
 - **Investigation policy**: Versioned rules mapping alerts → tier (T0/T1/T2) + budgets + degrade.
 - **Investigation tier**: Observe / summarize / multi-tool investigate / human-gated deep work.
+- **Device inventory**: List of SNMP targets (name, IP, vendor/template, role) under `device_telemetry.snmp`.
+- **Vendor template**: snmp_exporter module pack (Cisco / pfSense / generic) with name lookups.
+- **Telemetry apply**: Render + managed-section write + profile enable + reload pipeline.
 
 ## Success Criteria *(mandatory)*
 
@@ -237,6 +302,10 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 - **SC-007**: With default policy (T0, empty T2 allowlist), a synthetic non-allowlisted warning does **not** start a multi-tool OpenClaw investigation.
 - **SC-008**: Operator can enable T2 for one alertname by editing policy (or documented CLI) and reloading within ≤60s without rebuilding alert-receiver.
 - **SC-009**: Budget trip is observable (log and/or metric) and does not take down Prometheus or convergence-api.
+- **SC-010**: From empty targets + wizard with ≥2 Cisco switches, apply → Prometheus has `device_snmp` up and `interface_status` (or `ifOperStatus`) with non-empty interface name labels within 5 minutes.
+- **SC-011**: Nautobot mode lists devices and writes the selected set into `convergence.yaml` without manual IP typing.
+- **SC-012**: Grafana folder Convergence shows Campus Interfaces with named interfaces (not ifIndex-only legends) for lab switches (**:3300**).
+- **SC-013**: Generated checklist includes site-specific syslog host:port and SNMP community env name (not a committed secret).
 
 ## Assumptions
 
@@ -246,13 +315,18 @@ warning alert does not open a multi-tool OpenClaw investigation; adding one
 - Channel AI / radio Optimize remains human UI MoP (no auto-apply requirement in 067).
 - Selective auto-investigation (not “every alert”) is an acceptable and preferred product posture for sustainable Agentic NOC.
 - Local small models may serve T1 / interactive light / offline fallback; capable models (cloud or larger local) remain appropriate for T2 when allowlisted.
+- Docker is the primary greenfield apply path for Phase 10; K3s uses existing components plus rendered config later.
+- Nautobot is the primary SoT seed path; NetBox shares the same inventory field shape when configured.
 
 ## Out of Scope (v1)
 
 - Additional wireless vendors beyond UniFi (stubs/contracts only).
 - Auto radio mutation APIs.
-- Replacing Grafana operator dashboards.
+- Replacing Grafana operator dashboards as the primary HOME surface (curated boards remain optional operator tools).
 - Multi-tenant SaaS control plane.
 - Full GUI CRUD for investigation policy (file + optional CLI sufficient for Phase 9).
+- Full GUI inventory editor in HUD (CLI/wizard sufficient for Phase 10).
+- Auto-push of SNMP/syslog configuration onto devices via MCP (checklist + optional verify only).
+- Full NetFlow / AI-box / VPS dashboard suite and pilot PVC/TSDB migration.
 - One OpenClaw member process per MCP tool.
 - Mandating a specific local 9B model as the sole T2 brain.

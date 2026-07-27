@@ -1,15 +1,25 @@
-# Example switch list for job device_snmp (Phase 8).
-# Copy ideas into prometheus.yml static_configs or feed render-device-snmp-scrape.py
+# Example switch list for job device_snmp (Phase 8/10).
+# Feed to render / apply:
+#   python3 scripts/render-convergence-telemetry.py --targets ...
+#   ./scripts/convergence-telemetry-apply.sh --targets ...
 #
-# community is NOT stored here — see snmp.yml auth.
+# Community is NOT stored here — use SNMP_COMMUNITY in deploy/convergence/.env
+
+site: home
 
 targets:
   - name: HomeSwitch01
     ip: 192.168.3.2
     role: switch
+    vendor: cisco
+    template: cisco
   - name: HomeSwitch02
     ip: 192.168.3.3
     role: switch
+    vendor: cisco
+    template: cisco
   - name: HomeSwitch04
     ip: 192.168.3.5
     role: switch
+    vendor: cisco
+    template: cisco

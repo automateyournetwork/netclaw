@@ -31,10 +31,13 @@ metrics:
 device_telemetry:
   snmp:
     enabled: false
-    engine: otel              # otel | snmp_exporter
+    engine: snmp_exporter     # snmp_exporter (v1) | otel (reserved)
     version: v2c
     poll_interval: 60s
-    targets: []               # [{ name, ip, role: switch|firewall }]
+    # Phase 10: targets carry vendor/template for apply pipeline
+    targets: []               # [{ name, ip, role, vendor?, template? }]
+    # role: switch|firewall|other
+    # vendor/template: cisco|pfsense|generic (see contracts/telemetry-setup.md)
     # community / v3 secrets: SNMP_COMMUNITY, SNMP_V3_* in env — never in yaml
   syslog:
     enabled: false
@@ -79,4 +82,7 @@ agent:
 | `agent_observability.*` | NetClaw host token metrics + agent log ship |
 
 UniFi v1: Prometheus `unifi_*` + optional MCP.  
-Device SNMP greenfield: see [`device-telemetry-greenfield.md`](../device-telemetry-greenfield.md).
+Device SNMP greenfield (plumbing): see [`device-telemetry-greenfield.md`](../device-telemetry-greenfield.md).  
+Device SNMP setup productization (inventory → templates → apply → boards):
+[`telemetry-setup.md`](../telemetry-setup.md) ·
+[`telemetry-setup.md` contract](./telemetry-setup.md).

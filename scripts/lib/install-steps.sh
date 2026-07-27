@@ -3794,12 +3794,44 @@ echo ""
 
 component_install_convergence_device_snmp() {
 log_step "Convergence device SNMP (campus switches)..."
-echo "  Greenfield Phase 8 — IF-MIB via snmp_exporter (profile device-snmp)"
+echo "  Phase 8 plumbing + Phase 10 setup/apply — IF-MIB via snmp_exporter"
 echo "  Docs: deploy/convergence/adapters/device-snmp/README.md"
-echo "  Spec: specs/067-convergence/device-telemetry-greenfield.md"
-log_info "Setup wizard prompts for targets + community when this component is selected"
-log_info "Edit prometheus job device_snmp targets (or render-device-snmp-scrape.py)"
-log_info "Docker: cd deploy/convergence && docker compose --env-file .env --profile device-snmp up -d"
+echo "  Spec: specs/067-convergence/telemetry-setup.md"
+_setup="$NETCLAW_DIR/scripts/convergence-telemetry-setup.sh"
+_apply="$NETCLAW_DIR/scripts/convergence-telemetry-apply.sh"
+# Wire setup/apply (T130): auto when CONVERGENCE_TELEMETRY_SETUP=yes; else prompt if yesno exists
+if [ -f "$_setup" ] && [ "${CONVERGENCE_TELEMETRY_SETUP:-}" != "skip" ]; then
+    _run_setup=0
+    if [ "${CONVERGENCE_TELEMETRY_SETUP:-}" = "yes" ]; then
+        _run_setup=1
+    elif command -v yesno >/dev/null 2>&1 && [ -t 0 ]; then
+        if yesno "Run telemetry inventory setup wizard (manual|nautobot|netbox|yaml)?" "y"; then
+            _run_setup=1
+        fi
+    fi
+    if [ "$_run_setup" -eq 1 ]; then
+        log_info "Running $_setup"
+        ( cd "$NETCLAW_DIR" && bash "$_setup" ) || log_warn "telemetry setup exited non-zero"
+        if [ -f "$_apply" ] && [ "${CONVERGENCE_TELEMETRY_APPLY:-}" != "no" ]; then
+            _run_apply=0
+            if [ "${CONVERGENCE_TELEMETRY_APPLY:-}" = "yes" ]; then
+                _run_apply=1
+            elif command -v yesno >/dev/null 2>&1 && [ -t 0 ]; then
+                if yesno "Apply inventory to Prometheus/snmp_exporter now?" "y"; then
+                    _run_apply=1
+                fi
+            fi
+            if [ "$_run_apply" -eq 1 ]; then
+                log_info "Running $_apply"
+                ( cd "$NETCLAW_DIR" && bash "$_apply" ) || log_warn "telemetry apply exited non-zero"
+            fi
+        fi
+    fi
+fi
+log_info "Setup:  ./scripts/convergence-telemetry-setup.sh   # manual|nautobot|netbox|yaml"
+log_info "Apply:  ./scripts/convergence-telemetry-apply.sh"
+log_info "Secret: SNMP_COMMUNITY in deploy/convergence/.env"
+log_info "Smoke:  ./deploy/convergence/smoke-telemetry-setup.sh && ./deploy/convergence/smoke-device-snmp.sh"
 log_info "K3s:    kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry"
 echo ""
 }

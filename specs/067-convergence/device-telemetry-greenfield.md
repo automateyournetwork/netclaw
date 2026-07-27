@@ -1,7 +1,9 @@
 # Greenfield device telemetry + agent observability (optional PR)
 
 **Parent**: 067-convergence  
-**Status**: Spec'd for implementation (not started)  
+**Status**: Phase 8 **plumbing shipped** (collectors, scrape jobs, recording rules,
+partial Grafana, smoke T088). Phase 10 productizes setup (wizard, templates,
+apply, curated boards) — see [`telemetry-setup.md`](./telemetry-setup.md).  
 **Intent**: First-class **optional** install components for a **greenfield** Convergence
 deploy so a new site gets switch SNMP, device syslog, NetClaw agent metrics/logs,
 and Grafana dashboards **without** depending on `k3s-observability-stack` or a
@@ -268,7 +270,24 @@ K3s: `deploy/convergence/k8s/components/device-snmp/`, `device-syslog/`,
 
 ## Tasks (Phase 8)
 
-See `tasks.md` Phase 8 (T080–T095).
+See `tasks.md` Phase 8 (T080–T095) — **complete** (plumbing).
+
+## Phase 10 (productized setup — not Phase 8 rework)
+
+Phase 8 left operators able to enable profiles and edit targets by hand. Phase 10
+owns:
+
+| Gap after Phase 8 | Phase 10 owner |
+|-------------------|----------------|
+| Inventory wizard (manual / Nautobot / NetBox) | T129–T131, T137 |
+| Vendor templates + idempotent apply | T125–T128, T135–T136 |
+| Human interface names end-to-end (ifDescr/ifName → interface_*) | metric contract in telemetry-setup + T126/T135 |
+| Curated Grafana suite (not dump / ifIndex garbage) | T132–T133 |
+| Device SNMP/syslog config checklist | T131 |
+| Installer invokes setup/apply | T130 |
+
+Do **not** re-open Phase 8 checkboxes. Detail and acceptance:
+[`telemetry-setup.md`](./telemetry-setup.md) · `tasks.md` Phase 10 (T120–T138).
 
 ---
 

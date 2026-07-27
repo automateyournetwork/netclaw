@@ -188,11 +188,45 @@ else
   echo "  (skip) netclaw_model_* not in this Prom instance"
 fi
 
+echo "-- named interfaces (Phase 10 / T136)"
+NAMED_JSON=$(curl -fsS -m 10 -G "${PROM_URL}/api/v1/query" \
+  --data-urlencode 'query=count(interface_status{interface_name!=""})' 2>/dev/null || echo "")
+NAMED_COUNT=$(python3 -c "
+import json,sys
+try:
+  d=json.loads(sys.argv[1] or '{}')
+  r=(d.get('data') or {}).get('result') or []
+  print(int(float(r[0]['value'][1])) if r else 0)
+except Exception:
+  print(0)
+" "$NAMED_JSON")
+SAMPLE_NAME=$(curl -fsS -m 10 -G "${PROM_URL}/api/v1/query" \
+  --data-urlencode 'query=interface_status{interface_name!=""}' 2>/dev/null \
+  | python3 -c "
+import json,sys
+try:
+  r=json.load(sys.stdin)['data']['result']
+  if r:
+    m=r[0]['metric']
+    print(m.get('interface_name','')[:48], m.get('device_name',''), sep='|')
+  else:
+    print('|')
+except Exception:
+  print('|')
+" 2>/dev/null || echo "|")
+IF_NAME="${SAMPLE_NAME%%|*}"
+IF_DEV="${SAMPLE_NAME##*|}"
+if [[ "${NAMED_COUNT}" -ge 1 && -n "${IF_NAME}" ]]; then
+  ok "interface_status has named interfaces (count=${NAMED_COUNT}, e.g. ${IF_DEV}:${IF_NAME})"
+else
+  bad "interface_status has non-empty interface_name (apply templates + recording rules; got count=${NAMED_COUNT})"
+fi
+
 echo
 echo "PASS=$PASS FAIL=$FAIL"
 if [[ "$FAIL" -gt 0 ]]; then
-  echo "T088 smoke FAILED"
+  echo "device_snmp smoke FAILED"
   exit 1
 fi
-echo "T088 smoke PASSED — device_snmp metrics labeled device_name"
+echo "device_snmp smoke PASSED — labeled device_name + named interfaces"
 exit 0

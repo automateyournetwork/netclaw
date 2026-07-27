@@ -36,11 +36,13 @@ metrics:
   # loki_url: http://127.0.0.1:3100
   # victoriametrics_url: http://127.0.0.1:8428
 
-# Phase 8 greenfield — campus switches (NOT wireless generic-snmp)
-# Compose: --profile device-snmp   · community in adapters/device-snmp/snmp.yml
+# Phase 8 plumbing + Phase 10 setup — campus switches (NOT wireless generic-snmp)
+# Apply: ./scripts/convergence-telemetry-apply.sh
+# Community: SNMP_COMMUNITY in deploy/convergence/.env (never commit secrets)
+# Templates: cisco | pfsense | generic  (modules under adapters/device-snmp/modules/)
 device_telemetry:
   snmp:
-    enabled: false
+    enabled: true
     engine: snmp_exporter
     version: v2c
     poll_interval: 60s
@@ -48,12 +50,24 @@ device_telemetry:
       - name: HomeSwitch01
         ip: 192.168.3.2
         role: switch
+        vendor: cisco
+        template: cisco
       - name: HomeSwitch02
         ip: 192.168.3.3
         role: switch
+        vendor: cisco
+        template: cisco
       - name: HomeSwitch04
         ip: 192.168.3.5
         role: switch
+        vendor: cisco
+        template: cisco
+      # Optional firewall SNMP (IF-MIB); edge HTTPS stays blackbox_edge
+      # - name: pfSense-FW01
+      #   ip: 192.168.3.1
+      #   role: firewall
+      #   vendor: pfsense
+      #   template: pfsense
   syslog:
     enabled: false
     listen: "0.0.0.0:1514"

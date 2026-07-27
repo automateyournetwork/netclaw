@@ -5,7 +5,7 @@
 
 ## Summary
 
-Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (shipped including T088 smoke) and **Phase 9 investigation policy & token economics** (T0/T1/T2 policy engine + thin `alert` agent profile — T096–T110 done). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) / [`investigation-policy.md`](./investigation-policy.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
+Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Visual HUD, with convergence-api + OBS packaging (Docker or K3s), adapter wizard, and universal **risk preserve + guardian-claw ensure**. Implementation is phased PR0–PR7 (done) plus **Phase 8 optional greenfield device SNMP + agent observability** (plumbing shipped including T088 smoke), **Phase 9 investigation policy & token economics** (T0/T1/T2 policy engine + thin `alert` agent profile — T096–T110 done), and **Phase 10 telemetry setup productization** (inventory → templates → apply → curated boards; Spec Kit + PR1 render/apply + PR2 wizard/SoT done; PR3 boards + alerts pending). Tracked in `tasks.md` / [`device-telemetry-greenfield.md`](./device-telemetry-greenfield.md) / [`investigation-policy.md`](./investigation-policy.md) / [`telemetry-setup.md`](./telemetry-setup.md). Work must cohere with NetClaw Spec Kit, modular installer, `.env.example`, iN2N profiles, and existing skills/MCP — not a parallel framework.
 
 ## Technical Context
 
@@ -42,10 +42,15 @@ specs/067-convergence/
 ├── research.md
 ├── data-model.md
 ├── quickstart.md
+├── device-telemetry-greenfield.md   # Phase 8 plumbing
+├── investigation-policy.md          # Phase 9
+├── telemetry-setup.md               # Phase 10 productized setup
 ├── contracts/
 │   ├── convergence-api.md
 │   ├── adapters.md
-│   └── install-wizard.md
+│   ├── install-wizard.md
+│   ├── investigation-policy.md
+│   └── telemetry-setup.md
 ├── checklists/requirements.md
 ├── spec.md
 └── tasks.md
@@ -100,8 +105,22 @@ workspace/skills/         # multi-vendor wording updates
 | 5 | US4–US5 installer, setup, guardian-claw ensure, framework cleanup |
 | 6 | US6 Triage UI |
 | 7+ | Adapter expansion |
-| 8 | Optional greenfield device SNMP + agent observability |
+| 8 | Optional greenfield device SNMP + agent observability (plumbing) |
 | 9 | Investigation policy (T0/T1/T2) + token economics |
+| 10 | Telemetry setup productization (inventory → templates → apply → boards) |
+
+### Phase 10 delivery (post Spec Kit)
+
+| Slice | Tasks | Outcome |
+|-------|-------|---------|
+| PR0 Spec | T120–T124 | Spec Kit complete (this folder) |
+| PR1 Render/apply | T125–T128, T135–T136 | Lab re-applyable without hand-editing Prom |
+| PR2 Wizard + SoT | T129–T131, T137 | Manual + Nautobot inventory path |
+| PR3 Boards + alerts | T132–T134, T138 | Curated Grafana + safe named-interface alerts |
+
+Operator path: setup → named interfaces → Home NOC + Campus Interfaces
+(Grafana **:3300**) → safe alerts → investigation policy. No day-1 dependency
+on k3s `observability` pilot.
 
 ## Complexity Tracking
 

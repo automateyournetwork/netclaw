@@ -213,6 +213,70 @@ kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 HOME Devices and Overview pick up `ifOperStatus{job="device_snmp"}` automatically
 when Prometheus has series (no pilot OBS required). Grafana board:
 **Convergence — Campus Switches (device_snmp)** under full-stack / Docker full.
+
+Grafana for Convergence Docker is on host port **:3300** (not :3000). Prefer
+recording rules `interface_*` / label `interface_name` for named legends once
+Phase 10 templates are applied.
+
+## Phase 10 — Telemetry setup productization
+
+**Goal:** inventory (manual or Nautobot) → vendor SNMP templates → apply →
+named interfaces → curated boards → device checklist. No hand-edit of
+Prometheus for day-1 greenfield.
+
+**Detail:** [`telemetry-setup.md`](./telemetry-setup.md) · tasks T120–T138.
+
+### Apply path (PR1 — T125–T128, T135–T136) ✅
+
+```bash
+# 1. Inventory: edit config/convergence.yaml (or copy example)
+#    device_telemetry.snmp.targets: name, ip, role, vendor, template
+cp config/convergence.example.yaml ~/.openclaw/convergence.yaml   # optional
+# secrets: SNMP_COMMUNITY in deploy/convergence/.env only
+
+# 2. Apply (managed Prom section + snmp modules + checklist + reload)
+./scripts/convergence-telemetry-apply.sh
+# dry-run:
+./scripts/convergence-telemetry-apply.sh --dry-run
+
+# 3. Verify (T136 / SC-010)
+./deploy/convergence/smoke-device-snmp.sh
+curl -sG 'http://127.0.0.1:9090/api/v1/query' \
+  --data-urlencode 'query=count by (device_name) (interface_status{interface_name!=""})'
+# Grafana: http://127.0.0.1:3300 → folder Convergence
+# Checklist: deploy/convergence/generated/device-config-checklist.md
+```
+
+### Wizard / SoT (PR2 — T129–T131, T137) ✅
+
+```bash
+# Interactive menu (manual | nautobot | netbox | yaml):
+./scripts/convergence-telemetry-setup.sh
+
+# Nautobot → select → write ~/.openclaw/convergence.yaml (needs NAUTOBOT_*)
+./scripts/convergence-telemetry-setup.sh --mode nautobot --select all --write
+# dry-run only (no write):
+./scripts/convergence-telemetry-setup.sh --mode nautobot --select all --dry-run
+
+# Manual CSV: name=ip[:vendor]
+./scripts/convergence-telemetry-setup.sh --mode manual \
+  --csv 'HomeSwitch01=192.168.3.2:cisco,pfSense-FW01=192.168.3.1:pfsense' --write
+
+# Import targets YAML
+./scripts/convergence-telemetry-setup.sh --mode yaml \
+  --import deploy/convergence/adapters/device-snmp/targets.example.yml --write
+
+# Chain apply after write:
+./scripts/convergence-telemetry-setup.sh --mode nautobot --select 'HomeSwitch,pfSense' --write --apply
+
+# Smoke (T137) — no live Prom mutation required
+./deploy/convergence/smoke-telemetry-setup.sh
+# MODE=yaml ./deploy/convergence/smoke-telemetry-setup.sh
+
+# Device config MoP: deploy/convergence/adapters/device-snmp/device-config-snippets.md
+# Generated checklist (after apply): deploy/convergence/generated/device-config-checklist.md
+```
+
 ## Models (brain vs alert triage)
 
 **Source of truth:** repo `.env` (or Convergence tab → **Models**):

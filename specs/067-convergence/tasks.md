@@ -217,6 +217,80 @@ add allow_t2 rule → that alertname can T2; budget trip → clamp; Prom/API sta
 
 ---
 
+## Phase 10: Telemetry setup productization (optional PR)
+
+**Purpose**: Productize **how** operators go from empty site → inventory
+(manual or SoT) → vendor SNMP templates → apply → named-interface metrics →
+curated Grafana → safe alerts → device config checklists. Phase 8 plumbing stays
+complete; do not re-open T080–T095.
+
+**PR framing**: multi-PR optional feature after Spec Kit (PR0). Default install
+remains minimal WAN + UniFi until device-snmp / telemetry setup is selected.
+
+**Detail**: [`telemetry-setup.md`](./telemetry-setup.md) ·
+[`contracts/telemetry-setup.md`](./contracts/telemetry-setup.md)
+
+### Spec & contracts (PR0 — Spec Kit)
+
+- [x] T120 Author `telemetry-setup.md` (inventory, templates, apply, metrics,
+      dashboards, alerts, checklist, acceptance)
+- [x] T121 Extend `spec.md` US9 + FR-021–FR-029 + SC-010–SC-013
+- [x] T122 Contract: inventory schema, render/apply, metric labels, managed
+      sections (`contracts/telemetry-setup.md`)
+- [x] T123 Update `device-telemetry-greenfield.md` (Phase 8 plumbing vs Phase 10
+      setup productization)
+- [x] T124 Quickstart + `plan.md` Phase 10 pointers
+
+### Inventory & templates (PR1)
+
+- [x] T125 `convergence.yaml` inventory schema + example (`vendor` / `template`
+      on targets; secrets stay in env)
+- [x] T126 snmp module templates: `cisco`, `pfsense`, `generic` (per-metric
+      lookups for `ifDescr`/`ifName`)
+- [x] T127 `scripts/render-convergence-telemetry.py` (scrape + modules +
+      checklist; extends/supersedes scrape-only renderer as needed)
+- [x] T128 `scripts/convergence-telemetry-apply.sh` (managed Prometheus sections,
+      compose profiles, reload)
+- [x] T135 Recording rules `interface_*` kept in sync with templates
+      (`interface_name` from ifDescr else ifName)
+- [x] T136 Smoke: apply lab inventory → named interfaces in Prom
+      (`smoke-device-snmp.sh` named-interface checks; Grafana :3300 already
+      provisioned — full board curation is T132–T133)
+
+### Wizard & SoT (PR2)
+
+- [x] T129 `scripts/convergence-telemetry-setup.sh` wizard
+      (`manual` | `nautobot` | `netbox` | `yaml`) +
+      `scripts/convergence-telemetry-setup.py` /
+      `scripts/lib/convergence_telemetry_inventory.py`
+- [x] T130 Wire catalog install-step `convergence-device-snmp` → setup/apply
+      (prompt or `CONVERGENCE_TELEMETRY_SETUP=yes`); `setup.sh` Convergence
+      section uses wizard
+- [x] T131 Device config markdown generator (Cisco + pfSense SNMP/syslog) —
+      checklist via render + `device-config-snippets.md` MoP
+- [x] T137 Smoke: Nautobot select dry-run → yaml
+      (`deploy/convergence/smoke-telemetry-setup.sh`; also MODE=yaml|manual)
+
+### Dashboards & alerts (PR3)
+
+- [ ] T132 Curated dashboard suite (Home NOC, Campus Interfaces, WAN/edge, agent)
+- [ ] T133 Retire/tag empty boards; document datasource UIDs and Grafana **:3300**
+- [ ] T134 Alert pack expansion (safe cardinality) + interface names in
+      annotations; honor `investigate` labels
+- [ ] T138 Independent test steps in quickstart (SC-010–SC-013)
+
+**Phase 10 checkpoint**: Spec Kit green (T120–T124); then PR1 re-applyable lab
+without hand-editing Prometheus; PR2 SoT wizard; PR3 curated boards + safe alerts.
+
+### Independent test
+
+empty targets → wizard ≥2 Cisco switches → apply → `device_snmp` up + non-empty
+interface name labels within 5m; Nautobot mode writes selection to yaml; Grafana
+Campus Interfaces named legends on :3300; checklist has syslog host:port +
+`SNMP_COMMUNITY` env name only.
+
+---
+
 ## Phase H: HUD polish backlog (deferred — not blocking PR3+)
 
 **Purpose**: Capture Visual HUD UX / mobile follow-ups so they survive context switches.  
@@ -253,6 +327,10 @@ add allow_t2 rule → that alertname can T2; budget trip → clamp; Prom/API sta
 - Phase 2 blocks Phase 3–4 for real data but Phase 1 can demo alone  
 - Phase 5 can start after Phase 0; ideally after Phase 2–3 for real components  
 - Phase 6 needs Phase 2  
+- Phase 8 plumbing complete before Phase 10 productization (collectors exist)  
+- Phase 9 independent of Phase 10 (policy consumes better alerts when ready)  
+- Phase 10 PR1 (T125–T128) blocks PR2 wizard apply chain; PR3 dashboards can
+  start after metric contract (T126/T135) is stable  
 - Phase H does **not** block Phases 3–7; can interleave after Phase 1  
 
 ## Parallel opportunities
@@ -262,4 +340,6 @@ add allow_t2 rule → that alertname can T2; budget trip → clamp; Prom/API sta
 - T032 parallel with T030  
 - T050–T052 parallel with deploy work once contracts stable  
 - H001 ∥ H002 ∥ H007 once mobile-layout.js is baseline (shipped)  
+- T126 ∥ T125 after T124; T132 can draft against recording-rule contract while
+  T128 lands  
 

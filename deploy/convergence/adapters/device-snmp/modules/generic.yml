@@ -1,0 +1,125 @@
+# Generic IF-MIB module (Phase 10).
+# Module id: generic. Per-metric ifDescr/ifName lookups.
+walk:
+  - 1.3.6.1.2.1.2.2.1.2    # ifDescr
+  - 1.3.6.1.2.1.2.2.1.7    # ifAdminStatus
+  - 1.3.6.1.2.1.2.2.1.8    # ifOperStatus
+  - 1.3.6.1.2.1.31.1.1.1.1  # ifName
+  - 1.3.6.1.2.1.31.1.1.1.6  # ifHCInOctets
+  - 1.3.6.1.2.1.31.1.1.1.10 # ifHCOutOctets
+  - 1.3.6.1.2.1.2.2.1.14   # ifInErrors
+  - 1.3.6.1.2.1.2.2.1.20   # ifOutErrors
+metrics:
+  - name: ifAdminStatus
+    oid: 1.3.6.1.2.1.2.2.1.7
+    type: gauge
+    help: Desired state of the interface (1=up 2=down 3=testing)
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString
+    enum_values:
+      1: up
+      2: down
+      3: testing
+
+  - name: ifOperStatus
+    oid: 1.3.6.1.2.1.2.2.1.8
+    type: gauge
+    help: Operational state of the interface (1=up 2=down …)
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString
+    enum_values:
+      1: up
+      2: down
+      3: testing
+      4: unknown
+      5: dormant
+      6: notPresent
+      7: lowerLayerDown
+
+  - name: ifHCInOctets
+    oid: 1.3.6.1.2.1.31.1.1.1.6
+    type: counter
+    help: Total octets received on the interface (64-bit)
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString
+
+  - name: ifHCOutOctets
+    oid: 1.3.6.1.2.1.31.1.1.1.10
+    type: counter
+    help: Total octets transmitted out of the interface (64-bit)
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString
+
+  - name: ifInErrors
+    oid: 1.3.6.1.2.1.2.2.1.14
+    type: counter
+    help: Inbound packets that contained errors
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString
+
+  - name: ifOutErrors
+    oid: 1.3.6.1.2.1.2.2.1.20
+    type: counter
+    help: Outbound packets that could not be transmitted because of errors
+    indexes:
+      - labelname: ifIndex
+        type: gauge
+    lookups:
+      - labels: [ifIndex]
+        labelname: ifDescr
+        oid: 1.3.6.1.2.1.2.2.1.2
+        type: DisplayString
+      - labels: [ifIndex]
+        labelname: ifName
+        oid: 1.3.6.1.2.1.31.1.1.1.1
+        type: DisplayString

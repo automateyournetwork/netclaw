@@ -1,5 +1,8 @@
 #!/usr/bin/env python3
-"""Render Prometheus scrape fragments for device_snmp from convergence.yaml or targets YAML.
+"""Render Prometheus scrape fragments for device_snmp (Phase 8).
+
+**Prefer Phase 10:** ``scripts/render-convergence-telemetry.py`` +
+``scripts/convergence-telemetry-apply.sh`` (modules, checklist, managed sections).
 
 Usage:
   python3 scripts/render-device-snmp-scrape.py \\
