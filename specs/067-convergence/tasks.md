@@ -422,3 +422,74 @@ exactly three boards with `legacy/` unloaded.
 - T126 ∥ T125 after T124; T132 can draft against recording-rule contract while
   T128 lands  
 
+
+---
+
+## Phase 11: OTel Collector as the telemetry hub (optional PR) — US11
+
+**Purpose**: Replace the promtail + syslog-gateway + snmp_exporter trio with a
+single OpenTelemetry Collector: structured syslog dual-exported to Loki +
+VictoriaLogs, SNMP remote-written to VictoriaMetrics. Matches the pilot design.
+
+**Decision record**: [`otel-convergence.md`](./otel-convergence.md) ·
+spec US11 / FR-036–FR-042 / SC-017–SC-019
+
+**Supersedes**: T141 syslog-gateway (rfc3164 front-end becomes unnecessary — the
+OTel syslog receiver speaks rfc3164 natively) and the snmp_exporter path from
+T126/T128. Both remain in place until the phase that retires them.
+
+### Spec & measurement (PR0)
+
+- [x] T145 Author `otel-convergence.md`; extend `spec.md` US11 + FR-036–FR-042 +
+      SC-017–SC-019; probe the real metric names/labels rather than assuming
+      (`deploy/convergence/otel/probe-snmp-names.yaml`).
+      **Measured**: OTel emits `interface_status`,
+      `interface_octets_in_bytes_total`, `interface_errors_in_total` — byte-for-byte
+      the names the Phase 10 recording rules already synthesise, so **no metric
+      rename is required**; labels reduce to `device_name` + `interface_name` +
+      `site` (no ifIndex/ifName/ifDescr); `interface_admin_status` comes free.
+
+### Logs (PR1) — smallest blast radius, retires the newest component
+
+- [ ] T146 `deploy/convergence/otel/otel-config.yaml` — `syslog` receiver
+      (`protocol: rfc3164`, udp+tcp :1514, `on_error: send`), transform for
+      `device_name` from sender IP, bounded label promotion (FR-042)
+- [ ] T147 Compose service `otel-collector` (profiles `full`|`device-syslog`);
+      add **VictoriaLogs** service (:9428); exporters `loki` + `otlphttp/victorialogs`
+- [ ] T148 Retire syslog-gateway + promtail `device-syslog` job; keep promtail
+      for host files/journal until T150 decides
+- [ ] T149 Security board: query structured attributes instead of `app` label /
+      line filters; verify a line lands in **both** Loki and VictoriaLogs (SC-017)
+
+### Agent logs (PR2)
+
+- [ ] T150 OpenClaw file logs + systemd journal via OTel `filelog` / `journald`
+      receivers — or keep promtail for host-only scraping. Decide by measuring
+      (journal label fidelity, resource use), not by preference.
+
+### SNMP (PR3) — the rename-free cutover
+
+- [ ] T151 OTel `snmp/<device>` receivers generated per inventory target, with
+      `service.name: device_snmp` + `service.instance.id: <ip>` so `job`/`instance`
+      selectors survive (FR-040)
+- [ ] T152 Add `interface.admin.status`; wire `prometheusremotewrite` →
+      VictoriaMetrics (first real writer — the 365d retention claim becomes true)
+- [ ] T153 Retire `device-recording.rules.yml` (OTel emits final names directly)
+      and the snmp_exporter service. **Do not dual-run identical `job` labels** —
+      cut over per device or stage under a distinct `service.name`, compare, flip.
+
+### Wizard & K3s (PR4)
+
+- [ ] T154 `render-convergence-telemetry.py` emits OTel receiver blocks instead of
+      snmp_exporter modules; `convergence.yaml` inventory schema unchanged
+- [ ] T155 `convergence-telemetry-apply.sh` manages the collector config section
+      idempotently; checklist wording updated (SNMP + syslog unchanged for devices)
+- [ ] T156 K3s: `components/otel-collector` replaces `components/device-syslog`;
+      greenfield overlays updated; VictoriaLogs added to `full-stack`
+
+### Independent test
+
+Cisco + pfSense syslog → structured fields in Loki **and** VictoriaLogs, no
+message regex; SNMP cutover leaves every board and alert query unchanged;
+`interface_admin_status` present; Loki stream count stays bounded as new Cisco
+mnemonics appear.

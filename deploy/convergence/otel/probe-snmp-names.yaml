@@ -1,0 +1,83 @@
+# Throwaway probe config — determines the exact Prometheus metric names and
+# labels the OTel SNMP receiver produces, so the migration can be planned against
+# facts instead of assumptions about suffix/unit handling.
+#
+# Read-only: SNMP GET/WALK against one switch, no device writes.
+#   docker run --rm --network host -v $PWD/probe-snmp-names.yaml:/etc/otel/config.yaml \
+#     otel/opentelemetry-collector-contrib:0.104.0 --config /etc/otel/config.yaml
+#   curl -s localhost:9464/metrics | grep interface
+
+receivers:
+  snmp/probe:
+    collection_interval: 15s
+    initial_delay: 0s
+    endpoint: udp://192.168.3.2:161
+    version: v2c
+    community: public
+    timeout: 20s
+    resource_attributes:
+      interface.name:
+        oid: 1.3.6.1.2.1.2.2.1.2
+    metrics:
+      interface.octets.in:
+        unit: By
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+          - oid: 1.3.6.1.2.1.31.1.1.1.6
+            resource_attributes: [interface.name]
+      interface.errors.in:
+        unit: "{errors}"
+        sum:
+          value_type: int
+          aggregation: cumulative
+          monotonic: true
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.14
+            resource_attributes: [interface.name]
+      interface.status:
+        unit: "{state}"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.8
+            resource_attributes: [interface.name]
+      # Candidate addition: ifAlias = the operator-configured description.
+      # Not collected by the pilot; probing whether it can ride as a resource
+      # attribute so dashboards can show it alongside the name.
+      interface.admin.status:
+        unit: "{state}"
+        gauge:
+          value_type: int
+        column_oids:
+          - oid: 1.3.6.1.2.1.2.2.1.7
+            resource_attributes: [interface.name]
+
+processors:
+  resource/probe:
+    attributes:
+      - key: device_name
+        value: HomeSwitch01
+        action: upsert
+      - key: site
+        value: home
+        action: upsert
+  batch: {}
+
+exporters:
+  prometheus:
+    endpoint: 0.0.0.0:9464
+    resource_to_telemetry_conversion:
+      enabled: true
+
+service:
+  telemetry:
+    logs:
+      level: warn
+  pipelines:
+    metrics/probe:
+      receivers: [snmp/probe]
+      processors: [resource/probe, batch]
+      exporters: [prometheus]

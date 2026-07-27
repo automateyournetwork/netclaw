@@ -21,6 +21,11 @@ curated Grafana boards, safe alerts, and device config checklists — without
 hand-editing Prometheus or cloning the pilot OBS stack. Detail:
 [`telemetry-setup.md`](./telemetry-setup.md).
 
+**Telemetry hub (Phase 11)**: Device ingest converges on a single **OpenTelemetry
+Collector** — structured syslog → Loki (14d) + VictoriaLogs (365d), SNMP →
+VictoriaMetrics. Supersedes promtail + syslog-gateway + snmp_exporter. Decision
+record: [`otel-convergence.md`](./otel-convergence.md).
+
 **Board suite (Phase 10 PR3+)**: The provisioned Grafana suite is **three**
 narrative boards — **Network**, **Security**, **NetClaw** — not the ported pilot
 board set (parked unloaded under `grafana/provisioning/dashboards/legacy/`).
@@ -279,6 +284,52 @@ panels return data and its log panels are documented as requiring device syslog.
 
 ---
 
+### User Story 11 - One OTel ingest hub with structured logs (Priority: P2)
+
+An operator running Convergence gets device telemetry through a **single
+OpenTelemetry Collector**: syslog parsed into structured fields at ingest and
+dual-exported to **Loki** (14d) and **VictoriaLogs** (365d), and SNMP polled by
+the same collector and remote-written to **VictoriaMetrics** — instead of a
+promtail + syslog-gateway + snmp_exporter trio, each with its own config
+language and failure modes.
+
+**Why this priority**: Flat log lines force every consumer to regex the message
+body, which is brittle and was already the root of two defects (RFC5424-only
+parsing, and unbounded `app` label cardinality from guessing Cisco's TAG field).
+One collector also matches the pilot design the operator already proved against
+this fleet, so Convergence stops being a second, divergent architecture.
+
+**Independent Test**: On a Docker install, point a Cisco switch and pfSense at
+the collector's syslog port; log lines appear in **both** Loki and VictoriaLogs
+with `device_name`/`severity`/`appname` as fields (not regex-extracted), and
+`interface_status` / `interface_octets_in_bytes_total` arrive in VictoriaMetrics
+with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
+
+**Acceptance Scenarios**:
+
+1. **Given** a device sending vendor-default RFC3164 syslog, **When** the
+   collector receives it, **Then** the log is stored with structured attributes
+   (facility, severity, hostname, appname, message) and no message-body regex is
+   needed to identify it.
+2. **Given** the log pipeline is running, **When** a line is ingested, **Then** it
+   is queryable in **both** Loki and VictoriaLogs.
+3. **Given** OTel SNMP receivers replace snmp_exporter, **When** metrics arrive,
+   **Then** existing alert rules and dashboards continue to work unchanged
+   (`job="device_snmp"`, `device_name`, `interface_name` preserved).
+4. **Given** the SNMP cutover, **When** interface metrics arrive, **Then**
+   `interface_admin_status` is present so administratively-shut is
+   distinguishable from link-failed.
+5. **Given** the collector is the only syslog receiver, **When** cutover
+   completes, **Then** the syslog-gateway (T141) and promtail device-syslog job
+   are retired, and label cardinality from Cisco mnemonics is bounded.
+6. **Given** a parse failure, **When** it occurs, **Then** the line is still
+   ingested (`on_error: send`) and the failure remains countable — never a silent
+   drop (FR-035).
+
+**Detail**: [`otel-convergence.md`](./otel-convergence.md) · tasks T145–T156.
+
+---
+
 ### Edge Cases
 
 - Home-api unreachable: degraded banners, no uncaught exceptions.
@@ -335,6 +386,13 @@ panels return data and its log panels are documented as requiring device syslog.
 - **FR-033**: The **Security** board MUST render its Prometheus-backed posture (firing/critical alerts with `investigate` label, edge reachability, wireless/guest access) independently of log availability; log-backed sections MAY be empty until a log source is ingesting.
 - **FR-034**: Log panels MUST select streams by stable labels (`job`, `unit`, `device_name`, `service`) rather than message-content regex.
 - **FR-035**: The device/agent log receiver MUST ingest vendor-default syslog (RFC3164/BSD) as shipped — via a reformatting front-end or an rfc3164-capable receiver — and MUST surface parse-failure volume rather than dropping silently.
+- **FR-036**: Device telemetry ingest MUST be a single **OpenTelemetry Collector** (syslog + SNMP), per [`otel-convergence.md`](./otel-convergence.md).
+- **FR-037**: Syslog MUST be parsed into structured attributes at ingest (facility, severity, hostname, appname, message); consumers MUST NOT need message-body regex to identify a log's source or type.
+- **FR-038**: Logs MUST be dual-exported to **Loki** (interactive retention) and **VictoriaLogs** (long-term retention).
+- **FR-039**: SNMP metrics MUST be collected by the collector and remote-written to **VictoriaMetrics**; Prometheus remains the alerting engine and keeps its scrape-based collectors.
+- **FR-040**: The SNMP cutover MUST preserve existing selectors (`job="device_snmp"`, `instance`, `device_name`, `interface_name`, `role`, `vendor`) via resource attributes, so no dashboard or alert rule changes are required.
+- **FR-041**: Interface metrics MUST include `interface_admin_status` (ifAdminStatus) so administratively-shut is distinguishable from link-failed.
+- **FR-042**: Promoted log labels MUST be a bounded, explicitly listed set (e.g. `device_name`, `site`, `service.name`, `severity`). Vendor message identifiers (e.g. Cisco mnemonics) MUST NOT become labels.
 
 ### Key Entities
 
@@ -369,6 +427,9 @@ panels return data and its log panels are documented as requiring device syslog.
 - **SC-014**: Grafana folder Convergence provisions exactly three boards (Network, Security, NetClaw); the `legacy/` directory is present and unloaded.
 - **SC-015**: With device-snmp + UniFi + blackbox + agent metrics installed, every panel on Network and NetClaw returns a non-empty series (or an explicitly documented "requires X" note); Security's Prometheus panels return data with no log source deployed.
 - **SC-016**: With a Cisco or pfSense device sending vendor-default syslog to the Convergence receiver, log lines are queryable within 5 minutes with `device_name` and `app` labels, and receiver parse-failure count for that stream is zero.
+- **SC-017**: A single device syslog line is queryable in **both** Loki and VictoriaLogs, with severity and appname available as structured fields rather than regex extractions.
+- **SC-018**: After the SNMP cutover, the provisioned boards and the full alert pack evaluate with zero query changes, and `interface_status` label sets contain `device_name` + `interface_name` with no `ifIndex`/`ifName`/`ifDescr`.
+- **SC-019**: `interface_admin_status` is present for every polled interface, and total Loki stream count for `job=device-syslog` stays bounded as Cisco emits new mnemonics.
 
 ## Assumptions
 
