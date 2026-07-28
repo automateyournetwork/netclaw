@@ -92,39 +92,21 @@ scrape_configs:
   # Regenerate static_configs via:
   #   python3 scripts/render-device-snmp-scrape.py --targets adapters/device-snmp/targets.example.yml
   # Target down / profile off is ok.
-  - job_name: device_snmp
-    scrape_interval: 60s
-    metrics_path: /snmp
-    params:
-      module: [if_mib]
-      auth: [public_v2]
+  # Device SNMP is collected by the OTel Collector and remote-written to
+  # Prometheus (Phase 11 / T151-T153, T156) — there is no scrape job. The collector
+  # sets service.name=device_snmp and service.instance.id=<ip>, which arrive as the
+  # job and instance labels, so every pre-existing selector still resolves.
+  #
+  # Collector health, so log/metric ingest cannot fail silently:
+  - job_name: otel-collector
+    scrape_interval: 30s
+    metrics_path: /metrics
     static_configs:
-      - targets: ["192.168.3.2"]
+      - targets: ["otel-collector:8888"]
         labels:
           site: home
-          device_name: HomeSwitch01
-          role: switch
-      - targets: ["192.168.3.3"]
-        labels:
-          site: home
-          device_name: HomeSwitch02
-          role: switch
-      - targets: ["192.168.3.5"]
-        labels:
-          site: home
-          device_name: HomeSwitch04
-          role: switch
-    relabel_configs:
-      - source_labels: [__address__]
-        target_label: __param_target
-      - source_labels: [__param_target]
-        target_label: instance
-      - target_label: __address__
-        replacement: snmp-device-exporter:9116
+          instance: otel-collector
 
-  # NetClaw agent token/cost exporter on host (Phase 8 — profile not required)
-  # Enable: systemctl --user enable --now openclaw-token-exporter  (scripts/openclaw-metrics)
-  # Target down is ok when exporter is not installed.
   - job_name: netclaw-openclaw
     scrape_interval: 30s
     metrics_path: /metrics

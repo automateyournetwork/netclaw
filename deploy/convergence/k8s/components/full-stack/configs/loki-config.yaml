@@ -40,3 +40,38 @@ compactor:
   retention_enabled: true
   compaction_interval: 10m
   delete_request_store: filesystem
+
+# --- Ruler: derive metrics from logs (T143 / T157) ---------------------------
+# pfSense exposes no block/DNS counters over SNMP and there is no installable
+# pfSense metrics exporter in this repo, so the Security board could only show
+# posture, alerts and raw logs (FR-033). The events are already here, parsed into
+# structured fields by the OTel Collector, so the ruler derives metrics from them
+# and remote-writes to Prometheus — where the existing alerting engine and boards
+# can use them like any other series.
+#
+# Rules are file-managed (GitOps), so the ruler API is off and the rules directory
+# is mounted read-only. Single-tenant Loki reads from <dir>/fake/.
+ruler:
+  enable_api: false
+  storage:
+    type: local
+    local:
+      directory: /loki/rules
+  rule_path: /tmp/loki-rules
+  evaluation_interval: 1m
+  ring:
+    kvstore:
+      store: inmemory
+  # The remote-write WAL defaults to a RELATIVE path ("ruler-wal") in the process
+  # CWD, which is not writable in this image — the ruler then crash-loops with
+  # "create dir: mkdir ruler-wal: permission denied". Pin it to the data volume.
+  wal:
+    dir: /loki/ruler-wal
+  remote_write:
+    enabled: true
+    clients:
+      prometheus:
+        url: http://prometheus:9090/api/v1/write
+        queue_config:
+          capacity: 2500
+          max_samples_per_send: 500

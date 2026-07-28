@@ -47,6 +47,10 @@ spec:
             - --storage.tsdb.path=/prometheus
             - --storage.tsdb.retention.time=15d
             - --web.enable-lifecycle
+            # Required: device SNMP metrics (OTel Collector) and log-derived
+            # pfSense metrics (Loki ruler) both arrive via remote-write.
+            # Without this, K3s has no device metrics at all.
+            - --web.enable-remote-write-receiver
           ports:
             - containerPort: 9090
               name: http

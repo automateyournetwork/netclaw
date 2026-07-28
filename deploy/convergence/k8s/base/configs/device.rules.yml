@@ -1,31 +1,51 @@
-# Phase 8 — campus device SNMP + agent exporter alerts (greenfield)
-# Keep in sync with deploy/convergence/prometheus/alerts/device.rules.yml
+# COPY OF deploy/convergence/prometheus/alerts/device.rules.yml — do not edit here.
+# Kustomize refuses to load files outside its root (and requiring
+# --load-restrictor LoadRestrictionsNone is worse than a copy), so this is a
+# real copy. Run deploy/convergence/k8s/check-config-drift.sh to verify it
+# still matches; the previous copies silently drifted for weeks.
+# Phase 8/10 — campus device SNMP + agent exporter alerts (greenfield)
 #
-# SAFETY: no per-idle-port investigation storms — see docs/CONVERGENCE-ALERT-SAFETY.md
+# SAFETY (2026-07-25): Do NOT fire per-ifIndex "admin-up oper-down" as a
+# pageable/investigated alert. On campus switches that matches every idle
+# access port and storms Alertmanager → alert-receiver → OpenClaw hooks
+# (one full MCP farm per fingerprint). See docs/CONVERGENCE-ALERT-SAFETY.md.
+#
+# Phase 10 (T134): interface identity in annotations; investigate labels on all rules.
 groups:
   - name: netclaw-convergence.device
     interval: 30s
     rules:
-      - alert: DeviceSnmpExporterDown
-        expr: up{job="device_snmp"} == 0
-        for: 10m
+      # SNMP is collected by the OTel Collector, so there is no `up{job="device_snmp"}`
+      # to watch. Detect staleness instead: a device that stopped answering SNMP
+      # stops refreshing its series. Device-agnostic — no hardcoded inventory.
+      - alert: DeviceSnmpStale
+        expr: |
+          (time() - max by (device_name, site) (timestamp(interface_status{job="device_snmp"}))) > 300
+        for: 5m
         labels:
           severity: warning
           site: home
           investigate: "true"
         annotations:
-          summary: "Device SNMP target not scraping ({{ $labels.device_name }})"
+          summary: "Device SNMP data is stale ({{ $labels.device_name }})"
           description: >-
-            Prometheus cannot scrape device_snmp for {{ $labels.instance }}.
-            Enable compose profile device-snmp, check SNMP community/reachability,
-            or remove stale targets from prometheus.yml.
+            No fresh SNMP metrics for device_name={{ $labels.device_name }} in over
+            5 minutes. Check the collector (`docker logs
+            netclaw-convergence-otel-collector-1`), SNMP_COMMUNITY, and device
+            reachability. Collector-wide failure shows as up{job="otel-collector"}==0.
 
+      # Aggregate idle-port inventory for dashboards only — never auto-investigate.
+      #
+      # Rewritten in T153: the OTel path emits interface_status /
+      # interface_admin_status (not raw ifOperStatus / ifAdminStatus) and carries no
+      # ifIndex label, so the join moved to interface_name. interface_name is
+      # stable and human-readable, which also makes the annotations honest.
       - alert: SwitchIdlePortsPresent
         expr: |
           count by (device_name, instance, site) (
-            ifOperStatus{job="device_snmp",role="switch"} == 2
-            and on(instance, ifIndex, device_name)
-            ifAdminStatus{job="device_snmp",role="switch"} == 1
+            interface_status{job="device_snmp",role="switch"} == 2
+            and on(instance, interface_name, device_name)
+            interface_admin_status{job="device_snmp",role="switch"} == 1
           ) > 0
         for: 30m
         labels:
@@ -37,18 +57,24 @@ groups:
           summary: "Idle admin-up ports on {{ $labels.device_name }} ({{ $value }})"
           description: >-
             {{ $value }} interfaces on {{ $labels.device_name }} are admin-up but
-            oper-down. Expected for unused ports — not an investigation trigger.
+            oper-down. Expected for unused ports — dashboard only (investigate=false).
 
+      # Real fault: link was UP recently and is now DOWN while admin-up.
+      #
+      # interface_admin_status arrived with the OTel cutover (T152). Before it, the
+      # only way to tell "administratively shut" from "link failed" was this
+      # offset-15m heuristic. The admin-status term is now authoritative and the
+      # offset check only distinguishes a *recent* loss from a long-idle port.
       - alert: SwitchLinkLost
         expr: |
           (
-            ifOperStatus{job="device_snmp",role="switch"} == 2
-            and on(instance, ifIndex, device_name)
-            ifAdminStatus{job="device_snmp",role="switch"} == 1
+            interface_status{job="device_snmp",role="switch"} == 2
+            and on(instance, interface_name, device_name)
+            interface_admin_status{job="device_snmp",role="switch"} == 1
           )
-          and on(instance, ifIndex, device_name)
+          and on(instance, interface_name, device_name)
           (
-            ifOperStatus{job="device_snmp",role="switch"} offset 15m == 1
+            interface_status{job="device_snmp",role="switch"} offset 15m == 1
           )
         for: 3m
         labels:
@@ -56,10 +82,33 @@ groups:
           site: home
           investigate: "true"
         annotations:
-          summary: "Link lost on {{ $labels.device_name }} ifIndex={{ $labels.ifIndex }}"
+          summary: "Link lost on {{ $labels.device_name }} {{ $labels.interface_name }}"
           description: >-
-            Interface was operationally up 15m ago and is now down (admin still up)
-            on {{ $labels.device_name }} ({{ $labels.instance }}).
+            Interface {{ $labels.interface_name }} was oper-up 15m ago and is now
+            down while still admin-up, on device_name={{ $labels.device_name }}
+            instance={{ $labels.instance }}. Admin-shut ports are excluded by the
+            interface_admin_status term.
+
+      # Aggregate error rate by device — NOT per-ifIndex (safe cardinality).
+      - alert: SwitchInterfaceErrorsHigh
+        expr: |
+          sum by (device_name, instance, site) (
+            rate(interface_errors_in_total{job="device_snmp",role="switch"}[5m])
+            + rate(interface_errors_out_total{job="device_snmp",role="switch"}[5m])
+          ) > 5
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "true"
+        annotations:
+          summary: "High interface error rate on {{ $labels.device_name }}"
+          description: >-
+            Aggregate in+out IF-MIB error rate ≈ {{ $value | humanize }} /s on
+            device_name={{ $labels.device_name }} instance={{ $labels.instance }} for 10m.
+            Open the Network board → Campus switching (Grafana :3300) and filter
+            by device_name — series are named via interface_name (ifDescr/ifName).
+            Aggregated by device only (no per-ifIndex alert) to avoid storms.
 
       - alert: NetclawAgentMetricsDown
         expr: up{job="netclaw-openclaw"} == 0
@@ -69,7 +118,93 @@ groups:
           site: home
           investigate: "false"
         annotations:
-          summary: "NetClaw openclaw-token-exporter not scraping"
+          summary: "NetClaw agent metrics exporter not scraping"
           description: >-
-            Enable scripts/openclaw-metrics (user systemd) on the NetClaw host
-            or ignore if agent_observability.token_exporter is intentionally off.
+            Job netclaw-openclaw is down. Enable openclaw-token-exporter on the host
+            (scripts/openclaw-metrics) or ignore if agent observability is disabled.
+
+      # --- Log ship health (T141 / FR-035) ---------------------------------
+      # Devices send vendor-default RFC3164 to syslog-gateway, which re-emits
+      # RFC5424 to promtail. If promtail is rejecting what it receives, syslog
+      # is being dropped on the floor and the Security board's log panels go
+      # quiet while everything *looks* fine — that is the failure mode this
+      # alert exists to make loud.
+      # Repointed from promtail to the OTel Collector in Phase 11 (T148):
+      # device syslog no longer passes through promtail at all, so the promtail
+      # counters would have sat flat at zero forever — an alert that can never
+      # fire is worse than no alert.
+      - alert: SyslogIngestRefusing
+        expr: rate(otelcol_receiver_refused_log_records{job="otel-collector"}[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "OTel Collector is refusing log records"
+          description: >-
+            otelcol_receiver_refused_log_records is increasing
+            ({{ $value | humanize }}/s) on receiver {{ $labels.receiver }} —
+            records are arriving and being rejected rather than stored. Check
+            `docker logs netclaw-convergence-otel-collector-1` and
+            `deploy/convergence/otel/otel-config.yaml`.
+
+      # Export failures: received fine, but not landing in Loki/VictoriaLogs.
+      - alert: LogExportFailing
+        expr: rate(otelcol_exporter_send_failed_log_records{job="otel-collector"}[10m]) > 0
+        for: 10m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "Log export failing to {{ $labels.exporter }}"
+          description: >-
+            otelcol_exporter_send_failed_log_records is increasing on exporter
+            {{ $labels.exporter }}. Logs are being received but not stored. The
+            persistent send queue absorbs short outages; sustained failure means
+            Loki or VictoriaLogs is unreachable or rejecting writes.
+
+      # Received nothing at all for an hour while the collector is up: either no
+      # device is configured for syslog yet, or the path is broken upstream.
+      - alert: SyslogIngestNoEntries
+        expr: |
+          up{job="otel-collector"} == 1
+          and sum(increase(otelcol_receiver_accepted_log_records{job="otel-collector"}[1h])) == 0
+        for: 1h
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "No syslog entries ingested in the last hour"
+          description: >-
+            The collector is up but has accepted zero log records for 1h. Expected
+            on a site with no device syslog configured yet — see the generated
+            device config checklist for the syslog destination host:port.
+
+      - alert: LogIngestDown
+        expr: up{job="otel-collector"} == 0
+        for: 15m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "OTel Collector not scraping"
+          description: >-
+            Job otel-collector is down, so device syslog is not reaching Loki or
+            VictoriaLogs. Enable the full or device-syslog compose profile.
+
+      - alert: HostLogShipDown
+        expr: up{job="promtail"} == 0
+        for: 15m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+        annotations:
+          summary: "Promtail host log ship not scraping"
+          description: >-
+            Job promtail is down, so OpenClaw file logs and the systemd journal
+            are not reaching Loki. Device syslog is unaffected (OTel Collector).

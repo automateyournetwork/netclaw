@@ -60,6 +60,11 @@ spec:
               subPath: loki-config.yaml
             - name: data
               mountPath: /loki
+            # Ruler rules (read-only, GitOps-managed). Single-tenant Loki reads
+            # <rules_dir>/fake/, so the tenant dir is part of the mount path.
+            - name: rules
+              mountPath: /loki/rules/fake
+              readOnly: true
           readinessProbe:
             httpGet:
               path: /ready
@@ -70,6 +75,9 @@ spec:
         - name: config
           configMap:
             name: loki-config
+        - name: rules
+          configMap:
+            name: loki-rules
   volumeClaimTemplates:
     - metadata:
         name: data

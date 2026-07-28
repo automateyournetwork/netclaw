@@ -1,0 +1,78 @@
+# VictoriaLogs — long-term (365d) structured log store (Phase 11 / T156)
+#
+# Loki keeps 14d for interactive querying; VictoriaLogs keeps a year without
+# Loki's label-cardinality constraints. The OTel Collector dual-writes to both,
+# which is the whole reason structured fields (appname, mnemonic, src_ip, ...) can
+# be kept as fields rather than being forced into labels.
+apiVersion: v1
+kind: Service
+metadata:
+  name: victorialogs
+  labels:
+    app.kubernetes.io/name: victorialogs
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: logs-longterm
+spec:
+  selector:
+    app.kubernetes.io/name: victorialogs
+  ports:
+    - name: http
+      port: 9428
+      targetPort: 9428
+      protocol: TCP
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: victorialogs
+  labels:
+    app.kubernetes.io/name: victorialogs
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: logs-longterm
+spec:
+  serviceName: victorialogs
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: victorialogs
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: victorialogs
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: logs-longterm
+    spec:
+      containers:
+        - name: victorialogs
+          image: victoriametrics/victoria-logs:v1.52.0
+          args:
+            - -retentionPeriod=365d
+            - -storageDataPath=/victoria-logs-data
+            - -httpListenAddr=:9428
+          ports:
+            - name: http
+              containerPort: 9428
+          volumeMounts:
+            - name: data
+              mountPath: /victoria-logs-data
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 1000m
+              memory: 1Gi
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 20Gi

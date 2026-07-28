@@ -1,0 +1,24 @@
+# Phase 11 (T156) — OTel Collector: device syslog + SNMP in one workload.
+#
+# Replaces components/device-syslog (syslog-ng + promtail) and
+# components/device-snmp (snmp_exporter), both retired.
+#
+# configs/otel-config.yaml is a SYMLINK to deploy/convergence/otel/otel-config.yaml.
+# The Docker and K3s paths share one collector config because compose service names
+# and K8s Service names are identical (loki, victorialogs, prometheus,
+# victoriametrics). The copied prometheus.yml and device.rules.yml in base/ already
+# drifted from their Docker originals; this avoids repeating that mistake.
+#
+# Pair with components/full-stack for Loki, VictoriaLogs and VictoriaMetrics.
+apiVersion: kustomize.config.k8s.io/v1alpha1
+kind: Component
+
+resources:
+  - otel-collector.yaml
+
+configMapGenerator:
+  - name: otel-collector-config
+    files:
+      - otel-config.yaml=configs/otel-config.yaml
+    options:
+      disableNameSuffixHash: true

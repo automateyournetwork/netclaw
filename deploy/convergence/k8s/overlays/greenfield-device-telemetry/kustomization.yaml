@@ -1,8 +1,21 @@
-# Greenfield + Phase 8 device telemetry:
-#   base Home stack + full-stack (Loki/VM/Grafana/speedtest)
-#   + campus device SNMP + syslog → Loki
+# Greenfield + device telemetry (Phase 11 / T156):
+#   base Home stack
+#   + full-stack (Loki 14d, VictoriaLogs 365d, VictoriaMetrics 365d, Grafana, speedtest)
+#   + otel-collector (device syslog AND SNMP in one workload)
 #
-# Namespace: netclaw-convergence (isolated from pilot observability).
+# Namespace: netclaw-convergence (isolated from the pilot observability namespace).
+#
+# WHAT CHANGED IN PHASE 11: this overlay previously pulled components/device-snmp
+# (snmp_exporter) and components/device-syslog (syslog-ng gateway + promtail). Both
+# are retired and deleted:
+#
+#   - promtail's syslog target parses RFC5424 ONLY, while Cisco IOS-XE and pfSense
+#     emit RFC3164 — it silently discarded every device log line
+#   - the syslog-ng gateway existed only to work around that
+#   - snmp_exporter needed a recording-rule layer to produce interface_* names,
+#     which the OTel SNMP receiver emits directly, plus interface_admin_status
+#
+# See specs/067-convergence/otel-convergence.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 
@@ -11,13 +24,19 @@ resources:
 
 components:
   - ../../components/full-stack
-  - ../../components/device-snmp
-  - ../../components/device-syslog
+  - ../../components/otel-collector
 
 # Before apply:
-#   kubectl apply -f deploy/convergence/k8s/secret.yaml
-#   kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
+#   1. Check the K8s config copies still match their Docker originals:
+#        deploy/convergence/k8s/check-config-drift.sh
+#   2. Generate the collector's SNMP receivers + syslog device map from inventory:
+#        scripts/render-convergence-telemetry.py --config <convergence.yaml> \
+#          --inject-otel deploy/convergence/otel/otel-config.yaml
+#      then re-run check-config-drift.sh --fix to carry it into the K8s copy.
+#   3. kubectl apply -f deploy/convergence/k8s/secret.yaml   # SNMP_COMMUNITY
+#   4. kubectl apply -k deploy/convergence/k8s/overlays/greenfield-device-telemetry
 #
-# Prometheus scrape job device_snmp: patch prometheus-config the same way as
-# Docker prometheus/prometheus.yml (see components/device-snmp/README.md).
-# Syslog: UDP hostPort 1514 on the node — see components/device-syslog/README.md.
+# Device-facing endpoints (unchanged from the retired components, so existing
+# device config and generated checklists stay valid):
+#   syslog  → <node-ip>:1514 udp or tcp   (hostPort on the collector pod)
+#   SNMP    → the collector polls devices; nothing to open inbound

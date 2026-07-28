@@ -1,3 +1,8 @@
+# COPY OF deploy/convergence/prometheus/alerts/home.rules.yml — do not edit here.
+# Kustomize refuses to load files outside its root (and requiring
+# --load-restrictor LoadRestrictionsNone is worse than a copy), so this is a
+# real copy. Run deploy/convergence/k8s/check-config-drift.sh to verify it
+# still matches; the previous copies silently drifted for weeks.
 # NetClaw Convergence — recording + alert rules (067 Phase 3)
 # Compatible with convergence-api health queries (convergence:* recording names).
 groups:
@@ -26,12 +31,27 @@ groups:
 
   - name: netclaw-convergence.alerts
     rules:
+      # WanHardDown alias name used by investigation-policy seed-investigate-critical
+      - alert: WanHardDown
+        expr: max(probe_success{job=~"blackbox_wan_.*"}) == 0
+        for: 2m
+        labels:
+          severity: critical
+          site: home
+          investigate: "true"
+        annotations:
+          summary: "WAN hard down (all probes failing)"
+          description: >-
+            No WAN probe has succeeded for 2m from the Convergence stack.
+            Check ISP, edge firewall, and blackbox_wan_* targets.
+
       - alert: InternetDown
         expr: max(probe_success{job=~"blackbox_wan_.*"}) == 0
         for: 2m
         labels:
           severity: critical
           site: home
+          investigate: "true"
         annotations:
           summary: "Internet appears DOWN (all WAN probes failing)"
           description: "No WAN probe has succeeded for 2m from the Convergence stack vantage point."
@@ -42,6 +62,7 @@ groups:
         labels:
           severity: warning
           site: home
+          investigate: "true"
         annotations:
           summary: "WAN target {{ $labels.target }} unreachable"
           description: "TCP probe to {{ $labels.instance }} has failed for 5m."
@@ -52,9 +73,12 @@ groups:
         labels:
           severity: warning
           site: home
+          investigate: "false"
         annotations:
           summary: "WAN latency elevated"
-          description: "Average WAN TCP probe duration > 80ms for 5m."
+          description: >-
+            Average WAN TCP probe duration > 80ms for 5m.
+            Dashboard/observe by default (investigate=false) to avoid chatty T2.
 
       - alert: UniFiExporterDown
         expr: up{job="unifi"} == 0
@@ -62,6 +86,7 @@ groups:
         labels:
           severity: warning
           site: home
+          investigate: "true"
         annotations:
           summary: "UniFi exporter not scraping"
           description: "Prometheus cannot reach unifi-exporter:9899. Enable profile unifi or fix UNIFI_* env."
@@ -72,6 +97,20 @@ groups:
         labels:
           severity: critical
           site: home
+          investigate: "true"
         annotations:
           summary: "convergence-api unreachable"
           description: "Blackbox HTTP probe of convergence-api /healthz is failing."
+
+      - alert: EdgeMgmtUnreachable
+        expr: probe_success{job="blackbox_edge"} == 0
+        for: 5m
+        labels:
+          severity: warning
+          site: home
+          investigate: "true"
+        annotations:
+          summary: "Edge management UI unreachable ({{ $labels.device_name }})"
+          description: >-
+            Blackbox HTTP probe of edge mgmt target {{ $labels.instance }} failed for 5m
+            (device_name={{ $labels.device_name }}). Check pfSense/firewall admin HTTPS.

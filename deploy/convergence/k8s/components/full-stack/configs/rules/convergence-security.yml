@@ -1,0 +1,88 @@
+# Loki recording rules → Prometheus remote-write (T143, rewritten for T157)
+#
+# WHY: pfSense exposes no block/DNS counters over SNMP and there is no installable
+# pfSense metrics exporter in this repo, so the Security board could only show
+# posture, alerts and raw logs (FR-033). The events are already in Loki via the
+# OTel Collector, so deriving metrics from them closes the gap without adding an
+# exporter or installing anything on pfSense.
+#
+# T157 rewrite: these rules originally keyword-matched the raw CSV
+# (`|= ",block,"`). filterlog is now parsed at ingest, so they select real fields
+# — `attributes_action`, `attributes_fw_interface`, `attributes_direction`,
+# `attributes_protocol`. That is both correct (`,block,` could match a pass line
+# whose payload contained the string) and stable against pfSense changing CSV
+# field order.
+#
+# LABEL NAMES: `| label_format` renames the Loki JSON-parser fields
+# (attributes_fw_interface, ...) to clean Prometheus label names (interface,
+# direction, protocol) BEFORE aggregation. Doing this now is deliberate — once
+# alerts and dashboards reference a series, renaming its labels is a breaking
+# change.
+#
+# CARDINALITY: deliberately NO src_ip dimension. External scanner IPs are
+# unbounded and these become Prometheus series. Top-talker analysis stays a
+# query-time Loki aggregation on the board; only bounded dimensions
+# (device, interface, direction, protocol) become metrics.
+#
+# COST: each rule evaluates a LogQL metric query over the interval. Keep this set
+# small — it runs on the same host as everything else.
+
+groups:
+  - name: convergence-security-firewall
+    interval: 1m
+    rules:
+      - record: pfsense:filterlog_blocks:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block" [5m])
+          )
+
+      - record: pfsense:filterlog_pass:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="pass" [5m])
+          )
+
+      # "Which segment is being hammered" — bounded by interface count.
+      - record: pfsense:filterlog_blocks_by_interface:rate5m
+        expr: |
+          sum by (device_name, interface, direction) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block"
+              | label_format interface=attributes_fw_interface, direction=attributes_direction [5m])
+          )
+
+      # Protocol mix of blocked traffic — case normalised at ingest.
+      - record: pfsense:filterlog_blocks_by_protocol:rate5m
+        expr: |
+          sum by (device_name, protocol) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="filterlog" | attributes_action="block"
+              | label_format protocol=attributes_protocol [5m])
+          )
+
+  - name: convergence-security-dns
+    interval: 1m
+    rules:
+      - record: pfsense:dns_queries:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "query:" [5m])
+          )
+
+      - record: pfsense:dns_nxdomain:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "NXDOMAIN" [5m])
+          )
+
+      - record: pfsense:dns_servfail:rate5m
+        expr: |
+          sum by (device_name) (
+            rate({job="device-syslog"} | json
+              | attributes_appname="unbound" |= "SERVFAIL" [5m])
+          )

@@ -1,7 +1,7 @@
 # NetClaw Convergence — Full stack Kustomize Component (T072)
 # K8s equivalent of Docker Compose --profile full / --profile speedtest.
 # Adds long-term storage + dashboards + active bandwidth testing on top of
-# the base minimal stack: Loki, VictoriaMetrics, Grafana, speedtest.
+# the base minimal stack: Loki, VictoriaLogs, VictoriaMetrics, Grafana, speedtest.
 #
 # Use from an overlay:
 #
@@ -20,6 +20,7 @@ kind: Component
 
 resources:
   - loki.yaml
+  - victorialogs.yaml
   - victoriametrics.yaml
   - grafana.yaml
   - speedtest.yaml
@@ -28,6 +29,11 @@ configMapGenerator:
   - name: loki-config
     files:
       - loki-config.yaml=configs/loki-config.yaml
+  # Ruler rules — derive pfSense block/DNS metrics from structured logs and
+  # remote-write them to Prometheus (T143). Single-tenant Loki reads <dir>/fake/.
+  - name: loki-rules
+    files:
+      - convergence-security.yml=configs/rules/convergence-security.yml
   - name: grafana-datasources
     files:
       - datasources.yml=configs/datasources.yml

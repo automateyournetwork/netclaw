@@ -1,0 +1,132 @@
+# OTel Collector — device telemetry hub (Phase 11 / T156, K3s parity of Docker)
+#
+# Decision record: specs/067-convergence/otel-convergence.md
+#
+#   devices --syslog RFC3164--> :1514 udp+tcp --> Loki (14d) + VictoriaLogs (365d)
+#   devices <--SNMP------------ receivers ------> Prometheus (15d) + VictoriaMetrics (365d)
+#
+# Replaces BOTH retired components:
+#   - device-syslog  (syslog-ng gateway + promtail; promtail parses RFC5424 only)
+#   - device-snmp    (snmp_exporter)
+#
+# The ConfigMap is generated from the SAME deploy/convergence/otel/otel-config.yaml
+# the Docker path uses. That works because compose service names and K8s Service
+# names are identical (loki, victorialogs, prometheus, victoriametrics), so the
+# collector config is runtime-agnostic. Keeping one file avoids the drift that
+# already happened to the copied prometheus.yml and device.rules.yml.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: otel-collector
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: device-telemetry
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: otel-collector
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: otel-collector
+        app.kubernetes.io/part-of: netclaw-convergence
+        app.kubernetes.io/component: device-telemetry
+    spec:
+      securityContext:
+        # Matches the image's own user. The persistent send queue lives on an
+        # emptyDir owned by this GID, so no root init step is needed here (the
+        # Docker path needs one because named volumes are created root-owned).
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:0.104.0
+          args: ["--config=/etc/otel/config.yaml"]
+          env:
+            - name: SNMP_COMMUNITY
+              valueFrom:
+                secretKeyRef:
+                  name: convergence-secrets
+                  key: SNMP_COMMUNITY
+                  optional: true
+          ports:
+            # Operator-facing syslog destination on the node IP — same port the
+            # retired promtail component used, so device config stays valid.
+            - name: syslog-udp
+              containerPort: 1514
+              protocol: UDP
+              hostPort: 1514
+            - name: syslog-tcp
+              containerPort: 1514
+              protocol: TCP
+              hostPort: 1514
+            - name: metrics
+              containerPort: 8888
+              protocol: TCP
+            - name: health
+              containerPort: 13133
+              protocol: TCP
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otel/config.yaml
+              subPath: otel-config.yaml
+              readOnly: true
+            - name: queue
+              mountPath: /var/lib/otelcol
+          livenessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          readinessProbe:
+            httpGet:
+              path: /
+              port: health
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 192Mi
+            limits:
+              cpu: 1000m
+              memory: 768Mi
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+        - name: queue
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: otel-collector
+  labels:
+    app.kubernetes.io/name: otel-collector
+    app.kubernetes.io/part-of: netclaw-convergence
+    app.kubernetes.io/component: device-telemetry
+spec:
+  selector:
+    app.kubernetes.io/name: otel-collector
+  ports:
+    - name: metrics
+      port: 8888
+      targetPort: metrics
+      protocol: TCP
+    - name: health
+      port: 13133
+      targetPort: health
+      protocol: TCP
+    - name: syslog-udp
+      port: 1514
+      targetPort: syslog-udp
+      protocol: UDP
+    - name: syslog-tcp
+      port: 1514
+      targetPort: syslog-tcp
+      protocol: TCP

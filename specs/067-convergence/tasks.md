@@ -584,44 +584,36 @@ T126/T128. Both remain in place until the phase that retires them.
       · end-to-end apply against the live stack: config valid → collector restarted
         → Prometheus reloaded → 3 devices reporting within ~1 minute
 
-- [ ] T156 K3s: `components/otel-collector` replaces `components/device-syslog`;
-      greenfield overlays updated; VictoriaLogs added to `full-stack`
-
-### Firewall detail (PR1b) — restores a pilot capability
-
-- [x] T157 Parse pfSense `filterlog` CSV into structured fields at ingest and
-      restore the firewall-detail panels the three-board consolidation dropped.
-      **Capability regression found by the operator**: the pilot boards had "Top
-      Blocked Source IPs", "Blocks by Interface (VLAN)" and "WAN Inbound Blocks by
-      Protocol"; they were left behind in `legacy/` when the suite was
-      consolidated, even though the data was always there.
-      · collector: `filterlog_v4` / `filterlog_v6` / `filterlog_common` regex
-        operators → `action`, `reason`, `fw_interface`, `direction`, `ip_version`,
-        `protocol`, `proto_id`, `src_ip`, `dst_ip`, `src_port`, `dst_port`, `tracker`
-      · parse from `attributes.message`, **not** `body` — the first version parsed
-        the raw datagram and only worked because the syslog prefix happens to
-        contain no commas
-      · ports made optional after measuring 400 live lines: v4 appears with 23 and
-        29 fields, v6 with 20 and 22, and 11/400 carry no ports. Requiring ports
-        silently dropped ~35% of records — coverage went 64.9% → **100%**
-      · protocol case normalised at ingest (v4 `tcp` vs v6 `TCP`) so one protocol
-        does not split into two series
-      · Security board: new "Firewall detail" row (top blocked sources, blocks by
-        interface, WAN inbound by protocol, block vs pass) + `wan_interface`
-        template variable instead of a hardcoded `igc0.201`
-      · panels 81/83 moved off `|~ ",block,"` keyword matching onto
-        `attributes_action` — the keyword also matched pass lines whose payload
-        contained the string
-      · **T143 largely closed**: the Loki ruler rules now derive block/DNS metrics
-        from fields (`pfsense:filterlog_blocks_by_interface:rate5m`,
-        `..._by_protocol:rate5m`), all 7 verified against live data
-      · `src_ip`/`dst_ip` stay **fields, never labels** — external scanner IPs are
-        unbounded (FR-042). Top-talker analysis is a query-time aggregation.
-      · GeoIP/ASN enrichment stays OUT of ingest by decision: the `geoip`
-        processor does not exist in contrib 0.104.0, and NetClaw's
-        `pfsense-threat-intel` skill already enriches at investigation time where
-        rate-limited APIs (AbuseIPDB 1k/day, GreyNoise) are only spent on IPs that
-        survive triage.
+- [x] T156 K3s parity — the overlay was shipping a **broken** stack, three
+      generations behind Docker. Fixed rather than deferred.
+      · new `components/otel-collector`: syslog + SNMP in one Deployment, hostPort
+        1514 udp+tcp, unprivileged (runAsUser 10001, fsGroup for the send queue),
+        health/readiness probes
+      · new `components/full-stack/victorialogs.yaml` (v1.52.0, 365d, 20Gi PVC)
+      · **deleted** `components/device-syslog` (syslog-ng + promtail — promtail
+        parses RFC5424 only, so it silently discarded every RFC3164 device log) and
+        `components/device-snmp` (snmp_exporter)
+      · **`--web.enable-remote-write-receiver` was missing on the K8s Prometheus.**
+        Both the collector's SNMP metrics and the Loki ruler's derived metrics
+        arrive by remote-write, so without it K3s would have had **no device
+        metrics at all** — the cutover would have looked applied and produced
+        nothing.
+      · Loki ruler + `loki-rules` ConfigMap + `/loki/rules/fake` mount: T143's
+        log-derived pfSense metrics existed only on Docker
+      · `base/configs/device.rules.yml` had **drifted 210 lines** from its Docker
+        original — despite a "keep in sync" comment — and still selected retired
+        names (`ifOperStatus`, `ifInErrors`), so those alerts could never fire.
+        Re-synced.
+      · `check-config-drift.sh` (+ `--fix`): the copies are now machine-checked.
+        A symlink would be better but Kustomize refuses files outside its root and
+        requiring `--load-restrictor LoadRestrictionsNone` is worse than a copy.
+      · `base/configs/prometheus.yml`: `device_snmp` scrape job removed,
+        `otel-collector` health scrape added
+      · verified: all three overlays build and pass `kubectl apply --dry-run`;
+        `promtool check rules` clean; no retired image (promtail / syslog-ng /
+        snmp-exporter) present in any rendered workload; drift guard clean.
+        `HostLogShipDown` remains but is inert on K3s (no promtail scrape job) —
+        kept so the rules stay byte-identical and the drift guard keeps working.
 
 ### Independent test
 
