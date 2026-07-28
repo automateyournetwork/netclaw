@@ -1,7 +1,14 @@
-# Convergence HOST log ship → Loki (Phase 8/10; device syslog moved out in T148)
+# Convergence HOST log ship → Loki
 # Profiles: full | device-syslog
 #
-# Device syslog is handled by the OTel Collector, not here.
+# SCOPE (T150 decision): promtail owns HOST sources only — OpenClaw file logs and
+# the systemd journal. Device syslog belongs to the OTel Collector.
+#
+# Why promtail keeps the journal rather than OTel: the `journald` receiver shells
+# out to `journalctl`, and the collector image is distroless (no shell, no
+# coreutils), so it would require a custom collector image maintained across every
+# version bump for no functional gain. Rationale and revisit triggers:
+# specs/067-convergence/otel-convergence.md.
 #
 # 1) (removed — see note below)
 # 2) OpenClaw gateway files (/var/log/openclaw from host /tmp/openclaw)

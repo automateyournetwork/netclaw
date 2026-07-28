@@ -169,6 +169,71 @@ processed wins for the whole batch. Measured live — a record from 172.19.0.1 c
 out with resource `device_ip=192.168.3.1`. Use `groupbyattrs`, which re-partitions
 records into one resource per distinct attribute set.
 
+## Agent/host logs stay on promtail (T150 decision)
+
+**Decided by measurement, not preference.** OTel owns *device* telemetry; promtail
+keeps *host* sources (OpenClaw file logs, systemd journal).
+
+### The decisive finding
+
+OTel's `journald` receiver does not read the journal natively — it shells out to
+`journalctl`. The collector image has no shell and no coreutils at all:
+
+```console
+$ docker run --rm --entrypoint /bin/ls otel/opentelemetry-collector-contrib:0.104.0 /usr/bin
+exec: "/bin/ls": stat /bin/ls: no such file or directory
+```
+
+So collecting the journal with OTel requires **building and maintaining a custom
+collector image** (or a journalctl sidecar) for zero functional gain. That is a
+standing maintenance cost on every collector version bump, taken on to replace
+something that already works.
+
+### Why a partial migration is worse than none
+
+Moving only the file logs (`filelog` receiver) does not remove promtail — the
+journal would still need it — so both processes keep running and nothing is
+simplified. Measured footprint today:
+
+| Process | Memory | Notes |
+|---|---|---|
+| promtail | 28 MiB | 2 active targets, host sources only |
+| otel-collector | 79 MiB | syslog + SNMP for 3 switches + pfSense |
+
+The 28 MiB is only recoverable by removing promtail entirely, which the journal
+constraint blocks.
+
+### What promtail already does correctly
+
+The journal relabel chain resolves user units properly — verified in T142, where
+`job=netclaw-mesh` and `unit=netclaw-mesh.service` appeared once those units
+logged. `promtail_journal_target_parsing_errors_total` (4,516) is the unit
+keep-filter discarding non-NetClaw units, not a fault.
+
+Honest caveat: only `openclaw-gateway` has logged in the last 24h, so the other
+seven active user units are not currently visible in Loki. That is unit idleness,
+not a collection failure, and `max_age: 168h` means their history survives a
+collector restart.
+
+### Clean split, and when to revisit
+
+| Plane | Collector | Sources |
+|---|---|---|
+| Devices | otel-collector | syslog (RFC3164/Cisco), SNMP |
+| Host / agent | promtail | `/tmp/openclaw/*.log`, systemd journal (user + system units) |
+
+Revisit if any of these change:
+
+- a custom collector image becomes necessary for another reason (then journald
+  costs nothing extra)
+- OTel ships a native journal reader that does not depend on `journalctl`
+- host log volume grows enough that promtail's footprint or label model becomes
+  the constraint
+
+Note there is **no K3s equivalent** for host/agent logs — the K3s collector is
+device-only. Agent logs are collected on the host that runs NetClaw, which is the
+Docker/host path.
+
 ## Phased cutover
 
 Logs first: smaller blast radius, and it retires a component that is one day old

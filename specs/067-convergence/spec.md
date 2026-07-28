@@ -23,8 +23,10 @@ hand-editing Prometheus or cloning the pilot OBS stack. Detail:
 
 **Telemetry hub (Phase 11)**: Device ingest converges on a single **OpenTelemetry
 Collector** — structured syslog → Loki (14d) + VictoriaLogs (365d), SNMP →
-VictoriaMetrics. Supersedes promtail + syslog-gateway + snmp_exporter. Decision
-record: [`otel-convergence.md`](./otel-convergence.md).
+Prometheus (15d) + VictoriaMetrics (365d). Supersedes the syslog-gateway and
+snmp_exporter. **promtail is retained for host/agent sources only** (OpenClaw files,
+systemd journal) — see the T150 decision. Decision record:
+[`otel-convergence.md`](./otel-convergence.md).
 
 **Board suite (Phase 10 PR3+)**: The provisioned Grafana suite is **three**
 narrative boards — **Network**, **Security**, **NetClaw** — not the ported pilot

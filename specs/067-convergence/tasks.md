@@ -508,9 +508,28 @@ T126/T128. Both remain in place until the phase that retires them.
 
 ### Agent logs (PR2)
 
-- [ ] T150 OpenClaw file logs + systemd journal via OTel `filelog` / `journald`
-      receivers — or keep promtail for host-only scraping. Decide by measuring
-      (journal label fidelity, resource use), not by preference.
+- [x] T150 **Decision: host/agent logs stay on promtail.** OTel owns devices,
+      promtail owns host sources. Measured, not assumed.
+      · decisive: OTel's `journald` receiver shells out to `journalctl`, and the
+        collector image is distroless — no shell, no coreutils
+        (`/bin/ls` does not exist). Journal collection would need a **custom
+        collector image** maintained across every version bump, for zero functional
+        gain.
+      · a partial move (only `filelog` for OpenClaw files) does not remove promtail,
+        because the journal still needs it — so both processes keep running and
+        nothing is simplified
+      · footprint measured: promtail 28 MiB / 2 targets vs collector 79 MiB. The
+        28 MiB is only recoverable by removing promtail entirely, which the journal
+        constraint blocks.
+      · promtail's journal relabelling is already correct (T142 verified
+        `job=netclaw-mesh` / `unit=netclaw-mesh.service`);
+        `promtail_journal_target_parsing_errors_total` is the unit keep-filter
+        dropping non-NetClaw units, not a fault
+      · revisit triggers documented in `otel-convergence.md`: a custom image needed
+        for another reason, a native OTel journal reader, or host log volume growing
+        enough to make promtail the constraint
+      · note: no K3s equivalent exists for host/agent logs — the K3s collector is
+        device-only, and agent logs live on the NetClaw host
 
 ### SNMP (PR3) — the rename-free cutover
 
