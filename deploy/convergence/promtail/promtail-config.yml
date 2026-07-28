@@ -55,7 +55,8 @@ scrape_configs:
           site: home
           __path__: /var/log/netclaw/*.log
 
-  # systemd journal — mesh, members, gateway (user units under user@UID)
+  # systemd journal — mesh, members, gateway. These are systemd USER units
+  # (running under user@<uid>.service), not user accounts.
   - job_name: netclaw-journal
     journal:
       path: /var/log/journal

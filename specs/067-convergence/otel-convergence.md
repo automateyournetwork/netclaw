@@ -205,15 +205,31 @@ constraint blocks.
 
 ### What promtail already does correctly
 
-The journal relabel chain resolves user units properly — verified in T142, where
-`job=netclaw-mesh` and `unit=netclaw-mesh.service` appeared once those units
-logged. `promtail_journal_target_parsing_errors_total` (4,516) is the unit
-keep-filter discarding non-NetClaw units, not a fault.
+The journal relabel chain resolves **systemd user units** (those running under
+`user@<uid>.service`) properly — verified in T142, where `job=netclaw-mesh` and
+`unit=netclaw-mesh.service` appeared once those units logged.
+`promtail_journal_target_parsing_errors_total` (4,516) is the unit keep-filter
+discarding non-NetClaw units, not a fault.
 
-Honest caveat: only `openclaw-gateway` has logged in the last 24h, so the other
-seven active user units are not currently visible in Loki. That is unit idleness,
-not a collection failure, and `max_age: 168h` means their history survives a
-collector restart.
+Honest caveat about what is currently visible. Eight NetClaw systemd **user
+units** are running on this host:
+
+| Unit | Logged in last 24h? |
+|---|---|
+| `openclaw-gateway.service` | yes — the only one with streams in Loki |
+| `netclaw-mesh.service` | no (last entry ~22h ago) |
+| `netclaw-hud.service` | no |
+| `netclaw-member-byrns-risk-cml.service` | no |
+| `netclaw-member-byrns-risk-guardian-claw.service` | no (last entry ~41h ago) |
+| `netclaw-member-byrns-risk-pyats.service` | no |
+| `netclaw-member-byrns-risk-secops.service` | no |
+| `netclaw-member-byrns-risk-viz.service` | no |
+
+So seven of the eight have no streams in Loki right now. These are **systemd
+units, not user accounts** — all eight are `active (running)`; they are simply
+event-driven and quiet (the mesh daemon logs on peer changes, members log when
+delegated work). That is unit idleness, not a collection failure, and
+`max_age: 168h` means their history survives a collector restart.
 
 ### Clean split, and when to revisit
 

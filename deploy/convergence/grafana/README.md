@@ -69,7 +69,7 @@ Agent plane end-to-end:
 | Token/cost metrics | `openclaw-token-exporter` → Prom job `netclaw-openclaw` (:9110) |
 | Investigation metrics | host `alert-receiver` → Prom job `netclaw-alert-receiver` (:8099) |
 | Gateway logs | host `/tmp/openclaw/*.log` mounted into promtail |
-| Mesh / N2N / members | promtail journal scrape of user units (`job=netclaw-mesh`, `job=netclaw-member`) |
+| Mesh / N2N / members | promtail journal scrape of systemd *user units* (`job=netclaw-mesh`, `job=netclaw-member`) |
 
 ### Reading an empty log panel
 
