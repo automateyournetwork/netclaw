@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Apply Convergence device telemetry (Phase 10 — T128).
-# Renders inventory → snmp modules + managed Prometheus section → compose profile → reload.
+# Renders inventory → OTel Collector managed sections → restart collector → reload
+# Prometheus.
+#
+# Phase 11 (T155): SNMP is collected by the OTel Collector, not snmp_exporter. The
+# snmp.yml module pack is still rendered because the wireless exporter uses it and
+# it is the OID/vendor reference the generator reads, but nothing scrapes
+# snmp-device-exporter for campus devices any more.
 #
 # Usage:
 #   ./scripts/convergence-telemetry-apply.sh
@@ -19,6 +25,7 @@ CHECKLIST_DIR="${DEPLOY}/generated"
 CHECKLIST_OUT="${CHECKLIST_DIR}/device-config-checklist.md"
 COMPOSE_FILE="${DEPLOY}/docker-compose.yml"
 COMPOSE_FULL="${DEPLOY}/docker-compose.full.yml"
+OTEL_CONFIG="${DEPLOY}/otel/otel-config.yaml"
 
 CONFIG=""
 DRY_RUN=0
@@ -88,6 +95,10 @@ if [[ -f "${DEPLOY}/.env" ]]; then
   set +a
 fi
 export SNMP_COMMUNITY="${SNMP_COMMUNITY:-public}"
+# Job label the collector claims. Override to stage alongside another writer:
+#   OTEL_JOB=device_snmp_otel ./convergence-telemetry-apply.sh
+OTEL_JOB="${OTEL_JOB:-device_snmp}"
+OTEL_IMAGE="${OTEL_IMAGE:-otel/opentelemetry-collector-contrib:0.104.0}"
 
 RENDER_ARGS=(python3 "$RENDER")
 if [[ -n "$TARGETS" ]]; then
@@ -114,6 +125,8 @@ if [[ "$DRY_RUN" -eq 1 ]]; then
     --out-checklist "${TMP}/checklist.md"
   echo "--- scrape (head) ---"
   head -40 "${TMP}/scrape.yml"
+  echo "--- otel managed blocks (head) ---"
+  "${RENDER_ARGS[@]}" --print-otel 2>/dev/null | head -30
   echo "--- snmp modules keys ---"
   python3 -c "import yaml; d=yaml.safe_load(open('${TMP}/snmp.yml')); print(list((d.get('modules') or {}).keys()))"
   echo "dry-run OK (no live writes)"
@@ -123,20 +136,48 @@ fi
 mkdir -p "$CHECKLIST_DIR"
 
 echo "== render + inject =="
+OTEL_ARGS=()
+if [[ -f "$OTEL_CONFIG" ]]; then
+  OTEL_ARGS=(--inject-otel "$OTEL_CONFIG" --otel-job "$OTEL_JOB")
+else
+  echo "WARN: $OTEL_CONFIG missing — SNMP receivers not generated" >&2
+fi
+
 "${RENDER_ARGS[@]}" \
   --out-snmp "$SNMP_YML" \
   --out-checklist "$CHECKLIST_OUT" \
-  --inject-prometheus "$PROM_YML"
+  --inject-prometheus "$PROM_YML" \
+  "${OTEL_ARGS[@]}"
 
-echo "  snmp.yml:     $SNMP_YML"
+echo "  snmp.yml:     $SNMP_YML (wireless exporter + OID reference)"
+echo "  otel config:  $OTEL_CONFIG (managed sections, job=$OTEL_JOB)"
 echo "  prometheus:   $PROM_YML (managed section)"
 echo "  checklist:    $CHECKLIST_OUT"
+
+# Validate before restarting anything — a bad collector config takes device
+# telemetry down, and the collector exits rather than running degraded.
+if [[ -f "$OTEL_CONFIG" ]] && command -v docker >/dev/null 2>&1; then
+  echo "== validate otel config =="
+  if docker run --rm --tmpfs /var/lib/otelcol \
+      -e "SNMP_COMMUNITY=${SNMP_COMMUNITY}" \
+      -v "${OTEL_CONFIG}:/etc/otel/config.yaml:ro" \
+      "${OTEL_IMAGE}" validate --config /etc/otel/config.yaml >/dev/null 2>&1; then
+    echo "  config valid"
+  else
+    echo "ERROR: generated collector config is invalid — not restarting." >&2
+    docker run --rm --tmpfs /var/lib/otelcol \
+      -e "SNMP_COMMUNITY=${SNMP_COMMUNITY}" \
+      -v "${OTEL_CONFIG}:/etc/otel/config.yaml:ro" \
+      "${OTEL_IMAGE}" validate --config /etc/otel/config.yaml 2>&1 | tail -5 >&2
+    exit 1
+  fi
+fi
 
 if [[ "$SKIP_COMPOSE" -eq 0 ]]; then
   if ! command -v docker >/dev/null 2>&1; then
     echo "docker not found — skip compose (configs written)" >&2
   else
-    echo "== docker compose profile device-snmp =="
+    echo "== docker compose: restart otel-collector =="
     cd "$DEPLOY"
     COMPOSE_FILES=(-f docker-compose.yml)
     # Prefer full compose when present so grafana stays up with same project
@@ -150,9 +191,10 @@ if [[ "$SKIP_COMPOSE" -eq 0 ]]; then
     else
       DC=(docker compose -f docker-compose.yml --env-file .env --profile device-snmp)
     fi
-    "${DC[@]}" up -d snmp-device-exporter
-    # snmp_exporter reads config at start — always restart after snmp.yml write
-    "${DC[@]}" restart snmp-device-exporter
+    # The collector reads its config only at start, and the config is bind-mounted,
+    # so a restart is required after injection — there is no reload endpoint.
+    "${DC[@]}" up -d otel-collector
+    "${DC[@]}" restart otel-collector
   fi
 else
   echo "skip-compose: left containers untouched"

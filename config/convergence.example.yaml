@@ -71,6 +71,24 @@ device_telemetry:
   syslog:
     enabled: false
     listen: "0.0.0.0:1514"
+    # Devices that send SYSLOG but are not SNMP targets — a firewall without SNMP
+    # enabled, a switch you have no SNMP access to, the NetClaw host itself.
+    #
+    # The collector maps sender IP → device_name from the UNION of snmp.targets and
+    # this list. Sender IP is used rather than the hostname inside the message
+    # because it is present on every datagram and cannot be shaped by message
+    # content (Cisco omits the hostname unless `logging origin-id hostname` is set).
+    #
+    # An unlisted sender is not dropped: device_name falls back to the message
+    # hostname, then the raw IP. But the label will not match your SNMP inventory,
+    # which makes correlating logs with interface metrics harder.
+    devices:
+      - name: pfsense
+        ip: 192.168.3.1
+      # - name: HomeSwitch03       # no SNMP access on this one, logs only
+      #   ip: 192.168.3.4
+      # - name: netclaw            # the agent host's own rsyslog
+      #   ip: 192.168.3.252
 
 # Phase 8 — NetClaw host metrics/logs (optional)
 agent_observability:

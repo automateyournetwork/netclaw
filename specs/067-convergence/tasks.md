@@ -552,10 +552,38 @@ T126/T128. Both remain in place until the phase that retires them.
 
 ### Wizard & K3s (PR4)
 
-- [ ] T154 `render-convergence-telemetry.py` emits OTel receiver blocks instead of
-      snmp_exporter modules; `convergence.yaml` inventory schema unchanged
-- [ ] T155 `convergence-telemetry-apply.sh` manages the collector config section
-      idempotently; checklist wording updated (SNMP + syslog unchanged for devices)
+- [x] T154 `render-convergence-telemetry.py` emits the OTel Collector's managed
+      sections from `convergence.yaml` inventory; schema unchanged for SNMP targets.
+      Four generated blocks, each with BEGIN/END markers: `snmp/<device>` receivers,
+      per-device `resource/<device>` processors (service.name → `job`,
+      service.instance.id → `instance`), `metrics/<device>` pipelines, and the
+      syslog sender-IP → `device_name` map.
+      · `--otel-job` stages a distinct job label (e.g. `device_snmp_otel`) so a
+        future cutover can prove parity before flipping, the same way T151 did
+      · **inventory gap found by round-tripping**: generating the device map from
+        SNMP targets alone silently dropped pfSense, HomeSwitch03 and the NetClaw
+        host — all send syslog, none are SNMP targets. Added optional
+        `device_telemetry.syslog.devices`, and the map is now the **union** of both
+        lists. Documented in `config/convergence.example.yaml` with the reason.
+      · round-trip verified: generated output reproduces the hand-written config
+        (differences are comments only), a second run is byte-identical
+        (idempotent), and the result passes `otelcol validate`
+- [x] T155 `convergence-telemetry-apply.sh` manages the collector config section
+      idempotently and **validates before restarting** — a bad collector config
+      takes device telemetry down entirely, because the collector exits rather than
+      running degraded. Invalid config aborts the apply with the validator output
+      and leaves the running collector alone.
+      · restarts `otel-collector` instead of `snmp-device-exporter`; the config is
+        bind-mounted and read only at start, and there is no reload endpoint
+      · `--dry-run` prints the generated collector blocks alongside the snmp module
+        keys
+      · `snmp.yml` is still rendered — the wireless exporter uses it and it is the
+        OID/vendor reference the generator reads
+      · `.env.example`: `SNMP_COMMUNITY` is now consumed for real via
+        `${env:SNMP_COMMUNITY}`, not just documented
+      · end-to-end apply against the live stack: config valid → collector restarted
+        → Prometheus reloaded → 3 devices reporting within ~1 minute
+
 - [ ] T156 K3s: `components/otel-collector` replaces `components/device-syslog`;
       greenfield overlays updated; VictoriaLogs added to `full-stack`
 

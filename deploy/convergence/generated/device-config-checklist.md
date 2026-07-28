@@ -1,6 +1,6 @@
 # Device telemetry config checklist — site `home`
 
-Generated: 2026-07-26T04:22:16Z  
+Generated: 2026-07-28T01:52:18Z  
 By: `scripts/render-convergence-telemetry.py` (Phase 10)  
 
 Secrets stay in env — **never** commit community strings.
@@ -39,13 +39,19 @@ snmp-server community <value-from-SNMP_COMMUNITY> RO
 
 ## Syslog — device side
 
-Send device syslog to **192.168.3.252:1514** (UDP) when `device_telemetry.syslog.enabled` / profile `device-syslog` is on.
+Send device syslog to **192.168.3.252:1514** (UDP or TCP) when `device_telemetry.syslog.enabled` / profile `device-syslog` is on.
+
+Vendor-default **RFC3164/BSD** is accepted — the Convergence syslog gateway converts it to RFC5424 for Loki, so no special log format is required on the device.
 
 ### Cisco
 
 ```text
 logging host 192.168.3.252 transport udp port 1514
 logging trap informational
+! send the hostname so Loki device_name matches this inventory
+! (otherwise device_name falls back to the sending IP)
+logging origin-id hostname
+service timestamps log datetime msec localtime show-timezone
 ```
 
 ### pfSense
@@ -62,6 +68,10 @@ curl -sG 'http://127.0.0.1:9090/api/v1/query' \
   --data-urlencode 'query=count by (device_name,interface_name) (interface_status)'
 # Grafana: http://127.0.0.1:3300 → folder Convergence
 ```
+
+## Full vendor MoP
+
+See `deploy/convergence/adapters/device-snmp/device-config-snippets.md` for complete Cisco / pfSense / generic steps (T131).
 
 ## Non-goals (v1)
 
