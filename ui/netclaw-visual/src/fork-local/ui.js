@@ -43,6 +43,14 @@
  *   against fork history. Do not reformat it casually.
  */
 
+// The Convergence view's stylesheet. index.html <link>s src/styles.css only,
+// and the fork's main.js imported this separately (main.js:22 in 30e2882).
+// Without it the tab router unhides #home-root correctly but the view has no
+// base positioning — styles.css carries just one landscape-specific
+// .home-root rule; all five base rules and the 14 .home-mode rules live here.
+// That is why CONVERGENCE appeared to "do nothing": it switched, into an
+// unstyled and effectively invisible container.
+import '../styles/home.css';
 import { createTabRouter } from '../app-shell/tab-router.js';
 import { HomeView } from '../views/home/HomeView.js';
 

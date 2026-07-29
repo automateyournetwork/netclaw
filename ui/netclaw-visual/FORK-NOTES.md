@@ -236,3 +236,21 @@ was fork-only.
 
 Nothing in the "still missing" list is load-bearing for what's restored — each
 is an independent add-back.
+
+### Orphaned stylesheet (the reason CONVERGENCE looked dead even after wiring)
+
+`index.html` only `<link>`s `src/styles.css`. `src/styles/home.css` was imported
+from JS — line 22 of the fork's `main.js` — and upstream's `main.js` does not
+import it. So after the tab router was restored, clicking CONVERGENCE *did*
+switch tabs and unhide `#home-root`, but the container had no base styling:
+`styles.css` carries a single landscape-specific `.home-root` rule, while the
+base `position:fixed; z-index:20; overflow:auto` and all 14 `.home-mode` rules
+live in `home.css`. The result was a static, unstyled div behind the fixed
+canvas — indistinguishable from "the button does nothing".
+
+Now imported from `src/fork-local/ui.js` so it travels with the rest of the fork
+UI. Confirmation that it is bundled: the `hud-*.css` chunk grows from ~41.5 kB
+to ~55.4 kB.
+
+**Check CSS imports, not just JS, when auditing a merge.** An orphaned
+stylesheet fails silently and looks exactly like broken JavaScript.
