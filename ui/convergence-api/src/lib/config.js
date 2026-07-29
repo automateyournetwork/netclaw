@@ -56,6 +56,45 @@ function getAllSiteIds() {
 }
 
 /**
+ * Switch-inventory settings for a site.
+ *
+ * These used to be hardcoded to one lab's device names, which meant the devices
+ * table was empty (or wrong) for every other deployment. Now optional config:
+ *
+ *   "switches": {
+ *     "match":  ".*",                                  // PromQL regex on device_name
+ *     "models": { "sw-01": "Cisco WS-C3850-48P" }      // optional display labels
+ *   }
+ *
+ * The default matches every device reporting interface_status, which is the
+ * sensible behaviour for an unconfigured install: show what the exporter sees
+ * rather than nothing. Narrow it with `match` when the same metric carries
+ * non-switch devices.
+ *
+ * `models` is display-only. Anything absent falls back to whatever label the
+ * metrics provide, then to a generic label — never to a hardcoded guess.
+ *
+ * @param {string} siteId
+ * @returns {{ match: string, models: Record<string,string> }}
+ */
+function getSwitchConfig(siteId) {
+  const cfg = getSiteConfig(siteId) || {};
+  const sw = cfg.switches || {};
+  const match = typeof sw.match === 'string' && sw.match.trim() ? sw.match.trim() : '.*';
+  const models = (sw.models && typeof sw.models === 'object') ? sw.models : {};
+  return { match, models };
+}
+
+/**
+ * Escape a value for safe interpolation into a PromQL label matcher.
+ * Site config is operator-supplied rather than user input, but an unescaped
+ * quote or backslash silently corrupts the query, which is hard to debug.
+ */
+function promqlLabelValue(value) {
+  return String(value ?? '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+}
+
+/**
  * Get threshold status for a value.
  * @param {number} value - The metric value
  * @param {object} thresholds - { green: number, yellow: number }
@@ -111,6 +150,8 @@ module.exports = {
   getSiteConfig,
   getPrimaryProvider,
   getAllSiteIds,
+  getSwitchConfig,
+  promqlLabelValue,
   getThresholdStatus,
   getMgmtUrls,
   PROMETHEUS_URL: process.env.PROMETHEUS_URL || 'http://prometheus:9090',

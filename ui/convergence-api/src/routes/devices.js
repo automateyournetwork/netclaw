@@ -5,7 +5,9 @@ const router = express.Router();
 const { instantQuery } = require('../lib/queryEngine');
 const { vmInstantQuery } = require('../lib/queryEngine');
 const { formatUptime } = require('../lib/formatters');
-const { getSiteConfig, getMgmtUrls } = require('../lib/config');
+const {
+  getSiteConfig, getMgmtUrls, getSwitchConfig, promqlLabelValue,
+} = require('../lib/config');
 
 /**
  * GET /api/devices?site=X
@@ -17,6 +19,9 @@ router.get('/', async (req, res) => {
   const site = req.site;
   const config = getSiteConfig(site);
   const mgmt = getMgmtUrls(site);
+  // device_name matcher for the pilot VictoriaMetrics SNMP queries. Escaped
+  // because it lands inside a PromQL label matcher.
+  const switchMatch = promqlLabelValue(getSwitchConfig(site).match);
 
   try {
     const [
@@ -53,10 +58,12 @@ router.get('/', async (req, res) => {
       instantQuery(`count by (device_name) (ifOperStatus{job="device_snmp"})`),
       instantQuery(`sum by (device_name) (rate(ifInErrors{job="device_snmp"}[5m]) + rate(ifOutErrors{job="device_snmp"}[5m]))`),
       instantQuery(`up{job="device_snmp"}`),
-      // Pilot VictoriaMetrics SNMP (HomeSwitch* interface_status)
-      vmInstantQuery(`count by (device_name) (interface_status{device_name=~"HomeSwitch.*"} == 1)`),
-      vmInstantQuery(`count by (device_name) (interface_status{device_name=~"HomeSwitch.*"})`),
-      vmInstantQuery(`sum by (device_name) (rate(interface_errors_in_total{device_name=~"HomeSwitch.*"}[5m]) + rate(interface_errors_out_total{device_name=~"HomeSwitch.*"}[5m]))`)
+      // Pilot VictoriaMetrics SNMP. The device_name matcher comes from site
+      // config (switches.match, default ".*") — it was hardcoded to one lab's
+      // naming scheme, which left this table empty everywhere else.
+      vmInstantQuery(`count by (device_name) (interface_status{device_name=~"${switchMatch}"} == 1)`),
+      vmInstantQuery(`count by (device_name) (interface_status{device_name=~"${switchMatch}"})`),
+      vmInstantQuery(`sum by (device_name) (rate(interface_errors_in_total{device_name=~"${switchMatch}"}[5m]) + rate(interface_errors_out_total{device_name=~"${switchMatch}"}[5m]))`)
     ]);
 
     // Build WAN probes table
@@ -216,11 +223,17 @@ router.get('/', async (req, res) => {
       }
     }
 
-    const switchModels = {
-      HomeSwitch01: 'Cisco WS-C3850-48P',
-      HomeSwitch02: 'Cisco WS-C3850-48P',
-      HomeSwitch04: 'Cisco WS-C3650-48P'
-    };
+    // Display labels only. Operator-supplied via site config (switches.models);
+    // anything absent falls back to a label the metrics carry, then to a generic
+    // string. Never a hardcoded per-device guess.
+    const switchModels = getSwitchConfig(site).models;
+    const modelFor = (name, metric, fallback) => (
+      switchModels[name]
+      || metric?.model
+      || metric?.device_model
+      || metric?.hardware
+      || fallback
+    );
 
     // Map device_name → scrape up (exporter path healthy) for greenfield
     const gfScrapeUp = new Map();
@@ -257,7 +270,7 @@ router.get('/', async (req, res) => {
           : true;
         switches.push({
           name,
-          model: switchModels[name] || 'Cisco Switch',
+          model: modelFor(name, r.metric, 'Switch'),
           status: scrapeOk ? 'online' : 'offline',
           interfacesUp: ifUp,
           interfacesTotal: ifTotal,
@@ -282,7 +295,7 @@ router.get('/', async (req, res) => {
         seenSwitchNames.add(name);
         switches.push({
           name,
-          model: switchModels[name] || 'SNMP switch',
+          model: modelFor(name, r.metric, 'SNMP switch'),
           status: parseFloat(r.value[1]) === 1 ? 'online' : 'offline',
           interfacesUp: null,
           interfacesTotal: null,

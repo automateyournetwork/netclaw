@@ -55,11 +55,26 @@ Two, both deliberately loose:
 
 Neither is an import, so this module does not break when either is missing.
 
+## Switch inventory
+
+Driven by an optional `switches` block per site in `SITES_CONFIG`:
+
+```json
+"switches": {
+  "match":  "sw-.*",
+  "models": { "sw-01": "Cisco C9300-48P" }
+}
+```
+
+`match` defaults to `.*` — every device reporting `interface_status`. Narrow it
+only if that metric also carries non-switches. `models` is display-only; absent
+entries fall back to a metric label, then a generic string.
+
+Previously both were hardcoded to one lab's device names, so the devices table
+was empty for any other deployment.
+
 ## Backlog
 
-- **Environment-agnostic device discovery.** `convergence-api`'s devices route
-  still carries hardcoded `HomeSwitch.*` PromQL and a literal switch-model
-  lookup. Must derive from the SoT or site config before anyone else can use it.
 - **`SITE` is hardcoded** to `'home'` in `HomeView.js`. The API is already
   multi-site (`SITES_CONFIG`, `getSiteConfig`); only the client isn't.
 - **Postgres is mandatory** for the diary. Should degrade so the module can be
