@@ -1,0 +1,6 @@
+{
+  "id": "convergence",
+  "name": "NetClaw Convergence",
+  "description": "Site health portal — WAN/Wi-Fi/device status, event diary, operator triage. Proxies to convergence-api.",
+  "requiresEnv": ["CONVERGENCE_API_URL"]
+}

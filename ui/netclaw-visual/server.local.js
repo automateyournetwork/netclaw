@@ -23,9 +23,10 @@
  *   load-bearing for upstream's own features.
  *
  * WHAT IT PROVIDES
- *   /api/home/status, /api/home/*   Convergence tab proxy (src/views/home/
- *                                   HomeView.js is a fork-only file)
- *   GET+POST /api/models            model SoT editor used by HomeView
+ *   GET+POST /api/models            model SoT editor — consumed by both the
+ *                                   Convergence module's Models subview and the
+ *                                   footer model readout, so it stays here
+ *                                   rather than moving into that module
  *   /api/rag/ingest-url             fork additions to KnowledgePanel
  *   /api/rag/crawl-site
  *   /api/tokens/summary             token/cost strip (see NOTE below)
@@ -112,7 +113,6 @@ export function register(app, ctx) {
     readText,
   } = ctx;
 
-  registerConvergence(app, { parseEnvFile });
   registerTokens(app, { readText, getLastChatUsage: ctx.getLastChatUsage });
   registerModels(app, {
     ROOT, OPENCLAW_ENV, ROOT_ENV, parseEnvFile, parseOneEnvFile,
@@ -135,8 +135,8 @@ export function register(app, ctx) {
 
   return {
     routes: [
-      '/api/home/status', '/api/home/*', '/api/tokens/summary',
-      'GET+POST /api/models', '/api/rag/ingest-url', '/api/rag/crawl-site',
+      '/api/tokens/summary', 'GET+POST /api/models',
+      '/api/rag/ingest-url', '/api/rag/crawl-site',
       `/api/ssh/* (${ssh.enabled ? 'enabled' : 'disabled'})`,
     ],
     servesFrontend: fs.existsSync(path.join(__dirname, 'dist', 'index.html')),
@@ -207,81 +207,6 @@ function registerFrontend(app) {
 }
 
 
-// ───────────────────────────────────────────────────────────────────────────
-// Convergence tab (067) — env-var driven, nothing hard-coded.
-// CONVERGENCE_API_URL/TOKEN, aliases HOME_API_* and NETWORK_GUARDIAN_*.
-// ───────────────────────────────────────────────────────────────────────────
-function registerConvergence(app, { parseEnvFile }) {
-// ── 067-convergence: proxy HOME tab → convergence-api / Network Guardian (dual-run) ──
-// Prefer CONVERGENCE_API_*; aliases HOME_API_* and NETWORK_GUARDIAN_* for dual-run / legacy.
-function homeApiConfig() {
-  const env = { ...parseEnvFile(), ...process.env };
-  const base = (
-    env.CONVERGENCE_API_URL
-    || env.HOME_API_URL
-    || env.NETWORK_GUARDIAN_URL
-    || ''
-  ).replace(/\/$/, '');
-  const token = (
-    env.CONVERGENCE_API_TOKEN
-    || env.HOME_API_TOKEN
-    || env.NETWORK_GUARDIAN_TOKEN
-    || ''
-  );
-  return { base, token };
-}
-
-app.get('/api/home/status', (req, res) => {
-  const { base, token } = homeApiConfig();
-  res.json({
-    configured: Boolean(base && token),
-    base: base || null,
-    tokenConfigured: Boolean(token),
-    dualRun: Boolean(base && /network-guardian|guardian/i.test(base)),
-  });
-});
-
-// Mount: browser → /api/home/health?site=home → upstream /api/health?site=home
-app.use('/api/home', async (req, res, next) => {
-  // Let /api/home/status fall through if not already handled (GET only above)
-  if (req.path === '/status' || req.path === 'status') return next();
-
-  const { base, token } = homeApiConfig();
-  if (!base) {
-    return res.status(503).json({
-      error: 'Convergence API not configured',
-      hint: 'Set CONVERGENCE_API_URL + CONVERGENCE_API_TOKEN (aliases: HOME_API_* or NETWORK_GUARDIAN_*) in ~/.openclaw/.env',
-    });
-  }
-  // req.url is relative to mount, e.g. /health?site=home
-  const rel = req.url.startsWith('/') ? req.url : `/${req.url}`;
-  const url = `${base}/api${rel}`;
-  try {
-    const headers = {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const hasBody = !['GET', 'HEAD'].includes(req.method) && req.body && Object.keys(req.body).length > 0;
-    if (hasBody) headers['Content-Type'] = 'application/json';
-    const upstream = await fetch(url, {
-      method: req.method,
-      headers,
-      body: hasBody ? JSON.stringify(req.body) : undefined,
-      signal: AbortSignal.timeout(20000),
-    });
-    const text = await upstream.text();
-    res.status(upstream.status);
-    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
-    res.send(text);
-  } catch (err) {
-    res.status(502).json({
-      error: 'Home API unreachable',
-      detail: err.message,
-      target: base,
-    });
-  }
-});
-}
 
 // ───────────────────────────────────────────────────────────────────────────
 // Token / cost summary strip.

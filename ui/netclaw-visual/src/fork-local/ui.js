@@ -9,11 +9,14 @@
  *   dropped two fork features whose *markup* is still in index.html and whose
  *   *modules* are still on disk — only the JS that wired them up was lost:
  *
- *     1. The COMMAND | CONVERGENCE tab router (src/app-shell/tab-router.js is
- *        fork-only and was left orphaned — nothing imported it, so clicking
- *        CONVERGENCE did nothing at all).
- *     2. The draggable / resizable NETCLAW TERMINAL drawer (initChatWindow,
+ *     1. The draggable / resizable NETCLAW TERMINAL drawer (initChatWindow,
  *        ~417 lines, including persisted geometry and snap levels).
+ *     2. The footer token/cost strip and the ${VAR} model readout.
+ *
+ *   The COMMAND | CONVERGENCE tab router used to live here too. It has since
+ *   moved to modules/convergence/, which owns its own tab button, container and
+ *   stylesheet — see modules/README.md. What remains here is general HUD repair,
+ *   not a module: it fixes first-party chrome rather than adding a feature.
  *
  *   Carrying those inline in main.js is what caused the loss in the first
  *   place, so they live here instead. Upstream never touches this path.
@@ -43,16 +46,6 @@
  *   against fork history. Do not reformat it casually.
  */
 
-// The Convergence view's stylesheet. index.html <link>s src/styles.css only,
-// and the fork's main.js imported this separately (main.js:22 in 30e2882).
-// Without it the tab router unhides #home-root correctly but the view has no
-// base positioning — styles.css carries just one landscape-specific
-// .home-root rule; all five base rules and the 14 .home-mode rules live here.
-// That is why CONVERGENCE appeared to "do nothing": it switched, into an
-// unstyled and effectively invisible container.
-import '../styles/home.css';
-import { createTabRouter } from '../app-shell/tab-router.js';
-import { HomeView } from '../views/home/HomeView.js';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
@@ -66,13 +59,6 @@ export function registerForkUI(ctx) {
   }
 
   const restored = [];
-
-  try {
-    initConvergenceTab(state);
-    restored.push('convergence-tab');
-  } catch (err) {
-    console.error('[fork-ui] convergence tab failed:', err);
-  }
 
   try {
     initTokenStrip();
@@ -93,6 +79,13 @@ export function registerForkUI(ctx) {
     restored.push('device-launcher');
   } catch (err) {
     console.error('[fork-ui] device launcher failed:', err);
+  }
+
+  try {
+    initTerminalProvider();
+    restored.push('terminal-provider');
+  } catch (err) {
+    console.error('[fork-ui] terminal provider failed:', err);
   }
 
   try {
@@ -219,6 +212,33 @@ async function renderDeviceList() {
         btn.disabled = false;
       }
     });
+  });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Terminal provider.
+//
+// Answers the `netclaw:open-terminal` event so callers never import the panel
+// directly. modules/convergence/ uses this from its device table: it dispatches
+// and waits for an ack, which keeps the two decoupled — Convergence works with
+// no terminal present, and the terminal works with no Convergence.
+//
+// When the SSH terminal becomes its own module, this listener moves there and
+// nothing else has to change. That is the point of the event.
+// ─────────────────────────────────────────────────────────────────────────────
+function initTerminalProvider() {
+  window.addEventListener('netclaw:open-terminal', async (ev) => {
+    const device = ev.detail?.device;
+    const ack = typeof ev.detail?.ack === 'function' ? ev.detail.ack : () => {};
+    if (!device) return ack(false);
+    try {
+      const mod = await import('../panels/TerminalPanel.js');
+      await mod.openTerminalPanel(device);
+      return ack(true);
+    } catch (err) {
+      console.error('[fork-ui] terminal failed to open:', err);
+      return ack(false);
+    }
   });
 }
 
@@ -370,39 +390,6 @@ async function initModelReadout() {
   if (footer) {
     new MutationObserver(apply).observe(footer, { childList: true, characterData: true, subtree: true });
   }
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// 067-convergence: COMMAND | CONVERGENCE top-level tabs.
-// Markup lives in index.html (#app-tabs, #home-root); the router and HomeView
-// are fork-only modules that upstream's main.js never imports.
-// ─────────────────────────────────────────────────────────────────────────────
-function initConvergenceTab(state) {
-  const homeRoot = document.getElementById('home-root');
-  if (!homeRoot) {
-    console.warn('[fork-ui] #home-root missing — Convergence tab not mounted');
-    return;
-  }
-  if (!state.homeView) {
-    state.homeView = new HomeView(homeRoot);
-    state.homeView.mount();
-  }
-  state.tabRouter = createTabRouter({
-    onChange: (tab) => {
-      state.appTab = tab;
-      if (tab === 'home' && state.homeView) {
-        // Re-paint topbar from cache and refresh (do NOT call syncTopbarMetrics()
-        // with no args — that clears metrics to "—").
-        state.homeView.syncTopbarMetrics(state.homeView.cache?.health || null);
-        state.homeView.refresh(true);
-      }
-      // Force a resize when returning to Command so canvas matches viewport
-      if (tab === 'command') {
-        window.dispatchEvent(new Event('resize'));
-      }
-    },
-  });
-  state.tabRouter.wire();
 }
 
 // ───────────────────────────────────────────────────────────────────────────

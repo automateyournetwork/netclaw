@@ -227,16 +227,22 @@ export class HomeView {
       btn.disabled = true;
       const original = btn.textContent;
       btn.textContent = 'Opening…';
-      try {
-        const mod = await import('../../panels/TerminalPanel.js');
-        await mod.openTerminalPanel(name);
-        btn.textContent = original;
-      } catch (err) {
-        btn.textContent = 'Failed';
-        btn.title = String(err?.message || err);
-      } finally {
-        btn.disabled = false;
-      }
+      // Ask whoever owns the terminal to open it, rather than importing it.
+      // Modules must not reach into each other's internals or into src/ — this
+      // event is the whole contract, so the terminal can move (or be absent)
+      // without Convergence changing. The button only renders when
+      // /api/ssh/capabilities reports enabled, so a listener exists whenever it
+      // is clickable; the timeout covers the case where it does not.
+      const opened = await new Promise((resolve) => {
+        const done = (ok) => { clearTimeout(t); resolve(ok); };
+        const t = setTimeout(() => done(false), 8000);
+        window.dispatchEvent(new CustomEvent('netclaw:open-terminal', {
+          detail: { device: name, ack: (ok) => done(ok !== false) },
+        }));
+      });
+      btn.textContent = opened ? original : 'Unavailable';
+      if (!opened) btn.title = 'No terminal provider is listening';
+      btn.disabled = false;
     });
   }
 
