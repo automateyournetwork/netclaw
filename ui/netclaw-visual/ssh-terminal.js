@@ -52,12 +52,49 @@ import path from 'path';
 import yaml from 'js-yaml';
 import { Client } from 'ssh2';
 
-const IDLE_MS = (Number(process.env.HUD_SSH_IDLE_S) || 900) * 1000;
-const MAX_SESSIONS = Number(process.env.HUD_SSH_MAX_SESSIONS) || 4;
-const ALLOW_CONFIG = process.env.HUD_SSH_ALLOW_CONFIG === '1';
 const SCROLLBACK_MAX = 256 * 1024; // ~a full `show run` with room to spare
-const AUDIT_PATH = process.env.HUD_SSH_AUDIT
-  || path.join(os.homedir(), '.openclaw', 'hud-ssh-audit.log');
+
+/**
+ * Settings resolved at registration, NOT at import.
+ *
+ * These must come from the same place as every other HUD setting: process.env
+ * *and* the .env files. The systemd unit carries no EnvironmentFile, so reading
+ * process.env alone meant HUD_SSH_ENABLED=1 in .env silently did nothing — the
+ * feature looked broken rather than disabled. Resolution is deferred to
+ * register() because ctx.parseEnvFile is what reads those files.
+ */
+const cfg = {
+  enabled: false,
+  allowConfig: false,
+  idleMs: 900 * 1000,
+  maxSessions: 4,
+  auditPath: path.join(os.homedir(), '.openclaw', 'hud-ssh-audit.log'),
+  username: '',
+  password: '',
+  apiToken: '',
+};
+
+function resolveConfig(parseEnvFile) {
+  let fileEnv = {};
+  try { fileEnv = parseEnvFile() || {}; } catch { fileEnv = {}; }
+  const get = (key) => {
+    const fromProc = process.env[key];
+    if (fromProc !== undefined && fromProc !== '') return String(fromProc);
+    const fromFile = fileEnv[key];
+    if (fromFile !== undefined && fromFile !== '') return String(fromFile);
+    return '';
+  };
+  cfg.enabled = get('HUD_SSH_ENABLED') === '1';
+  cfg.allowConfig = get('HUD_SSH_ALLOW_CONFIG') === '1';
+  cfg.idleMs = (Number(get('HUD_SSH_IDLE_S')) || 900) * 1000;
+  cfg.maxSessions = Number(get('HUD_SSH_MAX_SESSIONS')) || 4;
+  cfg.auditPath = get('HUD_SSH_AUDIT')
+    || path.join(os.homedir(), '.openclaw', 'hud-ssh-audit.log');
+  cfg.username = get('HUD_SSH_USERNAME');
+  cfg.password = get('HUD_SSH_PASSWORD');
+  cfg.apiToken = get('HUD_API_TOKEN');
+  return cfg;
+}
 
 /** sessionId -> session */
 const sessions = new Map();
@@ -81,7 +118,7 @@ const BLOCKED = [
 export function inspectCommand(line) {
   const cmd = String(line || '').trim();
   if (!cmd) return { allowed: true };
-  if (ALLOW_CONFIG) {
+  if (cfg.allowConfig) {
     // Even with config explicitly allowed, VLAN 3 stays hard-blocked.
     const v = BLOCKED.slice(-2).find((b) => b.re.test(cmd));
     return v ? { allowed: false, why: v.why } : { allowed: true };
@@ -102,8 +139,8 @@ function stripAnsi(s) {
 function audit(entry) {
   const line = JSON.stringify({ ts: new Date().toISOString(), ...entry });
   try {
-    fs.mkdirSync(path.dirname(AUDIT_PATH), { recursive: true });
-    fs.appendFileSync(AUDIT_PATH, `${line}\n`, { mode: 0o600 });
+    fs.mkdirSync(path.dirname(cfg.auditPath), { recursive: true });
+    fs.appendFileSync(cfg.auditPath, `${line}\n`, { mode: 0o600 });
   } catch (err) {
     console.warn('[ssh] audit write failed:', err.message);
   }
@@ -132,8 +169,8 @@ function resolveDevice(deviceId, { TESTBED_FILE, parseEnvFile, readText }) {
   const creds = doc.testbed?.credentials || {};
 
   // Prefer a dedicated read-only account when configured.
-  const username = process.env.HUD_SSH_USERNAME || deref(creds.default?.username);
-  const password = process.env.HUD_SSH_PASSWORD || deref(creds.default?.password);
+  const username = cfg.username || deref(creds.default?.username);
+  const password = cfg.password || deref(creds.default?.password);
   if (!username || !password) {
     return { error: 'No credentials: set HUD_SSH_USERNAME/HUD_SSH_PASSWORD (recommended) or NETCLAW_USERNAME/NETCLAW_PASSWORD' };
   }
@@ -146,7 +183,7 @@ function resolveDevice(deviceId, { TESTBED_FILE, parseEnvFile, readText }) {
     type: dev.type || 'unknown',
     username,
     password,
-    usingDedicatedAccount: Boolean(process.env.HUD_SSH_USERNAME),
+    usingDedicatedAccount: Boolean(cfg.username),
   };
 }
 
@@ -171,7 +208,7 @@ function closeSession(id, reason) {
 const reaper = setInterval(() => {
   const now = Date.now();
   for (const [id, s] of sessions) {
-    if (now - s.lastActivity > IDLE_MS) closeSession(id, 'idle-timeout');
+    if (now - s.lastActivity > cfg.idleMs) closeSession(id, 'idle-timeout');
   }
 }, 30000);
 if (typeof reaper.unref === 'function') reaper.unref();
@@ -180,7 +217,7 @@ if (typeof reaper.unref === 'function') reaper.unref();
 export function registerSshTerminal(app, ctx) {
   const { TESTBED_FILE, parseEnvFile, readText, requireTrustedClient, askModel } = ctx;
 
-  const enabled = process.env.HUD_SSH_ENABLED === '1';
+  const { enabled } = resolveConfig(ctx.parseEnvFile);
 
   // Gate the whole surface. Off by default; trusted-client check always applies;
   // bearer token additionally required when HUD_API_TOKEN is set.
@@ -192,7 +229,7 @@ export function registerSshTerminal(app, ctx) {
           + 'without HUD_SSH_USERNAME this uses a privilege-15 account.',
       });
     }
-    const required = process.env.HUD_API_TOKEN;
+    const required = cfg.apiToken;
     if (required) {
       const got = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
       if (got !== required) return res.status(401).json({ error: 'Bearer token required' });
@@ -203,18 +240,18 @@ export function registerSshTerminal(app, ctx) {
   app.get('/api/ssh/capabilities', (req, res) => {
     res.json({
       enabled,
-      allowConfig: ALLOW_CONFIG,
-      dedicatedAccount: Boolean(process.env.HUD_SSH_USERNAME),
-      tokenRequired: Boolean(process.env.HUD_API_TOKEN),
-      idleSeconds: IDLE_MS / 1000,
-      maxSessions: MAX_SESSIONS,
+      allowConfig: cfg.allowConfig,
+      dedicatedAccount: Boolean(cfg.username),
+      tokenRequired: Boolean(cfg.apiToken),
+      idleSeconds: cfg.idleMs / 1000,
+      maxSessions: cfg.maxSessions,
       open: sessions.size,
     });
   });
 
   app.post('/api/ssh/open', gate, (req, res) => {
-    if (sessions.size >= MAX_SESSIONS) {
-      return res.status(429).json({ error: `Session cap reached (${MAX_SESSIONS})` });
+    if (sessions.size >= cfg.maxSessions) {
+      return res.status(429).json({ error: `Session cap reached (${cfg.maxSessions})` });
     }
     const device = resolveDevice(req.body?.device, { TESTBED_FILE, parseEnvFile, readText });
     if (device.error) return res.status(400).json({ error: device.error });
@@ -294,7 +331,7 @@ export function registerSshTerminal(app, ctx) {
     res.json({
       sessionId: id,
       device: { name: device.name, os: device.os, type: device.type },
-      readOnlyEnforcedByApp: !ALLOW_CONFIG,
+      readOnlyEnforcedByApp: !cfg.allowConfig,
       dedicatedAccount: device.usingDedicatedAccount,
       warning: device.usingDedicatedAccount ? null
         : 'Using NETCLAW_* credentials (privilege 15 on these switches). '
