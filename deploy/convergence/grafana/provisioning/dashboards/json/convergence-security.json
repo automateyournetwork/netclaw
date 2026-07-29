@@ -856,8 +856,8 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "topk(15, sum by (attributes_src_ip) (count_over_time({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" | attributes_action=\"block\" [$__range])))",
-          "legendFormat": "{{attributes_src_ip}}",
+          "expr": "topk(15, sum by (src_ip) (count_over_time({job=\"device-syslog\"} | json | attributes_appname=\"filterlog\" | attributes_action=\"block\" | label_format src_ip=attributes_src_ip | keep src_ip [$__range])))",
+          "legendFormat": "{{src_ip}}",
           "queryType": "instant",
           "instant": true
         }
@@ -889,7 +889,7 @@
               "Time": true
             },
             "renameByName": {
-              "attributes_src_ip": "Source IP",
+              "src_ip": "Source IP",
               "Value": "Blocks"
             }
           }
