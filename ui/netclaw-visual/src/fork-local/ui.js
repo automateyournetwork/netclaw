@@ -54,6 +54,10 @@ import '../styles/home.css';
 import { createTabRouter } from '../app-shell/tab-router.js';
 import { HomeView } from '../views/home/HomeView.js';
 
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
+  { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
+));
+
 export function registerForkUI(ctx) {
   const { dom, state } = ctx || {};
   if (!dom || !state) {
@@ -85,6 +89,13 @@ export function registerForkUI(ctx) {
   }
 
   try {
+    initDeviceLauncher();
+    restored.push('device-launcher');
+  } catch (err) {
+    console.error('[fork-ui] device launcher failed:', err);
+  }
+
+  try {
     // Upstream's wireUI() attaches its own simple collapse handler to
     // #chat-toggle (main.js: "Chat toggle collapse/expand"). The fork's drawer
     // owns that button entirely — it drives snap levels, not a raw class
@@ -107,6 +118,108 @@ export function registerForkUI(ctx) {
 
   console.log(`[fork-ui] restored: ${restored.join(', ') || 'nothing'}`);
   return { ok: true, restored };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Device launcher — the entry point for the SSH terminal.
+//
+// The terminal button was originally added to setDetail('device'), which fires
+// when a device node is clicked in the 3D scene. That path is dead in HUD 2.0:
+// state.devices is initialised to [] and nothing ever populates it, because
+// buildDevices() was one of the fork functions the merge dropped. The right
+// sidebar's Focus → Devices button therefore hides the integrations and reveals
+// nothing at all.
+//
+// Resurrecting the old 3D device nodes is the wrong fix — they used HUD 1.0's
+// orbit/dendrite coordinate system and would fight the org chart renderer. So
+// devices get a list in the Devices focus view instead, which is where an
+// operator already expects to find them.
+//
+// The listener is additive: upstream's own .segmented-btn handler still runs and
+// still sets state.filters.view / applyFilters(). We only paint the panel.
+// ─────────────────────────────────────────────────────────────────────────────
+function initDeviceLauncher() {
+  const buttons = document.querySelectorAll('.segmented-btn');
+  if (!buttons.length) return;
+  buttons.forEach((btn) => {
+    btn.addEventListener('click', () => {
+      if (btn.dataset.view === 'devices') renderDeviceList();
+    });
+  });
+}
+
+async function renderDeviceList() {
+  const panel = document.getElementById('detail-panel');
+  if (!panel) return;
+  panel.innerHTML = '<h2>Devices</h2><p>Loading testbed…</p>';
+
+  let devices = [];
+  let caps = null;
+  try {
+    const [g, c] = await Promise.all([
+      fetch('/api/graph').then((r) => r.json()),
+      fetch('/api/ssh/capabilities').then((r) => r.json()).catch(() => null),
+    ]);
+    devices = g.devices || [];
+    caps = c;
+  } catch (err) {
+    panel.innerHTML = `<h2>Devices</h2><p class="config-notes">Could not load: ${esc(err.message)}</p>`;
+    return;
+  }
+
+  if (!devices.length) {
+    panel.innerHTML = '<h2>Devices</h2><p class="config-notes">No devices in testbed/testbed.yaml.</p>';
+    return;
+  }
+
+  const sshOff = !caps?.enabled;
+  const warnPriv15 = caps?.enabled && !caps?.dedicatedAccount;
+
+  const rows = devices.map((d) => {
+    const canSsh = String(d.protocol || '').toLowerCase() === 'ssh';
+    const id = `dev-term-${d.id}`;
+    return `
+      <div class="info-card" style="margin-bottom:6px">
+        <div class="eyebrow">${esc(d.type)} · ${esc(d.os)}</div>
+        <strong>${esc(d.name)}</strong>
+        ${canSsh
+    ? `<button class="segmented-btn" data-device="${esc(d.name)}" id="${id}"
+                 style="margin-top:6px;width:100%"${sshOff ? ' disabled' : ''}>
+             ${sshOff ? 'Terminal disabled' : 'Open SSH terminal'}
+           </button>`
+    : '<p class="config-notes">No SSH connection defined.</p>'}
+      </div>`;
+  }).join('');
+
+  panel.innerHTML = `
+    <h2>Devices</h2>
+    <p class="config-notes">${devices.length} in testbed/testbed.yaml.</p>
+    ${sshOff
+    ? '<p class="config-notes">Terminal is off. Set <code>HUD_SSH_ENABLED=1</code> and restart the HUD. See docs/SSH-TERMINAL-HARDENING.md.</p>'
+    : ''}
+    ${warnPriv15
+    ? '<p class="config-notes" style="color:#fbbf5c">Using privilege-15 credentials — the app filter is the only guard. Set HUD_SSH_USERNAME to a privilege-1 account.</p>'
+    : ''}
+    ${rows}`;
+
+  panel.querySelectorAll('button[data-device]').forEach((btn) => {
+    btn.addEventListener('click', async () => {
+      const name = btn.dataset.device;
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Opening…';
+      try {
+        const mod = await import('../panels/TerminalPanel.js');
+        await mod.openTerminalPanel(name);
+      } catch (err) {
+        btn.textContent = `Failed: ${err.message}`;
+        return;
+      } finally {
+        if (btn.textContent === 'Opening…') btn.textContent = original;
+        btn.disabled = false;
+      }
+    });
+  });
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

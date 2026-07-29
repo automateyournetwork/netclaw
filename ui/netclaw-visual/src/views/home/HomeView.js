@@ -77,6 +77,46 @@ function nameLink(label, url, title) {
   return `<a class="home-mgmt-link" href="${href}" target="_blank" rel="noopener noreferrer" title="${tip}">${text}</a>`;
 }
 
+// ── HUD SSH terminal integration ────────────────────────────────────────────
+// Convergence device names come from convergence-api (SNMP/UniFi/blackbox),
+// while the terminal resolves hosts from testbed.yaml. They happen to agree on
+// the switches (HomeSwitch01/02/04), so a name match is enough — but match
+// explicitly against the testbed rather than assuming, so a device that only
+// exists in one source simply gets no Console action instead of a dead button.
+
+/** @returns {Promise<{enabled:boolean,dedicatedAccount:boolean,names:Set<string>}>} */
+async function loadTerminalTargets() {
+  const [graph, caps] = await Promise.all([
+    fetch('/api/graph').then((r) => r.json()),
+    fetch('/api/ssh/capabilities').then((r) => r.json()),
+  ]);
+  const names = new Set(
+    (graph.devices || [])
+      .filter((d) => String(d.protocol || '').toLowerCase() === 'ssh')
+      .map((d) => String(d.name)),
+  );
+  return {
+    enabled: Boolean(caps?.enabled),
+    dedicatedAccount: Boolean(caps?.dedicatedAccount),
+    names,
+  };
+}
+
+/**
+ * Console action for a device row. Renders nothing unless the device is in the
+ * testbed and the terminal is enabled, so the table never offers an action that
+ * cannot work.
+ */
+function consoleAction(name, terminal) {
+  if (!terminal?.enabled || !name) return '';
+  if (!terminal.names.has(String(name))) return '';
+  const n = esc(name);
+  const warn = terminal.dedicatedAccount
+    ? 'Open an SSH terminal'
+    : 'Open an SSH terminal (privilege-15 credentials — app filter is the only guard)';
+  return `<button type="button" class="home-console-btn" data-console-device="${n}" title="${esc(warn)}">Console</button>`;
+}
+
 export class HomeView {
   constructor(rootEl) {
     this.root = rootEl;
@@ -174,6 +214,28 @@ export class HomeView {
         const action = actionBtn.getAttribute('data-triage-action');
         const id = actionBtn.getAttribute('data-event-id') || this.selectedEventId;
         if (id && action) this.handleTriageAction(action, id);
+      }
+    });
+
+    // Console actions in the Devices table (delegated — table is re-rendered).
+    // TerminalPanel is imported lazily so xterm stays out of the initial bundle.
+    this.element.addEventListener('click', async (ev) => {
+      const btn = ev.target.closest('[data-console-device]');
+      if (!btn) return;
+      const name = btn.getAttribute('data-console-device');
+      if (!name || btn.disabled) return;
+      btn.disabled = true;
+      const original = btn.textContent;
+      btn.textContent = 'Opening…';
+      try {
+        const mod = await import('../../panels/TerminalPanel.js');
+        await mod.openTerminalPanel(name);
+        btn.textContent = original;
+      } catch (err) {
+        btn.textContent = 'Failed';
+        btn.title = String(err?.message || err);
+      } finally {
+        btn.disabled = false;
       }
     });
   }
@@ -302,6 +364,11 @@ export class HomeView {
 
       if (this.subview === 'devices' || force) {
         this.cache.devices = await homeFetch(`/devices?site=${SITE}`);
+        // Which of these are reachable by the HUD SSH terminal. Two local
+        // endpoints (not convergence-api): the pyATS testbed inventory, and
+        // whether the terminal is enabled at all. Failures are non-fatal — the
+        // Console action just doesn't render.
+        this.cache.terminal = await loadTerminalTargets().catch(() => null);
       }
       if (this.subview === 'diary' || force) {
         this.cache.events = await homeFetch(`/events?site=${SITE}&limit=30`);
@@ -711,6 +778,7 @@ export class HomeView {
     }
 
     // convergence-api shape: { wanProbes, edge/firewall, accessPoints, switches }
+    const terminal = this.cache.terminal || null;
     const probes = Array.isArray(d.wanProbes) ? d.wanProbes : [];
     const edge = Array.isArray(d.edge) ? d.edge : (Array.isArray(d.firewall) ? d.firewall : []);
     const aps = Array.isArray(d.accessPoints) ? d.accessPoints : [];
@@ -776,11 +844,13 @@ export class HomeView {
           sw.cpu != null && sw.cpu > 0 ? `CPU ${sw.cpu}%` : null,
           sw.source ? `src:${sw.source}` : null,
         ].filter(Boolean).join(' · ');
+        const swName = sw.name || sw.device_name || '';
         return `<tr>
-          <td>${nameLink(sw.name || sw.device_name || '—', sw.mgmtUrl, 'Open switch management')}</td>
+          <td>${nameLink(swName || '—', sw.mgmtUrl, 'Open switch management')}</td>
           <td>Switch</td>
           <td class="${statusClass(st === 'online' || st === 'up' ? 'healthy' : st)}">${esc(st || '—')}</td>
           <td>${esc(detail)}</td>
+          <td>${consoleAction(swName, terminal)}</td>
         </tr>`;
       })
       .join('');
@@ -833,9 +903,12 @@ export class HomeView {
         <p class="home-muted">No APs — enable UniFi exporter (<code>--profile unifi</code>).</p>`}
       ${switches.length ? `
         <p class="home-section-title">Switches</p>
+        ${terminal?.enabled && !terminal?.dedicatedAccount
+    ? '<p class="home-muted">Console sessions use privilege-15 credentials — the app-layer filter is the only guard. Set <code>HUD_SSH_USERNAME</code> to a privilege-1 account.</p>'
+    : ''}
         <div class="home-table-wrap">
           <table class="home-table">
-            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th></tr></thead>
+            <thead><tr><th>Name</th><th>Role</th><th>Status</th><th>Detail</th><th></th></tr></thead>
             <tbody>${swRows}</tbody>
           </table>
         </div>` : `

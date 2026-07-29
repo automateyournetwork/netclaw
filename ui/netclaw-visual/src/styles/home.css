@@ -909,3 +909,18 @@
   color: #ffb4b4;
   background: rgba(120, 40, 40, 0.18);
 }
+
+/* ── HUD SSH terminal: Console action in the Devices table ────────────────── */
+.home-console-btn {
+  background: #1d2a52;
+  border: 1px solid #33436b;
+  color: #cfdcff;
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.home-console-btn:hover:not(:disabled) { background: #27376a; border-color: #4a5c8f; }
+.home-console-btn:disabled { opacity: 0.55; cursor: default; }
