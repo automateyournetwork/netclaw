@@ -26,6 +26,8 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
+// FORK-LOCAL: see src/fork-local/ui.js and FORK-NOTES.md
+import { registerForkUI } from './fork-local/ui.js';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -2549,6 +2551,15 @@ function wireUI() {
   if (qualityToggle) {
     qualityToggle.addEventListener('click', cycleQualityMode);
   }
+
+  // ── FORK-LOCAL HOOK ───────────────────────────────────────────────────────
+  // Restores fork UI features whose markup is in index.html but whose wiring
+  // upstream's main.js has no knowledge of: the COMMAND | CONVERGENCE tab
+  // router and the draggable/resizable NETCLAW TERMINAL drawer.
+  // Must stay at the END of wireUI(): it replaces #chat-toggle to drop
+  // upstream's competing collapse handler, which must already be attached.
+  // Deleting src/fork-local/ui.js reverts to pristine upstream behaviour.
+  registerForkUI({ dom, state });
 
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('click', onClick);

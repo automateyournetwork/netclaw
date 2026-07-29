@@ -141,3 +141,54 @@ the header of `ssh-terminal.js`.
 The command filter is best-effort on an interactive stream, not a boundary —
 device-side privilege is. VLAN 3 / `Vlan3` stays blocked even with
 `HUD_SSH_ALLOW_CONFIG=1`. Audit log at `~/.openclaw/hud-ssh-audit.log` (0600).
+
+## Frontend: the same problem, same fix
+
+`src/main.js` is upstream's too, and the HUD 2.0 rewrite replaced it wholesale.
+That silently dropped two fork features whose **markup was still in
+`index.html`** and whose **modules were still on disk** — only the wiring was
+gone, so they failed silently rather than erroring:
+
+| Lost | Symptom | Cause |
+|------|---------|-------|
+| COMMAND \| CONVERGENCE tab router | clicking CONVERGENCE did nothing | `src/app-shell/tab-router.js` is fork-only; nothing imported it |
+| Draggable/resizable NETCLAW TERMINAL | drawer could not be moved or resized | `initChatWindow()` (~417 lines) existed only in the fork's `main.js` |
+
+Restored into `src/fork-local/ui.js` (fork-owned) with **one hook** at the end of
+upstream's `wireUI()`:
+
+```js
+registerForkUI({ dom, state });
+```
+
+`dom` and `state` are the only things that cross the boundary, confirmed by
+free-identifier analysis against upstream's `main.js`.
+
+The hook **must stay last in `wireUI()`**: `registerForkUI` replaces
+`#chat-toggle` with a clone to drop upstream's own collapse handler, which
+otherwise fights the fork drawer's snap logic on every click. Cloning avoids
+editing `main.js` further, keeping the coupling to a single call.
+
+Deleting `src/fork-local/ui.js` reverts to pristine upstream.
+
+### Still not restored
+
+The fork's `main.js` also wired `createMobileLayout()`, `wireLongPressSelect()`
+and `applyReducedMotion()`. Those pull in further fork-only helpers absent from
+upstream's `main.js`, so **mobile layout and long-press select remain inactive**.
+`src/app-shell/mobile-layout.js`, `graph-cache.js` and `register-sw.js` are all
+still orphaned on disk. Out of scope for the two reported regressions; pick up
+when mobile matters.
+
+### Post-merge check for the frontend
+
+`npm run build`, then confirm the restored code survived tree-shaking:
+
+```bash
+cd dist/assets && B=$(ls hud-*.js)
+for s in "fork-ui] restored" chat-positioned home-mode syncTopbarMetrics; do
+  echo "$s -> $(grep -c "$s" "$B")"
+done
+```
+In the browser console you should see `[fork-ui] restored: convergence-tab,
+chat-drawer-move-resize`.
