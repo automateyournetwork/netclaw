@@ -54,6 +54,21 @@ Full operator guide: [`docs/MODELS.md`](./MODELS.md) · env layout: [`ENV-AND-LA
 
 ---
 
+## Telemetry architecture
+
+See **[`CONVERGENCE-TELEMETRY-ARCHITECTURE.md`](./CONVERGENCE-TELEMETRY-ARCHITECTURE.md)** for:
+
+- System diagram (OTel Collector → Loki/VictoriaLogs + Prometheus/VictoriaMetrics)
+- What gets structured at ingest (filterlog CSV, Cisco mnemonics, RFC3164 fields)
+- Label cardinality rules (FR-042)
+- Metric names, log-derived metrics, alert rules
+- Retention tiers (14d interactive, 365d long-term)
+- Inventory and setup flow (Nautobot or manual → apply → boards)
+- Key decisions with rationale
+- Phase 12: RAG-driven vendor profiles (new platform = one markdown doc)
+
+---
+
 ## Quick start — local Docker (primary path)
 
 Same host runs: agent plane + compose stack + alert-receiver.
