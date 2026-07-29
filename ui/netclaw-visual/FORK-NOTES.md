@@ -1,5 +1,10 @@
 # HUD fork-local changes
 
+> **New session? Read [`../../docs/HANDOFF.md`](../../docs/HANDOFF.md) first.**
+> It carries the architectural rule, the hook inventory, the verification
+> one-liners, the gotchas, upstream status and the backlog. This file is the
+> HUD-specific detail behind it.
+
 How this fork's HUD additions survive `git merge upstream/main`.
 
 ## The problem
