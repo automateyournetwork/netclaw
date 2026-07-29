@@ -63,6 +63,26 @@ async def _task_cancel(manager):
     assert tm.status(tid)["state"] == "cancelled"
 
 
+def test_cancel_task_orphaned_by_daemon_restart(manager):
+    """A task with no live worker in THIS process (simulating a daemon
+    restart mid-flight) but still 'working' in the DB must be cancellable --
+    previously cancel() only ever checked the in-memory _workers dict and
+    silently returned False forever, which is exactly why a phone's Cancel
+    button did nothing for a task orphaned by a restart."""
+    tm = TaskManager(manager, Auditor(manager))
+    tid = tm.create(direction="inbound", peer_identity="p", target_type="edge_ask", target_name="ask")
+    tm._set(tid, state="working")  # no tm.run() -- no entry in _workers, like a fresh process
+    assert tm.cancel(tid) is True
+    assert tm.status(tid)["state"] == "cancelled"
+
+
+def test_cancel_already_terminal_task_is_a_noop(manager):
+    tm = TaskManager(manager, Auditor(manager))
+    tid = tm.create(direction="inbound", peer_identity="p", target_type="skill", target_name="x")
+    tm._set(tid, state="completed", completed_at="now")
+    assert tm.cancel(tid) is False
+
+
 def test_unknown_task_id_terminal(manager):
     tm = TaskManager(manager, Auditor(manager))
     assert tm.status("nope")["state"] == "unknown"

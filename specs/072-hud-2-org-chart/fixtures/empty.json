@@ -1,0 +1,58 @@
+{
+  "available": true,
+  "identity": "as65000-0.0.0.0",
+  "peers": [],
+  "approvals": [],
+  "risk": null,
+  "members": [],
+  "posture": {
+    "mode": "production",
+    "state": "enforced",
+    "controls": [
+      {
+        "name": "sandbox",
+        "kind": "containment",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      },
+      {
+        "name": "model-guard",
+        "kind": "containment",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      },
+      {
+        "name": "audit",
+        "kind": "audit",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      }
+    ],
+    "missing": [],
+    "strict_all": false,
+    "model": {
+      "primary": "anthropic/claude-opus-5",
+      "guarded": false
+    },
+    "channel_security": {
+      "mode": "on",
+      "by_trust_model": {
+        "legacy": 2,
+        "pinned": 3
+      },
+      "degraded": 2,
+      "amber": 0,
+      "red": 0,
+      "renewals_failing": 0,
+      "pq_mode": "opportunistic",
+      "pq_available": false,
+      "ech_available": false,
+      "channels_kex": []
+    },
+    "computed_at": 1785179850.0363233,
+    "summary": "production \u2014 enforced"
+  }
+}

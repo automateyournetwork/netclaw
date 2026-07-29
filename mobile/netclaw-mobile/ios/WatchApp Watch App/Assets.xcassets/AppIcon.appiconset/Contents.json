@@ -1,0 +1,20 @@
+{
+  "images" : [
+    {
+      "idiom" : "universal",
+      "platform" : "watchos",
+      "size" : "1024x1024",
+      "filename" : "watch-icon-1024.png"
+    },
+    {
+      "idiom" : "universal",
+      "platform" : "ios",
+      "size" : "1024x1024",
+      "filename" : "watch-icon-1024.png"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}

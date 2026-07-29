@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!--
+	  APNs entitlement for NetClaw Mobile's push channel.
+
+	  NOT REFERENCED BY THE BUILD YET, ON PURPOSE. `CODE_SIGN_ENTITLEMENTS` is
+	  deliberately not set in project.pbxproj, because a free Xcode "Personal
+	  Team" CANNOT sign the Push Notifications capability — wiring this in
+	  before a paid Apple Developer Program membership exists would break the
+	  device builds that currently work (see SIDELOAD.md, route 3).
+
+	  To enable, once enrolled in the paid program:
+	    1. Xcode -> Runner target -> Signing & Capabilities -> + Capability
+	       -> Push Notifications. Xcode sets CODE_SIGN_ENTITLEMENTS to this
+	       file automatically.
+	    2. + Capability -> Background Modes -> tick "Remote notifications"
+	       (this writes UIBackgroundModes into Info.plist).
+	    3. Drop GoogleService-Info.plist into ios/Runner/ (gitignored).
+	    4. Upload an APNs auth key (.p8) to the Firebase project.
+
+	  Value is "development" for debug/TestFlight-from-Xcode builds; Xcode
+	  rewrites it to "production" for App Store distribution automatically.
+	-->
+	<key>aps-environment</key>
+	<string>development</string>
+</dict>
+</plist>

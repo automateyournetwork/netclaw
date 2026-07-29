@@ -16,7 +16,8 @@ A Three.js 3D network operations dashboard for [NetClaw](https://github.com/auto
 4. [Peer with Other NetClaws (Optional)](#4-peer-with-other-netclaws-optional)
 5. [Start the Visual HUD](#5-start-the-visual-hud)
 6. [Using the HUD](#6-using-the-hud)
-7. [Architecture](#architecture)
+7. [Reading the Org Chart](#7-reading-the-org-chart)
+8. [Architecture](#architecture)
 8. [API Reference](#api-reference)
 9. [Troubleshooting](#troubleshooting)
 
@@ -71,14 +72,19 @@ Reconfigure anytime:
 
 ---
 
-## 2. Start the OpenClaw Gateway
+## 2. Enable Chat Completions and Start the OpenClaw Gateway
 
-The HUD's chat terminal proxies messages to the OpenClaw gateway. Start it in a dedicated terminal:
+The Visual HUD and Canvas Chat proxy messages through OpenClaw's
+OpenAI-compatible chat-completions endpoint. Enable that endpoint once, then
+start the gateway in a dedicated terminal:
 
 ```bash
 cd netclaw
+openclaw config set gateway.http.endpoints.chatCompletions.enabled true
 openclaw gateway run
 ```
+
+If the gateway was already running when you changed the setting, restart it.
 
 You should see:
 
@@ -89,7 +95,9 @@ You should see:
 
 The gateway must be running for live chat responses and tool execution (Slack messages, GitHub issues, ServiceNow tickets, mind maps, etc.). Without it, the chat falls back to a local heuristic that identifies which integrations and devices are relevant but cannot execute tools.
 
-The HUD shows a **LIVE** / **OFFLINE** indicator in the chat header so you always know if the gateway is reachable.
+The chat interfaces report whether the gateway is ready for chat. A reachable
+gateway whose chat-completions endpoint is disabled is shown separately from a
+fully offline gateway.
 
 ---
 
@@ -220,7 +228,9 @@ This starts two processes concurrently:
 | **API Server** | 3001 | REST API + WebSocket for graph data, BGP state, chat proxy, device config |
 | **Vite Dev Server** | 3000 | Three.js frontend with hot reload, proxies `/api` and `/ws` to port 3001 |
 
-Open **http://localhost:3000** in your browser.
+Open **http://localhost:3000** in your browser. The default route remains the
+3D Visual HUD; the alternative branching chat workspace is available at
+**http://localhost:3000/canvas.html**.
 
 ### Production Build
 
@@ -338,8 +348,31 @@ The chat drawer in the bottom-right corner connects directly to the OpenClaw gat
 If the gateway is offline, responses fall back to a local heuristic with a **LOCAL** badge that identifies relevant integrations and devices but cannot execute tools.
 
 The chat header shows:
-- **LIVE** (green) — gateway is reachable and responding
-- **OFFLINE** (orange) — gateway is not running or unreachable
+
+- **LIVE** (green) — the gateway and chat-completions endpoint are ready
+- **CHAT API DISABLED** (orange) — the gateway is reachable, but its
+  chat-completions endpoint must be enabled
+- **OFFLINE** (orange) — the gateway is not running or is unreachable
+
+### Canvas Chat (Alternative Interface)
+
+Select **Canvas Chat** in the terminal header, or open `/canvas.html` directly,
+to use NetClaw in a spatial, branching workspace. The canvas is an alternative
+frontend only: it uses the same `/api/chat` proxy, OpenClaw gateway, configured
+model, MCP integrations, skills, and safety controls as the existing terminal.
+
+- Highlight part of an answer and branch it into a focused child conversation.
+- Drag, resize, collapse, tile, or automatically tidy conversation windows.
+- Select multiple branches and synthesize their context into a new node.
+- Attach images or text/code/data files to a turn.
+- Keep multiple canvas sessions in browser-local IndexedDB and export/import
+  portable JSON when needed.
+- Return to the standard NetClaw interface at any time with the **Visual HUD**
+  button in the canvas header.
+
+Each canvas request sends the context for its own branch. Sibling branches are
+therefore isolated from one another, while the original `{ "message": "..." }`
+chat request remains fully backward compatible for the Visual HUD.
 
 ### Top Bar Metrics
 
@@ -376,15 +409,105 @@ The detail panel below shows context for the selected node:
 
 ---
 
+## 7. Reading the Org Chart
+
+The HUD renders your NetClaw's **trust topology** as a top-down org chart. It
+replaced an orbiting-cores scene in feature 072; the layout is planar and the
+camera cannot rotate, because "external vs internal" only reads if the layout
+and the viewer agree on which way is up.
+
+### The three bands
+
+```
+  ══════ EXTERNAL — eN2N peers ══════      above the boundary: other orgs
+  ─────── TRUST BOUNDARY ────────────      drawn explicitly, not implied
+        [ BORDER ]   ╌╌► [ edges ]         you, plus mobile devices
+  ─────── INTERNAL — iN2N members ────      your own claws, by category
+```
+
+Peers north of the boundary are **outside your organisation**. The Border is
+you. Member claws fan out below, grouped into categories. Mobile edge devices
+get their own lane beside the Border — inside the boundary, but not part of the
+member chart, because a phone receives pushes rather than serving delegations.
+
+### Claw health — four states
+
+| | State | Meaning |
+|---|---|---|
+| ● | **Hot** | Running now |
+| ◆ | **Warm** | Seen within 15 minutes; idle, not a fault |
+| ▬ | **Cold** | Never started — inert **by design**, entirely normal |
+| ◻ | **Fault** | Was reachable, no longer is — needs attention |
+
+Cold and Fault are deliberately kept apart. Most claws are cold on purpose
+(on-demand), so merging the two would bury a genuine fault inside a crowd of
+healthy-but-idle ones. Fault is the most prominent state after Hot for exactly
+that reason.
+
+States differ in **shape, colour and motion at once**, never opacity alone, so
+the encoding survives a greyscale screenshot and `prefers-reduced-motion`.
+
+### Categories are derived, not configured
+
+A member's category comes from the skills it holds, matched against the shipped
+integration catalog (`server.js`, ~70 integrations across 22 categories). No
+member names are hardcoded anywhere, so the chart works on a deployment it has
+never seen. A claw whose skills match nothing lands in **Uncategorised** rather
+than being dropped.
+
+Categories are ordered by heat, then size — but **only once, at load**. Live
+updates repaint; they never move anything. A claw that fails changes how it
+looks, never where it is.
+
+### Interacting
+
+| Action | Result |
+|---|---|
+| **Click a claw** | Opens its detail panel *and* reveals its tools |
+| **Drag** | Pans. Rotation is disabled by design |
+| **Scroll** | Zooms |
+| **Search** | Matches claws, categories and tool names — highlights in place, never hides or re-packs |
+| **Tab / arrows** | Moves between and within bands |
+| **Enter** | Selects |
+| **`e`** | Expands tools without selecting |
+
+Cold claws expand too: what a cold claw *would* bring is exactly what tells you
+whether to warm it.
+
+### Development
+
+```bash
+npm test                       # pure layout logic — no browser, no GPU
+npm run dev                    # API :3001 + vite :3000
+```
+
+Load a fixture instead of live data — useful for an empty first-run view or the
+100-member ceiling:
+
+```
+http://localhost:3000/?fixture=empty
+http://localhost:3000/?fixture=scale-100
+```
+
+Fixtures live in `specs/072-hud-2-org-chart/fixtures/` and always render a
+banner, so synthetic data can never be mistaken for your real Border.
+
+Layout logic under `src/orgchart/` is pure — it imports nothing from three.js
+and holds no DOM references, which is what lets it be unit tested. Rendering
+lives in `src/orgchart-render/` and consumes that output without re-deriving it.
+Keep that boundary; the test suite runs in bare Node and will fail if it breaks.
+
+---
+
 ## Architecture
 
 ```
-Browser (Three.js HUD @ localhost:3000)
+Browser (Visual HUD + Canvas Chat @ localhost:3000)
     |
     +-- GET  /api/graph          -> integrations, skills, devices, tool counts
     +-- GET  /api/bgp            -> BGP peers + RIB from daemon (localhost:8179)
-    +-- GET  /api/gateway/status -> OpenClaw gateway health check
-    +-- POST /api/chat           -> proxied to OpenClaw gateway (localhost:18789)
+    +-- GET  /api/gateway/status -> OpenClaw chat readiness check
+    +-- POST /api/chat           -> linear message or branch context, proxied to OpenClaw
     +-- GET  /api/testbed/raw    -> read/edit testbed.yaml
     +-- PUT  /api/env            -> update integration credentials
     +-- WS   /ws                 -> real-time activations, BGP state, heartbeat
@@ -410,13 +533,13 @@ Browser (Three.js HUD @ localhost:3000)
 | `/api/health` | GET | Health check |
 | `/api/graph` | GET | Full integration + device graph for 3D visualization |
 | `/api/bgp` | GET | BGP peer state and RIB from daemon |
-| `/api/gateway/status` | GET | OpenClaw gateway online/offline check |
+| `/api/gateway/status` | GET | OpenClaw reachability and chat-completions readiness |
 | `/api/skill/:skillId` | GET | Individual skill details |
 | `/api/env/:integrationId` | GET | Integration environment variables |
 | `/api/env` | PUT | Update integration credentials |
 | `/api/testbed/raw` | GET | Read testbed.yaml |
 | `/api/testbed/raw` | PUT | Update testbed.yaml |
-| `/api/chat` | POST | Send chat message (proxied to OpenClaw gateway) |
+| `/api/chat` | POST | Send `{ message }`, or `{ message, messages }` with branch-isolated context, to the OpenClaw gateway |
 | `/api/chat/history` | GET | Chat message history |
 | `/api/sessions` | GET | OpenClaw agent sessions |
 | `/api/session/:id/tools` | GET | Tools used in a session |

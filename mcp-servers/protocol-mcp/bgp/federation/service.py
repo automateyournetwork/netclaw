@@ -111,6 +111,11 @@ class FederationService:
         self.risk = RiskManager(self.manager)
         self.router = RiskRouter(self.risk)
         self.member_channels: Dict[str, object] = {}   # border side: member_id -> InternalChannel
+        # feature 066: border side, node_type='edge' members (phones) — a
+        # separate registry from member_channels because edge nodes never
+        # carry agent-member capabilities (no BGP/eN2N/inventory dispatch,
+        # FR-012) and are addressed by push_to_edge(), not delegate_to_member().
+        self.edge_channels: Dict[str, object] = {}
         self.border_channel = None                      # member side: our channel to the Border
         self.member_last_activity = time.time()         # member side: for cold/on-demand idle-exit
         self._spawning = set()                          # border side: members mid cold-start
@@ -136,6 +141,27 @@ class FederationService:
             "n2n/tasks/result": self.invoker.handle_task_result,
             "n2n/tasks/cancel": self.invoker.handle_task_cancel,
         }
+        # feature 066: Border-side handlers for edge (phone) connections. Only
+        # the handshake + built-in health methods (FR-012) — never BGP/eN2N/
+        # inventory. n2n/edge/message has no server-side handler because it is
+        # Border-initiated only (push_to_edge calls it; nothing calls it on us).
+        self._edge_border_handlers = {
+            "in2n/enroll": self._edge_on_enroll,
+            "in2n/hello": self._edge_on_hello,
+            "n2n/edge/register_push": self._edge_on_register_push,
+            # feature 067: phone-to-Border command channel. n2n/tasks/* are
+            # the SAME handler functions the existing iN2N member-facing
+            # surface already uses (they're generic over channel.peer_identity,
+            # which EdgeChannel already has post-auth) -- reused as-is, not
+            # reimplemented (research D4).
+            "n2n/edge/ask": self._edge_on_ask,
+            "n2n/tasks/status": self.invoker.handle_task_status,
+            "n2n/tasks/result": self.invoker.handle_task_result,
+            "n2n/tasks/cancel": self.invoker.handle_task_cancel,
+            # feature 068: biometric-gated approvals + capability advertisement.
+            "n2n/edge/register_capabilities": self._edge_on_register_capabilities,
+            "n2n/edge/approval_resolve": self._edge_on_approval_resolve,
+        }
 
     def notify_approval(self, invocation_id, peer, target_type, target_name):
         """Push an approval prompt to the operator's channels (FR-013). Best-effort."""
@@ -146,6 +172,40 @@ class FederationService:
                 self.approval_notifier(invocation_id, peer, target_type, target_name)
             except Exception as e:
                 logger.warning("approval notifier failed: %s", e)
+        # feature 068 (US1/FR-001): the first real delivery mechanism behind
+        # this hook — push to every connected edge node via the EXISTING
+        # push_to_edge() (066/US2), including its existing disconnected-
+        # device FCM/APNs fallback (066/US3). No "reason" field exists in
+        # the current approval_request/remote_invocation_record schema (this
+        # hook has only ever carried invocation_id/peer/target_type/
+        # target_name, confirmed by grepping every call site) -- not
+        # fabricated here.
+        if not self.edge_channels:
+            return
+        row = self.manager._conn.execute(
+            "SELECT id FROM approval_request WHERE invocation_id=? AND status='pending' "
+            "ORDER BY id DESC LIMIT 1", (invocation_id,)).fetchone()
+        if not row:
+            return
+        approval_id = row["id"]
+        risk_name = (self.risk.get_risk() or {}).get("risk_name")
+        payload = {
+            "content_type": "approval",
+            "approval_id": approval_id,
+            "target_type": target_type,
+            "target_name": target_name,
+            "requesting_agent": peer,
+            "risk_name": risk_name,
+            "pushed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        }
+        for member_id in list(self.edge_channels.keys()):
+            asyncio.create_task(self._push_approval_best_effort(member_id, payload))
+
+    async def _push_approval_best_effort(self, member_id, payload):
+        try:
+            await self.push_to_edge(member_id, payload)
+        except Exception as e:
+            logger.warning("approval push to edge %s failed: %s", member_id, e)
 
     def notify_key_change(self, ident):
         """Surface an NCFED key change for a federated peer (possible
@@ -740,7 +800,10 @@ class FederationService:
         member_fault = backend_fault = False
         for m in self.risk.list_members():
             mid = m["member_id"]
-            live = mid in self.member_channels
+            # Shared definition -- see member_liveness(). Computing this
+            # inline is what let three call sites drift into reporting every
+            # connected phone as down.
+            live = self.member_liveness(m)["live"]
             will_cold = (not live) and bool(m.get("launch_cmd")) and (
                 bool(m.get("on_demand")) or self.risk.managed_by(mid) == "service")
             members[mid] = {"state": "up" if live else "down", "will_cold_start": will_cold}
@@ -923,6 +986,485 @@ class FederationService:
             self.risk.update_health(channel.member_id, inventory_at=time.time())
         return {"accepted": True}
 
+    # ---- feature 066: edge (phone) connections -------------------------
+    # WebSocket transport instead of raw TCP (research D2); same trust model
+    # (pinned-key possession over a Border-issued nonce) and same wire method
+    # names (in2n/enroll, in2n/hello) as agent-member iN2N enrollment (contract
+    # §2) — only consume_token()'s new node_type="edge" argument (T006) and a
+    # separate registry (self.edge_channels, T008) distinguish it.
+
+    # ---- member liveness (one definition, used everywhere) --------------
+
+    def member_liveness(self, m) -> dict:
+        """The single source of truth for "is this member reachable right now".
+
+        Every caller that reported liveness used to compute it inline, and they
+        drifted: three separate call sites checked only `member_channels` and so
+        reported every connected PHONE as down (an edge member's channel lives
+        in `edge_channels`). Two were fixed in ec7acdd and a third in the
+        health_report() fix; this exists so there is no fourth.
+
+        `heartbeat_age_s` is included because `state` alone is genuinely
+        misleading on a phone. `state` is written on connect/disconnect, and a
+        phone reconnects constantly (82 deregistrations and 94 dial-ins in one
+        day on this Border), so two reads seconds apart can honestly disagree —
+        which reads to an operator as endpoints contradicting each other. The
+        heartbeat age is what actually distinguishes "briefly between sockets"
+        from "gone", and without it `state: active` next to a stale heartbeat,
+        or `state: unreachable` next to a 20s-old one, both look like lies.
+        """
+        mid = m["member_id"]
+        live = mid in self.member_channels or mid in self.edge_channels
+        age = None
+        try:
+            hb = (json.loads(m["health"]) if m["health"] else {}).get("last_heartbeat")
+            if hb:
+                age = round(max(0.0, time.time() - float(hb)), 1)
+        except (ValueError, TypeError, KeyError):
+            age = None
+        return {"live": live, "heartbeat_age_s": age}
+
+    # ---- edge (phone) agent-turn budget --------------------------------
+
+    def _edge_ask_timeout(self) -> int:
+        """Wall-clock budget for one phone request's agent turn.
+
+        MUST be >= the member `skill_timeout` this turn may delegate into,
+        otherwise the parent dies while its own child is still running (see
+        _edge_on_ask). Defaults to the member budget plus headroom for the
+        Border's own reasoning either side of the delegation.
+        """
+        override = os.environ.get("N2N_EDGE_ASK_TIMEOUT_S")
+        if override:
+            try:
+                return max(60, int(override))
+            except ValueError:
+                logger.warning("N2N_EDGE_ASK_TIMEOUT_S=%r is not an int — ignoring", override)
+        member_budget = getattr(self.invoker, "skill_timeout", 600)
+        return int(member_budget) + self._edge_ask_stall_extension()
+
+    def _edge_ask_stall_extension(self) -> int:
+        """Extra seconds granted when a turn is still alive at the stall
+        checkpoint. Also the headroom added on top of the member budget."""
+        try:
+            return max(30, int(os.environ.get("N2N_EDGE_ASK_STALL_EXTENSION_S", "180")))
+        except ValueError:
+            return 180
+
+    async def _edge_notify_progress(self, member_id: str, task_id: str, text: str):
+        """Best-effort progress ping to a phone mid-turn. Never raises: a
+        disconnected phone just doesn't get it, and the turn continues."""
+        ch = self.edge_channels.get(member_id)
+        if not ch:
+            return
+        try:
+            await ch.notify("n2n/edge/task_progress",
+                            {"task_id": task_id, "detail": text})
+        except Exception as e:
+            logger.debug("edge progress notify to %s failed: %s", member_id, e)
+
+    def _register_edge_channel(self, member_id, ch):
+        """Track an edge node's channel; deregister on close and start its
+        Border-driven heartbeat loop (T011) — the BASE_FLOOR-equivalent
+        health-monitoring guarantee for a member that never runs a skill
+        (D5/T010)."""
+        def _deregister(closed_ch):
+            if self.edge_channels.get(member_id) is closed_ch:
+                self.edge_channels.pop(member_id, None)
+                self.risk.mark_unreachable(member_id)
+                logger.info("Edge node %s channel closed — deregistered", member_id)
+        ch.on_close = _deregister
+        self.edge_channels[member_id] = ch
+        asyncio.create_task(self._edge_heartbeat_loop(member_id, ch))
+
+    async def _edge_heartbeat_once(self, member_id: str, ch) -> bool:
+        """One heartbeat check (contract §4): call n2n/edge/heartbeat on the
+        connected phone and record liveness in member.health, exactly as
+        member_heartbeat does for agent members. This is the entire
+        BASE_FLOOR-equivalent guarantee (D5/T010) for a node_type='edge'
+        member with zero skills delivered — extracted from the loop below so
+        it's directly callable/testable without waiting on real timers."""
+        try:
+            await ch.call("n2n/edge/heartbeat", {})
+            self.risk.update_health(member_id, last_heartbeat=time.time())
+            return True
+        except Exception as e:
+            logger.warning("Edge node %s: heartbeat failed (%s)", member_id, e)
+            return False
+
+    async def _edge_heartbeat_loop(self, member_id, ch):
+        """Border-initiated heartbeat (contract §4): periodically run
+        _edge_heartbeat_once; after NCFED_HEARTBEAT_MISS_LIMIT consecutive
+        misses, closes the channel (which deregisters it and marks the
+        member unreachable, US3/SC-006). Reuses the same interval/miss-limit
+        as eN2N/iN2N channel liveness (NCFED_HEARTBEAT_INTERVAL/_MISS_LIMIT)
+        so there is one heartbeat-miss window across the whole daemon, not a
+        second constant to keep in sync."""
+        from ..constants import NCFED_HEARTBEAT_INTERVAL, NCFED_HEARTBEAT_MISS_LIMIT
+        misses = 0
+        while self.edge_channels.get(member_id) is ch and not ch._closed:
+            await asyncio.sleep(NCFED_HEARTBEAT_INTERVAL)
+            if self.edge_channels.get(member_id) is not ch or ch._closed:
+                break
+            if await self._edge_heartbeat_once(member_id, ch):
+                misses = 0
+            else:
+                misses += 1
+                if misses >= NCFED_HEARTBEAT_MISS_LIMIT:
+                    await ch.close()
+                    break
+
+    async def push_to_edge(self, member_id: str, content: dict, timeout: float = 30.0) -> dict:
+        """Explicitly push content to a connected edge node (US2/FR-008),
+        mirroring delegate_to_member()'s existing call-out shape (D8). Called
+        ONLY from an explicit operator/agent action (n2n_notify_phone → the
+        daemon's POST /n2n/edge/push route) — there is no other code path
+        that calls this, so no ordinary channel traffic is ever mirrored to
+        a phone. Raises ValueError if the edge node is not currently
+        connected; the caller (the HTTP route) is responsible for the
+        platform push-notification fallback (FR-011, US3)."""
+        ch = self.edge_channels.get(member_id)
+        if not ch:
+            raise ValueError(f"edge node {member_id} not connected")
+        result = await ch.call("n2n/edge/message", content, timeout=timeout)
+        # Audit every explicit push (Constitution IV) so the HUD/operator can
+        # see recent phone deliveries via the existing /n2n/audit query,
+        # exactly like every other iN2N action.
+        self.audit.record(direction="outbound", peer_identity=member_id,
+                          target_type="edge_push", target_name=content.get("content_type"),
+                          decision="pushed", outcome="success", channel_kind="in2n")
+        return result
+
+    async def edge_self_status(self, member_id: str, timeout: float = 30.0) -> dict:
+        """On-demand self-status (contract §4) — the edge-node analogue of
+        member_report_audit, scoped to what's meaningful for a device rather
+        than a process."""
+        ch = self.edge_channels.get(member_id)
+        if not ch:
+            raise ValueError(f"edge node {member_id} not connected")
+        status = await ch.call("n2n/edge/self_status", {}, timeout=timeout)
+        self.risk.update_health(member_id, self_status=status, self_status_at=time.time())
+        return status
+
+    async def accept_edge_ws(self, ws):
+        """Border side: a phone dialed our edge WS listener. Challenge it with
+        a nonce (the WS-transport equivalent of send_border_preamble's raw
+        IN2N_MAGIC+nonce for agent members — WS has no bytes-before-the-
+        protocol channel, so the challenge is the first JSON-RPC notification),
+        then run an EdgeChannel; it authenticates via in2n/enroll (first time)
+        or in2n/hello (pinned-key proof)."""
+        from .edge import EdgeChannel
+        nonce = secrets.token_bytes(IN2N_NONCE_SIZE)
+        ch = EdgeChannel(ws, local_identity=self.local_identity,
+                         handlers=self._edge_border_handlers)
+        ch.nonce = nonce
+        await ch.notify("n2n/edge/challenge", {"nonce": nonce.hex()})
+        await ch.start()
+        logger.info("Accepted edge WS dial-in (awaiting device auth)")
+        if ch._read_task:
+            await ch._read_task
+
+    async def _edge_on_enroll(self, channel, params):
+        """First-time edge enrollment: verify possession + consume the token
+        with node_type='edge' (T006/D9) so the resulting member row carries no
+        BASE_FLOOR skill names (D5/T010) — the edge node satisfies that
+        guarantee via n2n/edge/heartbeat + n2n/edge/self_status instead."""
+        from .internal_channel import _ERR_NOT_TRUSTED, _ERR_NOT_A_BORDER
+        from .edge import RpcError
+        if not self.risk.is_border():
+            raise RpcError(_ERR_NOT_A_BORDER, "this claw is not a Border")
+        token = params.get("token", "")
+        member_id = params.get("member_id", "")
+        cert_pem = params.get("cert_pem", "")
+        signature = bytes.fromhex(params.get("signature", "") or "")
+        if not self.risk.verify_possession(cert_pem, channel.nonce, signature):
+            raise RpcError(_ERR_NOT_TRUSTED, "key possession proof failed")
+        try:
+            res = self.risk.consume_token(
+                token, member_id, cert_pem,
+                scope=[],
+                runtime_kind=params.get("runtime_kind", "mobile"),
+                display_name=params.get("display_name"),
+                transport_binding="edge-ws",
+                node_type="edge")
+        except ValueError as e:
+            from ..constants import IN2N_ERR_ENROLL_TOKEN_INVALID, IN2N_ERR_MEMBER_ID_TAKEN
+            msg = str(e)
+            if "TRUSTED" in msg:
+                code = _ERR_NOT_TRUSTED
+            elif "MEMBER_ID_TAKEN" in msg:
+                code = IN2N_ERR_MEMBER_ID_TAKEN
+            else:
+                code = IN2N_ERR_ENROLL_TOKEN_INVALID
+            raise RpcError(code, msg)
+        channel.member_id = member_id
+        channel.peer_identity = member_id
+        channel.trusted = True
+        self.risk.verify_member(member_id, self.risk.fingerprint_of(cert_pem))
+        self._register_edge_channel(member_id, channel)
+        self.audit.record(direction="inbound", peer_identity=member_id,
+                          target_type="enroll", target_name=member_id,
+                          decision="enrolled", outcome="success", channel_kind="in2n")
+        logger.info("Edge node %s enrolled + active — confirm fingerprint out of band: %s",
+                   member_id, res.get("enroll_fingerprint"))
+        return res
+
+    async def _edge_on_hello(self, channel, params):
+        """Reconnect: authenticate against the pinned key, mirroring
+        _in2n_on_hello, but additionally refuses a non-edge member_id
+        (defense in depth — an agent member's credentials must never grant
+        access to the phone-facing listener, even though EdgeChannel's own
+        handler map already excludes every method an agent identity could
+        otherwise reach, FR-012)."""
+        from .internal_channel import _ERR_NOT_TRUSTED
+        from .edge import RpcError
+        member_id = params.get("member_id", "")
+        fingerprint = params.get("key_fingerprint", "")
+        signature = bytes.fromhex(params.get("signature", "") or "")
+        mem = self.risk.get_member(member_id)
+        if not mem or not mem.get("pinned_key") or mem.get("node_type") != "edge":
+            raise RpcError(_ERR_NOT_TRUSTED, "unknown or unpinned edge node")
+        ok = (mem["key_fingerprint"] == fingerprint
+              and self.risk.verify_possession(mem["pinned_key"], channel.nonce, signature)
+              and self.risk.verify_member(member_id, fingerprint))
+        if not ok:
+            src = self._edge_channel_source(channel)
+            est = (self.edge_channels.get(member_id) and
+                   self._edge_channel_source(self.edge_channels[member_id]))
+            quarantined = self.risk.record_auth_failure(
+                member_id, source=src, established_source=est)
+            if quarantined:
+                self.notify_member_quarantine(member_id)
+            raise RpcError(_ERR_NOT_TRUSTED, "pinned-key auth failed")
+        channel.member_id = member_id
+        channel.peer_identity = member_id
+        channel.trusted = True
+        self._register_edge_channel(member_id, channel)
+        return {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
+               "member_state": "active"}
+
+    @staticmethod
+    def _edge_channel_source(channel) -> Optional[str]:
+        """Best-effort remote address of an edge (WebSocket) channel."""
+        try:
+            addr = channel.ws.remote_address
+            return f"{addr[0]}:{addr[1]}" if addr else None
+        except Exception:
+            return None
+
+    async def _edge_on_register_push(self, channel, params):
+        """An enrolled, connected edge node registers its platform push
+        token (US3/T031) so push_to_edge's fallback can reach it while
+        disconnected — called once after the app obtains an FCM/APNs token,
+        and again whenever the platform rotates it."""
+        from .edge import RpcError
+        if not channel.trusted or not channel.member_id:
+            raise RpcError(-32023, "edge node not authenticated")
+        platform = params.get("platform", "")
+        token = params.get("token", "")
+        if not token:
+            raise RpcError(-32602, "token required")
+        try:
+            self.risk.register_push(channel.member_id, platform, token)
+        except ValueError as e:
+            raise RpcError(-32602, str(e))
+        return {"registered": True}
+
+    async def _edge_on_register_capabilities(self, channel, params):
+        """An enrolled, connected edge node declares which capture types it
+        currently allows (feature 068, US3/FR-007a) — written into the SAME
+        member.scope column RiskRouter already reads (research D1); a type
+        omitted here is invisible to routing entirely, not merely refused."""
+        from .edge import RpcError
+        if not channel.trusted or not channel.member_id:
+            raise RpcError(-32023, "edge node not authenticated")
+        capabilities = params.get("capabilities", [])
+        try:
+            self.risk.set_capture_capabilities(channel.member_id, capabilities)
+        except ValueError as e:
+            raise RpcError(-32602, str(e))
+        return {"registered": True}
+
+    async def _edge_on_approval_resolve(self, channel, params):
+        """The phone (or an Apple Watch relaying through it, feature 072)
+        resolves a pushed approval. Calls the EXISTING
+        Authorizer.resolve_approval() unchanged (research D6) -- no
+        biometric/passcode proof travels over the wire; the Border trusts
+        the phone's report the same way it trusts any other edge-node action
+        (research D7). The existing 'first resolution wins' behavior
+        (resolve_approval's WHERE status='pending' clause) applies unmodified
+        if the CLI/HTTP path resolved it first.
+
+        `confirmation_method` (feature 072, research D4) is optional and
+        defaults to "biometric" -- the phone's own approvals_screen.dart
+        never sends this field, so that default preserves today's exact
+        behavior byte-for-byte. A watch-relayed resolution sends
+        "watch_passcode" explicitly, since no biometric sensor exists there;
+        recording that accurately (never as "biometric") is the whole point
+        of this field existing."""
+        from .edge import RpcError
+        if not channel.trusted or not channel.member_id:
+            raise RpcError(-32023, "edge node not authenticated")
+        approval_id = params.get("approval_id")
+        action = params.get("action")
+        if approval_id is None or action not in ("approve", "deny"):
+            raise RpcError(-32602, "approval_id and action ('approve'|'deny') required")
+        confirmation_method = params.get("confirmation_method", "biometric")
+        self.authz.resolve_approval(int(approval_id), action, via=confirmation_method)
+        return {"approval_id": approval_id, "resolved": True}
+
+    async def _edge_on_ask(self, channel, params):
+        """Phone asks the Border something (feature 067, US1/US2/US3): create
+        a delegated_task (feature 053, TaskManager) and run a real agent turn
+        in the background via gateway.run_agent_turn(), mirroring
+        _in2n_member_submit's task-creation shape (not its embedded-mode
+        execution — this runs in gateway mode, like chat.py's peer-chat path).
+
+        untrusted=False (the default): a phone request is the OPERATOR'S OWN
+        device (FR-002's operator-extension trust model — the same unchecked
+        local access Slack/CLI/TUI already have), NOT external eN2N peer
+        input. Do not copy chat.py's untrusted=True unconditionally here.
+
+        The agent's own existing tool-using behavior (n2n_route/n2n_delegate/
+        n2n_invoke) decides whether to answer directly, delegate to an
+        in-risk member, or route over eN2N -- no branching logic exists here
+        for that (research D3); this handler's only job is getting the
+        phone's text into an agent turn and the answer back out."""
+        from .edge import RpcError
+        if not channel.trusted or not channel.member_id:
+            raise RpcError(-32023, "edge node not authenticated")
+        text = params.get("text", "")
+        # feature 068 (US2/research D3): a capture may stand alone with no
+        # accompanying text (FR-005) -- text is required only in the
+        # ABSENCE of an attachment.
+        attachment = params.get("attachment")
+        if not text and not attachment:
+            raise RpcError(-32602, "text or attachment required")
+        member_id = channel.member_id
+        task_id = self.tasks.create(direction="inbound", peer_identity=member_id,
+                                    target_type="edge_ask", target_name="ask",
+                                    input_text=text)
+
+        async def worker(progress):
+            from .gateway import run_agent_turn
+            progress("asking the agent")
+            prompt = text
+            message_file = None
+            if attachment:
+                content_type = attachment.get("content_type", "image")
+                content = attachment.get("content", "")
+                if not prompt:
+                    prompt = f"[Operator sent a {content_type} capture with no additional text]"
+                # A capture can be large enough (up to NCFED's 16 MiB
+                # aggregate bound, FR-005a) to exceed a safe CLI-argument
+                # length -- fold it into a file and use --message-file
+                # (research D3/gateway.py), never a raw CLI argument.
+                import tempfile
+                fd, message_file = tempfile.mkstemp(suffix=".txt", prefix="netclaw-capture-")
+                with os.fdopen(fd, "w") as f:
+                    f.write(f"{prompt}\n\n[Attached {content_type}, base64-encoded]\n{content}\n")
+            try:
+                # openclaw agent's --session-id/--session-key rejects a
+                # value containing "/" ("Invalid session ID") -- every
+                # edge member_id is risk-scoped ("risk/<label>") and always
+                # contains one, so it must be sanitized here, unlike peer/
+                # skill identifiers elsewhere in this file which never do.
+                session_key = "n2n-edge-" + member_id.replace("/", "_")
+
+                # A phone request routinely delegates to an in-risk member,
+                # and that member's own agent turn gets `skill_timeout`
+                # (default 600s). Passing no timeout here inherited
+                # run_agent_turn's 300s default, so the INNER budget was twice
+                # the OUTER one: a delegating request was allowed to outlive
+                # the request that started it, and the phone's turn was killed
+                # while its own delegation was still legitimately running.
+                #
+                # Observed twice on a real device (2026-07-26): identical CML
+                # questions failed at exactly 300s while their `cml-node-
+                # operations` delegation completed *afterwards* — the work
+                # succeeded and the answer had nowhere to land. A third,
+                # warm-cache run finished in 114s and looked fine, which is the
+                # worst failure profile: it passes on a retry and fails cold.
+                #
+                # The phone's budget must therefore always be >= the member
+                # budget it may have to wait on.
+                timeout_s = self._edge_ask_timeout()
+
+                def on_stall(waited_s):
+                    # The turn is alive but slow. Tell the phone rather than
+                    # leaving it on a silent spinner, and extend instead of
+                    # dying on a blind deadline. Scheduled, not awaited:
+                    # run_agent_turn calls on_stall synchronously.
+                    self.tasks._set(task_id, progress="still working…")
+                    asyncio.create_task(self._edge_notify_progress(
+                        member_id, task_id,
+                        f"Still working on this — {int(waited_s)}s so far."))
+                    return self._edge_ask_stall_extension()
+
+                output, tokens = await run_agent_turn(
+                    prompt, session_key=session_key, untrusted=False,
+                    message_file=message_file,
+                    timeout_s=timeout_s, on_stall=on_stall)
+            finally:
+                if message_file:
+                    try:
+                        os.remove(message_file)
+                    except OSError:
+                        pass
+            return output, tokens
+        worker_task = self.tasks.run(task_id, worker)
+
+        async def _push_result_when_done():
+            # Best-effort: only reaches the phone if it's connected when the
+            # task finishes (contract §2) -- otherwise it recovers via
+            # n2n/tasks/status|result on reconnect.
+            #
+            # This deliberately targets the member's CURRENT channel rather
+            # than the object that submitted the request. It used to require
+            # `ch is channel`, so any reconnect during the turn meant the
+            # answer was never pushed at all -- not attempted, not logged.
+            # Phones reconnect constantly (a real iPhone reconnected 4x during
+            # one 2-minute turn), so on a long request that was the common
+            # case, not the edge case: the work completed, the answer existed,
+            # and the phone sat on "Working" forever.
+            #
+            # Object identity was never the security property; the member
+            # identity and the channel's trusted flag are. Both are checked.
+            try:
+                await worker_task
+            except asyncio.CancelledError:
+                pass
+            result = self.tasks.result(task_id)
+            ch = self.edge_channels.get(member_id)
+            if ch is None:
+                logger.info(
+                    "edge ask_result for %s not pushed — no live channel; the "
+                    "phone recovers this via n2n/tasks/result on reconnect", member_id)
+                return
+            if not getattr(ch, "trusted", False):
+                logger.warning(
+                    "edge ask_result for %s not pushed — channel is not trusted", member_id)
+                return
+            if ch is not channel:
+                # Normal after a reconnect. Worth recording, because a silent
+                # skip here is exactly what hid this bug.
+                logger.info("edge ask_result for %s pushing to a reconnected channel",
+                            member_id)
+            try:
+                await ch.notify("n2n/edge/ask_result", {
+                    "task_id": task_id, "state": result.get("state"),
+                    "output_text": result.get("output_text"),
+                    # A failed task carries its reason under `error`, not
+                    # `output_text` -- forward it so the phone can say why
+                    # instead of showing a bare "failed" with no text.
+                    "error": result.get("error"),
+                    "tokens_used": result.get("tokens_used"),
+                })
+            except Exception as e:
+                logger.warning("edge ask_result push to %s failed: %s", member_id, e)
+        asyncio.create_task(_push_result_when_done())
+        return {"task_id": task_id}
+
     def notify_member_quarantine(self, member_id):
         """Surface an auto-quarantine to the operator (in-band; FR-013d). Uses the
         same approval_notifier hook the daemon wires to the gateway if present."""
@@ -972,13 +1514,54 @@ class FederationService:
 
     async def route_and_delegate(self, capability: str, input_text: str) -> dict:
         """Select the owning member (deterministic) and delegate the work as an
-        async task over its channel. Returns {task_id, member_id} or an error."""
+        async task over its channel. Returns {task_id, member_id} or an error.
+
+        feature 068 (US3/research D1/D2): a capability may resolve to an edge
+        node (a phone advertising a capture capability via its scope, exactly
+        like any agent member) — RiskRouter.select_member() already handles
+        this with zero changes. What differs is HOW the selected target is
+        invoked: an edge node has no skill to run via n2n/tasks/submit, so it
+        branches to delegate_to_edge() (n2n/edge/capture) instead of
+        delegate_to_member() (n2n/tasks/submit)."""
         from .router import NoCapableMember
         try:
             member_id = self.router.select_member(capability)["member_id"]
         except NoCapableMember as e:
             return {"error": "IN2N_ERR_NO_CAPABLE_MEMBER", "message": str(e)}
+        member = self.risk.get_member(member_id)
+        if member and member.get("node_type") == "edge":
+            return await self.delegate_to_edge(member_id, capability)
         return await self.delegate_to_member(member_id, capability, input_text)
+
+    async def delegate_to_edge(self, member_id: str, capability: str) -> dict:
+        """Border-requested capture (feature 068, US3): mirrors
+        delegate_to_member()'s call-out shape for an edge node. No production
+        posture/component-scan preflight applies — there is no skill to scan,
+        only a device-native capability. Tracked via the SAME self.tasks
+        pattern _edge_on_ask (067) already established, so
+        n2n_task_status/result/cancel work unchanged regardless of whether
+        the target was an agent member or an edge node (research D2)."""
+        ch = self.edge_channels.get(member_id)
+        if ch is None:
+            return {"error": "member_unreachable", "member_id": member_id,
+                    "message": f"edge node {member_id} is not connected"}
+        task_id = self.tasks.create(direction="outbound", peer_identity=member_id,
+                                    target_type="capture", target_name=capability)
+
+        async def worker(progress):
+            progress("requesting capture")
+            result = await ch.call("n2n/edge/capture", {"capability": capability},
+                                   timeout=120.0)
+            if result.get("decision") != "captured":
+                raise RuntimeError(result.get("reason", "capture declined"))
+            return result, 0
+        self.tasks.run(task_id, worker)
+        self.audit.record(direction="outbound", peer_identity=member_id,
+                          target_type="capture", target_name=capability,
+                          request_id=task_id, decision="requested",
+                          outcome="submitted", channel_kind="in2n",
+                          event="delegation", actor=self._audit_actor())
+        return {"member_id": member_id, "task_id": task_id, "state": "submitted"}
 
     async def ensure_member_up(self, member_id: str, wait_s: float = 30.0):
         """Cold/on-demand: if a member has no live channel, bring it up and wait

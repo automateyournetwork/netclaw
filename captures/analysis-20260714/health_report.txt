@@ -1,0 +1,61 @@
+---
+
+## NetClaw True CCIE Enterprise 20-Node v2 — Fleet Health Check
+**Lab ID:** 814478c4-c940-4bc9-9cbd-aa764a0f8f65 | 2026-07-14 14:14 EDT | IOS-XE 17.18.2
+
+---
+
+### Per-Device Results
+
+| Device | Reach | Uptime | CPU% | Mem% | OSPF FULL | BGP UP | BGP DN | CRC | Status |
+|---|---|---|---|---|---|---|---|---|---|
+| R1-CORE-A | UP | 37 min | 0% | 17.5% | 4 | 9 | 0 | 0 | WARNING¹ |
+| R2-CORE-B | UP | 37 min | 0% | 17.5% | 4 | 9 | 0 | 0 | WARNING¹ |
+| R3-DIST-A | UP | 37 min | 0% | 17.4% | 2 | 2 | 0 | 0 | WARNING¹ |
+| R4-DIST-B | UP | 37 min | 0% | 17.4% | 2 | 2 | 0 | 0 | WARNING¹ |
+| R5-EDGE-A | UP | 37 min | 0% | 17.6% | 3 | 3 | 0 | 0 | WARNING¹ |
+| R6-EDGE-B | UP | 37 min | 0% | 17.6% | 3 | 3 | 0 | 0 | WARNING¹ |
+| R9-WAN-HUB | UP | 37 min | 0% | 17.5% | 5 | 2 | 0 | 0 | WARNING¹ |
+| R10-BR1-WAN | UP | 37 min | 0% | 17.6% | 1 | 4 | 0 | 0 | WARNING¹ |
+| R11-BR2-WAN | UP | 36 min | 0% | 17.6% | 1 | 4 | 0 | 0 | WARNING¹ |
+| R7-BR1-LAN | UP | 37 min | 0% | 17.4% | 0 | 1 | 0 | 0 | WARNING¹ |
+| R8-BR2-LAN | UP | 37 min | 0% | 17.4% | 0 | 1 | 0 | 0 | WARNING¹ |
+| R12-ISP-A | UP | 36 min | 0% | 17.3% | 0 | 3 | 0 | 0 | WARNING¹ |
+| R13-ISP-B | UP | 37 min | 0% | 17.3% | 0 | 4 | 0 | 0 | WARNING¹ |
+| R14-SERVICES | UP | 36 min | 0% | 17.5% | 1 | 3 | 0 | 0 | WARNING¹ |
+
+---
+
+### Overall: ⚠ WARNING (single cause)
+
+**14/14 devices reachable. All protocols fully converged. Zero errors.**
+
+The WARNING across all devices is caused by a single condition: **uptime < 24h (~37 min)**. The lab was freshly started this session — this is expected and not operationally significant in a lab context.
+
+---
+
+### Protocol Summary
+
+| Protocol | Expected | Actual | Result |
+|---|---|---|---|
+| BGP sessions | 50 UP, 0 DOWN | **50 UP, 0 DOWN** | ✅ PASS |
+| OSPF FULL adjacencies | 26 total | **26 total (13 unique pairs)** | ✅ PASS |
+| EIGRP AS10 (R7) | 10.30.10.2 UP | **UP — 00:38:25** | ✅ PASS |
+| EIGRP AS20 (R8) | 10.30.20.2 UP | **UP — 00:38:34** | ✅ PASS |
+
+---
+
+### Anomalies
+
+| Severity | Finding |
+|---|---|
+| ⚠ WARNING | All 14 devices: uptime ~36-37 min (< 24h threshold). Lab was just started. Not operationally significant. |
+
+**No other anomalies.** Zero CRC errors, zero input/output errors, zero interface resets, zero drops across the entire fleet. All active interfaces up/up. Memory utilization uniform at 17.3-17.6%. CPU flat at 0-1% (IOL platform behavior).
+
+---
+
+### Notes
+- SSH access only provisioned on R5/R6/R10/R11/R14. Remaining 9 nodes required telnet — health data collected successfully via telnet testbed.
+- R7/R8 OSPF=0 and R12/R13 OSPF=0 is correct by design: branch LAN routers use EIGRP; ISP routers are eBGP-only boundary nodes.
+- R1/R2 show 9 BGP sessions each — they are iBGP Route Reflectors serving all other internal peers.

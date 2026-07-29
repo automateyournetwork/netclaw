@@ -1,0 +1,498 @@
+[
+  {
+    "id": "batfish",
+    "category": "Analysis",
+    "prefixes": [
+      "batfish-"
+    ]
+  },
+  {
+    "id": "aap",
+    "category": "Automation",
+    "prefixes": [
+      "aap-"
+    ]
+  },
+  {
+    "id": "chrome-devtools",
+    "category": "Browser Automation",
+    "prefixes": [
+      "chrome-devtools-",
+      "browser-viz-verify",
+      "browser-gui-inspect"
+    ]
+  },
+  {
+    "id": "aws",
+    "category": "Cloud",
+    "prefixes": [
+      "aws-"
+    ]
+  },
+  {
+    "id": "azure-network",
+    "category": "Cloud",
+    "prefixes": [
+      "azure-"
+    ]
+  },
+  {
+    "id": "gcp",
+    "category": "Cloud",
+    "prefixes": [
+      "gcp-"
+    ]
+  },
+  {
+    "id": "webex",
+    "category": "Collaboration",
+    "prefixes": [
+      "webex-"
+    ]
+  },
+  {
+    "id": "msgraph",
+    "category": "Collaboration",
+    "prefixes": [
+      "msgraph-"
+    ]
+  },
+  {
+    "id": "slack",
+    "category": "Collaboration",
+    "prefixes": [
+      "slack-"
+    ]
+  },
+  {
+    "id": "arista",
+    "category": "Controller Platforms",
+    "prefixes": [
+      "arista-"
+    ]
+  },
+  {
+    "id": "catc",
+    "category": "Controller Platforms",
+    "prefixes": [
+      "catc-"
+    ]
+  },
+  {
+    "id": "computer-use",
+    "category": "Desktop Automation",
+    "prefixes": [
+      "desktop-gui-inspect"
+    ]
+  },
+  {
+    "id": "gnmi",
+    "category": "Device Automation",
+    "prefixes": [
+      "gnmi-",
+      "gnmi_"
+    ]
+  },
+  {
+    "id": "junos",
+    "category": "Device Automation",
+    "prefixes": [
+      "junos-",
+      "pyats-junos-"
+    ]
+  },
+  {
+    "id": "pyats",
+    "category": "Device Automation",
+    "prefixes": [
+      "pyats-"
+    ]
+  },
+  {
+    "id": "cloudflare",
+    "category": "Edge Platform",
+    "prefixes": [
+      "cloudflare-"
+    ]
+  },
+  {
+    "id": "aci",
+    "category": "Fabric Control",
+    "prefixes": [
+      "aci-"
+    ]
+  },
+  {
+    "id": "atlassian",
+    "category": "Governance",
+    "prefixes": [
+      "atlassian-"
+    ]
+  },
+  {
+    "id": "gait",
+    "category": "Governance",
+    "prefixes": [
+      "gait-"
+    ]
+  },
+  {
+    "id": "github",
+    "category": "Governance",
+    "prefixes": [
+      "github-"
+    ]
+  },
+  {
+    "id": "gitlab",
+    "category": "Governance",
+    "prefixes": [
+      "gitlab-"
+    ]
+  },
+  {
+    "id": "halo",
+    "category": "Governance",
+    "prefixes": [
+      "halo-"
+    ]
+  },
+  {
+    "id": "jenkins",
+    "category": "Governance",
+    "prefixes": [
+      "jenkins-"
+    ]
+  },
+  {
+    "id": "servicenow",
+    "category": "Governance",
+    "prefixes": [
+      "servicenow-"
+    ]
+  },
+  {
+    "id": "pagerduty",
+    "category": "Incident Management",
+    "prefixes": [
+      "pagerduty-"
+    ]
+  },
+  {
+    "id": "terraform",
+    "category": "Infrastructure",
+    "prefixes": [
+      "terraform-"
+    ]
+  },
+  {
+    "id": "cml",
+    "category": "Labs",
+    "prefixes": [
+      "cml-"
+    ]
+  },
+  {
+    "id": "clab",
+    "category": "Labs",
+    "prefixes": [
+      "clab-"
+    ]
+  },
+  {
+    "id": "gns3",
+    "category": "Labs",
+    "prefixes": [
+      "gns3-"
+    ]
+  },
+  {
+    "id": "f5",
+    "category": "Load Balancing",
+    "prefixes": [
+      "f5-",
+      "pyats-f5-"
+    ]
+  },
+  {
+    "id": "nso",
+    "category": "Network Platforms",
+    "prefixes": [
+      "nso-"
+    ]
+  },
+  {
+    "id": "evpn",
+    "category": "Network Platforms",
+    "prefixes": [
+      "evpn-"
+    ]
+  },
+  {
+    "id": "itential",
+    "category": "Network Platforms",
+    "prefixes": [
+      "itential-"
+    ]
+  },
+  {
+    "id": "meraki",
+    "category": "Network Platforms",
+    "prefixes": [
+      "meraki-"
+    ]
+  },
+  {
+    "id": "prisma-sdwan",
+    "category": "Network Platforms",
+    "prefixes": [
+      "prisma-sdwan-"
+    ]
+  },
+  {
+    "id": "protocol",
+    "category": "Network Platforms",
+    "prefixes": [
+      "protocol-"
+    ]
+  },
+  {
+    "id": "sdwan",
+    "category": "Network Platforms",
+    "prefixes": [
+      "sdwan-"
+    ]
+  },
+  {
+    "id": "auvik",
+    "category": "Observability",
+    "prefixes": [
+      "auvik-"
+    ]
+  },
+  {
+    "id": "datadog",
+    "category": "Observability",
+    "prefixes": [
+      "datadog-"
+    ]
+  },
+  {
+    "id": "grafana",
+    "category": "Observability",
+    "prefixes": [
+      "grafana-",
+      "flow-"
+    ]
+  },
+  {
+    "id": "gtrace",
+    "category": "Observability",
+    "prefixes": [
+      "gtrace-"
+    ]
+  },
+  {
+    "id": "kubeshark",
+    "category": "Observability",
+    "prefixes": [
+      "kubeshark-"
+    ]
+  },
+  {
+    "id": "prometheus",
+    "category": "Observability",
+    "prefixes": [
+      "prometheus-"
+    ]
+  },
+  {
+    "id": "splunk",
+    "category": "Observability",
+    "prefixes": [
+      "splunk-"
+    ]
+  },
+  {
+    "id": "suzieq",
+    "category": "Observability",
+    "prefixes": [
+      "suzieq-"
+    ]
+  },
+  {
+    "id": "telemetry-receivers",
+    "category": "Observability",
+    "prefixes": [
+      "syslog-",
+      "snmptrap-",
+      "ipfix-",
+      "telemetry-"
+    ]
+  },
+  {
+    "id": "thousandeyes",
+    "category": "Observability",
+    "prefixes": [
+      "te-"
+    ]
+  },
+  {
+    "id": "token-tracker",
+    "category": "Observability",
+    "prefixes": [
+      "token-"
+    ]
+  },
+  {
+    "id": "wiki",
+    "category": "Reference",
+    "prefixes": [
+      "wikipedia-",
+      "rfc-",
+      "subnet-",
+      "packet-analysis"
+    ]
+  },
+  {
+    "id": "radkit",
+    "category": "Remote Access",
+    "prefixes": [
+      "radkit-"
+    ]
+  },
+  {
+    "id": "fmc",
+    "category": "Security",
+    "prefixes": [
+      "fmc-"
+    ]
+  },
+  {
+    "id": "ise",
+    "category": "Security",
+    "prefixes": [
+      "ise-"
+    ]
+  },
+  {
+    "id": "claroty",
+    "category": "Security",
+    "prefixes": [
+      "claroty-"
+    ]
+  },
+  {
+    "id": "fortimanager",
+    "category": "Security",
+    "prefixes": [
+      "fortimanager-"
+    ]
+  },
+  {
+    "id": "fwrule",
+    "category": "Security",
+    "prefixes": [
+      "fwrule-"
+    ]
+  },
+  {
+    "id": "vault",
+    "category": "Security",
+    "prefixes": [
+      "vault-"
+    ]
+  },
+  {
+    "id": "nmap",
+    "category": "Security",
+    "prefixes": [
+      "nmap-"
+    ]
+  },
+  {
+    "id": "nvd",
+    "category": "Security",
+    "prefixes": [
+      "nvd-"
+    ]
+  },
+  {
+    "id": "paloalto",
+    "category": "Security",
+    "prefixes": [
+      "paloalto-"
+    ]
+  },
+  {
+    "id": "zscaler",
+    "category": "Security",
+    "prefixes": [
+      "zscaler-"
+    ]
+  },
+  {
+    "id": "infoblox",
+    "category": "Source of Truth",
+    "prefixes": [
+      "infoblox-"
+    ]
+  },
+  {
+    "id": "infrahub",
+    "category": "Source of Truth",
+    "prefixes": [
+      "infrahub-"
+    ]
+  },
+  {
+    "id": "nautobot",
+    "category": "Source of Truth",
+    "prefixes": [
+      "nautobot-"
+    ]
+  },
+  {
+    "id": "netbox",
+    "category": "Source of Truth",
+    "prefixes": [
+      "netbox-"
+    ]
+  },
+  {
+    "id": "canvas-viz",
+    "category": "Visualization",
+    "prefixes": [
+      "canvas-network-viz",
+      "canvas-"
+    ]
+  },
+  {
+    "id": "drawio",
+    "category": "Visualization",
+    "prefixes": [
+      "drawio-"
+    ]
+  },
+  {
+    "id": "markmap",
+    "category": "Visualization",
+    "prefixes": [
+      "markmap-"
+    ]
+  },
+  {
+    "id": "threejs-viz",
+    "category": "Visualization",
+    "prefixes": [
+      "threejs-network-viz"
+    ]
+  },
+  {
+    "id": "uml",
+    "category": "Visualization",
+    "prefixes": [
+      "uml-"
+    ]
+  }
+]

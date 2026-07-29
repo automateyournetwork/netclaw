@@ -1,0 +1,5444 @@
+[
+ {
+  "ts": 1784052192.588192,
+  "frame": 5,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052192.762144,
+  "frame": 7,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:23",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052192.855659,
+  "frame": 9,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:23",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052197.899866,
+  "frame": 11,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052201.887749,
+  "frame": 15,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:27",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052201.891321,
+  "frame": 17,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:27",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052219.927559,
+  "frame": 23,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052222.858045,
+  "frame": 25,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:24",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052222.947553,
+  "frame": 27,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:24",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052227.902036,
+  "frame": 29,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052229.249512,
+  "frame": 31,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:28",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052229.253283,
+  "frame": 33,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:28",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052234.073533,
+  "frame": 37,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 110,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:29",
+   "method": "n2n/chat/open",
+   "params": {
+    "operator_display": "John"
+   }
+  }
+ },
+ {
+  "ts": 1784052234.075892,
+  "frame": 38,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 127,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:29",
+   "result": {
+    "accepted": true,
+    "session_id": "e50b1c4c-92ba-479d-8b23-1d4d33088192"
+   }
+  }
+ },
+ {
+  "ts": 1784052234.165479,
+  "frame": 40,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 345,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:30",
+   "method": "n2n/chat/message",
+   "params": {
+    "session_id": "e50b1c4c-92ba-479d-8b23-1d4d33088192",
+    "text": "Quick federation question from johns-risk (as65001): is your NetClaw a standalone claw or a risk (Border with member claws)? If a risk, roughly how many members and what role are you? Thanks Nick."
+   }
+  }
+ },
+ {
+  "ts": 1784052247.138563,
+  "frame": 46,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052252.950487,
+  "frame": 48,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:25",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052253.037856,
+  "frame": 50,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:25",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052253.990426,
+  "frame": 52,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 433,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:30",
+   "result": {
+    "session_id": "e50b1c4c-92ba-479d-8b23-1d4d33088192",
+    "text": "**Standalone claw.**\n\n- **Role:** standalone \u2014 not a Risk/Border\n- **Members behind me:** 0\n- **Federated peers:** 2 direct \u2014 John's (`as65001-4.4.4.4`) and Byrn's (`as65099-10.255.255.1`)\n\nConfirmed from `~/.openclaw/n2n/federation.db`: `risk` and `member` tables are both empty.",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052256.655672,
+  "frame": 56,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:31",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052256.659581,
+  "frame": 58,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:31",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052257.904087,
+  "frame": 60,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052274.412676,
+  "frame": 66,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052283.995706,
+  "frame": 68,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:26",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052284.093549,
+  "frame": 70,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:26",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052284.120384,
+  "frame": 72,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:32",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052284.124368,
+  "frame": 74,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:32",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052287.906571,
+  "frame": 78,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052301.699554,
+  "frame": 84,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052311.546535,
+  "frame": 86,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:33",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052311.550273,
+  "frame": 88,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:33",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052314.098026,
+  "frame": 90,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:27",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052314.192738,
+  "frame": 92,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:27",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052317.909479,
+  "frame": 96,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052328.97492,
+  "frame": 98,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052338.905666,
+  "frame": 102,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:34",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052338.909394,
+  "frame": 104,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:34",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052344.197344,
+  "frame": 106,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:28",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052344.285502,
+  "frame": 108,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:28",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052347.911661,
+  "frame": 112,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052355.966607,
+  "frame": 116,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 405,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:35",
+   "method": "n2n/tasks/submit",
+   "params": {
+    "skill": "pyats-health-check",
+    "input_text": "Run a pyATS health check against the live lab \"NetClaw True CCIE Enterprise 20-Node v2\" (22 running nodes). Report per-device: reachability, CPU, memory, interface errors/status, and OSPF/BGP adjacency state. Summarize overall pass/fail and list any anomalies. Read-only."
+   }
+  }
+ },
+ {
+  "ts": 1784052355.987033,
+  "frame": 118,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 147,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:35",
+   "error": {
+    "code": -32001,
+    "message": "skill 'pyats-health-check' not allowlisted for as65001-4.4.4.4"
+   }
+  }
+ },
+ {
+  "ts": 1784052356.247525,
+  "frame": 120,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052366.267487,
+  "frame": 124,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:36",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052366.270964,
+  "frame": 126,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:36",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052374.289714,
+  "frame": 130,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:29",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052374.388687,
+  "frame": 132,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:29",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052377.913503,
+  "frame": 134,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052383.526832,
+  "frame": 136,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052393.637712,
+  "frame": 140,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:37",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052393.641613,
+  "frame": 142,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:37",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052404.392436,
+  "frame": 146,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:30",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052404.487614,
+  "frame": 148,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:30",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052407.914943,
+  "frame": 150,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052410.81742,
+  "frame": 152,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052421.004945,
+  "frame": 156,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:38",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052421.008642,
+  "frame": 158,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:38",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052430.131468,
+  "frame": 160,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 371,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:39",
+   "method": "n2n/tasks/submit",
+   "params": {
+    "skill": "pyats-health-check",
+    "input_text": "Run a pyATS health check across all reachable devices in the testbed. Report per-device: CPU utilization, memory utilization, interface error counters, and any CRC/input/output errors. Summarize overall health and flag anything concerning."
+   }
+  }
+ },
+ {
+  "ts": 1784052430.149871,
+  "frame": 161,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 147,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:39",
+   "error": {
+    "code": -32001,
+    "message": "skill 'pyats-health-check' not allowlisted for as65001-4.4.4.4"
+   }
+  }
+ },
+ {
+  "ts": 1784052434.491273,
+  "frame": 165,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:31",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052434.59649,
+  "frame": 167,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:31",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052437.916645,
+  "frame": 169,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052438.085738,
+  "frame": 171,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052448.367461,
+  "frame": 173,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:40",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052448.371705,
+  "frame": 175,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:40",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052464.601511,
+  "frame": 183,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:32",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052464.691522,
+  "frame": 185,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:32",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052465.360522,
+  "frame": 187,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052467.919468,
+  "frame": 189,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052475.745557,
+  "frame": 193,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:41",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052475.749428,
+  "frame": 195,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:41",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052484.135544,
+  "frame": 199,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 110,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:42",
+   "method": "n2n/chat/open",
+   "params": {
+    "operator_display": "John"
+   }
+  }
+ },
+ {
+  "ts": 1784052484.137853,
+  "frame": 200,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 127,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:42",
+   "result": {
+    "accepted": true,
+    "session_id": "0b395b32-b256-4a08-81cd-48add9e41de9"
+   }
+  }
+ },
+ {
+  "ts": 1784052484.224529,
+  "frame": 202,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 352,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:43",
+   "method": "n2n/chat/message",
+   "params": {
+    "session_id": "0b395b32-b256-4a08-81cd-48add9e41de9",
+    "text": "Traffic-gen ping from johns-risk (as65001) for a packet capture demo John asked for \u2014 capturing the NCFED flow between us. No action needed, just generating a few round-trips. Reply if you see this."
+   }
+  }
+ },
+ {
+  "ts": 1784052492.633479,
+  "frame": 204,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052494.694296,
+  "frame": 208,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:33",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052494.787501,
+  "frame": 210,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:33",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052497.920903,
+  "frame": 212,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052502.19623,
+  "frame": 214,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 274,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:43",
+   "result": {
+    "session_id": "0b395b32-b256-4a08-81cd-48add9e41de9",
+    "text": "Reply received \u2014 round-trip through the federation channel confirmed. Standing by for anything else John needs for the capture demo.",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052503.105814,
+  "frame": 216,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:44",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052503.110553,
+  "frame": 218,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:44",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052508.510568,
+  "frame": 220,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 110,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:45",
+   "method": "n2n/chat/open",
+   "params": {
+    "operator_display": "John"
+   }
+  }
+ },
+ {
+  "ts": 1784052508.512834,
+  "frame": 221,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 127,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:45",
+   "result": {
+    "accepted": true,
+    "session_id": "ee3fe20c-f66b-4c6b-855a-5ffac11802bb"
+   }
+  }
+ },
+ {
+  "ts": 1784052508.600487,
+  "frame": 223,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 214,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:46",
+   "method": "n2n/chat/message",
+   "params": {
+    "session_id": "ee3fe20c-f66b-4c6b-855a-5ffac11802bb",
+    "text": "Second traffic-gen round-trip for the capture \u2014 thanks Nick."
+   }
+  }
+ },
+ {
+  "ts": 1784052520.803485,
+  "frame": 229,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052526.30747,
+  "frame": 231,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 219,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:46",
+   "result": {
+    "session_id": "ee3fe20c-f66b-4c6b-855a-5ffac11802bb",
+    "text": "Second round-trip acknowledged \u2014 packet flow going through cleanly on my end.",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052527.922598,
+  "frame": 233,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052532.200511,
+  "frame": 237,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:34",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052532.291371,
+  "frame": 239,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:34",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052532.326455,
+  "frame": 241,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:47",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052532.330192,
+  "frame": 243,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:47",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052550.568442,
+  "frame": 249,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052557.924573,
+  "frame": 253,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052561.954698,
+  "frame": 255,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:48",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052561.959842,
+  "frame": 257,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:48",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052562.293866,
+  "frame": 259,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:35",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052562.410866,
+  "frame": 261,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:35",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052578.540552,
+  "frame": 269,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052587.926808,
+  "frame": 273,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052589.440787,
+  "frame": 275,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:49",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052589.444321,
+  "frame": 277,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:49",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052592.414544,
+  "frame": 279,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:36",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052592.505489,
+  "frame": 281,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:36",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052605.824496,
+  "frame": 285,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052616.811746,
+  "frame": 289,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:50",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052616.81589,
+  "frame": 291,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:50",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052617.928291,
+  "frame": 293,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052618.918525,
+  "frame": 295,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 371,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:51",
+   "method": "n2n/tasks/submit",
+   "params": {
+    "skill": "pyats-health-check",
+    "input_text": "Run a pyATS health check across all reachable devices in the testbed. Report per-device: CPU utilization, memory utilization, interface error counters, and any CRC/input/output errors. Summarize overall health and flag anything concerning."
+   }
+  }
+ },
+ {
+  "ts": 1784052618.924831,
+  "frame": 296,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 128,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:51",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "submitted"
+   }
+  }
+ },
+ {
+  "ts": 1784052622.508627,
+  "frame": 298,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:37",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052622.600033,
+  "frame": 300,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:37",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052623.457488,
+  "frame": 302,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:52",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784052623.458033,
+  "frame": 304,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:52",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052633.109734,
+  "frame": 308,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052644.187444,
+  "frame": 312,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:53",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052644.191021,
+  "frame": 314,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:53",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052647.929935,
+  "frame": 316,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052652.604495,
+  "frame": 318,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:38",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052652.694847,
+  "frame": 320,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:38",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052660.39147,
+  "frame": 326,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052671.555462,
+  "frame": 328,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:54",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052671.559029,
+  "frame": 330,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:54",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052672.420447,
+  "frame": 332,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:55",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784052672.420957,
+  "frame": 333,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:55",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052677.932229,
+  "frame": 337,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052682.69846,
+  "frame": 341,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:39",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052682.881517,
+  "frame": 343,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:39",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052687.666612,
+  "frame": 345,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052698.921546,
+  "frame": 349,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:56",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052698.925118,
+  "frame": 351,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:56",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052707.934426,
+  "frame": 353,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052712.884187,
+  "frame": 357,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:40",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052713.034096,
+  "frame": 359,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:40",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052714.939927,
+  "frame": 361,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052726.283519,
+  "frame": 365,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:57",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052726.287162,
+  "frame": 367,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:57",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052733.811582,
+  "frame": 369,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:58",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784052733.812111,
+  "frame": 370,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:58",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052737.936343,
+  "frame": 376,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052742.213421,
+  "frame": 378,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052743.036976,
+  "frame": 380,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:41",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052743.147201,
+  "frame": 382,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:41",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052753.643508,
+  "frame": 386,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:59",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052753.647216,
+  "frame": 388,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:59",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052767.937001,
+  "frame": 392,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052769.486896,
+  "frame": 394,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052773.150589,
+  "frame": 396,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:42",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052773.540516,
+  "frame": 398,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:42",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052781.007537,
+  "frame": 402,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:60",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052781.01238,
+  "frame": 404,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:60",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052796.759517,
+  "frame": 410,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052797.938542,
+  "frame": 412,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052803.543626,
+  "frame": 414,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:43",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052803.635539,
+  "frame": 416,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:43",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052808.37145,
+  "frame": 420,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:61",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052808.374996,
+  "frame": 422,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:61",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052824.035412,
+  "frame": 428,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052827.940821,
+  "frame": 430,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052829.872569,
+  "frame": 432,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:62",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784052829.873106,
+  "frame": 434,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:62",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052833.638174,
+  "frame": 436,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:44",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052833.727407,
+  "frame": 438,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:44",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052835.73041,
+  "frame": 440,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:63",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052835.734161,
+  "frame": 442,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:63",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052851.310419,
+  "frame": 452,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052857.943384,
+  "frame": 454,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052858.899649,
+  "frame": 456,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 405,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:64",
+   "method": "n2n/tasks/submit",
+   "params": {
+    "skill": "pyats-health-check",
+    "input_text": "Run a pyATS health check against the live lab \"NetClaw True CCIE Enterprise 20-Node v2\" (22 running nodes). Report per-device: reachability, CPU, memory, interface errors/status, and OSPF/BGP adjacency state. Summarize overall pass/fail and list any anomalies. Read-only."
+   }
+  }
+ },
+ {
+  "ts": 1784052858.902131,
+  "frame": 458,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 128,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:64",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "submitted"
+   }
+  }
+ },
+ {
+  "ts": 1784052863.091592,
+  "frame": 462,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:65",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052863.095371,
+  "frame": 463,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:65",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052863.730416,
+  "frame": 465,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:45",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052863.819453,
+  "frame": 467,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:45",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052863.892559,
+  "frame": 469,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:66",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2"
+   }
+  }
+ },
+ {
+  "ts": 1784052863.893127,
+  "frame": 471,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:66",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052878.584407,
+  "frame": 475,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052887.945346,
+  "frame": 477,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052890.453675,
+  "frame": 481,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:67",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052890.458099,
+  "frame": 483,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:67",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052893.822311,
+  "frame": 485,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:46",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052893.919604,
+  "frame": 487,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:46",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052905.858968,
+  "frame": 493,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052917.81469,
+  "frame": 497,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:68",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052917.818361,
+  "frame": 499,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:68",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052917.946847,
+  "frame": 501,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052923.922926,
+  "frame": 503,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:47",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052924.014673,
+  "frame": 505,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:47",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052933.131378,
+  "frame": 509,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052945.179501,
+  "frame": 513,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:69",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052945.183282,
+  "frame": 515,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:69",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052947.947932,
+  "frame": 517,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052953.591465,
+  "frame": 521,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:70",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784052953.591887,
+  "frame": 522,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:70",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052954.01791,
+  "frame": 524,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:48",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052954.106391,
+  "frame": 526,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:48",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052960.405426,
+  "frame": 530,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052972.542441,
+  "frame": 532,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:71",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052972.545969,
+  "frame": 534,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:71",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052977.948895,
+  "frame": 538,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052984.110332,
+  "frame": 540,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:49",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784052984.287401,
+  "frame": 542,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:49",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784052987.488387,
+  "frame": 544,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:72",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2"
+   }
+  }
+ },
+ {
+  "ts": 1784052987.488874,
+  "frame": 546,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:72",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784052987.67941,
+  "frame": 548,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784052999.905628,
+  "frame": 552,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:73",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784052999.909041,
+  "frame": 554,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:73",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053007.950254,
+  "frame": 558,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053014.291143,
+  "frame": 562,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:50",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053014.388279,
+  "frame": 564,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:50",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053014.952452,
+  "frame": 566,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053027.267396,
+  "frame": 570,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:74",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053027.271218,
+  "frame": 572,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:74",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053037.954987,
+  "frame": 576,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053042.227402,
+  "frame": 578,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053044.565602,
+  "frame": 580,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:51",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053044.653846,
+  "frame": 582,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:51",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053054.629482,
+  "frame": 586,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:75",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053054.714454,
+  "frame": 588,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:75",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053067.956968,
+  "frame": 592,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053069.502464,
+  "frame": 594,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053074.692641,
+  "frame": 596,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:52",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053074.781375,
+  "frame": 598,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:52",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053076.723508,
+  "frame": 600,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:76",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784053076.724031,
+  "frame": 602,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:76",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784053081.349367,
+  "frame": 608,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:77",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784053081.349842,
+  "frame": 609,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:77",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784053082.078491,
+  "frame": 611,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:78",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053082.082312,
+  "frame": 612,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:78",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053096.777526,
+  "frame": 616,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053097.958136,
+  "frame": 618,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053104.789151,
+  "frame": 620,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:53",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053104.877408,
+  "frame": 622,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:53",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053109.438461,
+  "frame": 626,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:79",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053109.444828,
+  "frame": 628,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:79",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053124.050669,
+  "frame": 632,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053127.95995,
+  "frame": 634,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053132.660596,
+  "frame": 638,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:80",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2"
+   }
+  }
+ },
+ {
+  "ts": 1784053132.661144,
+  "frame": 640,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:80",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784053134.932392,
+  "frame": 642,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:54",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053135.024389,
+  "frame": 644,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:54",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053136.802414,
+  "frame": 646,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:81",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053136.8712,
+  "frame": 648,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:81",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053151.326358,
+  "frame": 652,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053157.960873,
+  "frame": 656,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053164.228404,
+  "frame": 658,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:82",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053164.232227,
+  "frame": 660,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:82",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053165.049159,
+  "frame": 662,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:55",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053165.146327,
+  "frame": 664,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:55",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053178.612467,
+  "frame": 670,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053187.961749,
+  "frame": 674,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053191.601496,
+  "frame": 676,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:83",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053191.605391,
+  "frame": 678,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:83",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053195.149255,
+  "frame": 680,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:56",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053195.23953,
+  "frame": 682,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:56",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053205.874444,
+  "frame": 686,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053217.963992,
+  "frame": 690,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053218.962498,
+  "frame": 692,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:84",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053219.00337,
+  "frame": 694,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:84",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053225.245903,
+  "frame": 696,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:57",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053225.333413,
+  "frame": 698,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:57",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053233.145388,
+  "frame": 702,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053246.362401,
+  "frame": 706,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:85",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053246.390498,
+  "frame": 708,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:85",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053247.96726,
+  "frame": 710,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053255.341415,
+  "frame": 712,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:58",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053255.438431,
+  "frame": 714,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:58",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053260.421089,
+  "frame": 720,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053273.74639,
+  "frame": 722,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:86",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053273.774273,
+  "frame": 724,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:86",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053277.968715,
+  "frame": 728,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053285.448137,
+  "frame": 732,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:59",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053285.571367,
+  "frame": 734,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:59",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053287.696352,
+  "frame": 736,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053301.162431,
+  "frame": 740,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:87",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053301.173894,
+  "frame": 742,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:87",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053306.003959,
+  "frame": 744,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:88",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2"
+   }
+  }
+ },
+ {
+  "ts": 1784053306.004425,
+  "frame": 745,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 142,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:88",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "working",
+    "tokens_used": 0
+   }
+  }
+ },
+ {
+  "ts": 1784053307.969946,
+  "frame": 747,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053314.971875,
+  "frame": 751,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053315.584375,
+  "frame": 753,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:60",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053315.679954,
+  "frame": 755,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:60",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053328.530432,
+  "frame": 759,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:89",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053328.534564,
+  "frame": 761,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:89",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053337.970555,
+  "frame": 767,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053342.245465,
+  "frame": 769,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053345.683228,
+  "frame": 771,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:61",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053345.774617,
+  "frame": 773,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:61",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053355.906756,
+  "frame": 777,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:90",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053355.910545,
+  "frame": 779,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:90",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053367.972296,
+  "frame": 783,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053369.519381,
+  "frame": 785,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053375.787424,
+  "frame": 787,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:62",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053375.879862,
+  "frame": 789,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:62",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053383.272333,
+  "frame": 793,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:91",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053383.276161,
+  "frame": 795,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:91",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053396.794937,
+  "frame": 799,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053397.973537,
+  "frame": 801,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053405.882889,
+  "frame": 805,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:63",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053405.974522,
+  "frame": 807,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:63",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053410.634409,
+  "frame": 809,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:92",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053410.638095,
+  "frame": 811,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:92",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053424.075486,
+  "frame": 815,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053427.975403,
+  "frame": 817,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053435.98649,
+  "frame": 821,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:64",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053436.075262,
+  "frame": 823,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:64",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053437.992278,
+  "frame": 825,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:93",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053437.995938,
+  "frame": 827,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:93",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053451.358723,
+  "frame": 833,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053457.977585,
+  "frame": 835,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053465.353285,
+  "frame": 839,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:94",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053465.357397,
+  "frame": 841,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:94",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053466.07744,
+  "frame": 843,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:65",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053466.166303,
+  "frame": 845,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:65",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053478.635717,
+  "frame": 849,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053483.589571,
+  "frame": 851,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 136,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:95",
+   "method": "n2n/tasks/result",
+   "params": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2"
+   }
+  }
+ },
+ {
+  "ts": 1784053483.593893,
+  "frame": 853,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 3114,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:95",
+   "result": {
+    "task_id": "9751b33a-d68f-49a3-95d7-12877f4d63d2",
+    "state": "completed",
+    "tokens_used": 0,
+    "output_text": "---\n\n## NetClaw True CCIE Enterprise 20-Node v2 \u2014 Fleet Health Check\n**Lab ID:** 814478c4-c940-4bc9-9cbd-aa764a0f8f65 | 2026-07-14 14:14 EDT | IOS-XE 17.18.2\n\n---\n\n### Per-Device Results\n\n| Device | Reach | Uptime | CPU% | Mem% | OSPF FULL | BGP UP | BGP DN | CRC | Status |\n|---|---|---|---|---|---|---|---|---|---|\n| R1-CORE-A | UP | 37 min | 0% | 17.5% | 4 | 9 | 0 | 0 | WARNING\u00b9 |\n| R2-CORE-B | UP | 37 min | 0% | 17.5% | 4 | 9 | 0 | 0 | WARNING\u00b9 |\n| R3-DIST-A | UP | 37 min | 0% | 17.4% | 2 | 2 | 0 | 0 | WARNING\u00b9 |\n| R4-DIST-B | UP | 37 min | 0% | 17.4% | 2 | 2 | 0 | 0 | WARNING\u00b9 |\n| R5-EDGE-A | UP | 37 min | 0% | 17.6% | 3 | 3 | 0 | 0 | WARNING\u00b9 |\n| R6-EDGE-B | UP | 37 min | 0% | 17.6% | 3 | 3 | 0 | 0 | WARNING\u00b9 |\n| R9-WAN-HUB | UP | 37 min | 0% | 17.5% | 5 | 2 | 0 | 0 | WARNING\u00b9 |\n| R10-BR1-WAN | UP | 37 min | 0% | 17.6% | 1 | 4 | 0 | 0 | WARNING\u00b9 |\n| R11-BR2-WAN | UP | 36 min | 0% | 17.6% | 1 | 4 | 0 | 0 | WARNING\u00b9 |\n| R7-BR1-LAN | UP | 37 min | 0% | 17.4% | 0 | 1 | 0 | 0 | WARNING\u00b9 |\n| R8-BR2-LAN | UP | 37 min | 0% | 17.4% | 0 | 1 | 0 | 0 | WARNING\u00b9 |\n| R12-ISP-A | UP | 36 min | 0% | 17.3% | 0 | 3 | 0 | 0 | WARNING\u00b9 |\n| R13-ISP-B | UP | 37 min | 0% | 17.3% | 0 | 4 | 0 | 0 | WARNING\u00b9 |\n| R14-SERVICES | UP | 36 min | 0% | 17.5% | 1 | 3 | 0 | 0 | WARNING\u00b9 |\n\n---\n\n### Overall: \u26a0 WARNING (single cause)\n\n**14/14 devices reachable. All protocols fully converged. Zero errors.**\n\nThe WARNING across all devices is caused by a single condition: **uptime < 24h (~37 min)**. The lab was freshly started this session \u2014 this is expected and not operationally significant in a lab context.\n\n---\n\n### Protocol Summary\n\n| Protocol | Expected | Actual | Result |\n|---|---|---|---|\n| BGP sessions | 50 UP, 0 DOWN | **50 UP, 0 DOWN** | \u2705 PASS |\n| OSPF FULL adjacencies | 26 total | **26 total (13 unique pairs)** | \u2705 PASS |\n| EIGRP AS10 (R7) | 10.30.10.2 UP | **UP \u2014 00:38:25** | \u2705 PASS |\n| EIGRP AS20 (R8) | 10.30.20.2 UP | **UP \u2014 00:38:34** | \u2705 PASS |\n\n---\n\n### Anomalies\n\n| Severity | Finding |\n|---|---|\n| \u26a0 WARNING | All 14 devices: uptime ~36-37 min (< 24h threshold). Lab was just started. Not operationally significant. |\n\n**No other anomalies.** Zero CRC errors, zero input/output errors, zero interface resets, zero drops across the entire fleet. All active interfaces up/up. Memory utilization uniform at 17.3-17.6%. CPU flat at 0-1% (IOL platform behavior).\n\n---\n\n### Notes\n- SSH access only provisioned on R5/R6/R10/R11/R14. Remaining 9 nodes required telnet \u2014 health data collected successfully via telnet testbed.\n- R7/R8 OSPF=0 and R12/R13 OSPF=0 is correct by design: branch LAN routers use EIGRP; ISP routers are eBGP-only boundary nodes.\n- R1/R2 show 9 BGP sessions each \u2014 they are iBGP Route Reflectors serving all other internal peers."
+   }
+  }
+ },
+ {
+  "ts": 1784053487.978679,
+  "frame": 855,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053492.714331,
+  "frame": 859,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:96",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053492.717994,
+  "frame": 860,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:96",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053496.169404,
+  "frame": 862,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:66",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053496.259579,
+  "frame": 864,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:66",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053505.905638,
+  "frame": 870,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053517.979588,
+  "frame": 874,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053520.073418,
+  "frame": 876,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:97",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053520.076923,
+  "frame": 878,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:97",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053526.262717,
+  "frame": 880,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:67",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053526.36043,
+  "frame": 882,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:67",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053533.17739,
+  "frame": 886,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053547.43434,
+  "frame": 890,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:98",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053547.437962,
+  "frame": 892,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:98",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053547.980107,
+  "frame": 894,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053556.363439,
+  "frame": 898,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:68",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053556.453387,
+  "frame": 900,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:68",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053560.453359,
+  "frame": 904,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053574.794414,
+  "frame": 908,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:99",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053574.798304,
+  "frame": 910,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:99",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053577.98048,
+  "frame": 912,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053586.456557,
+  "frame": 914,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:69",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053586.579268,
+  "frame": 916,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:69",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053587.727552,
+  "frame": 918,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053602.184013,
+  "frame": 922,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:100",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053602.187813,
+  "frame": 924,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:100",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053607.980951,
+  "frame": 928,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053615.002021,
+  "frame": 932,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053616.58286,
+  "frame": 934,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:70",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053616.680374,
+  "frame": 936,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:70",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053629.546327,
+  "frame": 940,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:101",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053629.565802,
+  "frame": 942,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:101",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053637.982115,
+  "frame": 946,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053642.276484,
+  "frame": 948,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053646.683222,
+  "frame": 950,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:71",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053646.781428,
+  "frame": 952,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:71",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053656.9253,
+  "frame": 956,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:102",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053656.929169,
+  "frame": 958,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:102",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053667.984227,
+  "frame": 962,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053669.550318,
+  "frame": 964,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053676.784415,
+  "frame": 966,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:72",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053676.881317,
+  "frame": 968,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:72",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053684.285376,
+  "frame": 974,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:103",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053684.288703,
+  "frame": 976,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:103",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053696.824289,
+  "frame": 980,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053697.985926,
+  "frame": 982,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053706.884603,
+  "frame": 984,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:73",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053706.973891,
+  "frame": 986,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:73",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053711.643281,
+  "frame": 990,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:104",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053711.646967,
+  "frame": 992,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:104",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053724.098846,
+  "frame": 996,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053727.988347,
+  "frame": 998,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053736.977348,
+  "frame": 1002,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:74",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053737.072546,
+  "frame": 1004,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:74",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053739.0074,
+  "frame": 1008,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:105",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053739.01125,
+  "frame": 1010,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:105",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053751.371406,
+  "frame": 1012,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053757.990862,
+  "frame": 1016,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053766.36938,
+  "frame": 1018,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:106",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053766.37319,
+  "frame": 1020,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:106",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053767.07662,
+  "frame": 1022,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:75",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053767.175199,
+  "frame": 1024,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:75",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053770.053298,
+  "frame": 1028,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 137,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:107",
+   "method": "n2n/tasks/cancel",
+   "params": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83"
+   }
+  }
+ },
+ {
+  "ts": 1784053770.053814,
+  "frame": 1030,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 127,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:107",
+   "result": {
+    "task_id": "83d1176e-5040-4c6e-b377-9d7c28a2be83",
+    "cancelled": false
+   }
+  }
+ },
+ {
+  "ts": 1784053778.645751,
+  "frame": 1034,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053787.993539,
+  "frame": 1038,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053793.730286,
+  "frame": 1040,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:108",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053793.734189,
+  "frame": 1042,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:108",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053797.179124,
+  "frame": 1044,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 153,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:76",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65007-7.7.7.7",
+    "endpoint": "8.tcp.ngrok.io:XXXXX"
+   }
+  }
+ },
+ {
+  "ts": 1784053797.27594,
+  "frame": 1046,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 75,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65007-7.7.7.7:76",
+   "result": {
+    "accepted": true
+   }
+  }
+ },
+ {
+  "ts": 1784053805.921281,
+  "frame": 1050,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053817.99602,
+  "frame": 1054,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "heartbeat",
+  "summary": "heartbeat (empty frame)",
+  "size": 5
+ },
+ {
+  "ts": 1784053821.089672,
+  "frame": 1056,
+  "src": "127.0.0.1:33466",
+  "dst": "127.0.0.1:20203",
+  "kind": "jsonrpc",
+  "size": 154,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:109",
+   "method": "n2n/endpoint_update",
+   "params": {
+    "identity": "as65001-4.4.4.4",
+    "endpoint": "8.tcp.ngrok.io:20203"
+   }
+  }
+ },
+ {
+  "ts": 1784053821.093629,
+  "frame": 1058,
+  "src": "127.0.0.1:20203",
+  "dst": "127.0.0.1:33466",
+  "kind": "jsonrpc",
+  "size": 76,
+  "msg": {
+   "jsonrpc": "2.0",
+   "id": "as65001-4.4.4.4:109",
+   "result": {
+    "accepted": true
+   }
+  }
+ }
+]

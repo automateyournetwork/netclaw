@@ -1,0 +1,382 @@
+{
+  "available": true,
+  "identity": "as65001-4.4.4.4",
+  "peers": [],
+  "approvals": [],
+  "risk": {
+    "role": "border",
+    "risk_name": "johns-risk",
+    "description": null,
+    "enabled_stacks": "both",
+    "self_member_id": null,
+    "member_count": 29,
+    "members_active": 6
+  },
+  "members": [
+    {
+      "member_id": "johns-risk/cml",
+      "display_name": "cml",
+      "profile": "cml",
+      "state": "active",
+      "transport_binding": "distributed",
+      "node_type": "agent",
+      "specialty_count": 5,
+      "skills": [
+        "cml-topology-builder",
+        "cml-node-operations",
+        "cml-packet-capture",
+        "cml-lab-lifecycle",
+        "cml-admin"
+      ],
+      "live": true,
+      "heartbeat_age_s": null
+    }
+  ],
+  "posture": {
+    "mode": "production",
+    "state": "enforced",
+    "controls": [
+      {
+        "name": "sandbox",
+        "kind": "containment",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      },
+      {
+        "name": "model-guard",
+        "kind": "containment",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      },
+      {
+        "name": "audit",
+        "kind": "audit",
+        "available": true,
+        "detail": "",
+        "probed_at": 1785179850.0359924
+      }
+    ],
+    "missing": [],
+    "strict_all": false,
+    "model": {
+      "primary": "anthropic/claude-opus-5",
+      "guarded": false
+    },
+    "channel_security": {
+      "mode": "on",
+      "by_trust_model": {
+        "legacy": 2,
+        "pinned": 3
+      },
+      "degraded": 2,
+      "amber": 0,
+      "red": 0,
+      "renewals_failing": 0,
+      "pq_mode": "opportunistic",
+      "pq_available": false,
+      "ech_available": false,
+      "channels_kex": []
+    },
+    "computed_at": 1785179850.0363233,
+    "summary": "production \u2014 enforced"
+  },
+  "gait": [
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 471,
+      "ts": "2026-07-27T18:57:50Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/cml",
+      "target": "cml-admin",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 470,
+      "ts": "2026-07-27T18:48:10Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 469,
+      "ts": "2026-07-27T18:35:43Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/cml",
+      "target": "cml-lab-lifecycle",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 468,
+      "ts": "2026-07-27T18:31:49Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/cml",
+      "target": "cml-lab-lifecycle",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 467,
+      "ts": "2026-07-27T18:30:32Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 466,
+      "ts": "2026-07-27T18:27:59Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 465,
+      "ts": "2026-07-27T18:03:35Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 464,
+      "ts": "2026-07-27T17:57:48Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 463,
+      "ts": "2026-07-27T17:33:32Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 462,
+      "ts": "2026-07-27T17:27:57Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 461,
+      "ts": "2026-07-27T17:21:48Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 460,
+      "ts": "2026-07-27T17:17:27Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 459,
+      "ts": "2026-07-27T17:03:31Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 458,
+      "ts": "2026-07-27T16:57:43Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 457,
+      "ts": "2026-07-27T16:33:30Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 456,
+      "ts": "2026-07-27T16:27:43Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 455,
+      "ts": "2026-07-27T16:03:36Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 454,
+      "ts": "2026-07-27T15:57:52Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 453,
+      "ts": "2026-07-27T15:33:32Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 452,
+      "ts": "2026-07-27T15:27:49Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 451,
+      "ts": "2026-07-27T15:03:35Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 450,
+      "ts": "2026-07-27T14:58:19Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 449,
+      "ts": "2026-07-27T14:33:08Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 448,
+      "ts": "2026-07-27T14:27:20Z"
+    },
+    {
+      "event": "delegation",
+      "actor": "johns-risk/border",
+      "subject": "johns-risk/pyats",
+      "target": "pyats-health-check",
+      "channel_kind": "in2n",
+      "sqlite_row_id": 447,
+      "ts": "2026-07-27T14:03:24Z"
+    }
+  ],
+  "replicationJobs": [],
+  "edgeNodes": [
+    {
+      "member_id": "risk/1785077389894",
+      "display_name": null,
+      "profile": null,
+      "state": "unreachable",
+      "transport_binding": "edge-ws",
+      "node_type": "edge",
+      "specialty_count": 3,
+      "skills": [
+        "camera.capture",
+        "camera.record_video",
+        "audio.record"
+      ],
+      "live": false,
+      "heartbeat_age_s": 1742.2
+    },
+    {
+      "member_id": "risk/1785078347014",
+      "display_name": null,
+      "profile": null,
+      "state": "active",
+      "transport_binding": "edge-ws",
+      "node_type": "edge",
+      "specialty_count": 3,
+      "skills": [
+        "camera.capture",
+        "camera.record_video",
+        "audio.record"
+      ],
+      "live": true,
+      "heartbeat_age_s": 13.3
+    }
+  ],
+  "recentPushes": [
+    {
+      "id": 440,
+      "direction": "outbound",
+      "peer_identity": "risk/1785077389894",
+      "target_type": "edge_push",
+      "target_name": "text",
+      "request_id": null,
+      "decision": "pushed",
+      "outcome": "success",
+      "requested_at": "2026-07-26T21:01:23Z",
+      "completed_at": "2026-07-26T21:01:23Z",
+      "result_ref": null,
+      "gait_ref": null,
+      "channel_kind": "in2n",
+      "linked_record_id": null
+    },
+    {
+      "id": 423,
+      "direction": "outbound",
+      "peer_identity": "risk/1785077389894",
+      "target_type": "edge_push",
+      "target_name": "text",
+      "request_id": null,
+      "decision": "pushed",
+      "outcome": "success",
+      "requested_at": "2026-07-26T16:20:00Z",
+      "completed_at": "2026-07-26T16:20:00Z",
+      "result_ref": null,
+      "gait_ref": null,
+      "channel_kind": "in2n",
+      "linked_record_id": null
+    }
+  ],
+  "generatedAt": "2026-07-27T19:17:32.063Z"
+}

@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>N2N Capture Analysis — CML Health Exchange — 2026-07-18</title>
+<style>
+  @page { size: letter; margin: 2cm 1.8cm; @bottom-center { content: "NetClaw N2N Capture Analysis — 2026-07-18 — page " counter(page) " of " counter(pages); font-size: 8pt; color: #888; } }
+  body { font-family: "DejaVu Sans", sans-serif; font-size: 10pt; color: #1a1a2e; line-height: 1.45; }
+  h1 { font-size: 17pt; color: #0f3460; border-bottom: 3px solid #e94560; padding-bottom: 6px; }
+  h2 { font-size: 13pt; color: #0f3460; margin-top: 22px; border-bottom: 1px solid #ccd; padding-bottom: 3px; }
+  h3 { font-size: 11pt; color: #16213e; margin-bottom: 4px; }
+  table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 8.5pt; }
+  th { background: #0f3460; color: #fff; padding: 5px 7px; text-align: left; }
+  td { border: 1px solid #ccd; padding: 4px 7px; vertical-align: top; }
+  tr:nth-child(even) td { background: #f4f6fb; }
+  code, .mono { font-family: "DejaVu Sans Mono", monospace; font-size: 8.5pt; background: #eef1f8; padding: 1px 3px; border-radius: 2px; }
+  .meta { background: #f4f6fb; border-left: 4px solid #0f3460; padding: 8px 12px; margin: 12px 0; font-size: 9pt; }
+  .finding { background: #fdf3f5; border-left: 4px solid #e94560; padding: 8px 12px; margin: 10px 0; }
+  .ok { background: #f0f9f2; border-left: 4px solid #2a9d5c; padding: 8px 12px; margin: 10px 0; }
+  .ev { background: #16213e; color: #d7e3f4; font-family: "DejaVu Sans Mono", monospace; font-size: 7.6pt; padding: 8px 10px; margin: 8px 0 12px 0; border-radius: 3px; white-space: pre-wrap; line-height: 1.35; }
+  .evcap { font-size: 8pt; color: #555; font-style: italic; margin: -8px 0 12px 2px; }
+  .small { font-size: 8pt; color: #666; }
+</style>
+</head>
+<body>
+
+<h1>N2N Federation Capture Analysis<br><span style="font-size:12pt">CML Lab-Health Chat Exchange over Secured Channels — with Evidence</span></h1>
+
+<div class="meta">
+<b>Capture file:</b> <code>captures/n2n-cml-health-20260718.pcap</code> — pcapng, Linux cooked-mode v1, 463,528 bytes on disk / 367 kB of packet data<br>
+<b>SHA-256:</b> <code>d9bb926fde1376ce18389d045f796cf0b74a7893bd6c6bb83ed7dc2ca521a29c</code><br>
+<b>Window:</b> 2026-07-18 13:34:01.340 → 14:14:42.122 EDT (2,440.78 s ≈ 40 min 41 s) &nbsp;·&nbsp; <b>Packets:</b> 2,952<br>
+<b>Interface / filter:</b> <code>any</code>, BPF <code>tcp port 20203 or tcp port XXXXX or tcp port XXXXX</code> (NCFED listener + both peers' announced endpoints)<br>
+<b>Local node:</b> <code>as65007-7.7.7.7</code> (Nick) &nbsp;·&nbsp; <b>Peers:</b> <code>as65001-4.4.4.4</code> (John), <code>as65099-10.255.255.1</code> (Byrn)<br>
+<b>Stack:</b> Ubuntu 26.04 LTS · OpenSSL 3.5.5 · Python 3.14.4 · daemon at commit <code>288a94d</code> (post-H14, PR #141) · capture via <code>dumpcap</code> with <code>cap_net_raw</code>
+</div>
+
+<h2>1 · Purpose &amp; methodology</h2>
+<p>This capture documents a live operator-initiated chat exchange over the certificate-secured N2N federation
+(spec 060 claw-cert security, 063 wire hardening, H14 dialer-tier fix): a CML lab-health question sent from Nick's
+claw to both federated peers, recorded on the wire to verify that (a) all NCFED application traffic — including
+chat payloads — is TLS-encrypted, (b) the 063 endpoint-persistence machinery is live in both directions, and
+(c) failure modes surface as structured errors over the encrypted channel rather than as cleartext or silence.
+It is the third capture in the series (2026-07-14 cleartext era · 2026-07-17 first encrypted capture · this report).</p>
+<p><b>Method.</b> <code>dumpcap</code> ran for the full window on the <code>any</code> pseudo-interface with a
+three-port BPF filter; the chat was then initiated through the daemon's local HTTP API
+(<code>POST /n2n/chat/send</code>). Analysis used <code>tshark</code>/<code>capinfos</code> on a working copy;
+corroborating evidence was pulled from the daemon log (<code>/tmp/bgp-daemon-v2.log</code>), the federation
+database (<code>~/.openclaw/n2n/federation.db</code>), and the chat transcript store
+(<code>~/.openclaw/n2n/chats/</code>). All evidence blocks below are verbatim tool output.</p>
+
+<h2>2 · Protocol hierarchy — what is in the file</h2>
+<div class="ev">$ tshark -r n2n-cml-health-20260718.pcap -q -z io,phs
+frame                                    frames:2952 bytes:367439
+  sll                                    frames:2952 bytes:367439
+    ip                                   frames:2952 bytes:367439
+      tcp                                frames:2952 bytes:367439
+        tls                              frames:982 bytes:230363</div>
+<p class="evcap">Every packet is TCP on the filtered ports; 982 frames carry TLS records. The TCP frames without a TLS layer are ACKs, keepalive segments, and the two cleartext BGP sessions (§7).</p>
+
+<h2>3 · TCP conversations</h2>
+<div class="ev">$ tshark -r n2n-cml-health-20260718.pcap -q -z conv,tcp
+127.0.0.1:20203      &lt;-&gt; 127.0.0.1:36360        565 | 78 kB   563 | 79 kB   1128 | 157 kB   0.000s   2432.59s
+192.168.1.227:59062  &lt;-&gt; 13.52.62.53:XXXXX      566 | 80 kB   495 | 74 kB   1061 | 154 kB   0.082s   2440.70s
+127.0.0.1:59272      &lt;-&gt; 127.0.0.1:20203        185 | 13 kB   204 | 14 kB    389 |  28 kB   8.102s   2429.29s
+127.0.0.1:59266      &lt;-&gt; 127.0.0.1:20203        182 | 13 kB   192 | 13 kB    374 |  26 kB   7.590s   2429.57s</div>
+<table>
+<tr><th>Stream</th><th>Endpoints</th><th>Identification</th><th>Basis for identification</th></tr>
+<tr><td>0</td><td class="mono">127.0.0.1:36360 ↔ :20203</td>
+    <td><b>John's NCFED channel</b> (TLS 1.3, tier-1 possession)</td>
+    <td>Inbound via our ngrok tunnel (<code>0.tcp.ngrok.io:15091</code> → local 20203): the local ngrok agent delivers tunneled connections from loopback. Carries the 13:34:20 chat burst whose timestamps match transcript session <code>5f1af883</code> to the second (§5). 492 TLS app-data records.</td></tr>
+<tr><td>1</td><td class="mono">192.168.1.227:59062 → 13.52.62.53:XXXXX</td>
+    <td><b>Our direct dial to Byrn's announced endpoint</b> (TLS)</td>
+    <td>Destination port XXXXX equals Byrn's endpoint announcement recorded in the federation DB (<code>8.tcp.us-cal-1.ngrok.io:XXXXX</code>, §6); 13.52.62.53 is ngrok's us-cal-1 ingress. The dial exists because the announcement was accepted and re-dialed — 063 endpoint persistence + H14 observed live. 490 TLS app-data records.</td></tr>
+<tr><td>2, 3</td><td class="mono">127.0.0.1:59266/:59272 ↔ :20203</td>
+    <td><b>Two BGP mesh sessions</b> (cleartext by design)</td>
+    <td>82 × 19-byte payloads each — the exact size of a BGP KEEPALIVE; hex shows the 16-byte all-ones BGP marker + length 0x0013 + type 0x04 (§7). Routing substrate only; carries no NCFED payload.</td></tr>
+</table>
+<p class="small">No packets matched port XXXXX (John's announced endpoint): his channel was already up inbound through
+the tunnel for the whole window, so our supervisor never needed to dial out to him.</p>
+
+<h2>4 · Encryption audit</h2>
+<div class="ok"><b>All NCFED application traffic in this capture is encrypted, and a content audit of the raw
+capture finds zero recognizable payload text.</b> 982 TLS application-data records (492 stream 0, 490 stream 1);
+the only cleartext protocol present is 19-byte BGP KEEPALIVEs.</div>
+<h3>4.1 Keyword audit over raw bytes</h3>
+<div class="ev">$ tshark -r … -Y 'tcp.len>0' -T fields -e data.text | grep -ciE 'cml|health|john|byrn|chat|hello'
+0
+$ strings n2n-cml-health-20260718.pcap | grep -ciE 'CML|health check|Nick'
+0</div>
+<p class="evcap">The chat message (§5) contains the strings “CML”, “health check”, and “Nick's claw”. None are recoverable from the capture — neither from dissected payload fields nor from a raw <code>strings</code> sweep of the whole file.</p>
+<h3>4.2 TLS record-size profile</h3>
+<div class="ev">$ tshark -r … -Y tls.app_data -T fields -e tcp.stream -e frame.len | sort | uniq -c | sort -rn | head
+ 164  stream 1  288 B      ← endpoint announce (30 s cadence, §6)
+ 164  stream 0  288 B      ← endpoint announce (30 s cadence)
+  85  stream 0  244 B  /  85 × 166 B   ← keepalive request/response pairs
+  77  stream 0  243 B  /  77 × 165 B
+  72  stream 1  262 B  /  72 × 170 B
+  68  stream 1  243 B  /  68 × 165 B</div>
+<p class="evcap">Steady-state traffic is a small set of fixed-size encrypted records. The single 494-byte outlier is the chat question (§5).</p>
+<div class="finding"><b>Residual metadata leakage (expected, in-model):</b> ciphertext sizes and timing still reveal
+<i>cadence</i> (the 30 s announce rhythm) and <i>relative size</i> (a 494 B record against a 288 B baseline flags
+“something bigger than an announcement happened at 13:34:20”). This matches the 063 threat model, which defers
+SNI/ECH-class metadata hardening to follow-on work (NCFED backlog).</div>
+
+<h2>5 · The chat exchange, frame by frame</h2>
+<p>The entire application event is four TLS records inside 241 ms on stream 0. Port 20203 is our daemon;
+36360 is the ngrok agent delivering John's tunneled connection — so <code>20203 →</code> is us-to-John and
+<code>→ 20203</code> is John-to-us.</p>
+<div class="ev">$ tshark -r … -Y 'frame.number&gt;=30 and frame.number&lt;=36 and tcp.len&gt;0' \
+    -T fields -e frame.number -e frame.time -e tcp.srcport -e tcp.dstport -e frame.len
+30   13:34:20.359232   20203 → 36360   204 B   (TLS record 131 B)
+32   13:34:20.441706   36360 → 20203   217 B   (TLS record 144 B)
+34   13:34:20.516405   20203 → 36360   494 B   (TLS record 421 B)
+36   13:34:20.599962   36360 → 20203   222 B   (TLS record 149 B)</div>
+<table>
+<tr><th>Frame</th><th>Direction</th><th>Interpretation</th><th>Corroboration</th></tr>
+<tr><td>30</td><td>us → John</td><td><code>n2n/chat/open</code> request</td><td>DB session row created this second (below).</td></tr>
+<tr><td>32</td><td>John → us</td><td>open accepted, session id issued</td><td>Session id <code>5f1af883…</code> exists on both the DB row and the transcript filename.</td></tr>
+<tr><td>34</td><td>us → John</td><td><b>The CML health question</b> — largest record in the entire 2,952-packet capture</td><td>Transcript line timestamped <code>17:34:20Z</code> = 13:34:20 EDT, matching frame 34 to the second.</td></tr>
+<tr><td>36</td><td>John → us</td><td><b>John's error reply</b>: his daemon accepted and logged the message, then failed to spawn his agent CLI to compose an answer</td><td>API response returned to our operator (below).</td></tr>
+</table>
+<h3>5.1 Local transcript (session <code>5f1af883</code>)</h3>
+<div class="ev">$ cat ~/.openclaw/n2n/chats/5f1af883-e397-4558-b13b-6c57b3749ec3.txt
+2026-07-18T17:34:20Z [as65007-7.7.7.7] Hey John — Nick's claw here. Quick health check on your
+CML labs when you get a moment: is the CML server up, which labs are running, and are all nodes
+booted/healthy? (We're also capturing this exchange on the wire as a demo of the secured channel.)</div>
+<h3>5.2 Session row in the federation DB</h3>
+<div class="ev">sqlite&gt; SELECT * FROM n2n_chat_session WHERE id LIKE '5f1af883%';
+id=5f1af883-e397-4558-b13b-6c57b3749ec3  peer=as65001-4.4.4.4  direction=initiated
+started_at=2026-07-18T17:34:20Z  transcript=~/.openclaw/n2n/chats/5f1af883-….txt</div>
+<h3>5.3 API responses (verbatim)</h3>
+<div class="ev">POST /n2n/chat/send {"peer":"as65001-4.4.4.4","text":"…CML health question…"}
+→ {"error": "[Errno 2] No such file or directory: 'openclaw'"}          ← John's side, via frame 36
+
+POST /n2n/chat/send {"peer":"as65099-10.255.255.1","text":"…CML health question…"}
+→ {"error": "chat not enabled for this peer", "session_id": null}       ← Byrn's side refusal</div>
+<p class="evcap">John's error is an OS-level errno from <i>his</i> host, transported back as a structured RPC error over the encrypted channel: his daemon's environment cannot find the <code>openclaw</code> CLI (a nohup/service-PATH gap — the same failure class we fixed locally in <code>peering-setup.sh</code> during spec 060). Byrn's refusal happens at <code>n2n/chat/open</code>, before delivery: the chat toggle for <code>as65007</code> is off in his peer table — the question never reached his transcript.</p>
+
+<h2>6 · Endpoint persistence in action (063 + H14)</h2>
+<h3>6.1 The 30-second announce cadence, on the wire</h3>
+<div class="ev">$ tshark -r … -Y 'tcp.stream==0 and frame.len==288' -T fields -e frame.time | head -6
+13:34:03.653411    ┐ announce + paired response
+13:34:03.748628    ┘
+13:34:33.655012    ┐ +30.001 s
+13:34:33.749851    ┘
+13:35:03.657072    ┐ +30.002 s
+13:35:03.749908    ┘</div>
+<p class="evcap">164 announce records per stream over 2,440 s ≈ one pair every 30 s — the daemon's endpoint watcher, drift &lt; 2 ms per cycle. The same 288 B/30 s signature appears on Byrn's stream.</p>
+<h3>6.2 The DB rows those announcements maintain</h3>
+<div class="ev">sqlite&gt; SELECT identity, trust_model, verify_state, endpoint_host, endpoint_port, endpoint_updated_at
+        FROM federation_peer;
+as65001-4.4.4.4     pinned           verified   4.tcp.ngrok.io           XXXXX   2026-07-18T19:22:17Z
+as65099-10.255.255.1 domain-verified verified   8.tcp.us-cal-1.ngrok.io  XXXXX   2026-07-18T19:21:59Z</div>
+<p class="evcap">Both peers' endpoints are current to within 30 s of report generation (19:2x Z = 15:2x EDT, after capture stop) — the announcements kept flowing after the capture ended. Byrn's row is the direct evidence for identifying stream 1: destination port XXXXX in the capture equals his announced endpoint here.</p>
+<p><b>Why this matters:</b> before 063/H14, an ngrok rotation meant a manual endpoint swap relayed out-of-band, and
+H14's bug (attestation granted only to acceptors) made listeners on dialed channels tier-0 forever — John's side
+was denying our re-announcements until PR #141. This capture shows the healed state: our claw <i>accepted Byrn's
+announcement and dialed the new endpoint</i> (stream 1 exists at all), and both peers' rows track rotations with
+no operator action.</p>
+
+<h2>7 · The only cleartext: BGP keepalives</h2>
+<div class="ev">$ tshark -r … -Y 'tcp.stream==2 and tcp.len==19' -x | grep -A2 '^0040'
+0040  c3 67 3e 7f ff ff ff ff ff ff ff ff ff ff ff ff   .g&gt;.............
+0050  ff ff ff ff 00 13 04                              .......
+      └ 16-byte BGP marker (RFC 4271 §4.1) ┘ len=0x0013 (19) type=0x04 KEEPALIVE</div>
+<p class="evcap">Streams 2 and 3 are the mesh's BGP routing sessions: 82 KEEPALIVEs each over the window (≈30 s hold-timer cadence), plus ACKs. BGP here is the reachability substrate between claws; it carries no agent traffic, no NCFED JSON-RPC, and no chat content — the hex above is the entire recurring payload.</p>
+
+<h2>8 · Post-quantum note</h2>
+<div class="finding">No TLS handshakes occur in the window — both NCFED channels were established <i>before</i>
+capture start (John's at 13:04:33, per the daemon log), so no ClientHello/ServerHello and therefore no
+key-share group is present in this file. On this stack (both ends on OpenSSL 3.5-class hosts) the channels
+negotiate <b>X25519MLKEM768</b>; local posture intentionally reports <code>pq_available=false</code> until
+Python 3.15 exposes the negotiated group to the daemon (it will not claim what it cannot read).
+<b>To put the PQ handshake on disk:</b> start a capture, then bounce one channel
+(<code>./scripts/peering-setup.sh start</code>) and let the peer re-dial — the hello key-share extensions
+will show <code>X25519MLKEM768</code>.</div>
+
+<h2>9 · Trust state behind the channels</h2>
+<p>The tier-1 channel in this capture rides a pin corrected earlier the same day. John's claw holds three
+legitimate keys; the morning's “pinned key changed” rejection storm was his catch-up build switching which
+cert <code>n2n/hello</code> presents — not a key change, not impersonation:</p>
+<table>
+<tr><th>Key</th><th>SPKI fingerprint (SHA-256)</th><th>Role</th></tr>
+<tr><td>Risk identity cert (<code>keys/self.crt</code>)</td><td class="mono">f51b2e1c728c9b7a64a94757fd770e49ff20d2aad2777cd7ff5d6399bd8f3109</td><td><b>Current pin</b> — what his hello presents on post-catch-up builds; byte-identical to our original 7/10 TOFU pin (preserved as <code>.bak-20260717</code>).</td></tr>
+<tr><td>Host credential (<code>keys/host/host.crt</code>)</td><td class="mono">2fd769064b13358f140d9311d836a41b0875868b0a3f2d4b88209743c9134b9b</td><td>What his 7/15–7/17-era build presented; pinned 7/17 in the same confusion, in reverse (preserved as <code>.bak-20260718</code>).</td></tr>
+<tr><td>ACME/TLS credential</td><td class="mono">786afe3b205f761f0192bc1db0daed1ff34879a186bec2c2756d0534731810ce</td><td>Reported by his <code>/n2n/certs</code>; never appears in the hello — comparing hello keys against it produces false mismatches.</td></tr>
+</table>
+<div class="ev">$ python3 - # certs.key_fingerprint() over the pin directory
+en2n__as65001-4.4.4.4.crt              → f51b2e1c…8f3109   (current pin)
+en2n__as65001-4.4.4.4.crt.bak-20260717 → f51b2e1c…8f3109   (original TOFU pin — identical key)
+en2n__as65001-4.4.4.4.crt.bak-20260718 → 2fd769…4b9b       (host-credential interlude)</div>
+<p class="evcap">Operational lesson recorded from the incident: capture the offered fingerprint → confirm out-of-band → <code>repin_peer</code>, in that order. The daemon now logs the offered SPKI fingerprint and saves the offered cert (<code>.offered</code>, never trusted) on every pin mismatch — added to <code>bgp/federation/service.py</code> today, so the next key-change alert arrives with its evidence attached.</p>
+
+<h2>10 · Chat outcome &amp; remediation</h2>
+<table>
+<tr><th>Peer</th><th>Result</th><th>Root cause (evidence §5.3)</th><th>Fix (their side)</th></tr>
+<tr><td>John<br><span class="mono">as65001</span></td>
+    <td>Question delivered to his transcript; no reply — his claw crashed composing one (frame 36).</td>
+    <td><code>[Errno 2] No such file or directory: 'openclaw'</code> — daemon environment lacks the agent CLI on PATH.</td>
+    <td>Put <code>openclaw</code> on the mesh daemon's PATH (or absolute-path the spawn), restart the daemon, resend.</td></tr>
+<tr><td>Byrn<br><span class="mono">as65099</span></td>
+    <td>Chat-open refused; question never delivered (no wire burst on stream 1 beyond steady-state).</td>
+    <td><code>chat not enabled for this peer</code> — chat toggle for <code>as65007</code> off in his federation DB.</td>
+    <td>Enable chat for <code>as65007-7.7.7.7</code>, resend.</td></tr>
+</table>
+<p>Both failures are remote-side configuration, not transport or trust problems: throughout the window both
+channels are up, verified (tier-1 possession / domain-verified), fully encrypted, and exchanging endpoint
+updates on schedule.</p>
+
+<h2>11 · Reproduction &amp; artifacts</h2>
+<div class="ev">> dumpcap -i any -f "tcp port 20203 or tcp port XXXXX or tcp port XXXXX" -w captures/n2n-cml-health-20260718.pcap
+> curl -X POST http://127.0.0.1:8179/n2n/chat/send -d '{"peer":"as65001-4.4.4.4","text":"…"}'
+> curl -X POST http://127.0.0.1:8179/n2n/chat/send -d '{"peer":"as65099-10.255.255.1","text":"…"}'
+> tshark -r captures/n2n-cml-health-20260718.pcap -q -z io,phs            # §2
+> tshark -r captures/n2n-cml-health-20260718.pcap -q -z conv,tcp          # §3
+> tshark -r … -Y tls.app_data | wc -l                                     # 982 (§4)
+> sha256sum captures/n2n-cml-health-20260718.pcap                         # d9bb926f…a29c</div>
+<table>
+<tr><th>Artifact</th><th>Location</th></tr>
+<tr><td>Packet capture (integrity: SHA-256 above)</td><td class="mono">captures/n2n-cml-health-20260718.pcap</td></tr>
+<tr><td>This report (HTML + PDF)</td><td class="mono">captures/analysis-20260718/</td></tr>
+<tr><td>Chat transcript</td><td class="mono">~/.openclaw/n2n/chats/5f1af883-….txt</td></tr>
+<tr><td>Daemon log for the window</td><td class="mono">/tmp/bgp-daemon-v2.log</td></tr>
+<tr><td>Prior captures in the series</td><td class="mono">captures/analysis-20260714 · captures/analysis-20260717</td></tr>
+</table>
+
+<p class="small">Generated 2026-07-18 by Nick's claw (as65007-7.7.7.7) with Claude. All evidence blocks are verbatim
+output of the cited commands against the capture copy, the daemon log, and the federation database.</p>
+
+</body>
+</html>

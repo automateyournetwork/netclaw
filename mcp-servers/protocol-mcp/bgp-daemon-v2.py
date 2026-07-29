@@ -20,6 +20,7 @@ import sys
 import urllib.parse
 from ipaddress import IPv4Network
 import struct
+import time
 
 sys.path.insert(0, os.path.dirname(__file__))
 
@@ -42,6 +43,11 @@ BGP_PEERS   = json.loads(os.environ.get("NETCLAW_BGP_PEERS", "[]"))
 API_PORT    = int(os.environ.get("BGP_API_PORT", "8179"))
 BGP_LISTEN_PORT = int(os.environ.get("BGP_LISTEN_PORT", "1179"))
 MESH_OPEN   = os.environ.get("NETCLAW_MESH_OPEN", "true").lower() in ("true", "1", "yes")
+# feature 066 edge (phone) WebSocket keepalive — see _start_edge_ws_listener().
+# Overridable for operators whose carrier NAT is more aggressive than the
+# default 90s window.
+EDGE_WS_PING_INTERVAL = int(os.environ.get("N2N_EDGE_WS_PING_INTERVAL", "30"))
+EDGE_WS_PING_TIMEOUT  = int(os.environ.get("N2N_EDGE_WS_PING_TIMEOUT", "90"))
 MESH_ENDPOINT = os.environ.get("NETCLAW_MESH_ENDPOINT", "")
 LOCAL_IPV6  = os.environ.get("NETCLAW_LOCAL_IPV6", "")
 DRY_RUN     = os.environ.get("NETCLAW_DRY_RUN", "").lower() in ("true", "1", "yes")
@@ -404,9 +410,22 @@ async def handle_n2n(method, path, body):
             return 200, {"tasks": fed.tasks.list_recent()}
 
         if len(parts) == 4 and parts[1] == "tasks" and parts[3] == "cancel" and method == "POST":
-            row = mgr._conn.execute("SELECT peer_identity FROM delegated_task WHERE task_id=?",
-                                    (parts[2],)).fetchone()
+            row = mgr._conn.execute(
+                "SELECT peer_identity, direction FROM delegated_task WHERE task_id=?",
+                (parts[2],)).fetchone()
             if row:
+                # An "inbound" task (a peer/edge-node asked the Border to run
+                # something, e.g. a phone's edge_ask) is executed BY this
+                # process -- there is no remote channel to ask, cancelling it
+                # is purely local, exactly like tasks.py's own no-live-worker
+                # fallback for a task orphaned by a daemon restart. Routing
+                # this through the outbound member/remote-channel branch
+                # below always failed with "member not connected" (edge
+                # nodes live in fed.edge_channels, never fed.member_channels,
+                # so the lookup could never succeed even when the phone
+                # itself was connected).
+                if row["direction"] == "inbound":
+                    return 200, {"task_id": parts[2], "cancelled": fed.tasks.cancel(parts[2])}
                 try:
                     if fed.is_member_task(row["peer_identity"]):
                         ch = fed.member_channels.get(row["peer_identity"])
@@ -623,9 +642,15 @@ async def handle_n2n(method, path, body):
                 {"member_id": m["member_id"], "display_name": m["display_name"],
                  "profile": m["profile"], "state": m["state"],
                  "transport_binding": m["transport_binding"],
+                 "node_type": m["node_type"],
                  "specialty_count": fed.risk.specialty_count(m["scope"]),
                  "skills": _spec_names(m["scope"]),
-                 "live": m["member_id"] in fed.member_channels}
+                 # Liveness comes from ONE shared definition
+                 # (FederationService.member_liveness) so this endpoint and
+                 # /n2n/members/health can never drift apart again, and both
+                 # carry heartbeat_age_s -- `state` alone flips constantly on a
+                 # phone and reads as endpoints contradicting each other.
+                 **fed.member_liveness(m)}
                 for m in fed.risk.list_members()]}
 
         if path == "/n2n/members/health" and method == "GET":
@@ -638,7 +663,7 @@ async def handle_n2n(method, path, body):
                     health = {}
                 out.append({"member_id": m["member_id"], "state": m["state"],
                             "auth_failures": m["auth_failures"],
-                            "live": m["member_id"] in fed.member_channels,
+                            **fed.member_liveness(m),
                             "health": health})
             return 200, {"members": out}
 
@@ -687,6 +712,41 @@ async def handle_n2n(method, path, body):
                 return 400, {"error": "capability (or target_hint) required"}
             out = await fed.route_and_delegate(capability, body.get("request_text", ""))
             return (200 if "error" not in out else 409), out
+
+        if path == "/n2n/edge/push" and method == "POST":
+            # feature 066 (US2/FR-008): explicit Border-to-phone push, driven
+            # by n2n_notify_phone. Never triggered by ordinary channel
+            # traffic -- this route is the only caller of push_to_edge().
+            member_id = body.get("member_id")
+            content_type = body.get("content_type", "text")
+            content = body.get("content")
+            if not member_id or content is None:
+                return 400, {"error": "member_id and content required"}
+            if content_type not in ("text", "voice", "image"):
+                return 400, {"error": f"unsupported content_type {content_type!r}"}
+            push = {
+                "content_type": content_type,
+                "content": content,
+                "designated_by": "agent",
+                "pushed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+            }
+            try:
+                result = await fed.push_to_edge(member_id, push)
+                return 200, {"delivered": True, "member_id": member_id, "result": result}
+            except ValueError:
+                # Not connected -- platform push-notification fallback
+                # (FR-011, US3/T031).
+                from bgp.federation import push_notify
+                member = fed.risk.get_member(member_id)
+                if not member:
+                    return 404, {"error": f"unknown member {member_id}"}
+                try:
+                    result = await push_notify.send_push_notification(member, push)
+                    return 200, {"delivered": True, "via": "push_notification",
+                                "member_id": member_id, "result": result}
+                except Exception as e:
+                    logger.warning("Push-notification fallback failed for %s: %s", member_id, e)
+                    return 200, {"delivered": False, "reason": str(e), "member_id": member_id}
 
         return 404, {"error": f"unknown n2n route {path}"}
     except Exception as e:
@@ -769,6 +829,66 @@ async def _start_in2n(fed):
                         risk["border_endpoint"], risk.get("self_member_id"))
     except Exception as e:
         logger.error("iN2N start error: %s", e)
+
+
+async def _start_edge(fed):
+    """feature 066: NCFED Edge Node — a Border-role claw with N2N_EDGE_WS_PORT
+    set accepts WebSocket connections from NetClaw Mobile devices. Reuses the
+    same domain-verified/self-signed credential as eN2N/iN2N via
+    host_credential() + tls.server_context() (research D1) — deliberately NOT
+    internal_channel.build_ssl_contexts, which is the older risk-CA/self-signed
+    path and does not carry the domain-verified cert."""
+    try:
+        if not (fed.risk.is_border() and fed.risk.stack_enabled("in2n")):
+            return
+        port = int(os.environ.get("N2N_EDGE_WS_PORT", "0") or 0)
+        if not port:
+            logger.info("Edge (NetClaw Mobile): set N2N_EDGE_WS_PORT to accept phone dial-ins")
+            return
+        import websockets
+        from bgp.federation import tls as _tls
+        cert_pem, key_pem = fed.host_credential()
+        ctx = _tls.server_context(cert_pem, key_pem)
+
+        async def _on_ws(ws):
+            try:
+                await fed.accept_edge_ws(ws)
+            except Exception as e:
+                logger.warning("Edge WS accept failed: %s", e)
+
+        # Keepalive tuned for phones, not servers. The websockets defaults
+        # (ping_interval=20, ping_timeout=20) drop a peer that stays silent for
+        # ~20s — and Android suspends an app's Dart isolate the moment the
+        # screen locks, which stops the protocol-level pong. Observed with a
+        # real device: connections lived 25-32s while backgrounded (ping
+        # timeout + latency) vs 85-190s while actively used, reconnecting in a
+        # loop all day. A 90s timeout rides out brief suspensions.
+        #
+        # Liveness is NOT weakened by this: the Border tracks it separately via
+        # the application-level n2n/edge/heartbeat call, so a genuinely dead
+        # peer is still detected there rather than by the socket timeout.
+        # max_size MUST be set. The websockets default is 1 MiB, but the
+        # protocol's own bound is NCFED_MAX_MESSAGE (16 MiB) and the phone caps
+        # a capture at 8 MiB of raw bytes -- which base64-encodes to ~10.7 MiB
+        # on the wire. So every photo over ~768 KiB raw exceeded the transport
+        # limit even though both the protocol and the client considered it
+        # legal, and websockets closed the connection with 1009 (message too
+        # big): the request failed AND the socket died, indistinguishably from
+        # the reconnect churn we were already chasing.
+        #
+        # Aligned to the protocol constant so transport and protocol agree.
+        from bgp.constants import NCFED_MAX_MESSAGE
+        server = await websockets.serve(
+            _on_ws, "0.0.0.0", port, ssl=ctx,
+            ping_interval=EDGE_WS_PING_INTERVAL,
+            ping_timeout=EDGE_WS_PING_TIMEOUT,
+            max_size=NCFED_MAX_MESSAGE,
+        )
+        fed._edge_server = server  # keep a ref
+        logger.info("Edge (NetClaw Mobile) WS listener on 0.0.0.0:%d (risk=%s)",
+                   port, fed.risk.get_risk().get("risk_name"))
+    except Exception as e:
+        logger.error("Edge WS start error: %s", e)
 
 
 async def _start_cert_lifecycle(fed):
@@ -1253,6 +1373,9 @@ async def main():
         # iN2N (feature 056): start the internal-federation listener (Border) or
         # dialer (Member) per this claw's role. Members dial outbound only.
         asyncio.create_task(_start_in2n(_federation))
+        # NCFED Edge Node (feature 066): a Border listens for phone dial-ins
+        # over a WebSocket transport if N2N_EDGE_WS_PORT is set.
+        asyncio.create_task(_start_edge(_federation))
         # Claw certification (feature 060): obtain/refresh the domain-verified
         # credential (if configured) and run the automatic renewal scheduler.
         asyncio.create_task(_start_cert_lifecycle(_federation))

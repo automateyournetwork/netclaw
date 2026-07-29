@@ -45,6 +45,16 @@ BASE_FLOOR = [
     {"name": "member_report_audit","type": "tool",  "tier": "base"},
 ]
 
+
+def floor_scope(node_type: str = "agent") -> list:
+    """Default mandatory scope for a newly-created member row, by node_type
+    (feature 066, D5). An `edge` node (a phone) satisfies the same
+    health-monitoring guarantee BASE_FLOOR exists for — via the built-in
+    n2n/edge/heartbeat and n2n/edge/self_status methods every edge client
+    implements natively — without ever running the n2n-member-runtime skill,
+    so it carries no BASE_FLOOR skill/tool names in scope."""
+    return [] if node_type == "edge" else list(BASE_FLOOR)
+
 # Member states beyond the enrolled→active lifecycle:
 #   provisioned → enrolled → active ↔ unreachable ; quarantined ; removed
 STATE_PROVISIONED = "provisioned"   # add_member ran; token issued; no key yet
@@ -377,7 +387,8 @@ class RiskManager:
     def consume_token(self, raw_token: str, member_id: str, cert_pem: str,
                       scope: Optional[list] = None, runtime_kind: str = "process",
                       display_name: Optional[str] = None,
-                      transport_binding: str = "loopback") -> dict:
+                      transport_binding: str = "loopback",
+                      node_type: str = "agent") -> dict:
         """Validate a single-use token + pin the member's self-signed key (TOFU).
         Raises ValueError(code) on invalid/spent/expired token or id/key clash."""
         if not self.is_border():
@@ -396,7 +407,7 @@ class RiskManager:
         now = _now()
         self._pin_key_file(member_id, cert_pem)
         scope_json = json.dumps(scope) if scope is not None else (
-            existing["scope"] if existing else json.dumps(BASE_FLOOR))
+            existing["scope"] if existing else json.dumps(floor_scope(node_type)))
         if existing:
             # Keep the Border-provisioned scope (structured {name,tier} from
             # add_member) — do NOT overwrite it with the member's advertised scope,
@@ -405,16 +416,16 @@ class RiskManager:
             self._conn.execute(
                 "UPDATE member SET pinned_key=?, key_fingerprint=?, runtime_kind=?, "
                 "transport_binding=?, display_name=COALESCE(?, display_name), "
-                "state=?, auth_failures=0, updated_at=? WHERE member_id=?",
+                "state=?, auth_failures=0, updated_at=?, node_type=? WHERE member_id=?",
                 (cert_pem, fp, runtime_kind, transport_binding, display_name,
-                 STATE_ENROLLED, now, member_id))
+                 STATE_ENROLLED, now, node_type, member_id))
         else:
             self._conn.execute(
                 "INSERT INTO member (member_id, display_name, pinned_key, key_fingerprint, "
                 "profile, scope, runtime_kind, transport_binding, state, auth_failures, "
-                "enrolled_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,0,?,?)",
+                "enrolled_at, updated_at, node_type) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)",
                 (member_id, display_name, cert_pem, fp, None, scope_json, runtime_kind,
-                 transport_binding, STATE_ENROLLED, now, now))
+                 transport_binding, STATE_ENROLLED, now, now, node_type))
         # Spend the token atomically.
         self._conn.execute(
             "UPDATE enrollment_token SET spent_at=?, spent_by_member_id=? WHERE token_hash=?",
@@ -470,6 +481,39 @@ class RiskManager:
         mem = self.get_member(member_id)
         if mem and mem["state"] == STATE_ACTIVE:
             self._set_state(member_id, STATE_UNREACHABLE)
+
+    def register_push(self, member_id: str, platform: str, token: str):
+        """Persist an edge node's platform push-notification token (US3/T031)
+        so push_to_edge's fallback can reach it while disconnected."""
+        if platform not in ("fcm", "apns"):
+            raise ValueError(f"unsupported push platform {platform!r}")
+        self._conn.execute(
+            "UPDATE member SET push_platform=?, push_token=?, updated_at=? WHERE member_id=?",
+            (platform, token, _now(), member_id))
+        self._conn.commit()
+
+    # feature 068 (US3/T004): capture-capability advertisement, reusing the
+    # SAME `scope` column RiskRouter.covers()/candidates() already read for
+    # ordinary member capabilities (research D1) -- no new inventory
+    # mechanism. A type omitted here is invisible to routing entirely
+    # (FR-007a), not merely "advertised but refused".
+    CAPTURE_CAPABILITY_NAMES = ("camera.capture", "camera.record_video", "audio.record")
+
+    def set_capture_capabilities(self, member_id: str, capability_names: list):
+        unknown = set(capability_names) - set(self.CAPTURE_CAPABILITY_NAMES)
+        if unknown:
+            raise ValueError(f"unknown capture capability names: {sorted(unknown)}")
+        mem = self.get_member(member_id)
+        if not mem:
+            raise ValueError(f"unknown member {member_id!r}")
+        scope = [e for e in self._scope_list(mem["scope"])
+                if not (isinstance(e, dict) and e.get("name") in self.CAPTURE_CAPABILITY_NAMES)]
+        scope.extend({"name": name, "type": "tool", "tier": "specialty"}
+                    for name in capability_names)
+        self._conn.execute(
+            "UPDATE member SET scope=?, updated_at=? WHERE member_id=?",
+            (json.dumps(scope), _now(), member_id))
+        self._conn.commit()
 
     def update_health(self, member_id: str, **fields):
         mem = self.get_member(member_id)

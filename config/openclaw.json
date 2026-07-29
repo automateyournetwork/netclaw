@@ -992,6 +992,57 @@
         "REDHAT_USERNAME": "${REDHAT_USERNAME:-}",
         "REDHAT_PASSWORD": "${REDHAT_PASSWORD:-}"
       }
+    },
+    "auvik-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/auvik-mcp/auvik_mcp_server.py"
+      ],
+      "env": {
+        "AUVIK_USERNAME": "${AUVIK_USERNAME}",
+        "AUVIK_API_KEY": "${AUVIK_API_KEY}",
+        "AUVIK_BASE_URL": "${AUVIK_BASE_URL:-https://auvikapi.us1.my.auvik.com}",
+        "AUVIK_VERIFY_SSL": "${AUVIK_VERIFY_SSL:-true}",
+        "AUVIK_TIMEOUT": "${AUVIK_TIMEOUT:-30}",
+        "AUVIK_RATE_LIMIT": "${AUVIK_RATE_LIMIT:-600}",
+        "AUVIK_MAX_PAGES": "${AUVIK_MAX_PAGES:-50}"
+      }
+    },
+    "halo-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/halo-mcp/halo_mcp_server.py"
+      ],
+      "env": {
+        "HALO_BASE_URL": "${HALO_BASE_URL}",
+        "HALO_TENANT": "${HALO_TENANT:-}",
+        "HALO_CLIENT_ID": "${HALO_CLIENT_ID}",
+        "HALO_CLIENT_SECRET": "${HALO_CLIENT_SECRET}",
+        "HALO_SCOPE": "${HALO_SCOPE:-all}",
+        "HALO_VERIFY_SSL": "${HALO_VERIFY_SSL:-true}",
+        "HALO_TIMEOUT": "${HALO_TIMEOUT:-30}",
+        "HALO_PAGE_SIZE": "${HALO_PAGE_SIZE:-50}",
+        "HALO_MAX_PAGES": "${HALO_MAX_PAGES:-20}"
+      }
+    },
+    "memory-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/memory-mcp/memory_mcp_server.py"
+      ],
+      "env": {
+        "MEMORY_DATA_DIR": "${MEMORY_DATA_DIR:-~/.openclaw/memory}"
+      }
+    },
+    "gait-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/gait-stdio.py"
+      ]
     }
   },
   "models": {

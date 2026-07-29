@@ -682,6 +682,27 @@ html.reduced-motion .scan-beam {
   gap: 6px;
 }
 
+.canvas-chat-link {
+  border: 1px solid rgba(101, 195, 255, 0.4);
+  border-radius: 8px;
+  padding: 4px 10px;
+  color: var(--accent);
+  background: rgba(101, 195, 255, 0.08);
+  font-family: 'IBM Plex Mono', monospace;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  line-height: 1.35;
+  text-decoration: none;
+  text-transform: uppercase;
+  transition: background 0.2s, border-color 0.2s;
+}
+
+.canvas-chat-link:hover {
+  border-color: rgba(101, 195, 255, 0.75);
+  background: rgba(101, 195, 255, 0.16);
+}
+
 .new-session-btn {
   background: rgba(255, 75, 75, 0.1);
   border: 1px solid rgba(255, 75, 75, 0.35);
@@ -1837,3 +1858,78 @@ html.reduced-motion .scan-beam {
   color: #f0abfc; border-radius: 4px; padding: 6px 12px; font-size: 11px; cursor: pointer;
 }
 .n2n-chat-input button:hover { background: rgba(224,64,251,0.5); }
+
+/* ── HUD 2.0: top-down trust org chart (feature 072) ───────────────────── */
+
+/* Legend (FR-009c). Shapes carry the distinction alongside colour so the
+   encoding survives greyscale (SC-007). */
+.legend-list { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.9; }
+.legend-list b { font-weight: 600; }
+.legend-swatch { display: inline-block; width: 1.1em; text-align: center; margin-right: 4px; }
+.legend-hot   { color: #4dff9b; }
+.legend-warm  { color: #86bdf5; }
+.legend-cold  { color: #5f6d80; }
+.legend-fault { color: #ff7a7a; }
+
+/* Band and boundary labels drawn into the scene via CSS2D. */
+.band-label {
+  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
+  color: rgba(180, 205, 235, 0.55); white-space: nowrap; pointer-events: none;
+}
+.band-label-boundary { color: rgba(255, 200, 87, 0.9); font-weight: 600; letter-spacing: 0.26em; }
+.band-label-edge { color: rgba(230, 87, 51, 0.85); }
+
+/* Empty-band copy (FR-033a): must read as "nothing here yet", never as a
+   failed load. */
+.band-empty {
+  font-size: 11px; color: rgba(150, 175, 205, 0.5); font-style: italic;
+  white-space: nowrap; pointer-events: none; text-align: center;
+}
+
+/* Fixture-mode banner (FR-033c): synthetic data must never be mistakable for
+   this Border's real topology. */
+#fixture-banner {
+  position: fixed; top: 0; left: 50%; transform: translateX(-50%);
+  z-index: 9999; padding: 4px 14px;
+  background: repeating-linear-gradient(45deg, #b45309, #b45309 8px, #92400e 8px, #92400e 16px);
+  color: #fff; font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  border-radius: 0 0 6px 6px; pointer-events: none;
+}
+
+/* Tool overlay revealed on click (FR-020..025). Overlays rather than claiming
+   layout space, so expanding never reflows a sibling (FR-022). */
+.tool-header {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  color: #cfe6ff; background: rgba(8, 16, 28, 0.92);
+  border: 1px solid rgba(120, 190, 255, 0.45); border-radius: 4px;
+  padding: 2px 8px; white-space: nowrap; pointer-events: none;
+}
+.tool-item {
+  font-size: 10px; color: #a9c8e8; background: rgba(8, 16, 28, 0.85);
+  border-left: 2px solid rgba(120, 190, 255, 0.5);
+  padding: 1px 7px; white-space: nowrap; pointer-events: none;
+}
+/* Cold claws expand too — what a cold claw would bring is what decides
+   whether to warm it (FR-025). */
+.tool-item-cold { color: #8fa3b8; border-left-color: rgba(125, 142, 163, 0.55); }
+.tool-more { font-style: italic; color: #7d94ad; }
+
+/* Accessibility overlay (FR-032). Visually unobtrusive but a real, focusable
+   DOM tree over the canvas — a WebGL surface exposes nothing to a keyboard or
+   a screen reader on its own. */
+#orgchart-a11y {
+  position: absolute; inset: 0; pointer-events: none; z-index: 5;
+}
+#orgchart-a11y .a11y-node {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); border: 0; background: transparent;
+  color: inherit; font: inherit; pointer-events: auto;
+}
+/* Focus must be visible — an invisible focus ring is not keyboard access. */
+#orgchart-a11y .a11y-node:focus-visible {
+  position: static; width: auto; height: auto; margin: 8px; padding: 6px 12px;
+  clip-path: none; overflow: visible;
+  background: rgba(8, 16, 28, 0.97); color: #dceeff;
+  border: 2px solid #ffd97a; border-radius: 5px;
+  font-size: 12px; z-index: 60;
+}

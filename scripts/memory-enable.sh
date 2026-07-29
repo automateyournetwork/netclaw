@@ -14,7 +14,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 OPENCLAW_DIR="${HOME}/.openclaw"
 MEMORY_DIR="${OPENCLAW_DIR}/memory"
-CONFIG_FILE="${OPENCLAW_DIR}/config/openclaw.json"
+CONFIG_FILE="${OPENCLAW_DIR}/openclaw.json"
 
 echo "=== Memory MCP Server Enable Script ==="
 echo ""

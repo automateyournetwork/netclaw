@@ -15,37 +15,10 @@ const ROOT = path.resolve(__dirname, '../..');
 const app = express();
 
 app.use(cors());
-app.use(express.json());
-
-// H004 — service worker must be no-cache and scoped to origin root
-app.get('/sw.js', (req, res) => {
-  res.set({
-    'Content-Type': 'application/javascript; charset=utf-8',
-    'Cache-Control': 'no-cache, no-store, must-revalidate',
-    'Service-Worker-Allowed': '/',
-  });
-  res.sendFile(path.join(__dirname, 'dist', 'sw.js'), (err) => {
-    if (err) {
-      // Dev fallback: public/ before vite build
-      res.sendFile(path.join(__dirname, 'public', 'sw.js'), (err2) => {
-        if (err2) res.status(404).send('// sw.js not found — run npm run build');
-      });
-    }
-  });
-});
-
-app.get('/manifest.webmanifest', (req, res) => {
-  res.set({
-    'Content-Type': 'application/manifest+json; charset=utf-8',
-    'Cache-Control': 'no-cache',
-  });
-  const distPath = path.join(__dirname, 'dist', 'manifest.webmanifest');
-  const pubPath = path.join(__dirname, 'public', 'manifest.webmanifest');
-  res.sendFile(fs.existsSync(distPath) ? distPath : pubPath);
-});
-
-// Serve the frontend static files (dist/ built from src/)
-app.use(express.static(path.join(__dirname, 'dist')));
+// The branching canvas can include a compact image or an attached text file in
+// its context. Keep the cap explicit so those requests work without making the
+// API an unbounded JSON sink.
+app.use(express.json({ limit: '4mb' }));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
@@ -73,6 +46,7 @@ const INTEGRATION_CATALOG = [
   { id: 'gitlab', name: 'GitLab', category: 'Governance', prefixes: ['gitlab-'], color: '#e24329', transport: 'npx', toolEstimate: 98, description: 'GitLab DevOps: issues, merge requests, pipelines, repos, wikis, labels, milestones, releases.' },
   { id: 'jenkins', name: 'Jenkins', category: 'Governance', prefixes: ['jenkins-'], color: '#d33833', transport: 'http', toolEstimate: 16, description: 'Jenkins CI/CD: job monitoring, build triggering, log analysis, SCM tracking, pipeline runs.' },
   { id: 'atlassian', name: 'Atlassian', category: 'Governance', prefixes: ['atlassian-'], color: '#0052cc', transport: 'uvx', toolEstimate: 72, description: 'Atlassian ITSM: Jira issues, transitions, comments, projects, links; Confluence pages, comments, spaces.' },
+  { id: 'halo', name: 'HaloPSA / HaloITSM', category: 'Governance', prefixes: ['halo-'], color: '#1a7f8c', transport: 'stdio', toolEstimate: 18, description: 'HaloPSA/HaloITSM: open change requests (gated confirm-before-submit) and review assets and their related tickets for context.' },
   { id: 'meraki', name: 'Meraki', category: 'Network Platforms', prefixes: ['meraki-'], color: '#9b5de5', transport: 'stdio', toolEstimate: 804, description: 'Dashboard inventory, wireless, switching, and security appliance control.' },
   { id: 'sdwan', name: 'SD-WAN', category: 'Network Platforms', prefixes: ['sdwan-'], color: '#8d99ae', transport: 'stdio', toolEstimate: 12, description: 'vManage monitoring and WAN-state workflows.' },
   { id: 'nso', name: 'Cisco NSO', category: 'Network Platforms', prefixes: ['nso-'], color: '#4361ee', transport: 'stdio', toolEstimate: 18, description: 'Service and device orchestration.' },
@@ -123,6 +97,7 @@ const INTEGRATION_CATALOG = [
   { id: 'zscaler', name: 'Zscaler', category: 'Security', prefixes: ['zscaler-'], color: '#0090d4', transport: 'http', toolEstimate: 300, description: 'Zero Trust security — ZIA (SWG), ZPA (ZTNA), ZDX (DEM), identity management, and security insights.' },
   { id: 'cloudflare', name: 'Cloudflare', category: 'Edge Platform', prefixes: ['cloudflare-'], color: '#f48120', transport: 'http', toolEstimate: 50, description: 'Edge platform — DNS analytics, WAF/DDoS security, Zero Trust access, traffic analytics, and Workers compute.' },
   { id: 'checkpoint', name: 'Check Point', category: 'Security', prefixes: ['checkpoint-', 'chkp-'], color: '#e21d38', transport: 'stdio', toolEstimate: 60, description: 'Enterprise security — 15 MCPs for policy management, threat intelligence, gateway diagnostics, SASE, threat prevention, malware analysis, HTTPS inspection, and exposure management.' },
+  { id: 'auvik', name: 'Auvik', category: 'Observability', prefixes: ['auvik-'], color: '#0a9396', transport: 'stdio', toolEstimate: 20, description: 'Read-only Auvik network monitoring — inventory, alerts, lifecycle/warranty, and performance statistics across MSP tenants.' },
   { id: 'claroty', name: 'Claroty xDome', category: 'Security', prefixes: ['claroty-'], color: '#00a3a3', transport: 'stdio', toolEstimate: 21, description: 'OT / IoT / IoMT visibility — asset discovery, Purdue Model classification, alert and vulnerability triage, communication-map topology, all writes ITSM-gated.' },
   { id: 'threejs-viz', name: 'Three.js Network Viz', category: 'Visualization', prefixes: ['threejs-network-viz'], color: '#049ef4', transport: 'stdio', toolEstimate: 3, description: 'Browser-based 3D network topology visualization — single self-contained HTML file, no desktop app/GPU/server required. Optional real-3D-model stencil mode via the vendored sketchfab-mcp-server (3 tools: search, model-details/license-verification, download), filtered to CC0-licensed models only.' },
   { id: 'chrome-devtools', name: 'Chrome DevTools', category: 'Browser Automation', prefixes: ['chrome-devtools-', 'browser-viz-verify', 'browser-gui-inspect'], color: '#4285f4', transport: 'npx', toolEstimate: 20, description: 'Controlled browser automation/inspection — visualization render QA, controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile.' },
@@ -221,6 +196,11 @@ const ENV_MAP = {
     env: ['JIRA_URL', 'JIRA_USERNAME', 'JIRA_API_TOKEN', 'CONFLUENCE_URL', 'CONFLUENCE_USERNAME', 'CONFLUENCE_API_TOKEN'],
     files: [],
     notes: 'Atlassian Cloud: API token from id.atlassian.com. Server/DC: Personal Access Token. At least one product (Jira or Confluence) required.',
+  },
+  halo: {
+    env: ['HALO_BASE_URL', 'HALO_CLIENT_ID', 'HALO_CLIENT_SECRET', 'HALO_TENANT', 'HALO_SCOPE'],
+    files: [],
+    notes: 'HaloPSA/HaloITSM OAuth2 client-credentials. Create an API application in Halo (Configuration > Integrations > Halo API). HALO_BASE_URL is the tenant host, e.g. https://<tenant>.halopsa.com.',
   },
   meraki: {
     env: ['MERAKI_API_KEY', 'MERAKI_ORG_ID', 'ENABLE_CACHING', 'CACHE_TTL_SECONDS', 'READ_ONLY_MODE'],
@@ -453,6 +433,11 @@ const ENV_MAP = {
     env: ['CHKP_MGMT_HOST', 'CHKP_MGMT_PORT', 'CHKP_MGMT_API_KEY', 'CHKP_MGMT_USERNAME', 'CHKP_MGMT_PASSWORD', 'CHKP_MGMT_DOMAIN', 'CHKP_S1C_API_KEY', 'CHKP_S1C_URL', 'CHKP_REPUTATION_API_KEY', 'CHKP_SASE_API_KEY', 'CHKP_SASE_MGMT_HOST', 'CHKP_TE_API_KEY', 'CHKP_SPARK_API_KEY', 'CHKP_ARGOS_API_KEY', 'CHKP_TELEMETRY_DISABLED', 'CHKP_LOG_LEVEL'],
     files: ['mcp-servers/checkpoint-mcp-servers/'],
     notes: 'Check Point Security (15 MCPs). Management Server requires CHKP_MGMT_HOST + API key or username/password. Additional keys for SASE, Threat Emulation, Reputation, Spark, Argos. Enable with ./scripts/checkpoint-enable.sh',
+  },
+  auvik: {
+    env: ['AUVIK_USERNAME', 'AUVIK_API_KEY', 'AUVIK_BASE_URL'],
+    files: [],
+    notes: 'Auvik user email + API key (HTTP Basic). AUVIK_BASE_URL defaults to the us1 cluster; override for other regions.',
   },
   claroty: {
     env: ['CLAROTY_API_URL', 'CLAROTY_API_TOKEN', 'CLAROTY_VERIFY_SSL', 'CLAROTY_TIMEOUT', 'CLAROTY_RATE_LIMIT_PER_MIN', 'NETCLAW_LAB_MODE'],
@@ -747,69 +732,6 @@ function parseConfig() {
   }
 }
 
-/**
- * Resolve ${VAR} / $VAR placeholders against OpenClaw .env + process.env.
- * Leaves unknown placeholders unchanged so misconfig is still visible.
- */
-function resolveEnvTemplates(value, envMap) {
-  if (value == null) return value;
-  if (typeof value === 'string') {
-    // ${NAME} form (OpenClaw / NetClaw brain model style)
-    let out = value.replace(/\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name) => {
-      if (envMap && envMap[name] != null && String(envMap[name]).length) return String(envMap[name]);
-      if (process.env[name] != null && String(process.env[name]).length) return String(process.env[name]);
-      return match;
-    });
-    // bare $NAME (common shell style) — only when whole token-ish
-    out = out.replace(/(?<![A-Za-z0-9_])\$([A-Za-z_][A-Za-z0-9_]*)\b/g, (match, name) => {
-      if (envMap && envMap[name] != null && String(envMap[name]).length) return String(envMap[name]);
-      if (process.env[name] != null && String(process.env[name]).length) return String(process.env[name]);
-      return match;
-    });
-    return out;
-  }
-  if (Array.isArray(value)) return value.map((v) => resolveEnvTemplates(v, envMap));
-  if (typeof value === 'object') {
-    const out = {};
-    for (const [k, v] of Object.entries(value)) {
-      out[k] = resolveEnvTemplates(v, envMap);
-    }
-    return out;
-  }
-  return value;
-}
-
-/** Shorten provider/model ids for HUD chrome (anthropic/claude-… → claude-…). */
-function displayModelId(raw) {
-  if (raw == null || raw === '') return 'unknown';
-  const s = String(raw).trim();
-  if (!s) return 'unknown';
-  // Still a template → surface clearly so operators know env is missing
-  if (/\$\{[A-Za-z_][A-Za-z0-9_]*\}/.test(s) || /^\$[A-Za-z_]/.test(s)) {
-    return s;
-  }
-  return s.replace(/^[a-z0-9._-]+\//i, '');
-}
-
-/**
- * Return config with agents.defaults.model (and only that subtree) env-resolved
- * for client display — avoids expanding unrelated secret templates into the browser.
- */
-function configForClient(config) {
-  const envMap = parseEnvFile();
-  const copy = config && typeof config === 'object' ? { ...config } : {};
-  if (copy.agents && typeof copy.agents === 'object') {
-    copy.agents = { ...copy.agents };
-    if (copy.agents.defaults && typeof copy.agents.defaults === 'object') {
-      copy.agents.defaults = { ...copy.agents.defaults };
-      if (copy.agents.defaults.model != null) {
-        copy.agents.defaults.model = resolveEnvTemplates(copy.agents.defaults.model, envMap);
-      }
-    }
-  }
-  return copy;
-}
-
 function parseIdentity() {
   const raw = readText(IDENTITY_FILE) || readText(SOUL_FILE);
   return {
@@ -846,21 +768,12 @@ function buildIntegrations(skills) {
 }
 
 function buildSettings(config, devices) {
-  const envMap = parseEnvFile();
-  const modelBlock = resolveEnvTemplates(config?.agents?.defaults?.model || {}, envMap);
-  const modelPrimary = modelBlock?.primary || config?.agents?.defaults?.model?.primary || 'unknown';
-  const modelFallbacks = Array.isArray(modelBlock?.fallbacks)
-    ? modelBlock.fallbacks
-    : (config?.agents?.defaults?.model?.fallbacks || []);
+  const modelPrimary = config?.agents?.defaults?.model?.primary || 'unknown';
+  const modelFallbacks = config?.agents?.defaults?.model?.fallbacks || [];
   return [
     { label: 'Gateway Mode', value: config?.gateway?.mode || 'unknown' },
-    { label: 'Primary Model', value: displayModelId(modelPrimary) },
-    {
-      label: 'Fallback Models',
-      value: modelFallbacks.length
-        ? modelFallbacks.map((m) => displayModelId(m)).join(', ')
-        : 'none',
-    },
+    { label: 'Primary Model', value: modelPrimary.replace('anthropic/', '') },
+    { label: 'Fallback Models', value: modelFallbacks.length ? modelFallbacks.join(', ').replaceAll('anthropic/', '') : 'none' },
     { label: 'Workspace', value: config?.agents?.defaults?.workspace || 'unknown' },
     { label: 'Command Mode', value: config?.commands?.native || 'unknown' },
     { label: 'Devices in Testbed', value: String(devices.length) },
@@ -869,8 +782,7 @@ function buildSettings(config, devices) {
 
 function buildGraph() {
   const identity = parseIdentity();
-  const configRaw = parseConfig();
-  const config = configForClient(configRaw);
+  const config = parseConfig();
   const skills = parseSkills();
   const devices = parseDevices();
   const integrations = buildIntegrations(skills);
@@ -885,7 +797,7 @@ function buildGraph() {
   return {
     identity,
     config,
-    settings: buildSettings(configRaw, devices),
+    settings: buildSettings(config, devices),
     integrations,
     skills,
     devices,
@@ -905,76 +817,6 @@ export { buildGraph };
 
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'netclaw-visual-api', generatedAt: new Date().toISOString() });
-});
-
-// ── 067-convergence: proxy HOME tab → convergence-api / Network Guardian (dual-run) ──
-// Prefer CONVERGENCE_API_*; aliases HOME_API_* and NETWORK_GUARDIAN_* for dual-run / legacy.
-function homeApiConfig() {
-  const env = { ...parseEnvFile(), ...process.env };
-  const base = (
-    env.CONVERGENCE_API_URL
-    || env.HOME_API_URL
-    || env.NETWORK_GUARDIAN_URL
-    || ''
-  ).replace(/\/$/, '');
-  const token = (
-    env.CONVERGENCE_API_TOKEN
-    || env.HOME_API_TOKEN
-    || env.NETWORK_GUARDIAN_TOKEN
-    || ''
-  );
-  return { base, token };
-}
-
-app.get('/api/home/status', (req, res) => {
-  const { base, token } = homeApiConfig();
-  res.json({
-    configured: Boolean(base && token),
-    base: base || null,
-    tokenConfigured: Boolean(token),
-    dualRun: Boolean(base && /network-guardian|guardian/i.test(base)),
-  });
-});
-
-// Mount: browser → /api/home/health?site=home → upstream /api/health?site=home
-app.use('/api/home', async (req, res, next) => {
-  // Let /api/home/status fall through if not already handled (GET only above)
-  if (req.path === '/status' || req.path === 'status') return next();
-
-  const { base, token } = homeApiConfig();
-  if (!base) {
-    return res.status(503).json({
-      error: 'Convergence API not configured',
-      hint: 'Set CONVERGENCE_API_URL + CONVERGENCE_API_TOKEN (aliases: HOME_API_* or NETWORK_GUARDIAN_*) in ~/.openclaw/.env',
-    });
-  }
-  // req.url is relative to mount, e.g. /health?site=home
-  const rel = req.url.startsWith('/') ? req.url : `/${req.url}`;
-  const url = `${base}/api${rel}`;
-  try {
-    const headers = {
-      Accept: 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const hasBody = !['GET', 'HEAD'].includes(req.method) && req.body && Object.keys(req.body).length > 0;
-    if (hasBody) headers['Content-Type'] = 'application/json';
-    const upstream = await fetch(url, {
-      method: req.method,
-      headers,
-      body: hasBody ? JSON.stringify(req.body) : undefined,
-      signal: AbortSignal.timeout(20000),
-    });
-    const text = await upstream.text();
-    res.status(upstream.status);
-    res.setHeader('Content-Type', upstream.headers.get('content-type') || 'application/json');
-    res.send(text);
-  } catch (err) {
-    res.status(502).json({
-      error: 'Home API unreachable',
-      detail: err.message,
-      target: base,
-    });
-  }
 });
 
 app.get('/api/graph', (req, res) => {
@@ -1151,11 +993,27 @@ async function fetchN2NState() {
       }
     } catch { /* replication optional (pre-065 daemon) */ }
 
+    // 066: NetClaw Mobile edge nodes are just members with node_type='edge'
+    // (already present in `members` above) and their recent pushes are just
+    // audit rows with target_type='edge_push' — reuse the existing queries
+    // rather than adding new endpoints.
+    const edgeNodes = members.filter((m) => m.node_type === 'edge');
+    let recentPushes = [];
+    try {
+      const aRes = await fetch(`${BGP_API}/n2n/audit`, { signal: AbortSignal.timeout(3000) });
+      if (aRes.ok) {
+        const records = (await aRes.json()).records || [];
+        recentPushes = records.filter((r) => r.target_type === 'edge_push');
+      }
+    } catch { /* edge push audit optional (pre-066 daemon) */ }
+
     return { available: true, identity: status.identity, peers, approvals,
-             risk, members, posture, gait, replicationJobs, generatedAt: new Date().toISOString() };
+             risk, members, posture, gait, replicationJobs, edgeNodes, recentPushes,
+             generatedAt: new Date().toISOString() };
   } catch {
     return { available: false, peers: [], risk: null, members: [],
-             replicationJobs: [], generatedAt: new Date().toISOString() };
+             replicationJobs: [], edgeNodes: [], recentPushes: [],
+             generatedAt: new Date().toISOString() };
   }
 }
 
@@ -1179,164 +1037,37 @@ app.post('/api/n2n/chat', async (req, res) => {
   }
 });
 
-// ── Token usage (Prometheus exporter :9110 + last chat turn) ─────
-// Backs the HUD footer strip. Source: openclaw-token-exporter scrape
-// of ~/.openclaw/agents/*/sessions/*.jsonl (same counters as Grafana).
-const TOKEN_EXPORTER_URL =
-  process.env.TOKEN_EXPORTER_URL || 'http://127.0.0.1:9110/metrics';
-
-let _lastChatUsage = null; // { input, output, total, model, at }
-
-function parsePromCounters(text) {
-  const byModel = new Map(); // model -> { input, output, cost, calls, provider }
-  let totalIn = 0;
-  let totalOut = 0;
-  let totalCost = 0;
-  let totalCalls = 0;
-  for (const line of String(text || '').split('\n')) {
-    if (!line || line.startsWith('#')) continue;
-    const m = line.match(
-      /^(netclaw_model_(?:input_tokens|output_tokens|cost_usd|calls)_total)\{([^}]*)\}\s+([0-9.eE+-]+)/,
-    );
-    if (!m) continue;
-    const [, metric, labels, valStr] = m;
-    const val = parseFloat(valStr);
-    if (!Number.isFinite(val)) continue;
-    const lab = {};
-    for (const part of labels.split(',')) {
-      const eq = part.indexOf('=');
-      if (eq < 1) continue;
-      lab[part.slice(0, eq)] = part.slice(eq + 1).replace(/^"|"$/g, '');
-    }
-    const model = lab.model || 'unknown';
-    const provider = lab.provider || 'unknown';
-    const row = byModel.get(model) || {
-      model,
-      provider,
-      input: 0,
-      output: 0,
-      cost: 0,
-      calls: 0,
-    };
-    if (metric.includes('input_tokens')) {
-      row.input = val;
-      totalIn += val;
-    } else if (metric.includes('output_tokens')) {
-      row.output = val;
-      totalOut += val;
-    } else if (metric.includes('cost_usd')) {
-      row.cost = val;
-      totalCost += val;
-    } else if (metric.includes('calls_total')) {
-      row.calls = val;
-      totalCalls += val;
-    }
-    byModel.set(model, row);
-  }
-  // Prefer summing unique models once (input/output counted above may double-count
-  // if we add every metric line — recompute from map)
-  totalIn = 0;
-  totalOut = 0;
-  totalCost = 0;
-  totalCalls = 0;
-  const models = [...byModel.values()].sort((a, b) => b.input - a.input);
-  for (const r of models) {
-    totalIn += r.input || 0;
-    totalOut += r.output || 0;
-    totalCost += r.cost || 0;
-    totalCalls += r.calls || 0;
-  }
-  return { models, totalIn, totalOut, totalCost, totalCalls };
-}
-
-app.get('/api/tokens/summary', async (req, res) => {
-  let exporter = null;
-  let exporterError = null;
-  try {
-    const r = await fetch(TOKEN_EXPORTER_URL, { signal: AbortSignal.timeout(2500) });
-    if (!r.ok) throw new Error(`exporter HTTP ${r.status}`);
-    const text = await r.text();
-    exporter = parsePromCounters(text);
-  } catch (err) {
-    exporterError = err.message;
-  }
-
-  // NetClaw-owned token optimization flags (NOT openclaw.json — OpenClaw schema rejects unknown keys)
-  let tokenOptimization = null;
-  try {
-    const optPath = path.join(
-      process.env.HOME || '/root',
-      '.openclaw',
-      'netclaw-token-optimization.json',
-    );
-    tokenOptimization = JSON.parse(readText(optPath) || 'null');
-  } catch {
-    /* ignore */
-  }
-
-  const top = (exporter?.models || []).slice(0, 5).map((m) => ({
-    model: m.model,
-    provider: m.provider,
-    input: Math.round(m.input),
-    output: Math.round(m.output),
-    calls: Math.round(m.calls),
-  }));
-
-  res.json({
-    ok: !exporterError,
-    exporterError,
-    exporterUrl: TOKEN_EXPORTER_URL,
-    lifetime: exporter
-      ? {
-          input: Math.round(exporter.totalIn),
-          output: Math.round(exporter.totalOut),
-          costUsd: Math.round(exporter.totalCost * 10000) / 10000,
-          calls: Math.round(exporter.totalCalls),
-        }
-      : null,
-    topModels: top,
-    lastTurn: _lastChatUsage,
-    tokenOptimization: tokenOptimization
-      ? {
-          enabled: Boolean(tokenOptimization.enabled),
-          footerDisplay: tokenOptimization.footerDisplay || null,
-          gcfSerializationDefault: Boolean(tokenOptimization.gcfSerializationDefault),
-        }
-      : { enabled: false },
-    timestamp: new Date().toISOString(),
-  });
-});
-
 // ── Gateway status endpoint ───────────────────────────────────────
 app.get('/api/gateway/status', async (req, res) => {
   const gw = getGatewayConfig();
   try {
-    // Prefer lightweight /healthz (always on). Fall back to authenticated /v1/models
-    // when chatCompletions is enabled — proves the OpenAI-compatible path works.
-    const live = await fetch(`http://127.0.0.1:${gw.port}/healthz`, {
+    // The gateway's /v1 API requires the bearer token — without it we get 401
+    // and the HUD falsely shows "offline". Send the token like the chat call does.
+    const health = await fetch(`http://127.0.0.1:${gw.port}/v1/models`, {
+      headers: gw.token ? { 'Authorization': `Bearer ${gw.token}` } : {},
       signal: AbortSignal.timeout(2000),
     });
-    let chatApi = false;
-    if (live.ok && gw.token && !gw.token.includes('${')) {
-      try {
-        const models = await fetch(`http://127.0.0.1:${gw.port}/v1/models`, {
-          headers: { Authorization: `Bearer ${gw.token}` },
-          signal: AbortSignal.timeout(2000),
-        });
-        const ct = models.headers.get('content-type') || '';
-        chatApi = models.ok && ct.includes('json');
-      } catch {
-        chatApi = false;
-      }
-    }
+    const reachable = health.ok;
+    const online = reachable && gw.chatCompletionsEnabled;
     res.json({
-      online: live.ok,
-      chatApi,
+      online,
+      reachable,
+      chatCompletionsEnabled: gw.chatCompletionsEnabled,
       port: gw.port,
-      tokenConfigured: Boolean(gw.token && !String(gw.token).includes('${')),
+      reason: !reachable
+        ? 'gateway-unreachable'
+        : !gw.chatCompletionsEnabled
+          ? 'chat-completions-disabled'
+          : null,
     });
   } catch {
-    res.json({ online: false, chatApi: false, port: gw.port, tokenConfigured: false });
+    res.json({
+      online: false,
+      reachable: false,
+      chatCompletionsEnabled: gw.chatCompletionsEnabled,
+      port: gw.port,
+      reason: 'gateway-unreachable',
+    });
   }
 });
 
@@ -1384,213 +1115,6 @@ app.put('/api/env', (req, res) => {
   }
 });
 
-// ── Model SoT (067 Phase 9) — NETCLAW_BRAIN_MODEL / NETCLAW_ALERT_TRIAGE_MODEL ──
-// Operator edits live in repo .env (or via Convergence → Models), then apply projects
-// into ~/.openclaw/openclaw.json + gateway.systemd.env and restarts the gateway.
-const APPLY_MODELS_SCRIPT = path.join(ROOT, 'scripts', 'netclaw-apply-models.sh');
-const MODEL_ENV_KEYS = [
-  'NETCLAW_BRAIN_MODEL',
-  'NETCLAW_ALERT_TRIAGE_MODEL',
-  'NETCLAW_ALERT_FALLBACK_MODEL',
-  'OLLAMA_BASE_URL',
-  'OLLAMA_API_KEY',
-];
-
-function readOpenclawModelsLive() {
-  try {
-    const raw = readText(path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json'));
-    if (!raw) return {};
-    const d = JSON.parse(raw);
-    const defaults = d?.agents?.defaults?.model || {};
-    let alertAgent = null;
-    for (const a of d?.agents?.list || []) {
-      if (a?.id === 'alert') alertAgent = a.model || null;
-    }
-    let hookAlert = null;
-    for (const m of d?.hooks?.mappings || []) {
-      if (m?.match?.path === 'alert') {
-        hookAlert = { model: m.model || null, agentId: m.agentId || null };
-      }
-    }
-    return {
-      defaultsPrimary: defaults.primary || null,
-      alertAgent,
-      hookAlert,
-    };
-  } catch {
-    return {};
-  }
-}
-
-function writeModelEnvKeys(updates) {
-  // Prefer repo .env as operator SoT; also mirror into ~/.openclaw/.env
-  const targets = [ROOT_ENV];
-  if (fs.existsSync(OPENCLAW_ENV) || fs.existsSync(path.dirname(OPENCLAW_ENV))) {
-    targets.push(OPENCLAW_ENV);
-  }
-  for (const targetFile of targets) {
-    let text = readText(targetFile);
-    if (!text) text = '';
-    for (const [key, value] of Object.entries(updates)) {
-      if (value == null || value === '') continue;
-      if (!MODEL_ENV_KEYS.includes(key) && !key.startsWith('NETCLAW_') && !key.startsWith('OLLAMA_')) {
-        continue;
-      }
-      const regex = new RegExp(`^${key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\s*=.*$`, 'm');
-      const newLine = `${key}=${value}`;
-      if (regex.test(text)) text = text.replace(regex, newLine);
-      else text = `${text.trimEnd()}\n${newLine}\n`;
-    }
-    try {
-      fs.mkdirSync(path.dirname(targetFile), { recursive: true });
-      fs.writeFileSync(targetFile, text, 'utf8');
-    } catch (err) {
-      console.warn(`[models] write ${targetFile}: ${err.message}`);
-    }
-  }
-}
-
-function runApplyModels({ restart = true } = {}) {
-  return new Promise((resolve, reject) => {
-    if (!fs.existsSync(APPLY_MODELS_SCRIPT)) {
-      reject(new Error(`Missing ${APPLY_MODELS_SCRIPT}`));
-      return;
-    }
-    const args = ['apply'];
-    if (!restart) args.push('--no-restart');
-    execFile(
-      APPLY_MODELS_SCRIPT,
-      args,
-      {
-        cwd: ROOT,
-        env: { ...process.env, NETCLAW_DIR: ROOT, NETCLAW_ENV_FILE: ROOT_ENV },
-        timeout: 120000,
-        maxBuffer: 2 * 1024 * 1024,
-      },
-      (err, stdout, stderr) => {
-        if (err) {
-          err.stdout = stdout;
-          err.stderr = stderr;
-          reject(err);
-          return;
-        }
-        resolve({ stdout: String(stdout || ''), stderr: String(stderr || '') });
-      },
-    );
-  });
-}
-
-app.get('/api/models', (req, res) => {
-  const env = parseEnvFile();
-  // Prefer repo .env values for display when both set
-  const rootEnv = parseOneEnvFile(ROOT_ENV);
-  const brain = rootEnv.NETCLAW_BRAIN_MODEL || env.NETCLAW_BRAIN_MODEL || '';
-  const alert = rootEnv.NETCLAW_ALERT_TRIAGE_MODEL || env.NETCLAW_ALERT_TRIAGE_MODEL || '';
-  const fallback = rootEnv.NETCLAW_ALERT_FALLBACK_MODEL || env.NETCLAW_ALERT_FALLBACK_MODEL || '';
-  const live = readOpenclawModelsLive();
-  res.json({
-    sot: {
-      file: ROOT_ENV,
-      brain,
-      alert,
-      fallback,
-      ollamaBaseUrl: rootEnv.OLLAMA_BASE_URL || env.OLLAMA_BASE_URL || '',
-      ollamaKeySet: Boolean(rootEnv.OLLAMA_API_KEY || env.OLLAMA_API_KEY),
-    },
-    live,
-    presets: {
-      local: {
-        brain: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
-        alert: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
-        fallback: '',
-      },
-      'cloud-flash': {
-        brain: 'ollama/deepseek-v4-flash:cloud',
-        alert: 'ollama/deepseek-v4-flash:cloud',
-        fallback: 'ollama/glm-5.2:cloud',
-      },
-      split: {
-        brain: 'ollama/voytas26/openclaw-qwen3vl-8b-opt',
-        alert: 'ollama/deepseek-v4-flash:cloud',
-        fallback: 'ollama/glm-5.2:cloud',
-      },
-      anthropic: {
-        brain: 'anthropic/claude-sonnet-5',
-        alert: 'anthropic/claude-haiku-4-5-20251001',
-        fallback: '',
-      },
-    },
-    applyScript: 'scripts/netclaw-apply-models.sh',
-    generatedAt: new Date().toISOString(),
-  });
-});
-
-app.post('/api/models', async (req, res) => {
-  try {
-    const body = req.body || {};
-    const restart = body.restart !== false;
-    const preset = body.preset ? String(body.preset) : null;
-
-    if (preset) {
-      await new Promise((resolve, reject) => {
-        const args = ['preset', preset];
-        if (!restart) args.push('--no-restart');
-        execFile(
-          APPLY_MODELS_SCRIPT,
-          args,
-          {
-            cwd: ROOT,
-            env: { ...process.env, NETCLAW_DIR: ROOT, NETCLAW_ENV_FILE: ROOT_ENV },
-            timeout: 120000,
-            maxBuffer: 2 * 1024 * 1024,
-          },
-          (err, stdout, stderr) => {
-            if (err) {
-              err.stdout = stdout;
-              err.stderr = stderr;
-              reject(err);
-              return;
-            }
-            resolve({ stdout, stderr });
-          },
-        );
-      });
-    } else {
-      const updates = {};
-      if (body.brain) updates.NETCLAW_BRAIN_MODEL = String(body.brain).trim();
-      if (body.alert) updates.NETCLAW_ALERT_TRIAGE_MODEL = String(body.alert).trim();
-      if (body.fallback != null && body.fallback !== '') {
-        updates.NETCLAW_ALERT_FALLBACK_MODEL = String(body.fallback).trim();
-      }
-      if (body.ollamaBaseUrl) updates.OLLAMA_BASE_URL = String(body.ollamaBaseUrl).trim();
-      if (!Object.keys(updates).length) {
-        return res.status(400).json({
-          error: 'Expected { brain, alert } or { preset: "local"|"cloud-flash"|"split" }',
-        });
-      }
-      writeModelEnvKeys(updates);
-      await runApplyModels({ restart });
-    }
-
-    broadcastWS('config:updated', {
-      keys: ['NETCLAW_BRAIN_MODEL', 'NETCLAW_ALERT_TRIAGE_MODEL'],
-      generatedAt: new Date().toISOString(),
-    });
-    res.json({
-      ok: true,
-      restarted: restart,
-      sot: parseOneEnvFile(ROOT_ENV),
-      live: readOpenclawModelsLive(),
-    });
-  } catch (err) {
-    console.error('[models] apply failed:', err.message, err.stderr || '');
-    res.status(500).json({
-      error: err.message || 'apply failed',
-      detail: String(err.stderr || err.stdout || '').slice(0, 2000),
-    });
-  }
-});
-
 // ── Testbed device config ──────────────────────────────────────────
 app.get('/api/testbed/raw', (req, res) => {
   res.type('text/yaml').send(readText(TESTBED_FILE) || '# No testbed found');
@@ -1614,51 +1138,93 @@ app.put('/api/testbed/raw', (req, res) => {
 // Proxies to the running OpenClaw gateway, falling back to a local
 // heuristic response if the gateway is unavailable.
 const chatHistory = [];
+const CHAT_CONTEXT_LIMIT = 40;
 
-// Read OpenClaw gateway config for auth (expand ${OPENCLAW_GATEWAY_TOKEN} from .env)
+function normalizeChatContent(content) {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return null;
+
+  const parts = content.flatMap((part) => {
+    if (!part || typeof part !== 'object') return [];
+    if (part.type === 'text' && typeof part.text === 'string') {
+      return [{ type: 'text', text: part.text }];
+    }
+    const imageUrl = part.type === 'image_url' && part.image_url?.url;
+    if (typeof imageUrl === 'string') {
+      return [{ type: 'image_url', image_url: { url: imageUrl } }];
+    }
+    return [];
+  });
+
+  return parts.length ? parts : null;
+}
+
+function normalizeChatContext(messages) {
+  if (!Array.isArray(messages)) return null;
+
+  const normalized = messages.slice(-CHAT_CONTEXT_LIMIT).flatMap((entry) => {
+    if (!entry || (entry.role !== 'user' && entry.role !== 'assistant')) return [];
+    const content = normalizeChatContent(entry.content);
+    return content == null ? [] : [{ role: entry.role, content }];
+  });
+
+  return normalized.length ? normalized : null;
+}
+
+function textFromChatContent(content) {
+  if (typeof content === 'string') return content.trim();
+  if (!Array.isArray(content)) return '';
+  return content
+    .filter((part) => part?.type === 'text' && typeof part.text === 'string')
+    .map((part) => part.text)
+    .join('\n')
+    .trim();
+}
+
+// Read OpenClaw gateway config for auth
 function getGatewayConfig() {
   try {
     const configPath = path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json');
-    const config = JSON.parse(readText(configPath) || '{}');
-    const envMap = parseEnvFile();
-    const rawToken =
-      config?.gateway?.auth?.token ||
-      process.env.OPENCLAW_GATEWAY_TOKEN ||
-      envMap.OPENCLAW_GATEWAY_TOKEN ||
-      '';
-    const token = resolveEnvTemplates(String(rawToken), envMap);
-    // Reject unresolved templates so we never send literal "${...}" as Bearer
-    const resolved =
-      token && !token.includes('${') && !token.startsWith('$')
-        ? token
-        : envMap.OPENCLAW_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '';
+    const config = JSON.parse(readText(configPath));
     return {
-      port: Number(config?.gateway?.port) || 18789,
-      token: resolved || '',
+      port: config?.gateway?.port || 18789,
+      token: config?.gateway?.auth?.token || '',
+      chatCompletionsEnabled:
+        config?.gateway?.http?.endpoints?.chatCompletions?.enabled === true,
     };
   } catch {
-    const envMap = parseEnvFile();
-    return {
-      port: 18789,
-      token: envMap.OPENCLAW_GATEWAY_TOKEN || process.env.OPENCLAW_GATEWAY_TOKEN || '',
-    };
+    return { port: 18789, token: '', chatCompletionsEnabled: false };
   }
 }
 
 app.post('/api/chat', async (req, res) => {
-  const { message } = req.body;
-  if (!message) return res.status(400).json({ error: 'Expected { message: "..." }' });
+  const { message, messages } = req.body || {};
+  const contextMessages = normalizeChatContext(messages);
+  const latestContextMessage = contextMessages
+    ? [...contextMessages].reverse().find((entry) => entry.role === 'user')
+    : null;
+  const contextText = textFromChatContent(latestContextMessage?.content);
+  const userMessage = typeof message === 'string' && message.trim()
+    ? message.trim()
+    : contextText;
+
+  if (!userMessage && !latestContextMessage) {
+    return res.status(400).json({
+      error: 'Expected { message: "..." } or { messages: [{ role, content }] }',
+    });
+  }
 
   const timestamp = new Date().toISOString();
-  chatHistory.push({ role: 'user', text: message, timestamp });
+  const historyText = userMessage || '[attachment]';
+  chatHistory.push({ role: 'user', text: historyText, timestamp });
 
   // Analyze the message to determine which integrations/skills are relevant
   const graph = buildGraph();
-  const activations = resolveActivations(message, graph);
+  const activations = resolveActivations(historyText, graph);
 
   // Broadcast activation events to all WS clients so the 3D scene lights up
   broadcastWS('chat:activations', {
-    message,
+    message: historyText,
     activations,
     timestamp,
   });
@@ -1666,90 +1232,49 @@ app.post('/api/chat', async (req, res) => {
   // Try to proxy through the real OpenClaw gateway with streaming
   let responseText = '';
   let fromGateway = false;
-  let usage = null;
   const gw = getGatewayConfig();
+  let gatewayFallback = gw.chatCompletionsEnabled
+    ? 'OpenClaw gateway could not complete the chat request. Check the gateway terminal for details.'
+    : 'OpenClaw is reachable, but its chat compatibility endpoint is disabled. Run `openclaw config set gateway.http.endpoints.chatCompletions.enabled true`, then restart the gateway.';
 
   try {
-    if (!gw.token) {
-      console.warn('[chat] No OPENCLAW_GATEWAY_TOKEN resolved — gateway chat skipped');
-    } else {
-      const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${gw.token}`,
-          'Content-Type': 'application/json',
-          'x-openclaw-agent-id': 'main',
-        },
-        body: JSON.stringify({
-          model: 'openclaw',
-          messages: chatHistory
-            .filter((m) => m.role === 'user' || m.role === 'assistant')
-            .slice(-10)
-            .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
-          stream: false,
-        }),
-        signal: AbortSignal.timeout(300000),
-      });
+    if (!gw.chatCompletionsEnabled) throw new Error('chat-completions-disabled');
+    const gwRes = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${gw.token}`,
+        'Content-Type': 'application/json',
+        'x-openclaw-agent-id': 'main',
+      },
+      body: JSON.stringify({
+        model: 'openclaw',
+        // Existing clients keep the shared linear history. Compatibility
+        // clients can supply an isolated branch history, which prevents turns
+        // from sibling branches (or other browser tabs) bleeding together.
+        messages: contextMessages || chatHistory
+          .filter((m) => m.role === 'user' || m.role === 'assistant')
+          .slice(-10)
+          .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(300000),
+    });
 
-      const ct = gwRes.headers.get('content-type') || '';
-      if (ct.includes('json')) {
-        const gwData = await gwRes.json();
-        if (gwRes.ok) {
-          responseText =
-            gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
-          fromGateway = Boolean(responseText);
-          // OpenAI-compat usage block (prompt_tokens / completion_tokens)
-          const u = gwData.usage || {};
-          const input = Number(u.prompt_tokens ?? u.input_tokens ?? u.input ?? 0) || 0;
-          const output = Number(u.completion_tokens ?? u.output_tokens ?? u.output ?? 0) || 0;
-          if (input || output) {
-            usage = {
-              input,
-              output,
-              total: Number(u.total_tokens ?? input + output) || input + output,
-              model: gwData.model || 'openclaw',
-              at: new Date().toISOString(),
-            };
-            _lastChatUsage = usage;
-          }
-        } else {
-          // Gateway is up but model/auth/rate-limit failed — surface real error
-          // instead of the misleading "gateway is offline" local heuristic.
-          const errMsg =
-            gwData?.error?.message ||
-            gwData?.error ||
-            gwData?.message ||
-            JSON.stringify(gwData).slice(0, 400);
-          responseText = `OpenClaw gateway error (HTTP ${gwRes.status}): ${errMsg}`;
-          fromGateway = true;
-          console.warn(`[chat] gateway HTTP ${gwRes.status}: ${String(errMsg).slice(0, 200)}`);
-        }
-      } else if (!gwRes.ok) {
-        const errBody = await gwRes.text().catch(() => '');
-        responseText = `OpenClaw gateway error (HTTP ${gwRes.status}): ${errBody.slice(0, 300)}`;
-        fromGateway = true;
-        console.warn(
-          `[chat] gateway HTTP ${gwRes.status}: ${errBody.slice(0, 200)}`,
-        );
-      } else {
-        // SPA HTML fallback means chatCompletions endpoint is disabled
-        console.warn(
-          '[chat] gateway returned non-JSON for /v1/chat/completions — enable gateway.http.endpoints.chatCompletions.enabled',
-        );
-      }
+    if (gwRes.ok) {
+      const gwData = await gwRes.json();
+      responseText = gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
+      fromGateway = true;
+    } else {
+      gatewayFallback = `OpenClaw rejected the chat request (HTTP ${gwRes.status}). Check the gateway terminal for details.`;
     }
-  } catch (err) {
-    // Gateway not reachable — fall back to local heuristic
-    console.warn(`[chat] gateway proxy failed: ${err.message}`);
+  } catch (error) {
+    if (error?.message !== 'chat-completions-disabled') {
+      gatewayFallback = 'OpenClaw gateway could not complete the chat request. Check the gateway terminal for details.';
+    }
   }
 
   if (!responseText) {
-    responseText = buildChatResponse(message, activations, graph);
-  }
-
-  // Append compact token footer when we have usage (tokenOptimization.footerDisplay)
-  if (usage && (usage.input || usage.output)) {
-    responseText += `\n\n<span class="token-footer">Tokens: ${usage.input.toLocaleString()} in / ${usage.output.toLocaleString()} out / ${usage.total.toLocaleString()} total</span>`;
+    responseText = buildChatResponse(historyText, activations, graph, gatewayFallback);
   }
 
   chatHistory.push({ role: 'assistant', text: responseText, timestamp: new Date().toISOString() });
@@ -1768,7 +1293,7 @@ app.post('/api/chat', async (req, res) => {
     response: responseText,
     activations,
     fromGateway,
-    usage,
+    gatewayIssue: fromGateway ? null : gatewayFallback,
     timestamp,
   });
 });
@@ -1999,7 +1524,7 @@ function resolveActivations(message, graph) {
   return activated;
 }
 
-function buildChatResponse(message, activations, graph) {
+function buildChatResponse(message, activations, graph, gatewayMessage) {
   const integrationNames = activations.integrations
     .map((id) => graph.integrations.find((i) => i.id === id)?.name || id)
     .join(', ');
@@ -2015,7 +1540,7 @@ function buildChatResponse(message, activations, graph) {
   let response = `Routing to: ${integrationNames}.`;
   if (skillNames) response += ` Skills: ${skillNames}.`;
   if (deviceNames) response += ` Devices: ${deviceNames}.`;
-  response += '\n\nOpenClaw gateway is offline. Run `openclaw gateway run` to enable live responses and tool execution.';
+  response += `\n\n${gatewayMessage || 'OpenClaw gateway is offline. Run `openclaw gateway run` to enable live responses and tool execution.'}`;
 
   return response;
 }
@@ -2026,78 +1551,14 @@ function buildChatResponse(message, activations, graph) {
 // mcp-call.py child-process helper (one uniform access path).
 // ============================================================
 const RAG_MCP_CALL = path.join(ROOT, 'scripts', 'mcp-call.py');
-// Prefer project venv (has beautifulsoup4/httpx/etc for URL ingest); fall back to PATH python3.
-const RAG_PYTHON = (() => {
-  const candidates = [
-    process.env.RAG_PYTHON,
-    path.join(ROOT, '.venv', 'bin', 'python3'),
-    path.join(os.homedir(), 'netclaw', '.venv', 'bin', 'python3'),
-  ].filter(Boolean);
-  for (const c of candidates) {
-    try {
-      if (fs.existsSync(c)) return c;
-    } catch {
-      /* ignore */
-    }
-  }
-  return 'python3';
-})();
-const RAG_SERVER_CMD = `${RAG_PYTHON} -u ${path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')}`;
+const RAG_SERVER_CMD = `python3 -u ${path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')}`;
 const RAG_DATA_DIR = process.env.RAG_DATA_DIR
   ? process.env.RAG_DATA_DIR.replace(/^~/, os.homedir())
   : path.join(os.homedir(), '.openclaw', 'rag');
 const RAG_INTAKE_DIR = path.join(RAG_DATA_DIR, 'intake');
 const RAG_MAX_DOC_MB = parseInt(process.env.RAG_MAX_DOC_MB || '100', 10);
-const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt', '.json',
+const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
   '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
-
-/** Normalize FastMCP / mcp-call.py tool results into { success, data } | { success:false, error }. */
-function normalizeRagToolResult(result) {
-  if (!result || typeof result !== 'object') {
-    return { success: false, error: { message: String(result) } };
-  }
-  // Already in our success_response / error_response shape
-  if (typeof result.success === 'boolean') return result;
-
-  // FastMCP error tool result: { content: [{text: "Error calling tool..."}], isError: true }
-  if (result.isError) {
-    const text = result.content?.[0]?.text || result.message || 'rag tool error';
-    return { success: false, error: { message: String(text) } };
-  }
-
-  if (result.structuredContent && typeof result.structuredContent === 'object') {
-    return normalizeRagToolResult(result.structuredContent);
-  }
-
-  const text = result.content?.[0]?.text;
-  if (typeof text === 'string' && text.trim()) {
-    const trimmed = text.trim();
-    // JSON string body (NETCLAW_GCF_MODE=off → gcf_dumps does json.dumps)
-    if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-      try {
-        return normalizeRagToolResult(JSON.parse(trimmed));
-      } catch {
-        /* fall through */
-      }
-    }
-    // GCF compact text (legacy / accidental): surface a clear error
-    if (trimmed.startsWith('GCF profile=') || trimmed.includes('success=true')) {
-      return {
-        success: false,
-        error: {
-          message:
-            'rag-mcp returned GCF-encoded text; HUD needs JSON. '
-            + 'Ensure NETCLAW_GCF_MODE=off for the HUD rag-mcp child process.',
-          raw: trimmed.slice(0, 400),
-        },
-      };
-    }
-    // Plain-text tool error
-    return { success: false, error: { message: trimmed } };
-  }
-
-  return { success: true, data: result };
-}
 
 function callRagTool(tool, args = {}, timeoutSec = 300) {
   return new Promise((resolve, reject) => {
@@ -2107,47 +1568,20 @@ function callRagTool(tool, args = {}, timeoutSec = 300) {
       {
         timeout: (timeoutSec + 30) * 1000,
         maxBuffer: 64 * 1024 * 1024,
-        env: {
-          ...process.env,
-          MCP_CALL_TIMEOUT: String(timeoutSec),
-          RAG_DATA_DIR,
-          // Ensure nested python from server cmd sees the venv libs
-          PATH: `${path.dirname(RAG_PYTHON)}${path.delimiter}${process.env.PATH || ''}`,
-          // HUD needs machine-readable JSON tool results — not GCF compact text
-          // (agents keep NETCLAW_GCF_MODE for token savings; this child process does not).
-          NETCLAW_GCF_MODE: 'off',
-        },
+        env: { ...process.env, MCP_CALL_TIMEOUT: String(timeoutSec) },
       },
       (err, stdout, stderr) => {
-        if (err) {
-          const detail = (stderr || '').trim() || err.message;
-          return reject(new Error(detail));
-        }
-        const out = (stdout || '').trim();
-        if (!out) {
-          return reject(new Error(`Empty rag-mcp response${stderr ? `: ${stderr.trim()}` : ''}`));
-        }
-        // mcp-call.py prints json.dumps(..., indent=2) — multi-line object is normal.
-        // Also tolerate any log lines before/after the JSON object.
-        let parsed = null;
+        if (err) return reject(new Error(stderr || err.message));
         try {
-          parsed = JSON.parse(out);
-        } catch {
-          const start = out.indexOf('{');
-          const end = out.lastIndexOf('}');
-          if (start >= 0 && end > start) {
-            try {
-              parsed = JSON.parse(out.slice(start, end + 1));
-            } catch {
-              /* fall through */
-            }
-          }
+          const result = JSON.parse(stdout);
+          // FastMCP: prefer structuredContent, else the JSON text content block
+          const payload = result.structuredContent
+            || (result.content && result.content[0] && JSON.parse(result.content[0].text))
+            || result;
+          resolve(payload);
+        } catch (parseErr) {
+          reject(new Error(`Unparseable rag-mcp response: ${parseErr.message}`));
         }
-        if (!parsed) {
-          const snippet = out.slice(0, 200).replace(/\s+/g, ' ');
-          return reject(new Error(`Unparseable rag-mcp response: ${snippet}`));
-        }
-        resolve(normalizeRagToolResult(parsed));
       }
     );
   });
@@ -2160,41 +1594,24 @@ const ragLastStatus = new Map();
 
 function ragStartProgressPolling() {
   if (ragPollTimer) return;
-  // First tick only seeds status map — do NOT broadcast every historical
-  // ready snapshot (that flooded the Knowledge panel with wifidegraded24ghz etc.).
-  let seeded = false;
   ragPollTimer = setInterval(async () => {
     try {
       const listing = await callRagTool('rag_list', {}, 60);
       const docs = [...(listing.data?.documents || []), ...(listing.data?.snapshots || [])];
       let anyPending = false;
       for (const doc of docs) {
-        const status = doc.ingest_status || 'ready';
         const prev = ragLastStatus.get(doc.id);
-        if (prev === undefined) {
-          // Seed baseline; only broadcast if this is a truly new non-terminal job
-          ragLastStatus.set(doc.id, status);
-          if (!seeded && !['ready', 'error'].includes(status)) {
-            broadcastWS('rag_progress', {
-              document_id: doc.id,
-              title: doc.title,
-              status,
-              error: doc.error || null,
-            });
-          }
-        } else if (prev !== status) {
-          ragLastStatus.set(doc.id, status);
+        if (prev !== doc.ingest_status) {
+          ragLastStatus.set(doc.id, doc.ingest_status);
           broadcastWS('rag_progress', {
             document_id: doc.id,
             title: doc.title,
-            status,
+            status: doc.ingest_status,
             error: doc.error || null,
-            chunk_count: doc.chunk_count,
           });
         }
-        if (!['ready', 'error'].includes(status)) anyPending = true;
+        if (!['ready', 'error'].includes(doc.ingest_status)) anyPending = true;
       }
-      seeded = true;
       if (!anyPending) {
         clearInterval(ragPollTimer);
         ragPollTimer = null;
@@ -2236,270 +1653,6 @@ const ragUpload = multer({
     filename: (req, file, cb) => cb(null, path.basename(file.originalname)),
   }),
   limits: { fileSize: RAG_MAX_DOC_MB * 1024 * 1024 },
-});
-
-/**
- * Two-phase URL ingest (rag_ingest_url).
- * POST { url, mode: "preview"|"ingest", include_linked?, scope_token?, doc_type?, title? }
- */
-app.post('/api/rag/ingest-url', async (req, res) => {
-  const url = String(req.body?.url || '').trim();
-  const mode = (req.body?.mode || 'preview').toLowerCase();
-  if (!url || !/^https?:\/\//i.test(url)) {
-    return res.status(400).json({ error: 'url is required (http or https)' });
-  }
-  if (mode !== 'preview' && mode !== 'ingest') {
-    return res.status(400).json({ error: "mode must be 'preview' or 'ingest'" });
-  }
-  const args = {
-    url,
-    mode,
-    include_linked: Boolean(req.body?.include_linked),
-    doc_type: req.body?.doc_type || 'other',
-  };
-  if (req.body?.scope_token) args.scope_token = req.body.scope_token;
-  if (req.body?.title) args.title = req.body.title;
-  // Self-signed local gear (UniFi :11443, pfSense, etc.)
-  if (req.body?.verify_ssl === false || req.body?.insecure === true) {
-    args.verify_ssl = false;
-  } else if (req.body?.verify_ssl === true) {
-    args.verify_ssl = true;
-  }
-
-  try {
-    if (mode === 'ingest') {
-      res.status(202).json({ status: 'pending', url, mode: 'ingest' });
-      ragStartProgressPolling();
-      try {
-        const result = await callRagTool('rag_ingest_url', args, 900);
-        if (result.success) {
-          const pages = result.data?.pages || [];
-          const firstOk = pages.find((p) => p?.success || p?.data?.document_id);
-          const docId = firstOk?.data?.document_id || firstOk?.document_id || null;
-          const title = firstOk?.data?.title || result.data?.title || url;
-          broadcastWS('rag_progress', {
-            document_id: docId,
-            title,
-            status: 'ready',
-            error: null,
-            pages_ingested: result.data?.ingested,
-          });
-        } else {
-          broadcastWS('rag_progress', {
-            document_id: null,
-            title: url,
-            status: 'error',
-            error: result.error?.message || 'URL ingest failed',
-          });
-        }
-      } catch (ingestErr) {
-        broadcastWS('rag_progress', {
-          document_id: null,
-          title: url,
-          status: 'error',
-          error: ingestErr.message,
-        });
-      }
-      broadcastWS('rag_update', { documents_changed: true });
-      return;
-    }
-
-    // preview — synchronous so the UI can show linked pages + scope_token
-    const result = await callRagTool('rag_ingest_url', args, 120);
-    if (!result.success) {
-      return res.status(500).json(result.error || { error: 'preview failed' });
-    }
-    res.json(result.data);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-/**
- * Multi-page docs-site crawl → Markdown → rag_ingest (HUD "Crawl site to RAG").
- * Body: { url, max_pages?, depth?, insecure?, doc_type?, title? }
- * Runs async (202); progress via rag_progress / rag_update WS events.
- */
-app.post('/api/rag/crawl-site', async (req, res) => {
-  const url = String(req.body?.url || '').trim();
-  if (!url || !/^https?:\/\//i.test(url)) {
-    return res.status(400).json({ error: 'url is required (http or https)' });
-  }
-  const maxPages = Math.min(Math.max(parseInt(req.body?.max_pages, 10) || 60, 1), 150);
-  const depth = Math.min(Math.max(parseInt(req.body?.depth, 10) || 2, 0), 5);
-  const insecure = Boolean(
-    req.body?.insecure === true
-    || req.body?.verify_ssl === false
-  );
-  const docType = req.body?.doc_type || 'vendor';
-  const titleHint = req.body?.title || null;
-
-  const hostSafe = url.replace(/^https?:\/\//i, '').replace(/[^\w.-]+/g, '_').slice(0, 80);
-  const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-  fs.mkdirSync(RAG_INTAKE_DIR, { recursive: true });
-  const outBase = path.join(RAG_INTAKE_DIR, `crawl_${hostSafe}_${stamp}`);
-  const outPdf = `${outBase}.pdf`;
-  const outMd = `${outBase}.md`;
-  const script = path.join(ROOT, 'scripts', 'docs-site-to-pdf.py');
-  if (!fs.existsSync(script)) {
-    return res.status(500).json({ error: 'docs-site-to-pdf.py not found in repo' });
-  }
-
-  const label = `crawl:${url}`;
-  res.status(202).json({
-    status: 'pending',
-    url,
-    max_pages: maxPages,
-    depth,
-    out_pdf: outPdf,
-    out_md: outMd,
-  });
-
-  broadcastWS('rag_progress', {
-    document_id: null,
-    title: label,
-    status: 'crawling',
-    error: null,
-  });
-  ragStartProgressPolling();
-
-  const args = [
-    script,
-    '--start-url', url,
-    '--out', outPdf,
-    '--max-pages', String(maxPages),
-    '--depth', String(depth),
-    '--delay', '0.25',
-    '--markdown',
-  ];
-  if (insecure) args.push('--insecure');
-
-  execFile(
-    RAG_PYTHON,
-    args,
-    {
-      timeout: 30 * 60 * 1000,
-      maxBuffer: 16 * 1024 * 1024,
-      env: {
-        ...process.env,
-        PATH: `${path.dirname(RAG_PYTHON)}${path.delimiter}${process.env.PATH || ''}`,
-        RAG_DATA_DIR,
-        NETCLAW_GCF_MODE: 'off',
-      },
-    },
-    async (err, stdout, stderr) => {
-      const outText = `${stdout || ''}\n${stderr || ''}`.trim();
-      // Script prints "[  3/60] d=0 'Title'" per page and "Writing PDF (N pages)"
-      const pageHits = [...outText.matchAll(/\[\s*(\d+)\//g)].map((m) => parseInt(m[1], 10));
-      const pagesFromLog = pageHits.length ? Math.max(...pageHits) : 0;
-      const writingMatch = outText.match(/Writing PDF \((\d+) pages\)/i);
-      const pagesReported = writingMatch ? parseInt(writingMatch[1], 10) : pagesFromLog;
-
-      if (err) {
-        const msg = (stderr || err.message || 'crawl failed').toString().slice(0, 800);
-        broadcastWS('rag_progress', {
-          document_id: null,
-          title: label,
-          status: 'error',
-          error: msg,
-          detail: pagesReported ? `crawl stopped after ~${pagesReported} page(s)` : null,
-        });
-        broadcastWS('rag_update', { documents_changed: true });
-        return;
-      }
-
-      // Prefer Markdown for RAG chunking; fall back to PDF
-      const ingestPath = fs.existsSync(outMd) ? outMd : outPdf;
-      if (!fs.existsSync(ingestPath)) {
-        broadcastWS('rag_progress', {
-          document_id: null,
-          title: label,
-          status: 'error',
-          error: `Crawl finished but no output file. Often means every page was empty HTML (JS-only SPA). stdout: ${(stdout || '').slice(0, 240)}`,
-        });
-        broadcastWS('rag_update', { documents_changed: true });
-        return;
-      }
-
-      const byteSize = fs.statSync(ingestPath).size;
-      const textSample = ingestPath.endsWith('.md')
-        ? fs.readFileSync(ingestPath, 'utf8')
-        : '';
-      const charCount = textSample.length;
-      // Quality gate: refuse clearly empty / SPA-shell crawls
-      const minPages = 2;
-      const minChars = 1500;
-      const thin =
-        (pagesReported > 0 && pagesReported < minPages)
-        || (charCount > 0 && charCount < minChars)
-        || (byteSize < 2500 && pagesReported <= 1);
-
-      if (thin) {
-        const reason = [
-          pagesReported ? `${pagesReported} page(s) crawled` : 'unknown page count',
-          charCount ? `${charCount} chars in markdown` : `${byteSize} byte file`,
-          'Too thin for useful API docs — site is likely a JS SPA shell, not server-rendered HTML.',
-          'Try an official public docs URL, or export/print PDF from the browser, then Upload file.',
-        ].join(' · ');
-        broadcastWS('rag_progress', {
-          document_id: null,
-          title: label,
-          status: 'error',
-          error: reason,
-          pages_crawled: pagesReported,
-          file_bytes: byteSize,
-        });
-        broadcastWS('rag_update', { documents_changed: true });
-        return;
-      }
-
-      broadcastWS('rag_progress', {
-        document_id: null,
-        title: label,
-        status: 'parsing',
-        error: null,
-        detail: `crawled ${pagesReported || '?'} page(s), ${(byteSize / 1024).toFixed(0)} KiB → indexing`,
-      });
-
-      try {
-        const result = await callRagTool('rag_ingest', {
-          file_path: ingestPath,
-          doc_type: docType,
-          source: `hud-crawl:${url}`,
-          ...(titleHint ? { title: titleHint } : {
-            title: `Docs crawl: ${url.replace(/^https?:\/\//, '').slice(0, 80)} (${pagesReported || '?'} pages)`,
-          }),
-        }, 900);
-        if (result.success) {
-          broadcastWS('rag_progress', {
-            document_id: result.data?.document_id || null,
-            title: result.data?.title || label,
-            status: 'ready',
-            error: null,
-            detail: `OK · ${pagesReported || '?'} pages · ${result.data?.chunk_count ?? '?'} chunks`,
-            pages_crawled: pagesReported,
-            file: ingestPath,
-            chunk_count: result.data?.chunk_count,
-          });
-        } else {
-          broadcastWS('rag_progress', {
-            document_id: null,
-            title: label,
-            status: 'error',
-            error: result.error?.message || 'rag_ingest after crawl failed',
-          });
-        }
-      } catch (ingestErr) {
-        broadcastWS('rag_progress', {
-          document_id: null,
-          title: label,
-          status: 'error',
-          error: ingestErr.message,
-        });
-      }
-      broadcastWS('rag_update', { documents_changed: true });
-    },
-  );
 });
 
 app.post('/api/rag/upload', (req, res) => {

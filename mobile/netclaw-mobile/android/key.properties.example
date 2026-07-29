@@ -1,0 +1,23 @@
+# NetClaw Mobile — release signing template.
+#
+# Copy to `key.properties` (same directory) and fill in real values. That file
+# is gitignored, as are *.jks and *.keystore — none of it may ever be committed.
+#
+# If `key.properties` is ABSENT the build still succeeds, but signs the release
+# with the Android DEBUG key and prints a warning. Such an APK is fine for
+# sideloading (see SIDELOAD.md) and impossible to upload to Play.
+#
+# Generate an upload keystore:
+#
+#   keytool -genkey -v -keystore ~/netclaw-upload-keystore.jks \
+#     -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+#
+# LOSING THIS KEYSTORE IS UNRECOVERABLE. Once a listing is published with it,
+# there is no way to ship an update without it — only a brand-new listing with
+# zero installs. Back it up in two places off this machine before first upload,
+# and enrol in Play App Signing. See PLAY-STORE-ROADMAP.md phase 2.
+
+storeFile=/absolute/path/to/netclaw-upload-keystore.jks
+storePassword=
+keyAlias=upload
+keyPassword=

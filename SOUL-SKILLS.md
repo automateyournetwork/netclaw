@@ -1578,3 +1578,67 @@ The skills above are documented with full step-by-step operational procedures. T
 | `zscaler-zdx` | Monitor digital experience scores, user performance, and application health. | `workspace/skills/zscaler-zdx/SKILL.md` |
 | `zscaler-zia` | Manage Zscaler Internet Access firewall rules, URL filtering, DLP, and security policies. | `workspace/skills/zscaler-zia/SKILL.md` |
 | `zscaler-zpa` | Manage Zscaler Private Access applications, segments, policies, and connectors. | `workspace/skills/zscaler-zpa/SKILL.md` |
+
+---
+
+## Auvik Network Monitoring Skills
+
+### auvik-inventory
+Auvik device and network inventory (read-only):
+1. List all managed devices — status, type, site, make/model
+2. List monitored networks — CIDR ranges and device counts per network
+3. Retrieve device details — interfaces, IP addresses, firmware, serial numbers
+4. Look up devices by hostname, IP, or MAC address across all MSP tenants
+5. Cross-reference with pyATS for live-state vs Auvik-discovered state comparison
+
+Inventory workflow: list tenants → list devices → get device details → verify interfaces.
+
+**Credentials:** `AUVIK_USERNAME`, `AUVIK_API_KEY`, `AUVIK_BASE_URL`
+
+### auvik-network-alerts
+Auvik alert and event monitoring (read-only):
+1. List active alerts filtered by severity (critical/warning/info), device, site, or network
+2. Retrieve alert details — affected entity, alert type, first/last seen timestamps
+3. View alert history to identify recurring issues or noise patterns
+4. Correlate alerts with device inventory for triage context
+5. Escalate critical alerts to ServiceNow incidents via servicenow-change-workflow
+
+Alert workflow: list active alerts → filter by severity → get details → correlate with device inventory.
+
+**Credentials:** `AUVIK_USERNAME`, `AUVIK_API_KEY`
+
+### auvik-lifecycle
+Auvik device lifecycle and warranty tracking (read-only):
+1. Retrieve hardware lifecycle status for all managed devices — EoS and EoL dates
+2. Filter devices by lifecycle state (active/end-of-sale/end-of-life/end-of-support)
+3. Generate warranty and lifecycle expiry reports sorted by urgency
+4. Cross-reference EoL devices with pyATS inventory for replacement planning
+5. Create ServiceNow change requests for lifecycle-driven hardware refresh
+
+Lifecycle workflow: list devices → filter by EoL state → sort by expiry date → report.
+
+**Credentials:** `AUVIK_USERNAME`, `AUVIK_API_KEY`
+
+### auvik-performance
+Auvik device performance statistics (read-only):
+1. Retrieve CPU and memory utilization statistics for monitored devices
+2. Query interface throughput — inbound/outbound rates, error counts, utilization %
+3. Filter by device, interface, site, or time window for targeted analysis
+4. Identify high-utilization devices and interfaces for capacity planning
+5. Compare interface traffic across sites to detect asymmetric traffic patterns
+
+Performance workflow: list devices → query CPU/memory stats → query interface throughput → identify hotspots.
+
+**Credentials:** `AUVIK_USERNAME`, `AUVIK_API_KEY`
+
+---
+
+## HaloPSA / HaloITSM Skills
+
+ITSM/PSA change management plus asset and ticket context. HaloPSA and HaloITSM share one API; the server is read-only except a single gated `halo_create_change_request` (confirm-before-submit).
+
+| Skill | Description | Path |
+|-------|-------------|------|
+| `halo-change-request` | Open change requests: discover and confirm the org's change ticket type (cached in Memory MCP), learn its fields, preview the assembled ticket, then create only on explicit user approval. | `workspace/skills/halo-change-request/SKILL.md` |
+| `halo-asset-context` | Review a Halo asset with its related tickets and CMDB/CI relationships. | `workspace/skills/halo-asset-context/SKILL.md` |
+| `halo-ticket-context` | Review a Halo ticket with its action/note history, linked assets, and KB articles. | `workspace/skills/halo-ticket-context/SKILL.md` |

@@ -43,6 +43,8 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - Token Optimization  → ANTHROPIC_API_KEY (reused), NETCLAW_TOKEN_PRICING_OVERRIDE (optional)
 - GitLab MCP          → GITLAB_PERSONAL_ACCESS_TOKEN, GITLAB_API_URL (default: gitlab.com)
 - Jenkins MCP         → JENKINS_URL, JENKINS_AUTH_BASE64 (remote HTTP, Basic Auth)
+- Auvik              → AUVIK_USERNAME, AUVIK_API_KEY, AUVIK_BASE_URL (optional)
+- HaloPSA / HaloITSM  → HALO_BASE_URL, HALO_CLIENT_ID, HALO_CLIENT_SECRET, HALO_TENANT, HALO_SCOPE (OAuth2 client-credentials)
 - Claroty xDome MCP   → CLAROTY_API_URL (default: https://api.medigate.io), CLAROTY_API_TOKEN, CLAROTY_VERIFY_SSL, CLAROTY_TIMEOUT, CLAROTY_RATE_LIMIT_PER_MIN (default: 2000)
 - Twitter MCP         → TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, TWITTER_HEARTBEAT_ENABLED (default: false)
 ```
@@ -126,13 +128,25 @@ For **detailed infrastructure notes on specific MCP servers/skills** (GitLab, Ch
 
 ## N2N Federation MCP Server (NetClaw Native)
 
-37 MCP tools proxying the local `bgp-daemon-v2` HTTP API for claw-to-claw federation over NCFED. Replication-specific tools (feature 065, chroma-to-chroma vector replication — see `workspace/skills/n2n-federation/SKILL.md` for when/how to use them):
+38 MCP tools proxying the local `bgp-daemon-v2` HTTP API for claw-to-claw federation over NCFED. Replication-specific tools (feature 065, chroma-to-chroma vector replication — see `workspace/skills/n2n-federation/SKILL.md` for when/how to use them):
 - `n2n_replicate` — WHEN the user wants a standing local copy of a consenting peer's RAG collection (not just a one-off answer — use `n2n_knowledge_query` for that). Returns a `task_id` immediately; does not block.
 - `n2n_replicate_resync` — WHEN a previously replicated collection needs refreshing to match the source's current content (full replace, same async pattern)
 - `n2n_replicate_delete` — WHEN the user wants a local replica removed entirely (distinct from revoking the grant, which only blocks *future* replication)
 - Requires a `knowledge_replica` grant via `n2n_grant`, distinct from the `knowledge` (query-only) grant feature 064 uses
 - Config: `N2N_REPLICATION_MAX_CHUNKS` (default `20000`) caps the size of a collection replication will transfer; `N2N_REPLICATION_BATCH_SIZE` (default `200`) sizes each page pulled from the source
 - No new credentials — reuses existing NCFED peer identity/consent state
+
+NetClaw Mobile edge-node tool (feature 066 — see `mobile/netclaw-mobile/README.md` and `specs/066-netclaw-mobile-ncfed-edge/`):
+- `n2n_notify_phone(peer, content, kind="text")` — WHEN the operator or agent wants to explicitly push a message to an enrolled phone (`kind`: `text`/`voice`/`image`). Reachable identically from Slack, TUI, HUD, or agent reasoning. NEVER a blanket mirror — only content pushed through this tool ever reaches the phone. Falls back to a platform push notification automatically if the device is disconnected.
+- Enrollment itself is operator-side, not an MCP tool: `netclaw risk token --edge [label]` renders a scannable QR (`scripts/netclaw`)
+- Config: `N2N_EDGE_WS_PORT` (Border-only, the phone-facing WebSocket listener port); `FCM_SERVICE_ACCOUNT_JSON`/`APNS_KEY_PATH`/`APNS_KEY_ID`/`APNS_TEAM_ID`/`APNS_BUNDLE_ID`/`APNS_USE_SANDBOX` (optional — only needed for the disconnected-device push-notification fallback)
+- No new credentials for the connected-phone path — reuses the same domain-verified/self-signed credential as eN2N/iN2N (feature 060)
+
+NetClaw Mobile command channel (feature 067 — see `specs/067-ncfed-mobile-command-channel/`): **no new MCP tool**. A phone's typed/spoken/QR-triggered request reaches you as a real agent turn over the existing edge connection (`n2n/edge/ask`, wire-level only) — you answer it the same way you'd answer Slack/CLI, calling `n2n_route`/`n2n_delegate`/`n2n_invoke`/`n2n_chat` yourself if the question needs a member or a federated peer. Always state plainly whether you answered directly or are relaying a member's/peer's answer — the phone's conversation view has no other way to know. A phone request never carries elevated or reduced trust versus Slack/CLI/TUI.
+
+NetClaw Mobile biometrics and capture (feature 068 — see `specs/068-ncfed-mobile-biometrics-capture/`): **no new MCP tool**, two slices:
+- Biometric approval: your existing `notify_approval` hook (fired by the same tool/skill/delegation approval flow that already drives the CLI/HUD approval surface) now also pushes to every connected phone (`n2n/edge/message` with `content_type="approval"`, wire-level only); the phone's operator resolves it there with device biometrics before `resolve_approval` runs with `via="biometric"` — everything else about the approval (grant/deny semantics, audit trail) is unchanged.
+- Capture: a phone can attach a photo/video/audio capture to its own `n2n/edge/ask` request (arrives to you as an ordinary multimodal ask). You can also request a capture FROM a phone via the existing `n2n_delegate`/capability-routing path — an edge node advertising `camera.capture`/`camera.record_video`/`audio.record` in its member scope is selected by the same `RiskRouter` matching used for any other member's capability; a capability the operator disabled in Settings is simply absent from that scope, never a special refusal case.
 
 ## MemPalace AI Memory
 

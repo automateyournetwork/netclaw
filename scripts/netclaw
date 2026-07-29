@@ -47,13 +47,34 @@ render_md() { python3 "$RENDER_MD"; }
 # already-handled condition downstream — it must never trip `set -e` and
 # kill the whole TUI when called bare from a menu case (e.g. `peering_overview; pause`).
 api_get() { curl -s --max-time 3 "$BGP_API$1" 2>/dev/null || true; }
-api_post() { curl -s --max-time 30 -H 'Content-Type: application/json' -d "${2:-{}}" "$BGP_API$1" 2>/dev/null || true; }
+# NB: do not inline the default as "${2:-{}}" — bash ends the expansion at the
+# first `}`, so that reads as ${2:-{} followed by a literal `}` and appends a
+# stray brace to every body. The daemon then fails to parse it, logs "Bad JSON
+# body", and silently falls back to {} — so every POST payload (enrollment
+# labels, route request_text, member params) was being discarded.
+api_post() {
+    local body="${2-}"
+    [ -n "$body" ] || body='{}'
+    curl -s --max-time 30 -H 'Content-Type: application/json' -d "$body" "$BGP_API$1" 2>/dev/null || true
+}
 
 ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
 
 daemon_up() { api_get /status | grep -q '"running"'; }
 
-env_get() { grep -m1 "^${1}=" "$RUNTIME_HOME/.env" 2>/dev/null | cut -d= -f2-; }
+# Reads a setting from the runtime env. Checks .env first, then
+# mesh.systemd.env: the durable mesh units (features 056/057) keep daemon-only
+# settings such as N2N_EDGE_WS_PORT in the systemd env file rather than .env,
+# and looking at only the first file made `netclaw risk token --edge` fail with
+# no output on a correctly-configured Border.
+env_get() {
+    local f v
+    for f in "$RUNTIME_HOME/.env" "$RUNTIME_HOME/mesh.systemd.env"; do
+        v="$(grep -m1 "^${1}=" "$f" 2>/dev/null | cut -d= -f2-)"
+        [ -n "$v" ] && { printf '%s\n' "$v"; return 0; }
+    done
+    return 0
+}
 
 ngrok_up() { pgrep -f 'ngrok (tcp|start)' >/dev/null 2>&1; }
 
@@ -554,6 +575,42 @@ import json,sys; d=json.load(sys.stdin)
 print("    error:", d["error"]) if "error" in d else print("    token:", d["token"])'
 }
 
+risk_edge_token() {  # risk_edge_token [label] — feature 066: NetClaw Mobile enrollment
+    # Reuses the SAME bare-token route as risk_token(); node_type is set later,
+    # server-side, by which listener (agent TCP vs edge WS) actually consumes
+    # it (contract §2) — the CLI's only job is to package the token as a QR
+    # payload the phone can scan instead of a token an operator must copy.
+    local domain port host
+    domain="$(env_get N2N_CLAW_DOMAIN)"
+    port="$(env_get N2N_EDGE_WS_PORT)"
+    host="${domain:-$(env_get N2N_BORDER_ENDPOINT | cut -d: -f1)}"
+    if [ -z "$domain" ] || [ -z "$port" ]; then
+        echo "  N2N_CLAW_DOMAIN and N2N_EDGE_WS_PORT must both be set in $RUNTIME_HOME/.env" >&2
+        echo "  before issuing an edge (phone) enrollment QR." >&2
+        return 1
+    fi
+    api_post /n2n/enroll/token "{\"label\":\"${1:-}\"}" | python3 -c "
+import json, sys
+try:
+    import qrcode
+except ImportError:
+    print('    qrcode not installed — pip install -r mcp-servers/protocol-mcp/requirements.txt')
+    sys.exit(1)
+d = json.load(sys.stdin)
+if 'error' in d:
+    print('    error:', d['error']); sys.exit(1)
+payload = {
+    'border_host': '$host', 'border_port': int('$port'),
+    'claw_domain': '$domain', 'enrollment_token': d['token'],
+}
+qr = qrcode.QRCode(border=1)
+qr.add_data(json.dumps(payload, separators=(',', ':')))
+qr.make(fit=True)
+qr.print_ascii(tty=False)
+print('    (fallback) raw payload:', json.dumps(payload))
+"
+}
+
 risk_route() {  # risk_route "<request>" [capability]
     local req="$1" cap="$2"
     [ -n "$req" ] || { echo 'usage: netclaw risk route "<request>" [capability]'; return 1; }
@@ -574,13 +631,15 @@ risk_menu() {
             "Members (scope · state · live)" \
             "Member health (quarantine alerts)" \
             "Enrollment token (issue single-use)" \
+            "Edge enrollment QR (NetClaw Mobile)" \
             "← Back" || return 0
         case "$TUI_CHOICE" in
             0) risk_overview; pause ;;
             1) risk_members; pause ;;
             2) risk_health; pause ;;
             3) risk_token; pause ;;
-            4) return 0 ;;
+            4) risk_edge_token; pause ;;
+            5) return 0 ;;
         esac
     done
 }
@@ -667,9 +726,14 @@ case "${1:-}" in
             health)   risk_health ;;
             add)      risk_add "${3:-}" "${4:-}" "${5:-}" ;;
             remove)   risk_remove "${3:-}" ;;
-            token)    risk_token "${3:-}" ;;
+            token)
+                if [ "${3:-}" = "--edge" ]; then
+                    risk_edge_token "${4:-}"
+                else
+                    risk_token "${3:-}"
+                fi ;;
             route)    risk_route "${3:-}" "${4:-}" ;;
-            *)        echo "Usage: netclaw risk [status|members|health|add|remove|token|route]"; exit 1 ;;
+            *)        echo "Usage: netclaw risk [status|members|health|add|remove|token [--edge]|route]"; exit 1 ;;
         esac ;;
     chats)
         if [ "${2:-}" = "--watch" ] || [ "${2:-}" = "watch" ]; then

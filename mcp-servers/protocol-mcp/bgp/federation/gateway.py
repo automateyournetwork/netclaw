@@ -248,7 +248,7 @@ def _reply_from_session_file(session_key: str) -> str:
 async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int = 300,
                          local: bool = False, model: str = None,
                          untrusted: bool = False, on_stall=None,
-                         stall_after_s: int = 120):
+                         stall_after_s: int = 120, message_file: str = None):
     """Run one agent turn. Returns (reply_text, tokens_used).
 
     Two modes:
@@ -276,6 +276,18 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
 
     Raises TimeoutError on timeout; on non-zero exit returns the stderr tail as
     the reply so the caller can surface a useful message rather than crashing.
+
+    `message_file` (feature 068): when set, the CLI reads the message body
+    from this path (`--message-file`) instead of passing `prompt` as a CLI
+    argument. A capture attachment folded into the prompt (research 068-D3)
+    can be large enough (up to the NCFED channel's 16 MiB aggregate bound,
+    FR-005a) to exceed a safe single-argument length (Linux ARG_MAX) — a
+    file avoids that risk entirely. `prompt` is still required and is what
+    `_apply_production_controls` inspects; the file's content is expected to
+    match it. UNVERIFIED: whether the `openclaw agent` CLI's own message
+    handling actually extracts/forwards embedded image content from that
+    file to a multimodal model call is outside this repo's visibility —
+    review before relying on real capture-vision behavior.
     """
     if local and untrusted:
         # Fail-closed eN2N gate: never run external-peer input embedded unless
@@ -299,18 +311,19 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
     # responder running its own agent, so the local probe is authoritative.
     from .negotiate import local_descriptor
     flag = "--" + local_descriptor().get("agent_invoke", "session-id")
+    message_args = ["--message-file", message_file] if message_file else ["-m", prompt]
     if local:
         cmd = [_openclaw_bin(), "agent", "--local"]
         if model:
             cmd += ["--model", model]
-        cmd += [flag, session_key, "--json", "-m", prompt]
+        cmd += [flag, session_key, "--json"] + message_args
         # feature 057: in production a MEMBER executes INSIDE the OpenShell sandbox
         # (US2/FR-004/005) with its model I/O guarded by DefenseClaw (US3/FR-007/009).
         # Both fail closed — a member that cannot be sandboxed or guarded does NOT
         # run unprotected. Testing mode runs unwrapped (fast iteration, FR-006).
         cmd = await _apply_production_controls(cmd, prompt)
     else:
-        cmd = [_openclaw_bin(), "agent", "--agent", AGENT_ID, flag, session_key, "--json", "-m", prompt]
+        cmd = [_openclaw_bin(), "agent", "--agent", AGENT_ID, flag, session_key, "--json"] + message_args
     proc = await asyncio.create_subprocess_exec(
         *cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.STDOUT,
         env=_agent_env())

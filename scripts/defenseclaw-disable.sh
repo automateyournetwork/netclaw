@@ -21,6 +21,11 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()  { echo -e "${CYAN}[STEP]${NC} $1"; }
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# security.mode lives in ~/.openclaw/config/openclaw.json, NOT the gateway's
+# ~/.openclaw/openclaw.json. The gateway config schema has no security.mode key
+# and OpenClaw rejects the whole file if you add one ("security: Unrecognized
+# key"), taking every MCP server down with it. bgp/federation/controls.py reads
+# this same path. Do not "fix" this to the gateway config.
 OPENCLAW_CONFIG="$HOME/.openclaw/config/openclaw.json"
 
 echo "========================================="

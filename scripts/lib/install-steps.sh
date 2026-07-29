@@ -2729,6 +2729,13 @@ else
         if [ -f "$NETCLAW_DIR/config/openclaw.json" ]; then
             cp "$NETCLAW_DIR/config/openclaw.json" "$OPENCLAW_DIR/openclaw.json"
             log_info "Deployed fallback openclaw.json (gateway.mode=local)"
+            # The template registers servers with repo-relative paths, but the
+            # gateway does not run from the repo — without an explicit cwd every
+            # one of them dies at launch with "can't open file".
+            python3 "$NETCLAW_DIR/scripts/normalize-mcp-cwd.py" \
+                --config "$OPENCLAW_DIR/openclaw.json" \
+                --repo   "$NETCLAW_DIR" \
+                || log_warn "Could not normalize MCP cwd entries — relative-path servers may fail to launch"
         else
             log_warn "config/openclaw.json not found in repo"
         fi
@@ -2897,6 +2904,37 @@ if [ -f "$CLAROTY_MCP_DIR/requirements.txt" ]; then
     log_info "Claroty MCP ready: $CLAROTY_MCP_DIR/claroty_mcp_server.py"
 else
     log_warn "Claroty MCP requirements.txt not found at $CLAROTY_MCP_DIR"
+fi
+
+echo ""
+}
+
+component_install_auvik() {
+log_step "Installing Auvik MCP Server..."
+echo "  Built-in MCP server: mcp-servers/auvik-mcp/"
+echo "  Auvik network monitoring — inventory, alerts, lifecycle/warranty, performance (20 read-only tools)"
+
+AUVIK_MCP_DIR="$MCP_DIR/auvik-mcp"
+if [ -d "$NETCLAW_DIR/mcp-servers/auvik-mcp" ]; then
+    AUVIK_MCP_DIR="$NETCLAW_DIR/mcp-servers/auvik-mcp"
+fi
+
+if [ -f "$AUVIK_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing Auvik MCP dependencies (fastmcp, httpx, python-dotenv)..."
+    pip3 install -r "$AUVIK_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$AUVIK_MCP_DIR/requirements.txt" 2>/dev/null || {
+            log_warn "Auvik MCP pip install failed — dependencies may need manual installation"
+        }
+
+    # Copy .env.example if .env does not exist
+    if [ -f "$AUVIK_MCP_DIR/.env.example" ] && [ ! -f "$AUVIK_MCP_DIR/.env" ]; then
+        log_info "Auvik MCP .env.example available — copy and configure:"
+        echo "    cp $AUVIK_MCP_DIR/.env.example $AUVIK_MCP_DIR/.env"
+    fi
+
+    log_info "Auvik MCP ready: $AUVIK_MCP_DIR/auvik_mcp_server.py"
+else
+    log_warn "Auvik MCP requirements.txt not found at $AUVIK_MCP_DIR"
 fi
 
 echo ""
@@ -3073,6 +3111,9 @@ if [[ "$ENABLE_DEFENSECLAW" =~ ^[Yy] ]]; then
             fi
 
             # Update openclaw.json with security.mode = defenseclaw
+            # security.mode belongs in the DefenseClaw config, not the gateway config:
+            # the gateway schema rejects a security.mode key and refuses the whole
+            # file. bgp/federation/controls.py reads this same path.
             OPENCLAW_CONFIG="$HOME/.openclaw/config/openclaw.json"
             if [ -f "$OPENCLAW_CONFIG" ]; then
                 python3 -c "
@@ -3150,6 +3191,9 @@ else
     log_info "NetClaw will run in hobby mode (no security layer)."
 
     # Update openclaw.json with security.mode = hobby
+    # security.mode belongs in the DefenseClaw config, not the gateway config:
+    # the gateway schema rejects a security.mode key and refuses the whole
+    # file. bgp/federation/controls.py reads this same path.
     OPENCLAW_CONFIG="$HOME/.openclaw/config/openclaw.json"
     if [ -f "$OPENCLAW_CONFIG" ]; then
         python3 -c "
@@ -3212,6 +3256,37 @@ echo ""
 }
 
 # ── Memory MCP Server (spec 033, backfilled for catalog parity) ─
+component_install_halo() {
+log_step "Installing Halo MCP Server (HaloPSA / HaloITSM)..."
+echo "  Built-in MCP server: mcp-servers/halo-mcp/"
+echo "  Change requests (gated confirm-before-submit) + asset/ticket context (18 tools, OAuth2 client-credentials)"
+
+HALO_MCP_DIR="$MCP_DIR/halo-mcp"
+if [ -d "$NETCLAW_DIR/mcp-servers/halo-mcp" ]; then
+    HALO_MCP_DIR="$NETCLAW_DIR/mcp-servers/halo-mcp"
+fi
+
+if [ -f "$HALO_MCP_DIR/requirements.txt" ]; then
+    log_info "Installing Halo MCP dependencies (fastmcp, httpx, python-dotenv)..."
+    pip3 install -r "$HALO_MCP_DIR/requirements.txt" 2>/dev/null || \
+        pip3 install --break-system-packages -r "$HALO_MCP_DIR/requirements.txt" 2>/dev/null || {
+            log_warn "Halo MCP pip install failed — dependencies may need manual installation"
+        }
+
+    if [ -f "$HALO_MCP_DIR/.env.example" ] && [ ! -f "$HALO_MCP_DIR/.env" ]; then
+        log_info "Halo MCP .env.example available — copy and configure:"
+        echo "    cp $HALO_MCP_DIR/.env.example $HALO_MCP_DIR/.env"
+    fi
+
+    log_info "Halo MCP ready: $HALO_MCP_DIR/halo_mcp_server.py"
+    log_info "Create an OAuth2 (client-credentials) API application in Halo: Configuration > Integrations > Halo API"
+else
+    log_warn "Halo MCP requirements.txt not found at $HALO_MCP_DIR"
+fi
+
+echo ""
+}
+
 component_install_memory_mcp() {
 log_step "Installing Memory MCP Server..."
 echo "  Built-in MCP server: mcp-servers/memory-mcp/"

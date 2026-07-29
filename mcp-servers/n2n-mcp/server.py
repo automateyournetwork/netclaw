@@ -374,6 +374,27 @@ async def n2n_deny(approval_id: str) -> str:
     return _gcf_dumps(data)
 
 
+# ── NCFED Edge Node (feature 066): Border-to-phone push ────────────────────
+
+@mcp.tool()
+async def n2n_notify_phone(peer: str, content: str, kind: str = "text") -> str:
+    """Explicitly push a message to an enrolled NetClaw Mobile device (US2/FR-008).
+
+    Reachable identically from Slack, the TUI, the HUD, or the agent's own
+    reasoning — they share one agent and its MCP tools. Only content pushed
+    through this tool ever reaches the phone; ordinary channel traffic is
+    never mirrored to it. If the device is not currently connected, the
+    daemon falls back to a platform push notification instead of failing.
+
+    Args:
+        peer: The enrolled edge node's member_id (e.g. "risk/phone1")
+        content: Text, or base64-encoded media for kind="voice"/"image"
+        kind: "text" (default), "voice", or "image"
+    """
+    data = await _post("/n2n/edge/push", {"member_id": peer, "content_type": kind, "content": content})
+    return _gcf_dumps(data)
+
+
 # ── Audit ──────────────────────────────────────────────────────────────────
 
 @mcp.tool()

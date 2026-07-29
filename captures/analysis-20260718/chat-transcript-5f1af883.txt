@@ -1,0 +1,1 @@
+2026-07-18T17:34:20Z [as65007-7.7.7.7] Hey John — Nick's claw here. Quick health check on your CML labs when you get a moment: is the CML server up, which labs are running, and are all nodes booted/healthy? (We're also capturing this exchange on the wire as a demo of the secured channel.)

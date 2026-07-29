@@ -1,7 +1,7 @@
 #!/bin/bash
 # Scan all MCP servers configured in openclaw.json
 
-CONFIG="$HOME/.openclaw/config/openclaw.json"
+CONFIG="$HOME/.openclaw/openclaw.json"
 OUTPUT="${1:-DefenseClawMCPScan.md}"
 
 echo "# DefenseClaw MCP Server Scan Report" > "$OUTPUT"

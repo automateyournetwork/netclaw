@@ -73,6 +73,7 @@ CATALOG=(
     "kubeshark|Observability|Kubeshark|K8s L4/L7 traffic analysis, TLS decryption (remote)"
     "gtrace|Observability|gtrace|Traceroute (MPLS/ECMP/NAT), MTR, GlobalPing, ASN, geo (6 tools)"
     "telemetry-receivers|Observability|Telemetry Receivers|SNMP trap, syslog, IPFIX/NetFlow receivers over UDP (3 servers)"
+    "auvik|Observability|Auvik|Read-only network monitoring — inventory, alerts, lifecycle, performance (bundled, 20 tools)"
 
     "cml|Labs & Simulation|Cisco CML|Lab lifecycle, topology, packet capture (Python 3.12+)"
     "gns3|Labs & Simulation|GNS3|Projects, nodes, links, templates, snapshots, packet capture (23 tools)"
@@ -90,6 +91,7 @@ CATALOG=(
     "jenkins|ITSM & DevOps|Jenkins|Jobs and builds via Jenkins MCP Server plugin (remote)"
     "atlassian|ITSM & DevOps|Atlassian|Jira + Confluence (Cloud and Server/DC)"
     "msgraph|ITSM & DevOps|Microsoft Graph|OneDrive, SharePoint, Visio, Teams"
+    "halo|ITSM & DevOps|HaloPSA / HaloITSM|Change requests (gated) + asset/ticket context (bundled, 18 tools)"
 
     "packet-buddy|Analysis & Diagrams|Packet Buddy|pcap/pcapng analysis via tshark"
     "markmap|Analysis & Diagrams|Markmap|Mind map visualization"
@@ -161,7 +163,7 @@ fwrule gait servicenow"
 PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzieq gait subnet-calc drawio-rfc uml"
 
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
-suzieq kubeshark gtrace gait"
+suzieq kubeshark gtrace auvik gait"
 
 # NetClaw Convergence pipeline (067): OBS + convergence-api + HUD + investigator path.
 # n2n is included so risk/guardian-claw ensure can enroll the investigator member.

@@ -261,6 +261,18 @@ class FederationManager:
             ("member", "cred_not_after", "TEXT"),
             ("member", "renew_state", "TEXT"),
             ("member", "enroll_fingerprint_logged", "INTEGER NOT NULL DEFAULT 0"),
+            # feature 066: edge nodes (mobile devices) — a member with no agent
+            # runtime, capability-only. Every existing row defaults to 'agent',
+            # preserving current behavior exactly.
+            #   node_type — 'agent' (existing NetClaw member) | 'service' | 'edge'
+            ("member", "node_type", "TEXT NOT NULL DEFAULT 'agent'"),
+            # feature 066 (US3/T031): platform push-notification fallback for
+            # a disconnected edge node. NULL until the device registers via
+            # n2n/edge/register_push (US1/US2's connected-delivery path is
+            # unaffected either way).
+            #   push_platform — 'fcm' (Android) | 'apns' (iOS) | NULL
+            ("member", "push_platform", "TEXT"),
+            ("member", "push_token", "TEXT"),
         ]:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")

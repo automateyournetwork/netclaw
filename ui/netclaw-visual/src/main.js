@@ -10,16 +10,22 @@ import { AfterimagePass } from 'three/addons/postprocessing/AfterimagePass.js';
 import { FilmPass } from 'three/addons/postprocessing/FilmPass.js';
 import { GlitchPass } from 'three/addons/postprocessing/GlitchPass.js';
 import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
+
+// ── HUD 2.0: top-down trust org chart (feature 072) ───────────────────────
+// The orbit layout is replaced by these; everything else in this file —
+// materials, ribbons, labels, picking, polling, panels — is preserved (FR-028).
+import {
+  mountOrgChart, updateOrgChart, searchOrgChart,
+  pickableObjects, chartNodes, tickOrgChart, activateNode,
+  mountA11y, toggleNodeExpansion,
+} from './orgchart-render/index.js';
+import {
+  createChartCamera, createChartControls, resizeChartCamera, frameChart,
+} from './orgchart-render/camera.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
-import { createTabRouter } from './app-shell/tab-router.js';
-import { createMobileLayout, mobilePixelRatio } from './app-shell/mobile-layout.js';
-import { saveGraphCache, loadGraphCache, formatCacheAge } from './app-shell/graph-cache.js';
-import { registerServiceWorker } from './app-shell/register-sw.js';
-import { HomeView } from './views/home/HomeView.js';
-import './styles/home.css';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -33,19 +39,6 @@ const QUALITY_LABELS = { focus: 'FOCUS', balanced: 'BALANCED', broadcast: 'BROAD
 // orbiting skill sprites. Distinct colors per class. Spacing is widened so the
 // three tiers read clearly. This config is consumed by the scene-layout pass
 // (createMemberCores / positionClawsByRole) — tune live against the HUD.
-const RISK_LAYOUT = {
-  spacing: 34,             // widened inter-claw spacing (was ~18); tune live
-  borderAtOrigin: true,    // Border = center of the universe
-  externalAxis: +1,        // eN2N peer claws to the north (+Z)
-  memberAxis: -1,          // internal member claws to the south (-Z)
-  tierRadius: 46,          // distance of each tier ring from the Border
-  colors: {
-    border:   0xffd166,    // amber — the one you talk to, center of the universe
-    member:   0x68f5b2,    // neon green — internal, trusted, focused specialists
-    external: 0x38e8ff,    // cyan — external peer risks (other operators)
-    memberQuarantined: 0xff5d6c,  // red — an auto-quarantined / removed member
-  },
-};
 
 const state = {
   graph: null,
@@ -98,24 +91,6 @@ const state = {
     litIntegrations: new Set(),  // integration ids currently lit
     litTools: new Map(),         // tool name → { integrationId, spriteIndex }
   },
-  // 067-convergence: top-level product tab (command | home)
-  appTab: 'command',
-  tabRouter: null,
-  homeView: null,
-  mobileLayout: null,
-  /** User explicitly cycled quality — don't auto-override on mobile enter */
-  qualityUserPinned: false,
-  /** Chat: user dragged/resized on this session — don't re-sheet on every vv resize */
-  chatUserPositioned: false,
-  /** H002 — OS prefers-reduced-motion */
-  reducedMotion: false,
-  /** H003 — suppress synthetic click after long-press select */
-  suppressNextClick: false,
-  /** Open command chrome panel (wired in wireUI) */
-  openPanel: null,
-  /** H005 — booted from localStorage / SW stale graph */
-  graphStale: false,
-  graphStaleAt: null,
 };
 
 const dom = {
@@ -131,10 +106,6 @@ const dom = {
   footerModel: document.getElementById('footer-model'),
   footerGateway: document.getElementById('footer-gateway'),
   footerUpdated: document.getElementById('footer-updated'),
-  footerTokensLifetime: document.getElementById('footer-tokens-lifetime'),
-  footerTokensLast: document.getElementById('footer-tokens-last'),
-  footerTokensOpt: document.getElementById('footer-tokens-opt'),
-  footerTokensTop: document.getElementById('footer-tokens-top'),
   chatDrawer: document.getElementById('chat-drawer'),
   chatMessages: document.getElementById('chat-messages'),
   chatForm: document.getElementById('chat-form'),
@@ -159,39 +130,7 @@ const dom = {
 };
 
 // ── Quality mode switching ──────────────────────────────────────────
-const QUALITY_STORAGE_KEY = 'netclaw.hud.quality.v1';
-
-function loadQualityPreference() {
-  try {
-    const raw = localStorage.getItem(QUALITY_STORAGE_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-    if (!QUALITY_MODES.includes(parsed.mode)) return null;
-    return {
-      mode: parsed.mode,
-      pinned: !!parsed.pinned,
-    };
-  } catch {
-    return null;
-  }
-}
-
-function persistQualityPreference() {
-  try {
-    localStorage.setItem(
-      QUALITY_STORAGE_KEY,
-      JSON.stringify({
-        mode: state.qualityMode,
-        pinned: !!state.qualityUserPinned,
-      }),
-    );
-  } catch {
-    /* ignore */
-  }
-}
-
-function setQualityMode(mode, { persist = false } = {}) {
-  if (!QUALITY_MODES.includes(mode)) mode = 'balanced';
+function setQualityMode(mode) {
   state.qualityMode = mode;
   const isFocus = mode === 'focus';
   const isBroadcast = mode === 'broadcast';
@@ -218,35 +157,16 @@ function setQualityMode(mode, { persist = false } = {}) {
   // Update UI label
   const btn = document.getElementById('quality-toggle');
   if (btn) btn.textContent = QUALITY_LABELS[mode];
-
-  // H009 — persist when user-pinned or explicit persist
-  if (persist || state.qualityUserPinned) {
-    persistQualityPreference();
-  }
 }
 
 function cycleQualityMode() {
   const idx = QUALITY_MODES.indexOf(state.qualityMode);
   const next = QUALITY_MODES[(idx + 1) % QUALITY_MODES.length];
-  state.qualityUserPinned = true;
-  setQualityMode(next, { persist: true });
-}
-
-/** H009 — restore last quality mode before mobile auto-FOCUS may apply */
-function applyStoredQualityOrDefault() {
-  const pref = loadQualityPreference();
-  if (pref) {
-    state.qualityUserPinned = pref.pinned;
-    setQualityMode(pref.mode, { persist: false });
-    return pref;
-  }
-  setQualityMode('balanced', { persist: false });
-  return null;
+  setQualityMode(next);
 }
 
 // Temporarily enable cinematic effects during activations
 function enableCinematicBurst() {
-  if (state.reducedMotion) return; // H002 — no cinematic burst
   if (state.qualityMode === 'broadcast') return; // already on
   if (state.afterimagePass) state.afterimagePass.enabled = true;
   if (state.filmPass) state.filmPass.enabled = true;
@@ -257,16 +177,6 @@ function enableCinematicBurst() {
       if (state.filmPass) state.filmPass.enabled = state.qualityMode !== 'focus';
     }
   }, 6000);
-}
-
-/** H002 — apply reduced-motion policy to GSAP + quality */
-function applyReducedMotion(enabled) {
-  state.reducedMotion = !!enabled;
-  // Near-instant timelines when reduced; restore normal speed otherwise
-  gsap.globalTimeline.timeScale(enabled ? 40 : 1);
-  if (enabled && !state.qualityUserPinned) {
-    setQualityMode('focus');
-  }
 }
 
 // ── Chat Focus Mode ─────────────────────────────────────────────
@@ -461,100 +371,31 @@ function setLoading(progress, text) {
   dom.loadingText.textContent = text;
 }
 
-/**
- * H005 — fetch live graph; on failure use last good snapshot (localStorage).
- * Sets state.graphStale when serving cache.
- */
 async function fetchGraph() {
-  state.graphStale = false;
-  state.graphStaleAt = null;
-  try {
-    const response = await fetch('/api/graph', { cache: 'no-cache' });
-    if (!response.ok) throw new Error(`API returned ${response.status}`);
-    const graph = await response.json();
-    // SW may serve a stale body with 200 + X-NetClaw-Graph-Cache: stale
-    const cacheHdr = response.headers.get('X-NetClaw-Graph-Cache');
-    const cachedAtHdr = response.headers.get('X-NetClaw-Graph-Cached-At');
-    if (cacheHdr === 'stale') {
-      state.graphStale = true;
-      state.graphStaleAt = cachedAtHdr || loadGraphCache()?.cachedAt || null;
-      if (!graph.generatedAt && state.graphStaleAt) {
-        graph.generatedAt = state.graphStaleAt;
-      }
-      return graph;
-    }
-    if (!graph.generatedAt) graph.generatedAt = new Date().toISOString();
-    saveGraphCache(graph);
-    return graph;
-  } catch (err) {
-    const cached = loadGraphCache();
-    if (cached?.graph) {
-      state.graphStale = true;
-      state.graphStaleAt = cached.cachedAt;
-      const graph = cached.graph;
-      if (!graph.generatedAt) graph.generatedAt = cached.cachedAt;
-      console.warn('[netclaw-hud] Using stale graph cache:', err.message);
-      return graph;
-    }
-    throw err;
-  }
-}
-
-/** H005 — top banner when topology is from cache / offline */
-function showStaleBanner({ cachedAt, reason } = {}) {
-  const el = document.getElementById('stale-banner');
-  const text = document.getElementById('stale-banner-text');
-  if (!el || !text) return;
-  const age = formatCacheAge(cachedAt || state.graphStaleAt);
-  const why = reason || 'API unreachable';
-  text.textContent = `Showing last saved topology (${age}). ${why}. Chat may still work if the gateway is up.`;
-  el.classList.remove('hidden');
-  document.getElementById('app')?.classList.add('has-stale-banner');
-}
-
-function hideStaleBanner() {
-  document.getElementById('stale-banner')?.classList.add('hidden');
-  document.getElementById('app')?.classList.remove('has-stale-banner');
-}
-
-function wireStaleBanner() {
-  document.getElementById('stale-banner-dismiss')?.addEventListener('click', () => hideStaleBanner());
-  document.getElementById('stale-banner-retry')?.addEventListener('click', async () => {
-    const btn = document.getElementById('stale-banner-retry');
-    if (btn) btn.disabled = true;
-    try {
-      const graph = await fetchGraph();
-      if (!state.graphStale) {
-        state.graph = graph;
-        renderSidebar(graph);
-        renderMetrics(graph);
-        hideStaleBanner();
-        dom.footerUpdated.textContent = new Date(graph.generatedAt || Date.now()).toLocaleTimeString();
-      } else {
-        showStaleBanner({ cachedAt: state.graphStaleAt, reason: 'Still offline' });
-      }
-    } catch (e) {
-      showStaleBanner({ cachedAt: state.graphStaleAt, reason: e.message || 'Retry failed' });
-    } finally {
-      if (btn) btn.disabled = false;
-    }
-  });
+  const response = await fetch('/api/graph');
+  if (!response.ok) throw new Error(`API returned ${response.status}`);
+  return response.json();
 }
 
 function initScene() {
   const root = document.getElementById('scene-root');
 
   state.scene = new THREE.Scene();
-  state.scene.fog = new THREE.FogExp2(0x040a14, 0.006);
+  // Fog thinned: the chart is planar, so depth haze only dulled it.
+  state.scene.fog = new THREE.FogExp2(0x081426, 0.0018);
 
-  state.camera = new THREE.PerspectiveCamera(48, window.innerWidth / window.innerHeight, 0.1, 260);
-  state.camera.position.set(12, 55, 110);
+  // HUD 2.0 (FR-012/013): orthographic and rotation-locked. A perspective
+  // camera under free OrbitControls was the dominant cause of "hard to
+  // navigate" — hierarchy only reads if the layout and the viewer agree on
+  // which way is up. Ortho additionally renders equal-tier siblings at equal
+  // size, which is what makes a chart read as a chart.
+  state.camera = createChartCamera(window.innerWidth / window.innerHeight);
 
-  state.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true, powerPreference: 'high-performance' });
-  state.renderer.setPixelRatio(mobilePixelRatio());
+  state.renderer = new THREE.WebGLRenderer({ antialias: false, alpha: true });
+  state.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   state.renderer.setSize(window.innerWidth, window.innerHeight);
   state.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  state.renderer.toneMappingExposure = 1.15;
+  state.renderer.toneMappingExposure = 1.55;   // HUD 2.0: brighter overall (operator feedback)
   state.renderer.shadowMap.enabled = true;
   state.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   root.appendChild(state.renderer.domElement);
@@ -599,24 +440,12 @@ function initScene() {
   // 9. Output (sRGB tone mapping)
   state.composer.addPass(new OutputPass());
 
-  state.controls = new OrbitControls(state.camera, state.renderer.domElement);
-  state.controls.enableDamping = true;
-  state.controls.dampingFactor = 0.06;
-  state.controls.minDistance = 12;
-  state.controls.maxDistance = 180;
-  state.controls.maxPolarAngle = Math.PI * 0.48;
-  state.controls.target.set(CORE_CENTROID.x, CORE_CENTROID.y, CORE_CENTROID.z);
-  // Touch-friendly defaults (phones / tablets)
-  state.controls.rotateSpeed = 0.85;
-  state.controls.zoomSpeed = 0.9;
-  state.controls.panSpeed = 0.7;
-  state.controls.touches = {
-    ONE: THREE.TOUCH.ROTATE,
-    TWO: THREE.TOUCH.DOLLY_PAN,
-  };
+  // Pan and zoom only — rotation is disabled so the bands can never invert
+  // (FR-012, SC-003).
+  state.controls = createChartControls(state.camera, state.renderer.domElement);
 
   // ── Enhanced lighting (Section E) ─────────────────────────────
-  state.scene.add(new THREE.AmbientLight(0x4a7cb5, 0.35));
+  state.scene.add(new THREE.AmbientLight(0x7fb0e0, 1.15));  // lifted for the flat chart
 
   // Key light — overhead spotlight with shadows
   const keyLight = new THREE.SpotLight(0x65c3ff, 4.5, 120, Math.PI * 0.35, 0.4, 1.2);
@@ -743,122 +572,7 @@ function makeLabel(text) {
 }
 
 // Triangular layout positions for multi-core topology
-const CORE_POSITIONS = {
-  local: new THREE.Vector3(-18, 0, 0),
-  peer1: new THREE.Vector3(52, 0, -28),
-  peer2: new THREE.Vector3(52, 0, 28),
-  peer3: new THREE.Vector3(18, 0, -56),
-};
-const CORE_CENTROID = new THREE.Vector3(12, 0, 0);
 
-function buildCore(identity, position, labelText, colorTint) {
-  const pos = position || new THREE.Vector3(0, 0, 0);
-  const lbl = labelText || identity.name.toUpperCase();
-  const tint = colorTint || 0x66ccff;
-  const tintColor = new THREE.Color(tint);
-  const group = new THREE.Group();
-
-  // Shell — custom shader wireframe with fresnel + scan-lines (uniform-based color)
-  const shellMat = new THREE.ShaderMaterial({
-    uniforms: { uTime: { value: 0 }, uTintColor: { value: tintColor.clone() } },
-    vertexShader: `
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      void main() {
-        vNormal = normalize(normalMatrix * normal);
-        vWorldPos = (modelMatrix * vec4(position, 1.0)).xyz;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float uTime;
-      uniform vec3 uTintColor;
-      varying vec3 vNormal;
-      varying vec3 vWorldPos;
-      void main() {
-        vec3 viewDir = normalize(cameraPosition - vWorldPos);
-        float fresnel = pow(1.0 - abs(dot(viewDir, vNormal)), 3.0);
-        float scan = sin(vWorldPos.y * 18.0 - uTime * 2.5) * 0.5 + 0.5;
-        scan = smoothstep(0.4, 0.6, scan) * 0.3;
-        vec3 col = uTintColor * (0.15 + fresnel * 0.8 + scan);
-        gl_FragColor = vec4(col, 0.12 + fresnel * 0.35);
-      }
-    `,
-    transparent: true,
-    wireframe: true,
-    side: THREE.DoubleSide,
-    depthWrite: false,
-  });
-  const shell = new THREE.Mesh(_sharedGeo.coreShell, shellMat);
-  group.add(shell);
-
-  // Nucleus — thin glass shell
-  const nucleus = new THREE.Mesh(
-    _sharedGeo.coreNucleus,
-    new THREE.MeshPhysicalMaterial({
-      color: tint,
-      emissive: tint,
-      emissiveIntensity: 0.9,
-      roughness: 0.05,
-      metalness: 0.1,
-      iridescence: 1.0,
-      iridescenceIOR: 1.8,
-      transmission: 0.95,
-      ior: 1.5,
-      thickness: 0.3,
-      clearcoat: 1.0,
-      clearcoatRoughness: 0.05,
-      transparent: true,
-      opacity: 0.15,
-      depthWrite: false,
-    }),
-  );
-  nucleus.renderOrder = 1;
-  group.add(nucleus);
-
-  const torus = new THREE.Mesh(
-    new THREE.TorusGeometry(4.7, 0.08, 12, 120),
-    new THREE.MeshBasicMaterial({ color: 0xff7b54, transparent: true, opacity: 0.36 }),
-  );
-  torus.rotation.x = Math.PI / 2.8;
-  group.add(torus);
-
-  const torus2 = new THREE.Mesh(
-    new THREE.TorusGeometry(5.2, 0.05, 12, 120),
-    new THREE.MeshBasicMaterial({ color: tint, transparent: true, opacity: 0.22 }),
-  );
-  torus2.rotation.x = Math.PI / 1.6;
-  torus2.rotation.y = Math.PI / 3;
-  group.add(torus2);
-
-  const label = makeLabel(lbl);
-  label.position.set(0, 5.4, 0);
-  group.add(label);
-
-  // Logo sprite inside the nucleus
-  const logoTexture = new THREE.TextureLoader().load('/logos/netclaw.png');
-  logoTexture.colorSpace = THREE.SRGBColorSpace;
-  const logoSprite = new THREE.Sprite(
-    new THREE.SpriteMaterial({
-      map: logoTexture,
-      transparent: true,
-      opacity: 0.85,
-      depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
-    }),
-  );
-  logoSprite.scale.set(2.8, 2.8 * 0.55, 1);
-  logoSprite.position.set(0, 0, 0);
-  logoSprite.renderOrder = 10;
-  group.add(logoSprite);
-
-  group.position.copy(pos);
-  group.userData = { type: 'core' };
-  state.scene.add(group);
-
-  return { group, shell, nucleus, torus, torus2, logoSprite, position: pos.clone() };
-}
 
 // ── Holographic ShaderMaterial for integration nodes (Section D) ──
 function createHolographicMaterial(color) {
@@ -1074,298 +788,10 @@ function createTubeMaterial(color) {
   });
 }
 
-function buildIntegrations(graph) {
-  const grouped = graph.categories.map((category) => ({
-    ...category,
-    nodes: graph.integrations.filter((integration) => integration.category === category.name),
-  }));
 
-  const radiusBase = 34;
-  const coreAnchor = state.localCore ? state.localCore.position : new THREE.Vector3(0, 0, 0);
 
-  // Flatten all integrations into a single ordered list (grouped by category)
-  const allIntegrations = [];
-  grouped.forEach((bucket) => bucket.nodes.forEach((n) => allIntegrations.push(n)));
-  const totalN = allIntegrations.length;
-  const goldenRatio = (1 + Math.sqrt(5)) / 2;
 
-  // Build a look-up with spherical coords + unstable orbit parameters
-  const orbitMap = new Map();
-  allIntegrations.forEach((integration, i) => {
-    // Fibonacci sphere — even distribution across a full sphere
-    const theta0 = 2 * Math.PI * i / goldenRatio;
-    const phi0 = Math.acos(1 - 2 * (i + 0.5) / totalN);
-    const radius = radiusBase + (i % 3) * 2.5;
-    // Unique slow orbit speed + slight polar drift
-    const orbitSpeed = 0.0012 + (((i * 7 + 3) % 13) / 13) * 0.0018;
-    const axisTilt = ((i * 11 + 5) % 17) / 17 * 0.15 - 0.075;
-    const position = new THREE.Vector3(
-      coreAnchor.x + radius * Math.sin(phi0) * Math.cos(theta0),
-      radius * Math.cos(phi0),
-      coreAnchor.z + radius * Math.sin(phi0) * Math.sin(theta0),
-    );
-    orbitMap.set(integration.id, { position, theta0, phi0, radius, orbitSpeed, axisTilt });
-  });
 
-  grouped.forEach((bucket) => {
-    bucket.nodes.forEach((integration) => {
-      const orbitData = orbitMap.get(integration.id);
-      const position = orbitData.position;
-
-      const group = new THREE.Group();
-      group.position.copy(position);
-
-      const size = 0.7 + Math.min(integration.skillCount * 0.045, 1.4);
-      // Use holographic shader material for integration nodes
-      const holoMat = createHolographicMaterial(integration.color);
-      const node = new THREE.Mesh(new THREE.OctahedronGeometry(size, 1), holoMat);
-      node.castShadow = true;
-      group.add(node);
-
-      const halo = new THREE.Mesh(
-        getHaloGeometry(size + 0.45),
-        new THREE.MeshBasicMaterial({ color: integration.color, transparent: true, opacity: 0.26 }),
-      );
-      halo.rotation.x = Math.PI / 2;
-      group.add(halo);
-
-      const label = makeLabel(integration.name);
-      label.position.set(0, size + 1.25, 0);
-      group.add(label);
-
-      // Logo sprite — only for integrations with a logo file in public/logos/
-      const LOGO_IDS = new Set(['pyats']);
-      if (LOGO_IDS.has(integration.id)) {
-        const logoTex = new THREE.TextureLoader().load(`/logos/${integration.id}.png`);
-        logoTex.colorSpace = THREE.SRGBColorSpace;
-        const logoSprite = new THREE.Sprite(
-          new THREE.SpriteMaterial({
-            map: logoTex,
-            transparent: true,
-            opacity: 0.8,
-            depthWrite: false,
-            depthTest: false,
-            blending: THREE.AdditiveBlending,
-          }),
-        );
-        logoSprite.scale.set(size * 1.6, size * 1.6 * 0.5, 1);
-        logoSprite.position.set(0, 0, 0);
-        logoSprite.renderOrder = 10;
-        group.add(logoSprite);
-      }
-
-      // Connection ribbon with data-flow shader (replaces per-frame TubeGeometry)
-      const ribbonGeo = createRibbonGeometry(0.06);
-      const midY = Math.max(position.y, 0) + 4.5;
-      _v0.copy(coreAnchor);
-      _v1.set((coreAnchor.x + position.x) * 0.5, midY, (coreAnchor.z + position.z) * 0.5);
-      _v2.copy(position);
-      updateRibbonGeometry(ribbonGeo, _v0, _v1, _v2);
-      const tubeMat = createTubeMaterial(integration.color);
-      const tube = new THREE.Mesh(ribbonGeo, tubeMat);
-      // Keep a CatmullRomCurve3 for particle flow (updated on orbit)
-      const curve = new THREE.CatmullRomCurve3([
-        coreAnchor.clone(), _v1.clone(), position.clone(),
-      ]);
-      state.scene.add(tube);
-
-      const skills = graph.skills.filter((skill) => skill.integrationId === integration.id);
-      const skillSprites = createSkillSprites(position, skills, integration.color, position);
-
-      group.userData = { type: 'integration', payload: integration };
-      node.userData = { type: 'integration', payload: integration };
-      state.scene.add(group);
-
-      state.integrations.push({
-        group,
-        node,
-        halo,
-        tube,
-        tubeMat,
-        curve,
-        label,
-        basePosition: position.clone(),
-        payload: integration,
-        skills,
-        skillSprites,
-        orbit: orbitData,
-      });
-    });
-  });
-}
-
-// ── Virus-tree dendrite layout (Part B) ─────────────────────────────
-function computeDendritePositions(skillCount, integrationPosition) {
-  const positions = [];
-  if (skillCount === 0) return positions;
-  const baseRadius = 4.0;
-  const radiusSpread = 1.8;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-  // Direction from core to integration — skills fan OUTWARD
-  const outDir = integrationPosition.clone().normalize();
-  const up = new THREE.Vector3(0, 1, 0);
-  const quat = new THREE.Quaternion().setFromUnitVectors(up, outDir);
-
-  for (let i = 0; i < skillCount; i++) {
-    const t = i / Math.max(skillCount - 1, 1);
-    const theta = goldenAngle * i;
-    const phi = Math.acos(1 - t * 0.85); // ~60deg cone
-    const radius = baseRadius + (i % 3) * (radiusSpread / 3);
-    const localPos = new THREE.Vector3(
-      radius * Math.sin(phi) * Math.cos(theta),
-      radius * Math.cos(phi),
-      radius * Math.sin(phi) * Math.sin(theta),
-    );
-    localPos.applyQuaternion(quat);
-    positions.push(localPos);
-  }
-  return positions;
-}
-
-// ── Dendrite wire shader (Part C) ───────────────────────────────────
-function createDendriteMaterial(color) {
-  const c = new THREE.Color(color);
-  return new THREE.ShaderMaterial({
-    uniforms: {
-      uTime: { value: 0 },
-      uColor: { value: c },
-      uOpacity: { value: 0.0 },
-      uProgress: { value: 0.0 },
-    },
-    vertexShader: `
-      varying vec2 vUv;
-      void main() {
-        vUv = uv;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float uTime;
-      uniform vec3 uColor;
-      uniform float uOpacity;
-      uniform float uProgress;
-      varying vec2 vUv;
-      void main() {
-        if (vUv.x > uProgress) discard;
-        float pulse = smoothstep(0.38, 0.5, fract(vUv.x * 12.0 - uTime * 0.8));
-        pulse *= smoothstep(0.62, 0.5, fract(vUv.x * 12.0 - uTime * 0.8));
-        float edge = 1.0 - abs(vUv.y - 0.5) * 2.0;
-        edge = pow(edge, 0.8);
-        vec3 col = uColor * (0.4 + pulse * 1.2);
-        float alpha = uOpacity * edge * (0.4 + pulse * 0.6);
-        gl_FragColor = vec4(col, alpha);
-      }
-    `,
-    transparent: true,
-    blending: THREE.AdditiveBlending,
-    depthWrite: false,
-    side: THREE.DoubleSide,
-  });
-}
-
-function createSkillSprites(anchor, skills, color, integrationPosition) {
-  const clampedSkills = skills.slice(0, 18);
-  const dendrites = computeDendritePositions(clampedSkills.length, integrationPosition);
-
-  return clampedSkills.map((skill, index) => {
-    const mesh = new THREE.Mesh(_sharedGeo.skillTetra, getSkillMaterial(color));
-    mesh.visible = false;
-    mesh.userData = { type: 'skill', payload: skill };
-    state.scene.add(mesh);
-
-    const label = makeLabel(skill.name);
-    label.visible = false;
-    state.scene.add(label);
-
-    // Dendrite wire from integration to skill
-    const localPos = dendrites[index];
-    const midPos = localPos.clone().multiplyScalar(0.5);
-    midPos.y += 0.3; // slight arc
-    const wireCurve = new THREE.CatmullRomCurve3([
-      new THREE.Vector3(0, 0, 0),
-      midPos,
-      localPos.clone(),
-    ]);
-    const wireGeo = new THREE.TubeGeometry(wireCurve, 16, 0.02, 4, false);
-    const wireMat = createDendriteMaterial(color);
-    const wire = new THREE.Mesh(wireGeo, wireMat);
-    wire.visible = false;
-    state.scene.add(wire);
-
-    const sprite = {
-      mesh,
-      label,
-      payload: skill,
-      localPosition: localPos,
-      anchor: anchor.clone(),
-      wire,
-      wireMat,
-      wireCurve,
-    };
-    state.skillSprites.push(sprite);
-    return sprite;
-  });
-}
-
-function buildDevices(graph) {
-  // Devices hang off the pyATS integration node (testbed.yaml devices)
-  const pyatsEntry = state.integrations.find((e) => e.payload.id === 'pyats');
-  const anchor = pyatsEntry ? pyatsEntry.basePosition.clone() : new THREE.Vector3(0, 0, 0);
-
-  // Compute outward direction from core to pyATS
-  const outDir = anchor.clone().normalize();
-  const up = new THREE.Vector3(0, 1, 0);
-  const quat = new THREE.Quaternion().setFromUnitVectors(up, outDir);
-
-  const deviceRadius = 6.5;
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-  graph.devices.forEach((device, index) => {
-    const t = index / Math.max(graph.devices.length - 1, 1);
-    const theta = goldenAngle * index;
-    const phi = Math.acos(1 - t * 0.7);
-    const localOffset = new THREE.Vector3(
-      deviceRadius * Math.sin(phi) * Math.cos(theta),
-      deviceRadius * Math.cos(phi),
-      deviceRadius * Math.sin(phi) * Math.sin(theta),
-    );
-    localOffset.applyQuaternion(quat);
-    const position = anchor.clone().add(localOffset);
-
-    const isRouter = device.type.toLowerCase().includes('router');
-    const color = isRouter ? 0x68f5b2 : 0xffb703;
-    const geometry = isRouter ? _sharedGeo.deviceRouter : _sharedGeo.deviceSwitch;
-    const mesh = new THREE.Mesh(geometry, createDeviceMaterial(color));
-    mesh.position.copy(position);
-    mesh.castShadow = true;
-    mesh.userData = { type: 'device', payload: device };
-    state.scene.add(mesh);
-
-    // Wire from pyATS node to device
-    const midPos = anchor.clone().add(localOffset.clone().multiplyScalar(0.5));
-    midPos.y += 0.5;
-    const wireCurve = new THREE.CatmullRomCurve3([anchor.clone(), midPos, position.clone()]);
-    const wireGeo = new THREE.TubeGeometry(wireCurve, 16, 0.03, 4, false);
-    const wireMat = createDendriteMaterial(color);
-    wireMat.uniforms.uOpacity.value = 0.2;
-    wireMat.uniforms.uProgress.value = 1.0;
-    const line = new THREE.Mesh(wireGeo, wireMat);
-    state.scene.add(line);
-
-    const label = makeLabel(device.name);
-    label.position.set(position.x, position.y + 1.4, position.z);
-    state.scene.add(label);
-
-    state.devices.push({
-      mesh, line, label, payload: device,
-      basePosition: position.clone(),
-      localOffset,
-      wireMat,
-      pyatsAnchor: pyatsEntry,
-    });
-  });
-}
 
 // ── BGP Topology Visualization ────────────────────────────────────
 // Peers are NEIGHBORS — same level as core, connected by horizontal peer links
@@ -1387,108 +813,10 @@ function deduplicatePeers(peers) {
   return [...seen.values()];
 }
 
-// 056: render this risk's member claws as spokes SOUTH of the Border, each a
-// core with its own orbiting skills, colored by class. Additive + guarded.
-function buildRiskMembers() {
-  try {
-    const risk = state.n2n && state.n2n.risk;
-    if (!risk || risk.role !== 'border') return;
-    const members = (state.n2n.members) || [];
-    if (!members.length) return;
-    state.memberCores = state.memberCores || [];
-    const C = CORE_CENTROID;
-    const R = (typeof RISK_LAYOUT !== 'undefined' && RISK_LAYOUT.tierRadius) || 46;
-    const col = (typeof RISK_LAYOUT !== 'undefined' && RISK_LAYOUT.colors) || {};
-    const n = members.length;
-    members.forEach((m, i) => {
-      const frac = n > 1 ? i / (n - 1) : 0.5;
-      const spread = (frac - 0.5) * Math.PI * 1.25;               // wide fan across the south
-      const px = C.x + Math.sin(spread) * R * 3.0;                // spread far out in X
-      const pz = C.z - (R + 40) - Math.abs(Math.cos(spread)) * R * 0.9; // push well south (-Z)
-      const py = -6 - (i % 5) * 7;                                // deeper vertical stagger
-      const pos = new THREE.Vector3(px, py, pz);
-      const dead = (m.state === 'quarantined' || m.state === 'removed');
-      const cold = !m.live;
-      const tint = dead ? (col.memberQuarantined || 0xff5d6c)
-                        : (cold ? 0x3a6ea5 : (col.member || 0x68f5b2));
-      const name = String(m.member_id || 'member').split('/').pop().toUpperCase();
-      const core = buildCore(state.graph.identity, pos, name, tint);
-      core.isMember = true;
-      core.memberPayload = m;
-      core.orbit = { center: C.clone(), radius: pos.distanceTo(C),
-        angle: Math.atan2(pos.z - C.z, pos.x - C.x), y: pos.y, speed: 0.0004 };
-      // orbiting skills only for LIVE members (keep the scene light for cold ones)
-      const names = (m.live ? (m.skills || []) : []).slice(0, 12);
-      core.skillSprites = createSkillSprites(pos, names.map((s) => ({ name: s, id: s })), tint, pos);
-      // Show member tools by default (don't hide behind a click like integrations).
-      core.skillSprites.forEach((sp) => {
-        if (sp.mesh) sp.mesh.visible = true;
-        if (sp.wire) sp.wire.visible = true;
-      });
-      state.cores.push(core);
-      state.memberCores.push(core);
-    });
-  } catch (e) {
-    console.warn('buildRiskMembers failed (non-fatal):', e);
-  }
-}
 
-function buildPeerRoutes(peerCore, peer) {
-  const routes = peer.adjRibIn || [];
-  peerCore.routeDendrites = [];
-  const pos = peerCore.position;
-  const outDir = pos.clone().normalize();
-  const baseAngle = Math.atan2(outDir.x, outDir.z);
 
-  routes.forEach((route, ri) => {
-    const routeSpread = Math.PI * 0.6;
-    const routeAngle = baseAngle + ((ri / Math.max(routes.length - 1, 1)) - 0.5) * routeSpread;
-    const routeOffset = new THREE.Vector3(
-      Math.sin(routeAngle) * 5.0,
-      -1.5 - ri * 0.6,
-      Math.cos(routeAngle) * 5.0,
-    );
-    const routePos = pos.clone().add(routeOffset);
-    const routeMid = pos.clone().add(routeOffset.clone().multiplyScalar(0.5));
-    routeMid.y += 0.3;
-    const routeCurve = new THREE.CatmullRomCurve3([pos.clone(), routeMid, routePos]);
-    const routeGeo = new THREE.TubeGeometry(routeCurve, 8, 0.02, 4, false);
-    const isIPv6 = route.prefix.includes(':');
-    const routeColor = isIPv6 ? 0x00e5ff : 0x68f5b2;
-    const routeMat = createDendriteMaterial(routeColor);
-    routeMat.uniforms.uOpacity.value = 0.25;
-    routeMat.uniforms.uProgress.value = 1.0;
-    const routeWire = new THREE.Mesh(routeGeo, routeMat);
-    state.scene.add(routeWire);
 
-    const routeLabel = makeLabel(route.prefix);
-    routeLabel.position.copy(routePos);
-    routeLabel.visible = false;
-    state.scene.add(routeLabel);
 
-    peerCore.routeDendrites.push({ wire: routeWire, mat: routeMat, label: routeLabel, route, position: routePos });
-  });
-}
-
-function buildPeerLinks() {
-  const allCores = state.cores;
-  for (let i = 0; i < allCores.length; i++) {
-    for (let j = i + 1; j < allCores.length; j++) {
-      const posA = allCores[i].position;
-      const posB = allCores[j].position;
-      const ribbonGeo = createRibbonGeometry(0.08);
-      _v0.copy(posA);
-      _v1.set((posA.x + posB.x) * 0.5, Math.max(posA.y, posB.y) + 3.0, (posA.z + posB.z) * 0.5);
-      _v2.copy(posB);
-      updateRibbonGeometry(ribbonGeo, _v0, _v1, _v2);
-      const linkMat = createTubeMaterial(0xe040fb);
-      linkMat.uniforms.uOpacity.value = 0.4;
-      const link = new THREE.Mesh(ribbonGeo, linkMat);
-      state.scene.add(link);
-      state.peerLinks.push({ tube: link, mat: linkMat, from: i, to: j });
-    }
-  }
-}
 
 function renderSidebar(graph) {
   dom.categoryList.innerHTML = '';
@@ -1526,26 +854,9 @@ function renderMetrics(graph) {
   dom.stats.skills.textContent = graph.stats.skillCount;
   dom.stats.devices.textContent = graph.stats.deviceCount;
   dom.stats.tools.textContent = graph.stats.toolEstimate;
-  // Prefer settings (server already env-resolves ${NETCLAW_BRAIN_MODEL}); fall back to config primary
-  const settingsModel = Array.isArray(graph.settings)
-    ? graph.settings.find((s) => s.label === 'Primary Model')?.value
-    : null;
-  const rawPrimary = graph.config?.agents?.defaults?.model?.primary;
-  const modelLabel = settingsModel
-    || (rawPrimary
-      ? String(rawPrimary).replace(/^[a-z0-9._-]+\//i, '')
-      : null)
-    || 'unknown';
-  dom.footerModel.textContent = modelLabel;
+  dom.footerModel.textContent = graph.config?.agents?.defaults?.model?.primary?.replace('anthropic/', '') || 'unknown';
   dom.footerGateway.textContent = graph.config?.gateway?.mode || 'unknown';
-  if (state.graphStale) {
-    dom.footerUpdated.textContent = `STALE ${formatCacheAge(state.graphStaleAt || graph.generatedAt)}`;
-  } else {
-    const ts = graph.generatedAt ? new Date(graph.generatedAt) : new Date();
-    dom.footerUpdated.textContent = Number.isNaN(ts.getTime())
-      ? '—'
-      : ts.toLocaleTimeString();
-  }
+  dom.footerUpdated.textContent = new Date(graph.generatedAt).toLocaleTimeString();
 }
 
 function applyFilters() {
@@ -1670,6 +981,34 @@ function renderReplicationJobs() {
       ${j.progress ? `<span class="n2n-muted">· ${j.progress}</span>` : ''}
       <span class="n2n-muted">· ${(j.updated_at || '').replace('T', ' ').replace('Z', '')}</span></li>`).join('');
   return `<h4>Replication jobs (chroma-to-chroma)</h4><ul class="n2n-list">${rows}</ul>`;
+}
+
+// 066: NetClaw Mobile edge nodes (node_type='edge' members) — connection
+// state at a glance. Renders nothing on a pre-066 daemon or when no phone
+// has ever enrolled.
+function renderEdgeNodes() {
+  const nodes = state.n2n?.edgeNodes || [];
+  if (!nodes.length) return '';
+  const stCls = (s) => (s === 'active' ? 'federated'
+    : s === 'unreachable' ? 'not-federated' : 'consent-pending-local');
+  const rows = nodes.slice(0, 8).map((n) => `<li>
+      <span title="NetClaw Mobile edge node">📱</span>
+      <strong class="n2n-state-${stCls(n.state)}">${n.state}</strong>
+      <span class="n2n-muted">${n.display_name || n.member_id}</span>
+      <span class="n2n-muted">· ${(n.updated_at || '').replace('T', ' ').replace('Z', '')}</span></li>`).join('');
+  return `<h4>📱 NetClaw Mobile edge nodes (${nodes.length})</h4><ul class="n2n-list">${rows}</ul>`;
+}
+
+// 066: recent explicit Border-to-phone pushes (n2n_notify_phone). Renders
+// nothing on a pre-066 daemon or when no push has ever been sent.
+function renderRecentPushes() {
+  const pushes = state.n2n?.recentPushes || [];
+  if (!pushes.length) return '';
+  const rows = pushes.slice(0, 8).map((p) => `<li>
+      <strong>${p.target_name || 'text'}</strong>
+      <span class="n2n-muted">→ ${p.peer_identity || ''}</span>
+      <span class="n2n-muted">· ${(p.requested_at || '').replace('T', ' ').replace('Z', '')}</span></li>`).join('');
+  return `<h4>Recent phone pushes</h4><ul class="n2n-list">${rows}</ul>`;
 }
 
 // 057: recent GAIT immutable audit events (delegation/enrollment/removal/quarantine).
@@ -1837,6 +1176,8 @@ function setDetail(kind, payload, related = []) {
       <p>${state.n2n?.identity || 'local claw'}</p>
       ${renderRiskSection()}
       ${renderReplicationJobs()}
+      ${renderEdgeNodes()}
+      ${renderRecentPushes()}
     `;
     return;
   }
@@ -2284,54 +1625,6 @@ function addChatMessage(role, text, activations) {
   dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
 }
 
-function formatTokenCount(n) {
-  if (n == null || Number.isNaN(n)) return '—';
-  const v = Number(n);
-  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
-  if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
-  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}k`;
-  return String(Math.round(v));
-}
-
-async function refreshTokenSummary() {
-  try {
-    const res = await fetch('/api/tokens/summary');
-    const data = await res.json();
-    if (dom.footerTokensLifetime) {
-      if (data.lifetime) {
-        dom.footerTokensLifetime.textContent = `${formatTokenCount(data.lifetime.input)} in / ${formatTokenCount(data.lifetime.output)} out · ${formatTokenCount(data.lifetime.calls)} calls`;
-      } else {
-        dom.footerTokensLifetime.textContent = data.exporterError
-          ? `exporter offline (${data.exporterError})`
-          : '—';
-      }
-    }
-    if (dom.footerTokensLast) {
-      if (data.lastTurn) {
-        dom.footerTokensLast.textContent = `${formatTokenCount(data.lastTurn.input)} in / ${formatTokenCount(data.lastTurn.output)} out`;
-      } else {
-        dom.footerTokensLast.textContent = '—';
-      }
-    }
-    if (dom.footerTokensOpt) {
-      const on = data.tokenOptimization?.enabled;
-      const gcf = data.tokenOptimization?.gcfSerializationDefault;
-      dom.footerTokensOpt.textContent = on
-        ? `ON${gcf ? ' · GCF' : ''}`
-        : 'OFF';
-      dom.footerTokensOpt.style.color = on ? 'var(--ok)' : '#ff7b54';
-    }
-    if (dom.footerTokensTop) {
-      const top = (data.topModels || [])[0];
-      dom.footerTokensTop.textContent = top
-        ? `top: ${top.model} (${formatTokenCount(top.input)} in)`
-        : '';
-    }
-  } catch {
-    if (dom.footerTokensLifetime) dom.footerTokensLifetime.textContent = '—';
-  }
-}
-
 async function checkGatewayStatus() {
   try {
     const res = await fetch('/api/gateway/status');
@@ -2339,21 +1632,26 @@ async function checkGatewayStatus() {
     const el = dom.gatewayStatus;
     if (el) {
       if (data.online) {
-        el.textContent = data.chatApi ? 'LIVE' : 'LIVE (no chat API)';
+        el.textContent = 'LIVE';
         el.className = 'gateway-indicator online';
+        el.title = 'OpenClaw gateway and chat-completions endpoint are ready';
+      } else if (data.reason === 'chat-completions-disabled') {
+        el.textContent = 'CHAT API DISABLED';
+        el.className = 'gateway-indicator offline';
+        el.title = 'Enable gateway.http.endpoints.chatCompletions.enabled and restart OpenClaw';
       } else {
         el.textContent = 'OFFLINE';
         el.className = 'gateway-indicator offline';
+        el.title = 'OpenClaw gateway is not reachable';
       }
     }
   } catch {
     if (dom.gatewayStatus) {
       dom.gatewayStatus.textContent = 'OFFLINE';
       dom.gatewayStatus.className = 'gateway-indicator offline';
+      dom.gatewayStatus.title = 'OpenClaw gateway status could not be checked';
     }
   }
-  // Keep token strip warm whenever we probe gateway
-  refreshTokenSummary();
 }
 
 async function sendChatMessage(message) {
@@ -2379,12 +1677,6 @@ async function sendChatMessage(message) {
       ? '<div style="margin-bottom:4px;font-size:10px;color:#ff7b54">Gateway offline — showing local heuristic response</div>'
       : '';
     addChatMessage('assistant', badge + warning + data.response, data.activations);
-
-    // Update last-turn strip immediately when chat returns usage
-    if (data.usage && dom.footerTokensLast) {
-      dom.footerTokensLast.textContent = `${formatTokenCount(data.usage.input)} in / ${formatTokenCount(data.usage.output)} out`;
-    }
-    refreshTokenSummary();
 
     // Trigger activation visualization from HTTP response
     if (data.activations) {
@@ -2825,34 +2117,12 @@ function getInteractiveObjects() {
   return nodes;
 }
 
-function clientToNdc(clientX, clientY) {
-  const { width, height } = viewportSize();
-  // visualViewport offset for iOS chrome
-  const ox = window.visualViewport?.offsetLeft ?? 0;
-  const oy = window.visualViewport?.offsetTop ?? 0;
-  const x = clientX - ox;
-  const y = clientY - oy;
-  return {
-    x: (x / width) * 2 - 1,
-    y: -(y / height) * 2 + 1,
-  };
-}
-
-function pickInteractiveAt(clientX, clientY) {
-  const ndc = clientToNdc(clientX, clientY);
-  state.mouse.x = ndc.x;
-  state.mouse.y = ndc.y;
-  state.raycaster.setFromCamera(state.mouse, state.camera);
-  return state.raycaster.intersectObjects(getInteractiveObjects())[0] || null;
-}
-
 function onPointerMove(event) {
-  // Skip heavy hover tooltips on coarse pointers (mobile) — long-press selects instead
-  if (state.mobileLayout?.snapshot?.()?.coarse && !state.longPress?.active) {
-    return;
-  }
+  state.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+  state.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
 
-  const hit = pickInteractiveAt(event.clientX, event.clientY);
+  state.raycaster.setFromCamera(state.mouse, state.camera);
+  const hit = state.raycaster.intersectObjects(getInteractiveObjects())[0];
   if (!hit) {
     dom.tooltip.classList.remove('visible');
     document.body.style.cursor = 'default';
@@ -2878,13 +2148,10 @@ function onPointerMove(event) {
       subtitle = `${p.state} • ${p.routesReceived} routes`;
     }
   }
-  // Tooltips only when fine pointer (hover is meaningful)
-  if (!state.mobileLayout?.snapshot?.()?.coarse) {
-    dom.tooltip.innerHTML = `<strong>${title}</strong><br>${subtitle}`;
-    dom.tooltip.style.left = `${event.clientX + 18}px`;
-    dom.tooltip.style.top = `${event.clientY + 18}px`;
-    dom.tooltip.classList.add('visible');
-  }
+  dom.tooltip.innerHTML = `<strong>${title}</strong><br>${subtitle}`;
+  dom.tooltip.style.left = `${event.clientX + 18}px`;
+  dom.tooltip.style.top = `${event.clientY + 18}px`;
+  dom.tooltip.classList.add('visible');
   document.body.style.cursor = 'pointer';
 
   if (state.hovered && state.hovered !== hit.object) state.hovered.scale.setScalar(1);
@@ -2892,28 +2159,57 @@ function onPointerMove(event) {
   state.hovered.scale.setScalar(1.22);
 }
 
-/** Select the object under client coords (click + long-press share this). */
-function selectAtClient(clientX, clientY, { fromLongPress = false } = {}) {
-  const hit = pickInteractiveAt(clientX, clientY);
-  if (!hit) {
-    if (!fromLongPress) clearSelection();
-    return false;
+function onClick(event) {
+  if (event.target.closest('.panel') || event.target.closest('.tooltip') || event.target.closest('.panel-reopen')) return;
+  state.raycaster.setFromCamera(state.mouse, state.camera);
+
+  // ── HUD 2.0 picking (feature 072) ────────────────────────────────────
+  // One click both selects (right-hand panel, contract unchanged) and reveals
+  // the claw's tools. The original FR-020a split click from expand; after
+  // seeing the MVP the operator asked for a single gesture, and expansion is
+  // an overlay so FR-022 still holds — no sibling ever moves.
+  const chartHit = state.raycaster.intersectObjects(pickableObjects(), false)[0];
+  if (chartHit) {
+    const node = activateNode(chartHit.object, makeLabel);
+    if (node) {
+      clearSelection();
+      if (node.kind === 'border') {
+        setDetail('local-core');
+        state.selected = { kind: 'local-core' };
+      } else if (node.kind === 'peer') {
+        setDetail('federation-peer', node.payload);
+        state.selected = { kind: 'federation-peer', peer: node.id };
+      } else {
+        setDetail('member-core', node.payload);
+        state.selected = { kind: 'member-core', member: node.id };
+      }
+      return;
+    }
   }
 
+  const hit = state.raycaster.intersectObjects(getInteractiveObjects())[0];
+  if (!hit) {
+    clearSelection();
+    return;
+  }
+
+  // Check if any core nucleus was clicked
   const hitCore = state.cores.find((c) => c.nucleus === hit.object);
   if (hitCore) {
     if (hitCore === state.localCore) {
       clearSelection();
       focusTarget(state.localCore.position.clone());
-      setDetail('local-core');
+      setDetail('local-core');            // 056: show this claw's risk view (role + member spokes)
       state.selected = { kind: 'local-core' };
     } else if (hitCore.isMember) {
+      // 056: member claw selected — focus it and show its detail
       clearSelection();
       hitCore.nucleus.material.emissiveIntensity = 1.8;
       focusTarget(hitCore.position.clone());
       setDetail('member-core', hitCore.memberPayload);
       state.selected = { kind: 'member-core', member: hitCore.memberPayload?.member_id };
     } else {
+      // Peer core selected — show detail
       clearSelection();
       hitCore.nucleus.material.emissiveIntensity = 1.8;
       if (hitCore.routeDendrites) {
@@ -2923,133 +2219,31 @@ function selectAtClient(clientX, clientY, { fromLongPress = false } = {}) {
       setDetail('peer-core', hitCore.peerPayload, hitCore);
       state.selected = { kind: 'peer-core', peer: hitCore.peerPayload?.peer };
     }
-  } else {
-    selectObject(hit.object);
-  }
-
-  // Mobile / landscape: surface the DETAIL sheet after a deliberate select
-  if (fromLongPress || state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.()) {
-    state.openPanel?.(dom.sidebarRight, dom.reopenRight);
-  }
-  return true;
-}
-
-function onClick(event) {
-  if (state.suppressNextClick) {
-    state.suppressNextClick = false;
     return;
   }
-  if (event.target.closest('.panel') || event.target.closest('.tooltip') || event.target.closest('.panel-reopen') || event.target.closest('.chat-drawer')) return;
-  selectAtClient(event.clientX, event.clientY, { fromLongPress: false });
-}
 
-/**
- * H003 — long-press on canvas to select a node (touch-friendly).
- * Cancels if the pointer moves (orbit gesture).
- */
-function wireLongPressSelect() {
-  const canvas = state.renderer?.domElement;
-  if (!canvas) return;
-
-  const LONG_MS = 480;
-  const MOVE_PX = 14;
-  let press = null;
-
-  const clearPress = () => {
-    if (press?.timer) clearTimeout(press.timer);
-    press = null;
-  };
-
-  canvas.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    if (state.appTab === 'home') return;
-    // Only arm long-press on coarse pointers or when mobile-layout is active
-    const coarse = state.mobileLayout?.snapshot?.()?.coarse;
-    const mobile = state.mobileLayout?.isMobile?.();
-    if (!coarse && !mobile) return;
-
-    clearPress();
-    press = {
-      x: e.clientX,
-      y: e.clientY,
-      id: e.pointerId,
-      timer: setTimeout(() => {
-        if (!press) return;
-        const ok = selectAtClient(press.x, press.y, { fromLongPress: true });
-        if (ok) {
-          state.suppressNextClick = true;
-          try {
-            navigator.vibrate?.(12);
-          } catch {
-            /* ignore */
-          }
-        }
-        press = null;
-      }, LONG_MS),
-    };
-  });
-
-  canvas.addEventListener('pointermove', (e) => {
-    if (!press || press.id !== e.pointerId) return;
-    if (Math.hypot(e.clientX - press.x, e.clientY - press.y) > MOVE_PX) {
-      clearPress();
-    }
-  });
-
-  const end = (e) => {
-    if (!press || (e.pointerId != null && press.id !== e.pointerId)) return;
-    clearPress();
-  };
-  canvas.addEventListener('pointerup', end);
-  canvas.addEventListener('pointercancel', end);
-  canvas.addEventListener('pointerleave', end);
+  selectObject(hit.object);
 }
 
 function animate() {
   requestAnimationFrame(animate);
-  // 067: pause Three.js work while HOME tab is active (canvas hidden)
-  if (state.appTab === 'home') {
-    return;
-  }
   const elapsed = state.clock.getElapsedTime();
   const frozen = !!state.selected;
+
+  // HUD 2.0 node pulses. Motion is a redundant channel (R8) — the four health
+  // states are already separable by form and colour — so honouring reduced
+  // motion simply skips it without weakening the encoding.
+  tickOrgChart(elapsed);
 
   // Track time offset for freeze: when frozen, hold rotations at the moment of freeze
   if (frozen && state._frozenAt == null) state._frozenAt = elapsed;
   if (!frozen) state._frozenAt = null;
   const rotTime = frozen ? state._frozenAt : elapsed;
 
-  // Animate all core nodes (local + peers)
-  let coresMovedThisFrame = false;
-  state.cores.forEach((core, idx) => {
-    const offset = idx * 0.3;
-
-    // Orbit core around centroid when not frozen
-    if (!frozen && core.orbit) {
-      core.orbit.angle += core.orbit.speed;
-      const ox = core.orbit.center.x + core.orbit.radius * Math.cos(core.orbit.angle);
-      const oz = core.orbit.center.z + core.orbit.radius * Math.sin(core.orbit.angle);
-      core.group.position.set(ox, core.orbit.y, oz);
-      core.position.set(ox, core.orbit.y, oz);
-      coresMovedThisFrame = true;
-    }
-
-    core.shell.rotation.y = rotTime * 0.18 + offset;
-    core.shell.rotation.x = rotTime * 0.08 + offset * 0.5;
-    core.torus.rotation.z = rotTime * 0.28 + offset;
-    if (core.torus2) core.torus2.rotation.z = -rotTime * 0.22 + offset;
-    // Shader time always advances (keeps glow alive)
-    if (core.shell.material.uniforms) {
-      core.shell.material.uniforms.uTime.value = elapsed;
-    }
-    core.nucleus.material.emissiveIntensity = 0.7 + Math.sin(elapsed * 2.1 + offset) * 0.25;
-    // Animate peer route dendrites — move with core
-    if (core.routeDendrites) {
-      core.routeDendrites.forEach((rd) => {
-        if (rd.mat.uniforms?.uTime) rd.mat.uniforms.uTime.value = elapsed;
-      });
-    }
-  });
+  // Orbit core animation removed with the orbit layout (FR-027). HUD 2.0's
+  // node motion is driven by tickOrgChart() above; state.cores is no longer
+  // populated, so nothing here had anything left to move.
+  const coresMovedThisFrame = false;
 
   // Update peer-link ribbons in-place when cores move (no alloc, no dispose)
   if (coresMovedThisFrame && state.peerLinks.length > 0) {
@@ -3166,41 +2360,25 @@ function animate() {
   state.labels.render(state.scene, state.camera);
 }
 
-function viewportSize() {
-  const vv = window.visualViewport;
-  // Prefer visualViewport so iOS keyboard / URL-bar resizes the canvas correctly
-  const width = Math.max(1, Math.round(vv?.width ?? window.innerWidth));
-  const height = Math.max(1, Math.round(vv?.height ?? window.innerHeight));
-  return { width, height };
+/**
+ * Banner for fixture mode (FR-033c). A synthetic topology must never be
+ * mistakable for live data — in a security tool a fabricated claw read as real
+ * is a hazard.
+ */
+function markFixtureMode(name) {
+  const el = document.createElement('div');
+  el.id = 'fixture-banner';
+  el.textContent = `FIXTURE: ${name} — synthetic data, not this Border`;
+  document.body.appendChild(el);
 }
 
 function onResize() {
-  const { width, height } = viewportSize();
-  const dpr = mobilePixelRatio();
-  state.camera.aspect = width / height;
-  state.camera.updateProjectionMatrix();
-  if (state.renderer) {
-    state.renderer.setPixelRatio(dpr);
-    state.renderer.setSize(width, height, false);
-  }
-  if (state.labels) state.labels.setSize(width, height);
-  if (state.composer) state.composer.setSize(width, height);
-  if (state.smaaPass && state.renderer) {
-    state.smaaPass.setSize(width * dpr, height * dpr);
-  }
-  // Soft FOV bump on short / landscape viewports so the graph isn't cropped by chrome
-  if (state.camera) {
-    const mobile = state.mobileLayout?.isMobile?.() ?? width <= 720;
-    const landscape = state.mobileLayout?.isLandscape?.() ?? false;
-    if (landscape) {
-      state.camera.fov = height < 400 ? 58 : 54;
-    } else if (mobile) {
-      state.camera.fov = height < 560 ? 56 : 52;
-    } else {
-      state.camera.fov = 48;
-    }
-    state.camera.updateProjectionMatrix();
-  }
+  // Orthographic: no .aspect property — the frustum bounds must be recomputed
+  // instead, or a resize silently stretches the chart (FR-013).
+  resizeChartCamera(state.camera, window.innerWidth / window.innerHeight);
+  state.renderer.setSize(window.innerWidth, window.innerHeight);
+  state.labels.setSize(window.innerWidth, window.innerHeight);
+  state.composer.setSize(window.innerWidth, window.innerHeight);
 }
 
 function connectSocket() {
@@ -3273,432 +2451,15 @@ function connectSocket() {
   });
 }
 
-/**
- * Floating NetClaw Terminal: drag, resize, collapse.
- * H010 — mobile snap points: collapsed → peek (~30%) → expanded (~55%).
- */
-function initChatWindow() {
-  const drawer = dom.chatDrawer;
-  if (!drawer || !dom.chatToggle) return;
-
-  const STORAGE_KEY = 'netclaw.hud.chatWindow.v1';
-  const SNAP_KEY = 'netclaw.hud.chatSnap.v1';
-  const header = document.getElementById('chat-header') || drawer.querySelector('.chat-header');
-  let resizeHandle = document.getElementById('chat-resize');
-  if (!resizeHandle) {
-    resizeHandle = document.createElement('div');
-    resizeHandle.id = 'chat-resize';
-    resizeHandle.className = 'chat-resize-handle';
-    resizeHandle.title = 'Drag to resize';
-    resizeHandle.setAttribute('aria-hidden', 'true');
-    drawer.appendChild(resizeHandle);
-  }
-
-  const minWDesktop = 320;
-  const minH = 160;
-  const collapsedH = 48;
-  const SNAP_ORDER = ['collapsed', 'peek', 'expanded'];
-  let expandedHeight = 320;
-  /** @type {'collapsed'|'peek'|'expanded'} */
-  let snapLevel = 'peek';
-  let dragState = null;
-  let resizeState = null;
-
-  function clamp(n, lo, hi) {
-    return Math.max(lo, Math.min(hi, n));
-  }
-
-  function viewport() {
-    const vv = window.visualViewport;
-    return {
-      w: vv?.width ?? window.innerWidth,
-      h: vv?.height ?? window.innerHeight,
-      ox: vv?.offsetLeft ?? 0,
-      oy: vv?.offsetTop ?? 0,
-    };
-  }
-
-  function isCompactChrome() {
-    return !!(state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.());
-  }
-
-  function minW() {
-    return isCompactChrome() ? 260 : minWDesktop;
-  }
-
-  /** H010 snap heights for current viewport */
-  function snapHeights() {
-    const vp = viewport();
-    const landscape = !!state.mobileLayout?.isLandscape?.();
-    return {
-      collapsed: collapsedH,
-      peek: Math.max(120, Math.round(vp.h * (landscape ? 0.28 : 0.3))),
-      expanded: Math.min(
-        Math.round(vp.h * (landscape ? 0.48 : 0.55)),
-        landscape ? 260 : 480,
-      ),
-    };
-  }
-
-  function toggleLabelForSnap(level) {
-    if (level === 'collapsed') return '+';
-    if (level === 'peek') return '□';
-    return '_';
-  }
-
-  function applyGeometry({ left, top, width, height, collapsed }) {
-    const vp = viewport();
-    const w = clamp(width ?? (drawer.offsetWidth || 620), minW(), vp.w - 12);
-    let h = height ?? (drawer.offsetHeight || 320);
-    if (collapsed) {
-      h = collapsedH;
-    } else {
-      h = clamp(h, minH, vp.h - 12);
-      expandedHeight = h;
-    }
-    const l = clamp(left ?? vp.ox, vp.ox, Math.max(vp.ox, vp.ox + vp.w - w));
-    const t = clamp(top ?? vp.oy, vp.oy, Math.max(vp.oy, vp.oy + vp.h - h));
-
-    drawer.classList.add('chat-positioned');
-    drawer.style.left = `${l}px`;
-    drawer.style.top = `${t}px`;
-    drawer.style.right = 'auto';
-    drawer.style.bottom = 'auto';
-    drawer.style.transform = 'none';
-    drawer.style.width = `${w}px`;
-    if (!collapsed) drawer.style.height = `${h}px`;
-    else drawer.style.height = `${collapsedH}px`;
-  }
-
-  function currentGeometry() {
-    const rect = drawer.getBoundingClientRect();
-    return {
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: drawer.classList.contains('collapsed') ? expandedHeight : rect.height,
-      collapsed: drawer.classList.contains('collapsed'),
-      snap: snapLevel,
-    };
-  }
-
-  function saveGeometry() {
-    if (isCompactChrome()) {
-      try {
-        localStorage.setItem(SNAP_KEY, snapLevel);
-      } catch {
-        /* ignore */
-      }
-      return;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(currentGeometry()));
-    } catch {
-      /* ignore */
-    }
-  }
-
-  function loadGeometry() {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return null;
-      return JSON.parse(raw);
-    } catch {
-      return null;
-    }
-  }
-
-  function loadSnapLevel() {
-    try {
-      const s = localStorage.getItem(SNAP_KEY);
-      if (SNAP_ORDER.includes(s)) return s;
-    } catch {
-      /* ignore */
-    }
-    return 'peek';
-  }
-
-  function ensurePositioned() {
-    if (drawer.classList.contains('chat-positioned')) return;
-    const rect = drawer.getBoundingClientRect();
-    applyGeometry({
-      left: rect.left,
-      top: rect.top,
-      width: rect.width,
-      height: drawer.classList.contains('collapsed') ? expandedHeight : rect.height,
-      collapsed: drawer.classList.contains('collapsed'),
-    });
-  }
-
-  /** Dock as bottom sheet at a snap level (compact layouts). */
-  function applySnap(level, { markUser = false } = {}) {
-    if (!SNAP_ORDER.includes(level)) level = 'peek';
-    snapLevel = level;
-    drawer.dataset.snap = level;
-    const heights = snapHeights();
-    const h = heights[level];
-    const collapsed = level === 'collapsed';
-    drawer.classList.toggle('collapsed', collapsed);
-    dom.chatToggle.textContent = toggleLabelForSnap(level);
-    dom.chatToggle.title =
-      level === 'collapsed'
-        ? 'Expand terminal (peek)'
-        : level === 'peek'
-          ? 'Expand terminal (full sheet)'
-          : 'Collapse terminal';
-
-    const vp = viewport();
-    const margin = state.mobileLayout?.isLandscape?.() ? 8 : 10;
-    const width = Math.max(minW(), vp.w - margin * 2);
-    const left = vp.ox + margin;
-    const top = vp.oy + vp.h - h - margin;
-    if (!collapsed) expandedHeight = h;
-    applyGeometry({ left, top, width, height: h, collapsed });
-    if (markUser) state.chatUserPositioned = true;
-    saveGeometry();
-  }
-
-  function nearestSnap(height) {
-    const heights = snapHeights();
-    let best = 'peek';
-    let bestDist = Infinity;
-    for (const level of SNAP_ORDER) {
-      const d = Math.abs(heights[level] - height);
-      if (d < bestDist) {
-        bestDist = d;
-        best = level;
-      }
-    }
-    return best;
-  }
-
-  function cycleSnap() {
-    const idx = SNAP_ORDER.indexOf(snapLevel);
-    const next = SNAP_ORDER[(idx + 1) % SNAP_ORDER.length];
-    applySnap(next, { markUser: true });
-  }
-
-  /** Snap to bottom sheet when layout is mobile/landscape. */
-  function applyMobileSheet(force = false) {
-    if (!isCompactChrome()) return;
-    if (!force && state.chatUserPositioned) {
-      applySnap(snapLevel, { markUser: false });
-      return;
-    }
-    // Landscape enter often collapses — respect that class if set by layout controller
-    if (drawer.classList.contains('collapsed') && snapLevel !== 'collapsed') {
-      snapLevel = 'collapsed';
-    }
-    applySnap(snapLevel, { markUser: false });
-  }
-
-  state.chatWindow = {
-    applyMobileSheet,
-    applyGeometry,
-    currentGeometry,
-    ensurePositioned,
-    applySnap,
-    cycleSnap,
-  };
-
-  // Initial geometry
-  if (isCompactChrome()) {
-    snapLevel = loadSnapLevel();
-    // Fresh landscape auto-collapse from layout controller wins once
-    if (drawer.classList.contains('collapsed')) snapLevel = 'collapsed';
-    applySnap(snapLevel);
-  } else {
-    const saved = loadGeometry();
-    if (saved && typeof saved.left === 'number' && typeof saved.top === 'number') {
-      if (saved.collapsed) {
-        drawer.classList.add('collapsed');
-        snapLevel = 'collapsed';
-        dom.chatToggle.textContent = '+';
-      }
-      if (typeof saved.height === 'number' && saved.height > collapsedH) {
-        expandedHeight = saved.height;
-        snapLevel = 'expanded';
-      }
-      applyGeometry(saved);
-    }
-  }
-
-  // Collapse / expand — on compact, cycle snap points (H010)
-  dom.chatToggle.addEventListener('click', (e) => {
-    e.stopPropagation();
-    ensurePositioned();
-    if (isCompactChrome()) {
-      cycleSnap();
-      return;
-    }
-    const willCollapse = !drawer.classList.contains('collapsed');
-    if (willCollapse) {
-      const rect = drawer.getBoundingClientRect();
-      if (rect.height > collapsedH) expandedHeight = rect.height;
-      drawer.classList.add('collapsed');
-      snapLevel = 'collapsed';
-      dom.chatToggle.textContent = '+';
-      drawer.style.height = `${collapsedH}px`;
-    } else {
-      drawer.classList.remove('collapsed');
-      snapLevel = 'expanded';
-      dom.chatToggle.textContent = '_';
-      drawer.style.height = `${expandedHeight}px`;
-    }
-    const geo = currentGeometry();
-    applyGeometry({ ...geo, collapsed: drawer.classList.contains('collapsed') });
-    saveGeometry();
-  });
-
-  // Drag from header
-  if (header) {
-    header.title = isCompactChrome()
-      ? 'Drag to move · double-tap to cycle peek/expand'
-      : 'Drag to move';
-
-    header.addEventListener('pointerdown', (e) => {
-      if (e.button !== 0) return;
-      if (e.target.closest('button, a, input, textarea, select, .chat-header-actions')) return;
-      e.preventDefault();
-      ensurePositioned();
-      // Expanding from collapsed via drag start on compact → peek
-      if (isCompactChrome() && snapLevel === 'collapsed') {
-        applySnap('peek', { markUser: true });
-      }
-      const rect = drawer.getBoundingClientRect();
-      dragState = {
-        id: e.pointerId,
-        offsetX: e.clientX - rect.left,
-        offsetY: e.clientY - rect.top,
-        startY: e.clientY,
-        startH: rect.height,
-      };
-      drawer.classList.add('dragging');
-      header.setPointerCapture?.(e.pointerId);
-    });
-
-    header.addEventListener('pointermove', (e) => {
-      if (!dragState || dragState.id !== e.pointerId) return;
-      const vp = viewport();
-      const w = drawer.offsetWidth;
-      // On compact: vertical drag resizes toward snap; keep full width
-      if (isCompactChrome()) {
-        const dy = dragState.startY - e.clientY; // drag up → taller
-        const nextH = clamp(dragState.startH + dy, collapsedH, Math.round(vp.h * 0.7));
-        const width = Math.max(minW(), vp.w - 20);
-        const left = vp.ox + 10;
-        const top = vp.oy + vp.h - nextH - 10;
-        drawer.classList.toggle('collapsed', nextH <= collapsedH + 8);
-        drawer.style.width = `${width}px`;
-        drawer.style.height = `${nextH}px`;
-        drawer.style.left = `${left}px`;
-        drawer.style.top = `${top}px`;
-        expandedHeight = nextH;
-        return;
-      }
-      const h = drawer.offsetHeight;
-      const left = clamp(e.clientX - dragState.offsetX, vp.ox, vp.ox + vp.w - w);
-      const top = clamp(e.clientY - dragState.offsetY, vp.oy, vp.oy + vp.h - h);
-      drawer.style.left = `${left}px`;
-      drawer.style.top = `${top}px`;
-    });
-
-    const endDrag = (e) => {
-      if (!dragState || (e.pointerId != null && dragState.id !== e.pointerId)) return;
-      const wasCompact = isCompactChrome();
-      const endH = drawer.offsetHeight;
-      dragState = null;
-      drawer.classList.remove('dragging');
-      state.chatUserPositioned = true;
-      if (wasCompact) {
-        applySnap(nearestSnap(endH), { markUser: true });
-      } else {
-        saveGeometry();
-      }
-    };
-    header.addEventListener('pointerup', endDrag);
-    header.addEventListener('pointercancel', endDrag);
-
-    // Double-click / double-tap header cycles snaps on compact
-    header.addEventListener('dblclick', (e) => {
-      if (e.target.closest('button, .chat-header-actions')) return;
-      if (!isCompactChrome()) return;
-      e.preventDefault();
-      cycleSnap();
-    });
-  }
-
-  // Resize from corner handle
-  resizeHandle.addEventListener('pointerdown', (e) => {
-    if (e.button !== 0) return;
-    if (drawer.classList.contains('collapsed')) return;
-    e.preventDefault();
-    e.stopPropagation();
-    ensurePositioned();
-    const rect = drawer.getBoundingClientRect();
-    resizeState = {
-      id: e.pointerId,
-      startX: e.clientX,
-      startY: e.clientY,
-      startW: rect.width,
-      startH: rect.height,
-      startL: rect.left,
-      startT: rect.top,
-    };
-    drawer.classList.add('resizing');
-    resizeHandle.setPointerCapture?.(e.pointerId);
-  });
-
-  resizeHandle.addEventListener('pointermove', (e) => {
-    if (!resizeState || resizeState.id !== e.pointerId) return;
-    const vp = viewport();
-    const width = clamp(
-      resizeState.startW + (e.clientX - resizeState.startX),
-      minW(),
-      vp.ox + vp.w - resizeState.startL - 8,
-    );
-    const height = clamp(
-      resizeState.startH + (e.clientY - resizeState.startY),
-      minH,
-      vp.oy + vp.h - resizeState.startT - 8,
-    );
-    drawer.style.width = `${width}px`;
-    drawer.style.height = `${height}px`;
-    expandedHeight = height;
-  });
-
-  const endResize = (e) => {
-    if (!resizeState || (e.pointerId != null && resizeState.id !== e.pointerId)) return;
-    const endH = drawer.offsetHeight;
-    resizeState = null;
-    drawer.classList.remove('resizing');
-    state.chatUserPositioned = true;
-    if (isCompactChrome()) {
-      applySnap(nearestSnap(endH), { markUser: true });
-    } else {
-      saveGeometry();
-    }
-  };
-  resizeHandle.addEventListener('pointerup', endResize);
-  resizeHandle.addEventListener('pointercancel', endResize);
-
-  const onVpChange = () => {
-    if (isCompactChrome()) {
-      applyMobileSheet(false);
-      return;
-    }
-    if (!drawer.classList.contains('chat-positioned')) return;
-    applyGeometry({ ...currentGeometry(), collapsed: drawer.classList.contains('collapsed') });
-  };
-  window.addEventListener('resize', onVpChange);
-  window.visualViewport?.addEventListener('resize', onVpChange);
-  window.visualViewport?.addEventListener('scroll', onVpChange);
-}
-
 function wireUI() {
   dom.search.addEventListener('input', (event) => {
     state.filters.query = event.target.value;
     applyFilters();
+    // HUD 2.0 (FR-031/031a): match members, categories and tool names by
+    // highlighting and dimming IN PLACE. Never hides, never re-packs — hiding
+    // would re-flow the chart and destroy the spatial memory the layout exists
+    // to build.
+    searchOrgChart(event.target.value);
   });
 
   document.querySelectorAll('.segmented-btn').forEach((button) => {
@@ -3708,7 +2469,8 @@ function wireUI() {
       state.filters.view = button.dataset.view;
       applyFilters();
       if (state.filters.view === 'overview') {
-        focusTarget(CORE_CENTROID.clone());
+        // Re-frame the whole chart rather than the old orbit centroid.
+        frameChart(state.camera, state.controls, chartNodes());
       }
     });
   });
@@ -3727,107 +2489,41 @@ function wireUI() {
     newSessionBtn.addEventListener('click', resetChatSession);
   }
 
-  // Mobile / landscape / a11y layout (auto-collapse chrome, chat sheet, perf)
-  state.mobileLayout = createMobileLayout({
-    onChange: (mobile, detail = {}) => {
-      const landscape = !!detail.landscape;
-      const reduced = !!detail.reducedMotion;
-
-      applyReducedMotion(reduced);
-
-      if ((mobile || landscape || reduced) && !state.qualityUserPinned) {
-        setQualityMode('focus');
-      }
-      if (state.controls) {
-        state.controls.rotateSpeed = mobile || landscape ? 0.95 : 0.85;
-        state.controls.dampingFactor = mobile || landscape ? 0.08 : 0.06;
-      }
-      // Reset sheet snap when crossing breakpoints unless user dragged
-      if (mobile || landscape) state.chatUserPositioned = false;
-      state.chatWindow?.applyMobileSheet?.(true);
-      onResize();
-    },
+  // Chat toggle collapse/expand
+  dom.chatToggle.addEventListener('click', () => {
+    dom.chatDrawer.classList.toggle('collapsed');
+    dom.chatToggle.textContent = dom.chatDrawer.classList.contains('collapsed') ? '+' : '_';
   });
-  state.mobileLayout.wire();
 
-  // Chat: collapse + floating move/resize (persist geometry)
-  initChatWindow();
-
-  // H003 long-press select on canvas
-  wireLongPressSelect();
-
-  // Panel collapse/expand (left/right slide off-screen; footer slides down)
-  function togglePanel(panel, reopenBtn) {
-    if (!panel || !reopenBtn) return;
+  // Panel collapse/expand
+  function togglePanel(panel, reopenBtn, arrowCollapsed, arrowExpanded) {
     panel.classList.toggle('collapsed');
     const isCollapsed = panel.classList.contains('collapsed');
     reopenBtn.classList.toggle('visible', isCollapsed);
   }
 
-  dom.toggleLeft?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePanel(dom.sidebarLeft, dom.reopenLeft);
-  });
-  dom.toggleRight?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePanel(dom.sidebarRight, dom.reopenRight);
-  });
-  dom.toggleFooter?.addEventListener('click', (e) => {
-    e.stopPropagation();
-    togglePanel(dom.footerPanel, dom.reopenFooter);
-  });
+  dom.toggleLeft.addEventListener('click', () => togglePanel(dom.sidebarLeft, dom.reopenLeft));
+  dom.toggleRight.addEventListener('click', () => togglePanel(dom.sidebarRight, dom.reopenRight));
+  dom.toggleFooter.addEventListener('click', () => togglePanel(dom.footerPanel, dom.reopenFooter));
 
-  // On mobile/landscape, opening one drawer closes the other so the graph stays usable
-  function openPanel(panel, reopenBtn) {
-    if (!panel || !reopenBtn) return;
-    const compact = state.mobileLayout?.isMobile?.() || state.mobileLayout?.isLandscape?.();
-    if (compact) {
-      for (const [p, r] of [
-        [dom.sidebarLeft, dom.reopenLeft],
-        [dom.sidebarRight, dom.reopenRight],
-      ]) {
-        if (!p || p === panel) continue;
-        p.classList.add('collapsed');
-        r?.classList.add('visible');
-      }
-    }
-    panel.classList.remove('collapsed');
-    reopenBtn.classList.remove('visible');
-  }
-  state.openPanel = openPanel;
-
-  dom.reopenLeft?.addEventListener('click', () => openPanel(dom.sidebarLeft, dom.reopenLeft));
-  dom.reopenRight?.addEventListener('click', () => openPanel(dom.sidebarRight, dom.reopenRight));
-  dom.reopenFooter?.addEventListener('click', () => openPanel(dom.footerPanel, dom.reopenFooter));
+  dom.reopenLeft.addEventListener('click', () => {
+    dom.sidebarLeft.classList.remove('collapsed');
+    dom.reopenLeft.classList.remove('visible');
+  });
+  dom.reopenRight.addEventListener('click', () => {
+    dom.sidebarRight.classList.remove('collapsed');
+    dom.reopenRight.classList.remove('visible');
+  });
+  dom.reopenFooter.addEventListener('click', () => {
+    dom.footerPanel.classList.remove('collapsed');
+    dom.reopenFooter.classList.remove('visible');
+  });
 
   // Quality budget toggle
   const qualityToggle = document.getElementById('quality-toggle');
   if (qualityToggle) {
     qualityToggle.addEventListener('click', cycleQualityMode);
   }
-
-  // 067-convergence: COMMAND | HOME top-level tabs
-  const homeRoot = document.getElementById('home-root');
-  if (homeRoot && !state.homeView) {
-    state.homeView = new HomeView(homeRoot);
-    state.homeView.mount();
-  }
-  state.tabRouter = createTabRouter({
-    onChange: (tab) => {
-      state.appTab = tab;
-      if (tab === 'home' && state.homeView) {
-        // Re-paint topbar from cache and refresh (do NOT call syncTopbarMetrics()
-        // with no args — that clears metrics to "—").
-        state.homeView.syncTopbarMetrics(state.homeView.cache?.health || null);
-        state.homeView.refresh(true);
-      }
-      // Force a resize when returning to Command so canvas matches viewport
-      if (tab === 'command') {
-        window.dispatchEvent(new Event('resize'));
-      }
-    },
-  });
-  state.tabRouter.wire();
 
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('click', onClick);
@@ -4007,9 +2703,6 @@ async function boot() {
   try {
     setLoading(12, 'Loading graph data');
     state.graph = await fetchGraph();
-    if (state.graphStale) {
-      setLoading(18, 'Using cached topology (offline)');
-    }
 
     setLoading(30, 'Fetching BGP topology');
     try {
@@ -4018,10 +2711,19 @@ async function boot() {
     } catch { state.bgp = null; }
 
     // N2N federation state (feature 052) — optional, degrades gracefully
+    // ?fixture=<name> substitutes a committed /api/n2n fixture for the live
+    // feed (T004). Client-side on purpose: server.js stays untouched, so no
+    // endpoint is added and the API surface never widens (FR-019). Opt-in
+    // only, and marked on screen — FR-033c forbids a synthetic topology
+    // appearing without the operator asking for it.
+    state.fixtureName = new URLSearchParams(location.search).get('fixture');
     try {
-      const n2nRes = await fetch('/api/n2n');
-      state.n2n = await n2nRes.json();
+      const url = state.fixtureName
+        ? `/fixtures/${state.fixtureName}.json`
+        : '/api/n2n';
+      state.n2n = await (await fetch(url)).json();
     } catch { state.n2n = null; }
+    if (state.fixtureName) markFixtureMode(state.fixtureName);
 
     setLoading(36, 'Spinning up scene');
     initScene();
@@ -4031,86 +2733,42 @@ async function boot() {
     // their direct BGP session is down: the overlay (not BGP) carries chat/
     // tasks/inventory, and claw BGP sessions are inbound-only here — so a
     // fully federated claw was invisible whenever the BGP leg was down.
-    const bgpScenePeers = state.bgp?.available ? state.bgp.peers : [];
-    const overlayScenePeers = (state.n2n?.peers || [])
-      .filter((p) => p.channel_state === 'up')
-      .map((p) => {
-        const m = /^as(\d+)-(.+)$/.exec(p.identity || '') || [];
-        return { type: 'claw', as: Number(m[1]) || undefined,
-                 routerId: m[2] || p.identity, peer: p.identity,
-                 displayName: p.display_name, state: 'Overlay', overlayOnly: true };
-      })
-      .filter((p) => p.as && !bgpScenePeers.some((b) => Number(b.as) === Number(p.as)));
-    const scenePeers = [...bgpScenePeers, ...overlayScenePeers];
-    const hasPeers = scenePeers.length > 0;
-    const localPos = hasPeers ? CORE_POSITIONS.local : new THREE.Vector3(0, 0, 0);
-    // 056: a Border claw is the amber center of its risk; else default cyan.
-    const _isBorder = state.n2n?.risk?.role === 'border';
-    const _localTint = _isBorder ? RISK_LAYOUT.colors.border : 0x66ccff;
-    const localCore = buildCore(state.graph.identity, localPos, state.graph.identity.name.toUpperCase(), _localTint);
-    // Orbit data for local core — orbits around the centroid
-    const lcDist = localPos.distanceTo(CORE_CENTROID);
-    localCore.orbit = {
-      center: CORE_CENTROID.clone(),
-      radius: lcDist,
-      angle: Math.atan2(localPos.z - CORE_CENTROID.z, localPos.x - CORE_CENTROID.x),
-      y: localPos.y,
-      speed: 0.0008,
-    };
-    state.localCore = localCore;
-    state.core = localCore; // backward compat
-    state.cores.push(localCore);
+    // The orbit scene built local/peer cores from the BGP + overlay peer list
+    // here. HUD 2.0 renders peers from /api/n2n in the external band instead
+    // (FR-003), so that derivation and its cores are gone with the orbit
+    // layout (FR-027). state.bgp is still fetched and still drives the panel.
 
-    // Build peer cores as equal central nodes
-    if (hasPeers) {
-      const uniquePeers = deduplicatePeers(scenePeers);
-      const peerPositions = [CORE_POSITIONS.peer1, CORE_POSITIONS.peer2, CORE_POSITIONS.peer3];
-      uniquePeers.slice(0, 3).forEach((peer, i) => {
-        const isClaw = peer.type === 'claw';
-        const label = isClaw
-          ? `NETCLAW AS${peer.as || '?'}`
-          : `ROUTER ${peer.routerId || peer.peerIp || peer.peer}`;
-        const tint = isClaw ? 0xe040fb : 0x00e5ff;
-        const peerCore = buildCore(state.graph.identity, peerPositions[i], label, tint);
-        peerCore.peerPayload = peer;
-        peerCore.isClaw = isClaw;
-        // Orbit data — orbits around the centroid
-        const pDist = peerPositions[i].distanceTo(CORE_CENTROID);
-        peerCore.orbit = {
-          center: CORE_CENTROID.clone(),
-          radius: pDist,
-          angle: Math.atan2(peerPositions[i].z - CORE_CENTROID.z, peerPositions[i].x - CORE_CENTROID.x),
-          y: peerPositions[i].y,
-          speed: 0.0006 + i * 0.0003,
-        };
-        state.peerCores.push(peerCore);
-        state.cores.push(peerCore);
+    setLoading(58, 'Laying out the trust org chart');
+    // ── HUD 2.0 (feature 072) ────────────────────────────────────────────
+    // Phase 7 complete: the orbit layout and the integration/device scene
+    // populations are deleted, not dormant (FR-027, FR-030c).
+    // The integration and device populations leave the scene entirely
+    // (FR-030): the HUD was drawing a capability catalogue and a managed
+    // estate on top of a trust topology. Integrations now surface as member
+    // tool expansion; devices remain in the right-hand panel (FR-030b).
+    //
+    // The category taxonomy arrives as DATA, not an import — /api/graph
+    // already serves integrations[] with category and prefixes, which is what
+    // keeps FR-006 vendor-neutral for every operator, not just this one.
+    state.orgCatalog = (state.graph?.integrations || [])
+      .filter((i) => i && i.category && Array.isArray(i.prefixes))
+      .map((i) => ({ id: i.id, category: i.category, prefixes: i.prefixes }));
 
-        // Build route dendrites from this peer
-        buildPeerRoutes(peerCore, peer);
-      });
-      // Connect all cores with peer-link tubes
-      buildPeerLinks();
-    }
+    state.orgLayout = mountOrgChart(state.scene, state.n2n, state.orgCatalog, makeLabel);
+    frameChart(state.camera, state.controls, chartNodes());
 
-    setLoading(58, 'Rendering integration lattice');
-    // 056: a Border orbits ONLY its broker skills — the domain integrations moved
-    // to their member spokes, so the Border is no longer the 190-skill monolith.
-    const BORDER_KEEP = new Set(['gait', 'protocol', 'n2n', 'memory', 'mempalace',
-      'humanrail', 'slack', 'webex', 'servicenow', 'pagerduty', 'twilio', 'twitter',
-      'msgraph', 'subnet-calculator', 'subnet', 'rfc', 'wikipedia', 'token-tracker']);
-    const _graphForBorder = (state.n2n?.risk?.role === 'border')
-      ? { ...state.graph, integrations: state.graph.integrations.filter((i) => BORDER_KEEP.has(i.id)) }
-      : state.graph;
-    buildIntegrations(_graphForBorder);
+    // Keyboard + screen-reader access (FR-032). A WebGL canvas has no
+    // focusable elements, so the chart needs a real DOM tree over it.
+    mountA11y(document.getElementById('scene-root'), {
+      onSelect: (node) => {
+        if (node.kind === 'border') { setDetail('local-core'); state.selected = { kind: 'local-core' }; }
+        else if (node.kind === 'peer') { setDetail('federation-peer', node.payload); state.selected = { kind: 'federation-peer', peer: node.id }; }
+        else { setDetail('member-core', node.payload); state.selected = { kind: 'member-core', member: node.id }; }
+      },
+      onToggle: (node) => toggleNodeExpansion(node.id, makeLabel),
+    });
 
-    // 056: iN2N risk — render member claws as spokes SOUTH of the Border, each
-    // with its own orbiting skills, colored by class (green member / red
-    // quarantined / dim cold). Additive + guarded: no-op for standalone claws.
-    buildRiskMembers();
-
-    setLoading(72, 'Placing device ring');
-    buildDevices(state.graph);
+    setLoading(72, 'Placing bands');
 
     setLoading(78, 'Initializing activation beams');
     initBeamPool();
@@ -4123,26 +2781,14 @@ async function boot() {
     state.renderer.compile(state.scene, state.camera);
 
     setLoading(84, 'Setting quality budget');
-    // H009 — restore user quality preference (pinned survives mobile auto-FOCUS)
-    applyStoredQualityOrDefault();
+    setQualityMode('balanced');
 
     setLoading(86, 'Wiring command deck');
     renderSidebar(state.graph);
     renderMetrics(state.graph);
     setDetail('overview');
     wireUI();
-    wireStaleBanner();
     applyFilters();
-
-    if (state.graphStale) {
-      showStaleBanner({
-        cachedAt: state.graphStaleAt,
-        reason: 'Live /api/graph unavailable',
-      });
-      if (dom.footerUpdated) {
-        dom.footerUpdated.textContent = `STALE ${formatCacheAge(state.graphStaleAt)}`;
-      }
-    }
 
     setLoading(94, 'Bringing telemetry online');
     connectSocket();
@@ -4151,18 +2797,24 @@ async function boot() {
     // Refresh N2N federation state so claw nodes reflect consent/inventory/sever (FR-026)
     setInterval(async () => {
       try { state.n2n = await (await fetch('/api/n2n')).json(); } catch { /* keep last */ }
+      // The detail panel only renders on click (setDetail is never called
+      // again just because state.n2n refreshed) -- if "This NetClaw" is the
+      // panel currently open, re-render it in place so edge-node liveness/
+      // approvals/replication jobs don't require a manual re-click to see.
+      if (state.selected?.kind === 'local-core') setDetail('local-core');
+      // A member (e.g. a phone) enrolling after load is appended by
+      // updateOrgChart via appendMember, without moving anything (FR-034b).
+      // HUD 2.0: repaint health and append newly-enrolled members. Positions
+      // are never recomputed and categories are never re-ordered — a claw that
+      // fails changes how it looks, never where it is (FR-034a).
+      updateOrgChart(state.scene, state.n2n, makeLabel);
     }, 30000);
     animate();
 
-    // H004 — PWA service worker (shell + last graph snapshot)
-    registerServiceWorker();
-
-    setLoading(100, state.graphStale ? 'Visual layer online (stale graph)' : 'Visual layer online');
+    setLoading(100, 'Visual layer online');
     setTimeout(() => dom.loading.classList.add('hidden'), 300);
   } catch (error) {
     dom.loadingText.textContent = `Boot failure: ${error.message}`;
-    // Still try to register SW so next visit can use shell cache
-    registerServiceWorker();
     throw error;
   }
 }

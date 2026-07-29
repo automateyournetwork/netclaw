@@ -1,13 +1,14 @@
 {
   "name": "netclaw-hud",
   "version": "1.0.0",
-  "description": "NetClaw Three.js HUD — futuristic network operations dashboard",
+  "description": "NetClaw Three.js HUD \u2014 futuristic network operations dashboard",
   "type": "module",
   "scripts": {
     "dev": "concurrently \"node server.js\" \"vite --host\"",
     "server": "node server.js",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "node --test 'src/**/*.test.js'"
   },
   "dependencies": {
     "cors": "^2.8.5",
@@ -17,10 +18,13 @@
     "js-yaml": "^4.1.0",
     "lil-gui": "^0.19.2",
     "multer": "^2.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "three": "^0.170.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
     "concurrently": "^9.0.1",
     "vite": "^5.4.0"
   }

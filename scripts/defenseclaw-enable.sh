@@ -24,7 +24,14 @@ log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()  { echo -e "${CYAN}[STEP]${NC} $1"; }
 
 NETCLAW_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# security.mode lives in ~/.openclaw/config/openclaw.json, NOT the gateway's
+# ~/.openclaw/openclaw.json. The gateway config schema has no security.mode key
+# and OpenClaw rejects the whole file if you add one ("security: Unrecognized
+# key"), taking every MCP server down with it. bgp/federation/controls.py reads
+# this same path. Do not "fix" this to the gateway config.
 OPENCLAW_CONFIG="$HOME/.openclaw/config/openclaw.json"
+# The gateway config is a separate file and is where mcp.servers lives.
+GATEWAY_CONFIG="$HOME/.openclaw/openclaw.json"
 
 echo "========================================="
 echo "  NetClaw - Enable DefenseClaw + OpenShell"
@@ -253,7 +260,7 @@ import os
 import subprocess
 import sys
 
-config_path = os.path.expanduser('$OPENCLAW_CONFIG')
+config_path = os.path.expanduser('$GATEWAY_CONFIG')
 netclaw_dir = '$NETCLAW_DIR'
 defenseclaw = '$DEFENSECLAW_CMD'
 

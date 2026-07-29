@@ -1,0 +1,83 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- The edge node talks to the Border over a WSS channel, so the release
+         build genuinely needs this. It was previously declared only in the
+         debug and profile manifests and reached release builds purely as a
+         manifest-merge side-effect of firebase_messaging — dropping that
+         dependency would have silently broken networking in release with no
+         compile-time error. Declared explicitly here instead. -->
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- Voice requests (feature 067, US4). speech_to_text declares nothing
+         itself; until now RECORD_AUDIO reached the merged manifest only as a
+         side-effect of camera_android_camerax, so dropping the camera
+         dependency would have silently broken the microphone. Same accidental
+         -dependency class as INTERNET above — declared explicitly. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO"/>
+    <!-- Push notifications (066 US3). Android 13+ (API 33) will not display a
+         notification without this, and firebase_messaging's requestPermission()
+         cannot prompt for a permission the manifest never declared. Same
+         accidental-dependency class as INTERNET and RECORD_AUDIO above: it
+         currently reaches the merged manifest only as a side-effect of
+         firebase_messaging's own manifest, so removing or replacing that
+         dependency would silently kill notifications with no build error. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <application
+        android:label="NetClaw"
+        android:name="${applicationName}"
+        android:icon="@mipmap/ic_launcher">
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:launchMode="singleTop"
+            android:taskAffinity=""
+            android:theme="@style/LaunchTheme"
+            android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
+            android:hardwareAccelerated="true"
+            android:windowSoftInputMode="adjustResize">
+            <!-- Specifies an Android theme to apply to this Activity as soon as
+                 the Android process has started. This theme is visible to the user
+                 while the Flutter UI initializes. After that, this theme continues
+                 to determine the Window background behind the Flutter UI. -->
+            <meta-data
+              android:name="io.flutter.embedding.android.NormalTheme"
+              android:resource="@style/NormalTheme"
+              />
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN"/>
+                <category android:name="android.intent.category.LAUNCHER"/>
+            </intent-filter>
+            <!-- feature 067, US5: netclaw://device/<id> device-status deep link -->
+            <intent-filter android:autoVerify="false">
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data android:scheme="netclaw"/>
+            </intent-filter>
+        </activity>
+        <!-- Don't delete the meta-data below.
+             This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
+        <meta-data
+            android:name="flutterEmbedding"
+            android:value="2" />
+    </application>
+    <!-- Required to query activities that can process text, see:
+         https://developer.android.com/training/package-visibility and
+         https://developer.android.com/reference/android/content/Intent#ACTION_PROCESS_TEXT.
+
+         In particular, this is used by the Flutter engine in io.flutter.plugin.text.ProcessTextPlugin. -->
+    <queries>
+        <intent>
+            <action android:name="android.intent.action.PROCESS_TEXT"/>
+            <data android:mimeType="text/plain"/>
+        </intent>
+        <!-- REQUIRED for speech_to_text (voice requests, feature 067 US4).
+             speech_to_text 7.4.0 ships a deliberately EMPTY AndroidManifest and
+             its README requires the host app to declare this itself. Without it,
+             Android 11+ (API 30) package-visibility rules hide every
+             RecognitionService from us, so SpeechToText.initialize() returns
+             false and the mic button did nothing at all — no prompt, no error.
+             Reported by a real tester as "microphone option isn't working". -->
+        <intent>
+            <action android:name="android.speech.RecognitionService"/>
+        </intent>
+    </queries>
+</manifest>
