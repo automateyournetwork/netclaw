@@ -6,8 +6,7 @@ Everything here is **yours to apply**. Per `network-change-safety`, I don't push
 config to these devices. Each step below is additive and reversible; none of it
 touches the Vlan3 SVI, its VRF, or any route.
 
-Verified against `HomeSwitch01` (`show run`, WS-C3850-48P, IOS-XE 16.12) on
-2026-07-29.
+Verified against a Catalyst 3850 running IOS-XE 16.12 on 2026-07-29.
 
 ---
 
@@ -17,17 +16,24 @@ The HUD terminal will ship with an input filter that blocks config mode. It is
 worth having, but on these switches it is **not** a security boundary, because
 the devices already accept far weaker access from anywhere on VLAN 3:
 
-| Finding | Config line | Consequence |
-|---|---|---|
-| Cleartext, guessable privilege-15 creds | `username cisco privilege 15 password 0 cisco`<br>`username admin privilege 15 password 0 admin` | Anyone reaching `192.168.3.2` gets full config with `admin`/`admin`. No brute force needed. |
-| SNMP read-write, weak community | `snmp-server community private RW` | Full config read **and write** over SNMP, bypassing vty entirely. Also `@Vitron123 RO`, `public RO`. |
-| vty sessions never expire | `line vty 0 4` → `exec-timeout 0 0` | An abandoned session stays authenticated indefinitely. |
-| No enable secret | (absent) | Nothing gates privilege escalation locally. See the caveat in step 2. |
-| Passwords stored unencrypted | `password 0 …`, no `service password-encryption` | Anyone with read access to the config gets working credentials. |
+Audit your own switch config for these before trusting any app-layer guard.
+Values are deliberately not reproduced here — run
+`show running-config` and check each item.
 
-So: locking down the HUD terminal while `admin`/`admin` works from the whole
-management VLAN buys very little. **Fix the credentials first** — that is the
-change with real impact. The terminal guard is defence in depth on top.
+| Finding | What to grep for | Consequence |
+|---|---|---|
+| Cleartext, guessable privilege-15 local accounts | `^username .* privilege 15 password 0` | Anyone who reaches the management SVI gets full config. No brute force needed. |
+| SNMP read-write community | `^snmp-server community .* RW` | Full config read **and write** over SNMP, bypassing vty entirely. Check the RO communities too. |
+| vty sessions never expire | `exec-timeout 0 0` under `line vty` | An abandoned session stays authenticated indefinitely. |
+| No enable secret | `^enable secret` absent | Nothing gates privilege escalation locally. See the caveat in step 2. |
+| Passwords stored unencrypted | `password 0 …`, no `service password-encryption` | Anyone with config read access gets working credentials. |
+
+All five were present on this lab's switches when the terminal was built.
+
+So: locking down the HUD terminal while a guessable privilege-15 account works
+from the whole management VLAN buys very little. **Fix the credentials first**
+— that is the change with real impact. The terminal guard is defence in depth
+on top.
 
 Priority order I'd suggest:
 
@@ -48,7 +54,7 @@ Priority order I'd suggest:
 username hud-ro privilege 1 secret <STRONG-PASSWORD-HERE>
 ```
 
-Nothing else changes. Existing `admin` / `cisco` access is untouched, so there
+Nothing else changes. Existing privilege-15 access is untouched, so there
 is no lockout risk. Reversible with `no username hud-ro`.
 
 Then point the HUD at it (host `.env`, not the device):
@@ -79,7 +85,7 @@ and platform dependent, and I'm not going to guess on your production switch.
 Verify empirically:
 
 ```bash
-ssh hud-ro@192.168.3.2
+ssh hud-ro@<switch-mgmt-ip>
 show privilege          # want: "Current privilege level is 1"
 configure terminal      # want: rejected / invalid input
 ```
@@ -92,7 +98,7 @@ configure terminal      # want: rejected / invalid input
 
 The obvious fix — deleting `privilege level 15` from `line vty 5 15` — is **not
 safe to apply blind here**, because there is no `enable secret` in the running
-config. Today `admin` and `cisco` arrive at level 15 automatically. Remove the
+config. Today those accounts arrive at level 15 automatically. Remove the
 auto-elevation without first setting an enable secret and they land at level 1
 with no way up, over SSH, on a VLAN 3 management path. That is exactly the
 console-trip scenario the safety rules exist to prevent.
@@ -104,7 +110,7 @@ Correct order if you go down this route:
 enable secret <STRONG-ENABLE-SECRET>
 
 ! 2. confirm it works, in a SECOND session, keeping the first one open:
-!      ssh admin@192.168.3.2 ; enable ; show privilege   -> 15
+!      ssh <admin-user>@<switch-mgmt-ip> ; enable ; show privilege   -> 15
 !    do not proceed until that succeeds
 
 ! 3. only then drop the blanket auto-elevation
