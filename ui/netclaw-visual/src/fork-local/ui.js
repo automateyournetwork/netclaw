@@ -63,6 +63,20 @@ export function registerForkUI(ctx) {
   }
 
   try {
+    initTokenStrip();
+    restored.push('footer-token-strip');
+  } catch (err) {
+    console.error('[fork-ui] token strip failed:', err);
+  }
+
+  try {
+    initModelReadout();
+    restored.push('model-readout');
+  } catch (err) {
+    console.error('[fork-ui] model readout failed:', err);
+  }
+
+  try {
     // Upstream's wireUI() attaches its own simple collapse handler to
     // #chat-toggle (main.js: "Chat toggle collapse/expand"). The fork's drawer
     // owns that button entirely — it drives snap levels, not a raw class
@@ -85,6 +99,156 @@ export function registerForkUI(ctx) {
 
   console.log(`[fork-ui] restored: ${restored.join(', ') || 'nothing'}`);
   return { ok: true, restored };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Footer token/cost strip.
+//
+// index.html carries #footer-tokens-{lifetime,last,opt,top}, but upstream's
+// main.js never touches any of them — the wiring was fork-only, which is why
+// they sit at "—". (It is also why /api/tokens/summary appeared to have no
+// consumer after the merge: its consumer had been deleted along with it.)
+//
+// Lifetime / opt / top come from the exporter and need nothing else. `lastTurn`
+// depends on upstream's /api/chat surfacing a usage block — see the FORK PATCH
+// in server.js. Refresh is on a timer here rather than piggy-backing on the
+// gateway probe (which is upstream's and not ours to hook).
+// ─────────────────────────────────────────────────────────────────────────────
+function formatTokenCount(n) {
+  if (n == null || Number.isNaN(n)) return '—';
+  const v = Number(n);
+  if (v >= 1e9) return `${(v / 1e9).toFixed(2)}B`;
+  if (v >= 1e6) return `${(v / 1e6).toFixed(2)}M`;
+  if (v >= 1e3) return `${(v / 1e3).toFixed(1)}k`;
+  return String(Math.round(v));
+}
+
+async function refreshTokenSummary() {
+  const el = {
+    lifetime: document.getElementById('footer-tokens-lifetime'),
+    last: document.getElementById('footer-tokens-last'),
+    opt: document.getElementById('footer-tokens-opt'),
+    top: document.getElementById('footer-tokens-top'),
+  };
+  if (!el.lifetime && !el.last && !el.opt && !el.top) return;
+
+  try {
+    const res = await fetch('/api/tokens/summary');
+    const data = await res.json();
+
+    if (el.lifetime) {
+      el.lifetime.textContent = data.lifetime
+        ? `${formatTokenCount(data.lifetime.input)} in / ${formatTokenCount(data.lifetime.output)} out · ${formatTokenCount(data.lifetime.calls)} calls`
+        : (data.exporterError ? `exporter offline (${data.exporterError})` : '—');
+    }
+    if (el.last) {
+      el.last.textContent = data.lastTurn
+        ? `${formatTokenCount(data.lastTurn.input)} in / ${formatTokenCount(data.lastTurn.output)} out`
+        : '—';
+    }
+    if (el.opt) {
+      const on = data.tokenOptimization?.enabled;
+      const gcf = data.tokenOptimization?.gcfSerializationDefault;
+      el.opt.textContent = on ? `ON${gcf ? ' · GCF' : ''}` : 'OFF';
+      el.opt.style.color = on ? 'var(--ok)' : '#ff7b54';
+    }
+    if (el.top) {
+      const top = (data.topModels || [])[0];
+      el.top.textContent = top
+        ? `top: ${top.model} (${formatTokenCount(top.input)} in)`
+        : '';
+    }
+  } catch {
+    if (el.lifetime) el.lifetime.textContent = '—';
+  }
+}
+
+function initTokenStrip() {
+  refreshTokenSummary();
+  const t = setInterval(refreshTokenSummary, 15000);
+  if (typeof window !== 'undefined') window.addEventListener('beforeunload', () => clearInterval(t));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Model readout: resolve ${VAR} references for display.
+//
+// openclaw.json stores the model as "${NETCLAW_BRAIN_MODEL}". Upstream renders
+// that string verbatim into both the footer and the PRIMARY MODEL sidebar card,
+// so operators see the template instead of the model. The fork resolved it
+// server-side in buildSettings() via resolveEnvTemplates() + displayModelId(),
+// both of which the merge dropped.
+//
+// Fixed client-side instead of re-patching upstream's buildGraph: the restored
+// /api/models endpoint already reports resolved values. Deliberately a small
+// explicit token map, NOT a general env-resolution endpoint — the config also
+// contains "${OPENCLAW_GATEWAY_TOKEN}", and an endpoint that resolved arbitrary
+// ${VAR} for the browser would hand out the gateway token.
+//
+// A MutationObserver re-applies after every graph refresh, since renderMetrics()
+// rewrites both targets from the raw payload each time.
+// ─────────────────────────────────────────────────────────────────────────────
+const MODEL_TOKENS = [
+  ['NETCLAW_BRAIN_MODEL', (m) => m.live?.defaultsPrimary || m.sot?.brain],
+  ['NETCLAW_ALERT_TRIAGE_MODEL', (m) => m.sot?.alert],
+  ['NETCLAW_ALERT_FALLBACK_MODEL', (m) => m.sot?.fallback],
+];
+
+/** anthropic/claude-sonnet-5 → claude-sonnet-5, matching the old displayModelId. */
+function shortModelId(raw) {
+  const s = String(raw ?? '').trim();
+  if (!s) return '';
+  return s.replace(/^[a-z0-9._-]+\//i, '');
+}
+
+async function initModelReadout() {
+  let models = null;
+  try {
+    const res = await fetch('/api/models');
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    models = await res.json();
+  } catch (err) {
+    // /api/models is gated by requireTrustedClient; an untrusted viewer just
+    // keeps seeing the raw template rather than getting a broken readout.
+    console.warn('[fork-ui] model readout unavailable:', err.message);
+    return;
+  }
+
+  const map = new Map();
+  for (const [name, pick] of MODEL_TOKENS) {
+    const val = pick(models);
+    if (val) map.set(name, shortModelId(val));
+  }
+  if (!map.size) return;
+
+  const resolve = (text) => String(text ?? '').replace(
+    /\$\{([A-Za-z_][A-Za-z0-9_]*)\}/g,
+    (match, name) => map.get(name) ?? match,
+  );
+
+  const apply = () => {
+    const footer = document.getElementById('footer-model');
+    if (footer && footer.textContent.includes('${')) {
+      footer.textContent = resolve(footer.textContent);
+    }
+    // PRIMARY MODEL / FALLBACK MODELS cards in the left sidebar.
+    document.querySelectorAll('#settings-list .info-card').forEach((card) => {
+      const strong = card.querySelector('strong');
+      if (strong && strong.textContent.includes('${')) {
+        strong.textContent = resolve(strong.textContent);
+      }
+    });
+  };
+
+  apply();
+
+  const settings = document.getElementById('settings-list');
+  if (settings) {
+    new MutationObserver(apply).observe(settings, { childList: true, subtree: true });
+  }
+  const footer = document.getElementById('footer-model');
+  if (footer) {
+    new MutationObserver(apply).observe(footer, { childList: true, characterData: true, subtree: true });
+  }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

@@ -33,15 +33,15 @@
  *                                   preview` on :3000; this fork serves the
  *                                   built dist/ from the API process on :3001
  *
- * DELIBERATE OMISSION
- *   The old code also patched /api/chat to record per-turn token usage into
- *   _lastChatUsage. That required editing the middle of upstream's chat
- *   handler — a guaranteed future conflict — and nothing in the current
- *   frontend reads it (no src/ file calls /api/tokens/summary). So the
- *   `lastTurn` field below is always null. Lifetime totals still work; they
- *   come from the token exporter, not from this process. If you ever want
- *   lastTurn back, pass a getLastChatUsage() in ctx rather than reintroducing
- *   the inline patch.
+ * LAST-TURN USAGE (revised)
+ *   Earlier this file left `lastTurn` null on the reasoning that no src/ file
+ *   called /api/tokens/summary. That reasoning was wrong: the caller had been
+ *   deleted along with the fork's main.js, so the absence was the same
+ *   regression, not evidence the endpoint was dead. The footer strip is now
+ *   restored in src/fork-local/ui.js, so lastTurn is wired for real — via a
+ *   getLastChatUsage() passed through ctx, backed by a small FORK PATCH in
+ *   upstream's /api/chat handler. Lifetime totals remain independent of it and
+ *   come from the token exporter.
  *
  * MAINTENANCE NOTE
  *   The route bodies below are kept byte-identical to the pre-merge server.js
@@ -113,7 +113,7 @@ export function register(app, ctx) {
   } = ctx;
 
   registerConvergence(app, { parseEnvFile });
-  registerTokens(app, { readText });
+  registerTokens(app, { readText, getLastChatUsage: ctx.getLastChatUsage });
   registerModels(app, {
     ROOT, OPENCLAW_ENV, ROOT_ENV, parseEnvFile, parseOneEnvFile,
     readText, broadcastWS,
@@ -286,7 +286,7 @@ app.use('/api/home', async (req, res, next) => {
 // ───────────────────────────────────────────────────────────────────────────
 // Token / cost summary strip.
 // ───────────────────────────────────────────────────────────────────────────
-function registerTokens(app, { readText }) {
+function registerTokens(app, { readText, getLastChatUsage }) {
 // NOTE: this stays null — see DELIBERATE OMISSION in the file header. Kept so
 // the endpoint body below remains byte-identical to the pre-merge original.
 // Backs the HUD footer strip. Source: openclaw-token-exporter scrape
@@ -403,7 +403,8 @@ app.get('/api/tokens/summary', async (req, res) => {
         }
       : null,
     topModels: top,
-    lastTurn: _lastChatUsage,
+    // FORK: read live from server.js rather than the always-null local below.
+    lastTurn: getLastChatUsage ? getLastChatUsage() : _lastChatUsage,
     tokenOptimization: tokenOptimization
       ? {
           enabled: Boolean(tokenOptimization.enabled),

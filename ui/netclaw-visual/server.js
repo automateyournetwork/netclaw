@@ -62,6 +62,10 @@ function requireTrustedClient(req, res, next) {
 }
 app.use(['/api/env', '/api/testbed/raw', '/api/models'], requireTrustedClient);
 
+// FORK PATCH: last chat turn's token usage, set in /api/chat and read by
+// server.local.js for the footer strip. Declared here so both sites see it.
+let forkLastChatUsage = null;
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -1323,6 +1327,22 @@ app.post('/api/chat', async (req, res) => {
       const gwData = await gwRes.json();
       responseText = gwData.choices?.[0]?.message?.content || gwData.choices?.[0]?.text || '';
       fromGateway = true;
+      // FORK PATCH: capture the OpenAI-compat usage block. Backs the footer
+      // "Last Turn" field (#footer-tokens-last) and lastTurn in
+      // /api/tokens/summary. Nothing upstream reads this; if a merge conflicts
+      // here, dropping these lines only blanks that one field.
+      const u = gwData.usage || {};
+      const inTok = Number(u.prompt_tokens ?? u.input_tokens ?? u.input ?? 0) || 0;
+      const outTok = Number(u.completion_tokens ?? u.output_tokens ?? u.output ?? 0) || 0;
+      if (inTok || outTok) {
+        forkLastChatUsage = {
+          input: inTok,
+          output: outTok,
+          total: Number(u.total_tokens ?? inTok + outTok) || inTok + outTok,
+          model: gwData.model || 'openclaw',
+          at: new Date().toISOString(),
+        };
+      }
     } else {
       gatewayFallback = `OpenClaw rejected the chat request (HTTP ${gwRes.status}). Check the gateway terminal for details.`;
     }
@@ -1859,6 +1879,7 @@ if (process.env.HUD_LOCAL_EXTENSIONS !== '0') {
       broadcastWS, callRagTool, parseEnvFile, parseOneEnvFile,
       ragStartProgressPolling, readText,
       TESTBED_FILE, getGatewayConfig, requireTrustedClient,
+      getLastChatUsage: () => forkLastChatUsage,
     });
     console.log(
       `[local] fork extensions loaded (${info.routes.length} route groups, `

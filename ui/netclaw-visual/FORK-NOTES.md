@@ -192,3 +192,47 @@ done
 ```
 In the browser console you should see `[fork-ui] restored: convergence-tab,
 chat-drawer-move-resize`.
+
+## Merge-loss audit (2026-07-29)
+
+Systematic diff of fork `30e2882` against upstream `2ca395c` for both
+`server.js` and `src/main.js`, so this stops being discovered one blank panel
+at a time.
+
+### Restored
+
+| Feature | Where it lives now |
+|---|---|
+| 6 API endpoints (`/api/home/*`, `/api/models`, `/api/rag/{ingest-url,crawl-site}`, `/api/tokens/summary`) | `server.local.js` |
+| CONVERGENCE tab router + HomeView mount | `src/fork-local/ui.js` |
+| Draggable/resizable NETCLAW TERMINAL (+ geometry & snap persistence) | `src/fork-local/ui.js` |
+| Footer token/cost strip (`#footer-tokens-*`) | `src/fork-local/ui.js` |
+| `${VAR}` model readout resolution (footer + PRIMARY MODEL card) | `src/fork-local/ui.js` |
+| `${VAR}` gateway-token resolution | `server.js` patch |
+| Last-turn token usage | `server.js` patch + `server.local.js` |
+
+### Superseded by HUD 2.0 — deliberately NOT restored
+
+These are the old HUD 1.0 scene builders. The org-chart renderer replaced them
+and restoring them would fight the new HUD:
+
+`buildCore`, `buildDevices`, `buildIntegrations`, `buildPeerLinks`,
+`buildPeerRoutes`, `buildRiskMembers`, `computeDendritePositions`,
+`createDendriteMaterial`, `createSkillSprites`
+
+### Still missing — real fork features, not yet restored
+
+Grouped by cluster, in rough priority order. Note upstream's `main.js` contains
+**zero** `localStorage` references, so every UI preference the fork persisted
+was fork-only.
+
+| Cluster | Missing pieces | Effect today |
+|---|---|---|
+| Mobile / touch | `mobile-layout.js` orphaned; `wireLongPressSelect`, `applyReducedMotion`, `clientToNdc`, `pickInteractiveAt`, `selectAtClient`, `viewportSize` | no mobile layout, no long-press select, reduced-motion ignored |
+| Graph cache + stale banner | `graph-cache.js` orphaned; `showStaleBanner`, `hideStaleBanner`, `wireStaleBanner` | no offline/stale graph cache, no STALE indicator |
+| Quality preference | `loadQualityPreference`, `persistQualityPreference`, `applyStoredQualityOrDefault` | quality resets to default every reload |
+| PWA | `register-sw.js` orphaned | no service worker / installability |
+| Server helpers | `configForClient`, `resolveEnvTemplates`, `displayModelId`, `normalizeRagToolResult` | model resolution now done client-side instead; `normalizeRagToolResult` unused by restored code |
+
+Nothing in the "still missing" list is load-bearing for what's restored — each
+is an independent add-back.
