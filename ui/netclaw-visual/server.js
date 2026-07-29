@@ -20,6 +20,48 @@ app.use(cors());
 // API an unbounded JSON sink.
 app.use(express.json({ limit: '4mb' }));
 
+// ── FORK PATCH (security): gate the credential + config-write surface ────────
+// This API has no authentication and listen(port) binds all interfaces, yet
+// /api/env/* enumerates every key in .env, PUT /api/env writes them, and
+// PUT /api/testbed/raw can repoint pyATS at another host. Default posture:
+// allow loopback + RFC1918/link-local only, so a public exposure or a tunnel
+// (ngrok, port-forward) cannot reach it. Nothing on a normal LAN changes.
+//   HUD_TRUSTED_IPS=10.0.0.5,192.168.3.0/24   narrow further (exact or /CIDR)
+//   HUD_API_TOKEN=...                          accept Authorization: Bearer
+// Real auth belongs at the ingress; this only removes the free-for-all.
+function requireTrustedClient(req, res, next) {
+  const token = process.env.HUD_API_TOKEN;
+  if (token) {
+    const got = (req.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    if (got && got === token) return next();
+  }
+  const raw = (req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+  const allow = (process.env.HUD_TRUSTED_IPS || '')
+    .split(',').map((s) => s.trim()).filter(Boolean);
+  const inCidr = (ip, cidr) => {
+    const [net, bitsRaw] = cidr.split('/');
+    const bits = Number(bitsRaw);
+    const toInt = (a) => a.split('.').reduce((n, o) => (n << 8) + (Number(o) & 255), 0) >>> 0;
+    if (!/^\d+\.\d+\.\d+\.\d+$/.test(ip) || !/^\d+\.\d+\.\d+\.\d+$/.test(net)) return false;
+    if (!Number.isInteger(bits) || bits < 0 || bits > 32) return false;
+    const mask = bits === 0 ? 0 : (0xffffffff << (32 - bits)) >>> 0;
+    return (toInt(ip) & mask) === (toInt(net) & mask);
+  };
+  const ok = allow.length
+    ? allow.some((a) => (a.includes('/') ? inCidr(raw, a) : a === raw))
+    : (raw === '127.0.0.1' || raw === '::1'
+       || /^10\./.test(raw) || /^192\.168\./.test(raw)
+       || /^172\.(1[6-9]|2\d|3[01])\./.test(raw) || /^169\.254\./.test(raw)
+       || /^(fe80|fc|fd)/i.test(raw));
+  if (ok) return next();
+  console.warn(`[security] blocked ${req.method} ${req.path} from ${raw || 'unknown'}`);
+  return res.status(403).json({
+    error: 'Forbidden: untrusted client for credential/config endpoint',
+    hint: 'Set HUD_TRUSTED_IPS or HUD_API_TOKEN, or reach this API from a trusted network.',
+  });
+}
+app.use(['/api/env', '/api/testbed/raw', '/api/models'], requireTrustedClient);
+
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
 
@@ -1084,9 +1126,13 @@ app.get('/api/env/:integrationId', (req, res) => {
   if (!mapping) return res.status(404).json({ error: 'Unknown integration' });
 
   const envVars = parseEnvFile();
+  // FORK PATCH (security): `value` used to carry the plaintext secret next to
+  // `masked`. The HUD only ever renders `masked`/`isSet` (src/main.js:1370-1376),
+  // so the cleartext was pure exposure on an endpoint that serves every
+  // credential in .env. Do not reintroduce `value` — to edit a key the operator
+  // types a new one; PUT /api/env never needs the old value echoed back.
   const fields = mapping.env.map((key) => ({
     key,
-    value: envVars[key] || '',
     masked: envVars[key] ? maskValue(envVars[key]) : '',
     isSet: key in envVars && envVars[key] !== '',
   }));

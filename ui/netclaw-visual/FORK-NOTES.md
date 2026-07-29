@@ -21,7 +21,19 @@ features (the Convergence tab went blank, `/` started 404ing).
 
 Everything fork-specific that *can* live outside `server.js` does.
 
-## The 2 patches in server.js
+## The 3 patches in server.js
+
+0. **Credential/config gate** (`requireTrustedClient`, mounted right after
+   `express.json`). Upstream ships `/api/env/*` returning every `.env` key,
+   `PUT /api/env` writing them, and `PUT /api/testbed/raw` able to repoint
+   pyATS — all unauthenticated on an all-interfaces listener. Also drops the
+   plaintext `value` field from `/api/env/:id` (the HUD only renders `masked`
+   and `isSet`, so the cleartext was pure exposure).
+
+   Default allows loopback + RFC1918/link-local, so a normal LAN is unaffected
+   but a public exposure or tunnel is not. `HUD_TRUSTED_IPS` narrows it,
+   `HUD_API_TOKEN` adds bearer auth. One `app.use([...])` mount rather than
+   per-route edits, to keep the merge surface at a single line.
 
 1. **The hook**, immediately before `server.listen()`:
    ```js
@@ -95,5 +107,11 @@ upstream routes unaffected, and no `[local]` log lines.
   host already binds all interfaces (`::` dual-stack), so upstream is
   LAN-reachable as shipped. An earlier fix here added an explicit `0.0.0.0`;
   it was unnecessary and has been dropped.
-- **`server.local.js` registers no auth.** It inherits whatever the HUD has,
-  which today is none. See the security note when adding write-capable routes.
+- **The HUD still has no real authentication.** Patch 0 removes the
+  free-for-all on the credential and config-write surface, but everything else
+  (`/api/graph`, `/api/chat`, `/api/bgp`, RAG, sessions) is open to anyone who
+  can reach the port. Proper auth belongs at the ingress, alongside the other
+  `*.internal.byrnbaker.me` services — not as per-route middleware in a
+  browser app with no login flow.
+- **Rotate any credential that was served by `/api/env/*`** before the gate
+  landed. It returned plaintext to any LAN client.
