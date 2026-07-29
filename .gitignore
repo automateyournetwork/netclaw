@@ -146,3 +146,6 @@ docs/architecture/convergence-context/
 deploy/convergence/.env
 deploy/convergence/k8s/secret.yaml
 docs/architecture/convergence-context
+
+# Kiro IDE workspace config (specs, hooks, steering) — local, not published
+.kiro/
