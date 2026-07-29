@@ -1858,6 +1858,7 @@ if (process.env.HUD_LOCAL_EXTENSIONS !== '0') {
       ROOT, OPENCLAW_ENV, ROOT_ENV, RAG_DATA_DIR, RAG_INTAKE_DIR,
       broadcastWS, callRagTool, parseEnvFile, parseOneEnvFile,
       ragStartProgressPolling, readText,
+      TESTBED_FILE, getGatewayConfig, requireTrustedClient,
     });
     console.log(
       `[local] fork extensions loaded (${info.routes.length} route groups, `

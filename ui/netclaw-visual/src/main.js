@@ -1244,7 +1244,32 @@ function setDetail(kind, payload, related = []) {
         <h3>Testbed Config</h3>
         <p class="config-notes">Device defined in testbed/testbed.yaml. Edit the testbed to add/change devices, credentials, and connection settings.</p>
       </div>
+      <!-- FORK-LOCAL: SSH terminal (see FORK-NOTES.md) -->
+      <div class="config-section">
+        <h3>Console</h3>
+        <button id="device-ssh-open" class="tp-btn">Open SSH terminal</button>
+        <p class="config-notes" id="device-ssh-note">Interactive session with a selection assistant. Opt-in: requires HUD_SSH_ENABLED=1.</p>
+      </div>
     `;
+    // FORK-LOCAL: lazy-load the terminal panel so xterm stays out of the
+    // initial bundle for operators who never open a console.
+    const sshBtn = document.getElementById('device-ssh-open');
+    if (sshBtn) {
+      sshBtn.addEventListener('click', async () => {
+        sshBtn.disabled = true;
+        sshBtn.textContent = 'Opening…';
+        try {
+          const mod = await import('./panels/TerminalPanel.js');
+          await mod.openTerminalPanel(payload.name);
+        } catch (err) {
+          const note = document.getElementById('device-ssh-note');
+          if (note) note.textContent = `Could not open terminal: ${err.message}`;
+        } finally {
+          sshBtn.disabled = false;
+          sshBtn.textContent = 'Open SSH terminal';
+        }
+      });
+    }
     return;
   }
 

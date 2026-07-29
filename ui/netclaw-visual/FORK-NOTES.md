@@ -115,3 +115,29 @@ upstream routes unaffected, and no `[local]` log lines.
   browser app with no login flow.
 - **Rotate any credential that was served by `/api/env/*`** before the gate
   landed. It returned plaintext to any LAN client.
+
+## SSH terminal panel (fork feature)
+
+| File | Role |
+|------|------|
+| `ssh-terminal.js` | PTY via `ssh2`, scrollback buffer, command filter, `/ask` |
+| `src/panels/TerminalPanel.js` + `.css` | xterm.js panel + selection assistant |
+| `docs/SSH-TERMINAL-HARDENING.md` | device-side hardening, apply before enabling |
+
+Registered from `server.local.js`, so it survives upstream pulls like the rest.
+Added three identifiers to the ctx contract: `TESTBED_FILE`,
+`getGatewayConfig`, `requireTrustedClient`.
+
+**Off by default.** `HUD_SSH_ENABLED=1` to turn on. Without
+`HUD_SSH_USERNAME`/`HUD_SSH_PASSWORD` it falls back to `NETCLAW_*`, which on
+these switches is privilege 15 — the panel shows a warning badge when that
+happens.
+
+Output is SSE (`GET /api/ssh/:id/stream`), input is POST. Not a WebSocket:
+upstream owns `path: '/ws'`, and a second path-scoped `WebSocketServer` on the
+same http server aborts the handshake before ours is reached. Full reasoning in
+the header of `ssh-terminal.js`.
+
+The command filter is best-effort on an interactive stream, not a boundary —
+device-side privilege is. VLAN 3 / `Vlan3` stays blocked even with
+`HUD_SSH_ALLOW_CONFIG=1`. Audit log at `~/.openclaw/hud-ssh-audit.log` (0600).

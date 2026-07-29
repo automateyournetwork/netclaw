@@ -61,6 +61,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
+import { registerSshTerminal } from './ssh-terminal.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -77,6 +78,10 @@ const REQUIRED_CTX = [
   'parseOneEnvFile',
   'ragStartProgressPolling',
   'readText',
+  // SSH terminal (fork feature)
+  'TESTBED_FILE',
+  'getGatewayConfig',
+  'requireTrustedClient',
 ];
 
 function assertCtx(ctx) {
@@ -117,6 +122,14 @@ export function register(app, ctx) {
     RAG_DATA_DIR, RAG_INTAKE_DIR, callRagTool, ragStartProgressPolling, broadcastWS,
   });
 
+  const ssh = registerSshTerminal(app, {
+    TESTBED_FILE: ctx.TESTBED_FILE,
+    parseEnvFile,
+    readText,
+    requireTrustedClient: ctx.requireTrustedClient,
+    askModel: makeAskModel(ctx.getGatewayConfig),
+  });
+
   // MUST be last: the SPA fallback swallows every unmatched GET.
   registerFrontend(app);
 
@@ -124,8 +137,45 @@ export function register(app, ctx) {
     routes: [
       '/api/home/status', '/api/home/*', '/api/tokens/summary',
       'GET+POST /api/models', '/api/rag/ingest-url', '/api/rag/crawl-site',
+      `/api/ssh/* (${ssh.enabled ? 'enabled' : 'disabled'})`,
     ],
     servesFrontend: fs.existsSync(path.join(__dirname, 'dist', 'index.html')),
+    sshEnabled: ssh.enabled,
+  };
+}
+
+/**
+ * One-shot model call through the OpenClaw gateway, for the terminal's /ask.
+ * Kept here rather than in ssh-terminal.js so that module stays transport-only
+ * and has no opinion about how the model is reached.
+ */
+function makeAskModel(getGatewayConfig) {
+  return async function askModel(prompt) {
+    const gw = getGatewayConfig();
+    if (!gw.chatCompletionsEnabled) {
+      throw new Error('gateway chatCompletions endpoint is disabled');
+    }
+    const r = await fetch(`http://127.0.0.1:${gw.port}/v1/chat/completions`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${gw.token}`,
+        'Content-Type': 'application/json',
+        'x-openclaw-agent-id': 'main',
+      },
+      body: JSON.stringify({
+        model: 'openclaw',
+        messages: [{ role: 'user', content: prompt }],
+        stream: false,
+      }),
+      signal: AbortSignal.timeout(120000),
+    });
+    const data = await r.json().catch(() => ({}));
+    if (!r.ok) {
+      throw new Error(data?.error?.message || `gateway HTTP ${r.status}`);
+    }
+    const text = data.choices?.[0]?.message?.content || data.choices?.[0]?.text || '';
+    if (!text) throw new Error('gateway returned an empty completion');
+    return text;
   };
 }
 
