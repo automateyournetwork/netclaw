@@ -26,8 +26,9 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
-// FORK-LOCAL: see src/fork-local/ui.js and FORK-NOTES.md
+// FORK-LOCAL: general HUD fixes that are not a module — see src/fork-local/ui.js
 import { registerForkUI } from './fork-local/ui.js';
+import { loadModuleUIs } from './module-loader.js';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -2564,6 +2565,15 @@ function wireUI() {
   window.addEventListener('pointermove', onPointerMove);
   window.addEventListener('click', onClick);
   window.addEventListener('resize', onResize);
+
+  // ── Optional HUD modules ───────────────────────────────────────────────────
+  // Mounts the UI half of any configured module. Registered last so a module
+  // can rely on first-party chrome already existing. No-ops when there are no
+  // modules, and skips any module the server reports as unconfigured.
+  // Fire-and-forget: a slow or broken module must not delay first paint.
+  loadModuleUIs({ dom, state, setDetail, focusTarget }).catch((err) => {
+    console.error('[modules] UI loader failed:', err);
+  });
 }
 
 // ── GPU Particle Data Flow (Section G) ──────────────────────────

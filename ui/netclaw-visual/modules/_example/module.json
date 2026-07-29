@@ -1,0 +1,6 @@
+{
+  "id": "example",
+  "name": "Example Module",
+  "description": "Reference implementation. Copy this directory to start a module.",
+  "requiresEnv": ["EXAMPLE_MODULE_URL"]
+}

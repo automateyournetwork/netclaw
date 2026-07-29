@@ -9,6 +9,7 @@ import yaml from 'js-yaml';
 import multer from 'multer';
 import { execFile } from 'child_process';
 import { fileURLToPath } from 'url';
+import { loadModules, registerModuleIndex } from './module-loader.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '../..');
@@ -1863,6 +1864,33 @@ wss.on('connection', (socket) => {
     clearInterval(timer);
   });
 });
+
+// ── Optional HUD modules ─────────────────────────────────────────────────────
+// Registered last, so first-party routes above always take precedence over a
+// module's. No-ops when modules/ is empty or absent. See modules/README.md.
+//
+// ctx is the published surface modules may rely on — deliberately small, so it
+// can stay stable. Adding to it is a compatibility promise; prefer an issue over
+// quietly widening it.
+const moduleEnvLookup = (key) => {
+  if (process.env[key] !== undefined && process.env[key] !== '') return String(process.env[key]);
+  for (const f of ENV_FILES) {
+    const v = parseOneEnvFile(f)[key];
+    if (v !== undefined && v !== '') return String(v);
+  }
+  return '';
+};
+
+const loadedModules = await loadModules(app, {
+  ROOT,
+  TESTBED_FILE,
+  parseEnvFile,
+  readText,
+  broadcastWS,
+  getGatewayConfig,
+  env: moduleEnvLookup,
+}, moduleEnvLookup);
+registerModuleIndex(app, loadedModules);
 
 // ── FORK-LOCAL HOOK ─────────────────────────────────────────────────────────
 // The only fork modification to this file besides the ${VAR} fix in
