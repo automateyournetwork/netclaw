@@ -135,6 +135,17 @@ or you will be looking at a cached, apparently-broken HUD.
   the page gradient lifts the black point, and grain + RGB shift on at `balanced`.
   `modules/scene-quality/` retunes it live rather than editing `main.js`, because
   the exposure carries upstream's comment "operator feedback".
+- **The "halo" framing the viewport is `VignetteShader`** (`main.js` ~432,
+  darkness 1.4 / offset 0.95). Added once and never touched again — no quality
+  mode disables it — so it reads as permanent chrome rather than an effect.
+  `scene-quality`'s Edge vignette slider defaults to 0, which disables the pass.
+- **`.home-root` is `position: fixed` + `overflow: auto`.** Anything mounted as a
+  row inside it scrolls out of the clip region on a long subview and is simply
+  gone, with no scrollbar on the page to suggest otherwise. That is what happened
+  to the Convergence section selectors; they now live in `#home-topbar-slot` in
+  the topbar. Consequence: the toolbar is **not** inside `HomeView.element`, so
+  toolbar lookups must use `qs()`/`qsa()`, and any Convergence stylesheet needs
+  the `:is(.home-root, .home-topbar-slot)` scope or the toolbar goes unstyled.
 - **Three upstream paths rewrite the post-processing values**, and only one is a
   click: `setQualityMode()` (button *or* keyboard), `enableCinematicBurst()` (6s
   timeout on chat activation, restores from the quality mode), and init ordering.
