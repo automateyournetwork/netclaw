@@ -1,12 +1,16 @@
 /* FORK-LOCAL: device SSH terminal panel. Not part of upstream. */
 
 .tp-panel {
+  /* Initial placement only. makeFloating() switches to explicit left/top/width/
+     height on first paint (.is-floating) and restores saved geometry, so these
+     values are just the first-run default. */
   position: fixed;
   left: 2vw;
   bottom: 2vh;
   width: 92vw;
   height: 62vh;
-  min-height: 320px;
+  min-height: 260px;
+  min-width: 460px;
   display: flex;
   flex-direction: column;
   background: rgba(8, 12, 26, 0.97);
@@ -146,3 +150,35 @@
   .tp-body { flex-direction: column; }
   .tp-side { flex: 1 1 auto; border-left: none; border-top: 1px solid #26325c; }
 }
+
+/* ── floating window behaviour ────────────────────────────────────────────── */
+/* Once managed, geometry is explicit and bottom/right must not fight it. */
+.tp-panel.is-floating { bottom: auto; right: auto; }
+.tp-panel.is-dragging,
+.tp-panel.is-resizing { user-select: none; }
+/* Suppress the iframe/canvas swallowing pointer moves mid-drag. */
+.tp-panel.is-dragging *,
+.tp-panel.is-resizing * { pointer-events: none; }
+.tp-panel.is-dragging .tp-head,
+.tp-panel.is-resizing .tp-resize { pointer-events: auto; }
+
+.tp-head { cursor: move; touch-action: none; }
+.tp-winbtns { display: flex; gap: 4px; margin-left: auto; }
+.tp-head .tp-x { margin-left: 0; }
+
+/* Bottom-right grip. Kept above the terminal so xterm never eats the pointer. */
+.tp-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  touch-action: none;
+  z-index: 5;
+  background:
+    linear-gradient(135deg, transparent 0 42%, #4a5c8f 42% 52%, transparent 52%),
+    linear-gradient(135deg, transparent 0 62%, #4a5c8f 62% 72%, transparent 72%),
+    linear-gradient(135deg, transparent 0 82%, #4a5c8f 82% 92%, transparent 92%);
+}
+.tp-resize:hover { filter: brightness(1.5); }

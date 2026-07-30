@@ -11,6 +11,7 @@ import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
 import '@xterm/xterm/css/xterm.css';
 import './TerminalPanel.css';
+import { makeFloating } from '../fork-local/floating-window.js';
 
 let active = null; // only one terminal panel at a time
 
@@ -100,7 +101,10 @@ export async function openTerminalPanel(deviceName) {
     <div class="tp-head">
       <span class="tp-title">SSH — ${esc(deviceName)}</span>
       <span class="tp-badge" id="tp-badge">connecting…</span>
-      <button class="tp-x" id="tp-close" title="Close session">✕</button>
+      <span class="tp-winbtns">
+        <button class="tp-x" id="tp-max" title="Maximize / restore (or double-click the title bar)">□</button>
+        <button class="tp-x" id="tp-close" title="Close session">✕</button>
+      </span>
     </div>
     <div class="tp-body">
       <div class="tp-term" id="tp-term"></div>
@@ -117,7 +121,8 @@ export async function openTerminalPanel(deviceName) {
           <button class="tp-btn tp-ask" type="submit">Ask</button>
         </form>
       </div>
-    </div>`;
+    </div>
+    <div class="tp-resize" id="tp-resize" title="Drag to resize" aria-hidden="true"></div>`;
   document.body.appendChild(root);
 
   const badge = root.querySelector('#tp-badge');
@@ -243,26 +248,45 @@ export async function openTerminalPanel(deviceName) {
   });
   root.querySelector('#tp-close').addEventListener('click', closeTerminalPanel);
 
-  const onResize = () => {
-    try {
-      fit.fit();
+  // Refit xterm and tell the device the new window size. Debounced because a
+  // drag-resize fires continuously and each call is a round trip to the switch.
+  let refitTimer = null;
+  const refit = () => {
+    try { fit.fit(); } catch { /* not laid out yet */ }
+    if (refitTimer) clearTimeout(refitTimer);
+    refitTimer = setTimeout(() => {
+      refitTimer = null;
       api(`/api/ssh/${session.sessionId}/resize`, {
         method: 'POST',
         body: JSON.stringify({ cols: term.cols, rows: term.rows }),
       }).catch(() => {});
-    } catch { /* ignore */ }
+    }, 150);
   };
-  window.addEventListener('resize', onResize);
-  onResize();
+
+  // Movable, resizable, remembered — the floating helper owns the window
+  // handling (including its own window-resize listener), so this file no longer
+  // registers one of its own.
+  const win = makeFloating(root, {
+    handle: root.querySelector('.tp-head'),
+    grip: root.querySelector('#tp-resize'),
+    storageKey: 'netclaw.terminal.geometry',
+    minWidth: 460,
+    minHeight: 260,
+    onResize: refit,
+  });
+
+  root.querySelector('#tp-max')?.addEventListener('click', () => win.toggleMaximize());
+
+  refit();
   term.focus();
 
-  active = { root, term, session, stream, onResize, onThemeChange };
+  active = { root, term, session, stream, onThemeChange, win, refitTimer: () => refitTimer };
 }
 
 export function closeTerminalPanel() {
   if (!active) return;
-  const { root, term, session, stream, onResize, onThemeChange } = active;
-  if (onResize) window.removeEventListener('resize', onResize);
+  const { root, term, session, stream, onThemeChange, win } = active;
+  win?.destroy();
   if (onThemeChange) window.removeEventListener('netclaw:theme-changed', onThemeChange);
   try { stream?.close(); } catch { /* already closed */ }
   if (session?.sessionId) {

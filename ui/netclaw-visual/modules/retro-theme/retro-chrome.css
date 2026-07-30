@@ -369,3 +369,26 @@ body.retro-311 .tp-badge {
 body.retro-311 .tp-badge.ok   { color: #008000 !important; font-weight: 700 !important; }
 body.retro-311 .tp-badge.warn { color: #808000 !important; font-weight: 700 !important; }
 body.retro-311 .tp-badge.bad  { color: #800000 !important; font-weight: 700 !important; }
+
+/* Terminal window furniture: title-bar buttons and the corner grip.
+   The panel is movable/resizable via src/fork-local/floating-window.js; this only
+   restyles the affordances so they read as Program Manager controls. */
+body.retro-311 .tp-winbtns { gap: 2px; }
+body.retro-311 .tp-x {
+  width: 18px !important;
+  height: 16px !important;
+  min-width: 18px;
+  padding: 0 !important;
+  font-size: 10px !important;
+  line-height: 1 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+body.retro-311 .tp-resize {
+  background:
+    linear-gradient(135deg, transparent 0 42%, var(--w-shadow) 42% 52%, transparent 52%),
+    linear-gradient(135deg, transparent 0 62%, var(--w-shadow) 62% 72%, transparent 72%),
+    linear-gradient(135deg, transparent 0 82%, var(--w-shadow) 82% 92%, transparent 92%) !important;
+  filter: none !important;
+}

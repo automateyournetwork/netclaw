@@ -20,7 +20,7 @@ remembered in `localStorage` under `netclaw.theme`.
 | Chat drawer | `.chat-drawer`, `.chat-header`, `.chat-messages`, `.chat-input`, `.chat-send` |
 | Knowledge panel | `.knowledge-panel`, `.kp-*` |
 | Footer | `.footer`, `.footer-row`, `#footer-*` |
-| SSH terminal | `.tp-panel`, `.tp-head`, `.tp-side`, `.tp-term` + the xterm palette |
+| SSH terminal | `.tp-panel`, `.tp-head`, `.tp-side`, `.tp-term`, window furniture + the xterm palette |
 
 The 3D canvas is left alone deliberately — an org chart of glowing nodes has no
 1992 equivalent, and dithering it would just look broken.
