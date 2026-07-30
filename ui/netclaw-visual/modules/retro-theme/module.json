@@ -1,0 +1,6 @@
+{
+  "id": "retro-theme",
+  "name": "Retro Theme (Windows 3.11)",
+  "description": "Opt-in Program Manager era skin for the whole HUD. UI-only; inert until toggled.",
+  "requiresEnv": []
+}

@@ -16,6 +16,9 @@
 // stylesheet without a JS import silently does nothing — which is exactly how
 // this view once ended up unstyled and invisible behind the canvas.
 import './home.css';
+// Opt-in Windows 3.11 skin. Entirely scoped under .home-root.retro-311, so
+// loading it has no effect until the operator toggles the theme.
+import './retro.css';
 import { createTabRouter } from './tab-router.js';
 import { HomeView } from './HomeView.js';
 

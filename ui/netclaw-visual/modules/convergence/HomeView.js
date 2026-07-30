@@ -227,6 +227,7 @@ export class HomeView {
       this.selectSite(ev.target.value);
     });
 
+
     // Models panel actions
     this.element.addEventListener('click', (ev) => {
       const btn = ev.target.closest('[data-models-action]');

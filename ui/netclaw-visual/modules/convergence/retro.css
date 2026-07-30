@@ -1,0 +1,385 @@
+/*
+ * Convergence — Windows 3.11 skin (opt-in).
+ *
+ * Scoped entirely under body.retro-311 .home-root, so it cannot leak into the HUD's
+ * own chrome. Toggled from the Convergence toolbar and remembered in
+ * localStorage. Deleting this file and its import removes the theme.
+ *
+ * The look is Program Manager era, which means committing to a few things the
+ * modern sheet deliberately avoids:
+ *   - no rounded corners, no gradients, no shadows, no transitions
+ *   - depth is bevels only: white/#dfdfdf on the top-left, #808080/#000 on the
+ *     bottom-right, 2px, no anti-aliasing
+ *   - chrome is #c0c0c0, client areas are #fff, title bars are #000080
+ *   - status colour is carried by text weight and a marker, not by hue alone,
+ *     because a 16-colour palette has nowhere to put "amber"
+ */
+
+/* ── palette ─────────────────────────────────────────────────────────────── */
+body.retro-311 .home-root {
+  --w-face: #c0c0c0;
+  --w-light: #ffffff;
+  --w-hilite: #dfdfdf;
+  --w-shadow: #808080;
+  --w-dark: #000000;
+  --w-title: #000080;
+  --w-title-text: #ffffff;
+  --w-client: #ffffff;
+  --w-text: #000000;
+  --w-disabled: #808080;
+  --w-select: #000080;
+
+  background: var(--w-face);
+  color: var(--w-text);
+  font-family: "MS Sans Serif", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 12px;
+  /* The classic 50% dither desktop, drawn rather than shipped as an asset. */
+  background-image:
+    linear-gradient(45deg, #b0b0b8 25%, transparent 25%, transparent 75%, #b0b0b8 75%),
+    linear-gradient(45deg, #b0b0b8 25%, transparent 25%, transparent 75%, #b0b0b8 75%);
+  background-size: 4px 4px;
+  background-position: 0 0, 2px 2px;
+  padding: 6px;
+}
+
+/* Kill every modern affordance in one place. */
+body.retro-311 .home-root *,
+body.retro-311 .home-root *::before,
+body.retro-311 .home-root *::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+  backdrop-filter: none !important;
+  letter-spacing: normal !important;
+}
+
+/* ── bevel helpers ───────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-frame,
+body.retro-311 .home-root .home-panel,
+body.retro-311 .home-root .home-kpi,
+body.retro-311 .home-root .home-models-card,
+body.retro-311 .home-root .home-triage-detail {
+  background: var(--w-face);
+  border-top: 2px solid var(--w-light);
+  border-left: 2px solid var(--w-light);
+  border-right: 2px solid var(--w-dark);
+  border-bottom: 2px solid var(--w-dark);
+  outline: 1px solid var(--w-shadow);
+  outline-offset: -3px;
+}
+
+body.retro-311 .home-root .home-frame {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ── title bar ───────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-toolbar {
+  background: var(--w-face);
+  border: none;
+  border-bottom: 2px solid var(--w-shadow);
+  padding: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  align-items: stretch;
+}
+
+/* Program-Manager style caption: solid navy, centred, bold. */
+body.retro-311 .home-root .home-toolbar-title {
+  background: var(--w-title);
+  color: var(--w-title-text) !important;
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: none;
+  text-align: center;
+  padding: 2px 6px;
+  margin: 0 0 3px 0;
+  border-top: 2px solid var(--w-light);
+  border-left: 2px solid var(--w-light);
+  border-right: 2px solid var(--w-dark);
+  border-bottom: 2px solid var(--w-dark);
+}
+body.retro-311 .home-root .home-toolbar-title::before { content: "▪ "; }
+body.retro-311 .home-root .home-toolbar-title::after  { content: "  —  □"; float: right; }
+
+body.retro-311 .home-root .home-toolbar-left,
+body.retro-311 .home-root .home-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+body.retro-311 .home-root .home-toolbar-left { flex: 1 1 auto; }
+
+/* ── buttons ─────────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-sub-btn,
+body.retro-311 .home-root .home-refresh-btn,
+body.retro-311 .home-root .home-action-btn,
+body.retro-311 .home-root .home-triage-btn,
+body.retro-311 .home-root .home-console-btn,
+body.retro-311 .home-root .home-retro-btn {
+  background: var(--w-face);
+  color: var(--w-text);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 400;
+  text-transform: none;
+  padding: 3px 10px;
+  min-height: 23px;
+  border-top: 2px solid var(--w-light);
+  border-left: 2px solid var(--w-light);
+  border-right: 2px solid var(--w-dark);
+  border-bottom: 2px solid var(--w-dark);
+  cursor: pointer;
+}
+
+/* Pressed = bevel inverted. No hover state; Win 3.11 had no concept of one. */
+body.retro-311 .home-root .home-sub-btn:active,
+body.retro-311 .home-root .home-refresh-btn:active,
+body.retro-311 .home-root .home-action-btn:active,
+body.retro-311 .home-root .home-triage-btn:active,
+body.retro-311 .home-root .home-console-btn:active,
+body.retro-311 .home-root .home-retro-btn:active,
+body.retro-311 .home-root .home-sub-btn.active {
+  border-top: 2px solid var(--w-dark);
+  border-left: 2px solid var(--w-dark);
+  border-right: 2px solid var(--w-light);
+  border-bottom: 2px solid var(--w-light);
+  padding: 4px 9px 2px 11px;
+}
+
+/* The active tab gets the dotted focus rectangle, as the era did. */
+body.retro-311 .home-root .home-sub-btn.active {
+  outline: 1px dotted var(--w-dark);
+  outline-offset: -4px;
+  font-weight: 700;
+}
+
+body.retro-311 .home-root .home-refresh-icon { display: none; }
+
+body.retro-311 .home-root button:disabled {
+  color: var(--w-disabled);
+  /* The engraved-disabled-text trick. */
+  text-shadow: 1px 1px 0 var(--w-light) !important;
+}
+
+/* ── group boxes ─────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-panel {
+  flex: 1 1 auto;
+  overflow: auto;
+  margin: 3px;
+  padding: 10px;
+}
+
+/* Etched section rule + label, the Win 3.1 GroupBox idiom. */
+body.retro-311 .home-root .home-section-title {
+  color: var(--w-text);
+  font-weight: 700;
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: normal;
+  margin: 14px 0 6px;
+  padding-top: 8px;
+  border-top: 1px solid var(--w-shadow);
+  box-shadow: none;
+  position: relative;
+}
+body.retro-311 .home-root .home-section-title::after {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 1px;
+  border-top: 1px solid var(--w-light);
+}
+
+body.retro-311 .home-root .home-panel-header h2 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--w-text);
+  text-transform: none;
+}
+body.retro-311 .home-root .eyebrow {
+  color: var(--w-text);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+body.retro-311 .home-root .home-muted { color: #404040; }
+
+/* ── KPI tiles ───────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-kpi { padding: 8px; }
+body.retro-311 .home-root .home-kpi-label {
+  color: var(--w-text);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+body.retro-311 .home-root .home-kpi-value {
+  font-family: "Courier New", monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--w-text);
+}
+body.retro-311 .home-root .home-kpi-value .unit { font-size: 11px; font-weight: 400; }
+
+/*
+ * Status in 16 colours. Hue alone is unreliable here — there is no good amber in
+ * the palette and navy-on-grey is the only strong contrast — so each state also
+ * gets a text marker. That keeps it readable, and legible without colour.
+ */
+body.retro-311 .home-root .ok      { color: #008000 !important; font-weight: 700; }
+body.retro-311 .home-root .warn    { color: #808000 !important; font-weight: 700; }
+body.retro-311 .home-root .crit    { color: #800000 !important; font-weight: 700; }
+body.retro-311 .home-root .ok::after   { content: " ✓"; }
+body.retro-311 .home-root .warn::after { content: " !"; }
+body.retro-311 .home-root .crit::after { content: " ✗"; }
+
+/* ── tables: the classic inset list box ──────────────────────────────────── */
+body.retro-311 .home-root .home-table-wrap {
+  background: var(--w-client);
+  border-top: 2px solid var(--w-shadow);
+  border-left: 2px solid var(--w-shadow);
+  border-right: 2px solid var(--w-light);
+  border-bottom: 2px solid var(--w-light);
+  outline: 1px solid var(--w-dark);
+  outline-offset: -3px;
+  padding: 0;
+}
+body.retro-311 .home-root .home-table {
+  background: var(--w-client);
+  font-size: 12px;
+  border-collapse: collapse;
+  width: 100%;
+}
+body.retro-311 .home-root .home-table th {
+  background: var(--w-face);
+  color: var(--w-text);
+  font-weight: 700;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  text-align: left;
+  padding: 3px 6px;
+  border-top: 1px solid var(--w-light);
+  border-left: 1px solid var(--w-light);
+  border-right: 1px solid var(--w-shadow);
+  border-bottom: 1px solid var(--w-shadow);
+}
+body.retro-311 .home-root .home-table td {
+  padding: 2px 6px;
+  border: none;
+  color: var(--w-text);
+  background: var(--w-client);
+}
+body.retro-311 .home-root .home-table tr:hover td { background: var(--w-client); }
+
+body.retro-311 .home-root .home-mgmt-link {
+  color: var(--w-title);
+  text-decoration: underline;
+}
+
+/* ── inputs ──────────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-site-select,
+body.retro-311 .home-root .home-models-input,
+body.retro-311 .home-root .home-triage-textarea {
+  background: var(--w-client);
+  color: var(--w-text);
+  font-family: inherit;
+  font-size: 12px;
+  padding: 2px 4px;
+  border-top: 2px solid var(--w-shadow);
+  border-left: 2px solid var(--w-shadow);
+  border-right: 2px solid var(--w-light);
+  border-bottom: 2px solid var(--w-light);
+  outline: 1px solid var(--w-dark);
+  outline-offset: -3px;
+}
+body.retro-311 .home-root .home-site-label,
+body.retro-311 .home-root .home-models-label,
+body.retro-311 .home-root .home-triage-label {
+  color: var(--w-text);
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+}
+
+/* ── badges, banners, chips ──────────────────────────────────────────────── */
+body.retro-311 .home-root .home-badge,
+body.retro-311 .home-root .home-rag-chip {
+  background: var(--w-face);
+  color: var(--w-text);
+  font-size: 11px;
+  padding: 1px 6px;
+  border-top: 1px solid var(--w-light);
+  border-left: 1px solid var(--w-light);
+  border-right: 1px solid var(--w-shadow);
+  border-bottom: 1px solid var(--w-shadow);
+}
+
+/* Dialog-style banner with the era's icon convention. */
+body.retro-311 .home-root .home-banner,
+body.retro-311 .home-root .home-flash {
+  background: var(--w-face);
+  color: var(--w-text);
+  border-top: 2px solid var(--w-light);
+  border-left: 2px solid var(--w-light);
+  border-right: 2px solid var(--w-dark);
+  border-bottom: 2px solid var(--w-dark);
+  padding: 10px 12px;
+}
+body.retro-311 .home-root .home-banner-config::before,
+body.retro-311 .home-root .home-flash-err::before { content: "⊘  "; font-weight: 700; }
+body.retro-311 .home-root .home-banner-ok::before,
+body.retro-311 .home-root .home-flash-ok::before { content: "ℹ  "; font-weight: 700; }
+
+/* ── triage ──────────────────────────────────────────────────────────────── */
+body.retro-311 .home-root .home-triage-list {
+  background: var(--w-client);
+  border-top: 2px solid var(--w-shadow);
+  border-left: 2px solid var(--w-shadow);
+  border-right: 2px solid var(--w-light);
+  border-bottom: 2px solid var(--w-light);
+}
+body.retro-311 .home-root .home-triage-item {
+  background: var(--w-client);
+  border: none;
+  border-bottom: 1px solid var(--w-face);
+  padding: 3px 6px;
+}
+/* Selection is inverse video — the only selection style the era had. */
+body.retro-311 .home-root .home-triage-item.active,
+body.retro-311 .home-root .home-triage-item.active * {
+  background: var(--w-select) !important;
+  color: var(--w-title-text) !important;
+}
+body.retro-311 .home-root .home-triage-notes-pre {
+  background: var(--w-client);
+  color: var(--w-text);
+  font-family: "Courier New", monospace;
+  font-size: 11px;
+  border-top: 2px solid var(--w-shadow);
+  border-left: 2px solid var(--w-shadow);
+  border-right: 2px solid var(--w-light);
+  border-bottom: 2px solid var(--w-light);
+}
+
+/* ── the toggle itself ───────────────────────────────────────────────────── */
+.home-retro-btn { white-space: nowrap; }
+
+/* Modern-theme styling for the toggle, so it does not look out of place when
+   the skin is off. Deliberately outside the .retro-311 scope. */
+body:not(.retro-311) .home-retro-btn {
+  background: #1d2a52;
+  border: 1px solid #33436b;
+  color: #cfdcff;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-family: inherit;
+  cursor: pointer;
+}
+body:not(.retro-311) .home-retro-btn:hover { background: #27376a; }

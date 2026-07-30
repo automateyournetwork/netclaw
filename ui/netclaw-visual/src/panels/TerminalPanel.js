@@ -14,6 +14,53 @@ import './TerminalPanel.css';
 
 let active = null; // only one terminal panel at a time
 
+/**
+ * xterm renders to a canvas, so its colours come from JS options and CSS cannot
+ * reach them. Without this the terminal stayed dark-blue while everything around
+ * it went grey under the retro theme.
+ *
+ * The retro palette is an MS-DOS Prompt box — black client area, light grey text,
+ * the 16 CGA colours — which is what a console looked like in that era.
+ */
+const MODERN_XTERM_THEME = {
+  background: '#0b1020',
+  foreground: '#d6e2ff',
+  selectionBackground: '#3b5bdb',
+};
+
+const RETRO_XTERM_THEME = {
+  background: '#000000',
+  foreground: '#c0c0c0',
+  cursor: '#c0c0c0',
+  selectionBackground: '#000080',
+  selectionForeground: '#ffffff',
+  black: '#000000',
+  red: '#800000',
+  green: '#008000',
+  yellow: '#808000',
+  blue: '#000080',
+  magenta: '#800080',
+  cyan: '#008080',
+  white: '#c0c0c0',
+  brightBlack: '#808080',
+  brightRed: '#ff0000',
+  brightGreen: '#00ff00',
+  brightYellow: '#ffff00',
+  brightBlue: '#0000ff',
+  brightMagenta: '#ff00ff',
+  brightCyan: '#00ffff',
+  brightWhite: '#ffffff',
+};
+
+/** Read the theme from the DOM so this file need not import the theme module. */
+function isRetro() {
+  return document.body.classList.contains('retro-311');
+}
+
+function xtermTheme() {
+  return isRetro() ? RETRO_XTERM_THEME : MODERN_XTERM_THEME;
+}
+
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => (
   { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]
 ));
@@ -80,7 +127,7 @@ export async function openTerminalPanel(deviceName) {
   const term = new Terminal({
     fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
     fontSize: 12,
-    theme: { background: '#0b1020', foreground: '#d6e2ff', selectionBackground: '#3b5bdb' },
+    theme: xtermTheme(),
     cursorBlink: true,
     scrollback: 8000,
   });
@@ -88,6 +135,13 @@ export async function openTerminalPanel(deviceName) {
   term.loadAddon(fit);
   term.open(root.querySelector('#tp-term'));
   try { fit.fit(); } catch { /* not laid out yet */ }
+
+  // Repaint the terminal when the theme changes, so an open session follows the
+  // rest of the HUD instead of needing to be reopened.
+  const onThemeChange = () => {
+    try { term.options.theme = xtermTheme(); } catch { /* older xterm */ }
+  };
+  window.addEventListener('netclaw:theme-changed', onThemeChange);
 
   const setBadge = (text, cls) => {
     badge.textContent = text;
@@ -202,13 +256,14 @@ export async function openTerminalPanel(deviceName) {
   onResize();
   term.focus();
 
-  active = { root, term, session, stream, onResize };
+  active = { root, term, session, stream, onResize, onThemeChange };
 }
 
 export function closeTerminalPanel() {
   if (!active) return;
-  const { root, term, session, stream, onResize } = active;
+  const { root, term, session, stream, onResize, onThemeChange } = active;
   if (onResize) window.removeEventListener('resize', onResize);
+  if (onThemeChange) window.removeEventListener('netclaw:theme-changed', onThemeChange);
   try { stream?.close(); } catch { /* already closed */ }
   if (session?.sessionId) {
     fetch(`/api/ssh/${session.sessionId}`, { method: 'DELETE' }).catch(() => {});

@@ -1,0 +1,371 @@
+/*
+ * Windows 3.11 skin for the HUD chrome.
+ *
+ * Everything is scoped under `body.retro-311`, so this sheet is inert until the
+ * toggle adds that class. Nothing here changes behaviour — worst case a future
+ * upstream markup rename costs bevels, not function.
+ *
+ * Two layers, deliberately:
+ *   1. Re-map upstream's own CSS custom properties. Broad, and survives markup
+ *      changes because it never names an element.
+ *   2. Targeted structural overrides for bevels, square corners and fonts, which
+ *      cannot be expressed as colour variables.
+ *
+ * Covers: topbar, chat drawer, Knowledge panel, footer, SSH terminal panel.
+ * Per-module views ship their own sheets keyed off body.retro-311 — see
+ * modules/convergence/retro.css.
+ */
+
+/* ── layer 1: re-map upstream's tokens ───────────────────────────────────── */
+body.retro-311 {
+  --bg: #c0c0c0;
+  --bg-soft: #c0c0c0;
+  --bg-strong: #c0c0c0;
+  --line: #808080;
+  --line-strong: #000000;
+  --text: #000000;
+  --muted: #404040;
+  --accent: #000080;
+  --accent-warm: #800000;
+  --ok: #008000;
+  --shadow: none;
+
+  /* 16-colour palette, named so the rules below read intelligibly. */
+  --w-face: #c0c0c0;
+  --w-light: #ffffff;
+  --w-shadow: #808080;
+  --w-dark: #000000;
+  --w-title: #000080;
+  --w-title-text: #ffffff;
+  --w-client: #ffffff;
+
+  background: #008080 !important; /* the teal desktop */
+  color: #000000;
+  font-family: "MS Sans Serif", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  font-size: 12px;
+}
+
+/* Lose the scene glow and the CRT affectations. */
+body.retro-311 #noise,
+body.retro-311 #scan-beam { display: none !important; }
+
+/* One sweep to remove every modern affordance from the chrome. Scoped to the
+   elements this sheet actually restyles, so the 3D canvas is untouched. */
+body.retro-311 .topbar,
+body.retro-311 .topbar *,
+body.retro-311 .chat-drawer,
+body.retro-311 .chat-drawer *,
+body.retro-311 .knowledge-panel,
+body.retro-311 .knowledge-panel *,
+body.retro-311 .footer,
+body.retro-311 .footer *,
+body.retro-311 .tp-panel,
+body.retro-311 .tp-panel * {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
+  transition: none !important;
+  animation: none !important;
+  backdrop-filter: none !important;
+  letter-spacing: normal !important;
+  font-family: "MS Sans Serif", "Segoe UI", Tahoma, Geneva, Verdana, sans-serif !important;
+}
+
+/* Reusable bevels. Depth is borders only — no shadows existed. */
+body.retro-311 .topbar,
+body.retro-311 .chat-drawer,
+body.retro-311 .knowledge-panel,
+body.retro-311 .footer,
+body.retro-311 .tp-panel {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+  backdrop-filter: none !important;
+}
+
+/* ── topbar ──────────────────────────────────────────────────────────────── */
+body.retro-311 .topbar {
+  padding: 3px 4px !important;
+  align-items: center;
+}
+
+/* NETCLAW wordmark becomes a Program Manager caption. */
+body.retro-311 .topbar-brand-block {
+  background: var(--w-title) !important;
+  border-top: 2px solid var(--w-light);
+  border-left: 2px solid var(--w-light);
+  border-right: 2px solid var(--w-dark);
+  border-bottom: 2px solid var(--w-dark);
+  padding: 2px 8px !important;
+}
+body.retro-311 .topbar-brand-block * {
+  color: var(--w-title-text) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  background: transparent !important;
+}
+
+/* Tabs as raised buttons; the active one pressed in with a focus rectangle. */
+body.retro-311 .app-tab {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  font-size: 12px !important;
+  font-weight: 400 !important;
+  text-transform: none !important;
+  padding: 3px 12px !important;
+  min-height: 23px;
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+}
+body.retro-311 .app-tab.active {
+  border-top: 2px solid var(--w-dark) !important;
+  border-left: 2px solid var(--w-dark) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+  font-weight: 700 !important;
+  outline: 1px dotted var(--w-dark);
+  outline-offset: -4px;
+}
+
+/* Stat readouts as inset fields with fixed-pitch numbers. */
+body.retro-311 .metric {
+  background: var(--w-face) !important;
+  border-top: 1px solid var(--w-shadow) !important;
+  border-left: 1px solid var(--w-shadow) !important;
+  border-right: 1px solid var(--w-light) !important;
+  border-bottom: 1px solid var(--w-light) !important;
+  padding: 2px 8px !important;
+}
+body.retro-311 .metric * { color: var(--w-dark) !important; text-transform: none !important; }
+body.retro-311 .metric strong,
+body.retro-311 .metric .metric-value {
+  font-family: "Courier New", monospace !important;
+  font-weight: 700 !important;
+}
+
+/* ── the toggle itself ───────────────────────────────────────────────────── */
+.retro-theme-toggle {
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 4px 10px;
+  border-radius: 6px;
+  background: #1d2a52;
+  border: 1px solid #33436b;
+  color: #cfdcff;
+  font-family: inherit;
+}
+.retro-theme-toggle:hover { background: #27376a; }
+
+body.retro-311 .retro-theme-toggle {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  font-size: 12px !important;
+  padding: 3px 10px !important;
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+}
+body.retro-311 .retro-theme-toggle:active {
+  border-top: 2px solid var(--w-dark) !important;
+  border-left: 2px solid var(--w-dark) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+}
+
+/* ── shared widget idioms ────────────────────────────────────────────────── */
+/* Buttons: raised, invert on press. No hover — the era had no such state. */
+body.retro-311 .chat-send,
+body.retro-311 .chat-toggle-btn,
+body.retro-311 .kp-collapse-btn,
+body.retro-311 .knowledge-panel button,
+body.retro-311 .tp-btn,
+body.retro-311 .tp-x {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  font-size: 12px !important;
+  text-transform: none !important;
+  padding: 3px 10px !important;
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+  cursor: pointer;
+}
+body.retro-311 .chat-send:active,
+body.retro-311 .chat-toggle-btn:active,
+body.retro-311 .kp-collapse-btn:active,
+body.retro-311 .knowledge-panel button:active,
+body.retro-311 .tp-btn:active,
+body.retro-311 .tp-x:active {
+  border-top: 2px solid var(--w-dark) !important;
+  border-left: 2px solid var(--w-dark) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+}
+body.retro-311 button:disabled {
+  color: var(--w-shadow) !important;
+  text-shadow: 1px 1px 0 var(--w-light) !important;
+}
+
+/* Text entry and client areas: inset, white, fixed pitch where it is data. */
+body.retro-311 .chat-input,
+body.retro-311 .chat-messages,
+body.retro-311 .knowledge-panel input,
+body.retro-311 .knowledge-panel select,
+body.retro-311 .knowledge-panel textarea,
+body.retro-311 .kp-body,
+body.retro-311 .tp-q,
+body.retro-311 .tp-answer {
+  background: var(--w-client) !important;
+  color: var(--w-dark) !important;
+  border-top: 2px solid var(--w-shadow) !important;
+  border-left: 2px solid var(--w-shadow) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+}
+
+/* Title bars for every floating window. */
+body.retro-311 .chat-header,
+body.retro-311 .tp-head,
+body.retro-311 .knowledge-panel > .kp-header,
+body.retro-311 .kp-title {
+  background: var(--w-title) !important;
+  color: var(--w-title-text) !important;
+  border: none !important;
+  border-bottom: 2px solid var(--w-shadow) !important;
+  padding: 2px 6px !important;
+}
+body.retro-311 .chat-header *,
+body.retro-311 .tp-head > .tp-title,
+body.retro-311 .kp-title * {
+  color: var(--w-title-text) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  background: transparent !important;
+}
+
+/* Resize grips: the classic corner hatch. */
+body.retro-311 .chat-resize-handle {
+  background:
+    linear-gradient(135deg, transparent 0 45%, var(--w-shadow) 45% 55%, transparent 55%),
+    linear-gradient(135deg, transparent 0 70%, var(--w-shadow) 70% 80%, transparent 80%) !important;
+  opacity: 1 !important;
+}
+
+/* ── chat drawer ─────────────────────────────────────────────────────────── */
+body.retro-311 .chat-messages {
+  font-family: "Courier New", monospace !important;
+  font-size: 12px !important;
+  padding: 4px 6px !important;
+}
+body.retro-311 .chat-messages .chat-badge {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  border: 1px solid var(--w-shadow) !important;
+  font-size: 10px !important;
+}
+
+/* ── Knowledge panel ─────────────────────────────────────────────────────── */
+body.retro-311 .kp-chip,
+body.retro-311 .kp-age-badge,
+body.retro-311 .kp-chip-status {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  border-top: 1px solid var(--w-light) !important;
+  border-left: 1px solid var(--w-light) !important;
+  border-right: 1px solid var(--w-shadow) !important;
+  border-bottom: 1px solid var(--w-shadow) !important;
+  font-size: 11px !important;
+}
+body.retro-311 .kp-stale { color: #800000 !important; font-weight: 700 !important; }
+body.retro-311 .kp-empty,
+body.retro-311 .kp-drop-hint { color: #404040 !important; }
+body.retro-311 .knowledge-panel table { background: var(--w-client) !important; }
+body.retro-311 .knowledge-panel th {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  font-size: 11px !important;
+  text-align: left;
+  border-right: 1px solid var(--w-shadow) !important;
+  border-bottom: 1px solid var(--w-shadow) !important;
+}
+body.retro-311 .knowledge-panel td { color: var(--w-dark) !important; }
+
+/* ── footer ──────────────────────────────────────────────────────────────── */
+body.retro-311 .footer {
+  padding: 2px 6px !important;
+  font-size: 11px !important;
+}
+body.retro-311 .footer * { color: var(--w-dark) !important; text-transform: none !important; }
+
+/* Status-bar panes: each field sunken, as in a real status bar. */
+body.retro-311 .footer-row > * {
+  border-top: 1px solid var(--w-shadow);
+  border-left: 1px solid var(--w-shadow);
+  border-right: 1px solid var(--w-light);
+  border-bottom: 1px solid var(--w-light);
+  padding: 1px 6px;
+}
+body.retro-311 #footer-model,
+body.retro-311 #footer-tokens-lifetime,
+body.retro-311 #footer-tokens-last,
+body.retro-311 #footer-socket,
+body.retro-311 #footer-updated {
+  font-family: "Courier New", monospace !important;
+}
+
+/* ── SSH terminal panel ──────────────────────────────────────────────────── */
+body.retro-311 .tp-side {
+  background: var(--w-face) !important;
+  border-left: 2px solid var(--w-shadow) !important;
+}
+body.retro-311 .tp-side-head {
+  color: var(--w-dark) !important;
+  font-weight: 700 !important;
+  text-transform: none !important;
+  font-size: 12px !important;
+}
+body.retro-311 .tp-hint,
+body.retro-311 .tp-meta { color: #404040 !important; }
+body.retro-311 .tp-md,
+body.retro-311 .tp-answer { color: var(--w-dark) !important; }
+body.retro-311 .tp-code,
+body.retro-311 .tp-md code {
+  background: var(--w-client) !important;
+  color: var(--w-dark) !important;
+  font-family: "Courier New", monospace !important;
+  border-top: 1px solid var(--w-shadow) !important;
+  border-left: 1px solid var(--w-shadow) !important;
+  border-right: 1px solid var(--w-light) !important;
+  border-bottom: 1px solid var(--w-light) !important;
+}
+body.retro-311 .tp-err { color: #800000 !important; font-weight: 700 !important; }
+
+/* The terminal itself is an MS-DOS Prompt box: black client area, sunken, with
+   its palette set from JS (xterm renders to canvas, so CSS cannot reach it —
+   see TerminalPanel.js retroXtermTheme). */
+body.retro-311 .tp-term {
+  background: #000000 !important;
+  border-top: 2px solid var(--w-shadow) !important;
+  border-left: 2px solid var(--w-shadow) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+  padding: 2px !important;
+}
+body.retro-311 .tp-badge {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+  border: 1px solid var(--w-shadow) !important;
+  font-size: 10px !important;
+}
+body.retro-311 .tp-badge.ok   { color: #008000 !important; font-weight: 700 !important; }
+body.retro-311 .tp-badge.warn { color: #808000 !important; font-weight: 700 !important; }
+body.retro-311 .tp-badge.bad  { color: #800000 !important; font-weight: 700 !important; }

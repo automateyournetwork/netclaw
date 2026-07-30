@@ -106,6 +106,20 @@ Deliberately small, so it can stay stable.
 Needing something not listed here is worth an issue rather than reaching into
 globals — the whole value of a published surface is that it can be kept working.
 
+## Shared conventions
+
+Modules must not import each other. Where they need to cooperate, use a documented
+convention instead:
+
+| Convention | Owner | Purpose |
+|---|---|---|
+| `body.retro-311` class | `retro-theme` | a module may ship a sheet keyed off it to participate in the theme |
+| `netclaw:theme-changed` event | `retro-theme` | `{ detail: { theme } }`, for what CSS cannot express |
+| `netclaw:open-terminal` event | terminal provider | `{ detail: { device, ack } }`, ask for a session without importing the panel |
+
+Each is a one-way announcement, so a module works whether or not its counterpart
+is installed.
+
 ## Installer integration
 
 A module normally ships as an opt-in component: a `scripts/lib/catalog.sh` entry
