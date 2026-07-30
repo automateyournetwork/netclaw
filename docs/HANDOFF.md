@@ -189,9 +189,18 @@ Priority order. Items 1–4 are prerequisites for anyone else running it.
    reports `features.diary`, compose dependency is `required: false`,
    `CONVERGENCE_DB=off` disables it. Half-open breaker recovers without a
    restart.
-4. **No contract tests.** The view guesses response shapes
-   (`d.edge || d.firewall`, `d.devices || d || d.items`), so the contract lives
-   nowhere. `tests/contract/` already exists.
+4. ~~**No contract tests**~~ — DONE 2026-07-30. `ui/convergence-api/CONTRACT.md`
+   documents the shapes; `tests/contract/test_convergence_api.py` enforces them.
+   Skips when the API is unreachable. **Degraded-path assertions can pass
+   vacuously against a healthy stack** — a mutation proved this — so use
+   `CONVERGENCE_EXPECT_DEGRADED=1` with the store stopped to verify the fallback
+   contract:
+
+   ```bash
+   docker compose -f deploy/convergence/docker-compose.yml stop postgres
+   CONVERGENCE_EXPECT_DEGRADED=1 .venv/bin/python -m pytest \
+       tests/contract/test_convergence_api.py -q
+   ```
 5. **Retro theme** — opt-in Windows 3.11 skin. Now easy: the module owns
    `home.css`, so it is an alternate stylesheet plus a body class, persisted in
    `localStorage`, with no changes outside the module.

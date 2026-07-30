@@ -99,10 +99,14 @@ disables it deliberately.
 A half-open breaker short-circuits for 15s after a connection failure, then lets
 one query through, so Postgres returning does not need an API restart.
 
+## Contract
+
+The shapes this view depends on are documented in
+[`ui/convergence-api/CONTRACT.md`](../../../convergence-api/CONTRACT.md) and
+enforced by `tests/contract/test_convergence_api.py`. Change both in the same
+commit; adding an optional field is safe, removing a required one is breaking.
+
 ## Backlog
 
-- **No contract tests.** The view tolerates several response shapes
-  (`d.edge || d.firewall`, `d.devices || d || d.items`), which means the contract
-  isn't pinned anywhere.
 - **Retro theme option** — an opt-in Windows 3.11 style skin. Feasible as an
   alternate stylesheet plus a body class, since the module owns its own CSS.
