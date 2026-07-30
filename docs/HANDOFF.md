@@ -18,7 +18,7 @@ Everything fork-specific goes in one of:
 
 | Path | Owner | For |
 |---|---|---|
-| `modules/<id>/` | fork | optional features (Convergence) |
+| `modules/<id>/` | fork | optional features (Convergence, retro theme, scene quality) |
 | `server.local.js` | fork | general backend repair |
 | `src/fork-local/ui.js` | fork | general frontend repair |
 | `ssh-terminal.js` | fork | SSH PTY backend |
@@ -128,6 +128,18 @@ or you will be looking at a cached, apparently-broken HUD.
 - **Do not `git stash pop` blind.** This repo has pre-existing stashes
   (`pre-cert-merge` and others). A no-op `git stash -u` followed by `pop` will
   pop *someone else's* stash and conflict hard. Check `git stash list` first.
+- **The washed-out 3D scene is a WebGL problem, not CSS** — which is why it looked
+  identical in both themes. Four causes: `toneMappingExposure = 1.55` on top of
+  ACES, `UnrealBloomPass` threshold `0.5` (quality modes only ever change
+  *strength*, so no mode escapes the haze), `alpha: true` with no clear colour so
+  the page gradient lifts the black point, and grain + RGB shift on at `balanced`.
+  `modules/scene-quality/` retunes it live rather than editing `main.js`, because
+  the exposure carries upstream's comment "operator feedback".
+- **Three upstream paths rewrite the post-processing values**, and only one is a
+  click: `setQualityMode()` (button *or* keyboard), `enableCinematicBurst()` (6s
+  timeout on chat activation, restores from the quality mode), and init ordering.
+  Anything that tunes those passes needs a per-frame drift check, not an event
+  listener — a listener let grain come back on the next chat turn.
 - **The repo is PUBLIC.** No credentials, real hostnames or management IPs in
   committed docs. `SSH-TERMINAL-HARDENING.md` was redacted for this; the values
   remain in history at `edc9ae8`, so the affected switch credentials should be
@@ -201,9 +213,16 @@ Priority order. Items 1–4 are prerequisites for anyone else running it.
    CONVERGENCE_EXPECT_DEGRADED=1 .venv/bin/python -m pytest \
        tests/contract/test_convergence_api.py -q
    ```
-5. **Retro theme** — opt-in Windows 3.11 skin. Now easy: the module owns
-   `home.css`, so it is an alternate stylesheet plus a body class, persisted in
-   `localStorage`, with no changes outside the module.
+5. ~~**Retro theme**~~ — DONE 2026-07-30, as `modules/retro-theme/` rather than a
+   Convergence-only skin, since it has to restyle HUD chrome (topbar, chat
+   drawer, Knowledge panel, footer, SSH terminal). It owns `body.retro-311`;
+   other modules ship a sheet keyed off that class. xterm needed JS, not CSS —
+   canvas rendering means the palette comes from JS options, so `TerminalPanel`
+   reads the theme from the DOM and listens for `netclaw:theme-changed`.
+   **Rendered appearance is unverified** — no browser automation here.
+6. ~~**Washed-out 3D scene**~~ — DONE 2026-07-30, `modules/scene-quality/`.
+   See §5 for the diagnosis and the drift-hold requirement.
+   **Rendered appearance is unverified.**
 
 Distribution: upstream bundles 23 components in-repo and clones 17 externally.
 Since Convergence is no longer a commercial product, **bundle it in-repo** as an
