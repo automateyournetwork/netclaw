@@ -1,0 +1,6 @@
+{
+  "id": "scene-quality",
+  "name": "Scene Quality",
+  "description": "Retunes the 3D post-processing for contrast, with live controls. UI-only.",
+  "requiresEnv": []
+}

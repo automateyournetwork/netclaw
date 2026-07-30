@@ -1,0 +1,128 @@
+/* Scene Quality panel. Deliberately compact and out of the way — it is a tuning
+   tool, not a feature of the dashboard. Retro styling included so it does not
+   look foreign when the 3.11 theme is on. */
+
+.sq-toggle {
+  position: fixed;
+  right: 12px;
+  bottom: 92px;
+  z-index: 55;
+  background: #1d2a52;
+  border: 1px solid #33436b;
+  color: #cfdcff;
+  font-family: inherit;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sq-toggle:hover { background: #27376a; }
+
+.sq-panel {
+  position: fixed;
+  right: 12px;
+  bottom: 124px;
+  width: 320px;
+  z-index: 56;
+  background: rgba(8, 12, 26, 0.97);
+  border: 1px solid #2a3a63;
+  border-radius: 10px;
+  color: #dbe6ff;
+  font-family: ui-sans-serif, system-ui, sans-serif;
+  overflow: hidden;
+}
+.sq-panel.hidden { display: none; }
+
+.sq-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  background: linear-gradient(180deg, #16204a, #101731);
+  border-bottom: 1px solid #26325c;
+  font-size: 12px;
+  font-weight: 600;
+}
+.sq-x {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid #33436b;
+  color: #9db2e0;
+  border-radius: 5px;
+  width: 20px;
+  height: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.sq-body { padding: 8px 10px 10px; }
+
+.sq-row {
+  display: grid;
+  grid-template-columns: 106px 1fr 46px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  cursor: help;
+}
+.sq-label { font-size: 11px; color: #9db2e0; }
+.sq-range { width: 100%; accent-color: #3b5bdb; }
+.sq-val {
+  font-family: ui-monospace, Menlo, monospace;
+  font-size: 10px;
+  color: #7f95c6;
+  text-align: right;
+}
+
+.sq-actions { display: flex; gap: 6px; margin: 10px 0 6px; }
+.sq-btn {
+  flex: 1 1 auto;
+  background: #1d2a52;
+  border: 1px solid #33436b;
+  color: #cfdcff;
+  font-family: inherit;
+  font-size: 11px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.sq-btn:hover { background: #27376a; }
+.sq-note { font-size: 10px; color: #5f74a3; line-height: 1.4; margin: 0; }
+.sq-note code { font-family: ui-monospace, Menlo, monospace; }
+
+/* ── retro theme participation (see modules/retro-theme) ─────────────────── */
+body.retro-311 .sq-toggle,
+body.retro-311 .sq-btn,
+body.retro-311 .sq-x {
+  background: #c0c0c0 !important;
+  color: #000 !important;
+  font-family: "MS Sans Serif", Tahoma, sans-serif !important;
+  font-size: 12px !important;
+  letter-spacing: normal !important;
+  border-radius: 0 !important;
+  border-top: 2px solid #fff !important;
+  border-left: 2px solid #fff !important;
+  border-right: 2px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+}
+body.retro-311 .sq-panel {
+  background: #c0c0c0 !important;
+  color: #000 !important;
+  border-radius: 0 !important;
+  border-top: 2px solid #fff !important;
+  border-left: 2px solid #fff !important;
+  border-right: 2px solid #000 !important;
+  border-bottom: 2px solid #000 !important;
+  font-family: "MS Sans Serif", Tahoma, sans-serif !important;
+}
+body.retro-311 .sq-head {
+  background: #000080 !important;
+  color: #fff !important;
+  border-bottom: 2px solid #808080 !important;
+  border-radius: 0 !important;
+}
+body.retro-311 .sq-label,
+body.retro-311 .sq-val,
+body.retro-311 .sq-note { color: #000 !important; }
+body.retro-311 .sq-val { font-family: "Courier New", monospace !important; }

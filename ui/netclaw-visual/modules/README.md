@@ -120,6 +120,19 @@ convention instead:
 Each is a one-way announcement, so a module works whether or not its counterpart
 is installed.
 
+## Modules in this tree
+
+| Module | Backend | Purpose |
+|---|---|---|
+| `convergence` | yes | site health portal; proxies to convergence-api |
+| `retro-theme` | no | Windows 3.11 skin for the HUD; owns `body.retro-311` |
+| `scene-quality` | no | retunes the 3D post-processing, with live controls |
+
+`retro-theme` and `scene-quality` are UI-only: no `server.js`, `requiresEnv: []`.
+They load always and do nothing until used, which is the right shape for
+presentation concerns — gating a colour scheme or a contrast slider behind an env
+var would mean editing `.env` and restarting to change how the UI looks.
+
 ## Installer integration
 
 A module normally ships as an opt-in component: a `scripts/lib/catalog.sh` entry
