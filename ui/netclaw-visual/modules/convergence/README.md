@@ -73,10 +73,20 @@ entries fall back to a metric label, then a generic string.
 Previously both were hardcoded to one lab's device names, so the devices table
 was empty for any other deployment.
 
+## Sites
+
+The active site is discovered from `GET /sites` (already scope-filtered by the
+API), remembered in `localStorage` under `netclaw.convergence.site`, and shown as
+a selector in the toolbar only when two or more sites are authorised — a picker
+with one option is noise.
+
+If the stored site is no longer on offer (renamed, access revoked, or a
+deployment that never used `home`) the first authorised site is taken instead.
+If discovery fails entirely the previous value is kept, so a discovery problem
+degrades to single-site behaviour rather than blanking the view.
+
 ## Backlog
 
-- **`SITE` is hardcoded** to `'home'` in `HomeView.js`. The API is already
-  multi-site (`SITES_CONFIG`, `getSiteConfig`); only the client isn't.
 - **Postgres is mandatory** for the diary. Should degrade so the module can be
   tried without a database.
 - **No contract tests.** The view tolerates several response shapes

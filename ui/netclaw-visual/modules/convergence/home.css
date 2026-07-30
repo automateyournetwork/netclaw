@@ -924,3 +924,26 @@
 }
 .home-console-btn:hover:not(:disabled) { background: #27376a; border-color: #4a5c8f; }
 .home-console-btn:disabled { opacity: 0.55; cursor: default; }
+
+/* ── Site selector (only rendered when more than one site is authorised) ───── */
+.home-toolbar-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.home-site-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7f95c6;
+}
+.home-site-select {
+  background: #10182f;
+  border: 1px solid #2a3a63;
+  border-radius: 6px;
+  color: #dbe6ff;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-family: inherit;
+}
+.home-site-select:focus { outline: none; border-color: #3b5bdb; }

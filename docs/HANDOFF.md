@@ -180,8 +180,10 @@ disk, so always `git add` explicit paths on those branches, never `-A`.
 Priority order. Items 1–4 are prerequisites for anyone else running it.
 
 1. ~~**Hardcoded devices**~~ — DONE 2026-07-29. `switches.match` / `switches.models` per site in `SITES_CONFIG`; default `.*` shows whatever the exporter reports.
-2. **`SITE` hardcoded** to `'home'` in `modules/convergence/HomeView.js`. The API
-   is already multi-site (`SITES_CONFIG`, `getSiteConfig`); only the client isn't.
+2. ~~**`SITE` hardcoded**~~ — DONE 2026-07-29. Discovered from `GET /sites`,
+   persisted in `localStorage`, selector rendered only when 2+ sites are
+   authorised. Falls back to the previous single-site behaviour if discovery
+   fails.
 3. **Postgres mandatory** for the diary. Should degrade so the module can be tried
    without a database.
 4. **No contract tests.** The view guesses response shapes

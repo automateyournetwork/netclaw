@@ -12,7 +12,34 @@ const SUBVIEWS = [
   { id: 'models', label: 'Models' },
 ];
 
-const SITE = 'home';
+// The site is discovered from the API, not hardcoded. convergence-api has always
+// been multi-site (SITES_CONFIG / getSiteConfig, and GET /api/sites filtered by
+// JWT scope); only this client assumed a single site called "home", which meant a
+// deployment using any other site id got empty panels.
+//
+// DEFAULT_SITE is the fallback used only when /sites cannot be reached or returns
+// nothing, so a broken discovery degrades to the previous behaviour instead of a
+// blank view.
+const DEFAULT_SITE = 'home';
+const SITE_STORAGE_KEY = 'netclaw.convergence.site';
+
+/** Last site the operator selected. localStorage can throw in private mode. */
+function readStoredSite() {
+  try {
+    const v = localStorage.getItem(SITE_STORAGE_KEY);
+    return v && v.trim() ? v.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeStoredSite(siteId) {
+  try {
+    if (siteId) localStorage.setItem(SITE_STORAGE_KEY, siteId);
+  } catch {
+    /* non-fatal — the selection just won't persist */
+  }
+}
 
 async function homeFetch(path, options = {}) {
   const method = (options.method || 'GET').toUpperCase();
@@ -121,6 +148,11 @@ export class HomeView {
   constructor(rootEl) {
     this.root = rootEl;
     this.subview = 'overview';
+    /** Active site id. Seeded from the operator's last choice, then confirmed
+     *  against what the API actually offers (see discoverSites). */
+    this.site = readStoredSite() || DEFAULT_SITE;
+    /** @type {Array<{id:string,name:string,healthy:boolean|null}>} */
+    this.sites = [];
     this.element = null;
     this.cache = {};
     this.lastError = null;
@@ -162,10 +194,13 @@ export class HomeView {
               ${buttons}
             </div>
           </div>
-          <button type="button" class="home-refresh-btn" id="home-refresh" title="Refresh data">
-            <span class="home-refresh-icon" aria-hidden="true">↻</span>
-            <span>Refresh</span>
-          </button>
+          <div class="home-toolbar-right">
+            <span id="home-site-slot"></span>
+            <button type="button" class="home-refresh-btn" id="home-refresh" title="Refresh data">
+              <span class="home-refresh-icon" aria-hidden="true">↻</span>
+              <span>Refresh</span>
+            </button>
+          </div>
         </div>
         <section class="home-panel" id="home-panel-body"></section>
       </div>
@@ -184,6 +219,13 @@ export class HomeView {
       });
     });
     this.element.querySelector('#home-refresh')?.addEventListener('click', () => this.refresh(true));
+
+    // Site selector — delegated, because the <select> is re-rendered whenever
+    // the site list changes.
+    this.element.addEventListener('change', (ev) => {
+      if (ev.target?.id !== 'home-site-select') return;
+      this.selectSite(ev.target.value);
+    });
 
     // Models panel actions
     this.element.addEventListener('click', (ev) => {
@@ -275,9 +317,9 @@ export class HomeView {
     const notes = this.notesFromForm(eventId);
     try {
       if (action === 'need_more') {
-        const res = await homeFetch(`/events/${encodeURIComponent(eventId)}/reinvestigate?site=${SITE}`, {
+        const res = await homeFetch(`/events/${encodeURIComponent(eventId)}/reinvestigate?site=${this.site}`, {
           method: 'POST',
-          body: { expert_feedback: notes || undefined, site: SITE },
+          body: { expert_feedback: notes || undefined, site: this.site },
         });
         const st = res?.reinvestigate?.status || 'accepted';
         this.triageFlash = {
@@ -308,7 +350,7 @@ export class HomeView {
           body.severity = action === 'correct' ? 'ok' : undefined;
         }
         // incorrect / partial stay escalated unless notes say otherwise
-        await homeFetch(`/events/${encodeURIComponent(eventId)}?site=${SITE}`, {
+        await homeFetch(`/events/${encodeURIComponent(eventId)}?site=${this.site}`, {
           method: 'PATCH',
           body,
         });
@@ -326,11 +368,11 @@ export class HomeView {
         if (action === 'correct' || action === 'resolve') this.selectedEventId = null;
       }
       // Refresh queue
-      this.cache.escalated = await homeFetch(`/events/escalated?site=${SITE}`).catch(async () =>
-        homeFetch(`/events?site=${SITE}&status=escalated&limit=20`),
+      this.cache.escalated = await homeFetch(`/events/escalated?site=${this.site}`).catch(async () =>
+        homeFetch(`/events?site=${this.site}&status=escalated&limit=20`),
       );
       // Keep diary warm
-      this.cache.events = await homeFetch(`/events?site=${SITE}&limit=30`).catch(() => this.cache.events);
+      this.cache.events = await homeFetch(`/events?site=${this.site}&limit=30`).catch(() => this.cache.events);
     } catch (err) {
       this.triageFlash = {
         kind: 'error',
@@ -340,6 +382,71 @@ export class HomeView {
       this.triageBusy = false;
       this.renderSubview();
     }
+  }
+
+  /**
+   * Ask the API which sites exist and settle on one.
+   *
+   * GET /sites is already scope-filtered server-side, so this only ever offers
+   * sites the caller may actually read. Runs once per session; the result backs
+   * both the active site and the selector.
+   *
+   * Falls back to the current value on any failure — a discovery problem should
+   * degrade to the old single-site behaviour, not blank the view.
+   */
+  async discoverSites() {
+    if (this.sites.length) return;
+    let sites = [];
+    try {
+      const res = await homeFetch('/sites');
+      sites = Array.isArray(res?.sites) ? res.sites : [];
+    } catch {
+      return; // keep this.site as-is
+    }
+    if (!sites.length) return;
+
+    this.sites = sites;
+    const ids = sites.map((s) => s.id);
+    if (!ids.includes(this.site)) {
+      // Stored or default id is not on offer (renamed site, revoked access, or a
+      // deployment that never used "home") — take the first authorised one.
+      this.site = ids[0];
+      writeStoredSite(this.site);
+    }
+  }
+
+  /**
+   * Render the site selector. Deliberately absent with a single site — a picker
+   * with one option is noise, and it keeps the single-site view identical to
+   * before this change.
+   */
+  renderSiteSelector() {
+    const slot = this.element?.querySelector('#home-site-slot');
+    if (!slot) return;
+    if (this.sites.length < 2) {
+      slot.innerHTML = '';
+      return;
+    }
+    const opts = this.sites.map((s) => {
+      const sel = s.id === this.site ? ' selected' : '';
+      const dot = s.healthy === false ? ' ⚠' : '';
+      return `<option value="${esc(s.id)}"${sel}>${esc(s.name || s.id)}${dot}</option>`;
+    }).join('');
+    slot.innerHTML = `
+      <label class="home-site-label" for="home-site-select">Site</label>
+      <select class="home-site-select" id="home-site-select" aria-label="Active site">${opts}</select>`;
+  }
+
+  /** Switch site, persist the choice, and reload everything scoped to it. */
+  async selectSite(siteId) {
+    if (!siteId || siteId === this.site) return;
+    if (this.sites.length && !this.sites.some((s) => s.id === siteId)) return;
+    this.site = siteId;
+    writeStoredSite(siteId);
+    // Site-scoped caches are now stale; keep only the site list.
+    this.cache = {};
+    this.selectedEventId = null;
+    await this.refresh(true);
   }
 
   async refresh(force = false) {
@@ -364,12 +471,16 @@ export class HomeView {
         return;
       }
 
+      // Resolve the active site before any site-scoped query, so a stored or
+      // default id that the API does not serve cannot produce empty panels.
+      await this.discoverSites();
+
       // Health + wifi always — top-right Command Deck metrics (Health / WAN / Wi‑Fi / Alerts)
-      this.cache.health = await homeFetch(`/health?site=${SITE}`);
-      this.cache.wifi = await homeFetch(`/wifi?site=${SITE}`).catch(() => this.cache.wifi || null);
+      this.cache.health = await homeFetch(`/health?site=${this.site}`);
+      this.cache.wifi = await homeFetch(`/wifi?site=${this.site}`).catch(() => this.cache.wifi || null);
 
       if (this.subview === 'devices' || force) {
-        this.cache.devices = await homeFetch(`/devices?site=${SITE}`);
+        this.cache.devices = await homeFetch(`/devices?site=${this.site}`);
         // Which of these are reachable by the HUD SSH terminal. Two local
         // endpoints (not convergence-api): the pyATS testbed inventory, and
         // whether the terminal is enabled at all. Failures are non-fatal — the
@@ -377,13 +488,13 @@ export class HomeView {
         this.cache.terminal = await loadTerminalTargets().catch(() => null);
       }
       if (this.subview === 'diary' || force) {
-        this.cache.events = await homeFetch(`/events?site=${SITE}&limit=30`);
+        this.cache.events = await homeFetch(`/events?site=${this.site}&limit=30`);
         // Firing alerts help when diary DB is still empty (fresh Docker)
-        this.cache.alerts = await homeFetch(`/alerts?site=${SITE}`).catch(() => null);
+        this.cache.alerts = await homeFetch(`/alerts?site=${this.site}`).catch(() => null);
       }
       if (this.subview === 'triage' || force) {
-        this.cache.escalated = await homeFetch(`/events/escalated?site=${SITE}`).catch(async () =>
-          homeFetch(`/events?site=${SITE}&status=escalated&limit=20`),
+        this.cache.escalated = await homeFetch(`/events/escalated?site=${this.site}`).catch(async () =>
+          homeFetch(`/events?site=${this.site}&status=escalated&limit=20`),
         );
       }
       if (this.subview === 'models' || force) {
@@ -437,6 +548,9 @@ export class HomeView {
   renderSubview() {
     const body = this.element?.querySelector('#home-panel-body');
     if (!body) return;
+
+    // Cheap and idempotent; keeps the selector in step with discovery.
+    this.renderSiteSelector();
 
     if (this.loading && !this.cache.health) {
       body.innerHTML = this.htmlBanner('loading', 'Loading home telemetry…');
@@ -637,7 +751,7 @@ export class HomeView {
     if (!h) {
       return `
         <div class="home-panel-header">
-          <div><p class="eyebrow">Site · ${SITE}</p><h2>OVERVIEW</h2></div>
+          <div><p class="eyebrow">Site · ${esc(this.site)}</p><h2>OVERVIEW</h2></div>
         </div>
         <p class="home-muted">No health data yet. Click Refresh after configuring Home API.</p>`;
     }
@@ -653,7 +767,7 @@ export class HomeView {
     return `
       <div class="home-panel-header">
         <div>
-          <p class="eyebrow">Site · ${esc(h.site || SITE)}</p>
+          <p class="eyebrow">Site · ${esc(h.site || this.site)}</p>
           <h2>OVERVIEW</h2>
         </div>
         <span class="home-badge${dual ? '' : ''}">${dual ? 'Dual-run · pilot Guardian' : 'Live'}</span>
