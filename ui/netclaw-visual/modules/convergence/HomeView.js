@@ -154,6 +154,12 @@ export class HomeView {
     /** @type {Array<{id:string,name:string,healthy:boolean|null}>} */
     this.sites = [];
     this.element = null;
+    /**
+     * Toolbar: section selector, site picker, refresh. Mounted into the HUD
+     * topbar, so it is *not* inside this.element — every lookup that might land
+     * on it goes through qs()/qsa().
+     */
+    this.chrome = null;
     this.cache = {};
     this.lastError = null;
     this.loading = false;
@@ -174,58 +180,112 @@ export class HomeView {
     this.element.innerHTML = this.templateShell();
     this.root.innerHTML = '';
     this.root.appendChild(this.element);
+    this.mountChrome();
     this.bind();
     this.renderSubview();
     this.refresh();
     return this.element;
   }
 
+  /**
+   * Mount the section selector, site picker and refresh button.
+   *
+   * These used to be the first row *inside* the scrolling panel, which meant
+   * they scrolled out of the clip region of `.home-root` (position: fixed,
+   * overflow: auto) as soon as the content was taller than the viewport — so on
+   * any long table the controls simply vanished, with no scrollbar hint that
+   * they had gone anywhere.
+   *
+   * They now live in the HUD topbar, which is fixed and had a wide empty middle
+   * column between the brand block and the metrics. `#home-topbar-slot` is
+   * created by the module's registerUI. If it is missing — a HUD without a
+   * topbar, or markup that has moved on — this falls back to the old in-panel
+   * position rather than dropping the controls entirely.
+   */
+  mountChrome() {
+    const host = document.getElementById('home-topbar-slot');
+    this.chrome = document.createElement('div');
+    this.chrome.className = host ? 'home-toolbar home-toolbar--topbar' : 'home-toolbar';
+    this.chrome.innerHTML = this.templateToolbar();
+
+    if (host) {
+      host.innerHTML = '';
+      host.appendChild(this.chrome);
+    } else {
+      this.element.querySelector('.home-frame')?.prepend(this.chrome);
+    }
+    return this.chrome;
+  }
+
+  /**
+   * Query the view *or* the chrome, since the chrome is mounted outside
+   * `this.element`. Every toolbar lookup goes through these so that moving the
+   * chrome cannot silently break the active-state sync the way a direct
+   * `this.element.querySelector` would.
+   */
+  qs(sel) {
+    return this.element?.querySelector(sel) || this.chrome?.querySelector(sel) || null;
+  }
+
+  qsa(sel) {
+    return [
+      ...(this.element?.querySelectorAll(sel) || []),
+      ...(this.chrome?.querySelectorAll(sel) || []),
+    ];
+  }
+
   templateShell() {
-    const buttons = SUBVIEWS.map(
-      (s) =>
-        `<button type="button" class="home-sub-btn${s.id === this.subview ? ' active' : ''}" data-home-sub="${s.id}">${s.label}</button>`,
-    ).join('');
     return `
       <div class="home-frame">
-        <div class="home-toolbar">
-          <div class="home-toolbar-left">
-            <p class="eyebrow home-toolbar-title">NetClaw Convergence</p>
-            <div class="home-segmented" role="tablist" aria-label="Convergence sections">
-              ${buttons}
-            </div>
-          </div>
-          <div class="home-toolbar-right">
-            <span id="home-site-slot"></span>
-            <button type="button" class="home-refresh-btn" id="home-refresh" title="Refresh data">
-              <span class="home-refresh-icon" aria-hidden="true">↻</span>
-              <span>Refresh</span>
-            </button>
-          </div>
-        </div>
         <section class="home-panel" id="home-panel-body"></section>
       </div>
     `;
   }
 
+  templateToolbar() {
+    const buttons = SUBVIEWS.map(
+      (s) =>
+        `<button type="button" class="home-sub-btn${s.id === this.subview ? ' active' : ''}" data-home-sub="${s.id}">${s.label}</button>`,
+    ).join('');
+    return `
+      <div class="home-toolbar-left">
+        <p class="eyebrow home-toolbar-title">NetClaw Convergence</p>
+        <div class="home-segmented" role="tablist" aria-label="Convergence sections">
+          ${buttons}
+        </div>
+      </div>
+      <div class="home-toolbar-right">
+        <span id="home-site-slot"></span>
+        <button type="button" class="home-refresh-btn" id="home-refresh" title="Refresh data">
+          <span class="home-refresh-icon" aria-hidden="true">↻</span>
+          <span>Refresh</span>
+        </button>
+      </div>
+    `;
+  }
+
   bind() {
-    this.element.querySelectorAll('.home-sub-btn[data-home-sub]').forEach((btn) => {
+    this.qsa('.home-sub-btn[data-home-sub]').forEach((btn) => {
       btn.addEventListener('click', () => {
         this.subview = btn.dataset.homeSub;
-        this.element.querySelectorAll('.home-sub-btn[data-home-sub]').forEach((b) => {
+        this.qsa('.home-sub-btn[data-home-sub]').forEach((b) => {
           b.classList.toggle('active', b.dataset.homeSub === this.subview);
         });
         this.renderSubview();
         this.refresh();
       });
     });
-    this.element.querySelector('#home-refresh')?.addEventListener('click', () => this.refresh(true));
+    this.qs('#home-refresh')?.addEventListener('click', () => this.refresh(true));
 
     // Site selector — delegated, because the <select> is re-rendered whenever
-    // the site list changes.
-    this.element.addEventListener('change', (ev) => {
+    // the site list changes. Bound on the chrome as well as the panel, since the
+    // two are no longer in the same subtree.
+    const onChange = (ev) => {
       if (ev.target?.id !== 'home-site-select') return;
       this.selectSite(ev.target.value);
-    });
+    };
+    this.element.addEventListener('change', onChange);
+    this.chrome?.addEventListener('change', onChange);
 
 
     // Models panel actions
@@ -422,7 +482,7 @@ export class HomeView {
    * before this change.
    */
   renderSiteSelector() {
-    const slot = this.element?.querySelector('#home-site-slot');
+    const slot = this.qs('#home-site-slot');
     if (!slot) return;
     if (this.sites.length < 2) {
       slot.innerHTML = '';

@@ -47,6 +47,32 @@ function ensureTabButton() {
   return true;
 }
 
+/**
+ * Create the topbar slot the section selector mounts into.
+ *
+ * The topbar is `display: flex; justify-content: space-between` with two
+ * children — the brand block and whichever metrics block is visible — so it has
+ * a wide empty middle column. Inserting before the metrics puts the selector
+ * there without changing either neighbour's layout.
+ *
+ * Returns false if there is no topbar, in which case HomeView keeps the controls
+ * inside the panel as before.
+ */
+function ensureTopbarSlot() {
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return false;
+  if (document.getElementById('home-topbar-slot')) return true;
+
+  const slot = document.createElement('div');
+  slot.id = 'home-topbar-slot';
+  slot.className = 'home-topbar-slot';
+
+  const stats = topbar.querySelector('.topbar-stats');
+  if (stats) topbar.insertBefore(slot, stats);
+  else topbar.appendChild(slot);
+  return true;
+}
+
 /** Ensure the view container exists. */
 function ensureRoot() {
   let root = document.getElementById('home-root');
@@ -68,6 +94,8 @@ export async function registerUI(ctx) {
     return;
   }
   const root = ensureRoot();
+  // Must exist before HomeView.mount(), which looks for it.
+  ensureTopbarSlot();
 
   if (!state.homeView) {
     state.homeView = new HomeView(root);

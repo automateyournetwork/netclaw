@@ -69,12 +69,17 @@ const DEFAULTS = {
   aberration: 0.0003,  // was 0.0008
   backdrop: 0.92,      // clear-colour alpha; 0 = fully transparent (upstream)
   trails: 0.5,         // was 0.82 — afterimage damp, BROADCAST only. 0 disables.
+  // The dark ring framing the viewport. Upstream adds a VignetteShader pass at
+  // darkness 1.4 / offset 0.95 and never touches it again — no quality mode
+  // disables it, which is why it reads as a permanent halo rather than an
+  // effect. 0 switches the pass off.
+  vignette: 0,         // was 1.4
 };
 
 /** Upstream's values, for the "Upstream defaults" button. */
 const UPSTREAM = {
   exposure: 1.55, bloomStrength: 1.1, bloomThreshold: 0.5, bloomRadius: 0.55,
-  grain: 0.18, aberration: 0.0008, backdrop: 0, trails: 0.82,
+  grain: 0.18, aberration: 0.0008, backdrop: 0, trails: 0.82, vignette: 1.4,
 };
 
 /**
@@ -99,6 +104,8 @@ const CONTROLS = [
     hint: 'Colour fringing. Costs edge clarity.' },
   { key: 'trails', label: 'Motion trails', min: 0, max: 0.95, step: 0.01,
     hint: 'Afterimage persistence, BROADCAST mode only. High values smear the scene; 0 turns it off.' },
+  { key: 'vignette', label: 'Edge vignette', min: 0, max: 2, step: 0.05,
+    hint: 'The dark ring around the viewport. 0 removes it.' },
 ];
 
 function load() {
@@ -176,6 +183,14 @@ function apply() {
     if (rgb.enabled !== on) rgb.enabled = on;
     const amount = rgb.uniforms?.amount;
     if (amount && amount.value !== cfg.aberration) amount.value = cfg.aberration;
+  }
+
+  const vig = state.vignettePass;
+  if (vig) {
+    const on = cfg.vignette > 0.001;
+    if (vig.enabled !== on) vig.enabled = on;
+    const darkness = vig.uniforms?.darkness;
+    if (darkness && darkness.value !== cfg.vignette) darkness.value = cfg.vignette;
   }
 
   const after = state.afterimagePass;

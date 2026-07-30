@@ -113,6 +113,50 @@
   box-sizing: border-box;
 }
 
+/* ── Toolbar hosted in the HUD topbar ─────────────────────────────
+   The controls sit in the topbar's empty middle column so they cannot scroll
+   away with the panel content. The slot is inert on the Command deck: it is not
+   just hidden, it is `display: none`, so it contributes nothing to the topbar's
+   measured height (which .home-root's `top` is derived from). */
+.home-topbar-slot {
+  display: none;
+  min-width: 0;
+  flex: 1 1 auto;
+  padding: 0 20px;
+}
+
+#app.home-mode .home-topbar-slot {
+  display: block;
+}
+
+/* Inside the topbar the toolbar is not its own card — the topbar already is
+   one. Strip the frame and lay the two groups out on a single row. */
+.home-toolbar--topbar {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.home-toolbar--topbar .home-toolbar-title {
+  /* The topbar already says NETCLAW; repeating the product name here would be
+     the third label in the same 40px of vertical space. */
+  display: none;
+}
+
+.home-toolbar--topbar .home-segmented {
+  flex-wrap: wrap;
+}
+
+.home-toolbar--topbar .home-sub-btn {
+  padding: 7px 11px;
+  font-size: 10px;
+}
+
 .home-toolbar-left {
   display: flex;
   flex-direction: column;
@@ -757,6 +801,50 @@
   .home-sub-btn,
   .home-refresh-btn {
     min-height: 44px;
+  }
+}
+
+/* ── Topbar toolbar on narrow screens ─────────────────────────────
+   Declared after the width media queries above so it wins on order: those turn
+   `.home-toolbar` into a stacked column, which is right for a panel card but
+   wrong here — in the topbar it would add two more rows to fixed chrome and push
+   the content down. Keep it one scrollable row instead, so the topbar grows by a
+   bounded ~34px no matter how many sections exist. */
+@media (max-width: 900px) {
+  .home-topbar-slot {
+    padding: 0;
+  }
+
+  .home-toolbar--topbar {
+    flex-direction: row;
+    align-items: center;
+  }
+
+  .home-toolbar--topbar .home-segmented {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    width: auto;
+  }
+
+  .home-toolbar--topbar .home-segmented::-webkit-scrollbar {
+    display: none;
+  }
+
+  .home-toolbar--topbar .home-sub-btn {
+    flex: 0 0 auto;
+    text-align: center;
+  }
+
+  .home-toolbar--topbar .home-refresh-btn {
+    align-self: center;
+    flex: 0 0 auto;
+  }
+
+  /* Label is redundant once space is tight; the ↻ glyph carries it. */
+  .home-toolbar--topbar .home-refresh-btn span:not(.home-refresh-icon) {
+    display: none;
   }
 }
 
