@@ -2,7 +2,39 @@
 
 const express = require('express');
 const router = express.Router();
-const { query } = require('../db');
+
+/**
+ * The diary and triage are the only Postgres-backed features; Postgres is
+ * optional (see src/db/index.js). Reads degrade to an empty list carrying
+ * `unavailable` so the UI can say "diary unavailable" rather than showing an
+ * empty diary, which looks identical to "nothing has happened yet". Writes
+ * cannot degrade, so they answer 503.
+ */
+function isDbDown(err) {
+  return err instanceof DbUnavailableError || err?.code === 'DB_UNAVAILABLE';
+}
+
+function emptyWithReason(res, site, err) {
+  const down = isDbDown(err);
+  return res.json({
+    site,
+    events: [],
+    unavailable: down || undefined,
+    reason: down ? (dbStatus().reason || 'database unavailable') : undefined,
+  });
+}
+
+function writeUnavailable(res, err, what) {
+  if (isDbDown(err)) {
+    return res.status(503).json({
+      error: `${what} requires the event database, which is unavailable`,
+      reason: dbStatus().reason || undefined,
+      hint: 'Start Postgres, or unset CONVERGENCE_DB=off. Health, WAN, Wi-Fi and devices work without it.',
+    });
+  }
+  return null;
+}
+const { query, DbUnavailableError, dbStatus } = require('../db');
 
 /**
  * Ensure a site row exists so event POSTs never FK-500 on unknown site_id.
@@ -49,9 +81,8 @@ router.get('/', async (req, res) => {
     const result = await query(sql, params);
     res.json({ site, events: result.rows });
   } catch (err) {
-    console.error('Events GET error:', err.message);
-    // Fallback: return empty (DB might not be ready yet)
-    res.json({ site, events: [] });
+    if (!isDbDown(err)) console.error('Events GET error:', err.message);
+    emptyWithReason(res, site, err);
   }
 });
 
@@ -111,6 +142,7 @@ router.post('/', async (req, res) => {
 
     res.status(201).json(result.rows[0]);
   } catch (err) {
+    if (writeUnavailable(res, err, 'Recording an event')) return;
     console.error('Events POST error:', err.message);
     // FK / validation → 400 so callers can distinguish retryable 500s
     if (err.code === '23503' || err.code === '23514' || err.code === '23502') {
@@ -194,6 +226,7 @@ router.patch('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
+    if (writeUnavailable(res, err, 'Updating an event')) return;
     console.error('Events PATCH error:', err.message);
     res.status(500).json({ error: 'Failed to update event' });
   }
@@ -221,8 +254,8 @@ router.get('/escalated', async (req, res) => {
     );
     res.json({ site, events: result.rows });
   } catch (err) {
-    console.error('Escalated events error:', err.message);
-    res.json({ site, events: [] });
+    if (!isDbDown(err)) console.error('Escalated events error:', err.message);
+    emptyWithReason(res, site, err);
   }
 });
 
@@ -239,6 +272,7 @@ router.get('/:id', async (req, res) => {
     }
     res.json(result.rows[0]);
   } catch (err) {
+    if (writeUnavailable(res, err, 'Reading an event')) return;
     console.error('Event GET error:', err.message);
     res.status(500).json({ error: 'Failed to fetch event' });
   }
@@ -325,6 +359,7 @@ router.post('/:id/reinvestigate', async (req, res) => {
       site,
     });
   } catch (err) {
+    if (writeUnavailable(res, err, 'Re-investigating an event')) return;
     console.error('Reinvestigate error:', err.message);
     res.status(500).json({ error: 'Failed to reinvestigate', detail: err.message });
   }

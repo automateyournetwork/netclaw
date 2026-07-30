@@ -37,9 +37,18 @@ app.set('views', path.join(__dirname, 'views'));
 // --- Health check (no auth) ---
 
 app.get('/healthz', (req, res) => {
+  // 'ok' means the API is serving. Postgres is optional and only backs the
+  // diary/triage, so its absence is reported as degraded rather than failing the
+  // healthcheck — otherwise the container would be restarted for a feature the
+  // deployment may not even use.
+  const db = require('./src/db').dbStatus();
   res.json({
     status: 'ok',
     uptime: process.uptime(),
+    features: {
+      diary: db.available ? 'available' : 'unavailable',
+    },
+    database: db,
     timestamp: new Date().toISOString()
   });
 });

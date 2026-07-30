@@ -90,8 +90,13 @@ services:
     image: netclaw-convergence-api:local
     restart: unless-stopped
     depends_on:
+      # Postgres is optional — it only backs the event diary and triage. Wait for
+      # it when present, but do not require it: 'required: false' lets the API
+      # start and serve health/WAN/Wi-Fi/devices when Postgres is absent or
+      # failing. Set CONVERGENCE_DB=off to skip it deliberately.
       postgres:
         condition: service_healthy
+        required: false
       prometheus:
         condition: service_started
       alertmanager:

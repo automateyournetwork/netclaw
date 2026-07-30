@@ -85,10 +85,22 @@ deployment that never used `home`) the first authorised site is taken instead.
 If discovery fails entirely the previous value is kept, so a discovery problem
 degrades to single-site behaviour rather than blanking the view.
 
+## Postgres is optional
+
+Only the event diary and operator triage use it. Health, WAN, Wi-Fi, devices and
+alerts come from Prometheus/VictoriaMetrics and need no database.
+
+With Postgres absent or down: diary/triage reads return an empty list with
+`unavailable: true` and a reason (so the UI can say *why* it is empty rather than
+implying nothing has happened), writes answer `503` with a hint, and everything
+else is unaffected. `/healthz` reports `features.diary`. `CONVERGENCE_DB=off`
+disables it deliberately.
+
+A half-open breaker short-circuits for 15s after a connection failure, then lets
+one query through, so Postgres returning does not need an API restart.
+
 ## Backlog
 
-- **Postgres is mandatory** for the diary. Should degrade so the module can be
-  tried without a database.
 - **No contract tests.** The view tolerates several response shapes
   (`d.edge || d.firewall`, `d.devices || d || d.items`), which means the contract
   isn't pinned anywhere.
