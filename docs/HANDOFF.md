@@ -114,6 +114,17 @@ or you will be looking at a cached, apparently-broken HUD.
 - **The env loader reads BOTH `~/.openclaw/.env` and the repo `.env`.** Commenting
   a variable in one is not enough to test the unconfigured path. This made the
   module-gating test look broken.
+- **A CSS variable with a fallback everywhere and a writer nowhere reads as a
+  working layout until content changes.** `--topbar-height` had six consumers,
+  all with fallbacks, and its only writer was the orphaned `mobile-layout.js`.
+  Nothing looked broken until the topbar grew past 140px, at which point it
+  covered the sidebar collapse buttons. **When auditing a merge, grep for who
+  *writes* each custom property, not just who reads it.** Now published by
+  `initTopbarHeight()` in `fork-local`.
+- **`.topbar-brand-block` is `flex-direction: column`.** Anything appended there
+  becomes a new stacked row and makes the topbar taller — which then pushes it
+  over whatever sits below. Add topbar controls to a flex row (see
+  `.retro-tab-row`) or directly to `.topbar`, which is a row.
 - **Orphaned CSS fails completely silently.** `index.html` only `<link>`s
   `src/styles.css`; anything else needs a JS import. `home.css` lost its import
   in the merge and the Convergence view rendered as an unstyled `position:static`
@@ -168,11 +179,16 @@ or you will be looking at a cached, apparently-broken HUD.
   install; the maintainer confirmed the org chart intentionally replaced the
   orbit view. Reaching the terminal works via CONVERGENCE → Devices → Console,
   and the sidebar launcher in `fork-local`.
-- **`mobile-layout.js`, `graph-cache.js`, `register-sw.js` are orphaned** on disk
-  — nothing imports them. So mobile layout, long-press select, graph caching and
-  the service worker are all inactive. Restoring them needs
+- **`src/app-shell/mobile-layout.js`, `graph-cache.js`, `register-sw.js` are
+  orphaned** — nothing imports them. So mobile layout, long-press select, graph
+  caching and the service worker are all inactive. Restoring them needs
   `applyReducedMotion` / `wireLongPressSelect`, which upstream's `main.js` lacks.
-  Check for orphaned CSS when restoring these.
+  Check for orphaned CSS when restoring these. `mobile-layout.js`'s
+  `--topbar-height` publisher has been reinstated separately in `fork-local`
+  (see §5) — do not duplicate it if the module is ever wired back up.
+  Note `public/sw.js`, `manifest.webmanifest` and the icons all still ship and
+  land in `dist/`, so the HUD advertises itself as installable while nothing
+  registers the worker.
 - **`/api/tokens/summary` `lastTurn`** only populates after a chat turn through
   `/api/chat`; null on a fresh restart is correct.
 
