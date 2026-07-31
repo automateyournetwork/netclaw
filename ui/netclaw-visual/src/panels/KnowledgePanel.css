@@ -566,16 +566,24 @@
   width: auto !important;
   height: auto !important;
   max-width: none !important;
-  max-height: none !important;
   min-height: 0;
   margin: 0;
-  flex: 1 1 auto;
+  align-self: stretch;
   z-index: auto;
   border-radius: 0;
   box-shadow: none;
+  /* Capped so Selection above always keeps usable height; the body scrolls. */
+  flex: 0 1 auto;
+  max-height: 52% !important;
 }
+
+/* Collapsed: pinned to the BOTTOM of the rail. margin-top:auto consumes the
+   free space in the flex column, which is what puts it there — without it the
+   header sits directly under Selection with dead space beneath. */
 #app #sidebar-right > .knowledge-panel.kp-docked.collapsed {
   flex: 0 0 auto;
+  margin-top: auto;
+  max-height: none !important;
 }
 #sidebar-right > .knowledge-panel.kp-docked .kp-header {
   cursor: default;

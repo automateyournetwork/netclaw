@@ -1983,17 +1983,22 @@ html.reduced-motion .scan-beam {
 #scene-root canvas.orgchart-drag-hover { cursor: grab; }
 #scene-root canvas.orgchart-dragging { cursor: grabbing; }
 
-/* Right rail order: Focus, Selection, then docked Knowledge. */
+/* Right rail order: Focus, Selection, then docked Knowledge.
+   Selection OWNS the free space and scrolls internally; Knowledge is capped and
+   never squeezes it. Capping Selection instead just clipped the detail card,
+   which reads as Knowledge covering it. */
 #sidebar-right > section:first-of-type {
   flex: 0 0 auto;
   overflow: visible;
   padding-bottom: 10px;
 }
 #sidebar-right > section.sidebar-section {
-  flex: 0 1 42%;
-  max-height: 42%;
+  flex: 1 1 auto;
+  max-height: none;
+  min-height: 120px;
   margin-top: 0;
   padding-top: 12px;
+  overflow: auto;
 }
 #sidebar-right .detail-panel {
   min-height: 0;
