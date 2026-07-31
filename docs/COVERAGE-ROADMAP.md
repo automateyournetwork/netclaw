@@ -107,7 +107,7 @@ and the IETF datatracker.
 
 | ID | Title | Spec # | Status |
 |----|-------|--------|--------|
-| **R8** | Globalping — global probe measurement (remote MCP) | — | `NOT STARTED` |
+| **R8** | Globalping — outside-in probe measurement (remote MCP) | [079](../specs/079-globalping-probes/spec.md) | `DONE` — 36/36. NetClaw's first vantage point **outside** its own domain. 5 measurement tools from ~4,800 probes; zero install. Three-way distinction enforced: `no_probes_found` = never ran, 0-of-N = unreachable, internal = refused locally. **Budget is per probe, not per call** — my first research pass got this backwards and a controlled test corrected it |
 | **R9** | BGP & registry intelligence (RPKI / RDAP / PeeringDB / RIPE Atlas) | — | `NOT STARTED` |
 
 ### Tier 3 — Monitoring and traffic layers
@@ -397,19 +397,21 @@ This is a whole missing domain, not a missing tool.
 
 ## R8 — Globalping
 
-**Status:** `NOT STARTED` · **Highest value-per-effort item in the scan**
+**Status:** `DONE` — spec [079](../specs/079-globalping-probes/spec.md), 36/36 tasks.
+See the outcome section at the end of this document. · *Was: highest value-per-effort item in the scan — and
+it held up: no server written, one skill, one registration.*
 
 Official jsDelivr remote MCP at `https://mcp.globalping.dev/mcp`. Ping, traceroute, DNS, MTR,
 HTTP from thousands of global probes. Free. OAuth or API token. Zero install.
 
 **Checklist**
-- [ ] Register the remote MCP endpoint (no vendored code — follow the remote-MCP pattern used
-      for Datadog / DevNet content search)
-- [ ] Auth: token vs OAuth; note rate limits are tied to account
-- [ ] Skill: external reachability check, "is it us or the internet", geographic latency
-      comparison, DNS propagation check
-- [ ] Compose with ThousandEyes skills so the agent knows when to use free global probes vs
-      paid enterprise agents
+- [x] Register the remote MCP endpoint (no vendored code — followed the Datadog / DevNet pattern)
+- [x] Auth: **token**, bearer header; endpoint 401s without one. 500/hour authenticated vs 250/hour
+      anonymous per IP — and **charged per probe, not per call**
+- [x] Skill: external reachability, "is it us or the internet", geographic latency comparison, DNS
+      propagation — plus the three-way "nothing came back" distinction the checklist did not anticipate
+- [x] Compose with ThousandEyes **and** gtrace, positioned by *direction of measurement* rather than
+      feature list
 
 ## R9 — BGP & registry intelligence
 
@@ -1010,3 +1012,113 @@ tables, `.env.example`. `reconcile-mcp.py` exits **0** across all four surfaces.
 While adding the README rows, R1's `multivendor-cli` was found to have **no row in either README table**
 either — a Principle XI gap the gate cannot see, since it counts catalog and config entries rather than
 table rows. Added in this branch.
+
+---
+
+# R8 — Globalping outside-in measurement (outcome)
+
+Spec [079](../specs/079-globalping-probes/spec.md). 36/36 tasks. **48 offline checks, 34 live checks.**
+
+R8 was rated the highest value-per-effort item in the original scan, and that held: **no server was written.**
+One remote registration, one skill, eight Principle XI artifacts. The whole feature is a registration plus
+prose — which is exactly why the prose had to be right.
+
+## What it closes
+
+Every device-facing integration NetClaw has looks at the network **from inside** the operator's domain. This
+is the first that looks **at it from outside** — ~4,800 probes across ~1,390 autonomous systems, measuring
+*toward* a public target. It answers "the router is fine, so why can't anyone reach us?", which NetClaw
+previously could not address at all.
+
+## The safety semantic: three ways to get nothing back
+
+| Response | Meaning |
+|---|---|
+| `no_probes_found` (422) | **The measurement never ran.** No probe matched the filter. Says nothing about the target. |
+| `finished`, 0-of-N successful | **The target did not answer.** A real finding. |
+| Private/internal target | Out of scope — refused **locally, before calling out**. |
+
+The first is the trap: it arrives failure-shaped and, read carelessly, looks like a total outage. An agent
+reporting it as one escalates an incident that does not exist. Same class as R2's "no advisories ≠ not
+vulnerable", and handled the same way — explicitly named states and a skill that spells out the difference.
+
+The local refusal of private targets is worth noting as a **disclosure control rather than a correctness
+one**. Globalping rejects RFC1918/loopback/link-local itself, with good error text. But by the time it does,
+an internal address or hostname has already been transmitted to a third party. So NetClaw refuses first.
+
+## The error I made, and the correction
+
+**My first research pass concluded that one call costs one measurement regardless of probe count, and I built
+guidance on "breadth is free".** That was wrong.
+
+The mistake: 35 exploratory calls moved the remaining allowance from 500 to 465, and I read the matching
+arithmetic as proof of per-call billing. It was a coincidence — most of those calls happened to use
+`limit: 1`. I inferred a billing model from an uncontrolled sample.
+
+A controlled test, one call at a time with the budget read either side:
+
+| `limit` | cost |
+|---|---|
+| 1 | **1** |
+| 5 | **5** |
+| 20 | **20** |
+| a `limits` call | **0** |
+
+**Cost equals probe count.** The wrong conclusion had already propagated into the spec (FR-013a), the skill's
+budget section, the task list, the contract, the quickstart and the offline test assertions — all of which
+told the agent the opposite of the truth. All were corrected, and the error is recorded in research R4 rather
+than overwritten.
+
+Two things worth keeping from this:
+
+1. **The narrative I liked was the tell.** "This spec inverts the previous one's budget strategy" was a
+   satisfying story, and satisfying stories are exactly where an uncontrolled inference survives review.
+2. The offline suite now asserts the *absence* of the wrong claim, not merely the presence of the right one.
+   A stale sentence sitting beside a correct one is worse than either alone.
+
+## The vendor's own documentation is wrong
+
+`AS13335` appears as a location example **in Globalping's own tool schema**, and it never returns probes —
+Cloudflare hosts none. Nor does AS15169 (Google). AS3320, AS16509 and AS174 do.
+
+An earlier NetClaw scan had recorded an unresolved "Globalping location syntax bug". That was **two separate
+things conflated**: a genuine syntax issue (`London,UK` fails — `+` is the AND separator, not a comma) and a
+probe-availability fact (`AS13335` is correct syntax with no probes). Anyone learning the syntax from the
+vendor's example tries `AS13335` first, gets `no_probes_found`, and concludes ASN filtering is broken. The
+skill names this explicitly so the wrong lesson isn't learned.
+
+Ground truth came from cross-checking `GET /v1/probes`: 4,833 probes, 1,390 distinct ASNs.
+
+## The capability is smaller than the tool count
+
+12 tools advertised; **6 of them take only the `context` argument** (`help`, `authStatus`,
+`compareLocations`, `get_more_tools`, `limits`, `locations`). The real capability is **5 measurement tools**.
+Worth remembering when comparing integration sizes across the roadmap — a tool count is not a capability
+count.
+
+## An unanticipated privacy surface
+
+Every tool declares a required `context` parameter: a 15-25 word natural-language explanation of *why* the
+call is being made, which the vendor states is used for "analytics and user intent tracking".
+
+No other NetClaw integration asks for this. Every other one sends only what the operation requires; this one
+asks for a description of intent. Two consequences:
+
+- Constitution Principle XIV needed an actual decision rather than a checkmark. Resolved as
+  **sanitisation plus disclosure**, not a per-call gate — gating every ping would make the integration
+  useless and train operators to click through. NetClaw sends a generic, task-shaped value with no customer
+  name, internal hostname, ticket reference or topology detail, and the skill states plainly that the field
+  leaves the building so an operator can decline the integration entirely.
+- **It is not actually enforced.** Calls with `context` omitted succeed. NetClaw still sends it — relying on
+  unenforced-required behaviour would break every call at once if that changed — but the fallback is
+  recorded.
+
+Also: `limits` output echoes a short fragment of the token, flagged in the skill so raw output isn't pasted
+into a ticket.
+
+## Principle XI artifacts
+
+All eight: catalog entry, `PROFILE_OBSERVABILITY` **and** `PROFILE_RECOMMENDED` (it needs no install and
+closes a structural gap), install function, portable registration, **both** HUD entries (node list *and*
+annotation map), SOUL capability section, README/TOOLS tables, `.env.example`. `reconcile-mcp.py` exits **0**
+across all four surfaces.

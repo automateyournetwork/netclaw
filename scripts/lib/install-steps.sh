@@ -3831,3 +3831,31 @@ fi
 
 echo ""
 }
+
+# ── Globalping remote MCP (spec 079 / roadmap R8) ───────────────
+component_install_globalping() {
+log_step "Enabling Globalping (remote MCP)..."
+echo "  Outside-in measurement from ~4,800 probes across ~1,390 ASNs:"
+echo "  ping, traceroute, DNS, MTR and HTTP toward a PUBLIC target."
+echo "  Read-only. Public endpoints only — it cannot reach internal addresses."
+
+# Nothing to download, clone, or pip install: this is jsDelivr's official hosted
+# endpoint (spec 079 FR-001). "Installing" is registration plus a credential check,
+# which is why this function has no dependency step at all.
+log_info "Registered at https://mcp.globalping.dev/mcp (no local install required)"
+
+if [ -z "${GLOBALPING_TOKEN:-}" ]; then
+    log_info "Set GLOBALPING_TOKEN in .env to enable it."
+    log_info "  Free token from https://www.globalping.io — raises the hourly"
+    log_info "  allowance from 250 to 500 probe-measurements."
+    log_warn "The MCP endpoint returns 401 without a token."
+else
+    log_info "GLOBALPING_TOKEN present — 500 probe-measurements/hour"
+fi
+
+# Worth stating at install time rather than only in the skill: the budget is charged
+# per PROBE, not per call, so `limit` is the dial that spends it.
+log_info "Budget note: cost = probe count. limit:20 spends 20 of 500 per hour."
+
+echo ""
+}

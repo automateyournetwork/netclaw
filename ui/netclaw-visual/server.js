@@ -66,6 +66,7 @@ const INTEGRATION_CATALOG = [
   { id: 'thousandeyes', name: 'ThousandEyes', category: 'Observability', prefixes: ['te-'], color: '#ffb703', transport: 'http', toolEstimate: 29, description: 'Synthetic and path-aware external monitoring.' },
   { id: 'kubeshark', name: 'Kubeshark', category: 'Observability', prefixes: ['kubeshark-'], color: '#ffcb77', transport: 'http', toolEstimate: 6, description: 'Kubernetes packet and flow visibility.' },
   { id: 'gtrace', name: 'gtrace', category: 'Observability', prefixes: ['gtrace-'], color: '#bde0fe', transport: 'stdio', toolEstimate: 6, description: 'Path tracing and IP enrichment.' },
+  { id: 'globalping', name: 'Globalping', category: 'Observability', prefixes: ['globalping-'], color: '#00b4d8', transport: 'http', toolEstimate: 12, description: 'Outside-in measurement from ~4,800 probes across ~1,390 ASNs — ping, traceroute, DNS, MTR and HTTP toward a public target. The only vantage point NetClaw has outside its own administrative domain. Public endpoints only; "no probes matched" is not "the service is down".' },
   { id: 'suzieq', name: 'SuzieQ', category: 'Observability', prefixes: ['suzieq-'], color: '#a8dadc', transport: 'stdio', toolEstimate: 5, description: 'Network state queries, assertions, summaries, and path tracing.' },
   { id: 'aws', name: 'AWS', category: 'Cloud', prefixes: ['aws-'], color: '#f77f00', transport: 'http', toolEstimate: 55, description: 'Networking, monitoring, security, cost, and diagram generation in AWS.' },
   { id: 'gcp', name: 'GCP', category: 'Cloud', prefixes: ['gcp-'], color: '#f3722c', transport: 'http', toolEstimate: 40, description: 'Compute, monitoring, and logging coverage for GCP.' },
@@ -385,6 +386,11 @@ const ENV_MAP = {
     env: ['PAN_CLIENT_ID', 'PAN_CLIENT_SECRET', 'PAN_TSG_ID', 'PAN_REGION'],
     files: ['mcp-servers/prisma-sdwan-mcp/prisma_sdwan_mcp_server.py'],
     notes: 'Palo Alto Networks Prisma SD-WAN via OAuth2. Region is americas or europe. TSG_ID is the Tenant Service Group ID.',
+  },
+  'globalping': {
+    env: ['GLOBALPING_TOKEN'],
+    files: ['config/openclaw.json (remote endpoint — no vendored server)'],
+    notes: 'Official jsDelivr remote MCP at https://mcp.globalping.dev/mcp, bearer token, streamable HTTP + SSE. No local server by design (spec 079 R1). 5 measurement tools (ping/traceroute/dns/mtr/http) plus limits/locations; 6 of the 12 advertised tools take only the analytics `context` argument. Budget is 500 probe-measurements/hour authenticated (250 anonymous per IP) and is charged PER PROBE — limit:20 spends 20 — so right-size limit rather than maximising it. Public targets only: RFC1918/loopback/link-local are refused locally BEFORE calling out, so internal addressing is never transmitted. Location syntax: + is AND (London+UK), arrays for multiple places, world for a global spread, AS3320 for an ASN; a comma inside one string fails, and AS13335 (the vendor\'s own schema example) never returns probes because Cloudflare hosts none. Every tool requires a natural-language `context` field the vendor uses for intent analytics — NetClaw sends a generic task-shaped value only.',
   },
   'cisco-psirt': {
     env: ['CISCO_CLIENT_ID', 'CISCO_CLIENT_SECRET', 'CISCO_PSIRT_CACHE_DIR', 'CISCO_PSIRT_CACHE_TTL_S'],

@@ -1034,6 +1034,15 @@
         "-u",
         "mcp-servers/cisco-psirt-mcp/server.py"
       ]
+    },
+    "globalping-mcp": {
+      "url": "https://mcp.globalping.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${GLOBALPING_TOKEN}"
+      },
+      "env": {
+        "GLOBALPING_TOKEN": "${GLOBALPING_TOKEN}"
+      }
     }
   }
 }

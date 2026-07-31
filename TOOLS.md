@@ -48,6 +48,7 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - Claroty xDome MCP   → CLAROTY_API_URL (default: https://api.medigate.io), CLAROTY_API_TOKEN, CLAROTY_VERIFY_SSL, CLAROTY_TIMEOUT, CLAROTY_RATE_LIMIT_PER_MIN (default: 2000)
 - Twitter MCP         → TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, TWITTER_HEARTBEAT_ENABLED (default: false)
 - Cisco PSIRT MCP     → CISCO_CLIENT_ID, CISCO_CLIENT_SECRET (OAuth2 client-credentials via id.cisco.com), CISCO_PSIRT_CACHE_DIR, CISCO_PSIRT_CACHE_TTL_S (default 21600)
+- Globalping MCP      → GLOBALPING_TOKEN (bearer, remote endpoint mcp.globalping.dev; 401 without it)
 ```
 
 ## Detailed Per-Integration Notes
@@ -233,6 +234,38 @@ The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writ
 
 - Add whatever helps NetClaw do its job — device nicknames, maintenance windows, ISP circuit IDs, TAC case numbers, anything environment-specific.
 - This file is yours. Skills are shared. Keeping them apart means you can update skills without losing your notes.
+
+## Globalping External Checks (`globalping-mcp`, remote)
+
+Outside-in measurement — the only vantage point NetClaw has **outside** its own administrative domain.
+Official jsDelivr hosted MCP; no local server by design.
+
+| Tool | Purpose |
+|---|---|
+| `ping` | Reachability and round-trip latency from chosen probes |
+| `traceroute` | Path from a probe toward the target |
+| `dns` | Resolution and propagation, per resolver |
+| `mtr` | Per-hop loss and latency together |
+| `http` | Application-layer reachability, status and timing |
+| `limits` | Remaining budget and reset (free — costs nothing) |
+| `locations` | Probe availability, before a narrow filter wastes units |
+
+**Three ways to get nothing back, and they are not the same**: `no_probes_found` means **the measurement
+never ran** (widen the filter — never report it as an outage); **0 of N successful** means the target
+genuinely did not answer (a real finding); a private/internal target is **refused locally before any call**,
+so internal addressing is never transmitted.
+
+**Budget**: 500 probe-measurements/hour authenticated, 250/hour anonymous per IP, rolling. **Charged per
+probe** — `limit: 20` spends 20 — so right-size `limit` rather than maximising it.
+
+**Location syntax**: `+` is AND (`London+UK`, `Amazon+Germany`); an array for several places
+(`["London","Frankfurt"]`); `world` for a global spread; `AS3320` for an ASN. A **comma inside one string
+fails**, and **`AS13335` never returns probes** despite being the vendor's own schema example — Cloudflare
+hosts none. Only ~1,390 of the internet's ASNs host a probe.
+
+**Privacy note**: every tool requires a natural-language `context` field the vendor uses for intent
+analytics. NetClaw sends a generic, task-shaped value with no customer name, internal hostname, ticket or
+topology detail. `limits` output echoes a short token fragment — don't paste it into a public channel.
 
 ## Cisco PSIRT Advisories (`cisco-psirt-mcp`)
 
