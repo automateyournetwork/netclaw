@@ -15,6 +15,8 @@
 
 import * as THREE from 'three';
 
+import { removeLabelElements } from './css2d.js';
+
 /**
  * Health treatments. Form and colour alone must separate all four — verified
  * by SC-007's greyscale test, which is why `shape` and `lightness` differ
@@ -72,6 +74,92 @@ export const TREATMENTS = {
 
 export const KIND_SCALE = { border: 2.2, peer: 1.35, member: 1.0, edge: 1.15 };
 
+/**
+ * Retro health colours, drawn from the Windows 3.11 16-colour palette. SHAPE is
+ * deliberately untouched: the four silhouettes are what make the encoding
+ * survive greyscale (SC-007), so a theme may only restyle, never re-encode.
+ */
+const RETRO_HEALTH = {
+  HOT: 0x008000,
+  WARM: 0x000080,
+  COLD: 0x808080,
+  FAULT: 0x800000,
+};
+
+let theme = 'modern';
+
+export function setNodeTheme(next) {
+  theme = next === 'retro' ? 'retro' : 'modern';
+  return theme;
+}
+
+export function nodeTheme() {
+  return theme;
+}
+
+function retroStructural(node) {
+  if (node.kind === 'border') return 0x000080;
+  if (node.severed) return 0x800000;
+  if (node.channelState === 'unreachable' || node.channelState === 'reconnecting') return 0x808080;
+  return 0x008080;
+}
+
+/**
+ * The material values for a node under the CURRENT theme. Single source of
+ * truth so a health change on a poll cannot silently repaint one node with the
+ * other theme's palette.
+ */
+export function appearanceFor(node) {
+  const treatment = TREATMENTS[node.health] || TREATMENTS.COLD;
+  const isStructural = node.kind === 'border' || node.kind === 'peer';
+
+  if (theme === 'retro') {
+    return {
+      color: isStructural ? retroStructural(node) : (RETRO_HEALTH[node.health] ?? RETRO_HEALTH.COLD),
+      emissive: 0x000000,
+      // Flat, matte, unlit-looking: no glow is the whole point of the retro look.
+      emissiveIntensity: 0,
+      roughness: 1,
+      metalness: 0,
+      pulse: treatment.pulse,
+    };
+  }
+
+  return {
+    color: isStructural ? colorForStructural(node) : treatment.color,
+    emissive: isStructural ? 0x102030 : treatment.emissive,
+    emissiveIntensity: isStructural ? 1.1 : (treatment.emissiveIntensity ?? 1.0),
+    roughness: node.health === 'COLD' ? 0.8 : 0.28,
+    metalness: node.health === 'COLD' ? 0.1 : 0.5,
+    pulse: treatment.pulse,
+  };
+}
+
+/** Repaint one existing entry in place — never rebuilds, so position holds. */
+export function applyEntryAppearance(entry) {
+  if (!entry?.material) return;
+  const look = appearanceFor(entry.node);
+  entry.material.color.setHex(look.color);
+  entry.material.emissive.setHex(look.emissive);
+  entry.material.emissiveIntensity = look.emissiveIntensity;
+  entry.material.roughness = look.roughness;
+  entry.material.metalness = look.metalness;
+  entry.baseEmissiveIntensity = look.emissiveIntensity;
+  entry.pulse = look.pulse;
+  if (entry.label?.element && entry.node.health) {
+    for (const state of Object.keys(TREATMENTS)) {
+      entry.label.element.classList.toggle(
+        `org-node-${state.toLowerCase()}`, state === entry.node.health,
+      );
+    }
+  }
+}
+
+/** Retheme every node without touching geometry, position or selection. */
+export function applyNodeTheme(entries) {
+  for (const entry of entries || []) applyEntryAppearance(entry);
+}
+
 /** Shared geometries — created once, reused across every node (FR-029a). */
 function buildGeometries() {
   return {
@@ -92,6 +180,20 @@ function buildGeometries() {
  * @param {(text:string)=>object} makeLabel host label factory (CSS2D), reused per FR-028
  * @returns {{group: THREE.Group, entries: Array<object>, dispose: Function}}
  */
+export function syncEntryPosition(entry) {
+  if (!entry?.node?.position) return;
+  const { x, y, z = 0 } = entry.node.position;
+  entry.mesh.position.set(x, y, z);
+  entry.label.position.set(x, y - (entry.baseScale * 1.6 + 1.4), z);
+}
+
+export function nodeLabelText(node) {
+  let text = node.label;
+  if (node.kind === 'member' && node.toolCount > 0) text += `  ·${node.toolCount}`;
+  if (node.kind === 'edge' && node.heartbeatAgeS != null) text += `  ${formatAge(node.heartbeatAgeS)}`;
+  return text;
+}
+
 export function buildNodes(layoutNodes, makeLabel) {
   const group = new THREE.Group();
   group.name = 'orgchart-nodes';
@@ -109,14 +211,14 @@ export function buildNodes(layoutNodes, makeLabel) {
     else geometry = geometries[treatment.shape] || geometries.sphere;
 
     const isStructural = node.kind === 'border' || node.kind === 'peer';
-    const color = isStructural ? colorForStructural(node) : treatment.color;
-
+    const look = appearanceFor(node);
+    const baseEmissiveIntensity = look.emissiveIntensity;
     const material = new THREE.MeshStandardMaterial({
-      color,
-      emissive: isStructural ? 0x102030 : treatment.emissive,
-      emissiveIntensity: isStructural ? 1.1 : (treatment.emissiveIntensity ?? 1.0),
-      roughness: node.health === 'COLD' ? 0.8 : 0.28,
-      metalness: node.health === 'COLD' ? 0.1 : 0.5,
+      color: look.color,
+      emissive: look.emissive,
+      emissiveIntensity: baseEmissiveIntensity,
+      roughness: look.roughness,
+      metalness: look.metalness,
     });
     materials.push(material);
 
@@ -126,16 +228,11 @@ export function buildNodes(layoutNodes, makeLabel) {
     mesh.position.set(node.position.x, node.position.y, node.position.z);
     mesh.userData = { nodeId: node.id, kind: node.kind, payload: node.payload, node };
 
-    // Label: never blank — orgchart/normalize guarantees a fallback (FR-015).
-    let text = node.label;
-    if (node.kind === 'member' && node.toolCount > 0) text += `  ·${node.toolCount}`;
-    if (node.kind === 'edge' && node.heartbeatAgeS != null) text += `  ${formatAge(node.heartbeatAgeS)}`;
-
-    // The label is a sibling of the mesh, NOT a child. Parenting it to the mesh
-    // made it inherit the pulse scale, so every HOT and FAULT label drifted a
-    // few pixels each frame — caught by SC-011, which requires positions to be
-    // stable. Anchoring in world space decouples the label from the animation.
-    const label = makeLabel(text);
+    // Labels stay in world space so health pulse and interaction emphasis never
+    // move the text an operator is reading.
+    const label = makeLabel(nodeLabelText(node));
+    label.element.classList.add('org-node-label', `org-node-${node.kind}`);
+    if (node.health) label.element.classList.add(`org-node-${node.health.toLowerCase()}`);
     label.position.set(
       node.position.x,
       node.position.y - (scale * 1.6 + 1.4),
@@ -144,7 +241,10 @@ export function buildNodes(layoutNodes, makeLabel) {
 
     group.add(mesh);
     group.add(label);
-    entries.push({ node, mesh, material, label, baseScale: scale, pulse: treatment.pulse });
+    entries.push({
+      node, mesh, material, label, baseScale: scale, pulse: treatment.pulse,
+      baseEmissiveIntensity, hovered: false, selected: false, isMatch: true,
+    });
   }
 
   return {
@@ -153,6 +253,7 @@ export function buildNodes(layoutNodes, makeLabel) {
     dispose() {
       for (const g of Object.values(geometries)) g.dispose();
       for (const m of materials) m.dispose();
+      removeLabelElements(group);
     },
   };
 }
@@ -188,30 +289,49 @@ export function formatAge(seconds) {
  * @param {number} elapsed seconds
  * @param {boolean} reducedMotion
  */
+function interactionScale(entry) {
+  if (entry.selected) return 1.2;
+  if (entry.hovered) return 1.1;
+  return 1;
+}
+
+function applyScale(entry, motionFactor = 1) {
+  entry.mesh.scale.setScalar(entry.baseScale * interactionScale(entry) * motionFactor);
+}
+
+export function setEntryHovered(entry, active) {
+  if (!entry) return;
+  entry.hovered = !!active;
+  entry.label?.element?.classList.toggle('org-node-label-hovered', entry.hovered);
+  applyScale(entry);
+}
+
+export function setEntrySelected(entry, active) {
+  if (!entry) return;
+  entry.selected = !!active;
+  entry.label?.element?.classList.toggle('org-node-label-selected', entry.selected);
+  applyScale(entry);
+}
+
 export function animateNodes(entries, elapsed, reducedMotion) {
-  if (reducedMotion) return;
-  for (const e of entries) {
-    if (!e.pulse) continue;
-    // FAULT beats faster than HOT: urgency reads differently from liveness.
-    const rate = e.node.health === 'FAULT' ? 4.2 : 1.6;
-    const factor = 1 + Math.sin(elapsed * rate) * e.pulse;
-    e.mesh.scale.setScalar(e.baseScale * factor);
+  for (const entry of entries) {
+    let motionFactor = 1;
+    if (!reducedMotion && entry.pulse) {
+      const rate = entry.node.health === 'FAULT' ? 4.2 : 1.6;
+      motionFactor += Math.sin(elapsed * rate) * entry.pulse;
+    }
+    applyScale(entry, motionFactor);
   }
 }
 
-/**
- * Apply search highlight/dim in place (FR-031a) — never hides, never re-packs.
- *
- * @param {Array<object>} entries
- * @param {(node:object)=>boolean} matches
- * @param {boolean} searching
- */
-export function applyHighlight(entries, matches, searching) {
-  for (const e of entries) {
-    const hit = !searching || matches(e.node);
-    e.material.opacity = hit ? 1 : 0.18;
-    e.material.transparent = !hit;
-    e.material.emissiveIntensity = hit ? (TREATMENTS[e.node.health]?.emissiveIntensity ?? 1.0) : 0.08;
-    if (e.label?.element) e.label.element.style.opacity = hit ? '1' : '0.2';
+/** Apply composed search/category/status focus in place without reflowing. */
+export function applyHighlight(entries, matches, focusing) {
+  for (const entry of entries) {
+    const hit = !focusing || matches(entry.node);
+    entry.isMatch = hit;
+    entry.material.opacity = hit ? 1 : 0.14;
+    entry.material.transparent = !hit;
+    entry.material.emissiveIntensity = hit ? entry.baseEmissiveIntensity : 0.06;
+    if (entry.label?.element) entry.label.element.style.opacity = hit ? '1' : '0.16';
   }
 }

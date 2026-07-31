@@ -14,14 +14,41 @@
 
 import * as THREE from 'three';
 
+import { removeLabelElements } from './css2d.js';
+
 const BAND_WIDTH = 220;
 
-const STYLE = {
-  external: { color: 0x4a6fa5, dash: 2.2, gap: 1.6 },
-  internal: { color: 0x3f6b52, dash: 2.2, gap: 1.6 },
-  edgeLane: { color: 0xe65733, dash: 1.4, gap: 1.2 },
-  boundary: { color: 0xffc857, dash: 0, gap: 0 },
+const MODERN_STYLE = {
+  external: { color: 0x4a6fa5, dash: 2.2, gap: 1.6, opacity: 0.4 },
+  internal: { color: 0x3f6b52, dash: 2.2, gap: 1.6, opacity: 0.4 },
+  edgeLane: { color: 0xe65733, dash: 1.4, gap: 1.2, opacity: 0.5 },
+  boundary: { color: 0xffc857, dash: 0, gap: 0, opacity: 0.75 },
 };
+
+/**
+ * Retro bands: etched Program Manager rules. The trust boundary becomes a
+ * classic two-tone recessed divider (dark line above, light line below) rather
+ * than a glowing gold bar.
+ */
+const RETRO_STYLE = {
+  external: { color: 0x808080, dash: 2.2, gap: 1.6, opacity: 1 },
+  internal: { color: 0x808080, dash: 2.2, gap: 1.6, opacity: 1 },
+  edgeLane: { color: 0x800000, dash: 1.4, gap: 1.2, opacity: 1 },
+  boundary: { color: 0x000000, dash: 0, gap: 0, opacity: 1, lowerColor: 0xffffff },
+};
+
+let theme = 'modern';
+
+export function setBandTheme(next) {
+  theme = next === 'retro' ? 'retro' : 'modern';
+  return theme;
+}
+
+function palette() {
+  return theme === 'retro' ? RETRO_STYLE : MODERN_STYLE;
+}
+
+const STYLE = MODERN_STYLE;
 
 /**
  * @param {Array<object>} bands from computeLayout().bands
@@ -47,7 +74,10 @@ export function buildBands(bands, makeLabel) {
 
   return {
     group,
-    dispose() { for (const d of disposables) d.dispose?.(); },
+    dispose() {
+      for (const d of disposables) d.dispose?.();
+      removeLabelElements(group);
+    },
   };
 }
 
@@ -55,14 +85,17 @@ export function buildBands(bands, makeLabel) {
 function buildBoundary(band, makeLabel, disposables) {
   const g = new THREE.Group();
   g.name = 'trust-boundary';
+  const style = palette().boundary;
 
-  for (const dy of [-0.9, 0.9]) {
+  for (const dy of [0.9, -0.9]) {
     const geometry = new THREE.BufferGeometry().setFromPoints([
       new THREE.Vector3(-BAND_WIDTH / 2, band.y + dy, -1),
       new THREE.Vector3(BAND_WIDTH / 2, band.y + dy, -1),
     ]);
+    // Retro: dark over light gives the etched, recessed divider look.
+    const color = dy < 0 && style.lowerColor != null ? style.lowerColor : style.color;
     const material = new THREE.LineBasicMaterial({
-      color: STYLE.boundary.color, transparent: true, opacity: 0.75,
+      color, transparent: true, opacity: style.opacity,
     });
     disposables.push(geometry, material);
     g.add(new THREE.Line(geometry, material));
@@ -79,7 +112,7 @@ function buildBoundary(band, makeLabel, disposables) {
 function buildBandRule(band, makeLabel, disposables) {
   const g = new THREE.Group();
   g.name = `band-${band.id}`;
-  const style = STYLE[band.id] || STYLE.external;
+  const style = palette()[band.id] || palette().external;
 
   const geometry = new THREE.BufferGeometry().setFromPoints([
     new THREE.Vector3(-BAND_WIDTH / 2, band.y, -2),
@@ -87,7 +120,7 @@ function buildBandRule(band, makeLabel, disposables) {
   ]);
   const material = new THREE.LineDashedMaterial({
     color: style.color, dashSize: style.dash, gapSize: style.gap,
-    transparent: true, opacity: 0.4,
+    transparent: true, opacity: style.opacity,
   });
   const line = new THREE.Line(geometry, material);
   line.computeLineDistances();
@@ -108,11 +141,11 @@ function buildEdgeLane(band, makeLabel, disposables) {
   const g = new THREE.Group();
   g.name = 'edge-lane';
   const x = band.x ?? 46;
-  const style = STYLE.edgeLane;
+  const style = palette().edgeLane;
 
   const material = new THREE.LineDashedMaterial({
     color: style.color, dashSize: style.dash, gapSize: style.gap,
-    transparent: true, opacity: 0.5,
+    transparent: true, opacity: style.opacity,
   });
   disposables.push(material);
 

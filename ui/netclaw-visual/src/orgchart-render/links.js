@@ -27,6 +27,31 @@ export const LINK_STYLES = {
 };
 
 /**
+ * Retro links: plain high-contrast draughtsman's lines on a light client area.
+ * The dash pattern and the severed break are preserved — those carry meaning,
+ * the glow did not.
+ */
+const RETRO_LINK_STYLES = {
+  'en2n-healthy': { color: 0x000080, opacity: 1, dash: 0, width: 1 },
+  'en2n-unreachable': { color: 0x808080, opacity: 1, dash: 1.6, width: 1 },
+  'en2n-severed': { color: 0x800000, opacity: 1, dash: 0.7, width: 1, broken: true },
+  'in2n-healthy': { color: 0x000000, opacity: 1, dash: 0, width: 1 },
+  'in2n-cold': { color: 0x808080, opacity: 1, dash: 1.2, width: 1 },
+  'edge-push': { color: 0x800000, opacity: 1, dash: 1.0, width: 1, arrow: true },
+};
+
+let theme = 'modern';
+
+export function setLinkTheme(next) {
+  theme = next === 'retro' ? 'retro' : 'modern';
+  return theme;
+}
+
+function styles() {
+  return theme === 'retro' ? RETRO_LINK_STYLES : LINK_STYLES;
+}
+
+/**
  * Choose a style for a node's link to the Border.
  *
  * @param {object} node
@@ -64,7 +89,7 @@ export function buildLinks(layoutNodes, categories) {
     if (node === border) continue;
 
     const styleKey = styleForNode(node);
-    const style = LINK_STYLES[styleKey];
+    const style = styles()[styleKey];
     const target = new THREE.Vector3(node.position.x, node.position.y, node.position.z);
 
     // Members route via their category header so the chart reads as a chart —

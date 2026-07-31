@@ -558,3 +558,35 @@
   color: #ff9daf;
   font-weight: 600;
 }
+
+/* Docked mode: Knowledge participates in the right rail instead of floating. */
+#app #sidebar-right > .knowledge-panel.kp-docked {
+  position: static !important;
+  inset: auto !important;
+  width: auto !important;
+  height: auto !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-height: 0;
+  margin: 0;
+  flex: 1 1 auto;
+  z-index: auto;
+  border-radius: 0;
+  box-shadow: none;
+}
+#app #sidebar-right > .knowledge-panel.kp-docked.collapsed {
+  flex: 0 0 auto;
+}
+#sidebar-right > .knowledge-panel.kp-docked .kp-header {
+  cursor: default;
+  touch-action: pan-y;
+}
+#sidebar-right > .knowledge-panel.kp-docked .kp-header:active { cursor: default; }
+#sidebar-right > .knowledge-panel.kp-docked .kp-reset-btn,
+#sidebar-right > .knowledge-panel.kp-docked .kp-resize-handle { display: none; }
+#sidebar-right > .knowledge-panel.kp-docked .kp-body {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+#sidebar-right > .knowledge-panel.kp-docked .kp-table { min-width: 470px; }

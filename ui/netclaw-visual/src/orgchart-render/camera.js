@@ -90,15 +90,47 @@ export function resizeChartCamera(camera, aspect) {
   camera.updateProjectionMatrix();
 }
 
-/**
- * Frame the chart so every node is visible on first paint (SC-001/002).
- * An operator should not have to hunt for the content before reading it.
- *
- * @param {THREE.OrthographicCamera} camera
- * @param {OrbitControls} controls
- * @param {Array<{position:{x:number,y:number}}>} nodes
- */
-export function frameChart(camera, controls, nodes) {
+/** Measure the unobstructed canvas rectangle between the HUD chrome. */
+export function measureChartViewport({ topbar, leftPanel, rightPanel, footerPanel, chatDrawer } = {}) {
+  const width = window.innerWidth;
+  const height = window.innerHeight;
+  const inset = { width, height, top: 0, right: 0, bottom: 0, left: 0 };
+  const rect = (element) => {
+    if (!element || element.classList.contains('collapsed')) return null;
+    const style = window.getComputedStyle(element);
+    if (style.display === 'none' || style.visibility === 'hidden') return null;
+    const bounds = element.getBoundingClientRect();
+    return bounds.width > 0 && bounds.height > 0 ? bounds : null;
+  };
+
+  const top = rect(topbar);
+  if (top) inset.top = Math.max(0, top.bottom + 18);
+
+  const left = rect(leftPanel);
+  const right = rect(rightPanel);
+  if (width > 900) {
+    if (left) inset.left = Math.max(0, left.right + 18);
+    if (right) inset.right = Math.max(0, width - right.left + 18);
+  } else {
+    if (left) inset.bottom = Math.max(inset.bottom, height - left.top + 18);
+    if (right) inset.bottom = Math.max(inset.bottom, height - right.top + 18);
+  }
+
+  const footer = rect(footerPanel);
+  if (footer && footer.bottom >= height - 24) {
+    inset.bottom = Math.max(inset.bottom, height - footer.top + 18);
+  }
+
+  const chat = rect(chatDrawer);
+  const dockLine = height - inset.bottom - 24;
+  if (chat && chat.bottom >= dockLine) {
+    inset.bottom = Math.max(inset.bottom, height - chat.top + 18);
+  }
+  return inset;
+}
+
+/** Frame all nodes inside the unobstructed viewport, not behind HUD panels. */
+export function frameChart(camera, controls, nodes, viewport = {}) {
   if (!Array.isArray(nodes) || nodes.length === 0) {
     controls.target.set(0, 0, 0);
     camera.position.set(0, 0, 200);
@@ -109,23 +141,39 @@ export function frameChart(camera, controls, nodes) {
   }
 
   let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;
-  for (const n of nodes) {
-    minX = Math.min(minX, n.position.x); maxX = Math.max(maxX, n.position.x);
-    minY = Math.min(minY, n.position.y); maxY = Math.max(maxY, n.position.y);
+  for (const node of nodes) {
+    minX = Math.min(minX, node.position.x); maxX = Math.max(maxX, node.position.x);
+    minY = Math.min(minY, node.position.y); maxY = Math.max(maxY, node.position.y);
   }
 
-  const cx = (minX + maxX) / 2;
-  const cy = (minY + maxY) / 2;
-  const padding = 1.25;
-  const spanY = Math.max(maxY - minY, 1) * padding;
-  const spanX = Math.max(maxX - minX, 1) * padding;
+  const width = Math.max(1, viewport.width || window.innerWidth);
+  const height = Math.max(1, viewport.height || window.innerHeight);
+  const left = Math.max(0, viewport.left || 0);
+  const right = Math.max(0, viewport.right || 0);
+  const top = Math.max(0, viewport.top || 0);
+  const bottom = Math.max(0, viewport.bottom || 0);
+  const usableWidth = Math.max(width * 0.2, width - left - right);
+  const usableHeight = Math.max(height * 0.2, height - top - bottom);
 
+  const contentX = (minX + maxX) / 2;
+  const contentY = (minY + maxY) / 2;
+  const spanX = Math.max(maxX - minX, 1) * 1.22;
+  const spanY = Math.max(maxY - minY, 1) * 1.28;
   const aspect = (camera.right - camera.left) / (camera.top - camera.bottom);
-  const zoom = Math.min(FRUSTUM_HEIGHT / spanY, (FRUSTUM_HEIGHT * aspect) / spanX);
+  const zoomX = (FRUSTUM_HEIGHT * aspect * usableWidth) / (width * spanX);
+  const zoomY = (FRUSTUM_HEIGHT * usableHeight) / (height * spanY);
+  const zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoomX, zoomY));
 
-  camera.zoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, zoom));
-  camera.position.set(cx, cy, 200);
+  const worldWidth = FRUSTUM_HEIGHT * aspect / zoom;
+  const worldHeight = FRUSTUM_HEIGHT / zoom;
+  const usableCenterX = left + usableWidth / 2;
+  const usableCenterY = top + usableHeight / 2;
+  const cameraX = contentX - ((usableCenterX - width / 2) * worldWidth / width);
+  const cameraY = contentY + ((usableCenterY - height / 2) * worldHeight / height);
+
+  camera.zoom = zoom;
+  camera.position.set(cameraX, cameraY, 200);
   camera.updateProjectionMatrix();
-  controls.target.set(cx, cy, 0);
+  controls.target.set(cameraX, cameraY, 0);
   controls.update();
 }

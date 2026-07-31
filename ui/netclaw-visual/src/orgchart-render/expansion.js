@@ -98,6 +98,12 @@ export function isExpanded(nodeId) {
   return expanded.has(nodeId);
 }
 
+export function updateExpansionPosition(nodeId, position) {
+  const group = expanded.get(nodeId);
+  if (!group || !position) return;
+  group.position.set(position.x, position.y, (position.z || 0) + 4);
+}
+
 export function collapseAll(parentGroup) {
   for (const id of [...expanded.keys()]) collapse(parentGroup, id);
 }

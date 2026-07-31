@@ -15,12 +15,14 @@ import { RGBShiftShader } from 'three/addons/shaders/RGBShiftShader.js';
 // The orbit layout is replaced by these; everything else in this file —
 // materials, ribbons, labels, picking, polling, panels — is preserved (FR-028).
 import {
-  mountOrgChart, updateOrgChart, searchOrgChart,
+  mountOrgChart, updateOrgChart, searchOrgChart, filterOrgChart, chartSummary,
   pickableObjects, chartNodes, tickOrgChart, activateNode,
-  mountA11y, toggleNodeExpansion,
+  hoverOrgChartNode, clearOrgChartHover, selectOrgChartNode, clearOrgChartSelection,
+  mountA11y, toggleNodeExpansion, setOrgChartTheme,
 } from './orgchart-render/index.js';
+import { mountOrgChartDrag } from './orgchart-render/drag.js';
 import {
-  createChartCamera, createChartControls, resizeChartCamera, frameChart,
+  createChartCamera, createChartControls, resizeChartCamera, frameChart, measureChartViewport,
 } from './orgchart-render/camera.js';
 import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
@@ -61,11 +63,14 @@ const state = {
   skillSprites: [],
   hovered: null,
   selected: null,
+  orgChartDrag: null,
+  theme: 'modern',
+  envObjects: [],
   qualityMode: 'balanced',
   filters: {
     query: '',
     categories: new Set(),
-    view: 'integrations',
+    view: 'all',
   },
   mouse: new THREE.Vector2(),
   raycaster: new THREE.Raycaster(),
@@ -170,6 +175,7 @@ function cycleQualityMode() {
 
 // Temporarily enable cinematic effects during activations
 function enableCinematicBurst() {
+  if (state.theme === 'retro') return;           // FORK-LOCAL: no cinematics in retro
   if (state.qualityMode === 'broadcast') return; // already on
   if (state.afterimagePass) state.afterimagePass.enabled = true;
   if (state.filmPass) state.filmPass.enabled = true;
@@ -565,6 +571,9 @@ function addEnvironment() {
 
   // Store direct uniform references — avoids scene.traverse in animate loop
   state.envUniforms = { starTime: starMat.uniforms.uTime, ringTime: ringUniforms.uTime };
+  // Tracked so the retro theme can hide the starfield/grid/rings: a Windows 3.11
+  // application does not sit in outer space.
+  state.envObjects = [ground, stars, ...state.scene.children.filter((o) => o.userData?.ringUniforms)];
 }
 
 function makeLabel(text) {
@@ -823,26 +832,31 @@ function deduplicatePeers(peers) {
 
 function renderSidebar(graph) {
   dom.categoryList.innerHTML = '';
-  graph.categories.forEach((category) => {
-    state.filters.categories.add(category.name);
+  const summaries = chartSummary();
+  state.filters.categories = new Set(summaries.map((category) => category.name));
 
+  summaries.forEach((category) => {
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'toggle-item';
-    button.innerHTML = `
-      <span class="swatch" style="color:${category.color}; background:${category.color};"></span>
-      <span>${category.name}</span>
-      <span class="toggle-meta">${category.count}</span>
-    `;
+    button.className = 'toggle-item category-toggle';
+    button.setAttribute('aria-pressed', 'true');
+
+    const swatch = document.createElement('span');
+    swatch.className = `swatch category-swatch${category.attention ? ' has-attention' : ''}`;
+    const name = document.createElement('span');
+    name.textContent = category.name;
+    const meta = document.createElement('span');
+    meta.className = 'toggle-meta';
+    meta.textContent = `${category.count} · ${category.active} active${category.attention ? ` · ${category.attention} !` : ''}`;
+    button.append(swatch, name, meta);
+
     button.addEventListener('click', () => {
-      if (state.filters.categories.has(category.name)) {
-        state.filters.categories.delete(category.name);
-        button.classList.add('off');
-      } else {
-        state.filters.categories.add(category.name);
-        button.classList.remove('off');
-      }
-      applyFilters();
+      const enabled = !state.filters.categories.has(category.name);
+      if (enabled) state.filters.categories.add(category.name);
+      else state.filters.categories.delete(category.name);
+      button.classList.toggle('off', !enabled);
+      button.setAttribute('aria-pressed', String(enabled));
+      filterOrgChart({ categories: state.filters.categories });
     });
     dom.categoryList.appendChild(button);
   });
@@ -860,46 +874,6 @@ function renderMetrics(graph) {
   dom.footerModel.textContent = graph.config?.agents?.defaults?.model?.primary?.replace('anthropic/', '') || 'unknown';
   dom.footerGateway.textContent = graph.config?.gateway?.mode || 'unknown';
   dom.footerUpdated.textContent = new Date(graph.generatedAt).toLocaleTimeString();
-}
-
-function applyFilters() {
-  const query = state.filters.query.trim().toLowerCase();
-
-  state.integrations.forEach((entry) => {
-    const matchesCategory = state.filters.categories.has(entry.payload.category);
-    const matchesQuery = !query || [entry.payload.name, entry.payload.description].join(' ').toLowerCase().includes(query);
-    const visible = state.filters.view !== 'devices' && matchesCategory && matchesQuery;
-    entry.group.visible = visible;
-    entry.tube.visible = visible;
-    entry.label.visible = visible;
-    entry.skillSprites.forEach((sprite) => {
-      sprite.mesh.visible = false;
-      sprite.label.visible = false;
-      if (sprite.wire) sprite.wire.visible = false;
-    });
-  });
-
-  state.devices.forEach((entry) => {
-    const matchesQuery = !query || [entry.payload.name, entry.payload.os, entry.payload.platform].join(' ').toLowerCase().includes(query);
-    const visible = state.filters.view !== 'integrations' && matchesQuery;
-    entry.mesh.visible = visible;
-    entry.line.visible = visible;
-    entry.label.visible = visible;
-  });
-
-  if (state.selected?.kind === 'integration') {
-    const target = state.integrations.find((entry) => entry.payload.id === state.selected.id);
-    if (target?.group.visible) {
-      revealSkills(target);
-    } else {
-      clearSelection();
-    }
-  }
-
-  if (state.selected?.kind === 'device') {
-    const target = state.devices.find((entry) => entry.payload.id === state.selected.id);
-    if (!target?.mesh.visible) clearSelection();
-  }
 }
 
 function revealSkills(entry) {
@@ -1995,6 +1969,7 @@ function clearSelection() {
     restoreTracePath();
   }
   state.selected = null;
+  clearOrgChartSelection();
   setDetail('overview');
   state.integrations.forEach((entry) => {
     entry.node.material.uniforms.uBrightness.value = 1.0;
@@ -2145,11 +2120,38 @@ function getInteractiveObjects() {
   return nodes;
 }
 
-function onPointerMove(event) {
+function updatePointer(event) {
   state.mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
   state.mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+}
 
+function showPointerTooltip(title, subtitle, event) {
+  const strong = document.createElement('strong');
+  strong.textContent = title;
+  dom.tooltip.replaceChildren(strong, document.createElement('br'), document.createTextNode(subtitle));
+  dom.tooltip.style.left = `${event.clientX + 18}px`;
+  dom.tooltip.style.top = `${event.clientY + 18}px`;
+  dom.tooltip.classList.add('visible');
+  document.body.style.cursor = 'pointer';
+}
+
+function onPointerMove(event) {
+  if (state.orgChartDrag?.isDragging()) return;
+  updatePointer(event);
   state.raycaster.setFromCamera(state.mouse, state.camera);
+
+  const chartHit = state.raycaster.intersectObjects(pickableObjects(), false)[0];
+  if (chartHit) {
+    if (state.hovered) {
+      state.hovered.scale.setScalar(1);
+      state.hovered = null;
+    }
+    const detail = hoverOrgChartNode(chartHit.object);
+    if (detail) showPointerTooltip(detail.title, detail.subtitle, event);
+    return;
+  }
+  clearOrgChartHover();
+
   const hit = state.raycaster.intersectObjects(getInteractiveObjects())[0];
   if (!hit) {
     dom.tooltip.classList.remove('visible');
@@ -2164,23 +2166,18 @@ function onPointerMove(event) {
   const { userData } = hit.object;
   let title = userData.payload?.name || 'NetClaw Core';
   let subtitle = userData.payload?.description || userData.payload?.ip || 'Core runtime';
-  // Check if this is a core nucleus (local or peer)
-  const hoveredCore = state.cores.find((c) => c.nucleus === hit.object);
+  const hoveredCore = state.cores.find((core) => core.nucleus === hit.object);
   if (hoveredCore) {
     if (hoveredCore === state.localCore) {
       title = 'NetClaw (Local)';
       subtitle = `AS ${state.bgp?.local?.as || '?'} • ${state.bgp?.peers?.length || 0} peers`;
     } else if (hoveredCore.peerPayload) {
-      const p = hoveredCore.peerPayload;
-      title = hoveredCore.isClaw ? `NetClaw AS${p.as}` : `Router ${p.routerId || p.peer}`;
-      subtitle = `${p.state} • ${p.routesReceived} routes`;
+      const peer = hoveredCore.peerPayload;
+      title = hoveredCore.isClaw ? `NetClaw AS${peer.as}` : `Router ${peer.routerId || peer.peer}`;
+      subtitle = `${peer.state} • ${peer.routesReceived} routes`;
     }
   }
-  dom.tooltip.innerHTML = `<strong>${title}</strong><br>${subtitle}`;
-  dom.tooltip.style.left = `${event.clientX + 18}px`;
-  dom.tooltip.style.top = `${event.clientY + 18}px`;
-  dom.tooltip.classList.add('visible');
-  document.body.style.cursor = 'pointer';
+  showPointerTooltip(title, subtitle, event);
 
   if (state.hovered && state.hovered !== hit.object) state.hovered.scale.setScalar(1);
   state.hovered = hit.object;
@@ -2188,7 +2185,9 @@ function onPointerMove(event) {
 }
 
 function onClick(event) {
+  if (state.orgChartDrag?.consumeClick()) return;
   if (event.target.closest('.panel') || event.target.closest('.tooltip') || event.target.closest('.panel-reopen')) return;
+  updatePointer(event);
   state.raycaster.setFromCamera(state.mouse, state.camera);
 
   // ── HUD 2.0 picking (feature 072) ────────────────────────────────────
@@ -2201,6 +2200,7 @@ function onClick(event) {
     const node = activateNode(chartHit.object, makeLabel);
     if (node) {
       clearSelection();
+      selectOrgChartNode(node.id);
       if (node.kind === 'border') {
         setDetail('local-core');
         state.selected = { kind: 'local-core' };
@@ -2384,7 +2384,11 @@ function animate() {
   updateParticleFlow(elapsed);
 
   state.controls.update();
-  state.composer.render();
+  // FORK-LOCAL: retro bypasses the composer entirely. Toggling individual passes
+  // fought scene-quality's per-frame drift correction and the 6s cinematic
+  // burst; skipping the composer cannot be overridden by either.
+  if (state.theme === 'retro') state.renderer.render(state.scene, state.camera);
+  else state.composer.render();
   state.labels.render(state.scene, state.camera);
 }
 
@@ -2400,13 +2404,60 @@ function markFixtureMode(name) {
   document.body.appendChild(el);
 }
 
+// ── FORK-LOCAL: theme-adaptive scene ─────────────────────────────────────────
+// The retro theme is not a skin over the modern renderer. It switches the
+// TOPOLOGY's palette (via setOrgChartTheme) and takes the whole cinematic
+// pipeline out of the picture: bloom, grain, RGB shift, vignette and trails all
+// live in the composer, so retro renders direct and none of them can apply.
+// Deleting this block reverts to pristine upstream behaviour.
+function applySceneTheme(theme) {
+  state.theme = theme === 'retro' ? 'retro' : 'modern';
+  const retro = state.theme === 'retro';
+
+  setOrgChartTheme(state.theme);
+  // Rebuilt rails/handles are new meshes; DragControls must be told.
+  state.orgChartDrag?.refresh();
+
+  // Retro is a DOM Program Manager desktop, not this WebGL scene. Hide the
+  // canvas and the CSS2D label layer entirely so the two never co-exist.
+  const sceneRoot = document.getElementById('scene-root');
+  if (sceneRoot) sceneRoot.style.visibility = retro ? 'hidden' : 'visible';
+
+  if (state.scene) {
+    // A light client area in retro; the modern dark field otherwise.
+    state.scene.fog = retro ? null : new THREE.FogExp2(0x081426, 0.0018);
+  }
+  if (state.renderer) {
+    state.renderer.setClearColor(retro ? 0xc0c0c0 : 0x050a12, retro ? 1 : 0.85);
+    state.renderer.toneMappingExposure = retro ? 1.0 : 1.55;
+    state.renderer.shadowMap.enabled = !retro;
+  }
+  for (const object of state.envObjects || []) object.visible = !retro;
+  if (!retro) setQualityMode(state.qualityMode);   // restore upstream pass state
+  frameOrgChart();
+}
+
+function frameOrgChart() {
+  const viewport = measureChartViewport({
+    topbar: document.querySelector('.topbar'),
+    leftPanel: dom.sidebarLeft,
+    rightPanel: dom.sidebarRight,
+    footerPanel: dom.footerPanel,
+    chatDrawer: dom.chatDrawer,
+  });
+  frameChart(state.camera, state.controls, chartNodes(), viewport);
+}
+
+function scheduleChartFrame() {
+  window.setTimeout(frameOrgChart, 380);
+}
+
 function onResize() {
-  // Orthographic: no .aspect property — the frustum bounds must be recomputed
-  // instead, or a resize silently stretches the chart (FR-013).
   resizeChartCamera(state.camera, window.innerWidth / window.innerHeight);
   state.renderer.setSize(window.innerWidth, window.innerHeight);
   state.labels.setSize(window.innerWidth, window.innerHeight);
   state.composer.setSize(window.innerWidth, window.innerHeight);
+  frameOrgChart();
 }
 
 function connectSocket() {
@@ -2414,10 +2465,10 @@ function connectSocket() {
   const socket = new WebSocket(`${protocol}://${window.location.host}/ws`);
   state.socket = socket;
 
-  // Knowledge (RAG) panel — mounted once, rebound to each new socket on reconnect
+  // Knowledge (RAG) panel — docked below Selection, rebound on reconnect
   if (!state.knowledgePanel) {
-    state.knowledgePanel = new KnowledgePanel(socket);
-    document.body.appendChild(state.knowledgePanel.render());
+    state.knowledgePanel = new KnowledgePanel(socket, { docked: true });
+    dom.sidebarRight.appendChild(state.knowledgePanel.render());
   } else {
     state.knowledgePanel.socket = socket;
     state.knowledgePanel.connectSocket();
@@ -2482,24 +2533,18 @@ function connectSocket() {
 function wireUI() {
   dom.search.addEventListener('input', (event) => {
     state.filters.query = event.target.value;
-    applyFilters();
-    // HUD 2.0 (FR-031/031a): match members, categories and tool names by
-    // highlighting and dimming IN PLACE. Never hides, never re-packs — hiding
-    // would re-flow the chart and destroy the spatial memory the layout exists
-    // to build.
     searchOrgChart(event.target.value);
   });
 
-  document.querySelectorAll('.segmented-btn').forEach((button) => {
+  document.querySelectorAll('.segmented-btn[data-status]').forEach((button) => {
     button.addEventListener('click', () => {
-      document.querySelectorAll('.segmented-btn').forEach((candidate) => candidate.classList.remove('active'));
+      document.querySelectorAll('.segmented-btn[data-status]').forEach(
+        (candidate) => candidate.classList.remove('active'),
+      );
       button.classList.add('active');
-      state.filters.view = button.dataset.view;
-      applyFilters();
-      if (state.filters.view === 'overview') {
-        // Re-frame the whole chart rather than the old orbit centroid.
-        frameChart(state.camera, state.controls, chartNodes());
-      }
+      state.filters.view = button.dataset.status;
+      filterOrgChart({ status: state.filters.view });
+      if (state.filters.view === 'all') frameOrgChart();
     });
   });
 
@@ -2524,10 +2569,11 @@ function wireUI() {
   });
 
   // Panel collapse/expand
-  function togglePanel(panel, reopenBtn, arrowCollapsed, arrowExpanded) {
+  function togglePanel(panel, reopenBtn) {
     panel.classList.toggle('collapsed');
     const isCollapsed = panel.classList.contains('collapsed');
     reopenBtn.classList.toggle('visible', isCollapsed);
+    scheduleChartFrame();
   }
 
   dom.toggleLeft.addEventListener('click', () => togglePanel(dom.sidebarLeft, dom.reopenLeft));
@@ -2537,14 +2583,17 @@ function wireUI() {
   dom.reopenLeft.addEventListener('click', () => {
     dom.sidebarLeft.classList.remove('collapsed');
     dom.reopenLeft.classList.remove('visible');
+    scheduleChartFrame();
   });
   dom.reopenRight.addEventListener('click', () => {
     dom.sidebarRight.classList.remove('collapsed');
     dom.reopenRight.classList.remove('visible');
+    scheduleChartFrame();
   });
   dom.reopenFooter.addEventListener('click', () => {
     dom.footerPanel.classList.remove('collapsed');
     dom.reopenFooter.classList.remove('visible');
+    scheduleChartFrame();
   });
 
   // Quality budget toggle
@@ -2566,14 +2615,24 @@ function wireUI() {
   window.addEventListener('click', onClick);
   window.addEventListener('resize', onResize);
 
+  // FORK-LOCAL: retro-theme announces the theme (including the stored
+  // preference on load). Registered BEFORE loadModuleUIs so that initial
+  // dispatch is not missed.
+  window.addEventListener('netclaw:theme-changed', (event) => {
+    applySceneTheme(event.detail?.theme);
+  });
+
   // ── Optional HUD modules ───────────────────────────────────────────────────
   // Mounts the UI half of any configured module. Registered last so a module
   // can rely on first-party chrome already existing. No-ops when there are no
   // modules, and skips any module the server reports as unconfigured.
   // Fire-and-forget: a slow or broken module must not delay first paint.
-  loadModuleUIs({ dom, state, setDetail, focusTarget }).catch((err) => {
-    console.error('[modules] UI loader failed:', err);
-  });
+  loadModuleUIs({ dom, state, setDetail, focusTarget })
+    .then(scheduleChartFrame)
+    .catch((err) => {
+      console.error('[modules] UI loader failed:', err);
+    });
+  document.fonts?.ready?.then(frameOrgChart).catch(() => {});
 }
 
 // ── GPU Particle Data Flow (Section G) ──────────────────────────
@@ -2654,6 +2713,7 @@ function updateParticleFlow(elapsed) {
 
 // ── Activation chromatic spike (subtle) ─────────────────────────
 function triggerActivationEffects() {
+  if (state.theme === 'retro') return;   // FORK-LOCAL: no chromatic spike in retro
   // Subtle chromatic aberration spike only — no glitch pass (too disruptive)
   if (state.rgbShiftPass) {
     gsap.to(state.rgbShiftPass.uniforms.amount, {
@@ -2791,7 +2851,7 @@ async function boot() {
     // The integration and device populations leave the scene entirely
     // (FR-030): the HUD was drawing a capability catalogue and a managed
     // estate on top of a trust topology. Integrations now surface as member
-    // tool expansion; devices remain in the right-hand panel (FR-030b).
+    // tool expansion; managed devices remain in Convergence (FR-030b).
     //
     // The category taxonomy arrives as DATA, not an import — /api/graph
     // already serves integrations[] with category and prefixes, which is what
@@ -2801,12 +2861,21 @@ async function boot() {
       .map((i) => ({ id: i.id, category: i.category, prefixes: i.prefixes }));
 
     state.orgLayout = mountOrgChart(state.scene, state.n2n, state.orgCatalog, makeLabel);
-    frameChart(state.camera, state.controls, chartNodes());
+    state.orgChartDrag = mountOrgChartDrag({
+      camera: state.camera,
+      renderer: state.renderer,
+      orbitControls: state.controls,
+      resetButton: document.getElementById('layout-reset'),
+      onReset: frameOrgChart,
+    });
+    frameOrgChart();
 
     // Keyboard + screen-reader access (FR-032). A WebGL canvas has no
     // focusable elements, so the chart needs a real DOM tree over it.
     mountA11y(document.getElementById('scene-root'), {
       onSelect: (node) => {
+        clearSelection();
+        selectOrgChartNode(node.id);
         if (node.kind === 'border') { setDetail('local-core'); state.selected = { kind: 'local-core' }; }
         else if (node.kind === 'peer') { setDetail('federation-peer', node.payload); state.selected = { kind: 'federation-peer', peer: node.id }; }
         else { setDetail('member-core', node.payload); state.selected = { kind: 'member-core', member: node.id }; }
@@ -2834,7 +2903,6 @@ async function boot() {
     renderMetrics(state.graph);
     setDetail('overview');
     wireUI();
-    applyFilters();
 
     setLoading(94, 'Bringing telemetry online');
     connectSocket();
@@ -2854,6 +2922,8 @@ async function boot() {
       // are never recomputed and categories are never re-ordered — a claw that
       // fails changes how it looks, never where it is (FR-034a).
       updateOrgChart(state.scene, state.n2n, makeLabel);
+      state.orgChartDrag?.refresh();
+      window.dispatchEvent(new CustomEvent('netclaw:orgchart-updated'));
     }, 30000);
     animate();
 

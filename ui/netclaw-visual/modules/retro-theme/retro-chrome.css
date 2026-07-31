@@ -46,6 +46,8 @@ body.retro-311 {
 }
 
 /* Lose the scene glow and the CRT affectations. */
+body.retro-311 .noise,
+body.retro-311 .scan-beam,
 body.retro-311 #noise,
 body.retro-311 #scan-beam { display: none !important; }
 
@@ -401,4 +403,98 @@ body.retro-311 .tp-resize {
     linear-gradient(135deg, transparent 0 62%, var(--w-shadow) 62% 72%, transparent 72%),
     linear-gradient(135deg, transparent 0 82%, var(--w-shadow) 82% 92%, transparent 92%) !important;
   filter: none !important;
+}
+
+/* ── COMMAND trust map ───────────────────────────────────────────────────── */
+body.retro-311 .sidebar,
+body.retro-311 .detail-panel,
+body.retro-311 .toggle-item,
+body.retro-311 .info-card,
+body.retro-311 .search,
+body.retro-311 .segmented-btn {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
+}
+body.retro-311 .sidebar,
+body.retro-311 .detail-panel {
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+}
+body.retro-311 .toggle-item,
+body.retro-311 .info-card,
+body.retro-311 .search,
+body.retro-311 .segmented-btn.active {
+  border-top: 2px solid var(--w-shadow) !important;
+  border-left: 2px solid var(--w-shadow) !important;
+  border-right: 2px solid var(--w-light) !important;
+  border-bottom: 2px solid var(--w-light) !important;
+}
+body.retro-311 .segmented-btn:not(.active) {
+  border-top: 2px solid var(--w-light) !important;
+  border-left: 2px solid var(--w-light) !important;
+  border-right: 2px solid var(--w-dark) !important;
+  border-bottom: 2px solid var(--w-dark) !important;
+}
+body.retro-311 .category-label,
+body.retro-311 .org-node-label,
+body.retro-311 .tool-header,
+body.retro-311 .tool-item,
+body.retro-311 #orgchart-a11y .a11y-node:focus-visible {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: var(--w-client) !important;
+  color: var(--w-dark) !important;
+  border: 2px solid var(--w-dark) !important;
+  font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif !important;
+  letter-spacing: normal !important;
+}
+body.retro-311 .category-label { border-left: 4px solid var(--w-title) !important; }
+body.retro-311 .category-label-attention { border-left-color: #800000 !important; }
+body.retro-311 .org-node-label-selected { outline: 2px dotted var(--w-dark); outline-offset: 2px; }
+body.retro-311 .band-label { color: var(--w-dark) !important; letter-spacing: normal !important; }
+body.retro-311 .band-label-boundary { color: #800000 !important; }
+body.retro-311 .band-label-edge { color: #800000 !important; }
+body.retro-311 .band-empty { color: #404040 !important; }
+
+/* ── Trust zones + in-scene text on the light client area ─────────────────
+   The scene is no longer a dark viewport: zone panels are drawn light, so the
+   CSS2D text over them has to be dark or it disappears. */
+body.retro-311 .band-label,
+body.retro-311 .band-label-external,
+body.retro-311 .band-label-internal {
+  color: var(--w-dark) !important;
+  font-family: "MS Sans Serif", "Segoe UI", Tahoma, sans-serif !important;
+  font-weight: 700 !important;
+  letter-spacing: normal !important;
+  text-transform: uppercase;
+}
+body.retro-311 .band-empty {
+  color: #404040 !important;
+  font-style: italic;
+}
+/* Department cards read as little title bars. */
+body.retro-311 .category-label {
+  background: var(--w-title) !important;
+  color: var(--w-title-text) !important;
+  border: 2px solid var(--w-dark) !important;
+  border-left: 2px solid var(--w-dark) !important;
+}
+body.retro-311 .category-label-attention {
+  background: #800000 !important;
+  color: #ffffff !important;
+}
+/* Selected claw gets the Program Manager dotted focus rectangle. */
+body.retro-311 .org-node-label-selected {
+  outline: 1px dotted var(--w-dark) !important;
+  outline-offset: 1px;
+  background: var(--w-title) !important;
+  color: var(--w-title-text) !important;
+}
+body.retro-311 .org-node-label-hovered {
+  background: var(--w-face) !important;
+  color: var(--w-dark) !important;
 }

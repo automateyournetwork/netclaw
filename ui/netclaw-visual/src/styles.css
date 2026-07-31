@@ -59,10 +59,12 @@ input {
   background-size: 180px 180px, 220px 220px;
 }
 
+/* The rolling CRT sweep is gone in BOTH themes: a full-screen bar cycling every
+   few seconds read as a hardware fault ("videotaping a tube TV"), and it moved
+   continuously over a chart operators are trying to read. The element stays in
+   the DOM so nothing that queries it breaks. */
 .scan-beam {
-  pointer-events: none;
-  background: linear-gradient(180deg, transparent 0%, rgba(101, 195, 255, 0.04) 46%, rgba(255, 123, 84, 0.08) 50%, transparent 56%);
-  animation: sweep 8s linear infinite;
+  display: none;
 }
 
 /* ── H005 Stale / offline graph banner ──────────────────────────── */
@@ -1861,6 +1863,14 @@ html.reduced-motion .scan-beam {
 
 /* ── HUD 2.0: top-down trust org chart (feature 072) ───────────────────── */
 
+/* Sidebar taxonomy now reflects real member departments, not the retired
+   integration-orbit catalogue. */
+.category-toggle { gap: 9px; padding: 10px 11px; }
+.category-toggle > span:nth-child(2) { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.category-toggle .toggle-meta { font-size: 9px; white-space: nowrap; }
+.category-swatch { color: #65c3ff; background: #65c3ff; }
+.category-swatch.has-attention { color: #ff7a7a; background: #ff7a7a; }
+
 /* Legend (FR-009c). Shapes carry the distinction alongside colour so the
    encoding survives greyscale (SC-007). */
 .legend-list { list-style: none; margin: 0; padding: 0; font-size: 11px; line-height: 1.9; }
@@ -1871,13 +1881,40 @@ html.reduced-motion .scan-beam {
 .legend-cold  { color: #5f6d80; }
 .legend-fault { color: #ff7a7a; }
 
-/* Band and boundary labels drawn into the scene via CSS2D. */
-.band-label {
-  font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase;
-  color: rgba(180, 205, 235, 0.55); white-space: nowrap; pointer-events: none;
+/* Department headers make the green elbow routes explain themselves. */
+.category-label {
+  padding: 4px 9px; border-radius: 4px;
+  border: 1px solid rgba(101, 195, 255, 0.28);
+  border-left: 3px solid rgba(101, 195, 255, 0.82);
+  background: rgba(5, 12, 24, 0.92); color: #cfe6ff;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em;
+  text-transform: uppercase; white-space: nowrap; pointer-events: none;
 }
-.band-label-boundary { color: rgba(255, 200, 87, 0.9); font-weight: 600; letter-spacing: 0.26em; }
-.band-label-edge { color: rgba(230, 87, 51, 0.85); }
+.category-label-attention { border-left-color: #ff7a7a; color: #ffd1d1; }
+
+/* Node labels carry a stronger hierarchy than generic scene pills. */
+.org-node-label {
+  padding: 5px 9px; border-radius: 5px;
+  background: rgba(5, 12, 24, 0.88); border-color: rgba(150, 190, 230, 0.2);
+  font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+  transition: opacity 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+.org-node-border { color: #ffe8a6; font-size: 12px; }
+.org-node-peer { color: #c6eaff; }
+.org-node-label-hovered { border-color: #65c3ff; background: rgba(10, 27, 48, 0.98); }
+.org-node-label-selected {
+  border-color: #ffd97a; background: rgba(35, 29, 12, 0.98);
+  box-shadow: 0 0 0 2px rgba(255, 217, 122, 0.18);
+}
+.org-node-fault { border-color: rgba(255, 122, 122, 0.48); }
+
+/* Band labels stay prominent, but subordinate to department headers. */
+.band-label {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.16em; text-transform: uppercase;
+  color: rgba(190, 215, 240, 0.68); white-space: nowrap; pointer-events: none;
+}
+.band-label-boundary { color: rgba(255, 200, 87, 0.95); font-weight: 700; letter-spacing: 0.24em; }
+.band-label-edge { color: rgba(242, 112, 79, 0.92); }
 
 /* Empty-band copy (FR-033a): must read as "nothing here yet", never as a
    failed load. */
@@ -1932,4 +1969,33 @@ html.reduced-motion .scan-beam {
   background: rgba(8, 16, 28, 0.97); color: #dceeff;
   border: 2px solid #ffd97a; border-radius: 5px;
   font-size: 12px; z-index: 60;
+}
+
+/* COMMAND layout: readable department cards and direct-manipulation feedback. */
+.category-label {
+  width: min(150px, 18vw);
+  max-width: 150px;
+  box-sizing: border-box;
+  white-space: pre-line;
+  text-align: center;
+  line-height: 1.35;
+}
+#scene-root canvas.orgchart-drag-hover { cursor: grab; }
+#scene-root canvas.orgchart-dragging { cursor: grabbing; }
+
+/* Right rail order: Focus, Selection, then docked Knowledge. */
+#sidebar-right > section:first-of-type {
+  flex: 0 0 auto;
+  overflow: visible;
+  padding-bottom: 10px;
+}
+#sidebar-right > section.sidebar-section {
+  flex: 0 1 42%;
+  max-height: 42%;
+  margin-top: 0;
+  padding-top: 12px;
+}
+#sidebar-right .detail-panel {
+  min-height: 0;
+  margin-top: 10px;
 }

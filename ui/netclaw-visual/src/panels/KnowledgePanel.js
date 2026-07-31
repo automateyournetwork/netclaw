@@ -22,8 +22,9 @@ const DOC_TYPES = ['other', 'vendor', 'standard', 'customer', 'install-guide'];
 const GEOM_KEY = 'netclaw.hud.knowledgePanel.v1';
 
 export class KnowledgePanel {
-  constructor(socket = null) {
+  constructor(socket = null, { docked = false } = {}) {
     this.socket = socket;
+    this.docked = docked;
     this.documents = [];
     this.snapshots = [];
     this.progress = new Map(); // document_id/title -> {status, error}
@@ -40,19 +41,24 @@ export class KnowledgePanel {
   render() {
     this.element = document.createElement('div');
     this.element.id = 'knowledge-panel';
-    this.element.className = 'knowledge-panel collapsed';
+    this.element.className = `knowledge-panel collapsed${this.docked ? ' kp-docked' : ''}`;
     this.element.innerHTML = this.getTemplate();
     this.setupEventListeners();
-    this.setupDragResize();
-    this.restoreGeometry();
+    if (!this.docked) {
+      this.setupDragResize();
+      this.restoreGeometry();
+    }
     if (this.socket) this.connectSocket();
     this.refresh();
     return this.element;
   }
 
   getTemplate() {
+    const headerTitle = this.docked
+      ? 'Double-click to expand/collapse'
+      : 'Drag to move · double-click to expand/collapse';
     return `
-      <div class="kp-header" title="Drag to move · double-click to expand/collapse">
+      <div class="kp-header" title="${headerTitle}">
         <div class="kp-title">
           <span class="kp-icon">&#128218;</span>
           <span>Knowledge</span>
@@ -528,7 +534,7 @@ export class KnowledgePanel {
   }
 
   persistGeometry() {
-    if (!this.element) return;
+    if (this.docked || !this.element) return;
     try {
       const rect = this.element.getBoundingClientRect();
       const payload = {

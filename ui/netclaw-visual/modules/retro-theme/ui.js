@@ -30,6 +30,10 @@
  */
 
 import './retro-chrome.css';
+import './program-manager.css';
+import {
+  renderProgramManager, destroyProgramManager, clearWindowLayout,
+} from './program-manager.js';
 
 const STORAGE_KEY = 'netclaw.theme';
 const CLASS = 'retro-311';
@@ -52,6 +56,32 @@ function writeStored(theme) {
 }
 
 let current = 'modern';
+let hostCtx = null;
+
+/**
+ * Mount/unmount the Program Manager desktop.
+ *
+ * Retro does not restyle the 3D scene — it replaces it (see program-manager.js
+ * for why). The host hides the canvas when it sees the theme event.
+ */
+function syncProgramManager() {
+  if (current !== 'retro') {
+    destroyProgramManager();
+    return;
+  }
+  const layout = hostCtx?.state?.orgLayout;
+  if (!layout) return;
+  renderProgramManager({
+    layout,
+    onSelect: (node) => {
+      const { setDetail, state } = hostCtx || {};
+      if (!setDetail) return;
+      if (node.kind === 'border') { setDetail('local-core'); if (state) state.selected = { kind: 'local-core' }; }
+      else if (node.kind === 'peer') { setDetail('federation-peer', node.payload); if (state) state.selected = { kind: 'federation-peer', peer: node.id }; }
+      else { setDetail('member-core', node.payload); if (state) state.selected = { kind: 'member-core', member: node.id }; }
+    },
+  });
+}
 
 function apply(theme) {
   current = theme === 'retro' ? 'retro' : 'modern';
@@ -68,6 +98,7 @@ function apply(theme) {
 
   // Announced so other modules can react without importing this one.
   window.dispatchEvent(new CustomEvent(EVENT, { detail: { theme: current } }));
+  syncProgramManager();
 }
 
 /**
@@ -116,10 +147,22 @@ function mountToggle() {
   return true;
 }
 
-export async function registerUI() {
+export async function registerUI(ctx = {}) {
+  hostCtx = ctx;
   if (!mountToggle()) {
     console.warn('[retro-theme] no .topbar found — toggle not mounted');
   }
+
+  // The desktop is rebuilt when the chart data changes (a claw enrolling, health
+  // repaint) and when the footer RESET is used, so retro is never stale.
+  window.addEventListener('netclaw:orgchart-updated', () => {
+    if (current === 'retro') syncProgramManager();
+  });
+  document.getElementById('layout-reset')?.addEventListener('click', () => {
+    clearWindowLayout();
+    if (current === 'retro') syncProgramManager();
+  });
+
   // Honour the stored preference on load, so the choice survives a refresh.
   apply(readStored());
 }

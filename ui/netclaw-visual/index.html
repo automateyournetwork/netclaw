@@ -118,10 +118,10 @@
         <button class="panel-toggle" id="toggle-right" type="button" aria-label="Collapse right sidebar">&rsaquo;</button>
         <section>
           <p class="eyebrow">Focus</p>
-          <div class="segmented">
-            <button class="segmented-btn active" data-view="integrations">Integrations</button>
-            <button class="segmented-btn" data-view="devices">Devices</button>
-            <button class="segmented-btn" data-view="overview">Overview</button>
+          <div class="segmented" aria-label="Trust map focus">
+            <button class="segmented-btn active" data-status="all">All</button>
+            <button class="segmented-btn" data-status="active">Active</button>
+            <button class="segmented-btn" data-status="attention">Attention</button>
           </div>
         </section>
 
@@ -151,7 +151,8 @@
         <div class="footer-row muted">
           <span>HUD mode: layered network operations graph</span>
           <span>Quality <button id="quality-toggle" class="quality-toggle" type="button">BALANCED</button></span>
-          <span>Use mouse drag + wheel to navigate</span>
+          <span>Layout <button id="layout-reset" class="quality-toggle" type="button" title="Restore the default claw arrangement">RESET</button></span>
+          <span>Drag internal claws to arrange · drag empty space to pan · wheel to zoom</span>
         </div>
       </footer>
 

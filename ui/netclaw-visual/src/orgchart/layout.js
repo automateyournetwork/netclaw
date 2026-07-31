@@ -36,19 +36,14 @@ export const LAYOUT = {
   externalSpacingX: 34,
   borderY: 0,
   internalTopY: -20,
-  // The internal band fans WIDE. Members are the bulk of the chart and the
-  // thing an operator scans, so they get horizontal room rather than being
-  // packed into a narrow column stack under the Border. Wide + shallow beats
-  // narrow + deep for scanning: the eye moves along a row far faster than it
-  // walks down a column, and the orthographic camera auto-frames whatever
-  // extent this produces (camera.frameChart).
-  columnSpacingX: 38,
-  memberSpacingY: 8,
-  categoryHeaderOffsetY: -7,
-  rowSpacingY: 58,
-  // Wide cap so a typical deployment lays out in a SINGLE row — the widest,
-  // cleanest fan. Rows are balanced when wrapping is unavoidable.
-  maxColumnsPerRow: 20,
+  // Department cards need enough screen width for their CSS2D headings. Four
+  // slots per row keeps the default readable even with both sidebars open.
+  columnSpacingX: 62,
+  memberSpacingY: 12,
+  categoryHeaderOffsetY: -10,
+  rowSpacingY: 70,
+  categoryRowGapY: 24,
+  maxColumnsPerRow: 4,
   edgeLaneX: 96,          // floor only; the real X is derived from the fan extent
   edgeSpacingY: 11,
   edgeLaneColumns: 2,
@@ -108,41 +103,50 @@ export function computeLayout(n2n, integrationCatalog, nowEpochS, opts = {}) {
   const grouped = categorizeMembers(members, integrationCatalog);
   const ordered = orderCategories(grouped, nowEpochS);
 
-  // Balance columns across rows rather than filling each to the cap. With 15
-  // categories and a cap of 14 the naive split is 14 + 1, which looks broken;
-  // balancing gives 8 + 7. Rows are still driven by the cap, so wide-and-
-  // shallow is preserved.
+  // Balance departments across a small number of readable rows. Each row's
+  // depth is derived from its tallest member stack, so the next row can never
+  // collide with it.
   const rowsNeeded = Math.max(1, Math.ceil(ordered.length / cfg.maxColumnsPerRow));
   const perRow = Math.max(1, Math.ceil(ordered.length / rowsNeeded));
-
   const categories = [];
-  ordered.forEach((category, index) => {
-    const col = index % perRow;
-    const row = Math.floor(index / perRow);
-    const rowCount = Math.min(ordered.length - row * perRow, perRow);
-    const rowSpan = (rowCount - 1) * cfg.columnSpacingX;
-    const x = -rowSpan / 2 + col * cfg.columnSpacingX;
-    const headerY = cfg.internalTopY - row * cfg.rowSpacingY;
+  let headerY = cfg.internalTopY;
 
-    categories.push({ name: category.name, heat: category.heat, column: col, row, position: { x, y: headerY, z: 0 } });
+  for (let row = 0; row < rowsNeeded; row += 1) {
+    const rowCategories = ordered.slice(row * perRow, (row + 1) * perRow);
+    const rowSpan = Math.max(0, rowCategories.length - 1) * cfg.columnSpacingX;
+    const maxMembers = Math.max(1, ...rowCategories.map((category) => category.members.length));
 
-    orderMembers(category.members, nowEpochS, resolveLabel).forEach((m, mi) => {
-      nodes.push({
-        id: m.member_id || `${category.name}-${mi}`,
-        kind: 'member',
-        label: resolveLabel(m),
-        band: 'internal',
-        category: category.name,
-        health: classifyHealth(m, nowEpochS),
-        heartbeatAgeS: m.heartbeat_age_s ?? null,
-        toolCount: Array.isArray(m.skills) ? m.skills.length : 0,
-        tools: Array.isArray(m.skills) ? [...m.skills] : [],
-        expanded: false,
-        payload: m,
-        position: { x, y: headerY + cfg.categoryHeaderOffsetY - mi * cfg.memberSpacingY, z: 0 },
+    rowCategories.forEach((category, col) => {
+      const x = -rowSpan / 2 + col * cfg.columnSpacingX;
+      categories.push({ name: category.name, heat: category.heat, column: col, row, position: { x, y: headerY, z: 0 } });
+
+      orderMembers(category.members, nowEpochS, resolveLabel).forEach((member, memberIndex) => {
+        nodes.push({
+          id: member.member_id || `${category.name}-${memberIndex}`,
+          kind: 'member',
+          label: resolveLabel(member),
+          band: 'internal',
+          category: category.name,
+          health: classifyHealth(member, nowEpochS),
+          heartbeatAgeS: member.heartbeat_age_s ?? null,
+          toolCount: Array.isArray(member.skills) ? member.skills.length : 0,
+          tools: Array.isArray(member.skills) ? [...member.skills] : [],
+          expanded: false,
+          payload: member,
+          position: {
+            x,
+            y: headerY + cfg.categoryHeaderOffsetY - memberIndex * cfg.memberSpacingY,
+            z: 0,
+          },
+        });
       });
     });
-  });
+
+    const contentDepth = Math.abs(cfg.categoryHeaderOffsetY)
+      + Math.max(0, maxMembers - 1) * cfg.memberSpacingY
+      + cfg.categoryRowGapY;
+    headerY -= Math.max(cfg.rowSpacingY, contentDepth);
+  }
 
   // ── Edge lane: mobile edges, inside the boundary, outside the chart (FR-007) ──
   // Placed AFTER the member columns so the lane can clear whatever width the
