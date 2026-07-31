@@ -47,6 +47,7 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - HaloPSA / HaloITSM  → HALO_BASE_URL, HALO_CLIENT_ID, HALO_CLIENT_SECRET, HALO_TENANT, HALO_SCOPE (OAuth2 client-credentials)
 - Claroty xDome MCP   → CLAROTY_API_URL (default: https://api.medigate.io), CLAROTY_API_TOKEN, CLAROTY_VERIFY_SSL, CLAROTY_TIMEOUT, CLAROTY_RATE_LIMIT_PER_MIN (default: 2000)
 - Twitter MCP         → TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, TWITTER_HEARTBEAT_ENABLED (default: false)
+- Cisco PSIRT MCP     → CISCO_CLIENT_ID, CISCO_CLIENT_SECRET (OAuth2 client-credentials via id.cisco.com), CISCO_PSIRT_CACHE_DIR, CISCO_PSIRT_CACHE_TTL_S (default 21600)
 ```
 
 ## Detailed Per-Integration Notes
@@ -232,6 +233,35 @@ The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writ
 
 - Add whatever helps NetClaw do its job — device nicknames, maintenance windows, ISP circuit IDs, TAC case numbers, anything environment-specific.
 - This file is yours. Skills are shared. Keeping them apart means you can update skills without losing your notes.
+
+## Cisco PSIRT Advisories (`cisco-psirt-mcp`)
+
+Answers whether a running Cisco version is affected by a published advisory. Read-only,
+and it **never contacts a device** — versions come from `pyATS` or `multivendor-cli`.
+
+| Tool | Purpose |
+|---|---|
+| `check_version` | Advisories for one `(ostype, version)` |
+| `check_versions` | A fleet, de-duplicated by version first |
+| `check_cve` | Cisco advisories covering a CVE id |
+| `check_advisory` | One advisory by id |
+| `list_recent` | Advisories by severity over a date range |
+| `psirt_status` | Auth state, rate budget, cache stats, supported families |
+
+**An empty result is not a clean bill of health.** `none_published` means Cisco published
+nothing for that exact version; `normalisation_failed` and `api_error` mean the question
+went unasked. Never report any of the three as "not vulnerable".
+
+**Version format is per-family and the families contradict each other**: `iosxe` wants
+`17.3.1` and rejects `17.3(1)`; `ios` wants `15.2(4)E` and rejects `15.2.4E`; `nxos` wants
+`9.3(5)`; `asa`/`ftd`/`fmc` want dotted; `aci` wants the **switch image** version `15.2(3e)`,
+not the APIC version. The server converts in whichever direction the family needs.
+
+**Not available** (measured, not inferred): `iosxr` → 404, not an OSType on this API;
+Bug/EoX/Case/Serial-to-Info → 403 under the API Console grant; CX Cloud → 504.
+
+**Rate budget**: 5/sec and 30/min shared. Prefer `check_versions` over looping, and treat
+`refresh: true` as an incident tool — it disables the 6-hour cache.
 
 ## Multivendor CLI Driver (`multivendor-cli-mcp`)
 

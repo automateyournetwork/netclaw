@@ -60,6 +60,7 @@ const INTEGRATION_CATALOG = [
   { id: 'fmc', name: 'Cisco FMC', category: 'Security', prefixes: ['fmc-'], color: '#bc4749', transport: 'http', toolEstimate: 8, description: 'Cisco Secure Firewall policy search.' },
   { id: 'nmap', name: 'Nmap', category: 'Security', prefixes: ['nmap-'], color: '#ff006e', transport: 'stdio', toolEstimate: 18, description: 'Scoped scanning and service detection.' },
   { id: 'nvd', name: 'NVD / CVE', category: 'Security', prefixes: ['nvd-'], color: '#fb5607', transport: 'stdio', toolEstimate: 4, description: 'Vulnerability context matched to operational state.' },
+  { id: 'cisco-psirt', name: 'Cisco PSIRT', category: 'Security', prefixes: ['psirt-', 'check_version', 'check_cve'], color: '#d62828', transport: 'stdio', toolEstimate: 6, description: 'Whether a running Cisco version is affected by a published advisory — IOS, IOS-XE, NX-OS, ASA, FTD, FMC, ACI. Read-only; never contacts a device. An empty result means Cisco published nothing, not that the device is secure.' },
   { id: 'grafana', name: 'Grafana', category: 'Observability', prefixes: ['grafana-', 'flow-'], color: '#f8961e', transport: 'http', toolEstimate: 75, description: 'Dashboards, alerts, incidents, and derived telemetry views.' },
   { id: 'prometheus', name: 'Prometheus', category: 'Observability', prefixes: ['prometheus-'], color: '#faa307', transport: 'stdio', toolEstimate: 6, description: 'Direct metrics and PromQL access.' },
   { id: 'thousandeyes', name: 'ThousandEyes', category: 'Observability', prefixes: ['te-'], color: '#ffb703', transport: 'http', toolEstimate: 29, description: 'Synthetic and path-aware external monitoring.' },
@@ -384,6 +385,11 @@ const ENV_MAP = {
     env: ['PAN_CLIENT_ID', 'PAN_CLIENT_SECRET', 'PAN_TSG_ID', 'PAN_REGION'],
     files: ['mcp-servers/prisma-sdwan-mcp/prisma_sdwan_mcp_server.py'],
     notes: 'Palo Alto Networks Prisma SD-WAN via OAuth2. Region is americas or europe. TSG_ID is the Tenant Service Group ID.',
+  },
+  'cisco-psirt': {
+    env: ['CISCO_CLIENT_ID', 'CISCO_CLIENT_SECRET', 'CISCO_PSIRT_CACHE_DIR', 'CISCO_PSIRT_CACHE_TTL_S'],
+    files: ['mcp-servers/cisco-psirt-mcp/server.py'],
+    notes: 'Cisco PSIRT openVuln API via OAuth2 client credentials (id.cisco.com, 3600s token, refreshed proactively at 60s remaining). Read-only and device-free — versions are supplied by the caller from pyATS or multivendor-cli. Rate budget is 5/sec and 30/min shared, so lookups de-duplicate by version and cache for 6h on disk. Version format differs per family and contradicts across them: iosxe wants 17.3.1 and rejects 17.3(1), while ios wants 15.2(4)E and rejects 15.2.4E; aci wants the SWITCH image version 15.2(3e), not the APIC version. NOT available: iosxr (404, not an OSType), Bug/EoX/Case/Serial (403 under this grant), CX Cloud (504).',
   },
   'multivendor-cli': {
     env: ['MULTIVENDOR_INVENTORY_SOURCE', 'MULTIVENDOR_INVENTORY_PATH', 'MULTIVENDOR_WRITE_ENABLED', 'MULTIVENDOR_MAX_WORKERS', 'MULTIVENDOR_TIMEOUT_S', 'MULTIVENDOR_USERNAME', 'MULTIVENDOR_PASSWORD'],

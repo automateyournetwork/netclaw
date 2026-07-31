@@ -38,6 +38,7 @@ CATALOG=(
     "zscaler|Security|Zscaler|Zero Trust — ZIA, ZPA, ZDX (remote, 300+ tools)"
     "claroty|Security|Claroty xDome|OT/IoT/IoMT assets, alerts, vulns (bundled, 21 tools)"
     "nvd-cve|Security|NVD CVE|NIST vulnerability database lookups"
+    "cisco-psirt|Security|Cisco PSIRT Advisories|Is a running version affected? IOS/XE/NX-OS/ASA/FTD/FMC/ACI (6 tools)"
     "nmap|Security|nmap Scanning|Host discovery, port/service/OS scanning (14 tools)"
     "fwrule|Security|Firewall Rule Analyzer|Multi-vendor overlap/shadowing/conflict analysis (9 vendors)"
 
@@ -138,14 +139,14 @@ PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia 
 drawio-rfc uml packet-buddy nmap gtrace suzieq batfish protocol n2n tts chrome-devtools rag-mcp"
 
 PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
-radkit te-community te-official nvd-cve subnet-calc drawio-rfc uml packet-buddy"
+radkit te-community te-official nvd-cve cisco-psirt subnet-calc drawio-rfc uml packet-buddy"
 
 PROFILE_MULTIVENDOR="pyats junos arista-cvp aruba-cx f5 multivendor-cli netbox nautobot gait servicenow \
 fwrule subnet-calc drawio-rfc uml packet-buddy"
 
 PROFILE_CLOUD="aws azure gcp cloudflare terraform vault github gait drawio-rfc uml subnet-calc"
 
-PROFILE_SECURITY="ise fmc panorama fortimanager checkpoint claroty zscaler nvd-cve nmap \
+PROFILE_SECURITY="ise fmc panorama fortimanager checkpoint claroty zscaler nvd-cve cisco-psirt nmap \
 fwrule gait servicenow"
 
 PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzieq gait subnet-calc drawio-rfc uml"

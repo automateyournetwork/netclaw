@@ -4,7 +4,7 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 202 skills, and 150 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, and MemPalace persistent AI memory.
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 203 skills, and 151 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, and MemPalace persistent AI memory.
 
 ## Resources
 
@@ -239,7 +239,7 @@ claw
   <img src="ui/netclaw-visual/logos/netclawvisualhud.png" alt="NetClaw Visual HUD — 3D Network Operations Dashboard" width="800">
 </p>
 
-NetClaw includes a Three.js 3D operations dashboard that computes its integration and skill inventory live from the codebase (currently 150 MCP integrations and 202 skills) each time it's opened, alongside your device fleet and live BGP peering topology — so the dashboard never drifts out of sync with what's actually installed. Chat with NetClaw directly from the browser, watch integrations light up as tools execute, and inspect every node in the graph. The Canvas/A2UI visualization skill renders inline topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards directly in the chat interface.
+NetClaw includes a Three.js 3D operations dashboard that computes its integration and skill inventory live from the codebase (currently 151 MCP integrations and 203 skills) each time it's opened, alongside your device fleet and live BGP peering topology — so the dashboard never drifts out of sync with what's actually installed. Chat with NetClaw directly from the browser, watch integrations light up as tools execute, and inspect every node in the graph. The Canvas/A2UI visualization skill renders inline topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards directly in the chat interface.
 
 ```bash
 cd ui/netclaw-visual
@@ -518,7 +518,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (150)
+## MCP Servers (151)
 
 > Adding one? Follow **[docs/ADDING-AN-MCP.md](docs/ADDING-AN-MCP.md)** and run
 > `python3 scripts/reconcile-mcp.py` before pushing — CI enforces it.
@@ -625,6 +625,8 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 113 | RAG Knowledge Base | Built-in (`rag-mcp`) | stdio (Python) | Offline agentic document knowledge base — user-uploaded vendor guides/standards/customer docs, hybrid dense+BM25 retrieval with reciprocal rank fusion and local cross-encoder reranking, mandatory citations, structure-aware chunking, opt-in secret-scrubbed snapshots with always-visible staleness. Strictly separate from Memory MCP (10 tools) |
 | 114 | Auvik | Built-in | stdio (Python) | Read-only Auvik network monitoring — device and network inventory, alerts, lifecycle/warranty tracking, and performance statistics across MSP tenants (20 tools) |
 | 115 | HaloPSA / HaloITSM | Built-in (`halo-mcp`) | stdio (Python) | HaloPSA/HaloITSM (one API): open change requests via a single gated confirm-before-submit write, and review assets and their related tickets, ticket types/fields, clients/sites/users/contracts, and KB for context. OAuth2 client-credentials (18 tools: 17 read + 1 gated write) |
+| 116 | Multivendor CLI Driver | Built-in (`multivendor-cli-mcp`) | stdio (Python, dedicated venv) | Nornir/NAPALM/Netmiko reach to ~90 platform families no other NetClaw server covers — MikroTik RouterOS, VyOS, SONiC, Nokia SR Linux, Extreme, Huawei, Dell, Ubiquiti EdgeOS. Read-only by default; writes are single-pathed per platform (refuses config change on Cisco/Junos and names the owning server). Runs from its own virtualenv because napalm/netmiko resolve cryptography 49.x while NCFED's X.509 stack needs the system 46.x (10 tools: 8 read + 2 gated writes) |
+| 117 | Cisco PSIRT Advisories | Built-in (`cisco-psirt-mcp`) | stdio (Python) | Cisco PSIRT openVuln API via OAuth2 — is the version a device is actually running affected by a published advisory? Covers IOS, IOS-XE, NX-OS, ASA, FTD, FMC, ACI, with severity/CVSS/CVE per advisory. Read-only and device-free (versions come from pyATS or multivendor-cli). Five typed outcomes keep "Cisco published nothing" distinct from "the question was never asked" — an empty list is never reported as *not vulnerable*. De-duplicates by version and caches 6h to live inside the 5/sec + 30/min budget. IOS-XR is not an OSType on this API (404) and is refused rather than attempted (6 tools) |
 ### Additional Server Notes
 
 All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`, except where noted below (HTTP/remote endpoints).
@@ -661,7 +663,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 
 ---
 
-## Skills (202)
+## Skills (203)
 
 ### pyATS Device Skills (9)
 
@@ -1025,6 +1027,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | Skill | Tool Backend | Purpose |
 |-------|-------------|---------|
 | **nvd-cve** | [marcoeg/mcp-nvd](https://github.com/marcoeg/mcp-nvd) (Python) | NVD vulnerability database — search by keyword, get CVE details with CVSS v3.1/v2.0 scores, exposure correlation |
+| **cisco-psirt-advisories** | Built-in (`cisco-psirt-mcp`) | Cisco PSIRT advisory checks for a running version — IOS, IOS-XE, NX-OS, ASA, FTD, FMC, ACI. Two-step chain: read the version with pyATS/multivendor-cli, then check it. Teaches the distinction that matters — "no advisories" is not "not vulnerable", and a parse failure means nothing was checked. Per-family version formats contradict each other; IOS-XR is unsupported by the API |
 | **subnet-calculator** | [SubnetCalculator MCP](https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension) | IPv4 + IPv6 subnet calculator — VLSM planning, wildcard masks, address classification, RFC 6164 /127 links |
 | **wikipedia-research** | [Wikipedia_MCP](https://github.com/automateyournetwork/Wikipedia_MCP) | Protocol history, standards evolution, technology context. 6 tools: search, summary, content, references, categories, exists check. |
 | **markmap-viz** | [markmap-mcp](https://github.com/automateyournetwork/markmap_mcp) (Node) | Interactive mind maps from markdown — OSPF area hierarchies, BGP peer trees, drift summaries |

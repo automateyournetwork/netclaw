@@ -1027,6 +1027,13 @@
         "-u",
         "mcp-servers/multivendor-cli-mcp/server.py"
       ]
+    },
+    "cisco-psirt-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/cisco-psirt-mcp/server.py"
+      ]
     }
   }
 }

@@ -96,7 +96,7 @@ and the IETF datatracker.
 | ID | Title | Spec # | Status |
 |----|-------|--------|--------|
 | **R1** | Generic multivendor CLI driver (Nornir/Netmiko/NAPALM) | [076](../specs/076-multivendor-cli-driver/spec.md) | `DONE` — 94/94. ~90 platform families reachable; 2 verified live (SR Linux native CLI, FRR shell). Read-only default, server-side filter, 3-tier inventory, gated writes with real ServiceNow CR checking |
-| **R2** | Cisco Support APIs (PSIRT / EoX / Bug / Case) | — | `NOT STARTED` |
+| **R2** | Cisco PSIRT vulnerability intelligence | [078](../specs/078-cisco-psirt-vulnerability/spec.md) | `DONE` — 52/52. **Rescoped from four API families to one**: Bug/EoX/Case/Serial all return 403 under the API Console grant, CX Cloud 504. All 7 PSIRT OSTypes live-verified; `iosxr` is not an OSType (404). Full chain proven on live CML: pyATS read 17.16.1a → 26 advisories, 1 Critical |
 | **R3** | Fortinet (FortiOS / FortiManager / FortiAnalyzer) | — | `NOT STARTED` |
 | **R4** | Palo Alto PAN-OS / Panorama NGFW | — | `NOT STARTED` |
 | **R5** | Juniper Mist (official) + Apstra | — | `NOT STARTED` |
@@ -259,25 +259,30 @@ Nokia SR Linux, Extreme, Huawei, Dell, Ubiquiti EdgeOS and ~90 more platforms.
 
 ---
 
-## R2 — Cisco Support APIs (PSIRT / EoX / Bug / Case)
+## R2 — Cisco PSIRT vulnerability intelligence
 
-**Status:** `NOT STARTED`
+**Status:** `DONE` — spec [078](../specs/078-cisco-psirt-vulnerability/spec.md), 52/52 tasks.
+See the outcome section at the end of this document.
 
 Closes a top-5 real-world netops question NetClaw cannot answer: *is this build affected by
 an advisory, past EoL, or hitting a known bug?* NVD CVE and DevNet content search do not cover
 Cisco-specific advisories, EoL dates, bug IDs, or TAC cases.
 
-**Candidate:** `sieteunoseis/mcp-cisco-support` — 46 tools across Bug Search, Case, EoX,
-PSIRT openVuln, Product, Software Suggestion, Serial→Info.
+**Candidate considered:** `sieteunoseis/mcp-cisco-support` — 46 tools across 8 families.
+**Not adopted.** Seven of its eight families are unreachable with an API Console grant (403/504),
+so most of that tool surface would have been dead weight in the manifest. NetClaw ships its own
+6-tool server against the one family that answers.
 
 **Checklist**
-- [ ] Obtain Cisco API credentials (Support APIs and PSIRT openVuln are separate entitlements)
-- [ ] Handle rate limits — openVuln is 5/sec, 30/min, 5000/day; cache aggressively
-- [ ] Decide which of the 8 API families to enable (server is configurable)
-- [ ] Wire results into the existing `nvd-cve` skill flow rather than duplicating it
-- [ ] Skill: version-to-advisory check, EoL/EoS lookup, serial-to-entitlement
-- [ ] Cross-link with pyATS/`nornir` version collection so the question is answerable end-to-end
-      from a live device, not just a typed-in version string
+- [x] Obtain Cisco API credentials (Support APIs and PSIRT openVuln are separate entitlements)
+      — and they are: PSIRT works, the Support APIs return **403** under the same grant
+- [x] Handle rate limits — 5/sec and 30/min, de-dup → cache → pace → back off, in that order
+- [x] Decide which of the 8 API families to enable — **one is reachable**, not eight
+- [x] Wire results into the existing `nvd-cve` skill flow rather than duplicating it — the
+      boundary is documented in both directions, and either may be legitimately empty
+- [x] Skill: version-to-advisory check ✅ — **EoL/EoS and serial-to-entitlement are 403, dropped**
+- [x] Cross-link with pyATS version collection so the question is answerable end-to-end from a
+      live device — verified on live CML routers, no version typed by a human
 
 ---
 
@@ -879,3 +884,129 @@ nearly all false** — and a noisy check trains people to ignore it, which is wo
 
 `docs/ADDING-AN-MCP.md` now carries both rules: bound any pin on a package whose submodule you import,
 and never call bare `pip`. The gate enforces both, and an exception requires a stated reason.
+
+---
+
+# R2 — Cisco PSIRT vulnerability intelligence (outcome)
+
+Spec [078](../specs/078-cisco-psirt-vulnerability/spec.md). 52/52 tasks. **109 offline checks, 34 live
+API checks, full chain verified on live CML routers.**
+
+## The rescope: eight API families became one
+
+R2 was planned as "Cisco Support APIs (PSIRT / EoX / Bug / Case)". Measuring first — before writing the
+spec — cut it to PSIRT alone:
+
+| Family | Result | Consequence |
+|---|---|---|
+| PSIRT openVuln | **200** | The feature |
+| Bug Search | **403** | Dropped |
+| EoX | **403** | Dropped — so "is this past EoL?" is still unanswerable |
+| Case | **403** | Dropped |
+| Serial→Info | **403** | Dropped |
+| CX Cloud (7 paths) | **504** | Dropped — needs a separate tenant subscription |
+
+The API Console grant covers PSIRT and nothing else. This is why the community candidate
+(`sieteunoseis/mcp-cisco-support`, 46 tools across 8 families) was **not adopted**: seven-eighths of that
+tool manifest would have been dead surface, costing tokens on every turn to advertise capabilities that
+return 403.
+
+**EoL/EoS lookup remains an open gap.** It was half of R2's original value proposition, and it is not
+delivered — not descoped for convenience, but unreachable with the entitlement available.
+
+## `iosxr` is not an OSType
+
+Every version tried (7.5.2, 6.6.3, 24.1.1) returned **404 with an empty body**, against an `iosxe` 200
+control in the same session. The six supported families return `INVALID_<OS>_VERSION` for a bad version,
+which proves the OS itself was recognised — `iosxr` returns nothing of the kind.
+
+This is worth stating loudly in the skill because NetClaw *can* reach IOS-XR through pyATS, so an
+operator will reasonably expect the version check to work. It is refused with a pointer to `check_cve`,
+never silently attempted.
+
+## The finding that changed the design: version formats contradict each other
+
+The spec assumed one normalisation rule (`A.B(C)` → `A.B.C`) and that only `iosxe` could be verified.
+Probing all seven families live produced something different:
+
+| OSType | Accepted | Rejected |
+|---|---|---|
+| `iosxe` | `17.3.1`, `17.03.01`, `17.3.1a` | `17.3(1)` |
+| `ios` | `15.2(4)E`, `15.2(4)E10` | `15.2.4E` |
+| `nxos` | `9.3(5)` | `9.3.5` |
+| `asa` | `9.16.1` | `9.16(1)` |
+| `ftd` / `fmc` | `7.0.1` | `7.2(0)` |
+| `aci` | `15.2(3e)`, `16.0(3e)` | `5.2(3e)`, `5.2.3` |
+
+**The conversion runs in both directions**, chosen per family — `ios` and `nxos` require exactly the form
+`iosxe` rejects, and `aci` needs the letter suffix *inside* the parentheses where `ios` needs it outside.
+The single global rule the spec drafted would have broken `ios` and `nxos` on **every** call.
+
+It also means all seven normalisers are **verified**, not one. The spec's `normaliser_verified` flag was
+designed for a world where six were untestable; they turned out to be testable directly against the API,
+and testing them is what exposed the contradiction. The flag stays — a future Cisco OSType will arrive
+unverified, and the mechanism that says so has to already exist.
+
+**`aci` wants the switch image version**, not the APIC version: `15.2(3e)` returns advisories, `5.2(3e)`
+is rejected. An operator reading the number off an APIC hands over something the API refuses.
+
+## Two bugs the live calls caught that offline tests alone would not have
+
+1. **An unanchored `re.sub` deleted the whole banner.** A `Cisco\s+IOS.*$` alternative meant to strip a
+   trailing fragment matched from the first word of a real `show version` line and consumed everything, so
+   valid input normalised to nothing.
+
+2. **A trailing `\b` silently truncated `17.3(1)` to `17.3`.** `\b` cannot match after `)` at
+   end-of-string, so the regex engine backtracked past the parenthesised build to find *something*. The
+   truncated version then queried the API perfectly cleanly and returned a plausible advisory count **for
+   a version the device is not running**.
+
+The second is the more instructive one, and it is the entire argument for FR-009a. A wrong-but-parseable
+version does not fail — it answers confidently about different software. Normalisation is now anchored:
+a candidate that does not match *in its entirety* is rejected rather than salvaged.
+
+## The distinction the feature exists to protect
+
+Five outcomes, and two of them look identical in the data:
+
+- `none_published` — Cisco has published nothing for this version. **Not "the device is secure."**
+- `normalisation_failed` / `api_error` — **the question was never asked.**
+
+An empty advisory list reads as a clean bill of health. Collapsing a parse failure into one would tell an
+operator a device is safe when nothing was checked. The rule lives inside `normalise.py` rather than the
+tool layer, because if the normaliser can emit a version that reaches the API, the confusion is already
+possible no matter how careful the tool layer is.
+
+`check_versions` reports `outcome_summary` counts for exactly this reason: before calling a fleet clean,
+you have to look at how many devices were never checked.
+
+## Verified end to end on live hardware
+
+pyATS read **IOS-XE 17.16.1a** off a live CML router; PSIRT returned **26 advisories — 14 High, 11 Medium,
+1 Critical** (`cisco-sa-http-code-exec-WmfP3h3O`, CVSS 9.0, CVE-2025-20363). The raw `show version` banner
+and the Genie-parsed version normalised identically, proving the banner path. No human typed a version.
+
+## Rate budget
+
+5/sec and **30/min shared** — the per-minute limit is the real constraint. Order is contractual:
+de-duplicate → cache → pace → back off. Measured: 60 devices on 12 distinct versions cost **12 calls, not
+60**. De-duplication is first because it is the largest win; pacing an un-de-duplicated sweep just spreads
+the same excess over more minutes.
+
+## A split-toolchain note for later specs
+
+`pyATS`/`genie` on this host are importable **only** from `/usr/local/bin/python3.13`, not
+`/usr/bin/python3` (3.14.4) — the stranded site-packages R0a documented. The chain verification therefore
+ran as two processes, which is how it works in production anyway (two MCP servers, two interpreters). Any
+future spec that wants pyATS and a 3.14-installed server in **one** process will hit this.
+
+## Principle XI artifacts
+
+All eight, explicitly — because PR #204 found three missing after R1 and `reconcile-mcp.py` catches none
+of them: catalog entry, **both** `PROFILE_SECURITY` and `PROFILE_CISCO`, install function, portable
+registration, **both** HUD entries (node list *and* annotation map), SOUL capability section, README/TOOLS
+tables, `.env.example`. `reconcile-mcp.py` exits **0** across all four surfaces.
+
+While adding the README rows, R1's `multivendor-cli` was found to have **no row in either README table**
+either — a Principle XI gap the gate cannot see, since it counts catalog and config entries rather than
+table rows. Added in this branch.

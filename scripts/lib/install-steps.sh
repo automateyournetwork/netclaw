@@ -3792,3 +3792,42 @@ else
     log_warn "Multivendor CLI Driver installed but imports failed — check $MV_VENV"
 fi
 }
+
+# ── Cisco PSIRT Advisory MCP (spec 078 / roadmap R2) ────────────
+component_install_cisco_psirt() {
+log_step "Installing Cisco PSIRT Advisory MCP Server..."
+echo "  Answers whether a running Cisco version is affected by a published advisory."
+echo "  Covers IOS, IOS-XE, NX-OS, ASA, FTD, FMC and ACI. Read-only, never touches a device."
+
+PSIRT_DIR="$NETCLAW_DIR/mcp-servers/cisco-psirt-mcp"
+
+if [ ! -f "$PSIRT_DIR/requirements.txt" ]; then
+    log_warn "$PSIRT_DIR not found — skipping Cisco PSIRT MCP."
+    return 0
+fi
+
+# Shared environment, unlike the multivendor driver: this needs only mcp + httpx,
+# both already present for eleven other servers, so a dedicated venv would buy
+# isolation from nothing. netclaw_pip_install, never bare pip — on a split
+# toolchain pip3 can target a different interpreter's site-packages than python3
+# (spec 077 FR-003).
+log_info "Installing dependencies (mcp, httpx — bounded pins)..."
+netclaw_pip_install -q -r "$PSIRT_DIR/requirements.txt" || \
+    log_warn "Cisco PSIRT dependency install failed"
+
+if /usr/bin/python3 -c "import httpx, mcp.server.fastmcp" 2>/dev/null; then
+    log_info "Cisco PSIRT MCP ready (6 tools, read-only)"
+else
+    log_warn "Cisco PSIRT MCP installed but imports failed"
+fi
+
+# Credentials are required at runtime, not install time — the server starts and
+# reports the missing variable by name rather than failing opaquely.
+if [ -z "${CISCO_CLIENT_ID:-}" ] || [ -z "${CISCO_CLIENT_SECRET:-}" ]; then
+    log_info "Set CISCO_CLIENT_ID and CISCO_CLIENT_SECRET in .env to enable it."
+    log_info "  Register a Service application (Client Credentials grant) at"
+    log_info "  apiconsole.cisco.com and select 'Cisco PSIRT openVuln API'."
+fi
+
+echo ""
+}
