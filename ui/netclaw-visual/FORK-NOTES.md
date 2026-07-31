@@ -260,33 +260,26 @@ to ~55.4 kB.
 **Check CSS imports, not just JS, when auditing a merge.** An orphaned
 stylesheet fails silently and looks exactly like broken JavaScript.
 
-## SSH terminal entry points
+## SSH terminal entry point
 
-The button was first added to `setDetail('device')` in `main.js`, which fires
-when a device node is clicked in the 3D scene. **That path is dead in HUD 2.0:**
-`state.devices` is initialised to `[]` and nothing populates it, because
-`buildDevices()` was one of the fork functions the merge dropped. Focus →
-Devices therefore hides the integrations and reveals nothing.
+The original `setDetail('device')` button and later COMMAND `Focus → Devices`
+launcher both depended on HUD 1.0 device populations. Phase 1 of the COMMAND
+redesign retired that dead focus control in favour of `All / Active / Attention`
+trust-map filters rather than resurrecting incompatible orbit geometry.
 
-Rather than resurrect HUD 1.0's device geometry (it used the old orbit/dendrite
-coordinate system and would fight the org-chart renderer), devices get list-based
-entry points:
+The supported entry point is now:
 
 | Path | Where |
 |---|---|
-| CONVERGENCE → Devices → Switches table → **Console** | `src/views/home/HomeView.js` |
-| COMMAND → right sidebar → Focus → Devices → **Open SSH terminal** | `src/fork-local/ui.js` |
+| CONVERGENCE → Devices → Switches table → **Console** | `modules/convergence/ui.js` |
 
-Both lazy-import `TerminalPanel.js`, so xterm stays out of the initial bundle.
-
-`HomeView.js` is fork-only, so it is edited directly — no merge risk, unlike
-`main.js`. It follows the file's existing delegated-listener pattern
-(`data-console-device`, alongside `data-triage-action` and `data-models-action`)
-because the panel body is re-rendered often.
+The action dispatches `netclaw:open-terminal`; the provider in
+`src/fork-local/ui.js` lazy-imports `TerminalPanel.js`, so xterm stays out of the
+initial bundle and Convergence remains decoupled from the terminal implementation.
 
 The Console action only renders when the device name appears in the pyATS
 testbed **and** the terminal is enabled, so the table never shows an action that
 cannot work. Convergence names come from convergence-api (SNMP/UniFi/blackbox)
 and happen to agree with `testbed.yaml` on the switches, but the match is
-explicit rather than assumed — `pfsense` appears in the Convergence edge table
-and correctly gets no Console button, since it is not a testbed device.
+explicit rather than assumed — non-testbed devices correctly get no Console
+button.

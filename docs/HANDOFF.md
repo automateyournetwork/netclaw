@@ -99,13 +99,52 @@ for p in / /api/graph /api/home/status /api/models /api/tokens/summary \
   echo "$(curl -s -o /dev/null -w '%{http_code}') $p"; done
 
 # browser console after a hard refresh
-#   [fork-ui] restored: footer-token-strip, model-readout, device-launcher,
+#   [fork-ui] restored: topbar-height, footer-token-strip, model-readout,
 #                       terminal-provider, chat-drawer-move-resize
 #   [modules] UI mounted: convergence
 ```
 
 After `npm run build` the bundle hashes change — **hard refresh (Ctrl+Shift+R)**
 or you will be looking at a cached, apparently-broken HUD.
+
+### Two renderers, one layout
+
+`orgchart/` computes the layout; two renderers draw it. Neither owns the data.
+
+| Theme | Renderer | Where |
+|---|---|---|
+| Modern | WebGL (Three.js) + CSS2D labels | `src/orgchart-render/` |
+| Retro | DOM Program Manager desktop | `modules/retro-theme/program-manager.js` |
+
+`setOrgChartTheme()` rethemes the WebGL chart **in place** — no remount, so a
+dragged claw keeps its position across a theme switch. Retro hides `#scene-root`
+and mounts the DOM desktop instead; the two never co-exist. Retro also bypasses
+the composer entirely in `animate()` rather than toggling passes, because
+scene-quality reasserts pass state every frame and `enableCinematicBurst()` fires
+on a 6s timeout — a bypass cannot be overridden by either.
+
+### COMMAND layout and right rail
+
+- Internal member claws use a readable multi-row default from
+  `src/orgchart/layout.js`; department summaries render as compact two-line
+  cards instead of one long strip.
+- `src/orgchart-render/drag.js` owns drag lifecycle and click suppression. Two
+  grab targets: a **claw** moves alone, a **department card** moves its header,
+  rail and every claw under it together. Positions persist per Border in browser
+  localStorage through `src/orgchart/positions.js` (**schema v2** — v1 documents
+  are discarded, not migrated, because they held claw offsets against a default
+  packing that has since changed). Footer **Layout → RESET** clears the key and
+  restores the computed default, including department positions.
+- Rails and summaries update **in place**; they must never be rebuilt during an
+  interaction, because `DragControls` holds a live reference to the department
+  handle mesh. Anything that does rebuild them (theme switch, a member enrolling)
+  must call `state.orgChartDrag.refresh()` — the targets array is mutated in
+  place, never replaced, for the same reason.
+- Border, external peers and the mobile-edge lane keep their structural
+  positions; only claws and departments move.
+- The right rail order is **Focus → Selection → Knowledge**. Knowledge uses
+  `new KnowledgePanel(socket, { docked: true })`; docked mode keeps RAG behavior
+  but deliberately skips floating drag/resize and geometry restoration.
 
 ---
 
@@ -162,6 +201,30 @@ or you will be looking at a cached, apparently-broken HUD.
   timeout on chat activation, restores from the quality mode), and init ordering.
   Anything that tunes those passes needs a per-frame drift check, not an event
   listener — a listener let grain come back on the next chat turn.
+- **A CSS2DObject only removes its `<div>` when THAT object is detached.**
+  Removing a *group* that contains labels does not cascade, so every rebuild of
+  bands/categories/nodes left orphaned label elements in the DOM — frozen at
+  their last projected position while the live chart panned underneath. On screen
+  it reads as "a second copy of the chart that won't move", and nothing appears
+  in the console. Any `dispose()` that tears down a group with labels must call
+  `removeLabelElements()` (`orgchart-render/css2d.js`). `expansion.js` had always
+  done this by hand; the rebuild helpers copied the geometry/material dispose
+  shape and missed it.
+- **A module-level helper can be shadowed by a local `const` inside one
+  function.** `buildCategories()` has a local `const rail` for the rail mesh; a
+  module-level `rail()` style helper called earlier in that same scope is a
+  temporal-dead-zone error, minified to `Cannot access 'd' before
+  initialization`. Named `railStyle()` now. **The 85 tests passed with this bug
+  present** — they cover layout maths and treatment constants, not scene
+  construction, so browser-only boot failures slip straight through. Exercise the
+  real build path in node when touching a builder.
+- **Retro cannot be reached by restyling the 3D scene.** Two attempts were made
+  (light clear colour, flat materials, composer bypass) and both still read as
+  "the dark galaxy with different paint", because lit spheres/rings/icosahedra do
+  not become desktop icons whatever colour they are. Win3.11 is 1px bevels and
+  icon grids — a DOM problem. Retro now hides the canvas and renders its own
+  Program Manager desktop from the same layout data
+  (`modules/retro-theme/program-manager.js`).
 - **The repo is PUBLIC.** No credentials, real hostnames or management IPs in
   committed docs. `SSH-TERMINAL-HARDENING.md` was redacted for this; the values
   remain in history at `edc9ae8`, so the affected switch credentials should be
@@ -171,14 +234,11 @@ or you will be looking at a cached, apparently-broken HUD.
 
 ## 6. Known-dead / known-broken
 
-- **`Focus → Devices` shows nothing.** Upstream's `index.html` ships
-  `data-view="devices"` and `main.js` references `state.devices` in 10 places,
-  but nothing populates it — `buildDevices()` did not survive the org-chart
-  rewrite. So the `setDetail('device')` branch is unreachable, including the
-  Console button in there. This is an upstream bug, reproducible on a clean
-  install; the maintainer confirmed the org chart intentionally replaced the
-  orbit view. Reaching the terminal works via CONVERGENCE → Devices → Console,
-  and the sidebar launcher in `fork-local`.
+- **The retired HUD 1.0 integration/device populations still have residual state
+  and detail code in `main.js`.** Phase 1 no longer exposes controls that target
+  those empty arrays: COMMAND now uses real org-chart category filters plus
+  `All / Active / Attention` focus. Do not repopulate the old orbit geometry;
+  remove the residual code upstream when the renderer contract is stable.
 - **`src/app-shell/mobile-layout.js`, `graph-cache.js`, `register-sw.js` are
   orphaned** — nothing imports them. So mobile layout, long-press select, graph
   caching and the service worker are all inactive. Restoring them needs
@@ -200,9 +260,9 @@ Maintainer has **accepted** the extension-point proposal.
 
 | Item | State | Where |
 |---|---|---|
-| `/api/env` secrets fix | branch pushed, PR not opened | `fix/env-endpoint-leaks-secrets` (`ebdfde1`) |
+| `/api/env` secrets fix | merged upstream | PR #190 |
 | Module loader | branch pushed, PR not opened | `feat/hud-module-loader` (`5ce4de2`) |
-| Dead `Focus → Devices` | not filed | offer as separate issue |
+| COMMAND trust-map Phase 1 | local, not filed | capability departments, interaction state, real focus controls, viewport framing |
 
 Bodies to paste are in `docs/upstream/`. The PAT on this host is **read-only** on
 `automateyournetwork/netclaw` (`permissions: pull` only), so PRs and issues must
