@@ -61,6 +61,13 @@ export function registerForkUI(ctx) {
   const restored = [];
 
   try {
+    initTopbarHeight();
+    restored.push('topbar-height');
+  } catch (err) {
+    console.error('[fork-ui] topbar height failed:', err);
+  }
+
+  try {
     initTokenStrip();
     restored.push('footer-token-strip');
   } catch (err) {
@@ -131,6 +138,81 @@ export function registerForkUI(ctx) {
 // The listener is additive: upstream's own .segmented-btn handler still runs and
 // still sets state.filters.view / applyFilters(). We only paint the panel.
 // ─────────────────────────────────────────────────────────────────────────────
+/**
+ * Publish `--topbar-height` so everything positioned below the topbar tracks its
+ * real height.
+ *
+ * THE BUG THIS FIXES
+ *   The topbar is `position: fixed; top: 18px` and its height is content-driven.
+ *   Six rules in three stylesheets offset themselves from it:
+ *
+ *     src/styles.css:277              .sidebar        var(--topbar-height, 140px)
+ *     src/styles.css:1704             .sidebar        (landscape)          72px
+ *     modules/convergence/home.css:69 #home-root                          128px
+ *     modules/convergence/home.css:745/791                                140px
+ *
+ *   Every one of those is a *fallback*. The variable itself was only ever
+ *   written by `src/app-shell/mobile-layout.js`, and that module has no
+ *   importers — it did not survive the HUD 2.0 merge. So the variable was never
+ *   set, every consumer used its fallback, and the layout silently assumed a
+ *   topbar of a fixed height it had no way to guarantee.
+ *
+ *   That held until the brand block gained a fourth row. It is
+ *   `flex-direction: column; gap: 10px` (modules/convergence/home.css:4), so at
+ *   a wide viewport it stacks eyebrow (~17) + brand (~38, `clamp(28px, 4vw,
+ *   42px)`) + tab strip (~38) + the retro toggle (~23), three 10px gaps and
+ *   16px of padding top and bottom — about 178px against a 140px fallback.
+ *
+ *   The topbar therefore ended 38px lower than the sidebars expected, and
+ *   `.sidebar > .panel-toggle` sits at `top: 10px` inside the sidebar — squarely
+ *   inside that overlap, which is why the collapse buttons disappeared. On the
+ *   CONVERGENCE tab `#home-root` uses a 128px fallback, so it lost ~56px.
+ *
+ * WHY HERE
+ *   This is first-party chrome that stopped working, not a new feature, so it
+ *   belongs in fork-local rather than a module — and it must not be a module,
+ *   because the sidebars are broken whether or not any module is installed.
+ *   Restoring `mobile-layout.js` wholesale would also fix it, but that module
+ *   needs `applyReducedMotion` and `wireLongPressSelect`, which upstream's
+ *   main.js does not define. This takes only the measurement.
+ *
+ *   Written on both `#app` and `:root` because the consumers are split between
+ *   `#app`-scoped and document-scoped rules.
+ */
+function initTopbarHeight() {
+  const app = document.getElementById('app');
+  const topbar = document.querySelector('.topbar');
+  if (!topbar) return;
+
+  let last = -1;
+  const publish = () => {
+    // Guard against a collapsed measurement (display:none, first paint) writing
+    // a height that would pull the sidebars up under the topbar.
+    const h = Math.max(64, Math.ceil(topbar.getBoundingClientRect().height));
+    if (h === last) return;
+    last = h;
+    const value = `${h}px`;
+    app?.style.setProperty('--topbar-height', value);
+    document.documentElement.style.setProperty('--topbar-height', value);
+  };
+
+  publish();
+
+  if (typeof ResizeObserver !== 'undefined') {
+    // Catches the cases a resize listener cannot see: modules appending controls
+    // to the topbar after load, the metric grid wrapping, and the per-tab
+    // swap between #topbar-stats-command and #topbar-stats-home.
+    new ResizeObserver(publish).observe(topbar);
+  }
+  window.addEventListener('resize', publish);
+  window.visualViewport?.addEventListener('resize', publish);
+
+  // Fonts land after first paint and change the brand line box, so re-measure
+  // once they are ready. ResizeObserver covers this too where supported; this is
+  // the belt for browsers that batch the reflow.
+  document.fonts?.ready?.then(publish).catch(() => {});
+}
+
 function initDeviceLauncher() {
   const buttons = document.querySelectorAll('.segmented-btn');
   if (!buttons.length) return;

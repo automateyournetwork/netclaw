@@ -149,6 +149,16 @@ body.retro-311 .metric .metric-value {
 }
 
 /* ── the toggle itself ───────────────────────────────────────────────────── */
+/* Keeps the toggle on the tab strip's line rather than stacking below it in the
+   column-flex brand block, which would grow the topbar. See mountToggle(). */
+.retro-tab-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
 .retro-theme-toggle {
   margin-left: 8px;
   cursor: pointer;

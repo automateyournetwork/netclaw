@@ -70,12 +70,37 @@ function apply(theme) {
   window.dispatchEvent(new CustomEvent(EVENT, { detail: { theme: current } }));
 }
 
-/** Put the toggle in the topbar, next to the tab strip. */
+/**
+ * Put the toggle on the same line as the tab strip.
+ *
+ * Appending to `#app-tabs`' parent is the obvious move and it is wrong: the
+ * parent is `.topbar-brand-block`, which is `flex-direction: column`, so the
+ * toggle became a fourth stacked row and made the topbar ~23px taller plus a
+ * 10px gap. Anything positioned below the topbar then sat under it — see
+ * initTopbarHeight in src/fork-local/ui.js for why that was not self-correcting.
+ *
+ * So wrap the tab strip and the toggle in a row instead. `#app-tabs` is moved,
+ * not recreated, so its id, children and listeners survive — main.js queries it
+ * by id and delegates from its buttons.
+ */
 function mountToggle() {
   if (document.getElementById('retro-theme-toggle')) return true;
 
-  const host = document.getElementById('app-tabs')?.parentElement
-    || document.querySelector('.topbar');
+  const tabs = document.getElementById('app-tabs');
+  const topbar = document.querySelector('.topbar');
+  let host = null;
+
+  if (tabs?.parentElement) {
+    const row = document.createElement('div');
+    row.className = 'retro-tab-row';
+    tabs.parentElement.insertBefore(row, tabs);
+    row.appendChild(tabs);
+    host = row;
+  } else if (topbar) {
+    // No tab strip (Convergence not installed): a direct topbar child is a
+    // flex row item, so it still costs no extra height.
+    host = topbar;
+  }
   if (!host) return false;
 
   const btn = document.createElement('button');
