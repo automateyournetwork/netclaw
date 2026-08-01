@@ -759,7 +759,7 @@ convergence integration.
 
 ### Inventory render (PR1)
 
-- [ ] T161 Extend `render-convergence-telemetry.py` with a **fourth output**:
+- [x] T161 Extend `render-convergence-telemetry.py` with a **fourth output**:
       SuzieQ `inventory.yml` + namespace map, rendered from the existing
       `device_telemetry.snmp.targets` list. Same managed-section markers, same
       idempotency contract. Nautobot/NetBox modes feed it for free.
@@ -768,25 +768,25 @@ convergence integration.
       poll_period, retention_days, `exclude_roles`, credential **env refs only**).
       **No secret may appear in the rendered inventory** — same rule as
       `SNMP_COMMUNITY`.
-- [ ] T162 Extend `check-config-drift.sh` to cover the SuzieQ renders, and verify
+- [x] T162 Extend `check-config-drift.sh` to cover the SuzieQ renders, and verify
       a second `convergence-telemetry-apply.sh` run is a no-op (no duplicate
       inventory entries, no clobbering of unrelated config).
 
 ### Docker adapter (PR2)
 
-- [ ] T163 `deploy/convergence/adapters/suzieq/` following the `device-snmp`
+- [x] T163 `deploy/convergence/adapters/suzieq/` following the `device-snmp`
       pattern — `README.md` (scale guidance, credential model, sizing),
       `inventory.yml.tmpl`, `suzieq-cfg.yml.tmpl`. Compose profile `["suzieq"]`:
       poller + REST API, named volume for the parquet lake, retention applied.
       **SuzieQ's own SNMP collection path pinned off** — exactly one thing polls
       SNMP in this architecture and it is the OTel Collector (FR-045).
-- [ ] T164 Scrape the `sqPoller` table into Prometheus and add
+- [x] T164 Scrape the `sqPoller` table into Prometheus and add
       `SuzieQPollerDown` / `SuzieQPollerStale` to the alert pack per
       `docs/CONVERGENCE-ALERT-SAFETY.md` with `investigate` labels.
       **Rationale**: a stale lake is worse than no lake — the agent will report
       week-old adjacency state as current, write a wrong root cause to the diary,
       and seed RAG with a bad prior.
-- [ ] T165 `smoke-suzieq.sh` — poller reaches devices, REST answers, tables
+- [x] T165 `smoke-suzieq.sh` — poller reaches devices, REST answers, tables
       populate, freshness stamps present, **SNMP path asserted off**, and a
       deliberately oversized query returns truncated-with-metadata rather than an
       unbounded payload.
