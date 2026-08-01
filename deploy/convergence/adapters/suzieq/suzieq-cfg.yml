@@ -1,0 +1,25 @@
+# SuzieQ poller + REST configuration (Phase 12)
+# This file is mounted into the container at /home/suzieq/.suzieq/suzieq-cfg.yml
+
+data-directory: /data/parquet
+temp-directory: /tmp/suzieq-tmp
+
+rest:
+  API_KEY: ${SUZIEQ_API_KEY:-change-me}
+  address: 0.0.0.0
+  port: 8000
+  no-https: true
+  logging-level: WARNING
+
+poller:
+  logging-level: WARNING
+  period: 300        # 5 minutes — matches convergence.yaml default
+  connect-timeout: 15
+  log-stdout: true
+
+coalescer:
+  period: 1h
+  logging-level: WARNING
+
+analyzer:
+  timezone: UTC

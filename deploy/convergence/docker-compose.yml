@@ -173,6 +173,52 @@ services:
   # the same metric names with cleaner labels plus interface_admin_status. See
   # deploy/convergence/otel/snmp-receivers.md.
 
+  # --- SuzieQ state-history plane (Phase 12, profile: suzieq) ---
+  # Scale-tier component for historical device state queries.
+  # Requires: SUZIEQ_DEVICE_USER, SUZIEQ_DEVICE_PASSWORD, SUZIEQ_API_KEY in .env
+  # See: deploy/convergence/adapters/suzieq/README.md
+  suzieq-poller:
+    profiles: ["suzieq"]
+    image: netenglabs/suzieq:0.24.0
+    restart: unless-stopped
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        cp /config/suzieq-cfg.yml /home/suzieq/.suzieq/suzieq-cfg.yml
+        exec python3 -m suzieq.poller.sq_poller -I /config/inventory.yaml
+    environment:
+      - SUZIEQ_DEVICE_USER=${SUZIEQ_DEVICE_USER}
+      - SUZIEQ_DEVICE_PASSWORD=${SUZIEQ_DEVICE_PASSWORD}
+      - SUZIEQ_API_KEY=${SUZIEQ_API_KEY:-change-me}
+    volumes:
+      - ./adapters/suzieq/inventory.yaml:/config/inventory.yaml:ro
+      - ./adapters/suzieq/suzieq-cfg.yml:/config/suzieq-cfg.yml:ro
+      - suzieq-parquet:/data/parquet
+      - ${HOME}/.ssh/known_hosts:/home/suzieq/.ssh/known_hosts:ro
+    networks: [convergence]
+
+  suzieq-rest:
+    profiles: ["suzieq"]
+    image: netenglabs/suzieq:0.24.0
+    restart: unless-stopped
+    entrypoint: /bin/bash
+    command:
+      - -c
+      - |
+        cp /config/suzieq-cfg.yml /home/suzieq/.suzieq/suzieq-cfg.yml
+        exec python3 -m suzieq.restServer.sq_rest_server
+    environment:
+      - SUZIEQ_API_KEY=${SUZIEQ_API_KEY:-change-me}
+    volumes:
+      - ./adapters/suzieq/suzieq-cfg.yml:/config/suzieq-cfg.yml:ro
+      - suzieq-parquet:/data/parquet:ro
+    ports:
+      - "${SUZIEQ_REST_PORT:-8000}:8000"
+    depends_on:
+      - suzieq-poller
+    networks: [convergence]
+
 networks:
   convergence:
     name: netclaw-convergence
@@ -181,3 +227,4 @@ volumes:
   convergence-pgdata:
   convergence-promdata:
   convergence-amdata:
+  suzieq-parquet:

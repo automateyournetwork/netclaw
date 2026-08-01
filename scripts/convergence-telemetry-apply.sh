@@ -154,6 +154,42 @@ echo "  otel config:  $OTEL_CONFIG (managed sections, job=$OTEL_JOB)"
 echo "  prometheus:   $PROM_YML (managed section)"
 echo "  checklist:    $CHECKLIST_OUT"
 
+# --- SuzieQ inventory (Phase 12, T161) -----------------------------------------
+# Render the SuzieQ native inventory from the same target list. Only produces
+# output when device_telemetry.state.suzieq.enabled=true in the config or when
+# --out-suzieq is forced. The adapter deploy reads this file.
+SUZIEQ_INV="${DEPLOY}/adapters/suzieq/inventory.yaml"
+SUZIEQ_ENABLED=0
+if [[ -n "${CFG:-}" ]]; then
+  SUZIEQ_ENABLED=$(python3 -c "
+import yaml, sys
+cfg = yaml.safe_load(open('${CFG}'))
+st = (cfg.get('device_telemetry') or {}).get('state', {}).get('suzieq', {})
+print(1 if st.get('enabled') else 0)
+" 2>/dev/null || echo 0)
+fi
+if [[ "$SUZIEQ_ENABLED" -eq 1 ]]; then
+  SUZIEQ_ARGS=(--out-suzieq "$SUZIEQ_INV")
+  # Pass namespace and exclude_roles from the config
+  SQ_NS=$(python3 -c "
+import yaml
+cfg = yaml.safe_load(open('${CFG}'))
+st = cfg.get('device_telemetry',{}).get('state',{}).get('suzieq',{})
+print(st.get('namespace',''))" 2>/dev/null || true)
+  SQ_EXCLUDE=$(python3 -c "
+import yaml
+cfg = yaml.safe_load(open('${CFG}'))
+st = cfg.get('device_telemetry',{}).get('state',{}).get('suzieq',{})
+print(','.join(st.get('exclude_roles',[])))" 2>/dev/null || true)
+  [[ -n "$SQ_NS" ]] && SUZIEQ_ARGS+=(--suzieq-namespace "$SQ_NS")
+  [[ -n "$SQ_EXCLUDE" ]] && SUZIEQ_ARGS+=(--suzieq-exclude-roles "$SQ_EXCLUDE")
+  mkdir -p "$(dirname "$SUZIEQ_INV")"
+  "${RENDER_ARGS[@]}" "${SUZIEQ_ARGS[@]}" 2>/dev/null
+  echo "  suzieq inv:   $SUZIEQ_INV"
+else
+  echo "  suzieq:       skipped (state.suzieq.enabled=false or not in config)"
+fi
+
 # Validate before restarting anything — a bad collector config takes device
 # telemetry down, and the collector exits rather than running degraded.
 if [[ -f "$OTEL_CONFIG" ]] && command -v docker >/dev/null 2>&1; then
