@@ -40,7 +40,7 @@ alert (e.g. per-switch-port) must never open dozens of concurrent sessions.
 **Policy file:** `~/.openclaw/investigation-policy.yaml`  
 **Seed:** `./scripts/netclaw-investigation-policy.sh seed-observe-only`  
 **Status:** `GET /policy/status`  
-**Spec:** `specs/067-convergence/investigation-policy.md`
+**Spec:** `specs/080-convergence/investigation-policy.md`
 
 | Tier | Behavior |
 |------|----------|

@@ -15,7 +15,7 @@
 #   - snmp_exporter needed a recording-rule layer to produce interface_* names,
 #     which the OTel SNMP receiver emits directly, plus interface_admin_status
 #
-# See specs/067-convergence/otel-convergence.md.
+# See specs/080-convergence/otel-convergence.md.
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 

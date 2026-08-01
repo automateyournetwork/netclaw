@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test NetClaw Convergence Docker stack (067 Phase 3 / T033).
+# Smoke-test NetClaw Convergence Docker stack (080 Phase 3 / T033).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
 cd "$ROOT"

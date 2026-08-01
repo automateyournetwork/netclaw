@@ -1,4 +1,4 @@
-# Contract: Telemetry setup (067 Phase 10)
+# Contract: Telemetry setup (080 Phase 10)
 
 **Consumer**: setup wizard, render/apply scripts, installer catalog step
 `convergence-device-snmp`, Prometheus, snmp_exporter, Grafana provisioning.  

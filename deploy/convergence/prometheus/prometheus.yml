@@ -1,4 +1,4 @@
-# NetClaw Convergence — minimal Prometheus (067 Phase 3)
+# NetClaw Convergence — minimal Prometheus (080 Phase 3)
 global:
   scrape_interval: 15s
   evaluation_interval: 15s

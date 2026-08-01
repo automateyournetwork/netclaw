@@ -1,4 +1,4 @@
-# NetClaw Convergence — Docker minimal stack (067-convergence Phase 3)
+# NetClaw Convergence — Docker minimal stack (080-convergence Phase 3)
 #
 # Core: postgres, prometheus, alertmanager, blackbox, convergence-api
 # Optional: unifi-exporter  →  docker compose --profile unifi up -d

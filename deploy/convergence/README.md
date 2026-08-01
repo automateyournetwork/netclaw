@@ -1,4 +1,4 @@
-# NetClaw Convergence — Docker minimal (067 Phase 3+)
+# NetClaw Convergence — Docker minimal (080 Phase 3+)
 
 Single-host OBS + **convergence-api** stack for the HUD **HOME** tab
 (site health, Wi‑Fi, devices, diary, triage). Paths and compose project:

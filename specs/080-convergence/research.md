@@ -1,4 +1,4 @@
-# Research: 067-convergence
+# Research: 080-convergence
 
 ## Decisions
 
@@ -23,7 +23,7 @@
 **Alternatives**: Forever proxy to external repo (poor upstream UX).
 
 ### D5 — Spec Kit tracking
-**Decision**: All PR work tracked in `specs/067-convergence/tasks.md` via specify templates.  
+**Decision**: All PR work tracked in `specs/080-convergence/tasks.md` via specify templates.  
 **Rationale**: NetClaw constitution / SDD standard (062, 049, …).
 
 ### D6 — Wireless v1

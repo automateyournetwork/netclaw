@@ -275,7 +275,7 @@ select_components() {
         "Security        — ISE, FMC, Panorama, FortiManager, Check Point, Zscaler..."
         "Labs            — CML, ContainerLab, Batfish, protocol peering, SuzieQ"
         "Observability   — Grafana, Prometheus, Datadog, Splunk, ThousandEyes..."
-        "Convergence     — Home NOC pipeline: metrics, adapters, HUD, investigator (067)"
+        "Convergence     — Home NOC pipeline: metrics, adapters, HUD, investigator (080)"
         "Minimal         — pyATS + audit trail + core utilities"
     )
     profiles+=(recommended custom full cisco multivendor cloud security labs observability convergence minimal)

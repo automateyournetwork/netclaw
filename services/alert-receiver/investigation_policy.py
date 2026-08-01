@@ -1,4 +1,4 @@
-"""Investigation policy loader and tier resolution (067 Phase 9).
+"""Investigation policy loader and tier resolution (080 Phase 9).
 
 Policy file is data the operator edits as alert hygiene improves.
 Missing/invalid file → T0 (fail-safe, no multi-tool auto-investigation).

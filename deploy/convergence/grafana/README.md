@@ -111,4 +111,4 @@ curl -s -X POST http://127.0.0.1:9090/-/reload
 
 ## Spec
 
-`specs/067-convergence/telemetry-setup.md` · Phase 10 curated suite.
+`specs/080-convergence/telemetry-setup.md` · Phase 10 curated suite.

@@ -3,8 +3,8 @@
 How device telemetry flows from network devices into dashboards and alerts.
 
 **Status**: Implemented (Phase 11, 2026-07-27)  
-**Spec**: [`specs/067-convergence/otel-convergence.md`](../specs/067-convergence/otel-convergence.md)  
-**Future**: [`specs/067-convergence/rag-driven-telemetry.md`](../specs/067-convergence/rag-driven-telemetry.md) (Phase 12 — RAG-driven vendor profiles)
+**Spec**: [`specs/080-convergence/otel-convergence.md`](../specs/080-convergence/otel-convergence.md)  
+**Future**: [`specs/080-convergence/rag-driven-telemetry.md`](../specs/080-convergence/rag-driven-telemetry.md) (Phase 12 — RAG-driven vendor profiles)
 
 ---
 
@@ -251,7 +251,7 @@ Phase 12 adds a RAG lookup at setup time:
 
 Supporting a new vendor = write one markdown document describing its MIB tables, ingest it, and re-run the wizard. No Python edits, no PRs.
 
-See [`specs/067-convergence/rag-driven-telemetry.md`](../specs/067-convergence/rag-driven-telemetry.md).
+See [`specs/080-convergence/rag-driven-telemetry.md`](../specs/080-convergence/rag-driven-telemetry.md).
 
 ---
 

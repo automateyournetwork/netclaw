@@ -6,7 +6,7 @@ Pilot source of truth (this host / fork):
 |------|------|
 | `~/k3s-observability-stack/k8s/observability/` | Full OBS: Prometheus, AM, blackbox, UniFi exporter, VM, Loki, Grafana, … |
 | `netclaw/ui/convergence-api/k8s/` | Pilot Network Guardian Web + `guardian-postgres` in `observability` |
-| `deploy/convergence/k8s/` (this tree) | Productized Home minimal stack (067 Phase 4) |
+| `deploy/convergence/k8s/` (this tree) | Productized Home minimal stack (080 Phase 4) |
 
 ## Namespace and naming
 
@@ -142,4 +142,4 @@ spec:
 - Docker Home: `deploy/convergence/README.md`, `docker-compose.yml`
 - Pilot deploy: `~/k3s-observability-stack/k8s/observability/deploy.sh`
 - Pilot Guardian: `ui/convergence-api/k8s/deploy.sh`
-- Spec: `specs/067-convergence/`
+- Spec: `specs/080-convergence/`

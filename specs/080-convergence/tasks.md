@@ -1,6 +1,6 @@
-# Tasks: NetClaw Home (067-convergence)
+# Tasks: NetClaw Home (080-convergence)
 
-**Input**: Design documents from `/specs/067-convergence/`  
+**Input**: Design documents from `/specs/080-convergence/`  
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/  
 **Tests**: Manual HUD smoke + compose smoke scripts; unit tests where noted  
 **Organization**: Phases align to upstream PRs / user stories
@@ -17,7 +17,7 @@
 
 **Purpose**: Track work in-repo via specify
 
-- [x] T001 Create `specs/067-convergence/` with spec.md, plan.md, tasks.md, research.md, data-model.md, quickstart.md, contracts/, checklists/
+- [x] T001 Create `specs/080-convergence/` with spec.md, plan.md, tasks.md, research.md, data-model.md, quickstart.md, contracts/, checklists/
 - [x] T002 [P] Author FR/user stories including risk preserve + guardian-claw ensure (any operator)
 - [x] T003 [P] Author contracts for convergence-api, adapters, install wizard
 - [x] T004 Constitution Check recorded in plan.md

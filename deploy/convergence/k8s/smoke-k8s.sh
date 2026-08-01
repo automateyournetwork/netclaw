@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Smoke-test NetClaw Convergence K3s kustomize (067 Phase 4 / T042).
+# Smoke-test NetClaw Convergence K3s kustomize (080 Phase 4 / T042).
 # Always validates kustomize build. Live cluster checks when kubectl works.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"

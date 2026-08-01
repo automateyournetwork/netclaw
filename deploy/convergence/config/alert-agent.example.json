@@ -1,5 +1,5 @@
 {
-  "_comment": "067 Phase 9 T106 — thin alert orchestrator agent for hook:alert T2. Apply with scripts/netclaw-alert-agent-profile.sh apply. Interactive main keeps full MCP; hooks must not share it.",
+  "_comment": "080 Phase 9 T106 — thin alert orchestrator agent for hook:alert T2. Apply with scripts/netclaw-alert-agent-profile.sh apply. Interactive main keeps full MCP; hooks must not share it.",
   "agent": {
     "id": "alert",
     "name": "Alert Orchestrator",

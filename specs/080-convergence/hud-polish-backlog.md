@@ -1,7 +1,7 @@
 # HUD polish backlog (mobile + operator chrome)
 
 **Status**: Active backlog — pick up when returning to Visual HUD UX  
-**Spec home**: `specs/067-convergence/`  
+**Spec home**: `specs/080-convergence/`  
 **Code home**: `ui/netclaw-visual/`  
 **Last updated**: 2026-07-24 (H001–H010 shipped — Phase H complete)
 

@@ -1,4 +1,4 @@
-# Contract: Investigation policy (067 Phase 9)
+# Contract: Investigation policy (080 Phase 9)
 
 **Consumer**: `services/alert-receiver` (primary); optional setup/CLI; optional HUD read-only status later.  
 **Detail**: [`../investigation-policy.md`](../investigation-policy.md)

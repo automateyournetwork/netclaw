@@ -1,5 +1,5 @@
 /**
- * 067-convergence — Home product view (HUD-styled).
+ * 080-convergence — Home product view (HUD-styled).
  * Live data via HUD proxy /api/home/* → convergence-api / Network Guardian (dual-run).
  */
 

@@ -1,4 +1,4 @@
-# NetClaw Convergence — K3s / Kustomize (067 Phase 4)
+# NetClaw Convergence — K3s / Kustomize (080 Phase 4)
 
 Minimal stack matching Docker Home (`deploy/convergence/docker-compose.yml`):
 

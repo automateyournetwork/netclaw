@@ -1,4 +1,4 @@
-# Requirements checklist: 067-convergence
+# Requirements checklist: 080-convergence
 
 **Feature**: [spec.md](../spec.md)
 
@@ -26,9 +26,9 @@ Before opening the single upstream PR, confirm no spec/implementation drift:
 # retired board names must not appear as acceptance surfaces
 # (tasks.md keeps them only inside the superseded T132/T133 history entries)
 grep -rn "Campus Interfaces\|Home NOC\|network-interfaces\|device-snmp-switches" \
-  specs/067-convergence/spec.md specs/067-convergence/plan.md \
-  specs/067-convergence/quickstart.md specs/067-convergence/telemetry-setup.md \
-  specs/067-convergence/contracts/
+  specs/080-convergence/spec.md specs/080-convergence/plan.md \
+  specs/080-convergence/quickstart.md specs/080-convergence/telemetry-setup.md \
+  specs/080-convergence/contracts/
 
 # provisioned suite matches FR-027
 ls deploy/convergence/grafana/provisioning/dashboards/json/

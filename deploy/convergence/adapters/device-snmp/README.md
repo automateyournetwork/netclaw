@@ -4,7 +4,7 @@
 > `interface_errors_*_total`) and `interface_admin_status` is new. Labels lose
 > `ifIndex`/`ifName`/`ifDescr`/`snmp_module`. See
 > [`../../otel/snmp-receivers.md`](../../otel/snmp-receivers.md) and
-> [`../../../specs/067-convergence/otel-convergence.md`](../../../specs/067-convergence/otel-convergence.md).
+> [`../../../specs/080-convergence/otel-convergence.md`](../../../specs/080-convergence/otel-convergence.md).
 > The `snmp.yml` module pack here is still used by the wireless exporter and is the
 > input the T154 generator reads for OID/vendor mapping.
 
@@ -105,7 +105,7 @@ Do **not** reintroduce per-`ifIndex` admin-up/oper-down as `investigate=true`.
 ## Config
 
 See `config/convergence.example.yaml` → `device_telemetry.snmp` and
-`specs/067-convergence/telemetry-setup.md`.
+`specs/080-convergence/telemetry-setup.md`.
 
 ## K3s
 

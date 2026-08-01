@@ -3731,7 +3731,7 @@ echo ""
 }
 
 # ═══════════════════════════════════════════════════════════════════
-# NetClaw Convergence (067-convergence) — Phase 5 installer components
+# NetClaw Convergence (080-convergence) — Phase 5 installer components
 # Function names: component_install_<id with hyphens→underscores>
 # ═══════════════════════════════════════════════════════════════════
 
@@ -3770,7 +3770,7 @@ else
 fi
 
 log_info "Convergence core ready. Set CONVERGENCE_API_URL / CONVERGENCE_API_TOKEN in $RUNTIME_ENV after deploy (HOME_API_* aliases still work)."
-echo "  Docs: specs/067-convergence/quickstart.md  deploy/convergence/README.md"
+echo "  Docs: specs/080-convergence/quickstart.md  deploy/convergence/README.md"
 echo ""
 }
 
@@ -3871,7 +3871,7 @@ component_install_convergence_device_snmp() {
 log_step "Convergence device SNMP (campus switches)..."
 echo "  Phase 8 plumbing + Phase 10 setup/apply — IF-MIB via snmp_exporter"
 echo "  Docs: deploy/convergence/adapters/device-snmp/README.md"
-echo "  Spec: specs/067-convergence/telemetry-setup.md"
+echo "  Spec: specs/080-convergence/telemetry-setup.md"
 _setup="$NETCLAW_DIR/scripts/convergence-telemetry-setup.sh"
 _apply="$NETCLAW_DIR/scripts/convergence-telemetry-apply.sh"
 # Wire setup/apply (T130): auto when CONVERGENCE_TELEMETRY_SETUP=yes; else prompt if yesno exists

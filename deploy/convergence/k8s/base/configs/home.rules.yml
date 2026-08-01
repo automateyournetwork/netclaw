@@ -3,7 +3,7 @@
 # --load-restrictor LoadRestrictionsNone is worse than a copy), so this is a
 # real copy. Run deploy/convergence/k8s/check-config-drift.sh to verify it
 # still matches; the previous copies silently drifted for weeks.
-# NetClaw Convergence — recording + alert rules (067 Phase 3)
+# NetClaw Convergence — recording + alert rules (080 Phase 3)
 # Compatible with convergence-api health queries (convergence:* recording names).
 groups:
   - name: netclaw-convergence.recording

@@ -1,7 +1,7 @@
 [Unit]
 Description=NetClaw Visual HUD — COMMAND | HOME network operations dashboard
 After=network-online.target
-Documentation=file://@REPO@/specs/067-convergence/quickstart.md
+Documentation=file://@REPO@/specs/080-convergence/quickstart.md
 
 [Service]
 Type=simple

@@ -3,7 +3,7 @@
 **Audience:** operators who want one place to pick LLM models without hand-editing
 `openclaw.json`.  
 **Related:** [ENV-AND-LAYOUT.md](./ENV-AND-LAYOUT.md) · [CONVERGENCE.md](./CONVERGENCE.md) ·
-[TOKEN-OPTIMIZATION.md](./TOKEN-OPTIMIZATION.md) · [specs/067-convergence/investigation-policy.md](../specs/067-convergence/investigation-policy.md)
+[TOKEN-OPTIMIZATION.md](./TOKEN-OPTIMIZATION.md) · [specs/080-convergence/investigation-policy.md](../specs/080-convergence/investigation-policy.md)
 
 ---
 
@@ -211,5 +211,5 @@ Thin tools: `./scripts/netclaw-alert-agent-profile.sh apply`
 
 - Script: [`scripts/netclaw-apply-models.sh`](../scripts/netclaw-apply-models.sh)  
 - HUD: Convergence → **Models** · `GET/POST /api/models`  
-- Spec quickstart: [`specs/067-convergence/quickstart.md`](../specs/067-convergence/quickstart.md)  
+- Spec quickstart: [`specs/080-convergence/quickstart.md`](../specs/080-convergence/quickstart.md)  
 - Alert cost / thin tools: [`docs/architecture/convergence-context/alert-agent-tools-and-tokens.md`](./architecture/convergence-context/alert-agent-tools-and-tokens.md)  

@@ -203,11 +203,12 @@ Required controls:
   running one flat namespace.
 - The wizard must **state plainly** what it is asking for before prompting, so
   enabling this is an informed decision rather than a surprise.
-- Reachability path reviewed against
-  [`network-change-safety`](../../.kiro/steering/network-change-safety.md)
+- Reachability path reviewed against the operator's network-change-safety rules
   before deployment. The poller is read-only by design, but it is a new
   persistent SSH consumer on the management path and its account scope deserves
-  explicit sign-off.
+  explicit sign-off. In this environment the management network is explicitly
+  off-limits for configuration change, so the poller's account and reachability
+  must be provisioned by the operator rather than by tooling.
 
 ## Integration point 4: where it pays for itself — T1 and T2
 

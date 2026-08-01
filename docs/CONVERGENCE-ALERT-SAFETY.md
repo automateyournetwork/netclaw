@@ -99,4 +99,4 @@ are still “running” and the bad rule still fires—fix the rule first.
 
 - `services/alert-receiver/README.md`
 - `deploy/convergence/adapters/device-snmp/README.md`
-- `specs/067-convergence/device-telemetry-greenfield.md`
+- `specs/080-convergence/device-telemetry-greenfield.md`

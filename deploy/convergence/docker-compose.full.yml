@@ -1,4 +1,4 @@
-# NetClaw Convergence — Docker FULL stack overlay (067 Phase 7+, T072)
+# NetClaw Convergence — Docker FULL stack overlay (080 Phase 7+, T072)
 #
 # Adds long-term storage + dashboards + active bandwidth testing on top of the
 # minimal stack (docker-compose.yml): Loki, VictoriaMetrics, Grafana, speedtest.
@@ -99,7 +99,7 @@ services:
   # --- OTel Collector: device telemetry hub (Phase 11 / T146-T147) ---
   # Parses vendor-default RFC3164 syslog into structured fields at ingest and
   # dual-exports to Loki (14d, interactive) + VictoriaLogs (365d, long-term).
-  # Decision record: specs/067-convergence/otel-convergence.md
+  # Decision record: specs/080-convergence/otel-convergence.md
   #
   # Replaces the T141 syslog-gateway (syslog-ng RFC3164→RFC5424 front-end), which
   # only existed because promtail's syslog target speaks RFC5424 only. The OTel

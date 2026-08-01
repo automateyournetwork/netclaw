@@ -94,7 +94,7 @@ netclaw/
 │   ├── ENV-AND-LAYOUT.md     # This file
 │   ├── MODELS.md             # Brain / alert model SoT + apply script
 │   └── runbooks/             # Operator procedures
-├── specs/067-convergence/    # Spec kit + tasks
+├── specs/080-convergence/    # Spec kit + tasks
 ├── ui/
 │   ├── netclaw-visual/       # HUD (COMMAND | HOME | Models)
 │   └── convergence-api/      # HOME backend (Node)

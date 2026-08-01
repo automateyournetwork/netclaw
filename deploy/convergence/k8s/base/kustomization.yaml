@@ -1,4 +1,4 @@
-# NetClaw Convergence — Kustomize base (067 Phase 4 / T040)
+# NetClaw Convergence — Kustomize base (080 Phase 4 / T040)
 # Same logical services as deploy/convergence/docker-compose.yml
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization

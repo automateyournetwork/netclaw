@@ -1,4 +1,4 @@
-# NetClaw Convergence — example adapter / deploy config (067 Phase 5)
+# NetClaw Convergence — example adapter / deploy config (080 Phase 5)
 # Copy to ~/.openclaw/convergence.yaml or config/convergence.yaml and edit.
 # Secrets stay in ~/.openclaw/.env (and deploy/convergence/.env for Docker) — never commit them.
 

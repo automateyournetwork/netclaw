@@ -1,6 +1,6 @@
 # NetClaw Convergence API (`ui/convergence-api`)
 
-API backend for the Visual HUD **HOME** tab (feature **067-convergence**).
+API backend for the Visual HUD **HOME** tab (feature **080-convergence**).
 
 Lifted from `network-guardian-web` (Network Guardian). Primary consumers:
 
@@ -35,4 +35,4 @@ EJS pages under `views/` remain for legacy/pilot parity; the NetClaw Home produc
 
 ## Spec
 
-See `specs/067-convergence/`.
+See `specs/080-convergence/`.

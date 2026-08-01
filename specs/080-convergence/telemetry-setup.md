@@ -1,6 +1,6 @@
-# Telemetry setup productization (067 Phase 10)
+# Telemetry setup productization (080 Phase 10)
 
-**Feature**: 067-convergence  
+**Feature**: 080-convergence  
 **Phase**: 10 (optional PR after Phase 8 plumbing + Phase 9 investigation policy)  
 **Status**: Spec'd; **PR1–PR3 implemented**. Dashboards rationalized to three primary
 boards (**Network**, **Security**, **NetClaw**) with data wiring for tokens,

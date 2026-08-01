@@ -1,7 +1,7 @@
 # Device syslog → OTel Collector → Loki + VictoriaLogs
 
 **Phase 11 (T146–T149).** Decision record:
-[`specs/067-convergence/otel-convergence.md`](../../../../specs/067-convergence/otel-convergence.md)
+[`specs/080-convergence/otel-convergence.md`](../../../../specs/080-convergence/otel-convergence.md)
 
 ## Path
 

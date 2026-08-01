@@ -1,6 +1,6 @@
-# Investigation policy & token economics (067 Phase 9)
+# Investigation policy & token economics (080 Phase 9)
 
-**Feature**: 067-convergence  
+**Feature**: 080-convergence  
 **Phase**: 9 (optional PR after Phase 8 telemetry)  
 **Status**: Implemented (engine + thin T2 agent profile)  
 **Working notes** (gitignored): `docs/architecture/convergence-context/token-burn-remediation-plan.md`

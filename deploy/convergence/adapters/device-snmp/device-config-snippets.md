@@ -92,5 +92,5 @@ Use inventory `template: generic`.
 ./deploy/convergence/smoke-device-snmp.sh
 ```
 
-See also: `specs/067-convergence/telemetry-setup.md`,  
+See also: `specs/080-convergence/telemetry-setup.md`,  
 `docs/CONVERGENCE-ALERT-SAFETY.md`.

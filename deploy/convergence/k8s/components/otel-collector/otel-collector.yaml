@@ -1,6 +1,6 @@
 # OTel Collector — device telemetry hub (Phase 11 / T156, K3s parity of Docker)
 #
-# Decision record: specs/067-convergence/otel-convergence.md
+# Decision record: specs/080-convergence/otel-convergence.md
 #
 #   devices --syslog RFC3164--> :1514 udp+tcp --> Loki (14d) + VictoriaLogs (365d)
 #   devices <--SNMP------------ receivers ------> Prometheus (15d) + VictoriaMetrics (365d)

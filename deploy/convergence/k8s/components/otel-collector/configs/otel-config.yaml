@@ -5,7 +5,7 @@
 # still matches; the previous copies silently drifted for weeks.
 # Convergence OTel Collector — device telemetry hub (Phase 11 / T146)
 #
-# Decision record: specs/067-convergence/otel-convergence.md
+# Decision record: specs/080-convergence/otel-convergence.md
 #
 #   devices --syslog RFC3164--> :1514 udp+tcp --> Loki (14d) + VictoriaLogs (365d)
 #

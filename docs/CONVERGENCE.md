@@ -6,8 +6,8 @@ Alertmanager → alert-receiver → guardian-claw loop.
 
 | Spec | Code | Deploy |
 |------|------|--------|
-| [`specs/067-convergence/`](../specs/067-convergence/) | [`ui/convergence-api/`](../ui/convergence-api/) · HUD HOME | [`deploy/convergence/`](../deploy/convergence/) |
-| Tasks | T070–T073 complete (SoT, SNMP wireless, full OBS, k8s components) | [quickstart](../specs/067-convergence/quickstart.md) |
+| [`specs/080-convergence/`](../specs/080-convergence/) | [`ui/convergence-api/`](../ui/convergence-api/) · HUD HOME | [`deploy/convergence/`](../deploy/convergence/) |
+| Tasks | T070–T073 complete (SoT, SNMP wireless, full OBS, k8s components) | [quickstart](../specs/080-convergence/quickstart.md) |
 
 **Not renamed:** `guardian-claw` (iN2N investigator identity).  
 **Legacy pilot:** external `network-guardian-web` in k3s-observability-stack (dual-run via env aliases).
@@ -204,11 +204,11 @@ Vendor manuals go in RAG (`~/.openclaw/rag`), not the live Integration API:
 
 - [ENV-AND-LAYOUT.md](./ENV-AND-LAYOUT.md) — where secrets live; do not scatter `.env` copies  
 - [deploy/convergence/README.md](../deploy/convergence/README.md)  
-- [specs/067-convergence/quickstart.md](../specs/067-convergence/quickstart.md)  
+- [specs/080-convergence/quickstart.md](../specs/080-convergence/quickstart.md)  
 - [services/alert-receiver/README.md](../services/alert-receiver/README.md)  
 - **Greenfield PR (not built yet):** campus switch SNMP + NetClaw agent
   metrics/logs as optional components —
-  [`specs/067-convergence/device-telemetry-greenfield.md`](../specs/067-convergence/device-telemetry-greenfield.md)
+  [`specs/080-convergence/device-telemetry-greenfield.md`](../specs/080-convergence/device-telemetry-greenfield.md)
   (distinct from optional AP-only `generic-snmp-wireless`)
 
 ### Phase 8 greenfield status

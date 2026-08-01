@@ -1,7 +1,7 @@
 {
   "name": "netclaw-convergence-api",
   "version": "1.0.0",
-  "description": "NetClaw Convergence API \u2014 health, wifi, devices, events (067-convergence). Lifted from network-guardian-web; API-first for HUD.",
+  "description": "NetClaw Convergence API \u2014 health, wifi, devices, events (080-convergence). Lifted from network-guardian-web; API-first for HUD.",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

@@ -1,6 +1,6 @@
 # Feature Specification: NetClaw Home (HUD Home tab + productized home NOC)
 
-**Feature Branch**: `067-convergence`  
+**Feature Branch**: `080-convergence`  
 **Created**: 2026-07-24  
 **Status**: Draft (Phases 1–7 implemented; Phase 8 greenfield telemetry plumbing shipped; Phase 9 investigation policy + thin T2 agent implemented; Phase 10 PR1–PR3 shipped — inventory/apply/wizard + holistic Network·Security·NetClaw board suite; **open**: vendor-default syslog ingest → Security log panels, pfSense security-depth collector)  
 **Input**: Productize the Convergence pipeline (metrics → alerts → NetClaw investigate → diary/triage → Discord → RAG) as a top-level HUD tab with Docker or K3s install, adapter wizard (firewall / SoT / wireless / **device SNMP** / **agent observability**), full-stack NetClaw framework coherence, and universal iN2N risk + guardian-claw ensure.
@@ -422,7 +422,7 @@ tasks T158–T170.
 - **FR-008**: Adapter config MUST model firewall, wireless, and SoT types; UniFi wireless is required for v1 path; others may be stubs.
 - **FR-009**: Alert path MUST remain Alertmanager → alert-receiver → Border → guardian → convergence-api events → optional Discord/RAG.
 - **FR-010**: Installer integration MUST use `scripts/lib/catalog.sh` + `install-steps.sh` + `.env.example` (no parallel framework).
-- **FR-011**: Feature work MUST be tracked in `specs/067-convergence/tasks.md` with PR-aligned phases.
+- **FR-011**: Feature work MUST be tracked in `specs/080-convergence/tasks.md` with PR-aligned phases.
 - **FR-012**: Skills and scripts introduced for Home MUST follow NetClaw conventions (GCF, skill scoping, no invented metrics).
 - **FR-013**: System MUST support operator-configurable **investigation tiers** (at least T0 observe, T1 summarize, T2 multi-tool investigate) resolved from a versioned policy file (not hard-coded only in source).
 - **FR-014**: Default posture MUST be **cheap/safe** (no unbounded multi-tool investigation on every alert); T2 MUST require explicit allow rules and/or critical allowlist semantics documented in quickstart.

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Apply / show the thin alert orchestrator agent (067 Phase 9 T106).
+# Apply / show the thin alert orchestrator agent (080 Phase 9 T106).
 #
 # Interactive `main` keeps the full MCP set. Auto T2 investigations (hook:alert)
 # run as agent id `alert` with an explicit tools.allow list so schema tax stays

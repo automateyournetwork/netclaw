@@ -8,7 +8,7 @@
 # out to `journalctl`, and the collector image is distroless (no shell, no
 # coreutils), so it would require a custom collector image maintained across every
 # version bump for no functional gain. Rationale and revisit triggers:
-# specs/067-convergence/otel-convergence.md.
+# specs/080-convergence/otel-convergence.md.
 #
 # 1) (removed — see note below)
 # 2) OpenClaw gateway files (/var/log/openclaw from host /tmp/openclaw)
@@ -31,7 +31,7 @@ scrape_configs:
   # Device syslog is now received by the OTel Collector (:1514 udp+tcp), parsed
   # into structured fields, and dual-exported to Loki + VictoriaLogs. See
   # deploy/convergence/otel/otel-config.yaml and
-  # specs/067-convergence/otel-convergence.md.
+  # specs/080-convergence/otel-convergence.md.
   #
   # Promtail keeps only the host-side sources below (OpenClaw files, systemd
   # journal), which it handles well and which T150 will evaluate for migration.

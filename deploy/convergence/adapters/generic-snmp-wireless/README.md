@@ -7,7 +7,7 @@ controller SNMP agent), Aruba Instant On, MikroTik, or any AP that answers
 
 Uses the standard Prometheus `snmp_exporter` — no custom code, matches the
 `wireless.type: generic-snmp` option already defined in
-[`contracts/adapters.md`](../../../specs/067-convergence/contracts/adapters.md).
+[`contracts/adapters.md`](../../../specs/080-convergence/contracts/adapters.md).
 
 ## Enable
 

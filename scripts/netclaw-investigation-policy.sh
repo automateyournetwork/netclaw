@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Show / seed Convergence investigation policy (067 Phase 9).
+# Show / seed Convergence investigation policy (080 Phase 9).
 # Usage:
 #   ./scripts/netclaw-investigation-policy.sh show
 #   ./scripts/netclaw-investigation-policy.sh seed-observe-only

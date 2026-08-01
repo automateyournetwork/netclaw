@@ -1,7 +1,7 @@
-# Implementation Plan: NetClaw Home (067-convergence)
+# Implementation Plan: NetClaw Home (080-convergence)
 
-**Branch**: `067-convergence` | **Date**: 2026-07-24 | **Spec**: [spec.md](./spec.md)  
-**Input**: Feature specification from `/specs/067-convergence/spec.md`
+**Branch**: `080-convergence` | **Date**: 2026-07-24 | **Spec**: [spec.md](./spec.md)  
+**Input**: Feature specification from `/specs/080-convergence/spec.md`
 
 ## Summary
 
@@ -30,14 +30,14 @@ Productize the Convergence pipeline as a **CONVERGENCE** top-level tab in the Vi
 | Backwards compatibility | Pass | Existing risk/members preserved; dual-run with pilot stack |
 | Full-stack artifact coherence (XI) | Pass | catalog + install-steps + setup + `.env.example` + skills + docs + HUD |
 | Audit / GAIT | Pass | Keep alert-receiver + investigation GAIT paths |
-| Spec-driven delivery | Pass | All work in `specs/067-convergence/` via specify templates |
+| Spec-driven delivery | Pass | All work in `specs/080-convergence/` via specify templates |
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/067-convergence/
+specs/080-convergence/
 ├── plan.md
 ├── research.md
 ├── data-model.md

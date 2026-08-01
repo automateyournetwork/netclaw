@@ -1,9 +1,9 @@
-# Quickstart: NetClaw Home (067)
+# Quickstart: NetClaw Home (080)
 
 ## Spec / tracking
 ```bash
 cd /path/to/netclaw
-ls specs/067-convergence/
+ls specs/080-convergence/
 # Track work in tasks.md — update checkboxes as slices land
 ```
 
@@ -141,7 +141,7 @@ cp config/convergence.example.yaml ~/.openclaw/convergence.yaml
 4. **Need More** → `POST /api/events/:id/reinvestigate` (reopens as investigating; convergence-api may call host `ALERT_RECEIVER_URL` `/reinvestigate`)
 5. Diary and triage show **RAG id** when `rag_document_id` is set
 
-Contract: `specs/067-convergence/contracts/convergence-api.md`
+Contract: `specs/080-convergence/contracts/convergence-api.md`
 
 ## Deploy mode choice
 | Mode | Use when |

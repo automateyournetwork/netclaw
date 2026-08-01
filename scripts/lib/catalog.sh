@@ -47,7 +47,7 @@ CATALOG=(
     "terraform|Cloud|Terraform Cloud|Workspaces, runs, state, variables (remote)"
     "vault|Cloud|HashiCorp Vault|KV, PKI, transit, auth methods (remote)"
 
-    "convergence-core|Convergence|Convergence Core|convergence-api + CONVERGENCE tab config (067) — diary API, inventory SoT, shared adapter config"
+    "convergence-core|Convergence|Convergence Core|convergence-api + CONVERGENCE tab config (080) — diary API, inventory SoT, shared adapter config"
     "convergence-metrics|Convergence|Convergence Metrics Stack|Prometheus + Alertmanager + blackbox (Docker or K3s deploy/convergence)"
     "convergence-unifi|Convergence|Convergence UniFi Adapter|UniFi Integration API exporter + UNIFI_* env for Wi‑Fi metrics"
     "convergence-pfsense|Convergence|Convergence pfSense Adapter|Edge firewall deep-links + optional pfSense MCP for investigations"
@@ -165,7 +165,7 @@ PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzi
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
 suzieq kubeshark gtrace auvik gait"
 
-# NetClaw Convergence pipeline (067): OBS + convergence-api + HUD + investigator path.
+# NetClaw Convergence pipeline (080): OBS + convergence-api + HUD + investigator path.
 # n2n is included so risk/guardian-claw ensure can enroll the investigator member.
 PROFILE_CONVERGENCE="convergence-core convergence-metrics convergence-unifi convergence-pfsense visual-hud \
 prometheus gait n2n rag-mcp"

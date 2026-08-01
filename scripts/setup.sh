@@ -845,7 +845,7 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
-# Convergence (067) — adapters + deploy + guardian ensure
+# Convergence (080) — adapters + deploy + guardian ensure
 # ═══════════════════════════════════════════
 
 section "Convergence (optional)"
@@ -865,7 +865,7 @@ if component_selected convergence-core || component_selected convergence-metrics
    || component_selected convergence-agent-logs; then
     HOME_NOC_TOUCHED=1
     echo "  Configure Convergence pipeline (convergence-api, metrics, adapters, investigator)."
-    echo "  Spec: specs/067-convergence/  |  Deploy: deploy/convergence/"
+    echo "  Spec: specs/080-convergence/  |  Deploy: deploy/convergence/"
     echo ""
 
     # ── Deploy mode ──

@@ -1,6 +1,6 @@
 # Greenfield device telemetry + agent observability (optional PR)
 
-**Parent**: 067-convergence  
+**Parent**: 080-convergence  
 **Status**: Phase 8 **plumbing shipped** (collectors, scrape jobs, recording rules,
 partial Grafana, smoke T088). Phase 10 productizes setup (wizard, templates,
 apply, curated boards) — see [`telemetry-setup.md`](./telemetry-setup.md).  
