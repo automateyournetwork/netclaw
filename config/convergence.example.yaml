@@ -90,6 +90,25 @@ device_telemetry:
       # - name: netclaw            # the agent host's own rsyslog
       #   ip: 192.168.3.252
 
+  # Phase 12 — SuzieQ state-history plane (optional, scale tier)
+  # Provides historical state queries (BGP, route, MAC, ARP, LLDP, interface)
+  # so investigations can ask "what was the state before the alert" without
+  # SSHing to devices at investigation time.
+  # Requires: running SuzieQ poller + REST API (see deploy/convergence/adapters/suzieq/)
+  # Credentials: SUZIEQ_DEVICE_USER / SUZIEQ_DEVICE_PASSWORD in deploy/convergence/.env
+  state:
+    suzieq:
+      enabled: false            # Scale tier — off by default
+      namespace: home           # SuzieQ namespace; multi-site → one per site
+      poll_period: 5m           # How often the poller collects (default 5m)
+      retention_days: 90        # Parquet lake retention
+      exclude_roles: [firewall] # Roles to skip (pfSense/FreeBSD unsupported)
+      # Note: inventory is rendered from device_telemetry.snmp.targets above —
+      # no second device list to maintain. Run:
+      #   python3 scripts/render-convergence-telemetry.py \
+      #     --config config/convergence.yaml \
+      #     --out-suzieq deploy/convergence/adapters/suzieq/inventory.yaml
+
 # Phase 8 — NetClaw host metrics/logs (optional)
 agent_observability:
   token_exporter:
