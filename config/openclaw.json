@@ -18,7 +18,6 @@
     }
   },
   "_comment_tokenOptimization": "Do NOT put tokenOptimization in live ~/.openclaw/openclaw.json — OpenClaw schema rejects it (gateway exit 78). Use ~/.openclaw/netclaw-token-optimization.json instead. See docs/TOKEN-OPTIMIZATION.md.",
-
   "commands": {
     "native": "auto",
     "nativeSkills": "auto",
@@ -55,7 +54,9 @@
         "SUZIEQ_API_URL": "${SUZIEQ_API_URL}",
         "SUZIEQ_API_KEY": "${SUZIEQ_API_KEY}",
         "SUZIEQ_VERIFY_SSL": "${SUZIEQ_VERIFY_SSL:-true}",
-        "SUZIEQ_TIMEOUT": "${SUZIEQ_TIMEOUT:-30}"
+        "SUZIEQ_TIMEOUT": "${SUZIEQ_TIMEOUT:-30}",
+        "SUZIEQ_MAX_ROWS": "${SUZIEQ_MAX_ROWS:-200}",
+        "SUZIEQ_MAX_RESPONSE_BYTES": "${SUZIEQ_MAX_RESPONSE_BYTES:-131072}"
       }
     },
     "batfish-mcp": {

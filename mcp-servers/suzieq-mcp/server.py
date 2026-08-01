@@ -10,6 +10,13 @@ Exposes 5 read-only tools via FastMCP/stdio for SuzieQ network observability:
   suzieq_path       — Trace forwarding path between two endpoints
 
 All operations are read-only. Credentials are read from environment variables.
+
+Payload controls (T158, FR-046/FR-047):
+  - max_rows: Server-enforced row cap (default 200, env SUZIEQ_MAX_ROWS)
+  - Per-table default columns: avoids returning all columns when caller omits
+  - Explicit truncation metadata in every response (truncated/rows_returned/rows_available)
+  - Data freshness (newest timestamp) in every response
+  - Hard byte ceiling on serialized output (env SUZIEQ_MAX_RESPONSE_BYTES, default 128KB)
 """
 
 import json
@@ -56,10 +63,11 @@ client = SuzieQClient()
 try:
     client.validate_config()
     logger.info(
-        "SuzieQ MCP server starting — api_url=%s verify_ssl=%s timeout=%ds",
+        "SuzieQ MCP server starting — api_url=%s verify_ssl=%s timeout=%ds max_rows=%d",
         client.api_url,
         client.verify_ssl,
         client.timeout,
+        client.max_rows,
     )
 except ValueError as exc:
     logger.error("Configuration error: %s", exc)
@@ -73,6 +81,62 @@ mcp = FastMCP("suzieq-mcp")
 
 
 # ---------------------------------------------------------------------------
+# Response envelope builder (T158 — FR-046 truncation + FR-047 freshness)
+# ---------------------------------------------------------------------------
+def _enforce_byte_ceiling(payload: str) -> str:
+    """Hard ceiling: if the serialized response exceeds max bytes, re-truncate.
+
+    This is a safety net — normal truncation at the row level should keep
+    payloads well under the ceiling, but a table with very wide rows could
+    still exceed it. In that case, truncate the data array to fit.
+    """
+    max_bytes = client.max_response_bytes
+    if len(payload.encode("utf-8", errors="replace")) <= max_bytes:
+        return payload
+
+    # Parse, halve data, re-serialize until it fits
+    try:
+        obj = json.loads(payload)
+        data = obj.get("data", [])
+        while len(json.dumps(obj, indent=2).encode("utf-8")) > max_bytes and len(data) > 1:
+            data = data[: len(data) // 2]
+            obj["data"] = data
+            obj["truncation"] = {
+                "truncated": True,
+                "rows_returned": len(data),
+                "rows_available": obj.get("truncation", {}).get("rows_available", len(data)),
+                "byte_ceiling_applied": True,
+            }
+        return json.dumps(obj, indent=2)
+    except (json.JSONDecodeError, TypeError):
+        return payload
+
+
+def build_response_envelope(
+    body: dict,
+    result: dict,
+) -> str:
+    """Build the final response string with truncation + freshness metadata.
+
+    Every response carries these fields regardless of success/failure, so the
+    consumer can always determine:
+    - whether the data is a subset (truncation)
+    - how fresh the data is (freshness)
+    """
+    # Merge truncation and freshness into the body
+    truncation = result.get("truncation")
+    freshness = result.get("freshness")
+
+    if truncation is not None:
+        body["truncation"] = truncation
+    if freshness is not None:
+        body["data_freshness"] = freshness
+
+    payload = _gcf_dumps(body)
+    return _enforce_byte_ceiling(payload)
+
+
+# ---------------------------------------------------------------------------
 # Response formatters
 # ---------------------------------------------------------------------------
 def format_query_response(
@@ -81,11 +145,7 @@ def format_query_response(
     result: dict,
     filters_applied: dict,
 ) -> str:
-    """Format a SuzieQ query result into a standardized JSON response.
-
-    Returns a JSON string with table, verb, row_count, filters_applied, and data.
-    Empty results return a descriptive message rather than an error.
-    """
+    """Format a SuzieQ query result into a standardized JSON response."""
     if not result["success"]:
         return json.dumps(
             {"error": result["error"], "table": table, "verb": verb},
@@ -96,34 +156,28 @@ def format_query_response(
     row_count = len(data) if isinstance(data, list) else 0
 
     if row_count == 0:
-        return json.dumps(
-            {
-                "table": table,
-                "verb": verb,
-                "row_count": 0,
-                "filters_applied": filters_applied,
-                "message": f"No data found for {table} with the specified filters.",
-                "data": [],
-            },
-            indent=2,
-        )
-
-    return _gcf_dumps(
-        {
+        body = {
             "table": table,
             "verb": verb,
-            "row_count": row_count,
+            "row_count": 0,
             "filters_applied": filters_applied,
-            "data": data,
-        },
-    )
+            "message": f"No data found for {table} with the specified filters.",
+            "data": [],
+        }
+        return build_response_envelope(body, result)
+
+    body = {
+        "table": table,
+        "verb": verb,
+        "row_count": row_count,
+        "filters_applied": filters_applied,
+        "data": data,
+    }
+    return build_response_envelope(body, result)
 
 
 def format_assert_response(table: str, result: dict) -> str:
-    """Format assertion results with pass/fail counts and per-device details.
-
-    Handles the case where no data exists for the asserted table.
-    """
+    """Format assertion results with pass/fail counts and per-device details."""
     if not result["success"]:
         return json.dumps(
             {"error": result["error"], "table": table, "verb": "assert"},
@@ -132,18 +186,16 @@ def format_assert_response(table: str, result: dict) -> str:
 
     data = result["data"]
     if not data or (isinstance(data, list) and len(data) == 0):
-        return json.dumps(
-            {
-                "table": table,
-                "verb": "assert",
-                "message": f"Assertion cannot be evaluated: no data found for table '{table}'. "
-                "Ensure devices are being polled and the table has data.",
-                "pass_count": 0,
-                "fail_count": 0,
-                "data": [],
-            },
-            indent=2,
-        )
+        body = {
+            "table": table,
+            "verb": "assert",
+            "message": f"Assertion cannot be evaluated: no data found for table '{table}'. "
+            "Ensure devices are being polled and the table has data.",
+            "pass_count": 0,
+            "fail_count": 0,
+            "data": [],
+        }
+        return build_response_envelope(body, result)
 
     # Count pass/fail from assertion results
     pass_count = 0
@@ -153,7 +205,6 @@ def format_assert_response(table: str, result: dict) -> str:
     if isinstance(data, list):
         for record in data:
             if isinstance(record, dict):
-                # SuzieQ assert returns records with an 'assert' field
                 assert_result = record.get("assert", record.get("assertReason", ""))
                 if assert_result == "pass":
                     pass_count += 1
@@ -163,18 +214,17 @@ def format_assert_response(table: str, result: dict) -> str:
             else:
                 pass_count += 1
 
-    return _gcf_dumps(
-        {
-            "table": table,
-            "verb": "assert",
-            "pass_count": pass_count,
-            "fail_count": fail_count,
-            "total": pass_count + fail_count,
-            "status": "PASS" if fail_count == 0 else "FAIL",
-            "failures": failures if failures else [],
-            "data": data,
-        },
-    )
+    body = {
+        "table": table,
+        "verb": "assert",
+        "pass_count": pass_count,
+        "fail_count": fail_count,
+        "total": pass_count + fail_count,
+        "status": "PASS" if fail_count == 0 else "FAIL",
+        "failures": failures if failures else [],
+        "data": data,
+    }
+    return build_response_envelope(body, result)
 
 
 def format_path_response(
@@ -203,30 +253,27 @@ def format_path_response(
     hop_count = len(data) if isinstance(data, list) else 0
 
     if hop_count == 0:
-        return json.dumps(
-            {
-                "namespace": namespace,
-                "source": source,
-                "destination": destination,
-                "vrf": vrf,
-                "hop_count": 0,
-                "message": f"No path found from {source} to {destination} in namespace '{namespace}'. "
-                "The endpoints may be unreachable or not monitored by SuzieQ.",
-                "hops": [],
-            },
-            indent=2,
-        )
-
-    return _gcf_dumps(
-        {
+        body = {
             "namespace": namespace,
             "source": source,
             "destination": destination,
             "vrf": vrf,
-            "hop_count": hop_count,
-            "hops": data,
-        },
-    )
+            "hop_count": 0,
+            "message": f"No path found from {source} to {destination} in namespace '{namespace}'. "
+            "The endpoints may be unreachable or not monitored by SuzieQ.",
+            "hops": [],
+        }
+        return build_response_envelope(body, result)
+
+    body = {
+        "namespace": namespace,
+        "source": source,
+        "destination": destination,
+        "vrf": vrf,
+        "hop_count": hop_count,
+        "hops": data,
+    }
+    return build_response_envelope(body, result)
 
 
 # ---------------------------------------------------------------------------
@@ -242,35 +289,53 @@ async def suzieq_show(
     end_time: Optional[str] = None,
     view: Optional[str] = None,
     filters: Optional[str] = None,
+    max_rows: Optional[int] = None,
 ) -> str:
     """Query detailed network state data from any SuzieQ table. Supports filtering
     by device, namespace, time range, and columns. Use for current or historical
     (time-travel) network state queries.
 
+    Responses are bounded: the server enforces a row cap (default 200) and
+    applies per-table default columns when none are specified. Every response
+    includes truncation metadata (truncated, rows_returned, rows_available) and
+    data_freshness (newest record timestamp). Use hostname, namespace, and
+    start_time filters to narrow before increasing max_rows.
+
     Args:
         table: SuzieQ table name (e.g., "bgp", "route", "interface", "ospf",
                "arpnd", "mac", "lldp", "vlan", "mlag", "device", "evpnVni",
-               "ifCounters", "address", "inventory")
+               "ifCounters", "address", "inventory", "sqPoller")
         namespace: Filter by SuzieQ namespace
         hostname: Filter by device hostname
-        columns: Comma-separated column names to return (default: all columns)
+        columns: Comma-separated column names to return. If omitted, per-table
+                 defaults are applied (not all columns) to limit payload size.
         start_time: Start time for time-travel query (ISO 8601 or relative e.g. "1h", "2d")
         end_time: End time for time-travel query (ISO 8601 or relative)
         view: Data view: "latest" (default), "all", or "changes"
         filters: Additional filters as key=value pairs separated by ampersand
                  (e.g. "state=Established&vrf=default")
+        max_rows: Override the default row cap (default: 200). Use sparingly —
+                  prefer narrowing filters over raising the cap.
     """
     logger.info(
         "suzieq_show: table=%s namespace=%s hostname=%s columns=%s "
-        "start_time=%s end_time=%s view=%s filters=%s",
+        "start_time=%s end_time=%s view=%s filters=%s max_rows=%s",
         table, namespace, hostname, columns,
-        start_time, end_time, view, filters,
+        start_time, end_time, view, filters, max_rows,
     )
 
     if table not in KNOWN_TABLES:
         logger.warning(
             "Table '%s' not in known tables list. Forwarding to SuzieQ anyway.", table
         )
+
+    # Apply per-table default columns when caller does not specify (FR-046)
+    effective_columns = columns
+    if not columns:
+        default_cols = SuzieQClient.get_default_columns(table)
+        if default_cols:
+            effective_columns = default_cols
+            logger.info("suzieq_show: using default columns for table=%s", table)
 
     # When start_time is provided without an explicit view, default to "all"
     # so historical data is actually returned (US2)
@@ -281,31 +346,39 @@ async def suzieq_show(
     params = SuzieQClient.build_query_params(
         namespace=namespace,
         hostname=hostname,
-        columns=columns,
+        columns=effective_columns,
         start_time=start_time,
         end_time=end_time,
         view=effective_view,
         filters=filters,
     )
 
-    result = await client.query(table, "show", params)
+    result = await client.query(table, "show", params, max_rows=max_rows)
 
     if not result["success"]:
         logger.error("suzieq_show error: %s", result["error"])
     else:
-        row_count = len(result["data"]) if isinstance(result["data"], list) else 0
-        logger.info("suzieq_show: table=%s returned %d rows", table, row_count)
+        trunc = result.get("truncation", {})
+        logger.info(
+            "suzieq_show: table=%s returned %d/%d rows (truncated=%s)",
+            table,
+            trunc.get("rows_returned", 0),
+            trunc.get("rows_available", 0),
+            trunc.get("truncated", False),
+        )
 
     filters_applied = {
         k: v
         for k, v in {
             "namespace": namespace,
             "hostname": hostname,
-            "columns": columns,
+            "columns": effective_columns,
+            "columns_source": "caller" if columns else "default",
             "start_time": start_time,
             "end_time": end_time,
             "view": effective_view,
             "filters": filters,
+            "max_rows": max_rows or client.max_rows,
         }.items()
         if v is not None
     }
@@ -326,7 +399,10 @@ async def suzieq_summarize(
 ) -> str:
     """Get aggregated statistics and summary views of any SuzieQ network table.
     Returns counts, distributions, and per-device breakdowns rather than
-    individual records.
+    individual records. Summaries are inherently compact — no row cap needed.
+
+    Prefer this over suzieq_show when sizing a problem: use summarize first to
+    understand the scope, then show with targeted filters to inspect specifics.
 
     Args:
         table: SuzieQ table name
@@ -348,7 +424,8 @@ async def suzieq_summarize(
         end_time=end_time,
     )
 
-    result = await client.query(table, "summarize", params)
+    # Summarize returns compact aggregations — no row cap
+    result = await client.query(table, "summarize", params, max_rows=0)
 
     if not result["success"]:
         logger.error("suzieq_summarize error: %s", result["error"])
@@ -382,6 +459,9 @@ async def suzieq_assert(
     "all BGP peers should be established" or "no interface should have errors".
     Only supported for tables: bgp, ospf, interface, evpnVni.
 
+    Assert results are inherently bounded (one record per entity) and carry
+    pass/fail counts, so no row cap is applied.
+
     Args:
         table: Table to assert against. Must be one of: bgp, ospf, interface, evpnVni
         namespace: Filter by SuzieQ namespace
@@ -406,7 +486,8 @@ async def suzieq_assert(
         hostname=hostname,
     )
 
-    result = await client.query(table, "assert", params)
+    # Assertions are bounded per-entity — no row cap
+    result = await client.query(table, "assert", params, max_rows=0)
 
     if not result["success"]:
         logger.error("suzieq_assert error: %s", result["error"])
@@ -425,20 +506,25 @@ async def suzieq_unique(
     column: str,
     namespace: Optional[str] = None,
     hostname: Optional[str] = None,
+    max_rows: Optional[int] = None,
 ) -> str:
     """Get distinct values and their counts for a specific column in a SuzieQ
     table. Useful for understanding the distribution of values (e.g., unique
     VRFs, unique interface states, unique BGP peer ASNs).
+
+    Responses are bounded with truncation metadata. On high-cardinality columns
+    (e.g., macaddr, ipAddress), narrow with namespace/hostname first.
 
     Args:
         table: SuzieQ table name
         column: Column name to get unique values for
         namespace: Filter by SuzieQ namespace
         hostname: Filter by device hostname
+        max_rows: Override the default row cap (default: 200)
     """
     logger.info(
-        "suzieq_unique: table=%s column=%s namespace=%s hostname=%s",
-        table, column, namespace, hostname,
+        "suzieq_unique: table=%s column=%s namespace=%s hostname=%s max_rows=%s",
+        table, column, namespace, hostname, max_rows,
     )
 
     params = SuzieQClient.build_query_params(
@@ -447,15 +533,17 @@ async def suzieq_unique(
         columns=column,
     )
 
-    result = await client.query(table, "unique", params)
+    result = await client.query(table, "unique", params, max_rows=max_rows)
 
     if not result["success"]:
         logger.error("suzieq_unique error: %s", result["error"])
     else:
-        row_count = len(result["data"]) if isinstance(result["data"], list) else 0
+        trunc = result.get("truncation", {})
         logger.info(
-            "suzieq_unique: table=%s column=%s returned %d unique values",
-            table, column, row_count,
+            "suzieq_unique: table=%s column=%s returned %d/%d unique values",
+            table, column,
+            trunc.get("rows_returned", 0),
+            trunc.get("rows_available", 0),
         )
 
     filters_applied = {
@@ -464,6 +552,7 @@ async def suzieq_unique(
             "namespace": namespace,
             "hostname": hostname,
             "column": column,
+            "max_rows": max_rows or client.max_rows,
         }.items()
         if v is not None
     }
@@ -484,6 +573,9 @@ async def suzieq_path(
     """Trace the forwarding path between two endpoints through the network.
     Returns hop-by-hop path with ingress/egress interfaces and forwarding
     decisions at each node.
+
+    Path traces are inherently bounded (one path). Responses include
+    data_freshness so the consumer can detect stale lake state.
 
     Args:
         namespace: SuzieQ namespace (required for path resolution)
