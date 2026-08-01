@@ -2228,6 +2228,13 @@ component_install_suzieq() {
 log_step "Installing SuzieQ MCP Server..."
 echo "  Built-in MCP server: mcp-servers/suzieq-mcp/"
 echo "  SuzieQ network observability — show, summarize, assert, unique, path (5 read-only tools)"
+echo "  ⚠ Requires a running SuzieQ poller + REST API. Set SUZIEQ_API_URL and SUZIEQ_API_KEY."
+
+if [ -z "${SUZIEQ_API_URL:-}" ]; then
+    log_warn "SUZIEQ_API_URL is not set. The MCP server will not start until"
+    log_warn "a SuzieQ REST API is deployed and the URL is configured."
+    log_warn "See: specs/080-convergence/suzieq-state-observability.md (Phase 12)"
+fi
 
 SUZIEQ_MCP_DIR="$MCP_DIR/suzieq-mcp"
 if [ -d "$NETCLAW_DIR/mcp-servers/suzieq-mcp" ]; then

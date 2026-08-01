@@ -58,7 +58,7 @@ CATALOG=(
     "te-official|Observability|ThousandEyes (official)|Alerts, outages, BGP, instant tests (remote, ~20 tools)"
     "ipfabric|Observability|IP Fabric|Health assessment, path analysis, diagrams (interactive)"
     "forward|Observability|Forward Networks|Snapshot assurance, path search, NQE (Go 1.25+, interactive)"
-    "suzieq|Observability|SuzieQ|Network state queries, assertions, path tracing (bundled)"
+    "suzieq|Observability|SuzieQ|Network state queries, assertions, path tracing (requires running SuzieQ poller + REST API)"
     "kubeshark|Observability|Kubeshark|K8s L4/L7 traffic analysis, TLS decryption (remote)"
     "gtrace|Observability|gtrace|Traceroute (MPLS/ECMP/NAT), MTR, GlobalPing, ASN, geo (6 tools)"
     "globalping|Observability|Globalping|Outside-in measurement from ~4800 global probes — ping, traceroute, DNS, MTR, HTTP (remote, no install)"
@@ -137,7 +137,7 @@ catalog_has() {
 PROFILE_MINIMAL="pyats gait subnet-calc drawio-rfc"
 
 PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
-drawio-rfc uml packet-buddy nmap gtrace globalping suzieq batfish protocol n2n tts chrome-devtools rag-mcp"
+drawio-rfc uml packet-buddy nmap gtrace globalping batfish protocol n2n tts chrome-devtools rag-mcp"
 
 PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve cisco-psirt subnet-calc drawio-rfc uml packet-buddy"
