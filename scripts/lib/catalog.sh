@@ -49,19 +49,6 @@ CATALOG=(
     "terraform|Cloud|Terraform Cloud|Workspaces, runs, state, variables (remote)"
     "vault|Cloud|HashiCorp Vault|KV, PKI, transit, auth methods (remote)"
 
-    "convergence-core|Convergence|Convergence Core|convergence-api + CONVERGENCE tab config (080) — diary API, inventory SoT, shared adapter config"
-    "convergence-metrics|Convergence|Convergence Metrics Stack|Prometheus + Alertmanager + blackbox (Docker or K3s deploy/convergence)"
-    "convergence-unifi|Convergence|Convergence UniFi Adapter|UniFi Integration API exporter + UNIFI_* env for Wi‑Fi metrics"
-    "convergence-pfsense|Convergence|Convergence pfSense Adapter|Edge firewall deep-links + optional pfSense MCP for investigations"
-    "convergence-sot-nautobot|Convergence|Convergence SoT (Nautobot)|Stub: bind Convergence inventory to Nautobot (requires nautobot component)"
-    "convergence-sot-netbox|Convergence|Convergence SoT (NetBox)|Stub: bind Convergence inventory to NetBox (requires netbox component)"
-    "convergence-device-snmp|Convergence|Device SNMP (switches)|Greenfield campus switch IF-MIB via snmp_exporter (profile device-snmp)"
-    "convergence-device-syslog|Convergence|Device Syslog|Greenfield syslog→Loki for switches/firewall (requires full logs)"
-    "convergence-agent-metrics|Convergence|Agent Metrics|Host openclaw-token-exporter + Prom scrape (netclaw_model_*)"
-    "convergence-agent-logs|Convergence|Agent Logs|rsyslog/journal ship NetClaw gateway/mesh/alerts → Loki"
-    "convergence-grafana-dashboards|Convergence|Grafana Dashboards|Provision network + NetClaw quota dashboards (full profile)"
-    "visual-hud|Convergence|Visual HUD|NetClaw Visual HUD (COMMAND|CONVERGENCE) on :3001 + systemd user unit"
-
     "grafana|Observability|Grafana|Dashboards, Prometheus, Loki, alerting, OnCall (75+ tools)"
     "prometheus|Observability|Prometheus|PromQL queries, metric discovery, target health (6 tools)"
     "datadog|Observability|Datadog|Logs, metrics, incidents, APM (remote, 16+ tools)"
@@ -168,10 +155,8 @@ PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzi
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
 suzieq kubeshark gtrace globalping auvik gait"
 
-# NetClaw Convergence pipeline (080): OBS + convergence-api + HUD + investigator path.
-# n2n is included so risk/guardian-claw ensure can enroll the investigator member.
-PROFILE_CONVERGENCE="convergence-core convergence-metrics convergence-unifi convergence-pfsense visual-hud \
-prometheus gait n2n rag-mcp"
+# NetClaw Convergence pipeline is defined in catalog.d/convergence.sh (if present).
+# The fragment mechanism below will load it and register the profile automatically.
 
 profile_components() {
     case "$1" in
@@ -183,10 +168,24 @@ profile_components() {
         security)       echo "$PROFILE_SECURITY" ;;
         labs)           echo "$PROFILE_LABS" ;;
         observability)  echo "$PROFILE_OBSERVABILITY" ;;
-        convergence)    echo "$PROFILE_CONVERGENCE" ;;
+        convergence)    [ -n "${PROFILE_CONVERGENCE:-}" ] && echo "$PROFILE_CONVERGENCE" || return 1 ;;
         full)           catalog_ids | tr '\n' ' ' ;;
         *)              return 1 ;;
     esac
 }
 
-PROFILE_NAMES="minimal recommended cisco multivendor cloud security labs observability convergence full"
+PROFILE_NAMES="minimal recommended cisco multivendor cloud security labs observability full"
+
+# ── Extension fragments (catalog.d/) ─────────────────────────────
+# Source all *.sh files in catalog.d/ (if the directory exists).
+# Fragments may append to CATALOG, define PROFILE_* vars, and extend
+# PROFILE_NAMES. This lets fork-specific content live in its own file
+# without editing this file — zero merge conflicts on upstream pull.
+_CATALOG_D="$(dirname "${BASH_SOURCE[0]}")/catalog.d"
+if [ -d "$_CATALOG_D" ]; then
+    for _frag in "$_CATALOG_D"/*.sh; do
+        [ -f "$_frag" ] && source "$_frag"
+    done
+    unset _frag
+fi
+unset _CATALOG_D

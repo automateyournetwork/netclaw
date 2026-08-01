@@ -146,10 +146,8 @@ docs/ietf/kdrfc-err.txt
 
 # Local Convergence / agentic NOC context (private ops notes — not for public repo)
 docs/architecture/convergence-context/
-# Home Docker local secrets
-deploy/convergence/.env
-deploy/convergence/k8s/secret.yaml
 docs/architecture/convergence-context
+# Convergence deploy secrets are in deploy/convergence/.gitignore
 
 # Kiro IDE workspace config (specs, hooks, steering) — local, not published
 .kiro/
