@@ -13,12 +13,16 @@ class EdgeMessage {
   final String content;
   final String designatedBy;
   final DateTime pushedAt;
+  // Mutable, mirroring ConversationTurn's state/answerText pattern -- a
+  // message's acknowledged flag changes in place after creation (073/FR-012).
+  bool acknowledged;
 
-  const EdgeMessage({
+  EdgeMessage({
     required this.contentType,
     required this.content,
     required this.designatedBy,
     required this.pushedAt,
+    this.acknowledged = false,
   });
 
   factory EdgeMessage.fromWire(Map<String, dynamic> params) => EdgeMessage(
@@ -33,13 +37,21 @@ class EdgeMessage {
         'content': content,
         'designated_by': designatedBy,
         'pushed_at': pushedAt.toIso8601String(),
+        'acknowledged': acknowledged,
       };
 
+  /// A message written before 073 has no `acknowledged` key at all -- a
+  /// missing key MUST default to `true` (already-acknowledged), never
+  /// `false`, or every message ever received before this feature shipped
+  /// would suddenly appear unread the moment an operator upgrades
+  /// (research D5). Only a message explicitly serialized as `false` since
+  /// this feature shipped is actually unread.
   factory EdgeMessage.fromJson(Map<String, dynamic> json) => EdgeMessage(
         contentType: MessageContentType.values.byName(json['content_type'] as String),
         content: json['content'] as String,
         designatedBy: json['designated_by'] as String,
         pushedAt: DateTime.parse(json['pushed_at'] as String),
+        acknowledged: json['acknowledged'] as bool? ?? true,
       );
 }
 
@@ -57,6 +69,10 @@ class MessageFeedStore {
   MessageFeedStore(this.directory);
 
   List<EdgeMessage> get messages => List.unmodifiable(_messages);
+
+  /// Count of messages not yet acknowledged -- feeds the combined app badge
+  /// (073/FR-008).
+  int get unreadCount => _messages.where((m) => !m.acknowledged).length;
 
   File _file() => File('${directory.path}/ncfed_message_feed.jsonl');
 
@@ -81,6 +97,35 @@ class MessageFeedStore {
       mode: FileMode.append,
       flush: true,
     );
+  }
+
+  /// Rewrites the whole file from the in-memory list -- unlike [append],
+  /// used by [acknowledge]/[delete], which mutate or remove an existing
+  /// line rather than add a new one.
+  Future<void> _rewrite() async {
+    final buffer = _messages.map((m) => jsonEncode(m.toJson())).join('\n');
+    await _file().writeAsString(buffer.isEmpty ? '' : '$buffer\n');
+  }
+
+  /// Marks the message with this [pushedAt] identity as acknowledged --
+  /// clears its unread state but leaves it visible in [messages] (073/FR-012).
+  Future<void> acknowledge(DateTime pushedAt) async {
+    await load();
+    for (final m in _messages) {
+      if (m.pushedAt == pushedAt) {
+        m.acknowledged = true;
+        break;
+      }
+    }
+    await _rewrite();
+  }
+
+  /// Permanently removes the message with this [pushedAt] identity
+  /// (073/FR-013) -- unlike [clear], which removes everything.
+  Future<void> delete(DateTime pushedAt) async {
+    await load();
+    _messages.removeWhere((m) => m.pushedAt == pushedAt);
+    await _rewrite();
   }
 
   /// Deletes every Border-pushed message held on this device. On-device only —

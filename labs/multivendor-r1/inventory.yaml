@@ -1,0 +1,57 @@
+# R1 verification lab inventory (spec 076). Hostnames and platforms ONLY —
+# credentials come from the environment and are rejected if found here.
+#
+# Three groups, each testing a different requirement:
+#   srlinux  native NOS CLI, no NAPALM driver  -> raw reach + FR-007 gap reporting
+#   frr      shell-hosted NOS via vtysh        -> raw reach + wrapper unwrapping
+#   cml      IOS-XE, owned by pyATS            -> FR-008 normalized read permitted,
+#                                                 FR-010 raw read + write REFUSED
+srl1:
+  hostname: 172.20.20.11
+  platform: nokia_srl
+  groups: [lab, srlinux]
+  credential_ref: srlinux
+srl2:
+  hostname: 172.20.20.12
+  platform: nokia_srl
+  groups: [lab, srlinux]
+  credential_ref: srlinux
+frr-lab-01:
+  hostname: 127.0.0.1
+  platform: frr
+  groups: [lab, frr]
+  credential_ref: frrlab
+# CML IOS-XE devices. Real addresses; connection details taken from
+# testbed/testbed.yaml, which is NOT used as an inventory source (FR-017e) —
+# reading it to learn an address is not the same as deriving inventory from it.
+cml-r1:
+  hostname: 192.168.2.201
+  platform: cisco_xe
+  groups: [cml, routers]
+  credential_ref: cml
+cml-r2:
+  hostname: 192.168.2.202
+  platform: cisco_xe
+  groups: [cml, routers]
+  credential_ref: cml
+cml-sw1:
+  hostname: 192.168.2.211
+  platform: cisco_xe
+  groups: [cml, switches]
+  credential_ref: cml
+# Deliberately unreachable, so fleet fan-out proves failure isolation and that
+# every targeted device appears in results (FR-014).
+unreachable-probe:
+  hostname: 192.0.2.99
+  platform: cisco_xe
+  groups: [cml]
+  credential_ref: cml
+# PRODUCTION-classified device on a platform this server owns. Exists so the
+# ServiceNow CR gate is actually reachable in tests: a Cisco device would be
+# refused by routing first, and a lab-grouped device is CR-exempt. Same container
+# as srl1 — the classification, not the address, is what is under test.
+prod-srl-01:
+  hostname: 172.20.20.11
+  platform: nokia_srl
+  groups: [production, dc1]
+  credential_ref: srlinux

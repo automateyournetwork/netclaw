@@ -1,0 +1,32 @@
+# Containerlab topology for verifying spec 076 (R1) SC-001.
+#
+# Purpose: prove NetClaw can reach a platform family NONE of its existing
+# device servers can touch. Nokia SR Linux is the ideal first target:
+#   - ghcr.io/nokia/srlinux is PUBLIC — no account, no licence, no download form
+#   - it runs sshd by default (admin / NokiaSrl1!), which netmiko requires
+#   - netmiko ships a real `nokia_srl` driver
+#   - NAPALM has no SR Linux driver, which usefully exercises FR-007's
+#     "report the normalization gap explicitly" path
+#
+# Two nodes with a link between them, so BGP/LLDP neighbour output is non-empty
+# and normalized-fact retrieval has something real to return.
+
+name: netclaw-r1
+
+topology:
+  nodes:
+    srl1:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux:latest
+      mgmt-ipv4: 172.20.20.11
+    srl2:
+      kind: nokia_srlinux
+      image: ghcr.io/nokia/srlinux:latest
+      mgmt-ipv4: 172.20.20.12
+
+  links:
+    - endpoints: ["srl1:e1-1", "srl2:e1-1"]
+
+mgmt:
+  network: netclaw-r1-mgmt
+  ipv4-subnet: 172.20.20.0/24

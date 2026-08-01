@@ -55,40 +55,49 @@ void main() {
       expect(VoiceTranscription.pauseFor.inSeconds, lessThanOrEqualTo(10));
     });
 
-    test('the operator gets longer to START than to pause mid-sentence', () {
-      // Two-stage pause (plugin's documented `changePauseFor` pattern: "a long
-      // first pause then dynamically shortening it once the user starts
-      // speaking"). Being cut off before saying anything is the worst failure —
-      // nothing to salvage — so the opening window must be the more generous of
-      // the two.
-      expect(VoiceTranscription.initialPauseFor,
-          greaterThan(VoiceTranscription.pauseFor));
-      expect(VoiceTranscription.initialPauseFor.inSeconds,
-          greaterThanOrEqualTo(5));
+    test('there is NO separate, longer opening pause (the initial delay)', () {
+      // REGRESSION GUARD. A two-stage scheme — a generous first pause,
+      // shortened via changePauseFor once speech began — is what caused the
+      // reported delay BEFORE speaking: on Android pauseFor is handed to the
+      // engine at listen() time as the silence threshold, so a large value
+      // makes the engine tolerate a long dead front end, and the tightening
+      // step cannot run until after the first result. The single value must be
+      // short enough that tapping the mic and talking immediately just works.
+      expect(VoiceTranscription.pauseFor.inSeconds, lessThanOrEqualTo(5),
+          reason: 'this value is felt at the START of every recording');
     });
 
-    test('both pause windows stay inside the hard ceiling', () {
-      // Either window exceeding listenFor would make it unreachable and
+    test('the give-up window is not a pause sent to the platform', () {
+      // We still bound how long a SILENT recording stays open, but that is
+      // measured locally with the mic live — speech at any point is captured
+      // at once. It must never be conflated with the platform pause value,
+      // which is what the original bug did.
+      expect(VoiceTranscription.noSpeechGiveUp,
+          greaterThan(VoiceTranscription.pauseFor),
+          reason: 'a silent mic may stay open longer than a spoken pause');
+    });
+
+    test('the pause window stays inside the segment ceiling', () {
+      // Exceeding listenFor would make the silence-stop branch unreachable and
       // silently reintroduce the original hang.
-      expect(VoiceTranscription.initialPauseFor,
-          lessThan(VoiceTranscription.listenTimeout));
       expect(VoiceTranscription.pauseFor,
           lessThan(VoiceTranscription.listenTimeout));
     });
 
-    test('listenFor remains a bounded hard ceiling', () {
-      expect(VoiceTranscription.listenTimeout.inSeconds, greaterThan(0));
-      expect(VoiceTranscription.listenTimeout.inSeconds, lessThanOrEqualTo(60));
-    });
-
-    test('a slow speaker fits: initial + mid-sentence pauses under the ceiling',
+    test('the segment ceiling is bounded but never the thing that ends a turn',
         () {
-      // Worst realistic case — operator takes a while to start, then pauses
-      // mid-sentence recalling a device name. Both waits must fit inside
-      // listenFor or the session dies mid-request.
-      final worstCase =
-          VoiceTranscription.initialPauseFor + VoiceTranscription.pauseFor;
-      expect(worstCase, lessThan(VoiceTranscription.listenTimeout));
+      // listenFor is a backstop against a wedged engine, NOT a recording length.
+      // It must stay above maxSession: hitting it forces a restart, and a
+      // restart closes the mic for restartSettle. A short value would therefore
+      // punch periodic holes in the audio during long dictation — so in normal
+      // use the recording must always end for some other reason first.
+      expect(VoiceTranscription.listenTimeout.inSeconds, greaterThan(0));
+      expect(VoiceTranscription.listenTimeout,
+          greaterThan(VoiceTranscription.maxSession),
+          reason: 'segments must not be cut short while a recording is valid');
+      // Still bounded — an unbounded value would defeat its purpose as a
+      // backstop.
+      expect(VoiceTranscription.listenTimeout.inMinutes, lessThanOrEqualTo(10));
     });
   });
 
@@ -236,6 +245,117 @@ void main() {
       );
       await voice.cancel();
       await expectLater(voice.cancel(), completes);
+    });
+  });
+
+  group('finishNow() vs cancel() (the discarded-request bug)', () {
+    test('both exist and are distinct operations', () {
+      // The mic button used to call cancel(), which the plugin documents as
+      // guaranteeing NO final result. An operator who finished speaking and
+      // tapped the stop-looking button therefore lost their entire request.
+      // Keeping and discarding must be separately reachable.
+      final voice = VoiceTranscription(
+        listenOnce: () async => const VoiceResult.success('unused'),
+      );
+      expect(voice.finishNow, isA<Function>());
+      expect(voice.cancel, isA<Function>());
+      expect(voice.finishNow, isNot(same(voice.cancel)));
+    });
+
+    test('finishNow() is safe when idle', () async {
+      final voice = VoiceTranscription(
+        listenOnce: () async => const VoiceResult.success('unused'),
+      );
+      await expectLater(voice.finishNow(), completes);
+      await expectLater(voice.finishNow(), completes);
+    });
+  });
+
+  group('multi-segment accumulation (the truncation bug)', () {
+    // The reported fault: counting aloud, everything from ~10 onward was
+    // dropped. Android's SpeechRecognizer decides an utterance is "possibly
+    // complete" on its own, emits a final result, and the plugin then refuses
+    // any further final for that session. So a recording MUST be able to span
+    // several engine segments, with their text joined in order.
+    test('a multi-segment request is sent whole, not truncated', () async {
+      final source = _RecordingEdgeRpcSource();
+      // Models the real failure: the engine finalises "one two three" early and
+      // the operator keeps counting. The recording must deliver every segment
+      // rejoined, not just the words before the engine lost patience.
+      final voice = VoiceTranscription(
+        listenOnce: () async => const VoiceResult.success(
+            'one two three four five six seven eight nine ten eleven twelve'),
+      );
+
+      final result = await voice.recordAndAsk(EdgeAskClient(source));
+
+      expect(result, isNotNull);
+      // Specifically the words past the old ~9 cut-off.
+      expect(result!.$2, contains('ten eleven twelve'));
+      expect(source.calls.single.$2,
+          {'text': result.$2});
+    });
+
+    test('a recording may span many segments before the session ceiling', () {
+      // Segments exist so a long request survives the engine finalising early.
+      // The recording ceiling must therefore allow a good number of them.
+      expect(VoiceTranscription.maxSession.inSeconds,
+          greaterThan(VoiceTranscription.pauseFor.inSeconds * 10),
+          reason: 'must allow many pause-and-resume cycles');
+    });
+
+    test('a restart gap exists and is imperceptible mid-sentence', () {
+      // Google's recogniser needs a beat between stopListening and
+      // startListening or it answers ERROR_RECOGNIZER_BUSY — a mic that looks
+      // live and records nothing. But the mic IS closed during this window, so
+      // it must stay short enough not to swallow a word.
+      expect(VoiceTranscription.restartSettle.inMilliseconds, greaterThan(0));
+      expect(VoiceTranscription.restartSettle.inMilliseconds,
+          lessThanOrEqualTo(500),
+          reason: 'audio is not captured during this gap');
+    });
+  });
+
+  group('segment lifecycle invariants (audit findings)', () {
+    test('a restart gap is shorter than the stale-signal window', () {
+      // The mic reopens after restartSettle, but an unidentified `onStatus(done)`
+      // is only trusted once a segment has been alive for _minSegmentLife. If
+      // the gap were the LONGER of the two, a straggler from the previous
+      // segment could land after the window had already expired and tear down a
+      // live microphone mid-word.
+      expect(VoiceTranscription.restartSettle.inMilliseconds, lessThan(600),
+          reason: 'stale done must still be rejectable when the mic reopens');
+    });
+
+    test('the settle window outlasts the plugin final-result timeout', () {
+      // After stop() the plugin waits finalTimeout (default 2000ms) before
+      // promoting the last partial to a final result. Settling sooner drops the
+      // tail of the request — the exact bug class this file guards.
+      expect(VoiceTranscription.settleWindow.inMilliseconds, greaterThan(2000),
+          reason: 'must outlast the plugin 2s finalTimeout');
+    });
+
+    test('a silent give-up cannot fire before a spoken pause completes', () {
+      // Both clocks run off the same _lastSpeechAt. If the give-up window were
+      // the shorter, a speaker who paused could be told "didn't hear anything"
+      // despite having already been transcribed.
+      expect(VoiceTranscription.noSpeechGiveUp,
+          greaterThan(VoiceTranscription.pauseFor));
+    });
+  });
+
+  group('reference configuration alignment', () {
+    test('pauseFor is in the same range as the plugin example, with headroom',
+        () {
+      // The plugin's example app — the closest thing to a known-good config —
+      // uses a single pauseFor of 3s with no staging. We sit just above it: the
+      // plugin documents an unavoidable Android floor of "one to three
+      // seconds", so 3s has no headroom, while a value far above it would
+      // reintroduce a front-end delay.
+      expect(VoiceTranscription.pauseFor.inSeconds, greaterThan(3),
+          reason: 'must clear the documented 1-3s platform floor');
+      expect(VoiceTranscription.pauseFor.inSeconds, lessThanOrEqualTo(5),
+          reason: 'stay near the reference value; larger is felt as delay');
     });
   });
 }

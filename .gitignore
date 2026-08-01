@@ -81,6 +81,10 @@ mcp-servers/*
 !mcp-servers/syslog-mcp/
 !mcp-servers/snmptrap-mcp/
 !mcp-servers/ipfix-mcp/
+!mcp-servers/multivendor-cli-mcp/
+!mcp-servers/cisco-psirt-mcp/
+# ...but never track its dedicated virtualenv (spec 076 FR-030a)
+mcp-servers/multivendor-cli-mcp/.venv/
 !mcp-servers/gns3-mcp-server/
 !mcp-servers/eve-ng-mcp-server/
 !mcp-servers/prisma-sdwan-mcp/
@@ -149,3 +153,7 @@ docs/architecture/convergence-context
 
 # Kiro IDE workspace config (specs, hooks, steering) — local, not published
 .kiro/
+# Containerlab runtime state (spec 076 R1 lab). Created root-owned by the
+# container runtime and regenerated on every deploy — lab output, not source.
+labs/*/clab-*/
+labs/**/.tls/

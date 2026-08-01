@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/semantics.dart';
 
 import '../ncfed/capture_client.dart';
 import '../ncfed/conversation_store.dart';
@@ -18,10 +19,21 @@ class ChatScreen extends StatefulWidget {
   final ConversationStore store;
   final VoiceTranscription voiceTranscription;
 
+  /// When a chat notification is tapped (073/FR-006, `NotificationDeepLink`),
+  /// the turn it referred to is scrolled into view and highlighted —
+  /// mirrors `FeedScreen.highlightPushedAt`'s pattern exactly.
+  final String? highlightTaskId;
+
+  /// Fires after an acknowledge or delete action (073/FR-012/FR-013) so
+  /// `main.dart` can recompute the combined app badge (FR-008).
+  final VoidCallback? onChanged;
+
   ChatScreen({
     super.key,
     required this.askClient,
     required this.store,
+    this.highlightTaskId,
+    this.onChanged,
     VoiceTranscription? voiceTranscription,
   }) : voiceTranscription = voiceTranscription ?? VoiceTranscription();
 
@@ -29,9 +41,11 @@ class ChatScreen extends StatefulWidget {
   State<ChatScreen> createState() => _ChatScreenState();
 }
 
-class _ChatScreenState extends State<ChatScreen> {
+class _ChatScreenState extends State<ChatScreen>
+    with WidgetsBindingObserver {
   final _controller = TextEditingController();
   final _scroll = ScrollController();
+  final _highlightKey = GlobalKey();
   bool _loading = true;
   bool _listening = false;
   /// taskId -> latest progress detail from n2n/edge/task_progress.
@@ -40,9 +54,14 @@ class _ChatScreenState extends State<ChatScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     widget.store.load().then((_) async {
       if (mounted) setState(() => _loading = false);
-      _jumpToNewest();
+      if (widget.highlightTaskId != null) {
+        _scrollToHighlight();
+      } else {
+        _jumpToNewest();
+      }
       await _reconcileStaleTurns();
     });
     widget.askClient.updates.listen((update) async {
@@ -51,10 +70,49 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   @override
+  void didUpdateWidget(ChatScreen old) {
+    super.didUpdateWidget(old);
+    // A second notification tap while the chat is already open.
+    if (widget.highlightTaskId != null && widget.highlightTaskId != old.highlightTaskId) {
+      _scrollToHighlight();
+    }
+  }
+
+  /// Deferred to the next frame: the target tile only has a render object
+  /// once the list has been laid out. Mirrors `FeedScreen._scrollToHighlight`.
+  void _scrollToHighlight() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final ctx = _highlightKey.currentContext;
+      if (ctx != null) Scrollable.ensureVisible(ctx, alignment: 0.3);
+    });
+  }
+
+  @override
   void dispose() {
+    // Release the microphone if we're torn down mid-recording. The plugin is
+    // explicit that "each listen session should be ended with either stop or
+    // cancel, for example in the dispose method of a Widget" — and because the
+    // recogniser is a single platform-wide resource, a session left running
+    // here silently poisons the NEXT recording: initialize() still succeeds,
+    // listen() attaches to a busy recogniser, and no audio is captured. That is
+    // the reported "sometimes it just doesn't record", reached by navigating
+    // away while the mic was live.
+    WidgetsBinding.instance.removeObserver(this);
+    widget.voiceTranscription.cancel();
     _scroll.dispose();
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Same leak by a different route: backgrounding the app. The OS may revoke
+    // microphone access without telling the recogniser, leaving a session that
+    // looks live and captures nothing. Keeping the audio stream open while
+    // hidden would also be the wrong thing to do regardless.
+    if (state != AppLifecycleState.resumed && _listening) {
+      widget.voiceTranscription.cancel();
+    }
   }
 
   /// Turns are rendered oldest-first, so offset 0 is the OLDEST message —
@@ -128,6 +186,8 @@ class _ChatScreenState extends State<ChatScreen> {
   Future<void> _recordVoice() async {
     if (_listening) return; // already recording — ignore a double tap
     setState(() => _listening = true);
+    // Announce for screen-reader users, who get none of the visual state.
+    _announce('Listening');
     try {
       final result = await widget.voiceTranscription.recordAndAsk(
         widget.askClient,
@@ -151,7 +211,17 @@ class _ChatScreenState extends State<ChatScreen> {
       _jumpToNewest(animate: true);
     } finally {
       if (mounted) setState(() => _listening = false);
+      _announce('Stopped listening');
     }
+  }
+
+  /// Speaks recording state to assistive tech. Recording start/stop is exactly
+  /// what a live region is for: a blind operator otherwise has no way to know
+  /// whether the mic is open.
+  void _announce(String message) {
+    if (!mounted) return;
+    SemanticsService.sendAnnouncement(
+        View.of(context), message, TextDirection.ltr);
   }
 
   /// Re-sends a turn's original request as a NEW turn, leaving the failed one
@@ -229,6 +299,18 @@ class _ChatScreenState extends State<ChatScreen> {
     // guard means a completed answer that races the cancel is preserved.
   }
 
+  Future<void> _acknowledge(String taskId) async {
+    await widget.store.acknowledge(taskId);
+    if (mounted) setState(() {});
+    widget.onChanged?.call();
+  }
+
+  Future<void> _delete(String taskId) async {
+    await widget.store.delete(taskId);
+    if (mounted) setState(() {});
+    widget.onChanged?.call();
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_loading) {
@@ -244,12 +326,20 @@ class _ChatScreenState extends State<ChatScreen> {
               : ListView.builder(
                   controller: _scroll,
                   itemCount: turns.length,
-                  itemBuilder: (context, index) => _TurnTile(
-                    turn: turns[index],
-                    progressDetail: _progress[turns[index].taskId],
-                    onCancel: () => _cancel(turns[index].taskId),
-                    onRetry: () => _retry(turns[index]),
-                  ),
+                  itemBuilder: (context, index) {
+                    final highlighted = widget.highlightTaskId != null &&
+                        turns[index].taskId == widget.highlightTaskId;
+                    return _TurnTile(
+                      key: highlighted ? _highlightKey : null,
+                      turn: turns[index],
+                      highlighted: highlighted,
+                      progressDetail: _progress[turns[index].taskId],
+                      onCancel: () => _cancel(turns[index].taskId),
+                      onRetry: () => _retry(turns[index]),
+                      onAcknowledge: () => _acknowledge(turns[index].taskId),
+                      onDelete: () => _delete(turns[index].taskId),
+                    );
+                  },
                 ),
         ),
         SafeArea(
@@ -265,20 +355,27 @@ class _ChatScreenState extends State<ChatScreen> {
                   ),
                 ),
                 IconButton(icon: const Icon(Icons.camera_alt), onPressed: _capturePhoto),
+                // While recording, tapping the mic must SUBMIT what was said —
+                // it reads as "stop" and stopping a recording means keeping it.
+                // This previously called cancel(), which the plugin documents as
+                // guaranteeing no final result, so an operator who finished
+                // speaking and tapped stop silently lost their entire request.
+                // Discarding is now a separate, deliberately distinct control.
+                if (_listening)
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    tooltip: 'Discard recording',
+                    onPressed: () => widget.voiceTranscription.cancel(),
+                  ),
                 IconButton(
                   // Visible listening state — the mic previously gave no
                   // indication it was live, so a working recording looked
                   // identical to a broken one.
                   icon: Icon(_listening ? Icons.stop_circle : Icons.mic_none,
                       color: _listening ? Theme.of(context).colorScheme.error : null),
-                  tooltip: _listening ? 'Stop listening' : 'Voice request',
-                  // Tapping while live now CANCELS. This used to be `null`,
-                  // which disabled the button for the whole session — so a
-                  // recording that overran left the operator with no way out
-                  // at all, and abandoning the app instead is exactly what
-                  // leaked the recogniser and broke the next attempt.
+                  tooltip: _listening ? 'Done — send what I said' : 'Voice request',
                   onPressed: _listening
-                      ? () => widget.voiceTranscription.cancel()
+                      ? () => widget.voiceTranscription.finishNow()
                       : _recordVoice,
                 ),
                 IconButton(icon: const Icon(Icons.send), onPressed: _send),
@@ -295,6 +392,9 @@ class _TurnTile extends StatelessWidget {
   final ConversationTurn turn;
   final VoidCallback onCancel;
   final VoidCallback onRetry;
+  final VoidCallback onAcknowledge;
+  final VoidCallback onDelete;
+  final bool highlighted;
 
   /// Live detail from the Border for an in-progress turn (e.g. "Still working
   /// on this — 120s so far"). Null when there's nothing to add beyond
@@ -302,15 +402,23 @@ class _TurnTile extends StatelessWidget {
   final String? progressDetail;
 
   const _TurnTile({
+    super.key,
     required this.turn,
     required this.onCancel,
     required this.onRetry,
+    required this.onAcknowledge,
+    required this.onDelete,
+    this.highlighted = false,
     this.progressDetail,
   });
 
   bool get _isRetryable => turn.state == 'failed' || turn.state == 'cancelled';
 
   bool get _inProgress => turn.state == 'pending' || turn.state == 'working';
+
+  /// Matches `ConversationStore.unreadCount`'s own definition (073/FR-011):
+  /// an in-progress turn has nothing to acknowledge yet.
+  bool get _isUnread => !_inProgress && !turn.acknowledged;
 
   @override
   Widget build(BuildContext context) {
@@ -336,15 +444,62 @@ class _TurnTile extends StatelessWidget {
     if (ok ?? false) onRetry();
   }
 
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this question?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok ?? false) onDelete();
+  }
+
   Widget _card(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      color: highlighted ? scheme.secondaryContainer : null,
+      shape: highlighted
+          ? RoundedRectangleBorder(
+              side: BorderSide(color: scheme.secondary, width: 2),
+              borderRadius: BorderRadius.circular(12),
+            )
+          : null,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(turn.requestText, style: const TextStyle(fontWeight: FontWeight.bold)),
+            Row(
+              children: [
+                // Unread indicator (073/FR-011) -- a deliberate, explicit
+                // acknowledge clears it (FR-012); merely viewing this tab
+                // does not (spec Assumptions).
+                if (_isUnread) ...[
+                  Icon(Icons.circle, size: 8, color: scheme.primary),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(turn.requestText, style: const TextStyle(fontWeight: FontWeight.bold)),
+                ),
+                if (_isUnread)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                    tooltip: 'Acknowledge',
+                    onPressed: onAcknowledge,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: 'Delete',
+                  onPressed: () => _confirmDelete(context),
+                ),
+              ],
+            ),
             if (turn.photoPath != null) ...[
               const SizedBox(height: 8),
               ClipRRect(

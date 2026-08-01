@@ -25,6 +25,7 @@
 		BBF0FAD7CE203CDC4719099D /* X509SelfSigned.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7892DD000E2EF1D894D34525 /* X509SelfSigned.swift */; };
 		BBF8F66E96F04D37B501A16B /* WatchConnectivitySession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDF3354E3FFD03DF087537CA /* WatchConnectivitySession.swift */; };
 		BDFC16DCD8624C1AD9CF9F47 /* ConnectionState.swift in Sources */ = {isa = PBXBuildFile; fileRef = C5CA80FAD41D194C2DB127AC /* ConnectionState.swift */; };
+		CB065BACFFAB9C914549022F /* SpeechPlayback.swift in Sources */ = {isa = PBXBuildFile; fileRef = 35E1A3AD03CE55C2B0BE0A42 /* SpeechPlayback.swift */; };
 		CD34C1AE38E449E5B7FEC347 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F28CB5A04B49A7B79D9E6AC5 /* ContentView.swift */; };
 		E30895FEA1D8C6A7031B8903 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7983B9826F39C95F7907AEA4 /* HistoryView.swift */; };
 		ECEC4338AA23792FA3A304DC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = C0512EDA37E8AF7839C85B83 /* Assets.xcassets */; };
@@ -81,6 +82,7 @@
 		20E8F7BB479463A6EDEC2DC9 /* AskView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = AskView.swift; sourceTree = "<group>"; };
 		331C807B294A618700263BE5 /* RunnerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunnerTests.swift; sourceTree = "<group>"; };
 		331C8081294A63A400263BE5 /* RunnerTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = RunnerTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		35E1A3AD03CE55C2B0BE0A42 /* SpeechPlayback.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SpeechPlayback.swift; sourceTree = "<group>"; };
 		3B3967151E833CAA004F5970 /* AppFrameworkInfo.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; name = AppFrameworkInfo.plist; path = Flutter/AppFrameworkInfo.plist; sourceTree = "<group>"; };
 		418FF2E0F619FF82B97E8A5E /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/WatchOS.platform/Developer/SDKs/WatchOS26.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		5F670FCA531F3F4E9726ABFE /* WatchRelayPlugin.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchRelayPlugin.swift; sourceTree = "<group>"; };
@@ -158,6 +160,7 @@
 				20E8F7BB479463A6EDEC2DC9 /* AskView.swift */,
 				FC63342F72A58D27A4A1CB24 /* WatchDataStore.swift */,
 				7983B9826F39C95F7907AEA4 /* HistoryView.swift */,
+				35E1A3AD03CE55C2B0BE0A42 /* SpeechPlayback.swift */,
 			);
 			path = "WatchApp Watch App";
 			sourceTree = "<group>";
@@ -426,6 +429,7 @@
 				FB1A625F9305635EC2988042 /* AskView.swift in Sources */,
 				FC7EF0B77D370C70F5BB2DBF /* WatchDataStore.swift in Sources */,
 				E30895FEA1D8C6A7031B8903 /* HistoryView.swift in Sources */,
+				CB065BACFFAB9C914549022F /* SpeechPlayback.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -557,6 +561,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
@@ -627,6 +632,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				VALIDATE_PRODUCT = YES;
@@ -810,6 +816,7 @@
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SDKROOT = watchos;
 				SKIP_INSTALL = YES;
+				SUPPORTED_PLATFORMS = "watchos watchsimulator";
 				SWIFT_VERSION = 5.0;
 				TARGETED_DEVICE_FAMILY = 4;
 				WATCHOS_DEPLOYMENT_TARGET = 10.0;

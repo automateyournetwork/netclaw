@@ -237,6 +237,10 @@ async def _first_resolution_wins(tmp_path):
         resp = await phone.call("n2n/edge/approval_resolve",
                                 {"approval_id": approval_id, "action": "approve"})
         assert resp["resolved"] is True  # existing resolve_approval() always reports True...
+        # ...but 073/FR-005/research D6 distinguishes this no-op from a real
+        # first-time resolve, so a notification action (or the watch/phone
+        # UI) can show "already resolved" instead of a false success.
+        assert resp["already_resolved"] is True
 
         row = border.manager._conn.execute(
             "SELECT status, resolved_via FROM approval_request WHERE id=?",
@@ -244,6 +248,30 @@ async def _first_resolution_wins(tmp_path):
         # ...but the row itself was never double-applied: still denied via cli.
         assert row["status"] == "denied"
         assert row["resolved_via"] == "cli"
+        await phone.close()
+    finally:
+        server.close()
+    border.manager.close()
+
+
+def test_edge_approval_resolve_already_resolved_false_on_first_resolution(tmp_path):
+    """073/FR-005, research D6: a resolution that actually transitions a
+    still-pending approval reports already_resolved=False -- the counterpart
+    to test_first_resolution_wins_cli_then_phone's True case above."""
+    asyncio.run(_edge_approval_resolve_first_time(tmp_path))
+
+
+async def _edge_approval_resolve_first_time(tmp_path):
+    border = _border(tmp_path / "border")
+    server, port = await _serve(border)
+    try:
+        phone = await _enroll(border, port)
+        _, approval_id = _make_pending_approval(border)
+
+        resp = await phone.call("n2n/edge/approval_resolve",
+                                {"approval_id": approval_id, "action": "approve"})
+        assert resp["resolved"] is True
+        assert resp["already_resolved"] is False
         await phone.close()
     finally:
         server.close()

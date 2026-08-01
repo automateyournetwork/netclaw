@@ -47,10 +47,17 @@ class SettingsScreen extends StatefulWidget {
   final CapabilityRegistration capabilities;
   final PushStatus pushStatus;
 
+  /// 073/FR-020: the operator declined the local-notification permission
+  /// prompt. Every other capability keeps working regardless — this just
+  /// makes that limitation discoverable, non-nagging (a single static line,
+  /// never a repeated dialog).
+  final bool localNotificationsPermissionDenied;
+
   const SettingsScreen({
     super.key,
     required this.capabilities,
     this.pushStatus = PushStatus.unknown,
+    this.localNotificationsPermissionDenied = false,
   });
 
   @override
@@ -101,6 +108,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: Text(push.detail),
           );
         }),
+        if (widget.localNotificationsPermissionDenied)
+          const ListTile(
+            leading: Icon(Icons.notifications_off_outlined),
+            title: Text('Local notifications blocked'),
+            subtitle: Text(
+              'You declined the notification permission, so banners, the app '
+              'badge, and watch mirroring are unavailable. Everything else — '
+              'Feed, Chat, Approvals, History — still works normally. Turn it '
+              'on in your device settings to be notified.',
+            ),
+          ),
       ],
     );
   }

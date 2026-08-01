@@ -154,6 +154,7 @@ def check_doc_claims(skill_count, mcp_count):
     NOT matched -- they are dated past-state records, not current claims.
     """
     discrepancies = []
+    unlocatable = []
     notes = []
 
     # (file, description, compiled pattern, [(kind, capture group index), ...])
@@ -161,12 +162,19 @@ def check_doc_claims(skill_count, mcp_count):
         (README, "top prose (skills + MCP)",
          re.compile(r"Claude,\s*(\d+)\s*skills,\s*and\s*(\d+)\s*MCP integrations"),
          [("skill", 1), ("MCP", 2)]),
-        (README, "installer prose (skills)",
-         re.compile(r"deploys\s*(\d+)\s*skills"),
-         [("skill", 1)]),
-        (README, "installer prose (MCP)",
-         re.compile(r"for\s*(\d+)\s*MCP integrations"),
-         [("MCP", 1)]),
+        # RETIRED by spec 075 (was: "installer prose (skills)" matching
+        # r"deploys\s*(\d+)\s*skills", and "installer prose (MCP)" matching
+        # r"for\s*(\d+)\s*MCP integrations").
+        #
+        # These two patterns had silently stopped matching -- reported as
+        # informational notes, so nobody noticed. They are retired rather than
+        # repointed because spec 049 made the installer *selective*: README now
+        # says "Only what you select gets installed." A fixed "deploys N skills"
+        # claim would therefore be actively false, not merely stale. Retiring an
+        # obsolete claim is legitimate; deleting a pattern to silence a genuine
+        # mismatch is not. Anything retired here MUST carry a reason like this
+        # one, because from spec 075 onward an unlocatable pattern is a hard
+        # failure (FR-012) rather than a note.
         (README, "Visual HUD prose",
          re.compile(r"currently\s*(\d+)\s*MCP integrations and\s*(\d+)\s*skills"),
          [("MCP", 1), ("skill", 2)]),
@@ -200,7 +208,17 @@ def check_doc_claims(skill_count, mcp_count):
 
         match = pattern.search(text)
         if match is None:
-            notes.append(f"{doc_name}: could not locate '{description}' (phrasing may have changed)")
+            # Spec 075 FR-012: an expected claim that can no longer be found is
+            # a FAILURE, not an informational note. This supersedes spec 047's
+            # contract, which called it a note "since prose phrasing can
+            # legitimately change". That leniency is exactly how two claims went
+            # unchecked long enough for nine counts to drift. If a claim is
+            # genuinely obsolete, retire its pattern with a documented reason --
+            # do not let it rot silently.
+            unlocatable.append(
+                f"{doc_name}: could not locate '{description}' — the claim was removed or reworded. "
+                f"Restore a matchable phrasing, or retire this pattern with a documented reason."
+            )
             continue
 
         line_no = text.count("\n", 0, match.start()) + 1
@@ -217,7 +235,7 @@ def check_doc_claims(skill_count, mcp_count):
                     "kind": kind,
                 })
 
-    return discrepancies, notes
+    return discrepancies, unlocatable, notes
 
 
 def main():
@@ -231,7 +249,7 @@ def main():
         print(f"ERROR: could not read {OPENCLAW_CONFIG}", file=sys.stderr)
         return 2
 
-    discrepancies, notes = check_doc_claims(skill_count, mcp_count)
+    discrepancies, unlocatable, notes = check_doc_claims(skill_count, mcp_count)
 
     print(f"Skill count: {skill_count}")
     print(f"  workspace/skills/ directories with SKILL.md: {skill_count}")
@@ -241,20 +259,22 @@ def main():
     print(f"  + externally-installed (documented, not in config): {breakdown['external_documented']}")
     print()
 
-    if discrepancies:
+    if discrepancies or unlocatable:
         print("Documentation check: FAIL")
         for d in discrepancies:
             print(
                 f"  {d['file']}:{d['location']} claims \"{d['matched_text']}\" "
                 f"({d['kind']}), computed {d['computed_value']}"
             )
+        for item in unlocatable:
+            print(f"  unlocatable: {item}")
     else:
         print("Documentation check: PASS")
 
     for note in notes:
         print(f"  note: {note}")
 
-    return 1 if discrepancies else 0
+    return 1 if (discrepancies or unlocatable) else 0
 
 
 if __name__ == "__main__":

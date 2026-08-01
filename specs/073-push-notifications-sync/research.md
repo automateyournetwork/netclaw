@@ -1,0 +1,49 @@
+# Research: Push Notifications, Unread Tracking & Cross-Device Sync
+
+## D1: Local notification delivery mechanism
+
+- **Decision**: Add `flutter_local_notifications` to `pubspec.yaml`. It wraps `UNUserNotificationCenter` on iOS (the same framework watchOS mirroring already relies on) and `NotificationManager` on Android, and is the de facto standard Flutter package for this — every other capability in this repo already prefers well-established packages over hand-rolled native code (`local_auth`, `camera`, `mobile_scanner`, `app_links`).
+- **Rationale**: The app currently has zero local-notification code (confirmed: no `flutter_local_notifications` anywhere in `lib/` or `pubspec.yaml` — only `firebase_messaging` for remote push, which handles the fully-terminated-app case and stays credential-blocked per README). A local-notification plugin is the only piece missing to post a real, user-visible notification while the app process is alive.
+- **Alternatives considered**: Hand-rolled native platform-channel code calling `UNUserNotificationCenter` directly on iOS and `NotificationManagerCompat` on Android — rejected as needless duplication of a problem this package already solves correctly, including the iOS/watchOS action-button and badge APIs this feature needs (D2/D3).
+
+## D2: Approval notification actions with required authentication (FR-004)
+
+- **Decision**: iOS's `UNNotificationAction` supports an `.authenticationRequired` option (exposed by `flutter_local_notifications` as `DarwinNotificationActionOption.authenticationRequired`), which gates the action behind the device being unlocked. This is a necessary *first* layer (can't fire Approve/Deny from a locked screen at all) but is NOT sufficient on its own to satisfy FR-004's "the SAME on-device authentication... as resolving from within the app" — that phrase specifically means the same *fresh, never-cached* `LAContext` biometric/passcode check the existing in-app Approve/Deny buttons already perform (spec 068 FR-002/003), not merely "the phone happened to already be unlocked."
+- **Rationale**: The notification action's callback (`onDidReceiveNotificationResponse`) must invoke the exact same confirm-then-resolve code path the in-app approval buttons already use (`ApprovalClient.resolve()`, gated by the existing biometric confirmation), rather than calling `resolve()` directly. This reuses 100% existing, already-audited security logic — the only new thing is a second *entry point* into it (a notification action, alongside the existing UI button), not new authentication logic.
+- **Alternatives considered**: Relying on `.authenticationRequired` alone — rejected because it weakens the existing guarantee (device-was-unlocked-at-some-point vs. a fresh biometric re-check every time) and would be a real security regression, not a neutral convenience.
+
+## D3: App icon badge count (FR-008/FR-009)
+
+- **Decision**: Compute badge = count of unacknowledged Feed messages + count of unacknowledged chat turns (Approvals excluded per spec Assumptions), and set it via `flutter_local_notifications`'s Darwin badge-setting API both (a) whenever a new notification is posted, and (b) whenever an acknowledge/delete action changes the underlying unread count — not only opportunistically at notification-post time, so the badge never drifts stale after an acknowledge/delete with no new notification involved.
+- **Rationale**: FR-008 requires the badge to always equal the true current count, not just "increment on push, decrement on next app open."
+- **Alternatives considered**: A dedicated `flutter_app_badger`-style plugin — rejected; `flutter_local_notifications` already exposes Darwin badge control, avoiding a second plugin dependency for the same platform surface.
+- **Watch side (FR-009)**: no separate watch-side badge-setting code — watchOS mirrors the paired iPhone's app badge automatically once the phone's own badge is set correctly via the standard platform API. This must be confirmed on real hardware during implementation (matching this project's established "verify on real hardware, don't assume" precedent from spec 072), not assumed to work from documentation alone.
+
+## D4: Deep-linking a notification tap to a specific item (FR-006)
+
+- **Decision**: Extend the existing `NotificationDeepLink` class (`lib/ncfed/notification_deep_link.dart`) — which today only handles Firebase remote-push taps by matching a notification's `pushed_at` field against `MessageFeedStore.messages` — into a shared dispatcher fed by BOTH the existing Firebase `onMessageOpenedApp`/`getInitialMessage()` path AND the new local-notification tap callback (`onDidReceiveNotificationResponse`). Give every locally-posted notification an explicit JSON `payload` string identifying its target precisely (`{"type":"feed","pushed_at":"..."}` / `{"type":"chat","task_id":"..."}` / `{"type":"approval","approval_id":...}`) rather than relying on timestamp-matching, which is fragile if two items share a timestamp.
+- **Rationale**: Reuses the one existing deep-link-on-tap mechanism instead of building a second, parallel one; a payload-carried identifier is unambiguous where timestamp-matching is not.
+- **Alternatives considered**: Building an entirely separate local-notification deep-link path — rejected as needless duplication of `NotificationDeepLink`'s existing role.
+
+## D5: Per-item unread state and safe migration of existing history (FR-011)
+
+- **Decision**: Add a `bool acknowledged` field to `EdgeMessage` (`lib/ncfed/message_feed.dart`) and `ConversationTurn` (`lib/ncfed/conversation_store.dart`), defaulting to `false` for newly-created items. Critically, `fromJson()` for BOTH classes must default a *missing* `acknowledged` key (i.e., data written by the app before this feature existed) to `true`, not `false`.
+- **Rationale**: Both stores are read from disk on every app launch (`MessageFeedStore.load()`, `ConversationStore.load()`). Confirmed neither currently has any read/unread concept at all — every message/turn ever persisted before this feature ships lacks this field entirely. Defaulting a missing field to `false` (unread) would make every pre-existing message and chat turn suddenly appear as "new" the moment an operator updates the app — a jarring, wrong UX regression on the very first launch after upgrading. Defaulting missing-to-`true` (already-acknowledged) means only genuinely new arrivals after the upgrade are ever unread.
+- **Alternatives considered**: A separate migration step that bulk-marks all pre-existing rows as acknowledged on first launch after upgrade — functionally equivalent but more code than a single default-value choice in `fromJson()`.
+
+## D6: Approval-resolve idempotency and "already resolved" reporting (FR-005)
+
+- **Decision**: `Authorizer.resolve_approval()` (`mcp-servers/protocol-mcp/bgp/federation/authorization.py:149`) is confirmed already idempotent — its `UPDATE ... WHERE status='pending'` clause silently matches zero rows on a second call for the same `approval_id`, and it always returns `True` regardless. This is safe (no double-effect, no error) but currently gives the caller no way to distinguish "I just resolved this" from "this was already resolved by someone else." Extend `resolve_approval()` to report whether it actually updated a row (e.g., inspect the cursor's affected-row count), and thread that through `_edge_on_approval_resolve`'s (`service.py:1288`) response as an additional `already_resolved: bool` field alongside the existing `resolved: true`.
+- **Rationale**: FR-005 requires a notification action (or watch/phone UI) that targets an already-resolved approval to show a clear "already resolved" outcome, not blindly report success. This is a small, purely additive Border-side change — any existing caller (CLI, the current phone/watch apps) that ignores the new field sees identical behavior to today.
+- **Alternatives considered**: Having the phone pre-check approval state before calling resolve — rejected as a race-prone extra round trip; the Border already knows the definitive answer at resolve time, so it should just report it.
+
+## D7: Watch relay acknowledge/delete methods
+
+- **Decision**: Add four new `watch_relay.dart` methods, mirroring the existing per-capability relay pattern (spec 072): `watch/feed/acknowledge`, `watch/feed/delete`, `watch/history/acknowledge`, `watch/history/delete`. Each takes the relevant identifier (a Feed message's `pushed_at`, a chat turn's `task_id`) and calls new `acknowledge()`/`delete()` methods added to `MessageFeedStore` and `ConversationStore` respectively — the same phone-side stores the phone's own Feed/Chat UI will call directly (no relay layer on the phone side, exactly as approvals/feed/ask already work today).
+- **Rationale**: Matches the existing, already-proven watch_relay.dart method-per-capability shape exactly; no new relay pattern is introduced.
+
+## D8: On-demand voice playback (FR-017/018/019)
+
+- **Decision**: A new small native Swift file in the `WatchApp Watch App` target (e.g. `SpeechPlayback.swift`) wrapping `AVSpeechSynthesizer`, invoked directly from `FeedView.swift`/`HistoryView.swift`/`AskView.swift`'s new "read aloud" button. Purely watch-local — the text content is already present on the watch once fetched via the existing relay calls, so no new relay method or phone-side code is needed for this capability at all.
+- **Rationale**: `AVSpeechSynthesizer` is available on watchOS (confirmed same framework as iOS, no new capability/entitlement required), and the watch already holds the text it needs to speak by the time "read aloud" is tappable.
+- **Alternatives considered**: Relaying "speak this" back through the phone — rejected as needless round-trip complexity for a capability entirely local to the watch's own display of already-fetched text.

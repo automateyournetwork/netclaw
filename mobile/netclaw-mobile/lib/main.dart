@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'ncfed/approval_client.dart';
+import 'ncfed/approval_confirmation.dart';
 import 'ncfed/capability_registration.dart';
 import 'ncfed/capture_client.dart';
 import 'ncfed/conversation_store.dart';
@@ -15,6 +17,7 @@ import 'ncfed/edge_client.dart';
 import 'ncfed/edge_identity.dart';
 import 'ncfed/enrollment_store.dart';
 import 'ncfed/heartbeat.dart';
+import 'ncfed/local_notifications.dart';
 import 'ncfed/message_feed.dart';
 import 'ncfed/notification_deep_link.dart';
 import 'ncfed/push_registration.dart';
@@ -203,8 +206,12 @@ class _HomeShellState extends State<HomeShell> {
   DeviceDeepLinkListener? _deepLinkListener;
   ReconnectSupervisor<void>? _reconnectSupervisor;
   DateTime? _highlightPushedAt;
+  String? _highlightTaskId;
   int _unreadFeed = 0;
   PushStatus _pushStatus = PushStatus.unknown;
+  LocalNotifications? _localNotifications;
+  bool _localNotificationsPermissionDenied = false;
+  NotificationDeepLink? _notificationDeepLink;
 
   @override
   void initState() {
@@ -215,14 +222,95 @@ class _HomeShellState extends State<HomeShell> {
       final conversationStore = ConversationStore(dir);
       final approvalClient = ApprovalClient(widget.client);
       final capabilities = CapabilityRegistration(widget.client);
+
+      // 073: real local notifications while the app process is alive,
+      // distinct from feature 066's credential-blocked remote FCM/APNs path
+      // below (_tryRegisterPush). Initialized before wireMessageFeed/
+      // conversationStore.onCompleted/receiveApproval are wired below, so
+      // the very first arrival is never missed.
+      final localNotifications = LocalNotifications();
+      final notificationDeepLink = NotificationDeepLink(
+        store: feedStore,
+        conversationStore: conversationStore,
+        openMessage: (message) {
+          if (!mounted) return;
+          setState(() {
+            _tab = 1; // Feed
+            _highlightPushedAt = message.pushedAt;
+          });
+        },
+        openChatTurn: (turn) {
+          if (!mounted) return;
+          setState(() {
+            _tab = 0; // Chat
+            _highlightTaskId = turn.taskId;
+          });
+        },
+      );
+      await localNotifications.initialize(
+        onResponse: (response) => _handleNotificationResponse(
+          response,
+          approvalClient: approvalClient,
+          deepLink: notificationDeepLink,
+        ),
+      );
+      final permissionGranted = await localNotifications.requestPermission();
+      if (mounted) {
+        setState(() {
+          _localNotifications = localNotifications;
+          _notificationDeepLink = notificationDeepLink;
+          _localNotificationsPermissionDenied = !permissionGranted;
+        });
+      }
+
+      conversationStore.onCompleted = (turn) {
+        if (!mounted) return;
+        if (_tab != 0) {
+          localNotifications.postChatNotification(
+            identifier: turn.taskId,
+            preview: turn.answerText ?? 'Answer ready.',
+            badgeCount: combinedBadgeCount(
+              unreadFeed: feedStore.unreadCount,
+              unreadChat: conversationStore.unreadCount,
+            ),
+          );
+        }
+        _recomputeBadge();
+      };
+
       wireMessageFeed(
         widget.client,
         feedStore,
-        onApproval: approvalClient.receiveApproval,
-        onMessage: (_) {
+        onApproval: (params) {
+          approvalClient.receiveApproval(params);
+          final approval = approvalClient.currentPending
+              .where((a) => a.approvalId == params['approval_id'])
+              .toList();
+          if (approval.isNotEmpty) {
+            localNotifications.postApprovalNotification(
+              identifier: approval.single.approvalId.toString(),
+              targetName: approval.single.targetName,
+              requestingAgent: approval.single.requestingAgent,
+            );
+          }
+        },
+        onMessage: (message) {
           if (!mounted) return;
           // Don't badge the tab the operator is already looking at.
-          setState(() { if (_tab != 1) _unreadFeed++; });
+          if (_tab != 1) {
+            setState(() => _unreadFeed++);
+            localNotifications.postFeedNotification(
+              identifier: message.pushedAt.toIso8601String(),
+              preview: message.contentType == MessageContentType.text
+                  ? message.content
+                  : 'New ${message.contentType.name} message',
+              badgeCount: combinedBadgeCount(
+                unreadFeed: feedStore.unreadCount,
+                unreadChat: conversationStore.unreadCount,
+              ),
+            );
+          }
+          _recomputeBadge();
         },
       );
       wireHeartbeat(widget.client);
@@ -267,6 +355,53 @@ class _HomeShellState extends State<HomeShell> {
       _wireReconnect();
       _tryRegisterPush();
     });
+  }
+
+  /// Combined badge (073/FR-008): unacknowledged Feed + unacknowledged Chat,
+  /// recomputed on every new arrival (here) and every acknowledge/delete
+  /// (wired alongside those actions once built) so it never drifts stale.
+  Future<void> _recomputeBadge() async {
+    final feedStore = _feedStore;
+    final conversationStore = _conversationStore;
+    final notifications = _localNotifications;
+    if (feedStore == null || conversationStore == null || notifications == null) return;
+    await notifications.setBadgeCount(
+      combinedBadgeCount(
+        unreadFeed: feedStore.unreadCount,
+        unreadChat: conversationStore.unreadCount,
+      ),
+    );
+  }
+
+  /// Handles a tap on a locally-posted notification -- either an
+  /// authenticated Approve/Deny action (073/FR-004, routed through the SAME
+  /// `confirmAndResolve` the in-app buttons use), or a plain tap that
+  /// deep-links to the specific Feed message/chat answer (FR-006).
+  Future<void> _handleNotificationResponse(
+    NotificationResponse response, {
+    required ApprovalClient approvalClient,
+    required NotificationDeepLink deepLink,
+  }) async {
+    final actionId = response.actionId;
+    if (actionId == approveActionId || actionId == denyActionId) {
+      final parsed = parseLocalNotificationPayload(response.payload);
+      final identifier = parsed?['identifier'];
+      if (identifier == null) return;
+      final approvalId = int.tryParse(identifier);
+      if (approvalId == null) return;
+      final approval = approvalClient.currentPending
+          .where((a) => a.approvalId == approvalId)
+          .toList();
+      final targetName = approval.isNotEmpty ? approval.single.targetName : 'this request';
+      await confirmAndResolve(
+        client: approvalClient,
+        approvalId: approvalId,
+        targetName: targetName,
+        action: actionId == approveActionId ? 'approve' : 'deny',
+      );
+      return;
+    }
+    await deepLink.handleLocalNotificationTap(response.payload);
   }
 
   /// Auto-redials on a dropped connection (068 polish, ports 066's
@@ -343,21 +478,14 @@ class _HomeShellState extends State<HomeShell> {
     if (mounted) setState(() => _pushStatus = status);
   }
 
-  /// Tapping a delivered push (or cold-starting from one) jumps to the Feed
-  /// tab with the referenced message scrolled into view and highlighted.
+  /// Tapping a delivered REMOTE push (or cold-starting from one) jumps to the
+  /// Feed tab with the referenced message scrolled into view and
+  /// highlighted. Reuses the SAME `NotificationDeepLink` instance the local
+  /// notification handler already uses (073) — `.wire()` just adds the
+  /// Firebase remote-tap listener on top of it, rather than constructing a
+  /// second, parallel dispatcher.
   Future<void> _wireNotificationDeepLink() async {
-    final feedStore = _feedStore;
-    if (feedStore == null) return;
-    await NotificationDeepLink(
-      store: feedStore,
-      openMessage: (message) {
-        if (!mounted) return;
-        setState(() {
-          _tab = 1; // Feed
-          _highlightPushedAt = message.pushedAt;
-        });
-      },
-    ).wire();
+    await _notificationDeepLink?.wire();
   }
 
   @override
@@ -392,10 +520,23 @@ class _HomeShellState extends State<HomeShell> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final pages = [
-      ChatScreen(askClient: _askClient!, store: _conversationStore!),
-      FeedScreen(store: _feedStore!, highlightPushedAt: _highlightPushedAt),
+      ChatScreen(
+        askClient: _askClient!,
+        store: _conversationStore!,
+        highlightTaskId: _highlightTaskId,
+        onChanged: _recomputeBadge,
+      ),
+      FeedScreen(
+        store: _feedStore!,
+        highlightPushedAt: _highlightPushedAt,
+        onChanged: _recomputeBadge,
+      ),
       ApprovalsScreen(approvalClient: _approvalClient!),
-      SettingsScreen(capabilities: _capabilities!, pushStatus: _pushStatus),
+      SettingsScreen(
+        capabilities: _capabilities!,
+        pushStatus: _pushStatus,
+        localNotificationsPermissionDenied: _localNotificationsPermissionDenied,
+      ),
     ];
     return Scaffold(
       appBar: AppBar(
@@ -432,6 +573,7 @@ class _HomeShellState extends State<HomeShell> {
             _unreadFeed = 0;
             _highlightPushedAt = null;
           }
+          if (i == 0) _highlightTaskId = null;
         }),
         destinations: [
           const NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),

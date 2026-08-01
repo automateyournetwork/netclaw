@@ -2,11 +2,9 @@
 # Feature 042: Twilio Voice MCP Integration
 
 # MCP Framework
-mcp>=1.1.0
-
+mcp>=1.1.0,<2
 # Twilio SDK
-twilio>=9.0.0
-
+twilio>=9.0.0,<10
 # HTTP Server for webhooks
 flask>=3.0.0
 

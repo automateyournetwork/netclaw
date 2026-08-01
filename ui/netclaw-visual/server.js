@@ -107,11 +107,13 @@ const INTEGRATION_CATALOG = [
   { id: 'fmc', name: 'Cisco FMC', category: 'Security', prefixes: ['fmc-'], color: '#bc4749', transport: 'http', toolEstimate: 8, description: 'Cisco Secure Firewall policy search.' },
   { id: 'nmap', name: 'Nmap', category: 'Security', prefixes: ['nmap-'], color: '#ff006e', transport: 'stdio', toolEstimate: 18, description: 'Scoped scanning and service detection.' },
   { id: 'nvd', name: 'NVD / CVE', category: 'Security', prefixes: ['nvd-'], color: '#fb5607', transport: 'stdio', toolEstimate: 4, description: 'Vulnerability context matched to operational state.' },
+  { id: 'cisco-psirt', name: 'Cisco PSIRT', category: 'Security', prefixes: ['psirt-', 'check_version', 'check_cve'], color: '#d62828', transport: 'stdio', toolEstimate: 6, description: 'Whether a running Cisco version is affected by a published advisory — IOS, IOS-XE, NX-OS, ASA, FTD, FMC, ACI. Read-only; never contacts a device. An empty result means Cisco published nothing, not that the device is secure.' },
   { id: 'grafana', name: 'Grafana', category: 'Observability', prefixes: ['grafana-', 'flow-'], color: '#f8961e', transport: 'http', toolEstimate: 75, description: 'Dashboards, alerts, incidents, and derived telemetry views.' },
   { id: 'prometheus', name: 'Prometheus', category: 'Observability', prefixes: ['prometheus-'], color: '#faa307', transport: 'stdio', toolEstimate: 6, description: 'Direct metrics and PromQL access.' },
   { id: 'thousandeyes', name: 'ThousandEyes', category: 'Observability', prefixes: ['te-'], color: '#ffb703', transport: 'http', toolEstimate: 29, description: 'Synthetic and path-aware external monitoring.' },
   { id: 'kubeshark', name: 'Kubeshark', category: 'Observability', prefixes: ['kubeshark-'], color: '#ffcb77', transport: 'http', toolEstimate: 6, description: 'Kubernetes packet and flow visibility.' },
   { id: 'gtrace', name: 'gtrace', category: 'Observability', prefixes: ['gtrace-'], color: '#bde0fe', transport: 'stdio', toolEstimate: 6, description: 'Path tracing and IP enrichment.' },
+  { id: 'globalping', name: 'Globalping', category: 'Observability', prefixes: ['globalping-'], color: '#00b4d8', transport: 'http', toolEstimate: 12, description: 'Outside-in measurement from ~4,800 probes across ~1,390 ASNs — ping, traceroute, DNS, MTR and HTTP toward a public target. The only vantage point NetClaw has outside its own administrative domain. Public endpoints only; "no probes matched" is not "the service is down".' },
   { id: 'suzieq', name: 'SuzieQ', category: 'Observability', prefixes: ['suzieq-'], color: '#a8dadc', transport: 'stdio', toolEstimate: 5, description: 'Network state queries, assertions, summaries, and path tracing.' },
   { id: 'aws', name: 'AWS', category: 'Cloud', prefixes: ['aws-'], color: '#f77f00', transport: 'http', toolEstimate: 55, description: 'Networking, monitoring, security, cost, and diagram generation in AWS.' },
   { id: 'gcp', name: 'GCP', category: 'Cloud', prefixes: ['gcp-'], color: '#f3722c', transport: 'http', toolEstimate: 40, description: 'Compute, monitoring, and logging coverage for GCP.' },
@@ -134,6 +136,7 @@ const INTEGRATION_CATALOG = [
   { id: 'token-tracker', name: 'Token Tracker', category: 'Observability', prefixes: ['token-'], color: '#10b981', transport: 'none', toolEstimate: 0, description: 'Real-time token counting, cost tracking, TOON serialization savings, and per-tool usage breakdown. Every interaction shows its cost.' },
   { id: 'gns3', name: 'GNS3', category: 'Labs', prefixes: ['gns3-'], color: '#2ecc71', transport: 'stdio', toolEstimate: 23, description: 'GNS3 network simulation — projects, nodes, links, templates, computes, snapshots, and packet capture for lab environments.' },
   { id: 'prisma-sdwan', name: 'Prisma SD-WAN', category: 'Network Platforms', prefixes: ['prisma-sdwan-'], color: '#fa582d', transport: 'stdio', toolEstimate: 16, description: 'Palo Alto Networks Prisma SD-WAN — sites, elements, topology, health, alarms, interfaces, routing, policies, and applications.' },
+  { id: 'multivendor-cli', name: 'Multivendor CLI Driver', category: 'Device Automation', prefixes: ['multivendor-'], color: '#16a085', transport: 'stdio', toolEstimate: 10, description: 'Nornir/NAPALM/Netmiko reach to ~90 platform families no other NetClaw server covers — MikroTik, VyOS, SONiC, Nokia SR Linux, Extreme, Huawei, Dell, EdgeOS. Read-only by default; Cisco stays with pyATS and Junos with junos-mcp.' },
   { id: 'telemetry-receivers', name: 'Telemetry Receivers', category: 'Observability', prefixes: ['syslog-', 'snmptrap-', 'ipfix-', 'telemetry-'], color: '#9b59b6', transport: 'stdio', toolEstimate: 12, description: 'Real-time telemetry ingestion — syslog, SNMP traps, and IPFIX/NetFlow receivers for event correlation and alerting.' },
   { id: 'config-archive', name: 'Config Archive', category: 'Governance', prefixes: ['config-archive-'], color: '#34495e', transport: 'stdio', toolEstimate: 4, description: 'Configuration archive compliance — backup verification, drift detection, and config restore workflows.' },
   { id: 'datadog', name: 'Datadog', category: 'Observability', prefixes: ['datadog-'], color: '#632ca6', transport: 'http', toolEstimate: 16, description: 'Full observability stack — logs, metrics, incidents, APM, dashboards with error_tracking, feature_flags, dbm, security, llm_observability toolsets.' },
@@ -430,6 +433,21 @@ const ENV_MAP = {
     env: ['PAN_CLIENT_ID', 'PAN_CLIENT_SECRET', 'PAN_TSG_ID', 'PAN_REGION'],
     files: ['mcp-servers/prisma-sdwan-mcp/prisma_sdwan_mcp_server.py'],
     notes: 'Palo Alto Networks Prisma SD-WAN via OAuth2. Region is americas or europe. TSG_ID is the Tenant Service Group ID.',
+  },
+  'globalping': {
+    env: ['GLOBALPING_TOKEN'],
+    files: ['config/openclaw.json (remote endpoint — no vendored server)'],
+    notes: 'Official jsDelivr remote MCP at https://mcp.globalping.dev/mcp, bearer token, streamable HTTP + SSE. No local server by design (spec 079 R1). 5 measurement tools (ping/traceroute/dns/mtr/http) plus limits/locations; 6 of the 12 advertised tools take only the analytics `context` argument. Budget is 500 probe-measurements/hour authenticated (250 anonymous per IP) and is charged PER PROBE — limit:20 spends 20 — so right-size limit rather than maximising it. Public targets only: RFC1918/loopback/link-local are refused locally BEFORE calling out, so internal addressing is never transmitted. Location syntax: + is AND (London+UK), arrays for multiple places, world for a global spread, AS3320 for an ASN; a comma inside one string fails, and AS13335 (the vendor\'s own schema example) never returns probes because Cloudflare hosts none. Every tool requires a natural-language `context` field the vendor uses for intent analytics — NetClaw sends a generic task-shaped value only.',
+  },
+  'cisco-psirt': {
+    env: ['CISCO_CLIENT_ID', 'CISCO_CLIENT_SECRET', 'CISCO_PSIRT_CACHE_DIR', 'CISCO_PSIRT_CACHE_TTL_S'],
+    files: ['mcp-servers/cisco-psirt-mcp/server.py'],
+    notes: 'Cisco PSIRT openVuln API via OAuth2 client credentials (id.cisco.com, 3600s token, refreshed proactively at 60s remaining). Read-only and device-free — versions are supplied by the caller from pyATS or multivendor-cli. Rate budget is 5/sec and 30/min shared, so lookups de-duplicate by version and cache for 6h on disk. Version format differs per family and contradicts across them: iosxe wants 17.3.1 and rejects 17.3(1), while ios wants 15.2(4)E and rejects 15.2.4E; aci wants the SWITCH image version 15.2(3e), not the APIC version. NOT available: iosxr (404, not an OSType), Bug/EoX/Case/Serial (403 under this grant), CX Cloud (504).',
+  },
+  'multivendor-cli': {
+    env: ['MULTIVENDOR_INVENTORY_SOURCE', 'MULTIVENDOR_INVENTORY_PATH', 'MULTIVENDOR_WRITE_ENABLED', 'MULTIVENDOR_MAX_WORKERS', 'MULTIVENDOR_TIMEOUT_S', 'MULTIVENDOR_USERNAME', 'MULTIVENDOR_PASSWORD'],
+    files: ['mcp-servers/multivendor-cli-mcp/server.py'],
+    notes: 'Read-only by default; write tools absent from tools/list unless MULTIVENDOR_WRITE_ENABLED. Runs from its OWN virtualenv because napalm/netmiko resolve cryptography 49.x while the system carries 46.x, which NCFED uses for X.509 issuance. Writes are single-pathed per platform: refuses config change on Cisco/Junos and names the owning server.',
   },
   'telemetry-receivers': {
     env: ['SYSLOG_UDP_PORT', 'SNMP_TRAP_PORT', 'IPFIX_PORT', 'TELEMETRY_BUFFER_SIZE'],
@@ -1131,11 +1149,11 @@ app.get('/api/env/:integrationId', (req, res) => {
   if (!mapping) return res.status(404).json({ error: 'Unknown integration' });
 
   const envVars = parseEnvFile();
-  // FORK PATCH (security): `value` used to carry the plaintext secret next to
-  // `masked`. The HUD only ever renders `masked`/`isSet` (src/main.js:1370-1376),
-  // so the cleartext was pure exposure on an endpoint that serves every
-  // credential in .env. Do not reintroduce `value` — to edit a key the operator
-  // types a new one; PUT /api/env never needs the old value echoed back.
+  // Never return the cleartext value. The HUD renders `masked` and `isSet`
+  // only, and this endpoint enumerates every credential in .env on an
+  // unauthenticated listener that binds all interfaces. To change a key the
+  // operator types a new one; PUT /api/env never needs the old value echoed
+  // back, so there is no consumer for the plaintext.
   const fields = mapping.env.map((key) => ({
     key,
     masked: envVars[key] ? maskValue(envVars[key]) : '',

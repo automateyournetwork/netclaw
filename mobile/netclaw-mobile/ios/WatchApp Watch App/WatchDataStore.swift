@@ -76,17 +76,36 @@ final class WatchDataStore: ObservableObject {
         if feedConnection == .connected, let list = reply?["messages"] as? [[String: Any]] {
             feedMessages = list.compactMap { dict in
                 guard let contentType = dict["content_type"] as? String,
-                      let designatedBy = dict["designated_by"] as? String
+                      let designatedBy = dict["designated_by"] as? String,
+                      let pushedAt = dict["pushed_at"] as? String
                 else { return nil }
                 return WatchFeedMessage(
+                    pushedAt: pushedAt,
                     contentType: contentType,
                     content: dict["content"] as? String ?? "",
-                    designatedBy: designatedBy)
+                    designatedBy: designatedBy,
+                    acknowledged: dict["acknowledged"] as? Bool ?? true)
             }
         } else {
             feedMessages = []
         }
         feedLoaded = true
+    }
+
+    /// Acknowledge/delete (073/FR-012/FR-013) always re-fetch afterward --
+    /// the same on-demand refresh pattern every other relay call already
+    /// uses (spec 072's design), so the watch's own list reflects the
+    /// change immediately rather than only on the next unrelated refresh.
+    func acknowledgeFeed(pushedAt: String) async {
+        _ = await WatchConnectivitySession.shared.send(
+            method: "watch/feed/acknowledge", args: ["pushed_at": pushedAt])
+        await refreshFeed()
+    }
+
+    func deleteFeed(pushedAt: String) async {
+        _ = await WatchConnectivitySession.shared.send(
+            method: "watch/feed/delete", args: ["pushed_at": pushedAt])
+        await refreshFeed()
     }
 
     func refreshHistory() async {
@@ -99,11 +118,24 @@ final class WatchDataStore: ObservableObject {
                       let state = dict["state"] as? String
                 else { return nil }
                 return WatchHistoryTurn(id: taskId, requestText: requestText,
-                                         answerText: dict["answer_text"] as? String, state: state)
+                                         answerText: dict["answer_text"] as? String, state: state,
+                                         acknowledged: dict["acknowledged"] as? Bool ?? true)
             }
         } else {
             historyTurns = []
         }
         historyLoaded = true
+    }
+
+    func acknowledgeHistory(taskId: String) async {
+        _ = await WatchConnectivitySession.shared.send(
+            method: "watch/history/acknowledge", args: ["task_id": taskId])
+        await refreshHistory()
+    }
+
+    func deleteHistory(taskId: String) async {
+        _ = await WatchConnectivitySession.shared.send(
+            method: "watch/history/delete", args: ["task_id": taskId])
+        await refreshHistory()
     }
 }

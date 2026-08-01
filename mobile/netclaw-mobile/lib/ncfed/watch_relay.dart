@@ -38,6 +38,14 @@ class WatchRelay {
         return await _listFeed();
       case 'watch/history/list':
         return await _listHistory();
+      case 'watch/feed/acknowledge':
+        return _acknowledgeFeed(args);
+      case 'watch/feed/delete':
+        return _deleteFeed(args);
+      case 'watch/history/acknowledge':
+        return _acknowledgeHistory(args);
+      case 'watch/history/delete':
+        return _deleteHistory(args);
       case 'watch/ask/submit':
         return _submitAsk(args);
       case 'watch/ask/status':
@@ -98,9 +106,28 @@ class WatchRelay {
                 'content': m.contentType == MessageContentType.text ? m.content : '',
                 'designated_by': m.designatedBy,
                 'pushed_at': m.pushedAt.toIso8601String(),
+                'acknowledged': m.acknowledged,
               })
           .toList(),
     };
+  }
+
+  /// `pushed_at` is the same identifier `watch/feed/list` already sends per
+  /// message -- contracts/watch-relay-extensions.md §1.
+  Future<Map<String, dynamic>> _acknowledgeFeed(Map<String, dynamic> args) async {
+    final store = feedStore;
+    if (store == null) return {'error': 'not enrolled'};
+    final pushedAt = DateTime.parse(args['pushed_at'] as String);
+    await store.acknowledge(pushedAt);
+    return {'acknowledged': true};
+  }
+
+  Future<Map<String, dynamic>> _deleteFeed(Map<String, dynamic> args) async {
+    final store = feedStore;
+    if (store == null) return {'error': 'not enrolled'};
+    final pushedAt = DateTime.parse(args['pushed_at'] as String);
+    await store.delete(pushedAt);
+    return {'deleted': true};
   }
 
   /// Read-only chat history (added after real-hardware testing showed the
@@ -121,9 +148,26 @@ class WatchRelay {
                 if (t.answerText != null) 'answer_text': t.answerText,
                 'state': _narrowState(_taskStateFromString(t.state)),
                 'submitted_at': t.submittedAt.toIso8601String(),
+                'acknowledged': t.acknowledged,
               })
           .toList(),
     };
+  }
+
+  /// `task_id` is the same identifier `watch/history/list` already sends
+  /// per turn -- contracts/watch-relay-extensions.md §2.
+  Future<Map<String, dynamic>> _acknowledgeHistory(Map<String, dynamic> args) async {
+    final store = conversationStore;
+    if (store == null) return {'error': 'not enrolled'};
+    await store.acknowledge(args['task_id'] as String);
+    return {'acknowledged': true};
+  }
+
+  Future<Map<String, dynamic>> _deleteHistory(Map<String, dynamic> args) async {
+    final store = conversationStore;
+    if (store == null) return {'error': 'not enrolled'};
+    await store.delete(args['task_id'] as String);
+    return {'deleted': true};
   }
 
   TaskState _taskStateFromString(String state) {
@@ -143,20 +187,40 @@ class WatchRelay {
     }
   }
 
+  /// Fixes a real, existing defect (073/FR-016): a question asked from the
+  /// watch used to call `EdgeAskClient.ask()` directly and never recorded
+  /// into `conversationStore` at all, so it never showed up in the phone's
+  /// Chat tab or the watch's own History tab. `conversationStore` is
+  /// optional here only because unit tests exercise `askClient` alone --
+  /// every real caller (`main.dart`) always provides both.
   Future<Map<String, dynamic>> _submitAsk(Map<String, dynamic> args) async {
     final client = askClient;
     if (client == null) return {'error': 'not enrolled'};
     final text = (args['text'] as String? ?? '').trim();
     if (text.isEmpty) return {'error': 'nothing to submit'};
     final taskId = await client.ask(text);
+    await conversationStore?.addPending(taskId, text, origin: 'watch');
     return {'task_id': taskId};
   }
 
+  /// Persists the resolved answer into the SAME turn `_submitAsk` created,
+  /// in addition to narrowing state for the watch's own reply (073/FR-016) --
+  /// previously this only ever told the watch the answer, never wrote it
+  /// into the shared store.
   Future<Map<String, dynamic>> _askStatus(Map<String, dynamic> args) async {
     final client = askClient;
     if (client == null) return {'error': 'not enrolled'};
     final taskId = args['task_id'] as String;
     final update = await client.result(taskId);
+    if (update.state == TaskState.completed ||
+        update.state == TaskState.failed ||
+        update.state == TaskState.cancelled) {
+      await conversationStore?.updateState(
+        taskId,
+        update.state.name,
+        answerText: update.outputText,
+      );
+    }
     return {
       'task_id': taskId,
       'state': _narrowState(update.state),

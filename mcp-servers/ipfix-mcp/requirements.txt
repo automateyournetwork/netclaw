@@ -2,8 +2,7 @@
 # Python 3.10+ required
 
 # MCP Framework
-mcp>=1.0.0
-
+mcp>=1.0.0,<2
 # NetFlow/IPFIX Parsing
 netflow>=0.12.0
 

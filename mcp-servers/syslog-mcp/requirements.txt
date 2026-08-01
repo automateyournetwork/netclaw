@@ -2,8 +2,7 @@
 # Python 3.10+ required
 
 # MCP Framework
-mcp>=1.0.0
-
+mcp>=1.0.0,<2
 # Syslog Parsing
 syslog-rfc5424-parser>=0.3.2
 

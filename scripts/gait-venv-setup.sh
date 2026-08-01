@@ -46,7 +46,16 @@ fi
 uv venv "${GAIT_VENV}" --python "${PYTHON_BIN}"
 
 # Dependencies mirror mcp-servers/gait_mcp/pyproject.toml
-VIRTUAL_ENV="${GAIT_VENV}" uv pip install gait-ai mcp fastmcp
+# Bounds are LOAD-BEARING. mcp 2.0.0 removed mcp.server.fastmcp, and gait_mcp
+# imports it (with a fallback to the standalone fastmcp, so either works — but
+# only if both are constrained to a major that still provides the API).
+#
+# This install was previously FULLY UNBOUNDED and sits OUTSIDE any
+# requirements.txt, so the spec-077 audit of requirements files missed it
+# entirely; it was found only by grepping for venv creation. GAIT is the audit
+# trail Constitution Principle IV makes non-negotiable, so it failing on a fresh
+# install is not cosmetic.
+VIRTUAL_ENV="${GAIT_VENV}" uv pip install gait-ai 'mcp>=1.0.0,<2' 'fastmcp>=2.0.0,<3'
 
 echo ""
 echo "Verifying..."

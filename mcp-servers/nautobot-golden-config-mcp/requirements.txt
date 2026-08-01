@@ -1,3 +1,6 @@
+# Upper bounds added by spec 077: an unbounded pin on a package whose submodule
+# this server imports can lose that submodule in a new major (mcp 2.0.0 removed
+# mcp.server.fastmcp). Do not remove the bounds.
 httpx
 fastmcp
-mcp
+mcp>=1.0.0,<2

@@ -1,0 +1,57 @@
+name: MCP Reconciliation
+
+# Enforces that NetClaw's MCP registration surfaces agree, so every integration
+# NetClaw claims to ship is genuinely obtainable by someone installing their own
+# risk.
+#
+# Added by spec 075. Before this workflow existed, two reconciliation scripts had
+# been reporting real failures -- 19 unmapped servers, 9 wrong documented counts,
+# 3 registrations hardcoded to a foreign home directory -- and exiting non-zero
+# correctly, but nothing anywhere invoked them. The checks were never broken; the
+# gap was that no one was listening.
+#
+# Constitution Principle XI: "A pull request that adds a capability without
+# updating all required artifacts MUST NOT be merged." This is the mechanism.
+#
+# Deliberately does NOT use --warn-only. That flag exists for local convenience;
+# using it here would recreate the exact failure this workflow fixes.
+
+on:
+  pull_request:
+    paths:
+      - 'config/openclaw.json'
+      - 'mcp-servers/**'
+      - 'scripts/lib/catalog.sh'
+      - 'scripts/lib/install-steps.sh'
+      - 'scripts/verify-*.py'
+      - 'scripts/check-mcp-portability.py'
+      - 'scripts/reconcile-mcp.py'
+      - 'workspace/skills/**'
+      - 'README.md'
+      - 'SOUL.md'
+      - '.github/workflows/mcp-reconciliation.yml'
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  reconcile:
+    name: Reconcile registration surfaces
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10'
+
+      # No pip install step: every reconciliation script is standard-library
+      # only, by design, so this job needs no dependencies, no network access,
+      # no credentials, and no installed NetClaw agent (spec 075 SC-013).
+
+      - name: Reconcile MCP registration surfaces
+        run: python3 scripts/reconcile-mcp.py
+
+      - name: Exit-code contract tests
+        run: bash tests/reconcile/run-tests.sh

@@ -1310,8 +1310,15 @@ class FederationService:
         if approval_id is None or action not in ("approve", "deny"):
             raise RpcError(-32602, "approval_id and action ('approve'|'deny') required")
         confirmation_method = params.get("confirmation_method", "biometric")
-        self.authz.resolve_approval(int(approval_id), action, via=confirmation_method)
-        return {"approval_id": approval_id, "resolved": True}
+        result = self.authz.resolve_approval(int(approval_id), action, via=confirmation_method)
+        # already_resolved (073/FR-005, research D6): additive field -- a
+        # caller that only checks "resolved" sees identical behavior to
+        # before this existed.
+        return {
+            "approval_id": approval_id,
+            "resolved": True,
+            "already_resolved": result["already_resolved"],
+        }
 
     async def _edge_on_ask(self, channel, params):
         """Phone asks the Border something (feature 067, US1/US2/US3): create

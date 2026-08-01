@@ -47,6 +47,8 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - HaloPSA / HaloITSM  → HALO_BASE_URL, HALO_CLIENT_ID, HALO_CLIENT_SECRET, HALO_TENANT, HALO_SCOPE (OAuth2 client-credentials)
 - Claroty xDome MCP   → CLAROTY_API_URL (default: https://api.medigate.io), CLAROTY_API_TOKEN, CLAROTY_VERIFY_SSL, CLAROTY_TIMEOUT, CLAROTY_RATE_LIMIT_PER_MIN (default: 2000)
 - Twitter MCP         → TWITTER_API_KEY, TWITTER_API_SECRET, TWITTER_ACCESS_TOKEN, TWITTER_ACCESS_SECRET, TWITTER_HEARTBEAT_ENABLED (default: false)
+- Cisco PSIRT MCP     → CISCO_CLIENT_ID, CISCO_CLIENT_SECRET (OAuth2 client-credentials via id.cisco.com), CISCO_PSIRT_CACHE_DIR, CISCO_PSIRT_CACHE_TTL_S (default 21600)
+- Globalping MCP      → GLOBALPING_TOKEN (bearer, remote endpoint mcp.globalping.dev; 401 without it)
 ```
 
 ## Detailed Per-Integration Notes
@@ -232,3 +234,90 @@ The Claroty xDome MCP server provides 21 tools (15 read-only + 6 ITSM-gated writ
 
 - Add whatever helps NetClaw do its job — device nicknames, maintenance windows, ISP circuit IDs, TAC case numbers, anything environment-specific.
 - This file is yours. Skills are shared. Keeping them apart means you can update skills without losing your notes.
+
+## Globalping External Checks (`globalping-mcp`, remote)
+
+Outside-in measurement — the only vantage point NetClaw has **outside** its own administrative domain.
+Official jsDelivr hosted MCP; no local server by design.
+
+| Tool | Purpose |
+|---|---|
+| `ping` | Reachability and round-trip latency from chosen probes |
+| `traceroute` | Path from a probe toward the target |
+| `dns` | Resolution and propagation, per resolver |
+| `mtr` | Per-hop loss and latency together |
+| `http` | Application-layer reachability, status and timing |
+| `limits` | Remaining budget and reset (free — costs nothing) |
+| `locations` | Probe availability, before a narrow filter wastes units |
+
+**Three ways to get nothing back, and they are not the same**: `no_probes_found` means **the measurement
+never ran** (widen the filter — never report it as an outage); **0 of N successful** means the target
+genuinely did not answer (a real finding); a private/internal target is **refused locally before any call**,
+so internal addressing is never transmitted.
+
+**Budget**: 500 probe-measurements/hour authenticated, 250/hour anonymous per IP, rolling. **Charged per
+probe** — `limit: 20` spends 20 — so right-size `limit` rather than maximising it.
+
+**Location syntax**: `+` is AND (`London+UK`, `Amazon+Germany`); an array for several places
+(`["London","Frankfurt"]`); `world` for a global spread; `AS3320` for an ASN. A **comma inside one string
+fails**, and **`AS13335` never returns probes** despite being the vendor's own schema example — Cloudflare
+hosts none. Only ~1,390 of the internet's ASNs host a probe.
+
+**Privacy note**: every tool requires a natural-language `context` field the vendor uses for intent
+analytics. NetClaw sends a generic, task-shaped value with no customer name, internal hostname, ticket or
+topology detail. `limits` output echoes a short token fragment — don't paste it into a public channel.
+
+## Cisco PSIRT Advisories (`cisco-psirt-mcp`)
+
+Answers whether a running Cisco version is affected by a published advisory. Read-only,
+and it **never contacts a device** — versions come from `pyATS` or `multivendor-cli`.
+
+| Tool | Purpose |
+|---|---|
+| `check_version` | Advisories for one `(ostype, version)` |
+| `check_versions` | A fleet, de-duplicated by version first |
+| `check_cve` | Cisco advisories covering a CVE id |
+| `check_advisory` | One advisory by id |
+| `list_recent` | Advisories by severity over a date range |
+| `psirt_status` | Auth state, rate budget, cache stats, supported families |
+
+**An empty result is not a clean bill of health.** `none_published` means Cisco published
+nothing for that exact version; `normalisation_failed` and `api_error` mean the question
+went unasked. Never report any of the three as "not vulnerable".
+
+**Version format is per-family and the families contradict each other**: `iosxe` wants
+`17.3.1` and rejects `17.3(1)`; `ios` wants `15.2(4)E` and rejects `15.2.4E`; `nxos` wants
+`9.3(5)`; `asa`/`ftd`/`fmc` want dotted; `aci` wants the **switch image** version `15.2(3e)`,
+not the APIC version. The server converts in whichever direction the family needs.
+
+**Not available** (measured, not inferred): `iosxr` → 404, not an OSType on this API;
+Bug/EoX/Case/Serial-to-Info → 403 under the API Console grant; CX Cloud → 504.
+
+**Rate budget**: 5/sec and 30/min shared. Prefer `check_versions` over looping, and treat
+`refresh: true` as an incident tool — it disables the 6-hour cache.
+
+## Multivendor CLI Driver (`multivendor-cli-mcp`)
+
+Reaches ~90 platform families no other NetClaw device server can — MikroTik, VyOS, SONiC,
+Nokia SR Linux, Extreme, Huawei, Dell, Ubiquiti EdgeOS. Read-only by default.
+
+| Tool | Purpose |
+|---|---|
+| `server_info` | Identity, read/write mode, modelled platforms |
+| `check_command_policy` | Would this command pass? No device contacted |
+| `list_devices` | Inventory with source attribution |
+| `check_device_readiness` | Resolvable, authenticable, ours to act on? |
+| `check_reachability` | Separates unreachable / auth_failed / platform_mismatch |
+| `run_command` | Raw CLI, filtered server-side before connecting |
+| `get_facts` | NAPALM normalized facts, one shape across vendors |
+| `run_fleet` | Concurrent fan-out, per-device results |
+| `apply_config` * | Gated write: routing → filter → CR → approval → baseline → verify → rollback |
+| `check_change_request` * | ServiceNow CR authorisation lookup |
+
+\* present only when `MULTIVENDOR_WRITE_ENABLED` is set.
+
+**Routing**: Cisco → `pyATS`, Junos → `junos-mcp`, telemetry → `gnmi-mcp`. This server owns
+everything else, plus cross-vendor normalized reads read-only. Writes are single-pathed per platform.
+
+Dedicated virtualenv: `napalm`/`netmiko` resolve `cryptography` 49.x while the system carries 46.x,
+which NCFED uses for X.509 issuance.

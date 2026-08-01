@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -55,6 +56,98 @@ void main() {
     expect(result, {'received': true});
     expect(store.messages, hasLength(1));
     expect(store.messages.single.content, 'hello phone');
+  });
+
+  group('acknowledge/delete/unreadCount (073/FR-008/FR-012/FR-013)', () {
+    late Directory dir;
+    setUp(() async => dir = await Directory.systemTemp.createTemp('ncfed_feed_ack_test_'));
+    tearDown(() => dir.delete(recursive: true));
+
+    test('a new message is unread; unreadCount reflects it', () async {
+      final store = MessageFeedStore(dir);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: DateTime.utc(2026, 7, 27),
+      ));
+      expect(store.unreadCount, 1);
+      expect(store.messages.single.acknowledged, isFalse);
+    });
+
+    test('acknowledge clears unread state but keeps the message visible', () async {
+      final store = MessageFeedStore(dir);
+      final pushedAt = DateTime.utc(2026, 7, 27);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: pushedAt,
+      ));
+
+      await store.acknowledge(pushedAt);
+
+      expect(store.unreadCount, 0);
+      expect(store.messages, hasLength(1));
+      expect(store.messages.single.acknowledged, isTrue);
+    });
+
+    test('acknowledge persists across a simulated restart', () async {
+      final pushedAt = DateTime.utc(2026, 7, 27);
+      final store = MessageFeedStore(dir);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: pushedAt,
+      ));
+      await store.acknowledge(pushedAt);
+
+      final reloaded = MessageFeedStore(dir);
+      await reloaded.load();
+      expect(reloaded.unreadCount, 0);
+      expect(reloaded.messages.single.acknowledged, isTrue);
+    });
+
+    test('delete permanently removes the message', () async {
+      final store = MessageFeedStore(dir);
+      final pushedAt = DateTime.utc(2026, 7, 27);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: pushedAt,
+      ));
+
+      await store.delete(pushedAt);
+
+      expect(store.messages, isEmpty);
+      expect(store.unreadCount, 0);
+
+      final reloaded = MessageFeedStore(dir);
+      await reloaded.load();
+      expect(reloaded.messages, isEmpty);
+    });
+
+    test('a message written before this feature shipped (no acknowledged key) defaults to '
+        'acknowledged=true, never unread (research D5)', () async {
+      final file = File('${dir.path}/ncfed_message_feed.jsonl');
+      await file.writeAsString(
+        '${jsonEncode({
+              'content_type': 'text',
+              'content': 'pre-existing message',
+              'designated_by': 'agent',
+              'pushed_at': DateTime.utc(2026, 1, 1).toIso8601String(),
+              // deliberately no 'acknowledged' key
+            })}\n',
+      );
+
+      final store = MessageFeedStore(dir);
+      await store.load();
+
+      expect(store.unreadCount, 0);
+      expect(store.messages.single.acknowledged, isTrue);
+    });
   });
 }
 

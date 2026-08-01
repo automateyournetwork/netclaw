@@ -13,6 +13,13 @@ class ConversationTurn {
   // -- purely for showing what was sent in the UI; never re-read to build
   // the wire request (that already went out as base64 at send time).
   final String? photoPath;
+  // Clears once the operator explicitly acknowledges this turn (073/FR-012)
+  // -- distinct from [state]; a completed-but-unacknowledged turn still
+  // counts toward the unread badge.
+  bool acknowledged;
+  // Which surface submitted this turn -- "phone" or "watch" (073/FR-016).
+  // Purely informational; no requirement reads it back for behavior.
+  String origin;
 
   ConversationTurn({
     required this.taskId,
@@ -21,6 +28,8 @@ class ConversationTurn {
     this.state = 'pending',
     required this.submittedAt,
     this.photoPath,
+    this.acknowledged = false,
+    this.origin = 'phone',
   });
 
   Map<String, dynamic> toJson() => {
@@ -30,8 +39,17 @@ class ConversationTurn {
         'state': state,
         'submitted_at': submittedAt.toIso8601String(),
         'photo_path': photoPath,
+        'acknowledged': acknowledged,
+        'origin': origin,
       };
 
+  /// A turn written before 073 has no `acknowledged`/`origin` keys at all.
+  /// `acknowledged` MUST default to `true` (already-acknowledged) on a
+  /// missing key -- never `false` -- or every turn ever submitted before
+  /// this feature shipped would suddenly appear unread after upgrade
+  /// (research D5). `origin` defaults to `"phone"` on a missing key: the
+  /// watch had no way to write into this store at all before FR-016, so a
+  /// pre-existing turn was never watch-originated.
   factory ConversationTurn.fromJson(Map<String, dynamic> json) => ConversationTurn(
         taskId: json['task_id'] as String,
         requestText: json['request_text'] as String,
@@ -39,6 +57,8 @@ class ConversationTurn {
         state: json['state'] as String,
         submittedAt: DateTime.parse(json['submitted_at'] as String),
         photoPath: json['photo_path'] as String?,
+        acknowledged: json['acknowledged'] as bool? ?? true,
+        origin: json['origin'] as String? ?? 'phone',
       );
 }
 
@@ -53,9 +73,23 @@ class ConversationStore {
   final List<ConversationTurn> _turns = [];
   bool _loaded = false;
 
+  /// Fires the moment a turn transitions INTO `completed` -- from either
+  /// `updateState()` call site (`chat_screen.dart`'s foreground poll or
+  /// `turn_reconciler.dart`'s post-reconnect catch-up), regardless of which
+  /// tab the operator is looking at. `main.dart` uses this single hook to
+  /// post the chat-answer notification (073/FR-002) rather than needing one
+  /// at each call site. Mirrors `EdgeClient.onDisconnected`'s
+  /// settable-after-construction pattern.
+  void Function(ConversationTurn turn)? onCompleted;
+
   ConversationStore(this.directory);
 
   List<ConversationTurn> get turns => List.unmodifiable(_turns);
+
+  /// Count of terminal-state turns not yet acknowledged -- feeds the
+  /// combined app badge (073/FR-008). An in-progress turn has no answer to
+  /// acknowledge yet, so it never counts as unread.
+  int get unreadCount => _turns.where((t) => _isTerminal(t.state) && !t.acknowledged).length;
 
   File _file() => File('${directory.path}/ncfed_conversation.json');
 
@@ -81,7 +115,8 @@ class ConversationStore {
   bool get hasInProgressTurns =>
       _turns.any((t) => t.state == 'pending' || t.state == 'working');
 
-  Future<void> addPending(String taskId, String requestText, {List<int>? photoBytes}) async {
+  Future<void> addPending(String taskId, String requestText,
+      {List<int>? photoBytes, String origin = 'phone'}) async {
     await load();
     String? photoPath;
     if (photoBytes != null) {
@@ -94,7 +129,36 @@ class ConversationStore {
       requestText: requestText,
       submittedAt: DateTime.now().toUtc(),
       photoPath: photoPath,
+      origin: origin,
     ));
+    await _save();
+  }
+
+  /// Marks the turn with this [taskId] as acknowledged -- clears its unread
+  /// state but leaves it visible in [turns] (073/FR-012).
+  Future<void> acknowledge(String taskId) async {
+    await load();
+    for (final t in _turns) {
+      if (t.taskId == taskId) {
+        t.acknowledged = true;
+        break;
+      }
+    }
+    await _save();
+  }
+
+  /// Permanently removes the turn with this [taskId] (073/FR-013) -- unlike
+  /// [clear], which removes many turns at once. Also removes its saved
+  /// photo file, if any, matching [clear]'s own cleanup.
+  Future<void> delete(String taskId) async {
+    await load();
+    final matches = _turns.where((t) => t.taskId == taskId);
+    final photoPath = matches.isEmpty ? null : matches.first.photoPath;
+    if (photoPath != null) {
+      final file = File(photoPath);
+      if (await file.exists()) await file.delete();
+    }
+    _turns.removeWhere((t) => t.taskId == taskId);
     await _save();
   }
 
@@ -107,7 +171,9 @@ class ConversationStore {
         if (_isTerminal(t.state)) return;
         t.state = state;
         if (answerText != null) t.answerText = answerText;
-        break;
+        await _save();
+        if (state == 'completed') onCompleted?.call(t);
+        return;
       }
     }
     await _save();

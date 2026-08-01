@@ -6,9 +6,13 @@ import SwiftUI
 /// reaches here (data-model.md).
 struct WatchFeedMessage: Identifiable {
     let id = UUID()
+    /// The message's `pushed_at` ISO string -- the identity acknowledge/
+    /// delete relay calls key on (073, contracts/watch-relay-extensions.md).
+    let pushedAt: String
     let contentType: String
     let content: String
     let designatedBy: String
+    var acknowledged: Bool
 }
 
 /// User Story 2 (P2): read-only, scrollable view of Border-pushed messages.
@@ -32,13 +36,56 @@ struct FeedView: View {
             } else {
                 List(store.feedMessages) { message in
                     VStack(alignment: .leading, spacing: 2) {
-                        Text(message.designatedBy).font(.caption2).foregroundStyle(.secondary)
+                        HStack(spacing: 4) {
+                            // Unread indicator (073/FR-011) -- an explicit
+                            // acknowledge swipe clears it (FR-012); merely
+                            // viewing this tab does not (spec Assumptions).
+                            if !message.acknowledged {
+                                Circle().fill(.blue).frame(width: 6, height: 6)
+                            }
+                            Text(message.designatedBy).font(.caption2).foregroundStyle(.secondary)
+                        }
                         content(for: message)
+                        readAloudButton(for: message)
+                    }
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        Button(role: .destructive) {
+                            Task { await store.deleteFeed(pushedAt: message.pushedAt) }
+                        } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                        if !message.acknowledged {
+                            Button {
+                                Task { await store.acknowledgeFeed(pushedAt: message.pushedAt) }
+                            } label: {
+                                Label("Acknowledge", systemImage: "checkmark.circle")
+                            }
+                            .tint(.blue)
+                        }
                     }
                 }
             }
         }
         .refreshable { await store.refreshFeed() }
+    }
+
+    /// On-demand "read aloud" (073/FR-017/FR-018) -- never triggered
+    /// automatically, only by this explicit tap. A photo/voice message has
+    /// no text to speak, so it speaks a description of the content type
+    /// instead of failing silently (FR-019).
+    @ViewBuilder
+    private func readAloudButton(for message: WatchFeedMessage) -> some View {
+        Button {
+            let text = switch message.contentType {
+            case "image": "Photo message"
+            case "voice": "Voice message"
+            default: message.content
+            }
+            SpeechPlayback.shared.speak(text)
+        } label: {
+            Label("Read aloud", systemImage: "speaker.wave.2")
+        }
+        .font(.caption2)
     }
 
     @ViewBuilder

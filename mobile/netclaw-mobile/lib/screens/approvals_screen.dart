@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
-import 'package:local_auth/local_auth.dart';
 
 import '../ncfed/approval_client.dart';
+import '../ncfed/approval_confirmation.dart';
 import 'empty_state.dart';
 
 /// Pending approvals with biometric approve/deny (feature 068, US1/T010).
 /// `n2n/edge/approval_resolve` is sent ONLY after `LocalAuthentication.
 /// authenticate()` succeeds — a failed, cancelled, or unavailable biometric
-/// attempt never calls `resolve()` at all (FR-002). This screen is the ONLY
-/// place biometric code (`local_auth`) exists in this app — it never
-/// imports `EdgeIdentity` or anything Keystore/Secure-Enclave-related
+/// attempt never calls `resolve()` at all (FR-002). The actual
+/// confirm-then-resolve logic lives in `approval_confirmation.dart` (073),
+/// shared with the notification action handler in `main.dart` — this screen
+/// never imports `EdgeIdentity` or anything Keystore/Secure-Enclave-related
 /// (research D7/FR-003).
 class ApprovalsScreen extends StatefulWidget {
   final ApprovalClient approvalClient;
@@ -36,21 +37,18 @@ class _ApprovalsScreenState extends State<ApprovalsScreen> {
 
   Future<void> _resolve(PendingApproval approval, String action) async {
     setState(() => _error = null);
-    final reason = action == 'approve'
-        ? 'Confirm approval of ${approval.targetName}'
-        : 'Confirm denial of ${approval.targetName}';
-    final authenticate = widget.authenticate ??
-        (String r) => LocalAuthentication().authenticate(localizedReason: r);
-    try {
-      final authenticated = await authenticate(reason);
-      if (!authenticated) return; // failed/cancelled/unavailable -- send nothing (FR-002)
-      await widget.approvalClient.resolve(approval.approvalId, action);
-    } catch (e) {
-      // The approval stays in `_approvals` either way (ApprovalClient only
-      // removes it after a successful resolve) -- this just makes a failed
-      // attempt visible instead of looking identical to doing nothing.
-      if (mounted) setState(() => _error = 'Could not resolve: $e');
-    }
+    // The approval stays in `_approvals` either way if this reports an error
+    // (ApprovalClient only removes it after a successful resolve) -- this
+    // just makes a failed/already-resolved attempt visible instead of
+    // looking identical to doing nothing.
+    final error = await confirmAndResolve(
+      client: widget.approvalClient,
+      approvalId: approval.approvalId,
+      targetName: approval.targetName,
+      action: action,
+      authenticate: widget.authenticate,
+    );
+    if (error != null && mounted) setState(() => _error = error);
   }
 
   @override

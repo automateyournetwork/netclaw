@@ -304,10 +304,10 @@
       "url": "https://devnet.cisco.com/v1/foundation-search-mcp/mcp"
     },
     "nautobot-mcp": {
-      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "command": "python3",
       "args": [
         "-u",
-        "/home/ubuntu/netclaw/mcp-servers/nautobot-mcp-v2/server.py"
+        "mcp-servers/nautobot-mcp-v2/server.py"
       ],
       "env": {
         "NAUTOBOT_URL": "${NAUTOBOT_URL}",
@@ -319,10 +319,10 @@
       }
     },
     "nautobot-golden-config-mcp": {
-      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "command": "python3",
       "args": [
         "-u",
-        "/home/ubuntu/netclaw/mcp-servers/nautobot-golden-config-mcp/server.py"
+        "mcp-servers/nautobot-golden-config-mcp/server.py"
       ],
       "env": {
         "NAUTOBOT_URL": "${NAUTOBOT_URL}",
@@ -336,10 +336,10 @@
       }
     },
     "nautobot-routing-mcp": {
-      "command": "/home/ubuntu/netclaw/.venv/bin/python3",
+      "command": "python3",
       "args": [
         "-u",
-        "/home/ubuntu/netclaw/mcp-servers/nautobot-routing-mcp/server.py"
+        "mcp-servers/nautobot-routing-mcp/server.py"
       ],
       "env": {
         "NAUTOBOT_URL": "${NAUTOBOT_URL}",
@@ -675,13 +675,17 @@
       }
     },
     "cml-mcp": {
-      "command": "/usr/bin/python3 -m cml_mcp",
+      "command": "python3",
       "env": {
         "CML_URL": "${CML_URL}",
         "CML_USERNAME": "${CML_USERNAME}",
         "CML_PASSWORD": "${CML_PASSWORD}",
         "CML_VERIFY_SSL": "${CML_VERIFY_SSL:-false}"
-      }
+      },
+      "args": [
+        "-m",
+        "cml_mcp"
+      ]
     },
     "nso-mcp": {
       "command": "cisco-nso-mcp-server",
@@ -1043,6 +1047,29 @@
         "-u",
         "scripts/gait-stdio.py"
       ]
+    },
+    "multivendor-cli-mcp": {
+      "command": "mcp-servers/multivendor-cli-mcp/.venv/bin/python",
+      "args": [
+        "-u",
+        "mcp-servers/multivendor-cli-mcp/server.py"
+      ]
+    },
+    "cisco-psirt-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/cisco-psirt-mcp/server.py"
+      ]
+    },
+    "globalping-mcp": {
+      "url": "https://mcp.globalping.dev/mcp",
+      "headers": {
+        "Authorization": "Bearer ${GLOBALPING_TOKEN}"
+      },
+      "env": {
+        "GLOBALPING_TOKEN": "${GLOBALPING_TOKEN}"
+      }
     }
   },
   "models": {

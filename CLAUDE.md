@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-07-27
+Auto-generated from all feature plans. Last updated: 2026-07-31
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -99,6 +99,13 @@ Auto-generated from all feature plans. Last updated: 2026-07-27
 - N/A on the watch — it holds no persistent state of its own; every view (Approvals, (072-apple-watch-companion)
 - JavaScript ES2022 (ESM), Node 22+ for tooling + three.js `^0.170.0` (existing), `OrbitControls`, (072-hud-2-org-chart)
 - N/A — stateless client; all state from `/api/n2n` and `/api/graph` (072-hud-2-org-chart)
+- Dart 3.x / Flutter 3.x (extends `mobile/netclaw-mobile/`, SDK constraint `^3.12.2` per pubspec.yaml); Swift 5.0 (extends the `WatchApp Watch App` target from spec 072); Python 3.10+ (the one Border-side addition, `authorization.py`/`service.py`, matching specs 052-072) + `flutter_local_notifications` (new — local notification posting, Darwin/Android notification actions, iOS badge control); existing `firebase_messaging`/`firebase_core` (unchanged, remote-push path stays out of scope per Assumptions); existing `app_links` (extended, not replaced, per research D4); watchOS `AVSpeechSynthesizer` (system framework, no new dependency, watch-side only) (073-push-notifications-sync)
+- Extends the existing phone-local JSON-Lines `MessageFeedStore` and whole-file JSON `ConversationStore` (both under the app's documents directory) with new fields — no new store, no new database (073-push-notifications-sync)
+- Python 3.10+ (all `scripts/*.py`), Bash (CI wiring, catalog is a Bash array) + None — Python standard library only, per the convention every existing (075-mcp-config-reconciliation)
+- N/A — all state is existing repository files; this feature adds no datastore (075-mcp-config-reconciliation)
+- Python — **interpreter choice is a live decision, not a default** (see R7). + `nornir` 3.5.0, `napalm` 5.2.0, `netmiko` (>=4,<5 per `nornir-netmiko`), (076-multivendor-cli-driver)
+- No database. A generated inventory cache on disk (regenerable, credential-free); an (076-multivendor-cli-driver)
+- on-disk cache, one JSON file per `(ostype, version)` under `~/.openclaw/cisco-psirt/`. No (078-cisco-psirt-vulnerability)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -118,13 +125,25 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
-- 072-apple-watch-companion: Added Swift 5.0 (new watch app target + new `WatchRelayPlugin.swift` on the phone + `WatchConnectivity` (Apple system framework, phone + watch sides — no new
-- 072-hud-2-org-chart: Added JavaScript ES2022 (ESM), Node 22+ for tooling + three.js `^0.170.0` (existing), `OrbitControls`,
-- 071-ios-mobile-port: Added Swift 5.0 (existing `ios/Runner/*.swift`, `SWIFT_VERSION = 5.0` in + None new. Reuses what's already in `pubspec.yaml`: `local_auth ^3.0.2`
-- 067-ncfed-mobile-command-channel: Added Python 3.10+ (daemon + `bgp/federation/*`, matching 052–066); Dart 3.x / Flutter 3.x (extends `mobile/netclaw-mobile/`, the same codebase 066 established) + Python: none new — reuses `gateway.run_agent_turn()`, `tasks.py`'s `TaskManager`, `edge.py`'s `EdgeChannel`/`EDGE_METHODS`, `invocation.py`'s `handle_task_status`/`result`/`cancel` exactly as-is. Dart: an on-device speech-to-text package for US4 (voice → text before sending, research D7) and (for US5) reuses `mobile_scanner` (already added in 066) for the QR half of the device deep link; the `netclaw://device/<id>` URI-scheme half needs a deep-link/app-links package (e.g. `app_links` or platform intent filters) — exact package choice is a Phase 2 task detail, not fixed here.
+- 078-cisco-psirt-vulnerability: Added on-disk cache, one JSON file per `(ostype, version)` under `~/.openclaw/cisco-psirt/`. No
+- 076-multivendor-cli-driver: Added Python — **interpreter choice is a live decision, not a default** (see R7). + `nornir` 3.5.0, `napalm` 5.2.0, `netmiko` (>=4,<5 per `nornir-netmiko`),
+- 075-mcp-config-reconciliation: Added Python 3.10+ (all `scripts/*.py`), Bash (CI wiring, catalog is a Bash array) + None — Python standard library only, per the convention every existing
 
 
 <!-- MANUAL ADDITIONS START -->
+
+## Adding an MCP Integration
+
+**Follow [docs/ADDING-AN-MCP.md](docs/ADDING-AN-MCP.md)** for every new MCP server or integration,
+then run `python3 scripts/reconcile-mcp.py` before pushing. CI runs the same command and fails the
+merge on a non-zero exit.
+
+Established by spec 075. It exists because three integrations once shipped hardcoded to a foreign
+home directory and were broken for every installer, while nine documented capability counts drifted
+unnoticed.
+
+**Never read an exit code through a pipe** — `cmd | tail` reports `tail`'s status, not `cmd`'s. Use
+`cmd >/dev/null 2>&1; echo $?`. That mistake misdiagnosed spec 075's central premise.
 
 ## DefenseClaw Security Layer
 

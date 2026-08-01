@@ -18,7 +18,13 @@ class FeedScreen extends StatefulWidget {
   /// carries — see `findMessageForNotificationData`.
   final DateTime? highlightPushedAt;
 
-  const FeedScreen({super.key, required this.store, this.highlightPushedAt});
+  /// Fires after an acknowledge or delete action (073/FR-012/FR-013) so
+  /// `main.dart` can recompute the combined app badge (FR-008) — the
+  /// screen itself has no notion of what the badge should be, just that it
+  /// changed.
+  final VoidCallback? onChanged;
+
+  const FeedScreen({super.key, required this.store, this.highlightPushedAt, this.onChanged});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -77,6 +83,16 @@ class _FeedScreenState extends State<FeedScreen> {
           key: highlighted ? _highlightKey : null,
           message: message,
           highlighted: highlighted,
+          onAcknowledge: () async {
+            await widget.store.acknowledge(message.pushedAt);
+            if (mounted) setState(() {});
+            widget.onChanged?.call();
+          },
+          onDelete: () async {
+            await widget.store.delete(message.pushedAt);
+            if (mounted) setState(() {});
+            widget.onChanged?.call();
+          },
         );
       },
     );
@@ -86,8 +102,16 @@ class _FeedScreenState extends State<FeedScreen> {
 class _MessageTile extends StatelessWidget {
   final EdgeMessage message;
   final bool highlighted;
+  final VoidCallback onAcknowledge;
+  final VoidCallback onDelete;
 
-  const _MessageTile({super.key, required this.message, this.highlighted = false});
+  const _MessageTile({
+    super.key,
+    required this.message,
+    required this.onAcknowledge,
+    required this.onDelete,
+    this.highlighted = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -106,16 +130,57 @@ class _MessageTile extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${message.designatedBy} · ${message.pushedAt.toLocal()}',
-              style: Theme.of(context).textTheme.labelSmall,
+            Row(
+              children: [
+                // Unread indicator (073/FR-011) -- a deliberate, explicit
+                // acknowledge clears it (FR-012); merely viewing this tab
+                // does not (spec Assumptions).
+                if (!message.acknowledged) ...[
+                  Icon(Icons.circle, size: 8, color: scheme.primary),
+                  const SizedBox(width: 6),
+                ],
+                Expanded(
+                  child: Text(
+                    '${message.designatedBy} · ${message.pushedAt.toLocal()}',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          fontWeight: message.acknowledged ? null : FontWeight.bold,
+                        ),
+                  ),
+                ),
+                if (!message.acknowledged)
+                  IconButton(
+                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                    tooltip: 'Acknowledge',
+                    onPressed: onAcknowledge,
+                  ),
+                IconButton(
+                  icon: const Icon(Icons.delete_outline, size: 20),
+                  tooltip: 'Delete',
+                  onPressed: () => _confirmDelete(context),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             _content(context),
           ],
         ),
       ),
     );
+  }
+
+  Future<void> _confirmDelete(BuildContext context) async {
+    final ok = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Delete this message?'),
+        content: const Text('This cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Delete')),
+        ],
+      ),
+    );
+    if (ok ?? false) onDelete();
   }
 
   Widget _content(BuildContext context) {

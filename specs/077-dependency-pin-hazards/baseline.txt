@@ -1,0 +1,26 @@
+### R0a baseline 2026-07-31
+## exposed server pins (before)
+  claroty-mcp:
+    mcp>=1.0.0
+  protocol-mcp:
+    mcp>=1.0.0
+    fastmcp>=0.1.0
+  suzieq-mcp:
+    mcp>=1.0.0
+  nautobot-mcp-v2:
+    mcp>=1.0.0
+  uml-mcp:
+    mcp>=1.2.0
+    fastmcp>=2.3.1,<4
+  thousandeyes-mcp-community:
+    mcp>=1.13
+  n2n-mcp:
+    fastmcp>=0.1.0
+    mcp>=1.0.0
+## install-steps.sh
+  bare pip3: 143
+  bare pip : 45
+  scoped   : 0
+## venv sites
+  scripts/gait-venv-setup.sh
+  scripts/lib/install-steps.sh

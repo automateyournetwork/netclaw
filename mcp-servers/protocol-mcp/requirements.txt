@@ -1,8 +1,14 @@
+# Upper bound is LOAD-BEARING: mcp 2.0.0 removed mcp.server.fastmcp
+# (FastMCP moved to the standalone `fastmcp` distribution), and this server
+# imports `from mcp.server.fastmcp import FastMCP`.
+#
+# The former `fastmcp>=0.1.0` line was REMOVED by spec 077: nothing here imports
+# `fastmcp` (same dead-pin pattern found in n2n-mcp). Without <2 a fresh install
+# resolves 2.x and dies on import. Do not 'tidy' this bound away. Spec 077.
 # Protocol MCP Server — core dependencies
 scapy>=2.5.0
 networkx>=3.0
-mcp>=1.0.0
-fastmcp>=0.1.0
+mcp>=1.0.0,<2
 
 # feature 066: NCFED edge node (NetClaw Mobile) — WebSocket transport for
 # phone connections, QR rendering for enrollment tokens, and the

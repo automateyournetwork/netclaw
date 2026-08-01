@@ -52,3 +52,46 @@ The exact column widths/formatting are not contractual — only that the three h
 
 - The script does not modify any file.
 - The script does not verify `SOUL-SKILLS.md`, `mcp-servers/README.md`, or `ui/netclaw-visual/README.md` table *completeness* (i.e., it does not diff table rows against the computed entity list) — only the two headline-number files (README.md, SOUL.md) get automated discrepancy parsing in this iteration. Table-completeness for the other files is verified manually during the Phase 1 documentation edit pass (tasks.md) and can be added to the script later if drift recurs there.
+
+
+---
+
+## Amendment (spec 075, 2026-07-30)
+
+Two points of this contract are superseded by
+`specs/075-mcp-config-reconciliation/`. Recorded here so the two contracts do not diverge silently.
+
+### 1. An unlocatable claim is now a FAILURE, not an informational note
+
+This contract states: *"a failure to find an expected claim is reported as an informational note,
+not a hard error, since prose phrasing can legitimately change."*
+
+**Superseded.** From spec 075 (FR-012), an expected claim that can no longer be located causes
+`Documentation check: FAIL` and exit `1`.
+
+**Why**: the leniency was the failure mode. Two README claims — `deploys N skills` and
+`for N MCP integrations` — had drifted out of matchable phrasing and were silently unchecked for an
+unknown period. During that time nine documented counts drifted (README and SOUL claimed 198/115,
+191/113, 115 and 198 against a true 199 skills / 149 integrations). A check that quietly stops
+checking is worse than no check, because it still reports `PASS`.
+
+**The legitimate escape hatch is retirement with a reason.** Prose *can* legitimately change: spec
+049 made the installer selective ("Only what you select gets installed"), so `deploys N skills` is
+now actively false rather than merely stale. Both patterns were therefore retired from
+`headline_patterns` with an explanatory comment. Retiring an obsolete claim is correct; deleting a
+pattern to silence a genuine mismatch is not, and the comment is what distinguishes them.
+
+### 2. Exit code 2 is widened
+
+This contract defines exit `2` as "could not compute counts at all … an environment problem".
+Spec 075's `contracts/reconcile-cli.md` also uses exit `2` for a bad argument or an unparseable
+config — still "the check could not run", as distinct from "the repository is inconsistent" (`1`).
+No behaviour of this script changes; the wider meaning applies to the spec 075 scripts and the
+`reconcile-mcp.py` orchestrator.
+
+### Unchanged and confirmed
+
+Exit `1` on a documentation-claim disagreement was already this contract's requirement, and the
+implementation already honoured it. An earlier draft of spec 075 claimed the script exited `0` on
+drift; that was a measurement error (the exit code had been read through a `| tail` pipe). No fix
+was needed, and a regression test now protects the behaviour.

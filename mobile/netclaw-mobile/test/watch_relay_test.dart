@@ -133,6 +133,59 @@ void main() {
       expect(messages[0]['content'], 'R2 flapping session cleared.');
       expect(messages[1]['content_type'], 'image');
       expect(messages[1]['content'], '', reason: 'non-text payload must not be relayed at all');
+      expect(messages[0]['acknowledged'], isFalse, reason: '073/FR-011');
+    });
+  });
+
+  group('watch/feed/acknowledge and watch/feed/delete (073/FR-012/FR-013)', () {
+    test('acknowledge calls MessageFeedStore.acknowledge with the given pushed_at', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_ack_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = MessageFeedStore(dir);
+      final pushedAt = DateTime.utc(2026, 7, 27, 13, 58);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: pushedAt,
+      ));
+      final relay = WatchRelay(feedStore: store);
+
+      final result = await relay.handle(
+          'watch/feed/acknowledge', {'pushed_at': pushedAt.toIso8601String()});
+
+      expect(result, {'acknowledged': true});
+      expect(store.unreadCount, 0);
+    });
+
+    test('delete calls MessageFeedStore.delete with the given pushed_at', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_del_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = MessageFeedStore(dir);
+      final pushedAt = DateTime.utc(2026, 7, 27, 13, 58);
+      await store.append(EdgeMessage(
+        contentType: MessageContentType.text,
+        content: 'hello',
+        designatedBy: 'agent',
+        pushedAt: pushedAt,
+      ));
+      final relay = WatchRelay(feedStore: store);
+
+      final result = await relay.handle(
+          'watch/feed/delete', {'pushed_at': pushedAt.toIso8601String()});
+
+      expect(result, {'deleted': true});
+      expect(store.messages, isEmpty);
+    });
+
+    test('reports not enrolled when no feed store is available', () async {
+      final relay = const WatchRelay();
+      final ackResult = await relay.handle(
+          'watch/feed/acknowledge', {'pushed_at': DateTime.utc(2026, 1, 1).toIso8601String()});
+      expect(ackResult['error'], isNotNull);
+      final delResult = await relay.handle(
+          'watch/feed/delete', {'pushed_at': DateTime.utc(2026, 1, 1).toIso8601String()});
+      expect(delResult['error'], isNotNull);
     });
   });
 
@@ -165,6 +218,44 @@ void main() {
       expect(turns[1]['task_id'], 'task-1');
       expect(turns[1]['state'], 'answered');
       expect(turns[1]['answer_text'], 'All clear.');
+      expect(turns[1]['acknowledged'], isFalse, reason: '073/FR-011');
+    });
+  });
+
+  group('watch/history/acknowledge and watch/history/delete (073/FR-012/FR-013)', () {
+    test('acknowledge calls ConversationStore.acknowledge with the given task_id', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_hist_ack_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = ConversationStore(dir);
+      await store.addPending('task-1', 'is R2 still flapping');
+      await store.updateState('task-1', 'completed', answerText: 'All clear.');
+      final relay = WatchRelay(conversationStore: store);
+
+      final result = await relay.handle('watch/history/acknowledge', {'task_id': 'task-1'});
+
+      expect(result, {'acknowledged': true});
+      expect(store.unreadCount, 0);
+    });
+
+    test('delete calls ConversationStore.delete with the given task_id', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_hist_del_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = ConversationStore(dir);
+      await store.addPending('task-1', 'is R2 still flapping');
+      final relay = WatchRelay(conversationStore: store);
+
+      final result = await relay.handle('watch/history/delete', {'task_id': 'task-1'});
+
+      expect(result, {'deleted': true});
+      expect(store.turns, isEmpty);
+    });
+
+    test('reports not enrolled when no conversation store is available', () async {
+      final relay = const WatchRelay();
+      final ackResult = await relay.handle('watch/history/acknowledge', {'task_id': 'task-1'});
+      expect(ackResult['error'], isNotNull);
+      final delResult = await relay.handle('watch/history/delete', {'task_id': 'task-1'});
+      expect(delResult['error'], isNotNull);
     });
   });
 
@@ -225,6 +316,87 @@ void main() {
     test('failed and cancelled both narrow to failed', () async {
       expect((await statusFor('failed'))['state'], 'failed');
       expect((await statusFor('cancelled'))['state'], 'failed');
+    });
+  });
+
+  group('watch/ask/submit and watch/ask/status persist to ConversationStore (073/FR-016)', () {
+    test('submit records the turn with origin="watch" -- the real, existing defect this closes',
+        () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_ask_persist_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final source = _ScriptedEdgeRpcSource({
+        'n2n/edge/ask': {'task_id': 'task-watch-1'},
+      });
+      final askClient = EdgeAskClient(source);
+      final conversationStore = ConversationStore(dir);
+      final relay = WatchRelay(askClient: askClient, conversationStore: conversationStore);
+
+      await relay.handle('watch/ask/submit', {'text': 'is R2 still flapping'});
+
+      expect(conversationStore.turns, hasLength(1));
+      expect(conversationStore.turns.single.taskId, 'task-watch-1');
+      expect(conversationStore.turns.single.requestText, 'is R2 still flapping');
+      expect(conversationStore.turns.single.origin, 'watch');
+    });
+
+    test('submit still works (without persisting) when no conversation store is available',
+        () async {
+      final source = _ScriptedEdgeRpcSource({
+        'n2n/edge/ask': {'task_id': 'task-watch-1'},
+      });
+      final askClient = EdgeAskClient(source);
+      final relay = WatchRelay(askClient: askClient); // no conversationStore
+
+      final result = await relay.handle('watch/ask/submit', {'text': 'is R2 still flapping'});
+
+      expect(result, {'task_id': 'task-watch-1'});
+    });
+
+    test('status persists the resolved answer into the SAME turn submit() created', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_ask_persist_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final source = _ScriptedEdgeRpcSource({
+        'n2n/edge/ask': {'task_id': 'task-watch-1'},
+        'n2n/tasks/result': {
+          'task_id': 'task-watch-1',
+          'state': 'completed',
+          'output_text': 'No, cleared 4 minutes ago.',
+        },
+      });
+      final askClient = EdgeAskClient(source);
+      final conversationStore = ConversationStore(dir);
+      final relay = WatchRelay(askClient: askClient, conversationStore: conversationStore);
+      await relay.handle('watch/ask/submit', {'text': 'is R2 still flapping'});
+
+      await relay.handle('watch/ask/status', {'task_id': 'task-watch-1'});
+
+      expect(conversationStore.turns.single.state, 'completed');
+      expect(conversationStore.turns.single.answerText, 'No, cleared 4 minutes ago.');
+    });
+
+    test('a watch-submitted turn appears in watch/history/list once answered', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_ask_persist_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final source = _ScriptedEdgeRpcSource({
+        'n2n/edge/ask': {'task_id': 'task-watch-1'},
+        'n2n/tasks/result': {
+          'task_id': 'task-watch-1',
+          'state': 'completed',
+          'output_text': 'No, cleared 4 minutes ago.',
+        },
+      });
+      final askClient = EdgeAskClient(source);
+      final conversationStore = ConversationStore(dir);
+      final relay = WatchRelay(askClient: askClient, conversationStore: conversationStore);
+      await relay.handle('watch/ask/submit', {'text': 'is R2 still flapping'});
+      await relay.handle('watch/ask/status', {'task_id': 'task-watch-1'});
+
+      final result = await relay.handle('watch/history/list', {});
+
+      final turns = result['turns'] as List;
+      expect(turns, hasLength(1));
+      expect(turns.single['task_id'], 'task-watch-1');
+      expect(turns.single['answer_text'], 'No, cleared 4 minutes ago.');
     });
   });
 }

@@ -2,11 +2,9 @@
 # Python 3.10+ required
 
 # MCP Framework
-mcp>=1.0.0
-
+mcp>=1.0.0,<2
 # SNMP Library (maintained by LeXtudio Inc.)
-pysnmp>=7.0.0
-
+pysnmp>=7.0.0,<8
 # Cryptography for SNMPv3 encryption
 cryptography>=43.0.0
 

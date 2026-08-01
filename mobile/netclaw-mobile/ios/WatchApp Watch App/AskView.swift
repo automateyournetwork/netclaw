@@ -25,6 +25,13 @@ struct AskView: View {
                     ProgressView("Waiting for an answer…")
                 case .answered:
                     ScrollView { Text(answerText) }
+                    // On-demand "read aloud" (073/FR-017/FR-018) -- never
+                    // triggered automatically, only by this explicit tap.
+                    Button {
+                        SpeechPlayback.shared.speak(answerText)
+                    } label: {
+                        Label("Read aloud", systemImage: "speaker.wave.2")
+                    }
                     Button("Ask another") { reset() }
                 case .failed:
                     Text("Couldn't get an answer.").foregroundStyle(.red)

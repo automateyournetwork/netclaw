@@ -1,4 +1,8 @@
-mcp>=1.0.0
+# Upper bound is LOAD-BEARING: mcp 2.0.0 removed mcp.server.fastmcp
+# (FastMCP moved to the standalone `fastmcp` distribution), and this server
+# imports `from mcp.server.fastmcp import FastMCP`. Without <2 a fresh install
+# resolves 2.x and dies on import. Do not 'tidy' this bound away. Spec 077.
+mcp>=1.0.0,<2
 httpx>=0.27.0
 python-dotenv>=1.0.0
 anyio>=4.0.0

@@ -1,0 +1,60 @@
+### baseline 2026-07-30 — before spec 075 changes
+### NOTE: exit codes captured WITHOUT a pipe. An earlier reading that showed
+###       exit=0 was a '| tail' artifact (pipe reports tail's status).
+
+--- verify-inventory-counts.py ---
+Skill count: 199
+  workspace/skills/ directories with SKILL.md: 199
+
+MCP integration count: 149
+  config/openclaw.json top-level entries: 89
+  + externally-installed (documented, not in config): 60
+
+Documentation check: FAIL
+  README.md:line 7 (top prose (skills + MCP)) claims "Claude, 198 skills, and 115 MCP integrations" (skill), computed 199
+  README.md:line 7 (top prose (skills + MCP)) claims "Claude, 198 skills, and 115 MCP integrations" (MCP), computed 149
+  README.md:line 242 (Visual HUD prose) claims "currently 113 MCP integrations and 191 skills" (MCP), computed 149
+  README.md:line 242 (Visual HUD prose) claims "currently 113 MCP integrations and 191 skills" (skill), computed 199
+  README.md:line 521 (MCP Servers section heading) claims "## MCP Servers (115)" (MCP), computed 149
+  README.md:line 661 (Skills section heading) claims "## Skills (198)" (skill), computed 199
+  SOUL.md:line 15 (identity line (skills + MCP)) claims "**198 skills** backed by 115 MCP servers" (skill), computed 199
+  SOUL.md:line 15 (identity line (skills + MCP)) claims "**198 skills** backed by 115 MCP servers" (MCP), computed 149
+  SOUL.md:line 398 (SOUL-SKILLS cross-reference) claims "best practices for all 191 skills" (skill), computed 199
+  note: README.md: could not locate 'installer prose (skills)' (phrasing may have changed)
+  note: README.md: could not locate 'installer prose (MCP)' (phrasing may have changed)
+TRUE_EXIT=1
+
+--- verify-catalog-coverage.py ---
+Catalog entries: 89
+Registered config/openclaw.json servers: 89
+External (non-registered) integrations tracked: 60
+
+Catalog coverage check: FAIL
+
+  Registered servers with no catalog coverage (19):
+    - aap-ansible-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aap-docs-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aap-eda-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aap-lint-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-cloudtrail-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-cloudwatch-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-cost-explorer-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-diagram-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-iam-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - aws-network-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - cisco-fmc-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - gcp-compute-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - gcp-logging-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - gcp-monitoring-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - gcp-resource-manager-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - memory-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - meraki-magic-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - thousandeyes-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+    - thousandeyes-official-mcp: no matching catalog id (direct, prefix-group, or exact-group)
+TRUE_EXIT=1
+
+--- enforcement reality ---
+Both scripts DO exit 1 on failure. The enforcement gap is that NOTHING INVOKES THEM:
+skill-review.yml
+grep for verify-/reconcile in workflows:
+  (no matches - no CI runs these checks)

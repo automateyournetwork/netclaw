@@ -146,13 +146,20 @@ class Authorizer:
         self.manager._conn.commit()
         return {"approval_id": cur.lastrowid, "expires_at": expires}
 
-    def resolve_approval(self, approval_id: int, action: str, via: str = "cli") -> bool:
+    def resolve_approval(self, approval_id: int, action: str, via: str = "cli") -> dict:
+        """Idempotent: a repeat call for an already-resolved approval_id matches
+        zero rows below and has no effect. `already_resolved` distinguishes that
+        no-op from an actual first-time resolution (073/FR-005, research D6) --
+        existing callers that only used the old always-True boolean return see
+        no behavior change, since `resolve_approval(...)` truthy-checked as a
+        dict is still truthy either way.
+        """
         status = "approved" if action == "approve" else "denied"
-        self.manager._conn.execute(
+        cur = self.manager._conn.execute(
             "UPDATE approval_request SET status=?, resolved_at=?, resolved_via=? "
             "WHERE id=? AND status='pending'", (status, _now(), via, approval_id))
         self.manager._conn.commit()
-        return True
+        return {"resolved": True, "already_resolved": cur.rowcount == 0}
 
     def approval_status(self, approval_id: int) -> str:
         row = self.manager._conn.execute(

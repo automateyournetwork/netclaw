@@ -1,0 +1,52 @@
+# Multivendor CLI Driver — spec 076 (roadmap R1)
+#
+# INSTALL INTO A DEDICATED VIRTUALENV ONLY. Never into the shared environment.
+#
+# Why (spec 076 FR-030a, research R7/T005): this tree resolves cryptography 49.0.0,
+# while the system interpreter carries 46.0.5 — and NetClaw's NCFED federation stack
+# (spec 060) uses the system cryptography for X.509 issuance. Installing these
+# packages shared would move cryptography three major versions and break certificate
+# handling rather than anything in this server.
+#
+# Also: on hosts where `pip3` and `python3` are different interpreters (observed —
+# pip3 -> stranded Python 3.13 site-packages, python3 -> 3.14.4), a bare `pip3
+# install` lands where the server cannot import from. Always use the venv's own pip:
+#
+#   virtualenv -p /usr/bin/python3 .venv        # ensurepip is unavailable for 3.14
+#   .venv/bin/python -m pip install -r requirements.txt
+#
+# Verified to resolve on Python 3.14.4 (68 packages total).
+
+# --- MCP framework (Constitution Principle V: FastMCP or the official SDK) ---
+# Matches the convention in suzieq-mcp / gnmi-mcp, which import
+# `from mcp.server.fastmcp import ...`. Brings pydantic, which FR-030's input
+# validation relies on.
+#
+# UPPER BOUND IS LOAD-BEARING. mcp 2.0.0 removed `mcp.server.fastmcp` (FastMCP
+# moved out to the separate `fastmcp` distribution), so an unbounded `mcp>=1.2.0`
+# resolves 2.x and breaks the import used by ten other NetClaw servers. Ten of
+# them declare an unbounded `mcp>=1.0.0` and would hit this on a fresh install
+# today — flagged in spec 076 research as a repo-wide latent breakage.
+mcp>=1.2.0,<2
+
+# --- Orchestration: inventory, concurrency, task composition ---
+nornir==3.5.0
+nornir-utils==0.2.0
+
+# --- Normalization: vendor-neutral getters, identical shape across platforms ---
+napalm==5.2.0
+nornir-napalm==0.5.0
+
+# --- Transport: raw CLI reach across ~100 platform families (FR-001) ---
+# Retained alongside scrapli deliberately. NAPALM 5.x is scrapli-based, so the
+# scrapli family arrives transitively and is EXPECTED, not accidental (research R8).
+# Netmiko is what delivers the broad platform reach this feature exists for.
+netmiko==4.7.0
+nornir-netmiko==1.0.1
+
+# --- Live inventory from NetClaw's sources of truth (FR-017 live tier) ---
+nornir-netbox==0.3.0
+nornir-nautobot==4.3.0
+
+# --- Structured state diffing for post-change verification (FR-026, research R9) ---
+jdiff==1.0.1

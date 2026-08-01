@@ -2,7 +2,7 @@
 fastmcp>=0.1.0
 grpcio>=1.60.0
 grpcio-tools>=1.60.0
-pygnmi>=0.8.0
+pygnmi>=0.8.0,<1
 protobuf>=4.25.0
 cryptography>=41.0.0
 pydantic>=2.0.0
