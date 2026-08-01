@@ -1,0 +1,76 @@
+# Phase 12 (T164) — SuzieQ state-history plane health alerts.
+#
+# SuzieQ does not expose a native /metrics endpoint. Health is assessed by:
+#   1. Probing the REST API (up{job="suzieq-rest"} via blackbox or a direct scrape)
+#   2. Querying sqPoller freshness via the MCP or a custom probe
+#
+# For now, alerting is based on:
+#   - The REST API being reachable (probe via scrape target)
+#   - A synthetic metric pushed by the smoke test or a sidecar (future T164 enhancement)
+#
+# A stale lake is worse than no lake — the agent will confidently report week-old
+# state as current, write a wrong root cause to the diary, and seed RAG with a
+# bad prior (FR-048).
+
+groups:
+  - name: netclaw-convergence.suzieq
+    interval: 60s
+    rules:
+      # REST API unreachable — the MCP server cannot query state data.
+      # This fires when the suzieq-rest container is down or unhealthy.
+      - alert: SuzieQRestDown
+        expr: |
+          up{job="suzieq-rest"} == 0
+        for: 3m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+          service: suzieq
+        annotations:
+          summary: "SuzieQ REST API is down"
+          description: >-
+            The SuzieQ REST API (job=suzieq-rest) has been unreachable for over
+            3 minutes. The suzieq-mcp MCP server cannot serve state-history
+            queries until this recovers. Check: docker logs suzieq-rest,
+            docker compose --profile suzieq ps.
+
+      # Poller is down — state data is not being collected.
+      # Detected when the REST API is up but sqPoller table shows no recent
+      # update. This uses a recording rule fed by the probe exporter (below).
+      - alert: SuzieQPollerStale
+        expr: |
+          suzieq_poller_newest_timestamp_seconds > 0
+          and (time() - suzieq_poller_newest_timestamp_seconds) > 600
+        for: 5m
+        labels:
+          severity: warning
+          site: home
+          investigate: "false"
+          service: suzieq
+        annotations:
+          summary: "SuzieQ poller data is stale ({{ $value | humanizeDuration }} old)"
+          description: >-
+            The newest record in the SuzieQ parquet lake is over 10 minutes old.
+            The poller may have crashed, lost SSH access, or been unable to write.
+            Investigations querying the state plane will receive outdated data.
+            Check: docker logs suzieq-poller, docker compose --profile suzieq ps.
+
+      # Poller freshness probe metric absent — the probe exporter isn't running
+      # or hasn't been set up yet. This is informational, not actionable for
+      # triage — it means the staleness detection itself is blind.
+      - alert: SuzieQPollerProbeAbsent
+        expr: |
+          absent(suzieq_poller_newest_timestamp_seconds)
+        for: 15m
+        labels:
+          severity: info
+          site: home
+          investigate: "false"
+          service: suzieq
+        annotations:
+          summary: "SuzieQ poller freshness probe not reporting"
+          description: >-
+            The suzieq_poller_newest_timestamp_seconds metric is absent.
+            Staleness detection (SuzieQPollerStale) is blind without it.
+            This is expected if the suzieq profile is not enabled.

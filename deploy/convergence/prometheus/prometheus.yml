@@ -228,3 +228,24 @@ scrape_configs:
         target_label: instance
       - target_label: __address__
         replacement: blackbox:9115
+
+  # SuzieQ REST API health (Phase 12, T164).
+  # Only active when the suzieq profile is enabled. If the target is
+  # unreachable, up{job="suzieq-rest"}==0 fires SuzieQRestDown.
+  - job_name: suzieq-rest
+    scrape_interval: 60s
+    metrics_path: /api/v2/sqPoller/show
+    params:
+      access_token: ["${SUZIEQ_API_KEY}"]
+      columns: ["status"]
+      hostname: ["__none__"]
+    static_configs:
+      - targets: ["suzieq-rest:8000"]
+        labels:
+          site: home
+          instance: suzieq-rest
+
+  # SuzieQ poller freshness probe (Phase 12, T164).
+  # A lightweight sidecar/cron pushes suzieq_poller_newest_timestamp_seconds
+  # to the pushgateway. This is the metric SuzieQPollerStale alerts on.
+  # See: deploy/convergence/adapters/suzieq/freshness-probe.sh
