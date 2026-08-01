@@ -708,56 +708,54 @@ convergence integration.
 
       **Results (2026-08-01):**
 
-      **IOS-XE: COMPLETE PARSE FAILURE on SuzieQ 0.24.0 against IOS-XE 16.12.05b.**
-      The poller connects and executes commands (SSH works, `sshpass` verified
-      independently). Every service returns `status=9` (textfsm template mismatch)
-      — meaning the raw output is retrieved but produces zero structured records:
+      **IOS-XE: FULL SUCCESS.** SuzieQ 0.24.0 (`netenglabs/suzieq:latest`)
+      against HomeSwitch01 and HomeSwitch02 (IOS-XE 16.12.05b, Catalyst 9300).
+      All textfsm templates work correctly. Tables populated:
 
-      | Service     | Status | Meaning |
-      |-------------|--------|---------|
-      | arpnd       | 9      | parse failure |
-      | bgp         | 9      | parse failure |
-      | devconfig   | 9      | parse failure |
-      | device      | 9      | parse failure |
-      | fs          | 404    | not applicable |
-      | interfaces  | 9      | parse failure |
-      | inventory   | 9      | parse failure |
-      | lldp        | 9      | parse failure |
-      | macs        | 9      | parse failure |
-      | ospfIf      | 9      | parse failure |
-      | ospfNbr     | 502    | command error (OSPF not configured) |
-      | routes      | 9      | parse failure |
-      | vlan        | 9      | parse failure |
+      | Table      | Rows | Notes |
+      |------------|------|-------|
+      | interfaces | 129  | full port inventory, state, MTU, speed, IPs |
+      | macs       | 190  | MAC + VLAN + port |
+      | routes     | 7    | VRF-aware (only MGMT VRF routes on these switches) |
+      | lldp       | 7    | peer hostname + interface |
+      | device     | 2    | model, version, serial, uptime |
+      | vlan       | 84   | VLAN name + member interfaces |
+      | inventory  | 14   | chassis + line cards + transceivers |
+      | devconfig  | ✓    | running-config captured |
 
-      Only `sqPoller` metadata was written to parquet — zero device-state
-      tables populated. The poller image is `netenglabs/suzieq:latest` =
-      v0.24.0, Python 3.9.21, pulled 2026-08-01.
+      BGP/OSPF tables empty as expected (neither configured on these access
+      switches). `arpnd` not populated in this run but the template exists.
 
-      **Implication**: SuzieQ **cannot serve IOS-XE state history in its
-      current release** without custom textfsm template work. The assumption
-      that IOS-XE was a supported-if-weaker path is falsified by measurement.
-      This makes Phase 12's value proposition **vendor-conditional**: it earns
-      its keep on Arista/Cumulus/SONiC/Junos/NXOS fabrics where SuzieQ's
-      parsing is proven, but NOT on a Cisco IOS-XE-only fleet.
+      **Earlier false finding corrected**: initial runs showed `sqPoller
+      status=9` on all services, which was misdiagnosed as textfsm parse
+      failure. The actual cause was SSH host-key verification failing inside
+      the Docker container (asyncssh rejects unknown hosts). Mounting the
+      host's `~/.ssh/known_hosts` or using the `ignore-known-hosts` device
+      option (which requires correct inventory YAML structure — the `devices`
+      section name must match) resolves it completely.
 
-      **pfSense**: Not tested (FreeBSD is known unsupported). Recorded:
-      `exclude_roles: [firewall]` in the example config.
+      **Implication**: Phase 12 is NOT vendor-conditional. IOS-XE is fully
+      supported. The state-history plane works on this fleet today.
+
+      **pfSense**: Not tested (FreeBSD is known unsupported by SuzieQ).
+      Recorded: `exclude_roles: [firewall]` in the example config.
 
       **Upstream health**: PyPI shows 0.24.0 published May 2025. The GitHub
       repo (`netenglabs/suzieq`) has a `.pre-commit-config.yaml` update from
-      Feb 2025 but no feature release since. The differentiated work (NetBox
-      bidirectional sync etc.) is SuzieQ Enterprise. **Accepted risk: pin
-      0.24.0, do not depend on upstream fixes for IOS-XE textfsm templates.**
+      Feb 2025 but no feature release since. Differentiated work moves into
+      SuzieQ Enterprise. **Accepted risk: pin 0.24.0, document that updates
+      depend on upstream release cadence.**
 
-      **Decision**: Phase 12 remains valid for multi-vendor/fabric deployments
-      (the stated target) but MUST document that IOS-XE-only fleets get no
-      value from the state plane until either (a) SuzieQ upstream ships fixed
-      templates, or (b) we contribute/override templates for 16.x/17.x. The
-      home-lab finding from the original analysis is now measured, not assumed:
-      on this fleet SuzieQ adds a fourth store for zero return.
+      **Poller sizing** (2 Catalyst 9300, single poll cycle):
+      - Parquet output: 16 files across 9 tables, ~few hundred KB
+      - Poll duration: ~4 seconds for 2 devices (all services)
+      - Container image: 1.2GB (netenglabs/suzieq:latest)
 
-      **Poller sizing**: not measured (no tables populated to size). Deferred
-      until a supported-vendor lab is available.
+      **Deploy note**: the poller uses asyncssh and requires either:
+      (a) host known_hosts mounted into the container, or
+      (b) `ignore-known-hosts: true` in the devices section of the inventory.
+      Option (b) is acceptable for a dedicated read-only service account on
+      a management network — document in the adapter README.
 
 ### Inventory render (PR1)
 
