@@ -669,7 +669,7 @@ convergence integration.
 
 ### Spec, hardening & measurement (PR0) — blocks everything else
 
-- [ ] T158 [P] **Harden `mcp-servers/suzieq-mcp` for scale.** Measured defect:
+- [x] T158 [P] **Harden `mcp-servers/suzieq-mcp` for scale.** Measured defect:
       there is **no row limit, no response-size ceiling, and `columns` defaults
       to all columns** (`server.py:256`); the only `[:200]` slices in the repo
       are on HTTP error strings (`suzieq_client.py:191,264`). At target scale
@@ -684,7 +684,7 @@ convergence integration.
         (same no-silent-loss principle as FR-035)
       · **data-freshness stamps** — newest timestamp per table/device in the
         response envelope, so the model can see it is reasoning over stale data
-- [ ] T159 [P] **Fix the broken-client-in-a-profile defect.** `suzieq` is in
+- [x] T159 [P] **Fix the broken-client-in-a-profile defect.** `suzieq` is in
       `PROFILE_RECOMMENDED` today with no server deployed and
       `SUZIEQ_API_URL` commented out, so a recommended install advertises 5 tools
       that can only return connection errors. Either gate registration on
