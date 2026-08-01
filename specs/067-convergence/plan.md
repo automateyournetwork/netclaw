@@ -45,6 +45,8 @@ specs/067-convergence/
 ├── device-telemetry-greenfield.md   # Phase 8 plumbing
 ├── investigation-policy.md          # Phase 9
 ├── telemetry-setup.md               # Phase 10 productized setup
+├── otel-convergence.md              # Phase 11 ingest hub decision
+├── suzieq-state-observability.md    # Phase 12 scale-tier state plane
 ├── contracts/
 │   ├── convergence-api.md
 │   ├── adapters.md
@@ -108,6 +110,8 @@ workspace/skills/         # multi-vendor wording updates
 | 8 | Optional greenfield device SNMP + agent observability (plumbing) |
 | 9 | Investigation policy (T0/T1/T2) + token economics |
 | 10 | Telemetry setup productization (inventory → templates → apply → boards) |
+| 11 | OTel Collector as the single device telemetry ingest hub |
+| 12 | Optional scale-tier SuzieQ state-history plane (off by default) |
 
 ### Phase 10 delivery (post Spec Kit)
 

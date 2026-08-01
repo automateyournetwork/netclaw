@@ -640,3 +640,152 @@ Cisco + pfSense syslog → structured fields in Loki **and** VictoriaLogs, no
 message regex; SNMP cutover leaves every board and alert query unchanged;
 `interface_admin_status` present; Loki stream count stays bounded as new Cisco
 mnemonics appear.
+
+---
+
+## Phase 12: SuzieQ state-history plane (optional PR, scale tier) — US12
+
+**Purpose**: Add a **state-history** plane for larger-scale deployments so
+investigations can ask "what was the BGP/route/MAC/ARP/LLDP state 15 minutes
+before this alert fired" without SSHing to devices at investigation time.
+Complements the OTel ingest hub — does **not** replace it.
+
+**Decision record**: [`suzieq-state-observability.md`](./suzieq-state-observability.md) ·
+spec US12 / FR-043–FR-050 / SC-020–SC-023
+
+**Ships off by default.** Component `convergence-suzieq` is excluded from
+`PROFILE_CONVERGENCE`; recommended only above the documented scale threshold
+(>~25 devices, or any BGP/EVPN/VXLAN/MLAG fabric, or multi-site).
+
+**Reuses, does not duplicate**: the Phase 10 inventory
+(`device_telemetry.snmp.targets`), `render-convergence-telemetry.py`,
+`convergence-telemetry-apply.sh`, `check-config-drift.sh`, and the Phase 9 thin
+`alert` agent profile. No second inventory, no second apply path.
+
+**Prior work already shipped** (spec `001-suzieq-mcp-server`, 28/28): the MCP
+server, `suzieq-observability` skill, `openclaw.json` registration, iN2N member,
+and catalog entry all exist. What was missing is a deployed poller and any
+convergence integration.
+
+### Spec, hardening & measurement (PR0) — blocks everything else
+
+- [ ] T158 [P] **Harden `mcp-servers/suzieq-mcp` for scale.** Measured defect:
+      there is **no row limit, no response-size ceiling, and `columns` defaults
+      to all columns** (`server.py:256`); the only `[:200]` slices in the repo
+      are on HTTP error strings (`suzieq_client.py:191,264`). At target scale
+      `suzieq_show table=route` (or `mac` / `arpnd`) returns an unbounded payload
+      that consumes the context window in one call, bypassing Phase 9's
+      `budgets.max_tokens`. Add:
+      · `max_rows` parameter, default ~200, applied server-side
+      · hard byte ceiling on the serialized response
+      · per-table default column sets (never all-columns by default)
+      · **explicit truncation metadata** — `truncated`, `rows_returned`,
+        `rows_available` — so a subset is never mistaken for a small table
+        (same no-silent-loss principle as FR-035)
+      · **data-freshness stamps** — newest timestamp per table/device in the
+        response envelope, so the model can see it is reasoning over stale data
+- [ ] T159 [P] **Fix the broken-client-in-a-profile defect.** `suzieq` is in
+      `PROFILE_RECOMMENDED` today with no server deployed and
+      `SUZIEQ_API_URL` commented out, so a recommended install advertises 5 tools
+      that can only return connection errors. Either gate registration on
+      `SUZIEQ_API_URL` being set or remove it from `PROFILE_RECOMMENDED`.
+      Independent of the rest of this phase.
+- [ ] T160 **Measure before scoping** (do not treat as known):
+      · IOS-XE table coverage for `bgp`/`route`/`mac`/`arpnd`/`lldp`/`vlan`/
+        `interface` against ≥2 lab Catalysts — diff completeness vs `pyats`
+        parsed output. SuzieQ's strongest support is Cumulus/SONiC/Arista/Junos/
+        NXOS; if IOS-XE is thin, this phase becomes vendor-conditional and the
+        docs must say so.
+      · pfSense/FreeBSD support — believed out of scope entirely. If so, record
+        that the firewall stays a metrics/logs-only citizen and set
+        `exclude_roles: [firewall]` in the example config.
+      · Upstream health — check real commit/issue activity on
+        `netenglabs/suzieq`, not search snippets. OSS PyPI/stable-release signals
+        cluster around May 2025 (~14 months stale) while differentiated work
+        moves into SuzieQ **Enterprise**. If dormant, pin a known-good version
+        and record accepted risk.
+      · Poller RSS + parquet growth/day at N devices, for the sizing table.
+
+### Inventory render (PR1)
+
+- [ ] T161 Extend `render-convergence-telemetry.py` with a **fourth output**:
+      SuzieQ `inventory.yml` + namespace map, rendered from the existing
+      `device_telemetry.snmp.targets` list. Same managed-section markers, same
+      idempotency contract. Nautobot/NetBox modes feed it for free.
+      Add the additive `device_telemetry.state.suzieq` block to
+      `config/convergence.example.yaml` (`enabled: false` default, namespace,
+      poll_period, retention_days, `exclude_roles`, credential **env refs only**).
+      **No secret may appear in the rendered inventory** — same rule as
+      `SNMP_COMMUNITY`.
+- [ ] T162 Extend `check-config-drift.sh` to cover the SuzieQ renders, and verify
+      a second `convergence-telemetry-apply.sh` run is a no-op (no duplicate
+      inventory entries, no clobbering of unrelated config).
+
+### Docker adapter (PR2)
+
+- [ ] T163 `deploy/convergence/adapters/suzieq/` following the `device-snmp`
+      pattern — `README.md` (scale guidance, credential model, sizing),
+      `inventory.yml.tmpl`, `suzieq-cfg.yml.tmpl`. Compose profile `["suzieq"]`:
+      poller + REST API, named volume for the parquet lake, retention applied.
+      **SuzieQ's own SNMP collection path pinned off** — exactly one thing polls
+      SNMP in this architecture and it is the OTel Collector (FR-045).
+- [ ] T164 Scrape the `sqPoller` table into Prometheus and add
+      `SuzieQPollerDown` / `SuzieQPollerStale` to the alert pack per
+      `docs/CONVERGENCE-ALERT-SAFETY.md` with `investigate` labels.
+      **Rationale**: a stale lake is worse than no lake — the agent will report
+      week-old adjacency state as current, write a wrong root cause to the diary,
+      and seed RAG with a bad prior.
+- [ ] T165 `smoke-suzieq.sh` — poller reaches devices, REST answers, tables
+      populate, freshness stamps present, **SNMP path asserted off**, and a
+      deliberately oversized query returns truncated-with-metadata rather than an
+      unbounded payload.
+
+### K3s parity (PR3)
+
+- [ ] T166 `k8s/components/suzieq` — Deployment(s), PVC for the lake, Secret ref
+      for device credentials, Service. Ship **with** Docker, not after it: T156
+      found the overlay three generations behind and shipping a broken stack.
+      All three overlays must build and pass `kubectl apply --dry-run`.
+
+### Agent wiring (PR4) — gated on T158
+
+- [ ] T167 Add `suzieq-mcp__*` to `tools.allow` in
+      `deploy/convergence/config/alert-agent.example.json`. Fits the FR-018 thin
+      profile (read-only, single-purpose, no config authority). Note in
+      `investigation-policy.md` that this **removes** the pyATS-escalation cost
+      for a class of questions rather than only adding capability.
+- [ ] T168 Rewrite `workspace/skills/suzieq-observability` to **enforce** bounded
+      queries, not merely permit them: always a relative `start_time`;
+      `view=changes` preferred over `latest` over full dumps; explicit `columns`
+      on every call; `summarize` to size before `show` to inspect. Document the
+      **T1 state-context path** — a single bounded
+      `suzieq_show view=changes start_time=-15m columns=<pinned>` fits inside
+      T1's `max_tools: 0–1` / `max_completion_tokens: 4000`, which makes T1
+      useful for the first time (today it is a summarizer with no data access).
+
+### Wizard + installer (PR5)
+
+- [ ] T169 Catalog component `convergence-suzieq` (Convergence category), **not**
+      added to `PROFILE_CONVERGENCE`. Wizard prompt must **disclose the
+      credential ask plainly** before prompting — SuzieQ needs device login
+      credentials held by a long-running poller, a material escalation over
+      today's read-only SNMP community and push-syslog. Require a dedicated
+      read-only service account, env/Vault refs only, per-namespace separation.
+      Add scale-threshold guidance to `quickstart.md`.
+
+### Assert / change validation (PR6)
+
+- [ ] T170 Document `suzieq_assert` paired with `nautobot-golden-config-mcp`
+      remediation as a pre/post-change workflow: assert observed BGP/OSPF/
+      interface health → push intended config → assert again. Closes a validation
+      gap currently handled by hand. Assertions **inform only** — no
+      auto-remediation from assert results.
+
+### Independent test
+
+On a fleet at or above the scale threshold: inventory declared once in
+`convergence.yaml` produces both OTel SNMP receivers and a SuzieQ inventory; the
+poller populates state tables; `sqPoller` staleness is alertable; a synthetic
+allowlisted alert at T1 receives bounded state-change context without a device
+login; an oversized query returns truncated-with-metadata rather than exhausting
+the context window; and a second apply is a no-op.

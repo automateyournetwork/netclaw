@@ -28,6 +28,13 @@ snmp_exporter. **promtail is retained for host/agent sources only** (OpenClaw fi
 systemd journal) — see the T150 decision. Decision record:
 [`otel-convergence.md`](./otel-convergence.md).
 
+**State-history plane (Phase 12, proposed)**: Optional **scale-tier** SuzieQ plane
+answering "what was the BGP/route/MAC/ARP/LLDP state before the alert fired",
+so investigations stop depending on live device access at investigation time.
+Off by default; not in `PROFILE_CONVERGENCE`; complements (does not replace) the
+OTel ingest hub. Decision record:
+[`suzieq-state-observability.md`](./suzieq-state-observability.md).
+
 **Board suite (Phase 10 PR3+)**: The provisioned Grafana suite is **three**
 narrative boards — **Network**, **Security**, **NetClaw** — not the ported pilot
 board set (parked unloaded under `grafana/provisioning/dashboards/legacy/`).
@@ -332,6 +339,53 @@ with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
 
 ---
 
+### User Story 12 - Ask what the network state was before the alert (Priority: P3, scale tier)
+
+An operator running Convergence on a **larger fleet** (beyond a handful of
+switches — a fabric with BGP/EVPN/MLAG, or multi-site) can have an investigation
+ask "what did the BGP / route / MAC / ARP / LLDP state look like 15 minutes
+before this alert fired" and get an answer from a **state-history lake** rather
+than SSHing to devices at investigation time and seeing only current state that
+may have already healed.
+
+**Why this priority**: P3 and **off by default**. On a small fleet the OTel SNMP
+path plus on-demand pyATS already covers this, and a state lake is net negative
+(a fourth store, a new credential surface, a poller to keep alive). The value
+curve rises with fleet size and protocol complexity, so this is a scale-tier
+component, not a default one.
+
+**Independent Test**: On a fleet at or above the documented scale threshold,
+inventory declared once in `convergence.yaml` produces both OTel SNMP receivers
+and a SuzieQ inventory; a synthetic allowlisted alert at T1 receives bounded
+state-change context without any device login; an oversized query returns
+truncated-with-metadata rather than exhausting the context window.
+
+**Acceptance Scenarios**:
+
+1. **Given** `device_telemetry.state.suzieq.enabled: false` (default), **When**
+   install and runtime proceed, **Then** behavior is unchanged and no extra
+   containers run.
+2. **Given** an existing `device_telemetry.snmp.targets` list, **When** the
+   operator enables the state plane and applies, **Then** a SuzieQ inventory is
+   rendered from **that same list** with no second inventory to maintain and no
+   secret in the rendered file.
+3. **Given** the state plane is running, **When** an investigation queries a
+   table, **Then** the response carries **data-freshness** information and any
+   truncation is explicit (`truncated`, `rows_returned`, `rows_available`).
+4. **Given** the poller has stopped or fallen behind, **When** staleness exceeds
+   the threshold, **Then** a `SuzieQPollerStale` / `SuzieQPollerDown` alert fires
+   — a stale lake MUST NOT silently serve old state as current.
+5. **Given** the state plane is enabled, **When** SNMP metrics are collected,
+   **Then** the OTel Collector remains the **only** SNMP poller (SuzieQ's SNMP
+   path is off).
+6. **Given** a T1-eligible alert, **When** state context is fetched, **Then** a
+   single bounded query fits within T1's tool and token ceilings.
+
+**Detail**: [`suzieq-state-observability.md`](./suzieq-state-observability.md) ·
+tasks T158–T170.
+
+---
+
 ### Edge Cases
 
 - Home-api unreachable: degraded banners, no uncaught exceptions.
@@ -348,6 +402,11 @@ with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
 - Devices emit BSD syslog (RFC3164) while the log receiver only parses RFC5424: receiver MUST NOT silently discard the stream; the shipped receiver path MUST accept vendor-default syslog format (front-end reformat or an rfc3164-capable receiver) rather than requiring device reconfiguration.
 - Security board with no log source: Prometheus-backed panels MUST still render; log panels MUST be identifiable as "source not deployed", not "network healthy".
 - Quiet agent units (mesh/members idle beyond the log retention window): empty log panels are expected; boards MUST still select on `job`/`unit` labels so data reappears without dashboard edits.
+- State-plane query returns more rows than the cap: response MUST be truncated **with explicit metadata**, never silently sliced — a subset must not be mistakable for a small table.
+- State lake is stale (poller dead, credentials expired, device unreachable): investigations MUST be able to see freshness; the system MUST NOT serve old adjacency state as current, because a confident wrong root cause is written to the diary and seeds RAG with a bad prior.
+- State plane enabled on a vendor with thin table coverage (e.g. IOS-XE gaps, pfSense unsupported): affected roles are excluded via `exclude_roles` and the limitation is documented; the device remains a metrics/logs citizen rather than silently returning empty tables.
+- State-plane credentials unavailable or rejected: poller failure MUST be alertable and MUST NOT degrade the metrics/logs planes.
+- Operator enables the state plane on a small fleet: permitted, but scale guidance MUST state that below the threshold it is net negative.
 
 ## Requirements *(mandatory)*
 
@@ -395,6 +454,14 @@ with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
 - **FR-040**: The SNMP cutover MUST preserve existing selectors (`job="device_snmp"`, `instance`, `device_name`, `interface_name`, `role`, `vendor`) via resource attributes, so no dashboard or alert rule changes are required.
 - **FR-041**: Interface metrics MUST include `interface_admin_status` (ifAdminStatus) so administratively-shut is distinguishable from link-failed.
 - **FR-042**: Promoted log labels MUST be a bounded, explicitly listed set (e.g. `device_name`, `site`, `service.name`, `severity`). Vendor message identifiers (e.g. Cisco mnemonics) MUST NOT become labels.
+- **FR-043**: The system MAY provide an optional **state-history plane** (SuzieQ) answering historical device state (BGP, route, MAC, ARP/ND, LLDP, VLAN, interface). It MUST default to **disabled**, MUST NOT be a member of `PROFILE_CONVERGENCE`, and MUST NOT be a dependency of any provisioned Grafana board (consistent with FR-031).
+- **FR-044**: The state plane MUST derive its device inventory from the **existing** `device_telemetry.snmp.targets` list via the same render/apply pipeline (managed sections, idempotent re-apply, drift-checked). A second inventory MUST NOT be introduced. Credentials MUST be env/secret references only — the rendered inventory MUST NOT contain a secret.
+- **FR-045**: The OpenTelemetry Collector MUST remain the **only** SNMP poller (FR-036/FR-039). The state plane's own SNMP collection path MUST be disabled in the rendered config and MUST be asserted off by its smoke test.
+- **FR-046**: State-plane query responses MUST be **bounded**: a server-enforced row cap, a response byte ceiling, and per-table default column sets (never all-columns by default). Truncation MUST be explicit in the response (`truncated`, `rows_returned`, `rows_available`) and MUST NOT be a silent slice.
+- **FR-047**: State-plane responses MUST carry **data-freshness** information (newest timestamp per table/device) so a consumer can detect it is reasoning over stale data.
+- **FR-048**: State-plane collector health MUST be scraped and alertable (`SuzieQPollerDown` / `SuzieQPollerStale`) under `docs/CONVERGENCE-ALERT-SAFETY.md`, honoring investigation-policy labels. A stale lake MUST NOT silently serve old state as current.
+- **FR-049**: When exposed to the auto-investigation path, the state plane MUST be added to the **thin** `alert` tool profile (FR-018) and MUST NOT be exposed before FR-046 and FR-047 are satisfied. Its skill MUST enforce bounded queries (relative `start_time`, `changes` over full dumps, explicit `columns`).
+- **FR-050**: Setup MUST disclose the state plane's **credential blast radius** before prompting — it requires device login credentials held by a long-running poller, unlike the read-only SNMP community and push-syslog model. Setup MUST document dedicated read-only service accounts and per-namespace credential separation.
 
 ### Key Entities
 
@@ -405,6 +472,8 @@ with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
 - **Adapter binding**: firewall | wireless | sot type + connection env refs.
 - **Investigation policy**: Versioned rules mapping alerts → tier (T0/T1/T2) + budgets + degrade.
 - **Investigation tier**: Observe / summarize / multi-tool investigate / human-gated deep work.
+- **State-history plane**: Optional scale-tier store of historical device state tables (SuzieQ lake), distinct from metrics, logs, and intended state.
+- **Namespace**: State-plane grouping (one per site) that doubles as the credential separation boundary.
 - **Device inventory**: List of SNMP targets (name, IP, vendor/template, role) under `device_telemetry.snmp`.
 - **Vendor template**: snmp_exporter module pack (Cisco / pfSense / generic) with name lookups.
 - **Telemetry apply**: Render + managed-section write + profile enable + reload pipeline.
@@ -432,6 +501,10 @@ with `device_name` + `interface_name` labels and no `ifIndex`/`ifName`.
 - **SC-017**: A single device syslog line is queryable in **both** Loki and VictoriaLogs, with severity and appname available as structured fields rather than regex extractions.
 - **SC-018**: After the SNMP cutover, the provisioned boards and the full alert pack evaluate with zero query changes, and `interface_status` label sets contain `device_name` + `interface_name` with no `ifIndex`/`ifName`/`ifDescr`.
 - **SC-019**: `interface_admin_status` is present for every polled interface, and total Loki stream count for `job=device-syslog` stays bounded as Cisco emits new mnemonics.
+- **SC-020**: A state-plane query whose result exceeds the row cap returns a truncated response with `truncated`, `rows_returned`, and `rows_available` present — and the largest observed single response stays under the configured byte ceiling.
+- **SC-021**: Enabling the state plane adds **zero** new inventory files: the SuzieQ inventory is rendered from the existing `device_telemetry.snmp.targets` list, a second apply is a no-op, and the drift guard reports clean.
+- **SC-022**: With the poller stopped, a staleness alert fires within its configured window, and every state-plane response reports freshness that reflects the stall.
+- **SC-023**: A T1-eligible alert obtains bounded state-change context within T1's `max_tools` and `max_completion_tokens` ceilings, with no device login performed during the investigation.
 
 ## Assumptions
 
