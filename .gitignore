@@ -111,7 +111,6 @@ trace.json
 trace.json.gz
 
 .claude
-docs/blogs/
 .amazonq
 workspace/node_modules/
 .dev-secrets/
@@ -155,3 +154,5 @@ docs/architecture/convergence-context
 # container runtime and regenerated on every deploy — lab output, not source.
 labs/*/clab-*/
 labs/**/.tls/
+docs/blogs/
+!docs/blogs/demo-lab/
