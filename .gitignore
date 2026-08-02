@@ -155,4 +155,3 @@ docs/architecture/convergence-context
 labs/*/clab-*/
 labs/**/.tls/
 docs/blogs/
-!docs/blogs/demo-lab/
