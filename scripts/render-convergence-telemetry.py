@@ -37,7 +37,7 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_MODULES_DIR = (
     REPO_ROOT / "deploy/convergence/adapters/device-snmp/modules"
 )
-VALID_TEMPLATES = ("cisco", "pfsense", "generic")
+VALID_TEMPLATES = ("cisco", "arista", "juniper", "nxos", "cumulus", "sonic", "pfsense", "generic")
 ROLE_DEFAULT = "switch"
 MARKER_BEGIN = "# BEGIN netclaw-convergence-device-snmp"
 MARKER_END = "# END netclaw-convergence-device-snmp"
@@ -242,6 +242,12 @@ def normalize_template(vendor: str | None, template: str | None) -> str:
     t = (template or vendor or "generic").strip().lower()
     if t in ("ios", "ios-xe", "catalyst", "nxos"):
         return "cisco"
+    if t in ("eos", "arista-eos", "veos"):
+        return "arista"
+    if t in ("junos", "junos-qfx", "junos-mx", "junos-ex"):
+        return "juniper"
+    if t in ("nx-os", "nexus"):
+        return "nxos"
     if t in ("pf", "pfsense-fw", "firewall-pfsense"):
         return "pfsense"
     if t not in VALID_TEMPLATES and t != "if_mib":
@@ -646,6 +652,11 @@ def render_suzieq_inventory(
     # Map vendor to SuzieQ devtype
     vendor_to_devtype = {
         "cisco": "iosxe",
+        "arista": "eos",
+        "cumulus": "cumulus",
+        "sonic": "sonic",
+        "juniper": "junos",
+        "nxos": "nxos",
         "pfsense": None,  # unsupported
         "generic": None,
     }
