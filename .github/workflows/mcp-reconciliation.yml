@@ -13,8 +13,13 @@ name: MCP Reconciliation
 # Constitution Principle XI: "A pull request that adds a capability without
 # updating all required artifacts MUST NOT be merged." This is the mechanism.
 #
-# Deliberately does NOT use --warn-only. That flag exists for local convenience;
-# using it here would recreate the exact failure this workflow fixes.
+# Deliberately does NOT use --warn-only for the declaration surfaces. That flag exists for
+# local convenience; using it there would recreate the exact failure this workflow fixes.
+#
+# The `startup` surface (spec 088/090) is the one exception, and for a structural reason
+# rather than convenience: it launches real servers, so it can only judge components that
+# are installed, and this job installs nothing by design (SC-013 below). It gates locally,
+# where install state is real, and reports informationally here.
 
 on:
   pull_request:
@@ -26,7 +31,9 @@ on:
       - 'scripts/verify-*.py'
       - 'scripts/check-mcp-portability.py'
       - 'scripts/reconcile-mcp.py'
+      - 'specs/**'
       - 'workspace/skills/**'
+      - 'tests/**'
       - 'README.md'
       - 'SOUL.md'
       - '.github/workflows/mcp-reconciliation.yml'
@@ -50,8 +57,58 @@ jobs:
       # only, by design, so this job needs no dependencies, no network access,
       # no credentials, and no installed NetClaw agent (spec 075 SC-013).
 
+      # The DECLARATION surfaces are the gate. Each compares repository artifacts against
+      # each other, needs no installed component, and is therefore meaningful in a fresh
+      # container -- which is what SC-013 above requires.
+      # Constitution Principle XVI: specify -> plan -> task -> implement. Nothing
+      # checked it, and ten consecutive specs (087-096) shipped with spec.md alone
+      # before an audit on 2026-08-05 caught it. The drift was self-reinforcing:
+      # sampling the three most recent specs made the gap look like the convention.
+      # Stdlib only, reads only the repo -- same SC-013 posture as everything above.
+      - name: Verify spec SDD artifacts
+        run: python3 scripts/verify-spec-artifacts.py
+
       - name: Reconcile MCP registration surfaces
-        run: python3 scripts/reconcile-mcp.py
+        run: |
+          python3 scripts/reconcile-mcp.py \
+            --surface catalog \
+            --surface dependencies \
+            --surface docs \
+            --surface meraki-ids \
+            --surface packages \
+            --surface portability
+
+      # The startup surface is deliberately NOT a gate here, and this is not the
+      # --warn-only convenience the header warns about -- it is a different kind of check.
+      #
+      # It launches real servers, so it can only judge components that are INSTALLED. CI is
+      # a fresh checkout where every vendored clone is absent (they are gitignored runtime
+      # clones), so here it reports "not installed" for ~30 servers and proves nothing.
+      # Spec 090 learned this by making it a gate and watching CI fail on a healthy tree.
+      #
+      # It IS a hard gate where install state is real: `scripts/reconcile-mcp.py` run
+      # locally before pushing fails on a server that cannot start. Run informationally
+      # here so a regression is still visible in the log.
+      - name: Server startup (informational — CI has no components installed)
+        run: python3 scripts/reconcile-mcp.py --surface startup --warn-only
 
       - name: Exit-code contract tests
         run: bash tests/reconcile/run-tests.sh
+
+      # nsm-mcp's posture and pinning assertions need no containers; its two live-analysis
+      # assertions skip themselves when docker is unreachable, which it is here. Included so
+      # the chokepoint that stops "0 alerts" reading as "clean traffic" is regression-tested.
+      - name: nsm-mcp contract tests
+        run: bash tests/nsm/run-tests.sh
+
+      # analysis-mcp's path-allowlist and statement-screen assertions are pure stdlib and
+      # always run; the DuckDB lockdown assertions skip without the package, which CI does
+      # not install (SC-013). The allowlist is what keeps the memory/RAG stores unreachable.
+      - name: analysis-mcp contract tests
+        run: bash tests/analysis/run-tests.sh
+
+      # redfish-mcp's verdict assertions -- which stop a BMC timeout being reported as a downed
+      # host -- are pure stdlib and always run. The live DMTF-mockup ones skip without httpx
+      # and the container.
+      - name: redfish-mcp contract tests
+        run: bash tests/redfish/run-tests.sh

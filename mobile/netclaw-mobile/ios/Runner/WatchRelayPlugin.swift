@@ -4,6 +4,35 @@ import WatchConnectivity
 
 private let watchRelayChannel = "ca.automateyournetwork.netclaw/watch_relay"
 
+/// The message-passing logic `WatchRelayPlugin` needs (099/FR-011) --
+/// extracted into pure functions with no `WCSession`/`FlutterMethodChannel`
+/// dependency so `WatchRelayPluginTests.swift` can exercise it directly,
+/// without a paired watch/simulator (which CI doesn't provide).
+enum WatchRelayMessage {
+    /// The Flutter method name a watch request is relayed as
+    /// (contracts/watch-relay.md) -- `nil` when the watch sent a message
+    /// with no `method` field at all.
+    static func extractMethod(from message: [String: Any]) -> String? {
+        message["method"] as? String
+    }
+
+    /// Converts whatever Dart's `invokeMethod` completion handler produced
+    /// into the `[String: Any]` shape `WCSession`'s `replyHandler` contract
+    /// requires -- a successful Dart reply, a thrown `FlutterError`, or
+    /// nothing at all (channel unavailable, Dart returned `nil`/an
+    /// unexpected type) all need to reach the watch as *some* reply, never
+    /// silently drop it.
+    static func replyPayload(from dartReply: Any?) -> [String: Any] {
+        if let reply = dartReply as? [String: Any] {
+            return reply
+        } else if let flutterError = dartReply as? FlutterError {
+            return ["error": flutterError.message ?? "unknown error"]
+        } else {
+            return ["error": "no reply from phone app"]
+        }
+    }
+}
+
 /// Feature 072: relays watch requests into Dart, and Dart's replies back to the
 /// watch — this plugin has no Border logic of its own (research D1). The
 /// watch has no identity, enrollment, or network connection of its own; every
@@ -50,19 +79,13 @@ public class WatchRelayPlugin: NSObject, FlutterPlugin, WCSessionDelegate {
     /// called with whatever Dart's handler returned, once — exactly matching
     /// WCSession's own single-reply contract.
     public func session(_ session: WCSession, didReceiveMessage message: [String: Any], replyHandler: @escaping ([String: Any]) -> Void) {
-        guard let method = message["method"] as? String, let channel = channel else {
+        guard let method = WatchRelayMessage.extractMethod(from: message), let channel = channel else {
             replyHandler(["error": "no method or channel unavailable"])
             return
         }
         DispatchQueue.main.async {
             channel.invokeMethod(method, arguments: message) { reply in
-                if let reply = reply as? [String: Any] {
-                    replyHandler(reply)
-                } else if let flutterError = reply as? FlutterError {
-                    replyHandler(["error": flutterError.message ?? "unknown error"])
-                } else {
-                    replyHandler(["error": "no reply from phone app"])
-                }
+                replyHandler(WatchRelayMessage.replyPayload(from: reply))
             }
         }
     }

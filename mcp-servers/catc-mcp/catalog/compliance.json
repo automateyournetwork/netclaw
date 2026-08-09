@@ -1,0 +1,257 @@
+[
+ {
+  "name": "api_complianceDetailsOfDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance/{deviceUuid}/detail",
+  "params": {
+   "category": "query",
+   "complianceType": "query",
+   "deviceUuid": "path",
+   "diffList": "query",
+   "remediationSupported": "query",
+   "status": "query"
+  },
+  "description": "**Tool Dependency: CRITICAL**\n\nThis tool retrieves DETAILED compliance report information for a SPECIFIC device. Use this tool only when the user asks for compliance DETAILS, a compliance breakdown, a full compliance report, compliance by type, remediation information, severity, sourceInfoList, ackStatus, or message for a device.\n\nDo not use this tool when the user asks for the compliance status/state of a device and does not request details or a breakdown. For \"compliance state\", \"compliance status\", or \"get device compliance state/status\" questions, use `api_getComplianceStatus` instead.\n\n**REQUIRED PRE-REQUISITE:**\nYou MUST call `get_device_details` BEFORE calling `api_complianceDetailsOfDevice`. This is non-negotiable.\n\n**Step-by-step process:**\n\n1. First, invoke `get_device_details` with the device name or IP address to resolve the device UUID\n2. Extract the UUID from the `get_device_details` response\n3. Then, invoke `api_complianceDetailsOfDevice` with the `deviceUuid` parameter set to the resolved UUID\n\n**Exception:**\nIf the user explicitly provides a valid device UUID in their request, you may skip step 1 and use the provided UUID directly in `api_complianceDetailsOfDevice`.\n\n**Use Cases - Pick this tool for questions like:**\n- \"Get compliance details of device 50.40.1.45\"\n- \"Show me detailed compliance information for device core-router\"\n- \"What are the compliance details of device 192.168.1.100\"\n- \"Get full compliance report for the device\"\n- \"Show compliance breakdown for device xyz\"\n\n**VIOLATION TERMINOLOGY (device-scoped) \u2014 route here:** Treat \"violation\", \"violations\", \"compliance violation(s)\", \"what is violating compliance\", \"why is device non-compliant\", \"what is making device non-compliant\", \"reasons device is non-compliant\", and device-scoped \"compliance issues\" as requests for device compliance DETAILS \u2014 use this tool (after `get_device_details`). This includes type- or template-qualified device violations such as syslog violations, template/config violations (e.g., template ACL-config), network-profile (wireless) violations, and network-settings violations for a SPECIFIC device, plus acknowledged/open violation filters. A device referenced by IP address or hostname is a NETWORK DEVICE \u2014 resolve it with `get_device_details`; do NOT ask the user to clarify whether it is a network device or a client. These compliance violations are NOT Assurance health issues \u2014 do NOT use `get_issues`/`understand_issues`.\n\n**DEFAULT (general violations / details) \u2014 call with deviceUuid ONLY; do NOT over-filter:** For a general request for a device's violations or compliance details that does NOT name a specific compliance type and does NOT ask for an intended-vs-actual / config diff \u2014 e.g. \"what are the violations for device X\", \"give me the violations, give me details\", \"show compliance details / breakdown\", \"why is the device non-compliant\" \u2014 call this tool with ONLY the deviceUuid. The category, complianceType, status, remediationSupported and diffList parameters are ALL OPTIONAL filters; leave them UNSET by default. Setting any of them narrows the result to a single type/status and will HIDE violations of other types \u2014 for example scoping to complianceType/category RUNNING_CONFIG hides NETWORK_SETTINGS (and other) violations and makes the device look like it has \"no violations\". Set complianceType/category ONLY when the user explicitly names a compliance type (e.g. \"network settings\", \"image\", \"PSIRT\", \"running config\"); set status ONLY when the user explicitly filters by a status; set remediationSupported ONLY when the user explicitly asks about remediation support. NEVER default complianceType or category to RUNNING_CONFIG. \"Give me details\" / \"details\" means the normal detailed report \u2014 it does NOT by itself mean a config diff, so do NOT set diffList=true for it.\n\n**COMPLIANCE TYPE & CATEGORY MAPPING \u2014 use this to pick the CORRECT complianceType/category when the user names a specific concern; do NOT reflexively choose RUNNING_CONFIG:** The word \"config\" alone does NOT mean RUNNING_CONFIG. RUNNING_CONFIG means ONLY a startup-vs-running configuration mismatch (config drift). Templates, CLI/feature templates, network profiles, fabric, AVC, workflow, syslog/network-settings, image, PSIRT and EOX are all DIFFERENT compliance types. Only set complianceType/category when the user explicitly names such a concern (for a plain \"violations/details\" request leave them UNSET per the DEFAULT rule).\n\nCategory -> complianceType(s):\n- INTENT: NETWORK_PROFILE, FABRIC, APPLICATION_VISIBILITY (a.k.a. AVC), WORKFLOW (all design/intent compliance)\n- RUNNING_CONFIG: RUNNING_CONFIG (a.k.a. startup vs running config mismatch / config drift)\n- IMAGE: IMAGE (a.k.a. standard / golden image compliance; for full image details use the SWIM APIs \u2014 compliance stores only limited detail)\n- PSIRT: PSIRT (a.k.a. critical security advisories; for full advisory details use the PSIRT APIs \u2014 compliance stores only limited detail)\n- EOX: EOX (a.k.a. end-of-life / end-of-support; for full EOX details use the EOX APIs \u2014 compliance stores only limited detail)\n- NETWORK_SETTINGS: NETWORK_SETTINGS\n\ncomplianceType -> sub-types / apps (IMPORTANT: these sub-type names are NOT accepted by the API \u2014 they exist ONLY to help you choose the parent complianceType. Always pass the PARENT complianceType value, e.g. NETWORK_PROFILE, and NEVER a sub-type such as CLI_TEMPLATE):\n- RUNNING_CONFIG: RUNNING_CONFIG\n- PSIRT: PSIRT\n- IMAGE: IMAGE\n- NETWORK_RULES: NETWORK_RULES\n- FABRIC: FABRIC_ROLE, SEGMENT, MULTICAST, AUTHENTICATION_PROFILE, ACCESS_CONTROL_LIST, PORT_CHANNEL, VIRTUAL_NETWORK, WIRELESS\n- APPLICATION_VISIBILITY (AVC): CBAR_CONFIGURATION, CBAR_CONFIGURATION_CONTROLLER, CBAR_CONFIGURATION_PROTOCOL_DISCOVERY\n- NETWORK_SETTINGS: GENERAL, WIRELESS\n- NETWORK_PROFILE: WIRELESS, ROUTING, CLI_TEMPLATE, FEATURE_TEMPLATE\n- WORKFLOW: UMBRELLA, SITE_TO_SITE_VPN\n- EOX: SOFTWARE, HARDWARE, MODULE\n\nMapping user wording -> complianceType (always pass the PARENT type): \"CLI template\" / \"config template\" / \"feature template\" / \"ACL-config template\" / \"template <name> violation\" -> NETWORK_PROFILE (sub-type CLI_TEMPLATE or FEATURE_TEMPLATE), NOT RUNNING_CONFIG; \"syslog\" / \"network settings\" / \"general settings\" -> NETWORK_SETTINGS; \"fabric\" / \"segment\" / \"SGT\" / \"virtual network\" / \"port channel\" / \"access control list\" -> FABRIC; \"AVC\" / \"application visibility\" / \"CBAR\" -> APPLICATION_VISIBILITY; \"Umbrella\" / \"site-to-site VPN\" -> WORKFLOW; \"startup vs running\" / \"config drift\" / \"running config\" -> RUNNING_CONFIG; \"golden image\" / \"image\" -> IMAGE; \"security advisory\" / \"PSIRT\" -> PSIRT; \"end of life\" / \"end of support\" / \"EOX\" -> EOX. If the user names a sub-type/app, filter by its PARENT complianceType and then identify the specific sub-type from the returned violations.\n\n**CONFIG DIFF \u2014 set diffList=true ONLY for explicit intended-vs-actual questions:** Do NOT set diffList=true (and do NOT add a complianceType) for a plain \"violations\" or \"details\" request \u2014 see the DEFAULT rule above. The DEFAULT response (diffList omitted or false) lists violations but does NOT contain the per-attribute intended (expected / should-be) versus configured (actual / present) values. To answer ANY question about what SHOULD have been configured versus what IS configured now \u2014 e.g. \"what should have been configured and what is present now\", \"intended vs actual configuration\", \"expected vs current config\", \"show the config diff / difference\", \"side-by-side comparison\", \"what changed\", \"what is missing\", or the exact configuration of a specific violation instance (such as a telemetry subscription id or a feature) \u2014 you MUST call this tool with diffList=true together with the relevant complianceType (e.g. RUNNING_CONFIG for startup-vs-running / config drift, or NETWORK_SETTINGS). Only diffList=true returns the diffList array, where each entry has an op (add/remove/update) plus the intended value and the configured value. NEVER answer such questions from the default (non-diff) response, NEVER invent intended/current values, and NEVER claim the API cannot provide the diff or that the user must use the compliance dashboard \u2014 set diffList=true and read the diffList.\n\n**CLI TEMPLATE (config template) VIOLATIONS \u2014 actual content is NOT available here:** Even with diffList=true, the response does NOT include the actual CLI template violation content (the specific configuration lines/commands), because that content can be extremely large. For CLI template compliance you may report THAT the device is non-compliant for the template/config type and name the affected complianceType, but you CANNOT list, enumerate, or reconstruct the exact violating CLI lines from this tool, and you must NEVER fabricate them. When the user specifically asks for an in-depth analysis or the actual line-by-line details of CLI template violations, tell them to try Deep Reasoning mode, which provides detailed CLI template violation analysis. Do not surface this suggestion for ordinary compliance questions \u2014 only when the user asks for the actual CLI template violation content or an in-depth template analysis."
+ },
+ {
+  "name": "api_deviceComplianceStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance/{deviceUuid}",
+  "params": {
+   "deviceUuid": "path"
+  },
+  "description": "Get detailed compliance breakdown by type (PSIRT, EOX, CONFIG, IMAGE) with source-level violations for a device."
+ },
+ {
+  "name": "api_getComplianceDetail",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance/detail",
+  "params": {
+   "complianceStatus": "query",
+   "complianceType": "query",
+   "deviceUuid": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "LIST, SHOW, or IDENTIFY which specific devices are compliant or non-compliant. Returns detailed device compliance records including compliance type, status, state, last sync/update time, and remediation support.\n\nNOT for counting. For count/total/how-many questions, use `api_getComplianceStatusCount` (global counts) or `api_getComplianceDetailCount` (type-specific counts).\n\nUse this API ONLY when the user asks to LIST, SHOW, or IDENTIFY WHICH SPECIFIC devices are compliant or non-compliant \u2014 i.e., the user wants to see device names, IPs, or details, NOT a count. Examples: \"Which devices are compliant?\", \"List compliant devices\", \"Show non-compliant devices\", \"Show me the non-compliant devices for IMAGE\", \"List devices failing critical security advisory compliance\".\n\n**NATURAL LANGUAGE \u2192 complianceType ENUM MAPPING:** \"critical security advisory\" / \"security advisory compliance\" / \"PSIRT\" \u2192 complianceType=PSIRT (NOTE: this refers to PSIRT *compliance type* for device compliance checks, NOT the separate `api_getSecurityAdvisories*` tools which retrieve advisory details, CVEs, and fix versions). \"running config\" / \"RUNNING_CONFIG\" \u2192 RUNNING_CONFIG. \"image\" / \"IMAGE\" \u2192 IMAGE. \"end of life\" / \"EOX\" \u2192 EOX. \"network profile\" / \"NETWORK_PROFILE\" \u2192 NETWORK_PROFILE. \"network settings\" / \"NETWORK_SETTINGS\" \u2192 NETWORK_SETTINGS. \"fabric\" / \"segment\" / \"SGT\" / \"virtual network\" / \"access control list\" \u2192 FABRIC. \"application visibility\" / \"AVC\" / \"CBAR\" \u2192 APPLICATION_VISIBILITY. \"Umbrella\" / \"site-to-site VPN\" \u2192 WORKFLOW. IMPORTANT: the word \"config\" alone does NOT mean RUNNING_CONFIG \u2014 RUNNING_CONFIG is ONLY a startup-vs-running config mismatch. A CLI/config/feature TEMPLATE (e.g. \"ACL-config template\", \"CLI template violation\") maps to NETWORK_PROFILE, NOT RUNNING_CONFIG. Sub-type/app names (CLI_TEMPLATE, FEATURE_TEMPLATE, GENERAL, WIRELESS, CBAR_CONFIGURATION, FABRIC_ROLE, SEGMENT, ACCESS_CONTROL_LIST, UMBRELLA, SITE_TO_SITE_VPN, SOFTWARE, HARDWARE, MODULE, etc.) are NOT accepted by the API; pass only the PARENT complianceType (RUNNING_CONFIG, PSIRT, IMAGE, EOX, FABRIC, APPLICATION_VISIBILITY, NETWORK_SETTINGS, NETWORK_PROFILE, WORKFLOW, NETWORK_RULES). When the user provides underscore-formatted enum values (e.g., NON_COMPLIANT, RUNNING_CONFIG, NETWORK_PROFILE), map them directly to the corresponding `complianceStatus` or `complianceType` parameter.\n\nDo not use `api_getComplianceStatus` for `which/list/show devices are non-compliant` questions; that tool is for high-level device status records. Do not use `api_getComplianceDetailCount` for list/show/which-device questions; a count alone cannot identify devices.\n\nDo not pass unsupported filters such as `siteId`, `siteHierarchy`, tag name, or tag id to this API; it accepts compliance filters and `deviceUuid` only and cannot enforce site or tag scope by itself.\n\nFor site-scoped compliance questions, first call `api_getSites` when needed, then call `get_device_details` with the resolved site hierarchy/name, extract device UUIDs, and call `api_getComplianceDetail` with `deviceUuid` as a comma-separated UUID list and `complianceStatus`.\n\nFor every tag-qualified compliance question, call `api_getTag(name=<tag name>)` and then `api_getTagMembersById(id=<tag UUID>, memberType=\"networkdevice\" or \"device\")` before this compliance call; calling this API before `api_getTagMembersById` is invalid for tag-qualified compliance queries, even if `get_device_details` exposes `tagNames`.\n\nCritical rule for combined site + tag questions: the tag-member lookup is required for grounding the tag, but do not pass all tag-member UUIDs directly to this API. Build the requested-site UUID set from `get_device_details(siteHierarchy=<site>, views=[\"configuration\"])`, then keep only those site records whose `tagNames` contains the requested tag; if `tagNames` is unavailable, intersect the tag-member UUID set with the site UUID set. Pass exactly and only that final intersection in `deviceUuid`. Never include same-tag devices from other sites, and never call this API with a superset and filter after the compliance call. If the final intersection has one device, `deviceUuid` must contain that one UUID only, with no comma. For user-facing answers and `build_table` calls, count or list only devices whose UUID is in the final filtered set used for the compliance call.\n\nFor device-listing questions, including when the filtered site/tag intersection has exactly one device, the compliance-detail call should use the default limit.\n\nFor site-scoped count questions such as \"How many devices are compliant in BGL 17\" or \"count compliant devices at <site>\", first resolve the site devices via `get_device_details`, then call `api_getComplianceDetail` with the scoped `deviceUuid` list and the requested `complianceStatus`, and compute the count from the returned detail records. This site-scoped pattern is acceptable because the device set is pre-filtered and bounded. This site-scoped counting workaround applies ONLY to STATUS counts (compliant/non-compliant) with NO compliance TYPE specified. If a compliance TYPE (e.g., RUNNING_CONFIG, IMAGE, PSIRT, NETWORK_SETTINGS, NETWORK_PROFILE, EOX) is specified together with a site/building/floor/area/tag for a count/how-many/number-of question (e.g., 'how many devices have running config mismatch under BGL 16'), do NOT count via get_device_details + api_getComplianceDetail; instead respond that a per-site count for that compliance type cannot be computed due to API limitations. For global (unscoped) count questions, always use `api_getComplianceStatusCount` or `api_getComplianceDetailCount` instead.\n\n**VIOLATION TERMINOLOGY (site-scoped) \u2014 route here:** Treat site-scoped \"violations\", \"compliance violations\", \"network-settings violations\", \"non-compliant findings\", and \"open/acknowledged violations under <site>\" as compliance-detail requests \u2014 first call `api_getSites` (when needed) and `get_device_details(siteHierarchy=<site>)` to resolve device UUIDs, then call this API with `deviceUuid` and `complianceStatus=NON_COMPLIANT` (add `complianceType` when a type such as NETWORK_SETTINGS/RUNNING_CONFIG/IMAGE/PSIRT is named). These compliance violations are NOT Assurance health issues \u2014 do NOT use `get_issues`/`understand_issues` for compliance violation questions.\n\n**DO NOT COUNT BY TYPE FOR A SITE VIA THIS WORKAROUND:** The site-scoped detail-count pattern described above is valid ONLY for STATUS counts (compliant/non-compliant) at a site. Do NOT use a get_device_details + api_getComplianceDetail workaround to COUNT devices by a specific compliance TYPE (e.g., RUNNING_CONFIG, IMAGE, PSIRT, NETWORK_SETTINGS, NETWORK_PROFILE, EOX) scoped to a site/building/floor/area/tag. Site-scoped compliance-TYPE counts are not supported; for such count questions (e.g., \"how many devices have running config mismatch under BGL 16\") respond that the count cannot be computed for that scope due to API limitations rather than counting from detail records. This restriction applies to COUNT/how-many questions only - LIST/show questions for a compliance type under a site remain valid."
+ },
+ {
+  "name": "api_getComplianceDetailCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance/detail/count",
+  "params": {
+   "complianceStatus": "query",
+   "complianceType": "query"
+  },
+  "description": "\"Count NON_COMPLIANT devices for RUNNING_CONFIG\" \"How many non-compliant for RUNNING_CONFIG?\" \"How many non-compliant for IMAGE?\" \"Count NON_COMPLIANT for NETWORK_PROFILE\" \"Count non-compliant devices for PSIRT\" \"How many devices are failing critical security advisory compliance?\" \"Count EOX non-compliant\" \u2014 USE THIS API for all compliance-TYPE-specific count questions.\n\nThis API returns the TRUE TOTAL count of devices for a specific compliance TYPE and status. It is the ONLY correct API for compliance-type-specific count questions because it has no pagination limit. `api_getComplianceDetail` MUST NOT be used for counting \u2014 it caps at 500 records and produces WRONG results at scale.\n\n**NATURAL LANGUAGE \u2192 ENUM MAPPING (critical for correct routing):**\n\"critical security advisory\" / \"security advisory compliance\" / \"PSIRT\" \u2192 complianceType=PSIRT (NOTE: this is about PSIRT *compliance type*, NOT the separate `api_getSecurityAdvisories*` or `api_getCountOfSecurityAdvisories*` tools which deal with advisory details, CVEs, and remediation versions)\n\"running config\" / \"startup vs running\" / \"RUNNING_CONFIG\" \u2192 complianceType=RUNNING_CONFIG\n\"image\" / \"software image\" / \"IMAGE\" \u2192 complianceType=IMAGE\n\"end of life\" / \"end of support\" / \"EOX\" \u2192 complianceType=EOX\n\"network profile\" / \"NETWORK_PROFILE\" \u2192 complianceType=NETWORK_PROFILE\n\"network settings\" / \"NETWORK_SETTINGS\" \u2192 complianceType=NETWORK_SETTINGS\n\"fabric\" / \"FABRIC\" \u2192 complianceType=FABRIC\n\"application visibility\" / \"APPLICATION_VISIBILITY\" \u2192 complianceType=APPLICATION_VISIBILITY\n\n**MANDATORY \u2014 USE THIS API FOR:**\n- \"Count NON_COMPLIANT devices for RUNNING_CONFIG\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=RUNNING_CONFIG\n- \"How many devices are non-compliant for RUNNING_CONFIG?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=RUNNING_CONFIG\n- \"How many devices are non-compliant for running config?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=RUNNING_CONFIG\n- \"How many non-compliant devices for IMAGE?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=IMAGE\n- \"How many devices are non-compliant due to PSIRT?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=PSIRT\n- \"How many devices are failing critical security advisory compliance?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=PSIRT\n- \"How many non-compliant for NETWORK_SETTINGS?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=NETWORK_SETTINGS\n- \"How many non-compliant for NETWORK_PROFILE?\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=NETWORK_PROFILE\n- \"Count NON_COMPLIANT for EOX\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=EOX\n- \"Give me the RUNNING_CONFIG non-compliant count\" \u2192 complianceStatus=NON_COMPLIANT, complianceType=RUNNING_CONFIG\n- Any question asking for the count, total, or number of devices by a specific compliance TYPE (RUNNING_CONFIG, IMAGE, PSIRT, EOX, NETWORK_PROFILE, NETWORK_SETTINGS, FABRIC, APPLICATION_VISIBILITY, WORKFLOW)\n- Any question with underscore-formatted enum values like NON_COMPLIANT, RUNNING_CONFIG, NETWORK_PROFILE, NETWORK_SETTINGS, etc. that asks for a count\n\n**STOP \u2014 Do NOT use this API if the question does NOT mention a specific compliance TYPE.** Questions like \"How many devices are compliant?\", \"How many devices are non-compliant?\", \"Count compliant devices\", or \"Total non-compliant devices\" that do NOT mention RUNNING_CONFIG, IMAGE, PSIRT, EOX, NETWORK_PROFILE, NETWORK_SETTINGS, FABRIC, or APPLICATION_VISIBILITY MUST use `api_getComplianceStatusCount` instead. This API requires a complianceType \u2014 without one, use `api_getComplianceStatusCount`.\n\nDo not use this API when the user asks to list, show, or identify which devices match a compliance status or compliance type. For list/show/which-device questions such as \"List devices non-compliant for IMAGE\" or \"Show devices failing IMAGE compliance\", use `api_getComplianceDetail` with `complianceStatus`, `complianceType`, and `limit=500` so the response is grounded in device-level detail records.\n\n**NATURAL LANGUAGE (config drift) -> complianceType=RUNNING_CONFIG:** \"startup vs running config mismatch\", \"startup versus running config\", \"running config mismatch\", \"running config drift\", \"config drift\", and \"config mismatch\" all map to complianceType=RUNNING_CONFIG for count questions. Route these count questions HERE (with complianceStatus=NON_COMPLIANT) - NOT to any device-configuration, Layer2/Layer3 feature-configuration, or intended-configuration API.\n\n**FILTER LIMITATION - SITE/TAG SCOPING NOT SUPPORTED:** This API returns a GLOBAL total for a complianceType/complianceStatus. It has NO site, siteHierarchy, building, floor, area, or tag parameter and cannot restrict the count to a location or tag. If the user asks for a count of a compliance TYPE scoped to a specific site/building/floor/area/tag (e.g., \"how many devices have running config mismatch under BGL 16\"), do NOT return the global count as if it were the site count, and do NOT build a get_device_details + api_getComplianceDetail workaround to compute a type count for the site. Instead respond that the count cannot be computed for that scope due to API limitations (for example: \"I can't calculate a per-site count for RUNNING_CONFIG compliance because the compliance count API doesn't support site-level filtering.\"). You may offer the global count or offer to list the non-compliant devices under that site instead."
+ },
+ {
+  "name": "api_getComplianceStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance",
+  "params": {
+   "complianceStatus": "query",
+   "deviceUuid": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "This tool retrieves high-level device-level compliance status records for all devices or specific device(s). Use this tool when the user asks for the compliance status/state of a device, or asks to list actual device compliance status records.\n\nDo not answer requests such as \"list all device compliance statuses\" from static knowledge unless the user explicitly asks for possible status values or a glossary of status meanings. For actual device compliance status records, call this API.\n\nDo not use this tool for questions that ask to list, show, or identify which devices are compliant/non-compliant, especially site-scoped, tag-scoped, or compliance-type-specific lists. Use `api_getComplianceDetail` with `limit=500` for those device-listing questions.\n\n**MANDATORY PREREQUISITE:** You MUST call `get_device_details` before `api_getComplianceStatus` when the user provides device name(s) or IP address(es).\n\n**Steps:**\n1. If the user provides device name(s) or IP address(es), call `get_device_details` and extract the device UUID(s).\n2. If the user provides valid device UUID(s) directly, skip step 1.\n3. Call `api_getComplianceStatus` with `deviceUuid` set to the device UUID(s). Use a comma-separated list for multiple devices.\n4. If the user does not provide any device identifier and asks for actual device status records, call `api_getComplianceStatus` without `deviceUuid`.\n5. For user-facing output, do not show raw `deviceUuid`. Call `get_device_details` with `device_id` set to each returned UUID and include the `managementIpAddress` in the response. The management IP address is mandatory in user-facing output.\n\n**Returns:** Compliance status records for all devices or specified devices. User-facing output MUST include `managementIpAddress`, `complianceStatus`, and `lastUpdateTime`, and MUST NOT show raw `deviceUuid` unless the user explicitly asks for internal device identifiers.\n\nExact-query examples that MUST use this API, not documentation search: \"List all device compliance statuses\", \"Show all device compliance statuses\", \"List device compliance status records\", and \"Get all device compliance states\". These ask for live device records, not definitions of possible status values.\n\nDo not use this tool for count/total/\"how many\" questions. For global count questions like \"How many devices are compliant?\" or \"How many devices are non-compliant?\", use `api_getComplianceStatusCount`. For compliance-type-specific counts like \"How many non-compliant for RUNNING_CONFIG?\", use `api_getComplianceDetailCount`. For site-scoped counts like \"How many compliant in BGL 17?\", resolve site devices with `get_device_details`, then use `api_getComplianceDetail` with the scoped `deviceUuid` list."
+ },
+ {
+  "name": "api_getComplianceStatusCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/compliance/count",
+  "params": {
+   "complianceStatus": "query"
+  },
+  "description": "\"How many devices are compliant?\" \"How many devices are non-compliant?\" \"Count of compliant devices\" \"Total non-compliant devices\" \u2014 USE THIS API for all these questions.\n\nThis API returns the TRUE TOTAL count of devices for a compliance status across the entire network. It is the ONLY correct API for global compliance count questions because it has no pagination limit. `api_getComplianceDetail` MUST NOT be used for counting \u2014 it caps at 500 records and produces WRONG results at scale.\n\n**MANDATORY \u2014 USE THIS API FOR:**\n- \"How many devices are compliant?\" \u2192 complianceStatus=COMPLIANT\n- \"How many devices are non-compliant?\" \u2192 complianceStatus=NON_COMPLIANT\n- \"Give me the count of compliant devices\" \u2192 complianceStatus=COMPLIANT\n- \"What is the number of devices with COMPLIANT status?\" \u2192 complianceStatus=COMPLIANT\n- \"What is the number of devices with NON_COMPLIANT status?\" \u2192 complianceStatus=NON_COMPLIANT\n- \"Count devices whose compliance state is compliant\" \u2192 complianceStatus=COMPLIANT\n- \"How many devices have compliance in progress?\" \u2192 complianceStatus=IN_PROGRESS\n- \"How many devices have compliance errors?\" \u2192 complianceStatus=ERROR\n- Any question asking for the count, total, or number of devices by overall compliance status without specifying a compliance TYPE (IMAGE, PSIRT, RUNNING_CONFIG, etc.)\n\nFor compliance-TYPE-specific counts (e.g., \"How many non-compliant for RUNNING_CONFIG?\"), use `api_getComplianceDetailCount` instead.\nFor site-scoped counts (e.g., \"How many compliant in BGL 17?\"), use `api_getComplianceDetail` with pre-resolved device UUIDs."
+ },
+ {
+  "name": "api_getCountOfFieldNotices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices/count",
+  "params": {
+   "deviceCount": "query",
+   "id": "query",
+   "type": "query"
+  },
+  "description": "Get the count of confirmed field notices. Use this tool for questions like 'how many field notices do I have?' or 'how many total field notices are detected?'. For unqualified in-my-network or detected field notice count questions, call this tool with deviceCount: 0 so the count includes only field notices with at least one confirmed affected device. For type-specific questions such as hardware or software field notice counts, call this tool with both deviceCount: 0 and the requested type, then answer with the count returned by that exact latest tool call. If the latest count is 0, answer 0. Do not reuse a count from a previous turn or from a different type. Return only the confirmed field notice count and label it as confirmed field notices detected. Do not include or add potential field notices unless the user explicitly asks for potential field notices."
+ },
+ {
+  "name": "api_getCountOfFieldNoticesResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/resultsTrend/count",
+  "params": {
+   "scanTime": "query"
+  },
+  "description": "Get count of field notices results trend over time"
+ },
+ {
+  "name": "api_getCountOfNetworkBugs",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs/count",
+  "params": {
+   "deviceCount": "query",
+   "id": "query",
+   "severity": "query"
+  },
+  "description": "Get the count of detected network bugs affecting devices in the network. Use this count tool for questions like 'how many network bugs do I have?', 'how many bugs are detected?', 'how many total network bugs are detected?', 'count catastrophic bugs', or 'count severe bugs'. For any in-my-network, detected, or severity-specific network bug count question, explicitly pass deviceCount: 0 so the count includes only bugs with at least one affected device. Examples: 'How many network bugs do I have?' -> deviceCount: 0; 'Count severe bugs' -> severity: SEVERE and deviceCount: 0. Do not omit deviceCount, because omitting it counts all known bug records including bugs with no affected devices and can return a larger number than the UI."
+ },
+ {
+  "name": "api_getCountOfNetworkBugsResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/resultsTrend/count",
+  "params": {
+   "scanTime": "query"
+  },
+  "description": "Get count of network bugs results trend over time"
+ },
+ {
+  "name": "api_getCountOfSecurityAdvisoriesAffectingTheNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories/count",
+  "params": {
+   "cvssBaseScore": "query",
+   "deviceCount": "query",
+   "id": "query",
+   "securityImpactRating": "query"
+  },
+  "description": "Return the total count of security advisories, PSIRTs, and vulnerabilities affecting all devices in the network. Use this API to answer questions like 'How many security advisories affected the devices?' or 'What is the total number of vulnerabilities across the network devices?'. This tool provides an aggregate count for all devices, not for a specific device."
+ },
+ {
+  "name": "api_getCountOfSecurityAdvisoriesResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/resultsTrend/count",
+  "params": {
+   "scanTime": "query"
+  },
+  "description": "Get count of security advisories results trend over time."
+ },
+ {
+  "name": "api_getFieldNoticeById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Return details for one specific field notice by its exact id. Use this tool whenever the user asks about one specific field notice itself. This tool returns notice metadata such as id, name, publicationUrl, deviceCount, potentialDeviceCount, type, firstPublishDate, and lastUpdatedDate."
+ },
+ {
+  "name": "api_getFieldNotices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices",
+  "params": {
+   "deviceCount": "query",
+   "id": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "type": "query"
+  },
+  "description": "Get confirmed field notices. Use this tool for questions that ask which field notices exist or which notices have affected devices. For unqualified in-my-network or detected field notice list questions, call this tool with deviceCount: 0 so the list includes only field notices with at least one confirmed affected device. In final answers, show confirmed affected device counts from deviceCount only. Do not include potentialDeviceCount or potential field notice counts unless the user explicitly asks for potential field notices."
+ },
+ {
+  "name": "api_getFieldNoticesResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/resultsTrend",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "scanTime": "query"
+  },
+  "description": "Get field notices results trend over time. The default sort is by scan time descending."
+ },
+ {
+  "name": "api_getNetworkBugById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Get details for one network bug by bug ID. Use this tool for CSC-style network bug IDs such as CSCwd12345 or CSCwr77118 when the user asks for general bug details, affected versions, severity, workaround, integrated releases, or whether the bug has a workaround across the network. Use this tool only when the user does not specify a particular device, device name, management IP, MAC address, serial number, or networkDeviceId. If the user asks about a bug on a specific device, such as 'details of CSCwd12345 on 50.30.1.9' or 'is device X affected by CSCwd12345', first call get_device_details to resolve the device UUID, then call api_getNetworkBugDeviceForTheBugByNetworkDeviceId with the bug id and resolved networkDeviceId. A CSC ID in a question about bugs is a network bug ID, not a security advisory ID."
+ },
+ {
+  "name": "api_getNetworkBugs",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs",
+  "params": {
+   "deviceCount": "query",
+   "id": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "severity": "query",
+   "sortBy": "query"
+  },
+  "description": "Get detected network bugs affecting devices in the network. Use this list tool for questions that ask which network bugs exist, which bugs are detected, which severe/moderate/catastrophic bugs affect the network, or which bugs affect devices. For any in-my-network, detected, or severity-specific network bug list question, explicitly pass deviceCount: 0 so the list includes only bugs with at least one affected device. Examples: 'List all network bugs detected' -> deviceCount: 0 and limit: 10; 'Show severe network bugs' -> severity: SEVERE, deviceCount: 0, and limit: 10. Do not omit deviceCount, because omitting it may return all known bug records including bugs with no affected devices."
+ },
+ {
+  "name": "api_getNetworkBugsResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/resultsTrend",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "scanTime": "query"
+  },
+  "description": "Get network bugs results trend over time. The default sort is by scan time descending."
+ },
+ {
+  "name": "api_getSecurityAdvisoriesAffectingTheNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories",
+  "params": {
+   "cvssBaseScore": "query",
+   "deviceCount": "query",
+   "id": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "securityImpactRating": "query",
+   "sortBy": "query"
+  },
+  "description": "Return the list of security advisories, PSIRTs, and vulnerabilities affecting all devices in the network. Use this API to answer questions like 'Which security advisories are affecting the devices?' or 'List all vulnerabilities impacting the network devices.' This tool provides detailed advisory information for all devices, not just a count."
+ },
+ {
+  "name": "api_getSecurityAdvisoriesResultsTrendOverTime",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/resultsTrend",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "scanTime": "query"
+  },
+  "description": "Get security advisories results trend over time. The default sort is by scan time descending."
+ },
+ {
+  "name": "api_getSecurityAdvisoryAffectingTheNetworkDevicesById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Return detailed information about a specific security advisory, PSIRT, or vulnerability affecting network devices by advisory ID. The response includes: advisory ID, number of affected devices (deviceCount), CVE IDs (cveIds), publication URL (publicationUrl), CVSS base score (cvssBaseScore), security impact rating (securityImpactRating), and a list of vulnerable and first fixed versions (firstFixedVersionsList) with mappings of vulnerableVersion to fixedVersions. Use this API to answer questions like 'Get security advisory cisco-sa-20160525-ipv6 details', 'Show me details for advisory CVE-2024-1234', or 'Lookup PSIRT by advisory ID'. This tool provides full advisory details when given a unique advisory identifier."
+ },
+ {
+  "name": "api_getTrialDetailsForBugsDetectionOnNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/trials",
+  "params": {},
+  "description": "Get trial details for bugs detection on network devices"
+ },
+ {
+  "name": "api_getTrialDetailsForFieldNoticesDetectionOnNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/trials",
+  "params": {},
+  "description": "Get trial details for field notices detection on network devices"
+ },
+ {
+  "name": "api_getTrialDetailsForSecurityAdvisoriesDetectionOnNetw_ff9164da",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/trials",
+  "params": {},
+  "description": "Get trial details for security advisories detection on network devices"
+ }
+]

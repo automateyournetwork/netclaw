@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  099/FR-003 (Story 2). Covers required-reason API categories this app's own
+  code and its non-manifest-carrying plugins are known to exercise:
+
+  - File Timestamp (path_provider's NSFileManager use for the app documents
+    directory; flutter_secure_storage's Keychain-backed file access) --
+    reason C617.1 (display file metadata to the user, indirectly, via the
+    app's own on-device stores).
+  - User Defaults (Flutter's own engine/plugin-registrant configuration
+    caching) -- reason CA92.1 (access only this app's own app/App Group
+    data).
+
+  Firebase's own CocoaPods (firebase_core/firebase_messaging, via
+  GoogleUtilities) ship their own PrivacyInfo.xcprivacy as of the versions
+  pinned in pubspec.yaml, so their required-reason API usage is NOT
+  duplicated here. Before an actual App Store submission, run Xcode's
+  Archive -> "Generate Privacy Report" to confirm no further category is
+  needed as new plugins/versions are added -- that tool sees the full
+  linked binary graph, which this file can't verify by inspection alone.
+-->
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array/>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array/>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryFileTimestamp</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>C617.1</string>
+			</array>
+		</dict>
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>CA92.1</string>
+			</array>
+		</dict>
+	</array>
+</dict>
+</plist>

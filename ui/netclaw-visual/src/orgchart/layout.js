@@ -28,12 +28,19 @@ import { classifyHealth } from './health.js';
 import { orderCategories, orderMembers } from './ordering.js';
 import { resolveLabel, disambiguateLabels, dedupePeers } from './normalize.js';
 import { categorizeMembers } from './categorize.js';
+import { classifyPeer } from './liveness.js';
 
 /** Layout constants. Named, not scattered as literals. */
 export const LAYOUT = {
   boundaryY: 18,
   externalY: 40,
-  externalSpacingX: 34,
+  // Feature 101 (US3): widened from 34. The state affixes ("· never seen",
+  // "· unreachable") made peer labels roughly twice as wide, and at 34 they
+  // collided — "Nicholas" overlapped "Hermes (as65008)" and Carapace was clipped
+  // to "ace · never seen". Caught by screenshot review; no unit test can see it,
+  // because label collision is a rendered-geometry property and the labels are
+  // DOM overlays positioned in world space.
+  externalSpacingX: 58,
   borderY: 0,
   internalTopY: -20,
   // Department cards need enough screen width for their CSS2D headings. Four
@@ -82,6 +89,12 @@ export function computeLayout(n2n, integrationCatalog, nowEpochS, opts = {}) {
       state: entity.state || 'unknown',
       channelState: entity.channel_state || 'unknown',
       severed: String(entity.state).toLowerCase() === 'severed',
+      // Feature 101 (US3/FR-012): the six-state classification the render layer
+      // consumes. Computed here, on the pure side, so the render layer never
+      // re-derives it — `colorForStructural` re-deriving it from two fields is
+      // exactly how `stale` came to be ignored and five of seven peers ended up
+      // rendering as healthy.
+      peerState: classifyPeer(entity, nowEpochS),
       payload: entity,
       position: { x: -peerSpan / 2 + i * cfg.externalSpacingX, y: cfg.externalY, z: 0 },
     });

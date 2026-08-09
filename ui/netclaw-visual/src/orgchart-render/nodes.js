@@ -72,6 +72,65 @@ export const TREATMENTS = {
   },
 };
 
+/**
+ * Peer state treatments (feature 101, US3 — visual-contract.md §3).
+ *
+ * ## What this replaces, and why
+ *
+ * Peers used to be "structural": one fixed octahedron, no motion, and a colour
+ * from `colorForStructural()` that branched on only two things — `severed`, and
+ * `channel_state ∈ {unreachable, reconnecting}`. Everything else fell through to
+ * a single healthy blue. It **never read `stale`**, and `channel_state: "unknown"`
+ * is not in that set, so against the live feed FIVE of seven peers landed in the
+ * catch-all: Byrn (stale 12d), Nicholas (stale 19d), Hermes (stale 14d), AB and
+ * Carapace (never seen) all rendered identically to a live Nate. Confirmed
+ * visually in the pre-change screenshot, not just in source.
+ *
+ * ## The encoding rule (inherited from TREATMENTS above)
+ *
+ * Each state differs in FORM, COLOUR TEMPERATURE and (where present) MOTION at
+ * once — never opacity alone, never colour alone. `scaleMul` and `affix` are
+ * additional redundant channels. Motion is deliberately redundant so suppressing
+ * it for prefers-reduced-motion cannot collapse the encoding.
+ *
+ * `lum` is the ITU-R BT.709 luminance of `color`, kept as a comment so the
+ * ≥18-delta requirement is auditable by eye as well as by peer-treatments.test.js.
+ */
+export const PEER_TREATMENTS = {
+  // Channel up right now. Brightest, alive, gentle breathing.
+  LIVE: {
+    shape: 'peer', color: 0x7ff0d0, emissive: 0x1fbf9b, emissiveIntensity: 1.6,
+    scaleMul: 1.08, pulse: 0.09, affix: '', label: 'Channel up now',
+  }, // lum ≈ 205
+  // Federated, idle, inventory fresh. Normal steady state — nothing is wrong.
+  IDLE: {
+    shape: 'peer', color: 0x8ad6ff, emissive: 0x2f6da8, emissiveIntensity: 1.1,
+    scaleMul: 1.0, pulse: 0.0, affix: '', label: 'Federated, idle',
+  }, // lum ≈ 201 — nearly equal to LIVE, so MOTION + form carry this pair (R2)
+  // Federated, but what we know is old.
+  STALE: {
+    shape: 'peerWorn', color: 0xb8a878, emissive: 0x5a4f2e, emissiveIntensity: 0.7,
+    scaleMul: 0.92, pulse: 0.0, affix: 'stale', label: 'Data is old',
+  }, // lum ≈ 168
+  // Never sent an inventory. NOT a failure (FR-016/017) — deliberately cool and
+  // hollow rather than warm/alarming, so "never heard from AB" cannot read as
+  // "AB is broken".
+  UNKNOWN: {
+    shape: 'peerHollow', color: 0x6f7f96, emissive: 0x2a3440, emissiveIntensity: 0.45,
+    scaleMul: 0.88, pulse: 0.0, affix: 'never seen', label: 'Never sent an inventory',
+  }, // lum ≈ 126
+  // Was reachable, is not now. Actionable — urgent pulse, broken outline.
+  UNREACHABLE: {
+    shape: 'ring', color: 0xff9d6e, emissive: 0xc2481a, emissiveIntensity: 2.0,
+    scaleMul: 1.12, pulse: 0.2, affix: 'unreachable', label: 'Was reachable, now not',
+  }, // lum ≈ 175 — separated from STALE by form (ring vs worn) + motion + affix
+  // Deliberately cut. Darkest, inert.
+  SEVERED: {
+    shape: 'peerCut', color: 0x8a4a52, emissive: 0x3a1c20, emissiveIntensity: 0.5,
+    scaleMul: 0.85, pulse: 0.0, affix: 'severed', label: 'Deliberately severed',
+  }, // lum ≈ 92
+};
+
 export const KIND_SCALE = { border: 2.2, peer: 1.35, member: 1.0, edge: 1.15 };
 
 /**
@@ -170,6 +229,16 @@ function buildGeometries() {
     border: new THREE.IcosahedronGeometry(2.4, 1),
     peer: new THREE.OctahedronGeometry(1.8, 0),
     edge: new THREE.BoxGeometry(1.5, 2.6, 0.5),
+    // Feature 101 (US3, visual-contract R4): peer STATE modulates the octahedron
+    // silhouette rather than replacing it with a member shape, so band membership
+    // still reads at a glance while state reads on top of it.
+    //   peerWorn   — lower-detail octahedron: same family, visibly degraded
+    //   peerHollow — smaller octahedron rendered as a wireframe (see material
+    //                below): present but empty, for "we have never heard from it"
+    //   peerCut    — a half-height octahedron: the silhouette, truncated
+    peerWorn: new THREE.OctahedronGeometry(1.7, 0),
+    peerHollow: new THREE.OctahedronGeometry(1.75, 0),
+    peerCut: new THREE.OctahedronGeometry(1.8, 0).scale(1, 0.45, 1),
   };
 }
 
@@ -204,9 +273,16 @@ export function buildNodes(layoutNodes, makeLabel) {
   for (const node of layoutNodes || []) {
     const treatment = TREATMENTS[node.health] || TREATMENTS.COLD;
 
+    // Feature 101 (US3): peers now carry a state treatment of their own instead
+    // of being lumped in with the Border as "structural". Only the Border remains
+    // structural — it has no state to convey, it IS the centre.
+    const peerT = node.kind === 'peer'
+      ? (PEER_TREATMENTS[node.peerState] || PEER_TREATMENTS.IDLE)
+      : null;
+
     let geometry;
     if (node.kind === 'border') geometry = geometries.border;
-    else if (node.kind === 'peer') geometry = geometries.peer;
+    else if (peerT) geometry = geometries[peerT.shape] || geometries.peer;
     else if (node.kind === 'edge') geometry = geometries.edge;
     else geometry = geometries[treatment.shape] || geometries.sphere;
 
@@ -219,17 +295,22 @@ export function buildNodes(layoutNodes, makeLabel) {
       emissiveIntensity: baseEmissiveIntensity,
       roughness: look.roughness,
       metalness: look.metalness,
+      // UNKNOWN renders hollow: present, but visibly containing nothing. A third
+      // form channel that survives greyscale and reduced motion alike.
+      wireframe: peerT?.shape === 'peerHollow',
     });
     materials.push(material);
 
     const mesh = new THREE.Mesh(geometry, material);
-    const scale = (KIND_SCALE[node.kind] || 1) * (isStructural ? 1 : treatment.scale);
+    const scale = (KIND_SCALE[node.kind] || 1)
+      * (isStructural ? 1 : (peerT ? peerT.scaleMul : treatment.scale));
     mesh.scale.setScalar(scale);
     mesh.position.set(node.position.x, node.position.y, node.position.z);
     mesh.userData = { nodeId: node.id, kind: node.kind, payload: node.payload, node };
 
     // Labels stay in world space so health pulse and interaction emphasis never
-    // move the text an operator is reading.
+    // move the text an operator is reading. Anchoring in world space decouples
+    // the label from the pulse animation (FR-011 stability requirement).
     const label = makeLabel(nodeLabelText(node));
     label.element.classList.add('org-node-label', `org-node-${node.kind}`);
     if (node.health) label.element.classList.add(`org-node-${node.health.toLowerCase()}`);
@@ -242,7 +323,8 @@ export function buildNodes(layoutNodes, makeLabel) {
     group.add(mesh);
     group.add(label);
     entries.push({
-      node, mesh, material, label, baseScale: scale, pulse: treatment.pulse,
+      node, mesh, material, label, baseScale: scale,
+      pulse: peerT ? peerT.pulse : treatment.pulse,
       baseEmissiveIntensity, hovered: false, selected: false, isMatch: true,
     });
   }
@@ -317,7 +399,11 @@ export function animateNodes(entries, elapsed, reducedMotion) {
   for (const entry of entries) {
     let motionFactor = 1;
     if (!reducedMotion && entry.pulse) {
-      const rate = entry.node.health === 'FAULT' ? 4.2 : 1.6;
+      // FAULT beats faster than HOT: urgency reads differently from liveness.
+      // Feature 101: UNREACHABLE is the peer-side equivalent of FAULT and gets the
+      // same urgent rate, so 'needs attention' reads identically in both bands.
+      const urgent = entry.node.health === 'FAULT' || entry.node.peerState === 'UNREACHABLE';
+      const rate = urgent ? 4.2 : 1.6;
       motionFactor += Math.sin(elapsed * rate) * entry.pulse;
     }
     applyScale(entry, motionFactor);

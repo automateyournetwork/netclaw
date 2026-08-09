@@ -37,6 +37,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger("bgp-daemon-v2")
 
+# Feature 100 (FR-030): drop the one stdlib asyncio advisory that fires on every
+# encrypted channel close. Installed immediately after basicConfig so it is in place
+# before the first federation channel closes. Narrow by construction — see
+# bgp/federation/logfilter.py for why filtering, not silencing, is the remedy.
+from bgp.federation.logfilter import install as _install_eof_filter
+_install_eof_filter()
+
 ROUTER_ID   = os.environ.get("NETCLAW_ROUTER_ID", "4.4.4.4")
 LOCAL_AS    = int(os.environ.get("NETCLAW_LOCAL_AS", "65001"))
 BGP_PEERS   = json.loads(os.environ.get("NETCLAW_BGP_PEERS", "[]"))
@@ -454,12 +461,46 @@ async def handle_n2n(method, path, body):
                     "channel_state": h["channel_state"], "last_seen": h["last_seen"],
                     "endpoint": f"{p.get('endpoint_host')}:{p.get('endpoint_port')}",
                     "endpoint_updated_at": p.get("endpoint_updated_at"),
+                    # Feature 100 (FR-014): dampened peers stay observable. Additive —
+                    # no existing field renamed or retyped (contracts §6).
+                    "attempts": h["attempts"],
+                    "dampened": h["dampened"],
+                    "next_retry_at": h["next_retry_at"],
+                    "last_cause": h["last_cause"],
                     "inventory_stale": (meta or {}).get("stale") if meta else None,
                     "in_flight_tasks": [{"task_id": t["task_id"], "state": t["state"],
                                          "progress": t["progress"], "target": t["target_name"]}
                                         for t in in_flight],
                 })
             return 200, {"identity": fed.local_identity, "peers": peers}
+
+        if path == "/n2n/peers/forget-endpoint" and method == "POST":
+            # Feature 100 (US4/FR-021/026): retire a stale dial endpoint without shell
+            # access or a database write. NOT a DELETE on a peer sub-resource — the peer
+            # is not deleted, only one attribute cleared, and retiring peer records is
+            # explicitly out of scope.
+            ident = body.get("peer")
+            if not ident:
+                return 400, {"error": "missing required field 'peer'"}
+            try:
+                result = mgr.forget_peer_endpoint(ident)
+            except KeyError:
+                return 404, {"error": f"unknown peer {ident}"}
+            # FR-025: attributable after the fact, through the existing Auditor GAIT
+            # path. Constitution IV makes this mandatory — no operation executes
+            # silently — so it reuses existing machinery rather than a new trail.
+            try:
+                fed.audit.record(direction="local", peer_identity=ident,
+                                 target_type="endpoint", target_name="dial-endpoint",
+                                 decision="forgotten",
+                                 outcome="success" if result["forgotten"] else "noop",
+                                 event="endpoint-forgotten",
+                                 actor=body.get("actor") or "operator")
+            except Exception as e:
+                # The clear already committed and is authoritative; a GAIT/audit hiccup
+                # must not make the caller think it failed.
+                logger.warning("forget-endpoint audit failed for %s: %s", ident, e)
+            return 200, result
 
         if path == "/n2n/connect" and method == "POST":
             if not all(body.get(k) for k in ("peer", "host", "port")):

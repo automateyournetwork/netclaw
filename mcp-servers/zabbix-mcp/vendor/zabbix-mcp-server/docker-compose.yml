@@ -1,0 +1,11 @@
+services:
+  zabbix-mcp:
+    build: .
+    container_name: zabbix-mcp-server
+    environment:
+      - ZABBIX_URL=${ZABBIX_URL}
+      - ZABBIX_TOKEN=${ZABBIX_TOKEN}
+      - ZABBIX_MCP_HOST=0.0.0.0
+    ports:
+      - "8000:8000"
+    restart: unless-stopped

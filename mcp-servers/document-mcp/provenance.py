@@ -1,0 +1,158 @@
+"""Provenance that outlives the session. Spec 082, FR-006..FR-010.
+
+A number in a spreadsheet cell with no provenance is WORSE than no spreadsheet: it
+looks authoritative and cannot be checked. So every element carries its source, every
+file carries a Sources section, and every document states when it was generated.
+
+Per FR-008a none of this may live in a hidden mechanism. Cell comments, tooltips and
+document metadata properties are collapsed by default, stripped on copy-paste, and
+absent in print — which are exactly the paths a document takes on its way to the person
+who was not in the room.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from datetime import datetime, timezone
+
+from outcomes import TaggedValue
+
+VERSION = "1.0.0"
+GENERATED_BY = f"NetClaw document-mcp {VERSION}"
+
+
+def utc_now() -> str:
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+@dataclass
+class SourceRecord:
+    src: str
+    device: str = ""
+    as_of: str = ""
+    element_count: int = 0
+    gap_count: int = 0
+
+    @property
+    def key(self) -> tuple[str, str]:
+        return (self.src, self.device)
+
+    @property
+    def status(self) -> str:
+        """`partial` when a source produced both values and gaps — a source that half
+        worked must not be reported as clean."""
+        if self.element_count == 0:
+            return "failed"
+        if self.gap_count:
+            return "partial"
+        return "ok"
+
+    def label(self) -> str:
+        return f"{self.src} · {self.device}" if self.device else self.src
+
+
+class SourceLedger:
+    """Accumulates attribution from every TaggedValue the writers touch.
+
+    The writers do not decide whether to record — they hand every value here on the way
+    past, and the Sources section is built from what accumulated. That is what makes
+    FR-009's per-element attribution structural rather than a habit.
+    """
+
+    def __init__(self) -> None:
+        self._records: dict[tuple[str, str], SourceRecord] = {}
+        self._gaps = {"unavailable": 0, "failed": 0}
+
+    def record(self, tv: TaggedValue) -> TaggedValue:
+        """Register a value and return it unchanged, so call sites read as
+        `ledger.record(tv)` inline."""
+        if tv.kind == "value":
+            key = (tv.src, tv.device)
+            rec = self._records.get(key)
+            if rec is None:
+                rec = SourceRecord(src=tv.src, device=tv.device)
+                self._records[key] = rec
+            rec.element_count += 1
+            # Keep the latest as-of seen for this source.
+            if tv.as_of and tv.as_of > rec.as_of:
+                rec.as_of = tv.as_of
+        else:
+            self._gaps[tv.kind] += 1
+            # A gap still belongs to whatever was being asked of a source, but the
+            # caller did not name one — record it against the document as a whole so
+            # the Sources section reports the shortfall rather than hiding it.
+            key = ("(no source reached)", "")
+            rec = self._records.get(key)
+            if rec is None:
+                rec = SourceRecord(src="(no source reached)")
+                self._records[key] = rec
+            rec.gap_count += 1
+        return tv
+
+    def attribute_gap_to(self, src: str, device: str = "") -> None:
+        """Optional: attribute a gap to a named source that was reached and came back
+        empty, which is a different fact from never reaching one."""
+        key = (src, device)
+        rec = self._records.setdefault(key, SourceRecord(src=src, device=device))
+        rec.gap_count += 1
+
+    @property
+    def records(self) -> list[SourceRecord]:
+        return sorted(self._records.values(), key=lambda r: (r.src, r.device))
+
+    @property
+    def gaps(self) -> dict[str, int]:
+        return dict(self._gaps)
+
+    @property
+    def has_gaps(self) -> bool:
+        return any(self._gaps.values())
+
+    @property
+    def is_empty(self) -> bool:
+        return not self._records
+
+    def as_rows(self) -> list[list[str]]:
+        """Rows for the Sources section/sheet/slide, in every format."""
+        return [
+            [
+                r.src,
+                r.device or "—",
+                r.as_of or "(not stated by source)",
+                str(r.element_count),
+                r.status,
+            ]
+            for r in self.records
+        ]
+
+    SOURCE_COLUMNS = ["Source", "Device / record", "As of", "Elements", "Status"]
+
+
+@dataclass
+class DocumentStamp:
+    """When it was generated and by what. FR-006.
+
+    Read six months later, "as of" is the difference between a record and a misleading
+    artefact. Neither field is caller-supplied — both are set here (FR-005b).
+    """
+
+    tool: str
+    generated_at: str = field(default_factory=utc_now)
+    generated_by: str = GENERATED_BY
+    truncated: bool = False
+    bound_applied: int | None = None
+    bound_kind: str = ""
+
+    def footer_text(self) -> str:
+        return f"Generated by {self.generated_by} at {self.generated_at} · tool: {self.tool}"
+
+    def truncation_text(self) -> str:
+        """Stated INSIDE the document, not only in the tool response the eventual
+        reader never sees (FR-027)."""
+        if not self.truncated:
+            return ""
+        return (
+            f"TRUNCATED — this document shows the first {self.bound_applied:,} "
+            f"{self.bound_kind}. The source contained more. Raise the bound or narrow "
+            f"the query to see the rest."
+        )

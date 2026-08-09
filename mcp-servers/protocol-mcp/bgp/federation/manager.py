@@ -316,6 +316,52 @@ class FederationManager:
         self._conn.commit()
         return ident
 
+    def forget_peer_endpoint(self, identity: str) -> dict:
+        """Clear a peer's dial endpoint (feature 100, US4/FR-021).
+
+        Sets `endpoint_host`, `endpoint_port` and `endpoint_updated_at` to NULL
+        together, leaving federated state, trust material, chat enablement and audit
+        history untouched (FR-022). Returns the prior endpoint so the operation is
+        reversible by hand and reportable.
+
+        **Why this exists as its own method rather than through `upsert_peer`**:
+        `upsert_peer` applies a column only `if val is not None`, so `None` means "leave
+        unchanged" and clearing an endpoint through it is impossible. `endpoint_port` is
+        an INTEGER column with no sentinel. Resolving the 2026-08-06 incident therefore
+        required raw SQL against the running database — exactly what FR-026 forbids.
+        Adding a sentinel to `upsert_peer` was rejected because it would make every
+        existing caller's semantics ambiguous and risk accidental clears (research R7).
+
+        **Not a channel teardown** (FR-023, research R7): the endpoint is consulted only
+        for *dialling*, so a currently-live channel is deliberately left running.
+        Tearing it down would turn a cleanup action into an outage.
+
+        Idempotent: forgetting an already-absent endpoint succeeds with
+        `forgotten: False`. Raises KeyError for an unknown identity.
+        """
+        row = self.get_peer(identity)
+        if row is None:
+            raise KeyError(identity)
+
+        had_endpoint = bool(row.get("endpoint_host")) or row.get("endpoint_port") is not None
+        previous = {
+            "host": row.get("endpoint_host"),
+            "port": row.get("endpoint_port"),
+            "updated_at": row.get("endpoint_updated_at"),
+        } if had_endpoint else None
+
+        if had_endpoint:
+            # All three cleared in ONE statement: they are written as a unit by
+            # upsert_peer, so clearing them together keeps the invariant that a peer
+            # never has a freshness marker without an endpoint (data-model §2).
+            self._conn.execute(
+                "UPDATE federation_peer SET endpoint_host=NULL, endpoint_port=NULL, "
+                "endpoint_updated_at=NULL, updated_at=? WHERE identity=?",
+                (_now(), identity))
+            self._conn.commit()
+
+        return {"identity": identity, "forgotten": had_endpoint, "previous": previous}
+
     def get_peer(self, ident: str) -> Optional[dict]:
         row = self._conn.execute("SELECT * FROM federation_peer WHERE identity=?", (ident,)).fetchone()
         return dict(row) if row else None

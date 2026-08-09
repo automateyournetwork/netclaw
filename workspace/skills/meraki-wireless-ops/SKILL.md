@@ -1,87 +1,115 @@
 ---
 name: meraki-wireless-ops
-description: "Cisco Meraki Wireless — SSID management, RF profiles, channel utilization, signal quality, client connectivity events. Use when managing Meraki SSIDs, troubleshooting WiFi connectivity, analyzing RF channel utilization, checking wireless signal quality, or investigating client roaming issues"
-version: 1.0.0
+description: "Cisco Meraki wireless (read-only) — SSID configuration, RF profiles, Air Marshal, channel utilization, signal quality, client connectivity events via Cisco's official Meraki MCP. Use when inspecting Meraki SSIDs, auditing RF configuration, or investigating WiFi connectivity"
+version: 2.0.0
 license: Apache-2.0
-tags: [cisco, meraki, wireless, ssid, rf, wifi, access-point, channel]
+tags: [cisco, meraki, wireless, ssid, rf, wifi, access-point, read-only]
 ---
 
-# Meraki Wireless Operations
+# Meraki Wireless Operations (read-only)
 
 ## MCP Server
 
-- **Repository**: [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community)
-- **Transport**: stdio (Python via FastMCP) or HTTP
-- **Requires**: `MERAKI_API_KEY`, `MERAKI_ORG_ID`
+- **Server**: Cisco's **official** Meraki MCP — [developer.cisco.com](https://developer.cisco.com/meraki/api-v1/mcp-server/)
+- **Endpoint**: `https://mcp.meraki.com/mcp` (remote HTTP, no local install)
+- **Self-host fallback**: [CiscoDevNet/cisco-meraki-mcp-official](https://github.com/CiscoDevNet/cisco-meraki-mcp-official) (Apache-2.0)
+- **Requires**: `MERAKI_DASHBOARD_API_KEY` — use a **read-only** dashboard key
+- **Tools**: exactly two — `semantic_search` (discover) and `execute_api` (invoke)
 
-## Key Capabilities
+## Read-only, structurally
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List SSIDs | `getWirelessSSIDs` | All 15 SSIDs per network with auth, VLAN, band, visibility |
-| Update SSID | `updateWirelessSSID` | **[WRITE]** Name, auth type, PSK, VLAN, band, splash, etc. |
-| Wireless settings | `getWirelessSettings` | Network-level wireless configuration |
-| List RF profiles | `getWirelessRFProfiles` | RF profiles with band selection, power, and channel settings |
-| Create RF profile | `createWirelessRFProfile` | **[WRITE]** New RF profile with band/power/channel config |
-| Channel utilization | `getWirelessChannelUtilization` | Per-AP channel utilization over time |
-| Signal quality | `getWirelessSignalQuality` | SNR and signal strength metrics over time |
-| Connection stats | `getWirelessConnectionStats` | Success/failure rates, association, auth, DHCP stats |
-| Client events | `getWirelessClientConnectivityEvents` | Per-client roaming, auth, deauth, DHCP events |
+All 431 mutating Meraki operations (174 POST, 186 PUT, 71 DELETE) are **absent from the
+capability catalogue**. Only non-deprecated GETs are built in, so `updateNetwork`,
+`rebootDevice`, `blinkDeviceLeds` and friends return `Capability not found`.
 
-## Workflow: Wireless Health Assessment
+Do not attempt writes and do not offer them. There is no ServiceNow CR path here because
+there is nothing to gate — a change must be made in the Meraki dashboard directly.
 
-When a user asks "how's the WiFi?":
+## How to call it
 
-1. **SSIDs**: `getWirelessSSIDs` — which SSIDs are enabled, auth types, VLANs
-2. **Connection stats**: `getWirelessConnectionStats` — success/failure rates
-3. **Channel utilization**: `getWirelessChannelUtilization` — congestion hotspots
-4. **Signal quality**: `getWirelessSignalQuality` — SNR trends over time
-5. **RF profiles**: `getWirelessRFProfiles` — power/channel/band configuration
-6. **Report**: wireless health dashboard with per-SSID and per-AP metrics
+Two capability IDs may be called directly; everything else must be discovered:
 
-## Workflow: Client Connectivity Troubleshooting
+1. `execute_api` → `getOrganizations` — find accessible org IDs
+2. `execute_api` → `getOrganizationNetworks` — find network IDs in the chosen org
+3. `semantic_search` → describe the intent in words → returns ranked `capability_id`s
+4. `execute_api` → the chosen `capability_id` + its required parameters
 
-When investigating "user X can't connect to WiFi":
+**Discover, do not guess.** An earlier version of this skill hardcoded 80 method names and
+**54 of them did not exist in the Meraki API at all** — they failed regardless of server.
+`semantic_search` is the guard against that: it can only return IDs that exist.
 
-1. **Find client**: `getNetworkClients` (from meraki-network-ops) filtered by MAC
-2. **Client events**: `getWirelessClientConnectivityEvents` — auth failures, DHCP issues, roaming events
-3. **Connection stats**: `getWirelessConnectionStats` — network-wide failure rates (is it client-specific or systemic?)
-4. **AP signal**: `getWirelessSignalQuality` for the AP serving this client
-5. **Channel util**: `getWirelessChannelUtilization` for the same AP — congestion?
-6. **SSID config**: `getWirelessSSIDs` — check auth settings, VLAN, band restrictions
-7. **Report**: root cause analysis with fix recommendation
+## Reading results honestly
 
-## Workflow: RF Optimization
+- **One page only.** `execute_api` returns a single page. Request a bounded page size when
+  supported, and never present a page as the complete dataset.
+- **Empty is not absent.** `n=0` means *this network reported none*, never *none exist*.
+  Live proof from a real sandbox org: `getOrganizationDevices` returns **0 devices** while
+  the same org has a fully configured network with **15 SSIDs**.
+- **Three distinct errors, three different fixes:**
 
-When optimizing wireless performance:
+  | Error | Meaning | Fix |
+  |---|---|---|
+  | `Capability not found` | ID is mutating, deprecated, or invented | `semantic_search` for a real one |
+  | `Resource not found` | valid ID, wrong org/network/serial | re-derive the ID from step 1–2 |
+  | `Invalid parameters` | valid ID, missing a required parameter | read the capability's parameters |
 
-1. **Current RF**: `getWirelessRFProfiles` — existing band/power/channel settings
-2. **Channel util**: `getWirelessChannelUtilization` across all APs — identify congestion
-3. **Signal quality**: `getWirelessSignalQuality` — identify low-SNR areas
-4. **Connection stats**: `getWirelessConnectionStats` — failure hotspots
-5. **Recommendation**: adjust RF profiles — channel width, power levels, band steering
-6. **Apply**: `createWirelessRFProfile` or update existing — **requires ServiceNow CR**
+  Never report any of the three as "no data" — none of them mean that.
+
+## Verified capabilities
+
+Live-verified against a real Meraki org (`branch_office`, wireless + switch + appliance + camera):
+
+| Capability ID | Verified result |
+|---|---|
+| `getNetworkWirelessSsids` | **15 SSIDs** — auth, VLAN, band, visibility per slot |
+| `getNetworkWirelessSettings` | 9 network-level wireless settings |
+| `getNetworkWirelessRfProfiles` | 2 RF profiles — band selection, power, channel width |
+| `getNetworkWirelessAirMarshal` | **0 — and 0 here means "none seen in the window", not "no rogues exist"** |
+
+Meraki always exposes **15 SSID slots** whether configured or not, so a count of 15 is the
+shape of the API, not evidence of 15 live networks. Check `enabled` per SSID.
+
+Everything else — connection stats, latency stats, channel utilization, client
+connectivity events, per-device radio settings — via `semantic_search`. There are **98**
+real wireless capabilities; search rather than guess.
+
+## Workflow: Wireless configuration audit
+
+1. `getOrganizations` → `getOrganizationNetworks` → pick the wireless network
+2. `getNetworkWirelessSsids` — which slots are `enabled`, auth type, VLAN, band
+3. `getNetworkWirelessRfProfiles` — power, channel width, band steering
+4. `getNetworkWirelessSettings` — network-wide wireless posture
+5. `getNetworkWirelessAirMarshal` — rogue/interference observations, if any
+6. Report the configuration as read. Recommend changes; do not attempt them.
+
+## Workflow: WiFi complaint triage
+
+1. `semantic_search` "wireless client connectivity events for a client" → capability ID
+2. `semantic_search` "wireless connection statistics success failure rates" → capability ID
+3. Compare the client-specific view against the network-wide one — **is it this client or
+   everyone?** Reporting a systemic failure as a client problem sends the operator to the
+   wrong place.
+4. `semantic_search` "channel utilization history" for the serving AP — congestion
+5. `getNetworkWirelessSsids` — auth/VLAN/band restrictions that would exclude the client
+6. Report findings, explicitly separating what was measured from what is inferred.
+
+## Important Rules
+
+- **No writes exist.** SSID, RF profile and radio changes must be made in the dashboard.
+- **Channel utilization** over 50% is a warning, over 70% is critical — but say which AP and
+  which window the number came from, or it is not actionable.
+- **15 SSIDs is the API's shape**, not a finding.
+- **Record in GAIT** — log every wireless assessment.
 
 ## Integration with Other Skills
 
 | Skill | How They Work Together |
 |-------|----------------------|
-| `meraki-network-ops` | Network/device context for wireless operations |
-| `meraki-monitoring` | Live diagnostics (ping, cable test) for APs |
-| `catc-client-ops` | Compare Meraki wireless vs Catalyst Center wireless client data |
-| `servicenow-change-workflow` | Gate SSID and RF profile changes behind CRs |
-| `gait-session-tracking` | Record all wireless investigations and changes |
-| `slack-network-alerts` | Alert on wireless health degradation |
-
-## Important Rules
-
-- **SSID changes affect all users** — changing auth, VLAN, or band settings on a live SSID disconnects clients
-- **RF profiles are network-wide** — changes propagate to all APs assigned to that profile
-- **ServiceNow CR required** for any SSID modification, RF profile creation, or band/power changes
-- **Channel utilization over 50%** is a warning; over 70% is critical and needs RF optimization
-- **Record in GAIT** — log all wireless assessments and configuration changes
+| `meraki-network-ops` | Network and device context for wireless work |
+| `meraki-monitoring` | Live diagnostics and loss/latency history for APs |
+| `catc-wireless-ops` | Compare Meraki wireless against Catalyst Center wireless |
+| `gait-session-tracking` | Record all wireless investigations |
 
 ## Environment Variables
 
-- `MERAKI_API_KEY` — Meraki Dashboard API key
-- `MERAKI_ORG_ID` — Meraki organization ID
+- `MERAKI_DASHBOARD_API_KEY` — Meraki Dashboard API key (**read-only** recommended)

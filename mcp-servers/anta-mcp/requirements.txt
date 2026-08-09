@@ -1,0 +1,10 @@
+# anta-mcp (spec 098 / roadmap R25) -- runs from its OWN virtualenv.
+#
+# Why a venv: `anta` pulls cryptography 50.0.0, while the system interpreter holds 46.0.5 with four
+# unbounded dependents (Authlib, pygnmi, service-identity, sshsig) including NetClaw's federation
+# TLS stack. Measured by dry-run BEFORE installing -- spec 076's cryptography incident.
+#
+# Bounds are mandatory where a submodule is imported (spec 077): `from mcp.server.fastmcp import
+# FastMCP` means mcp MUST be bounded, because mcp 2.0.0 removed that submodule.
+anta>=1.9.0,<2
+mcp>=1.2.0,<2

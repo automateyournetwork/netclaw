@@ -1,0 +1,74 @@
+[
+ {
+  "name": "api_retrieveApplicableAdd_onImagesForTheGivenSoftwareImage",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images/{id}/addonImages",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves the list of applicable add-on images if available for the given software image. `id` can be obtained from the response of API [ /dna/intent/api/v1/images?hasAddonImages=true ]."
+ },
+ {
+  "name": "api_retrieveImageDistributionServers",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images/distributionServerSettings",
+  "params": {},
+  "description": "Retrieve the list of remote image distribution servers. There can be up to two remote servers.Product always acts as local distribution server, and it is not part of this API response."
+ },
+ {
+  "name": "api_retrieveSpecificImageDistributionServer",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images/distributionServerSettings/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieve image distribution server for the given server identifier"
+ },
+ {
+  "name": "api_returnsCountOfAdd_onImages",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images/{id}/addonImages/count",
+  "params": {
+   "id": "path"
+  },
+  "description": "Count of add-on images available for the given software image identifier, `id` can be obtained from the response of API [ /dna/intent/api/v1/images?hasAddonImages=true ]."
+ },
+ {
+  "name": "api_returnsCountOfSoftwareImages",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images/count",
+  "params": {
+   "golden": "query",
+   "hasAddonImages": "query",
+   "imported": "query",
+   "integrity": "query",
+   "isAddonImages": "query",
+   "name": "query",
+   "productNameOrdinal": "query",
+   "siteId": "query",
+   "supervisorProductNameOrdinal": "query",
+   "version": "query"
+  },
+  "description": "Returns the software-image count for a site.\n\nRequirements:\n- Resolve `siteId` via `api_getSites` unless the user already gave a valid UUID. Use `name=\"Global\"` for the global site.\n- State what the count covers: imported images, Cisco.com latest/recommended images, or both, depending on the filters used.\n- This tool has no recommended filter and does not return recommendation status. Do not use `golden=true` to answer recommended-image count requests.\n- Preserve the user's term: `standard`, `golden`, or `recommended`. If the user asks for `standard`, never say `golden` or add aliases like `standard (golden)`.\n- Treat `golden` and the `golden` query parameter as internal details unless the user explicitly asks about that relationship."
+ },
+ {
+  "name": "api_returnsListOfSoftwareImages",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/images",
+  "params": {
+   "golden": "query",
+   "hasAddonImages": "query",
+   "imported": "query",
+   "integrity": "query",
+   "isAddonImages": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "productNameOrdinal": "query",
+   "siteId": "query",
+   "supervisorProductNameOrdinal": "query",
+   "version": "query"
+  },
+  "description": "Retrieves software images for a site.\n\nRequirements:\n- Resolve `siteId` via `api_getSites` unless the user already gave a valid UUID. Use `name=\"Global\"` for the global site.\n- State what the response includes: imported images, Cisco.com latest/recommended images, or both, depending on the filters used.\n- `recommended images` means records where `recommended=CISCO`. For recommended-image requests, return only those records and post-filter the tool output before answering.\n- Do not infer recommended status from `golden` or `isGoldenTagged`.\n- Preserve the user's term: `standard`, `golden`, or `recommended`. If the user asks for `standard`, never say `golden` or add aliases like `standard (golden)`.\n- Treat `golden`, `isGoldenTagged`, and the `golden` query parameter as internal details unless the user explicitly asks about that relationship."
+ }
+]

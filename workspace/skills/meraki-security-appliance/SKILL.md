@@ -1,101 +1,118 @@
 ---
 name: meraki-security-appliance
-description: "Cisco Meraki Security Appliance (MX) — firewall rules, site-to-site VPN, content filtering, traffic shaping, security events. Use when auditing Meraki MX firewall rules, troubleshooting site-to-site VPN tunnels, managing content filtering, or investigating Meraki security events and IDS alerts"
-version: 1.0.0
+description: "Cisco Meraki MX security appliance (read-only) — L3/L7 firewall rules, content filtering, IDS/IPS and AMP settings, site-to-site VPN, traffic shaping via Cisco's official Meraki MCP. Use when auditing Meraki firewall rules, reviewing content filtering, or inspecting MX VPN configuration"
+version: 2.0.0
 license: Apache-2.0
-tags: [cisco, meraki, mx, firewall, vpn, security, content-filtering, traffic-shaping]
+tags: [cisco, meraki, mx, firewall, security, vpn, content-filtering, read-only]
 ---
 
-# Meraki Security Appliance (MX) Operations
+# Meraki Security Appliance Operations (read-only)
 
 ## MCP Server
 
-- **Repository**: [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community)
-- **Transport**: stdio (Python via FastMCP) or HTTP
-- **Requires**: `MERAKI_API_KEY`, `MERAKI_ORG_ID`
+- **Server**: Cisco's **official** Meraki MCP — [developer.cisco.com](https://developer.cisco.com/meraki/api-v1/mcp-server/)
+- **Endpoint**: `https://mcp.meraki.com/mcp` (remote HTTP, no local install)
+- **Self-host fallback**: [CiscoDevNet/cisco-meraki-mcp-official](https://github.com/CiscoDevNet/cisco-meraki-mcp-official) (Apache-2.0)
+- **Requires**: `MERAKI_DASHBOARD_API_KEY` — use a **read-only** dashboard key
+- **Tools**: exactly two — `semantic_search` (discover) and `execute_api` (invoke)
 
-## Key Capabilities
+## Read-only, structurally
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| Security center | `getNetworkSecurityCenter` | Security overview: threat score, events, top threats |
-| VPN status | `getNetworkVpnStatus` | VPN peer connectivity status |
-| Firewall rules | `getNetworkSecurityFirewallRules` | L3 outbound firewall rules |
-| Update firewall | `updateNetworkSecurityFirewallRules` | **[WRITE]** Modify L3 firewall rules |
-| Site-to-site VPN | `getNetworkSecurityVpnSiteToSite` | VPN mode (hub/spoke/none), hubs, subnets |
-| Update VPN | `updateNetworkSecurityVpnSiteToSite` | **[WRITE]** Modify VPN configuration |
-| Content filtering | `getNetworkSecurityContentFiltering` | URL categories, blocked URLs, allowed URLs |
-| Update filtering | `updateNetworkSecurityContentFiltering` | **[WRITE]** Modify blocked/allowed URL lists and categories |
-| Security events | `getNetworkSecuritySecurityEvents` | IDS/IPS events, malware, C2 callbacks |
-| Traffic shaping | `getNetworkSecurityTrafficShaping` | Global bandwidth limits, per-rule shaping |
-| Update shaping | `updateNetworkSecurityTrafficShaping` | **[WRITE]** Modify bandwidth limits and shaping rules |
+All 431 mutating Meraki operations (174 POST, 186 PUT, 71 DELETE) are **absent from the
+capability catalogue**. Only non-deprecated GETs are built in, so `updateNetwork`,
+`rebootDevice`, `blinkDeviceLeds` and friends return `Capability not found`.
 
-## Workflow: Firewall Rule Audit
+Do not attempt writes and do not offer them. There is no ServiceNow CR path here because
+there is nothing to gate — a change must be made in the Meraki dashboard directly.
 
-When a user asks "show me the firewall rules on the branch MX":
+## How to call it
 
-1. **Find network**: `getNetworks` (meraki-network-ops) for the branch network
-2. **Firewall rules**: `getNetworkSecurityFirewallRules` — all L3 outbound rules
-3. **Analyze**: check for overly permissive rules (any/any/any allow), shadowed rules, unused rules
-4. **Content filtering**: `getNetworkSecurityContentFiltering` — URL category blocks
-5. **Security events**: `getNetworkSecuritySecurityEvents` — recent IDS/IPS hits
-6. **Report**: rule table with security assessment and recommendations
+Two capability IDs may be called directly; everything else must be discovered:
 
-## Workflow: VPN Connectivity Troubleshooting
+1. `execute_api` → `getOrganizations` — find accessible org IDs
+2. `execute_api` → `getOrganizationNetworks` — find network IDs in the chosen org
+3. `semantic_search` → describe the intent in words → returns ranked `capability_id`s
+4. `execute_api` → the chosen `capability_id` + its required parameters
 
-When investigating "VPN tunnel to HQ is down":
+**Discover, do not guess.** An earlier version of this skill hardcoded 80 method names and
+**54 of them did not exist in the Meraki API at all** — they failed regardless of server.
+`semantic_search` is the guard against that: it can only return IDs that exist.
 
-1. **VPN status**: `getNetworkVpnStatus` — tunnel state for all peers
-2. **VPN config**: `getNetworkSecurityVpnSiteToSite` — mode, hubs, subnets
-3. **Device status**: `getDeviceStatus` (meraki-network-ops) — is the MX online?
-4. **Uplinks**: `getDeviceUplink` — WAN link status (is ISP up?)
-5. **Security events**: `getNetworkSecuritySecurityEvents` — VPN-related errors
-6. **Report**: root cause analysis (ISP outage, config mismatch, peer down)
+## Reading results honestly
 
-## Workflow: Content Filtering Review
+- **One page only.** `execute_api` returns a single page. Request a bounded page size when
+  supported, and never present a page as the complete dataset.
+- **Empty is not absent.** `n=0` means *this network reported none*, never *none exist*.
+  Live proof from a real sandbox org: `getOrganizationDevices` returns **0 devices** while
+  the same org has a fully configured network with **15 SSIDs**.
+- **Three distinct errors, three different fixes:**
 
-When auditing web content filtering:
+  | Error | Meaning | Fix |
+  |---|---|---|
+  | `Capability not found` | ID is mutating, deprecated, or invented | `semantic_search` for a real one |
+  | `Resource not found` | valid ID, wrong org/network/serial | re-derive the ID from step 1–2 |
+  | `Invalid parameters` | valid ID, missing a required parameter | read the capability's parameters |
 
-1. **Current config**: `getNetworkSecurityContentFiltering` — blocked categories, blocked/allowed URLs
-2. **Security events**: `getNetworkSecuritySecurityEvents` — users hitting blocked content
-3. **Compare across sites**: check filtering consistency across networks
-4. **Recommendations**: tighten categories, add specific URL blocks/allows
-5. **Apply**: `updateNetworkSecurityContentFiltering` — **requires ServiceNow CR**
+  Never report any of the three as "no data" — none of them mean that.
 
-## Workflow: Security Event Investigation
+## Verified capabilities
 
-When responding to a security alert:
+Live-verified against a real `branch_office` network with an appliance:
 
-1. **Security events**: `getNetworkSecuritySecurityEvents` — IDS/IPS detections, malware, C2
-2. **Client details**: `getClientDetails` (meraki-network-ops) for involved endpoints
-3. **Firewall rules**: `getNetworkSecurityFirewallRules` — is the threat being blocked?
-4. **Content filtering**: check if malicious domains are in the block list
-5. **Containment**: `updateClientPolicy` to quarantine the endpoint — **requires human approval**
-6. **ServiceNow**: create Security Incident
-7. **Report**: incident summary with timeline, IOCs, containment actions
+| Capability ID | Verified result |
+|---|---|
+| `getNetworkApplianceFirewallL3FirewallRules` | L3 rules present |
+| `getNetworkApplianceFirewallSettings` | firewall settings present |
+| `getNetworkApplianceContentFiltering` | 3 content-filtering fields |
+| `getNetworkApplianceTrafficShaping` | traffic-shaping config present |
+| `getNetworkApplianceVlans` | **`Invalid parameters`** — needs appliance VLANs enabled first |
+
+There are **74** real appliance capabilities. Also useful:
+`getNetworkApplianceFirewallL7FirewallRules`,
+`getNetworkApplianceFirewallCellularFirewallRules`,
+`getNetworkApplianceFirewallInboundFirewallRules`, `getNetworkApplianceSecurityMalware`,
+`getNetworkApplianceClientSecurityEvents`, `getNetworkApplianceVpnSiteToSiteVpn`,
+`getNetworkApplianceContentFilteringCategories`. Confirm with `semantic_search`.
+
+## Workflow: Firewall rule audit
+
+1. `getOrganizations` → `getOrganizationNetworks` → pick the appliance network
+2. `getNetworkApplianceFirewallL3FirewallRules` — the L3 rule set, in order
+3. `getNetworkApplianceFirewallL7FirewallRules` — application-layer rules
+4. `getNetworkApplianceFirewallSettings` — spoofing protection and defaults
+5. `getNetworkApplianceContentFiltering` — blocked categories and URL patterns
+6. Report the rule set **in evaluation order**. A rule list presented out of order is worse
+   than no list, because first-match wins and the reader will draw the wrong conclusion.
+
+**Rule order matters and there is a default rule you did not fetch.** Meraki applies a
+final implicit rule; say so rather than implying the fetched list is exhaustive.
+
+## Workflow: Security posture review
+
+1. `getNetworkApplianceSecurityIntrusion` — IDS/IPS mode and ruleset
+2. `getNetworkApplianceSecurityMalware` — AMP enablement
+3. `getNetworkApplianceClientSecurityEvents` — observed events (**one page only**)
+4. `getNetworkApplianceVpnSiteToSiteVpn` — VPN mode, hubs, exported subnets
+5. Report enablement state separately from observed events. **No events is not "secure"** —
+   it may mean nothing was seen, the window was short, or logging is off.
+
+## Important Rules
+
+- **No writes exist.** Firewall, content-filtering, IDS and VPN changes go through the
+  dashboard. There is no CR to raise here because there is no write path to gate.
+- **Present rules in order**, and name the implicit default.
+- **Absence of security events is not evidence of security.**
+- **Record in GAIT** — log every firewall and posture audit.
 
 ## Integration with Other Skills
 
 | Skill | How They Work Together |
 |-------|----------------------|
-| `meraki-network-ops` | Network/device context for MX operations |
-| `meraki-monitoring` | Live diagnostics on MX appliances |
-| `fmc-firewall-ops` | Cross-platform firewall audit: Meraki MX rules vs Cisco FTD rules |
-| `aws-network-ops` | Hybrid security: Meraki MX on-prem + AWS Network Firewall cloud |
-| `ise-posture-audit` | Meraki client policies + ISE posture for unified access control |
-| `servicenow-change-workflow` | Gate all firewall, VPN, and content filtering changes |
-| `gait-session-tracking` | Record all security investigations and rule changes |
-
-## Important Rules
-
-- **Firewall rule changes affect all traffic** — modifying L3 rules can break connectivity for the entire site
-- **VPN configuration changes** can disrupt inter-site connectivity — always verify tunnel state after changes
-- **Content filtering** affects user experience — coordinate with help desk before blocking new categories
-- **Security events require investigation** — IDS/IPS alerts should be triaged, not ignored
-- **ServiceNow CR required** for all firewall rule, VPN, content filtering, and traffic shaping changes
-- **Record in GAIT** — log all security appliance audits, investigations, and changes
+| `meraki-network-ops` | Network context and VLAN topology for rule interpretation |
+| `meraki-switch-ops` | Trace a VLAN from firewall rule back to switch port |
+| `fortinet-firewall-ops` | Compare Meraki MX policy against FortiGate policy |
+| `gait-session-tracking` | Record all firewall audits |
 
 ## Environment Variables
 
-- `MERAKI_API_KEY` — Meraki Dashboard API key
-- `MERAKI_ORG_ID` — Meraki organization ID
+- `MERAKI_DASHBOARD_API_KEY` — Meraki Dashboard API key (**read-only** recommended)

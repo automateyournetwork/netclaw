@@ -347,10 +347,12 @@ class Invoker:
         self.audit.record(direction="outbound", peer_identity=ident, target_type="knowledge",
                           target_name=collection_id, request_id=req_id,
                           decision="requested", outcome="pending")
-        result = await ch.call("n2n/knowledge/query",
-                               {"collection_id": collection_id, "query": query,
-                                "k": k, "request_id": req_id},
-                               timeout=self.tool_timeout + 5)
+        result = await self._outbound_call(
+            ch, "n2n/knowledge/query",
+            {"collection_id": collection_id, "query": query,
+             "k": k, "request_id": req_id},
+            ident=ident, target_type="knowledge", target_name=collection_id,
+            req_id=req_id, timeout=self.tool_timeout + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}
 
     # ---- feature 065: chroma-to-chroma replication ----------------------
@@ -466,9 +468,11 @@ class Invoker:
         self.audit.record(direction="outbound", peer_identity=ident,
                           target_type="knowledge_replica", target_name=collection_id,
                           request_id=req_id, decision="requested", outcome="pending")
-        return await ch.call("n2n/knowledge/replicate_manifest",
-                             {"collection_id": collection_id, "request_id": req_id},
-                             timeout=self.tool_timeout)
+        return await self._outbound_call(
+            ch, "n2n/knowledge/replicate_manifest",
+            {"collection_id": collection_id, "request_id": req_id},
+            ident=ident, target_type="knowledge_replica", target_name=collection_id,
+            req_id=req_id, timeout=self.tool_timeout)
 
     async def fetch_replicate_batch(self, ident: str, collection_id: str,
                                     offset: int, limit: int) -> dict:
@@ -605,14 +609,56 @@ class Invoker:
         except Exception as e:
             raise RpcError(ERR_SEVERED, str(e))
 
+    async def _outbound_call(self, ch, method, params, *, ident, target_type,
+                             target_name, req_id, timeout):
+        """Make an outbound federated call and record its TERMINAL outcome.
+
+        Feature 100 (US5/FR-034..037). Every outbound path used to write one row with
+        `outcome="pending"` and then never write again, so a success, a refusal by the
+        peer, and a timeout were indistinguishable in the audit trail and every
+        outbound row sat pending forever.
+
+        The terminal row reuses the SAME `request_id` as the pending row (FR-035), so
+        both sides of a federated call reconcile it by one identifier — the caller's
+        pending/terminal pair joins to the callee's inbound row.
+
+        Note the terminal row keeps `decision="requested"`: on an outbound call *we*
+        made no authorization decision, we asked. What varies is the outcome.
+        """
+        def _terminal(outcome):
+            self.audit.record(direction="outbound", peer_identity=ident,
+                              target_type=target_type, target_name=target_name,
+                              request_id=req_id, decision="requested", outcome=outcome)
+
+        try:
+            result = await ch.call(method, params, timeout=timeout)
+        except RpcError as e:
+            # A refusal returned by the peer is auditable evidence, not a transient
+            # response to discard (FR-036). Its own timeout code maps to `timeout`
+            # rather than being flattened into a denial (FR-037).
+            _terminal("timeout" if e.code == ERR_EXECUTION_TIMEOUT else "denied")
+            raise
+        except (asyncio.TimeoutError, TimeoutError):
+            _terminal("timeout")
+            raise
+        except Exception:
+            # Channel dropped before a response. Still terminal — FR-037 forbids
+            # leaving the row pending just because the failure was not a clean refusal.
+            _terminal("error")
+            raise
+        _terminal("success")
+        return result
+
     async def invoke_remote_tool(self, ident, tool, arguments):
         ch = await self._channel(ident)
         req_id = f"{self.service.local_identity}:{int(time.time()*1000)}"
         self.audit.record(direction="outbound", peer_identity=ident, target_type="tool",
                           target_name=tool, request_id=req_id, decision="requested", outcome="pending")
-        result = await ch.call("n2n/tools/call",
-                               {"tool": tool, "arguments": arguments, "request_id": req_id},
-                               timeout=self.tool_timeout + 5)
+        result = await self._outbound_call(
+            ch, "n2n/tools/call",
+            {"tool": tool, "arguments": arguments, "request_id": req_id},
+            ident=ident, target_type="tool", target_name=tool, req_id=req_id,
+            timeout=self.tool_timeout + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}
 
     async def submit_remote_skill(self, ident, skill, input_text):

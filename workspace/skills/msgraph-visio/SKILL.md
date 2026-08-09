@@ -1,148 +1,86 @@
 ---
 name: msgraph-visio
-description: "Generate and manage Visio network diagrams on SharePoint via Microsoft Graph API - create topology diagrams from CDP/LLDP discovery, update existing diagrams, export to PDF. Use when creating Visio topology diagrams, uploading network diagrams to SharePoint, or generating physical/logical topology views from discovery data"
+description: "Upload and retrieve Visio (.vsdx) and other diagram files in OneDrive/SharePoint via the Microsoft 365 MCP server. Use when publishing a generated topology diagram to OneDrive, or fetching an existing .vsdx for reference"
+version: 2.0.0
 license: Apache-2.0
-user-invocable: true
-metadata:
-  { "openclaw": { "requires": { "bins": ["npx"], "env": ["AZURE_TENANT_ID", "AZURE_CLIENT_ID", "AZURE_CLIENT_SECRET"] } } }
+tags: [microsoft365, visio, onedrive, diagrams, upload]
 ---
 
-# Microsoft Graph — Visio Diagram Generation
+# Microsoft 365 Visio / diagram publishing
 
-## How to Call the Tools
+## MCP Server
 
-The Microsoft Graph MCP server is invoked via npx with Azure AD credentials:
+- **Package**: [`@softeria/ms-365-mcp-server`](https://www.npmjs.com/package/@softeria/ms-365-mcp-server) (MIT)
+- **Invocation** — deliberately **not** `--read-only`, because publishing requires a write:
+  ```
+  npx -y @softeria/ms-365-mcp-server --enabled-tools 'upload-file-content|drive-item|folder-files'
+  ```
+- **Requires**: an Entra ID app registration with delegated `Files.ReadWrite` scope.
 
-```bash
-AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET \
-  python3 $MCP_CALL "npx -y @anthropic-ai/microsoft-graph-mcp" <tool-name> '<arguments-json>'
-```
+> **Version 2.0.0 replaced a package that did not exist.** This skill previously invoked
+> `npx -y @anthropic-ai/microsoft-graph-mcp` (**404 on npm**) and documented two `graph_*`
+> tool names that exist in no server. The tool names below came from the live server.
 
-## Visio Generation Workflow
+### The filter is mandatory
 
-### Step 1: Discover the Network Topology
+Unfiltered, the server exposes **188 tools at ~225,355 tokens — 45× the 5,000-token ceiling.**
+Keep the filter as narrow as the task allows.
 
-Use **pyats-topology** to collect CDP/LLDP neighbor data from all devices:
+### This invocation can write — treat it accordingly
 
-```bash
-PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show cdp neighbors detail"}'
-```
+`--read-only` is omitted here on purpose, which makes this the one M365 surface that changes
+remote state. Under Principle III a write to a system of record is gated: **confirm the target
+path and filename with the operator before uploading**, and never overwrite an existing item
+without saying so first. Use `msgraph-files` for anything that only needs reading.
 
-Collect from all devices via pCall for a complete topology view.
+## Verified tools
 
-### Step 2: Build the Visio Diagram Content
+| Tool | What it does |
+|---|---|
+| `upload-file-content` | write file bytes to a drive path — **the write** |
+| `get-drive-item` | metadata for one item, to check whether you are about to overwrite |
+| `list-folder-files` | folder contents, to confirm the destination exists |
+| `login` / `verify-login` | device-code sign-in and session state |
 
-From discovery data, construct the topology as a Visio-compatible format. Use the OOXML structure that Visio .vsdx files use (ZIP archive containing XML).
+There are **no `graph_*` tools**, and there is **no Visio rendering or conversion tool**. This
+surface moves files; it does not open or edit Visio documents.
 
-For simpler workflows, generate the topology as **Mermaid** first, then use **Draw.io** for the editable diagram, and export the final version as .vsdx via the Draw.io editor.
+## Workflow: publish a generated diagram
 
-### Step 3: Upload to SharePoint
+1. `verify-login`, and `login` if needed — surface the device code, never fabricate a session
+2. `list-folder-files` on the destination folder — confirm it exists and note existing names
+3. `get-drive-item` on the intended filename — **is this an overwrite?** If so, say so and get
+   confirmation before proceeding
+4. `upload-file-content` with the bytes
+5. Report the resulting item id and path. Do not claim success without the server's response.
 
-```bash
-AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET \
-  python3 $MCP_CALL "npx -y @anthropic-ai/microsoft-graph-mcp" graph_upload_file '{"driveId":"<drive-id>","parentId":"<topology-folder-id>","fileName":"campus-topology-2026-02-22.vsdx","content":"<base64-vsdx-content>"}'
-```
+Produce the `.vsdx` itself with `document-generation` or a diagram skill; this skill only
+publishes what already exists on disk.
 
-### Step 4: Share the Diagram
+## Reading results honestly
 
-Create a sharing link for the team:
+- **An upload confirms transfer, not correctness.** That the bytes landed says nothing about
+  whether the diagram is accurate.
+- **A failed upload can leave a partial item** depending on size and session; re-check with
+  `get-drive-item` rather than assuming a clean failure.
+- **There is no rename or delete here** — the filter excludes them deliberately. Fixing a bad
+  filename is an operator action in the web UI.
 
-```bash
-AZURE_TENANT_ID=$AZURE_TENANT_ID AZURE_CLIENT_ID=$AZURE_CLIENT_ID AZURE_CLIENT_SECRET=$AZURE_CLIENT_SECRET \
-  python3 $MCP_CALL "npx -y @anthropic-ai/microsoft-graph-mcp" graph_create_sharing_link '{"driveId":"<drive-id>","itemId":"<file-id>","type":"view","scope":"organization"}'
-```
+## Not verified
 
-## Diagram Types
-
-### 1. Physical Topology Diagram
-
-Generated from CDP/LLDP neighbor data. Shows:
-- Device icons (router, switch, firewall, AP)
-- Physical connections with interface labels
-- IP addressing on each link
-- Link speeds and media types
-
-Data sources:
-- `show cdp neighbors detail` — device names, platforms, interfaces, IPs
-- `show lldp neighbors detail` — same for LLDP-enabled devices
-- `show interfaces` — link speeds, media types, error counters
-
-### 2. Logical Topology Diagram
-
-Generated from routing protocol data. Shows:
-- OSPF areas with area boundaries
-- BGP AS topology with eBGP/iBGP peerings
-- VRF boundaries and route leaking points
-- VXLAN overlay vs underlay
-
-Data sources:
-- `show ip ospf neighbor` + `show ip ospf database` — OSPF topology
-- `show bgp summary` — BGP peering topology
-- `show vrf` — VRF membership
-
-### 3. Reconciliation Status Diagram
-
-Color-coded by NetBox reconciliation status:
-- **Green** — Documented in NetBox, matches live state
-- **Yellow** — Documented but mismatched (IP drift, MTU mismatch)
-- **Red** — Undocumented link (exists on device, not in NetBox)
-- **Gray** — Missing link (in NetBox, not seen on device)
-
-Data source: **netbox-reconcile** skill output
-
-### 4. Data Center Fabric Diagram
-
-ACI-specific topology showing:
-- Spine/leaf fabric with APIC controllers
-- Tenant/VRF/BD/EPG hierarchy
-- Contract relationships
-- External connectivity (L3Out)
-
-Data source: **aci-fabric-audit** skill output
+**Tool names and manifest cost are measured; no upload has been performed.** That needs an M365
+tenant with write scope, which this environment does not have. The write path is
+correct-by-construction and unproven.
 
 ## Integration with Other Skills
 
-- **pyats-topology** — Primary data source for physical/logical topology discovery
-- **netbox-reconcile** — Provides reconciliation status for color-coded diagrams
-- **aci-fabric-audit** — ACI fabric topology data for data center diagrams
-- **drawio-diagram** — Use Draw.io for quick interactive editing, then export to .vsdx format
-- **msgraph-files** — Organize Visio files in SharePoint folder structure
-- **msgraph-teams** — Post diagram links to Teams channels for team visibility
-- **gait-session-tracking** — Record diagram generation in audit trail
+| Skill | How They Work Together |
+|-------|----------------------|
+| `msgraph-files` | Read-only inspection — prefer it whenever you are not writing |
+| `document-generation`, `drawio-diagram`, `uml-diagram` | Produce the file this publishes |
+| `gait-session-tracking` | Record every upload: path, filename, item id |
 
-## Naming Convention
+## Environment Variables
 
-```
-<site>-<diagram-type>-<date>.vsdx
-
-Examples:
-  campus-physical-topology-2026-02-22.vsdx
-  dc-aci-fabric-2026-02-22.vsdx
-  wan-bgp-logical-2026-02-22.vsdx
-  site-a-reconciliation-2026-02-22.vsdx
-```
-
-## SharePoint Organization
-
-```
-SharePoint: Network Engineering/
-  └── Topology/
-      ├── Physical/
-      │   ├── campus-physical-topology-2026-02-22.vsdx
-      │   └── dc-physical-topology-2026-02-22.vsdx
-      ├── Logical/
-      │   ├── wan-bgp-logical-2026-02-22.vsdx
-      │   └── campus-ospf-logical-2026-02-22.vsdx
-      ├── Reconciliation/
-      │   └── site-a-reconciliation-2026-02-22.vsdx
-      └── ACI/
-          └── dc-aci-fabric-2026-02-22.vsdx
-```
-
-## GAIT Audit Trail
-
-Record diagram generation in GAIT:
-
-```bash
-python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"Generated campus physical topology diagram from CDP/LLDP discovery (4 devices, 6 links). Uploaded to SharePoint Network Engineering/Topology/Physical/campus-physical-topology-2026-02-22.vsdx. Sharing link created for Network Engineering team.","artifacts":[]}}'
-```
+- `MS365_MCP_CLIENT_ID` — Entra ID app registration (client) ID
+- `MS365_MCP_TENANT_ID` — tenant ID, or `common`

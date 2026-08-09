@@ -74,14 +74,25 @@ export function styleForNode(node) {
  * @param {Array<object>} categories
  * @returns {{group: THREE.Group, dispose: Function}}
  */
-export function buildLinks(layoutNodes, categories) {
+/**
+ * Feature 102: member links elbow through their category header, which is org-chart
+ * furniture pinned at a fixed position. Under Ring/Grid/force the members move but
+ * the headers cannot, so the elbows stretch across the whole scene to waypoints that
+ * no longer mean anything. Route directly instead — the link still says exactly what
+ * it said before (this member reports to the Border), just without a detour through
+ * a landmark that is no longer there.
+ */
+export function buildLinks(layoutNodes, categories, useCategoryRouting = true) {
   const group = new THREE.Group();
   group.name = 'orgchart-links';
   const disposables = [];
 
   const nodes = layoutNodes || [];
   const border = nodes.find((n) => n.kind === 'border');
-  if (!border) return { group, dispose() {} };
+  if (!border) return { group, dispose() {}, flows: [] };
+
+  // Feature 101 (US4): flow markers for peers with a LIVE channel only.
+  const flows = [];
 
   const origin = new THREE.Vector3(border.position.x, border.position.y, border.position.z);
 
@@ -95,7 +106,7 @@ export function buildLinks(layoutNodes, categories) {
     // Members route via their category header so the chart reads as a chart —
     // an elbow through the column, not 100 straight lines to one point.
     let points;
-    if (node.kind === 'member') {
+    if (node.kind === 'member' && useCategoryRouting) {
       const cat = (categories || []).find((c) => c.name === node.category);
       const via = cat
         ? new THREE.Vector3(cat.position.x, cat.position.y + 2, cat.position.z)
@@ -115,12 +126,56 @@ export function buildLinks(layoutNodes, categories) {
 
     group.add(makeLine(points, style, disposables));
     if (style.arrow) group.add(makeArrow(origin, target, style, disposables));
+
+    // Feature 101 (US4/FR-018): only a LIVE channel flows. IDLE, STALE, UNKNOWN,
+    // UNREACHABLE and SEVERED are all static, so motion means exactly one thing:
+    // this link is carrying capability right now.
+    //
+    // FR-019: /api/n2n exposes no per-link direction, so flow runs peer -> Border
+    // to represent inbound capability availability, and that choice is recorded
+    // here rather than left for a reader to infer from the animation.
+    if (node.kind === 'peer' && node.peerState === 'LIVE') {
+      const geo = new THREE.SphereGeometry(0.42, 10, 8);
+      const mat = new THREE.MeshBasicMaterial({
+        color: style.color, transparent: true, opacity: 0.95, toneMapped: false,
+      });
+      disposables.push(geo, mat);
+      for (let i = 0; i < 3; i += 1) {
+        const dot = new THREE.Mesh(geo, mat);
+        dot.renderOrder = 2;
+        group.add(dot);
+        // `phase` staggers the three dots so the link reads as a stream rather
+        // than one dot looping.
+        flows.push({ dot, from: target.clone(), to: origin.clone(), phase: i / 3 });
+      }
+    }
   }
 
   return {
     group,
+    flows,
     dispose() { for (const d of disposables) d.dispose?.(); },
   };
+}
+
+/**
+ * Advance the flow markers (feature 101, US4).
+ *
+ * FR-020: with reduced motion preferred the dots are PARKED at fixed points along
+ * the link instead of hidden. A viewer who cannot see motion still sees that this
+ * link is marked and the stale ones are not, so the live/not-live distinction
+ * survives — which is what makes flow a redundant channel rather than the only
+ * one carrying liveness.
+ *
+ * @param {Array<object>} flows from buildLinks().flows
+ * @param {number} elapsed seconds
+ * @param {boolean} reducedMotion
+ */
+export function animateFlows(flows, elapsed, reducedMotion) {
+  for (const f of flows || []) {
+    const t = reducedMotion ? (0.2 + f.phase * 0.3) : ((elapsed * 0.35 + f.phase) % 1);
+    f.dot.position.lerpVectors(f.from, f.to, t);
+  }
 }
 
 function makeLine(points, style, disposables) {

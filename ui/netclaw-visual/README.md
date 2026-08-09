@@ -501,6 +501,21 @@ Keep that boundary; the test suite runs in bare Node and will fail if it breaks.
 
 ## Architecture
 
+### Renderer stack
+
+| Component | Version / choice | Notes |
+|---|---|---|
+| `three` | **0.185.1** | Bumped from `0.170.0` by spec 101. Fifteen releases; zero source changes were required, because every breaking change in r171–r185 lands in TSL / WebGPU node materials, which this HUD does not use. |
+| Renderer | `WebGLRenderer` | **Not** `WebGPURenderer`. That migration is spec 102: `WebGPURenderer` supports neither raw-GLSL `ShaderMaterial` (this HUD has 4) nor `EffectComposer` (this HUD has a 7-pass chain), so it is an either/or rather than an upgrade. |
+| Post-processing | `EffectComposer` | `RenderPass` → `UnrealBloomPass` → `ShaderPass`×2 (vignette, RGB-shift) → `AfterimagePass` → `FilmPass` → `GlitchPass` → `SMAAPass` → `OutputPass`. |
+| Labels | `CSS2DRenderer` | DOM overlay, so labels stay crisp and selectable. |
+| Camera | `OrbitControls`, zoom `0.35`–`6.0` | Constrained by spec 072 so the org-chart hierarchy always reads. |
+
+`src/orgchart/` is **pure logic and must never import three.js**; `src/orgchart-render/`
+owns every three.js contact. That split (spec 072) is what makes the layout, health
+classification, liveness and staleness rules unit-testable — the render modules have no
+automated coverage, so anything that can be a decision belongs on the pure side.
+
 ```
 Browser (Visual HUD + Canvas Chat @ localhost:3000)
     |

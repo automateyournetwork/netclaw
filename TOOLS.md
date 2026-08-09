@@ -130,7 +130,13 @@ For **detailed infrastructure notes on specific MCP servers/skills** (GitLab, Ch
 
 ## N2N Federation MCP Server (NetClaw Native)
 
-38 MCP tools proxying the local `bgp-daemon-v2` HTTP API for claw-to-claw federation over NCFED. Replication-specific tools (feature 065, chroma-to-chroma vector replication — see `workspace/skills/n2n-federation/SKILL.md` for when/how to use them):
+39 MCP tools proxying the local `bgp-daemon-v2` HTTP API for claw-to-claw federation over NCFED.
+
+Observability / endpoint hygiene tool (feature 100 — see `specs/100-federation-log-observability/`):
+- `n2n_forget_endpoint(peer, actor="operator")` — WHEN a peer's recorded dial endpoint is known-wrong (it moved, its tunnel rotated, or it will not return) and `n2n_health` shows repeated dial failures against it. A permanently-unreachable peer with a stale endpoint was the single largest source of federation log noise (23,366 lines in 7 days before this feature); clearing the endpoint stops it at the source. The peer stays federated and keeps trust material, chat setting and audit history — only the dial address is cleared, and it reconnects automatically the moment it re-registers by contacting this Border. A live channel is left running. Idempotent.
+- Config (dead-peer log dampening, all optional): `N2N_RECONNECT_DAMPEN` (`0` = full bypass, restores per-attempt WARNING logging for diagnosis), `N2N_RECONNECT_DEAD_CEILING_S` (default `900`), `N2N_RECONNECT_DEAD_AFTER` (default `20`), `N2N_RECONNECT_ENDPOINT_STALE_S` (default `86400`), `N2N_RECONNECT_SUMMARY_INTERVAL_S` (default `300`), `N2N_RECONNECT_STABLE_AFTER_S` (default `120`)
+- No new credentials.
+ Replication-specific tools (feature 065, chroma-to-chroma vector replication — see `workspace/skills/n2n-federation/SKILL.md` for when/how to use them):
 - `n2n_replicate` — WHEN the user wants a standing local copy of a consenting peer's RAG collection (not just a one-off answer — use `n2n_knowledge_query` for that). Returns a `task_id` immediately; does not block.
 - `n2n_replicate_resync` — WHEN a previously replicated collection needs refreshing to match the source's current content (full replace, same async pattern)
 - `n2n_replicate_delete` — WHEN the user wants a local replica removed entirely (distinct from revoking the grant, which only blocks *future* replication)
@@ -321,3 +327,394 @@ everything else, plus cross-vendor normalized reads read-only. Writes are single
 
 Dedicated virtualenv: `napalm`/`netmiko` resolve `cryptography` 49.x while the system carries 46.x,
 which NCFED uses for X.509 issuance.
+
+## Fortinet (`fortinet-mcp`, NetClaw-native)
+
+**Spec 080 / roadmap R3.** Three planes, 21 tools, stdio, read-only by default.
+Replaces an earlier `fortimanager-ops` skill that named `jmpijll/fortimanager-mcp` —
+a server that was never vendored, registered, or installable.
+
+| Plane | Appliance | Answers | Transport |
+|---|---|---|---|
+| `manager` | FortiManager | policy **intent** — ADOMs, packages, objects, revisions | JSON-RPC `/jsonrpc` |
+| `device` | FortiGate | **observed state** — interfaces, routes, VPN, HA, VDOM | REST, bearer token |
+| `analyzer` | FortiAnalyzer | **observed traffic** — logs, policy activity | JSON-RPC `/jsonrpc` |
+
+FortiManager and FortiAnalyzer share one JSON-RPC client — same endpoint, same
+envelope, different methods.
+
+### Environment
+
+`FORTINET_MCP_CMD` · `FORTIMANAGER_HOST` / `FORTIMANAGER_API_TOKEN` ·
+`FORTIGATE_HOST` / `FORTIGATE_API_TOKEN` · `FORTIANALYZER_HOST` /
+`FORTIANALYZER_API_TOKEN` · `FORTINET_VERIFY_SSL` (default `true`) ·
+`FORTINET_ALLOW_WRITES` (default `false`)
+
+Each plane is independently optional; an unconfigured plane is not consulted and
+NetClaw says so rather than answering from another.
+
+### Behaviour worth knowing
+
+- Every response carries `plane` and `scope` **structurally** and is GAIT-audited —
+  enforced at a chokepoint, so a new tool cannot omit either.
+- **"No logs matched" is not "rule unused"** — returns `no_logs_in_window`, its own
+  outcome.
+- **VPN phase 1 and phase 2 are always separate fields.** Phase 1 up / phase 2 down
+  is a specific fault, not "half up".
+- `fgt_compare_with_manager` reports intent-vs-state divergence; `only_in_device`
+  entries are candidate out-of-band changes.
+- Writes need **two** gates: human approval **and** an approved ServiceNow CR.
+  Neither substitutes for the other.
+
+### Field notes (FortiOS 7.6.7, measured 2026-08-01)
+
+- `monitor/system/interface` returns a **dict keyed by interface name**, not a list.
+- An **unregistered** FortiGate returns 401 for every REST request regardless of
+  token validity or trusthost. Check `License Status: Valid` before suspecting
+  credentials.
+- FortiOS **8.0.0 GA** has a web-GUI logout loop on the 1 vCPU trial profile
+  (`VM resource exceeds license limit` → `httpsd` restart). SSH and REST unaffected;
+  7.4/7.6 do not exhibit it.
+- Evaluation licence caps: 1 vCPU, 2 GB RAM, 3 interfaces, 3 routes, 3 policies.
+
+## BGP & Registry Intelligence (`bgp-intel-mcp`, NetClaw-native)
+
+**Spec 081 / roadmap R9.** 10 tools, stdio, read-only, **no credentials**. The other half of the external
+plane: R8's Globalping *measures* toward a target; this *looks up* ownership, routing legitimacy and peering.
+
+| Source | Provides |
+|---|---|
+| `rpki-validator.ripe.net` | RPKI origin validation (primary — RFC 6811 vocabulary, returns VRPs) |
+| `stat.ripe.net` | RPKI fallback, AS overview, announced prefixes, visibility |
+| IANA bootstrap → RIR RDAP | Registry ownership, abuse contacts |
+| `peeringdb.com` | IXPs, facilities, peering policy |
+| `atlas.ripe.net` | Anchors, per-AS probe counts |
+
+### The four RPKI states
+
+| `state` | `reason` | Finding? | Meaning |
+|---|---|---|---|
+| `valid` | — | no | A ROA authorises this origin |
+| `invalid` | `as` | **yes** | A ROA covers it; **a different AS** is authorised |
+| `invalid` | `length` | **yes** | Correct AS; prefix more specific than `maxLength` |
+| `not_found` | — | **no** | **No ROA exists.** The normal case for most of the internet |
+
+`validation_unavailable` is a separate outcome — an unreachable validator is **not** `not_found`.
+
+### Environment
+
+`BGP_INTEL_MCP_CMD` · `BGP_INTEL_USER_AGENT` · `BGP_INTEL_MAX_RPS` (default 4) · `BGP_INTEL_AUDIT_LOG`
+
+No API keys. Every source is public and unauthenticated.
+
+### Behaviour worth knowing
+
+- Every response carries `source` + `retrieved_at` and is GAIT-audited — enforced at a chokepoint.
+- **`no_record` and `source_unavailable` are never conflated** — a dead API is not an empty registry.
+- Registry data is **allocation, not routing**; PeeringDB is **self-reported**; visibility is **RIPE's
+  collectors**, not global truth. Each is stated in the response `caveats`.
+- **4 req/s per source, true sliding window, strictly serial.** Self-imposed — neither RIPEstat nor
+  PeeringDB publishes rate-limit headers. Parallel fan-out prohibited, including inside `resource_report`.
+- Private/reserved/bogon input is **refused locally with no outbound request** — a disclosure control.
+- Manifest measured at **1,376 / 5,000 tokens**.
+
+## Document Generation (`document-mcp`, NetClaw-native)
+
+**Spec 082 / roadmap R18.** 6 tools, stdio, **no credentials**. Writes files; touches no device and no
+ticket, so there is no approval gate here. This is the deliverable layer — every other NetClaw capability
+produces findings, this turns a finding into something you can attach to a change record.
+
+| Format | Tool | Built from |
+|---|---|---|
+| `.docx` | `docx_write` | Ordered blocks: heading, paragraph, figure, table, keyvalue, image, pagebreak |
+| `.xlsx` | `xlsx_write` | Sheets of tagged rows, plus `failed_rows` for devices that could not be reached |
+| `.pptx` | `pptx_write` | Slides: bullets, figure, image |
+| `.pdf` | `pdf_inspect_form` / `pdf_fill_form` | An existing fillable form's **named** fields |
+| — | `list_documents` | Finding something generated earlier |
+
+### The one rule
+
+**A document must never fabricate to fill a blank.** Tool output is ephemeral; a document is emailed, filed
+and read months later by someone who was not there, and it carries the authority of its formatting. So every
+value is one of three tagged shapes — `{"v":…, "src":…}`, `{"unavailable": reason}`, `{"failed": reason}` —
+and a bare scalar or a value with no `src` is **refused**. There is no way to express "missing" as a blank.
+
+### Environment
+
+`DOCUMENT_MCP_CMD` · `DOCUMENT_OUTPUT_DIR` (default `workspace/output/document-mcp/`) ·
+`DOCUMENT_MAX_ROWS` (50000) · `DOCUMENT_MAX_BLOCKS` (5000) · `DOCUMENT_MAX_SLIDES` (200) ·
+`DOCUMENT_AUDIT_LOG`
+
+No API keys. Nothing to rotate.
+
+### Behaviour worth knowing
+
+- **Provenance is visible, never hidden.** Source column per table row, per-figure parenthetical in prose, a
+  visible source box on every slide, and a Sources section in every file. Word comments, document metadata
+  and speaker notes are written *additively* but never count — they are collapsed by default, stripped on
+  paste, and absent in print.
+- **`python-docx` has no footnote API** (measured), so `.docx` attribution is inline. More visible than a
+  footnote, not less.
+- **openpyxl writes a leading `=` as a live formula.** Measured: `ws["A1"] = "=1+1"` produces
+  `<c r="A1"><f>1+1</f>…`. Every string cell is forced to `inlineStr`, so a FortiGate interface description
+  or a ServiceNow short-description cannot put executing content into an auditor's spreadsheet.
+- **Admin and operational state must be separate columns.** A merged `status` column is refused — the
+  distinction spec 080's completion established.
+- **Failed devices are rows, not omissions.** A shorter spreadsheet reads as a smaller estate. The banner
+  reports attempted / returned / failed.
+- **Sources that disagree are both rendered** with their origins and a caveat. NetClaw does not pick a
+  winner.
+- **Office templates are refused, not ignored** — scratch-only, because a template's empty field is the
+  strongest fabrication pressure in the feature. PDF forms are supported precisely because their fields are
+  explicitly named and machine-readable.
+- **A filled PDF carries no Sources section** — it is the customer's document. For that one format
+  provenance lives in the response and the GAIT record. Stated rather than papered over.
+- **Files are never overwritten.** `O_EXCL` create with a collision suffix, so a regenerated report cannot
+  replace one already attached to a ticket. An unwritable output directory is a reported failure with no
+  temp-directory fallback.
+- **`ok` means complete.** Any gap forces `written_with_gaps`; a caller cannot report a gapped document as
+  clean.
+- Every call, **including refusals**, is GAIT-audited at the chokepoint.
+- Manifest measured at **1,232 / 5,000 tokens**.
+
+### Boundaries
+
+`drawio-diagram` / `markmap-viz` / `uml-diagram` / `threejs-network-viz` produce **diagrams** — this
+**embeds** them and never redraws. `rag-mcp` (feature 062) **reads** these formats for ingestion; this
+**writes** them, sharing the same four libraries with identical bounds.
+`servicenow-change-workflow` owns the CR lifecycle; this renders a document from one.
+`slack-report-delivery` / `webex-report-delivery` **send** documents; this only writes them.
+
+## Arista ANTA Validation (`anta-mcp`, NetClaw-authored over Apache-2.0 ANTA)
+
+**Spec 098 / roadmap R25.** 4 tools, stdio, read-only, **own virtualenv**. Manifest measured
+**1,272 / 5,000 tokens** for a **208-test** catalogue.
+
+The assertion layer: every other source reads state, this one asserts on it.
+
+| Tool | Purpose |
+|---|---|
+| `anta_list_tests(category, keyword)` | Search the 208-test catalogue — **contacts no device** |
+| `anta_describe_test(test)` | One test's description and input schema — **contacts no device** |
+| `anta_run_tests(host, tests\|category, inputs)` | Run tests against one EOS device |
+| `anta_status()` | ANTA version, catalogue size, credential state |
+
+### Five verdicts, never merged
+
+`pass` / `fail` / **`not_applicable`** / `skipped` / `error`, counted separately.
+
+**The reclassification that matters**: ANTA reports a test for an unconfigured feature as a
+*failure*. Measured — `VerifyBGPPeerCount` on a device with no BGP returns
+`"'show bgp summary vrf all' failed: BGP inactive"`. Counted naively that claims a BGP fault on a box
+with no BGP. The server reclassifies to `not_applicable`, keeps the original message, and the rule is
+deliberately narrow so a real failure is never hidden.
+
+**No health percentage is emitted** — `passed/total` is meaningless with `not_applicable` and
+`skipped` in the denominator. The helper raises rather than computing one.
+
+### Its own venv, and not by preference
+
+ANTA pulls **cryptography 50.0.0** while the system holds **46.0.5** with four unbounded dependents
+(`Authlib`, `pygnmi`, `service-identity`, `sshsig`) including NetClaw's federation TLS stack. Measured
+by dry-run *before* installing — spec 076's cryptography incident.
+
+Credentials: `ANTA_USERNAME` / `ANTA_PASSWORD`, environment only. `ANTA_VERIFY_TLS` defaults to
+`false` and is always disclosed in output as `tls_verified`.
+
+## Elasticsearch Logs (`elasticsearch-mcp`, adopted third-party Apache-2.0)
+
+**Spec 096 / roadmap R12.** 5 tools, stdio via Docker, read-only. **Manifest measured 1,094 / 5,000
+tokens.** NetClaw installs no cluster — this queries one the operator already runs (8.x/9.x).
+
+| Tool | Purpose |
+|---|---|
+| `list_indices(index_pattern)` | Indices, status, document counts |
+| `get_mappings(index)` | Field names and types — read before composing a query |
+| `search(index, query_body)` | Query DSL retrieval (and aggregations) |
+| `esql(query)` | ES-QL — counting, grouping, ranking |
+| `get_shards()` | Shard allocation and health |
+
+### The counting rule
+
+Elasticsearch caps `hits.total` at 10,000 and marks it `relation: "gte"`. **This server discards the
+qualifier**, printing a bare `Total results: 10000` that is indistinguishable from an exact count.
+Measured against 10,075 documents: unguarded `search` said **10000**; `esql` and
+`search` + `track_total_hits: true` both said **10075**. The error is unbounded — a million-document
+index still reports 10,000.
+
+Count with `esql` or `track_total_hits`. An unguarded `search` retrieves example documents only.
+
+### Adopted, deprecated upstream, digest-pinned
+
+Elastic deprecated this server in favour of Agent Builder's MCP endpoint, which is **Enterprise-tier on
+self-managed** — so the supported path is paywalled and this one is not. Apache-2.0 and already
+published, so it cannot be withdrawn. The image is pinned by digest
+(`sha256:d57ea11d…eb003`) so a security-only update cannot change answers underneath the operator.
+
+`ES_URL` resolves **inside the container**: a cluster on the host is `http://host.docker.internal:9200`,
+never `localhost`. Credentials: `ES_API_KEY` (scope it `read` + `view_index_metadata`) or
+`ES_USERNAME`/`ES_PASSWORD`.
+
+## Zabbix SNMP-Poller NMS (`zabbix-mcp`, vendored third-party GPL-3.0)
+
+**Spec 083 / roadmap R11.** 3 tools, stdio, read-only. **Manifest measured 589 / 5,000 tokens** — the
+smallest surface NetClaw has added for an entire product category.
+
+This is the **polled-history layer**. Everything else NetClaw sees arrives when something happens — syslog,
+traps, flows. This is the only source that can answer *what was it doing*, *is this normal*, *how long has
+it been down*.
+
+| Tool | Purpose |
+|---|---|
+| `zabbix_api(method, params)` | Generic JSON-RPC passthrough |
+| `zabbix_api_docs(method)` | Upstream method documentation |
+| `zabbix_api_list(object)` | Available methods for an object |
+
+### Adopted, not built — and it runs in its own venv
+
+`mpeirone/zabbix-mcp-server`, pinned `0722f48`, **unmodified**, GPL-3.0 retained verbatim. NetClaw invokes it
+over stdio as a separate program; that is not linkage.
+
+**It requires fastmcp 3.x while five NetClaw servers pin `<3`** (`netbox-mcp-server`,
+`CiscoFMC-MCP-server-community`, `Wikipedia_MCP`, `rag-mcp`, `ISE_MCP`). It therefore runs from a dedicated
+virtualenv — the same reason `multivendor-cli-mcp` has one. **Do not "simplify" that away.**
+
+### Environment
+
+`ZABBIX_MCP_CMD` · `ZABBIX_URL` · `ZABBIX_TOKEN` · `VERIFY_SSL` · `READ_ONLY` (forced true) ·
+`ZABBIX_API_BLACKLIST`
+
+### Two traps that return an empty array and a success status
+
+Both measured against live Zabbix 7.0.29. Both silent — no error, no warning.
+
+1. **`history.get` defaults its value type to unsigned (3), and 84 of 121 stock items are float (0).** Ask
+   with the default and you get `[]`. Always call `item.get` first and pass the item's real `value_type`.
+   Types **cannot be mixed** in one call — measured: 4 items, 2 returned each way, zero overlap.
+2. **Raw history ages out into hourly trends.** A question older than the history window returns nothing
+   from `history.get`. `item.get` reports per-item `history` and `trends`; read them and route.
+
+**Retention can also be switched off**: `history=0` means raw values are never stored; `trends=0` means no
+aggregates. Measured on a stock install: 10 items with `trends=0`, 5 with both zero. That is a
+*configuration fact*, not an absence.
+
+### Behaviour worth knowing
+
+- **Read-only is FORCED by NetClaw, not inherited.** The upstream library defaults it safe
+  (`utils.py:29` → True) but the shipped launcher inverts it (`start_server.py:139` → False). A
+  destructive-method deny-list is configured as a second layer and **holds even with read-only disabled** —
+  verified.
+- Read/write classification upstream is a **method-name prefix heuristic** (`get`, `version`, `check`,
+  `export`), not a curated list. That is why the deny-list exists.
+- **The two traps are enforced by the SKILLS, not by code.** This is a generic passthrough with no
+  chokepoint — the first NetClaw integration where a core distinction is guidance-level. Deliberate, and
+  recorded.
+- **No per-call GAIT audit.** The upstream has no audit concept and there is no platform-level MCP audit.
+  Acceptable only because this is strictly read-only — there is no operation to record.
+- Auth is API-token/bearer. The in-request credential property still works on 7.0 but is **removed in 7.2+**.
+
+### Boundaries
+
+`snmptrap-mcp` **receives** traps; this **polls** and keeps history. `ipfix-mcp` is flows, not counters.
+`prometheus`/`grafana` are pull-based stores for infrastructure you instrumented; this is the NMS for gear
+you did not. `auvik`/`thousandeyes`/`datadog` are SaaS with their own agents. `pyats`/`multivendor-cli`/
+`fortinet` read **current** device state; this answers **what it was over time**, and can answer for a
+device that is unreachable right now.
+
+## Kubernetes read-only (`k8s-mcp`, vendored third-party Apache-2.0)
+
+**Spec 084 / roadmap R14.** 7 tools, stdio, strictly read-only. **Manifest measured 1,643 / 5,000 tokens.**
+
+`kubeshark` sees packets inside a cluster; this reads the objects — pods, services, ingresses,
+EndpointSlices and **NetworkPolicies**.
+
+| Tool | Purpose |
+|---|---|
+| `resources_list` / `resources_get` | Any `apiVersion`+`kind` — NetworkPolicy, Service, Ingress, EndpointSlice, CRDs |
+| `pods_list` / `pods_list_in_namespace` / `pods_get` | Workload inventory |
+| `namespaces_list` | Establish which namespaces exist — needed to tell "no such namespace" from "empty" |
+| `events_list` | The why behind a pod status |
+
+### Adopted: `containers/kubernetes-mcp-server` v0.0.66
+
+**Apache-2.0** (identical to NetClaw's) and a **statically linked Go binary** — zero runtime deps, so it
+cannot collide with the `fastmcp<3` pins. Pinned and verified against a recorded SHA-256; not committed.
+
+**The DEFAULT config is 21 tools / 5,716 tokens and busts the ceiling.** Trimming to `core` + 6
+`disabled_tools` is what makes adoption possible.
+
+### The trap, reproduced
+
+Given a credential without cluster-wide list permission the server **does not error** — it rewrites the
+query to one namespace and returns it plainly:
+
+```
+raw kubectl  →  Forbidden: cannot list networkpolicies at the cluster scope
+this server  →  success, 1 policy        ← the cluster had 2
+```
+
+`resources.go:34-38` narrows on denial and **discards the permission error**, so an API blip looks the same
+as a 403. Mitigated by a **mandated cluster-wide-read ServiceAccount** (makes the branch unreachable —
+verified) plus a **skill preflight** (`can-i` before trusting any empty result).
+
+### Behaviour worth knowing
+
+- **No NetworkPolicy means all traffic is permitted.** Kubernetes is default-allow, so "no policies" is a
+  finding, not a neutral observation.
+- **An empty list has six causes**: insufficient permission · no such namespace · empty namespace ·
+  selector matched nothing · CRD not installed · cluster unreachable. A typo'd selector returns HTTP 200
+  with zero rows, identical to a genuine non-match — so the selector must be shown.
+- **Secrets denied at two layers** — server `denied_resources` *and* the ServiceAccount RBAC.
+- **The kubeconfig must be explicit and token-only.** A kubeconfig carrying a client certificate silently
+  ignores the token. Every candidate otherwise defaults to the ambient `current-context`, possibly
+  production.
+- **No per-call GAIT audit.** `--log-file` exists but at level 4 logs lifecycle only — no tool calls.
+- **Reachable is not permitted.** `kubeshark` shows traffic that flowed; this shows what is declared.
+
+### Boundaries
+
+`kubeshark-traffic` = observed traffic · `prometheus`/`grafana` = metrics ·
+`containerlab`/`gns3`/`cml` = building labs · this = the declared object model, read-only.
+
+
+## Cisco Catalyst Center, read-only (`catc-mcp`)
+
+**Spec 087.** 10 tools, stdio, strictly read-only. **Manifest measured 1,821 / 5,000 tokens** — with all
+**514 read-only operations** reachable.
+
+Cisco released an official Catalyst Center MCP server whose default bundle measures **515 tools / 64,420
+tokens — 12.9x the ceiling**. NetClaw adopts its **catalogue** (Apache-2.0, `release/2.3.7.11`), not its
+runtime, and fronts it with 8 grouped dispatchers plus `catc_find` and `catc_describe_operation`.
+
+| Tool | Use |
+|---|---|
+| `catc_find` | **Start here** — search all 514 operations locally. Names are generated, not guessable |
+| `catc_describe_operation` | Parameter schema on demand |
+| `catc_devices` `catc_sites` `catc_wireless` `catc_health` `catc_compliance` `catc_software` `catc_events` `catc_other` | `(operation, params)` |
+
+### Why the catalogue and not the runtime
+
+Avoids three upstream properties at once: **`fastmcp>=2.0.0` unbounded** (resolves 3.x against five servers
+pinning `<3` — the third occurrence of the spec-083 hazard), **HTTP transport on port 7001** (every other
+NetClaw MCP is stdio), and **a container** needed only to isolate the first. Dependencies here are `mcp` and
+`httpx`.
+
+### Behaviour worth knowing
+
+- **An empty inventory is not an empty network.** Zero devices is a statement about the controller. Every
+  response is stamped at a chokepoint with **which appliance answered** and **when** — because the two
+  DevNet sandboxes share credentials and `sandboxdnac2` has zero devices while authenticating perfectly.
+- **Zero counts carry the same caveat as empty lists.** A bare `0` reads even more like data; found by live
+  testing.
+- **`unreachable`, `auth_failed` and `empty` are three different facts.** Keeping them apart required a real
+  fix — `httpx.HTTPStatusError` subclasses `httpx.HTTPError`, so a 401 initially surfaced as `unreachable`.
+- **Read-only by curation**: only GET operations are catalogued and the single upstream POST is excluded, so
+  it cannot be dispatched. Upstream states it enforces no read-only access; curation plus account RBAC are
+  the two controls.
+- **"Catalyst Center says unreachable" is not "the device is down"** — one controller's last poll.
+- Upstream is **version-coupled**: the branch name is the appliance version, and `main` contains no code.
+
+### Boundaries
+
+`pyats`/`multivendor-cli` read the device (and win on disagreement) · `netbox`/`nautobot` hold intent, this
+reports discovery · `devnet-catalyst-search` reads docs, this queries an appliance.

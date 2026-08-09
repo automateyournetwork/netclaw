@@ -44,6 +44,30 @@ SURFACES = {
     "catalog": ("verify-catalog-coverage.py", "installer coverage and vendored state"),
     "docs": ("verify-inventory-counts.py", "documented counts"),
     "portability": ("check-mcp-portability.py", "registration portability"),
+    # Added by spec 088: a registered server that cannot START. Every other surface here
+    # validates that things are DECLARED consistently; none of them ran anything. Found
+    # by launching all 98 registered servers: seven could not start, one had no server
+    # file at all, and 22 skills routed to them — while this script exited 0.
+    #
+    # Runs --warn-only until the seven are resolved, because they need four different
+    # fixes (two SDKs are not publicly distributable, one server has no entry point, one
+    # is a uv-env issue, three are blocked by PEP 668 on this host). Flipping it to
+    # hard-fail is the follow-up, and the reason it is not hard-fail today is written
+    # down rather than left as a mystery.
+    "startup": ("check-server-startup.py", "registered servers can actually start"),
+    # Added by spec 089. Vendor-specific, deliberately: the five Meraki skills cited 80
+    # method names of which 54 DID NOT EXIST in the Meraki API, and the docs surface passed
+    # throughout because it compares counts, never the truth of a documented call. Validates
+    # skill text against Cisco's own OpenAPI spec, vendored offline. Same lesson as 088 --
+    # declarations checked against each other cannot catch one that is uniformly wrong.
+    "meraki-ids": ("check-meraki-capability-ids.py", "Meraki capability IDs cited in skills"),
+    # Added by spec 093. Skills invoke packages on demand via npx/uvx; those references are
+    # neither counted by the docs surface nor launched by the startup surface, so nothing
+    # verified they exist. @anthropic-ai/microsoft-graph-mcp did not -- 404 on npm -- and three
+    # skills documented 14 tool names against it. Offline against a vendored manifest, with a
+    # separate --refresh mode that hits the registries, because this gate has no network by
+    # design (SC-013) and spec 090 already learned what ignoring that costs.
+    "packages": ("check-package-references.py", "npx/uvx packages skills invoke exist"),
     # Added by spec 077 (R0a): dependency breakage that only affects FRESH
     # installs — unbounded pins on packages whose submodules are imported, bare
     # pip invocations, and ensurepip-dependent venv creation.
@@ -51,6 +75,21 @@ SURFACES = {
 }
 
 EXIT_OK = 0
+# Surfaces that report findings but never fail the build, regardless of --warn-only.
+# A surface belongs here only with a written reason and an exit condition -- otherwise it
+# becomes a permanent way to ignore real breakage, which is the failure mode spec 088 was
+# written to fix in the first place.
+ALWAYS_WARN: set[str] = {
+    # Empty. Spec 088 put "startup" here because seven registered servers could not start
+    # and it was believed two needed non-distributable SDKs, so nobody could make it green.
+    # Spec 090 fixed six of the seven and excepted the one that is genuinely unobtainable
+    # (RADKit, code-signed wheels outside PyPI), so the surface is now a hard gate: a
+    # registered server that cannot start FAILS the build.
+    #
+    # Add a surface here only with a written reason and an exit condition, as 088 did.
+    # Without both it becomes a permanent way to ignore real breakage.
+}
+
 EXIT_FAIL = 1
 EXIT_CANNOT_RUN = 2
 
@@ -67,7 +106,8 @@ def run_surface(name, warn_only):
         # Only pass the flag to scripts that accept it; the two older verifiers
         # predate it. Probing --help would be slower and no more reliable than
         # simply not forwarding it, since this wrapper enforces warn-only itself.
-        if script in ("check-mcp-portability.py", "check-dependency-pins.py"):
+        if script in ("check-mcp-portability.py", "check-dependency-pins.py",
+                      "check-meraki-capability-ids.py", "check-package-references.py"):
             cmd.append("--warn-only")
 
     proc = subprocess.run(cmd, capture_output=True, text=True)
@@ -90,7 +130,8 @@ def extract_findings(output):
         if stripped.startswith("- ") or stripped.startswith("* "):
             findings.append(stripped[2:])
         elif stripped.startswith(("portability:", "unlocatable:", "flagged:", "note:",
-                                  "ERROR:", "pins:", "bare-pip:", "venv:")):
+                                  "ERROR:", "pins:", "bare-pip:", "venv:",
+                                  "startup:", "meraki-ids:", "packages:")):
             findings.append(stripped)
         elif line.startswith("  ") and (
             "claims" in stripped or "no matching" in stripped or "no recorded state" in stripped
@@ -120,27 +161,39 @@ def main():
     any_failed = False
 
     for name in selected:
-        code, output = run_surface(name, args.warn_only)
+        always_warn = name in ALWAYS_WARN
+        # Deliberately NOT passing warn_only for an ALWAYS_WARN surface: the check should
+        # still report its true exit code, and this wrapper downgrades it below. Silencing
+        # it at the source would make the finding invisible here too.
+        code, output = run_surface(name, args.warn_only and not always_warn)
         findings = extract_findings(output)
         if code == EXIT_CANNOT_RUN:
             status = "cannot_run"
             cannot_run = True
         elif code != EXIT_OK:
-            status = "fail"
-            any_failed = True
+            # An ALWAYS_WARN surface reports but does not fail the build. It is still
+            # rendered distinctly ("warn"), so a reader can never mistake it for a pass.
+            status = "warn" if always_warn else "fail"
+            any_failed = any_failed or not always_warn
         else:
             status = "flagged" if any(f.startswith("flagged:") for f in findings) else "pass"
         results[name] = {"status": status, "exit_code": code, "findings": findings}
 
     if args.as_json:
-        overall = "cannot_run" if cannot_run else ("fail" if any_failed else "pass")
+        any_warn = any(r["status"] == "warn" for r in results.values())
+        overall = ("cannot_run" if cannot_run else "fail" if any_failed
+                   else "pass_with_warnings" if any_warn else "pass")
         print(json.dumps({"overall": overall, "surfaces": results}, indent=2))
     else:
-        overall = "CANNOT RUN" if cannot_run else ("FAIL" if any_failed else "PASS")
+        # A WARN surface must not render as a bare PASS. The whole point of spec 088 is
+        # that a green summary concealed seven dead servers.
+        any_warn = any(r["status"] == "warn" for r in results.values())
+        overall = ("CANNOT RUN" if cannot_run else "FAIL" if any_failed
+                   else "PASS (with warnings)" if any_warn else "PASS")
         print(f"Reconciliation: {overall}")
         for name in selected:
             r = results[name]
-            label = {"pass": "pass", "fail": "FAIL",
+            label = {"pass": "pass", "fail": "FAIL", "warn": "WARN",
                      "flagged": "pass*", "cannot_run": "ERROR"}[r["status"]]
             _, noun = SURFACES[name]
             if args.quiet and r["status"] in ("pass", "flagged"):

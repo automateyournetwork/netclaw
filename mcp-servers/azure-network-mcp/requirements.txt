@@ -1,5 +1,7 @@
 mcp[cli]>=1.0.0,<2
-azure-identity>=1.15.0
+# Upper bound added by spec 082: the code does `from azure.identity import ...`, an
+# attribute import whose next major can remove it. Bound describes the current major.
+azure-identity>=1.15.0,<2
 azure-mgmt-network>=26.0.0
 azure-mgmt-resource>=23.0.0
 azure-mgmt-dns>=8.1.0

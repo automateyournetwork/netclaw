@@ -283,3 +283,46 @@ in the draft (FR-010):
 - Selection (which peer collection answers) is deterministic embedding-cosine over the
   advertised descriptions with a configurable threshold — an implementation/agent
   concern, not a wire element, so it need not appear in the draft beyond a sentence.
+
+## `-01` seed — IETF landscape reconciliation (roadmap R23, 2026-08-04)
+
+From the survey in [`IETF-MCP-LANDSCAPE-2026-08.md`](./IETF-MCP-LANDSCAPE-2026-08.md). Ordered by
+value-per-effort; every item traces to a verified draft state.
+
+### Tier 1 — cheap, high-credibility
+
+- **Fill in the `draft-bu-agentproto-security-principal-binding-04` claims matrix** for NCFED (user
+  authority · agent instance identity · tool identity · delegation state · session continuity · action
+  evidence; for each: carrying field, verifier, binding/freshness rule, failure behaviour). NCFED already has
+  the mechanisms — this is tabulation, and it demonstrates engagement with `agentproto` rather than the
+  expiring MCP corner. **Highest value per unit of effort identified by the survey.**
+- **Promote revocation from lifecycle footnote to explicit argument.** `-00` treats severing as an operator
+  action ({{prior-art}} / §"Lifecycle"). The agentproto BOF minutes flag *"continued discussion on trust
+  boundaries, revocation, and authorization frameworks"*, and it is the **first question** this audience
+  asks. NCFED's answer is genuinely stronger than the DNS-based alternatives' — Morrison
+  `-05` concedes *"Revocation status cannot presently be established from DNS alone"* — so this is a win
+  currently being left on the table.
+- **Fix the Related Work citations.** Add `draft-akhavain-moussa-dawn-problem-statement-05` as the framing
+  NCFED answers; cite `draft-serra-mcp-discovery-uri-04` (no key pinning, auth deferred to OAuth) and
+  `draft-morrison-mcp-dns-discovery-05` (DNS-rooted pinning, admits no revocation) as **contrast**; cite
+  `draft-yang-nmrg-mcp-nm-03` for MCP-in-network-management. **Do NOT cite
+  `draft-zw-opsawg-mcp-network-mgmt` — it is expired.**
+
+### Tier 2 — real writing
+
+- **Reconcile with WIMSE/SPIFFE.** `draft-klrc-aiagent-auth-03` (Kasselman, Lombardo, Rosomakho, Campbell,
+  Steele, Parecki) mandates one WIMSE identifier with **short-lived** SVID credentials rather than static
+  keys. Add a paragraph explaining why a pinned long-lived key suits a BGP-adjacent peering session that must
+  survive control-plane restarts. Expect to be asked; better to answer first.
+- **Compare against `draft-abbott-mcp-ax-00`** (hierarchical tool-namespace delegation across MCP servers) —
+  the closest thing to a federation story in MCP-land, and adjacent to iN2N's hub-and-spoke.
+
+### Timing constraints
+
+- **`draft-serra-mcp-discovery-uri-04` expires 2026-09-25.** If `-01` cites it, either submit before then or
+  note the revision explicitly.
+- **`draft-zeng-nmrg-mcp-usecases-requirements-00` expires 2026-08-18** — two weeks after the survey. Likely
+  to lapse before `-01`.
+- **Watch the `agentproto` charter.** Scope was rejected 38–124 and is being rewritten toward *context
+  propagation across trust boundaries*, which is **closer to NCFED's contribution** than the original
+  session-layer framing. NCFED's fit improves if it lands there.

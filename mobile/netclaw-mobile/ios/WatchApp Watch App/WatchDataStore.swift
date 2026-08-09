@@ -1,4 +1,5 @@
 import Foundation
+import WidgetKit
 
 /// Preloads Approvals + Feed concurrently as soon as the watch app launches,
 /// instead of each tab triggering its own blocking WatchConnectivity
@@ -68,6 +69,11 @@ final class WatchDataStore: ObservableObject {
             approvals = []
         }
         approvalsLoaded = true
+        // 099/FR-019: the complication has no data of its own -- every
+        // approvals refresh is the one place the shared count changes, so
+        // this is the one place to write it and prompt WidgetKit to redraw.
+        PendingApprovalCountStore.write(approvals.count)
+        WidgetCenter.shared.reloadAllTimelines()
     }
 
     func refreshFeed() async {

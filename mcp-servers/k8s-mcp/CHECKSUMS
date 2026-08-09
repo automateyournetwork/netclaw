@@ -1,0 +1,10 @@
+# Pinned artifact for spec 084 / roadmap R14.
+#
+# UPSTREAM PUBLISHES NO CHECKSUMS. The v0.0.66 release has 15 assets and zero
+# sha/checksum files, so this is NetClaw's own record of the artifact it adopted
+# -- trust on first use, not upstream attestation. See NOTICE.md.
+#
+# The installer MUST refuse to install on mismatch. A differing hash means the
+# tag was moved or the asset was altered; either way it is not what was verified
+# against a live cluster.
+692a7b283a96140311fd46f13b8373657b2e9bfe660a36bb6434e8c42d899dbc  kubernetes-mcp-server-linux-amd64

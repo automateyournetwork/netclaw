@@ -1,0 +1,33 @@
+name: Mobile CI
+on:
+  pull_request:
+    paths: ['mobile/netclaw-mobile/**']
+
+jobs:
+  test-and-build:
+    runs-on: macos-14
+    defaults:
+      run:
+        working-directory: mobile/netclaw-mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      - run: flutter pub get
+      - run: flutter analyze
+      - run: flutter test
+      - name: Build Runner (iOS Simulator)
+        run: |
+          xcodebuild build \
+            -project ios/Runner.xcodeproj \
+            -scheme Runner \
+            -destination 'generic/platform=iOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO
+      - name: Build WatchApp (watchOS Simulator)
+        run: |
+          xcodebuild build \
+            -project ios/Runner.xcodeproj \
+            -scheme WatchApp \
+            -destination 'generic/platform=watchOS Simulator' \
+            CODE_SIGNING_ALLOWED=NO

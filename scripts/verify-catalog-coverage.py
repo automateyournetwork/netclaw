@@ -79,6 +79,9 @@ GROUPED_CONFIG_EXACT = {
     # key to "memory" and the exact match fails. Same shape as the "rag-mcp"
     # entry above -- this is a suffix-stripping artefact, not a real gap.
     "memory-mcp": "memory-mcp",
+    # Spec 096 (R12). Strips to "elasticsearch"; the catalog id is the shorter
+    # "elastic", matching how the component is named for operators.
+    "elasticsearch-mcp": "elastic",
 }
 
 # EXTERNAL_INTEGRATIONS names (from verify-inventory-counts.py) that this

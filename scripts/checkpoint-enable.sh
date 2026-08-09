@@ -198,6 +198,110 @@ fi
 echo ""
 
 # ═══════════════════════════════════════════
+# Step 4b: Prune unresolved credential placeholders
+# ═══════════════════════════════════════════
+# OpenClaw substitutes ${VAR} in an MCP server's env block only when VAR is set
+# to a NON-EMPTY value; an unset/empty VAR is handed to the server as the LITERAL
+# string "${VAR}" (and ${VAR:-default} is NOT defaulted). The management-family
+# servers accept EITHER the Smart-1 Cloud path (S1C_URL) OR the on-prem path
+# (MANAGEMENT_HOST); a leaked literal for the path you are NOT using makes the
+# server pick the wrong one and fail (e.g. "Invalid URL"). So, using the creds
+# just written to $OPENCLAW_ENV, drop chkp-* env keys whose ${VAR} is unset and
+# bake in any ${VAR:-default} defaults. Operates only on the deployed runtime
+# config (never the committed repo config). See codereview-verification.md B3.
+
+log_step "4b/5 Pruning unresolved credential placeholders in OpenClaw config..."
+
+OPENCLAW_CONFIG="${OPENCLAW_CONFIG_PATH:-$OPENCLAW_DIR/openclaw.json}"
+if [ ! -f "$OPENCLAW_CONFIG" ]; then
+    log_warn "OpenClaw config not found at $OPENCLAW_CONFIG — skipping prune."
+    log_warn "Run the base installer (scripts/install.sh) first, or set OPENCLAW_CONFIG_PATH, then re-run this script."
+elif ! command -v python3 &> /dev/null; then
+    log_warn "python3 not found — skipping prune. chkp-* servers may receive literal \${VAR} values for unset creds."
+else
+    CHKP_PRUNE_ENV="$OPENCLAW_ENV" python3 - "$OPENCLAW_CONFIG" <<'PY'
+import json, os, re, sys
+
+cfg_path = sys.argv[1]
+env_path = os.environ["CHKP_PRUNE_ENV"]
+
+# Vars set to a non-empty value in the runtime .env (what OpenClaw can resolve).
+set_vars = set()
+try:
+    with open(env_path) as fh:
+        for line in fh:
+            s = line.strip()
+            if not s or s.startswith("#") or "=" not in s:
+                continue
+            k, v = s.split("=", 1)
+            if v.strip() != "":
+                set_vars.add(k)
+except FileNotFoundError:
+    pass
+
+# Guard: if no real Check Point credential is set yet, do NOT prune (that would
+# strip every placeholder, including S1C_URL/API_KEY, from an unconfigured
+# install). Telemetry/log-level toggles don't count as credentials.
+_noncred = {"CHKP_TELEMETRY_DISABLED", "CHKP_LOG_LEVEL"}
+if not any(k.startswith("CHKP_") and k not in _noncred for k in set_vars):
+    print("  no Check Point credentials set in %s yet — skipping prune" % env_path)
+    print("  (configure creds, then re-run scripts/checkpoint-enable.sh to prune)")
+    sys.exit(0)
+
+with open(cfg_path) as fh:
+    raw = fh.read()
+cfg = json.loads(raw)
+
+# OpenClaw reads the legacy top-level "mcpServers" and the canonical "mcp"."servers".
+servers = cfg.get("mcpServers")
+if servers is None:
+    servers = cfg.get("mcp", {}).get("servers", {})
+
+pat = re.compile(r"^\$\{([A-Z0-9_]+)(?::-([^}]*))?\}$")
+dropped, baked = [], []
+for name, srv in (servers or {}).items():
+    if not name.startswith("chkp-") or not isinstance(srv.get("env"), dict):
+        continue
+    env = srv["env"]
+    for key in list(env.keys()):
+        val = env[key]
+        if not isinstance(val, str):
+            continue
+        m = pat.match(val)
+        if not m:
+            continue
+        var, default = m.group(1), m.group(2)
+        if var in set_vars:
+            continue  # OpenClaw will substitute it correctly
+        if default is not None:
+            env[key] = default            # bake the ${VAR:-default} default
+            baked.append("%s.%s=%s" % (name, key, default))
+        else:
+            del env[key]                  # drop the unresolvable bare ${VAR}
+            dropped.append("%s.%s" % (name, key))
+
+if dropped or baked:
+    with open(cfg_path + ".bak", "w") as fh:
+        fh.write(raw)                     # back up the pre-prune config
+    with open(cfg_path, "w") as fh:
+        json.dump(cfg, fh, indent=2)
+        fh.write("\n")
+    print("  pruned %d unresolved placeholder(s); baked %d default(s) in %s"
+          % (len(dropped), len(baked), cfg_path))
+    for d in dropped:
+        print("    dropped %s" % d)
+    for b in baked:
+        print("    baked   %s" % b)
+    print("  backup: %s.bak" % cfg_path)
+else:
+    print("  no unresolved chkp-* placeholders — nothing to prune")
+PY
+    [ $? -eq 0 ] && log_info "Placeholder prune complete." || log_warn "Placeholder prune reported an error."
+fi
+
+echo ""
+
+# ═══════════════════════════════════════════
 # Step 5: Verify Installation
 # ═══════════════════════════════════════════
 

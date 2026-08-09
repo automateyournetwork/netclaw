@@ -1,0 +1,1797 @@
+[
+ {
+  "name": "api_ciscoCatalystCenterNodesConfigurationSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/nodes-config",
+  "params": {},
+  "description": "Provides details about the current Cisco Catalyst Center node configuration, such as API version, node name, NTP server, intracluster link, LACP mode, network static routes, DNS server, subnet mask, host IP, default gateway, and interface information."
+ },
+ {
+  "name": "api_ciscoCatalystCenterPackagesSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/dnac-packages",
+  "params": {},
+  "description": "Provides information such as name, version of packages installed on the Cisco Catalyst Center."
+ },
+ {
+  "name": "api_ciscoCatalystCenterReleaseSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/dnac-release",
+  "params": {},
+  "description": "Provides information such as API version, mandatory core packages for installation or upgrade, optional packages, Cisco Catalyst Center name and version, supported direct updates, and tenant ID."
+ },
+ {
+  "name": "api_ciscoISEServerIntegrationStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ise-integration-status",
+  "params": {},
+  "description": "Checks Cisco ISE server integration workflow status. This reports integration progress, completion, failures, and integration step status only. It does not return the configured ISE server state; configured ISE server state belongs to Authentication and Policy Server inventory."
+ },
+ {
+  "name": "api_countOfNetworkProductNames",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/productNames/count",
+  "params": {
+   "productId": "query",
+   "productName": "query"
+  },
+  "description": "Count of product names based on filter criteria"
+ },
+ {
+  "name": "api_countOfSecurityServiceInsertionSummaries",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertionSummaries/count",
+  "params": {},
+  "description": "Retrieves the total count of Security Service Insertion (SSI) summaries."
+ },
+ {
+  "name": "api_countOfSecurityServiceInsertions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertions/count",
+  "params": {},
+  "description": "Retrieves the count of Security Service Insertions."
+ },
+ {
+  "name": "api_disasterRecoveryOperationalStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/disasterrecovery/system/operationstatus",
+  "params": {},
+  "description": "Returns the status of Disaster Recovery operation performed on the system."
+ },
+ {
+  "name": "api_disasterRecoveryStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/disasterrecovery/system/status",
+  "params": {},
+  "description": "Detailed and Summarized status of DR components (Active, Standby and Witness system's health)."
+ },
+ {
+  "name": "api_downloadAFileByFileId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/file/{fileId}",
+  "params": {
+   "fileId": "path"
+  },
+  "description": "Downloads a file specified by fileId"
+ },
+ {
+  "name": "api_downloadFlexibleReport",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/flexible-report/report/content/{reportId}/{executionId}",
+  "params": {
+   "Content-Type": "header",
+   "executionId": "path",
+   "reportId": "path"
+  },
+  "description": "This is used to download the flexible report. The API returns report content. Save the response to a file by converting the response data as a blob and setting the file format available from content-disposition response header."
+ },
+ {
+  "name": "api_downloadsASpecificICAPPacketCaptureFile",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/captureFiles/{id}/download",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Downloads a specific ICAP packet capture file. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getAAAAttributeAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/users/external-servers/aaa-attribute",
+  "params": {},
+  "description": "Get the current value of the custom AAA attribute."
+ },
+ {
+  "name": "api_getAScheduledReport",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/reports/{reportId}",
+  "params": {
+   "reportId": "path"
+  },
+  "description": "Get scheduled report configuration by reportId"
+ },
+ {
+  "name": "api_getAccessPointRebootTaskResult",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/device-reboot/apreboot/status",
+  "params": {
+   "parentTaskId": "query"
+  },
+  "description": "Users can query the access point reboot status using this intent API"
+ },
+ {
+  "name": "api_getActivities",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/activities",
+  "params": {
+   "description": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "recurring": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "status": "query",
+   "type": "query"
+  },
+  "description": "Returns activity(s) based on filter criteria"
+ },
+ {
+  "name": "api_getActivityByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/intent/api/v1/activities/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the activity with the given ID"
+ },
+ {
+  "name": "api_getAllBackup",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backups",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "query": "query",
+   "sortBy": "query"
+  },
+  "description": "**Pick this tool for backup INVENTORY and backup HISTORY questions.**\n\nThis tool lists backups available in the configured Catalyst Center backup storage with optional filtering, sorting, and pagination. It returns backup identifiers plus summary fields such as status, dates, size, scope, storage, compatibility, and availability.\n\n**Use this tool when the user asks:**\n- to show all backups or available backups\n- whether there are failed backups\n- which backups are available for restore\n- for backup history or recent backups\n- for backups created by a specific user, status, or time period\n- for a list of backups before drilling into one backup in detail\n\n**Pick this tool for questions like:**\n- \"Show me all backups\"\n- \"List available backups\"\n- \"Are there any failed backups?\"\n- \"What backups can be restored?\"\n- \"Show the latest backups\"\n- \"Show backups created by system\"\n- \"List backups from the last week\"\n\n**Do NOT use this tool for:**\n- current backup configuration/settings\n- mounted backup storage capacity questions\n- configured NFS server health\n- detailed diagnostics for one backup execution\n\nWhen the user wants full package, version, or compatibility details for a single backup, first call this tool to get the backup `id`, then call `api_getBackupById`."
+ },
+ {
+  "name": "api_getAllFlexibleReportSchedules",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/flexible-report/schedules",
+  "params": {
+   "Content-Type": "header"
+  },
+  "description": "Get all flexible report schedules"
+ },
+ {
+  "name": "api_getAllGlobalCredentialsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/global-credential",
+  "params": {},
+  "description": "API to get device credentials' details. It fetches all global credentials of all types at once, without the need to pass any input parameters."
+ },
+ {
+  "name": "api_getAllITSMIntegrationSettings",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/integration-settings/itsm/instances",
+  "params": {
+   "order": "query",
+   "page": "query",
+   "page_size": "query",
+   "sortBy": "query"
+  },
+  "description": "Fetches all ITSM Integration settings instances and their configurations based on the user inputs. It can answer questions like What ITSM integrations are configured? or List all ITSM integration settings and their details."
+ },
+ {
+  "name": "api_getAllTheCustomIssueDefinitionsBasedOnTheGivenFilters",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/customIssueDefinitions",
+  "params": {
+   "X-CALLER-ID": "header",
+   "facility": "query",
+   "id": "query",
+   "isEnabled": "query",
+   "limit": "query",
+   "mnemonic": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "priority": "query",
+   "profileId": "query",
+   "severity": "query",
+   "sortBy": "query"
+  },
+  "description": "Retrieve the existing syslog-based custom issue definitions. The supported filters are id, name, profileId,  definition enable status, priority, severity, facility and mnemonic. The issue definition configurations may vary across profiles, hence specifying the profile Id in the query parameter is important and the default profile is global.\n\n  The assurance profile definitions can be obtain via the API endpoint: /api/v1/siteprofile?namespace=assurance. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceUserDefinedIssueAPIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getAllowedMacAddress",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/security/threats/rogue/allowed-list",
+  "params": {
+   "Content-Type": "header",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Intent API to fetch all the allowed mac addresses in the system."
+ },
+ {
+  "name": "api_getAllowedMacAddressCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/security/threats/rogue/allowed-list/count",
+  "params": {
+   "Content-Type": "header"
+  },
+  "description": "Intent API to fetch the count of allowed mac addresses in the system."
+ },
+ {
+  "name": "api_getApplicationCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/applications-count",
+  "params": {
+   "scalableGroupType": "query"
+  },
+  "description": "Get the number of all existing applications"
+ },
+ {
+  "name": "api_getApplicationPolicy",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/app-policy",
+  "params": {
+   "policyScope": "query"
+  },
+  "description": "Get all existing application policies"
+ },
+ {
+  "name": "api_getApplicationPolicyDefault",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/app-policy-default",
+  "params": {},
+  "description": "Get default application policy"
+ },
+ {
+  "name": "api_getApplicationPolicyQueuingProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/app-policy-queuing-profile",
+  "params": {
+   "name": "query"
+  },
+  "description": "Get all or by name, existing application policy queuing profiles"
+ },
+ {
+  "name": "api_getApplicationPolicyQueuingProfileCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/app-policy-queuing-profile-count",
+  "params": {},
+  "description": "Get the number of all existing  application policy queuing profile"
+ },
+ {
+  "name": "api_getApplicationSetCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/application-policy-application-set-count",
+  "params": {
+   "scalableGroupType": "query"
+  },
+  "description": "Get the number of all existing application sets"
+ },
+ {
+  "name": "api_getApplicationSet_s",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/application-policy-application-set",
+  "params": {
+   "attributes": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Get application set/s by offset/limit or by name"
+ },
+ {
+  "name": "api_getApplicationSets",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/application-policy-application-set",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Get appllication-sets by offset/limit or by name"
+ },
+ {
+  "name": "api_getApplicationSetsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/application-policy-application-set-count",
+  "params": {},
+  "description": "Get the number of existing application-sets"
+ },
+ {
+  "name": "api_getApplication_s",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/applications",
+  "params": {
+   "attributes": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Get application/s by offset/limit or by name"
+ },
+ {
+  "name": "api_getApplications",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/applications",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Get applications by offset/limit or by name"
+ },
+ {
+  "name": "api_getApplicationsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/applications-count",
+  "params": {},
+  "description": "Get the number of all existing applications"
+ },
+ {
+  "name": "api_getAuthenticationAndPolicyServers",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/authentication-policy-servers",
+  "params": {
+   "isIseEnabled": "query",
+   "role": "query",
+   "state": "query"
+  },
+  "description": "Retrieves configured Authentication and Policy Servers, including AAA servers and ISE servers, with server attributes such as IP address, server state, role, authentication port, accounting port, and ISE enablement. This is the configured-server inventory for AAA server state and ISE server state. Generic ISE server state is the state field in this inventory, not the ISE integration workflow status. For a specific AAA or ISE server attribute, retrieve the server records with this API first, match the server by ipAddress when an IP address is provided, and answer from the matching returned record."
+ },
+ {
+  "name": "api_getBackupById",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backups/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "**Pick this tool for ONE specific backup when you already know the backup ID.**\n\nThis tool retrieves the full details for a specific backup by backup UUID, including installed packages, versions, compatibility errors, storage details, size, dates, and restore compatibility.\n\n**Use this tool when the user asks:**\n- for full details of one known backup\n- what packages or versions are included in a backup\n- whether a specific backup is compatible for restore\n- when a specific backup was created and by whom\n- for the storage or scope details of a specific backup\n\n**Pick this tool for questions like:**\n- \"Show details for backup <id>\"\n- \"What packages are in backup <id>?\"\n- \"Is backup <id> compatible for restore?\"\n- \"When was backup <id> created?\"\n- \"Show me everything about backup <id>\"\n\n**Do NOT use this tool for:**\n- discovering which backups exist\n- listing all backups or failed backups\n- backup execution history\n\nThis is the detail view for a known backup. If the identifier is unknown, call `api_getAllBackup` first to obtain the backup `id`."
+ },
+ {
+  "name": "api_getBackupConfiguration",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backupConfiguration",
+  "params": {},
+  "description": "**Pick this tool for backup SETTINGS and configuration questions.**\n\nThis tool retrieves the current Catalyst Center backup configuration, including retention policy, configured storage type, mount path, and whether an encryption passphrase is available.\n\n**Use this tool when the user asks:**\n- whether backups are configured\n- what the backup retention policy is\n- what storage backend or mount path is configured for backups\n- whether an encryption passphrase is available for backups\n- what the current backup settings are\n\n**Pick this tool for questions like:**\n- \"Is backup configured on this cluster?\"\n- \"What is the backup retention policy?\"\n- \"What backup settings are configured?\"\n- \"What mount path is configured for backups?\"\n- \"Is an encryption passphrase configured for backup?\"\n\n**Do NOT use this tool for:**\n- listing historical backups or available backups\n- backup or restore job history\n- NFS server health or unhealthy nodes\n\nUse `api_getAllBackup` for backup inventory/history and `api_getNfsConfigurations` for NFS backup server health details."
+ },
+ {
+  "name": "api_getBackupRestoreExecution",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backupRestoreExecutions/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "**Pick this tool for ONE specific backup or restore execution when you already know the execution ID.**\n\nThis tool retrieves the full details for one backup or restore execution by execution UUID, including error diagnostics, task-level details, status, timing, and failure information.\n\n**Use this tool when the user asks:**\n- why a specific backup execution failed\n- why a specific restore execution failed\n- for detailed status of one execution\n- for task-by-task details of one execution\n- for error codes or error messages for one known execution\n\n**Pick this tool for questions like:**\n- \"Why did backup execution <id> fail?\"\n- \"Show details for restore job <id>\"\n- \"What tasks ran in execution <id>?\"\n- \"Give me the error for backup execution <id>\"\n- \"Show execution diagnostics for <id>\"\n\n**Do NOT use this tool for:**\n- listing all backup jobs or restore jobs\n- discovering execution IDs\n- listing available backups\n\nObtain the execution identifier from `api_getBackupRestoreExecutions`."
+ },
+ {
+  "name": "api_getBackupRestoreExecutions",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backupRestoreExecutions",
+  "params": {
+   "backupId": "query",
+   "jobType": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "status": "query"
+  },
+  "description": "**Pick this tool for backup JOB HISTORY and restore JOB HISTORY questions.**\n\nThis tool lists backup and restore execution history with optional filtering by backup, job type, status, pagination, and sorting.\n\n**Use this tool when the user asks:**\n- about backup jobs or restore jobs\n- for failed backup executions or failed restore attempts\n- whether any backup or restore job is in progress\n- for execution history for a known backup\n- for restore attempts, delete-backup jobs, or job status trends\n\n**Pick this tool for questions like:**\n- \"Show me backup jobs\"\n- \"List restore attempts\"\n- \"Are there any backups in progress?\"\n- \"Which backup jobs failed?\"\n- \"Show execution history for backup <id>\"\n- \"List failed restore jobs\"\n- \"Show recent backup executions\"\n\n**Do NOT use this tool for:**\n- listing available backups themselves\n- backup configuration/settings\n- mounted backup storage capacity\n- detailed diagnostics for one specific execution after you already have the execution ID\n\nThis is the list view for executions. When the user needs detailed diagnostics for one execution, first obtain the execution `id` here and then call `api_getBackupRestoreExecution`."
+ },
+ {
+  "name": "api_getBackupStorages",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backupStorages",
+  "params": {
+   "storageType": "query"
+  },
+  "description": "**Pick this tool for mounted BACKUP STORAGE CAPACITY and backup disk usage questions.**\n\nThis tool retrieves mounted backup storage information such as mount point, filesystem details, total capacity, used capacity, and usage percentage for a specific storage type.\n\n**Use this tool when the user asks:**\n- how much backup space is available\n- how full the backup disk or backup storage is\n- what mount point is used for backup storage\n- what mounted storage backend is used for backups\n- for NFS, physical disk, or remote server backup storage capacity details\n\n**Pick this tool for questions like:**\n- \"How much backup space is available?\"\n- \"Show backup storage usage\"\n- \"How full is the backup disk?\"\n- \"What backup storage is mounted?\"\n- \"Show NFS backup storage capacity\"\n- \"What is the free space on backup storage?\"\n\n**Do NOT use this tool for:**\n- backup configuration settings like retention policy\n- listing available backups\n- backup or restore execution history\n- configured NFS server definitions or unhealthy nodes\n\nIf the user asks generally about backup storage and does not specify a type, default to `NFS`. Use `api_getNfsConfigurations` instead when the question is about configured NFS servers and their health rather than mounted storage capacity."
+ },
+ {
+  "name": "api_getCMDBSyncStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/cmdb-sync/detail",
+  "params": {
+   "date": "query",
+   "status": "query"
+  },
+  "description": "This API allows to retrieve the detail of CMDB sync status.It accepts two query parameter \"status\",\"date\".The supported values for status field are \"Success\",\"Failed\",\"Unknown\" and date field should be in \"YYYY-MM-DD\" format. By default all the cmdb sync status will be send as response and based on the query parameter filtered detail will be send as response."
+ },
+ {
+  "name": "api_getDeviceDeploymentStatusCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/icapSettings/deviceDeployments/count",
+  "params": {
+   "deployActivityId": "query",
+   "networkDeviceIds": "query"
+  },
+  "description": "Returns the count of device deployment status(s) based on filter criteria. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-ICAP_APIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getDeviceEnrichmentDetailsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/device-enrichment-details",
+  "params": {
+   "entity_type": "header",
+   "entity_value": "header"
+  },
+  "description": "Retrieve Catalyst Center network device enrichment context for a known device ID, device MAC address, or device management IP address. Use this release-specific OpenAPI enrichment endpoint when the request is about enriched device context, neighbor topology, or enriched device details rather than a simple inventory lookup. Always send both required parameters: set entity_type to device_id, mac_address, or ip_address, and put the actual identifier only in entity_value."
+ },
+ {
+  "name": "api_getEoXDetailsPerDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/eox-status/device/{deviceId}",
+  "params": {
+   "deviceId": "path"
+  },
+  "description": "**MANDATORY PREREQUISITE:** For site-scoped EOX queries, you MUST call `api_getSites` before `get_device_details`, and you MUST call `get_device_details` before `api_getEoXDetailsPerDevice`.\n\n**Steps:**\n1. Call `api_getSites` with the user-specified site name.\n2. Extract the `nameHierarchy` from the `api_getSites` response.\n3. Call `get_device_details` with `siteHierarchy` set to the extracted `nameHierarchy` to retrieve the devices in that site.\n4. Extract the `deviceId` or device UUID for each matching device from the `get_device_details` response.\n5. Call `api_getEoXDetailsPerDevice` with `deviceId` set to each resolved device UUID.\n6. Use the returned per-device EOX details or per-device `alertCount` values to answer the user's site-scoped EOX question.\n\n**Exception:** Skip step 1 if the user already provides an exact site hierarchy value that can be passed directly as `siteHierarchy` to `get_device_details`. Skip steps 1-3 if the user already provides a valid device UUID directly for a specific device.\n\n**Returns:** Detailed EOX information for a specific device, including per-device alert count, alert details, alert type, bulletin information, lifecycle dates, scan status, comments, and last scan time. For site-scoped questions, this tool should be executed after resolving the site to devices and then called once per device."
+ },
+ {
+  "name": "api_getEoXStatusForAllDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/eox-status/device",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Use this API for network-wide, device-level retrieval of EOX information when the user wants to display, list, fetch, report, review, or enumerate EOX alerts or EOX status across all devices, every device, or all network devices. It is the correct API for complete per-device EOX alert coverage across the network, including which devices have alerts, each device's alert count, per-device hardware/software/module EOX type breakdown, scan status, comments, and last scan time. This API returns a collection of device records for device-by-device EOX alert visibility across the network, not aggregate network totals.\n\n**MANDATORY POST-PROCESSING:** The returned `deviceId` is for internal lookup only and must not be shown in user-facing output. For every device record that will be included in the response, call `get_device_details` with `device_id` set to the returned `deviceId`, resolve the device name and management IPv4 address, and present the device name or management IP instead of the raw internal identifier.\n\n**Steps:**\n1. Call `api_getEoXStatusForAllDevices`\n2. Read the returned per-device EOX records\n3. For each returned `deviceId`, call `get_device_details` with `device_id` equal to that value\n4. Use the resolved device name and/or management IPv4 address in the final response\n5. Do not expose raw `deviceId` values unless the user explicitly asks for internal UUIDs\n\n**Exception:** If the user explicitly asks for internal device identifiers, the raw `deviceId` may be included. Do not use this API when the user only needs summary counts such as overall hardware, software, module, or total EOX alert counts."
+ },
+ {
+  "name": "api_getEoXSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/eox-status/summary",
+  "params": {},
+  "description": "Retrieves EoX summary for all devices in the network"
+ },
+ {
+  "name": "api_getExternalAuthenticationServersAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/users/external-servers",
+  "params": {
+   "invokeSource": "query"
+  },
+  "description": "Get external users authentication servers."
+ },
+ {
+  "name": "api_getExternalAuthenticationSettingAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/users/external-authentication",
+  "params": {},
+  "description": "Get the External Authentication setting."
+ },
+ {
+  "name": "api_getFlexibleReportScheduleByReportId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/flexible-report/schedule/{reportId}",
+  "params": {
+   "Content-Type": "header",
+   "reportId": "path"
+  },
+  "description": "Get flexible report schedule by report id"
+ },
+ {
+  "name": "api_getGlobalCredentials",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/global-credential",
+  "params": {
+   "credentialSubType": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Get credentials by type. Returns CLI, SNMP read, SNMP write, SNMPv3, HTTP read, HTTP write, or NETCONF credentials."
+ },
+ {
+  "name": "api_getITSMIntegrationSettingById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/integration-settings/instances/itsm/{instanceId}",
+  "params": {
+   "instanceId": "path"
+  },
+  "description": "Fetches ITSM Integration setting by ID"
+ },
+ {
+  "name": "api_getITSMIntegrationStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/integration-settings/status",
+  "params": {},
+  "description": "Fetches ITSM Integration status and also lists the bundles as needed, along with their configurations. Used mainly to check the status of the bundles. It is capable answering questions like What is the status of X bundle ? or Give me a list of all bundles and their statuses?"
+ },
+ {
+  "name": "api_getIssueTriggerDefinitionForGivenId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/systemIssueDefinitions/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Get system issue defintion for the given id. Definition includes all properties from IssueTriggerDefinition schema by default. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getL3TopologyDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/topology/l3/{topologyType}",
+  "params": {
+   "topologyType": "path"
+  },
+  "description": "Returns the Layer 3 network topology by routing protocol"
+ },
+ {
+  "name": "api_getListOfAvailableNamespaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/file/namespace",
+  "params": {},
+  "description": "Returns list of available namespaces"
+ },
+ {
+  "name": "api_getListOfScheduledReports",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/reports",
+  "params": {
+   "viewGroupId": "query",
+   "viewId": "query"
+  },
+  "description": "Get list of scheduled report configurations."
+ },
+ {
+  "name": "api_getNfsConfigurations",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/backupNfsConfigurations",
+  "params": {},
+  "description": "**Pick this tool for NFS BACKUP SERVER configuration and NFS HEALTH questions.**\n\nThis tool retrieves all configured NFS backup definitions and their health state, including NFS server host, ports, export path, mounted destination path, configuration state, and unhealthy nodes.\n\n**Use this tool when the user asks:**\n- which NFS servers are configured for backups\n- whether NFS backup storage is healthy\n- what NFS export path, destination path, port, or NFS version is configured\n- whether any nodes are unhealthy for the NFS backup mount\n- for NFS-specific connectivity or health details\n\n**Pick this tool for questions like:**\n- \"What NFS servers are configured for backup?\"\n- \"Is the NFS backup mount healthy?\"\n- \"Show NFS backup configuration\"\n- \"What export path is configured for NFS backup?\"\n- \"Are any NFS backup nodes unhealthy?\"\n- \"What NFS version is configured for backup?\"\n\n**Do NOT use this tool for:**\n- mounted storage capacity or free-space questions\n- listing available backups\n- backup configuration retention settings\n- backup or restore job history\n\nThis tool is about NFS configuration and health, not storage capacity. Use `api_getBackupStorages` for mounted backup disk usage and free space."
+ },
+ {
+  "name": "api_getPendingFabricEvents",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sda/pendingFabricEvents",
+  "params": {
+   "fabricId": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Returns a list of pending fabric events that match the provided query parameters."
+ },
+ {
+  "name": "api_getPermissionsAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/role/permissions",
+  "params": {},
+  "description": "Get permissions for a role in the system."
+ },
+ {
+  "name": "api_getPortChannelInformationById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lanAutomation/portChannels/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API retrieves Port Channel information using its ID."
+ },
+ {
+  "name": "api_getPortChannels",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lanAutomation/portChannels",
+  "params": {
+   "device1ManagementIPAddress": "query",
+   "device1Uuid": "query",
+   "device2ManagementIPAddress": "query",
+   "device2Uuid": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Returns a list of Port Channel between the LAN Automation associated devices."
+ },
+ {
+  "name": "api_getProject_s_Details",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/template-programmer/project",
+  "params": {
+   "id": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "sortOrder": "query"
+  },
+  "description": "Get project(s) details"
+ },
+ {
+  "name": "api_getProvisionedDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sda/provisionDevices",
+  "params": {
+   "id": "query",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "siteId": "query"
+  },
+  "description": "Returns the count of provisioned devices based on query parameters. For PnP devices, use api_getPnPDeviceCount(state=Provisioned) instead."
+ },
+ {
+  "name": "api_getProvisionedDevicesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sda/provisionDevices/count",
+  "params": {
+   "siteId": "query"
+  },
+  "description": "Returns the count of provisioned devices based on query parameters. For PnP devices, use api_getPnPDeviceCount(state=Provisioned) instead."
+ },
+ {
+  "name": "api_getProvisioningSettings",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/provisioningSettings",
+  "params": {},
+  "description": "Returns provisioning settings"
+ },
+ {
+  "name": "api_getQosDeviceInterfaceInfo",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/qos-device-interface-info",
+  "params": {
+   "networkDeviceId": "query"
+  },
+  "description": "Get all or by network device id, existing qos device interface infos"
+ },
+ {
+  "name": "api_getQosDeviceInterfaceInfoCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/qos-device-interface-info-count",
+  "params": {},
+  "description": "Get the number of all existing qos device interface infos group by network device id"
+ },
+ {
+  "name": "api_getRolesAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/roles",
+  "params": {
+   "invokeSource": "header"
+  },
+  "description": "Get all roles in the system"
+ },
+ {
+  "name": "api_getServiceProviderDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/service-provider",
+  "params": {},
+  "description": "API to get service provider details (QoS)."
+ },
+ {
+  "name": "api_getServiceProviderDetailsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/service-provider",
+  "params": {},
+  "description": "API to get Service Provider details (QoS)."
+ },
+ {
+  "name": "api_getTag",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag",
+  "params": {
+   "additionalInfo.attributes": "query",
+   "additionalInfo.nameSpace": "query",
+   "field": "query",
+   "level": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "size": "query",
+   "sortBy": "query",
+   "systemTag": "query"
+  },
+  "description": "**TAG DEFINITION LISTING RULE:**\n- Use this API to enumerate existing tag definitions when the user asks for available, existing, default/system, or custom/user-created tags.\n- For an unfiltered tag-definition inventory, omit both `name` and `systemTag`.\n- Use `systemTag=true` only for system-created/default tag definitions, and `systemTag=false` only for user-created/custom tag definitions.\n- Do not use `api_getTagResourceTypes` for tag-definition inventory; that tool returns taggable object categories, not existing tag records.\n**TAG PHRASE INTERPRETATION RULE:**\n- When the user says `tag <value>`, `tagged <value>`, `tagged with <value>`, `tagged as <value>`, `with <value> tag`, `under tag <value>`, or `in tag <value>`, treat `<value>` as a tag name and pass that literal value to `name`.\n- Tag names can look like switch names, device labels, site names, interface labels, operational states, or camelCase words. The presence of words like switch, device, site, port, interface, up, or down inside the value does not change it into a device/site/interface lookup when the user introduced it as a tag.\n- Do not reinterpret a tag name as a switch, hostname, site, interface, IP address, or inventory search term.\n\n**NAMED-TAG RESOLVER RULE:**\n- Use this API first when the user gives a human-readable tag name and asks for devices, ports, interfaces, or member counts inside that tag.\n- This tool resolves the tag name to a tag UUID. It is not the final answer tool for member questions.\n- After a successful response containing an `id`, immediately call exactly one companion member tool:\n  - `api_getTagMembersById` for list/show/get/find/which/what member requests.\n  - `api_getTagMemberCount` for count/how-many/total/number member requests.\n- For device membership, the companion tool must use `memberType=\"networkdevice\"`.\n- For port or interface membership, the companion tool must use `memberType=\"interface\"`.\n- Repeating `api_getTag` with the same tag name after a UUID has been returned is incorrect; move to the companion member tool.\n\n**DO NOT SUBSTITUTE:**\n- Do not use `api_getTagCount` for named-tag member counts; it counts tag definitions, not members.\n- Do not use `api_getInterfaces` or generic device/interface inventory tools to answer which resources are in one tag.\n- Do not use inverse association tools when the user wants tag-to-member lookup.\n- Do not start with `api_getTagResourceTypes`, site tools, or knowledge-base fallback for live named-tag membership questions.\n- Do not reuse the tag name as a site name, device name, interface name, IP address, or UUID.\n\n**TAG + SITE OR COMPLIANCE NOTE:**\n- If a request combines a named tag with a site or compliance filter, this API still only resolves the tag UUID. Ground the tag by calling `api_getTagMembersById` with that UUID before applying site or compliance filtering."
+ },
+ {
+  "name": "api_getTagById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns tag specified by Id"
+ },
+ {
+  "name": "api_getTagCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag/count",
+  "params": {
+   "attributeName": "query",
+   "name": "query",
+   "nameSpace": "query",
+   "size": "query",
+   "systemTag": "query"
+  },
+  "description": "**TAG PHRASE EXCLUSION:**\n- If the user asks how many/count/total/number of devices, network devices, ports, or interfaces are `tagged`, `with <value> tag`, `under tag <value>`, or `in tag <value>`, do not use this tool. The value is a tag name for a member-count workflow, not a tag-definition count filter.\n- Use `api_getTag` followed by `api_getTagMemberCount` for named-tag member counts, even when the tag name looks like a switch, device, site, port, interface, or operational state.\n\n\"How many tag definitions exist?\" \"Count user-created tags\" \"How many system tags are there?\" \u2014 USE THIS API only for counting TAG DEFINITIONS.\n\nThis API returns the count of tag definitions. It does NOT return the number of devices, ports, or interfaces inside a tag.\n\n**MANDATORY \u2014 USE THIS API FOR:**\n- total tag count\n- count of user-created or system-created tags\n- how many tag definitions match a given name\n- questions about whether duplicate tag definitions exist\n\n**DO NOT USE THIS API FOR:**\n- \"How many devices are tagged with <tag name>?\"\n- \"What's the count of devices with <tag name> tag?\"\n- \"How many ports are tagged with <tag name>?\"\n- \"How many interfaces are tagged with <tag name>?\"\n- \"How many ports/interfaces are tagged with <tag name>?\"\n- \"List devices in tag <tag name>\"\n- \"Show interfaces in tag <tag name>\"\n- Any named-tag membership question\n\n**NEGATIVE FEW-SHOT EXAMPLES:**\n- User: \"What's the count of devices with <tag name> tag?\" -> do NOT use `api_getTagCount`; use `api_getTag` -> `api_getTagMemberCount`\n- User: \"How many ports are tagged with <tag name>?\" -> do NOT use `api_getTagCount`; use `api_getTag` -> `api_getTagMemberCount`\n\nFor named-tag member counts, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. extract the UUID\n3. `api_getTagMemberCount(id=<UUID>, memberType=<networkdevice_or_interface>)`\n\n**WRONG ROUTING TO AVOID:**\n- Never use `api_getTagCount` just because the question contains \"count\", \"how many\", or \"total\".\n- Never use `api_getTagCount` for device-count or interface-count questions inside a tag.\n- STOP and switch to `api_getTag` -> `api_getTagMemberCount` when the question is about members of a named tag."
+ },
+ {
+  "name": "api_getTagMemberCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag/{id}/member/count",
+  "params": {
+   "id": "path",
+   "memberAssociationType": "query",
+   "memberType": "query"
+  },
+  "description": "**TAG MEMBER COUNT TOOL:**\n- Select this tool together with `api_getTag` when the user provides a human-readable tag name and asks how many, count, total, or number of members are inside that tag.\n- Execute this tool after `api_getTag` returns the tag UUID. This tool requires a UUID in `id`; never pass the tag name as `id`.\n- Use this for counts of devices, ports, or interfaces inside one named tag.\n- Use `memberType=\"networkdevice\"` when counting devices.\n- Use `memberType=\"interface\"` when counting ports or interfaces.\n**TAG NAME DISAMBIGUATION:**\n- If the request uses `tag`, `tagged`, `with <value> tag`, `under tag`, or `in tag` and asks how many/count/total/number of devices, network devices, ports, or interfaces belong to that value, select this tool with `api_getTag`.\n- The value introduced by the tag phrase remains a tag name even if it contains words like switch, device, site, port, interface, up, or down. Do not route it to site, device, interface, inventory count, or tag-definition count tools.\n- For device counts inside the tag, use `memberType=\"networkdevice\"`. For port or interface counts inside the tag, use `memberType=\"interface\"`.\n\n**REQUIRED WORKFLOW:**\n1. `api_getTag(name=<tag_name>)`\n2. Extract the returned tag UUID.\n3. `api_getTagMemberCount(id=<UUID>, memberType=<networkdevice_or_interface>)`\n\n**DO NOT SUBSTITUTE:**\n- Do not use `api_getTagCount`; that counts tag definitions, not members inside one tag.\n- Do not use generic device counts, onboarding counts, compliance counts, or field-notice counts for named-tag member counts.\n- Do not use inverse tag-association tools or generic inventory tools to reconstruct a count indirectly.\n- Do not leave the workflow at `api_getTag`, and do not keep calling `api_getTag` repeatedly after the UUID has already been resolved.\n- Do not use this tool for list/show/which member questions; use `api_getTagMembersById` after `api_getTag` instead.\n- Do not fall back to generic KB guidance for live named-tag count questions."
+ },
+ {
+  "name": "api_getTagMembersById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag/{id}/member",
+  "params": {
+   "id": "path",
+   "level": "query",
+   "limit": "query",
+   "memberAssociationType": "query",
+   "memberType": "query",
+   "offset": "query"
+  },
+  "description": "**TAG MEMBER LISTING TOOL:**\n- Select this tool together with `api_getTag` when the user provides a human-readable tag name and asks to list, show, get, find, identify, or ask what/which members are inside that tag.\n- Execute this tool after `api_getTag` returns the tag UUID. This tool requires a UUID in `id`; never pass the tag name as `id`.\n- Use this for tag-to-device and tag-to-interface/tag-to-port listing workflows.\n- Use `memberType=\"networkdevice\"` when the requested members are devices.\n- Use `memberType=\"interface\"` when the requested members are ports or interfaces.\n**TAG NAME DISAMBIGUATION:**\n- If the request uses `tag`, `tagged`, `with <value> tag`, `under tag`, or `in tag` and asks which/list/show/get devices, network devices, ports, or interfaces belong to that value, select this tool with `api_getTag`.\n- The value introduced by the tag phrase remains a tag name even if it contains words like switch, device, site, port, interface, up, or down. Do not route it to site, device, interface, or inventory lookup tools.\n- For devices or network devices inside the tag, use `memberType=\"networkdevice\"`. For ports or interfaces inside the tag, use `memberType=\"interface\"`.\n\n**REQUIRED WORKFLOW:**\n1. `api_getTag(name=<tag_name>)`\n2. Extract the returned tag UUID.\n3. `api_getTagMembersById(id=<UUID>, memberType=<networkdevice_or_interface>)`\n\n**DO NOT SUBSTITUTE:**\n- Do not use this tool for count/how-many/total/number questions; use `api_getTagMemberCount` after `api_getTag` instead.\n- Do not leave the workflow at `api_getTag`; once the UUID is known, this tool performs the member lookup.\n- Do not keep calling `api_getTag` repeatedly after the UUID has already been resolved.\n- Do not use `api_getInterfaces`, generic device inventory, site lookup, resource-type discovery, or inverse tag-association tools when the user wants members of one named tag.\n- Do not fall back to generic KB guidance for live named-tag membership.\n\n**TAG + SITE OR COMPLIANCE NOTE:**\n- This API returns tag-scoped members. If the user also names a site or asks for compliance, intersect these tag members with the requested site or compliance filter before forming the final answer."
+ },
+ {
+  "name": "api_getTagResourceTypes",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tag/member/type",
+  "params": {},
+  "description": "**TAG PHRASE EXCLUSION:**\n- If the user names one tag with `tag`, `tagged`, `with <value> tag`, `under tag`, or `in tag` and asks for devices, ports, interfaces, or counts, do not use this tool. The request is about members of one tag, not taggable resource categories.\n- Use `api_getTag` followed by `api_getTagMembersById` or `api_getTagMemberCount` for named-tag membership workflows.\n\nReturns the supported resource categories that can be tagged in Cisco Catalyst Center, such as what kinds of entities are taggable. Use this tool only when the user asks about supported taggable resource types or categories.\n\n**NOT FOR TAG INVENTORY:**\n- Do not use this tool when the user asks to enumerate existing tag definitions or tag records.\n- Do not use this tool for system/default tags or user-created/custom tags.\n- Use `api_getTag` for tag-definition inventory; this tool is only for taggable resource-category capability questions.\n\nThis tool does NOT resolve a tag name, does NOT return a tag UUID, and does NOT return the members inside one named tag.\n\n**USE THIS TOOL ONLY FOR:**\n- \"What resource types can be tagged?\"\n- \"Which kinds of objects support tags?\"\n- category-level capability questions about taggable entities\n\n**DO NOT USE THIS TOOL FOR:**\n- \"Which devices have tag <tag name>?\"\n- \"List devices tagged as <tag name>\"\n- \"Get devices under tag <tag name>\"\n- \"How many devices are tagged with <tag name>?\"\n- any request about the members inside one specific named tag\n\nIf the request names one tag and asks for devices, interfaces, ports, or counts, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. then `api_getTagMembersById` or `api_getTagMemberCount`\n\n**STOP CONDITIONS:**\n- STOP if the user provided a specific tag name and wants members or counts.\n- STOP if you are about to loop on resource-type discovery instead of resolving the tag with `api_getTag`."
+ },
+ {
+  "name": "api_getTemplateProject",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/projects/{projectId}",
+  "params": {
+   "projectId": "path"
+  },
+  "description": "Get a template project by the project's ID."
+ },
+ {
+  "name": "api_getTemplateProjectCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/projects/count",
+  "params": {
+   "name": "query"
+  },
+  "description": "Get the count of all template projects."
+ },
+ {
+  "name": "api_getTemplateProjects",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/projects",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Get all matching template projects based on the filters selected."
+ },
+ {
+  "name": "api_getTemplateVersion",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/templates/{templateId}/versions/{versionId}",
+  "params": {
+   "templateId": "path",
+   "versionId": "path"
+  },
+  "description": "Get a template's version by the version ID."
+ },
+ {
+  "name": "api_getTemplateVersions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/templates/{templateId}/versions",
+  "params": {
+   "latestVersion": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "templateId": "path",
+   "versionNumber": "query"
+  },
+  "description": "Get a template's version information."
+ },
+ {
+  "name": "api_getTemplateVersionsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/templates/{templateId}/versions/count",
+  "params": {
+   "latestVersion": "query",
+   "templateId": "path",
+   "versionNumber": "query"
+  },
+  "description": "Get the count of a template's version information."
+ },
+ {
+  "name": "api_getTemplate_s_Details",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/template-programmer/template",
+  "params": {
+   "allTemplateAttributes": "query",
+   "filterConflictingTemplates": "query",
+   "id": "query",
+   "includeVersionDetails": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "productFamily": "query",
+   "productSeries": "query",
+   "productType": "query",
+   "projectId": "query",
+   "projectName": "query",
+   "softwareType": "query",
+   "softwareVersion": "query",
+   "sortOrder": "query",
+   "tags": "query",
+   "unCommitted": "query"
+  },
+  "description": "Get template(s) details"
+ },
+ {
+  "name": "api_getTheCountOfSystemDefinedIssueDefinitionsBasedOnPr_45aa6c33",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/systemIssueDefinitions/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceType": "query",
+   "id": "query",
+   "issueEnabled": "query",
+   "name": "query",
+   "priority": "query",
+   "profileId": "query"
+  },
+  "description": "Get the count of system defined issue definitions based on provided filters. Supported filters are id, name, profileId and definition enable status. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTheCustomIssueDefinitionForTheGivenCustomIssueDe_9bd4ac38",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/customIssueDefinitions/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Get the custom issue definition for the given custom issue definition Id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceUserDefinedIssueAPIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTheTotalCustomIssueDefinitionsCountBasedOnThePro_240c53aa",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/customIssueDefinitions/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "facility": "query",
+   "id": "query",
+   "isEnabled": "query",
+   "mnemonic": "query",
+   "name": "query",
+   "priority": "query",
+   "profileId": "query",
+   "severity": "query"
+  },
+  "description": "Get the total number of Custom issue definitions count based on the provided filters. The supported filters are id, name, profileId and definition enable status, severity, facility and mnemonic. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceUserDefinedIssueAPIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getThreatLevels",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/security/threats/level",
+  "params": {
+   "Content-Type": "header"
+  },
+  "description": "Intent API to fetch all threat levels defined."
+ },
+ {
+  "name": "api_getThreatTypes",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/security/threats/type",
+  "params": {
+   "Content-Type": "header"
+  },
+  "description": "Intent API to fetch all threat types defined."
+ },
+ {
+  "name": "api_getTopologyDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/topology/l2/{vlanID}",
+  "params": {
+   "vlanID": "path"
+  },
+  "description": "Returns Layer 2 network topology for a specified VLAN ID. Use this for network-wide questions about which switches or devices participate in, have configured, or have enabled a given VLAN. If multiple switches match the VLAN, return all matching switches rather than collapsing the answer to a single switch."
+ },
+ {
+  "name": "api_getTriggeredJobsByActivityId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/activities/{activityId}/triggeredJobs",
+  "params": {
+   "activityId": "path",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Returns the triggered jobs by the activity with the given activity id"
+ },
+ {
+  "name": "api_getUserEnrichmentDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/user-enrichment-details",
+  "params": {
+   "__persistbapioutput": "header",
+   "entity_type": "header",
+   "entity_value": "header"
+  },
+  "description": "Enriches a given network End User context (a network user-id or end user\u2019s device Mac Address) with details about the user and devices that the user is connected to"
+ },
+ {
+  "name": "api_getUserEnrichmentDetailsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/user-enrichment-details",
+  "params": {
+   "entity_type": "header",
+   "entity_value": "header"
+  },
+  "description": "Retrieve Catalyst Center end-user enrichment context for a known network user identifier or client MAC address, including user and connected-device context. Use this release-specific OpenAPI enrichment endpoint when the request is about user enrichment or end-user network context. Prefer this user enrichment endpoint over client enrichment when the supplied identifier is a network user identity. Always send both required parameters: set entity_type to network_user_id for a user identity or mac_address for a client MAC address, and put the actual identifier only in entity_value."
+ },
+ {
+  "name": "api_getUsersAPI",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/user",
+  "params": {
+   "authSource": "query",
+   "invokeSource": "query"
+  },
+  "description": "Get all users in the system"
+ },
+ {
+  "name": "api_getVLANDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/topology/vlan/vlan-names",
+  "params": {},
+  "description": "Returns the list of VLAN names that are involved in a loop as identified by the Spanning Tree Protocol"
+ },
+ {
+  "name": "api_getViewDetailsForAGivenViewGroup_View",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/view-groups/{viewGroupId}/views/{viewId}",
+  "params": {
+   "viewGroupId": "path",
+   "viewId": "path"
+  },
+  "description": "Gives complete information of the view that is required to configure a report. Use \"Get views for a given view group\" API to get the viewIds  (required as a query param for this API) for available views."
+ },
+ {
+  "name": "api_getViewsForAGivenViewGroup",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/view-groups/{viewGroupId}",
+  "params": {
+   "viewGroupId": "path"
+  },
+  "description": "Gives a list of summary of all views in a viewgroup. Use \"Get all view groups\" API to get the viewGroupIds (required as a query param for this API) for available viewgroups."
+ },
+ {
+  "name": "api_get_dna_intent_api_v1_global_credential_id",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/global-credential/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the credential sub type for the given Id."
+ },
+ {
+  "name": "api_getsAllTheVersionsOfAGivenTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/template-programmer/template/version/{templateId}",
+  "params": {
+   "templateId": "path"
+  },
+  "description": "Get all the versions of template by its id"
+ },
+ {
+  "name": "api_getsDetailsOfAGivenTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/template-programmer/template/{templateId}",
+  "params": {
+   "latestVersion": "query",
+   "templateId": "path"
+  },
+  "description": "Details of the template by its id"
+ },
+ {
+  "name": "api_getsTheDetailsOfAGivenProject",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/template-programmer/project/{projectId}",
+  "params": {
+   "projectId": "path"
+  },
+  "description": "Get the details of the given project by its id."
+ },
+ {
+  "name": "api_getsTheTemplatesAvailable",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/template-programmer/template",
+  "params": {
+   "filterConflictingTemplates": "query",
+   "productFamily": "query",
+   "productSeries": "query",
+   "productType": "query",
+   "projectId": "query",
+   "projectNames": "query",
+   "softwareType": "query",
+   "softwareVersion": "query",
+   "sortOrder": "query",
+   "tags": "query",
+   "unCommitted": "query"
+  },
+  "description": "List the templates available"
+ },
+ {
+  "name": "api_importMapArchive_ImportStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/maps/import/{importContextUuid}/status",
+  "params": {
+   "importContextUuid": "path"
+  },
+  "description": "Gets the status of a map archive import operation. For a map archive import that has just been initiated, will provide the result of validation of the archive and a pre-import preview of what will be performed if the import is performed.  Once an import is requested to be performed, this API will give the status of the import and upon completion a post-import summary of what was performed by the operation."
+ },
+ {
+  "name": "api_licenseTermDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/licenses/term/smartAccount/{smart_account_id}/virtualAccount/{virtual_account_name}",
+  "params": {
+   "device_type": "query",
+   "smart_account_id": "path",
+   "virtual_account_name": "path"
+  },
+  "description": "Retrieve **license term details** only (expiry/term metadata).\n\n**DO NOT USE** for license usage/consumption/availability counts.\n- Device-type license usage questions like \"How many available licenses are there for ISE?\" MUST use `api_getLicenseUsage` with productFamily (e.g., ISE).\n- System-level licensing/compliance questions like \"Is my system compliant?\" or \"How many licenses are consumed by my system?\" MUST use `api_systemLicensingStatus`.\n\nUse this tool only when the user explicitly asks about license **terms** or **expiry details**."
+ },
+ {
+  "name": "api_listsICAPPacketCaptureFilesMatchingSpecifiedCriteria",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/captureFiles",
+  "params": {
+   "X-CALLER-ID": "header",
+   "apMac": "query",
+   "clientMac": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "type": "query"
+  },
+  "description": "Lists the ICAP packet capture (pcap) files matching the specified criteria. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_mapsSupportedAccessPoints",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/maps/supported-access-points",
+  "params": {},
+  "description": "Gets the list of supported access point types as well as valid antenna pattern names that can be used for each."
+ },
+ {
+  "name": "api_readFabricSitesWithHealthSummaryFromId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/fabricSiteHealthSummaries/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Get Fabric site health summary for a specific fabric site by providing the unique fabric site id in the url path.\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-fabricSiteHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_readTransitNetworkWithItsHealthSummaryFromId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/transitNetworkHealthSummaries/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Get health summary for a specific transit Network by providing the unique transit networks id in the url path.\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-transitNetworkHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_readVirtualNetworkWithItsHealthSummaryFromId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/virtualNetworkHealthSummaries/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Get health summary for a specific Virtual Network by providing the unique virtual networks id in the url path. L2 Virtual Networks are only included in health reporting for EVPN protocol deployments. The special Layer 3 VN called \u2018INFRA_VN\u2019 is also not included for user access through Assurance virtualNetworkHealthSummaries APIS. Please find INFRA_VN related health metrics under /data/api/v1/fabricSiteHealthSummaries (Ex: attributes \u2018pubsubInfraVnGoodHealthPercentage\u2019 and \u2018bgpPeerInfraVnScoreGoodHealthPercentage\u2019).\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-virtualNetworkHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_readinessStatusForAFabricSite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertion/fabricSitesReadiness/{id}",
+  "params": {
+   "id": "path",
+   "order": "query"
+  },
+  "description": "Gets a list of SDA virtual networks for the specified fabric site, including their individual readiness status for Security Service Insertion (SSI) deployment. The result is sorted by virtualNetworkName."
+ },
+ {
+  "name": "api_readinessStatusOfSwitchesInASpecifiedVirtualNetwork_d64c1de3",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertion/fabricSitesReadiness/{siteId}/virtualNetworks/{id}",
+  "params": {
+   "id": "path",
+   "siteId": "path"
+  },
+  "description": "Gets a list of switches for the specified virtual network within a fabric site, including their individual readiness status for Security Service Insertion (SSI) deployment. The result is sorted by hostName."
+ },
+ {
+  "name": "api_retrieveLicenseSetting",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/licenseSetting",
+  "params": {},
+  "description": "Retrieves licensing settings, including Default/Active Licensing Smart Account ID.\\n\\n**Execution Policy (MANDATORY):**\\n- Use this tool directly for licensing requests about active/default smart account settings.\\n- Do NOT ask users whether they mean Licensing or PnP Smart Accounts.\\n- Treat this tool as Licensing context only.\\n\\n**Dependency Guidance:**\\n- If response returns only Smart Account ID, resolve the display name/domain using `api_smartAccountDetails` before final response when needed."
+ },
+ {
+  "name": "api_retrieveNetworkDeviceProductName",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/productNames/{productNameOrdinal}",
+  "params": {
+   "productNameOrdinal": "path"
+  },
+  "description": "Get the network device product name, its ordinal, and supported PIDs."
+ },
+ {
+  "name": "api_retrievesAllPreviousPathtracesSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/flow-analysis",
+  "params": {
+   "destIP": "query",
+   "destPort": "query",
+   "gtCreateTime": "query",
+   "lastUpdateTime": "query",
+   "limit": "query",
+   "ltCreateTime": "query",
+   "offset": "query",
+   "order": "query",
+   "periodicRefresh": "query",
+   "protocol": "query",
+   "sortBy": "query",
+   "sourceIP": "query",
+   "sourcePort": "query",
+   "status": "query",
+   "taskId": "query"
+  },
+  "description": "Returns a summary of all flow analyses stored. Results can be filtered by specified parameters."
+ },
+ {
+  "name": "api_retrievesAllTheValidationSets",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticValidationSets",
+  "params": {
+   "view": "query"
+  },
+  "description": "Retrieves all the validation sets and optionally the contained validations"
+ },
+ {
+  "name": "api_retrievesCSSMConnectionMode",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/connectionModeSetting",
+  "params": {},
+  "description": "Retrieves Cisco Smart Software Manager (CSSM) connection mode setting."
+ },
+ {
+  "name": "api_retrievesCiscoIMCConfigurationsForCatalystCenterNodes",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/ciscoImcs",
+  "params": {},
+  "description": "This API retrieves the configurations of the Cisco Integrated Management Controller (IMC) that have been added to the Catalyst Center nodes.\n\nThe Cisco IMC configuration APIs enable the management of connections between Cisco IMC and Cisco Catalyst Center. By providing the Cisco IMC IP address and credentials to Catalyst Center, Catalyst Center can access and report the health status of hardware components within the Cisco appliance.\n    \nMore data about the Cisco IMC can be retrieved using the APIs exposed directly by Cisco IMC. Details are available in the Cisco IMC documentation - https://www.cisco.com/c/en/us/support/servers-unified-computing/ucs-c-series-integrated-management-controller/series.html#~tab-documents\n    \nThe Cisco IMC configuration is relevant only for Catalyst Center deployments based on UCS appliances. In cases where Cisco IMC configuration is not supported by the deployment, these APIs will respond with a `404 Not Found` status code."
+ },
+ {
+  "name": "api_retrievesDeployedICAPConfigurationsWhileSupportingB_0c45cdf6",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/icapSettings",
+  "params": {
+   "apId": "query",
+   "captureStatus": "query",
+   "captureType": "query",
+   "clientMac": "query",
+   "limit": "query",
+   "offset": "query",
+   "wlcId": "query"
+  },
+  "description": "Retrieves deployed ICAP configurations while supporting basic filtering. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-ICAP_APIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesDetailsOfASpecificICAPPacketCaptureFile",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/captureFiles/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Retrieves details of a specific ICAP packet capture file. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesDiagnosticTaskByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticTasks/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API retrieves the diagnostic task identified by the specified `id`."
+ },
+ {
+  "name": "api_retrievesDiagnosticTaskDetailsByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticTasks/{id}/detail",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API retrieves the details of the diagnostic task identified by the specified `id`."
+ },
+ {
+  "name": "api_retrievesPreviousPathtrace",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/flow-analysis/{flowAnalysisId}",
+  "params": {
+   "flowAnalysisId": "path"
+  },
+  "description": "Returns result of a previously requested flow analysis by its Flow Analysis id"
+ },
+ {
+  "name": "api_retrievesTheApplicationQoSPolicySetting",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/qosPolicySetting",
+  "params": {},
+  "description": "API to retrieve the application QoS policy setting."
+ },
+ {
+  "name": "api_retrievesTheCiscoIMCConfigurationForACatalystCenterNode",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/ciscoImcs/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API retrieves the Cisco Integrated Management Controller (IMC) configuration for a Catalyst Center node, identified by the specified ID.\n\nThe Cisco IMC configuration APIs enable the management of connections between Cisco IMC and Cisco Catalyst Center. By providing the Cisco IMC IP address and credentials to Catalyst Center, Catalyst Center can access and report the health status of hardware components within the Cisco appliance.\n    \nMore data about the Cisco IMC can be retrieved using the APIs exposed directly by Cisco IMC. Details are available in the Cisco IMC documentation - https://www.cisco.com/c/en/us/support/servers-unified-computing/ucs-c-series-integrated-management-controller/series.html#~tab-documents\n    \nThe Cisco IMC configuration is relevant only for Catalyst Center deployments based on UCS appliances. In cases where Cisco IMC configuration is not supported by the deployment, these APIs will respond with a `404 Not Found` status code."
+ },
+ {
+  "name": "api_retrievesTheCountOfActivities",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/activities/count",
+  "params": {
+   "description": "query",
+   "endTime": "query",
+   "recurring": "query",
+   "startTime": "query",
+   "status": "query",
+   "type": "query"
+  },
+  "description": "Retrieves the count of activities"
+ },
+ {
+  "name": "api_retrievesTheCountOfDeployedICAPConfigurationsWhileS_4d6c040d",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/icapSettings/count",
+  "params": {
+   "apId": "query",
+   "captureStatus": "query",
+   "captureType": "query",
+   "clientMac": "query",
+   "wlcId": "query"
+  },
+  "description": "Retrieves the count of deployed ICAP configurations while supporting basic filtering. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-ICAP_APIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheCountOfTriggeredJobsByActivityId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/activities/{activityId}/triggeredJobs/count",
+  "params": {
+   "activityId": "path"
+  },
+  "description": "Retrieves the count of triggered jobs by activity id."
+ },
+ {
+  "name": "api_retrievesTheCountOfValidationWorkflows",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticValidationWorkflows/count",
+  "params": {
+   "endTime": "query",
+   "runStatus": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the count of workflows that have been successfully submitted and are currently available."
+ },
+ {
+  "name": "api_retrievesTheDetailsOfASpecificAAAServiceMatchingThe_dacfed38",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/aaaServices/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query"
+  },
+  "description": "Retrieves the details of the AAA Service matching the given id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AAAServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheDetailsOfASpecificDHCPServiceMatchingTh_323b9f73",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dhcpServices/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query"
+  },
+  "description": "Retrieves the details of the DHCP Service matching the given id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DHCPServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheDetailsOfASpecificDNSServiceMatchingThe_9f12711c",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dnsServices/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query"
+  },
+  "description": "Retrieves the details of the DNS Service matching the given id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DNSServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfAAAServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/aaaServices",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceName": "query",
+   "deviceSiteHierarchyId": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "serverIp": "query",
+   "siteHierarchy": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the list of AAA Services and offers basic filtering and sorting capabilities. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AAAServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfDHCPServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dhcpServices",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceName": "query",
+   "deviceSiteHierarchy": "query",
+   "deviceSiteHierarchyId": "query",
+   "deviceSiteId": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "serverIp": "query",
+   "sortBy": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the list of DHCP Services and offers basic filtering and sorting capabilities. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DHCPServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfDNSServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dnsServices",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceSiteHierarchyId": "query",
+   "deviceSiteId": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "serverIp": "query",
+   "sortBy": "query",
+   "ssid": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the list of DNS Services and offers basic filtering and sorting capabilities. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DNSServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfNetworkApplicationsAlongWithExper_23fa3c77",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/networkApplications",
+  "params": {
+   "X-CALLER-ID": "header",
+   "applicationName": "query",
+   "attribute": "query",
+   "businessRelevance": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "ssid": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the list of network applications along with experience and health metrics. If startTime and endTime are not provided, the API defaults to the last 24 hours. `siteId` is mandatory. `siteId` must be a site UUID of a building. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-NetworkApplications-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfThousandEyesTestResultsAlongWithR_c8c74987",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/thousandEyesTestResults",
+  "params": {
+   "X-CALLER-ID": "header",
+   "agentId": "query",
+   "attribute": "query",
+   "endTime": "query",
+   "limit": "query",
+   "networkDeviceName": "query",
+   "offset": "query",
+   "order": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "testId": "query",
+   "testName": "query",
+   "testType": "query"
+  },
+  "description": "Retrieves the list of ThousandEyes test results along with related metrics. If `startTime` and `endTime` are not provided, the API defaults to the last 24 hours.\n\nPlease note that `siteId` filter (if used) should be using only site UUIDs of buildings.\n  For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-thousandEyesTestResults-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfValidationWorkflows",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticValidationWorkflows",
+  "params": {
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "runStatus": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the workflows that have been successfully submitted and are currently available. This is sorted by `submitTime`"
+ },
+ {
+  "name": "api_retrievesTheSpectrumInterferenceDevicesReportsSentB_e4e5f9fd",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/spectrumInterferenceDeviceReports",
+  "params": {
+   "X-CALLER-ID": "header",
+   "apMac": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "startTime": "query",
+   "timeSortOrder": "query"
+  },
+  "description": "Retrieves the spectrum interference devices reports sent by WLC for provided AP Mac. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheSpectrumSensorReportsSentByWLCForProvidedAPMac",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/spectrumSensorReports",
+  "params": {
+   "X-CALLER-ID": "header",
+   "apMac": "query",
+   "dataType": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "startTime": "query",
+   "timeSortOrder": "query"
+  },
+  "description": "Retrieves the spectrum sensor reports sent by WLC for provided AP Mac. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalCountOfNetworkApplicationsByApplyi_72ae1f9d",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/networkApplications/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "applicationName": "query",
+   "businessRelevance": "query",
+   "endTime": "query",
+   "siteId": "query",
+   "ssid": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the number of network applications by applying basic filtering. If startTime and endTime are not provided, the API defaults to the last 24 hours. `siteId` is mandatory. `siteId` must be a site UUID of a building. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-NetworkApplications-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalCountOfThousandEyesTestResults",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/thousandEyesTestResults/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "agentId": "query",
+   "endTime": "query",
+   "networkDeviceName": "query",
+   "siteId": "query",
+   "startTime": "query",
+   "testId": "query",
+   "testName": "query",
+   "testType": "query"
+  },
+  "description": "Retrieves the total count of ThousandEyes test results for the given filters. If `startTime` and `endTime` are not provided, the API defaults to the last 24 hours.  For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-thousandEyesTestResults-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalNumberOfAAAServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/aaaServices/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceName": "query",
+   "deviceSiteHierarchy": "query",
+   "deviceSiteHierarchyId": "query",
+   "deviceSiteId": "query",
+   "endTime": "query",
+   "serverIp": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the total number of AAA Services for given parameters. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AAAServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalNumberOfDHCPServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dhcpServices/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceName": "query",
+   "deviceSiteHierarchy": "query",
+   "deviceSiteHierarchyId": "query",
+   "deviceSiteId": "query",
+   "endTime": "query",
+   "serverIp": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the total number of DHCP Services for given parameters. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DHCPServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalNumberOfDNSServicesForGivenParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/dnsServices/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceId": "query",
+   "deviceSiteHierarchyId": "query",
+   "deviceSiteId": "query",
+   "endTime": "query",
+   "serverIp": "query",
+   "ssid": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the total number of DNS Services for given parameters. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-DNSServices-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalNumberOfPacketCaptureFilesMatching_e4bb30c7",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/icap/captureFiles/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "apMac": "query",
+   "clientMac": "query",
+   "endTime": "query",
+   "startTime": "query",
+   "type": "query"
+  },
+  "description": "Retrieves the total number of packet capture files matching the specified criteria. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-icap-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesValidationDetailsForAValidationSet",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticValidationSets/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves validation details for the given validation set id"
+ },
+ {
+  "name": "api_retrievesValidationWorkflowDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnosticValidationWorkflows/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves workflow details for a workflow id"
+ },
+ {
+  "name": "api_returnListOfReplacementDevicesWithReplacementDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/device-replacement",
+  "params": {
+   "family": "query",
+   "faultyDeviceName": "query",
+   "faultyDevicePlatform": "query",
+   "faultyDeviceSerialNumber": "query",
+   "hasNeighborDevice": "query",
+   "limit": "query",
+   "offset": "query",
+   "replacementDevicePlatform": "query",
+   "replacementDeviceSerialNumber": "query",
+   "replacementStatus": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "sortOrder": "query"
+  },
+  "description": "Preferred tool for listing replacement devices and their details. Use this tool for any query about device replacement status, device family, or serial numbers. Filters by Faulty Device Name, Faulty Device Platform, Replacement Device Platform, Faulty Device Serial Number, Replacement Device Serial Number, Device Replacement status, or Product Family. Always call this tool with the provided parameters. If the API returns an empty list when filtering by faultyDeviceSerialNumber, report that no replacement record was found for that serial number \u2014 do not ask the user to clarify the identifier."
+ },
+ {
+  "name": "api_returnReplacementDevicesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/device-replacement/count",
+  "params": {
+   "family": "query",
+   "faultyDeviceName": "query",
+   "faultyDevicePlatform": "query",
+   "faultyDeviceSerialNumber": "query",
+   "replacementDevicePlatform": "query",
+   "replacementDeviceSerialNumber": "query",
+   "replacementStatus": "query"
+  },
+  "description": "Get replacement devices count"
+ },
+ {
+  "name": "api_returnsAllIssueTriggerDefinitionsForGivenFilters",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/systemIssueDefinitions",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "deviceType": "query",
+   "id": "query",
+   "issueEnabled": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "priority": "query",
+   "profileId": "query",
+   "sortBy": "query"
+  },
+  "description": "Get all system issue defintions. The supported filters are id, name, profileId and definition enable status. An issue trigger definition can be different across the profile and device type. So, `profileId` and `deviceType` in the query param is important and default is global profile and all device type. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_sdaFabricSitesReadiness",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertion/fabricSitesReadiness",
+  "params": {
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Gets a list of all SDA fabric sites along with their readiness status for Security Service Insertion (SSI) deployment."
+ },
+ {
+  "name": "api_securityServiceInsertionById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertions/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves the details of a specific Security Service Insertion (SSI) by its ID."
+ },
+ {
+  "name": "api_securityServiceInsertionReadiness",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertion/systemReadiness",
+  "params": {},
+  "description": "Gets readiness information for Security Service Insertion, including integration status, security group details, and access control information."
+ },
+ {
+  "name": "api_securityServiceInsertionSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertionSummaries",
+  "params": {
+   "fabricSiteName": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query"
+  },
+  "description": "Retrieves a summary of all Security Service Insertions (SSIs) sorted by fabricSiteName."
+ },
+ {
+  "name": "api_securityServiceInsertions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityServiceInsertions",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query"
+  },
+  "description": "Retrieves a list of all Security Service Insertions (SSIs) configured across fabric sites, sorted by name."
+ },
+ {
+  "name": "api_sensorTestResults",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/AssuranceGetSensorTestResults",
+  "params": {
+   "endTime": "query",
+   "siteId": "query",
+   "startTime": "query",
+   "testFailureBy": "query"
+  },
+  "description": "Intent API to get SENSOR test result summary"
+ },
+ {
+  "name": "api_sensors",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sensor",
+  "params": {
+   "siteId": "query"
+  },
+  "description": "Intent API to get a list of SENSOR devices"
+ },
+ {
+  "name": "api_smartAccountDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/licenses/smartAccounts",
+  "params": {},
+  "description": "**Licensing Smart Account Details**. Retrieve Licensing Smart Account information (name, id, domain, status).\\n\\n**Execution Policy (MANDATORY):**\\n- For Catalyst licensing queries, use this tool directly.\\n- Do NOT ask users whether they mean Licensing or PnP Smart Accounts.\\n- Treat Smart Account queries in this agent as Licensing context.\\n\\n**Use Cases:**\\n- Listing available Licensing Smart Accounts\\n- Resolving Smart Account Name -> Smart Account ID\\n- Checking Smart Account status/details\\n- Preparing IDs for dependent licensing tools such as `api_readNetworkDeviceLicenses`, `api_virtualAccountDetails`, and `api_getLicenseUsage`.\\n\\n**Dependency Guidance:**\\n- If a downstream tool requires `smartAccountId` and user provides only account name, call this tool first and pass the resolved ID."
+ },
+ {
+  "name": "api_statusOfTemplateDeployment",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/template-programmer/template/deploy/status/{deploymentId}",
+  "params": {
+   "deploymentId": "path"
+  },
+  "description": "API to retrieve the status of template deployment."
+ },
+ {
+  "name": "api_systemLicensingLastOperationStatus",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/license/lastOperationStatus",
+  "params": {},
+  "description": "**Tool Dependency: NONE**\n\nRetrieves the task completion status of the last/most recent licensing operation or task executed for Cisco Catalyst Center system. This is a standalone API with no prerequisites.\n\n**Use Cases:**\nUse when checking, verifying, or getting the status of completed or in-progress smart licensing operations, tasks, or jobs such as:\n- System registration operations/tasks (whether system registration completed, succeeded, failed)\n- System authorization operations/tasks (whether authorization renewal completed)\n- Any smart licensing related task execution status\n\n**What This API Does:**\nReturns task execution details:\n- status: PENDING (task in progress), SUCCESS (task completed successfully), FAILURE (task failed)\n- isError: true (failed), false (succeeded)\n- failureReason: explanation of why task failed\n- errorCode: error identifier if applicable\n- taskId: unique task identifier\n- lastUpdate: timestamp of last status update\n\n**IMPORTANT DISTINCTION:**\nThis API provides TASK/OPERATION completion status (whether an operation finished), NOT the current authorization/compliance status of the system. For current system authorization/compliance/registration state (AUTHORIZED, OUT_OF_COMPLIANCE, REGISTERED, etc.), use `api_systemLicensingStatus` instead.\n\n**When to Use:**\n- After initiating a licensing operation to check if it completed\n- Troubleshooting failed licensing tasks\n- Monitoring in-progress licensing operations\n- Getting the most recent task execution results\n\n**Do NOT:**\n- Use this API to check current system authorization status (use `api_systemLicensingStatus`)\n- Use this API to check current compliance status (use `api_systemLicensingStatus`)\n- Use this API to get registration status (use `api_systemLicensingStatus`)\n- Confuse task completion status with system operational status"
+ },
+ {
+  "name": "api_systemPerformanceAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnostics/system/performance",
+  "params": {
+   "endTime": "query",
+   "function": "query",
+   "kpi": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the aggregated metrics (total, average or maximum) of cluster key performance indicators (KPIs), such as CPU utilization, memory utilization or network rates recorded within a specified time period. The data will be available from the past 24 hours."
+ },
+ {
+  "name": "api_systemPerformanceHistoricalAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnostics/system/performance/history",
+  "params": {
+   "endTime": "query",
+   "kpi": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the average values of cluster key performance indicators (KPIs), like CPU utilization, memory utilization or network rates grouped by time intervals within a specified time range. The data will be available from the past 24 hours."
+ },
+ {
+  "name": "api_virtualAccountDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/licenses/smartAccount/{smart_account_id}/virtualAccounts",
+  "params": {
+   "smart_account_id": "path"
+  },
+  "description": "**Licensing Virtual Account Details** (Tool Dependency: CRITICAL). Retrieve Virtual Account details for a specific Licensing Smart Account.\\n\\n**Execution Policy (MANDATORY):**\\n- Use this tool directly for licensing virtual-account queries.\\n- Do NOT ask users whether they mean Licensing or PnP Smart Accounts.\\n- Treat this tool as Licensing context only.\\n\\n**REQUIRED PRE-REQUISITE:**\\nYou MUST call `api_smartAccountDetails` BEFORE calling `api_virtualAccountDetails`.\\n\\n**Step-by-step process:**\\n1. Invoke `api_smartAccountDetails` to retrieve smart accounts.\\n2. Extract the `id` from the matched smart account.\\n3. Invoke `api_virtualAccountDetails` with `smart_account_id` set to the resolved ID.\\n4. If searching for a specific virtual account name and not found, repeat for other Smart Account IDs as needed.\\n\\n**Do NOT:**\\n- Use this tool to list Smart Accounts (use `api_smartAccountDetails`)\\n- Call this tool without a valid Smart Account ID"
+ }
+]

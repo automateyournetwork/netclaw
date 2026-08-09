@@ -14,6 +14,16 @@ from typing import Optional
 
 logger = logging.getLogger("n2n.audit")
 
+# Feature 100 (FR-003): outcomes an operator may need to act on, emitted at WARNING so
+# refusals can be isolated by severity alone (`journalctl -p warning | grep AUDIT[`).
+#
+# Keyed off `outcome`, deliberately NOT off `decision`. The refusal *reasons*
+# (not_allowlisted, approval_required, not_found, out_of_scope, guardrail_blocked)
+# already all resolve to outcome="denied", so one rule covers every branch — whereas a
+# denial-decision list would silently drift as handlers are added, which is exactly how
+# this class of defect appears in the first place.
+_ACTIONABLE_OUTCOMES = frozenset({"denied", "timeout", "error"})
+
 
 def _now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -74,9 +84,22 @@ class Auditor:
             conn.execute("UPDATE remote_invocation_record SET gait_ref=? WHERE id=?",
                          (gait_ref, row_id))
             conn.commit()
-        logger.info("AUDIT[%s] %s %s %s/%s → %s/%s%s", channel_kind, direction, peer_identity,
-                    target_type, target_name, decision, outcome,
-                    f" gait={gait_ref[:10]}" if gait_ref else "")
+        # Feature 100 (FR-003/005/032): the SINGLE operator-facing line for this call,
+        # enriched in place. Do not add a second logging call anywhere on this path —
+        # FR-032 caps volume at one line per audit write, and every inbound handler
+        # routes every decision branch through here, so a duplicate would double the
+        # log for all 8+ handlers at once.
+        #
+        # `req=` joins this line to its remote_invocation_record row without guesswork
+        # (FR-005) — the request_id was always persisted, just never logged, which is
+        # why detecting a call meant polling the database. Truncated to 10 chars to
+        # match the existing gait= convention, and omitted entirely when absent.
+        level = logging.WARNING if outcome in _ACTIONABLE_OUTCOMES else logging.INFO
+        logger.log(level, "AUDIT[%s] %s %s %s/%s → %s/%s%s%s",
+                   channel_kind, direction, peer_identity,
+                   target_type, target_name, decision, outcome,
+                   f" req={str(request_id)[:10]}" if request_id else "",
+                   f" gait={gait_ref[:10]}" if gait_ref else "")
         return row_id
 
     # feature 060: credential-lifecycle events. Written to the dedicated

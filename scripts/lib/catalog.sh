@@ -9,7 +9,7 @@ CATALOG=(
     "junos|Device Automation|Juniper JunOS|PyEZ/NETCONF CLI, config mgmt, Jinja2 templates (10 tools)"
     "arista-cvp|Device Automation|Arista CloudVision|Device inventory, events, connectivity monitor, tags (4 tools)"
     "f5|Device Automation|F5 BIG-IP|iControl REST — virtuals, pools, iRules"
-    "catalyst-center|Device Automation|Cisco Catalyst Center|DNA Center — devices, clients, sites"
+    "catc|Device Automation|Cisco Catalyst Center (read-only)|All 514 read-only API operations behind 8 grouped dispatchers. Official Cisco catalogue, Apache-2.0. An empty inventory is not an empty network"
     "aruba-cx|Device Automation|Aruba CX|Switch management — 16 tools (11 read, 5 write)"
     "gnmi|Device Automation|gNMI Telemetry|Streaming telemetry — Get/Set/Subscribe, YANG (bundled)"
     "radkit|Device Automation|Cisco RADKit|Cloud-relayed remote CLI, SNMP, inventory (5 tools)"
@@ -25,7 +25,12 @@ CATALOG=(
     "aci|Fabric & Orchestration|Cisco ACI|APIC fabric management"
     "nso|Fabric & Orchestration|Cisco NSO|Device config, sync, services via RESTCONF (Python 3.12+)"
     "itential|Fabric & Orchestration|Itential IAP|Config mgmt, compliance, workflows, golden config (65+ tools)"
-    "meraki|Fabric & Orchestration|Cisco Meraki|Dashboard API (~804 endpoints)"
+    "meraki|Fabric & Orchestration|Cisco Meraki|Official remote MCP — 494 read-only Dashboard capabilities via 2 tools"
+    "nsm|Observability & Telemetry|Zeek + Suricata NSM|Offline PCAP analysis — session metadata and IDS alerting (6 tools)"
+    "analysis|Observability & Telemetry|DuckDB Analysis|Read-only SQL over exported network data, sandboxed (3 tools)"
+    "redfish|Observability & Telemetry|Redfish BMC|Out-of-band hardware health, thermal/power, firmware, SEL (6 tools, read-only)"
+    "anta|Observability & Telemetry|Arista ANTA Validation|Structured network-state validation for EOS — 208 tests behind 4 tools, read-only. A test for a feature the device does not run reports not_applicable, never a failure"
+    "elastic|Observability & Telemetry|Elasticsearch Logs|Log search over an existing Elasticsearch 8.x/9.x (5 tools, read-only). Counts go through ESQL — a search total silently caps at 10,000 and reads as exact"
     "sdwan|Fabric & Orchestration|Cisco SD-WAN|vManage read-only monitoring (12 tools)"
     "prisma-sdwan|Fabric & Orchestration|Prisma SD-WAN|Palo Alto SASE — sites, topology, alarms (15+ tools)"
     "aap|Fabric & Orchestration|Ansible Automation Platform|Controller, EDA, ansible-lint, Red Hat docs (4 servers)"
@@ -33,7 +38,7 @@ CATALOG=(
     "ise|Security|Cisco ISE|Identity, posture, TrustSec"
     "fmc|Security|Cisco FMC|Secure Firewall policy search, FTD targeting"
     "panorama|Security|Palo Alto Panorama|Device groups, templates, policy, commit validation"
-    "fortimanager|Security|FortiManager|ADOM inventory, policy packages, install preview"
+    "fortinet|Security|Fortinet (FortiManager/FortiGate/FortiAnalyzer)|Three planes: policy intent, device state, traffic logs. Read-only default, gated writes"
     "checkpoint|Security|Check Point|Policy, threat intel, gateway, SASE (15 servers, interactive)"
     "zscaler|Security|Zscaler|Zero Trust — ZIA, ZPA, ZDX (remote, 300+ tools)"
     "claroty|Security|Claroty xDome|OT/IoT/IoMT assets, alerts, vulns (bundled, 21 tools)"
@@ -61,6 +66,9 @@ CATALOG=(
     "suzieq|Observability|SuzieQ|Network state queries, assertions, path tracing (requires running SuzieQ poller + REST API)"
     "kubeshark|Observability|Kubeshark|K8s L4/L7 traffic analysis, TLS decryption (remote)"
     "gtrace|Observability|gtrace|Traceroute (MPLS/ECMP/NAT), MTR, GlobalPing, ASN, geo (6 tools)"
+    "k8s|Observability|Kubernetes (read-only)|Pods, services, ingresses, EndpointSlices and NetworkPolicies. Strictly read-only, Secrets denied. An empty list is not evidence of absence — the server narrows silently on insufficient RBAC"
+    "zabbix|Observability|Zabbix SNMP-Poller NMS|Polled metric history, problems and device availability from a self-hosted Zabbix. Read-only. Answers what something WAS doing over time — the layer NetClaw had no source for"
+    "bgp-intel|Observability|BGP & Registry Intelligence|RPKI origin validation, RDAP ownership, PeeringDB peering, routing visibility (public APIs, no credentials)"
     "globalping|Observability|Globalping|Outside-in measurement from ~4800 global probes — ping, traceroute, DNS, MTR, HTTP (remote, no install)"
     "telemetry-receivers|Observability|Telemetry Receivers|SNMP trap, syslog, IPFIX/NetFlow receivers over UDP (3 servers)"
     "auvik|Observability|Auvik|Read-only network monitoring — inventory, alerts, lifecycle, performance (bundled, 20 tools)"
@@ -103,6 +111,7 @@ CATALOG=(
     "gait|Platform Services|GAIT Audit Trail|Git-based AI audit trail (recommended for all installs)"
     "mempalace|Platform Services|MemPalace Memory|Local AI memory — 19 tools, no API keys"
     "memory-mcp|Platform Services|Memory MCP|Hybrid persistent memory — structured facts (SQLite), semantic search (ChromaDB), decision log"
+    "document|Platform Services|Document Generation|Change-record .docx, audit .xlsx, exec .pptx and PDF form filling from real NetClaw data — per-element provenance, never fabricates a blank"
     "rag-mcp|Platform Services|RAG Knowledge Base|Offline document knowledge base — hybrid retrieval, citations, opt-in snapshots (ChromaDB + BM25 + local reranker)"
     "ollama|Platform Services|Ollama Domain Experts|Delegates structured tasks to local Ollama models on your own GPU (10 tools)"
     "humanrail|Platform Services|HumanRail|Human-in-the-loop escalation and approvals"
@@ -136,24 +145,24 @@ catalog_has() {
 # ── profiles ─────────────────────────────────────────────────────
 PROFILE_MINIMAL="pyats gait subnet-calc drawio-rfc"
 
-PROFILE_RECOMMENDED="pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
-drawio-rfc uml packet-buddy nmap gtrace globalping batfish protocol n2n tts chrome-devtools rag-mcp"
+PROFILE_RECOMMENDED="bgp-intel pyats gait netbox servicenow nvd-cve subnet-calc wikipedia markmap \
+drawio-rfc uml packet-buddy nmap gtrace globalping batfish protocol n2n tts chrome-devtools rag-mcp document"
 
-PROFILE_CISCO="pyats gait netbox servicenow aci ise catalyst-center meraki sdwan cml fmc \
+PROFILE_CISCO="pyats gait netbox servicenow aci ise catc meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve cisco-psirt subnet-calc drawio-rfc uml packet-buddy"
 
-PROFILE_MULTIVENDOR="pyats junos arista-cvp aruba-cx f5 multivendor-cli netbox nautobot gait servicenow \
+PROFILE_MULTIVENDOR="pyats junos anta arista-cvp aruba-cx f5 fortinet multivendor-cli netbox nautobot gait servicenow \
 fwrule subnet-calc drawio-rfc uml packet-buddy"
 
 PROFILE_CLOUD="aws azure gcp cloudflare terraform vault github gait drawio-rfc uml subnet-calc"
 
-PROFILE_SECURITY="ise fmc panorama fortimanager checkpoint claroty zscaler nvd-cve cisco-psirt nmap \
+PROFILE_SECURITY="ise fmc panorama fortinet bgp-intel checkpoint claroty zscaler nvd-cve cisco-psirt nmap \
 fwrule gait servicenow"
 
 PROFILE_LABS="cml containerlab batfish protocol peering n2n in2n-production suzieq gait subnet-calc drawio-rfc uml"
 
 PROFILE_OBSERVABILITY="grafana prometheus datadog splunk pagerduty te-community te-official \
-suzieq kubeshark gtrace globalping auvik gait"
+suzieq kubeshark gtrace globalping auvik gait zabbix k8s elastic anta"
 
 # NetClaw Convergence pipeline is defined in catalog.d/convergence.sh (if present).
 # The fragment mechanism below will load it and register the profile automatically.

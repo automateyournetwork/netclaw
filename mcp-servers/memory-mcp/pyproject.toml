@@ -6,9 +6,12 @@ readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 dependencies = [
-    "mcp",
+    # Upper bounds added by spec 082. mcp 2.0 removed mcp.server.fastmcp, which this
+    # server imports; chromadb is imported by submodule. Both describe installed majors
+    # (mcp 1.28.1, chromadb 1.5.9) and move nothing.
+    "mcp>=1.2.0,<2",
     "fastmcp",
-    "chromadb>=0.4.0",
+    "chromadb>=0.4.0,<2",
     "sentence-transformers>=2.2.0",
     "torch>=2.0.0",
 ]

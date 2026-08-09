@@ -25,6 +25,32 @@ from ..constants import (
 
 logger = logging.getLogger("n2n.channel")
 
+# Feature 100 (FR-033): the inbound-call ARRIVAL event.
+#
+# Emitted on the `n2n.invocation` logger even though it originates here, because this
+# is the operator-facing channel for inbound calls and the documented watch set is
+# `n2n\.(audit|invocation)` (quickstart.md §2). The 2026-08-06 incident happened partly
+# because the observer's filter matched n2n.invocation but the only existing line came
+# from n2n.audit — so arrival and decision now both land in that watch.
+#
+# `_handle_request` is the single dispatch point for every inbound method, which is why
+# arrival is logged here rather than in each of Invoker's 8+ handlers: per-handler
+# logging would inevitably drift as handlers are added.
+arrival_logger = logging.getLogger("n2n.invocation")
+
+# Routine presence/housekeeping traffic, excluded from arrival logging. A DENYLIST, not
+# an allowlist, deliberately: any newly added capability method gets arrival visibility
+# automatically, which is the FR's intent. n2n/heartbeat in particular fires on a timer
+# and would swamp the very signal this feature exists to surface.
+_ARRIVAL_QUIET_METHODS = frozenset({
+    "n2n/hello",
+    "n2n/heartbeat",
+    "n2n/consent_state",
+    "n2n/endpoint_update",
+    "n2n/inventory",
+    "n2n/inventory_get",
+})
+
 # JSON-RPC reserved error codes (contracts/n2n-wire-protocol.md)
 ERR_NOT_ALLOWLISTED = -32001
 ERR_APPROVAL_PENDING = -32002
@@ -284,6 +310,17 @@ class FederationChannel:
             if req_id is not None:
                 await self._send_frames(self._err(req_id, ERR_METHOD_NOT_FOUND, f"unknown method {method}"))
             return
+
+        # FR-033: record arrival BEFORE dispatch, so a call that hangs or is abandoned
+        # inside the handler is still visible. The audit line is written at decision
+        # time, so without this a never-decided call leaves no trace at all — which is
+        # the gap that made an inbound call undetectable from the log on 2026-08-06.
+        if method not in _ARRIVAL_QUIET_METHODS:
+            # Prefer the application-level request_id (what the audit row is keyed by,
+            # so the two lines join) and fall back to the JSON-RPC id.
+            corr = params.get("request_id") or req_id
+            arrival_logger.info("inbound %s from %s%s", method, self.peer_identity,
+                                f" req={str(corr)[:10]}" if corr else "")
         try:
             result = await handler(self, params)
             if req_id is not None:

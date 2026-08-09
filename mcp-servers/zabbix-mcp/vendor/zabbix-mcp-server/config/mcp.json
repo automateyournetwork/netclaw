@@ -1,0 +1,18 @@
+{
+  "mcpServers": {
+    "zabbix": {
+      "type": "stdio",
+      "command": "uvx",
+      "args": [
+        "--from",
+        "git+https://github.com/mpeirone/zabbix-mcp-server@main",
+        "zabbix-mcp"
+      ],
+      "env": {
+        "ZABBIX_URL": "https://zabbix.example.com",
+        "ZABBIX_TOKEN": "<your_api_token>",
+        "READ_ONLY": "true"
+      }
+    }
+  }
+}

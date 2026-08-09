@@ -3,20 +3,21 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'ncfed/approval_client.dart';
-import 'ncfed/approval_confirmation.dart';
+import 'ncfed/badge_lifecycle.dart';
 import 'ncfed/capability_registration.dart';
 import 'ncfed/capture_client.dart';
 import 'ncfed/conversation_store.dart';
+import 'ncfed/dashboard_data.dart';
 import 'ncfed/device_deep_link.dart';
 import 'ncfed/edge_ask_client.dart';
 import 'ncfed/edge_client.dart';
 import 'ncfed/edge_identity.dart';
 import 'ncfed/enrollment_store.dart';
 import 'ncfed/heartbeat.dart';
+import 'ncfed/live_activity.dart';
 import 'ncfed/local_notifications.dart';
 import 'ncfed/message_feed.dart';
 import 'ncfed/notification_deep_link.dart';
@@ -27,6 +28,7 @@ import 'ncfed/watch_relay.dart';
 import 'screens/approvals_screen.dart';
 import 'screens/capture_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/dashboard_screen.dart';
 import 'screens/device_scan_screen.dart';
 import 'screens/enrollment_screen.dart';
 import 'screens/feed_screen.dart';
@@ -196,6 +198,8 @@ class HomeShell extends StatefulWidget {
 }
 
 class _HomeShellState extends State<HomeShell> {
+  late final BadgeLifecycleObserver _badgeLifecycleObserver =
+      BadgeLifecycleObserver(_recomputeBadge);
   int _tab = 0;
   bool _connected = true;
   MessageFeedStore? _feedStore;
@@ -216,12 +220,27 @@ class _HomeShellState extends State<HomeShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(_badgeLifecycleObserver);
     getApplicationDocumentsDirectory().then((dir) async {
       final feedStore = MessageFeedStore(dir);
       final askClient = EdgeAskClient(widget.client);
       final conversationStore = ConversationStore(dir);
       final approvalClient = ApprovalClient(widget.client);
       final capabilities = CapabilityRegistration(widget.client);
+      // 099/FR-017/FR-018: reacts to the SAME `currentPending` stream
+      // regardless of which surface changed it -- in-app buttons,
+      // notification actions (confirmAndResolve), and the watch (which
+      // resolves through this exact ApprovalClient too, via WatchRelay) --
+      // so the Live Activity starts/ends correctly no matter which one
+      // acted. Aggregate, not per-approval: shows the first pending one.
+      final liveActivity = LiveActivity();
+      approvalClient.pending.listen((pending) {
+        if (pending.isNotEmpty) {
+          liveActivity.start(approvalId: pending.first.approvalId, targetName: pending.first.targetName);
+        } else {
+          liveActivity.end();
+        }
+      });
 
       // 073: real local notifications while the app process is alive,
       // distinct from feature 066's credential-blocked remote FCM/APNs path
@@ -235,20 +254,20 @@ class _HomeShellState extends State<HomeShell> {
         openMessage: (message) {
           if (!mounted) return;
           setState(() {
-            _tab = 1; // Feed
+            _tab = 2; // Feed (099/FR-012: shifted by Dashboard at index 0)
             _highlightPushedAt = message.pushedAt;
           });
         },
         openChatTurn: (turn) {
           if (!mounted) return;
           setState(() {
-            _tab = 0; // Chat
+            _tab = 1; // Chat (099/FR-012: shifted by Dashboard at index 0)
             _highlightTaskId = turn.taskId;
           });
         },
       );
       await localNotifications.initialize(
-        onResponse: (response) => _handleNotificationResponse(
+        onResponse: (response) => handleNotificationResponse(
           response,
           approvalClient: approvalClient,
           deepLink: notificationDeepLink,
@@ -265,7 +284,7 @@ class _HomeShellState extends State<HomeShell> {
 
       conversationStore.onCompleted = (turn) {
         if (!mounted) return;
-        if (_tab != 0) {
+        if (_tab != 1) { // Chat (099/FR-012: shifted by Dashboard at index 0)
           localNotifications.postChatNotification(
             identifier: turn.taskId,
             preview: turn.answerText ?? 'Answer ready.',
@@ -297,7 +316,7 @@ class _HomeShellState extends State<HomeShell> {
         onMessage: (message) {
           if (!mounted) return;
           // Don't badge the tab the operator is already looking at.
-          if (_tab != 1) {
+          if (_tab != 2) { // Feed (099/FR-012: shifted by Dashboard at index 0)
             setState(() => _unreadFeed++);
             localNotifications.postFeedNotification(
               identifier: message.pushedAt.toIso8601String(),
@@ -348,12 +367,17 @@ class _HomeShellState extends State<HomeShell> {
         handler: DeviceDeepLinkHandler(askClient),
         onSubmitted: (taskId, text) async {
           await conversationStore.addPending(taskId, text);
-          if (mounted) setState(() => _tab = 0);
+          if (mounted) setState(() => _tab = 1); // Chat (099/FR-012: shifted by Dashboard at index 0)
         },
       );
       _deepLinkListener!.start();
       _wireReconnect();
       _tryRegisterPush();
+      // 099/FR-001: reconcile the OS badge to the true unread count on cold
+      // launch too, not just on the reactive arrival/acknowledge triggers
+      // above -- otherwise a badge left stale by a push delivered while the
+      // app was fully closed never self-corrects until the next new arrival.
+      _recomputeBadge();
     });
   }
 
@@ -371,37 +395,6 @@ class _HomeShellState extends State<HomeShell> {
         unreadChat: conversationStore.unreadCount,
       ),
     );
-  }
-
-  /// Handles a tap on a locally-posted notification -- either an
-  /// authenticated Approve/Deny action (073/FR-004, routed through the SAME
-  /// `confirmAndResolve` the in-app buttons use), or a plain tap that
-  /// deep-links to the specific Feed message/chat answer (FR-006).
-  Future<void> _handleNotificationResponse(
-    NotificationResponse response, {
-    required ApprovalClient approvalClient,
-    required NotificationDeepLink deepLink,
-  }) async {
-    final actionId = response.actionId;
-    if (actionId == approveActionId || actionId == denyActionId) {
-      final parsed = parseLocalNotificationPayload(response.payload);
-      final identifier = parsed?['identifier'];
-      if (identifier == null) return;
-      final approvalId = int.tryParse(identifier);
-      if (approvalId == null) return;
-      final approval = approvalClient.currentPending
-          .where((a) => a.approvalId == approvalId)
-          .toList();
-      final targetName = approval.isNotEmpty ? approval.single.targetName : 'this request';
-      await confirmAndResolve(
-        client: approvalClient,
-        approvalId: approvalId,
-        targetName: targetName,
-        action: actionId == approveActionId ? 'approve' : 'deny',
-      );
-      return;
-    }
-    await deepLink.handleLocalNotificationTap(response.payload);
   }
 
   /// Auto-redials on a dropped connection (068 polish, ports 066's
@@ -490,6 +483,7 @@ class _HomeShellState extends State<HomeShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(_badgeLifecycleObserver);
     _reconnectSupervisor?.stop();
     _askClient?.dispose();
     _approvalClient?.dispose();
@@ -508,7 +502,9 @@ class _HomeShellState extends State<HomeShell> {
     ));
   }
 
-  static const _titles = ['Chat', 'Feed', 'Approvals', 'Settings'];
+  // 099/FR-012: Dashboard is index 0, the default landing tab -- everything
+  // else shifted one slot right of what it was before this feature.
+  static const _titles = ['Dashboard', 'Chat', 'Feed', 'Approvals', 'Settings'];
 
   @override
   Widget build(BuildContext context) {
@@ -520,6 +516,15 @@ class _HomeShellState extends State<HomeShell> {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
     final pages = [
+      DashboardScreen(
+        snapshot: buildDashboardSnapshot(
+          connected: _connected,
+          stored: widget.stored,
+          feedStore: _feedStore,
+          conversationStore: _conversationStore,
+          approvalClient: _approvalClient,
+        ),
+      ),
       ChatScreen(
         askClient: _askClient!,
         store: _conversationStore!,
@@ -568,14 +573,16 @@ class _HomeShellState extends State<HomeShell> {
         onDestinationSelected: (i) => setState(() {
           _tab = i;
           // Opening the Feed is what marks it read; clear the badge and the
-          // one-shot notification highlight together.
-          if (i == 1) {
+          // one-shot notification highlight together. Indices shifted by one
+          // (099/FR-012) now that Dashboard occupies index 0.
+          if (i == 2) {
             _unreadFeed = 0;
             _highlightPushedAt = null;
           }
-          if (i == 0) _highlightTaskId = null;
+          if (i == 1) _highlightTaskId = null;
         }),
         destinations: [
+          const NavigationDestination(icon: Icon(Icons.dashboard_outlined), label: 'Dashboard'),
           const NavigationDestination(icon: Icon(Icons.chat), label: 'Chat'),
           NavigationDestination(
             // Without this the operator has no way to know a Border push
@@ -633,9 +640,9 @@ class _HomeShellState extends State<HomeShell> {
         if (v == 'clear_feed') _confirmClearFeed();
       },
       itemBuilder: (context) => [
-        if (_tab == 0)
+        if (_tab == 1) // Chat (099/FR-012: shifted by Dashboard at index 0)
           const PopupMenuItem(value: 'clear_chat', child: Text('Clear chat history')),
-        if (_tab == 1)
+        if (_tab == 2) // Feed (099/FR-012: shifted by Dashboard at index 0)
           const PopupMenuItem(value: 'clear_feed', child: Text('Clear all messages')),
       ],
     );

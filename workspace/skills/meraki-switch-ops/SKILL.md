@@ -1,87 +1,110 @@
 ---
 name: meraki-switch-ops
-description: "Cisco Meraki Switching — port configuration, VLANs, port status, ACLs, QoS rules, port cycling. Use when configuring Meraki switch ports, creating VLANs, checking port status and PoE, troubleshooting switch connectivity, or managing Meraki ACLs and QoS"
-version: 1.0.0
+description: "Cisco Meraki switching (read-only) — port configuration and status, VLANs, ACLs, QoS, STP, link aggregation, routing interfaces via Cisco's official Meraki MCP. Use when inspecting Meraki switch ports, auditing switch ACLs, or investigating port errors"
+version: 2.0.0
 license: Apache-2.0
-tags: [cisco, meraki, switch, port, vlan, acl, qos, ms]
+tags: [cisco, meraki, switch, port, vlan, acl, qos, stp, read-only]
 ---
 
-# Meraki Switch Operations
+# Meraki Switch Operations (read-only)
 
 ## MCP Server
 
-- **Repository**: [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community)
-- **Transport**: stdio (Python via FastMCP) or HTTP
-- **Requires**: `MERAKI_API_KEY`, `MERAKI_ORG_ID`
+- **Server**: Cisco's **official** Meraki MCP — [developer.cisco.com](https://developer.cisco.com/meraki/api-v1/mcp-server/)
+- **Endpoint**: `https://mcp.meraki.com/mcp` (remote HTTP, no local install)
+- **Self-host fallback**: [CiscoDevNet/cisco-meraki-mcp-official](https://github.com/CiscoDevNet/cisco-meraki-mcp-official) (Apache-2.0)
+- **Requires**: `MERAKI_DASHBOARD_API_KEY` — use a **read-only** dashboard key
+- **Tools**: exactly two — `semantic_search` (discover) and `execute_api` (invoke)
 
-## Key Capabilities
+## Read-only, structurally
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List ports | `getDeviceSwitchPorts` | All ports with VLAN, type (access/trunk), PoE, STP, tagging |
-| Update port | `updateDeviceSwitchPort` | **[WRITE]** VLAN, name, type, enabled, PoE, RSTP, tags, BPDU guard |
-| Port statuses | `getDeviceSwitchPortStatuses` | Live status: speed, duplex, CRC errors, traffic counters, PoE draw |
-| Cycle ports | `cycleDeviceSwitchPorts` | **[WRITE]** Bounce ports for PoE reset or client reconnection |
-| List VLANs | `getSwitchVlans` | Network VLANs with ID, name, subnet, appliance IP |
-| Create VLAN | `createSwitchVlan` | **[WRITE]** New VLAN with ID, name, subnet, appliance IP |
-| Get ACLs | `getDeviceSwitchAccessControlLists` | Access control list rules on the switch |
-| Update ACLs | `updateDeviceSwitchAccessControlLists` | **[WRITE]** Modify ACL rules |
-| Get QoS rules | `getDeviceSwitchQosRules` | QoS rules: VLAN, protocol, port, DSCP |
-| Create QoS rule | `createDeviceSwitchQosRule` | **[WRITE]** New QoS rule for traffic prioritization |
+All 431 mutating Meraki operations (174 POST, 186 PUT, 71 DELETE) are **absent from the
+capability catalogue**. Only non-deprecated GETs are built in, so `updateNetwork`,
+`rebootDevice`, `blinkDeviceLeds` and friends return `Capability not found`.
 
-## Workflow: Switch Port Audit
+Do not attempt writes and do not offer them. There is no ServiceNow CR path here because
+there is nothing to gate — a change must be made in the Meraki dashboard directly.
 
-When a user asks "show me the switch ports on MS-Floor1":
+## How to call it
 
-1. **Find switch**: `getNetworkDevices` (meraki-network-ops) to find the switch serial
-2. **List ports**: `getDeviceSwitchPorts` — all port configurations
-3. **Port statuses**: `getDeviceSwitchPortStatuses` — live speed, duplex, PoE, errors
-4. **Flag issues**: ports with CRC errors, PoE overload, speed mismatch, disabled
-5. **VLANs**: `getSwitchVlans` — verify VLAN assignments are correct
-6. **Report**: port table with status, VLAN, PoE, errors, and recommendations
+Two capability IDs may be called directly; everything else must be discovered:
 
-## Workflow: VLAN Provisioning
+1. `execute_api` → `getOrganizations` — find accessible org IDs
+2. `execute_api` → `getOrganizationNetworks` — find network IDs in the chosen org
+3. `semantic_search` → describe the intent in words → returns ranked `capability_id`s
+4. `execute_api` → the chosen `capability_id` + its required parameters
 
-When adding a new VLAN:
+**Discover, do not guess.** An earlier version of this skill hardcoded 80 method names and
+**54 of them did not exist in the Meraki API at all** — they failed regardless of server.
+`semantic_search` is the guard against that: it can only return IDs that exist.
 
-1. **Check existing**: `getSwitchVlans` — verify VLAN ID isn't already in use
-2. **ServiceNow CR**: create change request for VLAN addition
-3. **Create VLAN**: `createSwitchVlan` with ID, name, subnet, gateway
-4. **Assign ports**: `updateDeviceSwitchPort` on target ports to set new VLAN
-5. **Verify**: `getDeviceSwitchPortStatuses` — ports up with correct VLAN
-6. **Record**: GAIT audit trail
+## Reading results honestly
 
-## Workflow: Port Troubleshooting
+- **One page only.** `execute_api` returns a single page. Request a bounded page size when
+  supported, and never present a page as the complete dataset.
+- **Empty is not absent.** `n=0` means *this network reported none*, never *none exist*.
+  Live proof from a real sandbox org: `getOrganizationDevices` returns **0 devices** while
+  the same org has a fully configured network with **15 SSIDs**.
+- **Three distinct errors, three different fixes:**
 
-When a user reports "device on port 24 isn't working":
+  | Error | Meaning | Fix |
+  |---|---|---|
+  | `Capability not found` | ID is mutating, deprecated, or invented | `semantic_search` for a real one |
+  | `Resource not found` | valid ID, wrong org/network/serial | re-derive the ID from step 1–2 |
+  | `Invalid parameters` | valid ID, missing a required parameter | read the capability's parameters |
 
-1. **Port config**: `getDeviceSwitchPorts` for port 24 — VLAN, type, PoE, enabled
-2. **Port status**: `getDeviceSwitchPortStatuses` — link state, speed, errors, PoE draw
-3. **Client**: `getDeviceClients` — what's connected to this port?
-4. **If PoE issue**: check wattage draw vs budget
-5. **If link down**: `cycleDeviceSwitchPorts` to bounce the port (requires CR or emergency)
-6. **ACLs**: `getDeviceSwitchAccessControlLists` — is traffic being blocked?
-7. **Report**: diagnosis with fix (VLAN mismatch, PoE overload, cable issue, ACL block)
+  Never report any of the three as "no data" — none of them mean that.
+
+## Verified capabilities
+
+| Capability ID | Verified result |
+|---|---|
+| `getNetworkSwitchAccessControlLists` | 1 ACL set on a real network |
+
+There are **50** real switch capabilities. The ones you will reach for most:
+`getDeviceSwitchPorts`, `getDeviceSwitchPortsStatuses`, `getDeviceSwitchPortsStatusesPackets`,
+`getNetworkSwitchAccessPolicies`, `getNetworkSwitchRoutingMulticast`,
+`getDeviceSwitchRoutingInterfaces`, `getDeviceSwitchRoutingStaticRoutes`,
+`getDeviceSwitchWarmSpare`. Confirm each with `semantic_search` before calling.
+
+**Port capabilities are per-device and need a `serial`**, not a network ID. Get serials from
+`getOrganizationDevices` (org-wide) — and note that an org with **0 devices returns 0
+serials**, which is not the same as "the switches have no ports".
+
+## Workflow: Port configuration audit
+
+1. `getOrganizations` → `getOrganizationNetworks` → `getOrganizationDevices`
+2. If 0 devices: **stop and say so.** Do not proceed to invent port data.
+3. Per switch serial: `getDeviceSwitchPorts` — VLAN, type, PoE, STP guard, isolation
+4. `getDeviceSwitchPortsStatuses` — link state, speed, duplex, errors, discards
+5. `getNetworkSwitchAccessControlLists` and `getNetworkSwitchAccessPolicies` — ACL/802.1X
+6. Report per-port configuration drift against intent
+
+## Workflow: Port error investigation
+
+1. `getDeviceSwitchPortsStatuses` — identify ports with errors or discards
+2. `getDeviceSwitchPortsStatusesPackets` — packet-level breakdown per port
+3. `semantic_search` "switch port cable test results" — physical-layer evidence
+4. Correlate with `getDeviceLossAndLatencyHistory` via `meraki-monitoring`
+5. Distinguish **errors** (physical/duplex) from **discards** (congestion/QoS) — they have
+   different fixes, and conflating them is the usual wrong answer here.
+
+## Important Rules
+
+- **No writes exist.** Port, VLAN, ACL and QoS changes must be made in the dashboard.
+- **Port capabilities need a device serial**, not a network ID.
+- **Errors ≠ discards.** Say which, with counts and the window.
+- **Record in GAIT** — log every switch audit.
 
 ## Integration with Other Skills
 
 | Skill | How They Work Together |
 |-------|----------------------|
-| `meraki-network-ops` | Provides device/network context for switch operations |
-| `meraki-monitoring` | Live diagnostics: cable test, ping, LED blink for switch identification |
-| `pyats-topology` | Compare Meraki switch port data with pyATS CDP/LLDP for hybrid environments |
-| `servicenow-change-workflow` | Gate all port changes, VLAN creation, and ACL modifications |
-| `gait-session-tracking` | Record all switch operations in audit trail |
-
-## Important Rules
-
-- **Port changes affect connected devices** — changing VLAN or disabling a port disconnects the endpoint
-- **BPDU guard** should be enabled on all access ports — flag any access port without it
-- **Port cycling** is a controlled action — requires ServiceNow CR unless emergency
-- **ACL changes are network-wide** — affect all ports on the switch
-- **Record in GAIT** — log all switch port audits and configuration changes
+| `meraki-network-ops` | Network and device inventory for switch discovery |
+| `meraki-monitoring` | Loss/latency history and live tools for switch uplinks |
+| `meraki-security-appliance` | Trace a VLAN from switch port to firewall rule |
+| `gait-session-tracking` | Record all switch audits |
 
 ## Environment Variables
 
-- `MERAKI_API_KEY` — Meraki Dashboard API key
-- `MERAKI_ORG_ID` — Meraki organization ID
+- `MERAKI_DASHBOARD_API_KEY` — Meraki Dashboard API key (**read-only** recommended)

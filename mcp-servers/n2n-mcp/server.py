@@ -638,6 +638,32 @@ async def n2n_connect(peer: str, host: str, port: int, display_name: str = "") -
 
 
 @mcp.tool()
+async def n2n_forget_endpoint(peer: str, actor: str = "operator") -> str:
+    """Retire a peer's stale dial endpoint so the reconnect supervisor stops dialling a
+    dead address (feature 100, FR-021).
+
+    Use when a peer's recorded endpoint is known-wrong — it moved, its tunnel rotated,
+    or it will not return — and `n2n_health` shows repeated dial failures against it.
+    A permanently-unreachable peer with a stale endpoint is the single largest source of
+    federation log noise, and clearing the endpoint is what stops it at the source.
+
+    The peer stays federated and keeps its trust material, chat setting and audit
+    history; only the dial address is cleared. It reconnects automatically with no
+    further action the moment it re-registers an endpoint by contacting this Border, so
+    this is safe and self-healing rather than destructive. A currently-live channel to
+    the peer is left running — the endpoint is only consulted for dialling.
+
+    Idempotent: forgetting an endpoint that is already absent succeeds.
+
+    Args:
+        peer: peer identity 'as<AS>-<router-id>' (e.g. 'as65099-10.255.255.1')
+        actor: who requested the retirement, recorded for attribution
+    """
+    return _gcf_dumps(await _post("/n2n/peers/forget-endpoint",
+                                  {"peer": peer, "actor": actor}))
+
+
+@mcp.tool()
 async def n2n_trust(peer: str, tools: str = "", chat: bool = True) -> str:
     """One-step trust: enable chat and grant a set of tools/skills to a peer in a
     single call (instead of separate consent + grant + config steps).

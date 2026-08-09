@@ -1,0 +1,13 @@
+# BGP & Registry Intelligence — spec 081 (roadmap R9)
+#
+# Two packages. Deliberately no RDAP/RPKI/BGP library: the payloads are plain
+# JSON over HTTPS and the value of this feature is in the SEMANTICS — which state
+# means what — not the transport. An SDK would add a pinning hazard while
+# abstracting the one thing this feature must not abstract.
+#
+# The mcp upper bound is LOAD-BEARING and no longer hypothetical (spec 077):
+# the MCP Python SDK has shipped v2 targeting the 2026-07-28 spec, and v2 removes
+# mcp.server.fastmcp, which this server imports. An unbounded pin would resolve
+# that major and die on import for every new installer. Do not "tidy" it away.
+mcp>=1.2.0,<2
+httpx>=0.27.0,<1

@@ -1,0 +1,46 @@
+[project]
+name = "zabbix-mcp-server"
+version = "2.0.0"
+description = "A comprehensive MCP server for Zabbix integration with unified API tool"
+readme = "README.md"
+license = {text = "GPL-3.0"}
+authors = [
+    {name = "Zabbix MCP Server Contributors"}
+]
+keywords = ["zabbix", "mcp", "monitoring", "api", "server"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: System Administrators",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: System :: Monitoring",
+    "Topic :: System :: Systems Administration",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+dependencies = [
+    "fastmcp>=v3.2.0",
+    "zabbix_utils>=2.0.4",
+    "python-dotenv>=1.2.2",
+    "bs4>=0.0.2",
+    "requests>=2.33.1"
+]
+requires-python = ">=3.10"
+
+[project.urls]
+Homepage = "https://github.com/mpeirone/zabbix-mcp-server"
+Repository = "https://github.com/mpeirone/zabbix-mcp-server"
+Issues = "https://github.com/mpeirone/zabbix-mcp-server/issues"
+Documentation = "https://github.com/mpeirone/zabbix-mcp-server#readme"
+
+[project.scripts]
+zabbix-mcp = "zabbix_mcp_server:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"

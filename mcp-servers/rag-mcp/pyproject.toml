@@ -3,20 +3,41 @@ name = "netclaw-rag-mcp"
 version = "0.1.0"
 description = "NetClaw Agentic RAG Knowledge Base - offline document knowledge base with hybrid retrieval, citations, and opt-in snapshots"
 requires-python = ">=3.10"
+# Upper bounds added by spec 082 (roadmap R18), 2026-08-03.
+#
+# WHY THIS FILE WAS UNCHECKED: scripts/check-dependency-pins.py read requirements.txt
+# only, and rag-mcp has none — it declares dependencies here. So this server had never
+# been scanned, and reconcile-mcp.py's clean exit was an artefact of invisibility rather
+# than of correctness. Spec 082 extended the checker to read pyproject.toml; these
+# bounds are what it now requires.
+#
+# Every bound below describes a version ALREADY INSTALLED and resolved (measured
+# 2026-08-03): mcp 1.28.1, fastmcp 2.14.7, chromadb 1.5.9, sentence-transformers 5.6.0,
+# torch 2.13.0+cpu, rank_bm25 0.2.2, pymupdf 1.28.0, beautifulsoup4 4.15.0, httpx 0.28.1,
+# python-docx 1.2.0, openpyxl 3.1.5, python-pptx 1.0.2, vsdx 0.6.1. Nothing was moved —
+# spec 076's cryptography incident is why that sentence is here.
+#
+# The mcp and fastmcp bounds are load-bearing: mcp 2.0 removed mcp.server.fastmcp, and
+# this server does `from fastmcp import FastMCP`. Both are attribute/submodule imports
+# of packages whose next major can remove them.
+#
+# The four document libraries are shared with spec 082's document-mcp, which READS
+# nothing and WRITES these formats. Two servers declaring different requirements for one
+# shared install is not an acceptable end state, so the bounds are identical in both.
 dependencies = [
-    "mcp",
-    "fastmcp",
-    "chromadb>=0.4.0",
-    "sentence-transformers>=2.2.0",
-    "torch>=2.0.0",
-    "rank_bm25",
-    "pymupdf",
-    "beautifulsoup4",
-    "httpx",
-    "python-docx",
-    "openpyxl",
-    "python-pptx",
-    "vsdx",
+    "mcp>=1.2.0,<2",
+    "fastmcp>=2.0,<3",
+    "chromadb>=0.4.0,<2",
+    "sentence-transformers>=2.2.0,<6",
+    "torch>=2.0.0,<3",
+    "rank_bm25>=0.2,<1",
+    "pymupdf>=1.24,<2",        # imported as `fitz` — a dist/module rename
+    "beautifulsoup4>=4.12,<5",  # imported as `bs4` — a dist/module rename
+    "httpx>=0.27.0,<1",
+    "python-docx>=1.1,<2",      # imported as `docx`
+    "openpyxl>=3.1,<4",
+    "python-pptx>=1.0,<2",      # imported as `pptx`
+    "vsdx>=0.5,<1",
 ]
 
 [project.scripts]

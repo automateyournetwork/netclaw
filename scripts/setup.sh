@@ -520,16 +520,12 @@ if want "meraki" "Do you have a Cisco Meraki Dashboard? (wireless, switching, se
     echo -e "  Get your API key from: ${BOLD}Dashboard → Organization → Settings → Dashboard API access${NC}"
     echo -e "  Get your Org ID from: ${BOLD}Dashboard → Organization → Overview (URL contains org ID)${NC}"
     echo ""
-    prompt_secret MERAKI_KEY "Meraki Dashboard API Key"
-    prompt MERAKI_ORG "Meraki Organization ID" ""
-    if yesno "Enable read-only mode? (blocks all write operations)" "n"; then
-        MERAKI_RO="true"
-    else
-        MERAKI_RO="false"
-    fi
-    [ -n "$MERAKI_KEY" ] && set_env "MERAKI_API_KEY" "$MERAKI_KEY"
-    [ -n "$MERAKI_ORG" ] && set_env "MERAKI_ORG_ID" "$MERAKI_ORG"
-    set_env "READ_ONLY_MODE" "$MERAKI_RO"
+    # Spec 089: the official remote MCP needs only a key. Org/network IDs are discovered
+    # at runtime via getOrganizations, and there is no read-only toggle because writes are
+    # structurally absent from the upstream capability catalogue.
+    echo "    Use a READ-ONLY key (Dashboard > My Profile > API access)."
+    prompt_secret MERAKI_KEY "Meraki Dashboard API Key (read-only)"
+    [ -n "$MERAKI_KEY" ] && set_env "MERAKI_DASHBOARD_API_KEY" "$MERAKI_KEY"
     ok "Cisco Meraki configured"
 else
     skip "Cisco Meraki"
@@ -1213,7 +1209,7 @@ grep -q "^CML_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco CML" || skip "Cisco
 grep -q "^NSO_ADDRESS=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco NSO" || skip "Cisco NSO"
 grep -q "^AWS_ACCESS_KEY_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "AWS Cloud" || skip "AWS Cloud"
 grep -q "^GCP_PROJECT_ID=" "$OPENCLAW_ENV" 2>/dev/null && ok "Google Cloud" || skip "Google Cloud"
-grep -q "^MERAKI_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco Meraki" || skip "Cisco Meraki"
+grep -q "^MERAKI_DASHBOARD_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco Meraki" || skip "Cisco Meraki"
 grep -q "^FMC_BASE_URL=" "$OPENCLAW_ENV" 2>/dev/null && ok "Cisco FMC" || skip "Cisco FMC"
 grep -q "^PANOS_API_KEY=" "$OPENCLAW_ENV" 2>/dev/null && ok "Palo Alto Panorama" || skip "Palo Alto Panorama"
 grep -q "^FORTIMANAGER_API_TOKEN=" "$OPENCLAW_ENV" 2>/dev/null && ok "FortiManager" || skip "FortiManager"

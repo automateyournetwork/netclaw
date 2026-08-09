@@ -33,6 +33,31 @@ from .attributes import *
 from .tunnel import TunnelManager
 
 
+# Feature 100 (US3/FR-017): failures of the pre-handshake preamble read that are
+# NEVER operator-actionable — a connect-and-close, a truncated preamble, a probe, or
+# an aborted dial. Kept as a module constant so the narrowness of the catch is
+# reviewable in one place rather than duplicated at each read site.
+#
+# Deliberately does NOT include Exception. An unexpected internal fault must keep
+# reaching the catch-all in _handle_incoming_connection with exc_info=True (FR-019);
+# widening this tuple is precisely the regression FR-019 exists to prevent.
+#
+# asyncio.TimeoutError is an alias of the builtin TimeoutError on 3.11+; both are
+# listed so the intent survives a future de-aliasing.
+_BENIGN_PREAMBLE_ERRORS = (
+    asyncio.IncompleteReadError,
+    ConnectionResetError,
+    BrokenPipeError,
+    asyncio.TimeoutError,
+    TimeoutError,
+)
+
+# FR-038: the edge listener is internet-reachable, so probe volume is unbounded and
+# continuous. Cap the per-source tracking dict so a log-noise fix cannot become a
+# memory leak when a scanner rotates source addresses (data-model.md §5).
+_PROBE_TRACK_MAX = 512
+
+
 class BGPAgent:
     """
     BGP Agent - Main orchestrator for BGP speaker
@@ -72,6 +97,13 @@ class BGPAgent:
         # Sessions
         self.sessions: Dict[str, BGPSession] = {}  # Key: peer_ip (or synthetic "mesh-as{N}" for mesh peers)
         self.mesh_sessions: Dict[int, BGPSession] = {}  # Key: peer_as (for accept_any_source peers)
+
+        # Feature 100 (FR-038): per-source-IP benign-probe collapsing, so unbounded
+        # internet background scanning against the public listener stays bounded in the
+        # log. Key: source IP -> {count, summary_at, reason_sig}. See data-model.md §5.
+        self._probe_health: Dict[str, dict] = {}
+        self._probe_summary_interval = 300
+        self._probe_dampen = True
 
         # Mesh directory: AS -> {"endpoint": "host:port", "source": "config|direct|exchange"}
         self.mesh_directory: Dict[int, Dict[str, str]] = {}
@@ -250,6 +282,71 @@ class BGPAgent:
             self.logger.error(f"Mesh OPEN read error: {type(e).__name__}: {e}")
             return None
 
+    async def _note_benign_disconnect(self, peer_ip: str, exc: BaseException,
+                                      writer: asyncio.StreamWriter,
+                                      consumed: int = 0) -> None:
+        """Record a non-actionable pre-handshake disconnect (feature 100, FR-017/038).
+
+        Replaces the ~10-line ERROR traceback the catch-all used to emit for a
+        zero-byte connect. Severity follows operator relevance (FR-020): a probe,
+        scan, or aborted dial is never actionable, so it is DEBUG.
+
+        The `Invalid N-magic` WARNING elsewhere in this method is deliberately NOT
+        routed through here — a complete-but-invalid preamble means something spoke
+        far enough to be wrong, which an operator may want to see (FR-018).
+
+        Also collapses repeat probes per source IP (FR-038), because the listener is
+        internet-reachable and the volume is otherwise unbounded.
+        """
+        import time
+
+        reason = type(exc).__name__
+        # IncompleteReadError knows how much actually arrived; surface it, since
+        # "0 bytes" vs "3 of 4 bytes" is the difference between a port scan and a
+        # peer that died mid-handshake.
+        partial = getattr(exc, "partial", None)
+        got = len(partial) if partial is not None else 0
+        detail = f"{reason} ({consumed + got} bytes)"
+
+        if not self._probe_dampen:
+            self.logger.debug(f"pre-handshake disconnect from {peer_ip}: {detail}")
+        else:
+            now = time.time()
+            h = self._probe_health.get(peer_ip)
+            if h is None:
+                # Bound the dict before inserting, evicting the least recently
+                # summarized source. A scan is summarized either way; the cap keeps
+                # this fix from leaking memory under source-address rotation.
+                if len(self._probe_health) >= _PROBE_TRACK_MAX:
+                    oldest = min(self._probe_health,
+                                 key=lambda k: self._probe_health[k]["summary_at"])
+                    del self._probe_health[oldest]
+                h = {"count": 0, "summary_at": now, "reason_sig": reason}
+                self._probe_health[peer_ip] = h
+                # First sighting from this source is always logged, so a single
+                # genuine aborted dial is never silently swallowed.
+                self.logger.debug(f"pre-handshake disconnect from {peer_ip}: {detail}")
+            else:
+                h["count"] += 1
+                changed = h["reason_sig"] != reason
+                h["reason_sig"] = reason
+                elapsed = now - h["summary_at"]
+                if changed or elapsed >= self._probe_summary_interval:
+                    span = int(elapsed)
+                    self.logger.info(
+                        f"probe traffic: {h['count']} non-protocol connections "
+                        f"in {span // 60}m{span % 60}s from {peer_ip} ({reason})")
+                    h["count"] = 0
+                    h["summary_at"] = now
+
+        try:
+            writer.close()
+            await writer.wait_closed()
+        except Exception:
+            # The peer is already gone by definition; a failure to close politely is
+            # not worth a line of its own.
+            pass
+
     async def _handle_incoming_connection(self, reader: asyncio.StreamReader,
                                          writer: asyncio.StreamWriter) -> None:
         """
@@ -275,11 +372,26 @@ class BGPAgent:
             # --- Protocol discrimination ---
             # Peek first byte: 0xFF = BGP marker, 'N' (0x4E) = NCTUN tunnel or
             # NCFED federation channel (disambiguated by the next 4 magic bytes).
-            first_byte = await asyncio.wait_for(reader.readexactly(1), timeout=30.0)
+            #
+            # Feature 100 (US3/FR-017): these two reads are the pre-handshake preamble.
+            # A peer that connects and sends nothing, or dies mid-preamble, used to fall
+            # through to the catch-all at the bottom of this method and emit a ~10-line
+            # ERROR traceback for what is only ever a probe, scan, or aborted dial.
+            # The catches below are narrow and sit BEFORE that catch-all — see
+            # _BENIGN_PREAMBLE_ERRORS on why widening them would break FR-019.
+            try:
+                first_byte = await asyncio.wait_for(reader.readexactly(1), timeout=30.0)
+            except _BENIGN_PREAMBLE_ERRORS as e:
+                await self._note_benign_disconnect(peer_ip, e, writer, consumed=0)
+                return
 
             if first_byte == b'N':
                 # Read remaining 4 bytes of magic: "CTUN" (tunnel) or "CFED" (federation)
-                rest_magic = await asyncio.wait_for(reader.readexactly(4), timeout=10.0)
+                try:
+                    rest_magic = await asyncio.wait_for(reader.readexactly(4), timeout=10.0)
+                except _BENIGN_PREAMBLE_ERRORS as e:
+                    await self._note_benign_disconnect(peer_ip, e, writer, consumed=1)
+                    return
                 magic = first_byte + rest_magic
 
                 if magic == NCFED_MAGIC:

@@ -15,10 +15,14 @@
 	    1. Xcode -> Runner target -> Signing & Capabilities -> + Capability
 	       -> Push Notifications. Xcode sets CODE_SIGN_ENTITLEMENTS to this
 	       file automatically.
-	    2. + Capability -> Background Modes -> tick "Remote notifications"
-	       (this writes UIBackgroundModes into Info.plist).
+	    2. Background Modes -> "Remote notifications" is ALREADY ticked
+	       (099/FR-008 pre-staged this in Info.plist's UIBackgroundModes
+	       ahead of the paid account, since it's an inert plain declaration,
+	       not a signing capability) -- nothing to do here anymore.
 	    3. Drop GoogleService-Info.plist into ios/Runner/ (gitignored).
 	    4. Upload an APNs auth key (.p8) to the Firebase project.
+
+	  See docs/MOBILE-RELEASE.md for the complete once-paid-account checklist.
 
 	  Value is "development" for debug/TestFlight-from-Xcode builds; Xcode
 	  rewrites it to "production" for App Store distribution automatically.

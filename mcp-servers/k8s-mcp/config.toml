@@ -1,0 +1,30 @@
+read_only = true
+toolsets = ["core"]
+disabled_tools = ["nodes_log","nodes_stats_summary","nodes_top","pods_top","pods_log","projects_list"]
+
+[[denied_resources]]
+group = ""
+version = "v1"
+kind = "Secret"
+
+# ── Why every line above is here (spec 084) ────────────────────────────────
+#
+# read_only = true
+#   FORCED by NetClaw, never inherited. Enforced upstream at tool-REGISTRATION
+#   time (isToolApplicable, pkg/mcp/mcp.go:69), so filtered tools are never
+#   registered with the SDK and cannot be invoked at all.
+#
+# toolsets = ["core"]  +  disabled_tools
+#   Measured live: 7 tools, 1,643 tokens (33% of the 5,000 ceiling). The DEFAULT
+#   configuration is 21 tools / 5,716 tokens and BUSTS the ceiling. Trimming is
+#   what makes adoption possible, not just tidier.
+#   Generic resources_list/resources_get already reach NetworkPolicy, Service,
+#   Ingress and EndpointSlice. Logs and metrics belong to kubeshark and prometheus.
+#
+# denied_resources -> Secret
+#   Upstream defaults denied_resources to []. SECRETS ARE READABLE BY DEFAULT.
+#   Its README shows this snippet and does not apply it. A read-only monitoring
+#   integration has no business reading Secret material. Verified live:
+#     "failed to list resources: ... resource not allowed: /v1, Kind=Secret"
+#   The read-only ServiceAccount's RBAC denies secrets as well, so this is the
+#   second of two layers.

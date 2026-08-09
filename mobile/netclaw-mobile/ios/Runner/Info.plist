@@ -79,6 +79,22 @@
 		<!-- feature 068, US1: local_auth Face ID (Touch ID/Android BiometricPrompt need no key) -->
 		<key>NSFaceIDUsageDescription</key>
 		<string>NetClaw Mobile uses Face ID to confirm approval decisions before sending them to your Border.</string>
+		<!-- 099/FR-017 (Story 7): required for the app to start an
+	     ActivityKit Live Activity (LiveActivityWidget extension) showing
+	     pending-approval status on the Lock Screen. -->
+		<key>NSSupportsLiveActivities</key>
+		<true/>
+		<!-- 099/FR-004 (Story 2): the edge connection (066/067) dials
+	     wss://<clawDomain>:<port> for the enrolled Border, which is
+	     routinely a private/local-network address (home or office
+	     deployment) -- iOS's Local Network privacy prompt covers any
+	     connection into a local/private address range, not just Bonjour
+	     discovery, and this app has no Bonjour/mDNS service discovery of
+	     its own to declare (confirmed by inspection: no NSNetService/
+	     multicast_dns usage anywhere in lib/ncfed/), so no
+	     NSBonjourServices key is needed alongside this one. -->
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>NetClaw Mobile connects to your Border, which is often on your local network, to send and receive messages and approvals.</string>
 		<!-- feature 067, US5: netclaw://device/<id> device-status deep link -->
 		<key>CFBundleURLTypes</key>
 		<array>
@@ -93,5 +109,22 @@
 		</array>
 		<key>UIStatusBarHidden</key>
 		<false/>
+		<!-- 099/FR-005 (Story 2): the app uses only standard TLS (wss://
+	     edge connection, 060/066's X.509/TLS transport) with no custom
+	     encryption implementation of its own -- exempt under Category 5
+	     Part 2 of the U.S. EAR, so this is false (does NOT use non-exempt
+	     encryption), which skips App Store Connect's export-compliance
+	     prompt on every future upload. -->
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
+		<!-- 099/FR-008 (Story 3), staged ahead of the paid Apple Developer
+	     account per Runner.entitlements' own step 2 -- safe to declare now
+	     since a background mode is a plain Info.plist declaration, not a
+	     signing capability; it's inert until CODE_SIGN_ENTITLEMENTS is
+	     wired (see Runner.entitlements and docs/MOBILE-RELEASE.md). -->
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>remote-notification</string>
+		</array>
 	</dict>
 </plist>

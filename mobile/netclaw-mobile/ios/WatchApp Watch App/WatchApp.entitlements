@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  099/FR-019 (Story 8). Shared App Group between the watch app and the
+  WatchComplication extension -- a widget extension runs in its own
+  process and can't read the running app's `WatchDataStore` directly, so
+  the pending-approval count is written here (UserDefaults(suiteName:))
+  by the app and read from here by the extension. App Groups (unlike Push
+  Notifications) are supported on a free/Personal Apple Developer team.
+-->
+<plist version="1.0">
+<dict>
+	<key>com.apple.security.application-groups</key>
+	<array>
+		<string>group.ca.automateyournetwork.netclaw.mobile</string>
+	</array>
+</dict>
+</plist>

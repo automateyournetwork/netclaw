@@ -1,182 +1,132 @@
 ---
 name: meraki-network-ops
-description: "Cisco Meraki Dashboard — organization inventory, network management, device lifecycle, client discovery, action batches. Use when listing Meraki devices, managing networks, checking device status, investigating clients, or running bulk Meraki API operations"
-version: 1.0.0
+description: "Cisco Meraki organization and network operations (read-only) — org discovery, network inventory, device inventory, clients, group policies, admins, licensing, alert settings via Cisco's official Meraki MCP. Use as the entry point for any Meraki question, to discover org and network IDs, or to inventory Meraki networks and devices"
+version: 2.0.0
 license: Apache-2.0
-tags: [cisco, meraki, dashboard, network, devices, clients, inventory, organization]
-
-netshell:
-  mcp_tools:
-    - mcp: meraki-magic-mcp
-      tools:
-        - getOrganizations
-        - getOrganizationDetails
-        - getOrganizationStatus
-        - getOrganizationInventory
-        - getOrganizationLicense
-        - getNetworks
-        - getNetworkDetails
-        - getNetworkEvents
-        - getDevices
-        - getNetworkDevices
-        - getDeviceDetails
-        - getDeviceStatus
-        - getDeviceUplink
-        - getDeviceClients
-        - getNetworkClients
-        - getClientDetails
-        - call_meraki_api
-        - createNetwork           # Write - requires ITSM
-        - updateNetwork           # Write - requires ITSM
-        - claimDevices            # Write - requires ITSM
-        - removeDevice            # Write - requires ITSM
-  approval_required: false
+tags: [cisco, meraki, organization, network, inventory, clients, discovery, read-only]
 ---
 
-# Meraki Network & Device Operations
+# Meraki Network Operations (read-only)
 
 ## MCP Server
 
-- **Repository**: [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community)
-- **Transport**: stdio (Python via FastMCP) or HTTP (`http://<host>:8008/mcp`)
-- **Install**: `git clone` + `pip install -r requirements.txt`
-- **Script**: `meraki-mcp-dynamic.py` (recommended — ~804 API endpoints) or `meraki-mcp.py` (40 curated)
-- **Requires**: `MERAKI_API_KEY`, `MERAKI_ORG_ID`
-- **Python**: 3.13+
+- **Server**: Cisco's **official** Meraki MCP — [developer.cisco.com](https://developer.cisco.com/meraki/api-v1/mcp-server/)
+- **Endpoint**: `https://mcp.meraki.com/mcp` (remote HTTP, no local install)
+- **Self-host fallback**: [CiscoDevNet/cisco-meraki-mcp-official](https://github.com/CiscoDevNet/cisco-meraki-mcp-official) (Apache-2.0)
+- **Requires**: `MERAKI_DASHBOARD_API_KEY` — use a **read-only** dashboard key
+- **Tools**: exactly two — `semantic_search` (discover) and `execute_api` (invoke)
 
-## Key Capabilities
+## Read-only, structurally
 
-### Organization Management
+All 431 mutating Meraki operations (174 POST, 186 PUT, 71 DELETE) are **absent from the
+capability catalogue**. Only non-deprecated GETs are built in, so `updateNetwork`,
+`rebootDevice`, `blinkDeviceLeds` and friends return `Capability not found`.
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List orgs | `getOrganizations` | All Meraki organizations your API key can access |
-| Org details | `getOrganizationDetails` | Name, licensing model, management URL |
-| Org status | `getOrganizationStatus` | Network/device health summary |
-| Org inventory | `getOrganizationInventory` | All claimed devices with model, serial, MAC, network assignment |
-| Org license | `getOrganizationLicense` | License status, expiration, device counts |
-| Org admins | `getOrganizationAdmins` | Admin accounts and access levels |
-| Config changes | `getOrganizationConfigurationChanges` | Who changed what, when (audit trail) |
-| API requests | `getOrganizationApiRequests` | API usage log (rate limit monitoring) |
-| Webhook logs | `getOrganizationWebhookLogs` | Webhook delivery history |
-| Create admin | `createOrganizationAdmin` | **[WRITE]** Add a new admin user |
+Do not attempt writes and do not offer them. There is no ServiceNow CR path here because
+there is nothing to gate — a change must be made in the Meraki dashboard directly.
 
-### Network Management
+## How to call it
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List networks | `getNetworks` | All networks in the org with type, tags, timezone |
-| Network details | `getNetworkDetails` | Configuration, product types, enrollment string |
-| Create network | `createNetwork` | **[WRITE]** New network (combined, wireless, switch, appliance, camera) |
-| Update network | `updateNetwork` | **[WRITE]** Modify name, tags, timezone, notes |
-| Delete network | `deleteNetwork` | **[WRITE]** Remove an entire network |
-| Network events | `getNetworkEvents` | Event log (up/down, DHCP, auth, config changes) |
-| Event types | `getNetworkEventTypes` | Available event categories for filtering |
-| Network alerts | `getNetworkAlerts` | Alert history (device down, rogue AP, etc.) |
-| Alert settings | `updateNetworkAlertsSettings` | **[WRITE]** Configure alert destinations and thresholds |
-| Network traffic | `getNetworkTraffic` | Traffic analytics and application breakdown |
+Two capability IDs may be called directly; everything else must be discovered:
 
-### Device Management
+1. `execute_api` → `getOrganizations` — find accessible org IDs
+2. `execute_api` → `getOrganizationNetworks` — find network IDs in the chosen org
+3. `semantic_search` → describe the intent in words → returns ranked `capability_id`s
+4. `execute_api` → the chosen `capability_id` + its required parameters
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List devices (org) | `getDevices` | All devices across the org |
-| List devices (network) | `getNetworkDevices` | Devices in a specific network |
-| Device details | `getDeviceDetails` | Model, serial, firmware, IP, MAC, tags, notes |
-| Device status | `getDeviceStatus` | Online/offline, last seen, gateway IP |
-| Device uplinks | `getDeviceUplink` | WAN/cellular uplink status, IP, gateway, DNS |
-| Device clients | `getDeviceClients` | Connected clients with usage stats |
-| Update device | `updateDevice` | **[WRITE]** Name, tags, notes, lat/lng, address |
-| Claim devices | `claimDevices` | **[WRITE]** Add devices to a network by serial |
-| Remove device | `removeDevice` | **[WRITE]** Unclaim device from network |
-| Reboot device | `rebootDevice` | **[WRITE]** Power cycle a device |
+**Discover, do not guess.** An earlier version of this skill hardcoded 80 method names and
+**54 of them did not exist in the Meraki API at all** — they failed regardless of server.
+`semantic_search` is the guard against that: it can only return IDs that exist.
 
-### Client Operations
+## Reading results honestly
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| List clients | `getNetworkClients` | Active clients with IP, MAC, VLAN, usage |
-| Client details | `getClientDetails` | Full client info: SSID, VLAN, OS, manufacturer |
-| Client usage | `getClientUsage` | Bandwidth usage over time |
-| Client policy | `getClientPolicy` | Applied group or device policy |
-| Update client policy | `updateClientPolicy` | **[WRITE]** Assign a different policy to a client |
+- **One page only.** `execute_api` returns a single page. Request a bounded page size when
+  supported, and never present a page as the complete dataset.
+- **Empty is not absent.** `n=0` means *this network reported none*, never *none exist*.
+  Live proof from a real sandbox org: `getOrganizationDevices` returns **0 devices** while
+  the same org has a fully configured network with **15 SSIDs**.
+- **Three distinct errors, three different fixes:**
 
-### Action Batches (Bulk Operations)
+  | Error | Meaning | Fix |
+  |---|---|---|
+  | `Capability not found` | ID is mutating, deprecated, or invented | `semantic_search` for a real one |
+  | `Resource not found` | valid ID, wrong org/network/serial | re-derive the ID from step 1–2 |
+  | `Invalid parameters` | valid ID, missing a required parameter | read the capability's parameters |
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| Create batch | `createOrganizationActionBatch` | **[WRITE]** Submit bulk API operations |
-| Batch status | `getOrganizationActionBatchStatus` | Check progress and results |
-| List batches | `getOrganizationActionBatches` | All batches with status |
+  Never report any of the three as "no data" — none of them mean that.
 
-### Generic API Access
+## This is the entry point
 
-The dynamic MCP exposes a universal `call_meraki_api` tool that can call **any** of the ~804 Meraki Dashboard API methods:
+Every other Meraki skill needs an org ID and a network ID. Those come from the only two
+capability IDs Cisco documents as directly callable:
 
 ```
-call_meraki_api(
-    section="networks",
-    method="getNetworkFirmwareUpgrades",
-    parameters={"networkId": "L_123456789"}
-)
+execute_api  capability_id=getOrganizations
+execute_api  capability_id=getOrganizationNetworks  organizationId=<from step 1>
 ```
 
-## Workflow: Organization Inventory Audit
+## Verified capabilities
 
-When a user asks "show me all our Meraki devices":
+Live-verified against a real org:
 
-1. **List orgs**: `getOrganizations` — identify accessible orgs
-2. **Inventory**: `getOrganizationInventory` — all claimed devices
-3. **Device status**: iterate key devices with `getDeviceStatus` — online/offline
-4. **Uplinks**: `getDeviceUplink` for MX appliances — WAN connectivity
-5. **License**: `getOrganizationLicense` — check expiration
-6. **Report**: formatted inventory table with status, firmware, and license health
+| Capability ID | Verified result |
+|---|---|
+| `getOrganizations` | 1 org — id, name, licensing model, cloud region |
+| `getOrganizationNetworks` | 1 network — `branch_office` (appliance, camera, switch, wireless) |
+| `getOrganizationAdmins` | 2 admins |
+| `getOrganizationLicensesOverview` | co-term licensing |
+| `getOrganizationSaml` | SAML config |
+| `getNetworkSettings` | 5 network settings |
+| `getNetworkAlertsSettings` | 3 alert settings |
+| `getOrganizationDevices` | **0** |
+| `getOrganizationInventoryDevices` | **0** |
+| `getNetworkClients` | **0** |
+| `getNetworkGroupPolicies` | **0** |
 
-## Workflow: Network Health Dashboard
+Read the bottom four rows carefully. **This org has zero devices, zero inventory, zero
+clients and zero group policies — while holding a fully configured four-product network
+with 15 SSIDs and live firewall rules.** That is the single most important fact in this
+skill: a configured network can report nothing at all.
 
-When checking overall network health:
+## Workflow: Discovery
 
-1. **List networks**: `getNetworks` — all networks in org
-2. **For each network**: `getNetworkEvents` filtered by severity
-3. **Alerts**: `getNetworkAlerts` — open alert conditions
-4. **Devices**: `getNetworkDevices` — count online vs offline
-5. **Report**: network-by-network health summary
+1. `getOrganizations` — record every org ID and name
+2. `getOrganizationNetworks` per org — record network IDs and `productTypes`
+3. `getOrganizationDevices` — the device inventory
+4. **Report the counts you actually got**, including zeros, before answering anything else.
+   Downstream skills need to know whether they are working from data or from an empty org.
 
-## Workflow: Client Investigation
+## Workflow: Network inventory report
 
-When investigating a specific client:
+1. Discovery, as above
+2. `getNetworkSettings` and `getNetworkAlertsSettings` per network
+3. `getNetworkGroupPolicies` — policy objects, if any
+4. `getOrganizationAdmins` — who can change this org
+5. `getOrganizationLicensesOverview` — licence model, expiry, device entitlement
+6. `productTypes` per network tells you which sibling skill applies: `wireless` →
+   `meraki-wireless-ops`, `switch` → `meraki-switch-ops`, `appliance` →
+   `meraki-security-appliance`
 
-1. **Find client**: `getNetworkClients` filtered by MAC or IP
-2. **Client details**: `getClientDetails` — SSID, VLAN, OS, manufacturer
-3. **Usage**: `getClientUsage` — bandwidth consumption
-4. **Policy**: `getClientPolicy` — what policy is applied
-5. **Device clients**: `getDeviceClients` on the AP/switch serving this client
-6. **Report**: client connection details with network path
+## Important Rules
+
+- **No writes exist.** Network and org changes go through the dashboard.
+- **Report zeros explicitly.** "0 devices" is a finding and must be stated, never smoothed
+  over or filled in from the network's configuration.
+- **`productTypes` drives which skill to hand off to** — do not run wireless workflows
+  against a network without `wireless`.
+- **One page only** on `getOrganizationNetworks` and `getNetworkClients` for large orgs.
+- **Record in GAIT** — log every discovery run.
 
 ## Integration with Other Skills
 
 | Skill | How They Work Together |
 |-------|----------------------|
-| `meraki-wireless-ops` | Network ops provides network/device context, wireless ops manages SSIDs and RF |
-| `meraki-switch-ops` | Network ops provides device discovery, switch ops manages ports and VLANs |
-| `meraki-security-appliance` | Network ops provides network context, security manages firewall rules and VPN |
-| `meraki-monitoring` | Network ops provides baseline inventory, monitoring tracks health and diagnostics |
-| `gait-session-tracking` | Record all Meraki operations in GAIT audit trail |
-| `servicenow-change-workflow` | Gate all write operations behind ServiceNow CRs |
-| `github-ops` | Commit Meraki config snapshots to Git for change tracking |
-
-## Important Rules
-
-- **READ_ONLY_MODE** — Meraki Magic MCP supports `READ_ONLY_MODE=true` to block all [WRITE] operations
-- **API rate limits** — Meraki Dashboard API: 10 requests/second per org; MCP has built-in caching and retry
-- **Caching** — Responses cached for 5 minutes by default (`CACHE_TTL_SECONDS=300`), reduces API calls by 50-90%
-- **ServiceNow gating** — Never create/delete networks or claim/remove devices without an approved CR (unless lab mode)
-- **Record in GAIT** — Log all Meraki inventory audits and device operations
+| `meraki-wireless-ops` | Hand off networks with productType `wireless` |
+| `meraki-switch-ops` | Hand off networks with productType `switch` |
+| `meraki-security-appliance` | Hand off networks with productType `appliance` |
+| `meraki-monitoring` | Health and change history once IDs are known |
+| `gait-session-tracking` | Record all discovery runs |
 
 ## Environment Variables
 
-- `MERAKI_API_KEY` — Meraki Dashboard API key
-- `MERAKI_ORG_ID` — Meraki organization ID
-- `ENABLE_CACHING` — Response caching (default: true)
-- `CACHE_TTL_SECONDS` — Cache duration in seconds (default: 300)
-- `READ_ONLY_MODE` — Block write operations (default: false)
+- `MERAKI_DASHBOARD_API_KEY` — Meraki Dashboard API key (**read-only** recommended)

@@ -1,0 +1,692 @@
+[
+ {
+  "name": "api_countSitesEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/sites/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceCategory": "query",
+   "endTime": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteName": "query",
+   "siteType": "query",
+   "startTime": "query",
+   "taskId": "query"
+  },
+  "description": "Retrieves the total count of sites that provide energy data, filtered according to the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-sitesEnergy-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_countSitesEnergyForTheGivenTaskID",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/sites/query/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "taskId": "query"
+  },
+  "description": "Gets count sites energy task result for the given task ID. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-sitesEnergy-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_countsGlobalIPAddressPools",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/globalIpAddressPools/count",
+  "params": {},
+  "description": "Returns the total count of global IP address pools.\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries\nS0.1 Count-only tool for global pools.\nS0.2 This tool is not site-scoped; ignore site filters.\nS0.3 Do not use this tool as a detail/list source.\n\nS1 Invocation rules\nS1.1 Pure count intent (for example, 'how many global pools'): call this tool directly.\nS1.2 Filter/detail/list intent: use retrieval APIs instead of this count tool as the primary source.\nS1.3 If user says 'pools' without specifying global vs subpool (or asks about both), call both api_countsGlobalIPAddressPools and api_countsIPAddressSubpools.\n\nS2 Pairing rule with retrieval\nS2.1 When rendering global-pool lists from api_retrievesGlobalIPAddressPools, call this tool to provide total-result context.\nS2.2 Use count-line formatting consistent with retrieval rules (for example, 'Showing 10 out of {total} results.' or offset form).\n\nS3 Output format\nS3.1 For count answers, return Markdown text.\nS3.2 Never use build_key_value_set.\nS3.3 Markdown-context requirement: never return widget-only output. If output includes KeyValueSet, response shape must include Markdown context as [Markdown intro, KeyValueSet, Markdown summary].\n\nS4 Prohibitions\nS4.1 Do not call retrieval APIs when user asks only for a simple total count.\nS4.2 Do not present count output as pool details."
+ },
+ {
+  "name": "api_countsIPAddressSubpools",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/siteIpAddressPools/count",
+  "params": {
+   "siteId": "query"
+  },
+  "description": "Returns the total count of IP address subpools.\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries\nS0.1 Count-only tool for subpools.\nS0.2 Do not use this tool as a detail/list source.\nS0.3 If site is specified, count only subpools whose siteId exactly matches that site (no parent/child expansion unless explicitly requested).\n\nS1 Invocation rules\nS1.1 Pure count intent (for example, 'how many subpools'): call this tool directly.\nS1.2 Filter/detail/list intent: use retrieval APIs instead of this count tool as the primary source.\nS1.3 If user says 'pools' without specifying global vs subpool (or asks about both), call both api_countsGlobalIPAddressPools and api_countsIPAddressSubpools.\n\nS2 Pairing rule with retrieval\nS2.1 When rendering subpool lists from api_retrievesIPAddressSubpools, call this tool to provide total-result context.\nS2.2 Use count-line formatting consistent with retrieval rules (for example, 'Showing 10 out of {total} results.' or offset form).\n\nS3 Output format\nS3.1 For count answers, return Markdown text.\nS3.2 Never use build_key_value_set.\nS3.3 Markdown-context requirement: never return widget-only output. If output includes KeyValueSet, response shape must include Markdown context as [Markdown intro, KeyValueSet, Markdown summary].\n\nS4 Prohibitions\nS4.1 Do not call retrieval APIs when user asks only for a simple total count.\nS4.2 Do not present count output as subpool details."
+ },
+ {
+  "name": "api_countsSubpoolsOfAGlobalIPAddressPool",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/globalIpAddressPools/{globalIpAddressPoolId}/subpools/count",
+  "params": {
+   "globalIpAddressPoolId": "path"
+  },
+  "description": "Counts the number of IP address subpools within a specific global IP address pool.\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries\nS0.1 Count-only tool for subpools under one specific global pool.\nS0.2 Use only when user explicitly asks for number/count of subpools in a given global pool (by name or UUID).\nS0.3 Do not use this tool as a detail/list source.\n\nS1 Invocation rules\nS1.1 Required parameter: globalIpAddressPoolId must be a valid UUID.\nS1.2 If UUID is provided, call this tool directly.\nS1.3 If global pool name is provided, resolve UUID via api_retrievesGlobalIPAddressPools, then call this tool with resolved UUID.\nS1.4 If user explicitly says 'global pool' and asks for subpool count, prefer this tool path (do not retrieve subpools list).\nS1.5 If user does not specify global vs subpool, do not use this tool as primary; follow dual retrieval/disambiguation path.\n\nS2 Resolution and pairing behavior\nS2.1 Name-to-UUID resolution is mandatory when identifier is not UUID.\nS2.2 Do not ask user for UUID if name lookup can resolve it.\nS2.3 Do not call this tool with non-UUID name strings in globalIpAddressPoolId.\n\nS3 Output format\nS3.1 For count answers, return Markdown text.\nS3.2 Never use build_key_value_set.\nS3.3 Markdown-context requirement: never return widget-only output. If output includes KeyValueSet, response shape must include Markdown context as [Markdown intro, KeyValueSet, Markdown summary].\n\nS4 Prohibitions and non-goals\nS4.1 Use this tool for count results only; use retrieval APIs when user asks for subpool list/details.\nS4.2 This API is not required to determine whether a global pool is unused.\nS4.3 Unused/empty global pool definition: global pool is unused iff assignedAddresses == 0."
+ },
+ {
+  "name": "api_getAAAOverrideVlanSettingsBySite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/wirelessSettings/flexConnectAaaOverride",
+  "params": {
+   "siteId": "path"
+  },
+  "description": "This API allows the user to get all Flex Connect AAA Override VLAN settings at the given site"
+ },
+ {
+  "name": "api_getAccessPointsPositions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/floors/{floorId}/accessPointPositions",
+  "params": {
+   "floorId": "path",
+   "limit": "query",
+   "macAddress": "query",
+   "model": "query",
+   "name": "query",
+   "offset": "query",
+   "type": "query"
+  },
+  "description": "Retrieve all Access Points positions assigned for a specific floor"
+ },
+ {
+  "name": "api_getAccessPointsPositionsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/floors/{floorId}/accessPointPositions/count",
+  "params": {
+   "floorId": "path",
+   "macAddress": "query",
+   "model": "query",
+   "name": "query",
+   "type": "query"
+  },
+  "description": "Retrieve Access Points positions count assigned for a specific floor"
+ },
+ {
+  "name": "api_getDeviceCredentialSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/deviceCredentials",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**Tool Dependency: CRITICAL**\n\nThis tool retrieves the device credential settings configured for a site. It returns credential ID references only \u2014 **NOT** the actual credential details. You **MUST ALWAYS** resolve every non-null `credentialsId` with `api_getGlobalCredentials` before answering. **This is non-negotiable.**\n\n**Credential Types Returned:**\n- `CLI` - Command Line Interface credentials\n- `SNMPV2_READ_COMMUNITY` - SNMPv2 read-only community string\n- `SNMPV2_WRITE_COMMUNITY` - SNMPv2 read-write community string\n- `SNMPV3` - SNMPv3 credentials with authentication and privacy settings\n- `HTTP_READ` - HTTP read-only credentials\n- `HTTP_WRITE` - HTTP read-write credentials\n\n**Field Mapping:**\n- `cliCredentialsId` \u2192 `CLI`\n- `snmpv2cReadCredentialsId` \u2192 `SNMPV2_READ_COMMUNITY`\n- `snmpv2cWriteCredentialsId` \u2192 `SNMPV2_WRITE_COMMUNITY`\n- `snmpv3CredentialsId` \u2192 `SNMPV3`\n- `httpReadCredentialsId` \u2192 `HTTP_READ`\n- `httpWriteCredentialsId` \u2192 `HTTP_WRITE`"
+ },
+ {
+  "name": "api_getFloorSettings",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/floors/settings",
+  "params": {},
+  "description": "Gets UI user preference for floor unit system."
+ },
+ {
+  "name": "api_getNativeVlanSettingsBySite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/wirelessSettings/flexConnectNativeVlan",
+  "params": {
+   "siteId": "path"
+  },
+  "description": "This API allows the user to get all Native VLAN Settings at the given site. The default value of the native VLAN on the device is 1 when nothing is explicitly set."
+ },
+ {
+  "name": "api_getNetworkDevicesCredentialsSyncStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/deviceCredentials/status",
+  "params": {
+   "id": "path"
+  },
+  "description": "Gets site network device credential sync/provisioning summary. Use for credential provision summary, credential provisioning status, device credential sync status, network devices credentials sync status, and CLI/SNMP credential sync summary.\n\n**MANDATORY PREREQUISITE:** If the user gives a site name, call `api_getSites` first and use the site UUID as `id`.\n\n**Returns:** Per-type sync status and device counts for `cli`, `snmpV2Read`, `snmpV2Write`, and `snmpV3`."
+ },
+ {
+  "name": "api_getPlannedAccessPointsForBuilding",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/buildings/{buildingId}/planned-access-points",
+  "params": {
+   "buildingId": "path",
+   "limit": "query",
+   "offset": "query",
+   "radios": "query"
+  },
+  "description": "Provides a list of Planned Access Points for the Building it is requested for"
+ },
+ {
+  "name": "api_getPlannedAccessPointsForFloor",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/floors/{floorId}/planned-access-points",
+  "params": {
+   "floorId": "path",
+   "limit": "query",
+   "offset": "query",
+   "radios": "query"
+  },
+  "description": "Provides a list of Planned Access Points for the Floor it is requested for"
+ },
+ {
+  "name": "api_getPlannedAccessPointsPositions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/floors/{floorId}/plannedAccessPointPositions",
+  "params": {
+   "floorId": "path",
+   "limit": "query",
+   "macAddress": "query",
+   "name": "query",
+   "offset": "query",
+   "type": "query"
+  },
+  "description": "Retrieve all Planned Access Points Positions designated for a specific floor"
+ },
+ {
+  "name": "api_getPlannedAccessPointsPositionsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/floors/{floorId}/plannedAccessPointPositions/count",
+  "params": {
+   "floorId": "path",
+   "macAddress": "query",
+   "name": "query",
+   "type": "query"
+  },
+  "description": "Retrieve all Planned Access Points Positions count designated for a specific floor"
+ },
+ {
+  "name": "api_getSSIDByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/wirelessSettings/ssids/{id}",
+  "params": {
+   "id": "path",
+   "siteId": "path"
+  },
+  "description": "This API allows the user to get an SSID (Service Set Identifier) by ID at the given site"
+ },
+ {
+  "name": "api_getSSIDBySite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/wirelessSettings/ssids",
+  "params": {
+   "authType": "query",
+   "l3authType": "query",
+   "limit": "query",
+   "offset": "query",
+   "siteId": "path",
+   "ssid": "query",
+   "wlanType": "query"
+  },
+  "description": "This API allows the user to get all SSIDs (Service Set Identifier) at the given site"
+ },
+ {
+  "name": "api_getSSIDCountBySite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/wirelessSettings/ssids/count",
+  "params": {
+   "_inherited": "query",
+   "siteId": "path"
+  },
+  "description": "This API allows the user to get count of all SSIDs (Service Set Identifier) ."
+ },
+ {
+  "name": "api_getSiteAnalyticsForOneSite",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "band": "query",
+   "endTime": "query",
+   "failureCategory": "query",
+   "failureReason": "query",
+   "id": "path",
+   "ssid": "query",
+   "startTime": "query",
+   "taskId": "query",
+   "view": "query"
+  },
+  "description": "Returns site analytics for the given site. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getSiteAnalyticsForTheChildSitesOfGivenParentSiteAn_104cea52",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "band": "query",
+   "endTime": "query",
+   "failureCategory": "query",
+   "failureReason": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteType": "query",
+   "sortBy": "query",
+   "ssid": "query",
+   "startTime": "query",
+   "taskId": "query",
+   "view": "query"
+  },
+  "description": "Returns site analytics for all child sites of given parent site. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getSiteAnalyticsSummaryDataForTheGivenTaskId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries/summaryAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "taskId": "query"
+  },
+  "description": "Get site analytics summary data for the given task id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getSiteAnalyticsTrendDataForTheGivenTaskId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries/trendAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "taskId": "query"
+  },
+  "description": "Gets site analytics trend data for the given task id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getSiteEnergyByID",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/sites/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "deviceCategory": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "taskId": "query",
+   "views": "query"
+  },
+  "description": "Retrieve the energy summary data for a specific site based on the site ID. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-sitesEnergy-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getSiteTopology",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/topology/site-topology",
+  "params": {},
+  "description": "Returns site topology"
+ },
+ {
+  "name": "api_getSites",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites",
+  "params": {
+   "_unitsOfMeasure": "query",
+   "limit": "query",
+   "name": "query",
+   "nameHierarchy": "query",
+   "offset": "query",
+   "type": "query"
+  },
+  "description": "Converts site names or site hierarchies (nameHierarchy) into site identifiers (siteId/UUID), and retrieves site inventory attributes for areas, buildings, and floors. Use this tool when you have a site name (e.g., 'AreaName', 'Global') or hierarchy path (e.g., 'Global/AreaName/BuildingName/FloorName') and need the corresponding siteId for other tool calls, need to validate the existence of a provided site, or need site attributes such as floor number, RF model, floor dimensions, nameHierarchy, type, id, or parentId. MANDATORY parent-detail workflow: when the user asks for a site's parent details, you MUST first call `api_getSites` with the user-provided site name or hierarchy, derive the parent hierarchy by removing the final segment from the matching site's `nameHierarchy`, then you MUST call `api_getSites` again with that parent hierarchy name. Do not skip the second `api_getSites` call for parent details. MANDATORY descendant-sites workflow: when the user asks for descendants, child sites, or sites under a given site, you MUST first call `api_getSites` with the user-provided site name or hierarchy, take the matching site's exact `nameHierarchy`, then you MUST call `api_getSites` again with `nameHierarchy` set to `<matching nameHierarchy>/.*`. Do not skip the first resolution call, and do not use the raw user-provided name to build the descendant query. DO NOT call this tool if you already have the siteId and only need to pass that siteId to another tool. Returns site details including id (the siteId UUID to use in other calls), name, nameHierarchy, type, floorNumber, rfModel, width, length, height, unitsOfMeasure, and additional attributes. DO NOT use this tool for queries related to understanding the site's health, performance, issues, or associated devices and clients. For fabric site/zone questions, do not call api_getSites; use get_sda_fabric_site_details."
+ },
+ {
+  "name": "api_getSitesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/count",
+  "params": {
+   "name": "query"
+  },
+  "description": "Returns the number of sites in Catalyst Center having a given name, or the total number of sites when no site name is provided. Use this tool if you want the total number of sites in Catalyst Center or the number of sites with a particular name. If the user does not provide a site name, do not send an empty string. The runtime should treat missing site name as null/omitted for the HTTP request.\n\nExamples:\n- User: \"How many sites do I have?\" -> Tool call: api_getSitesCount({})\n- User: \"Give me the total number of sites in Catalyst Center\" -> Tool call: api_getSitesCount({})\n- User: \"How many sites named San Jose do I have?\" -> Tool call: api_getSitesCount({\"name\": \"San Jose\"})\n- User: \"Count the sites called Building 1\" -> Tool call: api_getSitesCount({\"name\": \"Building 1\"})"
+ },
+ {
+  "name": "api_getSitesEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/sites",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "deviceCategory": "query",
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteName": "query",
+   "siteType": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "taskId": "query",
+   "views": "query"
+  },
+  "description": "Retrieves a list of sites with energy data based on the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-sitesEnergy-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getTheTotalNumberOfSiteAnalyticsRecordsAvailableFor_25bb5c48",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "endTime": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteType": "query",
+   "startTime": "query"
+  },
+  "description": "Returns the total number of site analytics records available for for given set of query parameters. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTopNEntitiesRelatedToSiteAnalyticsForTheGivenTaskId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/siteKpiSummaries/topNAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "taskId": "query"
+  },
+  "description": "Gets the topN analytics data for a given taskId. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-SiteKpiSummaries-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_querySitesEnergyForTheGivenTaskID",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/sites/query",
+  "params": {
+   "X-CALLER-ID": "header",
+   "taskId": "query"
+  },
+  "description": "Gets query sites energy task result for the given task ID. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-sitesEnergy-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_retrieveAAASettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/aaaSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "Retrieve configured AAA settings for a specific site or site hierarchy, including Global. Use this API whenever the user asks for AAA, RADIUS, TACACS, TACACS+, ISE, authentication server, authorization server, or accounting server configuration for a site. If the user provides a site name or site hierarchy instead of a site ID, first resolve the site ID using api_getSites, then call this API with the resolved id. This API returns configured site AAA settings; null values indicate inheritance from the parent site, and empty objects indicate the setting is unset at the site. Prefer this API over AAA analytics tools when the user asks what AAA/RADIUS/TACACS/ISE servers are configured, defined, assigned, present, or associated with a site. Response scoping is mandatory: if the user asks for Network AAA, AAA Network, or network AAA servers, answer only from response.aaaNetwork and do not include response.aaaClient. If the user asks for Client AAA, AAA Client, or client AAA servers, answer only from response.aaaClient and do not include response.aaaNetwork. Include both aaaNetwork and aaaClient only when the user explicitly asks for all, both, or generic AAA settings without a network/client qualifier."
+ },
+ {
+  "name": "api_retrieveANetworkProfileForSitesById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves a network profile for sites by id."
+ },
+ {
+  "name": "api_retrieveASpecificSiteTagForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/siteTags/{siteTagId}",
+  "params": {
+   "id": "path",
+   "siteTagId": "path"
+  },
+  "description": "This endpoint retrieves the details of a specific `Site Tag` associated with a given `Wireless Profile`. This API requires the `id` of the `Wireless Profile` and the `siteTagId` of the `Site Tag`."
+ },
+ {
+  "name": "api_retrieveAllSiteTagsForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/siteTags",
+  "params": {
+   "id": "path",
+   "limit": "query",
+   "offset": "query",
+   "siteTagName": "query"
+  },
+  "description": "This endpoint retrieves a list of all `Site Tags` associated with a specific `Wireless Profile`. This API requires the `id` of the `Wireless Profile` to be provided as a path parameter."
+ },
+ {
+  "name": "api_retrieveBannerSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/bannerSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve site-level device access banner settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DHCP, DNS, image distribution, NTP, and time zone settings tools to build a complete network server settings response. Use this tool for generic site-level banner configuration queries, including whether the site uses the built-in login banner, whether a custom banner is configured, the custom banner message text, inherited banner settings, and the parent site from which banner settings are inherited. Example queries include: Is a site using the built-in login banner? If using a custom banner at a site, what is the message text? Is the banner setting for a site inherited? From which parent site? This includes configured banner message content, banner type, message of the day (MOTD), login or access notice text, custom banner configuration, and inherited banner information from parent sites. Banner settings describe the text shown during access to network devices such as routers, switches, and hubs. `null` values indicate that the setting is inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at the site."
+ },
+ {
+  "name": "api_retrieveCLITemplatesAttachedToANetworkProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/{profileId}/templates",
+  "params": {
+   "profileId": "path"
+  },
+  "description": "Retrieves a list of CLI templates attached to a network profile based on the network profile ID."
+ },
+ {
+  "name": "api_retrieveCountOfCLITemplatesAttachedToANetworkProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/{profileId}/templates/count",
+  "params": {
+   "profileId": "path"
+  },
+  "description": "Retrieves the count of all CLI templates attached to a network profile by the profile ID."
+ },
+ {
+  "name": "api_retrieveCountOfNetworkProfilesAttachedToACLITemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/templates/{templateId}/networkProfilesForSites/count",
+  "params": {
+   "templateId": "path"
+  },
+  "description": "Retrieves the count of network profiles that a CLI template has been attached to by the template ID."
+ },
+ {
+  "name": "api_retrieveDHCPSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/dhcpSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve DHCP settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DNS, image distribution, NTP, time zone, and banner settings tools to build a complete network server settings response. Use this tool for generic site-level DHCP configuration queries, including the configured DHCP servers, inherited DHCP settings, and the parent site from which DHCP settings are inherited. Example queries include: Which DHCP servers are configured for a site? Are DHCP settings for a site inherited? From which parent site? `null` values indicate that the setting will be inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at a site."
+ },
+ {
+  "name": "api_retrieveDNSSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/dnsSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve DNS settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DHCP, image distribution, NTP, time zone, and banner settings tools to build a complete network server settings response. Use this tool for generic site-level DNS configuration queries, including the configured domain name, primary DNS server, secondary DNS server, inherited DNS settings, and the parent site from which DNS settings are inherited. Example queries include: What domain name is configured in DNS settings for a site? What primary DNS server is configured for a site? What secondary DNS server is configured for a site? Are DNS settings for a site inherited? From which parent site? `null` values indicate that the setting will be inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at a site."
+ },
+ {
+  "name": "api_retrieveImageDistributionSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/imageDistributionSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve image distribution settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DHCP, DNS, NTP, time zone, and banner settings tools to build a complete network server settings response. Use this tool for generic site-level image distribution or SFTP image distribution server configuration queries, including the configured image distribution server UUIDs, inherited image distribution settings, and the parent site from which image distribution settings are inherited. Example queries include: Which SFTP image distribution server is configured at a site? Are image distribution settings for a site inherited? From which parent site? `null` values indicate that the setting will be inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at a site. The `response.imageDistribution.servers` field contains image distribution server UUIDs only, not server details. MANDATORY FOLLOW-UP: whenever this response contains one or more server UUIDs, always call `api_retrieveImageDistributionServers` to retrieve the image distribution server details and match each UUID against the returned server `id`. Do not answer image distribution server detail questions from UUIDs alone. Use `api_retrieveImageDistributionServers` to fetch and present server address, port, username, and root location."
+ },
+ {
+  "name": "api_retrieveNTPSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/ntpSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve NTP settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DHCP, DNS, image distribution, time zone, and banner settings tools to build a complete network server settings response. Use this tool for generic site-level NTP configuration queries, including the configured NTP servers, inherited NTP settings, and the parent site from which NTP settings are inherited. Example queries include: Which NTP servers are configured for a site? Are NTP settings for a site inherited? From which parent site? `null` values indicate that the setting will be inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at a site."
+ },
+ {
+  "name": "api_retrieveTelemetrySettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/telemetrySettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "Retrieves effective site telemetry settings for a site: application visibility, application telemetry, wired endpoint data collection, wireless telemetry, SNMP traps, syslog servers, and collectors. Use this tool for site-level telemetry questions, including application visibility on wired access devices, collector type/address/port, whether wired endpoint data collection or wireless telemetry is enabled, whether built-in SNMP/syslog is used, and which external SNMP/syslog servers are set. Call with `_inherited=true` unless the user explicitly asks for only settings configured locally on the site. `_inherited` is only a retrieval option for effective values; it is not a visible answer requirement. Treat phrases like \"configured at site\", \"configured for site\", \"settings at site\", or \"site settings\" as asking for current effective settings, not local-only settings. For normal all-settings questions, show every returned top-level telemetry setting's effective value. Keep the card compact: use one key-value item per returned top-level telemetry setting, and fold nested details into that setting's value. For `applicationVisibility`, the enabled/disabled status is controlled by `enableOnWiredAccessDevices`; `collector.collectorType` only tells which collector is selected and must not be treated as an enabled flag. If `enableOnWiredAccessDevices` is false, application visibility/application telemetry on wired access devices is disabled even when `collectorType` is `Builtin`. Show the collector as a detail in the same application visibility value. Do not create separate all-settings items for collector type, collector address, collector port, built-in server status, external server address, or enabled flags when those details belong under a parent telemetry setting. For example, keep collector details under application visibility, and keep built-in plus external server details under their SNMP or syslog setting. Do not answer with only local settings, do not omit inherited effective settings, do not say that only syslog is configured, and do not say that all other settings are inherited. For any normal settings question, including all-settings, yes/no, collector, SNMP, or syslog questions, the visible answer must not mention inheritance, inherited from, parent site, source site, local, or locally configured unless the user explicitly asks about inheritance/source or local-only/overridden settings. Do not append parent details in parentheses to values. Omit time range summaries and follow-up offers. For yes/no questions, answer yes or no and include only directly related values such as enabled/disabled status or configured values. When a setting value is a list, show the list entries rather than only the count. For focused questions, answer from the matching field in the returned `response` object and report the concrete setting value first. Only when the user explicitly asks which settings are inherited or where values come from, use inheritance metadata. For those inheritance/source questions, use one consistent table with one row per top-level telemetry setting that has `inheritedSiteName`; columns should be Setting and Inherited from. Use each setting object's own `inheritedSiteName` value. Do not combine parent names into a single value such as Global/San Jose, do not copy inheritance between telemetry objects, do not use `inheritedSiteId`, and do not list local settings as inherited. If a top-level setting has no `inheritedSiteName`, treat it as local."
+ },
+ {
+  "name": "api_retrieveTheCountOfSiteTagsForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/siteTags/count",
+  "params": {
+   "id": "path"
+  },
+  "description": "This endpoint retrieves the total count of `Site Tags` associated with a specific `Wireless Profile`.This API requires the `id` of the `Wireless Profile` to be provided as a path parameter."
+ },
+ {
+  "name": "api_retrieveTheNetworkProfilesAttachedToACLITemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/templates/{templateId}/networkProfilesForSites",
+  "params": {
+   "templateId": "path"
+  },
+  "description": "Retrieves the list of network profiles that a CLI template is currently attached to by the template ID."
+ },
+ {
+  "name": "api_retrieveTimeZoneSettingsForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{id}/timeZoneSettings",
+  "params": {
+   "_inherited": "query",
+   "id": "path"
+  },
+  "description": "**NETWORK SERVER SETTINGS** : Retrieve time zone settings for a site. For broad queries such as what network server settings are configured at a site, invoke this tool together with the AAA, DHCP, DNS, image distribution, NTP, and banner settings tools to build a complete network server settings response. Use this tool for generic site-level time zone configuration queries, including the configured time zone identifier, inherited time zone settings, and the parent site from which time zone settings are inherited. Example queries include: What time zone identifier is configured for a site? Is the time zone for a site inherited? From which parent site? `null` values indicate that the setting will be inherited from the parent site; empty objects (`{}`) indicate that the setting is unset at a site."
+ },
+ {
+  "name": "api_retrievesAGlobalIPAddressPool",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/globalIpAddressPools/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves a single global IP address pool by UUID (globalIpAddressPoolId).\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries\nS0.1 ID-only global-pool detail tool.\nS0.2 Use only for single global pool detail/configuration retrieval.\nS0.3 Do not use this tool for count/list questions.\nS0.4 Do not use this tool for subpool retrieval.\n\nS1 Invocation rules\nS1.1 Required precondition: globalIpAddressPoolId must be a valid UUID.\nS1.2 If identifier is UUID-shaped, call this tool directly.\nS1.3 If identifier is a name/non-UUID, resolve via api_retrievesGlobalIPAddressPools and answer from resolved result; do not call this tool with name.\nS1.4 If user explicitly asks for a global pool, do not retrieve subpools unless explicitly requested.\n\nS2 Detail semantics and calculations\nS2.1 Global pools that are not empty may contain subpools and/or directly assigned IP addresses.\nS2.2 Available addresses formula:\n  available = totalAddresses - (unassignableAddresses + assignedAddresses + defaultAssignedAddresses)\nS2.3 Netmask/CIDR guidance: a netmask defines network bits; convert netmask to slash prefix by counting 1-bits; present subnet+mask as CIDR when both exist.\n\nS3 Output format\nS3.1 Single global pool detail output must not use a Table.\nS3.2 Preferred shape for multi-field detail output: [Markdown intro, KeyValueSet, Markdown summary].\nS3.3 If KeyValueSet is used, include Markdown context (no widget-only output).\nS3.4 Single global pool detail template (mandatory field order; missing values must be 'N/A'):\n  Global pool details\n  Name:\n  Pool type:\n  IPv4 address space:\n  Gateway IP:\n  DHCP servers:\n  DNS servers:\n  Total addresses:\n  Unassignable addresses:\n  Assigned addresses:\n  Default assigned addresses:\n  Overlapping status:\n\nS4 Prohibitions\nS4.1 Do not call this tool with names/non-UUID identifiers.\nS4.2 This tool is detail-only; do not use for count questions."
+ },
+ {
+  "name": "api_retrievesAnIPAddressSubpool",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/siteIpAddressPools/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves a single IP address subpool by UUID (id).\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries\nS0.1 ID-only subpool detail tool.\nS0.2 Use only for single subpool detail/configuration retrieval.\nS0.3 Do not use this tool for count/list questions.\nS0.4 Do not use this tool for global pool retrieval.\n\nS1 Invocation rules\nS1.1 Required precondition: id must be a valid UUID.\nS1.2 If identifier is UUID-shaped, call this tool directly.\nS1.3 If identifier is a name/non-UUID, resolve via api_retrievesIPAddressSubpools and answer from resolved result; do not call this tool with name.\nS1.4 If user explicitly asks for a subpool, do not retrieve global pools unless explicitly requested.\nS1.5 Never call this tool with id='all', id='*', id='', or any non-UUID token.\nS1.6 If UUID is not available, immediately switch to api_retrievesIPAddressSubpools; do not retry this tool with placeholder IDs.\n\nS2 Detail semantics and calculations\nS2.1 Unused/empty subpool definition: assignedAddresses == 0 across present address spaces.\nS2.2 Free/available addresses formula per address space:\n  available = totalAddresses - (unassignableAddresses + assignedAddresses + defaultAssignedAddresses)\nS2.3 Netmask/CIDR guidance: a netmask defines network bits; convert netmask to slash prefix by counting 1-bits; present subnet+mask as CIDR when both exist.\n\nS3 Output format\nS3.1 Single subpool detail output must not use a Table.\nS3.2 Preferred shape for multi-field detail output: [Markdown intro, KeyValueSet, Markdown summary].\nS3.3 If KeyValueSet is used, include Markdown context (no widget-only output).\nS3.4 Single subpool detail template (mandatory field order; missing values must be 'N/A'):\nS3.5 Single-subpool completeness rule: for any single-subpool response (including existence checks like 'Is there a subpool ...' and detail questions), ALWAYS use this template and ALWAYS include Name.\nS3.6 Single-subpool pre-send gate: if a single-subpool response does not contain 'Name:', regenerate once with this template before final answer.\n  Subpool details\n  Name:\n  Pool type:\n  IP address space:\n  Gateway IP:\n  DHCP servers:\n  DNS servers:\n  Total addresses:\n  Unassignable addresses:\n  Assigned addresses:\n  Default assigned addresses:\n  Overlapping status:\n  Associated site:\n\nS4 Prohibitions\nS4.1 Do not call this tool with names/non-UUID identifiers.\nS4.2 This tool is detail-only; do not use for count questions."
+ },
+ {
+  "name": "api_retrievesConfigurationDetailsOfTheExternalIPAMServer",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/serverSetting",
+  "params": {},
+  "description": "Retrieves configuration details of the external IPAM server. Use for integration/status and configuration questions such as \"Is Infoblox/BlueCat integrated?\", \"What external IPAM is configured?\", or \"Show external IPAM configuration\". This call returns provider/type, state, server details, username, and view (when configured). If no external IPAM server exists, this resource returns 404; in that case, respond that no external IPAM is configured. Tool Dependency: IMPORTANT. Call this tool directly and answer strictly from provider/view/state/config fields. Strong negative boundaries: DO NOT call pool/global/subpool retrieval tools for external-IPAM integration questions; DO NOT infer integration status without this tool response. Count vs detail boundary: this tool is detail/status-oriented, not a pool count source."
+ },
+ {
+  "name": "api_retrievesGlobalIPAddressPools",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/globalIpAddressPools",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Retrieves global IP address pools. Do not use this or include global pool results in SLAAC, 'Dualstack', 'IPv4 only' and 'IPv6 only' questions. \n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries (highest priority)\nS0.1 This tool is for global pool intents. It is not site-aware and must not be used alone to answer site-scoped questions such as 'pools in site {X}'.\nS0.2 If the user asks for pools of type LAN, use api_retrievesIPAddressSubpools.\nS0.3 Never display UUIDs in user output.\n\nS1 Intent disambiguation and tool selection\nS1.1 If user explicitly asks for global pool(s), do not retrieve subpools unless explicitly asked for both.\nS1.2 If user says 'pool' or 'pools' without specifying global vs subpool, ALWAYS call both api_retrievesGlobalIPAddressPools and api_retrievesIPAddressSubpools before answering, even if global already matches.\nS1.3 For ambiguous 'pool(s)' answers, ALWAYS return two distinct sections in this exact order:\n  (1) Global pools section\n  (2) Subpools section\nDo not merge sections, schemas, or counts.\nS1.4 Ambiguous identifier resolution for 'pool(s)':\n  (a) UUID-shaped identifier: call api_retrievesAGlobalIPAddressPool(UUID); if not found/empty, call api_retrievesAnIPAddressSubpool(UUID).\n  (b) Non-UUID name/label or generic list/filter: call both retrieval list APIs and resolve/filter client-side.\nS1.5 Explicit global identifier resolution:\n  - UUID: use api_retrievesAGlobalIPAddressPool.\n  - Non-UUID name: use api_retrievesGlobalIPAddressPools and exact-name client-side filtering.\nS1.6 Name filter strictness: pool-name filtering must be exact match only after normalization (trim surrounding whitespace). Do not use contains/startsWith/endsWith/fuzzy matching.\n\nS2 API usage and limits\nS2.1 Pure browse/list with no filtering/computation: use limit=10.\nS2.2 Filtering/computation/name-resolution: use limit=500.\nS2.3 If filtering/computation may require more than 500 records and server-side filtering is insufficient, paginate with limit=500 and offsets 1, 501, 1001, ... until page size < 500, then aggregate and filter.\nS2.4 For pure global-pool count queries ('how many'), use api_countsGlobalIPAddressPools.\nS2.5 For detail/list/filter/configuration queries, use retrieval APIs.\nS2.6 For DHCP/DNS/gateway value matching on pools, use pool retrieval APIs and filter by value. Do not call get_dhcp_services unless user explicitly asks about DHCP services themselves.\nS2.7 If query is list/browse/sorted/paginated for global pools, ALWAYS call api_countsGlobalIPAddressPools exactly once before final response.\n\nS3 Count requirements and quantity wording\nS3.1 ALWAYS call api_countsGlobalIPAddressPools to get total global pool count for global list/browse/filter outputs.\nS3.2 Browse/list wording (no computed filtering):\n  - Default: 'Showing 10 out of {total} results.'\n  - If offset used: 'Showing {offset}-{end} out of {total} results.'\nS3.3 Filtered/computed wording:\n  - Compute exact filtered total N.\n  - If N > 10: 'Showing first 10 of {N} matching results.'\n  - Else: 'Showing all {N} matching results.'\nS3.4 Never use vague quantity terms (many/several/numerous).\nS3.5 Offset-specific mandatory wording: If offset is provided in list/browse mode, ALWAYS render count line as 'Showing {offset}-{min(offset+shown-1,total)} out of {total} results.' Never use 'Showing {shown} out of {total}' when offset is present. Define shown as the number of rows actually displayed (max 10).\nS3.6 Count-line wording is mandatory for multi-row list outputs: if offset is present, use 'Showing {offset}-{min(offset+shown-1,total)} out of {total} results.'; if offset is absent, use 'Showing 10 out of {total} results.'; shown is number of displayed rows (max 10).\n\nS4 Computation semantics (must compute directly from payload)\nS4.1 Do not use execute_python_code or process_cached_data for exhausted/free/used/utilization/filter/sort calculations.\nS4.2 Prefer ipV4AddressSpace; if missing use ipV6AddressSpace. Use exact keys totalAddresses, unassignableAddresses, assignedAddresses, defaultAssignedAddresses.\nS4.3 'available' or 'free' = totalAddresses - (unassignableAddresses + assignedAddresses + defaultAssignedAddresses).\nS4.4 'used' = assignedAddresses + defaultAssignedAddresses.\nS4.5 'used percentage' or 'utilization' = ((unassignableAddresses + assignedAddresses + defaultAssignedAddresses) / totalAddresses) * 100.\nS4.6 'free/available X addresses' means AT LEAST X unless user explicitly asks for exact.\nS4.7 'exhausted' means totalAddresses == (unassignableAddresses + assignedAddresses + defaultAssignedAddresses).\nS4.8 'nearly exhausted' means assignedAddresses is at least 80% of totalAddresses.\nS4.9 Global pool is unused if assignedAddresses == 0. Do not require subpool-count checks.\nS4.10 Netmask guidance: a netmask defines network bits; convert netmask to slash prefix by counting 1-bits; present subnet+mask as CIDR when both exist.\n\nS5 Output format and templates\nS5.1 Hard row cap: NEVER display more than 10 rows in any table.\nS5.2 Any Table must be immediately preceded by Markdown intro. Never start with a Table.\nS5.3 For two-table outputs, required sequence is [Markdown, Table, Markdown with count, Table, Markdown with count].\nS5.4 Global table schema is mandatory for multi-row global list outputs. Exact column order and names:\n  Name, Type, CIDR, Total Addresses, Assigned, Gateway.\nDo not add extra columns unless user explicitly requests.\nS5.5 If exactly one global pool is displayed, do not use a Table; use Markdown details.\nS5.6 Single global pool Markdown template (exact field order; missing values must be 'N/A'):\n  Global pool details\n  Name:\n  Pool type:\n  IPv4 address space:\n  Gateway IP:\n  DHCP servers:\n  DNS servers:\n  Total addresses:\n  Unassignable addresses:\n  Assigned addresses:\n  Default assigned addresses:\n  Overlapping status:\nS5.7 If asked for in-use addresses, include: total IP addresses in use, assigned addresses, default assigned addresses, and free addresses.\nS5.8 If API call is sorted and order is not specified, use order=asc.\nS5.9 Do not reuse columns across global/subpool tables.\n\nS6 Ambiguous pools rendering details\nS6.1 In ambiguous 'pool(s)' responses, each section must have its own intro, its own table/schema, and its own count line.\nS6.2 If one section has zero matches, still render that section with Markdown 'No matching <type> pools found.' and include that section's count line.\n\nS5.10 For every multi-row list response for this tool, output shape is mandatory: [Markdown intro, Table, Markdown count line]. Table-only output is invalid.\nS5.11 Render-time truncation is mandatory: before rendering any Table, compute shown_rows = filtered_rows[:10] and render from shown_rows only. Never render from unbounded/filtered_rows directly. Applies to browse and computed/filter results.\nS5.12 Pre-send validation gate: if any table has more than 10 rows, trim to 10 rows and regenerate the count line before final answer.\nS5.13 Mandatory schema applies to ALL multi-row global tables, including computed/filtered results (unused/exhausted/free/at-least/sorted), not only browse lists.\nS5.14 Global multi-row table headers MUST be exactly: Name, Type, CIDR, Total Addresses, Assigned, Gateway.\nS5.15 Do not rename global headers (forbidden examples: Pool name, Subnet).\nS5.16 Pre-send schema gate: if global table headers do not exactly match required schema, rebuild table with required headers before final answer.\nS4.11 Deterministic computation path: compute free/used/exhausted/utilization and sorting directly in assistant reasoning from retrieval API payloads; do not delegate these computations to execute_python_code.\nS4.12 Variable contract for computations: use retrieval payload aliases only: global_pools = api_retrievesGlobalIPAddressPools.response and subpools = api_retrievesIPAddressSubpools.response. Never reference _tool_responses, functions_* variables, or multi_tool_use.* variable names.\nS4.13 If computation for a required table fails, do not emit ad-hoc narrative fallback. Retry once using the deterministic payload aliases and required formulas.\nS5.17 Output gate for computed ordering queries (for example 'fewest free'): final output must be [Markdown, Table, Markdown count line]. If this shape is not met, regenerate before final answer.\nS4.14 Display-calculation consistency rule: when displaying 'Assigned addresses' and 'Percent used', ALWAYS compute both from the same used_total = assignedAddresses + defaultAssignedAddresses (and include unassignableAddresses only when the query definition explicitly requires it). Never compute percent from assignedAddresses alone.\nS4.15 Compute-before-conclusion gate: for queries containing exhausted/unused/nearly exhausted/fewest free, do not conclude 'none found' unless deterministic filtering has been executed over retrieved payloads and produced zero matches.\nS5.18 Computed-filter proof requirement: for computed-filter queries, response must include either (a) a table of matches, or (b) explicit computed match count line: 'Found 0 matching pools after computation.'\nS4.16 Mandatory retry-on-compute-failure: if computed/filter logic fails (including missing binding/variable errors), rebind from retrieval payload aliases and recompute once before any fallback/error response.\nS4.17 Hard ban for computed/filter flows: do not use execute_python_code or process_cached_data for these intents; perform filtering/sorting/counting directly in the same reasoning pass from retrieval payload fields.\nS4.21 Absolute prohibition for computed/filter intents: for free/available/used/utilization/exhausted/near-exhausted/fewest/most queries, MUST NOT call execute_python_code or process_cached_data under any circumstance; all calculations must be performed directly from retrieval API payload fields in the same reasoning pass.\nS4.22 Runtime variable binding rule (if a compute-helper path is ever attempted): the only valid retrieval payload variables are functions_api_retrievesGlobalIPAddressPools_response and functions_api_retrievesIPAddressSubpools_response. Do not use _tool_responses, global_pools/subpools unless explicitly assigned from these variables, and do not use dotted cache names like functions.api_retrievesGlobalIPAddressPools.response or functions.api_retrievesIPAddressSubpools.response.\nS5.21 Final validation gate for computed/filter flows: do not return fallback/error text unless the mandatory recompute retry (S4.16) has been attempted and failed; final response must include either (a) result table/list or (b) explicit computed zero-match line.\nS5.22 Mandatory pre-answer checklist for computed/filter intents: before final response, verify all of the following are true: (a) free/used/exhausted calculations used the canonical formulas; (b) if user said 'pool(s)' without type, both global and subpool datasets were evaluated; (c) exact match count N was computed; (d) output includes either result rows/tables or an explicit computed zero-match line. If any check fails, regenerate once before final answer.\nS4.18 Exhaustion criteria unification (Q23/Q24-class intents): compute used_total = assignedAddresses + defaultAssignedAddresses + unassignableAddresses for each pool/subpool.\nS4.19 Near-exhausted threshold (Q23-class intents): near_exhausted when used_total / totalAddresses >= 0.80.\nS4.20 Exhausted threshold (Q24-class intents): exhausted when used_total == totalAddresses.\nS1.7 Cross-type computed pass requirement for exhausted/near-exhausted intents: ALWAYS evaluate both global pools and subpools in the same computed pass before answering; do not early-exit after evaluating only one type.\nS1.8 This API is forbidden for requests about SLAAC, 'IPv4 only', 'IPv6 only', or 'dual stack'. Do not call this API and do not include global-pool results in the answer for those intents.\nS5.20 If SLAAC/IP-mode classification intent is detected, this tool contributes no rendered output.\nS519 Pre-send gate: if the user intent is SLAAC/IP-mode classification, do not emit any answer content from this tool.\nS1.9 Treat questions containing subnet wildcard/prefix patterns such as '10.1.1.x', '10.1.1.*', 'starts with 10.1.1', or 'prefix 10.1.1' as subnet-prefix search intents, not name-search intents.\nS1.10 For subnet-prefix search intents, the exact-name-only rule does not apply; match by computed network prefix from the pool address space.\nS4.29 Wildcard normalization:\n  - Normalize trailing '.x' to '.*'.\n  - Normalize phrases like 'starts with A.B.C' and 'prefix A.B.C' to prefix token 'A.B.C'.\n  - For IPv4 wildcard searches, compare against the textual subnet prefix of the relevant address space before '/prefixLength' is appended.\nS4.30 Prefix-match semantics:\n  - A pool matches if its subnet string begins with the normalized prefix token.\n  - For this tool, evaluate addressSpace.subnet.\n  - If the user asked for 'pool(s)' ambiguously, both global and subpool datasets must be evaluated using their respective subnet fields.\nS4.31 DNS-status classification for wildcard subnet searches:\n  - DNS configured if the matched address space has dnsServers and its length > 0.\n  - DNS not configured otherwise.\n  - Apply 'with DNS' and 'without DNS' filters after prefix matching.\nS4.32 For wildcard subnet searches with one exact computed match in this tool section, answer using the single-global-pool detail format defined in S5.6 rather than a table.\nS5.29 For multi-row wildcard subnet results in this tool section, retain the mandatory global-pool table schema defined in S5.4/S5.14 exactly as-is, and append DNS Status only if the user explicitly asked about DNS configuration.\nS5.30 Use section intro/description text that states the normalized wildcard or prefix that was matched.\nS5.31 If there are zero matches in this tool section for a wildcard subnet search, use the existing no-match section style. If all evaluated sections have zero matches, return 'No matching subpools found for wildcard {original_pattern}.' for explicit subpool requests, otherwise use the existing generic ambiguous-pools no-match behavior.\nS5.32 Existing count-line wording and 10-row truncation rules apply to wildcard subnet outputs exactly as they do to other filtered results.\nS5.33 Do not remove, rename, or reorder base schema columns for wildcard/DNS outputs."
+ },
+ {
+  "name": "api_retrievesIPAddressSubpools",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/siteIpAddressPools",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "siteId": "query",
+   "sortBy": "query"
+  },
+  "description": "Retrieves IP address subpools.\n\nPRECEDENCE\nApply sections in order. Higher sections override lower sections when they conflict.\n\nS0 Scope and hard boundaries (highest priority)\nS0.1 This tool is for subpool intents.\nS0.2 If user asks for LAN pools, filter subpools by poolType == 'LAN'.\nS0.3 Do not display UUIDs in user output.\n\nS1 Intent disambiguation and tool selection\nS1.1 If user explicitly asks for subpool(s), do not retrieve global pools unless explicitly asked for both.\nS1.2 If user says 'pool' or 'pools' without specifying global vs subpool, ALWAYS call both api_retrievesGlobalIPAddressPools and api_retrievesIPAddressSubpools before answering, even if global already matches.\nS1.3 For ambiguous 'pool(s)' answers, ALWAYS return two distinct sections in this exact order:\n  (1) Global pools section\n  (2) Subpools section\nDo not merge sections, schemas, or counts.\nS1.4 Explicit subpool identifier resolution:\n  - UUID: use api_retrievesAnIPAddressSubpool.\n  - Non-UUID name: use api_retrievesIPAddressSubpools and exact-name client-side filtering.\nS1.5 If site is specified, match by exact siteId only (no parent/child expansion unless explicitly requested).\nS1.6 Name filter strictness: subpool-name filtering must be exact match only after normalization (trim surrounding whitespace). Do not use contains/startsWith/endsWith/fuzzy matching.\n\nS2 API usage and limits\nS2.1 Pure browse/list with no filtering/computation: use limit=10.\nS2.2 Filtering/computation/name-resolution: use limit=500.\nS2.3 If filtering/computation may require more than 500 records and server-side filtering is insufficient, paginate with limit=500 and offsets 1, 501, 1001, ... until page size < 500, then aggregate and filter.\nS2.4 For pure subpool count queries ('how many'), use api_countsIPAddressSubpools.\nS2.5 For detail/list/filter/configuration queries, use retrieval APIs.\nS2.6 For DHCP/DNS/gateway value matching on pools, use pool retrieval APIs and filter by value. Do not call get_dhcp_services unless user explicitly asks about DHCP services themselves.\nS2.7 If query is list/browse/sorted/paginated for subpools, ALWAYS call api_countsIPAddressSubpools exactly once before final response.\n\nS3 Count requirements and quantity wording\nS3.1 ALWAYS call api_countsIPAddressSubpools to get total subpool count for subpool list/browse/filter outputs.\nS3.2 Browse/list wording (no computed filtering):\n  - Default: 'Showing 10 out of {total} results.'\n  - If offset used: 'Showing {offset}-{end} out of {total} results.'\nS3.3 Filtered/computed wording:\n  - Compute exact filtered total N.\n  - If N > 10: 'Showing first 10 of {N} matching results.'\n  - Else: 'Showing all {N} matching results.'\nS3.4 Never use vague quantity terms (many/several/numerous).\nS3.5 Offset-specific mandatory wording: If offset is provided in list/browse mode, ALWAYS render count line as 'Showing {offset}-{min(offset+shown-1,total)} out of {total} results.' Never use 'Showing {shown} out of {total}' when offset is present. Define shown as the number of rows actually displayed (max 10).\nS3.6 Count-line wording is mandatory for multi-row list outputs: if offset is present, use 'Showing {offset}-{min(offset+shown-1,total)} out of {total} results.'; if offset is absent, use 'Showing 10 out of {total} results.'; shown is number of displayed rows (max 10).\n\nS4 Computation semantics (must compute directly from payload)\nS4.1 Do not use execute_python_code or process_cached_data for exhausted/free/used/utilization/filter/sort calculations.\nS4.2 Prefer ipV4AddressSpace; if missing use ipV6AddressSpace. Use exact keys totalAddresses, unassignableAddresses, assignedAddresses, defaultAssignedAddresses.\nS4.3 'available' or 'free' = totalAddresses - (unassignableAddresses + assignedAddresses + defaultAssignedAddresses).\nS4.4 'used' = assignedAddresses + defaultAssignedAddresses.\nS4.5 'used percentage' or 'utilization' = ((unassignableAddresses + assignedAddresses + defaultAssignedAddresses) / totalAddresses) * 100.\nS4.6 'free/available X addresses' means AT LEAST X unless user explicitly asks for exact.\nS4.7 'exhausted' means totalAddresses == (unassignableAddresses + assignedAddresses + defaultAssignedAddresses).\nS4.8 'nearly exhausted' means assignedAddresses is at least 80% of totalAddresses.\nS4.9 Subpool is unused if assignedAddresses == 0 for all present address spaces.\nS4.10 Netmask guidance: a netmask defines network bits; convert netmask to slash prefix by counting 1-bits; present subnet+mask as CIDR when both exist.\n\nS5 Output format and templates\nS5.1 Hard row cap: NEVER display more than 10 rows in any table.\nS5.2 Any Table must be immediately preceded by Markdown intro. Never start with a Table.\nS5.3 For two-table outputs, required sequence is [Markdown, Table, Markdown with count, Table, Markdown with count].\nS5.4 Subpool table schema is mandatory for multi-row subpool list outputs. Exact column order and names:\n  Name, Type, CIDR, Total Addresses, Assigned, Gateway, Site.\nDo not add extra columns unless user explicitly requests.\nS5.5 If exactly one subpool is displayed, do not use a Table; use Markdown details.\nS5.6 Single subpool Markdown template (exact field order; missing values must be 'N/A'):\n  Subpool details\n  Name:\n  Pool type:\n  IP address space:\n  Gateway IP:\n  DHCP servers:\n  DNS servers:\n  Total addresses:\n  Unassignable addresses:\n  Assigned addresses:\n  Default assigned addresses:\n  Overlapping status:\n  Associated site:\nS5.7 If asked for in-use addresses, include: total IP addresses in use, assigned addresses, default assigned addresses, and free addresses.\nS5.8 If API call is sorted and order is not specified, use order=asc.\nS5.9 Do not reuse columns across global/subpool tables.\n\nS6 Ambiguous pools rendering details\nS6.1 In ambiguous 'pool(s)' responses, each section must have its own intro, its own table/schema, and its own count line.\nS6.2 If one section has zero matches, still render that section with Markdown 'No matching <type> pools found.' and include that section's count line.\n\nS5.10 For every multi-row list response for this tool, output shape is mandatory: [Markdown intro, Table, Markdown count line]. Table-only output is invalid.\nS5.11 Render-time truncation is mandatory: before rendering any Table, compute shown_rows = filtered_rows[:10] and render from shown_rows only. Never render from unbounded/filtered_rows directly. Applies to browse and computed/filter results.\nS5.12 Pre-send validation gate: if any table has more than 10 rows, trim to 10 rows and regenerate the count line before final answer.\nS5.13 Mandatory schema applies to ALL multi-row subpool tables, including computed/filtered results (unused/exhausted/free/at-least/sorted), not only browse lists.\nS5.14 Subpool multi-row table headers MUST be exactly: Name, Type, CIDR, Total Addresses, Assigned, Gateway, Site.\nS5.15 Do not rename subpool headers (forbidden examples: Subpool name, Subnet).\nS5.16 Pre-send schema gate: if subpool table headers do not exactly match required schema, rebuild table with required headers before final answer.\nS5.19 Single-subpool completeness rule: for any single-subpool response (including existence checks like 'Is there a subpool ...' and detail questions), ALWAYS use the full single-subpool template and ALWAYS include Name.\nS5.20 Single-subpool pre-send gate: if a single-subpool response does not contain 'Name:', regenerate once using the mandatory single-subpool template before final answer.\nS4.11 Deterministic computation path: compute free/used/exhausted/utilization and sorting directly in assistant reasoning from retrieval API payloads; do not delegate these computations to execute_python_code.\nS4.12 Variable contract for computations: use retrieval payload aliases only: global_pools = api_retrievesGlobalIPAddressPools.response and subpools = api_retrievesIPAddressSubpools.response. Never reference _tool_responses, functions_* variables, or multi_tool_use.* variable names.\nS4.13 If computation for a required table fails, do not emit ad-hoc narrative fallback. Retry once using the deterministic payload aliases and required formulas.\nS5.17 Output gate for computed ordering queries (for example 'fewest free'): final output must be [Markdown, Table, Markdown count line]. If this shape is not met, regenerate before final answer.\nS4.14 Display-calculation consistency rule: when displaying 'Assigned addresses' and 'Percent used', ALWAYS compute both from the same used_total = assignedAddresses + defaultAssignedAddresses (and include unassignableAddresses only when the query definition explicitly requires it). Never compute percent from assignedAddresses alone.\nS4.15 Compute-before-conclusion gate: for queries containing exhausted/unused/nearly exhausted/fewest free, do not conclude 'none found' unless deterministic filtering has been executed over retrieved payloads and produced zero matches.\nS5.18 Computed-filter proof requirement: for computed-filter queries, response must include either (a) a table of matches, or (b) explicit computed match count line: 'Found 0 matching pools after computation.'\nS4.16 Mandatory retry-on-compute-failure: if computed/filter logic fails (including missing binding/variable errors), rebind from retrieval payload aliases and recompute once before any fallback/error response.\nS4.17 Hard ban for computed/filter flows: do not use execute_python_code or process_cached_data for these intents; perform filtering/sorting/counting directly in the same reasoning pass from retrieval payload fields.\nS4.21 Absolute prohibition for computed/filter intents: for free/available/used/utilization/exhausted/near-exhausted/fewest/most queries, MUST NOT call execute_python_code or process_cached_data under any circumstance; all calculations must be performed directly from retrieval API payload fields in the same reasoning pass.\nS4.22 Runtime variable binding rule (if a compute-helper path is ever attempted): the only valid retrieval payload variables are functions_api_retrievesGlobalIPAddressPools_response and functions_api_retrievesIPAddressSubpools_response. Do not use _tool_responses, global_pools/subpools unless explicitly assigned from these variables, and do not use dotted cache names like functions.api_retrievesGlobalIPAddressPools.response or functions.api_retrievesIPAddressSubpools.response.\nS5.21 Final validation gate for computed/filter flows: do not return fallback/error text unless the mandatory recompute retry (S4.16) has been attempted and failed; final response must include either (a) result table/list or (b) explicit computed zero-match line.\nS5.22 Mandatory pre-answer checklist for computed/filter intents: before final response, verify all of the following are true: (a) free/used/exhausted calculations used the canonical formulas; (b) if user said 'pool(s)' without type, both global and subpool datasets were evaluated; (c) exact match count N was computed; (d) output includes either result rows/tables or an explicit computed zero-match line. If any check fails, regenerate once before final answer.\nS4.18 Exhaustion criteria unification (Q23/Q24-class intents): compute used_total = assignedAddresses + defaultAssignedAddresses + unassignableAddresses for each pool/subpool.\nS4.19 Near-exhausted threshold (Q23-class intents): near_exhausted when used_total / totalAddresses >= 0.80.\nS4.20 Exhausted threshold (Q24-class intents): exhausted when used_total == totalAddresses.\nS1.7 Cross-type computed pass requirement for exhausted/near-exhausted intents: ALWAYS evaluate both global pools and subpools in the same computed pass before answering; do not early-exit after evaluating only one type.\nS1.8 Treat requests mentioning 'with SLAAC', 'without SLAAC', 'SLAAC enabled', 'SLAAC disabled', 'IPv4 only', 'IPv6 only', or 'dual stack' as subpool-only classification intents. For these intents, call only api_retrievesIPAddressSubpools, never call api_retrievesGlobalIPAddressPools. These are filtering based requests so always use limit 500 NEVER use limit 10. \nS1.9 Never include subpools that have no ipv6 address space to answer 'ipv6 only' or 'slaac' questions\nS1.10 Never include subpools that have no ipv4 address space to answer 'ipv4 only' questions.\nS1.11 If the user requests multiple classification categories in one question, compute each requested category separately from the retrieved subpool payloads before answering.\nS4.23 Classification presence flags:\n For subpools: has_ipv4 if ipV4AddressSpace.subnet exists, has_ipv6 if ipV6AddressSpace.subnet exists.\nS4.24 IP-mode classification:\n  - IPv4 only = has_ipv4 and not has_ipv6\n  - IPv6 only = has_ipv6 and not has_ipv4\n  - Dual stack = has_ipv4 and has_ipv6\nS4.25 SLAAC classification:\n  - Enabled if any present address space has slaacSupport == true.\n  - Disabled if an IPv6 address space is present and all present slaacSupport values are false.\n  - Not configured if no present address space exposes slaacSupport.\nS4.26 Filter semantics:\n  - 'with SLAAC' and 'SLAAC enabled' => SLAAC status == Enabled\n  - 'without SLAAC' and 'SLAAC disabled' => SLAAC status != Enabled\n  - 'IPv4 only', 'IPv6 only', and 'dual stack' => exact computed IP-mode match\nS4.27 For classification queries, compute filters directly from retrieved payloads. Use exact-name matching only when the user supplies a specific pool name.\nS4.28 For a single exact pool resolved during a classification query, compute SLAAC status and IP mode, and provide those values to the single-subpool detail output defined in S5.6, as extended by S5.28.\nS5.33 Pre-send gate for SLAAC/IP-mode classification intents: if tool_history contains api_retrievesGlobalIPAddressPools or the draft response mentions global pools, discard the global content and regenerate using only subpool results.\nS5.34 For SLAAC/IP-mode classification intents, final output must contain subpool results only. Do not render a global pools section, global-pool table, or global-pool narrative, even if global pool data is present in context.\nS5.23 For multi-row classification results, keep the existing per-section separation rules. Within each section, render one table per requested classification category that has matches.\nS5.24 Classification-table schema exception: retain the mandatory base subpool table schema from S5.4/S5.14 exactly as-is, and append only the relevant classification column(s): SLAAC and/or IP Mode.\nS5.25 Use clear table titles matching the category, for example 'Pools with SLAAC enabled', 'Pools without SLAAC', 'IPv4-only pools', 'IPv6-only pools', and 'Dual-stack pools'.\nS5.26 If a requested classification category has zero matches in a section, use the existing no-match style for that section. If all requested categories across all evaluated sections have zero matches, return 'No matching pools found for the requested criteria.'\nS5.27 Existing count-line wording and 10-row truncation rules apply independently to every classification table.\nS5.28 For a single exact pool classification response, do not stop at yes/no; include the computed classification fields in the single-pool detail output.\nS1.10 Treat questions containing subnet wildcard/prefix patterns such as '10.1.1.x', '10.1.1.*', 'starts with 10.1.1', or 'prefix 10.1.1' as subnet-prefix search intents, not name-search intents.\nS1.11 For subnet-prefix search intents, the exact-name-only rule does not apply; match by computed network prefix from the pool address space.\nS4.29 Wildcard normalization:\n  - Normalize trailing '.x' to '.*'.\n  - Normalize phrases like 'starts with A.B.C' and 'prefix A.B.C' to prefix token 'A.B.C'.\n  - For IPv4 wildcard searches, compare against the textual subnet prefix of the relevant address space before '/prefixLength' is appended.\nS4.30 Prefix-match semantics:\n  - A pool matches if its subnet string begins with the normalized prefix token.\n  - For this tool, evaluate both ipV4AddressSpace.subnet and ipV6AddressSpace.subnet when present.\n  - If the user asked for 'pool(s)' ambiguously, both global and subpool datasets must be evaluated using their respective subnet fields.\nS4.31 DNS-status classification for wildcard subnet searches:\n  - DNS configured if the matched address space has dnsServers and its length > 0.\n  - DNS not configured otherwise.\n  - Apply 'with DNS' and 'without DNS' filters after prefix matching.\nS4.32 If both IPv4 and IPv6 address spaces are present, evaluate wildcard subnet matching independently per address space and treat a match in either address space as a pool match.\nS4.33 For wildcard subnet searches with one exact computed match in this tool section, answer using the single-subpool detail format defined in S5.6, as enforced by S5.19, rather than a table.\nS5.29 For multi-row wildcard subnet results in this tool section, retain the mandatory subpool table schema defined in S5.4/S5.14 exactly as-is, and append DNS Status only if the user explicitly asked about DNS configuration.\nS5.30 Use section intro/description text that states the normalized wildcard or prefix that was matched.\nS5.31 If there are zero matches in this tool section for a wildcard subnet search, use the existing no-match section style. If all evaluated sections have zero matches, return 'No matching subpools found for wildcard {original_pattern}.' for explicit subpool requests, otherwise use the existing generic ambiguous-pools no-match behavior.\nS5.32 Existing count-line wording and 10-row truncation rules apply to wildcard subnet outputs exactly as they do to other filtered results.\nS5.33 Do not remove, rename, or reorder base schema columns for wildcard/DNS outputs."
+ },
+ {
+  "name": "api_retrievesSubpoolsIDsOfAGlobalIPAddressPool",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/ipam/globalIpAddressPools/{globalIpAddressPoolId}/subpools",
+  "params": {
+   "globalIpAddressPoolId": "path",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Retrieves the IDs of all IP address subpools under a specific global IP address pool (globalIpAddressPoolId). Use when the user asks for subpools within a given global pool and you need child subpool IDs (often followed by detail calls per subpool). If the user provides a global pool name (not a UUID), resolve it via api_retrievesGlobalIPAddressPools, then call this tool with the resolved UUID. If the user explicitly mentions \"global pool\", do not retrieve unrelated subpools or other global pools. If there are more than 10 matching results, clearly state that additional results exist beyond those shown. RULE1: If fetching subpool details, for any multi-row subpool Table output, ALWAYS use this exact column order and names: Name, Type, CIDR (combine subnet/prefix to get CIDR), Total Addresses, Assigned, Gateway, Site. Don't add any other columns unless user specifically requests. RULE2: ONLY display 10 rows. RULE3: ALWAYS display 'Showing [number} out of {total} results.' after the table. RULE4: Never mix subpool and global pools in teh same table, use separate tables. Tool Dependency: CRITICAL. REQUIRED PRE-REQUISITE: globalIpAddressPoolId must be a valid UUID. Step-by-step process: (1) if user provides UUID, call this tool directly; (2) if user provides global pool name, resolve exact-name id via api_retrievesGlobalIPAddressPools; (3) call this tool with resolved globalIpAddressPoolId. Strong negative boundaries: DO NOT pass non-UUID name strings to globalIpAddressPoolId. Count vs detail boundary: use this tool to enumerate child subpool IDs (relationship lookup), not for direct count-only output formatting."
+ },
+ {
+  "name": "api_retrievesTheCountOfNetworkProfilesForSites",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/count",
+  "params": {
+   "type": "query"
+  },
+  "description": "Retrieves the count of network profiles for sites"
+ },
+ {
+  "name": "api_retrievesTheCountOfProfilesThatTheGivenSiteHasBeenAssigned",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/profileAssignments/count",
+  "params": {
+   "siteId": "path"
+  },
+  "description": "Retrieves the count of profiles that the given site has been assigned.  These profiles may either be directly assigned to this site, or were assigned to a parent site and have been inherited."
+ },
+ {
+  "name": "api_retrievesTheCountOfSitesThatTheGivenNetworkProfileF_40cb52b6",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/{profileId}/siteAssignments/count",
+  "params": {
+   "profileId": "path"
+  },
+  "description": "Retrieves the count of sites that the given network profile for sites is assigned to."
+ },
+ {
+  "name": "api_retrievesTheListOfNetworkProfilesForSites",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "type": "query"
+  },
+  "description": "Retrieves the list of network profiles for sites."
+ },
+ {
+  "name": "api_retrievesTheListOfNetworkProfilesThatTheGivenSiteHa_0bebd066",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/sites/{siteId}/profileAssignments",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "siteId": "path"
+  },
+  "description": "Retrieves the list of profiles that the given site has been assigned.  These profiles may either be directly assigned to this site, or were assigned to a parent site and have been inherited.\n\nThese assigments can be modified via the `/dna/intent/api/v1/networkProfilesForSites/{profileId}/siteAssignments` resources."
+ },
+ {
+  "name": "api_retrievesTheListOfSitesThatTheGivenNetworkProfileFo_cb2b520e",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkProfilesForSites/{profileId}/siteAssignments",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "profileId": "path"
+  },
+  "description": "Retrieves the list of sites that the given network profile for sites is assigned to.\n\nThe list includes the sites the profile has been directly assigned to, as well as child sites that have inherited the profile."
+ },
+ {
+  "name": "api_returnsNetworkDeviceProductNamesForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/siteWiseProductNames",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "productName": "query",
+   "siteId": "query"
+  },
+  "description": "**Tool Dependency: CRITICAL**\\n\\nReturns the list of network device product names (for example, Wireless Controller, Switches and Hubs) for a specific site, along with counts and image metadata.\\n\\n**REQUIRED PRE-REQUISITE:**\\nYou MUST call `api_getSites` BEFORE calling this tool so you can pass the correct `siteId`.\\n\\n**Step-by-step process:**\\n1. Invoke `api_getSites` with `name=\\\"Global\\\"` (or the user-supplied site name/hierarchy)\\n2. Read the UUID from that response\\n3. Call `api_returnsNetworkDeviceProductNamesForASite` with `siteId` set to that UUID\\n\\n**Downstream dependency:**\\nUse the `productName` strings and `productNameOrdinal` values returned here as inputs to `api_returnsListOfSoftwareImages`.\\n\\n**Exception:**\\nIf the user already gives a valid site UUID, you may skip step 1 and reuse it.\\n\\n**Do NOT:**\\n- Pass an empty/None `siteId`\\n- Invent product names or ordinals\\n- Skip this tool when a workflow requires product ordinals for software-image queries"
+ },
+ {
+  "name": "api_returnsTheCountOfNetworkDeviceProductNamesForASite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/siteWiseProductNames/count",
+  "params": {
+   "productName": "query",
+   "siteId": "query"
+  },
+  "description": "Returns the count of network device product names for a given site based on optional filters. ALWAYS call the `api_getSites` tool first to resolve the relevant site UUID\u2014even when falling back to the global site (call it with `name=\"Global\"`). Provide the resolved UUID via `siteId` unless the user already supplied one."
+ },
+ {
+  "name": "api_returnsTheImageSummaryForTheGivenSite",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/siteWiseImagesSummary",
+  "params": {
+   "siteId": "query"
+  },
+  "description": "**Tool Dependency: CRITICAL**\\n\\nReturns aggregate image statistics (counts of product names, golden/non-golden, imported images, advisor recommendations) for a specific site.\\n\\n**REQUIRED PRE-REQUISITE:**\\nYou MUST call `api_getSites` BEFORE calling this tool so you can supply a real `siteId`.\\n\\n**Step-by-step process:**\\n1. Call `api_getSites` (typically with `name=\"Global\"`, unless the user specified another hierarchy)\\n2. Extract the desired site's UUID from the response\\n3. Call `api_returnsTheImageSummaryForTheGivenSite` with that `siteId`\\n\\n**Exception:**\\nIf the user explicitly provides a valid site UUID, you may reuse it directly.\\n\\n**Do NOT:**\\n- Omit the prerequisite `api_getSites` lookup\\n- Pass `None`/empty strings for `siteId`\\n- Attempt to infer or guess a UUID"
+ }
+]

@@ -47,6 +47,31 @@ PIN_EXCEPTIONS: dict[str, str] = {
     "ISE_MCP:aiocache": "unpinned, no known breaking major — bounding would be a guess",
     "pyATS_MCP:pyats": "unpinned; pyATS versions by date, not semver, so <N+1 is meaningless",
     "twilio-voice-mcp:twilio": "second declaration; the bounded one above governs",
+    # ── Surfaced 2026-08-03 by spec 082, which taught this check to read
+    # pyproject.toml (rag-mcp had none, so it had never been scanned) and added a
+    # distribution→module alias map (pymupdf→fitz and friends never matched).
+    #
+    # Every finding below is REAL and of exactly the class this check exists to catch.
+    # They are excepted for one specific reason: these directories are UNTRACKED
+    # third-party clones (`git ls-files` returns nothing for them). An edit there is not
+    # committable, evaporates on the next re-clone, and would leave a fixed-looking
+    # check guarding nothing — which is worse than an honest exception.
+    #
+    # Closing them needs an upstream pin or a vendoring-policy change, not a local edit.
+    # Recorded in specs/082-document-generation/VERIFICATION.md as found-not-fixed.
+    # If any of these is ever vendored INTO the repo, delete its line here — the
+    # exception is about the file being untracked, not about the hazard being acceptable.
+    "AAP-Enterprise-MCP-Server:mcp": "untracked upstream clone — a local pin is not committable",
+    "gait_mcp:mcp": "untracked upstream clone — a local pin is not committable",
+    "infrahub-mcp:infrahub-sdk": "untracked upstream clone — a local pin is not committable",
+    "junos-mcp-server:mcp": "untracked upstream clone — a local pin is not committable",
+    "junos-mcp-server:starlette": "untracked upstream clone — a local pin is not committable",
+    "mcp-nautobot:mcp": "untracked upstream clone — a local pin is not committable",
+    "mcp-nvd:mcp": "untracked upstream clone — a local pin is not committable",
+    "mcp-nvd:starlette": "untracked upstream clone — a local pin is not committable",
+    "meraki-magic-mcp-community:mcp": "untracked upstream clone — a local pin is not committable",
+    "servicenow-mcp:requests": "untracked upstream clone — a local pin is not committable",
+    "servicenow-mcp:starlette": "untracked upstream clone — a local pin is not committable",
 }
 BARE_PIP_EXCEPTIONS: dict[str, str] = {}
 
@@ -54,11 +79,97 @@ BARE_PIP_EXCEPTIONS: dict[str, str] = {}
 VENV_OK_PATTERNS = ("uv venv", "virtualenv ", "netclaw_venv_create")
 
 
+# Distribution name -> module name, where they differ. Spec 082 (2026-08-03).
+#
+# The submodule scan compares a DISTRIBUTION name from a requirements file against a
+# MODULE name from an import statement. When they differ the two never meet, so the
+# check silently passes. `pymupdf` is imported as `fitz`; `python-docx` as `docx`;
+# `beautifulsoup4` as `bs4`. rag-mcp declared all three unbounded while importing
+# submodules/attributes of them, and this check reported PASS.
+#
+# Deliberately small and specific. A large speculative table would rot the way
+# EXTERNAL_INTEGRATIONS did (the lesson in this file's own docstring); these are the
+# renames actually present in this repository, verified by grep.
+DIST_TO_MODULE: dict[str, str] = {
+    "pymupdf": "fitz",
+    "python-docx": "docx",
+    "python-pptx": "pptx",
+    "beautifulsoup4": "bs4",
+    "python-dotenv": "dotenv",
+    "pyyaml": "yaml",
+    "pillow": "pil",
+    "msgraph-sdk": "msgraph",
+    "azure-identity": "azure",
+    "google-api-python-client": "googleapiclient",
+    "protobuf": "google",
+    "grpcio": "grpc",
+    "grpcio-tools": "grpc-tools",
+    "attrs": "attr",
+    "scikit-learn": "sklearn",
+    "sentence-transformers": "sentence-transformers",
+}
+
+
+def _module_for(dist_name: str) -> str:
+    """The module name a distribution installs, normalised the same way imports are."""
+    return DIST_TO_MODULE.get(dist_name, dist_name).lower().replace("_", "-")
+
+
 def _requirements(server_dir: str) -> list[str]:
+    """Declared dependencies, from requirements.txt AND pyproject.toml.
+
+    pyproject.toml support added by spec 082. Before it, this function read
+    requirements.txt only — and rag-mcp has none, declaring its dependencies in
+    pyproject.toml instead. So rag-mcp was never scanned at all, and this script's
+    PASS was an artefact of the file being invisible rather than of it being correct.
+    """
+    lines: list[str] = []
+
     path = os.path.join(server_dir, "requirements.txt")
+    if os.path.isfile(path):
+        lines += [
+            ln.strip() for ln in open(path) if ln.strip() and not ln.strip().startswith("#")
+        ]
+
+    lines += _pyproject_dependencies(server_dir)
+    return lines
+
+
+def _pyproject_dependencies(server_dir: str) -> list[str]:
+    """[project].dependencies from pyproject.toml.
+
+    tomllib is stdlib from 3.11; below that this falls back to a narrow regex over the
+    dependencies array. The fallback is deliberately conservative — it reads only
+    quoted strings inside `dependencies = [...]` and gives up on anything else, because
+    a wrong parse here produces false findings, and a noisy check is worse than no check
+    (this file's own conclusion about FR-006c).
+    """
+    path = os.path.join(server_dir, "pyproject.toml")
     if not os.path.isfile(path):
         return []
-    return [ln.strip() for ln in open(path) if ln.strip() and not ln.strip().startswith("#")]
+
+    try:
+        import tomllib  # Python 3.11+
+    except ModuleNotFoundError:
+        tomllib = None  # type: ignore[assignment]
+
+    if tomllib is not None:
+        try:
+            with open(path, "rb") as fh:
+                data = tomllib.load(fh)
+        except (OSError, ValueError):
+            return []
+        deps = (data.get("project") or {}).get("dependencies") or []
+        return [str(d).strip() for d in deps if str(d).strip()]
+
+    try:
+        text = open(path, encoding="utf-8", errors="ignore").read()
+    except OSError:
+        return []
+    m = re.search(r"^dependencies\s*=\s*\[(.*?)\]", text, re.S | re.M)
+    if not m:
+        return []
+    return [d.strip() for d in re.findall(r'"([^"]+)"|\'([^\']+)\'', m.group(1)) for d in d if d]
 
 
 def _parse_pin(line: str) -> tuple[str, str] | None:
@@ -128,11 +239,13 @@ def scan_pins() -> tuple[list[str], list[str]]:
             key = f"{entry}:{name}"
             if key in PIN_EXCEPTIONS:
                 continue
-            if name in submodule and not _is_bounded(spec):
+            module = _module_for(name)
+            if module in submodule and not _is_bounded(spec):
+                rename = f" (imported as {module!r})" if module != name else ""
                 failures.append(
-                    f"pins: {entry}: {name!r} is pinned {spec or '(unpinned)'!r} with no upper "
-                    f"bound, but the code imports a SUBMODULE of it — a new major can remove "
-                    f"that submodule (as mcp 2.0.0 removed mcp.server.fastmcp)"
+                    f"pins: {entry}: {name!r}{rename} is pinned {spec or '(unpinned)'!r} with no "
+                    f"upper bound, but the code imports a SUBMODULE of it — a new major can "
+                    f"remove that submodule (as mcp 2.0.0 removed mcp.server.fastmcp)"
                 )
             # FR-006c (unused-declaration detection) is DROPPED as unimplementable
             # reliably here. A distribution name is not a module name --

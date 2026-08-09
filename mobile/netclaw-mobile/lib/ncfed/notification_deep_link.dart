@@ -1,8 +1,12 @@
 import 'dart:convert';
 
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+import 'approval_client.dart';
+import 'approval_confirmation.dart';
 import 'conversation_store.dart';
+import 'local_notifications.dart';
 import 'message_feed.dart';
 
 /// Finds the pushed message a notification's `data` payload refers to, by
@@ -103,4 +107,44 @@ class NotificationDeepLink {
         if (turn != null) openChatTurn?.call(turn);
     }
   }
+}
+
+/// Routes a locally-posted notification's response (099/FR-014/015/016,
+/// research.md R1) -- an authenticated Approve/Deny action tap resolves via
+/// [confirmAndResolve] (the SAME path the in-app buttons use, per
+/// `contracts/notification-actions.md`); any other tap deep-links via
+/// [NotificationDeepLink]. Extracted out of `_HomeShellState` (main.dart)
+/// as a top-level function -- it never touched instance state to begin
+/// with, just parameters, so pulling it out cost nothing and makes the
+/// routing testable without mounting `HomeShell`.
+Future<void> handleNotificationResponse(
+  NotificationResponse response, {
+  required ApprovalClient approvalClient,
+  required NotificationDeepLink deepLink,
+  // Threaded through to confirmAndResolve exactly like ApprovalsScreen
+  // already does (approval_client_test.dart) -- production never passes
+  // this (real Face ID/Touch ID always runs), tests inject it to tell
+  // "routed here and failed auth" apart from "never routed here at all".
+  Future<bool> Function(String reason)? authenticate,
+}) async {
+  final actionId = response.actionId;
+  if (actionId == approveActionId || actionId == denyActionId) {
+    final parsed = parseLocalNotificationPayload(response.payload);
+    final identifier = parsed?['identifier'];
+    if (identifier == null) return;
+    final approvalId = int.tryParse(identifier);
+    if (approvalId == null) return;
+    final approval =
+        approvalClient.currentPending.where((a) => a.approvalId == approvalId).toList();
+    final targetName = approval.isNotEmpty ? approval.single.targetName : 'this request';
+    await confirmAndResolve(
+      client: approvalClient,
+      approvalId: approvalId,
+      targetName: targetName,
+      action: actionId == approveActionId ? 'approve' : 'deny',
+      authenticate: authenticate,
+    );
+    return;
+  }
+  await deepLink.handleLocalNotificationTap(response.payload);
 }

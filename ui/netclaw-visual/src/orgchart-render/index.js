@@ -20,12 +20,14 @@ import {
   TREATMENTS,
 } from './nodes.js';
 import { buildBands, setBandTheme } from './bands.js';
-import { buildLinks, setLinkTheme } from './links.js';
+import { buildLinks, setLinkTheme, animateFlows } from './links.js';
 import { buildTrustZones } from './zones.js';
 import {
   buildCategories, summariseCategories, updateCategorySummaries, highlightCategories,
   updateCategoryRails, setCategoryTheme,
 } from './categories.js';
+import { ringLayout, gridLayout } from '../orgchart/presets.js';
+import { forceLayout } from '../orgchart/force-layout.js';
 import { classifyHealth } from '../orgchart/health.js';
 import {
   applySavedLayout, applySavedPositions, saveLayout, clearSavedPositions,
@@ -60,6 +62,11 @@ const chart = {
   defaultPositions: new Map(),
   storageIdentity: 'default',
   makeLabel: null,
+  // Feature 101 (US2): the single selection marker. ONE mesh moved between
+  // nodes rather than a per-node treatment, which makes FR-009 (exactly one
+  // node reads as selected) structural instead of something to remember.
+  selectionMarker: null,
+  selectedNodeId: null,
 };
 
 export function prefersReducedMotion() {
@@ -552,6 +559,188 @@ export function collapseAllExpansions() {
 
 export { isExpanded, expandedCount };
 
-export function tickOrgChart(elapsed) {
+/**
+ * Selection as its own visual channel (feature 101, US2 — visual-contract §2).
+ *
+ * ## Why an outline and not brightness
+ *
+ * The org chart had NO selection treatment at all — clicking set the detail panel
+ * and nothing else, so the only feedback was the panel itself. The legacy orbit
+ * scene used `emissiveIntensity = 1.8` plus a scale bump, and copying that here
+ * would have reused STATE channels: brightening a dim node pushes it toward the
+ * healthy treatment, so a selected STALE peer would look like a live one. That is
+ * the concrete failure FR-007 names.
+ *
+ * So selection lives outside the silhouette, in space no state channel uses:
+ * a ring drawn around the node, in a neutral colour that belongs to no state.
+ *
+ * Additive blending is deliberately NOT used — the scene already runs
+ * UnrealBloomPass, and an additive ring washes out into the glow it is supposed
+ * to stand against.
+ */
+const SELECTION_COLOR = 0xffffff;
+
+function ensureSelectionMarker() {
+  if (chart.selectionMarker) return chart.selectionMarker;
+  const geo = new THREE.TorusGeometry(1, 0.075, 8, 48);
+  const mat = new THREE.MeshBasicMaterial({
+    color: SELECTION_COLOR, transparent: true, opacity: 0.95,
+    depthTest: false,          // always legible, even behind a nearer node
+    toneMapped: false,         // keep it pure white through the tone-mapped chain
+  });
+  const ring = new THREE.Mesh(geo, mat);
+  ring.renderOrder = 999;
+  ring.visible = false;
+  ring.name = 'orgchart-selection';
+  chart.selectionMarker = ring;
+  if (chart.root) chart.root.add(ring);
+  return ring;
+}
+
+/**
+ * Mark one node as selected, or clear when nodeId is falsy.
+ *
+ * @param {string|null} nodeId layout node id
+ */
+export function setSelectedNode(nodeId) {
+  const ring = ensureSelectionMarker();
+  if (chart.root && ring.parent !== chart.root) chart.root.add(ring);
+
+  const entry = nodeId ? chart.entries.find((e) => e.node.id === nodeId) : null;
+  if (!entry) {
+    ring.visible = false;
+    chart.selectedNodeId = null;
+    return;
+  }
+
+  // Sized from the node's own base scale so it reads at every zoom (FR-011) and
+  // never depends on the pulse-modulated live scale.
+  const r = entry.baseScale * 1.9 + 0.9;
+  ring.scale.setScalar(r);
+  ring.position.set(entry.node.position.x, entry.node.position.y, entry.node.position.z);
+  ring.visible = true;
+  chart.selectedNodeId = nodeId;
+}
+
+/** FR-008: full restoration on deselect, with no residue. */
+export function clearSelectedNode() {
+  setSelectedNode(null);
+}
+
+export function selectedNodeId() {
+  return chart.selectedNodeId;
+}
+
+/**
+ * Compute positions for a preset (feature 102, US2).
+ *
+ * `orgchart` returns null meaning "use what computeLayout produced" — it is not a
+ * preset implementation, it is the absence of one (FR-010). `freeform` likewise has
+ * no geometry: it starts from the org chart and everything after is the operator's.
+ *
+ * @returns {{[nodeId:string]: {x,y,z}}|null}
+ */
+export function presetPositions(presetId, store) {
+  const nodes = chart.layout?.nodes || [];
+  if (presetId === 'ring') return ringLayout(nodes);
+  if (presetId === 'grid') return gridLayout(nodes);
+  if (presetId === 'force') {
+    // Solved ONCE here, off the render loop, and the result is applied as plain
+    // positions (FR-040). There is no tick loop to leave running.
+    const links = [];
+    const border = nodes.find((n) => n.kind === 'border');
+    if (border) for (const n of nodes) if (n !== border) links.push([border.id, n.id]);
+    const pinnedPositions = {};
+    for (const id of (store?.pinned?.force || [])) {
+      const p = store.positions?.force?.[id];
+      if (p) pinnedPositions[id] = p;
+    }
+    return forceLayout({
+      nodes: nodes.map((n) => ({ id: n.id })),
+      links,
+      pinned: [...(store?.pinned?.force || [])],
+      pinnedPositions,
+    });
+  }
+  return null;
+}
+
+/**
+ * Move meshes, labels and links to the positions the store and preset dictate.
+ *
+ * Precedence: an operator-placed position always wins over the preset, which always
+ * wins over computeLayout. That ordering IS the FR-002/FR-027 guarantee — the system
+ * never overrides where the operator put something.
+ *
+ * @param {object} store layout-store
+ */
+export function applyLayoutPositions(store) {
+  if (!chart.entries?.length) return;
+  const preset = store?.activePreset || 'orgchart';
+  chart.lastAppliedPreset = preset;
+  const presetMap = presetPositions(preset, store);
+  const manual = store?.positions?.[preset] || {};
+
+  for (const entry of chart.entries) {
+    const id = entry.node.id;
+    const next = manual[id] || presetMap?.[id] || entry.node.computedPosition || null;
+    if (!next) continue;
+    // Remember where computeLayout originally put it, so returning to the org chart
+    // preset is possible without recomputing the whole layout.
+    if (!entry.node.computedPosition) {
+      entry.node.computedPosition = { ...entry.node.position };
+    }
+    entry.node.position = { x: next.x, y: next.y, z: next.z ?? 0 };
+    entry.mesh.position.set(next.x, next.y, next.z ?? 0);
+    if (entry.label) {
+      entry.label.position.set(next.x, next.y - (entry.baseScale * 1.6 + 1.4), next.z ?? 0);
+    }
+  }
+  rebuildLinks();
+
+  // Bands and the trust boundary are ORG-CHART FURNITURE: horizontal strips at fixed
+  // Y positions that only mean something when nodes are arranged in those strips.
+  // Under Ring/Grid/force the nodes have moved but the bands cannot follow — they
+  // have no meaningful position in a radial or uniform arrangement — so they were
+  // left cutting across the scene labelling nothing. Hide them instead.
+  //
+  // This does not lose information: band membership is still carried by node form
+  // and colour (feature 101's six peer states), and by the detail panel. Only the
+  // strip graphic goes away, and only where it would be actively misleading.
+  chart.lastAppliedPreset = preset;
+  const bandsMeaningful = preset === 'orgchart' || preset === 'freeform';
+  if (chart.bands?.group) chart.bands.group.visible = bandsMeaningful;
+
+  if (chart.selectedNodeId) setSelectedNode(chart.selectedNodeId);
+}
+
+/** Links are geometry built from positions, so they must be rebuilt when those move. */
+function rebuildLinks() {
+  if (!chart.root || !chart.layout) return;
+  if (chart.links) {
+    chart.root.remove(chart.links.group);
+    chart.links.dispose?.();
+  }
+  const preset = chart.lastAppliedPreset || 'orgchart';
+  const categoryRouting = preset === 'orgchart' || preset === 'freeform';
+  chart.links = buildLinks(chart.layout.nodes, chart.layout.categories, categoryRouting);
+  chart.root.add(chart.links.group);
+}
+
+/** Live preview during a drag — mesh and label only, links on release. */
+export function previewNodePosition(nodeId, pos) {
+  const entry = chart.entries.find((e) => e.node.id === nodeId);
+  if (!entry) return;
+  entry.mesh.position.set(pos.x, pos.y, pos.z ?? 0);
+  if (entry.label) entry.label.position.set(pos.x, pos.y - (entry.baseScale * 1.6 + 1.4), pos.z ?? 0);
+  if (chart.selectedNodeId === nodeId) setSelectedNode(nodeId);
+}
+
+export function tickOrgChart(elapsed, camera) {
   animateNodes(chart.entries, elapsed, prefersReducedMotion());
+  // Feature 101 (US4): flow markers on LIVE peer links only.
+  animateFlows(chart.links?.flows, elapsed, prefersReducedMotion());
+  // Billboard the selection ring: an unrotated torus seen edge-on collapses to
+  // a line and the selection appears to vanish at some camera angles.
+  if (camera && chart.selectionMarker?.visible) chart.selectionMarker.quaternion.copy(camera.quaternion);
 }

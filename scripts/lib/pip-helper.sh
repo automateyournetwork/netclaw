@@ -72,7 +72,39 @@ netclaw_pip_install() {
         echo "  Remedy: $py -m ensurepip --upgrade   (or install the matching *-venv package)" >&2
         return 1
     fi
-    "$py" -m pip install "$@"
+    # PEP 668: a distro-managed interpreter refuses installs outright with
+    # "error: externally-managed-environment". Spec 090 found this helper had no handling
+    # for it, so on Ubuntu 26.04 the one install path spec 077 mandates could not install
+    # any new package at all -- which is why three registered servers were dead while the
+    # installer reported success.
+    #
+    # Handled here, once, rather than at 56 call sites that each appended
+    # `--break-system-packages` behind `2>/dev/null || log_warn`. That pattern turned a
+    # total failure into a single warning line in a long log, and exit 0.
+    local out rc
+    out="$("$py" -m pip install "$@" 2>&1)"; rc=$?
+    if [ "$rc" -eq 0 ]; then
+        printf '%s\n' "$out"
+        return 0
+    fi
+
+    if printf '%s' "$out" | grep -q 'externally-managed-environment'; then
+        # Say so. A silent retry here would hide that packages are landing in a
+        # distro-managed tree, which the operator may need to know when it breaks.
+        echo "netclaw_pip_install: $py is externally managed (PEP 668)." >&2
+        echo "  Retrying with --break-system-packages. To avoid this, set NETCLAW_VENV." >&2
+        out="$("$py" -m pip install --break-system-packages "$@" 2>&1)"; rc=$?
+        if [ "$rc" -eq 0 ]; then
+            printf '%s\n' "$out"
+            return 0
+        fi
+    fi
+
+    # FR-003c (spec 090): never swallow the reason. The whole point of a single install
+    # path is that a failure is legible; discarding stderr defeats it.
+    echo "netclaw_pip_install: FAILED installing: $*" >&2
+    printf '%s\n' "$out" >&2
+    return "$rc"
 }
 
 # Create a virtualenv that works even where `ensurepip` is unavailable.

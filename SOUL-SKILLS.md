@@ -360,18 +360,6 @@ Visio diagram generation:
 3. Upload to SharePoint
 4. Create sharing link for team
 
-### msgraph-teams
-Teams channel notifications:
-- Health alerts
-- Security alerts
-- Change updates
-- Report delivery
-- Diagram sharing
-
-Follow same severity-based channel mapping as Slack.
-
----
-
 ## GitHub Skills
 
 ### github-ops
@@ -759,18 +747,78 @@ Vendor-neutral EVPN/VXLAN fabric audit and troubleshooting:
 
 ---
 
+## Out-of-Band Hardware Skills
+
+### hardware-health-check
+Out-of-band hardware visibility via Redfish BMC, read-only (spec 094):
+- Power state and component health, with a verdict on what it establishes
+- Thermal, fan and PSU readings against critical thresholds
+- BMC firmware version, host firmware inventory, SEL log triage
+
+**This is the only surface that separates "the box is dead" from "the network to the box is
+dead."** The BMC answers when the OS cannot — but the distinction is symmetric and each
+direction is a different wrong answer. **BMC unreachable establishes NOTHING about the host**
+(its NIC, path and credentials are all separate); `PowerState: Off` IS a fact; `PowerState: On`
+does not mean the OS booted. `redfish-mcp` refuses to emit a host claim without the verdict that
+qualifies it, so the caveat cannot be dropped.
+
+**No power control.** Redfish exposes `#ComputerSystem.Reset`; this server deliberately does not
+implement it, and the client issues no verb but GET. A power cycle on the wrong box is an outage.
+
+**An empty SEL is not good news** — ring buffers are cleared during service, so absence of
+entries is absence of *recorded* entries.
+
+## Network Security Monitoring Skills
+
+### nsm-ids-triage
+Suricata IDS alert triage over a packet capture, read-only (spec 091):
+- Signature alerts with category, severity and signature_id
+- Ruleset presence and age as part of every finding
+- Detection posture: `ARMED` / `INERT` / `UNKNOWN`
+
+**Zero alerts is not a clean result until the signature count is checked.** Stock Suricata
+loads **0 signatures** and reports **0 alerts** behind two non-fatal warnings — measured 0
+versus 52,205 after `nsm_update_rules`. An `INERT` run means the detector was off.
+
+### nsm-session-pivot
+Zeek session and protocol metadata over a packet capture, read-only (spec 091):
+- `conn.log` session table with service, conn_state and byte counts
+- Exact pivot from a connection `uid` into dns/http/ssl/weird logs
+- Checksum posture on every response
+
+**A missing protocol log does not mean there was no such traffic.** Zeek discards
+invalid-checksum packets by default; measured, that produced **no http.log at all** and a
+conn.log with 3 rows instead of 2. NetClaw's own capture skills produce such captures, so the
+server defaults to ignoring checksums and always reports which mode it used.
+
+### network-data-analysis
+Ad-hoc read-only SQL over exported network data via DuckDB (spec 092):
+- Cross-log joins on Zeek `uid` — the session pivot, aggregated
+- Top talkers, service breakdowns, Suricata signature frequency
+- Capped results reported as pages, never as totals
+
+**NetClaw's own stores are unreachable by construction.** Datasets are materialised, then
+DuckDB's `enable_external_access=false` + `lock_configuration=true` close every filesystem and
+network path irreversibly — so `~/.openclaw/memory/`, `rag/`, `n2n/` and `gait/` cannot be
+attached or read. Enforcement is DuckDB's, not a regex's.
+
+**It inherits its source's caveats.** SQL over a Zeek run made with checksum validation on is
+SQL over incomplete logs — check the run's posture before trusting an aggregate.
+
 ## Cisco Meraki Skills
 
 ### meraki-network-ops
-Meraki Dashboard operations (~804 API endpoints via dynamic MCP):
-- Organization inventory
-- Network management
-- Device lifecycle
-- Client discovery
-- Uplink status
-- Action batches for bulk operations
+Meraki discovery and inventory via Cisco's **official** remote MCP (spec 089) — 494
+read-only Dashboard capabilities behind 2 tools (`semantic_search` + `execute_api`):
+- Organization discovery (`getOrganizations` — the entry point for every Meraki skill)
+- Network inventory and `productTypes` routing
+- Device and inventory listing
+- Clients, group policies, admins, licensing, alert settings
 
-Built-in caching reduces API calls by 50-90%. `READ_ONLY_MODE=true` blocks all writes.
+**Read-only is structural, not configured.** All 431 mutating operations are absent from
+the upstream capability catalogue, so there is no toggle and nothing to gate. Discover
+capability IDs with `semantic_search` rather than recalling them — the previous version of
+these skills cited 54 method names that did not exist.
 
 ### meraki-wireless-ops
 Meraki wireless management:
@@ -1493,7 +1541,7 @@ The skills above are documented with full step-by-step operational procedures. T
 | `meraki-switch-ops` | Cisco Meraki Switching — port configuration, VLANs, port status, ACLs, QoS rules, port cycling. Use when configuring Meraki switch ports, creating VLANs, che... | `workspace/skills/meraki-switch-ops/SKILL.md` |
 | `meraki-wireless-ops` | Cisco Meraki Wireless — SSID management, RF profiles, channel utilization, signal quality, client connectivity events. Use when managing Meraki SSIDs, troubl... | `workspace/skills/meraki-wireless-ops/SKILL.md` |
 | `msgraph-files` | Manage files on OneDrive and SharePoint via Microsoft Graph API - upload, download, list, search, and organize network documentation and artifacts. Use when ... | `workspace/skills/msgraph-files/SKILL.md` |
-| `msgraph-teams` | Send notifications and reports to Microsoft Teams channels via Graph API - alert delivery, report posting, incident updates, and diagram sharing. Use when po... | `workspace/skills/msgraph-teams/SKILL.md` |
+| `` | Send notifications and reports to Microsoft Teams channels via Graph API - alert delivery, report posting, incident updates, and diagram sharing. Use when po... | `workspace/skills//SKILL.md` |
 | `msgraph-visio` | Generate and manage Visio network diagrams on SharePoint via Microsoft Graph API - create topology diagrams from CDP/LLDP discovery, update existing diagrams... | `workspace/skills/msgraph-visio/SKILL.md` |
 | `nmap-network-scan` | Host discovery and port scanning using nmap — ICMP/ARP host discovery, SYN/TCP/UDP port scanning with scope enforcement and audit logging. Use when discoveri... | `workspace/skills/nmap-network-scan/SKILL.md` |
 | `nmap-scan-management` | Custom nmap scans with arbitrary flags, plus scan history retrieval and management. Use when running nmap with custom flags, reviewing past scan results, com... | `workspace/skills/nmap-scan-management/SKILL.md` |

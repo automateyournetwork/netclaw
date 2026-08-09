@@ -1,0 +1,21 @@
+{
+  "label": "pre-bump-0.170.0",
+  "url": "http://localhost:3000/",
+  "settleMs": 15000,
+  "frame": {
+    "median": 699.9999999999927,
+    "p95": 883.2999999999884,
+    "n": 340
+  },
+  "scene": {
+    "canvases": 1,
+    "labels": 42,
+    "webgl2": true,
+    "renderer": "ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device (Subzero) (0x0000C0DE)), SwiftShader driver)",
+    "title": "NetClaw Visual"
+  },
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 404 (Not Found)"
+  ],
+  "pageErrors": []
+}

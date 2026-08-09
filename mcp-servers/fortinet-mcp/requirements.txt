@@ -1,0 +1,14 @@
+# Fortinet Coverage — spec 080 (roadmap R3)
+#
+# Two packages. Deliberately no Fortinet SDK: pyFMG, fortiosapi and fortigate-api
+# were all evaluated (research R4) and rejected. FortiManager/FortiAnalyzer JSON-RPC
+# is a POST with method/params/session, and FortiOS REST is bearer-token HTTP —
+# an SDK would add a dependency and a pinning hazard over a protocol simpler than
+# the abstraction.
+#
+# Upper bounds are LOAD-BEARING (spec 077 / R0a). mcp 2.0.0 removed
+# mcp.server.fastmcp, and this server imports it. reconcile-mcp.py's dependency
+# surface fails an unbounded pin on a package whose submodule is imported, so
+# these bounds are enforced, not advisory. Do not "tidy" them away.
+mcp>=1.2.0,<2
+httpx>=0.27.0,<1

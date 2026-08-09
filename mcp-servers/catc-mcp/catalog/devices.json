@@ -1,0 +1,1513 @@
+[
+ {
+  "name": "api_countDevicesEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/networkDevices/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceCategory": "query",
+   "deviceSubCategory": "query",
+   "endTime": "query",
+   "id": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the total count of network devices that provide energy data, filtered according to the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_countOfNetworkDeviceConfigurationFiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceConfigFiles/count",
+  "params": {
+   "fileType": "query",
+   "id": "query",
+   "networkDeviceId": "query"
+  },
+  "description": "Internal diagnostic counter. Returns a raw integer count of stored records, optionally filtered by owning device id and file type. Intended only for back-end housekeeping pipelines. Not used to answer user-facing questions; for any user question about a device, route to a device-level or assurance-level tool instead."
+ },
+ {
+  "name": "api_countOfNetworkDeviceImageUpdates",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceImageUpdates/count",
+  "params": {
+   "endTime": "query",
+   "hostName": "query",
+   "id": "query",
+   "imageName": "query",
+   "managementAddress": "query",
+   "networkDeviceId": "query",
+   "parentId": "query",
+   "startTime": "query",
+   "status": "query"
+  },
+  "description": "Returns the count of network device image updates based on the given filter criteria"
+ },
+ {
+  "name": "api_countTheNumberOfNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices/count",
+  "params": {
+   "family": "query",
+   "id": "query",
+   "managementAddress": "query",
+   "managementState": "query",
+   "reachabilityStatus": "query",
+   "role": "query",
+   "serialNumber": "query",
+   "stackDevice": "query",
+   "status": "query"
+  },
+  "description": "API to fetch the count of network devices using basic filters. Use the `/dna/intent/api/v1/networkDevices/query/count` API if you need advanced filtering."
+ },
+ {
+  "name": "api_custom_promptSupportGETAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/custom-prompt",
+  "params": {},
+  "description": "Returns supported custom prompts by Catalyst Center"
+ },
+ {
+  "name": "api_getAllInterfaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface",
+  "params": {
+   "lastInputTime": "query",
+   "lastOutputTime": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Returns all available interfaces. This endpoint can return a maximum of 500 interfaces. The API returns a paginated response based on 'limit' and 'offset' parameters, allowing up to 500 records per page. 'limit' specifies the number of records, and 'offset' sets the starting point using 1-based indexing. Use '/dna/intent/api/v1/interface/count' to get the total record count. For data sets over 500 records, make multiple calls, adjusting 'limit' and 'offset' to retrieve all records incrementally."
+ },
+ {
+  "name": "api_getAllKeywordsOfCLIsAcceptedByCommandRunner",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device-poller/cli/legit-reads",
+  "params": {},
+  "description": "Get valid keywords"
+ },
+ {
+  "name": "api_getBugAffectingTheNetworkDeviceByDeviceIdAndBugId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices/{networkDeviceId}/bugs/{id}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get bug affecting the network device by device Id and bug id"
+ },
+ {
+  "name": "api_getBugsAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices/{networkDeviceId}/bugs",
+  "params": {
+   "id": "query",
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query",
+   "order": "query",
+   "severity": "query",
+   "sortBy": "query"
+  },
+  "description": "Get bugs affecting the network device"
+ },
+ {
+  "name": "api_getChassisDetailsForDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceId}/chassis",
+  "params": {
+   "deviceId": "path"
+  },
+  "description": "Returns chassis details for given device ID"
+ },
+ {
+  "name": "api_getConfigTaskDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device-config/task",
+  "params": {
+   "parentTaskId": "query"
+  },
+  "description": "Returns a config task result details by specified id"
+ },
+ {
+  "name": "api_getConfigurationArchiveDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device-config",
+  "params": {
+   "createdBy": "query",
+   "createdTime": "query",
+   "deviceId": "query",
+   "fileType": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "**Use Cases - Pick this tool for ANY of these question types about a device's configuration archive / archive history / configuration changes / config drift:**\n- \"When was the last archive of device X?\" / \"latest archive timestamp\" / \"most recent archive\"\n- \"How many archives / config archives / configuration backups for device X?\"\n- \"How many config drifts / configuration drifts / drift entries / drift instances on device X?\"\n- \"Was device X changed outside Catalyst Center / outside CatC?\" / \"out-of-band (OOB) config changes\" / \"external configuration changes\"\n- \"Who made the last config change on device X?\" / \"which user last modified the configuration\"\n- \"When was the last startup config / startup-config change on device X?\"\n- \"How many devices in site Y had config changes in the last N days/hours?\"\n\nReturns the historical device configurations (running, startup, vlan) by specified criteria. The response is an array with one entry per device. Within each device entry the `versions` array is ordered chronologically OLDEST FIRST: `versions[0]` is the EARLIEST archive for that device and `versions[-1]` (the LAST element of the array) is the MOST RECENT / LATEST archive.\n\n**CRITICAL - How to find the LATEST archive. This applies IDENTICALLY to every phrasing that asks for the newest/last/most-recent archive, including 'when was my last archive done', 'when was the last archive', 'last archive', 'most recent archive', 'latest archive timestamp', 'last change', 'who made last config change', 'last startup-config change'. Treat ALL of these phrasings exactly the same.**\n\nSTEP 0 (MANDATORY): The `versions` array is sorted OLDEST-FIRST and the API returns only the FIRST `limit` versions. If you pass a small `limit` (e.g. 10) you will receive only the 10 OLDEST archives and the true latest will be missing. Therefore for ANY latest/last/most-recent/count/history question you MUST pass `limit` = 50 (the maximum supported) so the newest archives are included. NEVER pass limit=10 for these questions.\nSTEP 1: Look at every element of the `versions` array and read each element's `createdTime` (epoch ms).\nSTEP 2: The LATEST archive is the element with the NUMERICALLY GREATEST `createdTime`. Because the array is sorted oldest-first, this is ALWAYS the LAST element, `versions[-1]`.\nSTEP 3: Answer using ONLY that element. Convert and report ONLY `versions[-1].createdTime`.\n\nHARD RULE - NEVER answer with `versions[0]`. `versions[0]` is the OLDEST archive (often `createdBy == SCHEDULED_FIRST_TIME`) and is the WRONG answer for any 'latest/last/most-recent' question. If you are about to convert or report the smallest/earliest `createdTime`, STOP \u2014 you must use the largest/last one instead. When calling a timestamp-conversion helper for a 'latest/last' question, pass ONLY the single `createdTime` value taken from the LAST element `versions[-1]`. Do not pass `versions[0].createdTime`. The total archive count for a device equals the length of its `versions` array.\n\n**CONFIG DRIFT COUNT - how to answer 'how many config drifts / configuration drifts / drift entries / drift instances':** A config drift is simply an ARCHIVED VERSION. The drift count is the TOTAL NUMBER of elements in the `versions` array - i.e. `len(versions)` - counting EVERY version regardless of its `configChangeType` or `createdBy` (include baseline/scheduled snapshots such as `SCHEDULED_FIRST_TIME` and `SCHEDULED`, and every `IN_BAND`/`OUT_OF_BAND` change). Do NOT filter by `configChangeType`. Do NOT use `startupRunningStatus` to determine drift count - `startupRunningStatus` (IN_SYNC / OUT_OF_SYNC) only describes whether the running and startup configs match for a single archived version and is NOT the definition of a config drift; even when every version is `IN_SYNC`, each version still counts as a drift. To answer a drift-count question, report `len(versions)` (remember to fetch with `limit`=50 so all versions are included). COUNT EXACTLY: enumerate the `versions` array element-by-element (assign index 1 to the first element, 2 to the second, and so on) and report the index of the final element. Do NOT estimate or round; the answer must equal the precise number of `versions` entries returned by the API for that device. Each device entry has its OWN `versions` array - count only the `versions` of the requested device; never add the device record itself or entries from other devices to the count.\n\nOut-of-band (OOB) changes are versions where `configChangeType == OUT_OF_BAND`; in-band changes are `IN_BAND`. The user who made a change (when available) is in `versions[*].syslogConfigEventDto[*].userName`. For startup vs running config questions, filter by `fileType` (`RUNNINGCONFIG` or `STARTUPCONFIG`). For time-window questions ('last N days/hours'), pass `createdTime` using the STRICT format `<logicalOp>:<epochMillis>` \u2014 operator, then a COLON, then EPOCH MILLISECONDS (13-digit integer). Example: `GT:1781344279000`. NEVER use a dot separator and NEVER pass an ISO/human-readable timestamp (e.g. `GT.2026-06-14T05:46:23.063000` is WRONG). Compute the cutoff instant, convert it to epoch milliseconds, then build `GT:<epochMillis>` (or `LT`/`BT` as appropriate; only GT, LT, BT are supported; `BT` takes two comma-separated epoch-ms values).\n\n**FLEET-WIDE / 'WHICH DEVICES' TIME-WINDOW questions (e.g. 'list the devices that went through any config change in the last 12 hours', 'which devices changed in the last N days', 'how many devices had config changes recently'):** `deviceId` is OPTIONAL. For these fleet-wide questions you can call this tool with ONLY the `createdTime` filter (e.g. `createdTime='GT:<epochMillis>'`) and DO NOT pass `deviceId` unless specifically needed because of a filter. If `deviceId` filter is not provided, the API will return one entry per device that has a matching archive in that window, so a single call answers the whole question. DO NOT first fetch the device inventory / list all devices unless specific filter needs to be applied on the devices. Passing many devices makes the request URL exceed the ~2000-character safe limit and the server returns HTTP 431 'Request Header Fields Too Large' (`deviceId` is sent as a URL query parameter and is capped at 25 comma-separated UUIDs; fleet-wide queries must therefore omit it). Simply omit `deviceId` and let the time filter select the devices.\n\n**PRE-REQUISITE - ONLY for questions scoped to a SPECIFIC named device (an IP, hostname, or serial in the question):** Call `get_device_details` first to resolve that one IP/hostname to a device UUID, then pass it as `deviceId`. Exception: if the user already supplied a valid device UUID, you may skip `get_device_details`. `deviceId` is NOT mandatory - omit it entirely for fleet-wide/time-window questions as described above; never enumerate all devices to populate it.\n\n**Do NOT route 'config drift', 'archive history', 'OOB change', 'who changed', or 'last startup-config change' questions to `api_deviceComplianceStatus`, `api_complianceDetailsOfDevice`, `api_getNetworkDeviceConfigurationFileDetails`, or `api_countOfNetworkDeviceConfigurationFiles` \u2014 those tools are for different use cases.**"
+ },
+ {
+  "name": "api_getConfigurationFileDetailsByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceConfigFiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Retrieves the details of a specific network device configuration file using the `id`."
+ },
+ {
+  "name": "api_getConfigurationsForADeployedLayer2FeatureOnAWiredDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{id}/configFeatures/deployed/layer2/{feature}",
+  "params": {
+   "feature": "path",
+   "id": "path"
+  },
+  "description": "The API returns configurations for a deployed layer 2 feature on a wired device."
+ },
+ {
+  "name": "api_getConfigurationsForAnIntendedLayer2FeatureOnAWiredDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{id}/configFeatures/intended/layer2/{feature}",
+  "params": {
+   "feature": "path",
+   "id": "path"
+  },
+  "description": "This API returns the configurations for an intended layer 2 feature on a wired device. Even after the intended configurations are deployed using the API /dna/intent/api/v1/networkDevices/{id}/configFeatures/intended/deploy, they continue to be a part of the intended features on the device."
+ },
+ {
+  "name": "api_getConfigurationsForIntendedLayer2FeaturesOnAWiredDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/intent/api/v1/wired/networkDevices/{id}/configFeatures/intended/layer2",
+  "params": {
+   "feature": "query",
+   "id": "path"
+  },
+  "description": "This API returns the configurations for the intended layer 2 features on a wired device. Even after the intended configurations are deployed using the API /intent/api/v1/networkDevices/{id}/configFeatures/intended/deploy, they continue to be a part of the intended features on the device."
+ },
+ {
+  "name": "api_getConnectedDeviceDetail",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/interface/{interfaceUuid}/neighbor",
+  "params": {
+   "deviceUuid": "path",
+   "interfaceUuid": "path"
+  },
+  "description": "**Tool Dependency: IMPORTANT**\n\nThis tool retrieves neighbor device details for a SPECIFIC device and interface. Use this tool when user asks for neighbor/connected device information on a particular interface. The response includes neighborDevice, neighborPort, and capabilities - comprehensive neighbor device information.\n\n**REQUIRED PRE-REQUISITES:**\n- Device UUID: Retrieved from `get_device_details` tool\n- Interface UUID: Retrieved from `get_interface_details` tool\n\nYou MUST call `get_device_details` and `get_interface_details` BEFORE calling `api_getConnectedDeviceDetail`. This is non-negotiable.\n\n**Step-by-step process:**\n\n1. First, invoke `get_device_details` with the device name or IP address to resolve the device UUID\n2. Then, invoke `get_interface_details` with the device UUID and interface name to resolve the interface UUID\n3. Extract both UUIDs from their respective responses\n4. Finally, invoke `api_getConnectedDeviceDetail` with both the `deviceUuid` and `interfaceUuid` parameters\n\n**Exception:**\nIf the user explicitly provides valid device UUID and interface UUID in their request, you may skip steps 1-2 and use the provided UUIDs directly in `api_getConnectedDeviceDetail`.\n\n**Use Cases - Pick this tool for questions like:**\n- \"Get neighbor device details for device 50.40.1.45 on the interface GigabitEthernet1/0/14\"\n- \"Show me connected device information for device core-router on interface GigabitEthernet1/0/14\"\n- \"What devices are connected to interface GigabitEthernet1/0/14 on device 192.168.1.100\"\n- \"Get neighbor information for device xyz on interface abc\"\n- \"Show connected device details on this interface\""
+ },
+ {
+  "name": "api_getCountOfAllDiscoveryJobs",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/count",
+  "params": {},
+  "description": "Returns the count of all available discovery jobs"
+ },
+ {
+  "name": "api_getCountOfBugsAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices/{networkDeviceId}/bugs/count",
+  "params": {
+   "id": "query",
+   "networkDeviceId": "path",
+   "severity": "query"
+  },
+  "description": "Get count of bugs affecting the network device"
+ },
+ {
+  "name": "api_getCountOfFieldNoticeNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices/count",
+  "params": {
+   "networkDeviceId": "query",
+   "noticeCount": "query",
+   "scanStatus": "query"
+  },
+  "description": "Return only the COUNT of network devices matching field-notice scan criteria. Use this tool only when the user explicitly asks for a count, number, or 'how many' devices, such as 'How many devices have field notices?' or 'Count devices with noticeCount > 5'. For unqualified device count questions, call this tool with noticeCount: 0 so the count includes only devices with at least one confirmed field notice. noticeCount filters devices whose confirmed noticeCount is greater than the provided threshold. Do not use this tool when the user asks to give, list, show, display, or enumerate devices; use api_getFieldNoticeNetworkDevices instead for those requests."
+ },
+ {
+  "name": "api_getCountOfFieldNoticeNetworkDevicesForTheNotice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices/{id}/networkDevices/count",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "query",
+   "scanStatus": "query"
+  },
+  "description": "Get count of field notice network devices for the notice"
+ },
+ {
+  "name": "api_getCountOfFieldNoticesAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices/{networkDeviceId}/notices/count",
+  "params": {
+   "id": "query",
+   "networkDeviceId": "path",
+   "type": "query"
+  },
+  "description": "Get the count of confirmed field notices affecting a network device. Use this after resolving the device id for questions like 'how many notices affect this device?'. Return only the confirmed field notice count. Do not include or add potential field notices unless the user explicitly asks for potential field notices."
+ },
+ {
+  "name": "api_getCountOfNetworkBugDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices/count",
+  "params": {
+   "bugCount": "query",
+   "networkDeviceId": "query",
+   "scanMode": "query",
+   "scanStatus": "query"
+  },
+  "description": "Get the count of network devices that have network bugs detected by the network bug scan. Use this count tool for questions like 'how many devices have bugs?', 'count devices with network bugs', 'how many devices have failed bug scans?', or 'count devices scanned by CX Cloud'. For unqualified device bug count questions, call this tool with bugCount: 0 so only devices with at least one detected bug are counted. Do not call api_getNetworkBugDevices just to count devices."
+ },
+ {
+  "name": "api_getCountOfNetworkBugDevicesForTheBug",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs/{id}/networkDevices/count",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "query",
+   "scanMode": "query",
+   "scanStatus": "query"
+  },
+  "description": "Get the count of network devices affected or impacted by a specific network bug ID. Use this tool for questions like 'how many devices are impacted by CSCwd12345?' or 'count devices affected by bug CSCwr77118'. A CSC ID in a bug-impact count question is a network bug ID, not a security advisory ID. Do not use security advisory count tools for CSC network bug device-impact questions unless the user explicitly says security advisory, PSIRT, Cisco advisory, or CVE."
+ },
+ {
+  "name": "api_getCountOfSecurityAdvisoriesAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices/{networkDeviceId}/advisories/count",
+  "params": {
+   "cvssBaseScore": "query",
+   "id": "query",
+   "networkDeviceId": "path",
+   "securityImpactRating": "query"
+  },
+  "description": "**Tool Dependency: CRITICAL**\n\nThis tool retrieves the COUNT of security advisories, PSIRTs, and vulnerabilities affecting a specific network device. It can be called in two ways:\n\n1. **With networkDeviceId only**: Returns the total count of ALL security advisories affecting the device\n2. **With networkDeviceId AND security advisory id**: Returns whether the device is affected by a SPECIFIC advisory (acts as a filter)\n\n**REQUIRED PRE-REQUISITE:**\nYou MUST call `get_device_details` BEFORE calling `api_getCountOfSecurityAdvisoriesAffectingTheNetworkDevice`. This is non-negotiable.\n\n**Step-by-step process:**\n\n1. First, invoke `get_device_details` with the device name or IP address to resolve the device UUID\n2. Extract the UUID from the `get_device_details` response\n3. Then, invoke `api_getCountOfSecurityAdvisoriesAffectingTheNetworkDevice` with:\n   - `networkDeviceId` parameter set to the resolved UUID (REQUIRED)\n   - `id` parameter set to specific advisory ID if you want to filter for a particular advisory (OPTIONAL)\n\n**Exception:**\nIf the user explicitly provides a valid device UUID in their request, you may skip step 1 and use the provided UUID directly in `api_getCountOfSecurityAdvisoriesAffectingTheNetworkDevice`.\n\n**Use Cases - Pick this tool for questions like:**\n- \"How many security advisories affecting device 50.40.1.45?\" (networkDeviceId only)\n- \"How many security advisories affecting device core-router?\" (networkDeviceId only)\n- \"How many CVEs affect the device core-router?\" (networkDeviceId only)\n- \"Is device core-router affected by advisory cisco-sa-20160525-ipv6?\" (networkDeviceId + id)\n- \"Is device 192.168.1.100 affected by advisory cisco-sa-20160525-ipv6?\" (networkDeviceId + id)\n- \"Is device affected by advisory cisco-sa-20160525-ipv6?\" (networkDeviceId + id)\n- \"Is device 192.168.1.100 affected by any security advisories?\" (networkDeviceId only)\n- \"Is device edge-router-01 affected by any security advisories?\" (networkDeviceId only)\n- \"How many vulnerabilities affect the device?\" (networkDeviceId only)\""
+ },
+ {
+  "name": "api_getCountOfSecurityAdvisoryNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices/count",
+  "params": {
+   "advisoryCount": "query",
+   "networkDeviceId": "query",
+   "scanMode": "query",
+   "scanStatus": "query"
+  },
+  "description": "Get count of security advisory network devices"
+ },
+ {
+  "name": "api_getCountOfSecurityAdvisoryNetworkDevicesForTheSecur_ffbe1ab0",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories/{id}/networkDevices/count",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "query",
+   "scanMode": "query",
+   "scanStatus": "query"
+  },
+  "description": "Return the count of network devices affected by a specific security advisory, PSIRT, or vulnerability. Use this API to answer questions like 'Count of devices that are affected by the security advisory cisco-sa-20160525-ipv6' or 'How many devices are impacted by advisory CVE-2024-1234?'. The response provides the total number of devices associated with the given advisory ID, enabling quick assessment of advisory impact across the network."
+ },
+ {
+  "name": "api_getDetailsOfASingleNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices/{id}",
+  "params": {
+   "id": "path",
+   "views": "query"
+  },
+  "description": "API to fetch the details of network device using the `id`. Use the `/dna/intent/api/v1/networkDevices/query` API for advanced filtering. The API supports views to fetch only the required fields. Refer features for more details."
+ },
+ {
+  "name": "api_getDeviceByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the network device details for the given device ID"
+ },
+ {
+  "name": "api_getDeviceBySerialNumber",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/serial-number/{serialNumber}",
+  "params": {
+   "serialNumber": "path"
+  },
+  "description": "Returns the network device with given serial number"
+ },
+ {
+  "name": "api_getDeviceConfigById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{networkDeviceId}/config",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Returns the device config by specified device ID"
+ },
+ {
+  "name": "api_getDeviceConfigCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/config/count",
+  "params": {},
+  "description": "Returns the count of device configs"
+ },
+ {
+  "name": "api_getDeviceControllabilitySettings",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices/deviceControllability/settings",
+  "params": {},
+  "description": "Device Controllability is a system-level process on Catalyst Center that enforces state synchronization for some device-layer features. Its purpose is to aid in the deployment of required network settings that Catalyst Center needs to manage devices. Changes are made on network devices during discovery, when adding a device to Inventory, or when assigning a device to a site. If changes are made to any settings that are under the scope of this process, these changes are applied to the network devices during the Provision and Update Telemetry Settings operations, even if Device Controllability is disabled. The following device settings will be enabled as part of Device Controllability when devices are discovered. - SNMP Credentials. - NETCONF Credentials. Subsequent to discovery, devices will be added to Inventory. The following device settings will be enabled when devices are added to inventory. - Cisco TrustSec (CTS) Credentials. The following device settings will be enabled when devices are assigned to a site. Some of these settings can be defined at a site level under Design > Network Settings > Telemetry & Wireless. - Wired Endpoint Data Collection Enablement. - Controller Certificates. - SNMP Trap Server Definitions. - Syslog Server Definitions. - Application Visibility. - Application QoS Policy. - Wireless Service Assurance (WSA). - Wireless Telemetry. - DTLS Ciphersuite. - AP Impersonation. If Device Controllability is disabled, Catalyst Center does not configure any of the preceding credentials or settings on devices during discovery, at runtime, or during site assignment. However, the telemetry settings and related configuration are pushed when the device is provisioned or when the update Telemetry Settings action is performed. Catalyst Center identifies and automatically corrects the following telemetry configuration issues on the device. - SWIM certificate issue. - IOS WLC NA certificate issue. - PKCS12 certificate issue. - IOS telemetry configuration issu"
+ },
+ {
+  "name": "api_getDeviceDeploymentStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/deviceDeployments",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Returns device deployment status based on filter criteria."
+ },
+ {
+  "name": "api_getDeviceEnergyByID",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/networkDevices/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves network device energy data for a specified time range based on the device ID. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getDeviceHistory",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-device/history",
+  "params": {
+   "serialNumber": "query",
+   "sort": "query",
+   "sortOrder": "query"
+  },
+  "description": "Returns history for a specific device. Serial number is a required parameter"
+ },
+ {
+  "name": "api_getDeviceInterfaceCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/network-device/{deviceId}/count",
+  "params": {
+   "deviceId": "path"
+  },
+  "description": "Returns the interface count for the given device"
+ },
+ {
+  "name": "api_getDeviceInterfaceVLANs",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}/vlan",
+  "params": {
+   "id": "path",
+   "interfaceType": "query"
+  },
+  "description": "Returns Device Interface VLANs. If parameter value is null or empty, it won't return any value in response."
+ },
+ {
+  "name": "api_getDeviceInterfacesBySpecifiedRange",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/network-device/{deviceId}/{startIndex}/{recordsToReturn}",
+  "params": {
+   "deviceId": "path",
+   "recordsToReturn": "path",
+   "startIndex": "path"
+  },
+  "description": "Returns the list of interfaces for the device for the specified range"
+ },
+ {
+  "name": "api_getDeviceSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}/brief",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns brief summary of device info for the given device Id"
+ },
+ {
+  "name": "api_getDeviceValuesThatMatchFullyOrPartiallyAnAttribute",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/autocomplete",
+  "params": {
+   "associatedWlcIp": "query",
+   "collectionInterval": "query",
+   "collectionStatus": "query",
+   "errorCode": "query",
+   "family": "query",
+   "hostname": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "managementIpAddress": "query",
+   "offset": "query",
+   "platformId": "query",
+   "reachabilityFailureReason": "query",
+   "reachabilityStatus": "query",
+   "role": "query",
+   "roleSource": "query",
+   "serialNumber": "query",
+   "series": "query",
+   "softwareType": "query",
+   "softwareVersion": "query",
+   "type": "query",
+   "upTime": "query",
+   "vrfName": "query"
+  },
+  "description": "Returns the list of values of the first given required parameter. You can use the .* in any value to conduct a wildcard search.\nFor example, to get all the devices with the management IP address starting with 10.10. , issue the following request: GET /dna/intent/api/v1/network-device/autocomplete?managementIpAddress=10.10..*\nIt will return the device management IP addresses that match fully or partially the provided attribute. {[10.10.1.1, 10.10.20.2, \u2026]}. The API returns a paginated response based on 'limit' and 'offset' parameters, allowing up to 500 records per page. 'limit' specifies the number of records, and 'offset' sets the starting point using 1-based indexing. For data sets over 500 records, make multiple calls, adjusting 'limit' and 'offset' to retrieve all records incrementally."
+ },
+ {
+  "name": "api_getDevicesDiscoveredById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}/network-device/count",
+  "params": {
+   "id": "path",
+   "taskId": "query"
+  },
+  "description": "Returns the count of network devices discovered in the given discovery. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getDevicesEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/networkDevices",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "cursor": "query",
+   "deviceCategory": "query",
+   "deviceSubCategory": "query",
+   "endTime": "query",
+   "id": "query",
+   "limit": "query",
+   "order": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves a list of network devices with energy data based on the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getDevicesRegisteredForWSANotification",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/tenantinfo/macaddress",
+  "params": {
+   "macaddress": "query",
+   "serialNumber": "query"
+  },
+  "description": "It fetches devices which are registered to receive WSA notifications. The device serial number and/or MAC address are required to be provided as query parameters."
+ },
+ {
+  "name": "api_getDiscoveredDevicesByRange",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}/network-device/{startIndex}/{recordsToReturn}",
+  "params": {
+   "id": "path",
+   "recordsToReturn": "path",
+   "startIndex": "path",
+   "taskId": "query"
+  },
+  "description": "Returns the network devices discovered for the given discovery and for the given range. The maximum number of records that can be retrieved is 500. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getDiscoveredNetworkDevicesByDiscoveryId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}/network-device",
+  "params": {
+   "id": "path",
+   "taskId": "query"
+  },
+  "description": "Returns the network devices discovered for the given Discovery ID. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getDiscoveriesByRange",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{startIndex}/{recordsToReturn}",
+  "params": {
+   "recordsToReturn": "path",
+   "startIndex": "path"
+  },
+  "description": "Returns the discoveries by specified range"
+ },
+ {
+  "name": "api_getDiscoveryById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns discovery by Discovery ID. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getDiscoveryJobsByIP",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/job",
+  "params": {
+   "ipAddress": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query"
+  },
+  "description": "Returns the list of discovery jobs for the given IP"
+ },
+ {
+  "name": "api_getFieldNoticeAffectingTheNetworkDeviceByDeviceIdAndNoticeId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices/{networkDeviceId}/notices/{id}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get field notice affecting the network device by device Id and notice id"
+ },
+ {
+  "name": "api_getFieldNoticeNetworkDeviceByDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices/{networkDeviceId}",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Get field notice scan summary for one network device by device id. User-facing answers must not show raw networkDeviceId values unless the user explicitly asks for internal UUIDs. If presenting the device name or management IP, call get_device_details with device_id set to the exact networkDeviceId; do not call get_device_details without device_id or use the first device from a generic device list."
+ },
+ {
+  "name": "api_getFieldNoticeNetworkDeviceForTheNoticeByNetworkDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices/{id}/networkDevices/{networkDeviceId}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get one network device record for a specific field notice by notice id and network device id. User-facing answers must not show raw networkDeviceId values unless the user explicitly asks for internal UUIDs. If presenting the device name or management IP, call get_device_details with device_id set to the exact networkDeviceId; do not call get_device_details without device_id or use the first device from a generic device list."
+ },
+ {
+  "name": "api_getFieldNoticeNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices",
+  "params": {
+   "limit": "query",
+   "networkDeviceId": "query",
+   "noticeCount": "query",
+   "offset": "query",
+   "order": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Returns field notice network devices. Use this tool for questions such as 'What devices have field notices?', 'Show devices scanned for field notices.', 'Give devices with more than N notices.', 'List devices with noticeCount greater than N.', or follow-up questions asking which devices the confirmed field notices pertain to. Use this list API, not the count API, whenever the user asks to give, list, show, display, or enumerate devices, even if a noticeCount threshold is provided. An answer that includes raw device id values is invalid. Do not claim NOT_SCANNED devices have field notices. Each row in the final table MUST include only device name, management IP, and number of confirmed field notices (noticeCount). Do not include potentialNoticeCount or potential field notices unless the user explicitly asks for potential field notices.\n\nMANDATORY POST-PROCESSING: The returned networkDeviceId is an internal device UUID for backend lookup only. For every device row that will be included in the final answer, call get_device_details with device_id set to that exact networkDeviceId value. A get_device_details call without device_id is invalid for this workflow because it returns an unrelated generic device list. Never join field-notice rows to device details by row order, offset, time range, or first returned device. If get_device_details does not return a matching device whose id equals the field-notice networkDeviceId, do not include that row in the main device table and do not infer or fabricate the device name or management IP. Instead, mention separately that some devices could not be enriched."
+ },
+ {
+  "name": "api_getFieldNoticeNetworkDevicesForTheNotice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/notices/{id}/networkDevices",
+  "params": {
+   "id": "path",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "order": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Get network devices for a specific field notice. Use this tool when the user asks which devices are affected by a specific field notice id. User-facing answers must not show raw networkDeviceId values.\n\nMANDATORY POST-PROCESSING: The returned networkDeviceId is an internal device UUID for backend lookup only. For every device row that will be included in the final answer, call get_device_details with device_id set to that exact networkDeviceId value. A get_device_details call without device_id is invalid for this workflow because it returns an unrelated generic device list. Never join field-notice rows to device details by row order, offset, time range, or first returned device. If get_device_details does not return a matching device whose id equals the field-notice networkDeviceId, do not include that row in the main device table and do not infer or fabricate the device name or management IP."
+ },
+ {
+  "name": "api_getFieldNoticesAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/fieldNotices/results/networkDevices/{networkDeviceId}/notices",
+  "params": {
+   "id": "query",
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "type": "query"
+  },
+  "description": "Get confirmed field notices affecting a network device. Use this tool after resolving the device id when the user asks which field notices affect a specific device. In final answers, show only confirmed field notices and confirmed counts by default. Do not include potentialDeviceCount, potential field notice counts, or POTENTIALLY_VULNERABLE matches unless the user explicitly asks for potential field notices."
+ },
+ {
+  "name": "api_getFunctionalCapabilityById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/functional-capability/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns functional capability with given Id"
+ },
+ {
+  "name": "api_getFunctionalCapabilityForDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/functional-capability",
+  "params": {
+   "deviceId": "query",
+   "functionName": "query"
+  },
+  "description": "Returns the functional-capability for given devices"
+ },
+ {
+  "name": "api_getICAPConfigurationStatusPerNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/icapSettings/configurationModels/{previewActivityId}/networkDeviceStatusDetails",
+  "params": {
+   "previewActivityId": "path"
+  },
+  "description": "Get ICAP configuration status per network device using the activity ID, which was returned in property \"taskId\" of the TaskResponse of the POST. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-ICAP_APIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getISISInterfaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/isis",
+  "params": {},
+  "description": "Returns the interfaces that has ISIS enabled"
+ },
+ {
+  "name": "api_getInterfaceByIP",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/ip-address/{ipAddress}",
+  "params": {
+   "ipAddress": "path"
+  },
+  "description": "Returns list of interfaces for specified device management IP address"
+ },
+ {
+  "name": "api_getInterfaceById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the interface for the given interface ID"
+ },
+ {
+  "name": "api_getInterfaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/interfaces",
+  "params": {
+   "interfaceName": "query",
+   "limit": "query",
+   "offset": "query",
+   "vlanId": "query"
+  },
+  "description": "**TAG PHRASE EXCLUSION:**\n- If the user asks for ports or interfaces `tagged`, `with <value> tag`, `under tag <value>`, or `in tag <value>`, do not treat `<value>` as an interface name, port name, device name, site name, or inventory filter.\n- The value is a tag name. Use `api_getTag` followed by `api_getTagMembersById` for lists, or `api_getTagMemberCount` for counts.\n\n**NOT FOR NAMED-TAG MEMBERSHIP:**\n- Do not select this tool when the user starts from one named tag and asks which ports or interfaces belong to it.\n- Do not select this tool for counts of ports or interfaces inside one named tag.\n- This tool lists interfaces by interface/device attributes; it does not resolve a tag name to tag members.\n- For tag-to-port or tag-to-interface membership, select `api_getTag` together with `api_getTagMembersById`.\n- For tag-to-port or tag-to-interface counts, select `api_getTag` together with `api_getTagMemberCount`.\n\nThis API allows the user to get all Interfaces"
+ },
+ {
+  "name": "api_getInterfacesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/intent/api/v1/wirelessSettings/interfaces/count",
+  "params": {},
+  "description": "This API allows the user to get count of all interfaces."
+ },
+ {
+  "name": "api_getLinecardDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/line-card",
+  "params": {
+   "deviceUuid": "path"
+  },
+  "description": "Get line card detail for a given deviceuuid.  Response will contain serial no, part no, switch no and slot no."
+ },
+ {
+  "name": "api_getListOfDiscoveriesByDiscoveryId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}/job",
+  "params": {
+   "id": "path",
+   "ipAddress": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Returns the list of discovery jobs for the given Discovery ID. The results can be optionally filtered based on IP. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getModuleCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/module/count",
+  "params": {
+   "deviceId": "query",
+   "nameList": "query",
+   "operationalStateCodeList": "query",
+   "partNumberList": "query",
+   "vendorEquipmentTypeList": "query"
+  },
+  "description": "Returns Module Count"
+ },
+ {
+  "name": "api_getModuleInfoById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/module/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns Module info by 'module id'"
+ },
+ {
+  "name": "api_getModules",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/module",
+  "params": {
+   "deviceId": "query",
+   "limit": "query",
+   "nameList": "query",
+   "offset": "query",
+   "operationalStateCodeList": "query",
+   "partNumberList": "query",
+   "vendorEquipmentTypeList": "query"
+  },
+  "description": "Returns modules by specified device id. The API returns a paginated response based on 'limit' and 'offset' parameters, allowing up to 500 records per page. 'limit' specifies the number of records, and 'offset' sets the starting point using 1-based indexing. Use /dna/intent/api/v1/network-device/module/count API to get the total record count. For data sets over 500 records, make multiple calls, adjusting 'limit' and 'offset' to retrieve all records incrementally."
+ },
+ {
+  "name": "api_getNetworkBugDeviceByDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices/{networkDeviceId}",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Get network bug device by device id"
+ },
+ {
+  "name": "api_getNetworkBugDeviceForTheBugByNetworkDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs/{id}/networkDevices/{networkDeviceId}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get or check details for a specific network bug on a specific network device. Use this tool when the user asks whether a device is affected by a CSC network bug, or asks for details/status of a CSC network bug on a particular device, device name, management IP, MAC address, serial number, or networkDeviceId. Required workflow: if the user provides a device name, IP address, MAC, or serial number instead of a networkDeviceId UUID, first call get_device_details to resolve the device UUID, then call this tool with id set to the CSC bug ID and networkDeviceId set to the resolved device UUID. Do not use api_getNetworkBugById for device-specific bug questions."
+ },
+ {
+  "name": "api_getNetworkBugDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/networkDevices",
+  "params": {
+   "bugCount": "query",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "order": "query",
+   "scanMode": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Get network devices that have network bugs detected by the network bug scan. Use this list tool for requests like 'what devices have bugs?', 'show all devices with network bugs', 'devices with failed bug scans', or 'devices scanned by CX Cloud'. For unqualified devices-with-bugs questions, call this tool with bugCount: 0 and limit: 10 so only devices with at least one detected bug are returned. If you need device names, IPs, models, or site details after this tool returns, call get_device_details only for the returned networkDeviceId values: use device_id for one returned ID, or filters: [{\"field\":\"id\",\"operator\":\"in\",\"value\":[...returned networkDeviceId values...]}] for multiple IDs. Never call get_device_details without a device_id or id filter for this flow, because that widens the result set to devices that do not have network bugs. The final answer must include only devices returned by api_getNetworkBugDevices. Do not use this tool for 'how many devices have bugs?' count questions; use api_getCountOfNetworkBugDevices with bugCount: 0 for counts."
+ },
+ {
+  "name": "api_getNetworkBugDevicesForTheBug",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkBugs/results/bugs/{id}/networkDevices",
+  "params": {
+   "id": "path",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "order": "query",
+   "scanMode": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Get the network devices affected by a specific network bug ID. Use this tool for questions like 'which devices are affected by CSCwd12345?', 'what devices are impacted by bug CSCwr77118?', or 'show devices with failed scans for CSCwd12345'. A CSC ID in a bug-impact question is a network bug ID, not a security advisory ID. Use scanStatus when the user asks for failed, successful, in-progress, or not-scanned bug scans. Do not use security advisory network-device tools for CSC network bug device-impact questions unless the user explicitly says security advisory, PSIRT, Cisco advisory, or CVE."
+ },
+ {
+  "name": "api_getNetworkDeviceByIP",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/ip-address/{ipAddress}",
+  "params": {
+   "ipAddress": "path"
+  },
+  "description": "Returns the network device by specified IP address. For PnP devices, use api_getPnPDeviceList/api_getPnPDeviceCount."
+ },
+ {
+  "name": "api_getNetworkDeviceConfigurationFileDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceConfigFiles",
+  "params": {
+   "fileType": "query",
+   "id": "query",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query"
+  },
+  "description": "Internal low-level record lookup. Returns one stored record identified by its UUID (the `id` parameter). Use only when an upstream step has already produced a specific record UUID and you need to fetch that exact row. Not used to answer user-facing questions; for any user question about a device, route to a device-level or assurance-level tool instead."
+ },
+ {
+  "name": "api_getNetworkDevicesFromDiscovery",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/discovery/{id}/summary",
+  "params": {
+   "cliStatus": "query",
+   "httpStatus": "query",
+   "id": "path",
+   "ipAddress": "query",
+   "netconfStatus": "query",
+   "pingStatus": "query",
+   "snmpStatus": "query",
+   "sortBy": "query",
+   "sortOrder": "query",
+   "taskId": "query"
+  },
+  "description": "Returns the devices discovered in the given discovery based on given filters. Discovery ID can be obtained using the \"Get Discoveries by range\" API."
+ },
+ {
+  "name": "api_getNumberOfConfigurationsForADeployedLayer2FeatureOnADevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{id}/configFeatures/deployed/layer2/{feature}/count",
+  "params": {
+   "feature": "path",
+   "id": "path"
+  },
+  "description": "The API returns the number of configurations for a deployed layer 2 feature on a device."
+ },
+ {
+  "name": "api_getNumberOfConfigurationsForAnIntendedLayer2FeatureOnADevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{id}/configFeatures/intended/layer2/{feature}/count",
+  "params": {
+   "feature": "path",
+   "id": "path"
+  },
+  "description": "This API returns the count of the instances of the configurations for an intended layer 2 feature on a wired device."
+ },
+ {
+  "name": "api_getOSPFInterfaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/ospf",
+  "params": {},
+  "description": "Returns the interfaces that has OSPF enabled"
+ },
+ {
+  "name": "api_getOrganizationListForMeraki",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}/meraki-organization",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns list of organizations for meraki dashboard"
+ },
+ {
+  "name": "api_getPnPDeviceCount_legacy",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-device/count",
+  "params": {
+   "name": "query",
+   "onbState": "query",
+   "pid": "query",
+   "projectId": "query",
+   "serialNumber": "query",
+   "smartAccountId": "query",
+   "source": "query",
+   "state": "query",
+   "virtualAccountId": "query",
+   "workflowId": "query"
+  },
+  "description": "Returns the count of PnP network devices using filters such as state, onboarding state, device type, PID, IP, site. For device types, use these exact values: SWITCH, ROUTER, ACCESS_POINT (for APs), WIRELESS_CONTROLLER (for WLCs), MOBILITY_EXPRESS, EWC, SENSOR. For model/family fragments, use pid with wildcards (do not use exact pid unless the user gives a full model). Examples: 9200 -> pid=*9200*; AIR-AP -> pid=AIR-AP*; Cat9k -> pid in [C9200*, C9300*, C9350*, C9404R*, C9407R*, C9410R*, C9500*, C9606R*, C9610*, C9KV*]; Cat3k -> pid in [WS-C3560*, WS-C3650*, WS-C3850*]; IE-3k -> pid=IE-3?00*; ISR 4k -> pid in [ISR4321*, ISR4331*, ISR4351*, ISR4431*, ISR4451*, ISR4461*]; ASR 1k -> pid=ASR1???*. Map claimed requests to state=Planned. For site filters: use siteNameHierarchy directly, or if you need siteId, call api_getSites first. Strict prohibition: For runtime WLAN/SSID/controller detail queries that include serial number, do not call this API. Use get_device_details to resolve canonical networkDeviceId; if unresolved, ask for hostname or management IP. This API is only for explicit PnP onboarding, claim, or history workflows."
+ },
+ {
+  "name": "api_getPnPDeviceList_legacy",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-device",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "onbState": "query",
+   "pid": "query",
+   "projectId": "query",
+   "serialNumber": "query",
+   "smartAccountId": "query",
+   "sort": "query",
+   "sortOrder": "query",
+   "source": "query",
+   "state": "query",
+   "virtualAccountId": "query",
+   "workflowId": "query"
+  },
+  "description": "Returns a list of PnP network devices using filters such as state, onboarding state, device type, PID, IP, site, smart account, and virtual account. For device types, use these exact values: SWITCH, ROUTER, ACCESS_POINT (for APs), WIRELESS_CONTROLLER (for WLCs), MOBILITY_EXPRESS, EWC, SENSOR. For model/family fragments, use pid with wildcards (do not use exact pid unless the user gives a full model). Examples: 9200 -> pid=*9200*; AIR-AP -> pid=AIR-AP*; Cat9k -> pid in [C9200*, C9300*, C9350*, C9404R*, C9407R*, C9410R*, C9500*, C9606R*, C9610*, C9KV*]; Cat3k -> pid in [WS-C3560*, WS-C3650*, WS-C3850*]; IE-3k -> pid=IE-3?00*; ISR 4k -> pid in [ISR4321*, ISR4331*, ISR4351*, ISR4431*, ISR4451*, ISR4461*]; ASR 1k -> pid=ASR1???*. Map claimed requests to state=Planned. For site filters: use siteNameHierarchy directly, or if you need siteId, call api_getSites first. For claim-failed investigations, pair with api_getDeviceHistory(serialNumber). Strict prohibition: For runtime WLAN/SSID/controller detail queries that include serial number, do not call this API. Use get_device_details to resolve canonical networkDeviceId; if unresolved, ask for hostname or management IP. This API is only for explicit PnP onboarding, claim, or history workflows."
+ },
+ {
+  "name": "api_getPnPGlobalSettings",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-settings",
+  "params": {},
+  "description": "Returns global PnP settings of the user"
+ },
+ {
+  "name": "api_getPollingIntervalById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}/collection-schedule",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns polling interval by device id"
+ },
+ {
+  "name": "api_getPollingIntervalForAllDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/collection-schedule/global",
+  "params": {},
+  "description": "Returns polling interval of all devices"
+ },
+ {
+  "name": "api_getResyncIntervalForTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices/{id}/resyncIntervalSettings",
+  "params": {
+   "id": "path"
+  },
+  "description": "Fetch the reysnc interval for the given network device id."
+ },
+ {
+  "name": "api_getSecurityAdvisoriesAffectingTheNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices/{networkDeviceId}/advisories",
+  "params": {
+   "cvssBaseScore": "query",
+   "id": "query",
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query",
+   "order": "query",
+   "securityImpactRating": "query",
+   "sortBy": "query"
+  },
+  "description": "**Tool Dependency: CRITICAL**\n\nThis tool retrieves DETAILED information about each security advisory affecting a specific network device, including advisory IDs, CVEs, severity, remediation versions, and more. The response includes a comprehensive list of all advisories impacting the device with full details for each advisory.\n\n**REQUIRED PRE-REQUISITE:**\nYou MUST call `get_device_details` BEFORE calling `api_getSecurityAdvisoriesAffectingTheNetworkDevice`. This is non-negotiable.\n\n**Step-by-step process:**\n\n1. First, invoke `get_device_details` with the device name or IP address to resolve the device UUID\n2. Extract the UUID from the `get_device_details` response\n3. Then, invoke `api_getSecurityAdvisoriesAffectingTheNetworkDevice` with the `networkDeviceId` parameter set to the resolved UUID\n\n**Exception:**\nIf the user explicitly provides a valid device UUID in their request, you may skip step 1 and use the provided UUID directly in `api_getSecurityAdvisoriesAffectingTheNetworkDevice`."
+ },
+ {
+  "name": "api_getSecurityAdvisoryAffectingTheNetworkDeviceByDevic_978ac4ec",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices/{networkDeviceId}/advisories/{id}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get detailed information about a specific security advisory affecting a specific network device, including advisory ID, CVEs, severity, vulnerable versions, and first fixed versions. Use this to retrieve details for a particular advisory on a particular device."
+ },
+ {
+  "name": "api_getSecurityAdvisoryNetworkDeviceByNetworkDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices/{networkDeviceId}",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Get security advisory network device by network device id"
+ },
+ {
+  "name": "api_getSecurityAdvisoryNetworkDeviceForTheSecurityAdvis_a527030a",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories/{id}/networkDevices/{networkDeviceId}",
+  "params": {
+   "id": "path",
+   "networkDeviceId": "path"
+  },
+  "description": "Get or check whether a specific network device is affected by a given security advisory and return its scan summary (scan mode, scan status, advisory count, last scan time). Use this when prompted with requests like \"Get device <device identifier> affected by security advisory <advisory id>\", \"Is device <device identifier> vulnerable to <advisory id>?\", or \"Show the scan status for device <device identifier> for advisory <advisory id>\"."
+ },
+ {
+  "name": "api_getSecurityAdvisoryNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/networkDevices",
+  "params": {
+   "advisoryCount": "query",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "order": "query",
+   "scanMode": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Return the list of network devices affected by security advisories, PSIRTs, or vulnerabilities. Use this API to answer questions like 'Which devices are affected by the security advisories?' or 'List all devices impacted by vulnerabilities.' The response includes device identifiers, advisory IDs, CVE IDs, and other relevant details for each affected device. This tool provides a mapping of devices to the advisories impacting them, enabling detailed analysis of device vulnerability exposure."
+ },
+ {
+  "name": "api_getSecurityAdvisoryNetworkDevicesForTheSecurityAdvisory",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/securityAdvisories/results/advisories/{id}/networkDevices",
+  "params": {
+   "id": "path",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "offset": "query",
+   "order": "query",
+   "scanMode": "query",
+   "scanStatus": "query",
+   "sortBy": "query"
+  },
+  "description": "Return the list of network devices affected by a specific security advisory, PSIRT, or vulnerability. Use this API to answer questions like 'Which devices are affected by the security advisory cisco-sa-20160525-ipv6?' or 'List all devices impacted by advisory CVE-2024-1234.' The response includes device identifiers and other relevant details for each affected device, enabling detailed analysis of device vulnerability exposure for a given advisory."
+ },
+ {
+  "name": "api_getServiceDeploymentStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/serviceDeployments",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "Returns service deployment status based on filter criteria."
+ },
+ {
+  "name": "api_getSiteAssignedNetworkDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices/{id}/assignedToSite",
+  "params": {
+   "id": "path"
+  },
+  "description": "Site assigned network device. For PnP devices, use api_getPnPDeviceList/api_getPnPDeviceCount."
+ },
+ {
+  "name": "api_getStackDetailsForDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceId}/stack",
+  "params": {
+   "deviceId": "path"
+  },
+  "description": "Retrieves complete stack details for given device ID"
+ },
+ {
+  "name": "api_getSupervisorCardDetail",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/supervisor-card",
+  "params": {
+   "deviceUuid": "path"
+  },
+  "description": "Get supervisor card detail for a given deviceuuid. Response will contain serial no, part no, switch no and slot no."
+ },
+ {
+  "name": "api_getTheDetailsOfPhysicalComponentsOfTheGivenDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/equipment",
+  "params": {
+   "deviceUuid": "path",
+   "type": "query"
+  },
+  "description": "Return all types of equipment details like PowerSupply, Fan, Chassis, Backplane, Module, PROCESSOR, Other and SFP for the Given device."
+ },
+ {
+  "name": "api_getTheInterfaceDataForTheGivenInterfaceId_instanceU_0b78da7f",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/interfaces/{id}",
+  "params": {
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Returns the interface data for the given interface instance Uuid along with the statistics data. The latest interface data in the specified start and end time range will be returned. When there is no start and end time specified returns the latest available data for the given interface Id. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-interfaces-2.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTheSupportedLayer2FeaturesOnAWiredDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{id}/configFeatures/supported/layer2",
+  "params": {
+   "id": "path"
+  },
+  "description": "The API returns the supported layer 2 features on a wired device."
+ },
+ {
+  "name": "api_getWirelessLanControllerDetailsById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{id}/wireless-info",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the wireless lan controller info with given device ID"
+ },
+ {
+  "name": "api_getWorkflowById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-workflow/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns a workflow specified by id"
+ },
+ {
+  "name": "api_getWorkflowCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-workflow/count",
+  "params": {
+   "name": "query"
+  },
+  "description": "Returns the workflow count"
+ },
+ {
+  "name": "api_getWorkflows",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/onboarding/pnp-workflow",
+  "params": {
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "sort": "query",
+   "sortOrder": "query",
+   "type": "query"
+  },
+  "description": "Returns the list of workflows based on filter criteria. If a limit is not specified, it will default to return 50 workflows. Pagination and sorting are also supported by this endpoint"
+ },
+ {
+  "name": "api_getsInterfacesAlongWithStatisticsAndPoeDataFromAllN_d99ee240",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/interfaces",
+  "params": {
+   "attribute": "query",
+   "endTime": "query",
+   "interfaceId": "query",
+   "interfaceName": "query",
+   "limit": "query",
+   "networkDeviceId": "query",
+   "networkDeviceIpAddress": "query",
+   "networkDeviceMacAddress": "query",
+   "offset": "query",
+   "order": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves the list of the interfaces from all network devices based on\n        the provided query parameters. The latest interfaces data in the\n        specified start and end time range will be returned. When there is no\n        start and end time specified returns the latest available data.\n        \n        \n        The elements are grouped and sorted by deviceUuid first, and are then\n        sorted by the given sort field, or by the default value: name.\n        \n\n        \n        The supported sorting options are: \n\n        name, adminStatus, description, duplexConfig, duplexOper,\n        interfaceIfIndex,interfaceType, macAddress,mediaType, operStatus,\n        portChannelId, portMode, portType,speed, vlanId\n        \n        \n\n        \n        This API can paginate up to 500,000 records, please narrow matching results with additional filters beyond that value.\nThe elements are grouped and sorted by deviceUuid first, and are then sorted by the given sort field, or by the default value: name.\n\n The supported sorting options are: name, adminStatus, description, duplexConfig, duplexOper,interfaceIfIndex,interfaceType, macAddress,mediaType, operStatus,portChannelId, portMode, portType,speed, vlanId,pdPowerAdminMaxInWatt,pdPowerBudgetInWatt,pdPowerConsumedInWatt,pdPowerRemainingInWatt,pdMaxPowerDrawn. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-interfaces-2.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getsTheDeviceConfigForTheConfigurationModel",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}/config",
+  "params": {
+   "networkDeviceId": "path",
+   "previewActivityId": "path"
+  },
+  "description": "Gets the device config for the configuration model. This API is 'Step 3' in the following workflow. Step 1- Use 'POST /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels' to start the provision of intended features. The response has a taskId which is the previewActivityId in all subsequent APIs. The task must be successfully complete before proceeding to the next step. It is not recommended to proceed when there is any task failure in this step. The API 'DELETE /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}'' can be used at any step to discard/cancel the provision of intended features. Step 2- Use 'POST /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}/networkDevices/{networkDeviceId}/config' to generate device CLIs for preview. The response has a task ID. The task must be successfully complete before using the GET API to view CLIs. It is not recommended to proceed when there is any task failure(s) in this step. The API 'DELETE /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}'' can be used at any step to discard/cancel the provision of intended features. Step 3- Use 'GET /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}/networkDevices/{networkDeviceId}/config' to view the CLIs that will be applied to the device. Step 4- Use 'POST /intent/api/v1/wired/networkDevices/{networkDeviceId}/configFeatures/intended/configurationModels/{previewActivityId}/deploy' to deploy the intent to the device."
+ },
+ {
+  "name": "api_getsTheNetworkDeviceDetailsBasedOnTheProvidedQueryParameters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/networkDevices",
+  "params": {
+   "attribute": "query",
+   "endTime": "query",
+   "fabricRole": "query",
+   "fabricSiteId": "query",
+   "family": "query",
+   "healthScore": "query",
+   "id": "query",
+   "l2Vn": "query",
+   "l3Vn": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "maintenanceMode": "query",
+   "managementIpAddress": "query",
+   "offset": "query",
+   "order": "query",
+   "role": "query",
+   "serialNumber": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "softwareVersion": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "transitNetworkId": "query",
+   "type": "query",
+   "view": "query"
+  },
+  "description": "Gets the Network Device details based on the provided query parameters.  When there is no start and end time specified returns the latest device details. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceNetworkDevices-2.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getsTheTotalNetworkDeviceInterfaceCountsInTheSpecif_a404d76e",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/interfaces/count",
+  "params": {
+   "endTime": "query",
+   "interfaceId": "query",
+   "interfaceName": "query",
+   "networkDeviceId": "query",
+   "networkDeviceIpAddress": "query",
+   "networkDeviceMacAddress": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Gets the total Network device interface counts. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-interfaces-2.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_inventoryInsightDeviceLinkMismatchAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/insight/{siteId}/device-link",
+  "params": {
+   "category": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "siteId": "path",
+   "sortBy": "query"
+  },
+  "description": "Find all devices with link mismatch (speed /  vlan)"
+ },
+ {
+  "name": "api_lANAutomationActiveSessions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/sessions",
+  "params": {},
+  "description": "Invoke this API to get the LAN Automation active session information"
+ },
+ {
+  "name": "api_lANAutomationLog",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/log",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Invoke this API to get the LAN Automation session logs."
+ },
+ {
+  "name": "api_lANAutomationLogById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/log/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Invoke this API to get the LAN Automation session logs based on the given LAN Automation session id."
+ },
+ {
+  "name": "api_lANAutomationLogsForIndividualDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/log/{id}/{serialNumber}",
+  "params": {
+   "id": "path",
+   "logLevel": "query",
+   "serialNumber": "path"
+  },
+  "description": "Invoke this API to get the LAN Automation session logs for individual devices based on the given LAN Automation session id and device serial number."
+ },
+ {
+  "name": "api_lANAutomationSessionCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/count",
+  "params": {},
+  "description": "Invoke this API to get the total count of LAN Automation sessions."
+ },
+ {
+  "name": "api_lANAutomationStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/status",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Invoke this API to get the LAN Automation session status. Returns all LAN Automation sessions including their discovered devices list, seed device details, IP pools, multicast settings, discovery level, and session creation time. Use this for any query about LAN Automation sessions, LAN Automation discovered devices, or LAN Automation configuration. This is NOT related to the generic Network Discovery feature."
+ },
+ {
+  "name": "api_lANAutomationStatusById",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/lan-automation/status/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Invoke this API to get the LAN Automation session status for a specific session by its ID. Returns the session details including discovered devices list, seed device details, IP pools, multicast settings, and session status. Use this when the user asks about devices discovered in a specific LAN Automation session or LAN Automation session details by ID. This is NOT related to the generic Network Discovery feature."
+ },
+ {
+  "name": "api_legitOperationsForInterface",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/interface/{interfaceUuid}/legit-operation",
+  "params": {
+   "interfaceUuid": "path"
+  },
+  "description": "**Tool Dependency: CRITICAL**\n\nThis tool retrieves the list of all valid properties and operations for a network interface. The response includes interface properties (name, applicable status, failure reasons) and operations (name, applicable status, failure reasons) that can be performed on the interface.\n\n**REQUIRED PRE-REQUISITE:**\nYou MUST call `get_interface_details` BEFORE calling `api_legitOperationsForInterface`. This is non-negotiable.\n\n**Step-by-step process:**\n\n1. First, invoke `get_interface_details` with the interface name to retrieve the interface UUID\n2. Extract the interfaceUuid from the response\n3. Then, invoke `api_legitOperationsForInterface` with the `interfaceUuid` parameter\n\n**Exception:**\nIf the user explicitly provides a valid interfaceUuid in their request, you may skip step 1 and use the provided UUID directly in `api_legitOperationsForInterface`.\n\n**Use Cases - Pick this tool for questions like:**\n- \"List allowed operations on interface GigabitEthernet1/0/14\"\n- \"What properties can be modified on interface Ethernet1/1\"\n- \"Show valid operations for interface TenGigabitEthernet1/0/1\"\n- \"List operations available on interface Serial0/0/0\"\n- \"What are the allowed operations on interface FastEthernet1/0/48\"\n- \"Check valid properties for interface PortChannel1\""
+ },
+ {
+  "name": "api_pOEDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/poe",
+  "params": {
+   "deviceUuid": "path"
+  },
+  "description": "Returns POE details for device."
+ },
+ {
+  "name": "api_retrieveNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDevices",
+  "params": {
+   "family": "query",
+   "id": "query",
+   "limit": "query",
+   "managementAddress": "query",
+   "managementState": "query",
+   "offset": "query",
+   "order": "query",
+   "reachabilityStatus": "query",
+   "role": "query",
+   "serialNumber": "query",
+   "sortBy": "query",
+   "stackDevice": "query",
+   "status": "query",
+   "views": "query"
+  },
+  "description": "API to fetch the list of network devices using basic filters. Use the `/dna/intent/api/v1/networkDevices/query` API for advanced filtering. Refer features for more details. The API returns a paginated response based on 'limit' and 'offset' parameters, allowing up to 500 records per page. 'limit' specifies the number of records, and 'offset' sets the starting point using 1-based indexing. Use /dna/intent/api/v1/networkDevices/count API to get the total record count. For data sets over 500 records, make multiple calls, adjusting 'limit' and 'offset' to retrieve all records incrementally."
+ },
+ {
+  "name": "api_retrieveScheduledMaintenanceWindowsForNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceMaintenanceSchedules",
+  "params": {
+   "limit": "query",
+   "networkDeviceIds": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "status": "query"
+  },
+  "description": "This API retrieves a list of scheduled maintenance windows for network devices based on filter parameters. Each maintenance window is composed of a start schedule and end schedule, both of which have unique identifiers(`startId` and `endId`). These identifiers can be used to fetch the status of the start schedule and end schedule using the `GET /dna/intent/api/v1/activities/{id}` API. Completed maintenance schedules are automatically removed from the system after two weeks. The API returns a paginated response based on 'limit' and 'offset' parameters, allowing up to 500 records per page. 'limit' specifies the number of records, and 'offset' sets the starting point using 1-based indexing. Use '/dna/intent/api/v1/networkDeviceMaintenanceSchedules/count' API to get the total record count. For data sets over 500 records, make multiple calls, adjusting 'limit' and 'offset' to retrieve all records incrementally."
+ },
+ {
+  "name": "api_retrieveTagsAssociatedWithNetworkDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tags/networkDevices/membersAssociations",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "**TAG PHRASE EXCLUSION:**\n- If the user starts from a named tag using `tag`, `tagged`, `with <value> tag`, `under tag`, or `in tag` and asks which/list/show/get devices or how many devices belong to that value, do not use this inverse device-to-tags tool.\n- The value remains a tag name even if it looks like a switch, device, site, hostname, or operational label. Use `api_getTag` followed by `api_getTagMembersById` for lists, or `api_getTagMemberCount` for counts.\n\n**TAG-TO-DEVICE MEMBERSHIP PROHIBITION:**\n- Do not select this tool when the user starts from one named tag and asks which devices belong to it.\n- Do not select this tool for counts of devices inside one named tag.\n- This tool is only for the inverse direction: starting from devices and asking which tags are assigned to them.\n- For tag-to-device membership, select `api_getTag` together with `api_getTagMembersById`.\n- For tag-to-device counts, select `api_getTag` together with `api_getTagMemberCount`.\n\n\"What tags are assigned to devices?\" \"Show device-to-tag mappings\" \"List tags associated with network devices\" \u2014 USE THIS API only for DEVICE -> TAGS direction.\n\nThis API returns which tags each network device has. It answers device-to-tag mapping questions, not tag-to-device membership questions.\n\n**USE THIS API FOR:**\n- showing tags assigned to devices\n- listing device-to-tag associations\n- asking what tags a device or set of devices has\n\n**DO NOT USE THIS API FOR:**\n- \"List devices tagged with <tag name>\"\n- \"Please list devices tagged <tag name>\"\n- \"Give me the list of devices tagged with <tag name>\"\n- \"Which devices have tag <tag name>?\"\n- \"What devices are tagged with <tag name>?\"\n- \"What are the devices with <tag name> tag?\"\n- \"Get devices under tag <tag name>\"\n- \"How many devices are tagged with <tag name>?\"\n- \"What's the count of devices with <tag name> tag?\"\n- Any request that starts from one named tag and asks for its members or member count\n\n**NEGATIVE FEW-SHOT EXAMPLES:**\n- User: \"Give me the list of devices tagged with <tag name>\" -> do NOT use this API; use `api_getTag` -> `api_getTagMembersById`\n- User: \"What devices are tagged with <tag name>?\" -> do NOT use this API; use `api_getTag` -> `api_getTagMembersById`\n- User: \"What are the devices with <tag name> tag?\" -> do NOT use this API; use `api_getTag` -> `api_getTagMembersById`\n- User: \"How many devices are tagged with <tag name>?\" -> do NOT use this API; use `api_getTag` -> `api_getTagMemberCount`\n\nFor named-tag membership questions, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. extract UUID\n3. `api_getTagMembersById(id=<UUID>, memberType='networkdevice')`\n\nFor named-tag member-count questions, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. extract UUID\n3. `api_getTagMemberCount(id=<UUID>, memberType='networkdevice')`\n\n**WRONG ROUTING TO AVOID:**\n- STOP if the user names one specific tag and asks for devices in that tag.\n- STOP if the user asks for the count of devices in one named tag.\n- Do not substitute this API for `api_getTag` -> `api_getTagMembersById`.\n- Do not combine this API with `execute_python_code` to reconstruct the members of one named tag."
+ },
+ {
+  "name": "api_retrieveTagsAssociatedWithTheInterfaces",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tags/interfaces/membersAssociations",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "**TAG PHRASE EXCLUSION:**\n- If the user starts from a named tag using `tag`, `tagged`, `with <value> tag`, `under tag`, or `in tag` and asks which/list/show/get ports or interfaces, or how many ports/interfaces belong to that value, do not use this inverse interface-to-tags tool.\n- The value remains a tag name even if it looks like a port, interface, device, site, or operational label. Use `api_getTag` followed by `api_getTagMembersById` for lists, or `api_getTagMemberCount` for counts.\n\n\"What tags are assigned to interfaces?\" \"Show interface-to-tag mappings\" \"List tags associated with ports\" \u2014 USE THIS API only for INTERFACE/PORT -> TAGS direction.\n\nThis API returns which tags each interface or port has. It answers interface-to-tag mapping questions, not tag-to-interface membership questions.\n\n**USE THIS API FOR:**\n- showing tags assigned to interfaces or ports\n- listing interface-to-tag associations\n- asking what tags an interface or port has\n\n**DO NOT USE THIS API FOR:**\n- \"What ports are tagged with <tag name>?\"\n- \"Give me the list of ports tagged with <tag name>\"\n- \"Show interfaces in tag <tag name>\"\n- \"How many ports are tagged with <tag name>?\"\n- \"How many interfaces are tagged with <tag name>?\"\n- \"How many ports/interfaces are tagged with <tag name>?\"\n- Any request that starts from one named tag and asks for its interface or port members\n\n**NEGATIVE FEW-SHOT EXAMPLES:**\n- User: \"What ports are tagged with <tag name>?\" -> do NOT use this API; use `api_getTag` -> `api_getTagMembersById`\n- User: \"How many ports are tagged with <tag name>?\" -> do NOT use this API; use `api_getTag` -> `api_getTagMemberCount`\n\nFor named-tag interface membership questions, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. extract UUID\n3. `api_getTagMembersById(id=<UUID>, memberType='interface')`\n\nFor named-tag interface member-count questions, the correct route is:\n1. `api_getTag(name=<tag_name>)`\n2. extract UUID\n3. `api_getTagMemberCount(id=<UUID>, memberType='interface')`\n\n**WRONG ROUTING TO AVOID:**\n- STOP if the user names one specific tag and asks for ports or interfaces in that tag.\n- Do not substitute this API for `api_getTag` -> `api_getTagMembersById`.\n- Do not use this API to answer counts of interfaces or ports in one named tag."
+ },
+ {
+  "name": "api_retrieveTheCountOfInterfacesThatAreAssociatedWithAt_6c330a1b",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tags/interfaces/membersAssociations/count",
+  "params": {},
+  "description": "Fetches the count of interfaces that are associated with at least one tag. A tag is a user-defined or system-defined construct to group resources. When an interface is tagged, it is called a member of the tag."
+ },
+ {
+  "name": "api_retrieveTheCountOfNetworkDevicesForTheGivenApplicat_cdbaad0f",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/applicationVisibility/networkDevices/count",
+  "params": {
+   "appTelemetryDeploymentStatus": "query",
+   "appTelemetryReadinessStatus": "query",
+   "applicationRegistrySyncStatus": "query",
+   "cbarDeploymentStatus": "query",
+   "cbarReadinessStatus": "query",
+   "hostname": "query",
+   "ids": "query",
+   "managementAddress": "query",
+   "protocolPackStatus": "query",
+   "protocolPackUpdateStatus": "query",
+   "siteId": "query"
+  },
+  "description": "This API retrieves the count of network devices for the given application visibility status filters."
+ },
+ {
+  "name": "api_retrieveTheCountOfNetworkDevicesThatAreAssociatedWi_b9832de8",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tags/networkDevices/membersAssociations/count",
+  "params": {},
+  "description": "Fetches the count of network devices that are associated with at least one tag. A tag is a user-defined or system-defined construct to group resources. When a device is tagged, it is called a member of the tag."
+ },
+ {
+  "name": "api_retrieveTheListOfNetworkDevicesWithTheirApplication_479dd261",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/applicationVisibility/networkDevices",
+  "params": {
+   "appTelemetryDeploymentStatus": "query",
+   "appTelemetryReadinessStatus": "query",
+   "applicationRegistrySyncStatus": "query",
+   "cbarDeploymentStatus": "query",
+   "cbarReadinessStatus": "query",
+   "hostname": "query",
+   "ids": "query",
+   "limit": "query",
+   "managementAddress": "query",
+   "offset": "query",
+   "order": "query",
+   "protocolPackStatus": "query",
+   "protocolPackUpdateStatus": "query",
+   "siteId": "query",
+   "sortBy": "query"
+  },
+  "description": "This API retrieves the list of network devices with their application visibility status. The list can be filtered using the query parameters. Multiple filters can be applied."
+ },
+ {
+  "name": "api_retrieveTheStatusOfAllTheDeviceReplacementWorkflows",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceReplacements",
+  "params": {
+   "family": "query",
+   "faultyDeviceName": "query",
+   "faultyDevicePlatform": "query",
+   "faultyDeviceSerialNumber": "query",
+   "limit": "query",
+   "offset": "query",
+   "replacementDevicePlatform": "query",
+   "replacementDeviceSerialNumber": "query",
+   "replacementStatus": "query",
+   "sortBy": "query",
+   "sortOrder": "query"
+  },
+  "description": "Retrieve the workflow execution status of device replacements. Use this tool when the query is specifically about workflow process state. For general queries about device replacement status, device details, or listing devices by status, prefer api_returnListOfReplacementDevicesWithReplacementDetails instead. Filters can be applied based on faulty device name, faulty device platform, faulty device serial number, replacement device platform, replacement device serial number, device replacement status, device family."
+ },
+ {
+  "name": "api_retrieveTheStatusOfDeviceReplacementWorkflowThatRep_a2407523",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceReplacements/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Fetches the status of the device replacement workflow for a given device replacement `id`. Invoke the API `/dna/intent/api/v1/networkDeviceReplacements` to `GET` the list of all device replacements and use the `id` field data as input to this API."
+ },
+ {
+  "name": "api_retrieveTheTotalNumberOfScheduledMaintenanceWindows",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceMaintenanceSchedules/count",
+  "params": {
+   "networkDeviceIds": "query",
+   "status": "query"
+  },
+  "description": "Retrieve the total count of all scheduled maintenance windows for network devices."
+ },
+ {
+  "name": "api_retrievesSummaryOfNetworkDeviceLicenses",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceLicenses/summary",
+  "params": {},
+  "description": "**Retrieves** the summary of consumed network device licenses.\\n\\nUse this tool to obtain **aggregate statistics** and license usage counts by type (e.g. 'DNA Advantage' counts).\\n\\n**CRITICAL INSTRUCTION: SUMMARY ONLY**\\nThis tool returns **ONLY counts**, it does **NOT** return device lists or details. It provides high-level dashboard data.\\n\\n**Do NOT:**\\n- Use this tool for queries asking to **list**, **show**, **find**, or **get** details of devices.\\n- Use this tool if the user needs to know *which* devices have a license. Use `api_readNetworkDeviceLicenses` for that purpose.\\n\\n**Use Case Limitation:**\\nUnless the user specifically asks for 'Summary' or 'Breakdown', ALWAYS prefer `api_readNetworkDeviceLicenses` for finding devices.\\n\\nDO NOT USE FOR SYSTEM-LEVEL QUERIES: This API is ONLY for network device license summaries (switches, routers, APs managed BY Catalyst Center). DO NOT use for \"my system\", \"the system\", \"CatC\", or \"Catalyst Center platform\" queries - use api_systemLicensingStatus for those instead.\\n\\n**USE THIS API WHEN:**\\n- Query asks for network device license summary (devices managed by CatC)\\n- Need counts of unregistered, out-of-compliance, expired, or expiring DEVICE licenses\\n- Want aggregated counts of Network/DNA/CNS licenses consumed by managed network devices\\n\\n**DO NOT USE THIS API WHEN:**\\n- \"How many licenses are consumed by my system?\" \u2192 api_systemLicensingStatus\\n- \"License usage of my system\" \u2192 api_systemLicensingStatus  \\n- \"How many licenses have I consumed?\" (no device specifics) \u2192 api_systemLicensingStatus\\n- \"Show license consumption details\" (no device type) \u2192 api_systemLicensingStatus\\n- \"What licenses does my CatC use?\" \u2192 api_systemLicensingStatus\\n- \"How many purchased licenses are there for switch devices?\" \u2192 api_getLicenseUsage with productFamily: SWITCH\\n- \"How many used licenses do I have for routers?\" \u2192 api_getLicenseUsage with productFamily: ROUTER\\n- \"How many licenses are used by managed devices for WLCs?\" \u2192 api_getLicenseUsage with productFamily: UNIFIED_AP\\n- \"Show license usage for WLC device type\" \u2192 api_getLicenseUsage with productFamily: UNIFIED_AP\\n- For purchased/used/available license totals by product family (switch/router/WLC/wireless/AP/ISE), use api_getLicenseUsage (NOT this API).\\n\\nRetrieves the summary of consumed network, DNA, and unified licenses BY MANAGED NETWORK DEVICES (not the CatC system itself), along with the counts of unregistered and out-of-compliance network devices, and expired and expiring network device licenses. This is a network device aggregate view, not a system-level or account-level view."
+ },
+ {
+  "name": "api_retrievesTheDevice_sCLIsOfTheICAPIntent",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/icapSettings/configurationModels/{previewActivityId}/networkDevices/{networkDeviceId}/config",
+  "params": {
+   "networkDeviceId": "path",
+   "previewActivityId": "path"
+  },
+  "description": "Returns the device's CLIs of the ICAP intent. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-ICAP_APIs-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheMaintenanceScheduleInformation",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/networkDeviceMaintenanceSchedules/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "API to retrieve the maintenance schedule information for the given id."
+ },
+ {
+  "name": "api_returnsPOEInterfaceDetailsForTheDevice",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/network-device/{deviceUuid}/interface/poe-detail",
+  "params": {
+   "deviceUuid": "path",
+   "interfaceNameList": "query"
+  },
+  "description": "Returns POE interface details for the device, where deviceuuid is mandatory & accepts comma seperated interface names which is optional and returns information for that particular interfaces where(operStatus = operationalStatus)"
+ }
+]

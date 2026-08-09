@@ -25,6 +25,46 @@ from .audit import Auditor
 logger = logging.getLogger("n2n.service")
 
 
+def _env_int(name: str, default: int) -> int:
+    """Read an int from the environment, falling back on anything unparseable.
+
+    Feature 100: these settings are read in FederationService.__init__, which runs
+    during daemon startup. A typo in mesh.systemd.env must not stop the mesh from
+    booting, so a bad value is reported once and the default is used — never raised.
+    """
+    raw = os.environ.get(name)
+    if raw is None or raw.strip() == "":
+        return default
+    try:
+        return int(raw.strip())
+    except (TypeError, ValueError):
+        logger.warning("Ignoring malformed %s=%r — using default %d", name, raw, default)
+        return default
+
+
+def _cause_sig(exc: BaseException) -> str:
+    """Normalized signature of a dial failure cause (feature 100, FR-015).
+
+    Live cause strings carry variably-ordered multi-address lists, e.g.
+    "Multiple exceptions: [Errno 111] Connect call failed ('52.9.84.44', 24781),
+    [Errno 111] Connect call failed ('13.52.204.76', 24781), ..." — six addresses
+    whose ordering changes between attempts. Comparing those verbatim would report a
+    changed cause on nearly every attempt and defeat collapsing entirely (baseline.md).
+
+    So the signature is exception class plus errno only: no addresses, no ports, no
+    message text. Deliberately coarse — OSError:111 covers every "connection refused"
+    regardless of which address in a multi-homed list refused first.
+    """
+    errno = getattr(exc, "errno", None)
+    # Multiple exceptions (asyncio's happy-eyeballs) carry no errno of their own;
+    # reach into the first sub-exception so the signature is still discriminating.
+    if errno is None:
+        sub = getattr(exc, "exceptions", None)
+        if sub:
+            errno = getattr(sub[0], "errno", None)
+    return f"{type(exc).__name__}:{errno if errno is not None else ''}"
+
+
 class FederationService:
     def __init__(self, *, local_as: int, router_id: str, display_name: str = "",
                  refresh_s: int = 21600, manager: Optional[FederationManager] = None):
@@ -80,9 +120,21 @@ class FederationService:
         self.peer_caps: Dict[str, dict] = {}   # ident -> capability descriptor (US4)
         self.health: Dict[str, dict] = {}   # ident -> {state, attempts, next_retry_at, last_seen}
         self._supervisor_task = None
-        self._backoff_min = int(os.environ.get("N2N_RECONNECT_BACKOFF_MIN_S", "5"))
-        self._backoff_max = int(os.environ.get("N2N_RECONNECT_BACKOFF_MAX_S", "60"))
-        self._unreachable_after = int(os.environ.get("N2N_RECONNECT_UNREACHABLE_AFTER", "5"))
+        self._backoff_min = _env_int("N2N_RECONNECT_BACKOFF_MIN_S", 5)
+        self._backoff_max = _env_int("N2N_RECONNECT_BACKOFF_MAX_S", 60)
+        self._unreachable_after = _env_int("N2N_RECONNECT_UNREACHABLE_AFTER", 5)
+
+        # Feature 100 (US2): dead-peer dampening. Defaults preserve today's
+        # behavior for any peer that is not *durably* dead — a transient blip
+        # keeps the 5s→60s ramp it has always had (FR-012).
+        # DAMPEN=0 is a complete bypass restoring per-attempt WARNING logging
+        # so an operator can go verbose while diagnosing (FR-028/SC-010).
+        self._dampen = _env_int("N2N_RECONNECT_DAMPEN", 1) != 0
+        self._dead_ceiling = _env_int("N2N_RECONNECT_DEAD_CEILING_S", 900)
+        self._dead_after = _env_int("N2N_RECONNECT_DEAD_AFTER", 20)
+        self._endpoint_stale_s = _env_int("N2N_RECONNECT_ENDPOINT_STALE_S", 86400)
+        self._summary_interval = _env_int("N2N_RECONNECT_SUMMARY_INTERVAL_S", 300)
+        self._stable_after = _env_int("N2N_RECONNECT_STABLE_AFTER_S", 120)
 
         # Handler map passed to every channel this service creates (per-service,
         # not global — see FederationChannel).
@@ -705,12 +757,141 @@ class FederationService:
             self.manager.upsert_peer(peer_as, router_id,
                                      endpoint_host=host, endpoint_port=port)
             logger.info("Opened NCFED channel to %s", ident)
-            self.health[ident] = {"state": "up", "attempts": 0, "next_retry_at": 0,
-                                  "last_seen": time.time()}
+            # Feature 100 (FR-031): connecting is NOT the same as staying up.
+            #
+            # This used to overwrite health wholesale with attempts=0, which meant a
+            # peer that connected and immediately dropped never accumulated enough
+            # failures to be dampened — flapping defeated dampening completely. So the
+            # dial history (attempts/suppressed/dampened) deliberately SURVIVES a
+            # successful connect and is cleared only by the supervisor once the channel
+            # has stayed up for _stable_after seconds.
+            h = self._health_for(ident)
+            h["state"] = "up"
+            h["next_retry_at"] = 0
+            h["last_seen"] = time.time()
+            h["connected_since"] = time.time()
         except Exception as e:
-            logger.warning("open_channel to %s failed: %s", ident, e)
+            self._note_dial_failure(ident, e)
 
     # ---- US2: auto-reconnect supervisor + health ----------------------
+
+    # Feature 100: the per-peer dial-health record. `state`, `attempts`,
+    # `next_retry_at` and `last_seen` keep their pre-100 names and meanings because the
+    # HUD and /n2n/health read them (FR-014/027); the rest is additive.
+    _HEALTH_DEFAULTS = {
+        "state": "reconnecting", "attempts": 0, "next_retry_at": 0.0, "last_seen": 0.0,
+        # FR-031: when the current channel came up, or None while down. Distinguishes
+        # "connected" from "connected and stayed up".
+        "connected_since": None,
+        "cause_sig": None,      # FR-015: normalized last-failure signature
+        "suppressed": 0,        # FR-009: failures collapsed into the pending summary
+        "summary_at": 0.0,      # FR-009: when the last summary was emitted
+        "dampened": False,      # FR-014: on the escalated ceiling right now
+        "endpoint_seen": None,  # FR-013: endpoint_updated_at as of the last iteration
+    }
+
+    def _health_for(self, ident: str) -> dict:
+        """Fetch a peer's health record, creating it with every 100-era key present.
+
+        Centralized so no call site can create a partial record — a missing key would
+        surface as a KeyError inside the supervisor loop, whose broad `except` logs at
+        debug and would hide it (that loop's error handling is pre-existing).
+        """
+        h = self.health.get(ident)
+        if h is None:
+            h = dict(self._HEALTH_DEFAULTS)
+            self.health[ident] = h
+        else:
+            for key, default in self._HEALTH_DEFAULTS.items():
+                h.setdefault(key, default)
+        return h
+
+    def _note_dial_failure(self, ident: str, exc: BaseException) -> None:
+        """Record a failed dial, collapsing repeats into a periodic summary.
+
+        Feature 100 (FR-008/009/015/016). Replaces one WARNING per attempt — the
+        behavior that produced 23,366 log lines in 7 days and buried the inbound calls
+        this feature exists to surface (baseline.md).
+
+        Suppression happens at the CALL SITE rather than in a logging.Filter because the
+        decision is per-peer and depends on state the supervisor already owns; a filter
+        would have to re-derive it from message text (research R4).
+        """
+        h = self._health_for(ident)
+        sig = _cause_sig(exc)
+        now = time.time()
+
+        if not self._dampen:
+            # FR-028/SC-010: verbatim pre-100 behavior for an operator diagnosing.
+            h["cause_sig"] = sig
+            logger.warning("open_channel to %s failed: %s", ident, exc)
+            return
+
+        # FR-015: a materially different cause is news, not a repeat. Log it at once and
+        # restart the summary window. The signature is normalized precisely so that the
+        # variably-ordered multi-address cause strings don't trigger this every attempt.
+        if sig != h["cause_sig"]:
+            h["cause_sig"] = sig
+            h["suppressed"] = 0
+            h["summary_at"] = now
+            logger.warning("open_channel to %s failed: %s", ident, exc)
+            return
+
+        h["suppressed"] += 1
+        elapsed = now - h["summary_at"]
+        if elapsed >= self._summary_interval:
+            span = int(elapsed)
+            # FR-009: never hide the scale — state the count and the period covered.
+            # FR-016: one line per peer per interval, so volume is linear in peers
+            # rather than in attempts, and each line still names its own peer.
+            logger.warning(
+                "%s unreachable: %d failures in %dm%02ds (%s), attempts=%d, "
+                "retry in %ds%s",
+                ident, h["suppressed"], span // 60, span % 60, sig, h["attempts"],
+                max(0, int(h["next_retry_at"] - now)),
+                " [dampened]" if h["dampened"] else "")
+            h["suppressed"] = 0
+            h["summary_at"] = now
+
+    def _next_backoff(self, attempts: int, peer: dict, now: float) -> tuple:
+        """Decide the retry interval after a failed dial. Returns (seconds, dampened).
+
+        Feature 100 (FR-010/011/012). This is the two-signal test that resolves the
+        spec's primary implementation risk: FR-010 wants a long-dead peer backed off to
+        ~15 minutes, FR-012 forbids penalizing a transient blip. Escalation therefore
+        requires BOTH many consecutive failures AND a stale endpoint — either alone
+        keeps the pre-100 60-second ceiling.
+
+        Extracted from the supervisor loop so it is directly testable: a test that
+        reimplemented this arithmetic would pass while the daemon did something else.
+        """
+        durably_dead = (self._dampen
+                        and attempts >= self._dead_after
+                        and self._is_endpoint_stale(peer, now))
+        if durably_dead:
+            # The escalated interval is used DIRECTLY, not as a cap on the exponential.
+            # The exponential saturates at _backoff_min * 2**6 = 320s, which is below
+            # the 900s ceiling, so min(exponential, 900) would never exceed 320 and
+            # FR-010's 15-minute interval would silently never be reached.
+            return self._dead_ceiling, True
+        return min(self._backoff_min * (2 ** min(attempts, 6)), self._backoff_max), False
+
+    def _is_endpoint_stale(self, peer: dict, now: float) -> bool:
+        """FR-011: is this peer's endpoint old enough to count as durably dead?
+
+        A peer with an endpoint but no freshness marker (rows predating feature 063) is
+        treated as STALE — the absence of a marker cannot demonstrate freshness
+        (data-model §2).
+        """
+        raw = peer.get("endpoint_updated_at")
+        if not raw:
+            return True
+        try:
+            stamp = time.mktime(time.strptime(raw, "%Y-%m-%dT%H:%M:%SZ"))
+            stamp -= time.timezone if not time.daylight else time.altzone
+        except (TypeError, ValueError):
+            return True
+        return (now - stamp) > self._endpoint_stale_s
 
     def start_supervisor(self):
         """Launch the background reconnect supervisor (call once, from an event
@@ -730,24 +911,74 @@ class FederationService:
                     ident = peer["identity"]
                     if peer["state"] != PeerState.FEDERATED.value:
                         continue
+
+                    h = self._health_for(ident)
+
+                    # FR-013: an endpoint change means the peer re-registered. Reset the
+                    # backoff immediately so it reconnects within seconds no matter how
+                    # long it was dampened — this is what bounds the worst case of the
+                    # 15-minute ceiling. Checked before the live-channel skip so a peer
+                    # that re-registers while up still has its history cleared.
+                    seen = peer.get("endpoint_updated_at")
+                    if h["endpoint_seen"] is not None and seen != h["endpoint_seen"]:
+                        h["attempts"] = 0
+                        h["dampened"] = False
+                        h["next_retry_at"] = 0
+                        h["suppressed"] = 0
+                        h["cause_sig"] = None
+                        logger.info("%s endpoint changed — backoff reset", ident)
+                    h["endpoint_seen"] = seen
+
                     if ident in self.channels:
+                        # FR-031: dampening clears only after the channel has STAYED up,
+                        # never on the mere fact of connecting. A peer that reconnects
+                        # and drops every few seconds therefore keeps its history and
+                        # stays summarized instead of resetting on each brief success.
+                        since = h.get("connected_since")
+                        if since and (now - since) >= self._stable_after:
+                            if h["attempts"] or h["dampened"]:
+                                logger.info("%s stable for %ds — dampening cleared",
+                                            ident, int(now - since))
+                            h["attempts"] = 0
+                            h["suppressed"] = 0
+                            h["dampened"] = False
+                            h["cause_sig"] = None
                         continue  # live
                     # Only the lower-AS side dials; higher-AS waits for inbound.
                     if self.local_as >= peer["peer_as"]:
                         continue
                     if not peer.get("endpoint_host") or not peer.get("endpoint_port"):
-                        continue  # no endpoint to dial yet
-                    h = self.health.setdefault(ident, {"state": "reconnecting", "attempts": 0,
-                                                        "next_retry_at": 0, "last_seen": 0})
+                        # FR-023: no endpoint → never dialled. This pre-existing skip is
+                        # what makes forget_peer_endpoint (US4) take effect with no
+                        # restart, since list_peers() is re-read every iteration.
+                        #
+                        # State MUST NOT be left as "reconnecting" here. Feature 100
+                        # moved _health_for() above this check, which had the side
+                        # effect of initialising every endpoint-less peer to
+                        # "reconnecting" — a claim that we are trying to reach it. We
+                        # are not: it is skipped entirely. The HUD surfaces
+                        # channel_state directly, so five endpoint-less peers were
+                        # rendering as actively failing when nothing is wrong with them
+                        # beyond having no address on file. "unknown" is the honest
+                        # value and restores the pre-100 reading.
+                        h["state"] = "unknown"
+                        h["connected_since"] = None
+                        continue
                     if now < h["next_retry_at"]:
                         continue
                     h["state"] = "reconnecting"
+                    h["connected_since"] = None
                     await self.open_channel(peer["peer_as"], peer["router_id"],
                                             peer["endpoint_host"], peer["endpoint_port"])
                     if ident not in self.channels:  # dial failed → back off
                         h["attempts"] += 1
-                        backoff = min(self._backoff_min * (2 ** min(h["attempts"], 6)),
-                                      self._backoff_max)
+                        # FR-010/011: escalate to the 15-minute ceiling only when BOTH
+                        # signals agree — many consecutive failures AND a stale endpoint.
+                        # Either alone keeps today's 60s ceiling, which is what stops a
+                        # transient blip being penalized (FR-012). These two requirements
+                        # pull in opposite directions and this is where they are resolved.
+                        backoff, dampened = self._next_backoff(h["attempts"], peer, now)
+                        h["dampened"] = dampened
                         h["next_retry_at"] = now + backoff
                         if h["attempts"] >= self._unreachable_after:
                             h["state"] = "unreachable"  # keep retrying, but flag for display
@@ -778,8 +1009,19 @@ class FederationService:
 
     def health_of(self, ident: str) -> dict:
         h = self.health.get(ident, {"state": "unknown", "attempts": 0, "last_seen": 0})
+        # Feature 100 (FR-014): a dampened peer must remain fully observable — its
+        # unreachable status and consecutive-failure count stay visible, so suppression
+        # never hides the state from an operator, only from the log.
+        #
+        # `dampened`, `next_retry_at` and `last_cause` are ADDITIVE. Every pre-100 key
+        # keeps its name and type so the HUD and any existing consumer are untouched
+        # (FR-027, contracts §6).
         return {"channel_state": ("up" if ident in self.channels else h.get("state", "down")),
-                "attempts": h.get("attempts", 0), "last_seen": h.get("last_seen", 0)}
+                "attempts": h.get("attempts", 0), "last_seen": h.get("last_seen", 0),
+                "dampened": bool(h.get("dampened", False)),
+                "next_retry_at": h.get("next_retry_at", 0),
+                "suppressed": h.get("suppressed", 0),
+                "last_cause": h.get("cause_sig")}
 
     def health_report(self) -> dict:
         """iN2N truthful fault isolation (feature 057, US6/FR-017/018).
@@ -1843,10 +2085,8 @@ class FederationService:
             from .gateway import run_agent_turn
             member_model = os.environ.get("N2N_MEMBER_MODEL")
             if self.risk.role() == "member":
-                # Unique session per task: shared `in2n-{skill}` sessions accumulate
-                # Border history and cause the member to re-n2n_route itself (false
-                # "timeouts"). Also pin the role in the prompt so skills that say
-                # "if you have n2n_route, you are Border" cannot re-delegate.
+                # Pin the role in the prompt so skills that say "if you have
+                # n2n_route, you are Border" cannot re-delegate.
                 member_id = (
                     os.environ.get("N2N_MEMBER_ID")
                     or getattr(self.risk, "member_id", None)
@@ -1860,9 +2100,23 @@ class FederationService:
                     f"Execute the '{skill}' skill for the following request and "
                     f"return only the result:\n\n{input_text}"
                 )
-                session_key = f"in2n-{skill}-{task_id[:8]}"
+                # Session key is per TASK, not per skill. Keying on the skill name
+                # alone (`in2n-{skill}`) had two faults, found while testing
+                # spec 080's Fortinet skills:
+                #
+                #   1. Concurrent delegations of the SAME skill contended on one
+                #      session JSONL and deadlocked — three parallel
+                #      `fortigate-ops` calls hung; serial re-runs were clean.
+                #   2. Worse: two UNRELATED Border requests to the same skill
+                #      shared a conversation, so one requester's context could
+                #      bleed into another's answer.
+                #
+                # A delegated skill invocation is a discrete request/response —
+                # there is no multi-turn conversation with a member — so per-task
+                # isolation costs nothing and removes both faults. Trade-off: one
+                # session file per delegation rather than per skill.
                 output, tokens = await run_agent_turn(
-                    prompt, session_key=session_key,
+                    prompt, session_key=f"in2n-{skill}-{task_id}",
                     timeout_s=self.invoker.skill_timeout, local=True, model=member_model)
             else:
                 output, tokens = await self.invoker._exec_skill_gateway(skill, input_text)

@@ -1,116 +1,125 @@
 ---
 name: meraki-monitoring
-description: "Cisco Meraki Monitoring & Diagnostics — live ping, cable test, LED blink, wake-on-LAN, camera analytics, config change tracking. Use when running ping tests from Meraki devices, troubleshooting switch port cables, blinking LEDs to identify hardware, checking camera analytics, or auditing Meraki config changes"
-version: 1.0.0
+description: "Cisco Meraki monitoring and diagnostics (read-only) — device availability, loss and latency history, uplink status, live tool results, configuration change log, API request analytics via Cisco's official Meraki MCP. Use when checking Meraki device health, investigating uplink loss, or reviewing recent configuration changes"
+version: 2.0.0
 license: Apache-2.0
-tags: [cisco, meraki, monitoring, diagnostics, ping, cable-test, camera, analytics]
+tags: [cisco, meraki, monitoring, diagnostics, uplink, latency, availability, read-only]
 ---
 
-# Meraki Monitoring & Live Diagnostics
+# Meraki Monitoring & Diagnostics (read-only)
 
 ## MCP Server
 
-- **Repository**: [CiscoDevNet/meraki-magic-mcp-community](https://github.com/CiscoDevNet/meraki-magic-mcp-community)
-- **Transport**: stdio (Python via FastMCP) or HTTP
-- **Requires**: `MERAKI_API_KEY`, `MERAKI_ORG_ID`
+- **Server**: Cisco's **official** Meraki MCP — [developer.cisco.com](https://developer.cisco.com/meraki/api-v1/mcp-server/)
+- **Endpoint**: `https://mcp.meraki.com/mcp` (remote HTTP, no local install)
+- **Self-host fallback**: [CiscoDevNet/cisco-meraki-mcp-official](https://github.com/CiscoDevNet/cisco-meraki-mcp-official) (Apache-2.0)
+- **Requires**: `MERAKI_DASHBOARD_API_KEY` — use a **read-only** dashboard key
+- **Tools**: exactly two — `semantic_search` (discover) and `execute_api` (invoke)
 
-## Key Capabilities
+## Read-only, structurally
 
-### Live Diagnostics
+All 431 mutating Meraki operations (174 POST, 186 PUT, 71 DELETE) are **absent from the
+capability catalogue**. Only non-deprecated GETs are built in, so `updateNetwork`,
+`rebootDevice`, `blinkDeviceLeds` and friends return `Capability not found`.
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| Ping from device | `createDeviceManagementInterfacePing` | Run ping test from a Meraki device to a target IP |
-| Ping results | `getDeviceManagementInterfacePingResults` | Retrieve ping results (latency, loss, jitter) |
-| Cable test | `createDeviceLiveToolsCableTest` | Run cable diagnostics on switch ports |
-| Cable results | `getDeviceLiveToolsCableTestResults` | Cable status: OK, open, short, length estimate |
-| Blink LEDs | `blinkDeviceLeds` | Flash device LEDs for physical identification |
-| Wake-on-LAN | `wakeDeviceOnLan` | Send WoL magic packet to wake a device |
+Do not attempt writes and do not offer them. There is no ServiceNow CR path here because
+there is nothing to gate — a change must be made in the Meraki dashboard directly.
 
-### Camera Analytics (MV)
+## How to call it
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| Live analytics | `getDeviceCameraAnalyticsLive` | Real-time person/object detection counts |
-| Analytics overview | `getDeviceCameraAnalyticsOverview` | Historical analytics summary over time period |
-| Analytics zones | `getDeviceCameraAnalyticsZones` | Configured detection zones and their stats |
-| Snapshot | `generateDeviceCameraSnapshot` | Capture a still image from a camera |
-| Camera settings | `getDeviceCameraVideoSettings` | Video resolution, quality, recording mode |
-| Quality profiles | `getNetworkCameraQualityRetentionProfiles` | Retention and quality settings |
-| Camera Sense | `getDeviceCameraSense` | ML-based object/person detection config |
-| Update Sense | `updateDeviceCameraSense` | **[WRITE]** Enable/disable Sense, MQTT, audio detection |
+Two capability IDs may be called directly; everything else must be discovered:
 
-### Audit & Tracking
+1. `execute_api` → `getOrganizations` — find accessible org IDs
+2. `execute_api` → `getOrganizationNetworks` — find network IDs in the chosen org
+3. `semantic_search` → describe the intent in words → returns ranked `capability_id`s
+4. `execute_api` → the chosen `capability_id` + its required parameters
 
-| Operation | API Method | What It Does |
-|-----------|-----------|--------------|
-| Config changes | `getOrganizationConfigurationChanges` | Who changed what, when, on which network/device |
-| API requests | `getOrganizationApiRequests` | API call history with caller, method, response code |
-| Webhook logs | `getOrganizationWebhookLogs` | Webhook delivery success/failure tracking |
+**Discover, do not guess.** An earlier version of this skill hardcoded 80 method names and
+**54 of them did not exist in the Meraki API at all** — they failed regardless of server.
+`semantic_search` is the guard against that: it can only return IDs that exist.
 
-## Workflow: Device Reachability Troubleshooting
+## Reading results honestly
 
-When investigating "can the branch MX reach the data center?":
+- **One page only.** `execute_api` returns a single page. Request a bounded page size when
+  supported, and never present a page as the complete dataset.
+- **Empty is not absent.** `n=0` means *this network reported none*, never *none exist*.
+  Live proof from a real sandbox org: `getOrganizationDevices` returns **0 devices** while
+  the same org has a fully configured network with **15 SSIDs**.
+- **Three distinct errors, three different fixes:**
 
-1. **Ping test**: `createDeviceManagementInterfacePing` from the branch MX to the DC IP
-2. **Wait for results**: `getDeviceManagementInterfacePingResults` — latency, packet loss, jitter
-3. **Uplinks**: `getDeviceUplink` (meraki-network-ops) — WAN link health
-4. **VPN status**: `getNetworkVpnStatus` (meraki-security-appliance) — tunnel state
-5. **Report**: reachability analysis with latency baseline
+  | Error | Meaning | Fix |
+  |---|---|---|
+  | `Capability not found` | ID is mutating, deprecated, or invented | `semantic_search` for a real one |
+  | `Resource not found` | valid ID, wrong org/network/serial | re-derive the ID from step 1–2 |
+  | `Invalid parameters` | valid ID, missing a required parameter | read the capability's parameters |
 
-## Workflow: Physical Layer Troubleshooting
+  Never report any of the three as "no data" — none of them mean that.
 
-When investigating "port 12 isn't working on the switch":
+## Verified capabilities
 
-1. **Cable test**: `createDeviceLiveToolsCableTest` on port 12
-2. **Cable results**: `getDeviceLiveToolsCableTestResults` — OK, open, short, length
-3. **Port status**: `getDeviceSwitchPortStatuses` (meraki-switch-ops) — speed, duplex, errors
-4. **Blink LEDs**: `blinkDeviceLeds` to identify the physical switch if needed
-5. **Report**: cable status (replace cable, check patch panel, bad port)
+Live-verified against a real org:
 
-## Workflow: Camera Monitoring
+| Capability ID | Verified result |
+|---|---|
+| `getOrganizationConfigurationChanges` | 3 change records |
+| `getOrganizationApiRequestsOverview` | API request analytics present |
+| `getOrganizationLicensesOverview` | licensing (co-term) present |
+| `getOrganizationDevices` | **0 devices** |
+| `getOrganizationInventoryDevices` | **0 inventory** |
+| `getOrganizationDevicesStatuses` | **`Capability not found` — deprecated upstream** |
 
-When auditing camera analytics:
+That last row matters: **8 deprecated GETs are filtered out of the catalogue.** A
+`Capability not found` on a name you remember working means it was deprecated, not that the
+data is gone — `semantic_search` for the current equivalent.
 
-1. **Live analytics**: `getDeviceCameraAnalyticsLive` — current person/vehicle counts
-2. **Zones**: `getDeviceCameraAnalyticsZones` — which zones are configured
-3. **Overview**: `getDeviceCameraAnalyticsOverview` — trends over time
-4. **Settings**: `getDeviceCameraVideoSettings` — resolution, quality
-5. **Quality**: `getNetworkCameraQualityRetentionProfiles` — retention policies
-6. **Report**: camera analytics dashboard with trends and alert thresholds
+There are **56** real monitoring capabilities, including `getDeviceLossAndLatencyHistory`,
+`getOrganizationDevicesAvailabilities`, `getOrganizationDevicesUplinksLossAndLatency`,
+`getDeviceLiveToolsPing`, `getDeviceLiveToolsCableTest`, `getDeviceLiveToolsArpTable`,
+`getDeviceLiveToolsMacTable`, `getDeviceLiveToolsThroughputTest`.
 
-## Workflow: Configuration Change Audit
+**Live tools are GET-only here — you can read results, not start runs.** Starting a live
+tool is a POST, which does not exist in this catalogue. Read existing results, or start the
+run from the dashboard.
 
-When investigating "who changed the firewall rules?":
+## Workflow: Org health check
 
-1. **Config changes**: `getOrganizationConfigurationChanges` with time filter
-2. **API requests**: `getOrganizationApiRequests` — was it an API call or Dashboard UI?
-3. **Filter**: narrow by network, admin, or change type
-4. **Correlate**: match with ServiceNow CRs — was this an approved change?
-5. **Report**: change audit trail with admin identity, timestamp, and approval status
+1. `getOrganizations` → `getOrganizationNetworks`
+2. `getOrganizationDevices` — **if 0, report "no devices reported by this org" and stop.**
+   Do not present an empty inventory as a healthy one.
+3. `semantic_search` "device availability across the organization" → invoke it
+4. `semantic_search` "uplink loss and latency across the organization" → invoke it
+5. `getOrganizationLicensesOverview` — licence state and expiry
+6. Report health with the observation window stated. A latency number without a window is
+   not a measurement.
+
+## Workflow: Change correlation
+
+When something broke and nobody knows why:
+
+1. `getOrganizationConfigurationChanges` — who changed what, when (**one page only**)
+2. Correlate timestamps against the reported onset of the problem
+3. `getOrganizationApiRequestsOverview` — was the change made by an integration, not a human?
+4. Report the correlation as **correlation**. A config change near an outage is a lead, not
+   a cause, and saying otherwise has sent operators down the wrong path before.
+
+## Important Rules
+
+- **No writes and no run-starting.** Live tools are readable, not startable.
+- **0 devices ≠ healthy.** Say the org reported none.
+- **`Capability not found` on a familiar name means deprecated** — search for the successor.
+- **Always state the observation window** for any loss, latency, or availability figure.
+- **Record in GAIT** — log every health check.
 
 ## Integration with Other Skills
 
 | Skill | How They Work Together |
 |-------|----------------------|
-| `meraki-network-ops` | Device/network context for diagnostics |
-| `meraki-switch-ops` | Port status combined with cable test results |
-| `meraki-security-appliance` | VPN status combined with ping reachability |
-| `meraki-wireless-ops` | Signal quality combined with AP ping tests |
-| `packet-analysis` | Meraki diagnostics + pcap analysis for deep investigation |
-| `gait-session-tracking` | Record all diagnostic results and audit findings |
-| `servicenow-change-workflow` | Correlate config changes with approved CRs |
-
-## Important Rules
-
-- **Ping tests run FROM the Meraki device** — useful for testing reachability from the device's perspective
-- **Cable tests are non-disruptive** — safe to run on live ports
-- **LED blinking is temporary** — LEDs blink for the specified duration, then return to normal
-- **Camera analytics require MV cameras** — not available on MR/MS/MX devices
-- **Config change audit is critical** — every change should map to a ServiceNow CR
-- **Record in GAIT** — log all diagnostic results and audit investigations
+| `meraki-network-ops` | Network and device context for health checks |
+| `meraki-switch-ops` | Port-level errors behind an uplink problem |
+| `servicenow-change-workflow` | Correlate Meraki config changes against CRs |
+| `slack-network-alerts` | Report degradation to the operator channel |
+| `gait-session-tracking` | Record all health checks |
 
 ## Environment Variables
 
-- `MERAKI_API_KEY` — Meraki Dashboard API key
-- `MERAKI_ORG_ID` — Meraki organization ID
+- `MERAKI_DASHBOARD_API_KEY` — Meraki Dashboard API key (**read-only** recommended)

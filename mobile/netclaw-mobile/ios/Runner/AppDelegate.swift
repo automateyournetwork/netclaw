@@ -20,5 +20,9 @@ import UIKit
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "WatchRelayPlugin") {
       WatchRelayPlugin.register(with: registrar)
     }
+    // 099/FR-017/FR-018: starts/ends the Lock Screen Live Activity.
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "LiveActivityBridge") {
+      LiveActivityBridge.register(with: registrar)
+    }
   }
 }

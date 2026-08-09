@@ -178,6 +178,20 @@
         "PAN_REGION": "${PAN_REGION:-americas}"
       }
     },
+    "redfish-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/redfish-mcp/server.py"
+      ],
+      "env": {
+        "REDFISH_URL": "${REDFISH_URL:-}",
+        "REDFISH_USERNAME": "${REDFISH_USERNAME:-}",
+        "REDFISH_PASSWORD": "${REDFISH_PASSWORD:-}",
+        "REDFISH_VERIFY_TLS": "${REDFISH_VERIFY_TLS:-false}",
+        "REDFISH_TIMEOUT": "${REDFISH_TIMEOUT:-15}"
+      }
+    },
     "datadog-mcp": {
       "url": "mcp://datadog.com/mcp",
       "env": {
@@ -291,7 +305,7 @@
       "command": "python3",
       "args": [
         "-u",
-        "mcp-servers/aruba-cx-mcp/aruba_cx_mcp_server.py"
+        "mcp-servers/aruba-cx-mcp/mcp-servers/aruba-cx-mcp/aruba_cx_mcp_server.py"
       ],
       "env": {
         "ARUBA_CX_TARGETS": "${ARUBA_CX_TARGETS}",
@@ -358,7 +372,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -373,7 +389,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -388,7 +406,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -403,7 +423,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -440,7 +462,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -455,7 +479,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -479,12 +505,7 @@
         "mcp-servers/checkpoint-mcp-servers/packages/gaia/dist/index.js"
       ],
       "env": {
-        "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
-        "API_KEY": "${CHKP_MGMT_API_KEY}",
-        "USERNAME": "${CHKP_MGMT_USERNAME}",
-        "PASSWORD": "${CHKP_MGMT_PASSWORD}",
-        "DOMAIN": "${CHKP_MGMT_DOMAIN}",
+        "VERBOSE": "${CHKP_GAIA_VERBOSE:-false}",
         "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
       }
     },
@@ -494,6 +515,10 @@
         "mcp-servers/checkpoint-mcp-servers/packages/documentation-tool/dist/index.js"
       ],
       "env": {
+        "CLIENT_ID": "${CHKP_DOCS_CLIENT_ID}",
+        "SECRET_KEY": "${CHKP_DOCS_SECRET_KEY}",
+        "AUTH_URL": "${CHKP_DOCS_AUTH_URL}",
+        "REGION": "${CHKP_DOCS_REGION}",
         "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
       }
     },
@@ -503,7 +528,10 @@
         "mcp-servers/checkpoint-mcp-servers/packages/spark-management/dist/index.js"
       ],
       "env": {
-        "API_KEY": "${CHKP_SPARK_API_KEY}",
+        "CLIENT_ID": "${CHKP_SPARK_CLIENT_ID}",
+        "SECRET_KEY": "${CHKP_SPARK_SECRET_KEY}",
+        "INFINITY_PORTAL_URL": "${CHKP_SPARK_INFINITY_PORTAL_URL}",
+        "REGION": "${CHKP_SPARK_REGION}",
         "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
       }
     },
@@ -522,7 +550,9 @@
         "mcp-servers/checkpoint-mcp-servers/packages/argos-erm/dist/index.js"
       ],
       "env": {
-        "API_KEY": "${CHKP_ARGOS_API_KEY}",
+        "ARGOS_SERVER_URL": "${CHKP_ARGOS_SERVER_URL}",
+        "ARGOS_INTEGRATION_TOKEN": "${CHKP_ARGOS_INTEGRATION_TOKEN}",
+        "ARGOS_CUSTOMER_ID": "${CHKP_ARGOS_CUSTOMER_ID}",
         "TELEMETRY_DISABLED": "${CHKP_TELEMETRY_DISABLED:-true}"
       }
     },
@@ -533,7 +563,9 @@
       ],
       "env": {
         "MANAGEMENT_HOST": "${CHKP_MGMT_HOST}",
-        "PORT": "${CHKP_MGMT_PORT:-443}",
+        "MANAGEMENT_PORT": "${CHKP_MGMT_PORT:-443}",
+        "S1C_URL": "${CHKP_S1C_URL}",
+        "CLOUD_INFRA_TOKEN": "${CHKP_S1C_API_KEY}",
         "API_KEY": "${CHKP_MGMT_API_KEY}",
         "USERNAME": "${CHKP_MGMT_USERNAME}",
         "PASSWORD": "${CHKP_MGMT_PASSWORD}",
@@ -727,16 +759,13 @@
         "GRAFANA_SERVICE_ACCOUNT_TOKEN": "${GRAFANA_SERVICE_ACCOUNT_TOKEN}"
       }
     },
-    "meraki-magic-mcp": {
-      "command": "python3",
-      "args": [
-        "-u",
-        "mcp-servers/meraki-magic-mcp-community/meraki-mcp-dynamic.py"
-      ],
+    "meraki-mcp": {
+      "url": "https://mcp.meraki.com/mcp",
+      "headers": {
+        "Authorization": "Bearer ${MERAKI_DASHBOARD_API_KEY}"
+      },
       "env": {
-        "MERAKI_API_KEY": "${MERAKI_API_KEY}",
-        "MERAKI_ORG_ID": "${MERAKI_ORG_ID}",
-        "MERAKI_BASE_URL": "${MERAKI_BASE_URL:-https://api.meraki.com/api/v1}"
+        "MERAKI_DASHBOARD_API_KEY": "${MERAKI_DASHBOARD_API_KEY}"
       }
     },
     "radkit-mcp": {
@@ -772,8 +801,14 @@
         "mcp-servers/mcp-cvp-fun",
         "--with",
         "fastmcp",
+        "--with",
+        "urllib3",
+        "--with",
+        "python-dotenv",
         "fastmcp",
         "run",
+        "--transport",
+        "stdio",
         "mcp_server_rest.py"
       ],
       "env": {
@@ -1070,6 +1105,149 @@
       },
       "env": {
         "GLOBALPING_TOKEN": "${GLOBALPING_TOKEN}"
+      }
+    },
+    "fortinet-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/fortinet-mcp/server.py"
+      ],
+      "env": {
+        "FORTIMANAGER_HOST": "${FORTIMANAGER_HOST}",
+        "FORTIMANAGER_API_TOKEN": "${FORTIMANAGER_API_TOKEN}",
+        "FORTIGATE_HOST": "${FORTIGATE_HOST}",
+        "FORTIGATE_API_TOKEN": "${FORTIGATE_API_TOKEN}",
+        "FORTIANALYZER_HOST": "${FORTIANALYZER_HOST}",
+        "FORTIANALYZER_API_TOKEN": "${FORTIANALYZER_API_TOKEN}",
+        "FORTINET_VERIFY_SSL": "${FORTINET_VERIFY_SSL}",
+        "FORTINET_ALLOW_WRITES": "${FORTINET_ALLOW_WRITES}"
+      }
+    },
+    "bgp-intel-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/bgp-intel-mcp/server.py"
+      ],
+      "env": {
+        "BGP_INTEL_USER_AGENT": "${BGP_INTEL_USER_AGENT}",
+        "BGP_INTEL_MAX_RPS": "${BGP_INTEL_MAX_RPS}"
+      }
+    },
+    "anta-mcp": {
+      "command": "mcp-servers/anta-mcp/.venv/bin/python",
+      "args": [
+        "-u",
+        "mcp-servers/anta-mcp/server.py"
+      ],
+      "env": {
+        "ANTA_USERNAME": "${ANTA_USERNAME}",
+        "ANTA_PASSWORD": "${ANTA_PASSWORD}",
+        "ANTA_ENABLE_PASSWORD": "${ANTA_ENABLE_PASSWORD}",
+        "ANTA_VERIFY_TLS": "${ANTA_VERIFY_TLS:-false}",
+        "ANTA_TIMEOUT": "${ANTA_TIMEOUT:-30}"
+      }
+    },
+    "elasticsearch-mcp": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "--add-host=host.docker.internal:host-gateway",
+        "-e",
+        "ES_URL",
+        "-e",
+        "ES_API_KEY",
+        "-e",
+        "ES_USERNAME",
+        "-e",
+        "ES_PASSWORD",
+        "-e",
+        "ES_SSL_SKIP_VERIFY",
+        "docker.elastic.co/mcp/elasticsearch@sha256:d57ea11dcb3451ca332cb6d3bb8c4bb1ea29f15e498937ad6c2eada9f88eb003",
+        "stdio"
+      ],
+      "env": {
+        "ES_URL": "${ES_URL}",
+        "ES_API_KEY": "${ES_API_KEY}",
+        "ES_USERNAME": "${ES_USERNAME}",
+        "ES_PASSWORD": "${ES_PASSWORD}",
+        "ES_SSL_SKIP_VERIFY": "${ES_SSL_SKIP_VERIFY:-false}"
+      }
+    },
+    "document-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/document-mcp/server.py"
+      ],
+      "env": {
+        "DOCUMENT_OUTPUT_DIR": "${DOCUMENT_OUTPUT_DIR}",
+        "DOCUMENT_MAX_ROWS": "${DOCUMENT_MAX_ROWS}"
+      }
+    },
+    "catc-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/catc-mcp/server.py"
+      ],
+      "env": {
+        "CATALYST_CENTER_HOST": "${CATALYST_CENTER_HOST}",
+        "CATALYST_CENTER_USERNAME": "${CATALYST_CENTER_USERNAME}",
+        "CATALYST_CENTER_PASSWORD": "${CATALYST_CENTER_PASSWORD}",
+        "CATALYST_CENTER_VERIFY_SSL": "${CATALYST_CENTER_VERIFY_SSL}"
+      }
+    },
+    "k8s-mcp": {
+      "command": "mcp-servers/k8s-mcp/kubernetes-mcp-server",
+      "args": [
+        "--config",
+        "mcp-servers/k8s-mcp/config.toml",
+        "--kubeconfig",
+        "${K8S_KUBECONFIG}"
+      ],
+      "env": {
+        "K8S_KUBECONFIG": "${K8S_KUBECONFIG}"
+      }
+    },
+    "zabbix-mcp": {
+      "command": "mcp-servers/zabbix-mcp/.venv/bin/python",
+      "args": [
+        "-m",
+        "zabbix_mcp_server.server"
+      ],
+      "env": {
+        "ZABBIX_URL": "${ZABBIX_URL}",
+        "ZABBIX_TOKEN": "${ZABBIX_TOKEN}",
+        "READ_ONLY": "true",
+        "VERIFY_SSL": "${VERIFY_SSL}",
+        "ZABBIX_API_BLACKLIST": ".*\\.delete$,.*\\.create$,.*\\.update$,.*\\.massadd$,.*\\.massdelete$,.*\\.massupdate$,.*\\.import$,.*\\.acknowledge$,.*\\.copy$,.*\\.replacehostinterfaces$"
+      }
+    },
+    "nsm-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/nsm-mcp/server.py"
+      ],
+      "env": {
+        "NSM_HOME": "${NSM_HOME:-~/.openclaw/nsm}",
+        "NSM_TIMEOUT": "${NSM_TIMEOUT:-600}"
+      }
+    },
+    "analysis-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "mcp-servers/analysis-mcp/server.py"
+      ],
+      "env": {
+        "ANALYSIS_QUERY_TIMEOUT": "${ANALYSIS_QUERY_TIMEOUT:-30}",
+        "ANALYSIS_MAX_RESULT_ROWS": "${ANALYSIS_MAX_RESULT_ROWS:-500}",
+        "ANALYSIS_EXTRA_ROOTS": "${ANALYSIS_EXTRA_ROOTS:-}"
       }
     }
   },

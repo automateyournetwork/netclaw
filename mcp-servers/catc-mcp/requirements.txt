@@ -1,0 +1,16 @@
+# Catalyst Center (read-only) — spec 087
+#
+# Two packages. Deliberately NOT the upstream server's own dependency set:
+# NetClaw adopts Cisco's TOOL CATALOGUE, not its runtime, so none of fastapi,
+# uvicorn, jsonpatch or fastmcp is needed here.
+#
+# That is the point. catc-mcp-oss declares `fastmcp>=2.0.0` UNBOUNDED, which
+# resolves to 3.x and collides with five NetClaw servers pinning fastmcp<3 —
+# the same hazard that blocked spec 083's first candidate. Using only the
+# catalogue sidesteps it entirely: no container, no port-7001 HTTP transport,
+# no fastmcp at all.
+#
+# The mcp upper bound is LOAD-BEARING (spec 077/081): mcp 2.0 removed
+# mcp.server.fastmcp, which this server imports.
+mcp>=1.2.0,<2
+httpx>=0.27.0,<1

@@ -1,0 +1,495 @@
+[
+ {
+  "name": "api_get802_11beProfileByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/dot11beProfiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get 802.11be Profile by ID"
+ },
+ {
+  "name": "api_get802_11beProfiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/dot11beProfiles",
+  "params": {
+   "isMuMimoDownLink": "query",
+   "isMuMimoUpLink": "query",
+   "isOfDmaDownLink": "query",
+   "isOfDmaMultiRu": "query",
+   "isOfDmaUpLink": "query",
+   "limit": "query",
+   "offset": "query",
+   "profileName": "query"
+  },
+  "description": "This API allows the user to get 802.11be Profile(s) configured under Wireless Settings"
+ },
+ {
+  "name": "api_get802_11beProfilesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/dot11beProfiles/count",
+  "params": {},
+  "description": "This API allows the user to get count of all 802.11be Profile(s)"
+ },
+ {
+  "name": "api_getAAARadiusAttributesConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/aaaRadiusAttributesConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific AAA Radius Attributes configuration feature template by ID."
+ },
+ {
+  "name": "api_getAPAuthorizationListByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apAuthorizationLists/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get an AP Authorization List by AP Authorization List ID that captured in wireless settings design."
+ },
+ {
+  "name": "api_getAPAuthorizationListByNetworkDeviceId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/apAuthorizationLists",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "This API allows the user to get an AP Authorization List details configured for the given provisioned network device Id. Obtain the network device ID value by using the API GET call '/dna/intent/api/v1/network-device/ip-address/${ipAddress}'."
+ },
+ {
+  "name": "api_getAPAuthorizationListCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apAuthorizationLists/count",
+  "params": {},
+  "description": "This API allows the user to get count of all AP Authorization lists."
+ },
+ {
+  "name": "api_getAPAuthorizationLists",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apAuthorizationLists",
+  "params": {
+   "apAuthorizationListName": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Retrieves the AP Authorization Lists that are created in the Catalyst Centre network Design for wireless. If an AP Authorization List name is given as query parameter, then returns respective AP Authorization List details including Local and/or Remote authorization."
+ },
+ {
+  "name": "api_getAPPnPLocationSetting",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/systemSettings/apPnPLocation",
+  "params": {},
+  "description": "Retrieve the current AP PnP Location setting from the system.Once the AP PnP Location Setting is enabled, the Access Point's assigned Site name will be configured as the AP Location during the PnP Claim process. This applies only during the PnP onboarding process and not during any subsequent provisioning (dayN)."
+ },
+ {
+  "name": "api_getAPProfileByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apProfiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get a AP Profile by AP Profile ID that captured in wireless settings design"
+ },
+ {
+  "name": "api_getAPProfiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apProfiles",
+  "params": {
+   "apProfileName": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "This API allows the user to get AP profiles that are captured in wireless settings design."
+ },
+ {
+  "name": "api_getAPProfilesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/apProfiles/count",
+  "params": {},
+  "description": "This API returns the total number of AP Profiles available."
+ },
+ {
+  "name": "api_getAccessPointConfigurationTaskResult",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wireless/accesspoint-configuration/details/{task_id}",
+  "params": {
+   "task_id": "path"
+  },
+  "description": "Users can query the access point configuration result using this intent API"
+ },
+ {
+  "name": "api_getAccessPoint_s_FactoryResetStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessAccessPoints/factoryResetRequestStatus",
+  "params": {
+   "taskId": "query"
+  },
+  "description": "This API returns each AP Factory Reset initiation status."
+ },
+ {
+  "name": "api_getAdvancedSSIDConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/advancedSSIDConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Advanced SSID configuration feature template by ID."
+ },
+ {
+  "name": "api_getAnchorCapableDevices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/anchorCapableDevices",
+  "params": {},
+  "description": "This API allows the user to get Anchor capable devices"
+ },
+ {
+  "name": "api_getAnchorGroupByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/anchorGroups/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get an AnchorGroup by AnchorGroup ID"
+ },
+ {
+  "name": "api_getAnchorGroups_v2_3_7_10",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/anchorGroups",
+  "params": {
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "This API allows the user to get AnchorGroups that captured in wireless settings design."
+ },
+ {
+  "name": "api_getAnchorManagedAPLocationsForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/anchorManagedApLocations",
+  "params": {
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query"
+  },
+  "description": "For managed-site relation queries, return managed=true on first match across Primary/Secondary/Anchor, and return managed=false only after all three are checked with no match. For runtime managed-site detail controller/WLC queries that include serial number, do not use api_getPnP*. Use get_device_details to resolve canonical networkDeviceId, then call this API."
+ },
+ {
+  "name": "api_getCleanAirConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/cleanAirConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Clean Air configuration feature template by ID."
+ },
+ {
+  "name": "api_getCountOfAnchorGroups",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/anchorGroups/count",
+  "params": {},
+  "description": "This API allows the user to get count of all AnchorGroups"
+ },
+ {
+  "name": "api_getDot11axConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/dot11axConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Dot11ax configuration feature template by ID."
+ },
+ {
+  "name": "api_getDot11beStatusConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/dot11beStatusConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Dot11be status configuration feature template by ID."
+ },
+ {
+  "name": "api_getEventDrivenRRMConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/eventDrivenRRMConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Event Driven RRM configuration feature template by ID."
+ },
+ {
+  "name": "api_getFeatureTemplateSummary",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/summary",
+  "params": {
+   "designName": "query",
+   "limit": "query",
+   "offset": "query",
+   "systemTemplate": "query",
+   "type": "query"
+  },
+  "description": "This API allows users to retrieve the feature template summary."
+ },
+ {
+  "name": "api_getFlexConnectConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/flexConnectConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Flex Connect configuration feature template by ID."
+ },
+ {
+  "name": "api_getManagedAPLocationsCountForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/managedApLocations/count",
+  "params": {
+   "networkDeviceId": "path"
+  },
+  "description": "For Managed AP location count queries, always return the requested category counts and an explicit combined total. For \"primary and secondary\" queries, return Primary count, Secondary count, and Total (Primary+Secondary). Include Anchor count only when explicitly requested or when the query is for all managed location count categories. For runtime managed-site count controller/WLC queries, if hostname/IP/serial is provided instead of networkDeviceId, resolve the controller first with get_device_details and pass the returned canonical networkDeviceId. For controller serial-number managed-site count-style queries, do not use api_getPnP*"
+ },
+ {
+  "name": "api_getMeshApNeighbours",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/meshApNeighbours",
+  "params": {
+   "apName": "query",
+   "ethernetMacAddress": "query",
+   "wlcIpAddress": "query"
+  },
+  "description": "Retrieves all Mesh accesspoint Neighbours details whether child, parent, etc."
+ },
+ {
+  "name": "api_getMeshApNeighboursCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/meshApNeighbours/count",
+  "params": {},
+  "description": "This API returns the total number of mesh Ap Neighbours available."
+ },
+ {
+  "name": "api_getMobilityGroups",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/wirelessMobilityGroups",
+  "params": {
+   "networkDeviceId": "query"
+  },
+  "description": "Retrieve configured mobility groups if no Network Device Id is provided as a query parameter. If a Network Device Id is given and a mobility group is configured for it, return the configured details; otherwise, return the default values from the device."
+ },
+ {
+  "name": "api_getMobilityGroupsCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/wirelessMobilityGroups/count",
+  "params": {},
+  "description": "Retrieves count of mobility groups configured"
+ },
+ {
+  "name": "api_getMulticastConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/multicastConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific Multicast configuration feature template by ID."
+ },
+ {
+  "name": "api_getPowerProfileByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/powerProfiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get a Power Profile by Power Profile ID that captured in wireless settings design"
+ },
+ {
+  "name": "api_getPowerProfiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/powerProfiles",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "profileName": "query"
+  },
+  "description": "This API allows the user to get Power Profiles that captured in wireless settings design."
+ },
+ {
+  "name": "api_getPowerProfilesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/powerProfiles/count",
+  "params": {},
+  "description": "This API returns the total number of Power Profiles available."
+ },
+ {
+  "name": "api_getPrimaryManagedAPLocationsForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/primaryManagedApLocations",
+  "params": {
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query"
+  },
+  "description": "For managed-site relation queries, return managed=true on first match across Primary/Secondary/Anchor, and return managed=false only after all three are checked with no match. For runtime managed-site detail controller/WLC queries that include serial number, do not use api_getPnP*. Use get_device_details to resolve canonical networkDeviceId, then call this API."
+ },
+ {
+  "name": "api_getRFProfileByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/rfProfiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get a RF Profile by RF Profile ID"
+ },
+ {
+  "name": "api_getRFProfiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/rfProfiles",
+  "params": {
+   "enableRadioType6GHz": "query",
+   "enableRadioTypeA": "query",
+   "enableRadioTypeB": "query",
+   "limit": "query",
+   "offset": "query",
+   "rfProfileName": "query"
+  },
+  "description": "This API allows the user to get all RF Profiles"
+ },
+ {
+  "name": "api_getRFProfilesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/rfProfiles/count",
+  "params": {},
+  "description": "This API allows the user to get count of all RF profiles"
+ },
+ {
+  "name": "api_getRRMFRAConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/rrmFraConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific RRM FRA configuration feature template by ID."
+ },
+ {
+  "name": "api_getRRMGeneralConfigurationFeatureTemplate",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/featureTemplates/wireless/rrmGeneralConfigurations/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows users to retrieve a specific RRM General configuration feature template by ID."
+ },
+ {
+  "name": "api_getSSIDCountForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/ssidDetails/count",
+  "params": {
+   "adminStatus": "query",
+   "managed": "query",
+   "networkDeviceId": "path"
+  },
+  "description": "For SSID/WLAN count runtime queries, if hostname/IP/serial is provided instead of networkDeviceId, resolve the controller first with get_device_details and pass the returned canonical networkDeviceId. For controller serial-number WLAN/SSID count-style queries, do not use api_getPnP*."
+ },
+ {
+  "name": "api_getSSIDDetailsForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/ssidDetails",
+  "params": {
+   "adminStatus": "query",
+   "limit": "query",
+   "managed": "query",
+   "networkDeviceId": "path",
+   "offset": "query",
+   "ssidName": "query"
+  },
+  "description": "For SSID/WLAN runtime queries, if hostname/IP/serial is provided instead of networkDeviceId, resolve the controller first with get_device_details and pass the returned canonical networkDeviceId. For controller serial-number WLAN/SSID detail queries, first call get_device_details and then call this api; do not use api_getPnP*. For out-of-band SSID/WLAN queries only: treat out-of-band as managed=false and call this API with managed=false; For provisioned SSID/WLAN queries only: treat provisioned as managed=true and call this API with managed=true;"
+ },
+ {
+  "name": "api_getSecondaryManagedAPLocationsForSpecificWirelessController",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessControllers/{networkDeviceId}/secondaryManagedApLocations",
+  "params": {
+   "limit": "query",
+   "networkDeviceId": "path",
+   "offset": "query"
+  },
+  "description": "For managed-site relation queries, return managed=true on first match across Primary/Secondary/Anchor, and return managed=false only after all three are checked with no match. For runtime managed-site detail controller/WLC queries that include serial number, do not use api_getPnP*. Use get_device_details to resolve canonical networkDeviceId, then call this API."
+ },
+ {
+  "name": "api_getWirelessProfileByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "This API allows the user to get a Wireless Network Profile by ID"
+ },
+ {
+  "name": "api_getWirelessProfiles",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "wirelessProfileName": "query"
+  },
+  "description": "This API allows the user to get all Wireless Network Profiles"
+ },
+ {
+  "name": "api_getWirelessProfilesCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/count",
+  "params": {},
+  "description": "This API allows the user to get count of all wireless profiles"
+ },
+ {
+  "name": "api_retrieveASpecificPolicyTagForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/policyTags/{policyTagId}",
+  "params": {
+   "id": "path",
+   "policyTagId": "path"
+  },
+  "description": "This endpoint retrieves the details of a specific `Policy Tag` associated with a given `Wireless Profile`. This API requires the `id` of the `Wireless Profile` and the `policyTagId` of the `Policy Tag`."
+ },
+ {
+  "name": "api_retrieveAllPolicyTagsForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/policyTags",
+  "params": {
+   "id": "path",
+   "limit": "query",
+   "offset": "query",
+   "policyTagName": "query"
+  },
+  "description": "This endpoint retrieves a list of all `Policy Tags` associated with a specific `Wireless Profile`. This API requires the `id` of the `Wireless Profile` to be provided as a path parameter."
+ },
+ {
+  "name": "api_retrieveSitesWithOverriddenSSIDs",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessSettings/ssids/overrideAtSites",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "siteId": "query"
+  },
+  "description": "Retrieve list of siteId(s) with information of SSID(s) which are overridden"
+ },
+ {
+  "name": "api_retrieveTheCountOfPolicyTagsForAWirelessProfile",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/wirelessProfiles/{id}/policyTags/count",
+  "params": {
+   "id": "path"
+  },
+  "description": "This endpoint retrieves the total count of `Policy Tags` associated with a specific `Wireless Profile`.This API requires the `id` of the `Wireless Profile` to be provided as a path parameter."
+ },
+ {
+  "name": "api_wirelessRogueAPContainmentStatus",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/security/rogue/wireless-containment/status/{macAddress}",
+  "params": {
+   "Content-Type": "header",
+   "macAddress": "path"
+  },
+  "description": "Intent API to check the wireless rogue access point containment status. The response includes all the details like containment status, contained by WLC, containment status of each BSSID etc. This API also includes the information of strongest detecting WLC for this rogue access point."
+ }
+]

@@ -1,0 +1,154 @@
+{
+ "_why": "Ground truth for scripts/check-package-references.py. Skills invoke packages on demand via npx/uvx; those references are neither counted by verify-inventory-counts.py nor launched by check-server-startup.py, so nothing verified they exist. @anthropic-ai/microsoft-graph-mcp did not, and three skills documented 14 tool names against it.",
+ "_refresh": "python3 scripts/check-package-references.py --refresh  (needs network)",
+ "_verified_at": "2026-08-04T22:41:50+00:00",
+ "packages": {
+  "npm:@drawio/mcp": {
+   "registry": "npm",
+   "name": "@drawio/mcp",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aci-fabric-audit",
+    "drawio-diagram"
+   ]
+  },
+  "npm:@mjpitz/mcp-rfc": {
+   "registry": "npm",
+   "name": "@mjpitz/mcp-rfc",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "rfc-lookup"
+   ]
+  },
+  "npm:@softeria/ms-365-mcp-server": {
+   "registry": "npm",
+   "name": "@softeria/ms-365-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "msgraph-files",
+    "msgraph-visio"
+   ]
+  },
+  "npm:@zereight/mcp-gitlab": {
+   "registry": "npm",
+   "name": "@zereight/mcp-gitlab",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "gitlab-devops"
+   ]
+  },
+  "npm:chrome-devtools-mcp": {
+   "registry": "npm",
+   "name": "chrome-devtools-mcp",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "browser-gui-inspect",
+    "browser-viz-verify"
+   ]
+  },
+  "npm:mcp-remote": {
+   "registry": "npm",
+   "name": "mcp-remote",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "te-network-monitoring"
+   ]
+  },
+  "npm:nvd-cve-mcp-server": {
+   "registry": "npm",
+   "name": "nvd-cve-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "pyats-security"
+   ]
+  },
+  "pypi:awslabs.aws-diagram-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.aws-diagram-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-architecture-diagram"
+   ]
+  },
+  "pypi:awslabs.aws-network-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.aws-network-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-network-ops"
+   ]
+  },
+  "pypi:awslabs.cloudtrail-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.cloudtrail-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-security-audit"
+   ]
+  },
+  "pypi:awslabs.cloudwatch-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.cloudwatch-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-cloud-monitoring"
+   ]
+  },
+  "pypi:awslabs.cost-explorer-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.cost-explorer-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-cost-ops"
+   ]
+  },
+  "pypi:awslabs.iam-mcp-server": {
+   "registry": "pypi",
+   "name": "awslabs.iam-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "aws-security-audit"
+   ]
+  },
+  "pypi:blender-mcp": {
+   "registry": "pypi",
+   "name": "blender-mcp",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "blender-3d-viz"
+   ]
+  },
+  "pypi:mcp-grafana": {
+   "registry": "pypi",
+   "name": "mcp-grafana",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "grafana-observability"
+   ]
+  },
+  "pypi:memory-mcp-server": {
+   "registry": "pypi",
+   "name": "memory-mcp-server",
+   "exists": true,
+   "http_status": 200,
+   "referenced_by": [
+    "memory"
+   ]
+  }
+ }
+}

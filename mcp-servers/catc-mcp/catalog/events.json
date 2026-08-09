@@ -1,0 +1,459 @@
+[
+ {
+  "name": "api_countOfEventSubscriptions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription/count",
+  "params": {
+   "eventIds": "query"
+  },
+  "description": "Returns the count of event subscriptions that have been configured or created. Use this tool when the user asks about the number of active event subscriptions. It can answer questions like How many event subscriptions are configured? or Give me the count of all event subscriptions."
+ },
+ {
+  "name": "api_countOfEvents",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/events/count",
+  "params": {
+   "eventId": "query",
+   "tags": "query"
+  },
+  "description": "Get the count of registered events with provided eventIds or tags as mandatory"
+ },
+ {
+  "name": "api_countOfNotifications",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/event-series/count",
+  "params": {
+   "category": "query",
+   "domain": "query",
+   "endTime": "query",
+   "eventIds": "query",
+   "severity": "query",
+   "source": "query",
+   "startTime": "query",
+   "subDomain": "query",
+   "type": "query"
+  },
+  "description": "Get the Count of Published Notifications based on the various inputs from the user. It can answer questions like How many notifications are there for event X? or Give me the count of all notifications and many more combinations"
+ },
+ {
+  "name": "api_downloadReportContent",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/reports/{reportId}/executions/{executionId}",
+  "params": {
+   "executionId": "path",
+   "reportId": "path"
+  },
+  "description": "Returns report content. Save the response to a file by converting the response data as a blob and setting the file format available from content-disposition response header."
+ },
+ {
+  "name": "api_eventArtifactCount",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/event/artifact/count",
+  "params": {},
+  "description": "Get the total count of registered event artifacts. Event artifacts are event definitions or templates available in the system. It can answer questions like How many event artifacts are there? or Give me the count of all event artifacts."
+ },
+ {
+  "name": "api_getAllExecutionDetailsForAGivenReport",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/data/reports/{reportId}/executions",
+  "params": {
+   "reportId": "path"
+  },
+  "description": "Get details of all executions for a given report"
+ },
+ {
+  "name": "api_getAuditLogParentRecords",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/event/event-series/audit-log/parent-records",
+  "params": {
+   "category": "query",
+   "context": "query",
+   "description": "query",
+   "deviceId": "query",
+   "domain": "query",
+   "endTime": "query",
+   "eventHierarchy": "query",
+   "eventId": "query",
+   "instanceId": "query",
+   "isSystemEvents": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "severity": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "source": "query",
+   "startTime": "query",
+   "subDomain": "query",
+   "userId": "query"
+  },
+  "description": "Get Parent Audit Log Event instances from the Event-Hub"
+ },
+ {
+  "name": "api_getAuditLogRecords",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/event/event-series/audit-logs",
+  "params": {
+   "category": "query",
+   "context": "query",
+   "description": "query",
+   "deviceId": "query",
+   "domain": "query",
+   "endTime": "query",
+   "eventHierarchy": "query",
+   "eventId": "query",
+   "instanceId": "query",
+   "isSystemEvents": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "parentInstanceId": "query",
+   "severity": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "source": "query",
+   "startTime": "query",
+   "subDomain": "query",
+   "userId": "query"
+  },
+  "description": "Get Audit Log Event instances from the Event-Hub"
+ },
+ {
+  "name": "api_getAuditLogSummary",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/event/event-series/audit-log/summary",
+  "params": {
+   "category": "query",
+   "context": "query",
+   "description": "query",
+   "deviceId": "query",
+   "domain": "query",
+   "endTime": "query",
+   "eventHierarchy": "query",
+   "eventId": "query",
+   "instanceId": "query",
+   "isParentOnly": "query",
+   "isSystemEvents": "query",
+   "name": "query",
+   "parentInstanceId": "query",
+   "severity": "query",
+   "siteId": "query",
+   "source": "query",
+   "startTime": "query",
+   "subDomain": "query",
+   "userId": "query"
+  },
+  "description": "Get Audit Log Summary from the Event-Hub"
+ },
+ {
+  "name": "api_getBusinessAPIExecutionDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/dnacaap/management/execution-status/{executionId}",
+  "params": {
+   "executionId": "path"
+  },
+  "description": "Retrieves the execution details of a Business API"
+ },
+ {
+  "name": "api_getConnectorTypes",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/event/config/connector-types",
+  "params": {},
+  "description": "Get the list of connector types"
+ },
+ {
+  "name": "api_getEmailDestination",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/email-config",
+  "params": {},
+  "description": "Get Email Destination"
+ },
+ {
+  "name": "api_getEmailEventSubscriptions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription/email",
+  "params": {
+   "category": "query",
+   "domain": "query",
+   "eventIds": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "subDomain": "query",
+   "type": "query"
+  },
+  "description": "Gets the list of email Subscriptions's based on provided query params"
+ },
+ {
+  "name": "api_getEmailSubscriptionDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription-details/email",
+  "params": {
+   "instanceId": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Gets the list of subscription details for specified connectorType"
+ },
+ {
+  "name": "api_getEventArtifacts",
+  "method": "GET",
+  "uri": "/dna/system/api/v1/event/artifact",
+  "params": {
+   "eventIds": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "search": "query",
+   "sortBy": "query",
+   "tags": "query"
+  },
+  "description": "Gets the list of artifacts based on provided offset and limit"
+ },
+ {
+  "name": "api_getEventSubscriptions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription",
+  "params": {
+   "eventIds": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Gets the list of all event subscriptions regardless of connector type (REST/Webhook, Email, Syslog, etc.). Use this tool when the user asks for all subscriptions, subscription details, or wants to see configured event subscriptions without specifying a particular connector type. It can answer questions like 'Show me all event subscriptions', 'List my subscriptions', 'What subscriptions are configured?', or 'Get subscription details'."
+ },
+ {
+  "name": "api_getEvents",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/events",
+  "params": {
+   "eventId": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "tags": "query"
+  },
+  "description": "Gets the list of registered Events with provided eventIds or tags as mandatory"
+ },
+ {
+  "name": "api_getExecutionIdByReportId",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/flexible-report/report/{reportId}/executions",
+  "params": {
+   "Content-Type": "header",
+   "reportId": "path"
+  },
+  "description": "Get Execution Id by Report Id"
+ },
+ {
+  "name": "api_getFailedITSMEvents",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/integration/events",
+  "params": {
+   "instanceId": "query"
+  },
+  "description": "Used to retrieve the list of integration events that failed to create tickets in ITSM"
+ },
+ {
+  "name": "api_getNotifications",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/event-series",
+  "params": {
+   "category": "query",
+   "domain": "query",
+   "endTime": "query",
+   "eventIds": "query",
+   "limit": "query",
+   "namespace": "query",
+   "offset": "query",
+   "order": "query",
+   "severity": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "source": "query",
+   "startTime": "query",
+   "subDomain": "query",
+   "tags": "query",
+   "type": "query"
+  },
+  "description": "Gets the Published Notifications based on the various inputs from the user. It can answer questions like have there been any notifications for event X? or Give me a list of all notifications and many more combinations. Always use this API with a limit and if the user does not give it, only fetch 5 records and do not allow more than 10 records to be fetched at once"
+ },
+ {
+  "name": "api_getRest_WebhookEventSubscriptions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription/rest",
+  "params": {
+   "category": "query",
+   "domain": "query",
+   "eventIds": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "subDomain": "query",
+   "type": "query"
+  },
+  "description": "Gets the list of Rest/Webhook Subscriptions's based on provided query params"
+ },
+ {
+  "name": "api_getRest_WebhookSubscriptionDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription-details/rest",
+  "params": {
+   "instanceId": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Gets the list of subscription details for specified connectorType"
+ },
+ {
+  "name": "api_getSNMPDestination",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/dna-event/snmp-config",
+  "params": {
+   "configId": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Get SNMP Destination"
+ },
+ {
+  "name": "api_getSNMPProperties",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/snmp-property",
+  "params": {},
+  "description": "Returns SNMP properties"
+ },
+ {
+  "name": "api_getStatusAPIForEvents",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/api-status/{executionId}",
+  "params": {
+   "executionId": "path"
+  },
+  "description": "Get the Status of events API calls with provided executionId as mandatory path parameter"
+ },
+ {
+  "name": "api_getSyslogDestination",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/syslog-config",
+  "params": {
+   "configId": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "protocol": "query",
+   "sortBy": "query"
+  },
+  "description": "Get Syslog Destination"
+ },
+ {
+  "name": "api_getSyslogEventSubscriptions",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription/syslog",
+  "params": {
+   "category": "query",
+   "domain": "query",
+   "eventIds": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "subDomain": "query",
+   "type": "query"
+  },
+  "description": "Gets the list of Syslog Subscriptions's based on provided offset and limit"
+ },
+ {
+  "name": "api_getSyslogSubscriptionDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/subscription-details/syslog",
+  "params": {
+   "instanceId": "query",
+   "limit": "query",
+   "name": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query"
+  },
+  "description": "Gets the list of subscription details for specified connectorType"
+ },
+ {
+  "name": "api_getTaskDetailsByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tasks/{id}/detail",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the task details for the given task ID"
+ },
+ {
+  "name": "api_getTasks",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tasks",
+  "params": {
+   "endTime": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "parentId": "query",
+   "rootId": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "status": "query"
+  },
+  "description": "Returns task(s) based on filter criteria"
+ },
+ {
+  "name": "api_getTasksByID",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tasks/{id}",
+  "params": {
+   "id": "path"
+  },
+  "description": "Returns the task with the given ID"
+ },
+ {
+  "name": "api_getTasksCount",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/tasks/count",
+  "params": {
+   "endTime": "query",
+   "parentId": "query",
+   "rootId": "query",
+   "startTime": "query",
+   "status": "query"
+  },
+  "description": "Returns the number of tasks that meet the filter criteria"
+ },
+ {
+  "name": "api_getWebhookDestination",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/event/webhook",
+  "params": {
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "webhookIds": "query"
+  },
+  "description": "Get Webhook Destination"
+ }
+]

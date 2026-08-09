@@ -36,17 +36,21 @@ lib/
     approval_client.dart      # tracks pushed approvals + approval_resolve (068, US1)
     capability_registration.dart # advertises/toggles capture capabilities (068, US3)
     capture_client.dart       # phone-initiated attach + Border-requested capture handler (068, US2/US3)
+    badge_lifecycle.dart      # BadgeLifecycleObserver -- badge recompute on launch/resume (099, Story 1)
+    dashboard_data.dart       # Dashboard's snapshot of existing service state, no new backend calls (099, Story 5)
+    live_activity.dart        # MethodChannel wrapper for the Lock Screen Live Activity (099, Story 7)
   screens/
     enrollment_screen.dart    # "Scan Border QR Code" + "Can't scan? Enter manually"
     manual_enrollment_screen.dart # domain/port/token typed by hand (no camera needed)
     empty_state.dart          # shared illustrated empty state
+    dashboard_screen.dart     # Border health, identity, unread/pending counts -- default landing tab (099, Story 5)
     feed_screen.dart          # renders pushed messages (066)
     chat_screen.dart          # request/answer history, cancel, voice, camera (067/068)
     device_scan_screen.dart   # "Scan Device" -- any time, post-enrollment (067, US5)
     approvals_screen.dart     # pending approvals, Face ID/fingerprint gate (068, US1)
     settings_screen.dart      # per-capture-type enable/disable toggles (068, US3)
     capture_screen.dart       # live camera preview + shutter (068, US2/US3)
-  main.dart                   # EnrollmentGate -> HomeShell (Chat/Feed/Approvals/Settings tabs)
+  main.dart                   # EnrollmentGate -> HomeShell (Dashboard/Chat/Feed/Approvals/Settings tabs, Dashboard first -- 099)
 android/app/src/main/kotlin/.../MainActivity.kt  # FlutterFragmentActivity (local_auth needs a FragmentActivity host) + AndroidKeyStore EdgeIdentity plugin
 ios/Runner/EdgeIdentityPlugin.swift               # Secure Enclave EdgeIdentity plugin
 ios/Runner/X509SelfSigned.swift                    # manual self-signed cert builder

@@ -102,7 +102,7 @@ const INTEGRATION_CATALOG = [
   { id: 'protocol', name: 'Protocol Ops', category: 'Network Platforms', prefixes: ['protocol-'], color: '#577590', transport: 'stdio', toolEstimate: 10, description: 'Intent validation and active protocol participation.' },
   { id: 'catc', name: 'Catalyst Center', category: 'Controller Platforms', prefixes: ['catc-'], color: '#118ab2', transport: 'stdio', toolEstimate: 24, description: 'Controller inventory, client ops, and troubleshooting.' },
   { id: 'arista', name: 'Arista CVP', category: 'Controller Platforms', prefixes: ['arista-'], color: '#06b6d4', transport: 'stdio', toolEstimate: 8, description: 'CloudVision-backed workflow surface.' },
-  { id: 'fortimanager', name: 'FortiManager', category: 'Security', prefixes: ['fortimanager-'], color: '#d00000', transport: 'stdio', toolEstimate: 10, description: 'Firewall governance and package review.' },
+  { id: 'fortinet', name: 'Fortinet', category: 'Security', prefixes: ['fmg_', 'fgt_', 'faz_', 'fortinet_'], color: '#d00000', transport: 'stdio', toolEstimate: 21, description: 'Three planes: FortiManager policy intent, FortiGate observed state, FortiAnalyzer traffic. Read-only default, writes behind approval + change record.' },
   { id: 'paloalto', name: 'Palo Alto Panorama', category: 'Security', prefixes: ['paloalto-'], color: '#e76f51', transport: 'stdio', toolEstimate: 10, description: 'Panorama-managed firewall policy lookup.' },
   { id: 'fmc', name: 'Cisco FMC', category: 'Security', prefixes: ['fmc-'], color: '#bc4749', transport: 'http', toolEstimate: 8, description: 'Cisco Secure Firewall policy search.' },
   { id: 'nmap', name: 'Nmap', category: 'Security', prefixes: ['nmap-'], color: '#ff006e', transport: 'stdio', toolEstimate: 18, description: 'Scoped scanning and service detection.' },
@@ -113,6 +113,13 @@ const INTEGRATION_CATALOG = [
   { id: 'thousandeyes', name: 'ThousandEyes', category: 'Observability', prefixes: ['te-'], color: '#ffb703', transport: 'http', toolEstimate: 29, description: 'Synthetic and path-aware external monitoring.' },
   { id: 'kubeshark', name: 'Kubeshark', category: 'Observability', prefixes: ['kubeshark-'], color: '#ffcb77', transport: 'http', toolEstimate: 6, description: 'Kubernetes packet and flow visibility.' },
   { id: 'gtrace', name: 'gtrace', category: 'Observability', prefixes: ['gtrace-'], color: '#bde0fe', transport: 'stdio', toolEstimate: 6, description: 'Path tracing and IP enrichment.' },
+  { id: 'bgp-intel', name: 'BGP & Registry Intel', category: 'Observability', prefixes: ['rpki_', 'registry_', 'routing_', 'peering_', 'atlas_', 'resource_'], color: '#8ac926', transport: 'stdio', toolEstimate: 10, description: 'RPKI origin validation, RDAP ownership, PeeringDB peering, routing visibility. Public APIs, no credentials. not-found is NOT invalid.' },
+  { id: 'zabbix', name: 'Zabbix NMS', category: 'Observability', prefixes: ['zabbix_'], color: '#d40000', transport: 'stdio', toolEstimate: 3, description: 'Self-hosted SNMP-poller NMS — polled metric history, problems, device availability. Read-only, vendored third-party (GPL-3.0) in its own venv. The only source of POLLED HISTORY: what something was doing over time. An empty history result is usually the wrong value_type, not an absence.' },
+  { id: 'anta', name: 'Arista ANTA Validation', category: 'Observability', prefixes: ['anta_'], color: '#f7931e', transport: 'stdio', toolEstimate: 4, description: 'The ASSERTION layer — 208 ANTA tests behind 4 tools, 1,272-token manifest, read-only, EOS only. Five verdicts that never merge: pass/fail/not_applicable/skipped/error. ANTA natively calls a test for an UNCONFIGURED feature a failure; this reclassifies it to not_applicable, because counting it claims a BGP fault on a box with no BGP. No health percentage is ever emitted.' },
+  { id: 'elastic', name: 'Elasticsearch Logs', category: 'Observability', prefixes: ['list_indices', 'get_mappings', 'search', 'esql', 'get_shards'], color: '#00bfb3', transport: 'stdio', toolEstimate: 5, description: 'Read-only log search over an operator-supplied Elasticsearch 8.x/9.x. Adopted Apache-2.0 image, digest-pinned, 1,094-token manifest. NEVER report a count from an unguarded search: Elasticsearch caps totals at 10,000 and this server discards the relation:"gte" marker, so a capped floor is indistinguishable from an exact count. Count with esql or track_total_hits.' },
+  { id: 'k8s', name: 'Kubernetes (read-only)', category: 'Observability', prefixes: ['pods_', 'resources_', 'namespaces_', 'events_'], color: '#326ce5', transport: 'stdio', toolEstimate: 7, description: 'Read-only Kubernetes API — pods, services, ingresses, EndpointSlices, NetworkPolicies. Vendored Apache-2.0 Go binary, pinned and checksummed, 1,643-token manifest. Secrets denied at two layers. An empty list is NOT evidence of absence: the server silently narrows a cluster-wide query on insufficient RBAC.' },
+  { id: 'catc', name: 'Catalyst Center (read-only)', category: 'Device Automation', prefixes: ['catc_'], color: '#00bceb', transport: 'stdio', toolEstimate: 10, description: 'All 514 read-only Catalyst Center operations behind 8 grouped dispatchers plus find/describe — 1,821-token manifest where inlining every tool would cost 64,420. Adopts Cisco official catalogue (Apache-2.0), not its runtime. An empty inventory is a statement about the controller, never about the network.' },
+  { id: 'document', name: 'Document Generation', category: 'Platform Services', prefixes: ['docx_', 'xlsx_', 'pptx_', 'pdf_', 'list_documents'], color: '#4c956c', transport: 'stdio', toolEstimate: 6, description: 'Change-record .docx, audit .xlsx, exec .pptx and PDF form filling from real NetClaw data. No credentials, writes files only. Per-element provenance at a chokepoint — a missing value renders as NOT AVAILABLE, never as a blank.' },
   { id: 'globalping', name: 'Globalping', category: 'Observability', prefixes: ['globalping-'], color: '#00b4d8', transport: 'http', toolEstimate: 12, description: 'Outside-in measurement from ~4,800 probes across ~1,390 ASNs — ping, traceroute, DNS, MTR and HTTP toward a public target. The only vantage point NetClaw has outside its own administrative domain. Public endpoints only; "no probes matched" is not "the service is down".' },
   { id: 'suzieq', name: 'SuzieQ', category: 'Observability', prefixes: ['suzieq-'], color: '#a8dadc', transport: 'stdio', toolEstimate: 5, description: 'Network state queries, assertions, summaries, and path tracing.' },
   { id: 'aws', name: 'AWS', category: 'Cloud', prefixes: ['aws-'], color: '#f77f00', transport: 'http', toolEstimate: 55, description: 'Networking, monitoring, security, cost, and diagram generation in AWS.' },
@@ -288,10 +295,51 @@ const ENV_MAP = {
     files: [],
     notes: 'CloudVision Portal hostname and service account token.',
   },
-  fortimanager: {
-    env: ['FORTIMANAGER_URL', 'FORTIMANAGER_USERNAME', 'FORTIMANAGER_PASSWORD', 'FORTIMANAGER_MCP_CMD'],
-    files: [],
-    notes: 'FortiManager API credentials.',
+  'bgp-intel': {
+    env: ['BGP_INTEL_MCP_CMD', 'BGP_INTEL_USER_AGENT', 'BGP_INTEL_MAX_RPS', 'BGP_INTEL_AUDIT_LOG'],
+    files: ['mcp-servers/bgp-intel-mcp/server.py'],
+    notes: 'No credentials required — all five sources are public unauthenticated APIs. Read-only. Self-imposed 4 req/s serial ceiling against volunteer-funded infrastructure (RIPE NCC, PeeringDB). Every response carries its source and is GAIT-audited. RPKI not-found means no ROA exists and is NOT a finding.',
+  },
+  zabbix: {
+    env: ['ZABBIX_MCP_CMD', 'ZABBIX_URL', 'ZABBIX_TOKEN', 'READ_ONLY', 'VERIFY_SSL', 'ZABBIX_API_BLACKLIST'],
+    files: ['mcp-servers/zabbix-mcp/vendor/zabbix-mcp-server/src/zabbix_mcp_server/server.py'],
+    notes: 'Vendored third-party (mpeirone/zabbix-mcp-server, GPL-3.0, pinned 0722f48), adopted UNMODIFIED and run from a dedicated virtualenv because it needs fastmcp 3.x while five NetClaw servers pin <3. Strictly read-only: NetClaw FORCES READ_ONLY=true because the upstream launcher inverts that default, plus a destructive-method deny-list as a second layer. Three tools, 589-token manifest. NOTE: this is a generic passthrough, so the two silent-wrong-answer traps (history.get defaults to the wrong value_type; raw history ages out into hourly trends) are enforced by the SKILLS, not by code — the first NetClaw integration where that is true. No per-call GAIT audit.',
+  },
+  anta: {
+    env: ['ANTA_USERNAME', 'ANTA_PASSWORD', 'ANTA_ENABLE_PASSWORD', 'ANTA_VERIFY_TLS', 'ANTA_TIMEOUT'],
+    files: ['mcp-servers/anta-mcp/server.py', 'mcp-servers/anta-mcp/verdict.py'],
+    notes: 'NetClaw-authored thin server over ANTA 1.9.0 (Apache-2.0, Arista Networks) run from its OWN VIRTUALENV -- not a preference: a system install moves cryptography 46.0.5 -> 50.0.0 and four installed distributions depend on it with no upper bound (Authlib, pygnmi, service-identity, sshsig), including NetClaw federation TLS (spec 060). Measured by pip dry-run BEFORE installing, per spec 076. THE ASSERTION LAYER: everything else reads state, this asserts on it. 208 tests / 33 modules behind 4 tools = 1,272/5,000 tokens; one tool per test would be ~58,000 (11.6x), the Catalyst Center failure. Discovery tools contact NO device. SILENT WRONG ANSWER, reproduced live on clab-mandible-veos1: ANTA reports a test for an unconfigured feature as FAILURE -- VerifyBGPPeerCount returns "BGP inactive" as a failure on a switch with no BGP -- so the server reclassifies to not_applicable with a deliberately NARROW rule that never hides a real failure, preserving the original message. Five verdicts counted separately and a health percentage is REFUSED (passed/total is meaningless with not_applicable in the denominator). Unreachable device => error with zero results, never test failures. Read-only: ANTA tests, it never configures. No per-call GAIT audit.',
+  },
+  elastic: {
+    env: ['ES_URL', 'ES_API_KEY', 'ES_USERNAME', 'ES_PASSWORD', 'ES_SSL_SKIP_VERIFY'],
+    files: ['workspace/skills/elasticsearch-logs/SKILL.md'],
+    notes: 'Adopted third-party (docker.elastic.co/mcp/elasticsearch, Apache-2.0, image 0.4.6 on rmcp 0.2.1), run as a digest-pinned container — NetClaw authors no server code and installs no cluster. Strictly read-only: 5 tools, 1,094/5,000 tokens, and the manifest contains no index/update/delete/reindex verb, so writes are unreachable regardless of credential. UPSTREAM IS DEPRECATED and adopted deliberately: the successor (Agent Builder MCP endpoint) is ENTERPRISE-tier on self-managed, so the supported path is paywalled while this one is Apache-2.0 and already published. Pinned by digest so a security-only update cannot change answers. SILENT WRONG ANSWER, reproduced live: Elasticsearch caps hits.total at 10,000 and marks it relation:"gte"; this server renders only the integer, so a capped floor reads as exact — 10,075 real documents reported as 10,000, and the error is unbounded (a million-doc index still says 10,000). Enforced by the SKILL, not by code: count via esql or search+track_total_hits, both verified to return 10,075. ES_URL resolves INSIDE the container — a host cluster is host.docker.internal, never localhost. No per-call GAIT audit.',
+  },
+  k8s: {
+    env: ['K8S_MCP_CMD', 'K8S_KUBECONFIG'],
+    files: ['mcp-servers/k8s-mcp/config.toml'],
+    notes: 'Vendored third-party (containers/kubernetes-mcp-server v0.0.66, Apache-2.0 — licence-identical to NetClaw), a pinned statically-linked Go binary verified against a recorded SHA-256. Zero runtime deps, so it cannot collide with the fastmcp<3 pins. STRICTLY READ-ONLY, trimmed to 7 tools / 1,643 tokens — the upstream DEFAULT is 21 tools / 5,716 and busts the ceiling. Secrets denied by config AND by the ServiceAccount RBAC. Requires an EXPLICIT kubeconfig: every candidate otherwise defaults to the ambient current-context, which may be production. KNOWN UPSTREAM BEHAVIOUR: on insufficient RBAC it rewrites a cluster-wide query to one namespace and returns it with no error (resources.go:34-38) — reproduced live. Mitigated by mandating a cluster-wide-read ServiceAccount plus a skill preflight. No per-call GAIT audit.',
+  },
+  catc: {
+    env: ['CATALYST_CENTER_HOST', 'CATALYST_CENTER_USERNAME', 'CATALYST_CENTER_PASSWORD', 'CATALYST_CENTER_VERIFY_SSL'],
+    files: ['mcp-servers/catc-mcp/server.py'],
+    notes: 'Strictly read-only: all 514 GET operations from Cisco official catc-mcp-oss catalogue (Apache-2.0, release/2.3.7.11), the single POST excluded. Reached via 8 grouped dispatchers + catc_find + catc_describe_operation = 1,821 tokens; inlining all 515 upstream tools measures 64,420 (12.9x the ceiling). NetClaw uses the CATALOGUE not the runtime, which avoids upstream unbounded fastmcp>=2.0.0 (collides with five servers pinning <3), its port-7001 HTTP transport, and a container. Every response is stamped at a chokepoint with WHICH APPLIANCE answered and WHEN — not cosmetic: sandboxdnac and sandboxdnac2 share credentials and one has zero devices. Empty results and ZERO COUNTS both carry an explicit caveat that they describe the controller, not the network.',
+  },
+  document: {
+    env: ['DOCUMENT_MCP_CMD', 'DOCUMENT_OUTPUT_DIR', 'DOCUMENT_MAX_ROWS', 'DOCUMENT_MAX_BLOCKS', 'DOCUMENT_MAX_SLIDES', 'DOCUMENT_AUDIT_LOG'],
+    files: ['mcp-servers/document-mcp/server.py'],
+    notes: 'No credentials required — this server writes files and touches no device and no ticket. Every document carries its generation time, NetClaw attribution and a per-element source, stamped at a single chokepoint and GAIT-audited. A value without a source is refused; a missing value renders as NOT AVAILABLE, never as a blank. Office templates are refused (scratch-only); PDF form filling is supported because form fields are explicitly named. Output is timestamped in workspace/output/document-mcp/ and never overwritten.',
+  },
+  fortinet: {
+    env: [
+      'FORTINET_MCP_CMD',
+      'FORTIMANAGER_HOST', 'FORTIMANAGER_API_TOKEN',
+      'FORTIGATE_HOST', 'FORTIGATE_API_TOKEN',
+      'FORTIANALYZER_HOST', 'FORTIANALYZER_API_TOKEN',
+      'FORTINET_VERIFY_SSL', 'FORTINET_ALLOW_WRITES',
+    ],
+    files: ['mcp-servers/fortinet-mcp/server.py'],
+    notes: 'Three planes, token auth per plane. Every response carries plane + scope and is GAIT-audited. Read-only unless FORTINET_ALLOW_WRITES=true, and writes still require human approval AND an approved ServiceNow change record.',
   },
   paloalto: {
     env: ['PANORAMA_URL', 'PANORAMA_API_KEY', 'PANOS_MCP_CMD'],
@@ -1189,6 +1237,77 @@ app.get('/api/testbed/raw', (req, res) => {
   res.type('text/yaml').send(readText(TESTBED_FILE) || '# No testbed found');
 });
 
+// ── Layout persistence (feature 102, US3) ────────────────────────────────────
+//
+// SCOPED EXCEPTION. Specs 072 and 101 both forbade changing server.js; the operator
+// chose server-side persistence so a layout follows them across browsers. FR-032
+// narrows the exception to these three routes — /api/n2n and /api/graph are
+// untouched — and this is a new route in an existing pattern, since the server
+// already accepts writes (PUT /api/env, PUT /api/testbed/raw).
+//
+// Validation is the SHARED pure module, so the browser cannot construct a payload
+// the server would reject and vice versa. A second validator here would drift from
+// the client's within a release.
+import { validateLayout } from './src/orgchart/layout-payload.js';
+
+// FR-034: a module constant. No path component may derive from a request.
+const LAYOUT_FILE = path.join(os.homedir(), '.openclaw', 'netclaw-hud-layout.json');
+const LAYOUT_MAX_BYTES = 256 * 1024;
+
+app.get('/api/layout', (req, res) => {
+  // Absence is a normal first-run condition, NOT an error — making the client
+  // distinguish 404-means-none from 404-means-broken is a needless trap.
+  try {
+    if (!fs.existsSync(LAYOUT_FILE)) return res.json({ version: 1, empty: true });
+    const raw = fs.readFileSync(LAYOUT_FILE, 'utf8');
+    const parsed = JSON.parse(raw);
+    const check = validateLayout(parsed);
+    if (!check.ok) {
+      // FR-019: fall back to computed AND say so. A 500 would be indistinguishable
+      // from the server being down, and the HUD would render identically either way.
+      return res.json({ version: 1, empty: true, warning: `saved layout rejected: ${check.error}` });
+    }
+    return res.json(parsed);
+  } catch (e) {
+    return res.json({ version: 1, empty: true, warning: `saved layout unreadable: ${e.message}` });
+  }
+});
+
+app.put('/api/layout', (req, res) => {
+  const body = req.body;
+  // FR-033: bound per-route. The global express.json({limit:'4mb'}) is far too
+  // permissive for a layout file and must not be relied on as the bound.
+  const size = JSON.stringify(body ?? null).length;
+  if (size > LAYOUT_MAX_BYTES) {
+    return res.status(400).json({ error: `payload ${size} bytes exceeds ${LAYOUT_MAX_BYTES}` });
+  }
+  const check = validateLayout(body);
+  if (!check.ok) return res.status(400).json({ error: check.error });
+
+  // Validate before touching disk, then write atomically: a crash mid-write must not
+  // leave a truncated file that fails every subsequent read.
+  try {
+    fs.mkdirSync(path.dirname(LAYOUT_FILE), { recursive: true });
+    const tmp = `${LAYOUT_FILE}.tmp`;
+    fs.writeFileSync(tmp, JSON.stringify(body, null, 2), 'utf8');
+    fs.renameSync(tmp, LAYOUT_FILE);
+    return res.json({ saved: true, savedAt: new Date().toISOString() });
+  } catch (e) {
+    return res.status(507).json({ error: `write failed: ${e.message}` });
+  }
+});
+
+app.delete('/api/layout', (req, res) => {
+  // FR-017: discardable. Without this a bad saved layout is unremovable from the UI,
+  // since "reset to computed" only covers the current session.
+  try {
+    if (fs.existsSync(LAYOUT_FILE)) fs.unlinkSync(LAYOUT_FILE);
+    return res.json({ discarded: true });
+  } catch (e) {
+    return res.status(507).json({ error: `discard failed: ${e.message}` });
+  }
+});
+
 app.put('/api/testbed/raw', (req, res) => {
   const { content } = req.body;
   if (!content) return res.status(400).json({ error: 'Expected { content: "yaml string" }' });
@@ -1564,7 +1683,7 @@ function resolveActivations(message, graph) {
     'topology': ['pyats'],
     'security': ['ise', 'nmap', 'nvd', 'fmc'],
     'audit': ['pyats', 'nvd', 'gait'],
-    'firewall': ['asa', 'fmc', 'paloalto', 'fortimanager', 'checkpoint'],
+    'firewall': ['asa', 'fmc', 'paloalto', 'fortinet', 'checkpoint'],
     'check point': ['checkpoint'],
     'checkpoint': ['checkpoint'],
     'threat emulation': ['checkpoint'],

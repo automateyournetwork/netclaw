@@ -19,6 +19,11 @@
       href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap"
       rel="stylesheet"
     />
+    <!-- Feature 101 FR-024 ("zero console errors") was the one criterion the HUD
+         failed, and only because no favicon was declared — the browser requests
+         /favicon.ico by default and got a 404 on every load. Pre-existing, cosmetic,
+         and it made an otherwise-clean console permanently non-empty. -->
+    <link rel="icon" type="image/png" href="/logos/netclaw.png" />
     <link rel="stylesheet" href="/src/styles.css" />
   </head>
   <body>

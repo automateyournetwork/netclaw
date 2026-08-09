@@ -1,0 +1,670 @@
+[
+ {
+  "name": "api_applications",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/application-health",
+  "params": {
+   "applicationHealth": "query",
+   "applicationName": "query",
+   "deviceId": "query",
+   "endTime": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "offset": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Intent API to get a list of applications for a specific site, a device, or a client device's MAC address. For a combination of a specific application with site and/or device the API gets list of issues/devices/endpoints."
+ },
+ {
+  "name": "api_clientProximity",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/client-proximity",
+  "params": {
+   "number_days": "query",
+   "time_resolution": "query",
+   "username": "query"
+  },
+  "description": "This intent API will provide client proximity information for a specific wireless user. Proximity is defined as presence on the same floor at the same time as the specified wireless user. The Proximity workflow requires the subscription to the following event (via the Event Notification workflow) prior to making this API call: NETWORK-CLIENTS-3-506 - Client Proximity Report."
+ },
+ {
+  "name": "api_countClientsEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/clients/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceCategory": "query",
+   "deviceSubCategory": "query",
+   "endTime": "query",
+   "id": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Retrieves the total count of client devices that provide energy data, filtered according to the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_countTheNumberOfEvents",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceEvents/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "apMac": "query",
+   "clientMac": "query",
+   "deviceFamily": "query",
+   "endTime": "query",
+   "messageType": "query",
+   "networkDeviceId": "query",
+   "networkDeviceName": "query",
+   "severity": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "API to fetch the count of assurance events that match the filter criteria. Please refer to the 'API Support Documentation' section to understand which fields are supported. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceEvents-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_devices",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/device-health",
+  "params": {
+   "deviceRole": "query",
+   "endTime": "query",
+   "health": "query",
+   "limit": "query",
+   "offset": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Intent API for accessing DNA Assurance Device object for generating reports, creating dashboards or creating additional value added services."
+ },
+ {
+  "name": "api_fetchTheCountOfEndpoints",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/endpoints/count",
+  "params": {
+   "aiSpoofingTrustLevel": "query",
+   "ancPolicy": "query",
+   "authMethod": "query",
+   "changedProfileTrustLevel": "query",
+   "concurrentMacTrustLevel": "query",
+   "deviceType": "query",
+   "hardwareManufacturer": "query",
+   "hardwareModel": "query",
+   "ip": "query",
+   "ipBlocklistDetected": "query",
+   "macAddress": "query",
+   "macAddresses": "query",
+   "natTrustLevel": "query",
+   "operatingSystem": "query",
+   "postureStatus": "query",
+   "profilingStatus": "query",
+   "randomMac": "query",
+   "registered": "query",
+   "trustScore": "query",
+   "unauthPortDetected": "query",
+   "weakCredDetected": "query"
+  },
+  "description": "Fetch the total count of endpoints that match the given filter criteria."
+ },
+ {
+  "name": "api_getAIEndpointAnalyticsAttributeDictionaries",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/dictionaries",
+  "params": {
+   "includeAttributes": "query"
+  },
+  "description": "Fetches the list of attribute dictionaries."
+ },
+ {
+  "name": "api_getANCPolicies",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/anc-policies",
+  "params": {},
+  "description": "Fetches the list of ANC policies available in ISE."
+ },
+ {
+  "name": "api_getAllHealthScoreDefinitionsForGivenFilters",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/healthScoreDefinitions",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "deviceType": "query",
+   "id": "query",
+   "includeForOverallHealth": "query",
+   "limit": "query",
+   "offset": "query"
+  },
+  "description": "Get all health score defintions.\n\nSupported filters are id, name and overall health include status. A health score definition can be different across device type. So, deviceType in the query param is important and default is all device types.\n\nBy default all supported attributes are listed in response. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getAllTheDetailsAndSuggestedActionsOfAnIssueForTheG_34a1791b",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceIssues/{id}",
+  "params": {
+   "Accept-Language": "header",
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "id": "path",
+   "view": "query"
+  },
+  "description": "Returns all the details and suggested actions of an issue for the given issue id. https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-IssuesList-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getClientDetail",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/client-detail",
+  "params": {
+   "macAddress": "query",
+   "timestamp": "query"
+  },
+  "description": "Returns detailed Client information retrieved by Mac Address for any given point of time."
+ },
+ {
+  "name": "api_getClientEnergyByID",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/clients/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves client device energy data for a specified time range based on the client ID. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getClientEnrichmentDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/client-enrichment-details",
+  "params": {
+   "__persistbapioutput": "header",
+   "entity_type": "header",
+   "entity_value": "header",
+   "issueCategory": "header"
+  },
+  "description": "Enriches a given network End User context (a network user-id or end user\u2019s device Mac Address) with details about the user, the devices that the user is connected to and the assurance issues that the user is impacted by"
+ },
+ {
+  "name": "api_getClientEnrichmentDetailsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/client-enrichment-details",
+  "params": {
+   "entity_type": "header",
+   "entity_value": "header",
+   "issueCategory": "header"
+  },
+  "description": "Retrieve Catalyst Center client enrichment context for a known network user identifier or endpoint MAC address. Use this release-specific OpenAPI enrichment endpoint when the request is about enriched client context, associated devices, or impacted assurance issues. Do not substitute lower-level client detail, time-series, or troubleshooting tools when the user asks for enrichment context. Always send both required parameters: set entity_type to network_user_id for a user identity or mac_address for an endpoint MAC address, and put the actual identifier only in entity_value."
+ },
+ {
+  "name": "api_getClientsEnergy",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/energy/clients",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "cursor": "query",
+   "deviceCategory": "query",
+   "deviceSubCategory": "query",
+   "endTime": "query",
+   "id": "query",
+   "limit": "query",
+   "order": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves a list of client devices with energy data based on the specified query parameters. For detailed information about the usage of the API, please refer to the Open API specification document -\u00a0https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-deviceEnergy_1.0-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_getCountOfProfilingRules",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/profiling-rules/count",
+  "params": {
+   "includeDeleted": "query",
+   "ruleType": "query"
+  },
+  "description": "This API fetches the count of profiling rules based on the filter values provided in the query parameters. The filter parameters are same as that of 'GET /profiling-rules' API, excluding the pagination and sort parameters."
+ },
+ {
+  "name": "api_getDetailsOfASingleAssuranceEvent",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceEvents/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "id": "path",
+   "view": "query"
+  },
+  "description": "API to fetch the details of an assurance event using event `id`. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceEvents-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getDetailsOfASingleProfilingRule",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/profiling-rules/{ruleId}",
+  "params": {
+   "ruleId": "path"
+  },
+  "description": "Fetches details of the profiling rule for the given 'ruleId'."
+ },
+ {
+  "name": "api_getEndpointDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/endpoints/{epId}",
+  "params": {
+   "epId": "path",
+   "include": "query"
+  },
+  "description": "Fetches details of the endpoint for the given unique identifier 'epId'."
+ },
+ {
+  "name": "api_getHealthScoreDefinitionForTheGivenId",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/healthScoreDefinitions/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Get health score defintion for the given id. Definition includes all properties from HealthScoreDefinition schema by default. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getIssueEnrichmentDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/issue-enrichment-details",
+  "params": {
+   "__persistbapioutput": "header",
+   "entity_type": "header",
+   "entity_value": "header"
+  },
+  "description": "Enriches a given network issue context (an issue id or end user\u2019s Mac Address) with details about the issue(s), impacted hosts and suggested actions for remediation"
+ },
+ {
+  "name": "api_getIssueEnrichmentDetailsV2",
+  "method": "GET",
+  "uri": "/dna/intent/api/v2/issue-enrichment-details",
+  "params": {
+   "entity_type": "header",
+   "entity_value": "header"
+  },
+  "description": "Retrieve Catalyst Center issue enrichment context for a known issue identifier or client MAC address. Use this release-specific OpenAPI enrichment endpoint when the request is about enriched issue context, impacted hosts, or suggested remediation context. If enriched issue context is requested, use this tool instead of basic issue lookup or issue-list tools even when a single issue identifier is available. Always send both required parameters: set entity_type to issue_id for an issue identifier or mac_address for a client MAC address, and put the actual identifier only in entity_value."
+ },
+ {
+  "name": "api_getListOfChildEventsForTheGivenWirelessClientEvent",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceEvents/{id}/childEvents",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "Wireless client event could have child events and this API can be used to fetch the same using parent event `id` as the input. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceEvents-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getListOfProfilingRules",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/profiling-rules",
+  "params": {
+   "includeDeleted": "query",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "ruleType": "query",
+   "sortBy": "query"
+  },
+  "description": "This API fetches the list of profiling rules. It can be used to show profiling rules in client applications, or export those from an environment. 'POST /profiling-rules/bulk' API can be used to import such exported rules into another environment.\nIf this API is used to export rules to be imported into another Cisco Catalyst Center system, then ensure that 'includeDeleted' parameter is 'true', so that deleted rules get synchronized correctly.\nUse query parameters to filter the data, as required. If no filter is provided, then it will include only rules of type 'Custom Rule' in the response. By default, the response is limited to 500 records. Use 'limit' parameter to fetch higher number of records, if required. 'GET /profiling-rules/count' API can be used to find out the total number of rules in the system."
+ },
+ {
+  "name": "api_getTaskDetails",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/tasks/{taskId}",
+  "params": {
+   "taskId": "path"
+  },
+  "description": "Fetches the details of backend task. Task is typically created by making call to some other API that takes longer time to execute."
+ },
+ {
+  "name": "api_getTheCountOfHealthScoreDefinitionsBasedOnProvidedFilters",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/healthScoreDefinitions/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "deviceType": "query",
+   "id": "query",
+   "includeForOverallHealth": "query"
+  },
+  "description": "Get the count of health score definitions based on provided filters. Supported filters are id, name and overall health include status. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-issueAndHealthDefinitions-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTheDetailsOfIssuesForGivenSetOfFilters_2",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceIssues",
+  "params": {
+   "Accept-Language": "header",
+   "X-CALLER-ID": "header",
+   "aiDriven": "query",
+   "attribute": "query",
+   "category": "query",
+   "deviceType": "query",
+   "endTime": "query",
+   "entityId": "query",
+   "entityType": "query",
+   "fabricDriven": "query",
+   "fabricSiteDriven": "query",
+   "fabricSiteId": "query",
+   "fabricTransitDriven": "query",
+   "fabricTransitSiteId": "query",
+   "fabricVnDriven": "query",
+   "fabricVnName": "query",
+   "isGlobal": "query",
+   "issueId": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "name": "query",
+   "networkDeviceId": "query",
+   "networkDeviceIpAddress": "query",
+   "offset": "query",
+   "order": "query",
+   "priority": "query",
+   "severity": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteName": "query",
+   "sortBy": "query",
+   "startTime": "query",
+   "status": "query",
+   "updatedBy": "query",
+   "view": "query"
+  },
+  "description": "Returns all details of each issue along with suggested actions for given set of filters specified in query parameters. If there is no start and/or end time, then end time will be defaulted to current time and start time will be defaulted to 24-hours ago from end time. All string type query parameters support wildcard search (using *). For example: siteHierarchy=Global/San Jose/* returns issues under all sites whole siteHierarchy starts with \"Global/San Jose/\". https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-IssuesList-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_getTheTotalNumberOfIssuesForGivenSetOfFilters",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceIssues/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "aiDriven": "query",
+   "category": "query",
+   "deviceType": "query",
+   "endTime": "query",
+   "entityId": "query",
+   "entityType": "query",
+   "fabricDriven": "query",
+   "fabricSiteDriven": "query",
+   "fabricSiteId": "query",
+   "fabricTransitDriven": "query",
+   "fabricTransitSiteId": "query",
+   "fabricVnDriven": "query",
+   "fabricVnName": "query",
+   "isGlobal": "query",
+   "issueId": "query",
+   "macAddress": "query",
+   "name": "query",
+   "networkDeviceId": "query",
+   "networkDeviceIpAddress": "query",
+   "priority": "query",
+   "severity": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "siteName": "query",
+   "startTime": "query",
+   "status": "query",
+   "updatedBy": "query"
+  },
+  "description": "Returns the total number issues for given set of filters. If there is no start and/or end time, then end time will be defaulted to current time and start time will be defaulted to 24-hours ago from end time. https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-IssuesList-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_issues",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/issues",
+  "params": {
+   "aiDriven": "query",
+   "deviceId": "query",
+   "endTime": "query",
+   "issueStatus": "query",
+   "macAddress": "query",
+   "priority": "query",
+   "siteId": "query",
+   "startTime": "query"
+  },
+  "description": "Intent API to get a list of global issues, issues for a specific device, or issue for a specific client device's MAC address."
+ },
+ {
+  "name": "api_queryTheEndpoints",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/endpoint-analytics/endpoints",
+  "params": {
+   "aiSpoofingTrustLevel": "query",
+   "ancPolicy": "query",
+   "authMethod": "query",
+   "changedProfileTrustLevel": "query",
+   "concurrentMacTrustLevel": "query",
+   "deviceType": "query",
+   "hardwareManufacturer": "query",
+   "hardwareModel": "query",
+   "include": "query",
+   "ip": "query",
+   "ipBlocklistDetected": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "macAddresses": "query",
+   "natTrustLevel": "query",
+   "offset": "query",
+   "operatingSystem": "query",
+   "order": "query",
+   "postureStatus": "query",
+   "profilingStatus": "query",
+   "randomMac": "query",
+   "registered": "query",
+   "sortBy": "query",
+   "trustScore": "query",
+   "unauthPortDetected": "query",
+   "weakCredDetected": "query"
+  },
+  "description": "Query the endpoints, optionally using various filter and pagination criteria. 'GET /endpoints/count' API can be used to find out the total number of endpoints matching the filter criteria."
+ },
+ {
+  "name": "api_retrieveACountOfTheNumberOfAssuranceTasksThatCurrentlyExist",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceTasks/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "status": "query"
+  },
+  "description": "returns a count of the number of assurance tasks that are not expired\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceTasks-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrieveAListOfAssuranceTasks",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceTasks",
+  "params": {
+   "X-CALLER-ID": "header",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "sortBy": "query",
+   "status": "query"
+  },
+  "description": "returns all existing tasks in a paginated list\n\ndefault sorting of list is `startTime`, `asc`\n\nvalid field to sort by are [`startTime`,`endTime`,`updateTime`,`status`]\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceTasks-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrieveASpecificAssuranceTaskById",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/assuranceTasks/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "id": "path"
+  },
+  "description": "returns a task given a specific task id\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-AssuranceTasks-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesSpecificClientInformationMatchingTheMACAddress",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/clients/{id}",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "startTime": "query",
+   "view": "query"
+  },
+  "description": "Retrieves specific client information matching the MAC address. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-clients1-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheListOfClients_WhileAlsoOfferingBasicFil_820210a0",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/clients",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "band": "query",
+   "connectedNetworkDeviceName": "query",
+   "endTime": "query",
+   "ipv4Address": "query",
+   "ipv6Address": "query",
+   "limit": "query",
+   "macAddress": "query",
+   "offset": "query",
+   "order": "query",
+   "osType": "query",
+   "osVersion": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "sortBy": "query",
+   "ssid": "query",
+   "startTime": "query",
+   "type": "query",
+   "view": "query",
+   "wlcName": "query"
+  },
+  "description": "Retrieves the list of clients, while also offering basic filtering and sorting capabilities. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-clients1-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_retrievesTheTotalCountOfClientsByApplyingBasicFiltering",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/clients/count",
+  "params": {
+   "X-CALLER-ID": "header",
+   "band": "query",
+   "connectedNetworkDeviceName": "query",
+   "endTime": "query",
+   "ipv4Address": "query",
+   "ipv6Address": "query",
+   "macAddress": "query",
+   "osType": "query",
+   "osVersion": "query",
+   "siteHierarchy": "query",
+   "siteHierarchyId": "query",
+   "siteId": "query",
+   "ssid": "query",
+   "startTime": "query",
+   "type": "query",
+   "wlcName": "query"
+  },
+  "description": "Retrieves the number of clients by applying basic filtering. For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-clients1-1.0.0-resolved.yaml"
+ },
+ {
+  "name": "api_systemHealthAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnostics/system/health",
+  "params": {
+   "domain": "query",
+   "limit": "query",
+   "offset": "query",
+   "subdomain": "query",
+   "summary": "query"
+  },
+  "description": "This API retrieves the latest system events"
+ },
+ {
+  "name": "api_systemHealthCountAPI",
+  "method": "GET",
+  "uri": "/dna/intent/api/v1/diagnostics/system/health/count",
+  "params": {
+   "domain": "query",
+   "subdomain": "query"
+  },
+  "description": "This API gives the count of the latest system events"
+ },
+ {
+  "name": "api_theTrendAnalyticsDataForAFabricSiteInTheSpecifiedTimeRange",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/fabricSiteHealthSummaries/{id}/trendAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "startTime": "query",
+   "trendInterval": "query"
+  },
+  "description": "Get health time series for a specific Fabric Site by providing the unique Fabric site id in the url path.\nThe data will be grouped based on the specified trend time interval. If startTime and endTime are not provided, the API defaults to the last 24 hours.\n\nBy default:\n- the number of records returned will be 500.\n- the records will be sorted in time ascending (`asc`) order\n\nex: id:93a25378-7740-4e20-8d90-0060ad9a1be0\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-fabricSiteHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_theTrendAnalyticsDataForATransitNetworkInTheSpecifi_5c01728a",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/transitNetworkHealthSummaries/{id}/trendAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "startTime": "query",
+   "trendInterval": "query"
+  },
+  "description": "Get health time series for a specific Transit Network by providing the unique Transit Network id in the url path.\nThe data will be grouped based on the specified trend time interval. If startTime and endTime are not provided, the API defaults to the last 24 hours.\n\nBy default:\n- the number of records returned will be 500.\n- the records will be sorted in time ascending (`asc`) order\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-transitNetworkHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_theTrendAnalyticsDataForAVirtualNetworkInTheSpecifi_66fff53f",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/virtualNetworkHealthSummaries/{id}/trendAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "attribute": "query",
+   "endTime": "query",
+   "id": "path",
+   "limit": "query",
+   "offset": "query",
+   "order": "query",
+   "startTime": "query",
+   "trendInterval": "query"
+  },
+  "description": "Get health time series for a specific Virtual Network by providing the unique Virtual Network id in the url path. Layer 2 Virtual Networks are only included in health reporting for EVPN protocol deployments. The special Layer 3 VN called \u2018INFRA_VN\u2019 is also not included for user access through Assurance virtualNetworkHealthSummaries APIS. \n\nThe data will be grouped based on the specified trend time interval. If startTime and endTime are not provided, the API defaults to the last 24 hours.\n\nBy default:\n- the number of records returned will be 500.\n- the records will be sorted in time ascending (`asc`) order\n\nFor EVPN , {id} is a combination of VN:FabrisiteId. ex: L2VN1:93a25378-7740-4e20-8d90-0060ad9a1be0\n\nThis API provides the latest health data until the given `endTime`. If data is not ready for the provided endTime, the request will fail with error code `400 Bad Request`, and the error message will indicate the recommended endTime to use to retrieve a complete data set. This behavior may occur if the provided endTime=currentTime, since we are not a real time system. When `endTime` is not provided, the API returns the latest data.\n\nFor detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-virtualNetworkHealthSummaries-1.0.1-resolved.yaml"
+ },
+ {
+  "name": "api_theTrendAnalyticsDataForThousandEyesTestResultsInTh_312f30ed",
+  "method": "GET",
+  "uri": "/dna/data/api/v1/thousandEyesTestResults/trendAnalytics",
+  "params": {
+   "X-CALLER-ID": "header",
+   "agentId": "query",
+   "endTime": "query",
+   "limit": "query",
+   "networkDeviceName": "query",
+   "offset": "query",
+   "order": "query",
+   "siteId": "query",
+   "startTime": "query",
+   "testId": "query",
+   "testName": "query",
+   "testType": "query",
+   "trendInterval": "query"
+  },
+  "description": "Get trend time series for ThousandEyes test results.\n\nThe data will be grouped based on the specified trend time interval. If `startTime` and `endTime` are not provided, the API defaults to the last 24 hours.\n\nBy default the number of records returned will be 100 and the records will be sorted by time in ascending (`asc`) order\n.  For detailed information about the usage of the API, please refer to the Open API specification document - https://github.com/cisco-en-programmability/catalyst-center-api-specs/blob/main/Assurance/CE_Cat_Center_Org-thousandEyesTestResults-1.0.0-resolved.yaml"
+ }
+]

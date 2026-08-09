@@ -1,0 +1,20 @@
+# Zabbix NMS — spec 083 (roadmap R11)
+#
+# THESE INSTALL INTO A DEDICATED VIRTUALENV, NOT THE SYSTEM INTERPRETER.
+#
+# Why: the vendored upstream requires fastmcp 3.x. Five NetClaw servers pin
+# fastmcp<3 (netbox-mcp-server, CiscoFMC-MCP-server-community, Wikipedia_MCP,
+# rag-mcp, ISE_MCP). Installing this alongside them would break all five —
+# spec 076's cryptography incident, exactly, which is why multivendor-cli-mcp
+# already runs from its own venv too.
+#
+# Do not "simplify" this into the shared interpreter.
+#
+# Measured resolution inside the venv, 2026-08-03:
+#   fastmcp 3.4.5 · mcp 1.29.0 · zabbix_utils 2.0.4 · beautifulsoup4 4.15.0 · requests 2.34.2
+#
+# The dependency set itself is declared by the vendored package's pyproject.toml.
+# Installing the vendored directory pulls them in; this file exists so the
+# installer has a single documented entry point and so the rationale above
+# travels with the code.
+./vendor/zabbix-mcp-server
