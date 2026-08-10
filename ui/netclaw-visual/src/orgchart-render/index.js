@@ -206,9 +206,13 @@ export function orgChartTheme() {
 
 function rebuildLinks() {
   if (!chart.root || !chart.layout) return;
-  chart.root.remove(chart.links.group);
-  chart.links.dispose();
-  chart.links = buildLinks(chart.layout.nodes, chart.layout.categories);
+  if (chart.links) {
+    chart.root.remove(chart.links.group);
+    chart.links.dispose?.();
+  }
+  const preset = chart.lastAppliedPreset || 'orgchart';
+  const categoryRouting = preset === 'orgchart' || preset === 'freeform';
+  chart.links = buildLinks(chart.layout.nodes, chart.layout.categories, categoryRouting);
   chart.root.add(chart.links.group);
 }
 
@@ -712,19 +716,6 @@ export function applyLayoutPositions(store) {
   if (chart.bands?.group) chart.bands.group.visible = bandsMeaningful;
 
   if (chart.selectedNodeId) setSelectedNode(chart.selectedNodeId);
-}
-
-/** Links are geometry built from positions, so they must be rebuilt when those move. */
-function rebuildLinks() {
-  if (!chart.root || !chart.layout) return;
-  if (chart.links) {
-    chart.root.remove(chart.links.group);
-    chart.links.dispose?.();
-  }
-  const preset = chart.lastAppliedPreset || 'orgchart';
-  const categoryRouting = preset === 'orgchart' || preset === 'freeform';
-  chart.links = buildLinks(chart.layout.nodes, chart.layout.categories, categoryRouting);
-  chart.root.add(chart.links.group);
 }
 
 /** Live preview during a drag — mesh and label only, links on release. */
