@@ -1,0 +1,14 @@
+[Unit]
+Description=Push a NetClaw status heartbeat to enrolled mobile devices every 30 minutes
+
+[Timer]
+# Matches agents.defaults.heartbeat (30m) so the phone and Slack report on the
+# same cadence. Deliberately offset from boot so the mesh daemon is up and its
+# peer/member state has settled before the first push.
+OnBootSec=3min
+OnUnitActiveSec=30min
+AccuracySec=30s
+Persistent=true
+
+[Install]
+WantedBy=timers.target

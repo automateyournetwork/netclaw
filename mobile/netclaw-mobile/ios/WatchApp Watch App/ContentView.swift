@@ -9,6 +9,8 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
+            HeartbeatView(store: store)
+                .tabItem { Label("Status", systemImage: "waveform.path.ecg") }
             ApprovalsView(store: store)
                 .tabItem { Label("Approvals", systemImage: "checkmark.shield") }
             FeedView(store: store)

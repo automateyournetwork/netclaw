@@ -718,3 +718,44 @@ NetClaw MCP is stdio), and **a container** needed only to isolate the first. Dep
 
 `pyats`/`multivendor-cli` read the device (and win on disagreement) · `netbox`/`nautobot` hold intent, this
 reports discovery · `devnet-catalyst-search` reads docs, this queries an appliance.
+
+## Lantronix Percepxion + SLC, out-of-band console management (`percepxion-mcp-server`, `slc-mcp-server`)
+
+**Spec 104.** Two external, actively co-developed Lantronix repos, not vendored, not registered in
+`config/openclaw.json`, external/on-demand install (dedicated venv per server, see
+`component_install_percepxion`/`component_install_slc` in `scripts/lib/install-steps.sh`). 37 tools each.
+Full install steps, environment variables, and workflows in `workspace/skills/percepxion-oob/SKILL.md`.
+
+| Server | Repository | Answers |
+|---|---|---|
+| `percepxion-mcp-server` | [Lantronix/percepxion-mcp-server](https://github.com/Lantronix/percepxion-mcp-server) | Fleet-wide, async — firmware compliance across many devices, bulk config push, security audit, CLI dispatch through the cloud (job group create, poll, then `get_cli_command_output` for text) |
+| `slc-mcp-server` | [Lantronix/slc-mcp-server](https://github.com/Lantronix/slc-mcp-server) | One device, sync — direct port status, session management, CLI output with no polling, cellular status |
+
+### Why two servers, not one
+
+They're not redundant — the highest-value content is the routing rule between them. Percepxion has no
+single-device sync path; slc-mcp-server has no fleet concept. A device reachable only through Percepxion's
+cloud path has no direct-network alternative via slc-mcp-server, and vice versa for a device with no cloud
+enrollment. The skill's "Key Terms" and "CLI Command Routing" sections encode this as tool-routing rules.
+
+### Behaviour worth knowing
+
+- **`get_job_group` never returns CLI command output text** — only job status and metadata. A live root-cause
+  finding (pre-v1.1.0) traced actual output retrieval to a second, undocumented REST call
+  (`POST /v1/telemetry/result/search`), absent from Percepxion's own OpenAPI spec. Shipped as
+  `get_cli_command_output` in `percepxion-mcp-server` v1.1.0.
+- **Percepxion's `organization_id` requirement is role-dependent.** Required for Project Admin sessions on
+  job/telemetry/content/Smart-Group/audit calls; optional (auto-scoped) for Tenant Admin/Tenant User.
+  Omitting it as a Project Admin previously surfaced as an opaque `400 ACCESS_DENIED: "Invalid access to
+  tenant."`; v1.1.0+ raises a clear error naming the missing parameter instead.
+- **"OOB device" and "managed device" are not the same identity space.** The OOB device is the Lantronix
+  console server; the managed device is the router/switch/firewall cabled to its serial port. Confusing the
+  two sends a command to the wrong hardware, not a soft error.
+- Both servers pin `fastmcp>=3.1.0,<4.0`, the same conflict shape as `zabbix-mcp` (five NetClaw servers pin
+  `fastmcp<3`), hence the dedicated venv rather than the shared installer interpreter.
+
+### Boundaries
+
+`redfish-mcp` reads BMC/hardware health on a server chassis, this reads OOB console-server/managed-device
+state — disjoint hardware classes · neither `pyats` nor `multivendor-cli` reaches a device through a serial
+console port, this closes that gap when the primary network path is down.

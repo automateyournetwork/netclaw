@@ -4,7 +4,7 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 221 skills, and 163 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, and MemPalace persistent AI memory.
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 222 skills, and 165 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, MemPalace persistent AI memory, and Lantronix Percepxion/SLC out-of-band console-server management (fleet-wide and direct single-device).
 
 ## Resources
 
@@ -257,7 +257,7 @@ claw
   <img src="ui/netclaw-visual/logos/netclawvisualhud.png" alt="NetClaw Visual HUD — 3D Network Operations Dashboard" width="800">
 </p>
 
-NetClaw includes a Three.js 3D operations dashboard that computes its integration and skill inventory live from the codebase (currently 163 MCP integrations and 221 skills) each time it's opened, alongside your device fleet and live BGP peering topology — so the dashboard never drifts out of sync with what's actually installed. Chat with NetClaw directly from the browser, watch integrations light up as tools execute, and inspect every node in the graph. The Canvas/A2UI visualization skill renders inline topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards directly in the chat interface.
+NetClaw includes a Three.js 3D operations dashboard that computes its integration and skill inventory live from the codebase (currently 165 MCP integrations and 222 skills) each time it's opened, alongside your device fleet and live BGP peering topology — so the dashboard never drifts out of sync with what's actually installed. Chat with NetClaw directly from the browser, watch integrations light up as tools execute, and inspect every node in the graph. The Canvas/A2UI visualization skill renders inline topology maps, health dashboards, alert cards, change timelines, config diffs, path traces, and health scorecards directly in the chat interface.
 
 ```bash
 cd ui/netclaw-visual
@@ -536,7 +536,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 
 ---
 
-## MCP Servers (163)
+## MCP Servers (165)
 
 > Adding one? Follow **[docs/ADDING-AN-MCP.md](docs/ADDING-AN-MCP.md)** and run
 > `python3 scripts/reconcile-mcp.py` before pushing — CI enforces it.
@@ -654,6 +654,8 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 124 | Zeek + Suricata NSM | NetClaw-authored (`mcp-servers/nsm-mcp`) | stdio (Python) | **Offline PCAP network-security monitoring, read-only** — Zeek 8.2.1 session/protocol metadata and Suricata 8.0.6 signature alerting, both from digest-pinned containers. 6 tools / 934 tokens. Every response carries detection posture: Suricata reporting 0 alerts with 0 signatures loaded is reported as an inert detector, never as clean traffic |
 | 125 | DuckDB Analysis | NetClaw-authored (`mcp-servers/analysis-mcp`) | stdio (Python) | **Read-only SQL over exported network data** — Zeek logs, Suricata `eve.json`, generated reports. 3 tools. Sandboxed by DuckDB itself: datasets are materialised, then `enable_external_access=false` + `lock_configuration=true` close every filesystem and network path irreversibly, so the memory, RAG, federation and GAIT stores are unreachable by construction rather than by pattern matching |
 | 126 | Redfish BMC | NetClaw-authored (`mcp-servers/redfish-mcp`) | stdio (Python) | **Out-of-band hardware visibility, read-only** — power state, component health, thermal and power, BMC firmware, SEL logs across iDRAC/iLO/XClarity/Supermicro. 6 tools / 728 tokens. Answers "is the box dead or is it the network": every response carries a verdict stating what the reading establishes, and an unreachable BMC can never be reported as a downed host. No power control — `#ComputerSystem.Reset` is deliberately unimplemented |
+| 127 | Lantronix Percepxion | [Lantronix/percepxion-mcp-server](https://github.com/Lantronix/percepxion-mcp-server) | stdio (Python, dedicated venv) | **Fleet-wide OOB console-server management, external/on-demand** — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch with output retrieval across the Percepxion SaaS platform (37 tools). Actively co-developed by Lantronix, not vendored — see [spec 104](specs/104-percepxion-oob-integration/spec.md) |
+| 128 | Lantronix SLC direct | [Lantronix/slc-mcp-server](https://github.com/Lantronix/slc-mcp-server) | stdio (Python, dedicated venv) | **Direct, synchronous single-device OOB console-server access, external/on-demand** — port status, session management, synchronous CLI output, cellular status against individual SLC9000/SLC8000 console servers (37 tools). Same repo family and venv reasoning as Percepxion above — see [spec 104](specs/104-percepxion-oob-integration/spec.md) |
 ### Additional Server Notes
 
 All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`, except where noted below (HTTP/remote endpoints).
@@ -690,7 +692,7 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 
 ---
 
-## Skills (221)
+## Skills (222)
 
 ### pyATS Device Skills (9)
 
@@ -952,6 +954,12 @@ All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.p
 | Skill | What It Does |
 |-------|-------------|
 | **suzieq-observability** | SuzieQ network observability (5 read-only tools): query current and historical network state from 20+ tables (`suzieq_show`), get aggregated statistics and summary views (`suzieq_summarize`), run validation assertions for BGP/OSPF/interface/EVPN health (`suzieq_assert`), discover distinct values and distributions for any column (`suzieq_unique`), trace hop-by-hop forwarding paths between endpoints (`suzieq_path`). Supports time-travel queries via start_time/end_time for historical analysis. Wraps SuzieQ REST API via async httpx client with stdio transport. GAIT audit trail. |
+
+### Lantronix OOB Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
+| **percepxion-oob** | Out-of-band console-server management via two external Lantronix MCP servers: fleet-wide operations through Percepxion SaaS (device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch with output retrieval) and direct, synchronous single-device access via slc-mcp-server (port status, session management, sync CLI output, cellular status). Disambiguates "OOB device" (the Lantronix console server) from "managed device" (the router/switch/firewall cabled to its serial port) before routing any tool call — the two device-identity spaces are not interchangeable. Read-only CLI policy default on both servers, `PERCEPXION_CLI_WRITE_ENABLED`/write-mode opt-in explicit. See [spec 104](specs/104-percepxion-oob-integration/spec.md). |
 
 ### Cisco Meraki Skills (5)
 

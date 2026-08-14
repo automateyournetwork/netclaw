@@ -1,0 +1,10 @@
+[Unit]
+Description=NetClaw edge heartbeat — push status to enrolled mobile devices
+Documentation=file:///home/johncapobianco/netclaw/scripts/edge-heartbeat.py
+After=netclaw-mesh.service
+Wants=netclaw-mesh.service
+
+[Service]
+Type=oneshot
+EnvironmentFile=-%h/.openclaw/mesh.systemd.env
+ExecStart=/usr/bin/python3 /home/johncapobianco/netclaw/scripts/edge-heartbeat.py

@@ -125,6 +125,15 @@
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>remote-notification</string>
+			<string>fetch</string>
+		</array>
+		<!-- 103/FR-013 (US3): BGAppRefreshTask identifier for opportunistic
+	     background drain-and-notify. Must match the string registered in
+	     AppDelegate.swift's BGTaskScheduler.shared.register(forTaskWithIdentifier:)
+	     exactly, or the OS silently refuses to run the task. -->
+		<key>BGTaskSchedulerPermittedIdentifiers</key>
+		<array>
+			<string>ca.automateyournetwork.netclaw.mobile.refresh</string>
 		</array>
 	</dict>
 </plist>

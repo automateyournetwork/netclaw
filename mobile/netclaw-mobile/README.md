@@ -339,7 +339,14 @@ Border, not a dependency.
   `main.dart`'s `_tryRegisterPush()` swallows the resulting failure to a
   `debugPrint`, so **push silently does nothing rather than erroring** until those
   credentials exist. Notification-tap deep-linking is wired on the same success
-  path: it jumps to the Feed tab and highlights the referenced message.
+  path: it jumps to the Feed tab and highlights the referenced message. Since
+  spec 107 that works even when the message has not arrived yet — the tap records
+  a `PendingOpenIntent` (`lib/ncfed/pending_open_intent.dart`) which resolves when
+  the message lands, or gives up after 8s. Foreground pushes are also recorded
+  straight from their data payload (`lib/ncfed/push_message_ingest.dart`), so a
+  pushed message is readable without a live channel; `MessageFeedStore.append`
+  deduplicates on `pushed_at`, which is what stops that path and the Border's
+  replay from each storing their own copy.
 - Voice transcription (`speech_to_text`, feature 067 US4) and the device deep link
   (`app_links`, feature 067 US5) are wired in and pass their unit tests, but — like
   push notifications — haven't been exercised against a real microphone or a real

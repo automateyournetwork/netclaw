@@ -1942,7 +1942,18 @@ if [ -d "$PROTOCOL_MCP_DIR" ]; then
     if [ -f "$PROTOCOL_MCP_DIR/requirements.txt" ]; then
         netclaw_pip_install -r "$PROTOCOL_MCP_DIR/requirements.txt" || {
             log_warn "Full Protocol MCP install failed — installing core deps..."
-            netclaw_pip_install scapy networkx mcp fastmcp || \
+            # Spec 105: websockets/qrcode/httpx/h2 belong in this fallback, not
+            # just in requirements.txt. They are the mesh daemon's own runtime
+            # deps (NCFED edge listener + enrollment QR + push), so omitting them
+            # here produced a daemon that starts, reports healthy, and cannot
+            # bind the mobile edge listener — diagnosed as a role problem.
+            #
+            # Two further corrections to this list, both from requirements.txt's
+            # own load-bearing comments: `mcp` MUST carry <2 (2.0.0 removed
+            # mcp.server.fastmcp, which this server imports, so a bare `mcp`
+            # resolves 2.x and dies at import), and `fastmcp` is deliberately NOT
+            # here — spec 077 removed it as a dead pin nothing imports.
+            netclaw_pip_install scapy networkx 'mcp>=1.0.0,<2' websockets qrcode httpx h2 || \
                 log_warn "Protocol MCP core deps install failed"
         }
     fi
@@ -1985,6 +1996,26 @@ if [ -d "$N2N_MCP_DIR" ]; then
         log_warn "n2n-mcp deps install failed — install httpx + fastmcp manually"
 else
     log_warn "n2n-mcp not found — it should be bundled at mcp-servers/n2n-mcp/"
+fi
+
+# Spec 105: N2N declares "Requires the mesh" above, and the mesh daemon IS
+# protocol-mcp/bgp-daemon-v2.py — but until now this step installed only
+# n2n-mcp's deps. Selecting N2N *without* the optional Protocol component
+# therefore produced a running mesh daemon missing its own runtime deps
+# (websockets → no NCFED edge listener, qrcode → no enrollment QR). The daemon
+# logged one ImportError and carried on; the operator-facing symptom was
+# `risk token --edge` answering "only a Border can issue enrollment tokens",
+# which points at the role rather than the missing module. That cost hours on
+# the first real-world mobile install.
+#
+# Idempotent: pip no-ops when the requirements are already satisfied, so this is
+# free when the Protocol component was selected too.
+PROTOCOL_MCP_REQS="$MCP_DIR/protocol-mcp/requirements.txt"
+if [ -f "$PROTOCOL_MCP_REQS" ]; then
+    log_info "Ensuring mesh daemon (protocol-mcp) dependencies — N2N runs on it..."
+    netclaw_pip_install -r "$PROTOCOL_MCP_REQS" || \
+        netclaw_pip_install websockets qrcode httpx h2 || \
+        log_warn "mesh daemon deps install failed — the NCFED edge listener will not bind"
 fi
 
 # Enable the federation layer in the OpenClaw .env
@@ -4142,3 +4173,103 @@ if [ -d "$_STEPS_D" ]; then
     unset _frag
 fi
 unset _STEPS_D
+
+# ── Step 53: Lantronix Percepxion MCP Server (OOB fleet management) ─
+component_install_percepxion() {
+log_step "Installing Lantronix Percepxion MCP Server..."
+echo "  Source: https://github.com/Lantronix/percepxion-mcp-server"
+echo "  Fleet-wide OOB console-server SaaS — device inventory, firmware compliance/rollout,"
+echo "  config mgmt, Smart Groups, security audit, async CLI dispatch (37 tools)"
+echo "  Actively co-developed by Lantronix, not a frozen third-party target — see"
+echo "  specs/104-percepxion-oob-integration/spec.md for why this is external, not vendored."
+
+PERCEPXION_MCP_DIR="$MCP_DIR/percepxion-mcp-server"
+clone_or_pull "$PERCEPXION_MCP_DIR" "https://github.com/Lantronix/percepxion-mcp-server.git"
+
+if [ -d "$PERCEPXION_MCP_DIR" ]; then
+    # DEDICATED VIRTUALENV — NOT OPTIONAL, DO NOT "SIMPLIFY" THIS AWAY.
+    # This server pins fastmcp>=3.1.0,<4.0. Five NetClaw servers pin fastmcp<3:
+    # netbox-mcp-server, CiscoFMC-MCP-server-community, Wikipedia_MCP, rag-mcp,
+    # ISE_MCP. A shared install breaks all five — the same conflict shape as
+    # component_install_zabbix() (spec 076's cryptography incident), which is
+    # why this follows Zabbix's dedicated-venv pattern instead of pyATS/JunOS's
+    # shared-interpreter pattern (neither of those pins fastmcp at all).
+    echo "  Creating a dedicated virtualenv (fastmcp 3.x conflicts with five other servers)"
+
+    if command -v netclaw_venv_create >/dev/null 2>&1; then
+        netclaw_venv_create "$PERCEPXION_MCP_DIR/.venv" || log_warn "Percepxion MCP venv creation failed"
+    elif command -v uv >/dev/null 2>&1; then
+        uv venv "$PERCEPXION_MCP_DIR/.venv" >/dev/null 2>&1 || log_warn "Percepxion MCP venv creation failed (uv)"
+    else
+        log_warn "Neither netclaw_venv_create nor uv available — cannot build the Percepxion venv."
+        log_warn "Do NOT fall back to 'python3 -m venv': ensurepip is unavailable on some hosts,"
+        log_warn "and installing into the system interpreter would break five other servers."
+    fi
+
+    if [ -x "$PERCEPXION_MCP_DIR/.venv/bin/python" ]; then
+        # Install into the VENV interpreter, named explicitly. Deliberately NOT
+        # netclaw_pip_install: that targets the system interpreter, which is the
+        # exact thing this venv exists to protect.
+        ( cd "$PERCEPXION_MCP_DIR" && \
+          uv pip install -q --python "$PERCEPXION_MCP_DIR/.venv/bin/python" -r requirements.txt ) 2>/dev/null || \
+            log_warn "Percepxion MCP dependency install failed (fastmcp, requests, python-dotenv)"
+        log_info "Percepxion MCP prepared: $PERCEPXION_MCP_DIR (isolated venv)"
+    fi
+else
+    log_warn "Percepxion MCP clone failed"
+fi
+
+# No config/openclaw.json entry — the installed path is user-specific (external/
+# on-demand classification, spec 104). Register manually per workspace/skills/
+# percepxion-oob/SKILL.md's "MCP Server" section, and set PERCEPXION_USERNAME /
+# PERCEPXION_PASSWORD (or a Vault/AWS/CyberArk provider) in .env first.
+log_info "Not auto-registered in openclaw.json — see workspace/skills/percepxion-oob/SKILL.md"
+log_info "  to register (stdio, runs from the venv above) and for required env vars."
+
+echo ""
+}
+
+# ── Step 54: Lantronix SLC MCP Server (direct OOB console access) ─
+component_install_slc() {
+log_step "Installing Lantronix SLC MCP Server..."
+echo "  Source: https://github.com/Lantronix/slc-mcp-server"
+echo "  Direct, synchronous single-device OOB console-server access — port status,"
+echo "  session mgmt, sync CLI output, cellular status (37 tools)"
+echo "  Actively co-developed by Lantronix, not a frozen third-party target — see"
+echo "  specs/104-percepxion-oob-integration/spec.md for why this is external, not vendored."
+
+SLC_MCP_DIR="$MCP_DIR/slc-mcp-server"
+clone_or_pull "$SLC_MCP_DIR" "https://github.com/Lantronix/slc-mcp-server.git"
+
+if [ -d "$SLC_MCP_DIR" ]; then
+    # DEDICATED VIRTUALENV — same fastmcp>=3.1.0,<4.0 conflict as percepxion-mcp-server
+    # above. See that function's comment for the full explanation; identical reasoning.
+    echo "  Creating a dedicated virtualenv (fastmcp 3.x conflicts with five other servers)"
+
+    if command -v netclaw_venv_create >/dev/null 2>&1; then
+        netclaw_venv_create "$SLC_MCP_DIR/.venv" || log_warn "SLC MCP venv creation failed"
+    elif command -v uv >/dev/null 2>&1; then
+        uv venv "$SLC_MCP_DIR/.venv" >/dev/null 2>&1 || log_warn "SLC MCP venv creation failed (uv)"
+    else
+        log_warn "Neither netclaw_venv_create nor uv available — cannot build the SLC venv."
+        log_warn "Do NOT fall back to 'python3 -m venv': ensurepip is unavailable on some hosts,"
+        log_warn "and installing into the system interpreter would break five other servers."
+    fi
+
+    if [ -x "$SLC_MCP_DIR/.venv/bin/python" ]; then
+        ( cd "$SLC_MCP_DIR" && \
+          uv pip install -q --python "$SLC_MCP_DIR/.venv/bin/python" -r requirements.txt ) 2>/dev/null || \
+            log_warn "SLC MCP dependency install failed (fastmcp, requests, hvac, boto3, pyotp)"
+        log_info "SLC MCP prepared: $SLC_MCP_DIR (isolated venv)"
+    fi
+else
+    log_warn "SLC MCP clone failed"
+fi
+
+# No config/openclaw.json entry — same external/on-demand classification as
+# percepxion-mcp-server above (spec 104).
+log_info "Not auto-registered in openclaw.json — see workspace/skills/percepxion-oob/SKILL.md"
+log_info "  to register (stdio, runs from the venv above) and for required env vars (SLC_{KEY}_*)."
+
+echo ""
+}

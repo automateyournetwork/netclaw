@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-08-08
+Auto-generated from all feature plans. Last updated: 2026-08-13
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -120,6 +120,8 @@ Auto-generated from all feature plans. Last updated: 2026-08-08
 - N/A — stateless client. All state from `GET /api/n2n` and `GET /api/graph`; nothing persisted. (101-hud-threejs-modernization)
 - JavaScript ES2022 (ESM), Node 22+ for tooling. No TypeScript. + `three@0.185.1` — **no new package**. New import surfaces: `three/webgpu` (`WebGPURenderer`, `PostProcessing`, `Lighting`), `three/tsl` (node functions), `three/addons/lighting/ClusteredLighting.js`, and `three/examples/jsm/tsl/display/*` (`BloomNode`, `RGBShiftNode`, `SMAANode`, `AfterImageNode`, `FilmNode`). Force-directed solver is hand-written, not a dependency (research R4). (102-hud-webgpu-interactive-layout)
 - **NEW** — a single JSON file written by `server.js` at a fixed path, holding per-preset node positions and camera pose. First persistent state the HUD client has ever had. `/api/n2n` and `/api/graph` unchanged (FR-032). (102-hud-webgpu-interactive-layout)
+- Dart 3.x / Flutter, SDK constraint `^3.12.2` (from `pubspec.yaml`) + No new packages. Reuses `firebase_messaging ^16.4.3`, `firebase_core ^4.12.1`, `flutter_local_notifications ^22.2.0`, all already present. Continues the 066–073 and 099 precedent of adding no dependency a story does not strictly require. (107-push-render-deeplink)
+- Existing on-device stores, extended not replaced — `MessageFeedStore` (JSON-Lines) and, unchanged, `ConversationStore`. No migration of stored history. (107-push-render-deeplink)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -139,9 +141,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
+- 107-push-render-deeplink: Added Dart 3.x / Flutter, SDK constraint `^3.12.2` (from `pubspec.yaml`) + No new packages. Reuses `firebase_messaging ^16.4.3`, `firebase_core ^4.12.1`, `flutter_local_notifications ^22.2.0`, all already present. Continues the 066–073 and 099 precedent of adding no dependency a story does not strictly require.
 - 102-hud-webgpu-interactive-layout: Added JavaScript ES2022 (ESM), Node 22+ for tooling. No TypeScript. + `three@0.185.1` — **no new package**. New import surfaces: `three/webgpu` (`WebGPURenderer`, `PostProcessing`, `Lighting`), `three/tsl` (node functions), `three/addons/lighting/ClusteredLighting.js`, and `three/examples/jsm/tsl/display/*` (`BloomNode`, `RGBShiftNode`, `SMAANode`, `AfterImageNode`, `FilmNode`). Force-directed solver is hand-written, not a dependency (research R4).
 - 101-hud-threejs-modernization: Added JavaScript ES2022 (ESM), Node 22+ for tooling. No TypeScript in this package. + `three` 0.170.0 → **0.185.1** (the only dependency change); existing `gsap`, `lil-gui`, `vite` 5.4 unchanged. Addons consumed as-is: `OrbitControls`, `CSS2DRenderer`, `EffectComposer` + `RenderPass`/`UnrealBloomPass`/`ShaderPass`/`OutputPass`/`SMAAPass`/`AfterimagePass`/`FilmPass`/`GlitchPass`, `VignetteShader`, `RGBShiftShader`. **No new package.**
-- 099-mobile-prerelease-sweep: Added Dart 3.x / Flutter (SDK constraint `^3.12.2`, matching `mobile/netclaw-mobile/pubspec.yaml`); Swift 5.0 (existing `ios/Runner/*.swift`, `ios/WatchApp Watch App/*.swift`); Bash (CI workflow is declarative YAML, no new scripting language) + No new Dart packages — reuses `flutter_local_notifications`, `firebase_messaging`, `firebase_core`, `local_auth`, `app_links`, `web_socket_channel`, `flutter_secure_storage` already in `pubspec.yaml`. New native-only surface: Apple's **ActivityKit** (Live Activity, Story 7) and **WidgetKit** (watchOS complication, Story 8) — both system frameworks, zero new third-party dependencies, consistent with every prior mobile spec (066-073) adding no new packages beyond what a given story strictly needs.
 
 
 <!-- MANUAL ADDITIONS START -->

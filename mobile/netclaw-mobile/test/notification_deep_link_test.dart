@@ -148,4 +148,143 @@ void main() {
       await deepLink.handleLocalNotificationTap(null);
     });
   });
+
+  group('a tap whose message has not arrived yet (spec 107/US1)', () {
+    late Directory dir;
+    setUp(() async => dir = await Directory.systemTemp.createTemp('ncfed_intent_dl_test_'));
+    tearDown(() => dir.delete(recursive: true));
+
+    EdgeMessage msg(DateTime at) => EdgeMessage(
+          contentType: MessageContentType.text,
+          content: 'Replayed from the Border backlog.',
+          designatedBy: 'agent',
+          pushedAt: at,
+        );
+
+    test('resolves when the message arrives AFTER the tap (FR-002)', () async {
+      // THE production bug. Measured against a real Border: channel auth at
+      // 16:49:12.513, replay at 16:49:15.514. A cold app launch from a tap
+      // finishes well inside that 3s gap, so the old single read of the store at
+      // tap time could never match, and the tap opened nothing.
+      final feedStore = MessageFeedStore(dir);
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      EdgeMessage? opened;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+      );
+
+      await deepLink.recordTap(at.toIso8601String());
+      expect(opened, isNull, reason: 'nothing to open yet — but must keep waiting');
+      expect(deepLink.intent.isPending, isTrue);
+
+      // Replay lands seconds later.
+      await feedStore.append(msg(at));
+      deepLink.messageArrived();
+
+      expect(opened, isNotNull);
+      expect(opened!.pushedAt, at);
+      deepLink.dispose();
+    });
+
+    test('resolves immediately when already stored, with no wait (FR-001)', () async {
+      final feedStore = MessageFeedStore(dir);
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      await feedStore.append(msg(at));
+      EdgeMessage? opened;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+      );
+
+      await deepLink.recordTap(at.toIso8601String());
+
+      expect(opened, isNotNull);
+      expect(deepLink.intent.isPending, isFalse);
+      deepLink.dispose();
+    });
+
+    test('expires and reports it, rather than waiting forever (FR-003)', () async {
+      final feedStore = MessageFeedStore(dir);
+      EdgeMessage? opened;
+      var timedOut = false;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+        onOpenTimedOut: () => timedOut = true,
+        intentTimeout: const Duration(milliseconds: 30),
+      );
+
+      await deepLink.recordTap('2026-08-13T16:45:34.000Z');
+      await Future<void>.delayed(const Duration(milliseconds: 80));
+
+      expect(timedOut, isTrue);
+      expect(opened, isNull);
+      deepLink.dispose();
+    });
+
+    test('a message arriving with no tap opens nothing (FR-011)', () async {
+      final feedStore = MessageFeedStore(dir);
+      EdgeMessage? opened;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+      );
+
+      await feedStore.append(msg(DateTime.utc(2026, 8, 13, 16, 45, 34)));
+      deepLink.messageArrived();
+
+      expect(opened, isNull, reason: 'no tap means no forced navigation');
+      deepLink.dispose();
+    });
+
+    test('a tap naming nothing records nothing', () async {
+      final feedStore = MessageFeedStore(dir);
+      final deepLink = NotificationDeepLink(store: feedStore, openMessage: (_) {});
+      await deepLink.recordTap(null);
+      expect(deepLink.intent.isPending, isFalse);
+      await deepLink.recordTap('');
+      expect(deepLink.intent.isPending, isFalse);
+      deepLink.dispose();
+    });
+
+    test('the local-notification path converges on the same intent (§5.4)', () async {
+      // It was already correct, because a local notification is only posted for
+      // an already-stored message. Convergence must not regress that.
+      final feedStore = MessageFeedStore(dir);
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      await feedStore.append(msg(at));
+      EdgeMessage? opened;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+      );
+
+      await deepLink.handleLocalNotificationTap(
+          '{"type":"feed","identifier":"${at.toIso8601String()}"}');
+
+      expect(opened, isNotNull);
+      deepLink.dispose();
+    });
+
+    test('a local tap for a message not yet stored now also waits', () async {
+      // Strictly better than before: previously this silently did nothing.
+      final feedStore = MessageFeedStore(dir);
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      EdgeMessage? opened;
+      final deepLink = NotificationDeepLink(
+        store: feedStore,
+        openMessage: (m) => opened = m,
+      );
+
+      await deepLink.handleLocalNotificationTap(
+          '{"type":"feed","identifier":"${at.toIso8601String()}"}');
+      expect(opened, isNull);
+
+      await feedStore.append(msg(at));
+      deepLink.messageArrived();
+      expect(opened, isNotNull);
+      deepLink.dispose();
+    });
+  });
 }

@@ -15,6 +15,9 @@ CATALOG=(
     "radkit|Device Automation|Cisco RADKit|Cloud-relayed remote CLI, SNMP, inventory (5 tools)"
     "multivendor-cli|Device Automation|Multivendor CLI Driver|Nornir/NAPALM/Netmiko — ~90 platform families Cisco/Juniper servers cannot reach (read-only)"
 
+    "percepxion|Out-of-Band|Lantronix Percepxion|Fleet-wide OOB console-server SaaS — device inventory, firmware compliance/rollout, config mgmt, Smart Groups, security audit, async CLI dispatch (37 tools, external/on-demand)"
+    "slc|Out-of-Band|Lantronix SLC direct|Direct, synchronous single-device OOB console-server access — port status, session mgmt, sync CLI output, cellular status (37 tools, external/on-demand)"
+
     "netbox|Source of Truth|NetBox|DCIM/IPAM source of truth (read-write)"
     "nautobot|Source of Truth|Nautobot|IPAM — IPs, prefixes, VRF/tenant/site (5 tools)"
     "nautobot-golden-config|Source of Truth|Nautobot Golden Config|Golden-config compliance job runner for Nautobot"
@@ -152,7 +155,7 @@ PROFILE_CISCO="pyats gait netbox servicenow aci ise catc meraki sdwan cml fmc \
 radkit te-community te-official nvd-cve cisco-psirt subnet-calc drawio-rfc uml packet-buddy"
 
 PROFILE_MULTIVENDOR="pyats junos anta arista-cvp aruba-cx f5 fortinet multivendor-cli netbox nautobot gait servicenow \
-fwrule subnet-calc drawio-rfc uml packet-buddy"
+fwrule subnet-calc drawio-rfc uml packet-buddy percepxion slc"
 
 PROFILE_CLOUD="aws azure gcp cloudflare terraform vault github gait drawio-rfc uml subnet-calc"
 

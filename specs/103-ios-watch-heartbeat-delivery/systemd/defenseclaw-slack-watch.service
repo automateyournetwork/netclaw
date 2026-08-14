@@ -1,0 +1,21 @@
+[Unit]
+Description=Re-assert the DefenseClaw Slack passthrough patch (wins the startup re-extract race)
+Documentation=file:///home/johncapobianco/.openclaw/bin/defenseclaw-slack-watch.sh
+# Must be running BEFORE the gateway starts, because the window it has to win
+# is inside the gateway's own startup: DefenseClaw re-extracts its vendored
+# dist/ a second or two in, and the plugin imports fetch-interceptor.js shortly
+# after that. Bound to the gateway so it is not left running pointlessly.
+Before=openclaw-gateway.service
+PartOf=openclaw-gateway.service
+
+[Service]
+Type=simple
+ExecStart=%h/.openclaw/bin/defenseclaw-slack-watch.sh
+Restart=always
+RestartSec=2
+# A wedged watcher must never take the gateway down with it.
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=openclaw-gateway.service

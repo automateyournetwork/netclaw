@@ -1,5 +1,6 @@
 import 'approval_client.dart';
 import 'conversation_store.dart';
+import 'device_heartbeat.dart';
 import 'edge_ask_client.dart';
 import 'message_feed.dart';
 
@@ -18,9 +19,14 @@ class WatchRelay {
   final EdgeAskClient? askClient;
   final MessageFeedStore? feedStore;
   final ConversationStore? conversationStore;
+  final DeviceHeartbeatStore? heartbeatStore;
 
   const WatchRelay(
-      {this.approvalClient, this.askClient, this.feedStore, this.conversationStore});
+      {this.approvalClient,
+      this.askClient,
+      this.feedStore,
+      this.conversationStore,
+      this.heartbeatStore});
 
   /// Dispatches on the `method` name from contracts/watch-relay.md. Never
   /// throws for a recognized method — every not-connected/not-enrolled case
@@ -50,6 +56,8 @@ class WatchRelay {
         return _submitAsk(args);
       case 'watch/ask/status':
         return _askStatus(args);
+      case 'watch/heartbeat/latest':
+        return await _latestHeartbeat();
       default:
         return {'error': 'unknown method $method'};
     }
@@ -168,6 +176,27 @@ class WatchRelay {
     if (store == null) return {'error': 'not enrolled'};
     await store.delete(args['task_id'] as String);
     return {'deleted': true};
+  }
+
+  /// The latest device heartbeat's status (103/US4/FR-015), or
+  /// `has_heartbeat: false` if the phone has never received one for this
+  /// enrollment — contracts/watch-heartbeat.md. `enrolled: false` (no store at
+  /// all) and `has_heartbeat: false` (store exists, nothing in it yet) are
+  /// deliberately distinct replies: the watch renders each differently
+  /// (US4 acceptance scenario 3 needs "no data yet" to read as genuinely
+  /// empty, not as a misleadingly confident "all clear").
+  Future<Map<String, dynamic>> _latestHeartbeat() async {
+    final store = heartbeatStore;
+    if (store == null) return {'enrolled': false, 'has_heartbeat': false};
+    final status = await store.load();
+    if (status == null) return {'enrolled': true, 'has_heartbeat': false};
+    return {
+      'enrolled': true,
+      'has_heartbeat': true,
+      'summary': status.summary,
+      'pushed_at': status.pushedAt.toIso8601String(),
+      'is_alarm': status.isAlarm,
+    };
   }
 
   TaskState _taskStateFromString(String state) {

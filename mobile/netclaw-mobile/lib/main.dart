@@ -1,17 +1,20 @@
 import 'dart:io';
 
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'ncfed/approval_client.dart';
+import 'ncfed/background_refresh.dart';
 import 'ncfed/badge_lifecycle.dart';
 import 'ncfed/capability_registration.dart';
 import 'ncfed/capture_client.dart';
 import 'ncfed/conversation_store.dart';
 import 'ncfed/dashboard_data.dart';
 import 'ncfed/device_deep_link.dart';
+import 'ncfed/device_heartbeat.dart';
 import 'ncfed/edge_ask_client.dart';
 import 'ncfed/edge_client.dart';
 import 'ncfed/edge_identity.dart';
@@ -21,6 +24,8 @@ import 'ncfed/live_activity.dart';
 import 'ncfed/local_notifications.dart';
 import 'ncfed/message_feed.dart';
 import 'ncfed/notification_deep_link.dart';
+import 'ncfed/pending_approval_store.dart';
+import 'ncfed/push_message_ingest.dart';
 import 'ncfed/push_registration.dart';
 import 'ncfed/reconnect_supervisor.dart';
 import 'ncfed/turn_reconciler.dart';
@@ -33,6 +38,13 @@ import 'screens/device_scan_screen.dart';
 import 'screens/enrollment_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/settings_screen.dart';
+
+/// Referenced only so [backgroundRefreshMain] (103/US3) stays part of the
+/// compiled program's import graph -- native code invokes it by name via a
+/// headless `FlutterEngine.run(withEntrypoint:)` when iOS grants a
+/// `BGAppRefreshTask` window, never through a Dart call site. See
+/// ncfed/background_refresh.dart.
+final backgroundRefreshEntryPointKeepAlive = backgroundRefreshMain;
 
 void main() {
   runApp(const NetClawMobileApp());
@@ -226,6 +238,16 @@ class _HomeShellState extends State<HomeShell> {
       final askClient = EdgeAskClient(widget.client);
       final conversationStore = ConversationStore(dir);
       final approvalClient = ApprovalClient(widget.client);
+      // 103/US3: an approval may have arrived and been ACKed to the Border
+      // during a headless BGAppRefreshTask window, where no live
+      // ApprovalClient existed to hold it in memory -- PendingApprovalStore
+      // is the durable holding pen for exactly that case. Drained once, here,
+      // before anything else might reasonably act on approvals.
+      PendingApprovalStore(dir).loadAndClear().then((pending) {
+        for (final params in pending) {
+          approvalClient.receiveApproval(params);
+        }
+      });
       final capabilities = CapabilityRegistration(widget.client);
       // 099/FR-017/FR-018: reacts to the SAME `currentPending` stream
       // regardless of which surface changed it -- in-app buttons,
@@ -244,59 +266,28 @@ class _HomeShellState extends State<HomeShell> {
 
       // 073: real local notifications while the app process is alive,
       // distinct from feature 066's credential-blocked remote FCM/APNs path
-      // below (_tryRegisterPush). Initialized before wireMessageFeed/
-      // conversationStore.onCompleted/receiveApproval are wired below, so
-      // the very first arrival is never missed.
+      // below (_tryRegisterPush). Constructed (not yet initialize()'d) before
+      // wireMessageFeed/wireHeartbeat/CaptureClient below, which only need the
+      // object to exist -- see the race-window note on that block.
       final localNotifications = LocalNotifications();
-      final notificationDeepLink = NotificationDeepLink(
-        store: feedStore,
-        conversationStore: conversationStore,
-        openMessage: (message) {
-          if (!mounted) return;
-          setState(() {
-            _tab = 2; // Feed (099/FR-012: shifted by Dashboard at index 0)
-            _highlightPushedAt = message.pushedAt;
-          });
-        },
-        openChatTurn: (turn) {
-          if (!mounted) return;
-          setState(() {
-            _tab = 1; // Chat (099/FR-012: shifted by Dashboard at index 0)
-            _highlightTaskId = turn.taskId;
-          });
-        },
-      );
-      await localNotifications.initialize(
-        onResponse: (response) => handleNotificationResponse(
-          response,
-          approvalClient: approvalClient,
-          deepLink: notificationDeepLink,
-        ),
-      );
-      final permissionGranted = await localNotifications.requestPermission();
-      if (mounted) {
-        setState(() {
-          _localNotifications = localNotifications;
-          _notificationDeepLink = notificationDeepLink;
-          _localNotificationsPermissionDenied = !permissionGranted;
-        });
-      }
 
-      conversationStore.onCompleted = (turn) {
-        if (!mounted) return;
-        if (_tab != 1) { // Chat (099/FR-012: shifted by Dashboard at index 0)
-          localNotifications.postChatNotification(
-            identifier: turn.taskId,
-            preview: turn.answerText ?? 'Answer ready.',
-            badgeCount: combinedBadgeCount(
-              unreadFeed: feedStore.unreadCount,
-              unreadChat: conversationStore.unreadCount,
-            ),
-          );
-        }
-        _recomputeBadge();
-      };
-
+      // 103/BORDER-FINDINGS: `_listen()` starts dispatching inbound
+      // Border-initiated calls (n2n/edge/message, n2n/edge/heartbeat, capture
+      // requests) the instant `widget.client` connects -- which already
+      // happened, at latest, when `EnrollmentGate` handed us this client.
+      // `EdgeClient._onMessage` silently drops any call with no registered
+      // handler (no error reply), so the Border-side caller just times out
+      // with no client-visible symptom. A live Border trace caught exactly
+      // this: a queued-replay push arrived 86ms after a fresh handshake and
+      // got no reply for the full 30s timeout, on a connection that had only
+      // just been authenticated -- not a suspended/backgrounded app. The
+      // previous code registered these handlers only after `await
+      // localNotifications.initialize()` and `await
+      // localNotifications.requestPermission()` below, the second of which
+      // can block on a real user-facing permission dialog and so is
+      // effectively unbounded. Moved up here, before either await, so the
+      // race window shrinks to the sub-millisecond gap between this line and
+      // the object constructions just above it.
       wireMessageFeed(
         widget.client,
         feedStore,
@@ -314,6 +305,22 @@ class _HomeShellState extends State<HomeShell> {
           }
         },
         onMessage: (message) {
+          // 103/US4: persisted regardless of `mounted` -- this durable-store
+          // write is what the watch relay reads from, not a UI update, and
+          // must not be skipped just because the app happens to be
+          // backgrounded when a heartbeat lands.
+          if (looksLikeDeviceHeartbeat(message)) {
+            DeviceHeartbeatStore(dir).save(DeviceHeartbeatStatus.fromMessage(message));
+          }
+          // Spec 107/US1: the feed just gained a message, so a notification tap
+          // still waiting for one may now be satisfiable. This is the signal that
+          // makes the pending-intent approach work without polling — replay lands
+          // seconds after a cold-start tap, and this is where that arrival is
+          // already observed. Late-bound through the field on purpose:
+          // `wireMessageFeed` is deliberately registered before the deep link is
+          // constructed (see the race comment above), so this must not capture a
+          // local that does not exist yet.
+          _notificationDeepLink?.messageArrived();
           if (!mounted) return;
           // Don't badge the tab the operator is already looking at.
           if (_tab != 2) { // Feed (099/FR-012: shifted by Dashboard at index 0)
@@ -347,12 +354,72 @@ class _HomeShellState extends State<HomeShell> {
           approvalClient: approvalClient,
           askClient: askClient,
           feedStore: feedStore,
-          conversationStore: conversationStore);
+          conversationStore: conversationStore,
+          heartbeatStore: DeviceHeartbeatStore(dir));
       const MethodChannel('ca.automateyournetwork.netclaw/watch_relay')
           .setMethodCallHandler((call) => watchRelay.handle(
                 call.method,
                 (call.arguments as Map?)?.cast<String, dynamic>() ?? {},
               ));
+
+      final notificationDeepLink = NotificationDeepLink(
+        store: feedStore,
+        conversationStore: conversationStore,
+        openMessage: (message) {
+          if (!mounted) return;
+          setState(() {
+            _tab = 2; // Feed (099/FR-012: shifted by Dashboard at index 0)
+            _highlightPushedAt = message.pushedAt;
+          });
+        },
+        openChatTurn: (turn) {
+          if (!mounted) return;
+          setState(() {
+            _tab = 1; // Chat (099/FR-012: shifted by Dashboard at index 0)
+            _highlightTaskId = turn.taskId;
+          });
+        },
+        // Spec 107/FR-003: the tapped message never turned up within the bound.
+        // Land the operator on the Feed rather than leaving them wherever the app
+        // happened to open — they tapped a notification about a message, so the
+        // feed is the least surprising place to be, and spec 106 means the
+        // message will appear there whenever it does arrive.
+        onOpenTimedOut: () {
+          if (!mounted) return;
+          setState(() => _tab = 2); // Feed
+        },
+      );
+      await localNotifications.initialize(
+        onResponse: (response) => handleNotificationResponse(
+          response,
+          approvalClient: approvalClient,
+          deepLink: notificationDeepLink,
+        ),
+      );
+      final permissionGranted = await localNotifications.requestPermission();
+      if (mounted) {
+        setState(() {
+          _localNotifications = localNotifications;
+          _notificationDeepLink = notificationDeepLink;
+          _localNotificationsPermissionDenied = !permissionGranted;
+        });
+      }
+
+      conversationStore.onCompleted = (turn) {
+        if (!mounted) return;
+        if (_tab != 1) { // Chat (099/FR-012: shifted by Dashboard at index 0)
+          localNotifications.postChatNotification(
+            identifier: turn.taskId,
+            preview: turn.answerText ?? 'Answer ready.',
+            badgeCount: combinedBadgeCount(
+              unreadFeed: feedStore.unreadCount,
+              unreadChat: conversationStore.unreadCount,
+            ),
+          );
+        }
+        _recomputeBadge();
+      };
+
       await capabilities.register();
       setState(() {
         _feedStore = feedStore;
@@ -412,6 +479,7 @@ class _HomeShellState extends State<HomeShell> {
         keyFingerprint: stored.keyFingerprint,
       ),
       onConnected: (_) {
+        debugPrint('[edge-diag] reconnected ${DateTime.now().toIso8601String()}');
         if (mounted) setState(() => _connected = true);
         // A reconnect is the moment to collect anything that finished while we
         // were away: `ask_result` is best-effort and is simply not sent when no
@@ -426,6 +494,7 @@ class _HomeShellState extends State<HomeShell> {
       initiallyConnected: true,
     );
     widget.client.onDisconnected = () {
+      debugPrint('[edge-diag] disconnected ${DateTime.now().toIso8601String()}');
       supervisor.notifyDisconnected();
       if (mounted) setState(() => _connected = false);
     };
@@ -453,6 +522,7 @@ class _HomeShellState extends State<HomeShell> {
       status = await PushRegistration(widget.client).registerCurrentToken();
       if (status == PushStatus.registered) {
         await _wireNotificationDeepLink();
+        _wireForegroundPushIngest();
       }
     } catch (e, stack) {
       status = classifyPushError(e);
@@ -479,6 +549,44 @@ class _HomeShellState extends State<HomeShell> {
   /// second, parallel dispatcher.
   Future<void> _wireNotificationDeepLink() async {
     await _notificationDeepLink?.wire();
+  }
+
+  /// Spec 107/US2: record a pushed message straight from its payload, so it is
+  /// readable without waiting for — or even having — a live channel.
+  ///
+  /// The sender has always included the full content beside the banner; nothing
+  /// consumed it until now, which is why a push to a disconnected device drew a
+  /// notification and left the feed empty.
+  ///
+  /// Safe only because [MessageFeedStore.append] deduplicates: this message will
+  /// also arrive over the live channel when the Border replays it, and without
+  /// dedup the operator would see two of everything.
+  ///
+  /// Foreground only, deliberately. Background execution for a data-carrying push
+  /// is at the OS's discretion on both platforms, so treating it as a delivery
+  /// guarantee would reintroduce the silent-loss class spec 106 removed. Spec 106's
+  /// queue-and-replay stays the guarantee; this is an acceleration of it, and a
+  /// push that arrives while backgrounded still lands in the feed via replay.
+  void _wireForegroundPushIngest() {
+    final store = _feedStore;
+    if (store == null) return;
+    FirebaseMessaging.onMessage.listen((remote) async {
+      final outcome = await ingestPushPayload(
+        remote.data,
+        store: store,
+        onApproval: (params) => _approvalClient?.receiveApproval(params),
+        onMessage: (_) {
+          _notificationDeepLink?.messageArrived();
+          if (!mounted) return;
+          if (_tab != 2) setState(() => _unreadFeed++);
+          _recomputeBadge();
+        },
+      );
+      if (outcome == PushIngestOutcome.rejected) {
+        // Not fatal: the Border still replays it over the live channel.
+        debugPrint('push payload not usable; awaiting replay instead');
+      }
+    });
   }
 
   @override

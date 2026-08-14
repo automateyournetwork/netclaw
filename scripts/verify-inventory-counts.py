@@ -93,6 +93,12 @@ EXTERNAL_INTEGRATIONS = [
     "Red Hat Docs",
     "fwrule",
     "HumanRail",
+    # Spec 104: Lantronix's own actively co-developed repos, not a frozen
+    # third-party target -- vendoring would go stale on the first upstream
+    # release. git-clone + pip-install into $MCP_DIR, no config/openclaw.json
+    # entry (installed path is user-specific). See specs/104-percepxion-oob-integration/spec.md.
+    "Percepxion (Lantronix OOB fleet management)",
+    "SLC (Lantronix OOB console server, direct)",
     # Vendored under mcp-servers/ but, as of 2026-07-07, undocumented in
     # README.md's MCP Servers table entirely -- see spec 047 User Story 2.
     "IPFIX/NetFlow",

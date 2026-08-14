@@ -149,6 +149,156 @@ void main() {
       expect(store.messages.single.acknowledged, isTrue);
     });
   });
+
+  group('deduplication by message identity (spec 107/US3, contract §2)', () {
+    Directory tmp() {
+      final d = Directory.systemTemp.createTempSync('ncfed_dedup_test_');
+      addTearDown(() => d.delete(recursive: true));
+      return d;
+    }
+
+    EdgeMessage msg(DateTime pushedAt, {String content = 'body', bool acked = false}) =>
+        EdgeMessage(
+          contentType: MessageContentType.text,
+          content: content,
+          designatedBy: 'agent',
+          pushedAt: pushedAt,
+          acknowledged: acked,
+        );
+
+    test('a duplicate pushed_at is declined (FR-004, FR-005)', () async {
+      final store = MessageFeedStore(tmp());
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+
+      expect(await store.append(msg(at, content: 'first')), isTrue);
+      expect(await store.append(msg(at, content: 'second')), isFalse);
+
+      expect(store.messages, hasLength(1));
+      expect(store.messages.single.content, 'first',
+          reason: 'the stored message wins; a duplicate never overwrites');
+    });
+
+    test('two distinct messages both store, even one second apart', () async {
+      final store = MessageFeedStore(tmp());
+      expect(await store.append(msg(DateTime.utc(2026, 8, 13, 16, 45, 34))), isTrue);
+      expect(await store.append(msg(DateTime.utc(2026, 8, 13, 16, 45, 35))), isTrue);
+      expect(store.messages, hasLength(2));
+    });
+
+    test('read state survives re-delivery (FR-006, §2.2)', () async {
+      // A message the operator already read must not look unread again just
+      // because the Border replayed it.
+      final store = MessageFeedStore(tmp());
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      await store.append(msg(at));
+      await store.acknowledge(at);
+      expect(store.unreadCount, 0);
+
+      expect(await store.append(msg(at)), isFalse);
+
+      expect(store.unreadCount, 0, reason: 'a duplicate must not resurrect unread');
+      expect(store.messages.single.acknowledged, isTrue);
+    });
+
+    test('dedup survives a restart, matching on what is on disk', () async {
+      final dir = tmp();
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      await MessageFeedStore(dir).append(msg(at));
+
+      final reopened = MessageFeedStore(dir);
+      expect(await reopened.append(msg(at)), isFalse);
+      expect(reopened.messages, hasLength(1));
+    });
+
+    test('identity is instant-based, not DateTime-equality based', () async {
+      // Dart's DateTime.== also requires isUtc to agree, so the same moment
+      // expressed in local time would otherwise store a second copy.
+      final store = MessageFeedStore(tmp());
+      final utc = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      expect(await store.append(msg(utc)), isTrue);
+      expect(await store.append(msg(utc.toLocal())), isFalse);
+      expect(store.messages, hasLength(1));
+    });
+
+    test('contains() reports what is stored', () async {
+      final store = MessageFeedStore(tmp());
+      final at = DateTime.utc(2026, 8, 13, 16, 45, 34);
+      await store.append(msg(at));
+      expect(store.contains(at), isTrue);
+      expect(store.contains(DateTime.utc(2026, 8, 13, 16, 45, 35)), isFalse);
+    });
+
+    test('a declined duplicate does not re-announce via wireMessageFeed (§2.3)', () async {
+      // Otherwise the double-entry bug becomes a double-badge bug.
+      final store = MessageFeedStore(tmp());
+      final client = _FakeEdgeMethodSource();
+      final announced = <EdgeMessage>[];
+      wireMessageFeed(client, store, onMessage: announced.add);
+      final handler = client.handlers['n2n/edge/message']!;
+
+      final params = {
+        'content_type': 'text',
+        'content': 'replayed body',
+        'designated_by': 'agent',
+        'pushed_at': '2026-08-13T16:45:34.000Z',
+      };
+      await handler(params);
+      await handler(params);
+
+      expect(store.messages, hasLength(1));
+      expect(announced, hasLength(1));
+    });
+  });
+
+  group('EdgeMessage.tryFromWire strictness (spec 107, contract §3.3)', () {
+    test('rejects a missing or unparseable pushed_at rather than defaulting', () {
+      expect(EdgeMessage.tryFromWire({'content_type': 'text', 'content': 'x'}), isNull);
+      expect(
+        EdgeMessage.tryFromWire(
+            {'content_type': 'text', 'content': 'x', 'pushed_at': 'nope'}),
+        isNull,
+      );
+    });
+
+    test('fromWire keeps its lenient fallback for the live channel', () {
+      // Unchanged on purpose (Principle XV): the authenticated live path always
+      // carries pushed_at, and tightening it here would be a behavior change to
+      // a path this feature is not fixing.
+      final lenient = EdgeMessage.fromWire({'content_type': 'text', 'content': 'x'});
+      expect(lenient.pushedAt, isNotNull);
+    });
+
+    test('accepts the fully stringified shape the sender emits', () {
+      final m = EdgeMessage.tryFromWire({
+        'content_type': 'text',
+        'content': 'hello',
+        'pushed_at': '2026-08-13T16:45:34.000Z',
+        'designated_by': 'agent',
+      });
+      expect(m, isNotNull);
+      expect(m!.content, 'hello');
+    });
+  });
+
+  test('wireMessageFeed is the ONLY n2n/edge/message registration site (§4)', () {
+    // EdgeClient.on() keeps only the LAST handler per method, so a second
+    // registration anywhere would silently displace this one and disable live
+    // delivery with no error — the highest-severity failure mode in spec 107,
+    // and the cheapest to guard. Structural, because the bug is the existence
+    // of a second call site, not the behavior of any one of them.
+    final libDir = Directory('lib');
+    final offenders = <String>[];
+    for (final entity in libDir.listSync(recursive: true)) {
+      if (entity is! File || !entity.path.endsWith('.dart')) continue;
+      final text = entity.readAsStringSync();
+      if (!text.contains("'n2n/edge/message'")) continue;
+      // The declaration inside wireMessageFeed is the one legitimate site.
+      if (entity.path.endsWith('message_feed.dart')) continue;
+      if (text.contains(".on('n2n/edge/message'")) offenders.add(entity.path);
+    }
+    expect(offenders, isEmpty,
+        reason: 'only wireMessageFeed may register n2n/edge/message; found: $offenders');
+  });
 }
 
 /// Minimal stand-in exposing just the `.on(method, handler)` surface

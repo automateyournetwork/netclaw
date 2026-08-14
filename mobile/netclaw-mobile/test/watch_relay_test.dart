@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netclaw_mobile/ncfed/approval_client.dart';
 import 'package:netclaw_mobile/ncfed/conversation_store.dart';
+import 'package:netclaw_mobile/ncfed/device_heartbeat.dart';
 import 'package:netclaw_mobile/ncfed/edge_ask_client.dart';
 import 'package:netclaw_mobile/ncfed/edge_client.dart';
 import 'package:netclaw_mobile/ncfed/message_feed.dart';
@@ -397,6 +398,46 @@ void main() {
       expect(turns, hasLength(1));
       expect(turns.single['task_id'], 'task-watch-1');
       expect(turns.single['answer_text'], 'No, cleared 4 minutes ago.');
+    });
+  });
+
+  group('watch/heartbeat/latest (103/US4/FR-015)', () {
+    test('enrolled: false, has_heartbeat: false with no heartbeat store at all', () async {
+      const relay = WatchRelay();
+      final result = await relay.handle('watch/heartbeat/latest', {});
+      expect(result, {'enrolled': false, 'has_heartbeat': false});
+    });
+
+    test('enrolled but nothing received yet is distinct from "no store"', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_heartbeat_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final relay = WatchRelay(heartbeatStore: DeviceHeartbeatStore(dir));
+
+      final result = await relay.handle('watch/heartbeat/latest', {});
+
+      expect(result, {'enrolled': true, 'has_heartbeat': false});
+    });
+
+    test('returns the latest heartbeat, shaped for the watch', () async {
+      final dir = await Directory.systemTemp.createTemp('ncfed_watch_relay_heartbeat_test_');
+      addTearDown(() => dir.delete(recursive: true));
+      final store = DeviceHeartbeatStore(dir);
+      await store.save(DeviceHeartbeatStatus(
+        summary: '⚠ SLACK HEARTBEAT FAILING — 2 delivery failure(s)',
+        pushedAt: DateTime.utc(2026, 8, 10, 16, 33),
+        isAlarm: true,
+      ));
+      final relay = WatchRelay(heartbeatStore: store);
+
+      final result = await relay.handle('watch/heartbeat/latest', {});
+
+      expect(result, {
+        'enrolled': true,
+        'has_heartbeat': true,
+        'summary': '⚠ SLACK HEARTBEAT FAILING — 2 delivery failure(s)',
+        'pushed_at': '2026-08-10T16:33:00.000Z',
+        'is_alarm': true,
+      });
     });
   });
 }

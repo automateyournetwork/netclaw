@@ -8,6 +8,7 @@ import 'approval_confirmation.dart';
 import 'conversation_store.dart';
 import 'local_notifications.dart';
 import 'message_feed.dart';
+import 'pending_open_intent.dart';
 
 /// Finds the pushed message a notification's `data` payload refers to, by
 /// `pushed_at` — `push_notify.py`'s FCM/APNs `data` field always includes
@@ -64,12 +65,32 @@ class NotificationDeepLink {
   final ConversationStore? conversationStore;
   final void Function(ConversationTurn turn)? openChatTurn;
 
+  /// Fires when a tapped notification's message never turned up (FR-003), so the
+  /// caller can land the operator somewhere usable instead of leaving them
+  /// wherever the app happened to open.
+  final void Function()? onOpenTimedOut;
+
+  late final PendingOpenIntent _intent;
+
   NotificationDeepLink({
     required this.store,
     required this.openMessage,
     this.conversationStore,
     this.openChatTurn,
-  });
+    this.onOpenTimedOut,
+    Duration? intentTimeout,
+    PendingOpenIntent? intent,
+  }) {
+    _intent = intent ??
+        PendingOpenIntent(
+          onOpen: openMessage,
+          onExpire: onOpenTimedOut,
+          timeout: intentTimeout ?? PendingOpenIntent.defaultTimeout,
+        );
+  }
+
+  /// Visible for wiring and tests. Callers should prefer [messageArrived].
+  PendingOpenIntent get intent => _intent;
 
   Future<void> wire() async {
     FirebaseMessaging.onMessageOpenedApp.listen(_handleRemote);
@@ -78,10 +99,35 @@ class NotificationDeepLink {
   }
 
   Future<void> _handleRemote(RemoteMessage message) async {
-    await store.load();
-    final match = findMessageForNotificationData(store.messages, message.data);
-    if (match != null) openMessage(match);
+    final pushedAt = message.data['pushed_at'];
+    await recordTap(pushedAt is String ? pushedAt : null);
   }
+
+  /// Records that the operator tapped a notification naming the message with
+  /// this `pushed_at`, and resolves immediately if we already have it.
+  ///
+  /// Spec 107, research R1. This replaced a single `store.load()` +
+  /// [findMessageForNotificationData] read, which could not win the race against
+  /// the message's own arrival: a replayed message does not land until after
+  /// channel auth plus the Border's ~3s replay settle, and a cold app launch from
+  /// a tap finishes well inside that. The read therefore *always* missed on a
+  /// cold start, so the tap opened nothing and the operator had to go find the
+  /// message themselves once it appeared seconds later.
+  ///
+  /// A tap that names nothing records nothing — opening the app without a tap
+  /// must never force a message open (FR-011).
+  Future<void> recordTap(String? pushedAt) async {
+    if (pushedAt == null || pushedAt.isEmpty) return;
+    _intent.record(pushedAt);
+    await store.load();
+    _intent.tryResolve(store.messages);
+  }
+
+  /// Call whenever the feed gains a message, from any delivery path. Resolves a
+  /// pending tap if this is the message it was waiting for; otherwise a no-op.
+  void messageArrived() => _intent.tryResolve(store.messages);
+
+  void dispose() => _intent.dispose();
 
   /// Handles a tap on a locally-posted notification -- the counterpart to
   /// [wire]'s Firebase remote-tap handling, fed by
@@ -95,10 +141,14 @@ class NotificationDeepLink {
     if (parsed == null) return;
     switch (parsed['type']) {
       case 'feed':
-        await store.load();
-        final match =
-            findMessageForNotificationData(store.messages, {'pushed_at': parsed['identifier']});
-        if (match != null) openMessage(match);
+        // Spec 107, research R6: converged onto the SAME intent the remote path
+        // uses, rather than keeping a second mechanism for one behavior. This
+        // path was already correct — a local notification is only ever posted for
+        // a message the app has already stored, so its single read always
+        // succeeded — and it stays correct here, resolving immediately inside
+        // [recordTap]. Convergence means the next change to tap behavior is made
+        // once, not twice.
+        await recordTap(parsed['identifier']);
       case 'chat':
         final convoStore = conversationStore;
         if (convoStore == null) return;

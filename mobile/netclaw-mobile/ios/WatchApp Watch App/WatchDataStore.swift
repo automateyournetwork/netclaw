@@ -22,7 +22,31 @@ final class WatchDataStore: ObservableObject {
     @Published var historyConnection: ConnectionState = .connected
     @Published var historyLoaded = false
 
+    // 103/US4/FR-015: unlike Approvals/Feed/History above, `nil` fields here
+    // are NOT reset to empty on a failed refresh -- they fall back to
+    // `HeartbeatStatusStore`'s last-known value (acceptance scenario 3).
+    @Published var heartbeatSummary: String?
+    @Published var heartbeatPushedAt: Date?
+    @Published var heartbeatIsAlarm = false
+    @Published var heartbeatConnection: ConnectionState = .connected
+    @Published var heartbeatLoaded = false
+
     func preload() {
+        // Show the last-known heartbeat instantly, before the first
+        // WatchConnectivity round trip even starts -- the phone may take a
+        // moment to answer, or may never answer at all this session.
+        if let cached = HeartbeatStatusStore.read() {
+            heartbeatSummary = cached.summary
+            heartbeatPushedAt = cached.pushedAt
+            heartbeatIsAlarm = cached.isAlarm
+        }
+        Task {
+            await refreshHeartbeat()
+            if heartbeatConnection == .phoneUnreachable {
+                try? await Task.sleep(nanoseconds: 2_500_000_000)
+                await refreshHeartbeat()
+            }
+        }
         Task {
             await refreshApprovals()
             // The very first request can race the phone's WatchConnectivity
@@ -143,5 +167,34 @@ final class WatchDataStore: ObservableObject {
         _ = await WatchConnectivitySession.shared.send(
             method: "watch/history/delete", args: ["task_id": taskId])
         await refreshHistory()
+    }
+
+    /// 103/US4/FR-015. `watch/heartbeat/latest`'s `has_heartbeat: false`
+    /// (enrolled, but nothing received yet) intentionally leaves the
+    /// `@Published` fields untouched -- either still `nil` from a genuinely
+    /// fresh enrollment, or still holding a real earlier value if this
+    /// refresh raced a device reconnecting after the app already had
+    /// something cached. Only a `phoneUnreachable`/`notEnrolled` result falls
+    /// back to the cache, and only if a real answer never arrives at all.
+    func refreshHeartbeat() async {
+        let reply = await WatchConnectivitySession.shared.send(method: "watch/heartbeat/latest")
+        heartbeatConnection = WatchConnectivitySession.connectionState(from: reply)
+        if heartbeatConnection == .connected,
+           reply?["has_heartbeat"] as? Bool == true,
+           let summary = reply?["summary"] as? String,
+           let pushedAtString = reply?["pushed_at"] as? String,
+           let pushedAt = ISO8601DateFormatter().date(from: pushedAtString) {
+            let isAlarm = reply?["is_alarm"] as? Bool ?? false
+            heartbeatSummary = summary
+            heartbeatPushedAt = pushedAt
+            heartbeatIsAlarm = isAlarm
+            HeartbeatStatusStore.write(summary: summary, pushedAt: pushedAt, isAlarm: isAlarm)
+            WidgetCenter.shared.reloadAllTimelines()
+        } else if heartbeatConnection != .connected, let cached = HeartbeatStatusStore.read() {
+            heartbeatSummary = cached.summary
+            heartbeatPushedAt = cached.pushedAt
+            heartbeatIsAlarm = cached.isAlarm
+        }
+        heartbeatLoaded = true
     }
 }

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
+import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
@@ -101,10 +101,14 @@ class EdgeClient implements EdgeRpcSource {
   }
 
   void _listen() {
+    debugPrint('[edge-diag] dial ${DateTime.now().toIso8601String()}');
     _sub = _channel.stream.listen(
       _onMessage,
-      onError: (Object error) => _failAll(error),
-      onDone: () => _failAll('connection closed'),
+      onError: (Object error) =>
+          _failAll('error: $error (${DateTime.now().toIso8601String()})'),
+      onDone: () => _failAll(
+          'onDone closeCode=${_channel.closeCode} closeReason=${_channel.closeReason} '
+          '(${DateTime.now().toIso8601String()})'),
     );
   }
 
@@ -117,6 +121,7 @@ class EdgeClient implements EdgeRpcSource {
 
   void _failAll(Object error) {
     if (_closed) return;
+    debugPrint('[edge-diag] failAll: $error');
     _closed = true; // the connection is no longer usable either way
     final err = EdgeClientException('connection_error', '$error');
     for (final c in _pending.values) {
@@ -145,6 +150,7 @@ class EdgeClient implements EdgeRpcSource {
   }) async {
     verifyClawDomainBeforeDial(payload);
     final uri = Uri(scheme: 'wss', host: payload.clawDomain, port: payload.borderPort);
+    debugPrint('[edge-diag] socket connect requested (reconnectInPlace) ${DateTime.now().toIso8601String()}');
     final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
     // Cancelling the subscription stops us READING the old socket but does not
     // close it: without the sink close below, the previous WebSocket stayed
@@ -194,6 +200,8 @@ class EdgeClient implements EdgeRpcSource {
       final method = msg['method'] as String;
       final params = (msg['params'] as Map<String, dynamic>?) ?? <String, dynamic>{};
       final handler = _handlers[method];
+      debugPrint('[edge-diag] inbound $method handler=${handler != null} '
+          '${DateTime.now().toIso8601String()}');
       if (handler == null) return; // unknown method — silently dropped, mirrors EdgeChannel
       Future(() async {
         final result = await handler(params);
@@ -221,6 +229,7 @@ class EdgeClient implements EdgeRpcSource {
     final id = 'phone:$_nextId';
     final completer = Completer<Map<String, dynamic>>();
     _pending[id] = completer;
+    debugPrint('[edge-diag] outbound $method ${DateTime.now().toIso8601String()}');
     _channel.sink.add(jsonEncode({'jsonrpc': '2.0', 'id': id, 'method': method, 'params': params}));
     return completer.future.timeout(timeout, onTimeout: () {
       _pending.remove(id);
@@ -250,6 +259,7 @@ class EdgeClient implements EdgeRpcSource {
     // trust store) happens automatically here — a mismatched/untrusted
     // certificate makes this connection fail outright (research D7); no
     // custom certificate inspection code exists anywhere in this client.
+    debugPrint('[edge-diag] socket connect requested (enroll) ${DateTime.now().toIso8601String()}');
     final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
     final client = EdgeClient._(channel, identity);
 
@@ -293,6 +303,7 @@ class EdgeClient implements EdgeRpcSource {
   }) async {
     verifyClawDomainBeforeDial(payload);
     final uri = Uri(scheme: 'wss', host: payload.clawDomain, port: payload.borderPort);
+    debugPrint('[edge-diag] socket connect requested (reconnect) ${DateTime.now().toIso8601String()}');
     final channel = IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
     final client = EdgeClient._(channel, identity);
 

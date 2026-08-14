@@ -11,6 +11,12 @@
 #   netclaw chats --watch    live-watch for new sessions/lines (Ctrl+C to stop)
 #   netclaw link            (re)create the ~/.local/bin/netclaw symlink
 #
+#   NetClaw Mobile (enrolling a phone against this claw):
+#   netclaw risk role border <risk-name> [in2n]   promote standalone → Border
+#   netclaw risk edge-check                       preflight every precondition
+#   netclaw risk token --edge <device-label>       mint the single-use QR
+#   See mobile/netclaw-mobile/MOBILE-ONBOARDING.md for the full procedure.
+#
 # Reads peering state from the mesh daemon HTTP API (bgp-daemon-v2.py,
 # default http://127.0.0.1:8179) and N2N chat transcripts from
 # ~/.openclaw/n2n/chats/. `peering up`/`down` start/stop the daemon
@@ -503,7 +509,13 @@ if d.get("role") == "border":
 elif d.get("role") == "member":
     print("    member_id    : %s" % (d.get("self_member_id") or "-"))
 else:
-    print("    (standalone — a risk of one, its own Border)")
+    # Spec 105: the old wording here was just "a risk of one, its own Border",
+    # which reads as "Border things will work" — they do not. Standalone is its
+    # own Border for federation *identity* only; it issues no enrollment tokens
+    # and starts no mobile edge listener. Say so where the operator looks.
+    print("    (standalone — its own Border for identity only)")
+    print("    note         : standalone cannot issue mobile enrollment tokens.")
+    print("                   To enroll a phone:  netclaw risk role border <risk-name>")
 '
 }
 
@@ -575,6 +587,204 @@ import json,sys; d=json.load(sys.stdin)
 print("    error:", d["error"]) if "error" in d else print("    token:", d["token"])'
 }
 
+risk_role() {  # risk_role <standalone|border|member> [risk-name] [stacks]
+    # Spec 105. Before this, promoting a standalone claw to Border — the one
+    # step every mobile install needs — had no CLI at all, so the docs carried a
+    # raw curl. A curl written without the scheme and port silently no-ops
+    # (`127.0.0.1/n2n/risk` never reaches the daemon), which is exactly what
+    # happened on the first real-world install: no error, role unchanged.
+    local role="$1" name="${2:-}" stacks="${3:-}"
+    case "$role" in
+        standalone|border|member) ;;
+        *) echo "usage: netclaw risk role <standalone|border|member> [risk-name] [stacks]"
+           echo "  e.g. netclaw risk role border my-risk in2n     # enroll phones"
+           return 1 ;;
+    esac
+    if [ "$role" = "border" ]; then
+        # Carry forward what this claw already is when an argument is omitted.
+        # /n2n/risk overwrites every field it is given, so defaulting a blank
+        # `stacks` to "in2n" on a claw already running "both" would silently
+        # switch OFF external federation as a side effect of a mobile fix.
+        local cur_json cur_stacks cur_name
+        cur_json="$(api_get /n2n/risk)"
+        cur_stacks="$(printf '%s' "$cur_json" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("enabled_stacks") or "")
+except Exception: print("")' 2>/dev/null)"
+        cur_name="$(printf '%s' "$cur_json" | python3 -c 'import json,sys
+try: print(json.load(sys.stdin).get("risk_name") or "")
+except Exception: print("")' 2>/dev/null)"
+        name="${name:-$cur_name}"
+        [ -n "$name" ] || { echo "  a Border needs a risk name: netclaw risk role border <risk-name> [stacks]"; return 1; }
+        # in2n when there is nothing to preserve: the mobile edge listener is
+        # gated on the stack as well as the role, and a Border with no stack
+        # enabled starts no listener — a promote that looks successful and still
+        # cannot enroll a phone.
+        stacks="${stacks:-${cur_stacks:-in2n}}"
+        case "$stacks" in
+            in2n|both) ;;
+            *) echo "  note: enabled_stacks='$stacks' does not include in2n —"
+               echo "        the mobile edge listener will not start. Pass 'in2n' or 'both'." ;;
+        esac
+    fi
+    local body
+    body="$(python3 -c '
+import json, sys
+role, name, stacks = sys.argv[1], sys.argv[2], sys.argv[3]
+b = {"role": role}
+if name: b["risk_name"] = name
+if stacks: b["enabled_stacks"] = stacks
+print(json.dumps(b))' "$role" "$name" "$stacks")"
+    api_post /n2n/risk "$body" | python3 -c '
+import json, sys
+raw = sys.stdin.read().strip()
+if not raw:
+    print("    no response from the daemon API — is the mesh running?")
+    print("    check:  systemctl --user status netclaw-mesh.service")
+    sys.exit(1)
+try: d = json.loads(raw)
+except Exception: print("    unexpected response:", raw[:200]); sys.exit(1)
+if "error" in d:
+    print("    error:", d["error"]); sys.exit(1)
+print("    role  : %s" % d.get("role"))
+print("    risk  : %s" % (d.get("risk_name") or "-"))
+print("    %s" % d.get("note", ""))'
+    local rc=$?
+    [ "$rc" -eq 0 ] || return "$rc"
+    echo ""
+    echo "  Restart the mesh for the change to take effect, then verify:"
+    echo "      systemctl --user restart netclaw-mesh.service"
+    echo "      $(basename "$0") risk edge-check"
+}
+
+# Spec 105: one command that checks every precondition for enrolling a phone.
+# Written because the first real-world install cleared five independent
+# blockers, each of which masked the next and none of which named itself:
+# wrong role, disabled stack, a promote that silently no-op'd, a missing
+# Python module, a mistyped port, and an un-forwarded firewall port.
+risk_edge_check() {
+    echo ""
+    echo -e "  ${T_BOLD}NetClaw Mobile — edge enrollment preflight${T_NC}"
+    echo ""
+
+    local envf="$RUNTIME_HOME/.env" fail=0
+
+    # 1-2. Role + stack, straight from the daemon.
+    local risk_json; risk_json="$(api_get /n2n/risk)"
+    if [ -z "$risk_json" ]; then
+        echo "  ✗ daemon    : not reachable at $BGP_API"
+        echo "                systemctl --user status netclaw-mesh.service"
+        return 1
+    fi
+    local role stacks riskname
+    role="$(printf '%s' "$risk_json" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("role",""))' 2>/dev/null)"
+    stacks="$(printf '%s' "$risk_json" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("enabled_stacks") or "")' 2>/dev/null)"
+    riskname="$(printf '%s' "$risk_json" | python3 -c 'import json,sys;print(json.load(sys.stdin).get("risk_name") or "")' 2>/dev/null)"
+
+    if [ "$role" = "border" ]; then
+        echo "  ✓ role      : border (risk=${riskname:--})"
+    else
+        echo "  ✗ role      : $role — only a Border can issue enrollment tokens"
+        echo "                netclaw risk role border <risk-name> in2n"
+        fail=1
+    fi
+    case "$stacks" in
+        in2n|both) echo "  ✓ stack     : $stacks (in2n enabled)" ;;
+        *) echo "  ✗ stack     : ${stacks:--} — the edge listener needs in2n"
+           echo "                netclaw risk role border ${riskname:-<risk-name>} in2n"
+           fail=1 ;;
+    esac
+
+    # 3. The two env vars, including the duplicate-line case that makes a
+    #    mistyped port survive a 'fix' (last line wins, and it may not be yours).
+    local domain port dupes
+    domain="$(env_get N2N_CLAW_DOMAIN)"; port="$(env_get N2N_EDGE_WS_PORT)"
+    if [ -n "$domain" ]; then echo "  ✓ domain    : $domain"
+    else echo "  ✗ domain    : N2N_CLAW_DOMAIN unset in $envf"; fail=1; fi
+    if [ -n "$port" ]; then echo "  ✓ port      : $port"
+    else echo "  ✗ port      : N2N_EDGE_WS_PORT unset in $envf"; fail=1; fi
+    if [ -f "$envf" ]; then
+        dupes="$(grep -cE '^[[:space:]]*N2N_EDGE_WS_PORT=' "$envf" 2>/dev/null || true)"
+        if [ "${dupes:-0}" -gt 1 ]; then
+            echo "  ! env       : N2N_EDGE_WS_PORT appears $dupes times in $envf (last wins)"
+        fi
+    fi
+
+    # 4. The daemon's own deps, under the interpreter systemd actually runs —
+    #    not whatever `python3` resolves to in this shell.
+    local mesh_py="/usr/bin/python3" unit="$HOME/.config/systemd/user/netclaw-mesh.service"
+    [ -f "$unit" ] && mesh_py="$(sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' "$unit" | head -1)"
+    mesh_py="${mesh_py:-/usr/bin/python3}"
+    local missing=""
+    for mod in websockets qrcode; do
+        "$mesh_py" -c "import $mod" >/dev/null 2>&1 || missing="$missing $mod"
+    done
+    if [ -z "$missing" ]; then
+        echo "  ✓ deps      : websockets + qrcode importable by $mesh_py"
+    else
+        echo "  ✗ deps      :$missing missing for $mesh_py"
+        echo "                $mesh_py -m pip install --break-system-packages$missing"
+        echo "                (or: sudo apt install$(printf ' python3-%s' $missing))"
+        fail=1
+    fi
+
+    # 5. Did the listener actually bind? Ask the daemon, then confirm the socket.
+    local st; st="$(api_get /n2n/health | python3 -c '
+import json,sys
+try: d=json.load(sys.stdin)
+except Exception: print(""); sys.exit()
+e=d.get("edge_listener") or {}
+print("%s|%s|%s" % (e.get("state",""), e.get("error") or "", e.get("hint") or ""))' 2>/dev/null)"
+    # NB: separate statements, not one `local a=… b="${a}…"`. A single `local`
+    # expands every argument before assigning any, so the later references would
+    # read as unbound under `set -u`.
+    local lstate rest lerr lhint
+    lstate="${st%%|*}"; rest="${st#*|}"; lerr="${rest%%|*}"; lhint="${rest#*|}"
+    case "$lstate" in
+        listening) echo "  ✓ listener  : bound" ;;
+        "")        echo "  ! listener  : daemon reports no edge state (older daemon, or still starting)" ;;
+        *)         echo "  ✗ listener  : $lstate${lerr:+ — $lerr}"
+                   [ -n "$lhint" ] && echo "                $lhint"
+                   fail=1 ;;
+    esac
+    if [ -n "$port" ]; then
+        if ss -tlnH "sport = :$port" 2>/dev/null | grep -q .; then
+            echo "  ✓ socket    : something is listening on :$port"
+        else
+            echo "  ✗ socket    : nothing listening on :$port"
+            echo "                journalctl --user -u netclaw-mesh.service --since '2 min ago' | grep -i Edge"
+            fail=1
+        fi
+    fi
+
+    # 6. DNS must resolve the claw domain to the public IP the phone will hit,
+    #    or TLS cannot match no matter how the firewall is built.
+    if [ -n "$domain" ]; then
+        local resolved wan
+        resolved="$(getent ahostsv4 "$domain" 2>/dev/null | awk '{print $1; exit}')"
+        wan="$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || true)"
+        if [ -z "$resolved" ]; then
+            echo "  ✗ dns       : $domain does not resolve"; fail=1
+        elif [ -n "$wan" ] && [ "$resolved" != "$wan" ]; then
+            echo "  ! dns       : $domain → $resolved, but this host's public IP is $wan"
+            echo "                fine behind a NAT/VIP that forwards :$port — verify the forward"
+        else
+            echo "  ✓ dns       : $domain → $resolved"
+        fi
+    fi
+
+    echo ""
+    if [ "$fail" -eq 0 ]; then
+        echo "  All local checks passed. Inbound :$port must also be reachable from"
+        echo "  the internet — a phone on cellular is not on your LAN. Then:"
+        echo "      $(basename "$0") risk token --edge <device-label>"
+    else
+        echo "  Fix the ✗ lines above, restart the mesh, and re-run this check:"
+        echo "      systemctl --user restart netclaw-mesh.service"
+    fi
+    echo ""
+    return "$fail"
+}
+
 risk_edge_token() {  # risk_edge_token [label] — feature 066: NetClaw Mobile enrollment
     # Reuses the SAME bare-token route as risk_token(); node_type is set later,
     # server-side, by which listener (agent TCP vs edge WS) actually consumes
@@ -587,9 +797,27 @@ risk_edge_token() {  # risk_edge_token [label] — feature 066: NetClaw Mobile e
     if [ -z "$domain" ] || [ -z "$port" ]; then
         echo "  N2N_CLAW_DOMAIN and N2N_EDGE_WS_PORT must both be set in $RUNTIME_HOME/.env" >&2
         echo "  before issuing an edge (phone) enrollment QR." >&2
+        echo "  Run '$(basename "$0") risk edge-check' for the full preflight." >&2
         return 1
     fi
-    api_post /n2n/enroll/token "{\"label\":\"${1:-}\"}" | python3 -c "
+    # Spec 105: mint, but never report a bare API error without its remedy. The
+    # daemon answers a non-Border with "only a Border can issue enrollment
+    # tokens", which is true and yet points at the wrong layer whenever the role
+    # is right and the listener died for another reason — so route any failure
+    # through the preflight, which names the actual cause.
+    local resp; resp="$(api_post /n2n/enroll/token "{\"label\":\"${1:-}\"}")"
+    if [ -z "$resp" ] || printf '%s' "$resp" | grep -q '"error"'; then
+        printf '%s' "$resp" | python3 -c '
+import json, sys
+raw = sys.stdin.read().strip()
+try: print("  error:", json.loads(raw).get("error", raw[:200]))
+except Exception: print("  no response from the daemon API at the /n2n/enroll/token route")' >&2
+        echo "" >&2
+        echo "  Diagnosing — this is almost never really about the token:" >&2
+        risk_edge_check >&2
+        return 1
+    fi
+    printf '%s' "$resp" | python3 -c "
 import json, sys
 try:
     import qrcode
@@ -632,6 +860,7 @@ risk_menu() {
             "Member health (quarantine alerts)" \
             "Enrollment token (issue single-use)" \
             "Edge enrollment QR (NetClaw Mobile)" \
+            "Edge preflight (why can't I enroll a phone?)" \
             "← Back" || return 0
         case "$TUI_CHOICE" in
             0) risk_overview; pause ;;
@@ -639,7 +868,8 @@ risk_menu() {
             2) risk_health; pause ;;
             3) risk_token; pause ;;
             4) risk_edge_token; pause ;;
-            5) return 0 ;;
+            5) risk_edge_check; pause ;;
+            6) return 0 ;;
         esac
     done
 }
@@ -726,6 +956,8 @@ case "${1:-}" in
             health)   risk_health ;;
             add)      risk_add "${3:-}" "${4:-}" "${5:-}" ;;
             remove)   risk_remove "${3:-}" ;;
+            role)     risk_role "${3:-}" "${4:-}" "${5:-}" ;;
+            edge-check|edge_check|preflight) risk_edge_check ;;
             token)
                 if [ "${3:-}" = "--edge" ]; then
                     risk_edge_token "${4:-}"
@@ -733,7 +965,7 @@ case "${1:-}" in
                     risk_token "${3:-}"
                 fi ;;
             route)    risk_route "${3:-}" "${4:-}" ;;
-            *)        echo "Usage: netclaw risk [status|members|health|add|remove|token [--edge]|route]"; exit 1 ;;
+            *)        echo "Usage: netclaw risk [status|members|health|role|edge-check|add|remove|token [--edge]|route]"; exit 1 ;;
         esac ;;
     chats)
         if [ "${2:-}" = "--watch" ] || [ "${2:-}" = "watch" ]; then

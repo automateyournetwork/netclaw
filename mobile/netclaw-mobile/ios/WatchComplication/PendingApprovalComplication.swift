@@ -61,5 +61,6 @@ struct PendingApprovalComplication: Widget {
 struct WatchComplicationBundle: WidgetBundle {
     var body: some Widget {
         PendingApprovalComplication()
+        HeartbeatComplication()
     }
 }

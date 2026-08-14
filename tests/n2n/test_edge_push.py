@@ -212,20 +212,28 @@ async def _send_push_notification_dispatches(tmp_path, monkeypatch):
     async def _fake_send_fcm(token, content):
         return {"via": "fcm", "token": token}
 
-    async def _fake_send_apns(token, content):
-        return {"via": "apns", "token": token}
-
     monkeypatch.setattr(push_notify, "send_fcm", _fake_send_fcm)
-    monkeypatch.setattr(push_notify, "send_apns", _fake_send_apns)
-
+    # No send_apns to patch: spec 103 consolidated iOS onto the FCM path, since
+    # the client registers an FCM registration token rather than the raw APNs
+    # device token api.push.apple.com requires. This test had kept patching a
+    # send_apns that no longer exists and had been failing on main ever since;
+    # it now asserts the consolidation instead of the removed function.
     fcm_member = {"member_id": "risk/phone1", "push_platform": "fcm", "push_token": "tok-fcm"}
     apns_member = {"member_id": "risk/phone2", "push_platform": "apns", "push_token": "tok-apns"}
     unregistered = {"member_id": "risk/phone3", "push_platform": None, "push_token": None}
 
     assert (await push_notify.send_push_notification(fcm_member, {"content_type": "text"}))["via"] == "fcm"
-    assert (await push_notify.send_push_notification(apns_member, {"content_type": "text"}))["via"] == "apns"
+    # platform='apns' still routes through FCM — accepted so devices enrolled
+    # before that decision keep working without re-registering.
+    assert (await push_notify.send_push_notification(apns_member, {"content_type": "text"}))["via"] == "fcm"
     with pytest.raises(RuntimeError):
         await push_notify.send_push_notification(unregistered, {"content_type": "text"})
+    # A genuinely raw APNs device token must be rejected loudly rather than sent
+    # to FCM, where it would fail as an opaque vendor error.
+    with pytest.raises(RuntimeError, match="raw APNs"):
+        await push_notify.send_push_notification(
+            {"member_id": "risk/phone4", "push_platform": "apns", "push_token": "a" * 64},
+            {"content_type": "text"})
 
 
 def test_n2n_edge_message_has_no_inbound_handler(tmp_path):

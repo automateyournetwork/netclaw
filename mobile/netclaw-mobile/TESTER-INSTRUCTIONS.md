@@ -141,7 +141,8 @@ Revocation is server-side; you don't need the phone back.
 |---|---|
 | Play Protect warns on install | Expected — unsigned-for-Play debug key |
 | No push notifications | Firebase project not configured yet. No longer *silent*: the Settings tab now says "Notifications unavailable" and explains why. Drop in `google-services.json` to enable — see `README.md`. |
-| Tapping a notification doesn't deep-link | Code is wired and tested; inert only until the Firebase config above exists |
+| Tapping a notification doesn't deep-link | **Fixed (spec 107)** — the tap now opens the message it names even when that message has not arrived yet. It used to search the local feed once, the instant the app opened, which could never win against the message's own arrival: a replayed message lands ~3s after channel auth (Border-side replay settle), and a cold launch from a tap finishes well inside that. The tap now records the message it wants and opens it on arrival, giving up after 8s. |
+| A pushed message wasn't visible until the app reconnected | **Fixed (spec 107)** — the push payload already carried the whole message; nothing on the device read it. Now recorded on receipt, so it renders without waiting for (or having) a live connection. Foreground only: background delivery is at the OS's discretion, and a push that arrives while backgrounded still reaches the feed via the Border's replay. |
 | Biometric approval untested on real hardware | Never exercised outside an emulator without enrolled biometrics |
 | Camera capture untested on real hardware | Emulator only produced a synthetic test pattern |
 | Voice input untested on real hardware | Never exercised against a real microphone |

@@ -168,6 +168,11 @@ class FederationService:
         # carry agent-member capabilities (no BGP/eN2N/inventory dispatch,
         # FR-012) and are addressed by push_to_edge(), not delegate_to_member().
         self.edge_channels: Dict[str, object] = {}
+        # Third delivery tier behind live-WS and platform push: a phone with no
+        # usable push transport (e.g. iOS without APNs credentials) would
+        # otherwise have every push silently dropped while it is backgrounded.
+        from .edge_queue import EdgeQueue
+        self.edge_queue = EdgeQueue(self.manager)
         self.border_channel = None                      # member side: our channel to the Border
         self.member_last_activity = time.time()         # member side: for cold/on-demand idle-exit
         self._spawning = set()                          # border side: members mid cold-start
@@ -1305,6 +1310,15 @@ class FederationService:
         except Exception as e:
             logger.debug("edge progress notify to %s failed: %s", member_id, e)
 
+    @staticmethod
+    def _edge_replay_settle_s() -> float:
+        """How long to let a freshly-connected phone settle before dispatching
+        queued content to it, and how long to wait before the single retry."""
+        try:
+            return max(0.0, float(os.environ.get("N2N_EDGE_REPLAY_SETTLE_S", "3.0")))
+        except ValueError:
+            return 3.0
+
     def _register_edge_channel(self, member_id, ch):
         """Track an edge node's channel; deregister on close and start its
         Border-driven heartbeat loop (T011) — the BASE_FLOOR-equivalent
@@ -1318,6 +1332,77 @@ class FederationService:
         ch.on_close = _deregister
         self.edge_channels[member_id] = ch
         asyncio.create_task(self._edge_heartbeat_loop(member_id, ch))
+        asyncio.create_task(self._flush_edge_queue(member_id, ch))
+
+    async def _flush_edge_queue(self, member_id: str, ch):
+        """Replay anything that piled up while this device was unreachable.
+
+        Oldest-first, and only while this same channel is still the live one —
+        a phone that drops mid-replay keeps the rest of its backlog for the
+        next connect rather than losing it. Delivery failures deliberately do
+        NOT delete the row; they bump `attempts` and stop, because the common
+        cause is the socket dying again (iOS backgrounding), which is exactly
+        the case the queue exists to survive.
+        """
+        pending = self.edge_queue.pending(member_id)
+        if not pending:
+            return
+        # Let the client finish wiring its handlers before dispatching. Measured
+        # 2026-08-10: the Border accepted at 13:57:10.566 and dispatched the
+        # replay 86ms later, and that call timed out after the full 30s — while
+        # ordinary n2n/edge/message pushes on the SAME connection succeeded at
+        # 14:26 and 14:44, and n2n/edge/heartbeat was answered throughout the
+        # 59-minute session. The app was alive; the replay simply arrived before
+        # it was listening. Firing immediately on channel registration was the
+        # bug, not the device.
+        await asyncio.sleep(self._edge_replay_settle_s())
+        if self.edge_channels.get(member_id) is not ch or ch._closed:
+            return
+        logger.info("Replaying %d queued message(s) to edge node %s",
+                    len(pending), member_id)
+        for item in pending:
+            if self.edge_channels.get(member_id) is not ch or ch._closed:
+                logger.info("Edge node %s went away mid-replay — %d message(s) "
+                            "stay queued", member_id, self.edge_queue.depth(member_id))
+                return
+            payload = dict(item["payload"])
+            # Mark the replay so the phone can render it as history rather than
+            # as something that just happened.
+            payload["replayed"] = True
+            payload["queued_at"] = item["enqueued_at"]
+            try:
+                await ch.call("n2n/edge/message", payload, timeout=30.0)
+                self.edge_queue.mark_delivered(item["queue_id"])
+                continue
+            except Exception as e:
+                first_error = e
+            # One retry before giving up on this connection. A single timeout is
+            # usually the client not being ready yet, not a dead device — and
+            # abandoning the whole backlog on one miss meant a phone that stayed
+            # connected for an hour still never received its queued content.
+            self.edge_queue.bump_attempt(item["queue_id"])
+            if self.edge_channels.get(member_id) is not ch or ch._closed:
+                logger.info("Edge node %s went away after a failed replay — "
+                            "%d message(s) stay queued", member_id,
+                            self.edge_queue.depth(member_id))
+                return
+            logger.info("Replay to %s failed (%s) — retrying once",
+                        member_id, first_error)
+            await asyncio.sleep(self._edge_replay_settle_s())
+            if self.edge_channels.get(member_id) is not ch or ch._closed:
+                return
+            try:
+                await ch.call("n2n/edge/message", payload, timeout=30.0)
+                self.edge_queue.mark_delivered(item["queue_id"])
+            except Exception as e:
+                self.edge_queue.bump_attempt(item["queue_id"])
+                logger.warning("Queued replay to %s failed twice (%s) — %d "
+                               "message(s) stay queued for the next connect",
+                               member_id, e, self.edge_queue.depth(member_id))
+                return
+        self.audit.record(direction="outbound", peer_identity=member_id,
+                          target_type="edge_push", target_name="queue_replay",
+                          decision="pushed", outcome="success", channel_kind="in2n")
 
     async def _edge_heartbeat_once(self, member_id: str, ch) -> bool:
         """One heartbeat check (contract §4): call n2n/edge/heartbeat on the
@@ -1482,6 +1567,17 @@ class FederationService:
         channel.peer_identity = member_id
         channel.trusted = True
         self._register_edge_channel(member_id, channel)
+        # Spec 106: a successful reconnect used to log NOTHING, so the journal
+        # showed "Accepted edge WS dial-in (awaiting device auth)" followed by a
+        # channel close with nothing in between — indistinguishable from an auth
+        # that never completed. A phone that authenticates and drops seconds
+        # later (iOS suspending a backgrounded socket) is a real, recurring
+        # state, and diagnosing it needs both ends of the channel's life
+        # recorded. The queue depth is here because it decides whether the
+        # replay that follows has anything to send.
+        logger.info("Edge node %s authenticated (source=%s, %d queued)",
+                    member_id, self._edge_channel_source(channel),
+                    self.edge_queue.depth(member_id))
         return {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
                "member_state": "active"}
 

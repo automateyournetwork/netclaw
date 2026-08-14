@@ -5,6 +5,25 @@ import 'edge_client.dart';
 
 enum MessageContentType { text, voice, image }
 
+/// A message's identity, as an instant (spec 107, research R2, data-model.md).
+///
+/// Instant-based rather than raw `DateTime` equality on purpose: Dart's
+/// `DateTime.==` also requires both operands to agree on `isUtc`, so the same
+/// moment expressed as UTC and as local time compares unequal. Every path here
+/// happens to produce UTC today, but a dedup key that silently depends on that
+/// is a trap — two delivery paths disagreeing about zone would each store their
+/// own copy, which is precisely the bug dedup exists to prevent.
+///
+/// **Known limit, stated rather than hidden**: the Border stamps `pushed_at` at
+/// whole-second granularity (`%Y-%m-%dT%H:%M:%SZ`), so two genuinely distinct
+/// messages sent inside the same second collapse into one. Accepted because this
+/// path carries operator- and agent-initiated pushes, not a high-rate stream. If
+/// that stops being true the fix is a sender-assigned unique id — a Border
+/// change, and therefore a different spec. Do not work around it by adding a
+/// second, client-local identifier: that would break dedup *across* delivery
+/// paths, which is the entire point.
+int messageIdentity(DateTime pushedAt) => pushedAt.toUtc().microsecondsSinceEpoch;
+
 /// One message the Border explicitly pushed (US2/FR-008,
 /// contracts/edge-enrollment-and-push.md §3). `content` is plain text for
 /// `text`, base64-encoded media for `voice`/`image`.
@@ -31,6 +50,48 @@ class EdgeMessage {
         designatedBy: params['designated_by'] as String? ?? 'agent',
         pushedAt: DateTime.tryParse(params['pushed_at'] as String? ?? '') ?? DateTime.now().toUtc(),
       );
+
+  /// Strict counterpart to [fromWire], for the **untrusted** push-payload path
+  /// (spec 107, contract §3.3). Returns null instead of throwing or defaulting.
+  ///
+  /// Two differences from [fromWire], both load-bearing:
+  ///
+  /// 1. **A missing or unparseable `pushed_at` is rejected, not defaulted.**
+  ///    [fromWire] falls back to `DateTime.now()`, which is fine for the
+  ///    authenticated live channel (the Border always sets the field) but fatal
+  ///    here: a fresh `now()` on every delivery attempt mints a *new identity*
+  ///    each time, so the same message arriving twice would dedup against
+  ///    nothing and appear twice. Rejecting is safe — spec 106 guarantees replay
+  ///    will deliver it again over the live path.
+  /// 2. **Every value may have arrived as a String** (contract §3.1). The sender
+  ///    stringifies the whole content map (`{k: str(v) for k, v in ...}`), so no
+  ///    field can be assumed to have survived with its original type.
+  static EdgeMessage? tryFromWire(Map<String, dynamic> params) {
+    final rawPushedAt = params['pushed_at'];
+    if (rawPushedAt is! String) return null;
+    final pushedAt = DateTime.tryParse(rawPushedAt);
+    if (pushedAt == null) return null;
+
+    final rawType = params['content_type'];
+    if (rawType is! String) return null;
+    final contentType = MessageContentType.values
+        .where((t) => t.name == rawType)
+        .firstOrNull;
+    if (contentType == null) return null;
+
+    final rawContent = params['content'];
+    if (rawContent is! String) return null;
+
+    final rawDesignatedBy = params['designated_by'];
+    return EdgeMessage(
+      contentType: contentType,
+      content: rawContent,
+      designatedBy: rawDesignatedBy is String && rawDesignatedBy.isNotEmpty
+          ? rawDesignatedBy
+          : 'agent',
+      pushedAt: pushedAt,
+    );
+  }
 
   Map<String, dynamic> toJson() => {
         'content_type': contentType.name,
@@ -89,14 +150,43 @@ class MessageFeedStore {
     }
   }
 
-  Future<void> append(EdgeMessage message) async {
+  /// True if a message with this identity is already stored.
+  bool contains(DateTime pushedAt) {
+    final wanted = messageIdentity(pushedAt);
+    return _messages.any((m) => messageIdentity(m.pushedAt) == wanted);
+  }
+
+  /// Appends [message] unless one with the same identity is already stored.
+  ///
+  /// Returns **true if stored, false if declined** as a duplicate. Declining is
+  /// the expected outcome whenever two delivery paths carry the same message,
+  /// not an error (contract §2.4).
+  ///
+  /// This is the single enforcement point for message identity (spec 107,
+  /// research R3, contract §2.1) — callers must NOT pre-check. As of spec 107
+  /// there are two writers (the live channel handler and the push-payload ingest
+  /// path); putting the check here means a future third writer inherits it
+  /// without having to know it exists. Two implementations that must agree
+  /// forever is the drift pattern this repo already guards against elsewhere.
+  ///
+  /// A declined duplicate leaves the stored message completely untouched,
+  /// including its `acknowledged` state (FR-006, contract §2.2) — re-delivery
+  /// must never make a message the operator already read look unread again.
+  ///
+  /// The return value matters beyond bookkeeping: without it a caller would fire
+  /// its "arrived" side effect (unread badge, local notification) for every
+  /// replayed duplicate, so fixing double *entries* would leave double
+  /// *notifications* — a visibly identical bug one layer up (contract §2.3).
+  Future<bool> append(EdgeMessage message) async {
     await load();
+    if (contains(message.pushedAt)) return false;
     _messages.add(message);
     await _file().writeAsString(
       '${jsonEncode(message.toJson())}\n',
       mode: FileMode.append,
       flush: true,
     );
+    return true;
   }
 
   /// Rewrites the whole file from the in-memory list -- unlike [append],
@@ -164,8 +254,12 @@ void wireMessageFeed(
       return {'received': true};
     }
     final message = EdgeMessage.fromWire(params);
-    await store.append(message);
-    onMessage?.call(message);
+    // Spec 107: only announce it if it was actually new. A replayed message the
+    // push-ingest path already stored is declined here, and firing [onMessage]
+    // anyway would raise an unread badge and post a local notification for
+    // something the operator has already seen (contract §2.3).
+    final stored = await store.append(message);
+    if (stored) onMessage?.call(message);
     return {'received': true};
   });
 }
