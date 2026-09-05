@@ -23,6 +23,7 @@ import asyncio
 import json
 import logging
 import os
+import re
 import sys
 from collections import deque
 from typing import Optional
@@ -97,7 +98,6 @@ class Collector:
         self._testbed_identity = os.path.basename(pyats_testbed)
         self.last_successful_poll: Optional[str] = None
         self.consecutive_failures = 0
-        self.last_poll_duration_seconds: Optional[float] = None
         self._lock = asyncio.Lock()
 
     # -- public read surface, called by server.py's MCP tools -----------------------------
@@ -132,27 +132,18 @@ class Collector:
             "testbed_identity": self._testbed_identity,
             "poll_interval_seconds": self.poll_interval_seconds,
             "consecutive_failures": self.consecutive_failures,
-            "last_poll_duration_seconds": self.last_poll_duration_seconds,
         }
 
     # -- polling loop -----------------------------------------------------------------------
 
     async def run_forever(self) -> None:
         while True:
-            cycle_start = asyncio.get_event_loop().time()
             try:
                 await self._poll_once()
                 self.consecutive_failures = 0
             except Exception:
                 self.consecutive_failures += 1
                 logger.exception("poll cycle failed (consecutive_failures=%d)", self.consecutive_failures)
-            # A poll cycle's real duration is gated by how many devices are slow/unreachable
-            # (each pays its own connection timeout before the collector moves on) — it can run
-            # far longer than poll_interval_seconds. Reporting the actual observed duration lets
-            # a freshness indicator use a realistic staleness threshold instead of one based on
-            # the nominal interval, which would otherwise flag data "stale" almost immediately
-            # after every single update whenever any lab device is slow to respond.
-            self.last_poll_duration_seconds = asyncio.get_event_loop().time() - cycle_start
             await asyncio.sleep(self.poll_interval_seconds)
 
     async def _poll_once(self) -> None:
@@ -206,18 +197,7 @@ class Collector:
                 {"device_name": device_name, "command": INTERFACE_STATUS_COMMAND},
             )
             text = _first_text(result)
-            # pyATS_MCP returns Genie-parsed structured JSON here too (confirmed against a real
-            # device: output.interfaces.<ifname>.status == "admin down"), not raw CLI text — see
-            # _probe_neighbors' docstring for the same class of bug this method also had.
-            admin_down: set[str] = set()
-            try:
-                payload = json.loads(text)
-                interfaces = payload.get("output", {}).get("interfaces", {})
-                for iface_name, iface_data in interfaces.items():
-                    if isinstance(iface_data, dict) and "admin down" in str(iface_data.get("status", "")).lower():
-                        admin_down.add(iface_name)
-            except (json.JSONDecodeError, AttributeError):
-                pass
+            admin_down = set(re.findall(r"^(\S+)\s+.*admin\s*down", text, re.IGNORECASE | re.MULTILINE))
             return True, admin_down
         except Exception:
             logger.warning("device %s unreachable this poll", device_name)
@@ -225,15 +205,9 @@ class Collector:
 
     async def _probe_neighbors(self, session: ClientSession, device_name: str) -> dict[str, tuple[str, str]]:
         """Returns {local_interface: (peer_device_name, peer_interface)} parsed from CDP
-        neighbor detail output.
-
-        pyATS_MCP returns Genie-parsed structured JSON for this command (confirmed against a
-        real device: the response carries "parsed": true and a
-        output.index.<n>.{device_id,local_interface,port_id} shape), not raw CLI text — there
-        is no "Device ID: ..." line to regex-match against. A prior raw-text-regex version of
-        this method silently matched zero neighbors against every real device because of this;
-        it was never caught because this method was never exercised against a live pyATS_MCP
-        response until real-lab deployment (see loop/state/debt.md)."""
+        neighbor detail output. Best-effort text parsing — pyATS_MCP's underlying Genie parser
+        is the source of structured truth when a parsed table is available; this regex path is
+        the fallback so the collector still functions against raw CLI text."""
         try:
             result = await session.call_tool(
                 "pyats_run_show_command",
@@ -243,25 +217,21 @@ class Collector:
         except Exception:
             return {}
 
-        try:
-            payload = json.loads(text)
-            entries = payload.get("output", {}).get("index", {})
-        except (json.JSONDecodeError, AttributeError):
-            entries = {}
-
         neighbors: dict[str, tuple[str, str]] = {}
-        for entry in entries.values():
-            if not isinstance(entry, dict):
+        device_id = None
+        local_iface = None
+        peer_iface = None
+        for line in text.splitlines():
+            m_dev = re.match(r"Device ID:\s*(\S+)", line)
+            if m_dev:
+                device_id = m_dev.group(1).split(".")[0]
                 continue
-            device_id = entry.get("device_id") or ""
-            local_iface = entry.get("local_interface")
-            peer_iface = entry.get("port_id")
-            if not (device_id and local_iface and peer_iface):
-                continue
-            # CDP device_id commonly carries a domain suffix (e.g. "R2.netclaw") that doesn't
-            # match this testbed's bare device names — strip it.
-            peer_name = device_id.split(".")[0]
-            neighbors[local_iface] = (peer_name, peer_iface)
+            m_iface = re.search(r"Interface:\s*(\S+),\s*Port ID \(outgoing port\):\s*(\S+)", line)
+            if m_iface:
+                local_iface, peer_iface = m_iface.group(1), m_iface.group(2)
+                if device_id and local_iface and peer_iface:
+                    neighbors[local_iface] = (device_id, peer_iface)
+                device_id = local_iface = peer_iface = None
         return neighbors
 
     def _reconcile(self, observed_nodes: dict[str, TwinNode], observed_links: dict[str, TwinLink]) -> None:

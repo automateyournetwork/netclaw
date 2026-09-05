@@ -191,20 +191,8 @@ export function createLiveTwinLayer({
 
   function staleThresholdSeconds(status) {
     const pollInterval = Number(status?.poll_interval_seconds);
-    const baseThreshold = !Number.isFinite(pollInterval) || pollInterval <= 0
-      ? 45
-      : Math.max(45, (pollInterval * 3) + 5);
-    // A real poll cycle's duration is gated by how many lab devices are slow/unreachable —
-    // each pays its own connection timeout before the collector moves on — so it can run far
-    // longer than poll_interval_seconds. Using only the nominal interval here flagged data
-    // "stale" almost immediately after every single real update whenever any device was slow
-    // to respond. Once the collector has reported an actual cycle duration, size the threshold
-    // off that instead, with headroom for one more cycle of similar length.
-    const lastDuration = Number(status?.last_poll_duration_seconds);
-    if (Number.isFinite(lastDuration) && lastDuration > 0) {
-      return Math.max(baseThreshold, (lastDuration * 2) + pollInterval);
-    }
-    return baseThreshold;
+    if (!Number.isFinite(pollInterval) || pollInterval <= 0) return 45;
+    return Math.max(45, (pollInterval * 3) + 5);
   }
 
   function computeFreshness(status) {
