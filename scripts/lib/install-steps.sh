@@ -2998,7 +2998,6 @@ _set_env_var() {
 }
 
 _set_env_var "PYATS_TESTBED_PATH"       "$TESTBED_PATH"
-_set_env_var "PYATS_TESTBED"            "$TESTBED_PATH"
 _set_env_var "PYATS_MCP_SCRIPT"         "$PYATS_SCRIPT"
 _set_env_var "MCP_CALL"                 "$NETCLAW_DIR/scripts/mcp-call.py"
 _set_env_var "MARKMAP_MCP_SCRIPT"       "$MARKMAP_INNER/dist/index.js"
@@ -3672,30 +3671,6 @@ else
     log_info "Skipping Sketchfab MCP — threejs-network-viz still works fully with procedural shapes."
 fi
 
-echo ""
-}
-
-# ── Astra Live Twin MCP (spec 122) ─
-component_install_astra_twin() {
-log_step "Installing Astra Live Twin MCP Server..."
-echo "  Built-in MCP server: mcp-servers/astra-twin-mcp/"
-echo "  Read-only collector for the live digital twin HUD (snapshot + deltas + freshness status)"
-
-ASTRA_TWIN_MCP_DIR="$MCP_DIR/astra-twin-mcp"
-if [ -f "$ASTRA_TWIN_MCP_DIR/requirements.txt" ]; then
-    log_info "Installing astra-twin-mcp dependencies..."
-    netclaw_pip_install -r "$ASTRA_TWIN_MCP_DIR/requirements.txt" || \
-        log_warn "astra-twin-mcp pip install failed — dependencies may need manual installation"
-    log_info "astra-twin-mcp ready: $ASTRA_TWIN_MCP_DIR"
-else
-    log_warn "astra-twin-mcp requirements.txt not found at $ASTRA_TWIN_MCP_DIR"
-fi
-
-echo "  Required runtime env:"
-echo "    PYATS_TESTBED=<path to lab testbed yaml>"
-echo "  Optional:"
-echo "    ASTRA_TWIN_POLL_INTERVAL_SECONDS=10"
-echo "    ASTRA_TWIN_WS_POLL_INTERVAL_MS=5000"
 echo ""
 }
 

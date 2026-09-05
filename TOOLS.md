@@ -50,8 +50,6 @@ All credentials are in `~/.openclaw/.env`. Never put credentials in skill files 
 - Cisco PSIRT MCP     → CISCO_CLIENT_ID, CISCO_CLIENT_SECRET (OAuth2 client-credentials via id.cisco.com), CISCO_PSIRT_CACHE_DIR, CISCO_PSIRT_CACHE_TTL_S (default 21600)
 - Globalping MCP      → GLOBALPING_TOKEN (bearer, remote endpoint mcp.globalping.dev; 401 without it)
 - Zoom RTMS MCP       → ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID, ZOOM_RTMS_WEBHOOK_SECRET, N2N_ZOOM_CHANNEL_PORT, N2N_ZOOM_CHANNEL_SECRET (see docs/ZOOM-MEETING-INTELLIGENCE.md, spec 118)
-- Astra Twin MCP      → PYATS_TESTBED (required), ASTRA_TWIN_POLL_INTERVAL_SECONDS, ASTRA_TWIN_WS_POLL_INTERVAL_MS, ASTRA_TWIN_MCP_PYTHON, ASTRA_TWIN_MCP_SERVER_PATH, ASTRA_TWIN_MCP_SERVER_CMD, LAB_ALLOWLIST
-- Astra Twin Loop     → OPENAI_API_KEY (build/maintenance identity only; no runtime dependency in the HUD)
 ```
 
 ## Detailed Per-Integration Notes

@@ -1,6 +1,6 @@
 # netclaw Development Guidelines
 
-Auto-generated from all feature plans. Last updated: 2026-09-04
+Auto-generated from all feature plans. Last updated: 2026-09-03
 
 ## Active Technologies
 - N/A (stateless server; subscription state held in-memory during runtime) (003-gnmi-mcp-server)
@@ -150,8 +150,6 @@ Auto-generated from all feature plans. Last updated: 2026-09-04
 - N/A — no new persistent storage; images pass inline (base64) over the existing (121-federated-topology-viz)
 - Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (`worldlabs-marble-mcp`, matching repo convention), `httpx` (122-worldlabs-topology-viz)
 - N/A — no new persistent storage of any kind (spec Clarifications Q1/Q2, FR-013, (122-worldlabs-topology-viz)
-- Python 3.10+ (`astra-twin-mcp` collector server, matching every existing NetClaw + FastMCP (new `astra-twin-mcp` server — read-only, wraps existing pyATS MCP (122-astra-live-digital-twin)
-- In-memory current-state snapshot + a bounded ring buffer of the last 500 deltas inside (122-astra-live-digital-twin)
 
 - Python 3.10+ + FastMCP (MCP framework), grpcio + grpcio-tools (gRPC transport), pygnmi (gNMI client library), protobuf, cryptography (TLS handling) (003-gnmi-mcp-server)
 
@@ -171,9 +169,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.10+: Follow standard conventions
 
 ## Recent Changes
-- 122-astra-live-digital-twin: Added Python 3.10+ (`astra-twin-mcp` collector server, matching every existing NetClaw + FastMCP (new `astra-twin-mcp` server — read-only, wraps existing pyATS MCP
 - 122-worldlabs-topology-viz: Added Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (`worldlabs-marble-mcp`, matching repo convention), `httpx`
 - 121-federated-topology-viz: Added Python 3.10+ (matches every existing NetClaw MCP server and skill; no new + FastMCP (both new MCP servers, matching repo convention), N2G (new —
+- 120-comfyui-topology-viz: Added Python 3.10+ (skill logic, matching every other NetClaw skill); Node.js 18+ + The community `shawnrushefsky/comfyui-mcp` server (Node/TypeScript, MIT
 
 
 <!-- MANUAL ADDITIONS START -->

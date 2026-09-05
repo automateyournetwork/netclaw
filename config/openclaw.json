@@ -1275,20 +1275,6 @@
         "ANALYSIS_MAX_RESULT_ROWS": "${ANALYSIS_MAX_RESULT_ROWS:-500}",
         "ANALYSIS_EXTRA_ROOTS": "${ANALYSIS_EXTRA_ROOTS:-}"
       }
-    },
-    "astra-twin-mcp": {
-      "command": "python3",
-      "args": [
-        "-u",
-        "mcp-servers/astra-twin-mcp/server.py"
-      ],
-      "env": {
-        "PYATS_TESTBED": "${PYATS_TESTBED}",
-        "PYATS_MCP_PYTHON": "${PYATS_MCP_PYTHON}",
-        "PYATS_MCP_SERVER_PATH": "${PYATS_MCP_SERVER_PATH}",
-        "ASTRA_TWIN_POLL_INTERVAL_SECONDS": "${ASTRA_TWIN_POLL_INTERVAL_SECONDS:-10}",
-        "LAB_ALLOWLIST": "${LAB_ALLOWLIST:-}"
-      }
     }
   }
 }

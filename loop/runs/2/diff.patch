@@ -1,9 +1,0 @@
-diff --git a/loop/state/iterations.md b/loop/state/iterations.md
-index f9bd333..3e4855f 100644
---- a/loop/state/iterations.md
-+++ b/loop/state/iterations.md
-@@ -4,3 +4,4 @@ One line per loop iteration, appended by ralph.sh: task, verdict, commit, durati
- Written by the driver only — neither the maker nor the checker writes here directly.
- - iter 2: REJECT (gates) — see runs/2/gates.log
- - iter 0: ACCEPT 9228ce07 (242s)
-+- iter 1: ACCEPT a89df7ef (277s)

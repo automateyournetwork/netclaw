@@ -22,24 +22,12 @@ app.use(express.json({ limit: '4mb' }));
 
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, path: '/ws' });
-const twinWss = new WebSocketServer({ server, path: '/ws/twin' });
 
 const SKILLS_DIR = path.join(ROOT, 'workspace/skills');
 const TESTBED_FILE = path.join(ROOT, 'testbed/testbed.yaml');
 const CONFIG_FILE = path.join(ROOT, 'config/openclaw.json');
 const IDENTITY_FILE = path.join(ROOT, 'IDENTITY.md');
 const SOUL_FILE = path.join(ROOT, 'SOUL.md');
-const MCP_CALL_SCRIPT = path.join(ROOT, 'scripts', 'mcp-call.py');
-const ASTRA_TWIN_MCP_PYTHON = process.env.ASTRA_TWIN_MCP_PYTHON || 'python3';
-const ASTRA_TWIN_MCP_SERVER = process.env.ASTRA_TWIN_MCP_SERVER_PATH
-  ? process.env.ASTRA_TWIN_MCP_SERVER_PATH.replace(/^~/, os.homedir())
-  : path.join(ROOT, 'mcp-servers', 'astra-twin-mcp', 'server.py');
-const ASTRA_TWIN_MCP_CMD = process.env.ASTRA_TWIN_MCP_SERVER_CMD
-  || `${ASTRA_TWIN_MCP_PYTHON} -u ${ASTRA_TWIN_MCP_SERVER}`;
-const ASTRA_TWIN_WS_POLL_INTERVAL_MS = Math.max(
-  1000,
-  parseInt(process.env.ASTRA_TWIN_WS_POLL_INTERVAL_MS || '5000', 10) || 5000
-);
 
 const INTEGRATION_CATALOG = [
   { id: 'pyats', name: 'pyATS', category: 'Device Automation', prefixes: ['pyats-'], color: '#4cc9f0', transport: 'stdio', toolEstimate: 120, description: 'CLI-first device automation, health checks, routing, topology, and controlled change workflows.' },
@@ -916,32 +904,6 @@ function buildGraph() {
 
 export { buildGraph };
 
-function callAstraTwinTool(tool, args = {}, timeoutSec = 60) {
-  return new Promise((resolve, reject) => {
-    execFile(
-      'python3',
-      [MCP_CALL_SCRIPT, ASTRA_TWIN_MCP_CMD, tool, JSON.stringify(args)],
-      {
-        timeout: (timeoutSec + 30) * 1000,
-        maxBuffer: 64 * 1024 * 1024,
-        env: { ...process.env, MCP_CALL_TIMEOUT: String(timeoutSec) },
-      },
-      (err, stdout, stderr) => {
-        if (err) return reject(new Error(stderr || err.message));
-        try {
-          const result = JSON.parse(stdout);
-          const payload = result.structuredContent
-            || (result.content && result.content[0] && JSON.parse(result.content[0].text))
-            || result;
-          resolve(payload);
-        } catch (parseErr) {
-          reject(new Error(`Unparseable astra-twin-mcp response: ${parseErr.message}`));
-        }
-      }
-    );
-  });
-}
-
 app.get('/api/health', (req, res) => {
   res.json({ ok: true, service: 'netclaw-visual-api', generatedAt: new Date().toISOString() });
 });
@@ -949,123 +911,6 @@ app.get('/api/health', (req, res) => {
 app.get('/api/graph', (req, res) => {
   res.json(buildGraph());
 });
-
-// astra-twin-mcp, when run as a persistent background service (not spawned per-call), writes
-// its accumulated state here on a fixed interval — see mcp-servers/astra-twin-mcp/server.py's
-// _cache_writer(). Reading this file directly is fast and avoids restarting the collector's
-// in-memory state (and re-paying a full pyATS/SSH round trip) on every single HTTP request,
-// which is what calling callAstraTwinTool() per-request would otherwise do. If the persistent
-// service isn't up yet, routes fall back to the original spawn-per-call path so they still
-// work (just slower, and without accumulated history) rather than erroring outright.
-const ASTRA_TWIN_CACHE_PATH = process.env.ASTRA_TWIN_CACHE_PATH
-  || path.join(os.homedir(), '.openclaw', 'astra-twin', 'twin_cache.json');
-
-function readTwinCache() {
-  try {
-    return JSON.parse(fs.readFileSync(ASTRA_TWIN_CACHE_PATH, 'utf8'));
-  } catch {
-    return null;
-  }
-}
-
-app.get('/api/twin/snapshot', async (req, res) => {
-  const cache = readTwinCache();
-  if (cache?.snapshot) return res.json(cache.snapshot);
-  try {
-    const snapshot = await callAstraTwinTool('get_snapshot', {}, 60);
-    res.json(snapshot);
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
-
-app.get('/api/twin/status', async (req, res) => {
-  const cache = readTwinCache();
-  if (cache?.status) return res.json(cache.status);
-  try {
-    const status = await callAstraTwinTool('get_status', {}, 60);
-    res.json(status);
-  } catch (err) {
-    res.status(502).json({ error: err.message });
-  }
-});
-
-const twinSockets = new Set();
-let twinPollTimer = null;
-let twinPollInFlight = false;
-let twinSinceSeq = 0;
-
-function broadcastTwinMessage(message) {
-  const serialized = JSON.stringify(message);
-  for (const socket of twinSockets) {
-    if (socket.readyState === socket.OPEN) socket.send(serialized);
-  }
-}
-
-function stopTwinPollingIfIdle() {
-  if (twinSockets.size === 0 && twinPollTimer) {
-    clearInterval(twinPollTimer);
-    twinPollTimer = null;
-    twinPollInFlight = false;
-  }
-}
-
-function startTwinPolling() {
-  if (twinPollTimer) return;
-  twinPollTimer = setInterval(async () => {
-    if (twinSockets.size === 0 || twinPollInFlight) return;
-    twinPollInFlight = true;
-    try {
-      const cache = readTwinCache();
-      if (cache) {
-        const deltas = Array.isArray(cache.deltas) ? cache.deltas : [];
-        if (deltas.length && twinSinceSeq < deltas[0].seq - 1) {
-          twinSinceSeq = 0;
-          broadcastTwinMessage({
-            type: 'twin:resync_required',
-            reason: 'buffer_overflow',
-            snapshot: '/api/twin/snapshot',
-          });
-          return;
-        }
-        for (const delta of deltas) {
-          if (typeof delta?.seq === 'number' && delta.seq > twinSinceSeq) {
-            twinSinceSeq = delta.seq;
-            // Contract: each pushed delta is the raw TwinDelta object (no envelope).
-            broadcastTwinMessage(delta);
-          }
-        }
-        return;
-      }
-      // Cache not present yet (persistent service not up) — fall back to the original
-      // spawn-per-call path so polling still functions, just without accumulated history.
-      const result = await callAstraTwinTool('get_deltas', { since_seq: twinSinceSeq }, 60);
-      if (result?.buffer_overflow === true) {
-        twinSinceSeq = 0;
-        broadcastTwinMessage({
-          type: 'twin:resync_required',
-          reason: 'buffer_overflow',
-          snapshot: '/api/twin/snapshot',
-        });
-        return;
-      }
-      if (!Array.isArray(result)) return;
-      for (const delta of result) {
-        if (typeof delta?.seq === 'number' && delta.seq > twinSinceSeq) {
-          twinSinceSeq = delta.seq;
-        }
-        broadcastTwinMessage(delta);
-      }
-    } catch (err) {
-      broadcastTwinMessage({
-        type: 'twin:error',
-        error: err.message,
-      });
-    } finally {
-      twinPollInFlight = false;
-    }
-  }, ASTRA_TWIN_WS_POLL_INTERVAL_MS);
-}
 
 // ── BGP topology endpoint ─────────────────────────────────────────
 const BGP_API = 'http://127.0.0.1:8179';
@@ -2280,19 +2125,8 @@ wss.on('connection', (socket) => {
   });
 });
 
-twinWss.on('connection', (socket) => {
-  twinSockets.add(socket);
-  startTwinPolling();
-
-  socket.on('close', () => {
-    twinSockets.delete(socket);
-    stopTwinPollingIfIdle();
-  });
-});
-
 const PORT = process.env.HUD_PORT || 3001;
 server.listen(PORT, () => {
   console.log(`NetClaw visual API listening on http://localhost:${PORT}`);
   console.log(`WebSocket available at ws://localhost:${PORT}/ws`);
-  console.log(`Astra Twin WebSocket available at ws://localhost:${PORT}/ws/twin`);
 });

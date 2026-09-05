@@ -278,13 +278,6 @@ class FederationManager:
             # _recompute_state/PeerState.
             ("federation_peer", "transport", "TEXT NOT NULL DEFAULT 'ngrok'"),
             ("federation_peer", "edge_gate", "TEXT NOT NULL DEFAULT 'none'"),
-            # feature 122: which AI provider backs a member's own reasoning. Every existing
-            # row defaults to 'claude' (the primary agent's provider), preserving current
-            # behavior exactly. Astra Twin (spec 122) is the first member enrolled with
-            # 'openai' — see scripts/in2n-member.py and bgp/federation/risk.py's
-            # enroll_member(). Purely descriptive/audit metadata: never read by routing,
-            # authorization, or _recompute_state.
-            ("member", "model_provider", "TEXT NOT NULL DEFAULT 'claude'"),
         ]:
             try:
                 self._conn.execute(f"ALTER TABLE {table} ADD COLUMN {col} {decl}")
