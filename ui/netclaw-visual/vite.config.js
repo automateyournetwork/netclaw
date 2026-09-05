@@ -28,10 +28,6 @@ export default defineConfig({
           });
         },
       },
-      '/ws/twin': {
-        target: 'ws://localhost:3001',
-        ws: true,
-      },
       '/ws': {
         target: 'ws://localhost:3001',
         ws: true,

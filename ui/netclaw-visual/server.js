@@ -21,25 +21,8 @@ app.use(cors());
 app.use(express.json({ limit: '4mb' }));
 
 const server = http.createServer(app);
-// Two separate `new WebSocketServer({ server, path })` instances attached to the same
-// http.Server can conflict with each other (ws's own docs warn against this pattern for
-// multiple servers) — observed in practice as /ws/twin always getting a 400 and /ws itself
-// coming back with a corrupted frame, even though each path is otherwise wired correctly.
-// The documented-correct pattern is `noServer: true` on both, with one manual 'upgrade'
-// dispatcher that routes by pathname.
-const wss = new WebSocketServer({ noServer: true });
-const twinWss = new WebSocketServer({ noServer: true });
-
-server.on('upgrade', (req, socket, head) => {
-  const { pathname } = new URL(req.url, `http://${req.headers.host}`);
-  if (pathname === '/ws/twin') {
-    twinWss.handleUpgrade(req, socket, head, (ws) => twinWss.emit('connection', ws, req));
-  } else if (pathname === '/ws') {
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req));
-  } else {
-    socket.destroy();
-  }
-});
+const wss = new WebSocketServer({ server, path: '/ws' });
+const twinWss = new WebSocketServer({ server, path: '/ws/twin' });
 
 const SKILLS_DIR = path.join(ROOT, 'workspace/skills');
 const TESTBED_FILE = path.join(ROOT, 'testbed/testbed.yaml');
