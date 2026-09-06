@@ -45,7 +45,6 @@ import { VignetteShader } from 'three/addons/shaders/VignetteShader.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 import gsap from 'gsap';
 import { KnowledgePanel } from './panels/KnowledgePanel.js';
-import { createLiveTwinLayer } from './twin/live-twin.js';
 
 // ── Quality budget modes ───────────────────────────────────────────
 // Focus: minimal effects, best perf. Balanced: default. Broadcast: all effects.
@@ -110,7 +109,6 @@ const state = {
   // BGP topology
   bgp: null,
   n2n: null,
-  liveTwin: null,
   // Chat session focus mode
   chatSession: {
     active: false,               // true when user has sent a message
@@ -2355,7 +2353,6 @@ function animate() {
   // states are already separable by form and colour — so honouring reduced
   // motion simply skips it without weakening the encoding.
   tickOrgChart(elapsed, state.camera);
-  state.liveTwin?.tick?.();
 
   // Track time offset for freeze: when frozen, hold rotations at the moment of freeze
   if (frozen && state._frozenAt == null) state._frozenAt = elapsed;
@@ -2886,13 +2883,6 @@ async function boot() {
 
     state.orgLayout = mountOrgChart(state.scene, state.n2n, state.orgCatalog, makeLabel);
     frameChart(state.camera, state.controls, chartNodes());
-    state.liveTwin = createLiveTwinLayer({
-      scene: state.scene,
-      makeLabel,
-      camera: state.camera,
-      controls: state.controls,
-    });
-    await state.liveTwin.start();
 
     // ── Feature 102: interactive layout ──────────────────────────────────
     await restoreSavedLayout();

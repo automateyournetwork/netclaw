@@ -1,1 +1,0 @@
-D3. harness/done_gate.sh passes

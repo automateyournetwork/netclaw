@@ -1,7 +1,7 @@
 # Upper bound is LOAD-BEARING, same reason as every other NetClaw FastMCP
 # server (spec 077): mcp 2.0.0 removed mcp.server.fastmcp. Do not remove.
 mcp>=1.0.0,<2
-websockets>=12.0
+websockets>=12.0,<16
 python-dotenv>=1.0.0
 # Zoom's official RTMS Python SDK (research.md R4, spec 118). Confirmed
 # installable from PyPI (verified 2026-08-17) as package "rtms" — ships only

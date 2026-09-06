@@ -116,8 +116,6 @@ mcp-servers/anta-mcp/.venv/
 # Spec 121: federated topology viz Stage A/B, NetClaw-authored, not vendored.
 !mcp-servers/worldlabs-marble-mcp/
 # Spec 122: World Labs Marble fantastical topology viz, NetClaw-authored, not vendored.
-!mcp-servers/astra-twin-mcp/
-# Spec 122: Astra Live Digital Twin -- read-only collector.
 
 # Traces
 trace.json

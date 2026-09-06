@@ -292,7 +292,6 @@ NetClaw is an autonomous network engineering agent powered by Claude that can:
 - **Diagram** your network with Draw.io topology maps (color-coded by reconciliation status)
 - **Visualize** protocol hierarchies as interactive Markmap mind maps
 - **Render** inline Canvas/A2UI visualizations in chat — topology maps with health-colored nodes, real-time dashboards (CPU, memory, BGP, OSPF), severity-sorted alert cards, ServiceNow change request timelines, config/routing/ACL diffs, hop-by-hop path traces with ECMP and black hole detection, and aggregated health scorecards with drill-down
-- **Mirror** a live lab as a read-only digital twin — continuously poll pyATS/CML state through `astra-twin-mcp`, stream topology/link/device deltas to the Three.js HUD, and keep operator freshness/staleness visible without any runtime AI dependency
 - **Generate** UML and infrastructure diagrams via Kroki — 27+ types including network topology (nwdiag), rack layouts (rackdiag), packet headers (packetdiag), protocol state machines, sequence diagrams, C4 architecture, Mermaid, D2, Graphviz, ERD — output as SVG, PNG, PDF
 - **Reference** IETF RFCs and Wikipedia for standards-compliant configuration
 - **Store** reports, config backups, and diagrams on SharePoint via Microsoft Graph

@@ -351,38 +351,6 @@ async def handle_n2n(method, path, body):
         if path == "/n2n/approvals" and method == "GET":
             return 200, {"pending": fed.authz.pending_approvals()}
 
-        if path == "/n2n/approvals/test" and method == "POST":
-            # Operator-triggered approval push with no live eN2N peer behind
-            # it -- for exercising the phone's native Approve/Deny UI (e.g.
-            # App Store screenshots) without forging a federated peer's
-            # identity. Creates a REAL approval_request row via the same
-            # Authorizer.create_approval() the production path uses, so
-            # resolving it from the phone is fully functional; it just has
-            # no queued action gated behind it, since none exists.
-            member_id = body.get("member_id")
-            if not member_id:
-                return 400, {"error": "member_id required"}
-            target_type = body.get("target_type", "skill")
-            target_name = body.get("target_name", "test-action")
-            requesting_agent = body.get("requesting_agent", "test-harness")
-            appr = fed.authz.create_approval(0)
-            risk_name = (fed.risk.get_risk() or {}).get("risk_name")
-            payload = {
-                "content_type": "approval",
-                "approval_id": appr["approval_id"],
-                "target_type": target_type,
-                "target_name": target_name,
-                "requesting_agent": requesting_agent,
-                "risk_name": risk_name,
-                "pushed_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-            }
-            try:
-                result = await fed.push_to_edge(member_id, payload)
-                return 200, {"delivered": True, "approval_id": appr["approval_id"], "result": result}
-            except Exception as e:
-                return 200, {"delivered": False, "approval_id": appr["approval_id"],
-                             "error": str(e)}
-
         if len(parts) == 3 and parts[1] == "approvals" and method == "POST":
             fed.authz.resolve_approval(int(parts[2]), body.get("action", "deny"), body.get("via", "cli"))
             return 200, {"resolved": int(parts[2]), "action": body.get("action")}

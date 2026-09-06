@@ -388,14 +388,9 @@ class RiskManager:
                       scope: Optional[list] = None, runtime_kind: str = "process",
                       display_name: Optional[str] = None,
                       transport_binding: str = "loopback",
-                      node_type: str = "agent",
-                      model_provider: str = "claude") -> dict:
+                      node_type: str = "agent") -> dict:
         """Validate a single-use token + pin the member's self-signed key (TOFU).
-        Raises ValueError(code) on invalid/spent/expired token or id/key clash.
-
-        model_provider (feature 122): which AI backs this member's own reasoning —
-        'claude' (default, matches every pre-122 member) or 'openai' (e.g. Astra Twin).
-        Purely descriptive/audit metadata; never affects scope, routing, or auth."""
+        Raises ValueError(code) on invalid/spent/expired token or id/key clash."""
         if not self.is_border():
             raise ValueError("IN2N_ERR_NOT_A_BORDER")
         row = self._token_row(raw_token)
@@ -421,18 +416,16 @@ class RiskManager:
             self._conn.execute(
                 "UPDATE member SET pinned_key=?, key_fingerprint=?, runtime_kind=?, "
                 "transport_binding=?, display_name=COALESCE(?, display_name), "
-                "state=?, auth_failures=0, updated_at=?, node_type=?, model_provider=? "
-                "WHERE member_id=?",
+                "state=?, auth_failures=0, updated_at=?, node_type=? WHERE member_id=?",
                 (cert_pem, fp, runtime_kind, transport_binding, display_name,
-                 STATE_ENROLLED, now, node_type, model_provider, member_id))
+                 STATE_ENROLLED, now, node_type, member_id))
         else:
             self._conn.execute(
                 "INSERT INTO member (member_id, display_name, pinned_key, key_fingerprint, "
                 "profile, scope, runtime_kind, transport_binding, state, auth_failures, "
-                "enrolled_at, updated_at, node_type, model_provider) "
-                "VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?,?)",
+                "enrolled_at, updated_at, node_type) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)",
                 (member_id, display_name, cert_pem, fp, None, scope_json, runtime_kind,
-                 transport_binding, STATE_ENROLLED, now, now, node_type, model_provider))
+                 transport_binding, STATE_ENROLLED, now, now, node_type))
         # Spend the token atomically.
         self._conn.execute(
             "UPDATE enrollment_token SET spent_at=?, spent_by_member_id=? WHERE token_hash=?",
