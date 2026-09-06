@@ -4250,6 +4250,33 @@ log_info "Budget note: cost = probe count. limit:20 spends 20 of 500 per hour."
 echo ""
 }
 
+component_install_topolograph() {
+log_step "Enabling Topolograph (remote MCP)..."
+echo "  OSPF/IS-IS link-state topology analysis — shortest/backup path,"
+echo "  edge/node failure simulation, MPLS-TE/CSPF, topology event timeline."
+echo "  Plus BGP topology (Topolograph >= 2.69): speakers, sessions, route"
+echo "  search, VRF/VPN inventory, BGP-to-IGP graph binding."
+echo "  Read-only: the server hides all mutation tools from tools/list."
+
+# Fronts an operator-run Topolograph HTTP API, actively developed upstream:
+# nothing to clone or pip install. "Installing" is registration plus a
+# credential check, same shape as Globalping (spec 119).
+log_info "Registered from config/openclaw.json (TOPOLOGRAPH_MCP_URL, default https://topolograph.com/mcp)"
+
+if [ -z "${TOPOLOGRAPH_API_TOKEN:-}" ]; then
+    log_info "Set TOPOLOGRAPH_API_TOKEN in .env to enable it."
+    log_info "  Issue an API token from your own Topolograph instance."
+    log_warn "The MCP endpoint returns 401 without a token."
+else
+    log_info "TOPOLOGRAPH_API_TOKEN present"
+fi
+
+# Scope the client-side surface further to the analysis tools the skill uses:
+log_info "Allowlist note: 'defenseclaw tool allow' the get_* analysis tools; leave the rest blocked."
+
+echo ""
+}
+
 # ── Step 53: Lantronix Percepxion MCP Server (OOB fleet management) ─
 component_install_percepxion() {
 log_step "Installing Lantronix Percepxion MCP Server..."

@@ -1133,6 +1133,15 @@
         "GLOBALPING_TOKEN": "${GLOBALPING_TOKEN}"
       }
     },
+    "topolograph-mcp": {
+      "url": "${TOPOLOGRAPH_MCP_URL:-https://topolograph.com/mcp}",
+      "headers": {
+        "Authorization": "Bearer ${TOPOLOGRAPH_API_TOKEN}"
+      },
+      "env": {
+        "TOPOLOGRAPH_API_TOKEN": "${TOPOLOGRAPH_API_TOKEN}"
+      }
+    },
     "fortinet-mcp": {
       "command": "python3",
       "args": [
