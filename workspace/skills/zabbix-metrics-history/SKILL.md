@@ -1,6 +1,6 @@
 ---
 name: zabbix-metrics-history
-description: "Retrieve polled metric history from Zabbix — interface utilization, counters and any collected item — over any time window, correctly routed between raw history and hourly trends. Use when someone asks what something WAS doing over time: is this normal, what did this interface do overnight, was it like this last Tuesday. This is the only NetClaw skill that can answer a question about the past from a poller."
+description: "Retrieve polled metric history from Zabbix — interface utilization, counters and any collected item — over any time window, correctly routed between raw history and hourly trends. Use when someone asks what something WAS doing over time, from Zabbix specifically: is this normal, what did this interface do overnight, was it like this last Tuesday. For the same kind of question against Auvik-collected telemetry instead, use `auvik-performance`."
 version: 1.0.0
 license: Apache-2.0
 tags: [zabbix, nms, snmp, monitoring, history, trends, utilization, baseline, observability]

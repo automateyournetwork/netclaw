@@ -1,6 +1,6 @@
 ---
 name: protocol-participation
-description: "Live BGP and OSPF control-plane participation — peer with real routers, inject/withdraw routes, query RIB/LSDB, adjust metrics, GRE tunnel status. Use when injecting or withdrawing BGP routes, checking BGP peer state, querying the OSPF LSDB, or testing route advertisement in a lab."
+description: "Live BGP and OSPF control-plane participation — NetClaw itself acts as a protocol speaker: peer with real routers, inject/withdraw routes, query its own RIB/LSDB, adjust metrics, GRE tunnel status. Use when injecting or withdrawing BGP routes, checking the state of NetClaw's own BGP peering, querying its own OSPF LSDB, or testing route advertisement in a lab. This does not query an existing device's routing table — for that, use `pyats-routing` (Cisco) or `pyats-junos-routing` (Juniper) instead."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -268,3 +268,9 @@ NETCLAW_LAB_MODE=true
 - **GRE is the default tunnel transport** — native Linux kernel support, every major vendor supports it (Cisco, Juniper, Arista, FRR, Nokia), RFC 2784/2890 compliant
 - **Raw sockets require root for protocol speakers** — BGP (TCP/179), OSPF (IP/89), GRE (IP/47)
 - **No secrets in protocol state** — RIB/LSDB queries return routing information, not credentials
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `NETCLAW_ROUTER_ID` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

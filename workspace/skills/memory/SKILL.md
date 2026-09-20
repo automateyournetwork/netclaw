@@ -1,3 +1,12 @@
+---
+name: memory
+description: "NetClaw's native persistent memory (spec 033) — structured facts with temporal validity, semantic search across past sessions, decision logging, and entity relationships, backed by SQLite + ChromaDB at ~/.openclaw/memory/. This is the primary, GAIT-integrated memory system referenced by SOUL Principle #9. Use when recording or recalling operational facts, past decisions, or entity relationships across sessions. For the alternate community MemPalace tool (wing/room/drawer model with its own knowledge graph), see `mempalace` instead — the two stores don't share data, so pick one per fact rather than writing to both."
+license: Apache-2.0
+user-invocable: true
+metadata:
+  { "openclaw": { "requires": { "bins": ["python3"] } } }
+---
+
 # Skill: Persistent Memory
 
 **Purpose**: Provide persistent context across NetClaw sessions through structured facts, semantic search, and entity relationships.

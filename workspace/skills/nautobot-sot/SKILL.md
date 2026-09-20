@@ -144,3 +144,8 @@ If the organization runs **both**, use both skills for cross-platform reconcilia
 - `NAUTOBOT_TOKEN` — Nautobot API token with read permissions
 - `MCP_PORT` — Server port when running in HTTP mode (default: 8000, optional)
 - `MCP_HOST` — Server bind address (default: 127.0.0.1, optional)
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

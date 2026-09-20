@@ -1,6 +1,6 @@
 ---
 name: azure-security-audit
-description: "Azure NSG compliance auditing and security posture assessment. CIS Azure Foundations Benchmark rules, effective security rule analysis, orphaned NSG detection. Use when auditing Azure NSGs for CIS compliance, checking for overly permissive rules, or reviewing effective security on NICs."
+description: "Azure NSG compliance auditing and security posture assessment. CIS Azure Foundations Benchmark rules, effective security rule analysis, orphaned NSG detection. Use when auditing Azure NSGs for CIS compliance, checking for overly permissive rules, or reviewing effective security on NICs. For general Azure networking inspection not scoped to a compliance benchmark — VNets, ExpressRoute/VPN, load balancers, what an NSG currently allows — use `azure-network-ops` instead."
 version: 1.0.0
 license: Apache-2.0
 tags: [azure, nsg, security, compliance, cis-benchmark, audit]
@@ -85,3 +85,8 @@ Use both together for a complete Azure networking and security picture.
 - **Remediation guidance**: Include specific remediation steps for every finding
 - **GAIT logging**: All audit operations are logged for compliance trail
 - **Subscription scope**: Audit can cover all NSGs or filter by specific NSG/resource group
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

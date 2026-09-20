@@ -126,18 +126,18 @@ response as `generation_path`:
 
 | `generation_path` | Meaning |
 |---|---|
-| `federated` | Both stages ran on the `johns-risk/viz` federation member: a deterministic, correct-by-construction diagram (real role icons, real labels, real connections — no diffusion model involved), then a diffusion image-edit pass that restyled it without altering structure. This is the strongest correctness guarantee this skill can offer (spec 121 SC-001). |
-| `federated_partial` | The structural diagram (correct, unstyled) was produced on `johns-risk/viz`, but the styling stage failed or that half of the member was unreachable — you still get the correct diagram, not nothing, with `reason` telling you styling didn't complete. |
-| `fallback` | Spec 120's original Flux+ControlNet+Canny pipeline (unchanged) — used for a freeform request (no real device data for the structural stage to work from) or when `johns-risk/viz` itself is unreachable. `reason` says which. |
+| `federated` | Both stages ran on an operator-configured federation member (e.g. `<your-risk>/viz`): a deterministic, correct-by-construction diagram (real role icons, real labels, real connections — no diffusion model involved), then a diffusion image-edit pass that restyled it without altering structure. This is the strongest correctness guarantee this skill can offer (spec 121 SC-001). |
+| `federated_partial` | The structural diagram (correct, unstyled) was produced on the configured federation member, but the styling stage failed or that half of the member was unreachable — you still get the correct diagram, not nothing, with `reason` telling you styling didn't complete. |
+| `fallback` | Spec 120's original Flux+ControlNet+Canny pipeline (unchanged) — used for a freeform request (no real device data for the structural stage to work from) or when the configured federation member itself is unreachable. `reason` says which. |
 
 Both new stages run as separate MCP servers (`mcp-servers/topology-diagram-mcp/`,
 `mcp-servers/image-style-mcp/`) invoked from Border via `n2n/tools/call` on the live
-`johns-risk/viz` member — Border never renders or diffuses anything itself for this path (FR-005).
+your configured federation member — Border never renders or diffuses anything itself for this path (FR-005).
 See `specs/121-federated-topology-viz/research.md` for the full design, including four real gaps
 found and fixed in the shared federation infrastructure itself (R10) to make this actually work —
 this was the first working internal `n2n/tools/call` in the codebase.
 
-**If `johns-risk/viz` is down**: `systemctl --user start netclaw-member-johns-risk-viz.service`
+**If your viz federation member is down**: `systemctl --user start netclaw-member-<your-risk>-viz.service` (service name derived from your own risk/member name, per your N2N federation setup)
 (it's `enabled`, so a host reboot brings it back automatically).
 
 ## Two generation paths (spec 120's fallback pipeline, used when the federated path isn't)

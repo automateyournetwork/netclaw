@@ -220,3 +220,9 @@ python3 $MCP_CALL "python3 -u $SUBNET_MCP_SCRIPT" subnet_calculator '{"cidr":"10
 # Then configure the interface
 PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_configure_device '{"device_name":"R1","config_commands":["interface GigabitEthernet2","ip address 10.1.1.1 255.255.255.252","no shutdown"]}'
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `MCP_CALL`, `PYATS_MCP_SCRIPT`, `SUBNET_MCP_SCRIPT` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

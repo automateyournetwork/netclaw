@@ -116,3 +116,9 @@ python3 $MCP_CALL "python3 -u $NMAP_MCP_SCRIPT" nmap_get_scan '{"scan_id":"20250
 - All scan results are saved to disk and retrievable by scan_id
 - Do NOT put the target in the `flags` parameter — it's added automatically
 - Shell injection is blocked — forbidden characters are rejected
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `NMAP_MCP_SCRIPT` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

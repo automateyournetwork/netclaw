@@ -263,3 +263,9 @@ Use this checklist to ensure no step is skipped:
 - Use **servicenow-change-workflow** if the incident reveals a policy gap that requires an ISE authorization rule change (separate CR required)
 - Use **gait-session-tracking** to maintain the immutable audit trail across the full incident lifecycle
 - Use **markmap-viz** to visualize the endpoint's access path (SGT assignment, AuthZ rule, VLAN, dACL)
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `GAIT_MCP_SCRIPT`, `ISE_BASE`, `ISE_MCP_SCRIPT`, `ISE_PASSWORD`, `ISE_USERNAME`, `SERVICENOW_MCP_SCRIPT` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

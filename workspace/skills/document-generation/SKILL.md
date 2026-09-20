@@ -1,6 +1,6 @@
 ---
 name: document-generation
-description: "Generate Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) documents and fill existing PDF forms, from real NetClaw data, with per-element provenance and no fabrication. Use when someone needs a deliverable rather than an answer — a change record to attach to a CR, an audit workbook for a compliance reviewer, a summary deck for a director, or a required PDF form filled from real device and ticket data."
+description: "Generate Word (.docx), Excel (.xlsx) and PowerPoint (.pptx) documents and fill existing PDF forms, from real NetClaw data, with per-element provenance and no fabrication. This is the generic document-writing engine (tool surface, tagged-value shapes, fabrication rules). For the four standard NetClaw report compositions (change record, audit workbook, executive summary deck, PDF form) with their content-sourcing rules, use `network-report-documents` instead — it is built on this skill. Use this skill directly for any other one-off deliverable."
 version: 1.0.0
 license: Apache-2.0
 tags: [documents, docx, xlsx, pptx, pdf, reporting, change-record, audit, deliverables]

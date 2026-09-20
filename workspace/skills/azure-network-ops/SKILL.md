@@ -1,6 +1,6 @@
 ---
 name: azure-network-ops
-description: "Azure cloud networking -- VNets, NSGs, ExpressRoute, VPN Gateways, Azure Firewalls, Load Balancers, Application Gateways, Route Tables, Network Watcher, Private Endpoints, DNS zones. Use when auditing Azure VNets, troubleshooting hybrid connectivity (ExpressRoute/VPN), checking NSG rules, inspecting firewall policies, or analyzing load balancer health."
+description: "Azure cloud networking -- VNets, NSGs, ExpressRoute, VPN Gateways, Azure Firewalls, Load Balancers, Application Gateways, Route Tables, Network Watcher, Private Endpoints, DNS zones. Use when auditing Azure VNets, troubleshooting hybrid connectivity (ExpressRoute/VPN), inspecting what an NSG currently allows, inspecting firewall policies, or analyzing load balancer health. For CIS Azure Foundations Benchmark compliance scoring, overly-permissive-rule findings, or orphaned NSG detection, use `azure-security-audit` instead."
 version: 1.0.0
 license: Apache-2.0
 tags: [azure, vnet, nsg, expressroute, vpn, firewall, load-balancer, dns, private-link]

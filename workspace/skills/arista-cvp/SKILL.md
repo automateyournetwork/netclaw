@@ -181,3 +181,9 @@ get_connectivity_monitor → capture current probe statistics
 - **Cross-reference inventory** — compare CVP device data with NetBox/Nautobot to detect SoT drift
 - **Record in GAIT** — every inventory query, event pull, connectivity check, and tag creation must be logged
 - **Community project** — this is an unofficial demo; evaluate security implications (TLS verification disabled in source) before production use
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `CVP`, `CVPTOKEN` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

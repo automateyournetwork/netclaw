@@ -57,3 +57,8 @@ Show traffic forwarding rules for the data center
 ## Server
 
 This skill uses the `zscaler-mcp` server which connects to ZIA via OneAPI.
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

@@ -243,3 +243,9 @@ Generate a policy hierarchy mind map for the audit report:
 ```bash
 python3 $MCP_CALL "node $MARKMAP_MCP_SCRIPT" markmap_customize '{"markdown_content":"# ISE Policy Audit\n## CRITICAL\n### Default AuthZ permits all\n### Non-compliant endpoints active\n### Permit-all SGACL\n## HIGH\n### 23% Unknown endpoints\n### SGT overlap (employees + contractors)\n### Shadowed AuthZ rules\n## MEDIUM\n### No posture reassessment\n### Long-lived sessions\n### MAB instead of 802.1X\n## LOW\n### Unused SGTs\n### Dead profiler profiles","theme":"dark"}'
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `GAIT_MCP_SCRIPT`, `ISE_BASE`, `ISE_MCP_SCRIPT`, `ISE_PASSWORD`, `ISE_USERNAME`, `MARKMAP_MCP_SCRIPT` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

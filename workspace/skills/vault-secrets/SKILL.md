@@ -50,3 +50,8 @@ Write a new secret to network-devices/switch-01
 ## Server
 
 This skill uses the `vault-mcp` server which connects to Vault API.
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

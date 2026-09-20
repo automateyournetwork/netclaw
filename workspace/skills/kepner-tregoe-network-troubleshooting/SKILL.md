@@ -11,6 +11,9 @@ description: >-
   troubleshooting: it forces you to specify the fault's boundary before hypothesizing, test causes
   against evidence, verify the root cause before changing anything, and separate the fast reversible
   incident fix from the permanent fix. Consult it before making state-changing actions on a network.
+  This is a reasoning framework only — it has no diagnostic tools of its own. Pair it with a
+  device/platform skill (`pyats-troubleshoot`, `catc-troubleshoot`, `f5-troubleshoot`, etc.) to gather
+  the evidence and run the actual commands.
 license: Apache-2.0
 user-invocable: true
 ---
@@ -166,3 +169,8 @@ large, the situation is cluttered, or a wrong move is expensive/hard to reverse.
 - `references/domain-signatures.md` — Signature→cause lookup tables for seven network domains.
 - `references/worksheets.md` — Fill-in record templates for all four processes and a facilitation script.
 - `references/integrated-workflow.md` — One incident worked end-to-end through all four processes.
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

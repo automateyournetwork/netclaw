@@ -1,6 +1,6 @@
 ---
 name: pyats-junos-system
-description: "JunOS system operations via pyATS — chassis health, hardware inventory, system info, NTP, SNMP, files/logs, firewall counters, DDoS protection, services accounting. Use when checking Juniper chassis alarms, auditing hardware inventory, reviewing system uptime, or inspecting JunOS firewall counters."
+description: "JunOS system operations via pyATS — chassis health, hardware inventory, system info, NTP, SNMP, files/logs, firewall counters, DDoS protection, services accounting. Use when checking Juniper chassis alarms, auditing hardware inventory, reviewing system uptime, or inspecting JunOS firewall counters. For basic cross-platform CPU/memory/interface health checks, `pyats-health-check` covers Juniper too and is the simpler starting point."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -307,3 +307,9 @@ show firewall → active filters
 - **Always check `show chassis alarms` first** — active alarms take priority
 - **Cross-reference with SoT** — compare hardware inventory with NetBox/Nautobot
 - **Record in GAIT** — every command execution must be logged
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

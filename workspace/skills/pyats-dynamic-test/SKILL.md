@@ -1,6 +1,6 @@
 ---
 name: pyats-dynamic-test
-description: "Generate and execute deterministic pyATS aetest validation scripts - interface state, OSPF neighbors, BGP paths, ping matrices, and custom compliance tests. Use when writing a network test, validating post-change state, running pass/fail checks, or building automated regression tests."
+description: "Generate and execute deterministic pyATS aetest validation scripts - interface state, OSPF neighbors, BGP paths, ping matrices, and custom compliance tests. Use when writing a network test, validating post-change state, running pass/fail checks, or building automated regression tests. For Arista EOS devices, prefer `anta-validation`'s pre-built 208-test catalog over writing a custom script here. For simply running the resulting test (not authoring it), `pyats-network` can also invoke it."
 license: Apache-2.0
 user-invocable: true
 metadata:

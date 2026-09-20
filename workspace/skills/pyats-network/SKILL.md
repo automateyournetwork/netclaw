@@ -1,6 +1,6 @@
 ---
 name: pyats-network
-description: "Network device automation via pyATS - run show commands, ping, apply config, learn config/logging, list devices, run Linux commands, execute dynamic tests on Cisco IOS-XE/NX-OS devices. Use when running CLI commands on routers or switches, checking interface status, applying configuration changes, or collecting device data via pyATS."
+description: "Network device automation via pyATS - run show commands, ping, apply config, learn config/logging, list devices, run Linux commands on Cisco IOS-XE/NX-OS devices. Use when running CLI commands on routers or switches, checking interface status, applying configuration changes, or collecting device data via pyATS. To author or design a new aetest validation script (rather than execute an existing one), use `pyats-dynamic-test` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -17,7 +17,10 @@ metadata:
 
 ## Available Devices
 
-- **R1** (devnetsandboxiosxec8k.cisco.com) — Cisco IOS-XE, C8000v/CSR1kv
+Devices are defined in `$PYATS_TESTBED_PATH` and vary per installation — run `pyats_list_devices`
+first to see the actual device names, aliases, and platforms available in this testbed (e.g. `R1`
+on Cisco IOS-XE). Examples below use `R1` as a placeholder device name; substitute the real device
+name(s) returned by `pyats_list_devices`.
 
 ## How to Call Tools
 
@@ -259,3 +262,9 @@ diff = Diff(before.info, after.info)
 diff.findDiff()
 print(diff)  # Shows + additions and - deletions
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

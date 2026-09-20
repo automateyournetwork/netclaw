@@ -1,6 +1,6 @@
 ---
 name: auvik-performance
-description: "Auvik time-series performance stats for devices, interfaces, services, and hardware components — plus SNMP poller history for custom OID values. Use when checking device CPU or memory utilization over time, reviewing interface throughput or packet loss, checking service (ping) latency, pulling component-level stats (fan temperature, PSU power), or querying custom SNMP poller values."
+description: "Auvik time-series performance stats for devices, interfaces, services, and hardware components — plus SNMP poller history for custom OID values. Use when checking device CPU or memory utilization over time, reviewing interface throughput or packet loss, checking service (ping) latency, pulling component-level stats (fan temperature, PSU power), or querying custom SNMP poller values, from Auvik specifically. For the same kind of question against Zabbix-collected telemetry instead, use `zabbix-metrics-history`."
 license: Apache-2.0
 metadata:
   { "openclaw": { "requires": { "bins": ["python3"], "env": ["AUVIK_USERNAME", "AUVIK_API_KEY", "AUVIK_BASE_URL"] } } }
@@ -120,3 +120,9 @@ Query time-series performance statistics from the Auvik monitoring platform: dev
 - **`auvik_get_oid_statistics` returns point-in-time data only** — it does not accept `from_time` or `interval`. Use `auvik_get_snmp_poller_history` for trend analysis.
 - **Refer to devices by name or IP**, not by Auvik internal IDs. The resolver handles lookup; raw IDs in prompts are fragile and tenant-specific.
 - **Record every session in GAIT** — all performance queries, trend findings, and SNMP poller investigations must be committed to the audit trail.
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `AUVIK_API_KEY`, `AUVIK_BASE_URL`, `AUVIK_USERNAME` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

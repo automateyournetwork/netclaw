@@ -161,3 +161,8 @@ Since ngrok doesn't support UDP, use these alternatives:
 - `/mcp-servers/snmptrap-mcp/README.md`
 - `/mcp-servers/ipfix-mcp/README.md`
 - `/mcp-servers/gnmi-mcp/README.md`
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

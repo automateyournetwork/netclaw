@@ -127,3 +127,9 @@ All tools return structured JSON with:
 - UDP scans are inherently slow — keep port lists targeted
 - Every scan is logged in the audit log for compliance
 - Scan results are persisted and retrievable via `nmap_list_scans` / `nmap_get_scan`
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `NMAP_MCP_SCRIPT` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

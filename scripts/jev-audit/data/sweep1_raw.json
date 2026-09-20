@@ -1,0 +1,4120 @@
+[
+  {
+    "skill": "aap-automation",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.53,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.61,
+          0.64,
+          0.6,
+          0.59,
+          0.6
+        ],
+        "mean": 0.608,
+        "stdev": 0.017204650534085267,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aap-eda",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aap-lint",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.7,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.64,
+          0.64,
+          0.71,
+          0.64,
+          0.64
+        ],
+        "mean": 0.654,
+        "stdev": 0.02799999999999998,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aci-change-deploy",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.38,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.38,
+          0.35,
+          0.36,
+          0.38,
+          0.4
+        ],
+        "mean": 0.374,
+        "stdev": 0.01743559577416271,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "ACI_MCP_SCRIPT",
+        "APIC_URL",
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "ACI_MCP_SCRIPT",
+        "APIC_URL",
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "aci-fabric-audit",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.82,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "ACI_MCP_SCRIPT",
+        "APIC_URL",
+        "GAIT_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "ACI_MCP_SCRIPT",
+        "APIC_URL",
+        "GAIT_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "anta-validation",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "arista-cvp",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.6,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.04
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.51,
+          0.52,
+          0.53,
+          0.54,
+          0.53
+        ],
+        "mean": 0.526,
+        "stdev": 0.01019803902718558,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aruba-cx-config",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.21,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aruba-cx-interfaces",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.12,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aruba-cx-switching",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aruba-cx-system",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "atlassian-itsm",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "auvik-inventory",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.37,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.39,
+          0.34,
+          0.37,
+          0.39,
+          0.42
+        ],
+        "mean": 0.382,
+        "stdev": 0.026381811916545827,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "auvik-lifecycle",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.76,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "auvik-network-alerts",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.78,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "auvik-performance",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.57,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.59,
+          0.6,
+          0.6,
+          0.63,
+          0.55
+        ],
+        "mean": 0.594,
+        "stdev": 0.025768197453450235,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aws-architecture-diagram",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.86,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aws-cloud-monitoring",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aws-cost-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.87,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aws-network-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "aws-security-audit",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.92,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "azure-network-ops",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.14,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "azure-security-audit",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.94,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "batfish-config-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.12,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "bgp-registry-intel",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "BGP_INTEL_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "BGP_INTEL_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "blender-3d-viz",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.26,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "browser-gui-inspect",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.29,
+      "injection_smell": 0.05
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "browser-viz-verify",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "canvas-network-viz",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "catalyst-center-readonly",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "catc-client-ops",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.06,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "catc-inventory",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.2,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "catc-troubleshoot",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "CATC_MCP_SCRIPT",
+        "CCC_HOST",
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "checkpoint",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.23,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cisco-psirt-advisories",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "CISCO_PSIRT_MCP_SCRIPT",
+        "MULTIVENDOR_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "CISCO_PSIRT_MCP_SCRIPT",
+        "MULTIVENDOR_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "clab-lab-management",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.32,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.35,
+          0.36,
+          0.37,
+          0.38,
+          0.37
+        ],
+        "mean": 0.366,
+        "stdev": 0.01019803902718558,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "CLAB_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "CLAB_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "claroty-asset-inventory",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "claroty-ot-topology",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "claroty-risk-triage",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cloudflare-analytics",
+    "answers": {
+      "ambiguous_trigger": 0.24,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cloudflare-dns",
+    "answers": {
+      "ambiguous_trigger": 0.23,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.16,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cloudflare-security",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cloudflare-workers",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cloudflare-zerotrust",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.16,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cml-admin",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cml-lab-lifecycle",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.77,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cml-node-operations",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.73,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cml-packet-capture",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.75,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "cml-topology-builder",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.84,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "comfyui-topology-viz",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.01,
+      "stale_assumptions": 0.54,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.56,
+          0.53,
+          0.51,
+          0.57,
+          0.49
+        ],
+        "mean": 0.532,
+        "stdev": 0.02993325909419153,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "datadog-apm",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "datadog-incidents",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "datadog-logs",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "datadog-metrics",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "defenseclaw-ops",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.37,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.44,
+          0.43,
+          0.39,
+          0.42,
+          0.39
+        ],
+        "mean": 0.414,
+        "stdev": 0.020591260281973993,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "SLACK_WEBHOOK_URL",
+        "SPLUNK_HEC_TOKEN",
+        "WEBEX_WEBHOOK_URL"
+      ],
+      "undefined_env_vars": [
+        "SLACK_WEBHOOK_URL",
+        "SPLUNK_HEC_TOKEN",
+        "WEBEX_WEBHOOK_URL"
+      ]
+    }
+  },
+  {
+    "skill": "desktop-gui-inspect",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.56,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.54,
+          0.54,
+          0.55,
+          0.56,
+          0.57
+        ],
+        "mean": 0.552,
+        "stdev": 0.011661903789690576,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "devnet-catalyst-search",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "devnet-meraki-search",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "document-generation",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "DOCUMENT_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "DOCUMENT_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "drawio-diagram",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.2,
+      "stale_assumptions": 0.5,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.47,
+          0.46,
+          0.48,
+          0.53,
+          0.43
+        ],
+        "mean": 0.474,
+        "stdev": 0.03261901286060019,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "elasticsearch-logs",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.19,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-lab-topology-build",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.92,
+      "stale_assumptions": 0.11,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-lab-topology-design",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-lab-topology-discovery",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.27,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-lab-topology-validation",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.57,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.59,
+          0.57,
+          0.57,
+          0.6,
+          0.57
+        ],
+        "mean": 0.58,
+        "stdev": 0.012649110640673528,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-ng-config-ops",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.92,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-ng-console-ops",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.17,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-ng-lab-management",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.92,
+      "stale_assumptions": 0.19,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "eve-ng-node-operations",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.4,
+      "stale_assumptions": 0.42,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.4,
+          0.37,
+          0.41,
+          0.38,
+          0.4
+        ],
+        "mean": 0.392,
+        "stdev": 0.014696938456699069,
+        "stable": true
+      },
+      "stale_assumptions": {
+        "values": [
+          0.53,
+          0.53,
+          0.59,
+          0.61,
+          0.55
+        ],
+        "mean": 0.562,
+        "stdev": 0.03249615361854382,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "evpn-vxlan-fabric",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.85,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "f5-config-mgmt",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "f5-health-check",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.71,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "f5-troubleshoot",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.18,
+      "stale_assumptions": 0.11,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "F5_MCP_SCRIPT",
+        "GAIT_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "fmc-firewall-ops",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.87,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "fortianalyzer-ops",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.24,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "FORTINET_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "FORTINET_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "fortigate-ops",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "FORTINET_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "FORTINET_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "fortimanager-ops",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "FORTINET_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "FORTINET_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "forward",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.08,
+      "stale_assumptions": 0.18,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "fwrule-analyzer",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.19,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gait-session-tracking",
+    "answers": {
+      "ambiguous_trigger": 0.08,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "gcp-cloud-logging",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gcp-cloud-monitoring",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gcp-compute-ops",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.86,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "github-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gitlab-devops",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.15,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "globalping-external-checks",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gnmi-telemetry",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.78,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gns3-link-management",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gns3-node-operations",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gns3-packet-capture",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gns3-project-lifecycle",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gns3-snapshot-ops",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "grafana-observability",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.24,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gtrace-ip-enrichment",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "gtrace-path-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.81,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "halo-asset-context",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "halo-change-request",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.2,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "halo-ticket-context",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.86,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "hardware-health-check",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "humanrail-escalation",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.15,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "HUMANRAIL_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "HUMANRAIL_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "infoblox-ddi",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.87,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "INFOBLOX_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "INFOBLOX_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "infrahub-sot",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.2,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "ipfabric",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.39,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.41,
+          0.38,
+          0.37,
+          0.38,
+          0.38
+        ],
+        "mean": 0.384,
+        "stdev": 0.013564659966250527,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "ipfix-receiver",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "ise-incident-response",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "ise-posture-audit",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.94,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "itential-automation",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.7,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.73,
+          0.74,
+          0.73,
+          0.68,
+          0.73
+        ],
+        "mean": 0.722,
+        "stdev": 0.021354156504062596,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "jenkins-cicd",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.1,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "junos-network",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.76,
+      "stale_assumptions": 0.23,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "k8s-network-policy",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.05
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "k8s-service-path",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.13,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "k8s-workload-inventory",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.28,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "kepner-tregoe-network-troubleshooting",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.56,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.6,
+          0.59,
+          0.57,
+          0.56,
+          0.6
+        ],
+        "mean": 0.584,
+        "stdev": 0.016248076809271903,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "kubeshark-traffic",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "markmap-viz",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.12,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "MARKMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "MARKMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "memory",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.31,
+      "stale_assumptions": 0.51,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.31,
+          0.33,
+          0.35,
+          0.34,
+          0.36
+        ],
+        "mean": 0.338,
+        "stdev": 0.017204650534085247,
+        "stable": true
+      },
+      "stale_assumptions": {
+        "values": [
+          0.47,
+          0.49,
+          0.45,
+          0.52,
+          0.51
+        ],
+        "mean": 0.488,
+        "stdev": 0.0256124969497314,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "mempalace",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.94,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "MEMPALACE_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "MEMPALACE_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "meraki-monitoring",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "meraki-network-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "meraki-security-appliance",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "meraki-switch-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "meraki-wireless-ops",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "msgraph-files",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.14,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "msgraph-visio",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "multivendor-device-query",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "multivendor-fleet-ops",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.06,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "multivendor-raw-cli",
+    "answers": {
+      "ambiguous_trigger": 0.24,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "n2n-federation",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.26,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nautobot-sot",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.74,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "netbox-reconcile",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.27,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "MARKMAP_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "network-data-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.08,
+      "stale_assumptions": 0.7,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.68,
+          0.72,
+          0.72,
+          0.68,
+          0.71
+        ],
+        "mean": 0.702,
+        "stdev": 0.018330302779823324,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "network-report-documents",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nmap-network-scan",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.66,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.68,
+          0.67,
+          0.64,
+          0.66,
+          0.69
+        ],
+        "mean": 0.668,
+        "stdev": 0.01720465053408524,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "nmap-scan-management",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.68,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.7,
+          0.71,
+          0.72,
+          0.72,
+          0.69
+        ],
+        "mean": 0.708,
+        "stdev": 0.011661903789690611,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "nmap-service-detection",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "NMAP_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "nsm-ids-triage",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.18,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nsm-session-pivot",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.29,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nso-device-ops",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.71,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nso-service-mgmt",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.82,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "nvd-cve",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NVD_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NVD_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "packet-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.72,
+      "stale_assumptions": 0.28,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PACKET_BUDDY_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PACKET_BUDDY_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pagerduty-incidents",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.86,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "pagerduty-oncall",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "pagerduty-orchestration",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "pagerduty-services",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "paloalto-panorama",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PANOS_MCP_CMD"
+      ],
+      "undefined_env_vars": [
+        "PANOS_MCP_CMD"
+      ]
+    }
+  },
+  {
+    "skill": "percepxion-oob",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "prisma-sdwan-apps",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.15,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "prisma-sdwan-config",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "prisma-sdwan-status",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "prisma-sdwan-topology",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "prometheus-monitoring",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.24,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "protocol-participation",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.73,
+      "stale_assumptions": 0.3,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.3,
+          0.29,
+          0.3,
+          0.29,
+          0.28
+        ],
+        "mean": 0.292,
+        "stdev": 0.007483314773547871,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "pyats-asa-firewall",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.89,
+      "stale_assumptions": 0.38,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.41,
+          0.39,
+          0.39,
+          0.44,
+          0.44
+        ],
+        "mean": 0.414,
+        "stdev": 0.022449944320643643,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-config-mgmt",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.38,
+      "injection_smell": 0.04
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.44,
+          0.47,
+          0.48,
+          0.49,
+          0.5
+        ],
+        "mean": 0.476,
+        "stdev": 0.020591260281974,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-dynamic-test",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.07,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-f5-ltm",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.9,
+      "stale_assumptions": 0.46,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.47,
+          0.44,
+          0.48,
+          0.48,
+          0.43
+        ],
+        "mean": 0.45999999999999996,
+        "stdev": 0.020976176963403023,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-f5-platform",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.88,
+      "stale_assumptions": 0.44,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.48,
+          0.52,
+          0.51,
+          0.48,
+          0.52
+        ],
+        "mean": 0.502,
+        "stdev": 0.018330302779823376,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-health-check",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.78,
+      "stale_assumptions": 0.36,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.4,
+          0.38,
+          0.38,
+          0.37,
+          0.37
+        ],
+        "mean": 0.38,
+        "stdev": 0.010954451150103331,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-junos-interfaces",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.86,
+      "stale_assumptions": 0.21,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-junos-routing",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.73,
+      "stale_assumptions": 0.18,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-junos-system",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.33,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.41,
+          0.37,
+          0.36,
+          0.39,
+          0.37
+        ],
+        "mean": 0.38,
+        "stdev": 0.017888543819998316,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-linux-network",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.82,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-linux-system",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.87,
+      "stale_assumptions": 0.41,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.41,
+          0.43,
+          0.4,
+          0.41,
+          0.43
+        ],
+        "mean": 0.416,
+        "stdev": 0.011999999999999995,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-linux-vmware",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.5,
+      "stale_assumptions": 0.21,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.41,
+          0.48,
+          0.49,
+          0.46,
+          0.41
+        ],
+        "mean": 0.45,
+        "stdev": 0.03405877273185281,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-network",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.88,
+      "stale_assumptions": 0.68,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.74,
+          0.72,
+          0.71,
+          0.74,
+          0.76
+        ],
+        "mean": 0.734,
+        "stdev": 0.01743559577416271,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-parallel-ops",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-routing",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.47,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.53,
+          0.51,
+          0.53,
+          0.52,
+          0.51
+        ],
+        "mean": 0.52,
+        "stdev": 0.008944271909999166,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-security",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.51,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.05
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.58,
+          0.58,
+          0.56,
+          0.56,
+          0.59
+        ],
+        "mean": 0.574,
+        "stdev": 0.011999999999999959,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "ISE_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-topology",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.56,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.56,
+          0.6,
+          0.58,
+          0.59,
+          0.58
+        ],
+        "mean": 0.582,
+        "stdev": 0.013266499161421575,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "pyats-troubleshoot",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.51,
+      "stale_assumptions": 0.13,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.51,
+          0.52,
+          0.54,
+          0.49,
+          0.49
+        ],
+        "mean": 0.51,
+        "stdev": 0.018973665961010293,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "NETBOX_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "radkit-remote-access",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.68,
+      "stale_assumptions": 0.32,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.6,
+          0.65,
+          0.68,
+          0.64,
+          0.65
+        ],
+        "mean": 0.644,
+        "stdev": 0.025768197453450273,
+        "stable": true
+      },
+      "stale_assumptions": {
+        "values": [
+          0.3,
+          0.33,
+          0.36,
+          0.36,
+          0.3
+        ],
+        "mean": 0.33,
+        "stdev": 0.026832815729997475,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "rag",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.17,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "RAG_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "RAG_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "rfc-lookup",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.97,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "sdwan-ops",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "SDWAN_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "SDWAN_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "servicenow-change-workflow",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.24,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "slack-incident-workflow",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.69,
+      "stale_assumptions": 0.16,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.76,
+          0.77,
+          0.8,
+          0.76,
+          0.76
+        ],
+        "mean": 0.77,
+        "stdev": 0.015491933384829681,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "PYATS_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "slack-network-alerts",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.83,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "slack-report-delivery",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "slack-user-context",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.49,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.51,
+          0.45,
+          0.47,
+          0.5,
+          0.51
+        ],
+        "mean": 0.488,
+        "stdev": 0.024000000000000004,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "slack-voice-interface",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "TTS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "TTS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "snmptrap-receiver",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.94,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.01
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "splunk-indexes",
+    "answers": {
+      "ambiguous_trigger": 0.32,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "ambiguous_trigger": {
+        "values": [
+          0.3,
+          0.29,
+          0.28,
+          0.28,
+          0.29
+        ],
+        "mean": 0.288,
+        "stdev": 0.007483314773547866,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "splunk-saved",
+    "answers": {
+      "ambiguous_trigger": 0.26,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "splunk-search",
+    "answers": {
+      "ambiguous_trigger": 0.28,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "subnet-calculator",
+    "answers": {
+      "ambiguous_trigger": 0.08,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "PYATS_MCP_SCRIPT",
+        "SUBNET_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "PYATS_MCP_SCRIPT",
+        "SUBNET_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "suzieq-observability",
+    "answers": {
+      "ambiguous_trigger": 0.1,
+      "unspecified_failure_behavior": 0.95,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "syslog-receiver",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "te-network-monitoring",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.88,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "te-path-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.1,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "telemetry-ops",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.93,
+      "stale_assumptions": 0.72,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "terraform-operations",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.84,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "terraform-registry",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "terraform-workspaces",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "threejs-network-viz",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.04,
+      "stale_assumptions": 0.08,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "token-tracker",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.17,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "topolograph-bgp-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.11,
+      "unspecified_failure_behavior": 0.15,
+      "stale_assumptions": 0.18,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "topolograph-igp-analysis",
+    "answers": {
+      "ambiguous_trigger": 0.09,
+      "unspecified_failure_behavior": 0.67,
+      "stale_assumptions": 0.14,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.7,
+          0.71,
+          0.66,
+          0.69,
+          0.73
+        ],
+        "mean": 0.698,
+        "stdev": 0.023151673805580437,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twilio-daily-briefing",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.84,
+      "stale_assumptions": 0.17,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twilio-emergency-call",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.12,
+      "injection_smell": 0.15
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twilio-inbound-voice",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.05,
+      "stale_assumptions": 0.35,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.32,
+          0.33,
+          0.3,
+          0.35,
+          0.31
+        ],
+        "mean": 0.322,
+        "stdev": 0.01720465053408525,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twilio-outbound-call",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.8,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twitter-check",
+    "answers": {
+      "ambiguous_trigger": 0.15,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.24,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twitter-heartbeat",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.06,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.04
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twitter-respond",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.91,
+      "stale_assumptions": 0.62,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.64,
+          0.59,
+          0.61,
+          0.59,
+          0.63
+        ],
+        "mean": 0.612,
+        "stdev": 0.02039607805437116,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "twitter-share",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "ue5-network-viz",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.44,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "stale_assumptions": {
+        "values": [
+          0.44,
+          0.41,
+          0.44,
+          0.43,
+          0.46
+        ],
+        "mean": 0.436,
+        "stdev": 0.016248076809271934,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "uml-diagram",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.25,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "vault-mounts",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "vault-pki",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "vault-secrets",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.05
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "webex-incident-workflow",
+    "answers": {
+      "ambiguous_trigger": 0.13,
+      "unspecified_failure_behavior": 0.6,
+      "stale_assumptions": 0.11,
+      "injection_smell": 0.03
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.62,
+          0.62,
+          0.61,
+          0.65,
+          0.61
+        ],
+        "mean": 0.622,
+        "stdev": 0.014696938456699081,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "GAIT_MCP_SCRIPT",
+        "SERVICENOW_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "webex-network-alerts",
+    "answers": {
+      "ambiguous_trigger": 0.17,
+      "unspecified_failure_behavior": 0.59,
+      "stale_assumptions": 0.07,
+      "injection_smell": 0.02
+    },
+    "stability": {
+      "unspecified_failure_behavior": {
+        "values": [
+          0.64,
+          0.65,
+          0.63,
+          0.61,
+          0.6
+        ],
+        "mean": 0.626,
+        "stdev": 0.018547236990991423,
+        "stable": true
+      }
+    },
+    "tool_check": {
+      "referenced_env_vars": [
+        "WEBEX_BOT_TOKEN"
+      ],
+      "undefined_env_vars": [
+        "WEBEX_BOT_TOKEN"
+      ]
+    }
+  },
+  {
+    "skill": "webex-report-delivery",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.79,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "webex-user-context",
+    "answers": {
+      "ambiguous_trigger": 0.21,
+      "unspecified_failure_behavior": 0.83,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "webex-voice-interface",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.12,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "TTS_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "TTS_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "wikipedia-research",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.92,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [
+        "WIKIPEDIA_MCP_SCRIPT"
+      ],
+      "undefined_env_vars": [
+        "WIKIPEDIA_MCP_SCRIPT"
+      ]
+    }
+  },
+  {
+    "skill": "worldlabs-topology-viz",
+    "answers": {
+      "ambiguous_trigger": 0.14,
+      "unspecified_failure_behavior": 0.02,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zabbix-availability",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.21,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zabbix-metrics-history",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.14,
+      "stale_assumptions": 0.09,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zabbix-problem-review",
+    "answers": {
+      "ambiguous_trigger": 0.12,
+      "unspecified_failure_behavior": 0.03,
+      "stale_assumptions": 0.06,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zoom-meeting-context",
+    "answers": {
+      "ambiguous_trigger": 0.16,
+      "unspecified_failure_behavior": 0.2,
+      "stale_assumptions": 0.05,
+      "injection_smell": 0.03
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zscaler-identity",
+    "answers": {
+      "ambiguous_trigger": 0.24,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zscaler-insights",
+    "answers": {
+      "ambiguous_trigger": 0.23,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zscaler-zdx",
+    "answers": {
+      "ambiguous_trigger": 0.2,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zscaler-zia",
+    "answers": {
+      "ambiguous_trigger": 0.19,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.04,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  },
+  {
+    "skill": "zscaler-zpa",
+    "answers": {
+      "ambiguous_trigger": 0.18,
+      "unspecified_failure_behavior": 0.96,
+      "stale_assumptions": 0.03,
+      "injection_smell": 0.02
+    },
+    "stability": {},
+    "tool_check": {
+      "referenced_env_vars": [],
+      "undefined_env_vars": []
+    }
+  }
+]

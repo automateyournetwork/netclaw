@@ -1,6 +1,6 @@
 ---
 name: network-report-documents
-description: "The four standard NetClaw document compositions — a change-record Word document from a real ServiceNow CR plus device state, an interface/config audit workbook from real device queries, an executive summary deck with an embedded topology diagram, and a required PDF form filled from real data. Use when an operator asks for a deliverable to attach to a change record, hand to an auditor, or put in front of a director."
+description: "The four standard NetClaw document compositions — a change-record Word document from a real ServiceNow CR plus device state, an interface/config audit workbook from real device queries, an executive summary deck with an embedded topology diagram, and a required PDF form filled from real data. Use when an operator asks for a deliverable to attach to a change record, hand to an auditor, or put in front of a director. For a deliverable that isn't one of these four, use `document-generation` directly."
 version: 1.0.0
 license: Apache-2.0
 tags: [documents, reporting, change-record, audit, executive-summary, pdf-forms, deliverables]

@@ -81,3 +81,9 @@ When investigating a network issue with a pcap:
 - When showing results, summarize key findings rather than dumping raw output
 - Always check **pcap_expert_info** first — tshark already flags the problems
 - For Slack uploads, confirm the file was saved before attempting analysis
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PACKET_BUDDY_MCP_SCRIPT` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

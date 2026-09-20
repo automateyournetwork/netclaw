@@ -161,3 +161,9 @@ metadata:
 - **ServiceNow CR** — gate job execution behind change requests in production
 - **Record in GAIT** — log all AAP operations for audit trail
 - **SSL handling** — self-signed certificates are automatically handled for lab environments
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `AAP_TOKEN`, `AAP_URL` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

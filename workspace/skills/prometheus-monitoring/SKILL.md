@@ -1,6 +1,6 @@
 ---
 name: prometheus-monitoring
-description: "Prometheus monitoring — PromQL instant/range queries, metric discovery, metadata, scrape target health, system health checks (6 tools). Use when querying Prometheus metrics, checking scrape targets, investigating alert thresholds, or analyzing network device utilization trends."
+description: "Prometheus monitoring — PromQL instant/range queries, metric discovery, metadata, scrape target health, system health checks (6 tools). Use for a direct, lightweight Prometheus query with no Grafana dashboard involved: querying Prometheus metrics, checking scrape targets, investigating alert thresholds, or analyzing network device utilization trends. If the task also needs Grafana dashboards, Loki logs, alerting/OnCall, or panel rendering, use `grafana-observability` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:

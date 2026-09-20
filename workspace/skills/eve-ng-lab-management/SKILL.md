@@ -34,3 +34,9 @@ Use this skill for **lab inventory, lifecycle, health, and image checks**.
 - Lab paths should include the folder prefix, for example `/Labs/BGP.unl`.
 - `.unl` is added automatically if omitted.
 - ZIP lab export includes the lab package, not node images.
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `EVE_PASSWORD`, `EVE_URL`, `EVE_USER` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

@@ -1,6 +1,6 @@
 ---
 name: anta-validation
-description: Validate Arista EOS network state with structured pass/fail verdicts using ANTA. Use for "is this switch healthy", "did my change break anything", "verify BGP/interfaces/hardware are correct", "run a health check on this device". Read-only. A test for a feature the device does not run reports not_applicable — never a failure — and no health percentage is ever emitted.
+description: Validate Arista EOS network state against ANTA's pre-built 208-test catalogue, with structured pass/fail verdicts. Use for "is this switch healthy", "did my change break anything", "verify BGP/interfaces/hardware are correct", "run a health check on this device". Read-only. A test for a feature the device does not run reports not_applicable — never a failure — and no health percentage is ever emitted. For non-Arista devices, or an assertion ANTA's catalogue doesn't cover, use `pyats-dynamic-test` to author a custom aetest script instead.
 ---
 
 # ANTA validation — the assertion layer

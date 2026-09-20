@@ -78,3 +78,9 @@ python3 $MCP_CALL "node $MARKMAP_MCP_SCRIPT" markmap_customize '{"markdown_conte
 ## Output
 
 Returns interactive SVG content that can be saved to a file and opened in a browser with zoom, collapse/expand, and pan controls.
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `MARKMAP_MCP_SCRIPT` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

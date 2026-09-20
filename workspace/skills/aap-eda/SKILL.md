@@ -91,3 +91,9 @@ metadata:
 - **Activations process events in real-time** — disabling/enabling affects live automation
 - **ServiceNow CR** — gate activation changes behind change requests in production
 - **Record in GAIT** — log all EDA operations for audit trail
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `EDA_TOKEN`, `EDA_URL` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

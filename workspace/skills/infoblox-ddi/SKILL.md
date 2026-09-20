@@ -68,3 +68,9 @@ python3 $MCP_CALL "$INFOBLOX_MCP_CMD" TOOL_NAME '{"param":"value"}'
 - **Do not modify DNS/DHCP/IPAM without approved change control**
 - **Always verify both forward and reverse DNS after writes**
 - **Treat DDI as production control-plane infrastructure**
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `INFOBLOX_API_KEY`, `INFOBLOX_MCP_CMD`, `INFOBLOX_URL` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

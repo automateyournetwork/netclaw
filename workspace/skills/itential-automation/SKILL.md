@@ -1,6 +1,6 @@
 ---
 name: itential-automation
-description: "Itential Automation Platform (IAP) — network automation orchestration, device configuration management, compliance enforcement, workflow execution, golden config, lifecycle management, and gateway services via 65+ MCP tools. Use when automating network changes through Itential, running compliance plans, deploying golden configs, or orchestrating IAP workflows"
+description: "Itential Automation Platform (IAP) — network automation orchestration, device configuration management, compliance enforcement, workflow execution, golden config, lifecycle management, and gateway services via 65+ MCP tools. Use when the change should go through IAP's governed workflow/golden-config engine: automating network changes through Itential, running compliance plans, deploying golden configs, or orchestrating IAP workflows. For a direct, ad-hoc pyATS-based config push/baseline/rollback outside Itential governance, use `pyats-config-mgmt` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -340,3 +340,9 @@ Use `--include-tags` to restrict to specific categories or `--exclude-tags` to h
 - **Record in GAIT** — Every workflow execution, config push, compliance run, and template operation must be logged
 - **Adapter health awareness** — Check `get_adapters` for DEAD or STOPPED adapters before attempting device operations
 - **Case-sensitive names** — Workflow names, device names, template names, and plan names are all case-sensitive in the IAP API
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `ITENTIAL_MCP_PLATFORM_HOST` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

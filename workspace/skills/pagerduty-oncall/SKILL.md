@@ -84,3 +84,8 @@ This skill uses the `pagerduty-mcp` server via uvx (stdio transport).
 - Write operations (create/update schedule, overrides) require `--enable-write-tools`
 - Schedule changes should be communicated to affected team members
 - Overrides are useful for planned absences (vacation, training)
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

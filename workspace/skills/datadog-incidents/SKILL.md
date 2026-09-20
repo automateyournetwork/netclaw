@@ -72,3 +72,8 @@ This skill uses the `datadog-mcp` server via remote MCP transport.
 - Create and update operations may require additional permissions
 - NetClaw operates in read-only mode by default for safety
 - Incident creation should follow your organization's incident process
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

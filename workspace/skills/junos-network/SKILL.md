@@ -226,3 +226,9 @@ junos_config_diff(router, version=1) → compare against last committed config
 - **Verify after config pushes** — call `get_junos_config` and protocol-specific show commands after changes
 - **Respect the blocklists** — `block.cmd` and `block.cfg` prevent destructive operations; do not bypass them
 - **Record in GAIT** — every command, config push, batch operation, and template rendering must be logged
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `JUNOS_DEVICES_FILE` is set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

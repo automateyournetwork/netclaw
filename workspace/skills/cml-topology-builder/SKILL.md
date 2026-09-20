@@ -152,3 +152,8 @@ When testing network resilience:
 - **Lab must be STOPPED to add nodes** — cannot modify topology of a running lab
 - **Position nodes logically** — hierarchical layout makes the topology readable in CML UI
 - **Record in GAIT** — log topology creation for audit trail
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

@@ -160,3 +160,8 @@ Labs go through these states:
 - `CML_USERNAME` — CML username
 - `CML_PASSWORD` — CML password
 - `CML_VERIFY_SSL` — Verify SSL certificate (true/false)
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

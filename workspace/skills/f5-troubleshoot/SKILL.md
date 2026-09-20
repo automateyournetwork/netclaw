@@ -1,6 +1,6 @@
 ---
 name: f5-troubleshoot
-description: "F5 BIG-IP troubleshooting - virtual server failures, pool member health, connection issues, SSL/TLS problems, iRule errors, persistence issues, and performance degradation. Use when a VIP is not responding, pool members are marked down, users report SSL errors, the application is slow, or iRule TCL errors appear in logs."
+description: "F5 BIG-IP troubleshooting - virtual server failures, pool member health, connection issues, SSL/TLS problems, iRule errors, persistence issues, and performance degradation. Use for an active incident: a VIP is not responding, pool members are marked down, users report SSL errors, the application is slow, or iRule TCL errors appear in logs. For routine/periodic health monitoring with no active incident, use `f5-health-check` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:

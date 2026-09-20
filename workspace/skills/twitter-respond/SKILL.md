@@ -6,7 +6,7 @@
 
 ## Overview
 
-Enables bidirectional Twitter interaction by monitoring @mentions of @John_Capobianco and generating CCIE-level technical replies. All replies require human approval per Constitution Principle XIV.
+Enables bidirectional Twitter interaction by monitoring @mentions of the account authenticated via `TWITTER_*` credentials and generating CCIE-level technical replies. All replies require human approval per Constitution Principle XIV.
 
 ## Capabilities
 
@@ -60,13 +60,13 @@ User: "Check my Twitter mentions"
 
 NetClaw: Found 3 new mentions:
 
-1. @alice_neteng: "@John_Capobianco what's the best way to debug BGP peering?"
+1. @alice_neteng: "@your_handle what's the best way to debug BGP peering?"
    Category: technical_network
 
-2. @random_user: "@John_Capobianco check out this crypto deal!"
+2. @random_user: "@your_handle check out this crypto deal!"
    Category: spam (skipping)
 
-3. @cisco_fan: "@John_Capobianco can NetClaw generate topology diagrams?"
+3. @cisco_fan: "@your_handle can NetClaw generate topology diagrams?"
    Category: netclaw_request
 
 User: "Reply to the BGP question"
@@ -135,3 +135,8 @@ Heuristics to filter spam accounts:
 
 - **twitter-heartbeat** - Autonomous posting (feature 039)
 - **twitter-share** - Share NetClaw outputs to Twitter (feature 039)
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

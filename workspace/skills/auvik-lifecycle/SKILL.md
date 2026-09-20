@@ -98,3 +98,9 @@ Assess the end-of-life posture, warranty and service contract coverage, and conf
 - **Scope to a tenant** in MSP environments to avoid mixing lifecycle data across clients.
 - **`config_id` is required to retrieve backup content** — `auvik_list_configurations` without `config_id` returns metadata only (timestamps, device, backup type); the full configuration text is only returned when a specific `config_id` is provided.
 - **Record every session in GAIT** — refresh planning decisions, QBR data pulls, and configuration audit results all go to the audit trail.
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `AUVIK_API_KEY`, `AUVIK_BASE_URL`, `AUVIK_USERNAME` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

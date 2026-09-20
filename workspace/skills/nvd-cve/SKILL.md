@@ -157,3 +157,9 @@ Record vulnerability scans in GAIT:
 ```bash
 python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"role":"assistant","content":"NVD vulnerability scan on R1 (IOS-XE 17.9.4a): 2 CRITICAL (CVE-2023-20198, CVE-2023-20273), 3 HIGH, 5 MEDIUM. Both CRITICAL CVEs confirmed exposed via running config analysis.","artifacts":[]}}'
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `GAIT_MCP_SCRIPT`, `MCP_CALL`, `NVD_API_KEY`, `NVD_MCP_SCRIPT`, `PYATS_MCP_SCRIPT` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

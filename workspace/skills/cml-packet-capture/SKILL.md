@@ -139,3 +139,8 @@ After downloading a pcap from CML, use these Packet Buddy tools for analysis:
 - **Download before stopping** — some CML versions clear the capture buffer on link state change
 - **File naming**: Save pcaps with descriptive names like `r1-r2-bgp-capture.pcap`
 - **Record in GAIT** — log captures and findings for audit trail
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

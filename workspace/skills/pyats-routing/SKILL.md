@@ -1,6 +1,6 @@
 ---
 name: pyats-routing
-description: "CCIE-level routing protocol analysis - OSPF, BGP, EIGRP, IS-IS, static routes, RIB/FIB verification, redistribution audit, and convergence validation. Use when analyzing routing tables, debugging OSPF neighbors, checking BGP peering, verifying route redistribution, or validating convergence after changes."
+description: "CCIE-level routing protocol analysis for Cisco IOS/IOS-XE/NX-OS devices - OSPF, BGP, EIGRP, IS-IS, static routes, RIB/FIB verification, redistribution audit, and convergence validation. Use when analyzing routing tables, debugging OSPF neighbors, checking BGP peering, verifying route redistribution, or validating convergence after changes on Cisco devices. For Juniper devices, use `pyats-junos-routing` instead. This reads existing router state via CLI; to have NetClaw itself participate as a BGP/OSPF speaker (inject/withdraw routes), use `protocol-participation`."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -246,3 +246,9 @@ After any routing change, verify convergence:
 # Verify route count
 PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python3} -u $PYATS_MCP_SCRIPT" pyats_run_show_command '{"device_name":"R1","command":"show ip route summary"}'
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

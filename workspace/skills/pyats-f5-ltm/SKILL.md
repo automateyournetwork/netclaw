@@ -1,6 +1,6 @@
 ---
 name: pyats-f5-ltm
-description: "F5 BIG-IP LTM/GTM operations via pyATS iControl REST — virtual servers, pools, nodes, monitors, profiles, iRules, persistence, GTM wide IPs, DNS, data groups. Use when checking F5 virtual server status, auditing pool members, reviewing iRules, or inspecting GTM wide IP health."
+description: "F5 BIG-IP LTM/GTM operations via pyATS iControl REST — virtual servers, pools, nodes, monitors, profiles, iRules, persistence, GTM wide IPs, DNS, data groups. Use when the device is only reachable through the pyATS testbed, or for LTM/GTM configuration detail (iRules, persistence, GTM wide IPs/DNS, data groups) that `f5-health-check`/`f5-troubleshoot` don't cover. For routine health checks or active-incident troubleshooting, use those skills instead."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -436,3 +436,9 @@ Or for direct REST endpoints, the pyATS F5 connection maps these to iControl RES
 - **No configuration changes** — never POST/PUT/PATCH/DELETE via this skill
 - **Gate changes behind ServiceNow** — any config changes go through f5-config-mgmt with CR
 - **Record in GAIT** — every API query must be logged
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

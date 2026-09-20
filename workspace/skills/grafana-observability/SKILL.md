@@ -1,6 +1,6 @@
 ---
 name: grafana-observability
-description: "Grafana observability platform — dashboards, Prometheus PromQL, Loki LogQL, alerting, incidents, OnCall schedules, annotations, datasource queries, panel rendering (75+ tools). Use when querying Grafana dashboards, running PromQL for interface metrics, searching Loki logs for syslog events, investigating firing alerts, or checking who is on call."
+description: "Grafana observability platform — dashboards, Prometheus PromQL, Loki LogQL, alerting, incidents, OnCall schedules, annotations, datasource queries, panel rendering (75+ tools). Use when querying Grafana dashboards, searching Loki logs for syslog events, investigating firing alerts, or checking who is on call. For a direct PromQL query with no Grafana dashboard/panel/Loki/OnCall context needed, or when Grafana isn't configured, use `prometheus-monitoring` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:

@@ -1,6 +1,6 @@
 ---
 name: te-path-analysis
-description: "Cisco ThousandEyes — path visualization, BGP route analysis, outage investigation, instant tests, endpoint agent diagnostics. Use when tracing network paths hop-by-hop, investigating why a site is slow, analyzing BGP route changes, diagnosing an internet outage, or troubleshooting VPN from endpoint agents."
+description: "Cisco ThousandEyes — path visualization, BGP route analysis, outage investigation, instant tests, endpoint agent diagnostics. Requires ThousandEyes endpoint/enterprise agents already deployed. Use when tracing network paths hop-by-hop, investigating why a site is slow, analyzing BGP route changes, diagnosing an internet outage, or troubleshooting VPN from endpoint agents. If ThousandEyes is not deployed, use `gtrace-path-analysis` for ad-hoc traceroute/MTR/GlobalPing from this host instead."
 version: 1.0.0
 license: Apache-2.0
 tags: [cisco, thousandeyes, path-vis, bgp, outage, instant-test, endpoint, troubleshooting]
@@ -139,3 +139,8 @@ When validating BGP route security:
 ## Environment Variables
 
 - `TE_TOKEN` — ThousandEyes API v7 OAuth bearer token (shared with te-network-monitoring)
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

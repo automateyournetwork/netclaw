@@ -54,3 +54,8 @@ List sandbox reports for suspicious files
 ## Server
 
 This skill uses the `zscaler-mcp` server which connects to Z-Insights via OneAPI.
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

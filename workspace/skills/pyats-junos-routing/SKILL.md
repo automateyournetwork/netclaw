@@ -327,3 +327,9 @@ ping {target} count 5 → basic reachability
 - **Use `no-resolve` on traceroute** — avoids DNS timeouts
 - **Cross-reference with SoT** — compare route tables with expected prefixes in NetBox/Nautobot
 - **Record in GAIT** — every command execution must be logged
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

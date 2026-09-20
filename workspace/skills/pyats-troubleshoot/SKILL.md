@@ -1,6 +1,6 @@
 ---
 name: pyats-troubleshoot
-description: "Systematic network troubleshooting - connectivity, routing, interface, protocol, and performance issues using structured OSI-layer and divide-and-conquer methodology. Use when something is broken, a device is unreachable, a link is flapping, users report slow performance, or an OSPF/BGP adjacency is down."
+description: "Systematic network troubleshooting - connectivity, routing, interface, protocol, and performance issues using structured OSI-layer and divide-and-conquer methodology, via direct CLI/pyATS access. Use when something is broken, a device is unreachable, a link is flapping, users report slow performance, or an OSPF/BGP adjacency is down. For a device managed by Catalyst Center, start with `catc-troubleshoot`'s controller/assurance view instead. Once a fault is isolated to routing specifically, `pyats-routing` covers RIB/FIB, redistribution, and convergence in more depth."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -341,3 +341,9 @@ python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"input":{"rol
 | System logs | use `pyats_show_logging` tool |
 | Running config | use `pyats_show_running_config` tool |
 | Connectivity test | use `pyats_ping_from_network_device` tool |
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `GAIT_MCP_SCRIPT`, `NETBOX_MCP_SCRIPT`, `PYATS_MCP_SCRIPT`, `PYATS_TESTBED_PATH` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

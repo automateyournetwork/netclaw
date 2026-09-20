@@ -1,6 +1,6 @@
 ---
 name: pyats-config-mgmt
-description: "Network change management - pre-change baselines, configuration deployment, post-change verification, rollback procedures, and compliance validation. Use when pushing config to a device, planning a network change, rolling back a configuration, or running compliance checks."
+description: "Direct, pyATS-based network change management - pre-change baselines, configuration deployment, post-change verification, rollback procedures, and compliance validation. Use when pushing config to a device, planning a network change, rolling back a configuration, or running compliance checks outside of a governed workflow platform. When the change should go through Itential's golden-config/compliance engine instead, use `itential-automation`."
 license: Apache-2.0
 user-invocable: true
 metadata:

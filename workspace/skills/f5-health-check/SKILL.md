@@ -1,6 +1,6 @@
 ---
 name: f5-health-check
-description: "F5 BIG-IP health monitoring - virtual server status, pool member health, log analysis, performance statistics, and systematic health assessment. Use when checking F5 load balancer health, running a pre-change or post-change validation, investigating pool member failures, or auditing SSL certificate expiration."
+description: "F5 BIG-IP health monitoring - virtual server status, pool member health, log analysis, performance statistics, and systematic health assessment. Use for routine/periodic checks: checking F5 load balancer health, running a pre-change or post-change validation, a first pass on pool member failures, or auditing SSL certificate expiration. For root-cause diagnosis of an active incident (VIP down, SSL errors, iRule TCL errors), use `f5-troubleshoot` instead. For LTM/GTM configuration detail this skill doesn't cover — iRules, persistence profiles, GTM wide IPs/DNS, data groups — use `pyats-f5-ltm`."
 license: Apache-2.0
 user-invocable: true
 metadata:
@@ -290,3 +290,9 @@ After completing a health check, record the session in GAIT:
 ```bash
 python3 $MCP_CALL "python3 -u $GAIT_MCP_SCRIPT" gait_record_turn '{"prompt":"F5 BIG-IP health check on $F5_IP_ADDRESS","response":"Health check completed. Virtual servers: 5/5 HEALTHY. Pools: WARNING (pool_web 3/4 members). SSL: WARNING (cert expires 21 days). Logs: HIGH (47x monitor-down events). Overall: WARNING. Action items: investigate pool_web node3, renew SSL cert, investigate log spike.","artifacts":["f5-health-report.txt"]}'
 ```
+
+## Failure Behavior
+
+- If a tool call fails with an authentication or connection error, check that `F5_MCP_SCRIPT`, `GAIT_MCP_SCRIPT`, `MCP_CALL` are set and valid before assuming a data or device problem.
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- Do not automatically retry a write/mutating operation after a failure — surface the error and get explicit confirmation before retrying, since a blind retry on a partially-applied change can leave state inconsistent.

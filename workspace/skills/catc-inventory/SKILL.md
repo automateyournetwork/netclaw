@@ -1,6 +1,6 @@
 ---
 name: catc-inventory
-description: "Catalyst Center device inventory and site management - list/filter devices by hostname, IP, platform, family, role, reachability; view site hierarchy; get interface details per device; device reachability monitoring; cross-reference with pyATS. Use when listing network devices, checking device reachability, auditing software versions, viewing site hierarchy, or finding a device by serial number."
+description: "Catalyst Center device inventory and site management - list/filter devices by hostname, IP, platform, family, role, reachability; view site hierarchy; get interface details per device; device reachability monitoring; cross-reference with pyATS. Use when listing network devices, checking device reachability, auditing software versions, viewing site hierarchy, or finding a device by serial number. This is a narrow, purpose-built tool for that pyATS cross-reference workflow specifically. For anything else in Catalyst Center (wireless, assurance health, compliance, software images, events) or a comprehensive read-only query, use `catalyst-center-readonly` instead."
 license: Apache-2.0
 user-invocable: true
 metadata:

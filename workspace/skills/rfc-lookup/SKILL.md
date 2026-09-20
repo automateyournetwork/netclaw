@@ -59,3 +59,8 @@ python3 $MCP_CALL "npx -y @mjpitz/mcp-rfc" get_rfc_section '{"number":"4271","se
 - Looking up best practices for configuration
 - Cross-referencing CVE remediation with protocol specifications
 - Learning about networking protocols
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

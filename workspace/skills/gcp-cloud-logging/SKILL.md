@@ -128,3 +128,8 @@ jsonPayload.sourceIP="10.0.1.50"
 
 - `GCP_PROJECT_ID` — Google Cloud project ID
 - `GOOGLE_APPLICATION_CREDENTIALS` — Path to service account key JSON file
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.

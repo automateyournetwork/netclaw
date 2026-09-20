@@ -91,3 +91,8 @@ This skill is intentionally a **data + composition** skill — it does not own t
 - Timeline: `canvas-network-viz` (timeline A2UI primitive)
 
 This keeps Principle VII (Skill Modularity) intact — Claroty-specific knowledge stays here, generic rendering lives in the visualisation skills.
+
+## Failure Behavior
+
+- On a tool error (timeout, unreachable host, malformed response), report the failure and its error message directly to the user rather than fabricating or guessing at results.
+- All tools here are read-only, so a failed call has no side effects — it's safe to retry once after confirming connectivity, but don't loop indefinitely on repeated failures.
