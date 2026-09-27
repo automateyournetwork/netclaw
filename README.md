@@ -4,7 +4,47 @@
 
 # NetClaw
 
-A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 233 skills, and 173 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, OSPF/IS-IS link-state and BGP topology analysis over stored Topolograph snapshots, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, MemPalace persistent AI memory, and Lantronix Percepxion/SLC out-of-band console-server management (fleet-wide and direct single-device).
+A CCIE-level AI network engineering coworker built on [OpenClaw](https://github.com/openclaw/openclaw), with **233 skills and 173 MCP integrations**. Investigate live networks, learn from your own documentation, coordinate specialist agents, and carry out approved changes with baselines, verification and an immutable audit trail.
+
+Work from chat, the visual HUD, your phone, or a Zoom meeting. Start with one NetClaw, or build [a risk of specialist NetClaws](#a-risk-of-netclaws-in2n) behind a single Border.
+
+**Start here:** [Install](#quick-install) · [Capabilities](#what-it-does) · [RAG](#rag--answers-grounded-in-your-documents) · [GCF](#gcf--compact-network-evidence) · [Mobile](#netclaw-mobile--your-network-in-your-pocket) · [Zoom](#zoom--network-investigations-in-the-meeting) · [HUD](#visual-hud) · [Jev](#optional-jev-science-officer)
+
+**Reference:** [Architecture](#architecture) · [MCP servers](#mcp-servers-173) · [Skills](#skills-233) · [Workflows](#standard-workflows) · [Safety](#safety)
+
+## RAG — answers grounded in your documents
+
+Teach NetClaw your vendor guides, standards, customer designs and runbooks. Upload through Slack or the HUD Knowledge panel, ingest a local file, or preview a URL crawl before importing it. PDF, Markdown, HTML, text and modern Office formats are supported; legacy Office conversion uses optional LibreOffice.
+
+Hybrid semantic and keyword search, local reranking and structure-aware chunks return **cited passages with document, section and page context**. Retrieval runs locally after the models are installed. NetClaw can refine a search within a bounded budget and report when the corpus cannot answer. Uploaded knowledge stays separate from the agent's experiential memory; captured network snapshots are opt-in and carry their age.
+
+Try: *“Using our uploaded design guide, explain the intended BGP policy and cite the relevant sections.”* Then ask for a live device check to compare intent with current state.
+
+[Setup, formats and retrieval pipeline](mcp-servers/rag-mcp/README.md) · [Consented knowledge sharing between peers](N2N-PEERING-NETCLAWS.md)
+
+## GCF — compact network evidence
+
+GCF gives participating MCP integrations a compact representation of structured tool results: tabular encoding for repeated records, graph encoding for topology, and optional session references and deltas for repeated queries. This reduces repetitive payload text so more useful network evidence can fit into a model's context. The serializer retains source data and falls back to JSON when encoding fails.
+
+Choose `NETCLAW_GCF_MODE=full`, `graph`, `generic` or `off`; session/delta behavior also requires the caller to enable it. Savings depend on the payload and model. The recorded 1,000-node fixture used **98,859 graph-output characters versus 139,881 compact-JSON characters** (about 29% less); serializer token counts use a characters/4 estimate, not a model tokenizer or a guaranteed billing reduction.
+
+[Serializer and mode reference](src/netclaw_tokens/gcf_serializer.py) · [Recorded benchmark](specs/124-flagship-audit/evidence/gcf-cost-cached.json) · [Reproduce the benchmark](benchmarks/audit124/gcf_cost.py)
+
+## NetClaw Mobile — your network in your pocket
+
+The Flutter client brings the Border to **iOS and Android**. Enroll with a single-use QR token, ask by text or voice, scan a device QR/deep link, and receive answers with the responding claw identified. A dashboard, conversation history, feed and approvals view keep the operator connected away from the desk.
+
+Resolve approval requests with device biometrics and attach camera/microphone captures to an investigation. The phone is an NCFED edge member with device-native capabilities; the Border handles agent reasoning. Explicit notifications can reach a connected phone, with platform push fallback when configured. Existing authorization and audit rules still apply.
+
+[Build, enroll and use Mobile](mobile/netclaw-mobile/README.md) · [iOS release checklist](mobile/netclaw-mobile/APP-STORE-ROADMAP.md) · [Android release checklist](mobile/netclaw-mobile/PLAY-STORE-ROADMAP.md)
+
+## Zoom — network investigations in the meeting
+
+Bring NetClaw into an incident call through **Zoom Realtime Media Streams**. With listening enabled, transcript and chat context can trigger network investigations through the existing Border and specialist routing. The Zoom App side panel shows status and returned evidence, with an optional camera overlay.
+
+Live meeting context and historical meeting search serve different purposes: RTMS supplies the current conversation; the official Zoom Meetings MCP can supply prior meeting context where configured. Historical connectivity is environment-dependent. Meeting requests retain the same device-write approval gates as other channels.
+
+[RTMS setup, tools and deployment boundaries](mcp-servers/zoom-rtms-mcp/README.md) · [Meeting intelligence specification](specs/118-zoom-meeting-intelligence/spec.md)
 
 ## HUD access security
 
@@ -97,7 +137,7 @@ a single **Border Claw**. You talk only to the Border; it routes each request to
 the member that owns the capability (a CML claw, a pyATS claw, an Azure claw…) and
 returns the result.
 
-- **Focus & token economy** — each member carries a handful of skills, not 190.
+- **Focus & token economy** — each member carries only the skills it needs.
 - **Least privilege** — each member gets *only* its integration's secrets.
 - **One door** — the Border is the single interface, single external identity, and
   single audit trail; members dial it outbound (no ngrok, no mesh, no inbound
@@ -259,6 +299,13 @@ Requires the OpenClaw gateway to be running for live chat (`openclaw gateway run
 
 ## What It Does
 
+<details>
+<summary>Full platform capability overview</summary>
+
+A CCIE-level AI network engineering coworker. Built on [OpenClaw](https://github.com/openclaw/openclaw) with Anthropic Claude, 233 skills, and 173 MCP integrations for complete network automation with ITSM gating, source-of-truth reconciliation, immutable audit trails, gNMI streaming telemetry, NetFlow/IPFIX flow telemetry, Canvas/A2UI inline network visualizations, packet capture analysis, GitHub config-as-code, GitLab DevOps (issues, merge requests, pipelines, repositories, wikis), Jenkins CI/CD (job monitoring, build triggering, log analysis, SCM tracking), Chrome DevTools browser automation (visualization render QA, controller GUI gap-filling, undocumented API discovery, headless or watchable-headed), Computer Use full-desktop automation (legacy desktop-only tools with no browser or API path, virtual XFCE desktop with VNC/noVNC Watch Mode), Cisco CML lab simulation, ContainerLab containerized network labs, Cisco NSO orchestration, Cisco SD-WAN vManage monitoring, Grafana observability (dashboards, Prometheus, Loki, alerting, incidents), Prometheus direct PromQL monitoring, Kubeshark Kubernetes traffic analysis, Cisco Meraki Dashboard management, Cisco ThousandEyes network intelligence, AWS and Azure cloud networking, Cisco Secure Firewall policy auditing, Check Point Security (15 MCPs: policy, threat intel, gateway, SASE, malware), Itential network orchestration, Juniper JunOS device automation, Arista CloudVision Portal monitoring, F5 BIG-IP pyATS iControl REST coverage, Infoblox DDI, Palo Alto Panorama, FortiManager, Batfish offline configuration analysis, UML diagram generation, EVPN/VXLAN fabric workflows, live BGP/OSPF control-plane participation, OSPF/IS-IS link-state and BGP topology analysis over stored Topolograph snapshots, nmap network scanning, gtrace path analysis and IP enrichment, Slack-native operations, Cisco WebEx-native operations, Microsoft 365 integration, Twilio voice/SMS, Twitter/X integration, Claroty OT/IoT asset management, Forward Networks digital twin, Ollama local LLM routing, an offline agentic RAG document knowledge base (cited answers from user-uploaded vendor guides and standards), layered Memory MCP, MemPalace persistent AI memory, and Lantronix Percepxion/SLC out-of-band console-server management (fleet-wide and direct single-device).
+
+</details>
+
 NetClaw is an autonomous network engineering agent powered by Claude that can:
 
 - **Monitor** device health — CPU, memory, interfaces, hardware, NTP, logs — fleet-wide in parallel
@@ -415,7 +462,15 @@ The RISK view shows the dedicated advisor separately from execution members.
 ## Architecture
 
 ```
-Human (Slack / WebEx / WebChat) --> NetClaw (CCIE Agent on OpenClaw)
+Human (Slack / WebEx / WebChat / Mobile / Zoom) --> NetClaw (CCIE Agent on OpenClaw)
+                                |
+                                |-- KNOWLEDGE & CONTEXT:
+                                |     MCP: RAG             --> Local document retrieval with citations
+                                |     GCF serializer       --> Compact table/graph evidence for participating MCPs
+                                |
+                                |-- EDGE & MEETINGS:
+                                |     NCFED Mobile         --> Phone chat, notifications, biometrics, capture
+                                |     Zoom RTMS + App      --> Meeting context, investigations, evidence panel
                                 |
                                 |-- SCIENCE OFFICER (optional):
                                 |     MCP: Jev --> typed advisory probabilities / compatible endpoint
@@ -640,12 +695,11 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 91 | Nautobot v2 | Built-in (`nautobot-mcp-v2`, registered as `nautobot-mcp`) | stdio (Python) | Enhanced Nautobot 3.1.0 integration — GraphQL reads, REST writes, ITSM-gated changes, live-vs-SoT reconciliation (13 tools) |
 | 92 | Nautobot Golden Config | Built-in (`nautobot-golden-config-mcp`) | stdio (Python) | Golden-config compliance job runner for Nautobot |
 | 93 | Nautobot Routing | Built-in (`nautobot-routing-mcp`) | stdio (Python) | BGP/routing data queries against Nautobot |
-| 94-108 | Check Point Security Suite | Check Point MCP suite (`chkp-*`, 15 servers) | stdio/HTTP (Node) | Quantum, Harmony SASE, gateway management, threat intelligence, and policy insights — 15 individually-registered servers (policy, threat intel, gateway, SASE, malware; see "Check Point Security Integration" section below) (60+ tools) |
+| 94-108 | Check Point Security Suite | Check Point MCP suite (`chkp-*`, 15 servers) | stdio/HTTP (Node) | Quantum, Harmony SASE, gateway management, threat intelligence, and policy insights — 15 individually-registered servers (policy, threat intel, gateway, SASE, malware; see [Check Point Security Integration](#check-point-security-integration)) (60+ tools) |
 | 109 | Chrome DevTools | [ChromeDevTools/chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) | stdio (Node, npx) | Controlled browser automation/inspection — visualization render QA (screenshot + console check), controller GUI gap-filling, undocumented vendor API discovery via network-request capture, general web-GUI automation. No credentials; auth via one-time manual sign-in into a persistent Chrome profile (~20 tools used across 2 skills) |
 | 110 | Chrome DevTools (Watch Mode) | [ChromeDevTools/chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp) | stdio (Node, npx) | Same server, headed (`--headless=false`) instead of headless — a real Chrome window opens wherever NetClaw runs, so an operator can watch it navigate/click/read live (e.g. via Slack: "watch it log into the NetBox demo and create a site"). Works on any host with a display (Mac, Linux desktop, WSL2 with WSLg); no OS-specific code |
 | 111 | Computer Use | OpenClaw ClawHub skill (`computer-use`, installed via `openclaw skills install`, not `config/openclaw.json`) | Script-based (bash + xdotool, `DISPLAY=:99`) | Full-desktop automation for legacy tools with no browser or API path — virtual Xvfb+XFCE desktop, 17 mouse/keyboard/screenshot actions, VNC/noVNC live-viewing (loopback-only) for Watch Mode. No credentials (used by 1 skill) |
-| 112 | N2N Federation | Built-in (`n2n-mcp`) | stdio (Python) | NetClaw-to-NetClaw federation over the BGP mesh via the new **NCFED** protocol (JSON-RPC 2.0, MCP + A2A semantics) — mutual-consent capability exchange, default-deny remote tool/skill invocation with approvals/budgets/audit, claw-to-claw chat, plus **async task delegation, channel auto-reconnect, endpoint auto-re-announce, and version negotiation** for self-healing reliability. Plus **iN2N — "a risk of NetClaws"**: one operator's group of focused member claws behind a single Border Claw (routing, least-privilege per-member secrets, cold/on-demand members, any provider/model incl. local Ollama), plus **feature 057 production enforcement** (fail-closed OpenShell sandbox + DefenseClaw guard + GAIT git audit, durable systemd services, honest `n2n_posture`/`n2n_faults`). Federated knowledge (feature 064): peers advertise RAG collections as content-free capability-card entries; `n2n_knowledge_query`/`n2n_knowledge_route` get a cited answer from the authoritative peer with no document content leaving its owner. Chroma-to-chroma vector replication (feature 065): with a separate, explicit `knowledge_replica` grant, `n2n_replicate`/`n2n_replicate_resync`/`n2n_replicate_delete` copy a consenting peer's already-embedded collection directly into your own local Chroma store (async job, no re-embedding, refused up front on an embedding-model mismatch or an oversized collection). NetClaw Mobile edge nodes (feature 066): a Border can enroll a phone (Flutter, iOS+Android) via QR-coded single-use token over a new WebSocket-over-TLS transport, reusing the same domain-verified/self-signed credential and pinned-key trust model as every other member — the phone carries no agent runtime, satisfying the base health-monitoring floor via built-in heartbeat/self-status instead of a delivered skill. `n2n_notify_phone` explicitly pushes a text/voice/image message to a connected device (never a blanket mirror of channel traffic); a disconnected device falls back to a platform push notification (FCM/APNs). NetClaw Mobile command channel (feature 067): the reverse direction — a phone's typed, spoken, or QR/deep-link-triggered request is bridged into a real agent turn (the same mechanism claw-to-claw chat already uses) with the operator's own local trust, no new MCP tool, and answered/delegated/routed exactly as a Slack or CLI request would be, with clear attribution of whichever claw actually answered. NetClaw Mobile biometrics and capture (feature 068): also no new MCP tool — approval requests you already trigger now also push to a connected phone for device-biometric approve/deny (`resolve_approval` with `via="biometric"`, same grant/audit semantics), and a phone can both attach a camera/mic capture to its own request and be selected as the target of a Border-initiated `n2n_delegate` when it's the only member advertising that capture capability, via the same capability-routing every other member uses (39 tools). See [N2N-PEERING-NETCLAWS.md](N2N-PEERING-NETCLAWS.md) (external) and [docs/N2N-RISK.md](docs/N2N-RISK.md) (internal/risk) |
-
+| 112 | N2N Federation | Built-in (`n2n-mcp`) | stdio (Python) | NetClaw-to-NetClaw federation over the BGP mesh via the new **NCFED** protocol (JSON-RPC 2.0, MCP + A2A semantics) — mutual-consent capability exchange, default-deny remote tool/skill invocation with approvals/budgets/audit, claw-to-claw chat, plus **async task delegation, channel auto-reconnect, endpoint auto-re-announce, and version negotiation** for self-healing reliability. Plus **iN2N — "a risk of NetClaws"**: one operator's group of focused member claws behind a single Border Claw (routing, least-privilege per-member secrets, cold/on-demand members, any provider/model incl. local Ollama), plus **feature 057 production enforcement** (host-level member confinement + DefenseClaw guard + GAIT git audit, durable systemd services, honest `n2n_posture`/`n2n_faults`). Federated knowledge (feature 064): peers advertise RAG collections as content-free capability-card entries; `n2n_knowledge_query`/`n2n_knowledge_route` get a cited answer from the authoritative peer with no document content leaving its owner. Chroma-to-chroma vector replication (feature 065): with a separate, explicit `knowledge_replica` grant, `n2n_replicate`/`n2n_replicate_resync`/`n2n_replicate_delete` copy a consenting peer's already-embedded collection directly into your own local Chroma store (async job, no re-embedding, refused up front on an embedding-model mismatch or an oversized collection). NetClaw Mobile edge nodes (feature 066): a Border can enroll a phone (Flutter, iOS+Android) via QR-coded single-use token over a new WebSocket-over-TLS transport, reusing the same domain-verified/self-signed credential and pinned-key trust model as every other member — the phone carries no agent runtime, satisfying the base health-monitoring floor via built-in heartbeat/self-status instead of a delivered skill. `n2n_notify_phone` explicitly pushes a text/voice/image message to a connected device (never a blanket mirror of channel traffic); a disconnected device falls back to a platform push notification (FCM/APNs). NetClaw Mobile command channel (feature 067): the reverse direction — a phone's typed, spoken, or QR/deep-link-triggered request is bridged into a real agent turn (the same mechanism claw-to-claw chat already uses) with the operator's own local trust, no new MCP tool, and answered/delegated/routed exactly as a Slack or CLI request would be, with clear attribution of whichever claw actually answered. NetClaw Mobile biometrics and capture (feature 068): also no new MCP tool — approval requests you already trigger now also push to a connected phone for device-biometric approve/deny (`resolve_approval` with `via="biometric"`, same grant/audit semantics), and a phone can both attach a camera/mic capture to its own request and be selected as the target of a Border-initiated `n2n_delegate` when it's the only member advertising that capture capability, via the same capability-routing every other member uses (39 tools). See [N2N-PEERING-NETCLAWS.md](N2N-PEERING-NETCLAWS.md) (external) and [docs/N2N-RISK.md](docs/N2N-RISK.md) (internal/risk) |
 | 113 | RAG Knowledge Base | Built-in (`rag-mcp`) | stdio (Python) | Offline agentic document knowledge base — user-uploaded vendor guides/standards/customer docs, hybrid dense+BM25 retrieval with reciprocal rank fusion and local cross-encoder reranking, mandatory citations, structure-aware chunking, opt-in secret-scrubbed snapshots with always-visible staleness. Strictly separate from Memory MCP (10 tools) |
 | 114 | Auvik | Built-in | stdio (Python) | Read-only Auvik network monitoring — device and network inventory, alerts, lifecycle/warranty tracking, and performance statistics across MSP tenants (20 tools) |
 | 115 | HaloPSA / HaloITSM | Built-in (`halo-mcp`) | stdio (Python) | HaloPSA/HaloITSM (one API): open change requests via a single gated confirm-before-submit write, and review assets and their related tickets, ticket types/fields, clients/sites/users/contracts, and KB for context. OAuth2 client-credentials (18 tools: 17 read + 1 gated write) |
@@ -668,6 +722,7 @@ NetClaw ships with the full set of OpenClaw workspace markdown files. These are 
 | 132 | World Labs Marble | NetClaw-authored (`mcp-servers/worldlabs-marble-mcp`) | stdio (Python) | **AI-augmented fantastical topology viz** (spec 122) — thin, fully stateless proxy to World Labs' Marble world-generation API. Three tools: `generate_world` (the one credit-spending operation, guarded by a required `user_confirmed` argument), `check_generation_status`, `get_world` (durable fallback for an expired operation record). Runs standalone on Border, no federation member required. Explicitly decorative — reuses `topology-diagram-mcp`'s accurate diagram as the authoritative artifact, never a replacement for it |
 | 134 | Topolograph | [Vadims06/topolograph-mcp-server](https://github.com/Vadims06/topolograph-mcp-server) | HTTP (remote) | **OSPF/IS-IS link-state and BGP topology analysis, read-only** — reasons over the whole area's LSDB from a stored Topolograph snapshot: shortest/backup path, per-area nodes/edges with role flags, edge and node failure simulation, MPLS-TE/CSPF feasibility, a topology-change event timeline, plus BGP speakers/sessions/route search, VRF/VPN inventory, and BGP-to-IGP graph binding (27 read tools). Remote HTTP against the operator's own Topolograph instance (`TOPOLOGRAPH_MCP_URL`), bearer `TOPOLOGRAPH_API_TOKEN`. Not vendored — fronts an operator-run API developed upstream. The server runs `TOPOLOGRAPH_MCP_READ_ONLY=true`, so mutation tools (`upload_graph`, `*_lsp`) are absent from `tools/list`; NetClaw scopes further with `defenseclaw tool allow`. See [spec 119](specs/119-topolograph-mcp-onboarding/spec.md) (IGP) and [spec 120](specs/120-topolograph-bgp-mcp-onboarding/spec.md) (BGP) |
 | 135 | Jev Science Officer | Built-in (`jev-mcp`) | stdio (Python, isolated venv) | Optional dynamic Noul/Choice/Score advisor; status, evaluate and assessment tools; persistent budgets and scoped disclosure approval (3 tools) |
+
 ### Additional Server Notes
 
 All MCP servers communicate via stdio (JSON-RPC 2.0) through `scripts/mcp-call.py`, except where noted below (HTTP/remote endpoints).
@@ -843,7 +898,7 @@ Questions are authored dynamically; none of these skills executes a network chan
 
 | Skill | What It Does |
 |-------|-------------|
-| **clab-lab-management** | Containerized network lab lifecycle via ContainerLab API (6 tools): authenticate with clab-api-server, list running labs, deploy multi-vendor topologies (SR Linux, cEOS, IOS XR, NX-OS, FTDv, FRR, cRPD, generic Linux), inspect lab details with management IPs, execute commands on individual or all nodes, and graceful lab destruction with cleanup. Supports spine-leaf fabrics, multi-vendor interop labs, and protocol testing topologies. Requires ContainerLab API server running (Docker or native). GAIT audit trail. |
+| **clab-lab-management** | Containerized network lab lifecycle via ContainerLab API (6 tools): authenticate with clab-api-server, list running labs, deploy multi-vendor topologies (SR Linux, cEOS, IOS XR/XE, NX-OS, FTDv, FRR, cRPD, generic Linux), inspect lab details with management IPs, execute commands on individual or all nodes, and graceful lab destruction with cleanup. Supports spine-leaf fabrics, multi-vendor interop labs, and protocol testing topologies. Auto-authentication on every tool call with a PAM-authenticated Linux user. Requires ContainerLab API server running (Docker or native). GAIT audit trail. |
 
 ### GNS3 Skills (5)
 
@@ -946,12 +1001,6 @@ Questions are authored dynamically; none of these skills executes a network chan
 |-------|-------------|
 | **protocol-participation** | Live BGP/OSPF/GRE control-plane participation (10 tools): BGP peer status, Loc-RIB query, route injection/withdrawal, LOCAL_PREF adjustment, OSPF neighbor listing, LSDB query, interface cost adjustment, GRE tunnel status, consolidated protocol summary. Peers with real routers over GRE tunnels using native BGP-4 (RFC 4271) and OSPFv3 (RFC 5340) speakers. Route mutations gated by ServiceNow CR (unless `NETCLAW_LAB_MODE=true`). Docker-based FRR lab testbed included for testing. GAIT audit trail. |
 
-### ContainerLab Skills (1)
-
-| Skill | What It Does |
-|-------|-------------|
-| **clab-lab-management** | ContainerLab network lab lifecycle management via ContainerLab API (6 tools): authenticate, list existing labs, deploy new topologies (SR Linux, cEOS, FRR, Cisco IOS-XR/XE/NX-OS/FTDv, Juniper cRPD, generic Linux), inspect running labs (node status, management IPs), execute commands on lab nodes, and gracefully destroy labs with cleanup. Auto-authentication on every tool call. Requires ContainerLab API server running with PAM-authenticated Linux user. GAIT audit trail. |
-
 ### Cisco SD-WAN Skills (1)
 
 | Skill | What It Does |
@@ -981,6 +1030,11 @@ Questions are authored dynamically; none of these skills executes a network chan
 | Skill | What It Does |
 |-------|-------------|
 | **suzieq-observability** | SuzieQ network observability (5 read-only tools): query current and historical network state from 20+ tables (`suzieq_show`), get aggregated statistics and summary views (`suzieq_summarize`), run validation assertions for BGP/OSPF/interface/EVPN health (`suzieq_assert`), discover distinct values and distributions for any column (`suzieq_unique`), trace hop-by-hop forwarding paths between endpoints (`suzieq_path`). Supports time-travel queries via start_time/end_time for historical analysis. Wraps SuzieQ REST API via async httpx client with stdio transport. GAIT audit trail. |
+
+### Zoom Meeting Intelligence Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
 | **zoom-meeting-context** | Zoom meeting historical correlation (spec 118): searches the official Zoom Meetings MCP for a prior, real meeting referenced during a live call ("didn't we see this before?"), states plainly when nothing relevant is found, and compares what was discussed then against the network's current actual state via NetClaw's existing routing. Read-only — any configuration-change request, however it arrives, still goes through NetClaw's existing device-write approval gate unchanged. |
 
 ### Lantronix OOB Skills (1)
@@ -1236,6 +1290,11 @@ Both `browser-gui-inspect` and `desktop-gui-inspect` support Watch Mode — just
 |-------|---------|
 | **memory** | Persistent context across NetClaw sessions through structured facts, semantic search, and entity relationships |
 | **mempalace** | MemPalace AI memory — persistent memory across sessions, past-decision search, temporal network facts via knowledge graph, specialist agent diaries |
+
+### RAG Knowledge Base Skills (1)
+
+| Skill | What It Does |
+|-------|-------------|
 | **rag** | RAG knowledge base — ingest vendor guides/standards/customer docs (Slack/HUD/URL), agentic cited retrieval with four-source routing, opt-in secret-scrubbed snapshots |
 
 ### DevNet Content Search Skills (2)

@@ -28,3 +28,5 @@
 
 - Jev preference (2026-09-27): optional visible Science Officer, dynamically invented questions from human/member context, advice-only with read-only evidence; default $5/day and $0.25/task budgets adjustable by operator. Avoid static question libraries.
 - HUD preference (2026-09-27): function over flash; preserve Adam's reusable context/chat canvas and add detailed Science Officer data views during the new HUD phase.
+
+- Roadmap clarification (2026-09-27): spec126 is the small README refresh; HUD is127, preserving Adam's canvas. Phase4 scope is README plus a common utility to upgrade existing NetClaw installations to the latest build.
