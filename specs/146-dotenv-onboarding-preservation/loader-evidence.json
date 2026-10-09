@@ -1,0 +1,17 @@
+{
+  "runtime": "OpenClaw 2026.7.1-2",
+  "checkout_before": {
+    "providerPresent": false,
+    "networkPresent": true
+  },
+  "elsewhere_before": {
+    "providerPresent": false,
+    "networkPresent": false
+  },
+  "elsewhere_after_import": {
+    "providerPresent": true,
+    "networkPresent": true
+  },
+  "isolated_dummy_values_only": true,
+  "provider_or_service_calls": false
+}
