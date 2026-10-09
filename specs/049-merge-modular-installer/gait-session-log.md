@@ -71,3 +71,8 @@ live credentials; optional fwrule checkout absent. Temporary install runtimes we
 removed. No global tools/runtimes installed; no device or vendor endpoint calls.
 GAIT tools remain unavailable; this append-only session record and ignored daily
 memory preserve the audit. Draft release coordination remains with maintainers.
+
+Publication: implementation commit 09b4db7 pushed to
+`calcuttin:codex/fix-installer-preflight`; follow-up draft
+[PR287](https://github.com/automateyournetwork/netclaw/pull/287) links merged PR285
+and records the final scope, verification and release-coordination plan.

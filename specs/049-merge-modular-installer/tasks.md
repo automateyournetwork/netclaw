@@ -204,4 +204,4 @@ One unrelated, pre-existing bug was found and fixed along the way (separate comm
   gates, and separate per-run logs.
 - [X] T048 Add regression and host-fixture checks plus real temporary Zabbix
   install/discovery; run required reconciliation and applicable suites.
-- [ ] T049 Update operator docs/evidence, commit, push and publish follow-up PR.
+- [X] T049 Update operator docs/evidence, commit, push and publish follow-up PR.

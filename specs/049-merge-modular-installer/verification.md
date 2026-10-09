@@ -202,3 +202,8 @@ No server tool/schema, skill, SOUL/TOOLS, HUD, credentials, catalog identity or 
 registration interface changes; those integration surfaces are not applicable.
 Release metadata is deferred while this follow-up is draft, for a coordinated patch
 against current main under CONTRIBUTING.md and docs/RELEASING.md. No release claimed.
+
+Publication: implementation commit 09b4db7 pushed to
+`calcuttin:codex/fix-installer-preflight`; follow-up draft
+[PR287](https://github.com/automateyournetwork/netclaw/pull/287) links merged PR285
+and records the final scope, verification and release-coordination plan.
