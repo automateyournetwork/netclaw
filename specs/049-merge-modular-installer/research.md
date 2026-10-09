@@ -127,3 +127,31 @@ The archive also warns of absent Docker, kubectl, Ollama, tshark/capinfos,
 Graphviz, browser provisioning and production guards. Computer Use is explicitly
 a Linux virtual desktop. These external prerequisites need operator setup
 or selection changes; do not misclassify them as Python resolver bugs.
+
+## Second archive and preflight design (2026-10-09)
+
+Zabbix's requirements contain ./vendor/zabbix-mcp-server. pip resolves that
+against cwd, not the requirements file's parent. Removing the former cd in
+PR285 introduced the failure; offline pip parsing reproduces it and resolves
+the vendored directory when run from zabbix-mcp.
+
+Forward's quoted message comes from command -v go failing. Upstream requires
+Go 1.25 and CGO (https://github.com/forwardnetworks/forward-mcp#prerequisites).
+Panorama explicitly requires >=3.10,<3.13. Zoom rtms 1.1.0 publishes cp310–cp313
+wheels for darwin-arm64/linux-x86_64, with no cp314 wheel or source distribution.
+https://pypi.org/project/rtms/1.1.0/ and
+https://pypi.org/project/iflow-mcp-cdot65-palo-alto-mcp/.
+Cisco's RADKit PyPI page directs users to https://radkit.cisco.com/pip; the
+public index has only placeholder 1.99.1, not the pinned SDK 1.9.0. Preflight
+must report the need for vendor sources instead of promising a Python-only fix.
+
+Jev's archived error log is byte-identical to the first archive and predates
+the retry. Interactive success does not replace a prior failure log. Separate
+run directories prevent mixing these records. A read-only report cannot prove
+package resolution, credentials or service connectivity; label its scope.
+
+Use a JSON policy shared by the read-only checker and pip helper. Defaults
+cover all catalog entries; explicit bounds/tools/platform rules override them.
+Validate policy ids against the catalog and derive uvx/docker launcher needs
+from tracked MCP registrations. Keep the checker stdlib-only and Bash helpers
+compatible with Apple Bash 3.2. No package changes during offline tests.

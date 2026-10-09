@@ -194,3 +194,14 @@ One unrelated, pre-existing bug was found and fixed along the way (separate comm
 - [X] T043 Repair multivendor, claw-certs and gtrace paths with regressions.
 - [X] T044 Verify affected suites; document unresolved external prerequisites
   and update the draft PR's final scope and evidence.
+
+## Platform and component preflight follow-up (2026-10-09)
+
+- [X] T045 Record second-archive causes and define platform/preflight contract.
+- [X] T046 Add shared policy, platform detection, default Python and read-only
+  selection checks before mutations; expose --preflight and unsupported TUI labels.
+- [X] T047 Repair Zabbix cwd, enforce component Python bounds in recovery and
+  gates, and separate per-run logs.
+- [X] T048 Add regression and host-fixture checks plus real temporary Zabbix
+  install/discovery; run required reconciliation and applicable suites.
+- [ ] T049 Update operator docs/evidence, commit, push and publish follow-up PR.

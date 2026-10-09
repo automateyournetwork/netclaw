@@ -15,6 +15,10 @@ source "$(dirname "${BASH_SOURCE[0]}")/pip-helper.sh"
 # Detect the system package manager (sets PKG_MGR, empty if none found).
 _detect_pkg_mgr() {
     PKG_MGR=""
+    if [ "$(uname -s)" = Darwin ]; then
+        command -v brew >/dev/null 2>&1 && PKG_MGR=brew
+        return 0
+    fi
     if command -v apt-get &> /dev/null;  then PKG_MGR="apt"
     elif command -v dnf &> /dev/null;    then PKG_MGR="dnf"
     elif command -v yum &> /dev/null;    then PKG_MGR="yum"
@@ -35,7 +39,7 @@ _pkg_names() {
             apk:pip)        out="$out py3-pip" ;;
             brew:nodejs)    out="$out node" ;;
             brew:npm)       ;;                      # ships with node
-            brew:python3)   out="$out python" ;;
+            brew:python3)   out="$out python@3.12" ;;
             brew:pip)       ;;                      # ships with python
             *:pip)          out="$out python3-pip" ;;
             *)              out="$out $id" ;;
@@ -185,13 +189,8 @@ if ! check_command git; then
     MISSING_IDS="$MISSING_IDS git"
 fi
 
-if ! check_command pip3; then
-    if ! check_command pip; then
-        log_error "pip3 is required for Python package installation"
-        MISSING=1
-        MISSING_IDS="$MISSING_IDS pip"
-    fi
-fi
+# Component preflight checks venv/ensurepip or an installed seeding tool.
+# No global pip executable is needed for interpreter-scoped installation.
 
 if [ "$MISSING" -eq 1 ]; then
     if [ "$attempt" = "first" ] && prereqs_offer_install; then
@@ -526,7 +525,7 @@ else
 fi
 
 if [ -d "$JUNOS_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
     if [ "$PY_MINOR" -ge 10 ]; then
         log_info "Python 3.$PY_MINOR detected (3.10+ required for JunOS MCP)"
         if [ -f "$JUNOS_MCP_DIR/requirements.txt" ]; then
@@ -672,7 +671,7 @@ log_step "Installing Itential MCP Server..."
 echo "  Source: https://github.com/itential/itential-mcp"
 echo "  Itential Automation Platform — config mgmt, compliance, workflows, golden config, lifecycle (65+ tools)"
 
-PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
 if [ "$PY_MINOR" -ge 10 ]; then
     log_info "Python 3.$PY_MINOR detected (3.10+ required for Itential MCP)"
     ITENTIAL_MCP_DIR="$MCP_DIR/itential-mcp"
@@ -980,7 +979,7 @@ echo "  Source: https://github.com/xorrkaz/cml-mcp"
 echo "  Manage CML labs via natural language — create, wire, start, stop, capture"
 
 # Check Python version (CML MCP requires 3.12+)
-PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
 if [ "$PY_MINOR" -ge 12 ]; then
     log_info "Python 3.$PY_MINOR detected (3.12+ required for CML MCP)"
 
@@ -1008,7 +1007,7 @@ echo "  Source: https://github.com/NSO-developer/cisco-nso-mcp-server"
 echo "  Network orchestration via natural language — device config, sync, services"
 
 # Check Python version (NSO MCP requires 3.12+)
-PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
 if [ "$PY_MINOR" -ge 12 ]; then
     log_info "Python 3.$PY_MINOR detected (3.12+ required for NSO MCP)"
 
@@ -1272,7 +1271,7 @@ TE_COMMUNITY_MCP_DIR="$MCP_DIR/thousandeyes-mcp-community"
 clone_or_pull "$TE_COMMUNITY_MCP_DIR" "https://github.com/CiscoDevNet/thousandeyes-mcp-community.git" || return 1
 
 if [ -d "$TE_COMMUNITY_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
     if [ "$PY_MINOR" -ge 12 ]; then
         log_info "Python 3.$PY_MINOR detected (3.12+ required for ThousandEyes Community MCP)"
         if [ -f "$TE_COMMUNITY_MCP_DIR/requirements.txt" ]; then
@@ -1328,7 +1327,7 @@ RADKIT_MCP_DIR="$MCP_DIR/radkit-mcp-server-community"
 clone_or_pull "$RADKIT_MCP_DIR" "https://github.com/CiscoDevNet/radkit-mcp-server-community.git" || return 1
 
 if [ -d "$RADKIT_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
     if [ "$PY_MINOR" -ge 10 ]; then
         log_info "Python 3.$PY_MINOR detected (3.10+ required for RADKit MCP)"
         if [ -f "$RADKIT_MCP_DIR/pyproject.toml" ]; then
@@ -1458,7 +1457,7 @@ UML_MCP_DIR="$MCP_DIR/uml-mcp"
 clone_or_pull "$UML_MCP_DIR" "https://github.com/antoinebou12/uml-mcp.git" || return 1
 
 if [ -d "$UML_MCP_DIR" ]; then
-    PY_MINOR=$(python3 -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
+    PY_MINOR=$("$NETCLAW_PY" -c 'import sys; print(sys.version_info.minor)' 2>/dev/null || echo "0")
     if [ "$PY_MINOR" -ge 12 ]; then
         log_info "Python 3.$PY_MINOR detected (3.12+ required for UML MCP)"
         if [ -f "$UML_MCP_DIR/pyproject.toml" ]; then
@@ -3962,7 +3961,7 @@ if [ -d "$ZABBIX_MCP_DIR" ]; then
     # because ensurepip is unavailable (spec 077 hazard #3).
     netclaw_component_venv "$ZABBIX_MCP_DIR/.venv" || return 1
     ZABBIX_VENV="$NETCLAW_COMPONENT_VENV"
-    NETCLAW_VENV="$ZABBIX_VENV" netclaw_pip_install -r "$ZABBIX_MCP_DIR/requirements.txt" || return 1
+    ( cd "$ZABBIX_MCP_DIR" && NETCLAW_VENV="$ZABBIX_VENV" netclaw_pip_install -r requirements.txt ) || return 1
     log_info "Zabbix MCP prepared: $ZABBIX_MCP_DIR (runtime: $ZABBIX_VENV)"
     log_info "Read-only is FORCED in config -- the upstream launcher defaults it to false"
 else

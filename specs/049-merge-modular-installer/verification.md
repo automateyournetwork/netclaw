@@ -136,3 +136,69 @@ retaining the original pip failures and credential-preservation assertions.
 Zabbix's source check now recognizes netclaw_component_venv only when that helper
 retains netclaw_venv_create delegation and Python validation. This is test-only
 compatibility repair for the already-merged installer behavior.
+
+
+## Platform/component preflight and Zabbix follow-up — 2026-10-09
+
+Based on main aa90e7d after PR285 merged. Spec/research/plan/tasks were extended
+before code under the modular installer's existing reliability scope. Spec Kit
+slash commands and GAIT tools are unavailable in this session; their checked-in
+workflow was followed manually, with this evidence and append-only session audit.
+
+- PASS: 197 focused tests using Python 3.12.14, with its bin directory on PATH:
+  `python -m pytest -q tests/unit/test_installer*.py
+  tests/unit/test_contract_runtime_preservation.py
+  tests/unit/test_standalone_enable_credentials.py
+  tests/unit/test_jev_installer.py tests/unit/test_pyats_runtime_recovery.py
+  tests/unit/test_gait_runtime_recovery.py`.
+  Includes 65 new preflight/cwd cases: Darwin/Linux/unsupported OS, host version
+  and architecture normalization, selected and interpreter-native SDK platforms,
+  Linux glibc, Python bounds, explicit venv isolation/pip and too-new preservation,
+  command selection, optional warnings, Go/CGO/compiler/Apple CLT, Docker daemon,
+  vendor-index configuration/no secret disclosure, bounded/no-download probes,
+  Python preference/override, disabled picker rows and distinct run logs.
+  Ready and blocked --preflight and blocked normal entrypoints assert no runtime
+  home/config/environment creation or invocation of package installation.
+- PASS: Zabbix cwd regression reaches the previous HEAD installer and fails
+  there; the corrected installer passes. Baseline used a temporary script tree,
+  with source/config paths present, without resetting the real checkout.
+- PASS: Actual `component_install_zabbix` on a temporary copy of tracked vendor
+  source/requirements, starting at the repo root, builds a fresh isolated Python
+  runtime and installs the local vendored package, FastMCP 4.0.11 and MCP 2.3.0.
+  `NETCLAW_PY=<recorded temporary interpreter> bash tests/zabbix/run-tests.sh`
+  passes all four static/discovery suites. Real legacy and 2026-07-28 handshakes
+  agree on zabbix_api/zabbix_api_docs/zabbix_api_list; manifest 862/5,000 tokens.
+  Isolation excludes user/system site packages. No endpoint tools invoked.
+  NEEDS_LIVE_CREDENTIALS: Zabbix live trap tests deliberately skipped.
+- PASS: `tests/installer/run-tests.sh` with Python 3.12 on PATH/NETCLAW_PY:
+  memory wheel schema packaging and fresh bgp-intel/gnmi/nautobot/suzieq installs;
+  generated registrations list tools in both protocol modes (10/10/59/5 tools).
+  BLOCKED_DEPENDENCY: fwrule optional source checkout absent.
+  Both real smoke runs trap-remove their temporary environments; no global pip,
+  Homebrew, Go, uv, Docker, Hermes or OpenClaw install occurred on the test Mac.
+- PASS: `python scripts/installer-preflight.py --validate-policy` under Python
+  3.12 and Apple's Python 3.9.6; 109 unique catalog entries covered by defaults
+  and declared overrides. Actual Darwin 26.6.2/arm64/Bash 3.2 preflight reports
+  missing Node/npm/npx and Forward Go before install work. Version/architecture
+  fixtures additionally cover Greg's macOS 15.7.9 and Linux.
+- PASS: spec artifact verification (129 specs), catalog coverage (zero unexplained
+  gaps), catalog/dependencies/docs/meraki-ids/packages/portability reconciliation,
+  contract suite list/matrix, Apple Bash 3.2 syntax and git diff --check.
+  Existing exit-status fixture explicitly substitutes host preflight so it still
+  exercises downstream failure propagation; real preflight has separate tests.
+
+Limits: no complete 109-component install, native Linux host execution, exact
+Greg Terminal session, live vendor services or real Go/Docker deployment. Policy
+covers declared restrictions, not every future package graph. RADKit preflight
+checks explicit environment index/local-wheel configuration, not pip config files
+or wheel provenance. Go probes prohibit auto-downloads; Docker checks its configured
+context read-only. Passing preflight does not establish credential, model, browser,
+cluster or endpoint readiness. Interactive logs still do not capture full terminal
+transcripts. Existing compatible environments are reused; incompatible ones remain
+in place and only successful installations update launch records.
+
+Integration coherence: installer/policy/tests/README/migration docs/spec updated.
+No server tool/schema, skill, SOUL/TOOLS, HUD, credentials, catalog identity or MCP
+registration interface changes; those integration surfaces are not applicable.
+Release metadata is deferred while this follow-up is draft, for a coordinated patch
+against current main under CONTRIBUTING.md and docs/RELEASING.md. No release claimed.

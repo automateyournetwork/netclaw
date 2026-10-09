@@ -108,6 +108,23 @@ Scripted / non-interactive installs:
 ./scripts/install.sh --list                       # see all components & profiles
 ```
 
+The installer reports the host OS, version, architecture and component Python,
+then checks the selected components before installing packages or changing runtime
+configuration. Known unsupported components are disabled in the custom checklist;
+explicit selections and profiles fail with all detected blockers rather than
+silently dropping components. A full selection can therefore be blocked on macOS.
+
+```bash
+./scripts/install.sh --runtime hermes --preflight --components "forward panorama zabbix zoom-rtms"
+./scripts/install.sh --preflight --all             # report all declared prerequisites; no installation
+```
+
+Preflight checks declared Python bounds, native SDK platforms, external commands,
+Forward's Go/CGO toolchain and Docker daemon availability. It does not prove package
+resolution or vendor connectivity. Existing Python 3.12 is preferred for component
+runtimes unless `NETCLAW_PY` is explicitly set; `python3` on PATH must still be 3.10+.
+See [Python compatibility and prerequisites](docs/PYTHON-RUNTIME-MIGRATION.md).
+
 ### Agent runtime — OpenClaw or Hermes
 
 NetClaw runs on top of an agent runtime. **OpenClaw** is the default and the
@@ -1775,7 +1792,7 @@ Create an IAM policy with these permissions and attach it to your NetClaw IAM us
 
 - AWS account with IAM user (programmatic access)
 - `graphviz` for architecture diagrams: `apt install graphviz` or `brew install graphviz`
-- `uv` (installed automatically by `install.sh`) for running AWS MCP servers via `uvx`
+- `uv` and `uvx` on PATH before installation for running AWS MCP servers
 
 #### Cost Notes
 
