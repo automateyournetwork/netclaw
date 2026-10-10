@@ -8,11 +8,11 @@ Use branch `148-hermes-hud-integration`; record exact implementation commit, OS/
 
 | Environment | Required evidence | Current status |
 |---|---|---|
-| macOS 26.5.2 arm64 | Deterministic suites, real protected Hermes fixture, browser flows, live five-turn/provider/tool test | Automated + real fixture passed; browser/live-provider open |
-| Ubuntu 24.04 x86_64 | Same core integration/launch/preservation and browser checks | Not run |
-| Windows 11 WSL2 / Ubuntu 24.04 x86_64 | Linux paths, private file modes, clean-shell launch, Windows-browser loopback/authentication, persistence/restart and live canary | Not run |
-| Native Windows + Hermes | Early unsupported-host refusal, zero OpenClaw startup/config mutation | Source/resolver coverage; actual host open; Hermes support excluded |
-| Existing OpenClaw | Current CI and supported-launch regression, owned history/migration, model controls, Canvas/local Avatar, Terminal Intent and panels | Automated regressions passed; owner walkthrough open |
+| macOS 26.5.2 arm64 | Deterministic suites, real protected Hermes fixture, browser flows, live five-turn/provider/tool test | PASS: live, browser, real process and regression; see closure.md |
+| Ubuntu 24.04 x86_64 | Same core integration/launch/preservation and browser checks | Unverified; final qualification scope pending owner decision |
+| Windows 11 WSL2 / Ubuntu 26.04 x86_64 (actual host) | Linux paths, private file modes, clean-shell launch, Windows-browser loopback/authentication, persistence/restart and live canary | PASS: WSL evidence; does not verify originally listed Ubuntu 24.04 |
+| Native Windows + Hermes | Early unsupported-host refusal, zero OpenClaw startup/config mutation | PASS: actual native PowerShell refusal; Hermes support excluded |
+| Existing OpenClaw | Current CI and supported-launch regression, owned history/migration, model controls, Canvas/local Avatar, Terminal Intent and panels | PASS on Mac: live Chat/model/Canvas/Avatar/Intent/panels; native Windows OpenClaw unverified |
 
 Do not claim every listed platform is supported until its required evidence passes. WSL is a Linux runtime target, not support for the native Windows PowerShell Hermes launch path.
 

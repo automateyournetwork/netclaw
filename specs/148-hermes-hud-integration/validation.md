@@ -1,7 +1,7 @@
 # Spec 148 implementation validation
 
 **Date:** 2026-10-10. **Branch:** `148-hermes-hud-integration`.
-**Disposition:** implementation available for acceptance; spec and release remain open.
+**Current disposition:** Mac return acceptance and defect remediation passed; see [closure.md](closure.md) and the portable Mac evidence. Platform-matrix clarification and release preparation remain open. The earlier results below are historical and retain their actual scope.
 The exact transferable implementation commit is recorded in [validation-handoff.md](validation-handoff.md).
 The original Mac implementation validation below performed no live-provider request.
 The subsequent WSL acceptance section records actual Anthropic requests. No owner
@@ -106,7 +106,9 @@ persist an invocation before its tool handler can run.
 Generated references now recognize private HUD MCP access and task-wrapped native tools.
 The bridge is counted as an integration but is excluded from both agents' registrations.
 
-## Open acceptance gates
+## Historical acceptance gates before WSL/Mac return
+
+Superseded for completed Mac work by [closure.md](closure.md).
 
 T029 (complete host fault matrix), T034/T039 (full upgrade/rollback), T038 (native Windows),
 T052 (real browser), T053 (Mac owner-provider acceptance), T055 (Ubuntu/WSL), and T056

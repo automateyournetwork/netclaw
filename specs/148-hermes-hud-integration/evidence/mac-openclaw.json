@@ -1,0 +1,36 @@
+{
+  "runtime": "openclaw",
+  "checks": [
+    {
+      "http": 200,
+      "fromGateway": true,
+      "context": true,
+      "keys": [
+        "response",
+        "activations",
+        "fromGateway",
+        "gatewayIssue",
+        "assessmentRefs",
+        "assessmentBinding",
+        "timestamp"
+      ]
+    },
+    {
+      "http": 200,
+      "fromGateway": true,
+      "context": true,
+      "keys": [
+        "response",
+        "activations",
+        "fromGateway",
+        "gatewayIssue",
+        "assessmentRefs",
+        "assessmentBinding",
+        "timestamp"
+      ]
+    }
+  ],
+  "passed": true,
+  "implementationCommit": "9b65b3bf0bcab69c3ac4d435f7727aa3f74ec7b5",
+  "evidenceNote": "Mac closure validation of the committed changes; command ran on the candidate working tree before commit. Separate live and controlled-provider reports retain their individual scope."
+}

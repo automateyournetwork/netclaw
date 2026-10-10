@@ -1,7 +1,7 @@
 # Tasks: Hermes integration with the NetClaw HUD
 
 **Inputs**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts](contracts/), [quickstart.md](quickstart.md).
-**Stage**: Implementation available for host acceptance. Checkboxes reflect the evidence in [validation.md](validation.md); partial host/fault/upgrade tasks remain open. Planned filenames consolidated during implementation are mapped there. Tests are required by SC-001–007.
+**Stage**: Mac acceptance and defect remediation complete. Platform-matrix disposition and release preparation remain open; see [closure.md](closure.md). Checkboxes reflect the evidence in [validation.md](validation.md). Planned filenames consolidated during implementation are mapped there. Tests are required by SC-001–007.
 
 ## Phase 1 — Setup and pinned qualification fixtures
 
@@ -66,7 +66,7 @@
 
 **Independent test**: Drop admission/status/event connections, restart every process and verify specific errors, deadlines and zero automatic replays; approval/stop remains exact and owned.
 
-- [ ] T029 [P] [US5] Add fault/restart/concurrency/nonce/expiry/approval tests in `tests/hermes-hud/test_recovery.py` and `ui/netclaw-visual/src/hud-server/runtime/recovery.test.js`, including failed ledger writes and every documented error category. (FR-008,014–016,020,022)
+- [X] T029 [P] [US5] Add fault/restart/concurrency/nonce/expiry/approval tests in `tests/hermes-hud/test_recovery.py` and `ui/netclaw-visual/src/hud-server/runtime/recovery.test.js`, including failed ledger writes and every documented error category. (FR-008,014–016,020,022)
 - [X] T030 [US5] Implement status-only reconciliation, persistent uncertainty, bounded HTTP/progress and admission fencing in `mcp-servers/hermes-hud-mcp/{server,ledger}.py` and `ui/netclaw-visual/src/hud-server/runtime/hermes.js`; never replay ambiguous POST. (FR-014,015,022)
 - [X] T031 [US5] Wire owned exact once/deny approval and cooperative stop through `ui/netclaw-visual/server.js` and `mcp-servers/hermes-hud-mcp/server.py`, rejecting stale/bulk/enduring grants; only observed terminal state establishes cancellation. (FR-006,008,016,022)
 - [X] T032 [US5] Implement shared unknown/interrupted/policy/compatibility UI states, explicit uncertain-request acknowledgment when starting a new conversation, and draft-preserving failures in `ui/netclaw-visual/src/dashboard/StandardChat.jsx` and `src/canvas-chat/App.jsx`; remove heuristic successful-answer fallbacks. (FR-004,007,014,015,022)
@@ -78,12 +78,12 @@
 
 **Independent test**: Upgrade seeded Hermes/OpenClaw homes, migrate legacy OpenClaw env/browser/bindings explicitly, and compare preservation hashes; native Windows Hermes refuses without OpenClaw side effects.
 
-- [ ] T034 [P] [US6] Add populated-installation, root `.env`, idempotent migration/rollback and private-registration tests in `tests/unit/test_hermes_hud_installer.py` and `tests/installer/`; include custom homes, existing YAML/skills, no global dependency writes and no silent provider/gateway startup. (FR-001,012,016–019,021)
+- [X] T034 [P] [US6] Add populated-installation, root `.env`, idempotent migration/rollback and private-registration tests in `tests/unit/test_hermes_hud_installer.py` and `tests/installer/`; include custom homes, existing YAML/skills, no global dependency writes and no silent provider/gateway startup. (FR-001,012,016–019,021)
 - [X] T035 [US6] Implement explicit safe legacy OpenClaw credential-source migration using `scripts/import-env.py` and runtime-selection preflight, preserving selected `.env` values; Hermes never implicitly imports repository/OpenClaw secrets. (FR-001,012,016–018)
 - [X] T036 [US6] Add `hermes-hud` catalog/profile/install entries, `hud-private` manifest/readiness handling and HUD-specific Node/Python requirements in `scripts/lib/{catalog,install-steps}.sh`, `config/installer-{access,runtime}.json` and `scripts/installer-readiness.py`. (FR-001–003,017,019; constitution XI)
 - [X] T037 [US6] Exclude the private conversation server from `scripts/openclaw-to-hermes-mcp.py` and `scripts/register-all-mcps.py`; add explicit external/private coverage in `scripts/verify-{catalog-coverage,inventory-counts}.py` and tests proving no recursive agent registration. (FR-006,016,017,019; constitution V,XI)
 - [ ] T038 [US6] Honor selected runtime or refuse unsupported native Windows Hermes before any OpenClaw action in `Start-NetClaw.ps1`, `Start-NetClaw-Canvas.ps1`, `Restart-NetClaw-API.ps1` and relevant launch tests without adding a Python requirement; document WSL Linux launch separately and test supported OpenClaw Node versions. (FR-001,002,017–019)
-- [ ] T039 [US6] Update `scripts/upgrade-hud.sh` with compatible selection/component preflight and migration guidance; preserve no-unrequested-restart behavior and owner config/browser backups, verifying seeded upgrade/rollback tests. (FR-012,017,018,021)
+- [X] T039 [US6] Update `scripts/upgrade-hud.sh` with compatible selection/component preflight and migration guidance; preserve no-unrequested-restart behavior and owner config/browser backups, verifying seeded upgrade/rollback tests. (FR-012,017,018,021)
 - [X] T040 [US6] Add `hermes-hud` to `tests/contract-suites.json` and relevant `.github/workflows/{hud-ci,mcp-reconciliation}.yml` triggers/jobs; distinguish offline/real-agent/live-provider evidence and fail required capability gaps explicitly. (FR-018,019)
 
 **Checkpoint**: No original owner credentials/config/tools/skills/saved work lost; OpenClaw's supported path and stricter existing runtime requirements remain intact.
@@ -108,8 +108,8 @@
 - [X] T049 Add private-app integration input to `scripts/build-hud-reference.py`, regenerate applicable `docs/reference/{interfaces,hud-openapi,documents}.json` and verify catalog/inventory/reference coherence with no agent-native bridge registration. (FR-010,018,019; constitution X–XII)
 - [X] T050 Create a separately invoked live acceptance harness and redacted report format in `tests/hermes-hud/live_acceptance.py` and `specs/148-hermes-hud-integration/validation.md`, recording commit/runtime/host/provider/policy identity and distinguishing fixtures from live evidence. (FR-004,005,019; SC-001–007)
 - [X] T051 Run targeted HUD, security, Terminal Intent, installer, protected-agent, MCP, dependency and generated-reference regressions from `quickstart.md`; record results and fix failures in `specs/148-hermes-hud-integration/validation.md` without weakening assertions. (FR-001–022; SC-001–007)
-- [ ] T052 Complete browser acceptance for Chat/local Avatar, Canvas branching, scoped storage/history, progress/approval, draft retention and selected-runtime panels; save sanitized results in `specs/148-hermes-hud-integration/validation.md`. (FR-003–004,007–016,018,021,022; SC-002–006)
-- [ ] T053 Complete Mac live five-turn/context/tool/skill and upgrade acceptance with qualified Hermes and existing OpenClaw; record exact environment and evidence in `specs/148-hermes-hud-integration/validation.md`. (FR-001–022; SC-001–007)
+- [X] T052 Complete browser acceptance for Chat/local Avatar, Canvas branching, scoped storage/history, progress/approval, draft retention and selected-runtime panels; save sanitized results in `specs/148-hermes-hud-integration/validation.md`. (FR-003–004,007–016,018,021,022; SC-002–006)
+- [X] T053 Complete Mac live five-turn/context/tool/skill and upgrade acceptance with qualified Hermes and existing OpenClaw; record exact environment and evidence in `specs/148-hermes-hud-integration/validation.md`. (FR-001–022; SC-001–007)
 - [X] T054 After Mac implementation/testing, assess remaining Linux/WSL cases and, if another machine is needed, write `specs/148-hermes-hud-integration/validation-handoff.md` with exact transferable commit, setup/commands/evidence and closure criteria; otherwise record why no handoff is needed in `validation.md`. (FR-019; user's WSL direction)
 - [ ] T055 Complete required Ubuntu/WSL integration, Windows-browser loopback/auth, permission/persistence/restart/canary and OpenClaw preservation checks from the handoff or local environment; append pass/fail/unverified evidence to `specs/148-hermes-hud-integration/validation.md` and resolve failures before closure. (FR-001–022; SC-001–007)
 - [ ] T056 Reconcile release metadata (`VERSION`, `CHANGELOG.md` and any actual release-linked manifests identified by `CONTRIBUTING.md`) with repository conventions/current main; target minor 1.7.0 from 1.6.2 only after acceptance, and document user-visible limitations/migration. (FR-018,019)
@@ -132,7 +132,9 @@ Examples per story: T010 launcher tests while completing T009 adapter wiring; T0
 
 US1 is the first demonstrable checkpoint, not sufficient for release. US2–US3 establish real agent value and private workspace behavior. US5 and US6 secure recovery/upgrades before US4 completes operational panels. Every story and the protected-agent/live-platform gates are required for final acceptance. All eight declared MCP tools, selected-runtime writers and legacy routes need coverage. Do not substitute skipped platform tests or unsupported core chat/tools for feature completion; prepare the authorized WSL handoff when needed.
 
-## Remaining task evidence
+## Historical WSL remaining-task evidence
+
+This section records the return handoff before Mac closure work. Current disposition is in [closure.md](closure.md).
 
 WSL continuation evidence: [validation.md](validation.md), portable reports in
 [evidence/](evidence/), and [Mac return handoff](mac-return-handoff.md).
@@ -168,5 +170,6 @@ Top-level tasks remain unchecked when their full acceptance scope has not passed
 - [X] Selected-profile HUD upgrade check/apply and env/YAML/skills/runtime-record preservation.
 - [X] Linux private state modes, shared-readable/symlink denial, owner file hash preservation.
 - [X] HUD 366 tests, Canvas 27 suites, installer 236 tests/25 subtests, isolated MCP smoke.
-- [ ] Full remaining real-browser, in-flight failure, rollback and live OpenClaw matrix.
-- [ ] Mac-only T053 acceptance and final release/spec closure.
+- [X] Mac return real-browser, in-flight failure, rollback and live OpenClaw matrix (see closure.md).
+- [X] Mac-only T053 acceptance.
+- [ ] Final platform scope and T056 release/spec closure.

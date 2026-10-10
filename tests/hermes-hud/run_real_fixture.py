@@ -18,13 +18,13 @@ def main():
     fixture=base/'repo';fixture.mkdir(exist_ok=True)
     if not (ROOT/'ui/netclaw-visual/node_modules').exists():raise SystemExit('Run npm ci in ui/netclaw-visual first.')
     def run(argv,**kwargs):subprocess.run([str(a) for a in argv],check=True,**kwargs)
-    for relative in ['mcp-servers/hermes-hud-mcp','config','scripts','tests/hermes-hud','workspace/skills/subnet-calculator']:
+    for relative in ['mcp-servers/hermes-hud-mcp','config','scripts','tests/hermes-hud','workspace/skills/subnet-calculator','docs/reference']:
         shutil.copytree(ROOT/relative,fixture/relative,dirs_exist_ok=True,ignore=shutil.ignore_patterns('__pycache__','.venv','*.log'))
-    ui=fixture/'ui/netclaw-visual';ui.mkdir(parents=True,exist_ok=True)
-    for file in (ROOT/'ui/netclaw-visual').iterdir():
-        if file.is_file() and file.suffix in ('.js','.py'):shutil.copyfile(file,ui/file.name)
-    shutil.copyfile(ROOT/'ui/netclaw-visual/package.json',ui/'package.json')
-    shutil.copytree(ROOT/'ui/netclaw-visual/src',ui/'src',dirs_exist_ok=True)
+    ui=fixture/'ui/netclaw-visual'
+    # Retain HTML/public/assets as well as API source so the same qualified
+    # synthetic repository can serve the real browser acceptance fixture.
+    shutil.copytree(ROOT/'ui/netclaw-visual',ui,dirs_exist_ok=True,
+        ignore=shutil.ignore_patterns('node_modules','dist','.vite','__pycache__','*.log','.env','.env.*'))
     if not (ui/'node_modules').exists():(ui/'node_modules').symlink_to(ROOT/'ui/netclaw-visual/node_modules',target_is_directory=True)
     (fixture/'testbed').mkdir(exist_ok=True);(fixture/'testbed/testbed.yaml').write_text('devices: {}\n')
     rule=json.loads((ROOT/'config/hermes-hud-tool-policy.json').read_text())['servers']['subnet-calc-mcp']

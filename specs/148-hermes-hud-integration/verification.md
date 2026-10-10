@@ -1,5 +1,5 @@
 # Verification
 
-See [validation.md](validation.md) for commands, evidence, implementation mapping and
-unverified boundaries, and [validation-handoff.md](validation-handoff.md) for transfer
-and remaining Windows/WSL acceptance. This spec is not yet release-complete.
+See [closure.md](closure.md) for Mac return acceptance, requirements disposition and
+remaining matrix/release decisions. [Validation](validation.md) preserves the earlier
+Mac and WSL runs, and [evidence](evidence/) contains sanitized portable reports.

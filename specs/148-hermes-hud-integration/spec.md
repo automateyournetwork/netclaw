@@ -2,7 +2,7 @@
 
 **Feature Branch**: `148-hermes-hud-integration`
 **Created**: 2026-10-10
-**Status**: Implemented for acceptance — Mac automated qualification passed; real-browser, owner-provider and Windows/WSL gates remain open (see validation.md)
+**Status**: Implementation and Mac return acceptance passed; final platform-matrix disposition and release preparation pending (see [closure.md](closure.md))
 **Input**: User description: "Hermes does NOT currently connect to NetClaws HUD if the user deploys Hermes instead of OpenClaw; I need this addressed please"
 
 ## Problem and intended outcome

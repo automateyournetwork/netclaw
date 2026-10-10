@@ -2,7 +2,7 @@
 
 **Branch**: `148-hermes-hud-integration` | **Date**: 2026-10-10 | **Spec**: [spec.md](spec.md)
 **Input**: User's Hermes HUD request, federation exclusion for spec 149, and delegated planning through automatically remediated analysis.
-**Stage**: Implementation complete for host acceptance. See [validation.md](validation.md) for actual file mapping, design refinements and open qualification gates.
+**Stage**: Implementation and Mac acceptance complete. See [closure.md](closure.md) for tested fixes, exact platform scope and final matrix/release disposition; [validation.md](validation.md) retains prior evidence.
 
 ## Summary
 

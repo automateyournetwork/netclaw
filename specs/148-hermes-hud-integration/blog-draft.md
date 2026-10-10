@@ -21,10 +21,18 @@ companion. Configuration APPLY, attachments, model/effort overrides, hosted Avat
 federation are unavailable for Hermes here. Federation belongs to spec 149. This work
 does not yet claim general Hermes network-tool parity.
 
-Mac automated validation passed 366 HUD tests, 27 Canvas suites, installer regressions,
-and a real pinned Hermes fixture with a controlled local provider and real subnet MCP.
-That fixture exercises five turns, HTTP/MCP integration, ownership, memory exclusion,
-forbidden tool rejection and history compaction. It is not proof of a live paid provider.
-Windows/WSL, real-browser and owner-provider acceptance remain open. The current owner
-HUD was not restarted. Release metadata will advance only after the required acceptance
-checks, documented in this spec's validation record, are complete.
+Mac acceptance passed 369 HUD tests, 27 Canvas suites, 238 installer/HUD tests and 25
+subtests. Six real-process tests cover pinned Hermes, actual MCP tools, ownership,
+provider/configuration failures, lost admission, process restarts, cooperative stop and
+zero replay. Live Anthropic acceptance passed on Mac and WSL, including contextual
+follow-up, an installed skill and the actual subnet MCP result. Real Chromium on Mac
+and Edge on Windows exercised Chat, local Avatar and independent Canvas branches.
+Repeated installation and HUD upgrade preserved seeded configuration and saved work.
+Existing OpenClaw live Chat, Canvas, Avatar and structured Terminal Intent also passed.
+
+Acceptance exposed and corrected deadline propagation, pre-admission error attribution,
+an empty Hermes Settings panel and background title inference outside the protected
+hook. Auxiliary title generation and automatic context compression are disabled in the
+private profile. The owner gateway and HUD were preserved. Exact tested platforms and
+remaining release-matrix disposition are recorded in [closure.md](closure.md). This
+remains an unpublished local draft; it is not a claim that a release has been published.

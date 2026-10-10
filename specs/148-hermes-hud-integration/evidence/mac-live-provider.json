@@ -1,0 +1,154 @@
+{
+  "host": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+  "commit": "3252977e76337377b99884eb73b0a4e605f20ebc",
+  "evidence": "live-provider",
+  "checks": [
+    {
+      "turn": 1,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 5463,
+        "output_tokens": 14,
+        "total_tokens": 5477,
+        "cache_read_tokens": 5460,
+        "cache_write_tokens": 0
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 2,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 5490,
+        "output_tokens": 6,
+        "total_tokens": 5496,
+        "cache_read_tokens": 5487,
+        "cache_write_tokens": 0
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 3,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 11625,
+        "output_tokens": 209,
+        "total_tokens": 11834,
+        "cache_read_tokens": 11621,
+        "cache_write_tokens": 0
+      },
+      "toolEvidence": [
+        {
+          "tool": "mcp__subnet_calc_mcp__subnet_calculator",
+          "state": "running",
+          "digest": null
+        },
+        {
+          "tool": "mcp__subnet_calc_mcp__subnet_calculator",
+          "state": "completed",
+          "digest": "79d1040fb1b465ecb825c1545883c7f4a9590972981f7869ca674457f141df69"
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 6252,
+        "output_tokens": 6,
+        "total_tokens": 6258,
+        "cache_read_tokens": 6093,
+        "cache_write_tokens": 156
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 5,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 6276,
+        "output_tokens": 102,
+        "total_tokens": 6378,
+        "cache_read_tokens": 6249,
+        "cache_write_tokens": 24
+      },
+      "toolEvidence": []
+    }
+  ],
+  "toolPolicySha256": "8b38a7bf0b6d50c99e2e66df1a98233d998f628930f664c184aa98d4cc591d4d",
+  "sourceManifestSha256": "c51128fcac05cc7510918a14b15cf8abb1df4ed6a4d265df72a28c759a20fece",
+  "runtime": {
+    "kind": "hermes",
+    "installationId": "24775d7e-fb0e-402f-b68b-4b021f57ed2c",
+    "label": "Hermes",
+    "readiness": {
+      "ready": true,
+      "runtime": "hermes",
+      "release": "v0.21.6",
+      "installed": true,
+      "authenticated": true,
+      "providerConfigured": "unverified",
+      "revision": "818c13be1dc4fd28987e1e881a9408224afd4535",
+      "installationId": "24775d7e-fb0e-402f-b68b-4b021f57ed2c",
+      "protected": true,
+      "tools": [
+        "mcp__subnet_calc_mcp__subnet_calculator"
+      ],
+      "toolQualification": "source-reviewed-read-only",
+      "executionVerified": true,
+      "qualifiedSkills": [
+        "subnet-calculator"
+      ],
+      "model": "claude-sonnet-4-6",
+      "limitations": [
+        "write execution",
+        "attachments",
+        "model lock",
+        "effort",
+        "federation",
+        "hosted avatar"
+      ]
+    },
+    "capabilities": {
+      "attachments": false,
+      "modelSelection": false,
+      "effort": false,
+      "federation": false,
+      "hostedAvatar": false,
+      "writes": false
+    }
+  },
+  "passed": true,
+  "implementationCommit": "9b65b3bf0bcab69c3ac4d435f7727aa3f74ec7b5",
+  "evidenceNote": "Mac closure validation of the committed changes; command ran on the candidate working tree before commit. Separate live and controlled-provider reports retain their individual scope."
+}

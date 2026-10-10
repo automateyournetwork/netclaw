@@ -53,10 +53,10 @@ Related coverage lives in `tests/unit/test_hud_runtime_selection.py`,
 tests. Browser-component tests use JSDOM; a real-browser walkthrough remains a separate
 acceptance gate. See the spec's validation and WSL handoff for results and open cases.
 
-## Native Windows browser fixture
+## Real browser fixture (Mac or Windows/WSL)
 
 After preparing a retained real fixture, run
-`python3 tests/hermes-hud/serve_browser_fixture.py --fixture /absolute/test-only/path`
+`python3 /absolute/test-only/path/repo/tests/hermes-hud/serve_browser_fixture.py --fixture /absolute/test-only/path`
 with the qualified Node on PATH. It starts an isolated controlled-provider installation
 on UI 34010 / API 34011 / companion 8645. Stop it with Ctrl+C. The profile is retained
 for inspection; it contains synthetic credentials only.
@@ -66,8 +66,25 @@ Run `tests/hermes-hud/browser_acceptance.cjs` with Playwright available through
 Set `HUD_BROWSER_REPORT` to a private report path. Native Windows Node can load the
 script and Playwright via the checkout's WSL UNC path. The script accepts only the
 dedicated localhost:34010 fixture, never an owner HUD. It tests Chat, local Avatar,
-owned history, rejected requests and Canvas branch/storage behavior. It is not the
-complete host failure, upgrade/rollback or existing OpenClaw acceptance matrix.
+owned history, rejected requests and Canvas branch/storage behavior. Use `--metadata /private/test-metadata.json` when serving, and pass that path as
+`HUD_FIXTURE_METADATA` to include actual pending refresh/stop and inference-count checks.
+For upgrade/rollback, use a separate owned checkout with `HUD_UPGRADE_REPO` and a known
+prior `HUD_ROLLBACK_REF`; the harness refuses to modify its own source checkout.
+The real-fixture driver copies the full HUD assets and links its existing development
+node_modules; the reviewed patched subnet source is already in that synthetic repository.
+Launch the browser server from the fixture copy so exact source paths qualify. For
+installation/upgrade testing, use a full isolated Git worktree with its own dependencies.
+
+`run_real_fixture.py` also runs `test_process_integration.py`: actual HUD/private MCP/
+companion restarts, dropped admission, configured deadline, stop and failure boundaries.
+Offline discovery skips these six integration tests deliberately; run the real driver
+separately for their evidence.
+
+`openclaw_browser_acceptance.cjs` is a separate, **live paid-provider** regression. It
+requires `NETCLAW_LIVE_ACCEPTANCE=1`, an isolated OpenClaw HUD on 34020/34021 and explicit
+operator authorization. It uses fresh owned conversations through the existing gateway;
+it never changes the gateway configuration or contacts a device. See the Mac closure
+record for the exact tested runtime and scope.
 
 ## WSL dependency qualification
 

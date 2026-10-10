@@ -1,0 +1,74 @@
+{
+  "date": "2026-10-10",
+  "implementationCommit": "9b65b3bf0bcab69c3ac4d435f7727aa3f74ec7b5",
+  "mainAncestor": "a67aba7369e847ef50fea8542eed919552088d0c",
+  "host": "macOS 26.5.2 arm64",
+  "node": "24.19.0",
+  "hermesPython": "3.14.6",
+  "bridgeToolPython": "3.12.12",
+  "openclaw": "2026.7.1-2 (0790d9f)",
+  "checks": {
+    "hudUnit": {
+      "passed": 369,
+      "failed": 0,
+      "skipped": 0
+    },
+    "canvasSuites": {
+      "passed": 27
+    },
+    "installerUnit": {
+      "passed": 238,
+      "subtestsPassed": 25
+    },
+    "realHermesProcessSuite": {
+      "passed": 6,
+      "failed": 0
+    },
+    "offlineContracts": "PASS",
+    "productionBuildAndCanvasBudget": "PASS",
+    "installerMcpSmoke": {
+      "bgp-intel": 10,
+      "gnmi": 10,
+      "nautobot": 59,
+      "suzieq": 5,
+      "optionalFwrule": "not installed; unverified"
+    },
+    "catalogEntries": 111,
+    "skills": 237,
+    "integrations": 176,
+    "ownedFastMcpServers": 37,
+    "mcpReconciliation": "PASS"
+  },
+  "preservation": {
+    "originalOwnerConfigEnvAndSeededProfileFiles": 8,
+    "changed": 0,
+    "populatedProfileRepeatedInstallFiles": 14,
+    "changedImmediatelyAfterInstall": 0,
+    "includes": "env/YAML/skills/memory/component records/identity/auth/provenance/native databases/ledger",
+    "laterDatabaseChanges": "Expected new acceptance conversations after the reinstall snapshot comparison",
+    "ownerGatewayPid": 73241,
+    "ownerHudPid": 85793,
+    "ownerProcessesStillRunning": true,
+    "isolatedCredentialCopyRemovedAfterAcceptance": true
+  },
+  "faults": [
+    "real bridge SIGKILL during provider request",
+    "HUD restart with original cookie and nonce",
+    "late result reconciled once",
+    "lost admission response survives HUD restart as unknown",
+    "fresh conversation requires uncertainty acknowledgement",
+    "real companion SIGKILL obeys configured 1-second deadline without replay",
+    "cooperative stop without invented cancellation",
+    "foreign/stale/broad approvals rejected before upstream",
+    "provider 401 failure, private auth rejection",
+    "configuration and pinned-source drift fail closed",
+    "missing configuration fails before admission"
+  ],
+  "limits": [
+    "Initial read-only subnet tool does not have an eligible approval pause; positive once/deny and UI pause tests are controlled protocol fixtures",
+    "Native Windows OpenClaw and Ubuntu 24.04 are unverified; matrix disposition pending owner clarification",
+    "An initial live OpenClaw Intent free-form answer remained uncertain; a distinct format-only JSON test completed. No uncertain operation was replayed.",
+    "Dashboard source rollback/reapply and legacy binding backup restoration were tested; no owner runtime downgrade performed"
+  ],
+  "toolPolicySha256": "8b38a7bf0b6d50c99e2e66df1a98233d998f628930f664c184aa98d4cc591d4d"
+}
