@@ -190,6 +190,7 @@ def main() -> int:
         print(f"[ERROR] could not read {source}: {e}", file=sys.stderr)
         return 1
 
+    servers.pop("hermes-hud-mcp", None)  # Never expose the private control plane to an agent.
     if not servers:
         print("[WARN] no mcpServers found in source — nothing to translate")
         return 0

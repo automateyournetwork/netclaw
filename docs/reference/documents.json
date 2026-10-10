@@ -84,6 +84,24 @@
     "category": "Guides"
   },
   {
+    "id": "fdbd821f01e52666",
+    "path": "docs/EQUINIX.md",
+    "title": "Equinix Fabric + Network Edge",
+    "category": "Guides"
+  },
+  {
+    "id": "d886be7921a0df05",
+    "path": "docs/FASTMCP-4-WRITEUP.md",
+    "title": "NetClaw 1.5.0: FastMCP migration writeup",
+    "category": "Guides"
+  },
+  {
+    "id": "943558116ac3c358",
+    "path": "docs/FASTMCP-UPGRADE.md",
+    "title": "FastMCP 4 migration (spec 141)",
+    "category": "Guides"
+  },
+  {
     "id": "57be8789304d4ccf",
     "path": "docs/FORWARD.md",
     "title": "Forward MCP Integration Guide",
@@ -93,6 +111,18 @@
     "id": "5a30910bcd000c78",
     "path": "docs/GAIT-RUNTIME-MIGRATION.md",
     "title": "GAIT runtime migration and recovery",
+    "category": "Guides"
+  },
+  {
+    "id": "f39d5e5090772346",
+    "path": "docs/GENIE-RUNTIME-SETUP.md",
+    "title": "Automated pyATS / Genie runtime setup",
+    "category": "Guides"
+  },
+  {
+    "id": "bd78fc952591e6d3",
+    "path": "docs/HERMES-HUD.md",
+    "title": "Hermes in the NetClaw HUD",
     "category": "Guides"
   },
   {
@@ -111,6 +141,12 @@
     "id": "be356393d29107e3",
     "path": "docs/IN2N-TRANSPORT-MIGRATION.md",
     "title": "Secure internal federation transport",
+    "category": "Guides"
+  },
+  {
+    "id": "c1e051aa0fad011f",
+    "path": "docs/INSTALLER-READINESS.md",
+    "title": "Install and first-use readiness",
     "category": "Guides"
   },
   {
@@ -150,6 +186,12 @@
     "category": "Guides"
   },
   {
+    "id": "a1a14f6817ad6cc4",
+    "path": "docs/MCP-TASKS.md",
+    "title": "Asynchronous MCP Tasks",
+    "category": "Guides"
+  },
+  {
     "id": "90ed1ae0630c71c4",
     "path": "docs/MOBILE-RELEASE.md",
     "title": "Mobile release workflow",
@@ -177,6 +219,18 @@
     "id": "0f73072a6e80a25b",
     "path": "docs/N2N-RISK.md",
     "title": "A Risk of NetClaws \u2014 Internal Federation (iN2N)",
+    "category": "Guides"
+  },
+  {
+    "id": "41f8d651cd66e8db",
+    "path": "docs/NETCLAW-CANVAS-PR.md",
+    "title": "Canvas terminal integration \u2014 PR scope and validation",
+    "category": "Guides"
+  },
+  {
+    "id": "13ede7d8f1ebbfae",
+    "path": "docs/NETCLAW-DOT.md",
+    "title": "Using NetClaw as a Dot",
     "category": "Guides"
   },
   {
@@ -213,6 +267,12 @@
     "id": "d87d48c2df168f7e",
     "path": "docs/SOUL-DEFENSE.md",
     "title": "SOUL-DEFENSE: Security Principles for NetClaw",
+    "category": "Guides"
+  },
+  {
+    "id": "000634614a4b22ff",
+    "path": "docs/TAVUS-PAL.md",
+    "title": "NetClaw Pal \u2014 local avatars and optional Tavus",
     "category": "Guides"
   },
   {
@@ -354,6 +414,18 @@
     "category": "Guides"
   },
   {
+    "id": "eea620a3db9578e5",
+    "path": "docs/blog/2026-09-29-equinix-composable-operations.md",
+    "title": "From an Equinix question to an approved network operation",
+    "category": "Guides"
+  },
+  {
+    "id": "fa6efa114997f417",
+    "path": "docs/blog/2026-09-29-equinix-editorial-handoff.md",
+    "title": "Editorial handoff \u2014 Equinix",
+    "category": "Guides"
+  },
+  {
     "id": "e6f9ef762fc62a0a",
     "path": "docs/ietf/AGENTPROTO-POSITIONING.md",
     "title": "Socializing `draft-capobianco-ncfed-00` at IETF `agentproto`",
@@ -465,6 +537,60 @@
     "id": "6f88cec3ef10650a",
     "path": "docs/releases/1.1.0.md",
     "title": "NetClaw 1.1.0 \u2014 choose your conversation workspace",
+    "category": "Guides"
+  },
+  {
+    "id": "20c09b9ec7f1dc91",
+    "path": "docs/releases/1.2.0.md",
+    "title": "NetClaw 1.2.0",
+    "category": "Guides"
+  },
+  {
+    "id": "83d5560103dc774a",
+    "path": "docs/releases/1.2.1.md",
+    "title": "NetClaw 1.2.1",
+    "category": "Guides"
+  },
+  {
+    "id": "b40c5e426bb6a8eb",
+    "path": "docs/releases/1.3.0.md",
+    "title": "NetClaw 1.3.0",
+    "category": "Guides"
+  },
+  {
+    "id": "ae2c7c182c711796",
+    "path": "docs/releases/1.4.0.md",
+    "title": "NetClaw 1.4.0",
+    "category": "Guides"
+  },
+  {
+    "id": "a731bf22e00379e5",
+    "path": "docs/releases/1.5.0.md",
+    "title": "NetClaw 1.5.0",
+    "category": "Guides"
+  },
+  {
+    "id": "5d0a81428e54d217",
+    "path": "docs/releases/1.6.0.md",
+    "title": "NetClaw 1.6.0",
+    "category": "Guides"
+  },
+  {
+    "id": "3e4e88ea8fc3ceb4",
+    "path": "docs/releases/1.6.1.md",
+    "title": "NetClaw 1.6.1",
+    "category": "Guides"
+  },
+  {
+    "id": "3982fb29e11eabaa",
+    "path": "docs/releases/1.6.2.md",
+    "title": "NetClaw 1.6.2",
+    "category": "Guides"
+  },
+  {
+    "id": "460a0c09b3013aa9",
+    "path": "docs/social/MCP-TASKS-POST.md",
+    "title": "Adding asynchronous MCP Tasks to pyATS\u2014and across NetClaw",
     "category": "Guides"
   },
   {
@@ -840,6 +966,18 @@
     "category": "Skills"
   },
   {
+    "id": "693e0a28594bdaa1",
+    "path": "workspace/skills/equinix-fabric-operations/SKILL.md",
+    "title": "Equinix Fabric operations",
+    "category": "Skills"
+  },
+  {
+    "id": "d9ae4b9c1878b136",
+    "path": "workspace/skills/equinix-network-edge/SKILL.md",
+    "title": "Network Edge visibility",
+    "category": "Skills"
+  },
+  {
     "id": "0c9ae6731ba8658c",
     "path": "workspace/skills/eve-lab-topology-build/SKILL.md",
     "title": "EVE Lab Topology Build",
@@ -1065,6 +1203,12 @@
     "id": "06d4c126eaa304f9",
     "path": "workspace/skills/hardware-health-check/SKILL.md",
     "title": "Hardware Health Check (out-of-band, read-only)",
+    "category": "Skills"
+  },
+  {
+    "id": "a956ed137c0616bb",
+    "path": "workspace/skills/hermes-hud-diagnostics/SKILL.md",
+    "title": "Hermes HUD diagnostics",
     "category": "Skills"
   },
   {
@@ -1638,6 +1782,12 @@
     "category": "Skills"
   },
   {
+    "id": "270adcd09985c4b5",
+    "path": "workspace/skills/tavus-pal/SKILL.md",
+    "title": "Tavus Pal",
+    "category": "Skills"
+  },
+  {
     "id": "063ecf8f5757d0d3",
     "path": "workspace/skills/te-network-monitoring/SKILL.md",
     "title": "ThousandEyes Network Monitoring",
@@ -1869,42 +2019,6 @@
     "id": "4f3be1e90dc6c5a3",
     "path": "workspace/skills/zscaler-zpa/SKILL.md",
     "title": "Zscaler Private Access (ZPA) Skill",
-    "category": "Skills"
-  },
-  {
-    "id": "fdbd821f01e52666",
-    "path": "docs/EQUINIX.md",
-    "title": "Equinix Fabric + Network Edge",
-    "category": "Guides"
-  },
-  {
-    "id": "eea620a3db9578e5",
-    "path": "docs/blog/2026-09-29-equinix-composable-operations.md",
-    "title": "From an Equinix question to an approved network operation",
-    "category": "Guides"
-  },
-  {
-    "id": "fa6efa114997f417",
-    "path": "docs/blog/2026-09-29-equinix-editorial-handoff.md",
-    "title": "Editorial handoff \u2014 Equinix",
-    "category": "Guides"
-  },
-  {
-    "id": "20c09b9ec7f1dc91",
-    "path": "docs/releases/1.2.0.md",
-    "title": "NetClaw 1.2.0",
-    "category": "Guides"
-  },
-  {
-    "id": "693e0a28594bdaa1",
-    "path": "workspace/skills/equinix-fabric-operations/SKILL.md",
-    "title": "Equinix Fabric operations",
-    "category": "Skills"
-  },
-  {
-    "id": "d9ae4b9c1878b136",
-    "path": "workspace/skills/equinix-network-edge/SKILL.md",
-    "title": "Network Edge visibility",
     "category": "Skills"
   }
 ]

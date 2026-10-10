@@ -92,3 +92,7 @@ endpoint/revision binding, phase gating, missing artifacts, durable records,
 restart replay protection, secret filtering, scope errors and localhost guards.
 `npm run test:intent-execution` retains production continuation/approval tests.
 The synthetic terminal design page supports lab setup without real network access.
+
+## Hermes runtime
+
+Spec 148 offers read-only Terminal Intent assistance through the protected Hermes companion. Local/Lab APPLY and configuration tools are unavailable and rejected before dispatch; this does not weaken the change-control requirements above. Direct terminal presentation remains available under its existing authorization. A hosted-Hermes approval never substitutes for endpoint grants, baseline/rollback artifacts, phase checks, verification or audit. See [Hermes HUD](../../docs/HERMES-HUD.md).

@@ -1076,6 +1076,8 @@ function TerminalLane({ node, color, isActive, selected, animate, dark, laneRef,
     onPatch({ terminalIntentRun: pending });
     let response;
     try {
+      const hudSession=await fetch('/api/hud/session',{method:'POST'});
+      if(!hudSession.ok)throw Error('Private HUD session unavailable.');
       response = await fetch('/api/terminal/intent/runs', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, request: requestText, deviceId, transcript: intentTerminalContext(), history, continueFrom,

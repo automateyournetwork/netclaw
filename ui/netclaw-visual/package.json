@@ -34,6 +34,7 @@
   },
   "dependencies": {
     "@daily-co/daily-js": "0.93.0",
+    "@modelcontextprotocol/client": "2.3.1",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/xterm": "6.0.0",
     "dompurify": "^3.4.16",

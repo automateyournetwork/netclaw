@@ -40,6 +40,7 @@ SOUL = os.path.join(REPO_ROOT, "SOUL.md")
 # drift this script exists to catch. Verified against README.md's MCP
 # Servers table and mcp-servers/ vendored directories as of 2026-07-07.
 EXTERNAL_INTEGRATIONS = [
+    "Hermes HUD private bridge",
     "Tavus Pal",
     "F5 BIG-IP",
     "Catalyst Center",

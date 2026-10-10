@@ -7,6 +7,12 @@ on:
       - 'scripts/install-pyats-genie.py'
       - 'scripts/test-install-pyats-genie.py'
       - 'tests/canvas-terminal/**'
+      - 'tests/hermes-hud/**'
+      - 'mcp-servers/hermes-hud-mcp/**'
+      - 'config/hermes-hud*'
+      - 'scripts/*hermes-hud*'
+      - 'scripts/runtime-selection.*'
+      - 'scripts/hud-launch.mjs'
       - '.github/workflows/hud-ci.yml'
   push:
     branches: [main]
@@ -26,7 +32,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: ui/netclaw-visual/package-lock.json
       - run: npm ci
@@ -37,3 +43,8 @@ jobs:
       - name: Canvas terminal contracts, Python mocks and bundle budget
         working-directory: .
         run: bash tests/canvas-terminal/run-tests.sh
+
+      - uses: astral-sh/setup-uv@v6
+      - name: Qualified Hermes agent with controlled provider and installed MCP
+        working-directory: .
+        run: python3 tests/hermes-hud/run_real_fixture.py

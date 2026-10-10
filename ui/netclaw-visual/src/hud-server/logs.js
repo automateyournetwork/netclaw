@@ -30,8 +30,8 @@ export function tailFile(file) {
   try {const stat=fs.fstatSync(fd);if(!stat.isFile())throw Error('Not a regular log');const length=Math.min(stat.size,256*1024),buffer=Buffer.alloc(length);fs.readSync(fd,buffer,0,length,stat.size-length);const text=buffer.toString('utf8');return {content:stat.size>length?text.slice(text.indexOf('\n')+1):text,truncated:stat.size>length};}finally{fs.closeSync(fd);}
 }
 const journal = unit => new Promise((resolve,reject)=>execFile('journalctl',['--user','-u',unit,'-n','250','--no-pager','-o','short-iso'],{timeout:5000,maxBuffer:512*1024},(e,stdout)=>e?reject(e):resolve({content:stdout,truncated:true})));
-export function mountLogs(app,home,{readFile=tailFile,readJournal=journal}={}) {
-  const sources=logSources(home);let active=0;
+export function mountLogs(app,home,{readFile=tailFile,readJournal=journal,runtimeHome}={}) {
+  const sources=logSources(home).map(s => runtimeHome && s.file?.startsWith(path.join(home,'.openclaw') + path.sep) ? {...s,file:path.join(runtimeHome,path.relative(path.join(home,'.openclaw'),s.file))} : s);let active=0;
   app.get('/api/hud/logs',(_req,res)=>res.json({sources:sources.map(({file,unit,...s})=>s)}));
   app.get('/api/hud/logs/:id',async(req,res)=>{
     res.setHeader('Cache-Control','no-store');

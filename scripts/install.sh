@@ -38,7 +38,7 @@ define_paths
 # `netclaw` launcher inherit the same choice. --runtime / the TUI can change it.
 # If it was set in the environment, treat it as explicit (skip the TUI prompt).
 [ -n "${NETCLAW_RUNTIME:-}" ] && NETCLAW_RUNTIME_EXPLICIT=1
-export NETCLAW_RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+export NETCLAW_RUNTIME="${NETCLAW_RUNTIME:-$RUNTIME}"
 
 TOTAL_COMPONENTS=$(catalog_ids | wc -l | tr -d ' ')
 
@@ -363,6 +363,11 @@ else
     show_selection
 fi
 
+# The private bridge belongs only to Hermes; omit it from OpenClaw
+# selections. Install it explicitly with --runtime hermes --add hermes-hud.
+if [ "$RUNTIME" != "hermes" ]; then
+    SELECTED="$(printf '%s\n' $SELECTED | awk '$0 != "hermes-hud"')"
+fi
 if ! netclaw_component_preflight; then
     log_error "Preflight blocked this selection. Resolve the reported prerequisites or choose fewer components."
     exit 1
@@ -690,7 +695,7 @@ for entry in "${CATALOG[@]}"; do
 done
 echo ""
 
-echo "Skills deployed: $SKILL_COUNT → ~/.openclaw/workspace/skills/"
+echo "Skills deployed: $SKILL_COUNT → ${RUNTIME_WORKSPACE:-$RUNTIME_HOME/workspace}/skills/"
 echo "Component manifest: $NETCLAW_MANIFEST"
 echo "  (setup.sh only asks about platforms you installed — re-run install.sh to add more)"
 echo ""
@@ -745,6 +750,7 @@ if [ "$RUNTIME" = "hermes" ]; then
     echo "  1. nano testbed/testbed.yaml        # Add your network devices"
     echo "  2. hermes gateway start             # Start the gateway (or: hermes gateway run)"
     echo "  3. hermes chat                      # Talk to NetClaw (or: hermes --tui)"
+    echo "  4. netclaw hud                      # Shared HUD; install --add hermes-hud first"
     echo ""
     echo "  Re-run setup anytime:"
     echo "    hermes setup                       # AI provider, gateway, channels"

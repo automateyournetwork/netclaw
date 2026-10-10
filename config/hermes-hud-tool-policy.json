@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "note": "Individually reviewed read-only implementation. No annotations grant permission. Other registered tools remain unqualified.",
+  "servers": {
+    "subnet-calc-mcp": {
+      "component": "subnet-calc",
+      "source": "mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py",
+      "tools": [
+        "subnet_calculator"
+      ],
+      "argumentPolicy": "ipv4-small-subnet",
+      "sourceHashes": [
+        "bfb8bb548aa7096c0b2324a3798c581ce917a26388aa6193ae66eb0708e7dd45",
+        "0738c88ac2eac2dca52de398034ab8701d5d6bc164a93f906b6ee3a5fde824ee"
+      ],
+      "reviewedCommit": "5178da6f83ebd894fa7331a62e1087ec9550751b",
+      "sourceRepository": "https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension.git"
+    }
+  }
+}

@@ -13,6 +13,18 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
+# Resolve before inspecting, starting or stopping any OpenClaw process.
+$selectionHelper = Join-Path $PSScriptRoot 'scripts\runtime-selection.mjs'
+$runtimeSelectionJson = & node $selectionHelper
+if ($LASTEXITCODE -ne 0) { throw 'Runtime selection is invalid. Hermes HUD runs inside Ubuntu on WSL2; use netclaw hud there.' }
+$runtimeSelection = $runtimeSelectionJson | ConvertFrom-Json
+if ($runtimeSelection.kind -ne 'openclaw') { throw 'Hermes HUD requires Ubuntu on WSL2. In the Linux checkout run netclaw hud.' }
+$env:NETCLAW_RUNTIME = 'openclaw'
+$env:OPENCLAW_HOME = $runtimeSelection.home
+$env:OPENCLAW_STATE_DIR = $runtimeSelection.home
+$env:OPENCLAW_CONFIG_PATH = $runtimeSelection.configPath
+
+
 $repoRoot = $PSScriptRoot
 $visualRoot = Join-Path $repoRoot 'ui\netclaw-visual'
 $canvasUrl = 'http://localhost:3000/canvas.html'
@@ -166,7 +178,7 @@ if (-not (Test-Path -LiteralPath (Join-Path $visualRoot 'node_modules'))) {
 
 if (-not $SkipGateway) {
     $openClawPath = Resolve-RequiredCommand @('openclaw.cmd', 'openclaw.ps1', 'openclaw') "Install OpenClaw and run 'openclaw onboard' first."
-    $gatewayConfigPath = Join-Path ([Environment]::GetFolderPath('UserProfile')) '.openclaw\openclaw.json'
+    $gatewayConfigPath = $env:OPENCLAW_CONFIG_PATH
     $gatewayPort = 18789
     $chatCompletionsEnabled = $false
 

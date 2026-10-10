@@ -1,0 +1,5 @@
+fastmcp==4.0.11
+fastmcp-tasks==4.0.11
+fastmcp-slim==4.0.11
+mcp==2.3.0
+httpx==0.28.1

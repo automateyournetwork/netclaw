@@ -96,6 +96,7 @@ GROUPED_CONFIG_EXACT = {
 # verify-inventory-counts.py already asks of EXTERNAL_INTEGRATIONS itself.
 GROUPED_EXTERNAL_COVERAGE = {
     "tavus-pal": ["Tavus Pal"],
+    "hermes-hud": ["Hermes HUD private bridge"],
     "memory-mcp": ["Memory MCP"],
     "ollama": ["Ollama"],
     "telemetry-receivers": ["IPFIX/NetFlow", "SNMP Trap Receiver", "Syslog Receiver"],
@@ -117,6 +118,7 @@ GROUPED_EXTERNAL_COVERAGE = {
 # the only way to silence it is to state why -- which is human knowledge that
 # cannot be inferred from the source.
 VENDORED_STATE_REASONS = {
+    "hermes-hud-mcp": "HUD-private eight-tool bridge; never agent-native to prevent recursive conversation dispatch (spec 148)",
     "tavus-pal-mcp": "optional HUD-invoked stdio facade; deliberately absent from the main agent registry to prevent recursive agent dispatch (spec 144)",
     "netclaw-dot-mcp": "operator-run HTTP service (netclaw-dot.service) that ChatGPT Dots call over OAuth; deliberately NOT registered as an agent MCP (spec 134)",
     "gait_mcp": "registered as 'gait-mcp'; underscore/hyphen naming mismatch",

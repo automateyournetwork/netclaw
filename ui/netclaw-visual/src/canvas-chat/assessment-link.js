@@ -1,6 +1,6 @@
 export function unbindImportedSession(value) {
   if (!value || !Array.isArray(value.nodes)) return value;
-  return { ...value, nodes: value.nodes.map(node => ({ ...node, messages: (node.messages || []).map(message => {
+  return { ...value, nodes: value.nodes.map(({hudThread,...node}) => ({ ...node, messages: (node.messages || []).map(message => {
     const { assessmentRefs, ...rest } = message;
     return assessmentRefs ? { ...rest, assessmentBinding: 'unbound' } : rest;
   }) })) };

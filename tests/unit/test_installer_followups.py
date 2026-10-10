@@ -43,8 +43,12 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 12
+    assert len(launch.CONTRACT) == 13
     for component, rule in launch.CONTRACT.items():
+        if rule.get('access') == 'hud-private':
+            assert component == 'hermes-hud'
+            assert all(name not in templates for name in rule['servers'])
+            continue
         for server in rule['servers']:
             entry = templates[server]
             assert register.component_for(server) == component

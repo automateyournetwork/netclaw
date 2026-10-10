@@ -1009,3 +1009,7 @@ servers because Draw.io and RFC are separate). `config/installer-access.json` an
 commands to the installed interpreter/source/transport. No new write permission is
 granted. `logs/install/run-*/readiness.json` separates artifacts, registration,
 discovery and unverified endpoint/agent operations. See [operator guidance](docs/INSTALLER-READINESS.md).
+
+## Selected-runtime HUD
+
+Use `./scripts/netclaw hud status` for observation and `./scripts/netclaw hud` for an owner-requested launch. Selection persists separately from credentials. Hermes uses the selected home, private stdio conversation bridge and pinned isolated companion; no OpenClaw credential/history fallback. The initial eligible tool is the reviewed IPv4 subnet calculator (/24 through /30). Native Windows Hermes requires Ubuntu on WSL2. See `docs/HERMES-HUD.md` for setup, exact versions and recovery. The eight private bridge tools must never be registered with an agent.

@@ -1,0 +1,71 @@
+# Research: Hermes HUD integration
+
+**Date**: 2026-10-10. **Baseline**: NetClaw `a67aba7`; read-only source research, no live Hermes/provider/device execution. All compatibility entries below are qualification targets, not certified results.
+
+## R1 — Use a private MCP bridge and protected Hermes companion
+
+**Decision**: HUD backend → official MCP client over stdio → `hermes-hud` FastMCP server → authenticated loopback Runs/session API in a dedicated NetClaw-owned Hermes companion. The companion runs the selected installation's actual Hermes agent/provider/MCP configuration. Its guarded agent factory prevents unqualified tools and shared dynamic memory from entering HUD conversations. No direct model fallback; no OpenClaw dependency on this path.
+
+The ordinary owner gateway and its configuration remain untouched. The companion subclasses the pinned upstream API adapter and constrains its routes and agent factory within its own process. This small version-specific seam is necessary because ordinary API configuration and optional hooks do not provide the required enforceable boundary. Capability reads never initiate inference or operational tools. Model-catalog discovery may contact the selected provider read-only, bounded by the metadata deadline and cached for 60 seconds; failure is an unavailable inventory, not an inference trigger. Companion startup occurs only through the explicit HUD launch command, with a separate port and credential. Inject private response, idempotency and session stores before adapter construction/acquisition; upstream defaults otherwise write the owner's native databases.
+
+**Alternatives**: Direct browser-to-Hermes violates credential/ownership boundaries. OpenClaw wire emulation obscures capabilities. ACP/TUI can run agents, but would require separate admission/recovery integration. Upstream `hermes mcp serve` delivers channel messages; its stateless tools MCP server does not execute agent conversations. Embedding provider calls directly would bypass Hermes. A custom network change-policy engine is outside this feature.
+
+Sources: [API documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/api-server/), [programmatic integration](https://hermes-agent.nousresearch.com/docs/developer-guide/programmatic-integration/), [API adapter at qualification revision](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/gateway/platforms/api_server.py), [MCP documentation](https://hermes-agent.nousresearch.com/docs/user-guide/features/mcp/).
+
+## R2 — Pin the release and private integration contract
+
+Initial candidate: **Hermes v0.21.6**, source **`818c13be1dc4fd28987e1e881a9408224afd4535`**. Main `f86276d2ebcccf0530873c11e2965c3f1cbd5a31` was also inspected, but is not the delivery baseline. Upstream package version `0.0.0` is not a compatibility identifier. Record the release/install stamp, immutable source revision and guard-signature/capability test results; reject unqualified changes before inference. Do not blindly require that all owner installations are Git checkouts: an official install stamp plus matching qualified source hashes is acceptable.
+
+Use isolated Python 3.12 for the bridge; upstream requires Python >=3.11,<3.15. The initial Node 22 candidate was superseded during implementation by the HUD-specific >=24.19 <25 or >=26.1 policy; Mac qualification used 24.19.0. The companion uses a separate pinned Python 3.14 environment. This is not a shared maximum: existing OpenClaw requires Node >=24.16,<25 or >=26.1, and its regression uses a supported Node version. Updated matrix: macOS 26.5.2 arm64 (actual test host), Ubuntu 24.04 x86_64, and Ubuntu 24.04 x86_64 under Windows 11 WSL2. Record actual host versions during acceptance; a different host requires an explicit matrix update and the same checks. Native Windows Hermes launch is unsupported in 148 and must fail before OpenClaw startup. Existing OpenClaw Windows behavior remains supported without adding a Python prerequisite.
+
+FastMCP 4.0.11 and MCP Python SDK 2.3.0 match the repository dependency policy. Use official Node MCP client 2.3.1, exact lockfile resolution, with the client/stdio imports validated during implementation. Pin the HTTP client and remaining transitive dependencies through the existing component manifest workflow. No global Python installation.
+
+Sources: [Hermes release](https://github.com/NousResearch/hermes-agent/releases/tag/v0.21.6), [Hermes package constraints](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/pyproject.toml), [official MCP SDK releases](https://github.com/modelcontextprotocol/typescript-sdk/releases/tag/v2.3.1). Local evidence: `config/python-components/gait.txt`, `config/installer-runtime.json`, `scripts/upgrade-hud.sh`, `.github/workflows/hud-ci.yml`.
+
+## R3 — Enforce a narrow tool and memory boundary
+
+Hermes dangerous-command defaults, MCP trust annotations and toolset registration do not establish NetClaw authorization. Explicit toolsets may still gain implicit MCP/plugin tools. `/v1/toolsets` is an inventory, not a complete effective-schema attestation. Optional hook dispatch can fail open at an outer exception boundary. Therefore neither prompt instructions, `readOnlyHint`, nor a pre-tool hook is sufficient.
+
+The companion installs a **process-local, immutable** `ProtectedAIAgent` factory before accepting requests. It retains the upstream provider/session setup, forces approved MCP toolsets, disables native execution/delegation/admin/history tools, sets `skip_memory=True`, `skip_background_review=True`, `memory_manager=None`, and excludes the memory toolset. Freeze actual tools, valid names, schemas and server configuration digests after construction. Suppress MCP refresh with the pinned `_skip_mcp_refresh` seam; independently revalidate before every provider call (`_build_api_kwargs`) and tool dispatch (`_execute_tool_calls`, `_invoke_tool`). Reject a changed scope before executing, rather than quietly accepting newly discovered tools. Constructor/signature drift fails readiness. Conventional model providers only; command/ACP-backed agent providers that can execute outside this loop are unqualified.
+
+Initial operational qualification is individually audited **read-only MCP tools**, with a harmless real-tool acceptance canary. Safe installed-skill viewing must enforce a fixed root and prohibit traversal/symlink escape; instructions never grant tools. Static owner-authored instructions may be loaded through an explicit file allowlist; dynamic shared memory, session search, arbitrary runtime-file access, scheduled work, code, terminal and unscoped alternate dispatch remain unavailable. Mutating tools require an independently enforcing existing MCP policy boundary; otherwise they are unavailable, including Terminal Intent APPLY. No write parity is claimed and no new production policy engine is introduced.
+
+Sources: [security](https://hermes-agent.nousresearch.com/docs/user-guide/security/), [toolset resolution](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/hermes_cli/tools_config.py), [dispatch](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/model_tools.py), [agent constructor](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/run_agent.py), [memory initialization](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/agent/agent_init.py), [MCP refresh](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/tools/mcp_tool_agent.py).
+
+## R4 — Durable ownership and conservative request recovery
+
+HUD ownership is separate from Hermes API authentication. Bind owner cookie hash + installation ID + conversation/branch to server-owned opaque Hermes IDs. Never forward upstream session enumeration. Recheck ownership and expiry after asynchronous reads and before releasing each progress/final result. Server and browser stores both carry installation identity.
+
+Hermes Runs supports durable idempotency, but it may degrade to memory-only storage. Persist a local request and fingerprint before submitting; never replay an ambiguous POST automatically. Known run IDs permit status reads; unknown admission remains unknown. Stop is cooperative and is not proof of rollback. SSE is bounded transient progress (approximately five-minute unobserved retention), while run status/history are recovery sources. Serialize turns per conversation with a durable admission lock, not only an in-memory busy flag.
+
+Source: [Runs](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/gateway/platforms/api_server_runs.py), [idempotency store](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/gateway/platforms/api_server_run_idempotency.py). Local: `src/hud-server/bindings.js`, `chat-history.js`, `chat-transport.js` beneath `ui/netclaw-visual/`.
+
+## R5 — Canvas context and trustworthy evidence
+
+Native session fork copies the full transcript and ends its parent; it cannot represent an arbitrary Canvas branch point. Create one Hermes session per branch and seed only its validated ancestor text once through `conversation_history`. Continue that owned session thereafter. Preserve existing Canvas graph IDs/content. Existing unscoped OpenClaw browser data requires an explicit, idempotent origin-binding migration; never adopt it into Hermes automatically.
+
+SSE tool previews lack complete call IDs. Capture companion-owned request/session/run-correlated invocation/result audit records at the guarded dispatch boundary, using actual tool-call IDs. Native history and enforcing-server audit records corroborate them. Compression can rewrite row IDs/session lineage, so numeric transcript intervals alone never establish attribution. Do not label prose, heuristic fallbacks or another/latest session as actual execution. Strip private reasoning and redact secrets in every projection.
+
+Source: [session and API implementation](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/gateway/platforms/api_server.py). Local: `dashboard/chat-storage.js`, `canvas-chat/App.jsx`, `hud-server/bindings.js`, `server.js` in `ui/netclaw-visual/src/` (server at project UI root).
+
+## R6 — Expose capabilities rather than assumed parity
+
+Runs accepts provider/model preferences, but session overrides/fallbacks can change the actual model; `require_model_lock` belongs to a different session-chat path. Initial Hermes model controls display configured/actual models and do not advertise a confirmed locked selection. Effort acknowledgment is unverified; keep the control unavailable. Input is text-only initially; reject attachments before a run and preserve drafts. Usage may be absent even if upstream helpers return zero; distinguish measured, derived, unavailable and stale values.
+
+Local Avatar shares Chat. Hosted Pal, unsupported native browser links and Hermes federation remain unavailable with reasons. Agent-assisted Terminal Intent uses the common adapter for eligible read-only operations and rejects unqualified APPLY before dispatch. OpenClaw behavior retains its established support. Loading panels must never trigger inference, operational tools or another runtime.
+
+Source: [Runs implementation](https://github.com/NousResearch/hermes-agent/blob/818c13be1dc4fd28987e1e881a9408224afd4535/gateway/platforms/api_server_runs.py). Local dependency inventory is in [baseline.md](baseline.md); plan assigns all identified routes, writers and stores.
+
+## R7 — Persist runtime selection and register the bridge privately
+
+Installer environment variables currently disappear in a fresh shell. Introduce a private runtime-independent descriptor resolved before runtime `.env`: explicit selection → descriptor → historical OpenClaw default. Invalid selection fails, never falls back. Do not infer selection from installed executables, rewrite `HOME`, or merge another runtime/repository credential source into Hermes. Existing OpenClaw repository-dotenv values require an explicit preserving import/preflight through `scripts/import-env.py`; selected-home values win. Installer launch metadata records absolute Hermes source/interpreter paths separately from HERMES_HOME. Shared golden precedence fixtures keep Unix Python and portable Node resolution identical without requiring Python for Windows OpenClaw launch.
+
+`hermes-hud` uses the existing Tavus private-integration precedent: catalog/install/manifest/readiness/reference coverage, but **no agent-native conversation-tool registration** in `config/openclaw.json` or translated Hermes config. Explicit `hud-private` access prevents recursive self-calls. Exclude auto-registration utilities as well. Distinguish MCP discovery, protected-companion compatibility, provider availability and proven execution. Preserve owner config during install/upgrade; all new state lives under private NetClaw-owned paths.
+
+Local evidence: `scripts/lib/{common,catalog,install-steps}.sh`, `scripts/netclaw`, `scripts/{component-launch,installer-readiness,openclaw-to-hermes-mcp,register-all-mcps,build-hud-reference}.py`, `config/installer-access.json`, `scripts/verify-{catalog-coverage,inventory-counts}.py`.
+
+## R8 — Validation and cross-machine handoff
+
+Separate deterministic tests, real protected-agent tests with a controlled provider/tool fixture, and live provider acceptance. None substitutes for another. Linux and WSL remain explicit qualification targets; after implementation on Mac, prepare a WSL Ubuntu handoff if those runs cannot be completed here. The owner offered to switch machines at that point. Include branch/commit, prerequisites, exact commands, evidence paths and return criteria; do not ask for a switch during planning or claim unrun cases passed.
+
+No unresolved design choice remains. Source-supported integration seams and capability limits have executable qualification gates; failed qualification must block the affected capability, never cause an unsafe fallback or a false completion claim.

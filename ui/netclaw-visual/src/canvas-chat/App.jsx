@@ -1,3 +1,5 @@
+import { branchSeed } from './branch-context.js';
+import { runtimeKey, runtimeStorage, runtimeInfo, sendChat, pendingRequest, observeRequest, requestControl, newConversation } from '../shared/runtime-client.js';
 import { C, COLLAPSED_H, DARK, LIGHT } from "./canvas-theme.js";
 import { apiError } from "./terminal-api.js";
 import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from "react";
@@ -127,12 +129,13 @@ function computeTidyLayout(nodes, opts = {}) {
 const zbtn = { width: 28, height: 28, border: "none", background: "transparent", color: C.ink, cursor: "pointer", fontSize: 16, lineHeight: 1, borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" };
 
                // height of a minimized lane
+const localStorage = runtimeStorage(globalThis.localStorage);
 const STORE_KEY = "netclaw-canvas-v1"; // legacy localStorage key, migrated on first run
 
 // ---- IndexedDB persistence ----------------------------------------------
 // Sessions live in IDB instead of localStorage so capacity scales to ~half the disk
 // and we can keep an indefinite history of past investigations.
-const DB_NAME = "netclaw-canvas";
+const DB_NAME = runtimeKey("netclaw-canvas");
 const DB_VER = 2;
 const SESS_STORE = "sessions";
 const KV_STORE = "kv";
@@ -153,15 +156,36 @@ function idbOpen() {
     req.onerror = () => reject(req.error);
   });
 }
+const validStoredSession = value => {
+  if(value && runtimeInfo() && value.installationId!==runtimeInfo().installationId) throw Error('Saved canvas belongs to another installation.');
+  return value;
+};
 const idb = {
-  async put(s) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(SESS_STORE, "readwrite"); tx.objectStore(SESS_STORE).put(s); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); },
-  async get(id) { const db = await idbOpen(); return new Promise((res, rej) => { const r = db.transaction(SESS_STORE).objectStore(SESS_STORE).get(id); r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); },
-  async list() { const db = await idbOpen(); return new Promise((res, rej) => { const r = db.transaction(SESS_STORE).objectStore(SESS_STORE).getAll(); r.onsuccess = () => res(r.result || []); r.onerror = () => rej(r.error); }); },
+  async put(s) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(SESS_STORE, "readwrite"); tx.objectStore(SESS_STORE).put({...s,installationId:runtimeInfo()?.installationId}); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); },
+  async get(id) { const db = await idbOpen(); return new Promise((res, rej) => { const r = db.transaction(SESS_STORE).objectStore(SESS_STORE).get(id); r.onsuccess = () => { try { res(validStoredSession(r.result)); } catch(error) { rej(error); } }; r.onerror = () => rej(r.error); }); },
+  async list() { const db = await idbOpen(); return new Promise((res, rej) => { const r = db.transaction(SESS_STORE).objectStore(SESS_STORE).getAll(); r.onsuccess = () => { try { res((r.result || []).map(validStoredSession)); } catch(error) { rej(error); } }; r.onerror = () => rej(r.error); }); },
   async del(id) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(SESS_STORE, "readwrite"); tx.objectStore(SESS_STORE).delete(id); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); },
   async kvGet(k) { const db = await idbOpen(); return new Promise((res, rej) => { const r = db.transaction(KV_STORE).objectStore(KV_STORE).get(k); r.onsuccess = () => res(r.result ? r.result.v : null); r.onerror = () => rej(r.error); }); },
   async kvPut(k, v) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(KV_STORE, "readwrite"); tx.objectStore(KV_STORE).put({ k, v }); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); },
   async kvDel(k) { const db = await idbOpen(); return new Promise((res, rej) => { const tx = db.transaction(KV_STORE, "readwrite"); tx.objectStore(KV_STORE).delete(k); tx.oncomplete = () => res(); tx.onerror = () => rej(tx.error); }); },
 };
+
+async function migrateLegacyCanvas() {
+  const selected=runtimeInfo();
+  if (selected?.kind !== 'openclaw' || !indexedDB.databases) return;
+  const claim=globalThis.localStorage.getItem('netclaw.legacy-canvas-owner');
+  if (claim && claim !== selected.installationId) return;
+  if (!((await indexedDB.databases()).some(db=>db.name==='netclaw-canvas'))) return;
+  if (localStorage.getItem('canvas-idb-migrated')==='1') return;
+  const old=await new Promise((resolve,reject)=>{const req=indexedDB.open('netclaw-canvas');req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+  try {
+    if(!old.objectStoreNames.contains(SESS_STORE))return;
+    const rows=await new Promise((resolve,reject)=>{const req=old.transaction(SESS_STORE).objectStore(SESS_STORE).getAll();req.onsuccess=()=>resolve(req.result);req.onerror=()=>reject(req.error);});
+    globalThis.localStorage.setItem('netclaw.legacy-canvas-owner',selected.installationId);
+    for (const row of rows) { if(!await idb.get(row.id))await idb.put(row); }
+    localStorage.setItem('canvas-idb-migrated','1');
+  } finally { old.close(); } // Original database remains a recovery backup.
+}
 
 const sessId = () => "s-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2, 8);
 const fmtAgo = (ts) => {
@@ -201,7 +225,7 @@ async function ensureHudSession() {
   if (!hudSessionReady) hudSessionReady = fetch("/api/hud/session", { method: "POST" }).then(res => { if (!res.ok) throw new Error("HUD session unavailable"); }).catch(error => { hudSessionReady = null; throw error; });
   return hudSessionReady;
 }
-async function callNetClaw({ messages, hudThread }) {
+async function callNetClaw({ messages, hudThread, onProgress }) {
   await ensureHudSession();
   const context = messages.map((m) => ({ role: m.role, content: openaiContent(m) }));
   const latestUser = [...context].reverse().find((m) => m.role === "user");
@@ -211,20 +235,13 @@ async function callNetClaw({ messages, hudThread }) {
   const requestText = latestText.endsWith("\n\n" + TAB_SYSTEM)
     ? latestText.slice(0, -(TAB_SYSTEM.length + 2)).trim()
     : latestText;
-  const res = await fetch("/api/chat", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    // `message` drives NetClaw's activation visualization; `messages` carries
-    // the complete branch context (including the answer-format instruction).
-    body: JSON.stringify({ message: requestText, messages: context, hudThread }),
-  });
-  if (!res.ok) throw await apiError(res);
-  const data = await res.json();
+  const data = await sendChat({message: requestText, messages: context, hudThread}, onProgress);
+  if (!data.fromGateway) throw new Error('The runtime did not return a confirmed reply.');
   return { text: String(data.response || "").trim(), assessmentRefs: Array.isArray(data.assessmentRefs) ? data.assessmentRefs : [], fromGateway: data.fromGateway === true };
 }
 
-async function requestLLM(messages, hudThread) {
-  const result = await callNetClaw({ messages, hudThread });
+async function requestLLM(messages, hudThread, onProgress) {
+  const result = await callNetClaw({ messages, hudThread, onProgress });
   if (!result.text) throw new Error("empty response from NetClaw");
   return result;
 }
@@ -371,7 +388,8 @@ export default function App() {
   const [nodes, setNodes] = useState([ROOT]);
   const [sessionError, setSessionError] = useState(null);
   const sessionGate = useRef(createSessionGate());
-  const callLLM = (messages, thread) => sessionGate.current.request(() => requestLLM(messages, thread));
+  const [runtimeProgress, setRuntimeProgress] = useState({});
+  const callLLM = (messages, thread) => sessionGate.current.request(() => requestLLM(messages, thread, value=>setRuntimeProgress(previous=>({...previous,[thread]:value}))));
   const runSessionChange = async (work) => {
     try { await sessionGate.current.change(work); setSessionError(null); }
     catch (error) { setSessionError(String(error.message || error)); }
@@ -1128,7 +1146,7 @@ export default function App() {
     patch(nodeId, { loading: true, error: null });
     try {
       if (!currentSession?.id) throw new Error("Wait for the canvas session to load.");
-      const result = await callLLM(toAPIMessages([...ctx, instruction]), currentSession.id + ":" + nodeId);
+      const result = await callLLM(toAPIMessages([...ctx, instruction]), (nodes.find(n=>n.id===nodeId)?.hudThread || currentSession.id + ":" + nodeId));
       append(nodeId, { role: "assistant", relate: true, content: result.text, assessmentRefs: result.assessmentRefs, fromGateway: result.fromGateway });
     } catch (e) { patch(nodeId, { error: String(e.message || e) }); }
     finally { patch(nodeId, { loading: false }); }
@@ -1136,7 +1154,7 @@ export default function App() {
 
   // --- local persistence (works in your offline build; the claude.ai preview sandboxes storage) ---
   const serialize = () => ({
-    v: 1, active,
+    v: 1, active, drafts, quotes, attachments,
     nodes: nodes.map((n) => ({ ...n, loading: false, error: null, messages: n.messages.map((m) => (m.streaming ? { ...m, done: true } : m)) })),
   });
 
@@ -1186,7 +1204,7 @@ export default function App() {
     // blank (otherwise the chat shows "no threads open" with no way to bring them back)
     if (loaded.length && loaded.every((n) => n.closed)) loaded = loaded.map((n) => (n.depth === 0 ? { ...n, closed: false } : n));
     setNodes(loaded);
-    setDrafts({}); setQuotes({}); setAttachments({});
+    setDrafts(obj.drafts || {}); setQuotes(obj.quotes || {}); setAttachments(obj.attachments || {});
     const firstOpen = loaded.find((n) => !n.closed);
     setActive(obj.active && loaded.some((n) => n.id === obj.active && !n.closed) ? obj.active : (firstOpen ? firstOpen.id : null));
   };
@@ -1300,6 +1318,7 @@ export default function App() {
   useEffect(() => {
     (async () => {
       try {
+        await migrateLegacyCanvas();
         let all = []; try { all = await idb.list(); } catch {}
         if (!all.length) {
           let legacy = null;
@@ -1308,7 +1327,7 @@ export default function App() {
             const id = sessId();
             const now = Date.now();
             const sess = { id, title: deriveSessionTitle(legacy.nodes), createdAt: now, updatedAt: now, nodes: legacy.nodes, active: legacy.active };
-            try { await idb.put(sess); localStorage.removeItem(STORE_KEY); } catch {}
+            try { await idb.put(sess); } catch {}
             setCurrentSession({ id, createdAt: now });
             loadState(legacy);
             firstSave.current = true;
@@ -1323,7 +1342,7 @@ export default function App() {
         }
         const newest = all.reduce((a, b) => (a.updatedAt > b.updatedAt ? a : b));
         setCurrentSession({ id: newest.id, createdAt: newest.createdAt });
-        loadState({ nodes: newest.nodes, active: newest.active });
+        loadState(newest);
         firstSave.current = true;
         setSessionList(all);
       } catch (e) { console.warn("session init failed", e); }
@@ -1338,18 +1357,18 @@ export default function App() {
     saveTimerRef.current = setTimeout(() => {
       const data = serialize();
       const now = Date.now();
-      idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: now, nodes: data.nodes, active: data.active })
-        .then(() => setSessionList((ls) => { const others = ls.filter((s) => s.id !== currentSession.id); return [{ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: now, nodes: data.nodes, active: data.active }, ...others]; }))
+      idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: now, nodes: data.nodes, active: data.active, drafts:data.drafts, quotes:data.quotes, attachments:data.attachments })
+        .then(() => setSessionList((ls) => { const others = ls.filter((s) => s.id !== currentSession.id); return [{ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: now, nodes: data.nodes, active: data.active, drafts:data.drafts, quotes:data.quotes, attachments:data.attachments }, ...others]; }))
         .catch((error) => setSessionError("Session save failed: " + String(error.message || error)));
     }, 400);
     return () => clearTimeout(saveTimerRef.current);
-  }, [nodes, active, currentSession]); // eslint-disable-line
+  }, [nodes, active, currentSession, drafts, quotes, attachments]); // eslint-disable-line
 
   const newSession = () => runSessionChange(async () => {
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     if (currentSession) {
       const data = serialize();
-      await idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: Date.now(), nodes: data.nodes, active: data.active });
+      await idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: Date.now(), nodes: data.nodes, active: data.active, drafts:data.drafts, quotes:data.quotes, attachments:data.attachments });
     }
     resetSession();
   });
@@ -1358,13 +1377,13 @@ export default function App() {
     if (saveTimerRef.current) { clearTimeout(saveTimerRef.current); saveTimerRef.current = null; }
     if (currentSession) {
       const data = serialize();
-      await idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: Date.now(), nodes: data.nodes, active: data.active });
+      await idb.put({ id: currentSession.id, title: deriveSessionTitle(data.nodes), createdAt: currentSession.createdAt, updatedAt: Date.now(), nodes: data.nodes, active: data.active, drafts:data.drafts, quotes:data.quotes, attachments:data.attachments });
     }
     const sess = await idb.get(id);
     if (!sess) throw new Error("Session is unavailable.");
     setCurrentSession({ id: sess.id, createdAt: sess.createdAt });
     pastRef.current = []; futureRef.current = [];
-    loadState({ nodes: sess.nodes, active: sess.active });
+    loadState(sess);
     firstSave.current = true;
     setShowSessions(false);
     reloadSessionList();
@@ -1423,7 +1442,7 @@ export default function App() {
     });
   };
 
-  async function run(nodeId, apiMessages) {
+  async function run(nodeId, apiMessages, submittedDraft) {
     patch(nodeId, { loading: true, error: null });
     try {
       const msgs = toAPIMessages(apiMessages);
@@ -1434,12 +1453,12 @@ export default function App() {
       // Tool selection and execution stay inside NetClaw/OpenClaw. The browser
       // contributes only this branch's conversation context and attachments.
       if (!currentSession?.id) throw new Error("Wait for the canvas session to load.");
-      const result = await callLLM(msgs, currentSession.id + ":" + nodeId);
+      const result = await callLLM(msgs, (nodes.find(n=>n.id===nodeId)?.hudThread || currentSession.id + ":" + nodeId));
       const raw = result.text;
       const tabs = parseTabs(raw);
       append(nodeId, { ...(tabs ? { role: "assistant", content: tabs.context, tabs } : { role: "assistant", content: raw }), assessmentRefs: result.assessmentRefs, assessmentBinding: result.assessmentRefs.length ? "bound" : "unbound", fromGateway: result.fromGateway });
     }
-    catch (e) { patch(nodeId, { error: String(e.message || e) }); }
+    catch (e) { patch(nodeId, { error: String(e.message || e) }); if(submittedDraft!==undefined)setDrafts(d=>({...d,[nodeId]:d[nodeId] || submittedDraft})); }
     finally { patch(nodeId, { loading: false }); }
   }
 
@@ -1450,6 +1469,7 @@ export default function App() {
     const siblings = nodes.filter((n) => n.parentId === parentId).length;
     const id = uid();
     const node = {
+      ...(runtimeInfo()?.kind==='hermes'?{seedContext:branchSeed(nodes,parentId,quote)}:{}),
       id, parentId, depth: parent.depth + 1, sourceQuote: quote, loading: false, error: null, min: options.expanded ? false : true,
       x: parent.x + parent.w + GAP, y: parent.y + siblings * (COLLAPSED_H + 8),
       w: DEF_W, h: DEF_H, z: (zc.current += 1), messages: [],
@@ -1525,6 +1545,7 @@ export default function App() {
     const botEdge = Math.max(...sources.map((s) => s.y + (s.min ? COLLAPSED_H : s.h)));
     const id = uid();
     const node = {
+      ...(runtimeInfo()?.kind==='hermes'?{seedContext:JSON.parse(JSON.stringify(synthChain({synthFrom:sources.map(s=>s.id)})))}:{}),
       id, parentId: sources[0].id, synthFrom: sources.map((s) => s.id),
       depth: maxDepth + 1, sourceQuote: null, loading: false, error: null, min: false,
       x: rightEdge + GAP, y: Math.max(40, (topEdge + botEdge) / 2 - DEF_H / 2),
@@ -1555,7 +1576,7 @@ export default function App() {
     const out = [];
     const sources = (node.synthFrom || []).map((sid) => nodes.find((n) => n.id === sid)).filter(Boolean);
     sources.forEach((s, i) => {
-      const lineageNodes = [...lineage(s.id), s];
+      const lineageNodes = s.seedContext ? [{id:s.id+':seed',messages:s.seedContext},s] : [...lineage(s.id), s];
       const label = nodeTitle(s) || ("thread " + (i + 1));
       const fresh = lineageNodes.filter((n) => !seen.has(n.id));
       if (!fresh.length) return;
@@ -1572,6 +1593,7 @@ export default function App() {
     const imgs = items.filter((it) => it.kind === "image").map(({ mediaType, data, name }) => ({ mediaType, data, name }));
     const files = items.filter((it) => it.kind === "file").map(({ name, text, truncated }) => ({ name, text, ...(truncated ? { truncated: true } : {}) }));
     if (!text && !imgs.length && !files.length) return;
+    if(runtimeInfo()?.kind==='hermes' && items.length) {patch(nodeId,{error:'Attachments are unavailable for this Hermes HUD release. Your draft and files have been retained.'});return;}
     commit();
     const node = nodes.find((n) => n.id === nodeId);
     const parent = node?.parentId ? nodes.find((candidate) => candidate.id === node.parentId) : null;
@@ -1593,8 +1615,8 @@ export default function App() {
     if (items.length) clearImages(nodeId);
     bringFront(nodeId);
     // synthesis nodes feed the union of every source's full chain; branches walk the parent lineage
-    const ctx = node.synthFrom ? synthChain(node) : lineage(nodeId).flatMap((n) => n.messages.filter((m) => !m.relate));
-    run(nodeId, [...ctx, ...node.messages.filter((m) => !m.relate), msg]);
+    const ctx = node.seedContext || (node.synthFrom ? synthChain(node) : lineage(nodeId).flatMap((n) => n.messages.filter((m) => !m.relate)));
+    run(nodeId, [...ctx, ...node.messages.filter((m) => !m.relate), msg], text);
   }
 
   // breadcrumb path
@@ -1627,6 +1649,32 @@ export default function App() {
     });
   });
 
+  const activeThread=nodes.find(n=>n.id===active)?.hudThread || (currentSession ? currentSession.id+':'+active : '');
+  const activeRequest=runtimeProgress[activeThread] || pendingRequest(activeThread);
+  const recoverCanvas=async()=>{
+    const nodeId=active, thread=activeThread;
+    patch(nodeId,{loading:true,error:null});
+    try {
+      const data=await sessionGate.current.request(()=>observeRequest(thread,value=>setRuntimeProgress(p=>({...p,[thread]:value}))));
+      const raw=data.response || data.output, tabs=parseTabs(raw);
+      append(nodeId,{role:'assistant',content:tabs?.context || raw,...(tabs?{tabs}:{}),fromGateway:true,assessmentRefs:[]});
+      patch(nodeId,{error:null});setDrafts(d=>({...d,[nodeId]:''}));
+    } catch(error) { patch(nodeId,{error:error.message}); }
+    finally { patch(nodeId,{loading:false}); }
+  };
+  const controlCanvas=async(action,body)=>{
+    const thread=activeThread;
+    try { const value=await requestControl(thread,action,body);setRuntimeProgress(p=>({...p,[thread]:value})); }
+    catch(error) { setSessionError(error.message); }
+  };
+  const freshCanvas=async()=>{
+    const nodeId=active;
+    try { await sessionGate.current.change(async()=>{
+      const conversation=await newConversation(activeThread);
+      if(conversation)patch(nodeId,{hudThread:conversation.thread,error:null});
+    }); } catch(error) { setSessionError(error.message); }
+  };
+
   return (
     <div style={{ ...(dark ? DARK : LIGHT), height: "100dvh", minHeight: 480, display: "flex", flexDirection: "column", background: C.canvas, color: C.ink, fontFamily: "ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif" }}>
       <style>{`@keyframes pulse{0%,100%{opacity:.35}50%{opacity:1}}
@@ -1648,6 +1696,13 @@ export default function App() {
         @media(max-width:900px){.hud-back-label{display:none}}`}</style>
 
       {sessionError && <div role="alert" style={{ padding: 10, color: "#c53030" }}>{sessionError}</div>}
+      {runtimeInfo()?.kind==='hermes' && activeRequest && <div role="status" style={{padding:8,display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+        <span>Hermes · {activeRequest.state || 'Admission unconfirmed'}</span>
+        <button onClick={recoverCanvas} disabled={nodes.find(n=>n.id===active)?.loading}>Check status</button>
+        <button onClick={()=>controlCanvas('stop')}>Request stop</button>
+        <button onClick={freshCanvas}>Start fresh conversation</button>
+        {activeRequest.approval && <><button onClick={()=>controlCanvas('approval',{approvalId:activeRequest.approval.id || activeRequest.approval.request_id,choice:'once'})}>Allow once</button><button onClick={()=>controlCanvas('approval',{approvalId:activeRequest.approval.id || activeRequest.approval.request_id,choice:'deny'})}>Deny</button></>}
+      </div>}
       {/* top bar */}
       <div style={{ flexShrink: 0, padding: "8px 14px", borderBottom: `1px solid ${C.hairline}`, background: C.canvas, display: "flex", alignItems: "center", gap: 10, zIndex: 100 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>

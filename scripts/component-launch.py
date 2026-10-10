@@ -17,10 +17,11 @@ CONTRACT = json.loads((ROOT / 'config/installer-access.json').read_text())['comp
 
 
 def runtime_root(env):
-    home = env.get('OPENCLAW_STATE_DIR') or env.get('OPENCLAW_HOME') or str(Path.home() / '.openclaw')
-    if env.get('NETCLAW_RUNTIME') == 'hermes':
-        home = env.get('HERMES_HOME', str(Path.home() / '.hermes'))
+    spec = importlib.util.spec_from_file_location('runtime_selection', ROOT / 'scripts/runtime-selection.py')
+    selection = importlib.util.module_from_spec(spec); spec.loader.exec_module(selection)
+    home = selection.resolve(env)['home']
     return Path(env.get('NETCLAW_RUNTIME_ROOT', str(Path(home) / 'python-runtimes')))
+
 
 
 def environment(env):

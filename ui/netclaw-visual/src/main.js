@@ -1,3 +1,6 @@
+import { bootstrapRuntime, verifyRuntime, runtimeInfo, sendChat } from './shared/runtime-client.js';
+let classicThread;
+let classicContext = [];
 import { setSafeHtml, appendSafeHtml } from './security/safe-html.js';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
@@ -1779,12 +1782,12 @@ async function sendChatMessage(message) {
   }
 
   try {
-    const res = await fetch('/api/chat', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message }),
-    });
-    const data = await res.json();
+    await (runtimeInfo() ? verifyRuntime() : bootstrapRuntime());
+    const session = await fetch('/api/hud/session', {method:'POST'});
+    if (!session.ok) throw Error('Private chat session unavailable.');
+    classicThread ||= 'classic-'+crypto.randomUUID();
+    const data = await sendChat({message,hudThread:classicThread,messages:[...classicContext,{role:'user',content:message}]});
+    classicContext.push({role:'user',content:message},{role:'assistant',content:data.response});
     const badge = data.fromGateway
       ? '<span class="chat-badge live">LIVE</span>'
       : '<span class="chat-badge heuristic">LOCAL</span>';

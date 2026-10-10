@@ -1,3 +1,7 @@
+import { mountHermesIntent } from './src/hud-server/runtime/intent.js';
+import { resolveRuntime } from './src/hud-server/runtime/selection.js';
+import { createHermesRuntime } from './src/hud-server/runtime/hermes.js';
+import { mountHermesChat } from './src/hud-server/runtime/routes.js';
 import { mountChatHistory } from './src/hud-server/chat-history.js';
 import { mountPal } from './src/hud-server/pal-routes.js';
 import { mountLocalPal } from './src/hud-server/pal-local.js';
@@ -64,6 +68,16 @@ import {
   normalizeTerminalEnrichmentObjects,
 } from './terminal-enrichment.js';
 
+const installation = Object.freeze(resolveRuntime({ initialize: true }));
+// Bind subprocess defaults before any selected-runtime helper executes.
+process.env.NETCLAW_RUNTIME=installation.kind;
+process.env.NETCLAW_RUNTIME_ROOT=path.join(installation.home,'python-runtimes');
+process.env.NETCLAW_RUNTIME_ENV=installation.envPath;
+process.env.NETCLAW_ENV_FILE=installation.envPath;
+if (installation.kind==='hermes') {
+  for (const key of Object.keys(process.env)) if(key.startsWith('OPENCLAW_')) delete process.env[key];
+  process.env.HERMES_HOME=installation.home;
+} else Object.assign(process.env,{OPENCLAW_HOME:installation.home,OPENCLAW_STATE_DIR:installation.home,OPENCLAW_CONFIG_PATH:installation.configPath});
 const { Client: SSHClient } = ssh2;
 const { listTerminalProfiles, appendTerminalProfile, getTerminalProfile } = createTerminalProfiles({
   parseTestbed, parseEnvFile, readText, getTestbedFile: () => TESTBED_FILE, pickDeviceConnection,
@@ -71,7 +85,7 @@ const { listTerminalProfiles, appendTerminalProfile, getTerminalProfile } = crea
 const { readTerminalKnownHosts, trustTerminalHost, forgetTerminalHost } = createTerminalHostStore({
   file: process.env.NETCLAW_TERMINAL_KNOWN_HOSTS_FILE
     ? path.resolve(process.env.NETCLAW_TERMINAL_KNOWN_HOSTS_FILE)
-    : path.join(os.homedir(), '.openclaw', 'netclaw-terminal-known-hosts.json'),
+    : path.join(installation.home, 'netclaw-terminal-known-hosts.json'),
   readText,
 });
 
@@ -82,7 +96,7 @@ const ports = hudPorts();
 const chatDeadlines = chatTimeouts();
 const allowedLocalRequest = createLocalAccess(ports);
 app.use(localAccessMiddleware(allowedLocalRequest));
-const TERMINAL_ENRICHMENT_FILE = path.join(process.env.OPENCLAW_HOME || path.join(os.homedir(), '.openclaw'), 'netclaw-terminal-enrichment.json');
+const TERMINAL_ENRICHMENT_FILE = path.join(installation.home, 'netclaw-terminal-enrichment.json');
 function loadTerminalAliases() {
   try { return JSON.parse(fs.readFileSync(TERMINAL_ENRICHMENT_FILE, 'utf8')).aliases || {}; } catch { return {}; }
 }
@@ -93,11 +107,43 @@ const terminalEnrichmentManager = new TerminalEnrichmentManager({ providers: [ne
 // its context. Keep the cap explicit so those requests work without making the
 // API an unbounded JSON sink.
 app.use(express.json({ limit: '4mb' }));
+app.use((req,res,next)=>{
+  const expected=req.headers['x-netclaw-installation'];
+  if(expected && expected!==installation.installationId)return res.status(409).json({error:'The selected runtime changed. Reload the HUD.',code:'installation_changed'});
+  next();
+});
 mountDocumentation(app, ROOT);
-mountLogs(app, os.homedir());
-const hudBindings = new Bindings(path.join(os.homedir(), '.openclaw', 'hud-bindings'));
+if (installation.kind === 'openclaw') mountLogs(app, os.homedir(), { runtimeHome: installation.home });
+const hudBindings = new Bindings(path.join(installation.home, 'hud-bindings'), Date.now, installation);
+app.use((req,_res,next) => {
+  const cookies=(req.headers.cookie || '').split(';').map(v=>v.trim());
+  const selected=cookies.find(v=>v.startsWith(hudBindings.cookieName+'='));
+  const legacy=installation.kind==='openclaw'?cookies.find(v=>v.startsWith('nc_hud=')):null;
+  req.headers.cookie=selected?'nc_hud='+selected.slice(hudBindings.cookieName.length+1):(legacy || '');
+  next();
+});
+const hermesRuntime = installation.kind === 'hermes' ? createHermesRuntime(installation, ROOT) : null;
+app.get('/api/runtime', async (_req, res) => {
+  let readiness = { ready: false, code: 'runtime_stopped' };
+  if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
+  else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };
+  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
+});
+if (hermesRuntime) {
+  mountHermesChat(app, { runtime: hermesRuntime, bindings: hudBindings });
+  mountHermesIntent(app, {runtime:hermesRuntime,bindings:hudBindings});
+  app.use('/api/pal', (req,res,next) => req.path.startsWith('/local/') ? next() : res.status(409).json({code:'capability_unsupported',error:'Hosted Pal is unavailable for Hermes. Use the local Avatar.'}));
+  app.use(['/api/n2n', '/api/bgp', '/api/budget', '/api/terminal/intent'], (_req,res) => res.status(409).json({ available:false, code:'capability_unsupported', error:'This capability is unavailable for Hermes in this release. Federation is planned separately in spec 149; Terminal Intent requires independently qualified execution policy.' }));
+  app.get('/api/hud/runtime', async (_req,res) => { try { res.json({ available:true, kind:'hermes', label:'Hermes', ...await hermesRuntime.call('status'), controlUi:{ available:false, reason:'Use the private NetClaw HUD conversation.' } }); } catch { res.status(503).json({available:false,error:'Hermes companion is stopped or unqualified. Run netclaw hud.'}); } });
+  app.get('/api/gateway/status', async (_req,res) => { try { const status=await hermesRuntime.call('status'); res.json({ connected:status.ready, runtime:'hermes', ...status }); } catch { res.json({connected:false,runtime:'hermes',error:'Protected companion unavailable'}); } });
+  app.get('/api/hud/tokenomics', (_req,res) => res.json({available:false,error:'Hermes usage is reported per owned request.'}));
+  app.get('/api/hud/logs', (_req,res) => res.json({sources:[],reason:'Private Hermes request events are available in Chat.'}));
+  app.get('/api/hud/security', (_req,res) => res.json({runtime:'hermes',available:true,mode:'qualified read-only MCP',writes:false,reason:'Only source-reviewed read-only tools are available. Other operations require further qualification.'}));
+  app.get('/api/hud/configuration', (_req,res) => res.json({runtime:'hermes',available:true,...configurationInventory(Object.fromEntries(Object.entries(ENV_MAP).map(([id,item])=>[id,{...item,files:item.files.filter(f=>!f.includes('.openclaw'))}])),parseEnvFile(),'Selected Hermes .env')}));
+}
+app.use(['/api/sessions','/api/session'], (_req,res) => res.status(404).json({error:'Use owned conversation history and request events.'}));
 mountLocalPal(app, { bindings: hudBindings });
-mountAssessmentRoutes(app, { bindings: hudBindings, audit: assessmentAudit(ROOT), readAssessment: createJevReader(ROOT, () => ({ ...parseEnvFile(), ...process.env })) });
+mountAssessmentRoutes(app, { bindings: hudBindings, audit: assessmentAudit(ROOT), readAssessment: createJevReader(ROOT, () => ({ ...parseEnvFile(), ...process.env }), installation.home) });
 registerGenieRoutes(app, { getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 registerObservabilityRoutes(app, { getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 registerIntentExecutionRoutes(app, { getGatewayConfig, listDevices: listTerminalProfiles,
@@ -111,15 +157,15 @@ const wss = new WebSocketServer({
   verifyClient: ({ req }, done) => done(allowedLocalRequest(req), 403, 'Forbidden'),
 });
 
-const SKILLS_DIR = path.join(ROOT, 'workspace/skills');
+const SKILLS_DIR = installation.kind === 'hermes' || fs.existsSync(installation.skillsPath) ? installation.skillsPath : path.join(ROOT, 'workspace/skills');
 const TESTBED_FILE = process.env.NETCLAW_TESTBED_FILE
   ? path.resolve(process.env.NETCLAW_TESTBED_FILE)
   : path.join(ROOT, 'testbed/testbed.yaml');
-const CONFIG_FILE = path.join(ROOT, 'config/openclaw.json');
 const IDENTITY_FILE = path.join(ROOT, 'IDENTITY.md');
 const SOUL_FILE = path.join(ROOT, 'SOUL.md');
 
 const INTEGRATION_CATALOG = [
+  {id:'hermes-hud',name:'Hermes HUD',category:'Runtime',prefixes:['hermes-hud-'],color:'#ffb454',transport:'private stdio',toolEstimate:8,description:'Private HUD conversation bridge. Registration, qualification and observed execution are separate states.'},
   { id: 'pyats', name: 'pyATS', category: 'Device Automation', prefixes: ['pyats-'], color: '#4cc9f0', transport: 'stdio', toolEstimate: 120, description: 'CLI-first device automation, health checks, routing, topology, and controlled change workflows.' },
   { id: 'aci', name: 'Cisco ACI', category: 'Fabric Control', prefixes: ['aci-'], color: '#ff5d73', transport: 'stdio', toolEstimate: 20, description: 'APIC-backed policy audit and guarded ACI change delivery.' },
   { id: 'ise', name: 'Cisco ISE', category: 'Security', prefixes: ['ise-'], color: '#f94144', transport: 'stdio', toolEstimate: 16, description: 'Identity, posture, and incident-response workflows for endpoints.' },
@@ -658,16 +704,16 @@ const ENV_MAP = {
 };
 
 // ── Env file locations (OpenClaw .env is the real source of truth) ──
-const OPENCLAW_HOME = process.env.OPENCLAW_HOME || path.join(os.homedir(), '.openclaw');
+const OPENCLAW_HOME = installation.home;
 const OPENCLAW_ENV = path.join(OPENCLAW_HOME, '.env');
-const OPENCLAW_CONFIG = path.join(OPENCLAW_HOME, 'openclaw.json');
+const OPENCLAW_CONFIG = installation.configPath;
 const ROOT_ENV = path.join(ROOT, '.env');
 
-mountPal(app, { root: ROOT, home: OPENCLAW_HOME, bindings: hudBindings,
+if (!hermesRuntime) mountPal(app, { root: ROOT, home: OPENCLAW_HOME, bindings: hudBindings,
   getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 
 // Ordered list — first file wins per key, but we merge all
-const ENV_FILES = [OPENCLAW_ENV, ROOT_ENV];
+const ENV_FILES = installation.kind === 'hermes' ? [OPENCLAW_ENV] : [OPENCLAW_ENV, ROOT_ENV];
 
 function parseOneEnvFile(filePath) {
   return parseEnvData(readText(filePath) || '');
@@ -687,7 +733,7 @@ function parseEnvFile() {
 function readScienceOfficers() {
   const env = { ...parseEnvFile(), ...process.env };
   const enabled = String(env.JEV_ENABLED || '').toLowerCase() === 'true';
-  const dataDir = (env.JEV_DATA_DIR || path.join(os.homedir(), '.openclaw', 'jev'))
+  const dataDir = (env.JEV_DATA_DIR || path.join(installation.home, 'jev'))
     .replace(/^~(?=\/|$)/, os.homedir());
   let snapshot = null;
   try {
@@ -719,7 +765,7 @@ function cleanTerraText(value, limit) {
 const TERMINAL_INPUT_LIMIT = 64 * 1024;
 
 function writeEnvFile(updates) {
-  const targetFile = fs.existsSync(OPENCLAW_ENV) ? OPENCLAW_ENV : ROOT_ENV;
+  const targetFile = installation.kind === 'hermes' || fs.existsSync(OPENCLAW_ENV) ? OPENCLAW_ENV : ROOT_ENV;
   updateEnvironment(targetFile, updates);
 }
 
@@ -980,7 +1026,7 @@ function pickDeviceConnection(device) {
 
 function parseConfig() {
   try {
-    return JSON.parse(readText(OPENCLAW_CONFIG));
+    return installation.kind === 'hermes' ? yaml.load(readText(installation.configPath)) : JSON.parse(readText(OPENCLAW_CONFIG));
   } catch {
     return null;
   }
@@ -1027,7 +1073,7 @@ function buildGraph() {
   const skills = parseSkills();
   const devices = parseDevices();
   let runtime;
-  try { runtime = runtimeSettings(config, devices.length, OPENCLAW_CONFIG); }
+  try { runtime = installation.kind === 'hermes' ? {config:{runtime:'hermes'},settings:{runtime:'hermes',source:'Selected Hermes configuration; qualified read-only execution',model:config?.model?.default || null,writes:false}} : runtimeSettings(config, devices.length, OPENCLAW_CONFIG); }
   catch { runtime = runtimeSettings(null, devices.length, OPENCLAW_CONFIG); }
   const integrations = buildIntegrations(skills);
 
@@ -1062,7 +1108,7 @@ export { buildGraph };
 app.get('/api/hud/security', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   let defense = null, guard = null;
-  try { defense = JSON.parse(readText(path.join(os.homedir(), '.openclaw/config/openclaw.json'))); } catch {}
+  try { defense = JSON.parse(readText(path.join(installation.home, 'config/openclaw.json'))); } catch {}
   try { guard = yaml.load(readText(path.join(os.homedir(), '.defenseclaw/config.yaml'))); } catch {}
   res.json({ ...securitySettings({ ...parseEnvFile(), ...process.env }, defense, guard), generatedAt:new Date().toISOString() });
 });
@@ -1082,7 +1128,7 @@ let usageCache = null, usageReadAt = 0;
 app.get('/api/hud/tokenomics', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (!usageCache || Date.now() - usageReadAt > 30000) {
-    usageCache = readUsage(path.join(os.homedir(), '.openclaw', 'agents', getGatewayConfig().agentId, 'sessions'));
+    usageCache = readUsage(path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions'));
     usageReadAt = Date.now();
   }
   res.json(usageCache);
@@ -1376,7 +1422,7 @@ const topologyLogin = new TopologyLogin({ Client: SSHClient, getProfile: getTerm
   knownFingerprint: topologyKnownFingerprint, trustHost: trustTerminalHost,
   fingerprintOf: terminalHostFingerprint, keyTypeOf: terminalHostKeyType });
 const topologyService = new TopologyService({
-  file: process.env.NETCLAW_TOPOLOGY_FILE || path.join(process.env.OPENCLAW_HOME || path.join(os.homedir(), '.openclaw'), 'netclaw-topology-authorization.json'),
+  file: process.env.NETCLAW_TOPOLOGY_FILE || path.join(installation.home, 'netclaw-topology-authorization.json'),
   getProfile: id => topologyLogin.profile(id),
   listProfiles: listTerminalProfiles,
   knownFingerprint: profile => {
@@ -1590,7 +1636,7 @@ app.put('/api/env', (req, res) => {
 
 app.get('/api/budget/status', (req, res) => {
   try {
-    const config = JSON.parse(readText(path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json')) || '{}');
+    const config = JSON.parse(readText(path.join(installation.home, 'openclaw.json')) || '{}');
     const policy = resolveBudgetPolicy(config);
 
     // Find the most recent active session and estimate cost from its size/metadata
@@ -1628,7 +1674,7 @@ app.get('/api/budget/status', (req, res) => {
 
 app.get('/api/budget/config', (req, res) => {
   try {
-    const config = JSON.parse(readText(path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json')) || '{}');
+    const config = JSON.parse(readText(path.join(installation.home, 'openclaw.json')) || '{}');
     const budget = config?.agents?.defaults?.budget || {};
     const interfaceDefaults = config?.agents?.defaults?.interfaceDefaults || {};
     res.json({
@@ -1653,7 +1699,7 @@ app.put('/api/budget/config', (req, res) => {
   }
 
   try {
-    const configPath = path.join(process.env.HOME || '/root', '.openclaw', 'openclaw.json');
+    const configPath = path.join(installation.home, 'openclaw.json');
     const config = JSON.parse(readText(configPath) || '{}');
 
     // Ensure path exists
@@ -1696,7 +1742,7 @@ app.put('/api/budget/config', (req, res) => {
  */
 function estimateActiveSessionCost() {
   try {
-    const sessionsDir = path.join(process.env.HOME || '/root', '.openclaw', 'agents', getGatewayConfig().agentId, 'sessions');
+    const sessionsDir = path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions');
     const sessionsJson = path.join(sessionsDir, 'sessions.json');
     if (!fs.existsSync(sessionsJson)) return 0;
 
@@ -1757,7 +1803,7 @@ app.get('/api/testbed/raw', (req, res) => {
 import { validateLayout } from './src/orgchart/layout-payload.js';
 
 // FR-034: a module constant. No path component may derive from a request.
-const LAYOUT_FILE = path.join(os.homedir(), '.openclaw', 'netclaw-hud-layout.json');
+const LAYOUT_FILE = path.join(installation.home, 'netclaw-hud-layout.json');
 const LAYOUT_MAX_BYTES = 256 * 1024;
 
 app.get('/api/layout', (req, res) => {
@@ -1826,9 +1872,7 @@ app.put('/api/testbed/raw', (req, res) => {
 });
 
 // ── Chat / natural language interface ──────────────────────────────
-// Proxies to the running OpenClaw gateway, falling back to a local
-// heuristic response if the gateway is unavailable.
-const chatHistory = [];
+// Owned OpenClaw gateway requests. Unavailable replies remain explicit errors.
 const CHAT_CONTEXT_LIMIT = 40;
 
 function normalizeChatContent(content) {
@@ -1961,7 +2005,7 @@ app.post('/api/terminal/terra', async (req, res) => {
 
 const readChatUsage = createUsageReader();
 const chatRuntime = createChatRuntime();
-mountChatHistory(app, { bindings: hudBindings, config: () => JSON.parse(readText(OPENCLAW_CONFIG)), configPath: OPENCLAW_CONFIG, runtime: chatRuntime });
+if (!hermesRuntime) mountChatHistory(app, { bindings: hudBindings, config: () => JSON.parse(readText(OPENCLAW_CONFIG)), configPath: OPENCLAW_CONFIG, runtime: chatRuntime });
 app.post('/api/chat/usage', async (req, res) => {
   res.set('Cache-Control', 'no-store');
   try {
@@ -1996,6 +2040,7 @@ app.post('/api/chat', async (req, res) => {
     } catch { return res.status(400).json({ error: 'Choose an available model and supported effort. Refresh the model list.' }); }
   }
   const { message, messages, hudThread } = req.body || {};
+  if (!hudThread) return res.status(401).json({ error:'A private HUD session and thread are required.' });
   let hudTask = null, releaseTask = () => {}, beforeTranscript = [];
   const hudCookie = cookieFrom(req);
   if (hudThread !== undefined) {
@@ -2031,18 +2076,11 @@ app.post('/api/chat', async (req, res) => {
   }
   const timestamp = new Date().toISOString();
   const historyText = userMessage || '[attachment]';
-  if (!contextMessages && !hudTask) chatHistory.push({ role: 'user', text: historyText, timestamp });
+
 
   // Analyze the message to determine which integrations/skills are relevant
   const graph = buildGraph();
   const activations = resolveActivations(historyText, graph);
-
-  // Broadcast activation events to all WS clients so the 3D scene lights up
-  if (!contextMessages && !hudTask) broadcastWS('chat:activations', {
-    message: historyText,
-    activations,
-    timestamp,
-  });
 
   // Try to proxy through the real OpenClaw gateway with streaming
   let responseText = '';
@@ -2069,13 +2107,7 @@ app.post('/api/chat', async (req, res) => {
       },
       body: JSON.stringify({
         model: 'openclaw',
-        // Existing clients keep the shared linear history. Compatibility
-        // clients can supply an isolated branch history, which prevents turns
-        // from sibling branches (or other browser tabs) bleeding together.
-        messages: contextMessages || chatHistory
-          .filter((m) => m.role === 'user' || m.role === 'assistant')
-          .slice(-10)
-          .map((m) => ({ role: m.role, content: m.text || m.response || '' })),
+        messages: contextMessages || [{role:'user',content:userMessage}],
         stream: false,
       }),
       timeoutMs: chatDeadlines.gateway,
@@ -2098,11 +2130,11 @@ app.post('/api/chat', async (req, res) => {
     }
   }
 
-  if (!responseText) {
-    responseText = buildChatResponse(historyText, activations, graph, gatewayFallback);
+  if (!fromGateway) {
+    releaseTask();
+    try { hudBindings.read(hudCookie); } catch { return res.status(401).json({error:'Private chat session expired.'}); }
+    return res.status(503).json({error:gatewayFallback,fromGateway:false,gatewayIssue:gatewayFallback});
   }
-
-  if (!contextMessages && !hudTask) chatHistory.push({ role: 'assistant', text: responseText, timestamp: new Date().toISOString() });
 
   // After gateway response, scan latest transcript for tool_use events
   // Private tool outputs never use global latest-session scans/broadcasts.
@@ -2121,6 +2153,7 @@ app.post('/api/chat', async (req, res) => {
   }, 6000);
 
   releaseTask();
+  try { hudBindings.read(hudCookie); } catch { return res.status(401).json({error:'Private chat session expired.'}); }
   res.json({
     response: displayBorderText(responseText),
     activations,
@@ -2133,127 +2166,11 @@ app.post('/api/chat', async (req, res) => {
 });
 
 app.get('/api/chat/history', (req, res) => {
-  res.json(chatHistory.slice(-50));
+  res.status(400).json({ error:'Open an owned conversation to read history.' });
 });
 
 // ── Session transcript tool call extraction (Section H) ─────────
-const SESSIONS_DIR = path.join(process.env.HOME || '/root', '.openclaw', 'agents', getGatewayConfig().agentId, 'sessions');
-
-function getLatestSessionFile() {
-  try {
-    const files = fs.readdirSync(SESSIONS_DIR)
-      .filter((f) => f.endsWith('.jsonl'))
-      .map((f) => ({ name: f, mtime: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs }))
-      .sort((a, b) => b.mtime - a.mtime);
-    return files.length > 0 ? path.join(SESSIONS_DIR, files[0].name) : null;
-  } catch {
-    return null;
-  }
-}
-
-function extractToolCalls(sessionFile, sinceMs = 0) {
-  try {
-    const text = fs.readFileSync(sessionFile, 'utf8');
-    const lines = text.trim().split('\n');
-    const toolCalls = [];
-
-    for (const line of lines) {
-      try {
-        const entry = JSON.parse(line);
-        if (entry.type !== 'message' || !entry.message) continue;
-        // Skip entries older than sinceMs
-        if (sinceMs > 0 && entry.timestamp && new Date(entry.timestamp).getTime() < sinceMs) continue;
-
-        const msg = entry.message;
-
-        // Look for toolCall content blocks in assistant messages
-        if (msg.role === 'assistant' && Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === 'toolCall' && !/jev/i.test(block.name || '')) {
-              toolCalls.push({
-                tool: block.name || 'unknown',
-                input: block.input ? Object.keys(block.input).slice(0, 4) : [],
-                id: block.id || '',
-              });
-            }
-          }
-        }
-        // Look for tool result entries (role=tool with toolCallId)
-        if (msg.toolCallId && msg.toolName) {
-          const matchingCall = toolCalls.find((tc) => tc.id === msg.toolCallId);
-          if (matchingCall) {
-            let output = '';
-            if (typeof msg.content === 'string') {
-              output = msg.content;
-            } else if (Array.isArray(msg.content)) {
-              output = msg.content.map((b) => typeof b === 'string' ? b : (b.text || JSON.stringify(b))).join('\n');
-            }
-            matchingCall.output = output.slice(0, 500);
-          }
-        }
-      } catch { /* skip malformed lines */ }
-    }
-    return toolCalls;
-  } catch {
-    return [];
-  }
-}
-
-let lastToolScanMs = Date.now();
-
-function extractAndBroadcastToolCalls(graph) {
-  const sessionFile = getLatestSessionFile();
-  if (!sessionFile) return;
-
-  const calls = extractToolCalls(sessionFile, lastToolScanMs);
-  lastToolScanMs = Date.now();
-
-  calls.forEach((call, index) => {
-    // Match tool name to integration
-    const matchedIntegration = INTEGRATION_CATALOG.find((entry) =>
-      entry.prefixes.some((prefix) => call.tool.startsWith(prefix.replace('-', '_')) || call.tool.startsWith(prefix))
-    );
-
-    setTimeout(() => {
-      broadcastWS('chat:tool_call', {
-        tool: call.tool,
-        integration: matchedIntegration?.id || 'pyats',
-        input: call.input,
-        output: call.output || '',
-        timestamp: new Date().toISOString(),
-      });
-    }, index * 300);
-  });
-}
-
-// API endpoints for session tool calls
-app.get('/api/sessions', (req, res) => {
-  try {
-    const files = fs.readdirSync(SESSIONS_DIR)
-      .filter((f) => f.endsWith('.jsonl'))
-      .map((f) => ({
-        id: f.replace('.jsonl', ''),
-        mtime: fs.statSync(path.join(SESSIONS_DIR, f)).mtimeMs,
-      }))
-      .sort((a, b) => b.mtime - a.mtime)
-      .slice(0, 20);
-    res.json(files);
-  } catch {
-    res.json([]);
-  }
-});
-
-app.get('/api/session/:id/tools', (req, res) => {
-  // Scoped HUD transcripts may contain private assessment evidence.
-  try {
-    const sessions = JSON.parse(readText(path.join(SESSIONS_DIR, 'sessions.json')) || '{}');
-    if (Object.entries(sessions).some(([key, value]) => key.startsWith(`agent:${getGatewayConfig().agentId}:hud:`) && value.sessionId === req.params.id)) return res.status(404).json({ error: 'Session not found' });
-  } catch { return res.status(503).json({ error: 'Session ownership unavailable' }); }
-  const sessionFile = resourceFile(SESSIONS_DIR, req.params.id, '.jsonl');
-  if (!sessionFile) return res.status(404).json({ error: 'Session not found' });
-  const calls = extractToolCalls(sessionFile);
-  res.json(calls);
-});
+const SESSIONS_DIR = path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions');
 
 function resolveActivations(message, graph) {
   const lower = message.toLowerCase();
@@ -2393,7 +2310,7 @@ const RAG_MCP_CALL = path.join(ROOT, 'scripts', 'mcp-call.py');
 const RAG_SERVER_CMD = mcpCommand(['python3', '-u', path.join(ROOT, 'mcp-servers', 'rag-mcp', 'rag_mcp_server.py')]);
 const RAG_DATA_DIR = process.env.RAG_DATA_DIR
   ? process.env.RAG_DATA_DIR.replace(/^~/, os.homedir())
-  : path.join(os.homedir(), '.openclaw', 'rag');
+  : path.join(installation.home, 'rag');
 const RAG_INTAKE_DIR = path.join(RAG_DATA_DIR, 'intake');
 const RAG_MAX_DOC_MB = Number(process.env.RAG_MAX_DOC_MB || '100');
 const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
@@ -2407,7 +2324,7 @@ function callRagTool(tool, args = {}, timeoutSec = 300) {
       {
         timeout: (timeoutSec + 30) * 1000,
         maxBuffer: 64 * 1024 * 1024,
-        env: { ...process.env, MCP_CALL_TIMEOUT: String(timeoutSec) },
+        env: { ...parseEnvFile(), ...process.env, RAG_DATA_DIR, MCP_CALL_TIMEOUT: String(timeoutSec) },
       },
       (err, stdout, stderr) => {
         if (err) return reject(new Error(stderr || err.message));

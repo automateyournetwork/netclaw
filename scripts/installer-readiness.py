@@ -213,6 +213,10 @@ def report(selected, failed, templates, live, env, config_path, runtime, do_prob
         row = {'component':component, 'installation':'failed' if component in failed else 'recorded', 'servers':[]}
         if component in failed:
             row['status'] = 'failed'
+        elif rule.get('access') == 'hud-private':
+            row['status'] = 'unverified'
+            row['access'] = 'hud-private'
+            row['reason'] = 'Launch netclaw hud; inspect private companion readiness and run an owned canary. No agent registration is expected.'
         elif not expected:
             row['status'] = 'unverified'
             row['reason'] = 'no_native_binding_declared; consult_component_skill'

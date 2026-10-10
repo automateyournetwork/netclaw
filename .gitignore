@@ -201,3 +201,9 @@ local-permissions-backup.json
 # Local inventory backups may contain device credentials.
 *.yaml.backups/
 *.yml.backups/
+
+# Spec 148: private Hermes HUD source, never installed state.
+!mcp-servers/hermes-hud-mcp/
+mcp-servers/hermes-hud-mcp/.venv/
+mcp-servers/hermes-hud-mcp/__pycache__/
+.vite/

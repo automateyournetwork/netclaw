@@ -124,6 +124,8 @@ def main():
     selected = set(args.components.split())
     generated = {}
     for name, entry in template.items():
+        if name == "hermes-hud-mcp":
+            continue  # Private HUD control plane.
         component = component_for(name)
         if component not in selected:
             continue

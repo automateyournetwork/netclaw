@@ -121,14 +121,17 @@ def run_onboard(tmp_path, runtime='openclaw', failure=False, configured=False, m
     config = state / ('config.yaml' if runtime == 'hermes' else 'custom.json')
     if configured:
         config.write_text('# operator config' if runtime == 'hermes' else '{"operator":"preserve"}')
+    if runtime == 'hermes':
+        (state / '.env').write_text('ANTHROPIC_API_KEY=fixture-selected-provider\nNETBOX_TOKEN=fixture-selected-network\n')
+        (state / '.env').chmod(0o600)
     marker = tmp_path / 'wizard-ran'
     # Stub executable verifies the durable handoff at wizard launch (not just shell env).
     binary = tmp_path / runtime
     binary.write_text(f'''#!/bin/bash
 set -eu
 test -f "$FIXTURE_STATE/.env"
-grep -q '^ANTHROPIC_API_KEY=fixture-provider$' "$FIXTURE_STATE/.env"
-grep -q '^NETBOX_TOKEN=fixture-network$' "$FIXTURE_STATE/.env"
+grep -q '^ANTHROPIC_API_KEY=fixture-{'selected-' if runtime == 'hermes' else ''}provider$' "$FIXTURE_STATE/.env"
+grep -q '^NETBOX_TOKEN=fixture-{'selected-' if runtime == 'hermes' else ''}network$' "$FIXTURE_STATE/.env"
 if [ "$1" = onboard ]; then
     test "$OPENCLAW_STATE_DIR" = "$FIXTURE_STATE"
     test "$OPENCLAW_CONFIG_PATH" = "$FIXTURE_CONFIG"
@@ -153,6 +156,8 @@ def test_onboard_receives_import_before_wizard_from_any_cwd(tmp_path, runtime):
     result, state, _, marker = run_onboard(tmp_path, runtime)
     assert result.returncode == 0, result.stdout + result.stderr
     assert marker.exists()
+    if runtime == 'hermes':
+        assert dotenv_values(state / '.env')['ANTHROPIC_API_KEY'] == 'fixture-selected-provider'
     assert (state / '.env').stat().st_mode & 0o777 == 0o600
     assert 'fixture-provider' not in result.stdout + result.stderr
 
