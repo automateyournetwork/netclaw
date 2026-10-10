@@ -81,7 +81,7 @@ def stop(runtime):
 
 def main():
     action=sys.argv[1] if len(sys.argv)>1 else 'status'
-    runtime=selected(initialize=action in ('start','run'))
+    runtime=selected(initialize=action in ('start','restart','run'))
     if action=='env':
         env=environment(runtime)
         fields={'NETCLAW_RUNTIME':runtime.kind,'RUNTIME_HOME':str(runtime.home),'BGP_API':api_url(runtime)}
@@ -90,11 +90,14 @@ def main():
         return
     if action=='status':print(json.dumps(status(runtime)));return
     if action=='stop':stop(runtime);return
+    if action=='restart':stop(runtime);action='start'
     if action=='start':
         runtime.fence(initialize=True)
         try:
-            status(runtime)
-            stop(runtime)
+            current=status(runtime)
+            if current.get('federation_ready') or current.get('n2n_enabled') is False:
+                print(json.dumps(current));return
+            raise RuntimeError('selected daemon is running but federation is not ready; inspect its log or explicitly restart')
         except (OSError,ValueError):
             # A foreign listener is not a service to replace. The new daemon's
             # bind fails visibly; it never signals the unrelated process.
@@ -121,7 +124,7 @@ def main():
         os.environ.update(env)
         claim(runtime)
         os.execve(sys.executable,[sys.executable,str(ROOT/'mcp-servers/protocol-mcp/bgp-daemon-v2.py')],dict(os.environ))
-    raise ValueError('expected env, start, stop, status or run')
+    raise ValueError('expected env, start, restart, stop, status or run')
 
 if __name__=='__main__':
     try:main()

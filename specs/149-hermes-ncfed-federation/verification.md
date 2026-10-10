@@ -23,7 +23,7 @@ owner credentials/configuration/services. Reproduction is in tests/n2n/README.md
 
 | Check | Actual result / scope |
 |---|---|
-| Real Hermes lifecycle + process loss | 1passed,15.48s. Actual subnet evidence; conversation-only chat; kill owned companion after dispatch, restart, retained unknown and zero replay; owner configuration preserved. |
+| Real Hermes lifecycle + process loss | Final rerun:2passed,21.38s. Includes actual selected daemon CLI start/status/repeat-start/stop/restart from another cwd, no OpenClaw home/provider inference, plus actual subnet evidence; conversation-only chat; kill owned companion after dispatch, restart, retained unknown and zero replay; owner configuration preserved. |
 | All-Hermes internal/external + mobile delegation | 1passed; actual iN2N and bidirectional eN2N tool/skill/contextual chat; two independent peer conversations; authenticated mobile→protected operator→official MCP→internal/external subnet result. Final combined acceptance run also passed this test. |
 | Real Hermes mobile | 1passed; authenticated WebSocket enrollment, text/context, voice-origin composition, progress/reconnect, cross-device/key-generation denial, requested versus confirmed cancellation, explicit media refusal. No physical phone involved. |
 | Mixed runtime matrix | 1passed,70.30s; six separate service processes and an isolated OpenClaw gateway; H/H,H/O,O/H,O/O internal skill results; bidirectional H/O external real tool/skill and two-turn contextual chat. |
@@ -33,7 +33,7 @@ owner credentials/configuration/services. Reproduction is in tests/n2n/README.md
 | Canvas regression runner | 27/27suites passed; no network devices contacted. |
 | Flutter unit/widget regressions | 442passed; full existing suite plus canonical outcomes, request persistence/lost receipt, cancellation, legacy peers, Summary type and Watch/manual provisional-receipt recovery. |
 | Flutter analysis | No issues. |
-| Installer/CLI/preservation focused set | 46passed,8.51s. Final selected-lifecycle/member/recovery follow-up:12passed,2.00s. |
+| Installer/CLI/preservation focused set | 46passed,8.51s. Final selected-lifecycle/runtime/recovery follow-up:17passed,2.03s. |
 | Declared unit contracts | 832passed,2skipped across 96isolated modules; passed. |
 | Catalogue | 111components,124registered servers,52external integrations; zero unexplained gaps. |
 | Spec artifacts | 133specifications checked,4existing legacy exceptions; passed. |
@@ -54,7 +54,7 @@ simulator or physical-device execution test. Apple accepted build6 at18:09Toront
 completion/tester availability was not observed. The Flutter wrapper subsequently
 reported a missing local export directory because destination=upload produces no
 local IPA; Xcode ContentDelivery explicitly reported UPLOAD SUCCEEDED with no errors.
-See evidence/mobile-upload-6.json. A separate local export preserves the candidate. No public App Review submission or App Store release was performed.
+See evidence/mobile-upload-6.json. The separate local export succeeded at `mobile/netclaw-mobile/build/spec149/export6/netclaw_mobile.ipa` (23MB). No public App Review submission or App Store release was performed.
 
 Hermes photo/video/audio attachments are explicitly unavailable and rejected before
 admission. Text produced by voice transcription is supported. Real microphone,

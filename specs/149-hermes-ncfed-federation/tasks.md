@@ -97,7 +97,7 @@
 
 - [x] T042 Update README.md, docs/HERMES-HUD.md, docs/N2N-RISK.md, docs/ietf/draft-capobianco-ncfed-00.md, SOUL.md, TOOLS.md, workspace/skills/n2n-federation/SKILL.md and .env.example for actual support and harness semantics
 - [x] T043 Reconcile component declarations/reference output and run applicable checks using scripts/verify-catalog-coverage.py, scripts/verify-spec-artifacts.py and ui/netclaw-visual/package.json
-- [ ] T044 Draft specs/149-hermes-ncfed-federation/blog-draft.md and finalize task/evidence/analysis records with owner-authorized publication in T055, without claiming unrun host tests
+- [x] T044 Draft specs/149-hermes-ncfed-federation/blog-draft.md and finalize task/evidence/analysis records with owner-authorized publication in T055, without claiming unrun host tests
 
 ## Phase 11: US8 — NetClaw Mobile with a Hermes Border
 

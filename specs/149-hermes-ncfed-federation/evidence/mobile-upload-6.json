@@ -9,5 +9,7 @@
   "publicReviewSubmitted": false,
   "publicRelease": false,
   "processingCompleteObserved": false,
-  "wrapperNote": "Flutter export wrapper reported missing local IPA directory after successful destination=upload. Xcode/Apple receipt above is the authoritative upload result; separate local export follows."
+  "wrapperNote": "Flutter export wrapper reported missing local IPA directory after successful destination=upload. Xcode/Apple receipt above is the authoritative upload result; separate local export follows.",
+  "localExport": "mobile/netclaw-mobile/build/spec149/export6/netclaw_mobile.ipa",
+  "localExportStatus": "EXPORT SUCCEEDED"
 }

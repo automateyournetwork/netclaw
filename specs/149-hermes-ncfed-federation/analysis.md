@@ -106,3 +106,5 @@ A13–A17 are resolved with tests; A18 remains an acceptance limitation, not a p
 The final publication/evidence tasks close only after public verification. This
 report does not mark T040 complete or convert prior spec148 WSL/browser evidence
 into spec149 evidence.
+
+A19 — Final actual daemon CLI test found `start` restarting an already running owned daemon and readiness appearing before authenticated companion startup finished. `start` is now idempotent; explicit `restart` performs the stop/start. Readiness becomes true only after the authenticated companion health check. Both real lifecycle tests and17focused follow-up checks pass. No broad process kill or foreign-listener replacement was introduced.

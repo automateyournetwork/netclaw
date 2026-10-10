@@ -36,6 +36,7 @@ async def call_stdio(command, args, env, name, arguments, timeout=30):
 class HermesRuntime:
     def __init__(self, runtime, broker):
         self.runtime=runtime;self.broker=broker
+        self._ready=False
         self.process=None;self.lock=None;self.log=None;self.env=None;self.port=None
 
     async def start(self):
@@ -87,6 +88,7 @@ class HermesRuntime:
                         response=await client.get(f'http://127.0.0.1:{self.port}/health/detailed',headers={'Authorization':'Bearer '+self.env['NETCLAW_HERMES_FEDERATION_API_KEY']})
                         status=response.json()
                         if response.status_code==200 and status.get('ready') and status.get('installationId')==self.runtime.installation and status.get('namespace')=='federation':
+                            self._ready=True
                             write_private(self.runtime.state/'runtime.json',{'installationId':self.runtime.installation,'pid':self.process.pid,'port':self.port,'ready':True,'harness':'hermes'})
                             return
                     except (httpx.HTTPError,ValueError):pass
@@ -97,9 +99,10 @@ class HermesRuntime:
 
     @property
     def ready(self):
-        return self.process is not None and self.process.returncode is None
+        return getattr(self,'_ready',False) and self.process is not None and self.process.returncode is None
 
     async def close(self):
+        self._ready=False
         if self.process and self.process.returncode is None:
             import signal
             try:os.killpg(self.process.pid,signal.SIGTERM)

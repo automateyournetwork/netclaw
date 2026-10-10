@@ -77,3 +77,34 @@ def test_real_private_runtime_tool_and_chat_profiles(tmp_path,monkeypatch,manage
         if log.exists():print(log.read_text()[-12000:])
         raise
     finally:provider.close()
+
+@pytest.mark.skipif(not all(os.environ.get(k) for k in ('NETCLAW_HERMES_PYTHON','NETCLAW_HERMES_SOURCE','NETCLAW_SUBNET_PYTHON')),reason='real pinned Hermes fixture required')
+def test_real_selected_hermes_daemon_cli_lifecycle(tmp_path):
+    import socket,subprocess
+    from test_hermes_external_149 import configure
+    spec=importlib.util.spec_from_file_location('daemon_provider149',ROOT/'tests/hermes-hud/fixtures/provider.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    provider=module.Provider();url=provider.start();home=tmp_path/'Hermes CLI';configure(home,url)
+    with socket.socket() as sock:sock.bind(('127.0.0.1',0));port=sock.getsockname()[1]
+    with (home/'.env').open('a') as stream:
+        stream.write(f'BGP_API_PORT={port}\nBGP_LISTEN_PORT=0\nNETCLAW_DRY_RUN=true\nNETCLAW_BGP_PEERS=[]\nN2N_ENABLED=true\nN2N_ROLE=border\nN2N_ENABLED_STACKS=in2n\nN2N_IN2N_PORT=0\nN2N_EDGE_PORT=0\nN2N_RISK_MODE=testing\n')
+    original=(home/'config.yaml').read_bytes()
+    env={k:v for k,v in os.environ.items() if k in ('PATH','LANG','TMPDIR','NETCLAW_HERMES_PYTHON','NETCLAW_HERMES_SOURCE','NETCLAW_SUBNET_PYTHON')}
+    env.update(HOME=str(tmp_path),XDG_CONFIG_HOME=str(tmp_path/'selection'),NETCLAW_RUNTIME='hermes',HERMES_HOME=str(home))
+    cmd=[sys.executable,str(ROOT/'scripts/federation-control.py')]
+    def call(action):
+        reply=subprocess.run(cmd+[action],env=env,cwd='/tmp',text=True,capture_output=True,timeout=90)
+        assert reply.returncode==0,reply.stderr+(home/'netclaw-federation/daemon.log').read_text()[-5000:]
+        return json.loads(reply.stdout) if reply.stdout.strip() else {}
+    try:
+        started=call('start');assert started['harness_type']=='hermes' and started['federation_ready'],started
+        assert call('status')['installation_id']==started['installation_id']
+        assert call('start')['pid']==started['pid']
+        call('stop')
+        restarted=call('start');assert restarted['pid']!=started['pid'] and restarted['installation_id']==started['installation_id']
+        assert (home/'config.yaml').read_bytes()==original
+        assert not (tmp_path/'.openclaw').exists()
+        assert not provider.calls
+    finally:
+        subprocess.run(cmd+['stop'],env=env,capture_output=True,timeout=30)
+        provider.close()
