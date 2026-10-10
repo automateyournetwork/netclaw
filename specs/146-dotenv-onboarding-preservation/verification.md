@@ -22,3 +22,7 @@ Python dotenv and Node dotenv differ on unquoted hashes without preceding whites
 All planned local checks passed. No live user-host diagnosis, provider login, daemon installation/restart, live Hermes credentials or device changes are claimed. Existing runtime configuration presence remains the wizard-skip criterion; a partial upstream config may still require manual onboarding. Repository wrappers outside installation are not migrated to new path semantics by this fix.
 
 Startup device listing was attempted and failed on the existing testbed's unsupported `connections.defaults.arguments` key. MemPalace's configured server file is unavailable. GAIT recorded the session; no network state was inferred and no external tickets/messages were created.
+
+## PR closeout — 2026-10-10
+
+Owner explicitly authorized commit, PR and merge. [PR #288](https://github.com/automateyournetwork/netclaw/pull/288) merged at 2026-10-10T11:19:33Z with all **31 checks successful** for head `813a6dc3174922b84ad185769cd3aff4f094b33d`. Merge commit: `aecf438ee56ad28337b3f5d715c8d8afa62605ae`. Returned to main and fast-forwarded before creating draft `147-installer-followups`. No tag/release publication or runtime/device change was performed.
