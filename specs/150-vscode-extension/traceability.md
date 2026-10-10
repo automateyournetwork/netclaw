@@ -1,0 +1,65 @@
+# Planned requirement-to-task index
+
+Generated from the explicit requirement references in [tasks.md](tasks.md). This is planned coverage, not implementation acceptance or a substitute for read-only semantic analysis. All tasks are unchecked. Every one of the 44 functional requirements and 13 success criteria has at least one planned implementation/qualification task.
+
+| Requirement | Planned tasks |
+|---|---|
+| FR-001 | T067, T068, T069, T070, T078 |
+| FR-002 | T016, T020, T068, T078 |
+| FR-003 | T001, T016, T019, T020, T031, T072, T073 |
+| FR-004 | T015, T017, T018 |
+| FR-005 | T005, T006, T012, T015, T017, T021 |
+| FR-006 | T006, T008, T015, T016, T018 |
+| FR-007 | T012, T015, T017, T036, T038, T041, T070, T071 |
+| FR-008 | T001, T004, T015, T017, T021, T034, T054, T067, T075, T076 |
+| FR-009 | T022, T024, T026, T028 |
+| FR-010 | T022, T024, T026, T028 |
+| FR-011 | T023, T027, T028 |
+| FR-012 | T022, T023, T026, T027, T061, T062, T063 |
+| FR-013 | T008, T009, T022, T024, T026, T028, T043 |
+| FR-014 | T019, T029, T030, T031, T064 |
+| FR-015 | T029, T030, T031, T058 |
+| FR-016 | T029, T030, T032, T033 |
+| FR-017 | T007, T022, T024, T027, T029, T030, T031, T033, T034, T076 |
+| FR-018 | T035, T037, T038, T039, T041 |
+| FR-019 | T035, T037, T040 |
+| FR-020 | T008, T010, T013, T035, T037, T038, T039, T040, T041 |
+| FR-021 | T009, T036, T038, T039, T041 |
+| FR-022 | T003, T007, T010, T014, T032, T042, T043, T045, T047 |
+| FR-023 | T003, T007, T010, T014, T042, T043, T045, T047, T059 |
+| FR-024 | T010, T011, T014, T032, T042, T045, T047, T079 |
+| FR-025 | T042, T044, T046, T047 |
+| FR-026 | T042, T044, T046, T047 |
+| FR-027 | T056, T057, T058, T060 |
+| FR-028 | T037, T056, T058, T060, T072 |
+| FR-029 | T011, T045, T056, T057, T059, T060 |
+| FR-030 | T056, T059, T060 |
+| FR-031 | T061, T062, T063, T066 |
+| FR-032 | T061, T062, T064, T066 |
+| FR-033 | T061, T062, T064, T066 |
+| FR-034 | T055, T061, T065, T066, T068, T072, T077 |
+| FR-035 | T007, T015, T019, T021, T051 |
+| FR-036 | T003, T005, T011, T014, T023, T025, T035, T040, T065, T069, T073 |
+| FR-037 | T019, T046, T073 |
+| FR-038 | T011, T025, T050, T055, T059, T068, T069, T077 |
+| FR-039 | T001, T002, T005, T012, T013, T044, T062, T071, T072, T074 |
+| FR-040 | T004, T020, T034, T067, T068, T069, T070, T071, T072, T074, T075, T076, T077, T078, T079 |
+| FR-041 | T048, T050, T051, T053, T054, T055, T075 |
+| FR-042 | T048, T049, T050, T052, T053, T054, T055, T075 |
+| FR-043 | T005, T007, T010, T014, T024, T030, T048, T049, T050, T053, T054, T055, T075 |
+| FR-044 | T006, T007, T014, T048, T049, T050, T051, T052, T053, T054, T055, T075 |
+| SC-001 | T004, T021, T070, T075, T076 |
+| SC-002 | T066, T073, T077 |
+| SC-003 | T004, T028, T029, T033, T034, T067, T074, T075, T076 |
+| SC-004 | T073 |
+| SC-005 | T006, T008, T012, T014, T015, T016, T018, T021, T048, T050, T075, T076 |
+| SC-006 | T003, T007, T010, T014, T029, T041, T042, T043, T045, T047, T075 |
+| SC-007 | T008, T009, T014, T022, T024, T028, T036, T043, T075, T076 |
+| SC-008 | T003, T010, T011, T014, T023, T025, T035, T037, T040, T041, T048, T050, T056, T059, T069, T070, T073, T075 |
+| SC-009 | T056, T057, T058, T060 |
+| SC-010 | T020, T073 |
+| SC-011 | T009, T013, T023, T027, T028, T036, T038, T041, T070, T074, T075 |
+| SC-012 | T067, T068, T069, T070, T077, T078, T079 |
+| SC-013 | T007, T014, T048, T049, T051, T052, T054, T055, T075, T076 |
+
+Domain-specific paths and actions are in [contracts/editor.md](contracts/editor.md); all 23 rows must receive actual evidence before release. The real-owner-machine requirement is in [windows-wsl-handoff.md](windows-wsl-handoff.md).
