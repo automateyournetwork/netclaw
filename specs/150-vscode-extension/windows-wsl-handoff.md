@@ -84,3 +84,11 @@ without release authorization. End with a clear result and GAIT log.
 ```
 
 WSL qualification is mandatory before release. This handoff is not a waiver. Complete `evidence/wsl-acceptance.md` after actual extension tests; link failures and spec149 dependencies. A separate explicit implementation instruction ratifies the reviewed design; this handoff alone does not.
+
+
+## WSL read-only baseline collected
+
+The 2026-10-10 owner-host observations and prerequisites are recorded in
+[evidence/wsl-baseline.md](evidence/wsl-baseline.md). The running installation was preserved.
+Implementation and all extension/client/fault acceptance remain pending; T075 is unchecked.
+Use that baseline before preparing any separately authorized runtime or acceptance work.

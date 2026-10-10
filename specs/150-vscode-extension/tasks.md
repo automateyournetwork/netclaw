@@ -228,3 +228,13 @@ Deliver small story checkpoints with real behavioral evidence, preserve the exis
 | US7 | 6 |
 | US8 | 4 |
 | Cross-cutting qualification, coherence and authorized publication | 9 |
+
+
+## Read-only WSL baseline — 2026-10-10
+
+The authorized baseline portion of T075 is recorded in [evidence/wsl-baseline.md](evidence/wsl-baseline.md).
+Actual Windows VS Code/WSL, existing owner Risk and separate Hermes status were observed.
+Running-backend identity/version compatibility and Node25, missing management implementation,
+spec149 T040 and real client/platform qualification remain prerequisites. No implementation,
+provider execution or disruptive acceptance was performed. **T075 and all other task
+checkboxes remain unchecked**; the baseline is not E3/E8 or extension acceptance.
