@@ -9,7 +9,7 @@ const report = {platform:process.platform, checks:[], errors:[]};
   const browser=await chromium.launch({headless:true, executablePath:process.env.BROWSER_EXECUTABLE || undefined});
   report.browser=browser.version();
   try {
-    const context=await browser.newContext();
+    const context=await browser.newContext();context.setDefaultTimeout(15000);
     const page=await context.newPage();
     page.on('pageerror',e=>report.errors.push(e.message));
     const requests=[];
@@ -19,7 +19,8 @@ const report = {platform:process.platform, checks:[], errors:[]};
     const runtime=await page.evaluate(()=>fetch('/api/runtime').then(r=>r.json()));
     assert.equal(runtime.kind,'hermes'); assert.equal(runtime.readiness.ready,true);
     assert.ok(runtime.readiness.tools.some(t=>t.includes('subnet_calculator')));
-    report.checks.push('Windows/WSL loopback and protected selected runtime ready');
+    await page.getByText('Hermes ready',{exact:true}).waitFor();
+    report.checks.push('Windows/WSL loopback, protected selected runtime and truthful Hermes ready badge');
     async function send(message) {
       await page.locator('#standard-chat-message').fill(message);
       const admission=page.waitForResponse(r=>r.url().endsWith('/api/chat/requests') && r.request().method()==='POST');
@@ -67,7 +68,66 @@ const report = {platform:process.platform, checks:[], errors:[]};
     report.checks.push('Attachment/stale-installation/legacy routes denied; private cookie; no fixture provider key in browser');
     await page.getByRole('button',{name:'Canvas',exact:true}).click();
     const frame=page.frameLocator('iframe');await frame.locator('body').waitFor();
-    report.checks.push('Canvas iframe loads in real browser (branch walkthrough still separate)');
+    const lanes=frame.locator('.lane-in');
+    await lanes.first().locator('input[data-composer="1"]').waitFor();
+    async function canvasSend(index, message) {
+      const lane=lanes.nth(index);
+      const input=lane.locator('input[data-composer="1"]');
+      await input.fill(message);
+      const admitted=page.waitForResponse(r=>r.url().endsWith('/api/chat/requests') && r.request().method()==='POST');
+      await input.press('Enter');
+      assert.equal((await admitted).status(),202);
+      await lane.getByText(/^HERMES FIXTURE violet/).last().waitFor({timeout:60000});
+      await lane.locator('[title="thinking…"]').waitFor({state:'detached',timeout:60000});
+    }
+    async function selectAnswer(index) {
+      await lanes.nth(index).getByText(/^HERMES FIXTURE violet/).last().evaluate(el=>{
+        const range=document.createRange();range.selectNodeContents(el);
+        const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);
+        el.dispatchEvent(new MouseEvent('mouseup',{bubbles:true}));
+      });
+    }
+    await canvasSend(0,'remember violet CANVAS_ROOT_INITIAL');
+    await selectAnswer(0);await frame.getByRole('button',{name:'⎇ Branch this →',exact:true}).click();
+    await lanes.nth(1).getByTitle('expand',{exact:true}).click();
+    await canvasSend(0,'CANVAS_PARENT_LATER');
+    await selectAnswer(0);await frame.getByRole('button',{name:'⎇ Branch this →',exact:true}).click();
+    await lanes.nth(2).getByTitle('expand',{exact:true}).click();
+    await canvasSend(1,'CANVAS_CHILD_ONE');
+    await canvasSend(2,'CANVAS_CHILD_TWO');
+    const firstChild=JSON.parse(requests.find(r=>r.url.endsWith('/api/chat/requests') && JSON.parse(r.body).message?.includes('CANVAS_CHILD_ONE')).body);
+    const secondChild=JSON.parse(requests.find(r=>r.url.endsWith('/api/chat/requests') && JSON.parse(r.body).message?.includes('CANVAS_CHILD_TWO')).body);
+    assert.ok(JSON.stringify(firstChild.messages).includes('CANVAS_ROOT_INITIAL'));
+    assert.ok(!JSON.stringify(firstChild.messages).includes('CANVAS_PARENT_LATER'));
+    assert.ok(JSON.stringify(secondChild.messages).includes('CANVAS_PARENT_LATER'));
+    assert.ok(!JSON.stringify(secondChild.messages).includes('CANVAS_CHILD_ONE'));
+    await lanes.nth(1).locator('input[data-composer="1"]').fill('saved Canvas draft');
+    await selectAnswer(1);await frame.getByRole('button',{name:'❝ Quote as context',exact:true}).click();
+    // Poll from Node: this browser transport may return an unresolved predicate
+    // Promise as truthy from waitForFunction; inspect the actual IDB rows instead.
+    const saved = async () => page.evaluate(async()=>{
+      for(const {name} of await indexedDB.databases()) {
+        if(!name.startsWith('netclaw.hermes.') || !name.endsWith('.netclaw-canvas'))continue;
+        const rows=await new Promise((resolve,reject)=>{
+          const open=indexedDB.open(name);open.onerror=()=>reject(open.error);
+          open.onsuccess=()=>{const db=open.result;const req=db.transaction('sessions').objectStore('sessions').getAll();req.onsuccess=()=>{db.close();resolve(req.result);};req.onerror=()=>{db.close();reject(req.error);};};
+        });
+        if(rows.some(row=>Object.values(row.drafts||{}).includes('saved Canvas draft') && Object.values(row.quotes||{}).some(q=>q.includes('HERMES FIXTURE violet')) && row.nodes.length===3))return true;
+      }
+      return false;
+    });
+    const saveDeadline=Date.now()+15000;
+    while(!await saved() && Date.now()<saveDeadline)await new Promise(r=>setTimeout(r,100));
+    assert.equal(await saved(),true,'Canvas autosave must settle before refresh');
+    await page.reload();await page.getByRole('button',{name:'Canvas',exact:true}).click();
+    await frame.locator('input[data-composer="1"]').first().waitFor();
+    assert.equal(await lanes.count(),3);
+    await lanes.nth(1).locator('input[data-composer="1"]').evaluate(el=>el.scrollIntoView());
+    report.canvasRestoredDrafts=await frame.locator('input[data-composer="1"]').evaluateAll(els=>els.map(el=>el.value));
+    assert.equal(await lanes.nth(1).locator('input[data-composer="1"]').inputValue(),'saved Canvas draft');
+    assert.ok((await lanes.nth(1).innerText()).includes('HERMES FIXTURE violet'));
+    assert.deepEqual(report.errors,[]);
+    report.checks.push('Canvas two branch creation-point contexts exclude later parent/sibling messages; graph and draft survive refresh');
     report.passed=true;
   } catch(e) {report.passed=false;report.failure=e.stack;process.exitCode=1;}
   finally {await browser.close();fs.writeFileSync(process.env.HUD_BROWSER_REPORT || 'browser-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}

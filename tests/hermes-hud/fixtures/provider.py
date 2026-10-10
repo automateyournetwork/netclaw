@@ -21,6 +21,8 @@ class Provider:
                     if tool:tool_calls=[{'id':'fixture-call-1','type':'function','function':{'name':tool,'arguments':'{"cidr":"192.0.2.0/28"}'}}]
                 if 'FORGED_SHELL' in str(latest):tool_calls=[{'id':'forged-call','type':'function','function':{'name':'terminal','arguments':'{"command":"echo forbidden"}'}}]
                 content=None if tool_calls else ('CANARY '+str(tool_results[-1]['content']) if tool_results else 'HERMES FIXTURE '+ ('violet' if any('violet' in str(m.get('content')) for m in messages) else str(latest)))
+                if not tool_calls and 'CANVAS_' in str(latest):
+                    content='HERMES FIXTURE violet '+str(latest).splitlines()[0]
                 message={'role':'assistant','content':content}
                 if tool_calls:message['tool_calls']=tool_calls
                 output={'id':'fixture-response','object':'chat.completion','created':1,'model':'hud-fixture','choices':[{'index':0,'message':message,'finish_reason':'tool_calls' if tool_calls else 'stop'}],'usage':{'prompt_tokens':12,'completion_tokens':8,'total_tokens':20}}

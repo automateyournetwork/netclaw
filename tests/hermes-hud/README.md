@@ -52,3 +52,30 @@ Related coverage lives in `tests/unit/test_hud_runtime_selection.py`,
 `shared/runtime-client.test.js`, `dashboard/hermes-ui.test.js`, and Canvas branch/session
 tests. Browser-component tests use JSDOM; a real-browser walkthrough remains a separate
 acceptance gate. See the spec's validation and WSL handoff for results and open cases.
+
+## Native Windows browser fixture
+
+After preparing a retained real fixture, run
+`python3 tests/hermes-hud/serve_browser_fixture.py --fixture /absolute/test-only/path`
+with the qualified Node on PATH. It starts an isolated controlled-provider installation
+on UI 34010 / API 34011 / companion 8645. Stop it with Ctrl+C. The profile is retained
+for inspection; it contains synthetic credentials only.
+
+Run `tests/hermes-hud/browser_acceptance.cjs` with Playwright available through
+`PLAYWRIGHT_MODULE`, and optionally `BROWSER_EXECUTABLE` pointing to Windows Edge.
+Set `HUD_BROWSER_REPORT` to a private report path. Native Windows Node can load the
+script and Playwright via the checkout's WSL UNC path. The script accepts only the
+dedicated localhost:34010 fixture, never an owner HUD. It tests Chat, local Avatar,
+owned history, rejected requests and Canvas branch/storage behavior. It is not the
+complete host failure, upgrade/rollback or existing OpenClaw acceptance matrix.
+
+## WSL dependency qualification
+
+Use a current uv with stable Python 3.14. Older uv selected a cached 3.14 alpha on the
+acceptance host; native dependencies crashed before startup. The installer now refuses
+prerelease interpreters. Preserve an existing unqualified test venv before recreating it.
+The explicit companion install includes the pinned Anthropic SDK. Companion execution
+disables lazy dependency installs and optional plugin discovery; a preexisting private
+`netclaw-hud/hermes/installs` overlay is refused with recovery guidance. Preserve/move
+that unexpected overlay only after stopping the affected companion. Do not modify an
+owner Hermes environment or copy OpenClaw credentials into the test profile.
