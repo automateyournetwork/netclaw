@@ -5,6 +5,11 @@ import { JSDOM, VirtualConsole } from 'jsdom';
 const output = await build({ entryPoints: [new URL('./main.jsx',import.meta.url).pathname], bundle:true, write:false, outfile:'ui.js', format:'iife', define:{'process.env.NODE_ENV':'"production"'} });
 const js=output.outputFiles.find(f=>f.path.endsWith('.js')).text;
 const settle=()=>new Promise(resolve=>setTimeout(resolve,30));
+async function waitFor(find, label) {
+  const deadline=Date.now()+3000;
+  while(Date.now()<deadline) { const value=find(); if(value)return value; await settle(); }
+  assert.fail(`Timed out waiting for ${label}`);
+}
 async function app(t, preview=true, fetcher){const errors=[];const virtualConsole=new VirtualConsole();virtualConsole.on('jsdomError',e=>errors.push(e.message));const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole});dom.window.NETCLAW_PREVIEW=preview;if(fetcher)dom.window.fetch=(url,options)=>url==='/api/runtime'?Promise.resolve({ok:true,json:async()=>({kind:'openclaw',installationId:'11111111-1111-4111-8111-111111111111',label:'OpenClaw',readiness:{ready:true},capabilities:{}})}):fetcher(url,options);dom.window.AbortSignal=AbortSignal;dom.window.AbortController=AbortController;dom.window.eval(js);t.after(()=>dom.window.close());await settle();return {document:dom.window.document,window:dom.window,errors};}
 function click(document,label){const button=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===label || b.textContent.trim().startsWith(label));assert.ok(button,`button ${label}`);button.click();}
 test('sending from Avatar unlocks voice before the request and speaks only a safe notice',async t=>{
@@ -52,7 +57,7 @@ test('local Pal shares the Chat draft and thread; avatar choice never starts Tav
   assert.equal(document.querySelector('.standard-chat'),chat);
   assert.equal(document.querySelectorAll('#standard-chat-message').length,1);
   assert.equal(document.querySelector('#standard-chat-message').value,'Keep this question while I choose a Pal');
-  const lobster=[...document.querySelectorAll('[aria-label="Avatar selection"] button')].find(button=>button.textContent.includes('Lobster'));
+  const lobster=await waitFor(()=>[...document.querySelectorAll('[aria-label="Avatar selection"] button')].find(button=>button.textContent.includes('Lobster')), 'Lobster avatar control');
   assert.ok(lobster);lobster.click();await settle();
   assert.equal(lobster.getAttribute('aria-pressed'),'true');
   assert.equal(window.localStorage.getItem('nc-pal-avatar-v1'),'lobster');

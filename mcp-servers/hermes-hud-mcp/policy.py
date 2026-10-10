@@ -63,7 +63,10 @@ def qualified_servers(config, manifest=None, home=None):
         registered_env=registration.get('env') or {}
         allowed_env={'NETCLAW_RUNTIME_ROOT':str(Path(home)/'python-runtimes'), 'NETCLAW_RUNTIME_ENV':str(Path(home)/'.env')} if home else {}
         if any(key not in allowed_env or value!=allowed_env[key] for key,value in registered_env.items()):continue
-        selected[name]={**registration,'args':normalized,'tools':{'include':rule['tools']},'trust':'full'}
+        # Bind live handlers at companion startup, including after a restart.
+        # Cached lazy registrations can disappear when the agent changes its
+        # profile scope; a schema cache is not execution qualification.
+        selected[name]={**registration,'args':normalized,'tools':{'include':rule['tools']},'trust':'full','lazy':False}
         for tool in rule['tools']:
             native='mcp__'+name.replace('-','_')+'__'+tool
             entries[native]={'source':str(source),'sourceHash':source_hash,'argumentPolicy':rule['argumentPolicy']}

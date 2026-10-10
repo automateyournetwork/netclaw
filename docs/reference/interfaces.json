@@ -1195,27 +1195,27 @@
       ],
       "declarations": [
         {
-          "line": 123,
+          "line": 135,
           "declaration": "argparse.ArgumentParser()"
         },
         {
-          "line": 123,
+          "line": 135,
           "declaration": "parser.add_argument('--home',required=True)"
         },
         {
-          "line": 123,
+          "line": 135,
           "declaration": "parser.add_argument('--source',required=True)"
         },
         {
-          "line": 123,
+          "line": 135,
           "declaration": "parser.add_argument('--installation',required=True)"
         },
         {
-          "line": 123,
+          "line": 135,
           "declaration": "parser.add_argument('--port',type=int,default=8643)"
         }
       ],
-      "sha256": "71aea2ce589d215e59555692dec985ac1a40d5ed7e3a24c984a558379052a1da",
+      "sha256": "83eddd75dca6ccf275a66ad0a5b5adf3e112f61abba054bc00b7c1d42abf4be9",
       "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
     },
     {
@@ -2887,7 +2887,7 @@
           "declaration": "parser.add_argument('--home',required=True)"
         }
       ],
-      "sha256": "c50302ed902917db84bf9a6c5324e28c8c61398449cd7078bf33fcdfee3e5b40",
+      "sha256": "c18bbcc2e42c0a3a46ed2969429ab8d47d4b78616995e26b2c3f8b85ba8e0d2c",
       "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
     },
     {
@@ -7127,19 +7127,19 @@
           "declaration": "echo '--install-deps requires --apply; check mode never installs packages.' >&2"
         },
         {
-          "line": 53,
+          "line": 55,
           "declaration": "(cd \"$HUD_UPGRADE_UI\" && node --input-type=module -e 'await import(\"vite\"); await import(\"react\"); await import(\"three\");') || {"
         },
         {
-          "line": 54,
+          "line": 56,
           "declaration": "echo 'HUD dependencies unavailable. Review --apply --install-deps.' >&2; exit 1;"
         },
         {
-          "line": 58,
+          "line": 60,
           "declaration": "echo 'Check complete. No files or services changed. Use --apply to build this checkout.'"
         }
       ],
-      "sha256": "9c0b1893f760bb8e7dc80e18936fcd56aa0a1432660669fe0241efa03e4c31a8",
+      "sha256": "9f7dc8cebd419c17a761c6b28ad986293b41e8542af70c8831d0bea53fc24711",
       "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
     },
     {
@@ -8724,79 +8724,8 @@
       "name": "infrahub-mcp",
       "access": "agent-native",
       "transport": "stdio",
-      "tools": [
-        {
-          "name": "branch_create",
-          "signature": "ctx: Context, name: Annotated[str, Field(description='Name of the branch to create.')], sync_with_git: Annotated[bool, Field(default=False, description='Whether to sync the branch with git.')]",
-          "description": "Create a new branch in infrahub.\n\nParameters:\n    name: Name of the branch to create.\n    sync_with_git: Whether to sync the branch with git. Defaults to False.\n\nReturns:\n    Dictionary with success status and branch details.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/branch.py",
-          "line": 21
-        },
-        {
-          "name": "get_branches",
-          "signature": "ctx: Context",
-          "description": "Retrieve all branches from infrahub.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/branch.py",
-          "line": 55
-        },
-        {
-          "name": "get_graphql_schema",
-          "signature": "ctx: Context",
-          "description": "Retrieve the GraphQL schema from Infrahub\n\nParameters:\n    None\n\nReturns:\n    MCPResponse with the GraphQL schema as a string.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/gql.py",
-          "line": 16
-        },
-        {
-          "name": "query_graphql",
-          "signature": "ctx: Context, query: Annotated[str, Field(description='GraphQL query to execute.')], branch: Annotated[str | None, Field(default=None, description='Branch to execute the query against. Defaults to None (uses default branch).')]",
-          "description": "Execute a GraphQL query against Infrahub.\n\nParameters:\n    query: GraphQL query to execute.\n    branch: Branch to execute the query against. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with the result of the query.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/gql.py",
-          "line": 31
-        },
-        {
-          "name": "get_nodes",
-          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')], filters: Annotated[dict[str, Any] | None, Field(default=None, description='Dictionary of filters to apply.')], partial_match: Annotated[bool, Field(default=False, description='Whether to use partial matching for filters.')]",
-          "description": "Get all objects of a specific kind from Infrahub.\n\nTo retrieve the list of available kinds, use the `get_schema_mapping` tool.\nTo retrieve the list of available filters for a specific kind, use the `get_node_filters` tool.\n\nParameters:\n    kind: Kind of the objects to retrieve.\n    branch: Branch to retrieve the objects from. Defaults to None (uses default branch).\n    filters: Dictionary of filters to apply.\n    partial_match: Whether to use partial matching for filters.\n\nReturns:\n    MCPResponse with success status and objects.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
-          "line": 19
-        },
-        {
-          "name": "get_node_filters",
-          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')]",
-          "description": "Retrieve all the available filters for a specific schema node kind.\n\nThere's multiple types of filters\nattribute filters are in the form attribute__value\n\nrelationship filters are in the form relationship__attribute__value\nyou can find more information on the peer node of the relationship using the `get_schema` tool\n\nFilters that start with parent refer to a related generic schema node.\nYou can find the type of that related node by inspected the output of the `get_schema` tool.\n\nParameters:\n    kind: Kind of the objects to retrieve.\n    branch: Branch to retrieve the objects from. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with success status and filters.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
-          "line": 99
-        },
-        {
-          "name": "get_related_nodes",
-          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], relation: Annotated[str, Field(description='Name of the relation to fetch.')], filters: Annotated[dict[str, Any] | None, Field(default=None, description='Dictionary of filters to apply.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')]",
-          "description": "Retrieve related nodes by relation name and a kind.\n\nArgs:\n    kind: Kind of the node to fetch.\n    filters: Filters to apply on the node to fetch.\n    relation: Name of the relation to fetch.\n    branch: Branch to fetch the node from. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with success status and objects.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
-          "line": 156
-        },
-        {
-          "name": "get_schema_mapping",
-          "signature": "ctx: Context, branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the mapping from. Defaults to None (uses default branch).')]",
-          "description": "List all schema nodes and generics available in Infrahub\n\nParameters:\n    branch: Branch to retrieve the mapping from. Defaults to None (uses default branch).\n\nReturns:\n    Dictionary with success status and schema mapping.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
-          "line": 18
-        },
-        {
-          "name": "get_schema",
-          "signature": "ctx: Context, kind: Annotated[str, Field(description='Schema Kind to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the schema from. Defaults to None (uses default branch).')]",
-          "description": "Retrieve the full schema for a specific kind.\nThis includes attributes, relationships, and their types.\n\nParameters:\n    kind: Schema Kind to retrieve.\n    branch: Branch to retrieve the schema from. Defaults to None (uses default branch).\n\nReturns:\n    Dictionary with success status and schema.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
-          "line": 56
-        },
-        {
-          "name": "get_schemas",
-          "signature": "ctx: Context, branch: Annotated[str | None, Field(default=None, description='Branch to retrieve schemas from. Defaults to None (uses default branch).')], exclude_profiles: Annotated[bool, Field(default=True, description='Whether to exclude Profile schemas. Defaults to True.')], exclude_templates: Annotated[bool, Field(default=True, description='Whether to exclude Template schemas. Defaults to True.')]",
-          "description": "Retrieve all schemas from Infrahub, optionally excluding Profiles and Templates.\n\nParameters:\n    infrahub_client: Infrahub client to use\n    branch: Branch to retrieve schemas from\n    exclude_profiles: Whether to exclude Profile schemas. Defaults to True.\n    exclude_templates: Whether to exclude Template schemas. Defaults to True.\n\nReturns:\n    Dictionary with success status and schemas.",
-          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
-          "line": 95
-        }
-      ],
-      "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."
+      "tools": [],
+      "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
     },
     {
       "name": "itential-mcp",
@@ -10060,16 +9989,8 @@
       "name": "servicenow-mcp",
       "access": "agent-native",
       "transport": "stdio",
-      "tools": [
-        {
-          "name": "list_tool_packages",
-          "signature": "{'type': 'object', 'properties': {'random_string': {'type': 'string', 'description': 'Dummy parameter for no-parameter tools'}}, 'required': ['random_string']}",
-          "description": "Lists available tool packages and the currently loaded one.",
-          "source": "mcp-servers/servicenow-mcp/src/servicenow_mcp/server.py",
-          "line": 186
-        }
-      ],
-      "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."
+      "tools": [],
+      "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
     },
     {
       "name": "sketchfab-mcp",

@@ -36,17 +36,19 @@ if [[ "$HUD_UPGRADE_INSTALL" == true && "$HUD_UPGRADE_APPLY" != true ]]; then
 fi
 HUD_UPGRADE_ROOT="$(cd "$HUD_UPGRADE_ROOT" && pwd)"
 HUD_UPGRADE_UI="$HUD_UPGRADE_ROOT/ui/netclaw-visual"
-node "$HUD_UPGRADE_ROOT/scripts/hud-launch.mjs" status || exit 1
-echo 'Runtime selection validated. Hermes companion upgrades require explicit hermes-hud installation; this command never restarts it.'
-
 for command in node npm python3 git; do
   command -v "$command" >/dev/null || { echo "Missing prerequisite: $command" >&2; exit 1; }
 done
-node "$HUD_UPGRADE_ROOT/scripts/hud-node-version.mjs"
 for entry in index.html canvas.html classic.html assessment.html package-lock.json; do
   [[ -f "$HUD_UPGRADE_UI/$entry" ]] || { echo "Missing HUD source: $entry" >&2; exit 1; }
 done
 [[ -f "$HUD_UPGRADE_ROOT/scripts/build-hud-reference.py" ]] || { echo 'Missing reference generator' >&2; exit 1; }
+for helper in hud-node-version.mjs hud-launch.mjs; do
+  [[ -f "$HUD_UPGRADE_ROOT/scripts/$helper" ]] || { echo "Missing HUD source: scripts/$helper" >&2; exit 1; }
+done
+node "$HUD_UPGRADE_ROOT/scripts/hud-node-version.mjs"
+node "$HUD_UPGRADE_ROOT/scripts/hud-launch.mjs" status || exit 1
+echo 'Runtime selection validated. Hermes companion upgrades require explicit hermes-hud installation; this command never restarts it.'
 if [[ "$HUD_UPGRADE_INSTALL" == true ]]; then
   (cd "$HUD_UPGRADE_UI" && npm ci)
 fi

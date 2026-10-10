@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import platform
+import re
 import subprocess
 import time
 import uuid
@@ -37,6 +38,7 @@ def main():
                         time.sleep(.75)
                     ok=value.get('state')=='completed'
                     if index==1:ok=ok and 'violet' in value.get('output','').lower()
+                    if index==3:ok=ok and bool(re.search(r'\b14\b',value.get('output','')))
                     events=call('GET','/api/chat/requests/'+value['requestId']+'/events').get('events',[])
                     if index==2:ok=ok and any(e['state']=='completed' and 'subnet_calculator' in e['tool'] for e in events)
                     report['checks'].append({'turn':index+1,'passed':bool(ok),'state':value.get('state'),'runtime':value.get('runtime'),'usage':value.get('usage'),'toolEvidence':[{'tool':e['tool'],'state':e['state'],'digest':e.get('result_digest')} for e in events]})

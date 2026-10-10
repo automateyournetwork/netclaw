@@ -48,10 +48,21 @@ class RealHermesTests(unittest.TestCase):
                         time.sleep(.25)
                 else:self.fail('Companion startup deadline')
                 if process.poll() is not None:
-                    log.seek(0);self.fail(log.read()[-12000:])
+                    log.seek(0);self.fail(f'Companion exited with code {process.returncode}:\n'+log.read()[-12000:])
                 self.assertTrue(status['protected']);self.assertTrue(status['tools'])
                 bridge.open('conversation-A')
                 for i,text in enumerate(['remember violet','what was the colour?','SUBNET','continue','finish']):
+                    if i==2:
+                        # A second process must rediscover the real tool and retain
+                        # the native conversation without reinstalling dependencies.
+                        process.terminate();process.wait(timeout=10)
+                        process=subprocess.Popen(process.args,env=env,stdout=log,stderr=log)
+                        for _ in range(120):
+                            try:
+                                if bridge.status()['ready']:break
+                            except Exception:pass
+                            time.sleep(.25)
+                        else:self.fail('Companion restart readiness deadline')
                     result=bridge.submit('conversation-A',f'request-{i}',f'nonce-{i}',text,60000)
                     for _ in range(240):
                         result=bridge.request_status('conversation-A',f'request-{i}')
@@ -83,6 +94,7 @@ class RealHermesTests(unittest.TestCase):
                 self.assertEqual(original,(home/'config.yaml').read_bytes())
                 self.assertIn('Installed qualified subnet-calculator skill',json.dumps(provider.calls))
                 for file in ['state.db','response_store.db','runs_idempotency.db']:self.assertFalse((home/file).exists())
+                self.assertFalse((home/'netclaw-hud/hermes/installs').exists(), 'Runtime dependencies must not install during a conversation')
                 result=subprocess.run(['node',str(ROOT/'tests/hermes-hud/http_acceptance.mjs')],env=env,capture_output=True,text=True,timeout=60)
                 if result.returncode:
                     with bridge.ledger.db() as db: rows=[dict(r) for r in db.execute('SELECT id,conversation,state,run_id,result FROM requests')]

@@ -563,11 +563,11 @@ Static source declarations; lexical flags may include delegated commands. No exe
 Flags mentioned: `--home`, `--installation`, `--port`, `--source`
 
 ```text
-L123: argparse.ArgumentParser()
-L123: parser.add_argument('--home',required=True)
-L123: parser.add_argument('--source',required=True)
-L123: parser.add_argument('--installation',required=True)
-L123: parser.add_argument('--port',type=int,default=8643)
+L135: argparse.ArgumentParser()
+L135: parser.add_argument('--home',required=True)
+L135: parser.add_argument('--source',required=True)
+L135: parser.add_argument('--installation',required=True)
+L135: parser.add_argument('--port',type=int,default=8643)
 ```
 
 ## mcp-servers/hermes-hud-mcp/server.py
@@ -2954,9 +2954,9 @@ L27: --repo) [[ $# -ge 2 ]] || { echo 'Missing --repo path' >&2; exit 2; }; HUD_
 L28: -h|--help) usage; exit 0 ;;
 L29: *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
 L34: echo '--install-deps requires --apply; check mode never installs packages.' >&2
-L53: (cd "$HUD_UPGRADE_UI" && node --input-type=module -e 'await import("vite"); await import("react"); await import("three");') || {
-L54: echo 'HUD dependencies unavailable. Review --apply --install-deps.' >&2; exit 1;
-L58: echo 'Check complete. No files or services changed. Use --apply to build this checkout.'
+L55: (cd "$HUD_UPGRADE_UI" && node --input-type=module -e 'await import("vite"); await import("react"); await import("three");') || {
+L56: echo 'HUD dependencies unavailable. Review --apply --install-deps.' >&2; exit 1;
+L60: echo 'Check complete. No files or services changed. Use --apply to build this checkout.'
 ```
 
 ## scripts/verify-catalog-coverage.py

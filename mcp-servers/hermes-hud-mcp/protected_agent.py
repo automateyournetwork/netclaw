@@ -24,7 +24,7 @@ def protected_class(base, policy, ledger, request_context):
             self.tools=[];self._hud_handlers={}
             for name in sorted(policy.names):
                 entry=registry.get_entry(name)
-                if entry is None or not entry.toolset.startswith('mcp-'):raise HudError('policy_unverified')
+                if entry is None or not entry.toolset.startswith('mcp-'):raise HudError('policy_unverified','Qualified MCP tool was not discovered; check its isolated runtime.')
                 self.tools.append({'type':'function','function':copy.deepcopy(entry.schema)})
                 self._hud_handlers[name]=entry.handler
             self.valid_tool_names=set(policy.names)
@@ -32,9 +32,9 @@ def protected_class(base, policy, ledger, request_context):
             self._skip_mcp_refresh=True
         def _hud_check(self):
             policy.check_sources()
-            if digest(self.tools)!=self._hud_schema or self.valid_tool_names!=policy.names or not self._skip_mcp_refresh:raise HudError('policy_unverified')
+            if digest(self.tools)!=self._hud_schema or self.valid_tool_names!=policy.names or not self._skip_mcp_refresh:raise HudError('policy_unverified','Protected tool schema changed during execution.')
             from tools.registry import registry
-            if any(registry.get_entry(name) is None or registry.get_entry(name).handler is not handler for name,handler in self._hud_handlers.items()):raise HudError('policy_unverified')
+            if any(registry.get_entry(name) is None or registry.get_entry(name).handler is not handler for name,handler in self._hud_handlers.items()):raise HudError('policy_unverified','Qualified MCP handler changed during execution.')
         def _build_api_kwargs(self,*args,**kwargs):
             self._hud_check()
             return super()._build_api_kwargs(*args,**kwargs)

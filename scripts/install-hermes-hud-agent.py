@@ -26,6 +26,12 @@ def main():
     from policy import verify_source
     verify_source(source)
     if not (venv/'bin/python').exists():run([uv,'venv','--python','3.14',str(venv)])
-    run([uv,'pip','install','--python',str(venv/'bin/python'),'-c',str(ROOT/'config/hermes-hud-agent-constraints.txt'),'-e',str(source)+'[mcp]','aiohttp'])
+    # Older uv builds can resolve "3.14" to a cached alpha interpreter. Such
+    # environments may crash importing native dependencies without a traceback.
+    qualified = subprocess.run([str(venv/'bin/python'), '-c',
+        'import sys; sys.exit(0 if sys.version_info[:2] == (3, 14) and sys.version_info.releaselevel == "final" else 1)'])
+    if qualified.returncode:
+        raise ValueError('Hermes HUD requires a stable Python 3.14 interpreter. Update uv and preserve/move the existing companion venv before reinstalling; no owner files were replaced.')
+    run([uv,'pip','install','--python',str(venv/'bin/python'),'-c',str(ROOT/'config/hermes-hud-agent-constraints.txt'),'-e',str(source)+'[mcp,anthropic]','aiohttp'])
     print('Private Hermes companion installed. Owner configuration was preserved. Launch with netclaw hud.')
 if __name__=='__main__':main()
