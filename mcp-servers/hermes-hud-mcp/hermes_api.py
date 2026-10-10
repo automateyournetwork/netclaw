@@ -44,6 +44,11 @@ async def serve(home,source,installation,port):
              'platform_toolsets':{'api_server':[]},'tool_search':{'enabled':'off'},
              'memory':{'memory_enabled':False,'user_profile_enabled':False},
              'security':{'allow_lazy_installs':False},
+             # Auxiliary clients bypass the protected inference hook. HUD titles
+             # are local metadata; long contexts must fail rather than silently
+             # dispatching an unguarded title/compression provider request.
+             'auxiliary':{'title_generation':{'enabled':False,'model_upgrade_enabled':False}},
+             'compression':{'enabled':False},
              'plugins':{'enabled':[]},
              'agent':{'max_iterations':30},'display':{'interim_assistant_messages':False},
              'approvals':{'mode':'manual','unattended_mode':'deny'}}

@@ -5,7 +5,7 @@ import { mountHermesChat } from './src/hud-server/runtime/routes.js';
 import { mountChatHistory } from './src/hud-server/chat-history.js';
 import { mountPal } from './src/hud-server/pal-routes.js';
 import { mountLocalPal } from './src/hud-server/pal-local.js';
-import { runtimeSettings } from './src/hud-server/runtime-settings.js';
+import { runtimeSettings, hermesRuntimeSettings } from './src/hud-server/runtime-settings.js';
 import { createUsageReader } from './src/hud-server/chat-usage.js';
 import { createChatRuntime } from './src/hud-server/chat-runtime.js';
 import { publicChatModels, resolveChatModel, resolveChatEffort } from './src/hud-server/chat-models.js';
@@ -1073,8 +1073,8 @@ function buildGraph() {
   const skills = parseSkills();
   const devices = parseDevices();
   let runtime;
-  try { runtime = installation.kind === 'hermes' ? {config:{runtime:'hermes'},settings:{runtime:'hermes',source:'Selected Hermes configuration; qualified read-only execution',model:config?.model?.default || null,writes:false}} : runtimeSettings(config, devices.length, OPENCLAW_CONFIG); }
-  catch { runtime = runtimeSettings(null, devices.length, OPENCLAW_CONFIG); }
+  try { runtime = installation.kind === 'hermes' ? hermesRuntimeSettings(config, installation.configPath) : runtimeSettings(config, devices.length, OPENCLAW_CONFIG); }
+  catch { runtime = installation.kind === 'hermes' ? hermesRuntimeSettings(null, installation.configPath) : runtimeSettings(null, devices.length, OPENCLAW_CONFIG); }
   const integrations = buildIntegrations(skills);
 
   const categories = [...new Set(integrations.map((entry) => entry.category))].map((category) => ({

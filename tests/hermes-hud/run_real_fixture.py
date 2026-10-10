@@ -43,6 +43,6 @@ def main():
     agent=agent_home/'python-runtimes/hermes-hud-agent'
     env={k:v for k,v in os.environ.items() if k in ('PATH','LANG','TMPDIR','SYSTEMROOT')}
     env.update(NETCLAW_HERMES_SOURCE=str(agent/'source'),NETCLAW_HERMES_PYTHON=str(agent/'venv/bin/python'),NETCLAW_SUBNET_PYTHON=str(tool/'bin/python'))
-    run([bridge/'bin/python','-m','unittest','discover','-s',fixture/'tests/hermes-hud','-p','test_agent_integration.py','-v'],env=env)
+    run([bridge/'bin/python','-m','unittest','discover','-s',fixture/'tests/hermes-hud','-p','test_*integration.py','-v'],env=env)
     print('PASS: real Hermes and installer-patched FastMCP subnet tool; controlled model provider. No live-provider acceptance claimed.')
 if __name__=='__main__':main()

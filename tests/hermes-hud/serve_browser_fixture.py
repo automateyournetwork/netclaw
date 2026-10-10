@@ -23,7 +23,9 @@ def main():
     parser.add_argument('--ui-port', type=int, default=34010)
     parser.add_argument('--api-port', type=int, default=34011)
     parser.add_argument('--companion-port', type=int, default=8645)
+    parser.add_argument('--metadata', type=Path)
     args = parser.parse_args()
+    args.fixture = args.fixture.resolve()
     os.umask(0o077)
     base = Path(tempfile.mkdtemp(prefix='browser-host-', dir=args.fixture))
     home = base / 'Hermes Home'
@@ -34,6 +36,8 @@ def main():
         (records/component).write_text(str(interpreter)+'\n')
     provider = Provider()
     url = provider.start()
+    if args.metadata:
+        args.metadata.write_text(json.dumps({'home':str(home),'provider':url.removesuffix('/v1')}))
     config = {'model': {'default':'hud-fixture', 'provider':'custom', 'base_url':url},
         'mcp_servers': {'subnet-calc-mcp': {'command':'python3',
             'args':['-u',str(ROOT/'scripts/component-launch.py'),'subnet-calc','--server','subnet-calc-mcp'],

@@ -5,15 +5,30 @@ import threading
 
 class Provider:
     def __init__(self):
-        self.calls=[];owner=self
+        self.calls=[];self.started=threading.Event();self.release=threading.Event();self.fail_auth=False;owner=self
         class Handler(BaseHTTPRequestHandler):
             def log_message(self,*args):pass
             def do_GET(self):
                 self.send_response(200);self.send_header('Content-Type','application/json');self.end_headers()
+                if self.path == '/__fixture/count':
+                    self.wfile.write(json.dumps({'inferences':len(owner.calls)}).encode());return
                 self.wfile.write(json.dumps({'object':'list','data':[{'id':'hud-fixture','object':'model'}]}).encode())
             def do_POST(self):
-                body=json.loads(self.rfile.read(int(self.headers['Content-Length'])));owner.calls.append(body)
+                body=json.loads(self.rfile.read(int(self.headers['Content-Length'])))
+                if self.path == '/__fixture/release':
+                    owner.release.set();self.send_response(200);self.end_headers();return
+                # Native provider discovery may probe non-inference endpoints
+                # (for example Ollama /api/show). Do not simulate chat there.
+                if self.path != '/v1/chat/completions':
+                    self.send_response(404);self.end_headers();return
+                owner.calls.append(body)
+                if owner.fail_auth:
+                    self.send_response(401);self.send_header('Content-Type','application/json');self.end_headers()
+                    self.wfile.write(b'{"error":{"message":"Synthetic provider credentials rejected","type":"authentication_error"}}');return
                 messages=body.get('messages',[]);latest=next((m.get('content','') for m in reversed(messages) if m['role']=='user'),'')
+                if 'WAIT_FOR_TEST' in str(latest):
+                    owner.started.set()
+                    if not owner.release.wait(30):raise TimeoutError('Test did not release the controlled provider')
                 tool_results=[m for m in messages if m['role']=='tool']
                 tool_calls=None
                 if 'SUBNET' in str(latest) and not tool_results:
@@ -40,4 +55,4 @@ class Provider:
         self.server=ThreadingHTTPServer(('127.0.0.1',0),Handler)
         self.thread=threading.Thread(target=self.server.serve_forever,daemon=True)
     def start(self):self.thread.start();return f'http://127.0.0.1:{self.server.server_port}/v1'
-    def close(self):self.server.shutdown();self.server.server_close();self.thread.join()
+    def close(self):self.release.set();self.server.shutdown();self.server.server_close();self.thread.join()

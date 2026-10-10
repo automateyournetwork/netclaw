@@ -1,8 +1,10 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { cookieFrom, safeId } from '../bindings.js';
+import { chatTimeouts } from '../chat-transport.js';
 const terminal = new Set(['completed','failed','cancelled','interrupted','unknown']);
 const hash = value => createHash('sha256').update(JSON.stringify(value)).digest('hex');
 export function mountHermesChat(app, { runtime, bindings }) {
+  const deadlineMs=chatTimeouts().gateway;
   const own = (req, id = req.params.id) => bindings.ownedRequest(cookieFrom(req), id);
   const failure = res => res.status(503).json({ error: 'Hermes is unavailable. Check Runtime status. An admitted request may still be running; check its status before sending more work.', code: 'runtime_unavailable' });
   const projection = value => ({ ...value, response: value.output || '', fromGateway: value.state === 'completed', runtimeKind: 'hermes', assessmentRefs: [], assessmentBinding: 'unbound' });
@@ -68,7 +70,7 @@ export function mountHermesChat(app, { runtime, bindings }) {
       await runtime.call('conversation_open',{ conversationId:task.id, ...(task.newlyCreated ? {seed} : {}), ...(req.body.acknowledgedUncertainRequestId ? {acknowledgedUncertainRequestId:req.body.acknowledgedUncertainRequestId} : {}) });
       bindings.ownedRequest(cookie,request.id);
       admissionAttempted=true;
-      let value=await runtime.call('submit',{ conversationId:task.id,requestId:request.id,clientNonce:request.nonce,text });
+      let value=await runtime.call('submit',{ conversationId:task.id,requestId:request.id,clientNonce:request.nonce,text,deadlineMs });
       bindings.ownedRequest(cookie,request.id);
       bindings.acknowledge(cookie,req.body.acknowledgedUncertainRequestId);
       bindings.requestState(cookie,request.id,value.state);

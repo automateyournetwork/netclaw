@@ -2,8 +2,11 @@
 const { chromium } = require(process.env.PLAYWRIGHT_MODULE || 'playwright');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const {execFileSync}=require('node:child_process');
+const path=require('node:path');
 const url = process.env.HUD_TEST_URL || 'http://localhost:34010';
 if (!/^http:\/\/(localhost|127\.0\.0\.1):34010$/.test(url)) throw Error('Use the dedicated controlled fixture on port 34010.');
+if(process.env.HUD_UPGRADE_REPO && fs.realpathSync(process.env.HUD_UPGRADE_REPO)===fs.realpathSync(path.join(__dirname,'../..')))throw Error('Upgrade acceptance requires a separate owned test checkout.');
 const report = {platform:process.platform, checks:[], errors:[]};
 (async()=>{
   const browser=await chromium.launch({headless:true, executablePath:process.env.BROWSER_EXECUTABLE || undefined});
@@ -20,7 +23,7 @@ const report = {platform:process.platform, checks:[], errors:[]};
     assert.equal(runtime.kind,'hermes'); assert.equal(runtime.readiness.ready,true);
     assert.ok(runtime.readiness.tools.some(t=>t.includes('subnet_calculator')));
     await page.getByText('Hermes ready',{exact:true}).waitFor();
-    report.checks.push('Windows/WSL loopback, protected selected runtime and truthful Hermes ready badge');
+    report.checks.push('Browser loopback, protected selected runtime and truthful Hermes ready badge');
     async function send(message) {
       await page.locator('#standard-chat-message').fill(message);
       const admission=page.waitForResponse(r=>r.url().endsWith('/api/chat/requests') && r.request().method()==='POST');
@@ -128,6 +131,84 @@ const report = {platform:process.platform, checks:[], errors:[]};
     assert.ok((await lanes.nth(1).innerText()).includes('HERMES FIXTURE violet'));
     assert.deepEqual(report.errors,[]);
     report.checks.push('Canvas two branch creation-point contexts exclude later parent/sibling messages; graph and draft survive refresh');
+    // Unsupported files remain locally attached; no admission leaves the browser.
+    const postsBeforeAttachment=requests.filter(r=>r.url.endsWith('/api/chat/requests')).length;
+    await lanes.nth(1).locator('input[type=file]').setInputFiles({name:'acceptance.txt',mimeType:'text/plain',buffer:Buffer.from('synthetic attachment')});
+    await lanes.nth(1).locator('input[data-composer="1"]').press('Enter');
+    await lanes.nth(1).getByText(/Attachments are unavailable/).waitFor();
+    assert.equal(await lanes.nth(1).locator('input[data-composer="1"]').inputValue(),'saved Canvas draft');
+    assert.match(await lanes.nth(1).innerText(),/acceptance.txt/);
+    assert.equal(requests.filter(r=>r.url.endsWith('/api/chat/requests')).length,postsBeforeAttachment);
+    report.checks.push('Unsupported Canvas attachment preserves draft, quote and file without admission');
+    const metadata=process.env.HUD_FIXTURE_METADATA && JSON.parse(fs.readFileSync(process.env.HUD_FIXTURE_METADATA));
+    if(process.env.HUD_UPGRADE_REPO && metadata) {
+      const env={...process.env,NETCLAW_RUNTIME:'hermes',HERMES_HOME:metadata.home};
+      for(const mode of ['--check','--apply','--apply']) {
+        execFileSync('bash',[process.env.HUD_UPGRADE_REPO+'/scripts/upgrade-hud.sh',mode,'--repo',process.env.HUD_UPGRADE_REPO],{env,timeout:120000,maxBuffer:8*1024*1024});
+      }
+      await page.reload();await page.getByRole('button',{name:'Canvas',exact:true}).click();
+      await lanes.nth(1).locator('input[data-composer="1"]').waitFor();
+      assert.equal(await lanes.nth(1).locator('input[data-composer="1"]').inputValue(),'saved Canvas draft');
+      assert.match(await lanes.nth(1).innerText(),/acceptance.txt/);
+      assert.equal(await lanes.count(),3);
+      report.checks.push('Actual upgrade check and repeated apply preserve browser graph, draft, quote and attachment on the same origin');
+      // Exercise the prior HUD source with the saved workspace, then restore
+      // the candidate. This temporary checkout is owned by the test fixture.
+      if(process.env.HUD_ROLLBACK_REF) {
+        const file=process.env.HUD_UPGRADE_REPO+'/ui/netclaw-visual/src/dashboard/Dashboard.jsx';
+        const candidate=fs.readFileSync(file);
+        try {
+          fs.writeFileSync(file,execFileSync('git',['-C',process.env.HUD_UPGRADE_REPO,'show',process.env.HUD_ROLLBACK_REF+':ui/netclaw-visual/src/dashboard/Dashboard.jsx']));
+          await page.reload();await page.getByRole('button',{name:'Canvas',exact:true}).click();
+          await lanes.nth(1).locator('input[data-composer="1"]').waitFor();
+          assert.equal(await lanes.nth(1).locator('input[data-composer="1"]').inputValue(),'saved Canvas draft');
+          assert.equal(await lanes.count(),3);
+          assert.match(await lanes.nth(1).innerText(),/acceptance.txt/);
+        } finally {fs.writeFileSync(file,candidate);}
+        await page.reload();await page.getByRole('button',{name:'Canvas',exact:true}).click();
+        await lanes.nth(1).locator('input[data-composer="1"]').waitFor();
+        assert.equal(await lanes.nth(1).locator('input[data-composer="1"]').inputValue(),'saved Canvas draft');
+        report.checks.push('Prior Mac HUD dashboard rollback/reapply preserves saved Canvas graph, draft, quote and file');
+      }
+    }
+    const inferenceCount=async()=>metadata?(await (await fetch(metadata.provider+'/__fixture/count')).json()).inferences:null;
+    const beforePanels=await inferenceCount();
+    await page.getByRole('button',{name:'Advanced',exact:true}).click();
+    for(const label of ['Settings','Configuration','Tokenomics','Integrations','External neighbours']) {
+      await page.locator('nav').getByRole('button',{name:new RegExp(label)}).click();
+      await page.getByRole('heading',{name:new RegExp('^'+label+'\\.$')}).waitFor();
+    }
+    assert.equal(await inferenceCount(),beforePanels);
+    await page.locator('nav').getByRole('button',{name:/Settings/}).click();
+    await page.getByText('Hermes', {exact:true}).first().waitFor();
+    report.checks.push('Selected-runtime settings/configuration/usage/catalogue/federation panels perform zero inference');
+    await page.getByRole('button',{name:'Chat',exact:true}).click();
+    // Switching the observed installation while this tab is open must fence sends.
+    const postsBeforeSwitch=requests.filter(r=>r.url.endsWith('/api/chat/requests')).length;
+    await page.route('**/api/runtime',route=>route.fulfill({json:{...runtime,installationId:'33333333-3333-4333-8333-333333333333'}}));
+    await page.locator('#standard-chat-message').fill('preserve on runtime switch');
+    await page.getByRole('button',{name:'Send message',exact:true}).click();
+    await page.getByRole('alert').filter({hasText:'selected runtime changed'}).waitFor();
+    assert.equal(await page.locator('#standard-chat-message').inputValue(),'preserve on runtime switch');
+    assert.equal(requests.filter(r=>r.url.endsWith('/api/chat/requests')).length,postsBeforeSwitch);
+    await page.unroute('**/api/runtime');
+    report.checks.push('Changed runtime identity refuses stale-tab submission and retains draft (controlled identity response)');
+    if(metadata) {
+      await page.locator('#standard-chat-message').fill('WAIT_FOR_TEST browser pending stop');
+      const admission=page.waitForResponse(r=>r.url().endsWith('/api/chat/requests') && r.request().method()==='POST');
+      await page.getByRole('button',{name:'Send message',exact:true}).click();
+      assert.equal((await admission).status(),202);
+      const admittedCount=requests.filter(r=>r.url.endsWith('/api/chat/requests')).length;
+      await page.reload();await page.getByRole('button',{name:'Check status',exact:true}).waitFor();
+      assert.equal(requests.filter(r=>r.url.endsWith('/api/chat/requests')).length,admittedCount);
+      await page.getByRole('button',{name:'Request stop',exact:true}).click();
+      await fetch(metadata.provider+'/__fixture/release',{method:'POST',headers:{'Content-Type':'application/json'},body:'{}'});
+      await page.getByRole('button',{name:'Check status',exact:true}).click();
+      await page.waitForFunction(()=>document.querySelector('.chat-composer textarea')?.disabled===false,null,{timeout:60000});
+      assert.equal(requests.filter(r=>r.url.endsWith('/api/chat/requests')).length,admittedCount);
+      report.checks.push('Actual pending browser refresh and cooperative stop recover status with zero replay');
+    }
+    assert.deepEqual(report.errors,[]);
     report.passed=true;
   } catch(e) {report.passed=false;report.failure=e.stack;process.exitCode=1;}
   finally {await browser.close();fs.writeFileSync(process.env.HUD_BROWSER_REPORT || 'browser-report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));}

@@ -18,3 +18,21 @@ test('Hermes chat restores uncertain draft, recovers without replay, and shares 
  state='completed';button(doc,'Check status').click();await wait();assert.match(doc.querySelector('[role=log]').textContent,/Recovered confirmed answer/);assert.equal(input.value,'');assert.match(doc.body.textContent,/qualified-model/);
  w.showChat(true);await wait();w.showChat(false);await wait();assert.match(doc.querySelector('[role=log]').textContent,/Recovered confirmed answer/);assert.equal(calls.filter(([u,o])=>u==='/api/chat/requests'&&o.method==='POST').length,1);assert.equal(calls.some(([u])=>u==='/api/pal/sessions'),false);assert.deepEqual(errors,[]);
 });
+
+test('conditional approval UI sends only the exact pending once decision',async t=>{
+ const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true});
+ const w=dom.window,calls=[];let approved=false;
+ w.AbortSignal=AbortSignal;w.AbortController=AbortController;
+ w.fetch=async(url,options={})=>{
+  calls.push([url,options]);if(url==='/api/chat/requests/owned/approval')approved=true;
+  return {ok:true,json:async()=>url==='/api/runtime'?{kind:'hermes',installationId:'11111111-1111-4111-8111-111111111111',readiness:{ready:true}}:url==='/api/chat/models'?{models:[],selectionSupported:false}:url==='/api/chat/conversations'?{conversations:[],sourceAvailable:true}:url==='/api/chat/requests'?{requestId:'owned',state:'queued'}:url==='/api/chat/requests/owned'?{requestId:'owned',state:approved?'completed':'waiting_approval',...(approved?{fromGateway:true,response:'Confirmed'}:{approval:{id:'exact-operation',description:'Controlled protocol fixture'}})}:{}};
+ };
+ w.eval(built.outputFiles[0].text);t.after(()=>{w.closeChat();w.close();});
+ const doc=w.document;await until(()=>doc.querySelector('textarea'));
+ const input=doc.querySelector('textarea');Object.getOwnPropertyDescriptor(w.HTMLTextAreaElement.prototype,'value').set.call(input,'Fixture approval');input.dispatchEvent(new w.Event('input',{bubbles:true}));await wait();input.closest('form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
+ await until(()=>button(doc,'Allow once'));assert.ok(button(doc,'Deny'));assert.ok(!button(doc,'Allow always'));
+ button(doc,'Allow once').click();await until(()=>doc.querySelector('[role=log]').textContent.includes('Confirmed'));
+ const controls=calls.filter(([u])=>u.endsWith('/approval'));assert.equal(controls.length,1);
+ assert.deepEqual(JSON.parse(controls[0][1].body),{approvalId:'exact-operation',choice:'once'});
+ assert.equal(calls.filter(([u,o])=>u==='/api/chat/requests'&&o.method==='POST').length,1);
+});

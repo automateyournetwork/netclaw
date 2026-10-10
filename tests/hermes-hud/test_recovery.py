@@ -52,4 +52,5 @@ class RecoveryTests(unittest.TestCase):
             with self.assertRaises(HudError):bridge.approval('c','r','stale','once')
             self.assertNotIn('POST',calls)
             bridge.approval('c','r','pending','deny');self.assertEqual(calls.count('POST'),1)
+            bridge.approval('c','r','pending','once');self.assertEqual(calls.count('POST'),2)
 if __name__=='__main__':unittest.main()
