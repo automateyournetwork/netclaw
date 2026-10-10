@@ -22,6 +22,102 @@ Run `scripts/netclaw` for the interactive menu. `tui` delegates to OpenClaw (`op
 
 [HUD OpenAPI JSON](hud-openapi.json) inventories every registered HUD HTTP route. Generic schemas remain unspecified; detailed schemas exist for RAG retrieval/upload. [Machine-readable reference](interfaces.json) includes source-declared MCP signatures and daemon route conditions. MCP is JSON-RPC, not REST; use tools/list from the installed server for authoritative schemas. This reference does not contact servers, execute tools or include configuration values.
 
+## .specify/extensions/git/scripts/bash/auto-commit.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--cached`, `--exclude-standard`, `--is-inside-work-tree`, `--others`, `--quiet`
+
+```text
+L6: # Usage: auto-commit.sh <event_name>
+L13: echo "Usage: $0 <event_name>" >&2
+L40: if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+L121: if git diff --quiet HEAD 2>/dev/null && git diff --cached --quiet 2>/dev/null && [ -z "$(git ls-files --others --exclude-standard 2>/dev/null)" ]; then
+```
+
+## .specify/extensions/git/scripts/bash/create-new-feature.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--abbrev-ref`, `--all`, `--allow-existing-branch`, `--arg`, `--dry-run`, `--heads`, `--help`, `--is-inside-work-tree`, `--json`, `--list`, `--number`, `--prune`, `--short-name`, `--show-toplevel`, `--timestamp`
+
+```text
+L19: case "$arg" in
+L20: --json)
+L23: --dry-run)
+L26: --allow-existing-branch)
+L29: --short-name)
+L31: echo 'Error: --short-name requires a value' >&2
+L37: echo 'Error: --short-name requires a value' >&2
+L42: --number)
+L44: echo 'Error: --number requires a value' >&2
+L50: echo 'Error: --number requires a value' >&2
+L55: echo 'Error: --number must be a non-negative integer' >&2
+L59: --timestamp)
+L62: --help|-h)
+L63: echo "Usage: $0 [--json] [--dry-run] [--allow-existing-branch] [--short-name <name>] [--number N] [--timestamp] <feature_description>"
+L66: echo "  --json              Output in JSON format"
+L67: echo "  --dry-run           Compute branch name without creating the branch"
+L68: echo "  --allow-existing-branch  Switch to branch if it already exists instead of failing"
+L69: echo "  --short-name <name> Provide a custom short name (2-4 words) for the branch"
+L70: echo "  --number N          Specify branch number manually (overrides auto-detection)"
+L71: echo "  --timestamp         Use timestamp prefix (YYYYMMDD-HHMMSS) instead of sequential numbering"
+L72: echo "  --help, -h          Show this help message"
+L78: echo "  $0 'Add user authentication system' --short-name 'user-auth'"
+L79: echo "  $0 'Implement OAuth2 integration for API' --number 5"
+L80: echo "  $0 --timestamp --short-name 'user-auth' 'Add user authentication'"
+L84: *)
+L93: echo "Usage: $0 [--json] [--dry-run] [--allow-existing-branch] [--short-name <name>] [--number N] [--timestamp] <feature_description>" >&2
+L154: remote_highest=$(GIT_TERMINAL_PROMPT=0 git ls-remote --heads "$remote" 2>/dev/null | sed 's|.*refs/heads/||' | _extract_highest_number)
+L175: git fetch --all --prune >/dev/null 2>&1 || true
+L195: # ---------------------------------------------------------------------------
+L202: # ---------------------------------------------------------------------------
+L240: elif git rev-parse --show-toplevel >/dev/null 2>&1; then
+L241: REPO_ROOT=$(git rev-parse --show-toplevel)
+L256: elif git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+L328: # Warn if --number and --timestamp are both specified
+L330: >&2 echo "[specify] Warning: --number is ignored when --timestamp is used"
+L384: current_branch="$(git rev-parse --abbrev-ref HEAD 2>/dev/null || true)"
+L385: if git branch --list "$BRANCH_NAME" | grep -q .; then
+L397: >&2 echo "Error: Branch '$BRANCH_NAME' already exists. Rerun to get a new timestamp or use a different --short-name."
+L400: >&2 echo "Error: Branch '$BRANCH_NAME' already exists. Please use a different feature name or specify a different number with --number."
+L424: --arg branch_name "$BRANCH_NAME" \
+L425: --arg feature_num "$FEATURE_NUM" \
+L429: --arg branch_name "$BRANCH_NAME" \
+L430: --arg feature_num "$FEATURE_NUM" \
+```
+
+## .specify/extensions/git/scripts/bash/git-common.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--is-inside-work-tree`
+
+```text
+L11: git -C "$repo_root" rev-parse --is-inside-work-tree >/dev/null 2>&1
+```
+
+## .specify/extensions/git/scripts/bash/initialize-repo.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--allow-empty`, `--is-inside-work-tree`
+
+```text
+L44: if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+L52: _git_out=$(git commit --allow-empty -q -m "$COMMIT_MSG" 2>&1) || { echo "[specify] Error: git commit failed: $_git_out" >&2; exit 1; }
+```
+
+## .specify/integrations/codex/scripts/update-context.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--show-toplevel`
+
+```text
+L15: git_root="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+```
+
 ## .specify/scripts/bash/check-prerequisites.sh
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -460,6 +556,29 @@ Flags mentioned: none
 ```text
 ```
 
+## mcp-servers/hermes-hud-mcp/hermes_api.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--home`, `--installation`, `--port`, `--source`
+
+```text
+L140: argparse.ArgumentParser()
+L140: parser.add_argument('--home',required=True)
+L140: parser.add_argument('--source',required=True)
+L140: parser.add_argument('--installation',required=True)
+L140: parser.add_argument('--port',type=int,default=8643)
+```
+
+## mcp-servers/hermes-hud-mcp/server.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+```
+
 ## mcp-servers/image-style-mcp/server.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -546,6 +665,15 @@ Flags mentioned: none
 ```
 
 ## mcp-servers/nautobot-routing-mcp/server.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+```
+
+## mcp-servers/netclaw-dot-mcp/server.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
@@ -653,6 +781,15 @@ Flags mentioned: none
 ```text
 ```
 
+## mcp-servers/tavus-pal-mcp/server.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+```
+
 ## mcp-servers/topology-diagram-mcp/server.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -733,16 +870,38 @@ L152: parser.add_argument("--add-frontmatter", action="store_true", help="Add fr
 L7: Usage:
 ```
 
+## scripts/apply-fastmcp-patches.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--check`, `--component`, `--root`
+
+```text
+L88: argparse.ArgumentParser(description=__doc__)
+L89: parser.add_argument('--root', type=Path, default=ROOT)
+L90: parser.add_argument('--component', required=True)
+L91: parser.add_argument('--check', action='store_true')
+```
+
 ## scripts/build-hud-reference.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--edge`, `--exclude-standard`, `--help`, `--others`, `--tui`, `--watch`
+Flags mentioned: `--edge`, `--exclude-standard`, `--help`, `--others`, `--server`, `--tui`, `--watch`
 
 ```text
 L43: if re.search(r'sys\.argv|Usage:|usage:|cmd ==|cmd in ',line):
 L49: if re.search(r'(^\s*#.*(?:netclaw|--|Usage)|Usage:|case .* in|^\s*[\w|*-]+\)|--[\w-]+)',line):
 L71: 'declarations':[{'line':n,'declaration':line.strip()} for n,line in enumerate(source.splitlines(),1) if re.search(r'process\.argv|Usage:|usage:',line)],
+```
+
+## scripts/build-pal-avatars.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--background`, `--factory-startup`, `--python`
+
+```text
 ```
 
 ## scripts/check-dependency-pins.py
@@ -755,6 +914,35 @@ Flags mentioned: `--json`, `--warn-only`
 L353: argparse.ArgumentParser(description=__doc__.split("\n")[0])
 L354: ap.add_argument("--json", action="store_true", dest="as_json")
 L355: ap.add_argument("--warn-only", action="store_true")
+```
+
+## scripts/check-fastmcp-compat.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--catalogs`, `--probe`, `--python`
+
+```text
+L150: argparse.ArgumentParser(description=__doc__)
+L151: parser.add_argument('--catalogs', type=Path, help='Run offline discovery and write evidence JSON')
+L152: parser.add_argument('--python', default=sys.executable)
+L153: parser.add_argument('--probe', help=argparse.SUPPRESS)
+```
+
+## scripts/check-fastmcp-external.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--components`, `--output`, `--python`, `--sources`, `--worker`
+
+```text
+L103: argparse.ArgumentParser(description=__doc__)
+L104: parser.add_argument('--sources',type=Path,required=True)
+L105: parser.add_argument('--python',default=sys.executable)
+L106: parser.add_argument('--output',type=Path)
+L107: parser.add_argument('--worker',choices=ENTRIES)
+L108: parser.add_argument('--components',nargs='+',choices=ENTRIES)
+L64: sys.argv=[str(base/source) if source else name]
 ```
 
 ## scripts/check-mcp-portability.py
@@ -773,6 +961,17 @@ L126: parser.add_argument("--warn-only", action="store_true",
                         help="print findings but always exit 0")
 L128: parser.add_argument("--json", action="store_true", dest="as_json",
                         help="emit machine-readable results")
+```
+
+## scripts/check-mcp-tasks.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--catalogs`
+
+```text
+L58: argparse.ArgumentParser(description=__doc__)
+L59: parser.add_argument('--catalogs',type=Path,help='fresh check-fastmcp-compat.py JSON evidence')
 ```
 
 ## scripts/check-meraki-capability-ids.py
@@ -921,6 +1120,18 @@ L356: status)   cmd_status "${tunnel_name}" ;;
 L357: disable)  cmd_disable "${tunnel_name}" ;;
 ```
 
+## scripts/component-launch.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--add`, `--server`
+
+```text
+L111: argparse.ArgumentParser(description=__doc__)
+L112: parser.add_argument('component', choices=sorted(CONTRACT))
+L113: parser.add_argument('--server')
+```
+
 ## scripts/defenseclaw-disable.sh
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -993,6 +1204,16 @@ L120: parser.add_argument('--restore', type=Path)
 L121: parser.add_argument('--preview', action='store_true')
 ```
 
+## scripts/dot-nginx-enable.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+L2: # Add the /netclaw-dot/ location to the zoom vhost. Run with sudo. Backs up, validates, rolls back on failure.
+```
+
 ## scripts/edge-enrollments.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -1033,6 +1254,15 @@ L201: ap.add_argument("--stale-after-days", type=float, default=3.0,
                          "(abandoned enrollments); ignored for --member")
 L204: ap.add_argument("--all", action="store_true",
                     help="push to every enrolled device, including stale ones")
+```
+
+## scripts/equinix-stdio.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--transport`
+
+```text
 ```
 
 ## scripts/forward-enable.sh
@@ -1080,6 +1310,41 @@ L65: code="$(curl -fsS --max-time 20 -o /dev/null -w '%{http_code}' \
 L70: case "$code" in
 L71: 2*) log "updated ${DDNS_NAME}.${DDNS_DOMAIN} -> ${wanted} (ttl ${TTL})" ;;
 L72: *)  log "ERROR GoDaddy PUT returned HTTP ${code}"; exit 1 ;;
+```
+
+## scripts/hud-launch.mjs
+
+Node entry point; argument/source references only. npm wrapper commands are indexed separately.
+
+Flags mentioned: `--add`, `--dry-run`, `--home`, `--installation`, `--port`, `--runtime`, `--source`
+
+```text
+L13: const args=process.argv.slice(2), env={...process.env};
+L31: if(!['start','status','--dry-run'].includes(mode)) throw Error('Usage: netclaw hud [start|status|select KIND HOME] [--runtime KIND --home PATH] [--dry-run]');
+```
+
+## scripts/hud-node-version.mjs
+
+Node entry point; argument/source references only. npm wrapper commands are indexed separately.
+
+Flags mentioned: none
+
+```text
+L9: if(process.argv[1]===fileURLToPath(import.meta.url) && !supportsHudNode()) {
+```
+
+## scripts/import-env.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--apply`, `--runtime`, `--source`, `--target`
+
+```text
+L99: argparse.ArgumentParser(description=__doc__)
+L100: parser.add_argument('--source', type=Path, default=ROOT / '.env')
+L101: parser.add_argument('--target', type=Path, help='Override the runtime dotenv path')
+L102: parser.add_argument('--runtime', choices=('openclaw', 'hermes'), default=os.environ.get('NETCLAW_RUNTIME', 'openclaw'))
+L103: parser.add_argument('--apply', action='store_true', help='Write missing settings; default is preview only')
 ```
 
 ## scripts/in2n-border-workspace.py
@@ -1153,10 +1418,10 @@ Flags mentioned: `--all`
 
 ```text
 L10: Usage:
-L290: if cmd == "list":
-L295: elif cmd == "show" and len(argv) > 1:
-L301: elif cmd == "scope" and len(argv) > 1:
-L312: sys.exit(_main(sys.argv[1:]))
+L311: if cmd == "list":
+L316: elif cmd == "show" and len(argv) > 1:
+L322: elif cmd == "scope" and len(argv) > 1:
+L333: sys.exit(_main(sys.argv[1:]))
 ```
 
 ## scripts/in2n-services.py
@@ -1177,11 +1442,52 @@ L22: Usage:
 L249: for member_id, launch_cmd in _always_on_members(risk):
 ```
 
+## scripts/install-hermes-hud-agent.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--branch`, `--depth`, `--home`, `--python`
+
+```text
+L11: argparse.ArgumentParser()
+L11: parser.add_argument('--home',required=True)
+```
+
+## scripts/install-mcp-config.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--components`, `--config`, `--output`, `--repo`, `--runtime-root`
+
+```text
+L115: argparse.ArgumentParser(description=__doc__)
+L116: parser.add_argument('--repo', type=Path, required=True)
+L117: parser.add_argument('--runtime-root', type=Path, required=True)
+L118: parser.add_argument('--components', required=True)
+L119: parser.add_argument('--output', type=Path, required=True)
+L120: parser.add_argument('--config', type=Path)
+```
+
+## scripts/install-pyats-genie.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--check-only`, `--disable-pip-version-check`, `--index-url`, `--isolated`, `--no-user`, `--prefix`, `--upgrade`, `--venv`, `--version`, `--yes`
+
+```text
+L127: argparse.ArgumentParser(description=__doc__)
+L128: parser.add_argument('--venv', default=str(Path.home() / '.netclaw' / 'pyats-venv'))
+L129: parser.add_argument('--version', default=DEFAULT_VERSION, help='Exact pyATS/Genie release (default: %(default)s)')
+L130: parser.add_argument('--yes', action='store_true', help='Approve package installation without a prompt')
+L131: parser.add_argument('--upgrade', action='store_true', help='Explicitly allow changing the managed environment release')
+L132: parser.add_argument('--check-only', action='store_true', help='Validate an existing environment without installing anything')
+```
+
 ## scripts/install.sh
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--add`, `--all`, `--components`, `--full`, `--help`, `--install-daemon`, `--list`, `--new`, `--profile`, `--runtime`, `--tui`, `--user`, `--version`
+Flags mentioned: `--add`, `--all`, `--arch`, `--check-provider`, `--components`, `--config`, `--failed-components`, `--full`, `--help`, `--install-daemon`, `--list`, `--new`, `--os`, `--output`, `--platform-only`, `--preflight`, `--probe`, `--profile`, `--runtime`, `--runtime-root`, `--tui`, `--user`, `--version`
 
 ```text
 L6: # recorded in ~/.openclaw/netclaw-components.conf so setup.sh only asks for
@@ -1190,109 +1496,155 @@ L11: #   ./scripts/install.sh --components "pyats netbox gait"   # exact set (re
 L12: #   ./scripts/install.sh --add "gns3 cml"                   # add to what's installed
 L13: #   ./scripts/install.sh --all
 L14: #   ./scripts/install.sh --list
-L35: # `netclaw` launcher inherit the same choice. --runtime / the TUI can change it.
-L47: echo "Usage: ./scripts/install.sh [options]"
-L50: echo "  --runtime <name>          agent runtime to install: openclaw (default) or hermes"
-L52: echo "  --profile <name>          install a profile without the TUI"
-L54: echo "  --components \"id id ...\"  install an exact component list (see --list);"
-L56: echo "  --add \"id id ...\"         install components on top of an existing install;"
-L58: echo "  --all                     install everything ($TOTAL_COMPONENTS components)"
-L59: echo "  --list                    list all components and profiles, then exit"
-L60: echo "  --help                    this help"
-L89: case "$1" in
-L90: --runtime)
-L91: [ $# -ge 2 ] || { log_error "--runtime needs a value (openclaw|hermes)"; usage; exit 1; }
-L92: case "$2" in
-L93: openclaw|hermes) NETCLAW_RUNTIME="$2"; NETCLAW_RUNTIME_EXPLICIT=1; define_runtime ;;
-L94: *) log_error "Unknown runtime: $2 (valid: openclaw, hermes)"; exit 1 ;;
-L97: --profile)
-L98: [ $# -ge 2 ] || { log_error "--profile needs a value"; usage; exit 1; }
-L101: --components)
-L102: [ $# -ge 2 ] || { log_error "--components needs a value"; usage; exit 1; }
-L104: catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
-L108: --add)
-L109: [ $# -ge 2 ] || { log_error "--add needs a value"; usage; exit 1; }
-L111: catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
-L116: --all|--full)
-L119: --list)  list_components; exit 0 ;;
-L120: --help|-h) usage; exit 0 ;;
-L121: *) log_error "Unknown option: $1"; usage; exit 1 ;;
-L163: DETECTED_OPENCLAW="$(openclaw --version 2>/dev/null | head -1 || true)"
-L174: [ "$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)" = "active" ]; then
-L232: # --runtime / NETCLAW_RUNTIME was already given explicitly.
-L240: case "$TUI_CHOICE" in
-L241: 0) NETCLAW_RUNTIME="openclaw" ;;
-L242: 1) NETCLAW_RUNTIME="hermes" ;;
-L338: log_info "  ./scripts/install.sh --profile recommended"
-L339: log_info "  ./scripts/install.sh --components \"pyats netbox gait\""
-L340: log_info "  ./scripts/install.sh --add \"gns3 cml\"       # add to an existing install"
-L341: log_info "  ./scripts/install.sh --all"
-L440: # --add merges into the existing manifest; every other path records the
-L451: # Top-level `netclaw` command (menu: TUI / installer / protocol peering)
-L516: case "$id" in
-L517: pyats)           verify_file "$name" "$PYATS_MCP_DIR/pyats_mcp_server.py" ;;
-L518: junos)           verify_dir  "$name" "$JUNOS_MCP_DIR" ;;
-L519: arista-cvp)      verify_dir  "$name" "$CVP_MCP_DIR" ;;
-L520: f5)              verify_file "$name" "$F5_MCP_DIR/F5MCPserver.py" ;;
-L521: catalyst-center) verify_file "$name" "$CATC_MCP_DIR/catalyst-center-mcp.py" ;;
-L522: aruba-cx)        verify_dir  "$name" "$ARUBA_CX_MCP_DIR" ;;
-L523: gnmi)            verify_dir  "$name" "$GNMI_MCP_DIR" ;;
-L524: radkit)          verify_dir  "$name" "$RADKIT_MCP_DIR" ;;
-L525: netbox)          verify_file "$name" "$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py" ;;
-L526: nautobot)        verify_dir  "$name" "$NAUTOBOT_MCP_DIR" ;;
-L527: infrahub)        verify_cmd_or_module "$name" infrahub-mcp infrahub_mcp "pip3 install infrahub-mcp" ;;
-L528: infoblox)        verify_cmd_or_module "$name" infoblox-ddi-mcp infoblox_ddi_mcp "pip3 install infoblox-ddi-mcp" ;;
-L529: aci)             verify_file "$name" "$ACI_MCP_DIR/aci_mcp/main.py" ;;
-L530: nso)             verify_cmd_or_module "$name" cisco-nso-mcp-server cisco_nso_mcp_server "requires Python 3.12+, pip3 install cisco-nso-mcp-server" ;;
-L531: itential)        verify_cmd_or_module "$name" itential-mcp itential_mcp "pip3 install itential-mcp" ;;
-L532: meraki)          verify_dir  "$name" "$MERAKI_MCP_DIR" ;;
-L533: sdwan)           verify_dir  "$name" "$SDWAN_MCP_DIR" ;;
-L534: prisma-sdwan)    verify_dir  "$name" "$PRISMA_SDWAN_MCP_DIR" ;;
-L535: aap)             verify_dir  "$name" "$AAP_MCP_DIR" ;;
-L536: ise)             verify_file "$name" "$ISE_MCP_DIR/src/ise_mcp_server/server.py" ;;
-L537: fmc)             verify_dir  "$name" "$FMC_MCP_DIR" ;;
-L538: panorama)        verify_cmd_or_module "$name" palo-alto-mcp palo_alto_mcp "pip3 install iflow-mcp-cdot65-palo-alto-mcp" ;;
-L539: fortinet)        verify_file "$name" "$FORTINET_MCP_DIR/server.py" ;;
-L540: bgp-intel)       verify_file "$name" "$BGP_INTEL_MCP_DIR/server.py" ;;
-L541: checkpoint)      verify_dir  "$name" "$CHECKPOINT_MCP_DIR" ;;
-L542: claroty)         verify_dir  "$name" "$CLAROTY_MCP_DIR" ;;
-L543: nvd-cve)         verify_file "$name" "$NVD_MCP_DIR/mcp_nvd/main.py" ;;
-L544: nmap)            verify_file "$name" "$NMAP_MCP_DIR/server.py" ;;
-L545: fwrule)          verify_dir  "$name" "$FWRULE_MCP_DIR" ;;
-L546: aws)             verify_runner "$name" uvx "6 servers run via uvx" ;;
-L547: azure)           verify_dir  "$name" "$AZURE_NET_MCP_DIR" ;;
-L548: gcp|cloudflare|terraform|vault|zscaler|datadog|jenkins|kubeshark|ue5)
-L550: grafana)         verify_runner "$name" uvx "runs via uvx mcp-grafana" ;;
-L551: prometheus)      verify_runner "$name" prometheus-mcp-server "pip CLI entry point" ;;
-L552: te-community)    verify_file "$name" "$TE_COMMUNITY_MCP_DIR/src/server.py" ;;
-L553: te-official)     verify_runner "$name" npx "remote HTTP via npx mcp-remote" ;;
-L554: forward)         verify_dir  "$name" "$FORWARD_MCP_DIR" ;;
-L555: suzieq)          verify_dir  "$name" "$SUZIEQ_MCP_DIR" ;;
-L556: gtrace)          verify_runner "$name" gtrace "standalone Go binary" ;;
-L557: cml)             verify_cmd_or_module "$name" cml-mcp cml_mcp "requires Python 3.12+, pip3 install cml-mcp" ;;
-L558: containerlab)    verify_file "$name" "$CLAB_MCP_DIR/clab_mcp_server.py" ;;
-L559: batfish)         verify_dir  "$name" "$BATFISH_MCP_DIR" ;;
-L560: protocol)        verify_file "$name" "$PROTOCOL_MCP_DIR/server.py" ;;
-L561: servicenow)      verify_file "$name" "$SERVICENOW_MCP_DIR/src/servicenow_mcp/cli.py" ;;
-L562: github)          verify_runner "$name" docker "runs the GitHub MCP Docker image" ;;
-L563: gitlab|msgraph|drawio-rfc)
-L565: packet-buddy)    verify_file "$name" "$PACKET_BUDDY_MCP_DIR/server.py" ;;
-L566: markmap)         verify_file "$name" "$MARKMAP_INNER/dist/index.js" ;;
-L567: uml)             verify_dir  "$name" "$UML_MCP_DIR" ;;
-L568: subnet-calc)     verify_file "$name" "$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py" ;;
-L569: wikipedia)       verify_file "$name" "$WIKIPEDIA_MCP_DIR/main.py" ;;
-L570: tts)             verify_file "$name" "$TTS_MCP_DIR/server.py" ;;
-L571: twitter)         verify_file "$name" "$TWITTER_MCP_DIR/server.py" ;;
-L572: twilio)          verify_file "$name" "$TWILIO_MCP_DIR/server.py" ;;
-L573: gait)            verify_file "$name" "$GAIT_MCP_DIR/gait_mcp.py" ;;
-L574: mempalace)       verify_file "$name" "$MEMPALACE_MCP_DIR/mempalace/mcp_server.py" ;;
-L575: humanrail)       verify_file "$name" "$HUMANRAIL_MCP_DIR/server.py" ;;
-L576: *)               log_info "$name: configured (no local artifact to check)"
-L668: echo "  3. hermes chat                      # Talk to NetClaw (or: hermes --tui)"
-L674: echo "    ./scripts/install.sh --runtime hermes   # Add or remove MCP servers"
-L678: echo "  3. openclaw chat --new              # Talk to NetClaw"
-L681: echo "    openclaw onboard --install-daemon  # AI provider, gateway, channels"
-L716: echo "    ./scripts/install.sh --add \"$(echo $PROBLEM_COMPONENTS | tr '\n' ' ' | sed 's/ $//')\""
+L38: # `netclaw` launcher inherit the same choice. --runtime / the TUI can change it.
+L50: echo "Usage: ./scripts/install.sh [options]"
+L53: echo "  --runtime <name>          agent runtime to install: openclaw (default) or hermes"
+L55: echo "  --profile <name>          install a profile without the TUI"
+L57: echo "  --components \"id id ...\"  install an exact component list (see --list);"
+L59: echo "  --add \"id id ...\"         install components on top of an existing install;"
+L61: echo "  --all                     install everything ($TOTAL_COMPONENTS components)"
+L62: echo "  --preflight               check the selection without installing anything"
+L63: echo "  --list                    list all components and profiles, then exit"
+L64: echo "  --help                    this help"
+L94: case "$1" in
+L95: --runtime)
+L96: [ $# -ge 2 ] || { log_error "--runtime needs a value (openclaw|hermes)"; usage; exit 1; }
+L97: case "$2" in
+L98: openclaw|hermes) NETCLAW_RUNTIME="$2"; NETCLAW_RUNTIME_EXPLICIT=1; define_runtime ;;
+L99: *) log_error "Unknown runtime: $2 (valid: openclaw, hermes)"; exit 1 ;;
+L102: --profile)
+L103: [ $# -ge 2 ] || { log_error "--profile needs a value"; usage; exit 1; }
+L106: --components)
+L107: [ $# -ge 2 ] || { log_error "--components needs a value"; usage; exit 1; }
+L109: catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
+L113: --add)
+L114: [ $# -ge 2 ] || { log_error "--add needs a value"; usage; exit 1; }
+L116: catalog_has "$id" || { log_error "Unknown component: $id (run --list to see valid ids)"; exit 1; }
+L121: --all|--full)
+L124: --preflight) PREFLIGHT_ONLY=1; shift ;;
+L125: --list)  list_components; exit 0 ;;
+L126: --help|-h) usage; exit 0 ;;
+L127: *) log_error "Unknown option: $1"; usage; exit 1 ;;
+L135: --os "$NETCLAW_OS" --arch "$NETCLAW_ARCH" --platform-only)" || exit 1
+L175: DETECTED_OPENCLAW="$(openclaw --version 2>/dev/null | head -1 || true)"
+L186: [ "$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)" = "active" ]; then
+L249: # --runtime / NETCLAW_RUNTIME was already given explicitly.
+L257: case "$TUI_CHOICE" in
+L258: 0) NETCLAW_RUNTIME="openclaw" ;;
+L259: 1) NETCLAW_RUNTIME="hermes" ;;
+L354: log_info "  ./scripts/install.sh --profile recommended"
+L355: log_info "  ./scripts/install.sh --components \"pyats netbox gait\""
+L356: log_info "  ./scripts/install.sh --add \"gns3 cml\"       # add to an existing install"
+L357: log_info "  ./scripts/install.sh --all"
+L367: # selections. Install it explicitly with --runtime hermes --add hermes-hud.
+L495: # --add merges into the existing manifest; every other path records the
+L506: # Top-level `netclaw` command (menu: TUI / installer / protocol peering)
+L577: case "$id" in
+L578: pyats)           verify_file "$name" "$PYATS_MCP_DIR/pyats_mcp_server.py" ;;
+L579: junos)           verify_dir  "$name" "$JUNOS_MCP_DIR" ;;
+L580: arista-cvp)      verify_dir  "$name" "$CVP_MCP_DIR" ;;
+L581: f5)              verify_file "$name" "$F5_MCP_DIR/F5MCPserver.py" ;;
+L582: catalyst-center) verify_file "$name" "$CATC_MCP_DIR/catalyst-center-mcp.py" ;;
+L583: aruba-cx)        verify_dir  "$name" "$ARUBA_CX_MCP_DIR" ;;
+L584: gnmi)            verify_dir  "$name" "$GNMI_MCP_DIR" ;;
+L585: radkit)          verify_dir  "$name" "$RADKIT_MCP_DIR" ;;
+L586: netbox)          verify_file "$name" "$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py" ;;
+L587: nautobot)        verify_dir  "$name" "$NAUTOBOT_MCP_DIR" ;;
+L588: infrahub)        verify_cmd_or_module "$name" infrahub-mcp infrahub_mcp "pip3 install infrahub-mcp" ;;
+L589: infoblox)        verify_cmd_or_module "$name" infoblox-ddi-mcp infoblox_ddi_mcp "pip3 install infoblox-ddi-mcp" ;;
+L590: aci)             verify_file "$name" "$ACI_MCP_DIR/aci_mcp/main.py" ;;
+L591: nso)             verify_cmd_or_module "$name" cisco-nso-mcp-server cisco_nso_mcp_server "requires Python 3.12+, pip3 install cisco-nso-mcp-server" ;;
+L592: itential)        verify_cmd_or_module "$name" itential-mcp itential_mcp "pip3 install itential-mcp" ;;
+L593: meraki)          verify_dir  "$name" "$MERAKI_MCP_DIR" ;;
+L594: sdwan)           verify_dir  "$name" "$SDWAN_MCP_DIR" ;;
+L595: prisma-sdwan)    verify_dir  "$name" "$PRISMA_SDWAN_MCP_DIR" ;;
+L596: aap)             verify_dir  "$name" "$AAP_MCP_DIR" ;;
+L597: ise)             verify_file "$name" "$ISE_MCP_DIR/src/ise_mcp_server/server.py" ;;
+L598: fmc)             verify_dir  "$name" "$FMC_MCP_DIR" ;;
+L599: panorama)        verify_cmd_or_module "$name" palo-alto-mcp palo_alto_mcp "pip3 install iflow-mcp-cdot65-palo-alto-mcp" ;;
+L600: fortinet)        verify_file "$name" "$FORTINET_MCP_DIR/server.py" ;;
+L601: bgp-intel)       verify_file "$name" "$BGP_INTEL_MCP_DIR/server.py" ;;
+L602: checkpoint)      verify_dir  "$name" "$CHECKPOINT_MCP_DIR" ;;
+L603: claroty)         verify_dir  "$name" "$CLAROTY_MCP_DIR" ;;
+L604: nvd-cve)         verify_file "$name" "$NVD_MCP_DIR/mcp_nvd/main.py" ;;
+L605: nmap)            verify_file "$name" "$NMAP_MCP_DIR/server.py" ;;
+L606: fwrule)          verify_dir  "$name" "$FWRULE_MCP_DIR" ;;
+L607: aws)             verify_runner "$name" uvx "6 servers run via uvx" ;;
+L608: azure)           verify_dir  "$name" "$AZURE_NET_MCP_DIR" ;;
+L609: gcp|cloudflare|terraform|vault|zscaler|datadog|jenkins|kubeshark|ue5)
+L611: grafana)         verify_runner "$name" uvx "runs via uvx mcp-grafana" ;;
+L612: prometheus)      verify_runner "$name" prometheus-mcp-server "pip CLI entry point" ;;
+L613: te-community)    verify_file "$name" "$TE_COMMUNITY_MCP_DIR/src/server.py" ;;
+L614: te-official)     verify_runner "$name" npx "remote HTTP via npx mcp-remote" ;;
+L615: forward)         verify_dir  "$name" "$FORWARD_MCP_DIR" ;;
+L616: suzieq)          verify_dir  "$name" "$SUZIEQ_MCP_DIR" ;;
+L617: gtrace)          verify_runner "$name" gtrace "standalone Go binary" ;;
+L618: cml)             verify_cmd_or_module "$name" cml-mcp cml_mcp "requires Python 3.12+, pip3 install cml-mcp" ;;
+L619: containerlab)    verify_file "$name" "$CLAB_MCP_DIR/clab_mcp_server.py" ;;
+L620: batfish)         verify_dir  "$name" "$BATFISH_MCP_DIR" ;;
+L621: protocol)        verify_file "$name" "$PROTOCOL_MCP_DIR/server.py" ;;
+L622: servicenow)      verify_file "$name" "$SERVICENOW_MCP_DIR/src/servicenow_mcp/cli.py" ;;
+L623: github)          verify_runner "$name" docker "runs the GitHub MCP Docker image" ;;
+L624: gitlab|msgraph|drawio-rfc)
+L626: packet-buddy)    verify_file "$name" "$PACKET_BUDDY_MCP_DIR/server.py" ;;
+L627: markmap)         verify_file "$name" "$MARKMAP_INNER/dist/index.js" ;;
+L628: uml)             verify_dir  "$name" "$UML_MCP_DIR" ;;
+L629: subnet-calc)     verify_file "$name" "$SUBNET_MCP_DIR/servers/subnetcalculator_mcp.py" ;;
+L630: wikipedia)       verify_file "$name" "$WIKIPEDIA_MCP_DIR/main.py" ;;
+L631: tts)             verify_file "$name" "$TTS_MCP_DIR/server.py" ;;
+L632: twitter)         verify_file "$name" "$TWITTER_MCP_DIR/server.py" ;;
+L633: twilio)          verify_file "$name" "$TWILIO_MCP_DIR/server.py" ;;
+L634: gait)            verify_file "$name" "$GAIT_MCP_DIR/gait_mcp.py" ;;
+L635: mempalace)       verify_cmd_or_module "$name" mempalace-mcp mempalace.mcp_server "MemPalace module or console entry point missing" ;;
+L636: humanrail)       verify_file "$name" "$HUMANRAIL_MCP_DIR/server.py" ;;
+L637: *)               log_info "$name: configured (no local artifact to check)"
+L739: python3 "$SCRIPT_DIR/installer-readiness.py" --runtime "$RUNTIME" \
+L740: --runtime-root "$NETCLAW_RUNTIME_ROOT" --config "$RUNTIME_CONFIG" \
+L741: --components "$SELECTED" --failed-components "$FAILED_COMPONENTS $VERIFY_FAILED_COMPONENTS" \
+L742: --output "$INSTALL_LOG_DIR/readiness.json" --probe --check-provider || READINESS_FAILED=1
+L752: echo "  3. hermes chat                      # Talk to NetClaw (or: hermes --tui)"
+L753: echo "  4. netclaw hud                      # Shared HUD; install --add hermes-hud first"
+L759: echo "    ./scripts/install.sh --runtime hermes   # Add or remove MCP servers"
+L763: echo "  3. openclaw chat --new              # Talk to NetClaw"
+L766: echo "    openclaw onboard --install-daemon  # AI provider, gateway, channels"
+L801: echo "    ./scripts/install.sh --add \"$(echo $PROBLEM_COMPONENTS | tr '\n' ' ' | sed 's/ $//')\""
+```
+
+## scripts/installer-preflight.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--arch`, `--components`, `--format`, `--install`, `--json`, `--os`, `--platform-only`, `--python`, `--runtime`, `--validate-policy`, `--version`
+
+```text
+L203: argparse.ArgumentParser(description=__doc__)
+L204: parser.add_argument('--os', default='')
+L205: parser.add_argument('--arch', default='')
+L206: parser.add_argument('--python', default=os.environ.get('NETCLAW_PY', sys.executable))
+L207: parser.add_argument('--components', default='')
+L208: parser.add_argument('--platform-only', action='store_true')
+L209: parser.add_argument('--validate-policy', action='store_true')
+L210: parser.add_argument('--json', action='store_true')
+L211: parser.add_argument('--runtime', choices=['openclaw', 'hermes'], default='openclaw')
+```
+
+## scripts/installer-readiness.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--check-provider`, `--components`, `--config`, `--failed-components`, `--json`, `--output`, `--probe`, `--runtime`, `--runtime-root`, `--timeout`
+
+```text
+L242: argparse.ArgumentParser(description=__doc__)
+L243: parser.add_argument('--runtime', choices=['openclaw','hermes'], default='openclaw')
+L244: parser.add_argument('--runtime-root', type=Path, required=True)
+L245: parser.add_argument('--config', type=Path, required=True)
+L246: parser.add_argument('--components', required=True)
+L247: parser.add_argument('--failed-components', default='')
+L248: parser.add_argument('--output', type=Path, required=True)
+L249: parser.add_argument('--probe', action='store_true')
+L250: parser.add_argument('--check-provider', action='store_true')
+L251: parser.add_argument('--timeout', type=float, default=25)
 ```
 
 ## scripts/ipfabric-enable.sh
@@ -1438,32 +1790,47 @@ Static source declarations; lexical flags may include delegated commands. No exe
 Flags mentioned: none
 
 ```text
-L176: case "$1" in
-L177: minimal)        echo "$PROFILE_MINIMAL" ;;
-L178: recommended)    echo "$PROFILE_RECOMMENDED" ;;
-L179: cisco)          echo "$PROFILE_CISCO" ;;
-L180: multivendor)    echo "$PROFILE_MULTIVENDOR" ;;
-L181: cloud)          echo "$PROFILE_CLOUD" ;;
-L182: security)       echo "$PROFILE_SECURITY" ;;
-L183: labs)           echo "$PROFILE_LABS" ;;
-L184: observability)  echo "$PROFILE_OBSERVABILITY" ;;
-L185: full)           catalog_ids | tr '\n' ' ' ;;
-L186: *)              return 1 ;;
+L179: case "$1" in
+L180: minimal)        echo "$PROFILE_MINIMAL" ;;
+L181: recommended)    echo "$PROFILE_RECOMMENDED" ;;
+L182: cisco)          echo "$PROFILE_CISCO" ;;
+L183: multivendor)    echo "$PROFILE_MULTIVENDOR" ;;
+L184: cloud)          echo "$PROFILE_CLOUD" ;;
+L185: security)       echo "$PROFILE_SECURITY" ;;
+L186: labs)           echo "$PROFILE_LABS" ;;
+L187: observability)  echo "$PROFILE_OBSERVABILITY" ;;
+L188: full)           catalog_ids | tr '\n' ' ' ;;
+L189: *)              return 1 ;;
 ```
 
 ## scripts/lib/common.sh
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--runtime`
+Flags mentioned: `--apply`, `--detach`, `--field`, `--no-checkout`, `--runtime`, `--source`, `--target`
 
 ```text
-L54: # changes (e.g. after a --runtime flag or the TUI prompt).
-L58: case "$RUNTIME" in
-L59: openclaw)
-L67: hermes)
-L75: *)
-L209: # re-derives after a --runtime flag or the TUI prompt. Idempotent.
+L46: git clone --no-checkout "$url" "$dir" || return 1
+L47: git -C "$dir" checkout --detach "$revision" || return 1
+L73: # changes (e.g. after a --runtime flag or the TUI prompt).
+L77: RUNTIME="$(python3 "$resolver" --field kind)" || return 1
+L79: resolved_home="$(python3 "$resolver" --field home)" || return 1
+L80: resolved_config="$(python3 "$resolver" --field configPath)" || return 1
+L81: case "$RUNTIME" in
+L82: openclaw)
+L90: hermes)
+L98: *)
+L130: --source "$NETCLAW_DIR/.env" --target "$RUNTIME_ENV" --apply
+L245: # re-derives after a --runtime flag or the TUI prompt. Idempotent.
+```
+
+## scripts/lib/equinix/policy.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
 ```
 
 ## scripts/lib/fetch-lego.sh
@@ -1504,169 +1871,150 @@ L45: *) echo "unknown action $ACTION" >&2; exit 1 ;;
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--add`, `--apply`, `--args`, `--backups`, `--break-system-packages`, `--check`, `--command`, `--config`, `--destination`, `--dns-provider`, `--domain`, `--dry-run`, `--edge`, `--enable-guardrail`, `--env`, `--env-file`, `--executablePath`, `--from`, `--global`, `--headless`, `--help`, `--install-daemon`, `--listen`, `--mode`, `--no-pager`, `--no-test`, `--noconfirm`, `--path`, `--python`, `--quiet`, `--repo`, `--restore`, `--reverse`, `--rm`, `--set`, `--sidecar`, `--source`, `--state-base`, `--tags`, `--target`, `--upgrade`, `--upstream`, `--user`, `--venv`, `--verify`, `--version`, `--vnc`, `--web`, `--with`
+Flags mentioned: `--add`, `--apply`, `--args`, `--backups`, `--break-system-packages`, `--check`, `--command`, `--components`, `--config`, `--destination`, `--dns-provider`, `--domain`, `--dry-run`, `--edge`, `--enable-guardrail`, `--env`, `--env-file`, `--executablePath`, `--from`, `--global`, `--headless`, `--help`, `--home`, `--install-daemon`, `--listen`, `--mode`, `--no-pager`, `--no-test`, `--noconfirm`, `--node`, `--output`, `--path`, `--quiet`, `--repo`, `--restore`, `--reverse`, `--rm`, `--runtime`, `--runtime-root`, `--set`, `--sidecar`, `--source`, `--state-base`, `--tags`, `--target`, `--upgrade`, `--upstream`, `--user`, `--venv`, `--verify`, `--version`, `--vnc`, `--web`
 
 ```text
-L32: case "$PKG_MGR:$id" in
-L41: *)              out="$out $id" ;;
-L50: case "$PKG_MGR" in
-L51: apt)    echo "${sp}apt-get update && ${sp}apt-get install -y $pkgs" ;;
-L52: dnf)    echo "${sp}dnf install -y $pkgs" ;;
-L53: yum)    echo "${sp}yum install -y $pkgs" ;;
-L54: pacman) echo "${sp}pacman -S --noconfirm $pkgs" ;;
-L55: apk)    echo "${sp}apk add $pkgs" ;;
-L56: brew)   echo "brew install $pkgs" ;;
-L104: case "$PKG_MGR" in
-L105: apt)     node_cmd="curl -fsSL https://deb.nodesource.com/setup_22.x | ${spe}bash - && ${sp}apt-get install -y nodejs" ;;
-L106: dnf|yum) node_cmd="curl -fsSL https://rpm.nodesource.com/setup_22.x | ${spe}bash - && ${sp}${PKG_MGR} install -y nodejs" ;;
-L107: brew)    node_cmd="brew install node" ;;
-L140: NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
-L142: log_error "Node.js >= 18 required. Found: $(node --version)"
-L146: log_info "Node.js version: $(node --version)"
-L153: case " $MISSING_IDS " in
-L155: *) MISSING_IDS="$MISSING_IDS npm" ;;
-L245: case ":$PATH:" in
-L247: *) export PATH="$HOME/.local/bin:$PATH" ;;
-L262: log_info "OpenClaw already installed: $(openclaw --version 2>/dev/null || echo 'version unknown')"
-L307: # openclaw's --install-daemon). Best-effort — the agent still
-L329: log_info "Reconfigure provider/gateway/channels anytime: openclaw onboard --install-daemon"
-L341: openclaw onboard --install-daemon || {
-L343: log_warn "You can re-run it later: openclaw onboard --install-daemon"
-L348: log_warn "After fixing your PATH, run: openclaw onboard --install-daemon"
-L355: # `openclaw onboard --install-daemon` can report success while the gateway
-L383: state="$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)"
-L384: case "$state" in
-L385: active)                 break ;;
-L386: activating|reloading)   sleep 1 ;;
-L387: *)                      break ;;   # inactive/failed/no user bus
-L411: if journalctl --user -u openclaw-gateway.service -n 10 --no-pager &> /dev/null; then
-L414: journalctl --user -u openclaw-gateway.service -n 10 --no-pager 2>/dev/null | sed 's/^/    /'
-L418: echo "    systemctl --user status openclaw-gateway.service"
-L419: echo "    journalctl --user -u openclaw-gateway.service -n 50 --no-pager"
-L423: echo "    openclaw onboard --install-daemon      # re-run the service install"
-L434: openclaw onboard --install-daemon || log_warn "openclaw onboard exited with an error."
-L477: python3 "$NETCLAW_DIR/scripts/setup-pyats-runtime.py" --target "$pyats_venv" || return 1
-L481: --env-file "$RUNTIME_ENV" --repo "$NETCLAW_DIR" --venv "$pyats_venv" \
-L482: --upstream "$PYATS_MCP_DIR/pyats_mcp_server.py" --apply; then
-L486: python3 "$NETCLAW_DIR/scripts/setup-pyats-runtime.py" --target "$pyats_venv" --restore || return 1
-L504: git -C "$JUNOS_MCP_DIR" pull --quiet 2>/dev/null || true
-L514: # Spec 090: netclaw_pip_install handles PEP 668 itself now, so the inline
-L515: # --break-system-packages retry is gone -- and stderr is no longer discarded.
-L527: # only devices-template.json -- which contains placeholder credentials and a device
-L556: git -C "$CVP_MCP_DIR" pull --quiet 2>/dev/null || true
-L563: # foreign home directory that exists on no NetClaw host -- so the server raised
-L568: # re-applied after every `git pull` above -- the same durable-patch shape the Slack
-L593: # The registration passes --with urllib3 --with python-dotenv alongside fastmcp: the
-L594: # server imports both, and `uv run` sees only what --with provides, never the system
-L631: log_warn "Fix the error, then retry with: ./scripts/install.sh --add \"markmap\""
-L683: git -C "$NAUTOBOT_MCP_DIR" pull --quiet 2>/dev/null || true
-L725: git -C "$INFRAHUB_MCP_DIR" pull --quiet 2>/dev/null || true
-L754: git -C "$ITENTIAL_MCP_DIR" pull --quiet 2>/dev/null || true
-L952: log_info "GitHub MCP ready: docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
-L1004: log_info "uv found: $(uv --version 2>/dev/null || echo 'version unknown')"
-L1026: log_info "tshark found: $(tshark --version 2>/dev/null | head -1)"
-L1143: git -C "$FMC_MCP_DIR" pull --quiet 2>/dev/null || true
-L1198: # memory, RAG, federation and GAIT stores are never readable from it -- a generic SQL
-L1215: # NO upper bound -- Authlib, pygnmi, service-identity, sshsig -- and NetClaw's own
-L1216: # federation TLS stack (spec 060) is built on it. Measured by `pip install --dry-run`
-L1223: # `python3 -m venv` fails on hosts without ensurepip (this one included); netclaw_venv_create
-L1260: # Builder, which is ENTERPRISE-tier on self-managed -- so the supported path is paywalled
-L1268: docker pull --quiet \
-L1274: # there -- the registration adds host.docker.internal, so a local cluster is
-L1298: # Ubuntu 26.04, and `suricata` needs root to install. Both images are pinned by DIGEST --
-L1305: docker pull --quiet zeek/zeek@sha256:eca2b3915d3e067cbb4a904f23f4c4f461ea2b60613ab30f7ee77bbc707c87c7 \
-L1307: docker pull --quiet jasonish/suricata@sha256:81468a22f0b685f3d7e0c1646ab4fdb9a67c1b3dfa3357c52b1434dd4f39dc49 \
-L1324: if docker run --rm -v "$NSM_RULES:/var/lib/suricata/rules" \
-L1326: suricata-update --no-test >/dev/null 2>&1 && [ -s "$NSM_RULES/suricata.rules" ]; then
-L1346: # not start at all on a PEP 668 host -- one of the seven found by spec 088.
-L1359: # DefenseClaw silently 403s outbound calls to unregistered domains -- this has cost this
-L1386: git -C "$TE_COMMUNITY_MCP_DIR" pull --quiet 2>/dev/null || true
-L1447: git -C "$RADKIT_MCP_DIR" pull --quiet 2>/dev/null || true
-L1582: git -C "$UML_MCP_DIR" pull --quiet 2>/dev/null || true
-L1682: uvx --help &>/dev/null || true
-L1727: log_info "  Install: helm install kubeshark kubeshark/kubeshark --set mcp.enabled=true --set mcp.port=8898"
-L1753: log_info "nmap already installed: $(nmap --version 2>&1 | head -1)"
-L1858: log_info "gtrace MCP ready: $(gtrace --version 2>&1 | head -1) (6 tools: traceroute, mtr, globalping, asn_lookup, geo_lookup, reverse_dns)"
-L1980: # `risk token --edge` answering "only a Border can issue enrollment tokens",
-L2018: case "$TUI_CHOICE" in
-L2019: 0)
-L2023: 1)
-L2030: case "$TUI_CHOICE" in
-L2031: 0) _stacks=both ;; 1) _stacks=in2n ;; *) _stacks=en2n ;;
-L2042: 2)
-L2065: echo "  mesh daemon + always-on members durable systemd --user services."
-L2084: if declare -f tui_confirm >/dev/null 2>&1 && tui_confirm "Generate + enable durable systemd --user services now?"; then
-L2088: log_warn "service enable failed (systemctl --user may be unavailable on this host)"
-L2116: if netclaw_pip_install -q --upgrade infoblox-ddi-mcp 2>/dev/null; then
-L2132: if netclaw_pip_install -q --upgrade iflow-mcp-cdot65-palo-alto-mcp 2>/dev/null; then
-L2174: git -C "$PRISMA_SDWAN_MCP_DIR" pull --quiet 2>/dev/null || true
-L2296: git -C "$ARUBA_CX_MCP_DIR" pull --quiet 2>/dev/null || true
-L2500: # ── Step 50c: Install Token Optimization Library (netclaw_tokens)
-L2731: git -C "$dir" fetch origin --tags
-L2737: if git -C "$dir" rev-parse --verify --quiet "origin/$ref" >/dev/null; then
-L2864: --source "$NETCLAW_DIR/config/openclaw.json" \
-L2865: --repo   "$NETCLAW_DIR" \
-L2866: --env    "$RUNTIME_ENV" \
-L2867: --config "$RUNTIME_CONFIG" \
-L2868: --sidecar "$RUNTIME_HOME/netclaw-mcp-servers.yaml"; then
-L2886: --config "$OPENCLAW_DIR/openclaw.json" \
-L2887: --repo   "$NETCLAW_DIR" \
-L2900: --source "$NETCLAW_DIR/workspace/skills" \
-L2901: --destination "$RUNTIME_SKILLS" \
-L2902: --backups "$RUNTIME_HOME/skill-deployment-backups" \
-L2903: --state-base "$(basename "$RUNTIME_HOME")" || return 1
-L3207: NODE_VER=$(node --version | sed 's/v//' | cut -d. -f1)
-L3229: defenseclaw init --enable-guardrail 2>/dev/null || log_warn "Guardrail init failed - run manually: defenseclaw init --enable-guardrail"
-L3231: log_warn "defenseclaw CLI not in PATH. Add ~/.local/bin to PATH and run: defenseclaw init --enable-guardrail"
-L3267: OPENSHELL_VERSION=$(openshell --version 2>/dev/null || echo "unknown")
-L3292: echo "    openshell --version                    # Check OpenShell"
-L3295: echo "    defenseclaw --version                  # Check DefenseClaw"
-L3297: echo "    defenseclaw setup guardrail --mode action  # Enable blocking"
-L3426: log_info "  hermes mcp add memory-mcp --command uvx --args '--from,netclaw-memory-mcp,memory-mcp-server' --env MEMORY_DATA_DIR=$MEMORY_DATA_DIR"
-L3428: log_info "  openclaw mcp set memory-mcp '{\"command\":\"uvx\",\"args\":[\"--from\",\"netclaw-memory-mcp\",\"memory-mcp-server\"],\"env\":{\"MEMORY_DATA_DIR\":\"$MEMORY_DATA_DIR\"}}'"
-L3488: log_info "Ollama found: $(ollama --version 2>/dev/null || echo 'version unknown')"
-L3582: if ! git -C "$SKETCHFAB_MCP_DIR" apply --reverse --check "$SKETCHFAB_PATCH" 2>/dev/null; then
-L3649: echo "  for the WSL2 mirrored-networking check and the --listen fallback."
-L3731: install_output="$(npx -y @puppeteer/browsers install chrome@stable --path "$CHROME_DEVTOOLS_CACHE_DIR" 2>&1 | tail -1)"
-L3744: HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
-L3745: VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
-L3747: HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\"]"
-L3748: VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\"]"
-L3753: hermes mcp add chrome-devtools-mcp --command npx >/dev/null 2>&1 \
-L3755: || log_warn "Could not add chrome-devtools-mcp — add it manually: hermes mcp add chrome-devtools-mcp --command npx"
-L3757: log_info "  args: [\"-y\", \"chrome-devtools-mcp@latest\", \"--headless=true\"]"
-L3759: log_info "hermes CLI not found — add chrome-devtools-mcp later: hermes mcp add chrome-devtools-mcp --command npx"
-L3773: log_info "Sign in once per target site: npx chrome-devtools-mcp@latest --headless=false${CHROME_DEVTOOLS_EXECUTABLE:+ --executablePath=\"$CHROME_DEVTOOLS_EXECUTABLE\"}"
-L3791: case "$PKG_MGR" in
-L3792: apt)
-L3798: dnf|yum)
-L3803: pacman)
-L3805: sudo pacman -S --noconfirm $COMPUTER_USE_PACKAGES 2>/dev/null || \
-L3808: *)
-L3829: if openclaw skills install --global computer-use 2>&1 | tail -5; then
-L3835: # (0644) -- confirmed live: every action script fails with "Permission
-L3842: log_warn "Could not install the computer-use skill automatically — try manually: openclaw skills install --global computer-use"
-L3845: log_warn "openclaw CLI not found — install the skill manually once OpenClaw is set up: openclaw skills install --global computer-use"
-L3848: # The skill only ships its action scripts (click.sh, screenshot.sh, ...) --
-L3860: # and the novnc unit's --listen has no bind address) -- a real exposure
-L3864: # pattern, which this doesn't change -- it just makes it mandatory.
-L3872: # wrapper the skill's script assumes -- confirmed missing live on
-L3875: -e 's|ExecStart=.*novnc_proxy.*|ExecStart=/usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 127.0.0.1:6080 --web /usr/share/novnc|' \
-L3876: -e 's/--listen 6080\b/--listen 127.0.0.1:6080/' \
-L3912: # but install it now so `--domain` works later without a second step).
-L3938: log_info "Domain-verified identity (optional): scripts/patch-claw-certs.sh --domain <name> --dns-provider <id>"
-L3961: log_warn "Install it with: python3 -m pip install --user virtualenv"
-L4014: # isolation from nothing. netclaw_pip_install, never bare pip — on a split
-L4118: # DEDICATED VIRTUALENV -- NOT OPTIONAL, DO NOT "SIMPLIFY" THIS AWAY.
-L4121: # ISE_MCP. A shared install breaks all five -- spec 076's cryptography
-L4139: # netclaw_pip_install: that targets the system interpreter, which is the exact
-L4141: # Naming --python satisfies the same rule netclaw_pip_install enforces --
-L4144: uv pip install -q --python "$ZABBIX_MCP_DIR/.venv/bin/python" -r requirements.txt ) 2>/dev/null || \
-L4244: # netclaw_pip_install: that targets the system interpreter, which is the
-L4247: uv pip install -q --python "$PERCEPXION_MCP_DIR/.venv/bin/python" -r requirements.txt ) 2>/dev/null || \
-L4294: uv pip install -q --python "$SLC_MCP_DIR/.venv/bin/python" -r requirements.txt ) 2>/dev/null || \
-L4352: python3 "$NETCLAW_DIR/scripts/jev-settings.py" --env-file "$RUNTIME_ENV" setup || return 1
-L4354: log_info "Enable and configure Jev: python3 scripts/jev-settings.py --env-file '$RUNTIME_ENV' setup"
+L37: case "$PKG_MGR:$id" in
+L46: *)              out="$out $id" ;;
+L55: case "$PKG_MGR" in
+L56: apt)    echo "${sp}apt-get update && ${sp}apt-get install -y $pkgs" ;;
+L57: dnf)    echo "${sp}dnf install -y $pkgs" ;;
+L58: yum)    echo "${sp}yum install -y $pkgs" ;;
+L59: pacman) echo "${sp}pacman -S --noconfirm $pkgs" ;;
+L60: apk)    echo "${sp}apk add $pkgs" ;;
+L61: brew)   echo "brew install $pkgs" ;;
+L109: case "$PKG_MGR" in
+L110: apt)     node_cmd="curl -fsSL https://deb.nodesource.com/setup_26.x | ${spe}bash - && ${sp}apt-get install -y nodejs" ;;
+L111: dnf|yum) node_cmd="curl -fsSL https://rpm.nodesource.com/setup_26.x | ${spe}bash - && ${sp}${PKG_MGR} install -y nodejs" ;;
+L112: brew)    node_cmd="brew install node" ;;
+L145: if ! python3 "$NETCLAW_DIR/scripts/runtime-policy.py" --runtime "${RUNTIME:-openclaw}" --node "$(node --version)"; then
+L149: log_info "Node.js version: $(node --version)"
+L156: case " $MISSING_IDS " in
+L158: *) MISSING_IDS="$MISSING_IDS npm" ;;
+L174: case " ${SELECTED:-} " in
+L184: log_info "Component Python: $NETCLAW_PY ($("$NETCLAW_PY" --version 2>&1))"
+L241: case ":$PATH:" in
+L243: *) export PATH="$HOME/.local/bin:$PATH" ;;
+L260: if ! openclaw --version; then
+L300: # openclaw's --install-daemon). Best-effort — the agent still
+L323: log_info "Reconfigure provider/gateway/channels anytime: openclaw onboard --install-daemon"
+L337: OPENCLAW_STATE_DIR="$RUNTIME_HOME" OPENCLAW_CONFIG_PATH="$RUNTIME_CONFIG" openclaw onboard --install-daemon || {
+L339: log_warn "You can re-run it later: openclaw onboard --install-daemon"
+L345: log_warn "After fixing your PATH, run: openclaw onboard --install-daemon"
+L353: # `openclaw onboard --install-daemon` can report success while the gateway
+L381: state="$(systemctl --user is-active openclaw-gateway.service 2>/dev/null || true)"
+L382: case "$state" in
+L383: active)                 break ;;
+L384: activating|reloading)   sleep 1 ;;
+L385: *)                      break ;;   # inactive/failed/no user bus
+L409: if journalctl --user -u openclaw-gateway.service -n 10 --no-pager &> /dev/null; then
+L412: journalctl --user -u openclaw-gateway.service -n 10 --no-pager 2>/dev/null | sed 's/^/    /'
+L416: echo "    systemctl --user status openclaw-gateway.service"
+L417: echo "    journalctl --user -u openclaw-gateway.service -n 50 --no-pager"
+L421: echo "    openclaw onboard --install-daemon      # re-run the service install"
+L432: openclaw onboard --install-daemon || log_warn "openclaw onboard exited with an error."
+L475: python3 "$NETCLAW_DIR/scripts/setup-pyats-runtime.py" --target "$pyats_venv" || return 1
+L479: --env-file "$RUNTIME_ENV" --repo "$NETCLAW_DIR" --venv "$pyats_venv" \
+L480: --upstream "$PYATS_MCP_DIR/pyats_mcp_server.py" --apply; then
+L484: python3 "$NETCLAW_DIR/scripts/setup-pyats-runtime.py" --target "$pyats_venv" --restore || return 1
+L502: git -C "$JUNOS_MCP_DIR" pull --quiet 2>/dev/null || true
+L512: # Spec 090: netclaw_pip_install handles PEP 668 itself now, so the inline
+L513: # --break-system-packages retry is gone -- and stderr is no longer discarded.
+L525: # only devices-template.json -- which contains placeholder credentials and a device
+L588: log_warn "Fix the error, then retry with: ./scripts/install.sh --add \"markmap\""
+L848: log_info "GitHub MCP ready: docker run -i --rm -e GITHUB_PERSONAL_ACCESS_TOKEN ghcr.io/github/github-mcp-server"
+L900: log_info "uv found: $(uv --version 2>/dev/null || echo 'version unknown')"
+L922: log_info "tshark found: $(tshark --version 2>/dev/null | head -1)"
+L1074: # memory, RAG, federation and GAIT stores are never readable from it -- a generic SQL
+L1091: # NO upper bound -- Authlib, pygnmi, service-identity, sshsig -- and NetClaw's own
+L1092: # federation TLS stack (spec 060) is built on it. Measured by `pip install --dry-run`
+L1127: # Builder, which is ENTERPRISE-tier on self-managed -- so the supported path is paywalled
+L1135: docker pull --quiet \
+L1141: # there -- the registration adds host.docker.internal, so a local cluster is
+L1165: # Ubuntu 26.04, and `suricata` needs root to install. Both images are pinned by DIGEST --
+L1172: docker pull --quiet zeek/zeek@sha256:eca2b3915d3e067cbb4a904f23f4c4f461ea2b60613ab30f7ee77bbc707c87c7 \
+L1174: docker pull --quiet jasonish/suricata@sha256:81468a22f0b685f3d7e0c1646ab4fdb9a67c1b3dfa3357c52b1434dd4f39dc49 \
+L1191: if docker run --rm -v "$NSM_RULES:/var/lib/suricata/rules" \
+L1193: suricata-update --no-test >/dev/null 2>&1 && [ -s "$NSM_RULES/suricata.rules" ]; then
+L1213: # not start at all on a PEP 668 host -- one of the seven found by spec 088.
+L1226: # DefenseClaw silently 403s outbound calls to unregistered domains -- this has cost this
+L1533: uvx --help &>/dev/null || true
+L1569: log_info "  Install: helm install kubeshark kubeshark/kubeshark --set mcp.enabled=true --set mcp.port=8898"
+L1594: log_info "nmap already installed: $(nmap --version 2>&1 | head -1)"
+L1709: log_info "gtrace MCP ready: $(gtrace --version 2>&1 | head -1) (6 tools: traceroute, mtr, globalping, asn_lookup, geo_lookup, reverse_dns)"
+L1842: # `risk token --edge` answering "only a Border can issue enrollment tokens",
+L1880: case "$TUI_CHOICE" in
+L1881: 0)
+L1885: 1)
+L1892: case "$TUI_CHOICE" in
+L1893: 0) _stacks=both ;; 1) _stacks=in2n ;; *) _stacks=en2n ;;
+L1904: 2)
+L1927: echo "  mesh daemon + always-on members durable systemd --user services."
+L1946: if declare -f tui_confirm >/dev/null 2>&1 && tui_confirm "Generate + enable durable systemd --user services now?"; then
+L1950: log_warn "service enable failed (systemctl --user may be unavailable on this host)"
+L1994: if netclaw_pip_install -q --upgrade iflow-mcp-cdot65-palo-alto-mcp 2>/dev/null; then
+L2329: # ── Step 50c: Install Token Optimization Library (netclaw_tokens)
+L2559: git -C "$dir" fetch origin --tags
+L2565: if git -C "$dir" rev-parse --verify --quiet "origin/$ref" >/dev/null; then
+L2690: --repo "$NETCLAW_DIR" --runtime-root "$NETCLAW_RUNTIME_ROOT" \
+L2691: --components "${SUCCESSFUL_COMPONENTS:-}" --output "$generated_config" || return 1
+L2699: --source "$generated_config" \
+L2700: --repo   "$NETCLAW_DIR" \
+L2701: --env    "$RUNTIME_ENV" \
+L2702: --config "$RUNTIME_CONFIG" \
+L2703: --sidecar "$RUNTIME_HOME/netclaw-mcp-servers.yaml"; then
+L2714: --repo "$NETCLAW_DIR" --runtime-root "$NETCLAW_RUNTIME_ROOT" \
+L2715: --components "${SUCCESSFUL_COMPONENTS:-}" --output "$generated_config" \
+L2716: --config "$RUNTIME_CONFIG" || return 1
+L2725: --source "$NETCLAW_DIR/workspace/skills" \
+L2726: --destination "$RUNTIME_SKILLS" \
+L2727: --backups "$RUNTIME_HOME/skill-deployment-backups" \
+L2728: --state-base "$(basename "$RUNTIME_HOME")" || return 1
+L3039: NODE_VER=$(node --version | sed 's/v//' | cut -d. -f1)
+L3061: defenseclaw init --enable-guardrail 2>/dev/null || log_warn "Guardrail init failed - run manually: defenseclaw init --enable-guardrail"
+L3063: log_warn "defenseclaw CLI not in PATH. Add ~/.local/bin to PATH and run: defenseclaw init --enable-guardrail"
+L3099: OPENSHELL_VERSION=$(openshell --version 2>/dev/null || echo "unknown")
+L3124: echo "    openshell --version                    # Check OpenShell"
+L3127: echo "    defenseclaw --version                  # Check DefenseClaw"
+L3129: echo "    defenseclaw setup guardrail --mode action  # Enable blocking"
+L3258: log_info "  hermes mcp add memory-mcp --command uvx --args '--from,netclaw-memory-mcp,memory-mcp-server' --env MEMORY_DATA_DIR=$MEMORY_DATA_DIR"
+L3260: log_info "  openclaw mcp set memory-mcp '{\"command\":\"uvx\",\"args\":[\"--from\",\"netclaw-memory-mcp\",\"memory-mcp-server\"],\"env\":{\"MEMORY_DATA_DIR\":\"$MEMORY_DATA_DIR\"}}'"
+L3320: log_info "Ollama found: $(ollama --version 2>/dev/null || echo 'version unknown')"
+L3414: if ! git -C "$SKETCHFAB_MCP_DIR" apply --reverse --check "$SKETCHFAB_PATCH" 2>/dev/null; then
+L3481: echo "  for the WSL2 mirrored-networking check and the --listen fallback."
+L3563: install_output="$(npx -y @puppeteer/browsers install chrome@stable --path "$CHROME_DEVTOOLS_CACHE_DIR" 2>&1 | tail -1)"
+L3576: HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
+L3577: VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\",\"--executablePath=$CHROME_DEVTOOLS_EXECUTABLE\"]"
+L3579: HEADLESS_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=true\"]"
+L3580: VISIBLE_ARGS="[\"-y\",\"chrome-devtools-mcp@latest\",\"--headless=false\"]"
+L3585: hermes mcp add chrome-devtools-mcp --command npx >/dev/null 2>&1 \
+L3587: || log_warn "Could not add chrome-devtools-mcp — add it manually: hermes mcp add chrome-devtools-mcp --command npx"
+L3589: log_info "  args: [\"-y\", \"chrome-devtools-mcp@latest\", \"--headless=true\"]"
+L3591: log_info "hermes CLI not found — add chrome-devtools-mcp later: hermes mcp add chrome-devtools-mcp --command npx"
+L3605: log_info "Sign in once per target site: npx chrome-devtools-mcp@latest --headless=false${CHROME_DEVTOOLS_EXECUTABLE:+ --executablePath=\"$CHROME_DEVTOOLS_EXECUTABLE\"}"
+L3623: case "$PKG_MGR" in
+L3624: apt)
+L3630: dnf|yum)
+L3635: pacman)
+L3637: sudo pacman -S --noconfirm $COMPUTER_USE_PACKAGES 2>/dev/null || \
+L3640: *)
+L3661: if openclaw skills install --global computer-use 2>&1 | tail -5; then
+L3667: # (0644) -- confirmed live: every action script fails with "Permission
+L3674: log_warn "Could not install the computer-use skill automatically — try manually: openclaw skills install --global computer-use"
+L3677: log_warn "openclaw CLI not found — install the skill manually once OpenClaw is set up: openclaw skills install --global computer-use"
+L3680: # The skill only ships its action scripts (click.sh, screenshot.sh, ...) --
+L3692: # and the novnc unit's --listen has no bind address) -- a real exposure
+L3696: # pattern, which this doesn't change -- it just makes it mandatory.
+L3704: # wrapper the skill's script assumes -- confirmed missing live on
+L3707: -e 's|ExecStart=.*novnc_proxy.*|ExecStart=/usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 127.0.0.1:6080 --web /usr/share/novnc|' \
+L3708: -e 's/--listen 6080\b/--listen 127.0.0.1:6080/' \
+L3751: # but install it now so `--domain` works later without a second step).
+L3781: log_info "Domain-verified identity (optional): scripts/patch-claw-certs.sh --domain <name> --dns-provider <id>"
+L3840: # isolation from nothing. netclaw_pip_install, never bare pip — on a split
+L4121: python3 "$NETCLAW_DIR/scripts/jev-settings.py" --env-file "$RUNTIME_ENV" setup || return 1
+L4123: log_info "Enable and configure Jev: python3 scripts/jev-settings.py --env-file '$RUNTIME_ENV' setup"
+L4143: [ "$RUNTIME" = "hermes" ] || { log_error "hermes-hud requires --runtime hermes"; return 1; }
+L4146: python3 "$NETCLAW_DIR/scripts/install-hermes-hud-agent.py" --home "$RUNTIME_HOME" || return 1
 ```
 
 ## scripts/lib/make-logo-art.py
@@ -1685,15 +2033,31 @@ L19: ROWS = int(sys.argv[2]) if len(sys.argv) > 2 else 20
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--upgrade`, `--user`, `--version`
+Flags mentioned: `--component`, `--python`, `--root`, `--seed`, `--upgrade`, `--version`
 
 ```text
 L30: #   netclaw_pip_install <args...>                  # into NETCLAW_PY (default python3)
 L31: #   NETCLAW_VENV=/path/to/.venv netclaw_pip_install <args...>   # into that venv
 L32: #   netclaw_venv_create /path/to/.venv             # create a venv that actually works
-L72: if ! "$py" -m pip --version >/dev/null 2>&1; then
-L74: echo "  Remedy: $py -m ensurepip --upgrade   (or install the matching *-venv package)" >&2
-L137: echo "  Remedy (no root needed):  $base -m pip install --user virtualenv" >&2
+L55: echo "NetClaw requires Python 3.10+ and the selected component's version bounds; unsupported interpreter: $1 ($("$1" --version 2>&1 || true))" >&2
+L99: "$py" -m pip install --upgrade 'pip>=23' || return 1
+L130: --root "$NETCLAW_DIR" --component "$NETCLAW_INSTALL_COMPONENT" || return 1
+L151: if [ ! -x "$target/bin/python" ] || ! "$target/bin/python" -m pip --version >/dev/null 2>&1; then
+L165: if ! "$py" -m pip --version >/dev/null 2>&1; then
+L167: echo "  Remedy: $py -m ensurepip --upgrade   (or install the matching *-venv package)" >&2
+L269: uv venv --seed --python "$base" "$dest" && return 0
+```
+
+## scripts/lib/preflight.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--arch`, `--components`, `--os`, `--python`, `--runtime`
+
+```text
+L7: case "$NETCLAW_ARCH" in aarch64) NETCLAW_ARCH=arm64 ;; amd64) NETCLAW_ARCH=x86_64 ;; esac
+L42: python3 "$SCRIPT_DIR/installer-preflight.py" --os "$NETCLAW_OS" \
+L43: --arch "$NETCLAW_ARCH" --python "$NETCLAW_PY" --components "$SELECTED" --runtime "${RUNTIME:-openclaw}"
 ```
 
 ## scripts/lib/render_md.py
@@ -1705,6 +2069,21 @@ Flags mentioned: none
 ```text
 ```
 
+## scripts/lib/runtime-install.sh
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--node`, `--npm`, `--prefix`, `--runtime`, `--version`
+
+```text
+L6: python3 "$policy" --runtime openclaw --node "$(node --version)" || return 1
+L7: npm_options="$(python3 "$policy" --npm "$(npm --version)")" || return 1
+L15: log_info "npm's global prefix is not writable; installing OpenClaw with --prefix $prefix"
+L16: npm_args+=(--prefix "$prefix")
+L20: log_info "For EACCES, use a user-owned Node version manager or npm --prefix \"\$HOME/.local\"."
+L25: if ! command -v openclaw >/dev/null 2>&1 || ! openclaw --version; then
+```
+
 ## scripts/lib/tui.sh
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
@@ -1714,44 +2093,57 @@ Flags mentioned: none
 ```text
 L21: # ANSI half-block rendering of netclaw.jpg — the lobster with its CCIE badge
 L23: # lib/make-logo-art.py into lib/netclaw-logo.ans; shown on 256-color
-L53: case "$rest" in
-L58: *)    echo esc ;;
-L61: case "$k" in
-L64: k|K)     echo up ;;
-L65: j|J)     echo down ;;
-L66: a|A)     echo all ;;
-L67: n|N)     echo none ;;
-L68: q|Q)     echo quit ;;
-L69: *)       echo "$k" ;;
-L128: case "$key" in
-L129: up)    cur=$(( (cur + total - 1) % total )) ;;
-L130: down)  cur=$(( (cur + 1) % total )) ;;
-L131: enter) TUI_CHOICE=$cur; printf '\033[?25h'; echo ""; return 0 ;;
-L132: quit|esc) printf '\033[?25h'; echo ""; return 1 ;;
-L199: case "$key" in
-L200: up)
-L204: down)
-L208: space)
-L210: all)
-L212: none)
-L214: enter)
-L221: quit|esc)
+L54: case "$rest" in
+L59: *)    echo esc ;;
+L62: case "$k" in
+L65: k|K)     echo up ;;
+L66: j|J)     echo down ;;
+L67: a|A)     echo all ;;
+L68: n|N)     echo none ;;
+L69: q|Q)     echo quit ;;
+L70: *)       echo "$k" ;;
+L129: case "$key" in
+L130: up)    cur=$(( (cur + total - 1) % total )) ;;
+L131: down)  cur=$(( (cur + 1) % total )) ;;
+L132: enter) TUI_CHOICE=$cur; printf '\033[?25h'; echo ""; return 0 ;;
+L133: quit|esc) printf '\033[?25h'; echo ""; return 1 ;;
+L200: case "$key" in
+L201: up)
+L205: down)
+L209: space)
+L211: all)
+L213: none)
+L215: enter)
+L222: quit|esc)
 ```
 
 ## scripts/mcp-call.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: none
+Flags mentioned: `--component`, `--list-tools`
 
 ```text
 L4: Usage:
-L95: if len(sys.argv) < 3:
-L96: print(f"Usage: {sys.argv[0]} <server-command> <tool-name> [arguments-json]", file=sys.stderr)
-L99: server_cmd = sys.argv[1]
-L100: tool_name = sys.argv[2]
-L102: if len(sys.argv) > 3:
-L104: args_json = json.loads(sys.argv[3])
+L106: if len(sys.argv) > 2 and sys.argv[1] == '--component':
+L107: component = sys.argv.pop(2)
+L108: sys.argv.pop(1)
+L109: sys.argv.insert(1, component)
+L110: if len(sys.argv) < 3:
+L111: print(f"Usage: {sys.argv[0]} <server-command> <tool-name> [arguments-json]", file=sys.stderr)
+L114: server_cmd = sys.argv[1]
+L115: tool_name = sys.argv[2]
+L117: if len(sys.argv) > 3:
+L119: args_json = json.loads(sys.argv[3])
+```
+
+## scripts/mcp-probe.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
 ```
 
 ## scripts/measure-turn-latency.py
@@ -1780,6 +2172,16 @@ L4: # Usage: ./scripts/memory-enable.sh
 L36: uv pip install -e . --quiet 2>/dev/null || {
 L51: "args": ["--from", "netclaw-memory-mcp", "memory-mcp-server"],
 L69: echo "To test: uvx --from netclaw-memory-mcp memory-mcp-server --help"
+```
+
+## scripts/mempalace-stdio.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+L19: os.execv(python, [python, '-m', 'mempalace.mcp_server', *sys.argv[1:]])
 ```
 
 ## scripts/migrate-change-gates.py
@@ -1964,101 +2366,101 @@ L17: #   netclaw risk role border <risk-name> [in2n]   promote standalone → Bo
 L18: #   netclaw risk edge-check                       preflight every precondition
 L19: #   netclaw risk token --edge <device-label>       mint the single-use QR
 L20: #   See mobile/netclaw-mobile/MOBILE-ONBOARDING.md for the full procedure.
-L39: # here so `netclaw tui` and .env reads follow the chosen runtime.
-L42: RUNTIME_CMD="hermes"; RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"; RUNTIME_TUI=(hermes --tui)
-L57: api_get() { curl -s --max-time 3 "$BGP_API$1" 2>/dev/null || true; }
-L66: curl -s --max-time 30 -H 'Content-Type: application/json' -d "$body" "$BGP_API$1" 2>/dev/null || true
-L69: ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
-L76: # and looking at only the first file made `netclaw risk token --edge` fail with
-L82: v="$(python3 "$NETCLAW_ROOT/scripts/write-env.py" --get "$f" "$1")" || return 1
-L93: # 2026-08-19: `netclaw risk role border` succeeds (POST 200, `risk status`
-L102: printf '%s' "$val" | python3 "$NETCLAW_ROOT/scripts/write-env.py" --systemd "$f" "$key"
-L122: setsid nohup ngrok tcp "$port" --log /tmp/ngrok-mesh.log --log-format json \
-L454: echo -e "  ${T_DIM}--- $(basename "$f" .txt) ---${T_NC}"
-L479: case " ${days[*]-} " in *" $d "*) ;; *) days+=("$d") ;; esac
-L492: case "$TUI_CHOICE" in
-L493: 0) chats_watch; continue ;;
-L494: 1) chat_tail "${CHAT_FILES[0]}"; continue ;;
-L620: case "$role" in
-L621: standalone|border|member) ;;
-L622: *) echo "usage: netclaw risk role <standalone|border|member> [risk-name] [stacks]"
-L646: case "$stacks" in
-L647: in2n|both) ;;
-L648: *) echo "  note: enabled_stacks='$stacks' does not include in2n —"
-L665: print("    check:  systemctl --user status netclaw-mesh.service")
-L681: echo "      systemctl --user restart netclaw-mesh.service"
-L701: echo "                systemctl --user status netclaw-mesh.service"
-L716: case "$stacks" in
-L717: in2n|both) echo "  ✓ stack     : $stacks (in2n enabled)" ;;
-L718: *) echo "  ✗ stack     : ${stacks:--} — the edge listener needs in2n"
-L751: echo "                $mesh_py -m pip install --break-system-packages$missing"
-L768: case "$lstate" in
-L769: listening) echo "  ✓ listener  : bound" ;;
-L771: *)         echo "  ✗ listener  : $lstate${lerr:+ — $lerr}"
-L792: echo "                journalctl --user -u netclaw-mesh.service --since '2 min ago' | grep -i Edge"
-L813: wan="$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || true)"
-L828: echo "      $(basename "$0") risk token --edge <device-label>"
-L831: echo "      systemctl --user restart netclaw-mesh.service"
-L893: # (edge-check -> role border -> restart -> edge-check -> token --edge),
-L905: # abort the WHOLE netclaw invocation right here, silently swallowed
-L932: if systemctl --user restart netclaw-mesh.service 2>/dev/null; then
-L936: echo "      systemctl --user restart netclaw-mesh.service"
-L976: case "$TUI_CHOICE" in
-L977: 0) risk_overview; pause ;;
-L978: 1) risk_members; pause ;;
-L979: 2) risk_health; pause ;;
-L980: 3) risk_token; pause ;;
-L981: 4) risk_edge_token; pause ;;
-L982: 5) risk_edge_check; pause ;;
-L983: 6) return 0 ;;
-L1002: case "$TUI_CHOICE" in
-L1003: 0) peering_overview; pause ;;
-L1004: 1) peering_bgp; pause ;;
-L1005: 2) peering_n2n; pause ;;
-L1006: 3) peering_ngrok; pause ;;
-L1007: 4) chats_menu ;;
-L1008: 5) peering_start_all; pause ;;
-L1009: 6) peering_stop_all; pause ;;
-L1010: 7) peer_announce; pause ;;
-L1011: 8) return 0 ;;
-L1030: case "$TUI_CHOICE" in
-L1031: 0) exec "${RUNTIME_TUI[@]}" ;;
-L1032: 1) exec "$NETCLAW_ROOT/scripts/install.sh" ;;
-L1033: 2) peering_menu ;;
-L1034: 3) risk_menu ;;
-L1035: 4) exit 0 ;;
-L1048: case "${1:-}" in
-L1050: tui)       exec "${RUNTIME_TUI[@]}" ;;
-L1051: install)   shift; exec "$NETCLAW_ROOT/scripts/install.sh" "$@" ;;
-L1052: peering)
-L1053: case "${2:-status}" in
-L1054: status)   peering_overview ;;
-L1055: bgp)      peering_bgp ;;
-L1056: n2n)      peering_n2n ;;
-L1057: ngrok)    peering_ngrok ;;
-L1058: up)       peering_start_all ;;
-L1059: down)     peering_stop_all ;;
-L1060: announce) peer_announce ;;
-L1061: *)        echo "Usage: netclaw peering [status|bgp|n2n|ngrok|up|down|announce]"; exit 1 ;;
-L1063: risk)
-L1064: case "${2:-status}" in
-L1065: status)   risk_overview ;;
-L1066: members)  risk_members ;;
-L1067: health)   risk_health ;;
-L1068: add)      risk_add "${3:-}" "${4:-}" "${5:-}" ;;
-L1069: remove)   risk_remove "${3:-}" ;;
-L1070: role)     risk_role "${3:-}" "${4:-}" "${5:-}" ;;
-L1071: edge-check|edge_check|preflight) risk_edge_check ;;
-L1072: token)
-L1073: if [ "${3:-}" = "--edge" ]; then
-L1078: enroll-mobile|enroll_mobile) risk_enroll_mobile "${3:-}" ;;
-L1079: route)    risk_route "${3:-}" "${4:-}" ;;
-L1080: *)        echo "Usage: netclaw risk [status|members|health|role|edge-check|add|remove|token [--edge]|enroll-mobile [label]|route]"; exit 1 ;;
-L1082: chats)
-L1083: if [ "${2:-}" = "--watch" ] || [ "${2:-}" = "watch" ]; then
-L1095: link)      do_link ;;
-L1096: help|-h|--help)
-L1098: *) echo "Unknown command: $1 (try: netclaw help)"; exit 1 ;;
+L44: # here so `netclaw tui` and .env reads follow the chosen runtime.
+L47: RUNTIME_CMD="hermes"; RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"; RUNTIME_TUI=(hermes --tui)
+L62: api_get() { curl -s --max-time 3 "$BGP_API$1" 2>/dev/null || true; }
+L71: curl -s --max-time 30 -H 'Content-Type: application/json' -d "$body" "$BGP_API$1" 2>/dev/null || true
+L74: ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
+L81: # and looking at only the first file made `netclaw risk token --edge` fail with
+L87: v="$(python3 "$NETCLAW_ROOT/scripts/write-env.py" --get "$f" "$1")" || return 1
+L98: # 2026-08-19: `netclaw risk role border` succeeds (POST 200, `risk status`
+L107: printf '%s' "$val" | python3 "$NETCLAW_ROOT/scripts/write-env.py" --systemd "$f" "$key"
+L127: setsid nohup ngrok tcp "$port" --log /tmp/ngrok-mesh.log --log-format json \
+L459: echo -e "  ${T_DIM}--- $(basename "$f" .txt) ---${T_NC}"
+L484: case " ${days[*]-} " in *" $d "*) ;; *) days+=("$d") ;; esac
+L497: case "$TUI_CHOICE" in
+L498: 0) chats_watch; continue ;;
+L499: 1) chat_tail "${CHAT_FILES[0]}"; continue ;;
+L625: case "$role" in
+L626: standalone|border|member) ;;
+L627: *) echo "usage: netclaw risk role <standalone|border|member> [risk-name] [stacks]"
+L651: case "$stacks" in
+L652: in2n|both) ;;
+L653: *) echo "  note: enabled_stacks='$stacks' does not include in2n —"
+L670: print("    check:  systemctl --user status netclaw-mesh.service")
+L686: echo "      systemctl --user restart netclaw-mesh.service"
+L706: echo "                systemctl --user status netclaw-mesh.service"
+L721: case "$stacks" in
+L722: in2n|both) echo "  ✓ stack     : $stacks (in2n enabled)" ;;
+L723: *) echo "  ✗ stack     : ${stacks:--} — the edge listener needs in2n"
+L756: echo "                $mesh_py -m pip install --break-system-packages$missing"
+L773: case "$lstate" in
+L774: listening) echo "  ✓ listener  : bound" ;;
+L776: *)         echo "  ✗ listener  : $lstate${lerr:+ — $lerr}"
+L797: echo "                journalctl --user -u netclaw-mesh.service --since '2 min ago' | grep -i Edge"
+L818: wan="$(curl -s --max-time 5 https://api.ipify.org 2>/dev/null || true)"
+L833: echo "      $(basename "$0") risk token --edge <device-label>"
+L836: echo "      systemctl --user restart netclaw-mesh.service"
+L898: # (edge-check -> role border -> restart -> edge-check -> token --edge),
+L910: # abort the WHOLE netclaw invocation right here, silently swallowed
+L937: if systemctl --user restart netclaw-mesh.service 2>/dev/null; then
+L941: echo "      systemctl --user restart netclaw-mesh.service"
+L981: case "$TUI_CHOICE" in
+L982: 0) risk_overview; pause ;;
+L983: 1) risk_members; pause ;;
+L984: 2) risk_health; pause ;;
+L985: 3) risk_token; pause ;;
+L986: 4) risk_edge_token; pause ;;
+L987: 5) risk_edge_check; pause ;;
+L988: 6) return 0 ;;
+L1007: case "$TUI_CHOICE" in
+L1008: 0) peering_overview; pause ;;
+L1009: 1) peering_bgp; pause ;;
+L1010: 2) peering_n2n; pause ;;
+L1011: 3) peering_ngrok; pause ;;
+L1012: 4) chats_menu ;;
+L1013: 5) peering_start_all; pause ;;
+L1014: 6) peering_stop_all; pause ;;
+L1015: 7) peer_announce; pause ;;
+L1016: 8) return 0 ;;
+L1035: case "$TUI_CHOICE" in
+L1036: 0) exec "${RUNTIME_TUI[@]}" ;;
+L1037: 1) exec "$NETCLAW_ROOT/scripts/install.sh" ;;
+L1038: 2) peering_menu ;;
+L1039: 3) risk_menu ;;
+L1040: 4) exit 0 ;;
+L1053: case "${1:-}" in
+L1055: tui)       exec "${RUNTIME_TUI[@]}" ;;
+L1056: install)   shift; exec "$NETCLAW_ROOT/scripts/install.sh" "$@" ;;
+L1057: peering)
+L1058: case "${2:-status}" in
+L1059: status)   peering_overview ;;
+L1060: bgp)      peering_bgp ;;
+L1061: n2n)      peering_n2n ;;
+L1062: ngrok)    peering_ngrok ;;
+L1063: up)       peering_start_all ;;
+L1064: down)     peering_stop_all ;;
+L1065: announce) peer_announce ;;
+L1066: *)        echo "Usage: netclaw peering [status|bgp|n2n|ngrok|up|down|announce]"; exit 1 ;;
+L1068: risk)
+L1069: case "${2:-status}" in
+L1070: status)   risk_overview ;;
+L1071: members)  risk_members ;;
+L1072: health)   risk_health ;;
+L1073: add)      risk_add "${3:-}" "${4:-}" "${5:-}" ;;
+L1074: remove)   risk_remove "${3:-}" ;;
+L1075: role)     risk_role "${3:-}" "${4:-}" "${5:-}" ;;
+L1076: edge-check|edge_check|preflight) risk_edge_check ;;
+L1077: token)
+L1078: if [ "${3:-}" = "--edge" ]; then
+L1083: enroll-mobile|enroll_mobile) risk_enroll_mobile "${3:-}" ;;
+L1084: route)    risk_route "${3:-}" "${4:-}" ;;
+L1085: *)        echo "Usage: netclaw risk [status|members|health|role|edge-check|add|remove|token [--edge]|enroll-mobile [label]|route]"; exit 1 ;;
+L1087: chats)
+L1088: if [ "${2:-}" = "--watch" ] || [ "${2:-}" = "watch" ]; then
+L1100: link)      do_link ;;
+L1101: help|-h|--help)
+L1103: *) echo "Unknown command: $1 (try: netclaw help)"; exit 1 ;;
 ```
 
 ## scripts/netclaw-secure-start.sh
@@ -2113,6 +2515,31 @@ L177: ap.add_argument("--env", default="", help="shared .env for ${VAR} resoluti
 L178: ap.add_argument("--config", required=True, help="target ~/.hermes/config.yaml")
 L179: ap.add_argument("--sidecar", default="", help="fallback file if config.yaml already has mcp_servers")
 L23: Usage:
+```
+
+## scripts/pal-prepare-agent.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--apply`, `--enable-http`, `--home`
+
+```text
+L56: argparse.ArgumentParser(description=__doc__)
+L57: parser.add_argument("--home",type=Path,default=Path(os.environ.get("OPENCLAW_HOME",str(Path.home()/".openclaw"))))
+L58: parser.add_argument("--apply",action="store_true")
+L59: parser.add_argument("--enable-http",action="store_true",help="Also enable the authenticated local chat compatibility endpoint")
+```
+
+## scripts/pal-settings.mjs
+
+Node entry point; argument/source references only. npm wrapper commands are indexed separately.
+
+Flags mentioned: `--face`, `--free-plan-confirmed`
+
+```text
+L13: const [command,...args]=process.argv.slice(2);
+L19: if(args.length!==3 || args[0]!=='--face' || args[2]!=='--free-plan-confirmed') throw Error('Usage: provision --face STOCK_ID --free-plan-confirmed. Check account eligibility first; no upgrade is performed.');
+L27: } else console.log('Usage: node scripts/pal-settings.mjs status|faces|provision --face STOCK_ID --free-plan-confirmed|verify');
 ```
 
 ## scripts/patch-claw-certs.sh
@@ -2243,10 +2670,10 @@ Static source declarations; lexical flags may include delegated commands. No exe
 Flags mentioned: `--args`, `--command`, `--dry-run`, `--mcp-dir`, `--skip-scan`
 
 ```text
-L70: argparse.ArgumentParser(description="Register ALL MCPs with DefenseClaw")
-L71: parser.add_argument("--dry-run", action="store_true", help="Show commands without executing")
-L72: parser.add_argument("--skip-scan", action="store_true", help="Skip security scan when registering")
-L73: parser.add_argument("--mcp-dir", default="mcp-servers", help="MCP servers directory")
+L72: argparse.ArgumentParser(description="Register ALL MCPs with DefenseClaw")
+L73: parser.add_argument("--dry-run", action="store_true", help="Show commands without executing")
+L74: parser.add_argument("--skip-scan", action="store_true", help="Skip security scan when registering")
+L75: parser.add_argument("--mcp-dir", default="mcp-servers", help="MCP servers directory")
 L7: Usage:
 ```
 
@@ -2280,6 +2707,40 @@ L815: parser.add_argument("--strict-capabilities", action="store_true",
                         help="treat optional live/Docker gaps as exit 2")
 L817: parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
 L530: code = "import importlib.util,sys; missing=[x for x in sys.argv[1:] if importlib.util.find_spec(x) is None]; print('\\n'.join(missing))"
+```
+
+## scripts/runtime-policy.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--allow-scripts`, `--node`, `--npm`, `--runtime`
+
+```text
+L37: argparse.ArgumentParser(description=__doc__)
+L38: parser.add_argument('--runtime', choices=['openclaw', 'hermes'], default='openclaw')
+L39: parser.add_argument('--node')
+L40: parser.add_argument('--npm')
+```
+
+## scripts/runtime-selection.mjs
+
+Node entry point; argument/source references only. npm wrapper commands are indexed separately.
+
+Flags mentioned: `--fixture`
+
+```text
+L81: if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+L83: if (process.argv[2] === '--fixture') {
+```
+
+## scripts/runtime-selection.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--field`
+
+```text
+L42: if len(sys.argv) == 3 and sys.argv[1] == '--field': print(value[sys.argv[2]])
 ```
 
 ## scripts/scan-all-mcp-source.py
@@ -2330,15 +2791,16 @@ L93: echo "---" >> "$OUTPUT"
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 
-Flags mentioned: `--preview`, `--python`, `--rebuild`, `--restore`, `--target`
+Flags mentioned: `--component`, `--preview`, `--python`, `--rebuild`, `--restore`, `--root`, `--target`
 
 ```text
-L89: argparse.ArgumentParser(description=__doc__)
-L90: parser.add_argument('--restore', action='store_true')
-L91: parser.add_argument('--preview', action='store_true')
-L92: parser.add_argument('--rebuild', action='store_true')
-L93: parser.add_argument('--target', default=os.environ.get('GAIT_VENV', str(Path.home() / '.openclaw/gait-venv')))
-L94: parser.add_argument('--python', default=os.environ.get('NETCLAW_PY', sys.executable))
+L107: argparse.ArgumentParser(description=__doc__)
+L108: parser.add_argument('--restore', action='store_true')
+L109: parser.add_argument('--preview', action='store_true')
+L110: parser.add_argument('--rebuild', action='store_true')
+L111: parser.add_argument('--target', default=os.environ.get('GAIT_VENV', str(Path.home() / '.openclaw/gait-venv')))
+L112: parser.add_argument('--python', default=os.environ.get('NETCLAW_PY', sys.executable))
+L78: "import sys, asyncio; sys.path.insert(0, sys.argv[1]); "
 ```
 
 ## scripts/setup-profile.py
@@ -2361,12 +2823,12 @@ Static source declarations; lexical flags may include delegated commands. No exe
 Flags mentioned: `--detach`, `--no-checkout`, `--preview`, `--python`, `--rebuild`, `--restore`, `--target`
 
 ```text
-L102: argparse.ArgumentParser(description=__doc__)
-L103: parser.add_argument('--target', default=os.environ.get('PYATS_VENV', str(Path.home()/'.openclaw/pyats-venv')))
-L104: parser.add_argument('--python', default=os.environ.get('PYATS_PYTHON', '3.12'))
-L105: parser.add_argument('--preview', action='store_true')
-L106: parser.add_argument('--restore', action='store_true')
-L107: parser.add_argument('--rebuild', action='store_true')
+L103: argparse.ArgumentParser(description=__doc__)
+L104: parser.add_argument('--target', default=os.environ.get('PYATS_VENV', str(Path.home()/'.openclaw/pyats-venv')))
+L105: parser.add_argument('--python', default=os.environ.get('PYATS_PYTHON', '3.12'))
+L106: parser.add_argument('--preview', action='store_true')
+L107: parser.add_argument('--restore', action='store_true')
+L108: parser.add_argument('--rebuild', action='store_true')
 ```
 
 ## scripts/setup.sh
@@ -2377,38 +2839,48 @@ Flags mentioned: `--new`, `--template`, `--tui`
 
 ```text
 L74: # components was installed (per ~/.openclaw/netclaw-components.conf).
-L167: # --- NetBox ---
-L180: # --- Nautobot ---
-L196: # --- OpsMill Infrahub ---
-L216: # --- Infoblox DDI ---
-L231: # --- Itential Automation Platform ---
-L248: # --- Juniper JunOS ---
-L262: # --- Arista CloudVision ---
-L278: # --- ServiceNow ---
-L293: # --- Cisco ACI ---
-L308: # --- Cisco ISE ---
-L323: # --- F5 BIG-IP ---
-L342: # --- Catalyst Center ---
-L357: # --- NVD CVE ---
-L373: # --- Microsoft Graph (Office 365) ---
-L397: # --- GitHub ---
-L415: # --- Cisco Modeling Labs (CML) ---
-L439: # --- Cisco NSO ---
-L466: # --- AWS Cloud ---
-L485: # --- Google Cloud Platform ---
-L510: # --- Cisco Meraki ---
-L529: # --- Cisco FMC (Secure Firewall) ---
-L553: # --- Palo Alto Panorama ---
-L568: # --- FortiManager ---
-L583: # --- Ansible Automation Platform (AAP) ---
-L603: # --- Cisco ThousandEyes ---
-L620: # --- Cisco RADKit ---
-L639: # --- ContainerLab ---
-L667: # --- HumanRail ---
-L685: # --- Cisco WebEx ---
-L769: --template "$NETCLAW_DIR/config/twilio-voice.json.example"
-L868: echo -e "    ${CYAN}hermes chat${NC}              # or: hermes --tui"
-L875: echo -e "    ${CYAN}openclaw chat --new${NC}       # Terminal 2"
+L170: # --- NetBox ---
+L183: # --- Nautobot ---
+L199: # --- OpsMill Infrahub ---
+L219: # --- Infoblox DDI ---
+L234: # --- Itential Automation Platform ---
+L251: # --- Juniper JunOS ---
+L265: # --- Arista CloudVision ---
+L281: # --- ServiceNow ---
+L296: # --- Cisco ACI ---
+L311: # --- Cisco ISE ---
+L326: # --- F5 BIG-IP ---
+L345: # --- Catalyst Center ---
+L360: # --- NVD CVE ---
+L376: # --- Microsoft Graph (Office 365) ---
+L400: # --- GitHub ---
+L418: # --- Cisco Modeling Labs (CML) ---
+L442: # --- Cisco NSO ---
+L469: # --- Equinix Fabric + Network Edge ---
+L492: # --- AWS Cloud ---
+L511: # --- Google Cloud Platform ---
+L536: # --- Cisco Meraki ---
+L555: # --- Cisco FMC (Secure Firewall) ---
+L579: # --- Palo Alto Panorama ---
+L594: # --- FortiManager ---
+L609: # --- Ansible Automation Platform (AAP) ---
+L629: # --- Cisco ThousandEyes ---
+L646: # --- Cisco RADKit ---
+L665: # --- ContainerLab ---
+L693: # --- HumanRail ---
+L711: # --- Cisco WebEx ---
+L795: --template "$NETCLAW_DIR/config/twilio-voice.json.example"
+L894: echo -e "    ${CYAN}hermes chat${NC}              # or: hermes --tui"
+L901: echo -e "    ${CYAN}openclaw chat --new${NC}       # Terminal 2"
+```
+
+## scripts/test-install-pyats-genie.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: `--isolated`, `--prefix`, `--upgrade`
+
+```text
 ```
 
 ## scripts/test-prepare-release.py
@@ -2482,9 +2954,9 @@ L27: --repo) [[ $# -ge 2 ]] || { echo 'Missing --repo path' >&2; exit 2; }; HUD_
 L28: -h|--help) usage; exit 0 ;;
 L29: *) echo "Unknown option: $1" >&2; usage >&2; exit 2 ;;
 L34: echo '--install-deps requires --apply; check mode never installs packages.' >&2
-L50: (cd "$HUD_UPGRADE_UI" && node --input-type=module -e 'await import("vite"); await import("react"); await import("three");') || {
-L51: echo 'HUD dependencies unavailable. Review --apply --install-deps.' >&2; exit 1;
-L55: echo 'Check complete. No files or services changed. Use --apply to build this checkout.'
+L55: (cd "$HUD_UPGRADE_UI" && node --input-type=module -e 'await import("vite"); await import("react"); await import("three");') || {
+L56: echo 'HUD dependencies unavailable. Review --apply --install-deps.' >&2; exit 1;
+L60: echo 'Check complete. No files or services changed. Use --apply to build this checkout.'
 ```
 
 ## scripts/verify-catalog-coverage.py
@@ -2544,18 +3016,49 @@ Flags mentioned: none
 ```text
 ```
 
+## ui/netclaw-visual/genie_parse.py
+
+Static source declarations; lexical flags may include delegated commands. No execution performed.
+
+Flags mentioned: none
+
+```text
+```
+
 ## ui/netclaw-visual/package.json
 
 All package.json script commands. Arguments after -- are delegated to the underlying command.
 
-Flags mentioned: `--test`
+Flags mentioned: none
 
 ```text
 L1: npm run dev → concurrently "node server.js" "vite"
 L1: npm run server → node server.js
 L1: npm run build → vite build
 L1: npm run preview → vite preview
-L1: npm run test → node --test 'src/**/*.test.js'
+L1: npm run test → node scripts/run-unit-tests.mjs
+L1: npm run test:bundle → npm run build && node scripts/check-canvas-bundle.mjs
+L1: npm run test:canvas → node test/run-canvas.mjs
+L1: npm run test:terminal → node test/terminal-smoke.mjs
+L1: npm run test:testbed → node test/testbed-editor.mjs
+L1: npm run test:enrichment → node test/terminal-enrichment.mjs
+L1: npm run test:enrichment-layout → node test/enrichment-layout.mjs
+L1: npm run test:terminal-selection → node test/terminal-mouse-coordinates.mjs
+L1: npm run test:topology → node test/topology.mjs
+L1: npm run test:topology-facts → node test/topology-facts.mjs
+L1: npm run test:topology-closest → node test/topology-closest.mjs
+L1: npm run test:topology-api → node test/topology-api.mjs
+L1: npm run test:ssh-policy → node test/terminal-ssh-policy.mjs
+L1: npm run test:terminal-local → node test/terminal-local-request.mjs
+L1: npm run test:terminal-credentials → node test/terminal-credentials.mjs
+L1: npm run test:intent → node test/terminal-intent.mjs
+L1: npm run test:intent-execution → node test/terminal-intent-execution.mjs
+L1: npm run test:intent-live → node test/terminal-intent-live.mjs
+L1: npm run test:intent-live-ui → node test/terminal-intent-live-ui.mjs
+L1: npm run test:change-policy → node test/terminal-change-policy.mjs
+L1: npm run test:artifacts → node test/artifact-formats.mjs
+L1: npm run test:genie → node test/genie-parser.mjs
+L1: npm run test:observability → node test/observability.mjs
 ```
 
 ## ui/netclaw-visual/server.js
@@ -2577,17 +3080,7 @@ Flags mentioned: none
 L10: const output = process.argv[2] || '/tmp/netclaw-hud127-preview.html';
 ```
 
-
-## scripts/equinix-stdio.py
-
-Static source declarations; lexical flags may include delegated commands. No execution performed.
-
-Flags mentioned: `--transport`
-
-```text
-```
-
-## scripts/lib/equinix/policy.py
+## ui/netclaw-visual/test/genie_adapter_test.py
 
 Static source declarations; lexical flags may include delegated commands. No execution performed.
 

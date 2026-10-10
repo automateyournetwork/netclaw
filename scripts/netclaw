@@ -34,6 +34,11 @@ NETCLAW_ROOT="$(cd "$(dirname "$SCRIPT_PATH")/.." && pwd)"
 # shellcheck source=lib/tui.sh
 source "$NETCLAW_ROOT/scripts/lib/tui.sh"
 
+if [ "${1:-}" = "hud" ]; then
+    shift
+    exec node "$NETCLAW_ROOT/scripts/hud-launch.mjs" "$@"
+fi
+
 # Agent runtime (openclaw default | hermes). The n2n federation subsystem
 # is OpenClaw-native; only the runtime binary and state-dir base are switched
 # here so `netclaw tui` and .env reads follow the chosen runtime.

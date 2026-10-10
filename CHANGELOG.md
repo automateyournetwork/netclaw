@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.7.0] - 2026-10-10
+
+- Connect Hermes to shared HUD Chat, Canvas, local Avatar, owned history and runtime panels through a private MCP bridge and protected companion.
+- Persist runtime selection and isolated installation state; qualify the real read-only subnet tool and skill with request-correlated evidence.
+- Add durable admission, bounded recovery and cooperative stop without automatic replay; preserve populated homes and existing OpenClaw workflows.
+- Explain runtime choices, upgrade steps and exact Mac/WSL qualification. Hermes n2n/iN2N federation follows in spec 149.
+
+Spec [148-hermes-hud-integration](specs/148-hermes-hud-integration/spec.md). See [release notes](docs/releases/1.7.0.md).
+
 ## [1.6.2] - 2026-10-10
 
 Spec [147-installer-followups](specs/147-installer-followups/spec.md). See [release notes](docs/releases/1.6.2.md).

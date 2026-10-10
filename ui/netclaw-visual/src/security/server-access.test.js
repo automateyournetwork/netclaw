@@ -92,12 +92,12 @@ else process.exit(1);
   fs.mkdirSync(path.join(skills, 'ordinary'));
   fs.writeFileSync(path.join(skills, 'ordinary', 'SKILL.md'), '# Ordinary\n\nValid skill.\n');
   fs.writeFileSync(path.join(sessions, 'ordinary.jsonl'), '{}\n');
-  for (const route of ['/api/skill/ordinary', '/api/session/ordinary/tools']) {
+  for (const route of ['/api/skill/ordinary']) {
     assert.equal((await fetch(`http://127.0.0.1:${port}${route}`)).status, 200, route);
   }
   for (const route of [
     '/api/skill/..%2f..%2foutside', '/api/skill/linked',
-    '/api/session/..%2f..%2f..%2f..%2foutside%2fprivate/tools', '/api/session/linked/tools',
+    '/api/session/ordinary/tools', '/api/session/..%2f..%2f..%2f..%2foutside%2fprivate/tools', '/api/session/linked/tools',
   ]) {
     assert.equal((await fetch(`http://127.0.0.1:${port}${route}`)).status, 404, route);
   }
@@ -193,7 +193,7 @@ else process.exit(1);
   assert.equal(timedOut.fromGateway, false);
   assert.match(timedOut.gatewayIssue, /did not finish within/);
   assert.match(timedOut.gatewayIssue, /check the gateway for any tool actions before retrying/);
-  assert.deepEqual(await (await fetch(`http://127.0.0.1:${port}/api/chat/history`)).json(),[]);
+  assert.equal((await fetch(`http://127.0.0.1:${port}/api/chat/history`)).status,400,'unscoped history is unavailable');
 
 
 });

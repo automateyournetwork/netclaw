@@ -161,8 +161,7 @@ try {
     await Promise.race([new Promise(resolve => mock.close(resolve)), pause(1000)]);
   }
   // All targets were created by this test inside this exact temporary folder.
-  for (const name of fs.readdirSync(temp)) fs.unlinkSync(path.join(temp, name));
-  fs.rmdirSync(temp);
+  fs.rmSync(temp, {recursive:true, force:true});
 }
 // As in terminal-smoke.mjs, Windows ssh2 can retain a native handle after
 // closing. Reached only after every assertion and cleanup succeeded.

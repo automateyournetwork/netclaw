@@ -21,6 +21,8 @@ def find_mcp_entry_point(mcp_dir: Path) -> tuple[str, list[str]] | None:
 
     Returns (command, args) tuple or None if not found.
     """
+    if mcp_dir.name == "hermes-hud-mcp":
+        return None  # HUD-private control plane; never agent-visible.
     # Common patterns for MCP server entry points
     patterns = [
         # Python servers

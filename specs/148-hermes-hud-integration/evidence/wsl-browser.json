@@ -1,0 +1,20 @@
+{
+  "platform": "win32",
+  "checks": [
+    "Windows/WSL loopback, protected selected runtime and truthful Hermes ready badge",
+    "Contextual Chat and local Avatar switch preserve draft without inference",
+    "Five turns, owned history after refresh, second browser profile denied",
+    "Attachment/stale-installation/legacy routes denied; private cookie; no fixture provider key in browser",
+    "Canvas two branch creation-point contexts exclude later parent/sibling messages; graph and draft survive refresh"
+  ],
+  "errors": [],
+  "browser": "155.0.4283.45",
+  "canvasRestoredDrafts": [
+    "",
+    "saved Canvas draft",
+    ""
+  ],
+  "passed": true,
+  "sourceCommit": "a45225a",
+  "sourceNote": "Executed working tree immediately before commit; final errors-empty assertion added before commit, and recorded errors were empty."
+}

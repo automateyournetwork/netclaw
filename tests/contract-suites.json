@@ -808,6 +808,26 @@
         "prepend_path": true
       },
       "timeout_seconds": 300
+    },
+    "hermes-hud": {
+      "kind": "shell",
+      "command": [
+        "bash",
+        "tests/hermes-hud/run-tests.sh"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/hermes-hud",
+        "requirements": [
+          "mcp-servers/hermes-hud-mcp/requirements.txt"
+        ],
+        "packages": [],
+        "required_imports": [
+          "fastmcp",
+          "httpx"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 300
     }
   }
 }

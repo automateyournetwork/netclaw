@@ -1,10 +1,63 @@
 {
   "openclaw_package": "openclaw@latest",
   "node_ranges": {
-    "openclaw": [{"min": [24, 16, 0], "max_exclusive": [25, 0, 0]}, {"min": [26, 1, 0]}],
-    "hermes": [{"min": [18, 0, 0]}]
+    "openclaw": [
+      {
+        "min": [
+          24,
+          16,
+          0
+        ],
+        "max_exclusive": [
+          25,
+          0,
+          0
+        ]
+      },
+      {
+        "min": [
+          26,
+          1,
+          0
+        ]
+      }
+    ],
+    "hermes": [
+      {
+        "min": [
+          18,
+          0,
+          0
+        ]
+      }
+    ],
+    "hud": [
+      {
+        "min": [
+          24,
+          19,
+          0
+        ],
+        "max_exclusive": [
+          25,
+          0,
+          0
+        ]
+      },
+      {
+        "min": [
+          26,
+          1,
+          0
+        ]
+      }
+    ]
   },
-  "node_descriptions": {"openclaw": ">=24.16.0 <25 or >=26.1.0", "hermes": ">=18 (Node-based components)"},
+  "node_descriptions": {
+    "openclaw": ">=24.16.0 <25 or >=26.1.0",
+    "hermes": ">=18 (Node-based components)",
+    "hud": ">=24.19.0 <25 or >=26.1.0"
+  },
   "checked": "2026-10-10",
   "source": "https://docs.openclaw.ai/install/node-compatibility"
 }

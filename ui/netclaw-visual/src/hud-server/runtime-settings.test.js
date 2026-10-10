@@ -17,3 +17,12 @@ test('legacy string model and unavailable config do not invent template defaults
  assert.deepEqual(runtimeSettings(null,0,'missing').config,{});
  assert.match(JSON.stringify(runtimeSettings(null,0,'missing')),/Unavailable/);
 });
+
+test('Hermes settings use the rendered row contract and expose no credentials', async()=>{
+ const {hermesRuntimeSettings}=await import('./runtime-settings.js');
+ const data=hermesRuntimeSettings({model:{default:'qualified-model',provider:'anthropic'},secret:'do-not-render'},'/selected/config.yaml');
+ assert.ok(Array.isArray(data.settings));
+ assert.equal(Object.fromEntries(data.settings.map(r=>[r.label,r.value]))['Selected runtime'],'Hermes');
+ assert.ok(!JSON.stringify(data).includes('do-not-render'));
+ assert.ok(!JSON.stringify(hermesRuntimeSettings(null,'/missing')).includes('OpenClaw'));
+});

@@ -1,39 +1,172 @@
 {
   "schema_version": 1,
-  "defaults": {"os": ["Darwin", "Linux"], "python_min": [3, 10]},
-  "core_commands": ["node", "npm", "npx", "git", "curl", "tar"],
+  "defaults": {
+    "os": [
+      "Darwin",
+      "Linux"
+    ],
+    "python_min": [
+      3,
+      10
+    ]
+  },
+  "core_commands": [
+    "node",
+    "npm",
+    "npx",
+    "git",
+    "curl",
+    "tar"
+  ],
   "components": {
-    "pyats": {"commands": ["uv"]},
-    "gait": {"commands": ["uv"]},
-    "atlassian": {"commands": ["uv"]},
-    "packet-buddy": {"commands": ["tshark"], "optional_commands": ["capinfos"]},
-    "nmap": {"commands": ["nmap"]},
-    "nsm": {"commands": ["docker"]},
-    "batfish": {"commands": ["docker"]},
-    "kubeshark": {"commands": ["kubectl"]},
-    "ollama": {"commands": ["ollama"]},
-    "aws": {"optional_commands": ["dot"]},
-    "cml": {"python_min": [3, 12]},
-    "nso": {"python_min": [3, 12]},
-    "uml": {"python_min": [3, 12]},
-    "te-community": {"python_min": [3, 12]},
-    "memory-mcp": {"python_min": [3, 11]},
+    "pyats": {
+      "commands": [
+        "uv"
+      ]
+    },
+    "gait": {
+      "commands": [
+        "uv"
+      ]
+    },
+    "atlassian": {
+      "commands": [
+        "uv"
+      ]
+    },
+    "packet-buddy": {
+      "commands": [
+        "tshark"
+      ],
+      "optional_commands": [
+        "capinfos"
+      ]
+    },
+    "nmap": {
+      "commands": [
+        "nmap"
+      ]
+    },
+    "nsm": {
+      "commands": [
+        "docker"
+      ]
+    },
+    "batfish": {
+      "commands": [
+        "docker"
+      ]
+    },
+    "kubeshark": {
+      "commands": [
+        "kubectl"
+      ]
+    },
+    "ollama": {
+      "commands": [
+        "ollama"
+      ]
+    },
+    "aws": {
+      "optional_commands": [
+        "dot"
+      ]
+    },
+    "cml": {
+      "python_min": [
+        3,
+        12
+      ]
+    },
+    "nso": {
+      "python_min": [
+        3,
+        12
+      ]
+    },
+    "uml": {
+      "python_min": [
+        3,
+        12
+      ]
+    },
+    "te-community": {
+      "python_min": [
+        3,
+        12
+      ]
+    },
+    "memory-mcp": {
+      "python_min": [
+        3,
+        11
+      ]
+    },
     "panorama": {
-      "python_max_exclusive": [3, 13],
+      "python_max_exclusive": [
+        3,
+        13
+      ],
       "source": "https://pypi.org/project/iflow-mcp-cdot65-palo-alto-mcp/"
     },
     "zoom-rtms": {
-      "python_max_exclusive": [3, 14],
-      "platforms": [["Darwin", "arm64"], ["Linux", "x86_64"]],
-      "linux_glibc_min": [2, 34],
+      "python_max_exclusive": [
+        3,
+        14
+      ],
+      "platforms": [
+        [
+          "Darwin",
+          "arm64"
+        ],
+        [
+          "Linux",
+          "x86_64"
+        ]
+      ],
+      "linux_glibc_min": [
+        2,
+        34
+      ],
       "source": "https://pypi.org/project/rtms/1.1.0/"
     },
-    "computer-use": {"os": ["Linux"], "reason": "the Xvfb/XFCE virtual desktop requires Linux"},
-    "forward": {"go_min": [1, 25], "cgo": true, "source": "https://github.com/forwardnetworks/forward-mcp#prerequisites"},
+    "computer-use": {
+      "os": [
+        "Linux"
+      ],
+      "reason": "the Xvfb/XFCE virtual desktop requires Linux"
+    },
+    "forward": {
+      "go_min": [
+        1,
+        25
+      ],
+      "cgo": true,
+      "source": "https://github.com/forwardnetworks/forward-mcp#prerequisites"
+    },
     "radkit": {
       "vendor_index": "https://radkit.cisco.com/pip",
       "vendor_wheel": "cisco_radkit_client-1.9.0-*.whl",
       "source": "https://pypi.org/project/cisco-radkit-client/"
+    },
+    "hermes-hud": {
+      "os": [
+        "Darwin",
+        "Linux"
+      ],
+      "python_min": [
+        3,
+        12
+      ],
+      "python_max_exclusive": [
+        3,
+        13
+      ],
+      "commands": [
+        "uv",
+        "git"
+      ],
+      "reason": "Bridge Python 3.12; separate companion installs Python 3.14. HUD requires Node 24.19+."
     }
   },
   "command_remedies": {

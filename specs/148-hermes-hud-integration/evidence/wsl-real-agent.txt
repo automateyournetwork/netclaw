@@ -1,0 +1,21 @@
+subnet-calc: 0 reviewed files migrated
+Using Python 3.12.10 environment at: <WSL_HOME>/.cache/netclaw-148-fixture/bridge
+Checked 6 packages in 5ms
+Using Python 3.12.10 environment at: <WSL_HOME>/.cache/netclaw-148-fixture/tool
+Checked 4 packages in 5ms
+Using Python 3.14.6 environment at: <WSL_HOME>/.cache/netclaw-148-fixture/profile/python-runtimes/hermes-hud-agent/venv
+Resolved 87 packages in 198ms
+   Building hermes-agent @ file://<WSL_HOME>/.cache/netclaw-148-fixture/profile/python-runtimes/hermes-hud-agent/source
+      Built hermes-agent @ file://<WSL_HOME>/.cache/netclaw-148-fixture/profile/python-runtimes/hermes-hud-agent/source
+Prepared 1 package in 1.35s
+Uninstalled 1 package in 0.43ms
+Installed 1 package in 0.91ms
+ ~ hermes-agent==0.0.0 (from file://<WSL_HOME>/.cache/netclaw-148-fixture/profile/python-runtimes/hermes-hud-agent/source)
+Private Hermes companion installed. Owner configuration was preserved. Launch with netclaw hud.
+test_five_turns_real_tool_history_and_owner_preservation (test_agent_integration.RealHermesTests.test_five_turns_real_tool_history_and_owner_preservation) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 16.843s
+
+OK
+PASS: real Hermes and installer-patched FastMCP subnet tool; controlled model provider. No live-provider acceptance claimed.

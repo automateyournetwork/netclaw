@@ -72,13 +72,15 @@ def build():
                         'sha256':hashlib.sha256(p.read_bytes()).hexdigest(),'coverage':'Node entry point; argument/source references only. npm wrapper commands are indexed separately.'})
     cli.sort(key=lambda c:c['path'])
     config=json.loads((ROOT/'config/openclaw.json').read_text()); servers=[]
-    for name,cfg in sorted(config.get('mcpServers',{}).items()):
+    registrations={**config.get('mcpServers',{}),'hermes-hud-mcp':{'access':'hud-private','command':'python3','args':['-u','scripts/component-launch.py','hermes-hud','--server','hermes-hud-mcp']}}
+    for name,cfg in sorted(registrations.items()):
         directory=ROOT/'mcp-servers'/name; tools=[]
         if directory.is_dir():
             for p in sorted(directory.rglob('*.py')):
                 if any(part in ('vendor','.venv','tests','test','__pycache__') for part in p.relative_to(directory).parts): continue
                 try: tree=ast.parse(p.read_text())
                 except (SyntaxError,UnicodeError): continue
+                tool_decorators={node.name for node in ast.walk(tree) if isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)) and any(isinstance(call,ast.Call) and isinstance(call.func,ast.Attribute) and call.func.attr=='tool' and isinstance(call.func.value,ast.Name) and call.func.value.id=='mcp' for call in ast.walk(node))}
                 for node in ast.walk(tree):
                     if isinstance(node,ast.Call) and ((isinstance(node.func,ast.Attribute) and node.func.attr=='Tool') or (isinstance(node.func,ast.Name) and node.func.id=='Tool')):
                         kw={k.arg:k.value for k in node.keywords}
@@ -86,12 +88,12 @@ def build():
                             tools.append({'name':kw['name'].value,'signature':ast.unparse(kw['inputSchema']) if 'inputSchema' in kw else 'Schema supplied dynamically', 'description':kw['description'].value if isinstance(kw.get('description'),ast.Constant) and isinstance(kw['description'].value,str) else '', 'source':str(p.relative_to(ROOT)), 'line':node.lineno})
                     if not isinstance(node,(ast.FunctionDef,ast.AsyncFunctionDef)): continue
                     decorators=[ast.unparse(d) for d in node.decorator_list]
-                    if not any(re.search(r'(^|\.)tool(?:\(|$)',d) for d in decorators): continue
+                    if not any(re.search(r'(^|\.)tool(?:\(|$)',d) or d.split('(')[0] in tool_decorators for d in decorators): continue
                     tools.append({'name':node.name,'signature':ast.unparse(node.args),'description':ast.get_docstring(node) or '', 'source':str(p.relative_to(ROOT)), 'line':node.lineno})
-        servers.append({'name':name,'transport':'HTTP' if cfg.get('url') else 'stdio','tools':tools,
+        servers.append({'name':name,'access':cfg.get('access','agent-native'),'transport':'HTTP' if cfg.get('url') else 'stdio','tools':tools,
                         'coverage':'Source-declared tool signatures/schemas; runtime tools/list is authoritative.' if tools else 'External, generated or non-decorator tools: runtime tools/list required; schema not inferred.'})
     routes={}
-    for p in [ROOT/'ui/netclaw-visual/server.js',*sorted((ROOT/'ui/netclaw-visual/src/hud-server').glob('*.js'))]:
+    for p in [ROOT/'ui/netclaw-visual/server.js',*sorted((ROOT/'ui/netclaw-visual/src/hud-server').rglob('*.js'))]:
         if '.test.' in p.name: continue
         source=p.read_text()
         for match in re.finditer(r"app\.(get|post|put|delete|patch)\(['\"]([^'\"]+)['\"]",source):
@@ -104,11 +106,15 @@ def build():
             if parameters: op['parameters']=parameters
             if method in ('post','put','patch'):
                 op['requestBody']={'required':False,'content':{'application/json':{'schema':{'type':'object','additionalProperties':True}}}}
-            if '/hud/tasks/' in route: op['security']=[{'HUDCookie':[]}]
+            if '/hud/tasks/' in route or '/chat/' in route: op['security']=[{'HUDCookie':[]}]
             routes.setdefault(route,{})[method]=op
+    # These fixed routes are registered by a small table rather than app.get/post.
+    for method,suffix in [('get',''),('get','/events'),('post','/approval'),('post','/stop')]:
+        route='/api/chat/requests/{id}'+suffix
+        routes.setdefault(route,{})[method]={'operationId':method+'_owned_request'+suffix.replace('/','_'),'summary':method.upper()+' '+route,'x-source':'ui/netclaw-visual/src/hud-server/runtime/routes.js','description':'Owned Hermes request. Selected-installation HttpOnly cookie; authorization rechecked after I/O. Polling never resubmits.','security':[{'HUDCookie':[]}],'parameters':[{'name':'id','in':'path','required':True,'schema':{'type':'string'}}],'responses':{'200':{'description':'Owned request state or bounded event page.'},'404':{'description':'Unavailable or not owned.'}}}
     search=routes['/api/rag/search']['post']; search['requestBody']={'required':True,'content':{'application/json':{'schema':{'type':'object','required':['query'],'properties':{'query':{'type':'string','minLength':1,'maxLength':4000},'collection':{'type':'string','pattern':'^[\\w.-]{1,128}$','default':'documents'},'k':{'type':'integer','minimum':1,'maximum':20,'default':5}},'additionalProperties':False}}}}
     upload=routes['/api/rag/upload']['post'];upload['requestBody']={'required':True,'content':{'multipart/form-data':{'schema':{'type':'object','required':['file'],'properties':{'file':{'type':'string','format':'binary'},'title':{'type':'string'},'doc_type':{'type':'string','enum':['other','vendor','standard','customer','install-guide']}}}}}};upload['responses']['202']={'description':'Accepted; ingestion pending, not ready.'}
-    openapi={'openapi':'3.1.0','info':{'title':'NetClaw local HUD HTTP API','version':'127','description':'Source-derived HUD route inventory. Local loopback service; not an internet API. MCP uses JSON-RPC tools/list and tools/call, not REST/OpenAPI. Generic schemas are explicitly incomplete.'},'servers':[{'url':'http://localhost:3000','description':'Default UI proxy; operator ports may differ'}],'paths':routes,'components':{'securitySchemes':{'HUDCookie':{'type':'apiKey','in':'cookie','name':'nc_hud'}}}}
+    openapi={'openapi':'3.1.0','info':{'title':'NetClaw local HUD HTTP API','version':'127','description':'Source-derived HUD route inventory. Local loopback service; not an internet API. MCP uses JSON-RPC tools/list and tools/call, not REST/OpenAPI. Generic schemas are explicitly incomplete.'},'servers':[{'url':'http://localhost:3000','description':'Default UI proxy; operator ports may differ'}],'paths':routes,'components':{'securitySchemes':{'HUDCookie':{'type':'apiKey','in':'cookie','name':'nc_hud','description':'Legacy OpenClaw cookie, or selected-installation nc_hud_<UUID without hyphens> cookie. HttpOnly; no browser-supplied ownership IDs.'}}}}
     daemon=ROOT/'mcp-servers/protocol-mcp/bgp-daemon-v2.py'
     daemon_conditions=[{'line':n,'declaration':line.strip()} for n,line in enumerate(daemon.read_text().splitlines(),1) if re.search(r'if .*path|elif .*path|method ==',line)]
     reference={'scope':'Repository script entry points, non-vendored Python/shell launchers, npm scripts and Node service/preview launchers. Static declarations include positional args, defaults and choices when present; delegated upstream/runtime CLIs require their installed help. MCP source signatures are not runtime schema attestations.', 'cli':cli,'mcps':servers,'http':openapi,'daemon':{'source':str(daemon.relative_to(ROOT)),'conditions':daemon_conditions}}

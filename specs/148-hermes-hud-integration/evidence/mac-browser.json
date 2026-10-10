@@ -1,0 +1,26 @@
+{
+  "platform": "darwin",
+  "checks": [
+    "Browser loopback, protected selected runtime and truthful Hermes ready badge",
+    "Contextual Chat and local Avatar switch preserve draft without inference",
+    "Five turns, owned history after refresh, second browser profile denied",
+    "Attachment/stale-installation/legacy routes denied; private cookie; no fixture provider key in browser",
+    "Canvas two branch creation-point contexts exclude later parent/sibling messages; graph and draft survive refresh",
+    "Unsupported Canvas attachment preserves draft, quote and file without admission",
+    "Actual upgrade check and repeated apply preserve browser graph, draft, quote and attachment on the same origin",
+    "Prior Mac HUD dashboard rollback/reapply preserves saved Canvas graph, draft, quote and file",
+    "Selected-runtime settings/configuration/usage/catalogue/federation panels perform zero inference",
+    "Changed runtime identity refuses stale-tab submission and retains draft (controlled identity response)",
+    "Actual pending browser refresh and cooperative stop recover status with zero replay"
+  ],
+  "errors": [],
+  "browser": "156.0.8078.4",
+  "canvasRestoredDrafts": [
+    "",
+    "saved Canvas draft",
+    ""
+  ],
+  "passed": true,
+  "implementationCommit": "9b65b3bf0bcab69c3ac4d435f7727aa3f74ec7b5",
+  "evidenceNote": "Mac closure validation of the committed changes; command ran on the candidate working tree before commit. Separate live and controlled-provider reports retain their individual scope."
+}

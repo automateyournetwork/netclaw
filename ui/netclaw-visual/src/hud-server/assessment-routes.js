@@ -6,13 +6,13 @@ export function mountAssessmentRoutes(app, { bindings, readAssessment, audit = a
     try {
       let cookie = cookieFrom(req);
       try { bindings.read(cookie); } catch { cookie = bindings.create(); }
-      res.set('Set-Cookie', `nc_hud=${cookie}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000`);
+      res.set('Set-Cookie', `${bindings.cookieName || 'nc_hud'}=${cookie}; HttpOnly; SameSite=Strict; Path=/; Max-Age=2592000`);
       res.json({ authenticated: true });
     } catch { res.status(503).json({ error: 'Private session storage unavailable' }); }
   });
   app.post('/api/hud/session/revoke', (req, res) => {
     try { bindings.revoke(cookieFrom(req)); } catch { /* no existence information */ }
-    res.set('Set-Cookie', 'nc_hud=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0').set('Cache-Control', 'no-store').json({ revoked: true });
+    res.set('Set-Cookie', `${bindings.cookieName || 'nc_hud'}=; HttpOnly; SameSite=Strict; Path=/; Max-Age=0`).set('Cache-Control', 'no-store').json({ revoked: true });
   });
   app.get('/api/hud/tasks/:taskRef/assessments/:assessmentId', async (req, res) => {
     res.set('Cache-Control', 'no-store');

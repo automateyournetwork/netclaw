@@ -1,0 +1,20 @@
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 3.55s
+{
+  "initialJavaScript": {
+    "bytes": 150496,
+    "gzip": 49141
+  },
+  "initialCss": {
+    "bytes": 0,
+    "gzip": 0
+  },
+  "initialChunks": [
+    "canvas.html",
+    "_modulepreload-polyfill-B5Qt9EMX.js",
+    "_preload-helper-ckwbz45p.js",
+    "_client-BvckCBpw.js",
+    "_runtime-client-DnsUNWef.js"
+  ],
+  "budgetBytes": 400000
+}

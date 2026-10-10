@@ -1,0 +1,150 @@
+{
+  "host": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+  "commit": "9f26dfa5911db8ba5e78e2867961033fdca974b9",
+  "evidence": "live-provider",
+  "checks": [
+    {
+      "turn": 1,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 5590,
+        "output_tokens": 14,
+        "total_tokens": 5604,
+        "cache_read_tokens": 0,
+        "cache_write_tokens": 5587
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 2,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 5617,
+        "output_tokens": 6,
+        "total_tokens": 5623,
+        "cache_read_tokens": 5587,
+        "cache_write_tokens": 27
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 3,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 11879,
+        "output_tokens": 205,
+        "total_tokens": 12084,
+        "cache_read_tokens": 11269,
+        "cache_write_tokens": 606
+      },
+      "toolEvidence": [
+        {
+          "tool": "mcp__subnet_calc_mcp__subnet_calculator",
+          "state": "running",
+          "digest": null
+        },
+        {
+          "tool": "mcp__subnet_calc_mcp__subnet_calculator",
+          "state": "completed",
+          "digest": "79d1040fb1b465ecb825c1545883c7f4a9590972981f7869ca674457f141df69"
+        }
+      ]
+    },
+    {
+      "turn": 4,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 6375,
+        "output_tokens": 6,
+        "total_tokens": 6381,
+        "cache_read_tokens": 6220,
+        "cache_write_tokens": 152
+      },
+      "toolEvidence": []
+    },
+    {
+      "turn": 5,
+      "passed": true,
+      "state": "completed",
+      "runtime": {
+        "provider": "anthropic",
+        "model": "claude-sonnet-4-6",
+        "route_source": "global"
+      },
+      "usage": {
+        "input_tokens": 6399,
+        "output_tokens": 124,
+        "total_tokens": 6523,
+        "cache_read_tokens": 6372,
+        "cache_write_tokens": 24
+      },
+      "toolEvidence": []
+    }
+  ],
+  "toolPolicySha256": "8b38a7bf0b6d50c99e2e66df1a98233d998f628930f664c184aa98d4cc591d4d",
+  "sourceManifestSha256": "c51128fcac05cc7510918a14b15cf8abb1df4ed6a4d265df72a28c759a20fece",
+  "runtime": {
+    "kind": "hermes",
+    "label": "Hermes",
+    "readiness": {
+      "ready": true,
+      "runtime": "hermes",
+      "release": "v0.21.6",
+      "installed": true,
+      "authenticated": true,
+      "providerConfigured": "unverified",
+      "revision": "818c13be1dc4fd28987e1e881a9408224afd4535",
+      "protected": true,
+      "tools": [
+        "mcp__subnet_calc_mcp__subnet_calculator"
+      ],
+      "toolQualification": "source-reviewed-read-only",
+      "executionVerified": true,
+      "qualifiedSkills": [
+        "subnet-calculator"
+      ],
+      "model": "claude-sonnet-4-6",
+      "limitations": [
+        "write execution",
+        "attachments",
+        "model lock",
+        "effort",
+        "federation",
+        "hosted avatar"
+      ]
+    },
+    "capabilities": {
+      "attachments": false,
+      "modelSelection": false,
+      "effort": false,
+      "federation": false,
+      "hostedAvatar": false,
+      "writes": false
+    }
+  },
+  "passed": true
+}

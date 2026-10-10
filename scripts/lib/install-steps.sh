@@ -4137,3 +4137,14 @@ component_install_equinix() {
     log_info "Writes also require EQUINIX_ALLOW_WRITES, baseline, exact approved CR and GAIT."
     log_info "Authentication not verified. See docs/EQUINIX.md. No delete tools upstream."
 }
+
+# HUD-private: never register this conversation bridge with an agent.
+component_install_hermes_hud() {
+    [ "$RUNTIME" = "hermes" ] || { log_error "hermes-hud requires --runtime hermes"; return 1; }
+    node "$NETCLAW_DIR/scripts/hud-node-version.mjs" || { log_error "HUD requires Node 24.19+"; return 1; }
+    netclaw_pip_install -r "$NETCLAW_DIR/mcp-servers/hermes-hud-mcp/requirements.txt" || return 1
+    python3 "$NETCLAW_DIR/scripts/install-hermes-hud-agent.py" --home "$RUNTIME_HOME" || return 1
+    (cd "$NETCLAW_DIR/ui/netclaw-visual" && npm ci) || return 1
+    node "$NETCLAW_DIR/scripts/hud-launch.mjs" select hermes "$RUNTIME_HOME" || return 1
+    log_info "Hermes HUD installed. Start it with: netclaw hud"
+}

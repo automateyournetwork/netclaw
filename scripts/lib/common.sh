@@ -73,12 +73,16 @@ PYREV
 # changes (e.g. after a --runtime flag or the TUI prompt).
 # ───────────────────────────────────────────
 define_runtime() {
-    RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+    local resolver="$(cd -P "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)/runtime-selection.py"
+    RUNTIME="$(python3 "$resolver" --field kind)" || return 1
+    local resolved_home resolved_config
+    resolved_home="$(python3 "$resolver" --field home)" || return 1
+    resolved_config="$(python3 "$resolver" --field configPath)" || return 1
     case "$RUNTIME" in
         openclaw)
             RUNTIME_CMD="openclaw"
             RUNTIME_NAME="OpenClaw"
-            RUNTIME_HOME="${OPENCLAW_STATE_DIR:-${OPENCLAW_HOME:-$HOME/.openclaw}}"
+            RUNTIME_HOME="$resolved_home"
             RUNTIME_CONFIG="${OPENCLAW_CONFIG_PATH:-$RUNTIME_HOME/openclaw.json}"
             RUNTIME_WORKSPACE="$RUNTIME_HOME/workspace"
             RUNTIME_SKILLS="$RUNTIME_HOME/workspace/skills"
@@ -86,7 +90,7 @@ define_runtime() {
         hermes)
             RUNTIME_CMD="hermes"
             RUNTIME_NAME="Hermes"
-            RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"
+            RUNTIME_HOME="$resolved_home"
             RUNTIME_CONFIG="$RUNTIME_HOME/config.yaml"
             RUNTIME_WORKSPACE="$RUNTIME_HOME"
             RUNTIME_SKILLS="$RUNTIME_HOME/skills"
@@ -96,6 +100,8 @@ define_runtime() {
             exit 1
             ;;
     esac
+    RUNTIME_HOME="$resolved_home"
+    RUNTIME_CONFIG="$resolved_config"
     RUNTIME_ENV="$RUNTIME_HOME/.env"
 
     # The component manifest lives under the runtime's state dir unless the
@@ -116,6 +122,10 @@ _set_env_var() {
 # Persist operator-filled settings before the runtime wizard/daemon reads them.
 # Deliberately do not source/export dotenv: it is data, not shell code.
 _import_runtime_env() {
+    if [ "$RUNTIME" = "hermes" ]; then
+        log_info "Hermes uses its selected .env; repository credentials are not imported implicitly."
+        return 0
+    fi
     python3 "$(dirname "$_NETCLAW_ENV_WRITER")/import-env.py" \
         --source "$NETCLAW_DIR/.env" --target "$RUNTIME_ENV" --apply
 }

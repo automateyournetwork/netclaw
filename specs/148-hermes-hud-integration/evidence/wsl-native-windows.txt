@@ -1,0 +1,7 @@
+Native PowerShell 5.1.26100.9549 / Windows 10.0.26300.9550
+Start-NetClaw.ps1: refused Hermes with Ubuntu/WSL guidance
+Start-NetClaw-Canvas.ps1: refused Hermes with Ubuntu/WSL guidance
+Restart-NetClaw-API.ps1: refused Hermes with Ubuntu/WSL guidance
+Owner configuration SHA-256 unchanged: true
+Node/OpenClaw process ID set unchanged: true
+Native Node 24.11.1: early refusal only, NOT qualified OpenClaw launch evidence

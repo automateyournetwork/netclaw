@@ -1,0 +1,20 @@
+✔ HTTP context without randomUUID produces random UUIDv4 identifiers (5.1701ms)
+✔ runtime storage never imports OpenClaw content into Hermes and preserves both installations (4.3452ms)
+✔ unknown request survives refresh; observation never submits again and late result recovers (11.1141ms)
+✔ open tab refuses a changed runtime before submission and keeps the original storage binding (3.8419ms)
+NetClaw overlay change failed Error: Camera overlay change was not confirmed.
+    at Object.click (evalmachine.<anonymous>:116:28)
+    at async TestContext.<anonymous> (file://<WSL_HOME>/netclaw-148/ui/netclaw-visual/src/zoom/overlay-state.test.js:24:51)
+    at async Test.run (node:internal/test_runner/test:1389:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+✔ missing overlay cannot report enabled (3.478499ms)
+✔ failed overlay cannot report enabled (3.3543ms)
+✔ failed camera startup cleans up controller and returns false (2.2733ms)
+ℹ tests 366
+ℹ suites 0
+ℹ pass 366
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 6022.008918

@@ -2,6 +2,18 @@ import { gatewayAgentId } from './gateway-agent.js';
 const text = value => typeof value === 'string' && value.length <= 1024 ? value : 'Not configured';
 const modelName = value => text(value).split('@')[0];
 
+export function hermesRuntimeSettings(config, source) {
+  const model = config?.model;
+  return { config: {runtime:'hermes'}, settings: [
+    {label:'Selected runtime', value:'Hermes'},
+    {label:'Configuration source', value:source},
+    {label:'Primary Model', value:modelName(typeof model==='string'?model:model?.default || model?.model)},
+    {label:'Provider', value:text(model?.provider)},
+    {label:'Execution policy', value:'Qualified read-only tools; writes unavailable'},
+    ...(!config?[{label:'Hermes settings',value:'Unavailable: configuration could not be read'}]:[]),
+  ] };
+}
+
 export function runtimeSettings(config, deviceCount, source) {
   if (!config) return { config: {}, settings: [
     { label: 'Configuration source', value: source },

@@ -7,6 +7,18 @@ param(
 
 Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
+
+# Resolve before inspecting, starting or stopping any OpenClaw process.
+$selectionHelper = Join-Path $PSScriptRoot 'scripts\runtime-selection.mjs'
+$runtimeSelectionJson = & node $selectionHelper
+if ($LASTEXITCODE -ne 0) { throw 'Runtime selection is invalid. Hermes HUD runs inside Ubuntu on WSL2; use netclaw hud there.' }
+$runtimeSelection = $runtimeSelectionJson | ConvertFrom-Json
+if ($runtimeSelection.kind -ne 'openclaw') { throw 'Hermes HUD requires Ubuntu on WSL2. In the Linux checkout run netclaw hud.' }
+$env:NETCLAW_RUNTIME = 'openclaw'
+$env:OPENCLAW_HOME = $runtimeSelection.home
+$env:OPENCLAW_STATE_DIR = $runtimeSelection.home
+$env:OPENCLAW_CONFIG_PATH = $runtimeSelection.configPath
+
 if (-not $RepositoryPath) { $RepositoryPath = $PSScriptRoot }
 $apiPort = 3001
 $apiUrl = "http://localhost:$apiPort"

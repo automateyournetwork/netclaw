@@ -1,0 +1,14 @@
+{
+  "platform": "darwin",
+  "kind": "openclaw",
+  "checks": [
+    "Live model selection, two contextual turns, local Avatar without inference, saved draft and owned history after refresh",
+    "Live OpenClaw Canvas parent and independent child preserve quoted parent context",
+    "Existing OpenClaw panels render without chat dispatch or browser exception"
+  ],
+  "errors": [],
+  "browser": "156.0.8078.4",
+  "passed": true,
+  "implementationCommit": "9b65b3bf0bcab69c3ac4d435f7727aa3f74ec7b5",
+  "evidenceNote": "Mac closure validation of the committed changes; command ran on the candidate working tree before commit. Separate live and controlled-provider reports retain their individual scope."
+}

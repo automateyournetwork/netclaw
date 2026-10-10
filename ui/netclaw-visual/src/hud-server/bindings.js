@@ -11,11 +11,22 @@ export function readBounded(file, limit = 8 * 1024 * 1024) {
 }
 // No browser-supplied path, session key or assessment ID creates ownership.
 export class Bindings {
-  constructor(directory, clock = Date.now) { this.directory = directory; this.clock = clock; this.busy = new Set(); }
+  constructor(directory, clock = Date.now, installation = null) { this.directory = directory; this.clock = clock; this.busy = new Set(); this.installation = installation; this.cookieName = installation ? 'nc_hud_' + installation.installationId.replaceAll('-','') : 'nc_hud'; }
   ensure() { fs.mkdirSync(this.directory, { recursive: true, mode: 0o700 }); const stat = fs.lstatSync(this.directory); if (!stat.isDirectory() || stat.isSymbolicLink() || stat.mode & 0o077) throw Error('Private binding directory required'); }
   file(cookie) { if (!/^[a-f0-9]{48}$/.test(cookie || '')) throw Error('Unauthenticated'); this.ensure(); return path.join(this.directory, `${digest(cookie)}.json`); }
-  create() { this.ensure(); const cookie = token(); this.save(cookie, { version: 1, expires: this.clock() + 30 * 86400000, tasks: {} }); return cookie; }
-  read(cookie) { const state = JSON.parse(readBounded(this.file(cookie))); if (state.version !== 1 || state.expires <= this.clock()) throw Error('Unauthenticated'); return state; }
+  create() { this.ensure(); const cookie = token(); this.save(cookie, { version: this.installation ? 2 : 1, ...(this.installation ? { installationId: this.installation.installationId, runtime: this.installation.kind } : {}), expires: this.clock() + 30 * 86400000, tasks: {} }); return cookie; }
+  read(cookie) {
+    const file = this.file(cookie), state = JSON.parse(readBounded(file));
+    if (state.expires <= this.clock()) throw Error('Unauthenticated');
+    if (this.installation) {
+      if (state.version === 1 && this.installation.kind === 'openclaw') {
+        if (!fs.existsSync(file + '.v1-backup')) writePrivateAtomic(file + '.v1-backup', JSON.stringify(state));
+        Object.assign(state, { version: 2, installationId: this.installation.installationId, runtime: 'openclaw' }); this.save(cookie, state);
+      }
+      if (state.version !== 2 || state.installationId !== this.installation.installationId || state.runtime !== this.installation.kind) throw Error('Unauthenticated');
+    } else if (state.version !== 1) throw Error('Unauthenticated');
+    return state;
+  }
   save(cookie, state) { writePrivateAtomic(this.file(cookie), JSON.stringify(state)); }
   task(cookie, thread, agentId = 'main') {
     if (!/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/.test(agentId)) throw Error('Invalid agent');
@@ -55,6 +66,38 @@ export class Bindings {
     this.save(cookie, state);
   }
   begin(cookie, taskId) { const key = digest(cookie) + taskId; if (this.busy.has(key)) throw Error('Thread has an active request'); this.busy.add(key); return () => this.busy.delete(key); }
+  request(cookie, taskId, nonce, bodyDigest) {
+    if (!safeId(nonce)) throw Error('Invalid nonce');
+    const state = this.read(cookie), task = state.tasks[taskId]; if (!task) throw Error('Unavailable');
+    task.requests ||= {};
+    const existing = Object.values(task.requests).find(r => r.nonce === nonce);
+    if (existing) { if (existing.bodyDigest !== bodyDigest) throw Error('Nonce conflict'); return existing; }
+    if (Object.keys(task.requests).length >= 500) throw Error('Request limit reached');
+    const request = { id: token(), nonce, bodyDigest, state:'submitting', createdAt: this.clock() };
+    task.requests[request.id] = request; this.save(cookie, state); return request;
+  }
+  ownedRequest(cookie, requestId) {
+    if (!safeId(requestId)) throw Error('Unavailable');
+    for (const task of Object.values(this.read(cookie).tasks)) if (task.requests?.[requestId]) return { task, request: task.requests[requestId] };
+    throw Error('Unavailable');
+  }
+  requestState(cookie, requestId, outcome) {
+    const {task}=this.ownedRequest(cookie,requestId), state=this.read(cookie);
+    state.tasks[task.id].requests[requestId].state=outcome;this.save(cookie,state);
+  }
+  requireAcknowledgment(cookie, taskId, acknowledgment) {
+    const state=this.read(cookie);
+    const uncertain=Object.values(state.tasks).filter(t=>t.id!==taskId).flatMap(t=>Object.values(t.requests || {})).filter(r=>['unknown','submitting'].includes(r.state));
+    if(uncertain.some(r=>r.id!==acknowledgment && !state.acknowledged?.includes(r.id)))throw Error('Acknowledge unresolved request before opening another conversation.');
+    if(acknowledgment) this.ownedRequest(cookie,acknowledgment);
+  }
+  acknowledge(cookie, requestId) {
+    if (!requestId) return;
+    this.ownedRequest(cookie,requestId);
+    const state=this.read(cookie);
+    state.acknowledged=[...new Set([...(state.acknowledged || []),requestId])].slice(-500);
+    this.save(cookie,state);
+  }
   register(cookie, taskId, refs, messageRef) {
     const state = this.read(cookie), task = state.tasks[taskId]; if (!task) throw Error('Unavailable');
     for (const ref of refs.slice(0, 64)) {

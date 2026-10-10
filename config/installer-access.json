@@ -157,6 +157,28 @@
       "expected_tools": [
         "list_voices"
       ]
+    },
+    "hermes-hud": {
+      "servers": [
+        "hermes-hud-mcp"
+      ],
+      "access": "hud-private",
+      "script": "mcp-servers/hermes-hud-mcp/server.py",
+      "required_env": [
+        "HERMES_HOME",
+        "NETCLAW_HUD_INSTALLATION_ID",
+        "NETCLAW_HERMES_HUD_API_KEY"
+      ],
+      "expected_tools": [
+        "hermes_hud_status",
+        "hermes_hud_conversation_open",
+        "hermes_hud_history",
+        "hermes_hud_submit",
+        "hermes_hud_request_status",
+        "hermes_hud_events",
+        "hermes_hud_approval",
+        "hermes_hud_stop"
+      ]
     }
   }
 }

@@ -12,44 +12,12 @@
     }
   ],
   "paths": {
-    "/api/hud/security": {
+    "/api/runtime": {
       "get": {
-        "operationId": "get_api_hud_security",
-        "summary": "GET /api/hud/security",
+        "operationId": "get_api_runtime",
+        "summary": "GET /api/runtime",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:943",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
-    "/api/hud/openshell": {
-      "get": {
-        "operationId": "get_api_hud_openshell",
-        "summary": "GET /api/hud/openshell",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:951",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
-    "/api/hud/tokenomics": {
-      "get": {
-        "operationId": "get_api_hud_tokenomics",
-        "summary": "GET /api/hud/tokenomics",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:963",
+        "x-source": "ui/netclaw-visual/server.js:126",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -65,7 +33,103 @@
         "operationId": "get_api_hud_runtime",
         "summary": "GET /api/hud/runtime",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:971",
+        "x-source": "ui/netclaw-visual/server.js:1136",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/gateway/status": {
+      "get": {
+        "operationId": "get_api_gateway_status",
+        "summary": "GET /api/gateway/status",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1368",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/hud/tokenomics": {
+      "get": {
+        "operationId": "get_api_hud_tokenomics",
+        "summary": "GET /api/hud/tokenomics",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1128",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/hud/logs": {
+      "get": {
+        "operationId": "get_api_hud_logs",
+        "summary": "GET /api/hud/logs",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/logs.js:35",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/hud/security": {
+      "get": {
+        "operationId": "get_api_hud_security",
+        "summary": "GET /api/hud/security",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1108",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/hud/configuration": {
+      "get": {
+        "operationId": "get_api_hud_configuration",
+        "summary": "GET /api/hud/configuration",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1583",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/hud/openshell": {
+      "get": {
+        "operationId": "get_api_hud_openshell",
+        "summary": "GET /api/hud/openshell",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1116",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -81,7 +145,7 @@
         "operationId": "get_api_health",
         "summary": "GET /api/health",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:979",
+        "x-source": "ui/netclaw-visual/server.js:1144",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -97,7 +161,7 @@
         "operationId": "get_api_graph",
         "summary": "GET /api/graph",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:983",
+        "x-source": "ui/netclaw-visual/server.js:1148",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -113,7 +177,7 @@
         "operationId": "get_api_bgp",
         "summary": "GET /api/bgp",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1066",
+        "x-source": "ui/netclaw-visual/server.js:1231",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -129,7 +193,7 @@
         "operationId": "get_api_n2n",
         "summary": "GET /api/n2n",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1182",
+        "x-source": "ui/netclaw-visual/server.js:1347",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -145,7 +209,7 @@
         "operationId": "post_api_n2n_chat",
         "summary": "POST /api/n2n/chat",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1187",
+        "x-source": "ui/netclaw-visual/server.js:1352",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -167,12 +231,53 @@
         }
       }
     },
-    "/api/gateway/status": {
+    "/api/terminal/devices": {
       "get": {
-        "operationId": "get_api_gateway_status",
-        "summary": "GET /api/gateway/status",
+        "operationId": "get_api_terminal_devices",
+        "summary": "GET /api/terminal/devices",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1203",
+        "x-source": "ui/netclaw-visual/server.js:1404",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      },
+      "post": {
+        "operationId": "post_api_terminal_devices",
+        "summary": "POST /api/terminal/devices",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1508",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topology/status": {
+      "get": {
+        "operationId": "get_api_topology_status",
+        "summary": "GET /api/topology/status",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1443",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -183,12 +288,275 @@
         }
       }
     },
+    "/api/topology/authorize": {
+      "post": {
+        "operationId": "post_api_topology_authorize",
+        "summary": "POST /api/topology/authorize",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1450",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topology/login": {
+      "post": {
+        "operationId": "post_api_topology_login",
+        "summary": "POST /api/topology/login",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1454",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topology/revoke": {
+      "post": {
+        "operationId": "post_api_topology_revoke",
+        "summary": "POST /api/topology/revoke",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1462",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/topology/lookup": {
+      "post": {
+        "operationId": "post_api_topology_lookup",
+        "summary": "POST /api/topology/lookup",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1467",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/enrich": {
+      "post": {
+        "operationId": "post_api_terminal_enrich",
+        "summary": "POST /api/terminal/enrich",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1474",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/enrichment/aliases": {
+      "get": {
+        "operationId": "get_api_terminal_enrichment_aliases",
+        "summary": "GET /api/terminal/enrichment/aliases",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1487",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      },
+      "put": {
+        "operationId": "put_api_terminal_enrichment_aliases",
+        "summary": "PUT /api/terminal/enrichment/aliases",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1492",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/devices/{deviceId}": {
+      "put": {
+        "operationId": "put_api_terminal_devices_deviceId",
+        "summary": "PUT /api/terminal/devices/{deviceId}",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1555",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "operationId": "delete_api_terminal_devices_deviceId",
+        "summary": "DELETE /api/terminal/devices/{deviceId}",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1556",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/terminal/devices/{deviceId}/host-key": {
+      "delete": {
+        "operationId": "delete_api_terminal_devices_deviceId_host_key",
+        "summary": "DELETE /api/terminal/devices/{deviceId}/host-key",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1560",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "deviceId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
     "/api/skill/{skillId}": {
       "get": {
         "operationId": "get_api_skill_skillId",
         "summary": "GET /api/skill/{skillId}",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1237",
+        "x-source": "ui/netclaw-visual/server.js:1576",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -209,28 +577,12 @@
         ]
       }
     },
-    "/api/hud/configuration": {
-      "get": {
-        "operationId": "get_api_hud_configuration",
-        "summary": "GET /api/hud/configuration",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1244",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
     "/api/env/{integrationId}": {
       "get": {
         "operationId": "get_api_env_integrationId",
         "summary": "GET /api/env/{integrationId}",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1252",
+        "x-source": "ui/netclaw-visual/server.js:1591",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -256,7 +608,7 @@
         "operationId": "put_api_env",
         "summary": "PUT /api/env",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1276",
+        "x-source": "ui/netclaw-visual/server.js:1615",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -283,7 +635,7 @@
         "operationId": "get_api_budget_status",
         "summary": "GET /api/budget/status",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1298",
+        "x-source": "ui/netclaw-visual/server.js:1637",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -299,7 +651,7 @@
         "operationId": "get_api_budget_config",
         "summary": "GET /api/budget/config",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1336",
+        "x-source": "ui/netclaw-visual/server.js:1675",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -313,7 +665,7 @@
         "operationId": "put_api_budget_config",
         "summary": "PUT /api/budget/config",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1356",
+        "x-source": "ui/netclaw-visual/server.js:1695",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -340,7 +692,7 @@
         "operationId": "get_api_testbed_raw",
         "summary": "GET /api/testbed/raw",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1449",
+        "x-source": "ui/netclaw-visual/server.js:1788",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -354,7 +706,7 @@
         "operationId": "put_api_testbed_raw",
         "summary": "PUT /api/testbed/raw",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1521",
+        "x-source": "ui/netclaw-visual/server.js:1860",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -381,7 +733,7 @@
         "operationId": "get_api_layout",
         "summary": "GET /api/layout",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1470",
+        "x-source": "ui/netclaw-visual/server.js:1809",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -395,7 +747,7 @@
         "operationId": "put_api_layout",
         "summary": "PUT /api/layout",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1489",
+        "x-source": "ui/netclaw-visual/server.js:1828",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -420,7 +772,7 @@
         "operationId": "delete_api_layout",
         "summary": "DELETE /api/layout",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1510",
+        "x-source": "ui/netclaw-visual/server.js:1849",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -431,12 +783,135 @@
         }
       }
     },
+    "/api/terminal/terra/status": {
+      "get": {
+        "operationId": "get_api_terminal_terra_status",
+        "summary": "GET /api/terminal/terra/status",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1935",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/terminal/terra/config": {
+      "put": {
+        "operationId": "put_api_terminal_terra_config",
+        "summary": "PUT /api/terminal/terra/config",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1943",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/terra": {
+      "post": {
+        "operationId": "post_api_terminal_terra",
+        "summary": "POST /api/terminal/terra",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/server.js:1960",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/chat/usage": {
+      "post": {
+        "operationId": "post_api_chat_usage",
+        "summary": "POST /api/chat/usage",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:35",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      }
+    },
+    "/api/chat/models": {
+      "get": {
+        "operationId": "get_api_chat_models",
+        "summary": "GET /api/chat/models",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:32",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      }
+    },
     "/api/chat": {
       "post": {
         "operationId": "post_api_chat",
         "summary": "POST /api/chat",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1598",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:94",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -463,39 +938,7 @@
         "operationId": "get_api_chat_history",
         "summary": "GET /api/chat/history",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1725",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
-    "/api/sessions": {
-      "get": {
-        "operationId": "get_api_sessions",
-        "summary": "GET /api/sessions",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1820",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
-    "/api/session/{id}/tools": {
-      "get": {
-        "operationId": "get_api_session_id_tools",
-        "summary": "GET /api/session/{id}/tools",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:1836",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:110",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -504,14 +947,9 @@
             "description": "Rejected, unavailable or failed request."
           }
         },
-        "parameters": [
+        "security": [
           {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string"
-            }
+            "HUDCookie": []
           }
         ]
       }
@@ -521,7 +959,7 @@
         "operationId": "post_api_rag_search",
         "summary": "POST /api/rag/search",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2056",
+        "x-source": "ui/netclaw-visual/server.js:2383",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -569,7 +1007,7 @@
         "operationId": "get_api_rag_documents",
         "summary": "GET /api/rag/documents",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2058",
+        "x-source": "ui/netclaw-visual/server.js:2385",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -585,7 +1023,7 @@
         "operationId": "get_api_rag_stats",
         "summary": "GET /api/rag/stats",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2068",
+        "x-source": "ui/netclaw-visual/server.js:2395",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -601,7 +1039,7 @@
         "operationId": "post_api_rag_upload",
         "summary": "POST /api/rag/upload",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2080",
+        "x-source": "ui/netclaw-visual/server.js:2407",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -652,7 +1090,7 @@
         "operationId": "delete_api_rag_documents_id",
         "summary": "DELETE /api/rag/documents/{id}",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2142",
+        "x-source": "ui/netclaw-visual/server.js:2469",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -678,7 +1116,7 @@
         "operationId": "post_api_rag_documents_id_reindex",
         "summary": "POST /api/rag/documents/{id}/reindex",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/server.js:2159",
+        "x-source": "ui/netclaw-visual/server.js:2486",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -803,6 +1241,99 @@
         ]
       }
     },
+    "/api/chat/conversations": {
+      "get": {
+        "operationId": "get_api_chat_conversations",
+        "summary": "GET /api/chat/conversations",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:36",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post_api_chat_conversations",
+        "summary": "POST /api/chat/conversations",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:19",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      }
+    },
+    "/api/chat/conversations/{id}/open": {
+      "post": {
+        "operationId": "post_api_chat_conversations_id_open",
+        "summary": "POST /api/chat/conversations/{id}/open",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:40",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      }
+    },
     "/api/hud/documentation": {
       "get": {
         "operationId": "get_api_hud_documentation",
@@ -877,22 +1408,6 @@
         }
       }
     },
-    "/api/hud/logs": {
-      "get": {
-        "operationId": "get_api_hud_logs",
-        "summary": "GET /api/hud/logs",
-        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/logs.js:35",
-        "responses": {
-          "200": {
-            "description": "Successful response; see implementation for payload and other success codes."
-          },
-          "default": {
-            "description": "Rejected, unavailable or failed request."
-          }
-        }
-      }
-    },
     "/api/hud/logs/{id}": {
       "get": {
         "operationId": "get_api_hud_logs_id",
@@ -918,6 +1433,503 @@
           }
         ]
       }
+    },
+    "/api/pal/local/status": {
+      "get": {
+        "operationId": "get_api_pal_local_status",
+        "summary": "GET /api/pal/local/status",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-local.js:70",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/pal/local/speech": {
+      "post": {
+        "operationId": "post_api_pal_local_speech",
+        "summary": "POST /api/pal/local/speech",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-local.js:71",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/status": {
+      "get": {
+        "operationId": "get_api_pal_status",
+        "summary": "GET /api/pal/status",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:24",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        }
+      }
+    },
+    "/api/pal/allowance": {
+      "post": {
+        "operationId": "post_api_pal_allowance",
+        "summary": "POST /api/pal/allowance",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:25",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/sessions": {
+      "post": {
+        "operationId": "post_api_pal_sessions",
+        "summary": "POST /api/pal/sessions",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:26",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/sessions/{id}/end": {
+      "post": {
+        "operationId": "post_api_pal_sessions_id_end",
+        "summary": "POST /api/pal/sessions/{id}/end",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:27",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/sessions/{id}/reconcile": {
+      "post": {
+        "operationId": "post_api_pal_sessions_id_reconcile",
+        "summary": "POST /api/pal/sessions/{id}/reconcile",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:28",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/sessions/{id}/turns": {
+      "post": {
+        "operationId": "post_api_pal_sessions_id_turns",
+        "summary": "POST /api/pal/sessions/{id}/turns",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:29",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/pal/sessions/{id}/speech/{callId}": {
+      "post": {
+        "operationId": "post_api_pal_sessions_id_speech_callId",
+        "summary": "POST /api/pal/sessions/{id}/speech/{callId}",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/pal-routes.js:30",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "callId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/intent/runs": {
+      "post": {
+        "operationId": "post_api_terminal_intent_runs",
+        "summary": "POST /api/terminal/intent/runs",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:16",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/terminal/intent/runs/{id}": {
+      "get": {
+        "operationId": "get_api_terminal_intent_runs_id",
+        "summary": "GET /api/terminal/intent/runs/{id}",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:39",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/chat/requests": {
+      "get": {
+        "operationId": "get_api_chat_requests",
+        "summary": "GET /api/chat/requests",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:11",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      },
+      "post": {
+        "operationId": "post_api_chat_requests",
+        "summary": "POST /api/chat/requests",
+        "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:95",
+        "responses": {
+          "200": {
+            "description": "Successful response; see implementation for payload and other success codes."
+          },
+          "default": {
+            "description": "Rejected, unavailable or failed request."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ]
+      }
+    },
+    "/api/chat/requests/{id}": {
+      "get": {
+        "operationId": "get_owned_request",
+        "summary": "GET /api/chat/requests/{id}",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js",
+        "description": "Owned Hermes request. Selected-installation HttpOnly cookie; authorization rechecked after I/O. Polling never resubmits.",
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned request state or bounded event page."
+          },
+          "404": {
+            "description": "Unavailable or not owned."
+          }
+        }
+      }
+    },
+    "/api/chat/requests/{id}/events": {
+      "get": {
+        "operationId": "get_owned_request_events",
+        "summary": "GET /api/chat/requests/{id}/events",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js",
+        "description": "Owned Hermes request. Selected-installation HttpOnly cookie; authorization rechecked after I/O. Polling never resubmits.",
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned request state or bounded event page."
+          },
+          "404": {
+            "description": "Unavailable or not owned."
+          }
+        }
+      }
+    },
+    "/api/chat/requests/{id}/approval": {
+      "post": {
+        "operationId": "post_owned_request_approval",
+        "summary": "POST /api/chat/requests/{id}/approval",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js",
+        "description": "Owned Hermes request. Selected-installation HttpOnly cookie; authorization rechecked after I/O. Polling never resubmits.",
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned request state or bounded event page."
+          },
+          "404": {
+            "description": "Unavailable or not owned."
+          }
+        }
+      }
+    },
+    "/api/chat/requests/{id}/stop": {
+      "post": {
+        "operationId": "post_owned_request_stop",
+        "summary": "POST /api/chat/requests/{id}/stop",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js",
+        "description": "Owned Hermes request. Selected-installation HttpOnly cookie; authorization rechecked after I/O. Polling never resubmits.",
+        "security": [
+          {
+            "HUDCookie": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Owned request state or bounded event page."
+          },
+          "404": {
+            "description": "Unavailable or not owned."
+          }
+        }
+      }
     }
   },
   "components": {
@@ -925,7 +1937,8 @@
       "HUDCookie": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "nc_hud"
+        "name": "nc_hud",
+        "description": "Legacy OpenClaw cookie, or selected-installation nc_hud_<UUID without hyphens> cookie. HttpOnly; no browser-supplied ownership IDs."
       }
     }
   }

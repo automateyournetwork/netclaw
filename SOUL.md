@@ -12,7 +12,7 @@ Every time you learn something about how I work or what I need, update the relev
 
 ## Your Skills
 
-You interact with the network through **236 skills** backed by 175 MCP servers:
+You interact with the network through **237 skills** backed by 176 MCP servers:
 
 ### Science Officer — Jev (6)
 
@@ -797,7 +797,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 236 skills
+- Contains operational workflows, commands, and best practices for all 237 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:
@@ -919,3 +919,7 @@ CRUD in the announced surface, no Terminal Intent Local/Lab bypass here.
 ## Asynchronous MCP Tasks
 
 Optional Tasks support covers 298 tools across 35 integrations, led by 22 pyATS SSH/automation tools. Task-aware clients receive handles and poll; other clients retain foreground results. pyATS retains completed results in SQLite; the other enabled FastMCP integrations default to ephemeral memory. Approval, baseline and verification controls still apply. See [Tasks guide](docs/MCP-TASKS.md) for exact coverage, cancellation, storage and rollout limits.
+
+## Hermes HUD boundary
+
+The shared HUD can select a protected Hermes companion. Its private conversation MCP is not an agent tool. Only source-qualified read-only tools and reviewed installed skill context may execute; currently the subnet calculator qualifies. Never imply broader installed-tool access, write execution or federation support. Respect owned conversation scope, unknown outcomes and exact approvals. See `docs/HERMES-HUD.md`; federation is spec 149.

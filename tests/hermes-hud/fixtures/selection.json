@@ -1,0 +1,11 @@
+[
+  {"name":"legacy default","env":{},"descriptor":null,"expected":{"kind":"openclaw","home":"/owner/.openclaw","configPath":"/owner/.openclaw/openclaw.json"}},
+  {"name":"persisted Hermes","env":{},"descriptor":{"schemaVersion":1,"kind":"hermes","home":"/state/Hermes Home"},"expected":{"kind":"hermes","home":"/state/Hermes Home","configPath":"/state/Hermes Home/config.yaml"}},
+  {"name":"explicit switch","env":{"NETCLAW_RUNTIME":"openclaw"},"descriptor":{"schemaVersion":1,"kind":"hermes","home":"/state/hermes"},"expected":{"kind":"openclaw","home":"/owner/.openclaw","configPath":"/owner/.openclaw/openclaw.json"}},
+  {"name":"home override discards stale config","env":{"OPENCLAW_HOME":"/state/B"},"descriptor":{"schemaVersion":1,"kind":"openclaw","home":"/state/A","configPath":"/state/A/custom.json"},"expected":{"kind":"openclaw","home":"/state/B","configPath":"/state/B/openclaw.json"}},
+  {"name":"explicit config survives","env":{"OPENCLAW_HOME":"/state/B","OPENCLAW_CONFIG_PATH":"/state/C/custom.json"},"descriptor":{"schemaVersion":1,"kind":"openclaw","home":"/state/A"},"expected":{"kind":"openclaw","home":"/state/B","configPath":"/state/C/custom.json"}},
+  {"name":"unselected Hermes home","env":{"HERMES_HOME":"/state/other"},"descriptor":null,"expected":{"kind":"openclaw","home":"/owner/.openclaw","configPath":"/owner/.openclaw/openclaw.json"}},
+  {"name":"invalid explicit selection","env":{"NETCLAW_RUNTIME":"typo"},"descriptor":null,"error":true},
+  {"name":"invalid schema","env":{},"descriptor":{"schemaVersion":2,"kind":"hermes","home":"/state/H"},"error":true},
+  {"name":"relative path","env":{"NETCLAW_RUNTIME":"hermes","HERMES_HOME":"relative"},"descriptor":null,"error":true}
+]

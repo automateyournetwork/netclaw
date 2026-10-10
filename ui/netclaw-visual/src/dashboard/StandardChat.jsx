@@ -1,3 +1,4 @@
+import { runtimeInfo, runtimeStorage, sendChat, observeRequest, pendingRequest, newConversation, requestControl } from '../shared/runtime-client.js';
 import { loadChat, saveChat, loadChatArchive, archiveChat } from './chat-storage.js';
 import ChatUsage from './ChatUsage.jsx';
 import { randomId } from '../shared/random-id.js';
@@ -11,14 +12,16 @@ const demoMessages = [
   { role: 'assistant', content: 'Synthetic example — no tools were run.\n\nStart by recording the affected path, timestamps and symptoms. Compare current routing and interface observations with the intended design before proposing a change.' },
 ];
 export default function StandardChat({ preview = false, active = true, pal = false }) {
+  const selectedRuntime = runtimeInfo();
+  const [requestState, setRequestState] = useState(null);
   const [palReply, setPalReply] = useState(null);
   const palVoice = useRef(null);
   const [restored] = useState(() => {
     if (preview) return { state: null, error: '' };
-    try { return loadChat(window.sessionStorage); }
+    try { return loadChat(runtimeStorage(window.sessionStorage)); }
     catch { return { state: null, error: 'Browser storage is unavailable; this chat cannot survive refresh.' }; }
   });
-  const [savedChats, setSavedChats] = useState(() => { try { return preview ? [] : loadChatArchive(window.sessionStorage); } catch { return []; } });
+  const [savedChats, setSavedChats] = useState(() => { try { return preview ? [] : loadChatArchive(runtimeStorage(window.sessionStorage)); } catch { return []; } });
   const [conversations, setConversations] = useState([]);
   const [historyError, setHistoryError] = useState('');
   const [loadingChat, setLoadingChat] = useState(false);
@@ -53,10 +56,10 @@ export default function StandardChat({ preview = false, active = true, pal = fal
     if (preview) return;
     try {
       const value = { thread: thread.current, chatModel, chatEffort, ...snapshot };
-      const error = saveChat(window.sessionStorage, value);
+      const error = saveChat(runtimeStorage(window.sessionStorage), value);
       setStorageError(error);
       if (error) return false;
-      setSavedChats(archiveChat(window.sessionStorage, value));
+      setSavedChats(archiveChat(runtimeStorage(window.sessionStorage), value));
       return true;
     }
     catch { setStorageError('Saved-chat storage is unavailable or full. Recent drafts may not survive switching chats.'); return false; }
@@ -105,7 +108,7 @@ export default function StandardChat({ preview = false, active = true, pal = fal
       setPalReply(null);
       setChatModel(target.chatModel || ''); setChatEffort(target.chatEffort || '');
       setUncertain(target.interrupted === true); setRemoteActive(target.active === true); setOpenedChat(value);
-      setError(target.active ? 'This chat is still running in OpenClaw. Reload it to receive the latest saved messages before sending again.' : target.interrupted ? 'An earlier request may have run. Review the saved replies before retrying the restored draft; nothing was resent.' : '');
+      setError(target.active ? 'This chat is still running in the selected runtime. Reload it to receive the latest saved messages before sending again.' : target.interrupted ? 'An earlier request may have run. Review the saved replies before retrying the restored draft; nothing was resent.' : '');
       if (target.truncated) setHistoryError('Showing the most recent saved transcript. Earlier context remains in the gateway session.');
       persist({ ...target, interrupted: target.interrupted === true });
     } catch { setHistoryError('The saved chat could not be loaded. Your current conversation has been kept.'); }
@@ -124,13 +127,7 @@ export default function StandardChat({ preview = false, active = true, pal = fal
     try {
       const session = await fetch('/api/hud/session', { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
       if (!session.ok) throw Error('The private HUD session is unavailable. Your draft has been restored.');
-      const response = await fetch('/api/chat', {
-        method: 'POST', credentials: 'same-origin', cache: 'no-store', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt, messages: context.slice(-40).map(({ role, content }) => ({ role, content })), hudThread: thread.current, chatModel, chatEffort }),
-      });
-      if (response.status === 400) throw Error('The selected model or effort is unavailable. Refresh the model list and choose again. Your draft has been restored.');
-      if (!response.ok) throw Error(`Chat request failed (HTTP ${response.status}). Your draft has been restored. Check the gateway before retrying; the request may already have started.`);
-      const data = await response.json();
+      const data = await sendChat({ message: prompt, messages: context.slice(-40).map(({role,content}) => ({role,content})), hudThread: thread.current, chatModel, chatEffort }, setRequestState);
       if (data.fromGateway !== true) throw Error((typeof data.gatewayIssue === 'string' ? data.gatewayIssue : 'The gateway did not return a confirmed reply.') + ' Your draft has been restored.');
       if (typeof data.response !== 'string' || !data.response.trim()) throw Error('The gateway returned an empty reply. Check the gateway before retrying; your draft has been restored.');
       const assessmentRefs = (Array.isArray(data.assessmentRefs) ? data.assessmentRefs : [])
@@ -145,10 +142,24 @@ export default function StandardChat({ preview = false, active = true, pal = fal
       setError(err instanceof TypeError || err instanceof SyntaxError ? 'The reply could not be received. Your draft has been restored. The gateway may still be working; check before retrying.' : err.message || 'Chat unavailable. Your draft has been restored.');
     } finally { sending.current = false; setPending(false); refreshChats(); }
   };
-  const reset = () => {
+  const recover = async () => {
+    if (sending.current) return;
+    sending.current=true; setPending(true); setError('');
+    try { const data=await observeRequest(thread.current,setRequestState); const completed=[...messages,{role:'user',content:draft},{role:'assistant',content:data.response || data.output}]; setMessages(completed); setDraft(''); setUncertain(false); persist({messages:completed,draft:'',interrupted:false}); }
+    catch (error) { setError(error.message); }
+    finally { sending.current=false; setPending(false); }
+  };
+  const control = async (action,body) => { try { setRequestState(await requestControl(thread.current,action,body)); } catch (error) { setError(error.message); } };
+  const reset = async () => {
     if (sending.current || preview) return;
     if (!persist({ messages, draft, interrupted: uncertain })) return;
-    thread.current = makeThread(); setOpenedChat(''); setRemoteActive(false); setUncertain(false);
+    let nextThread = makeThread();
+    const unresolved = pendingRequest(thread.current);
+    if (selectedRuntime?.kind === 'hermes' && unresolved) {
+      try { const conversation=await newConversation(thread.current); if(!conversation)return; nextThread=conversation.thread; }
+      catch(error) { setError(error.message); return; }
+    }
+    thread.current = nextThread; setOpenedChat(''); setRemoteActive(false); setUncertain(false);
     setPalReply(null);
     persist({ messages: [], draft: '', interrupted: false }); setMessages([]); setDraft(''); setError('');
     refreshChats(); composer.current?.focus();
@@ -160,6 +171,13 @@ export default function StandardChat({ preview = false, active = true, pal = fal
   const latestReply = messages.findLast(message => message.role === 'assistant')?.content || '';
   return <div className={pal ? 'pal-conversation-layout' : undefined}>{pal && <Suspense fallback={<p role="status">Loading your local Pal…</p>}><LocalPal ref={palVoice} active={active} preview={preview} thinking={pending} reply={palReply} latestReply={latestReply} conversationId={thread.current}/></Suspense>}
   <section className="standard-chat" aria-label="Standard Chat">
+    {selectedRuntime && <p role="status">{selectedRuntime.label} · {selectedRuntime.readiness.ready ? 'API ready' : 'API unavailable'}{selectedRuntime.kind === 'hermes' ? ' · Qualified read-only tools · Configured model' : ''}</p>}
+    {selectedRuntime?.kind === 'hermes' && (requestState || uncertain) && <div role="status">
+      <span>{requestState?.state || 'Unresolved request'}{requestState?.runtime?.model ? ` · ${requestState.runtime.provider || 'Hermes'} / ${requestState.runtime.model}` : ''}</span>
+      <button onClick={recover} disabled={pending}>Check status</button>
+      <button onClick={()=>control('stop')}>Request stop</button>
+      {requestState?.approval && <><p>{requestState.approval.description || 'Pending tool approval'}</p><button onClick={()=>control('approval',{approvalId:requestState.approval.id || requestState.approval.request_id,choice:'once'})}>Allow once</button><button onClick={()=>control('approval',{approvalId:requestState.approval.id || requestState.approval.request_id,choice:'deny'})}>Deny</button></>}
+    </div>}
     <div className="chat-intro"><div><span className="eyebrow">Your network engineering coworker</span><h2>A conversation with NetClaw</h2><p>Ask a question, review the evidence, then follow up.</p></div><button onClick={reset} disabled={pending || loadingChat || preview}>New chat</button></div>
     <div className="chat-history-controls">
       <label htmlFor="previous-chat">Previous chats</label>
@@ -188,7 +206,7 @@ export default function StandardChat({ preview = false, active = true, pal = fal
           <ChatUsage thread={thread.current} model={chatModel} revision={`${messages.length}:${pending}`} active={active} preview={preview}/>
           <div className="chat-model-control">
             <label className="sr-only" htmlFor="standard-chat-model">Model</label>
-        <select id="standard-chat-model" value={chatModel} disabled={pending || loadingChat || preview} onChange={event => { setChatModel(event.target.value); setChatEffort(''); }}>
+        <select id="standard-chat-model" value={chatModel} disabled={pending || loadingChat || preview || catalog?.selectionSupported === false} onChange={event => { setChatModel(event.target.value); setChatEffort(''); }}>
           <option value="">Agent default{catalog?.defaultModel ? ` · ${catalog.defaultModel}` : ''}</option>
           {(catalog?.models || []).map(model => <option key={model.id} value={model.id}>{model.label}</option>)}
           {chatModel && !catalog?.models?.some(model => model.id === chatModel) && <option value={chatModel}>Previously selected model (unavailable)</option>}

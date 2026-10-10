@@ -6,7 +6,7 @@ import { WebSocket, WebSocketServer } from 'ws';
 import { createLocalAccess, guardHudServer, localAccessMiddleware } from './local-access.js';
 
 test('Vite interface HTTP and WebSocket proxy retain Host/Origin enforcement', async t => {
-  const host = '127.0.0.2'; // Non-default bind, portable without a physical LAN.
+  const host = process.platform === 'darwin' ? '127.0.0.1' : '127.0.0.2'; // macOS requires an explicit alias for other loopback addresses.
   const api = http.createServer();
   await new Promise(resolve => api.listen(0, '127.0.0.1', resolve));
   t.after(() => api.close());

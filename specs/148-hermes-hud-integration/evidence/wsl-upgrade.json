@@ -1,0 +1,9 @@
+{
+  "commands": {
+    "--check": 0,
+    "--apply": 0
+  },
+  "preserved": true,
+  "preservedFileCount": 5,
+  "scope": "Selected isolated env, YAML, reviewed skill and runtime records. Does not establish rollback or browser migration."
+}

@@ -25,6 +25,9 @@ on:
   pull_request:
     paths:
       - 'config/openclaw.json'
+      - 'config/hermes-hud*'
+      - 'scripts/runtime-selection.*'
+      - 'scripts/hud-launch.mjs'
       - 'mcp-servers/**'
       - 'scripts/lib/catalog.sh'
       - 'scripts/lib/install-steps.sh'
@@ -140,6 +143,16 @@ jobs:
 
       - name: Set up uv
         uses: astral-sh/setup-uv@v6
+
+      - name: Qualified HUD Node for Hermes launcher contracts
+        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit'
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Install HUD dependencies for Hermes launcher contracts
+        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit'
+        run: npm --prefix ui/netclaw-visual ci
 
       - name: Prepare isolated dependencies and run offline contracts
         run: python3 scripts/run-contract-tests.py --suite "${{ matrix.suite }}" --prepare

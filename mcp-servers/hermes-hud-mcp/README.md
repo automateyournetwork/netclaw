@@ -1,0 +1,15 @@
+# Private Hermes HUD MCP
+
+A **stdio** FastMCP bridge for the local HUD, using standard MCP initialize/tools/list/tools/call and the official Node client. Eight tools: `hermes_hud_status`, `hermes_hud_conversation_open`, `hermes_hud_history`, `hermes_hud_submit`, `hermes_hud_request_status`, `hermes_hud_events`, `hermes_hud_approval`, `hermes_hud_stop`. See [input/output contract](../../specs/148-hermes-hud-integration/contracts/hermes-mcp.md).
+
+Install with `./scripts/install.sh --runtime hermes --add "subnet-calc hermes-hud"`; launch with `./scripts/netclaw hud`. The fixed component launcher selects the private bridge environment. **Never add this bridge to agent MCP registrations**: exposing conversation submission recursively would widen authority. `installer-access.json` declares `hud-private` and all registration translators exclude it.
+
+The bridge communicates only with a loopback bearer-authenticated companion. The launcher stores its generated key in `<selected-home>/netclaw-hud/companion-auth.json` (0600). It is never in argv or browser payloads. Private directories are 0700. The separately pinned Hermes source executes under a generated private profile with isolated session, response and idempotency databases, no shared memory checkout, no owner process mutation, and a fixed route allowlist.
+
+Required backend environment: `NETCLAW_RUNTIME=hermes`, `HERMES_HOME`, `NETCLAW_HUD_INSTALLATION_ID`, `NETCLAW_HERMES_HUD_API_KEY`; optional `NETCLAW_HERMES_HUD_PORT` (default 8643). `NETCLAW_RUNTIME_ROOT` and `NETCLAW_RUNTIME_ENV` are set by the selected component launcher. Owner provider credentials come from the selected home's `.env`. Test-only interpreter/source overrides are accepted only from the local process environment.
+
+`ledger.db` persists server-owned conversation mappings, nonce fingerprints, deadlines, request states, acknowledgments and correlated sanitized tool records. Browser authorization lives in HUD bindings and is rechecked after I/O. Caps: 64 KiB input, 1 MiB seed, 4 MiB upstream response, 200 history rows, 20 progress events, four outstanding runs, one outstanding turn per conversation. Default deadline is 900 seconds. Unknown admission is never replayed. An expired owner cannot recover content through raw native IDs.
+
+Only the reviewed subnet calculator currently qualifies. Policy validates source hashes, registration and arguments; the protected agent checks tools/schemas/handlers/configuration/source before provider and dispatch boundaries. Python 3.14 is required for the pinned agent; bridge Python 3.12 and exact dependencies remain separate. Full source hashes are intentional compatibility gates, not an assertion that arbitrary upstream updates are safe.
+
+Run `bash tests/hermes-hud/run-tests.sh` for offline contracts; `python3 tests/hermes-hud/run_real_fixture.py` exercises real pinned Hermes and installer-patched MCP with a controlled local provider. `live_acceptance.py --run` is a separate explicit provider test. See [setup, limitations and recovery](../../docs/HERMES-HUD.md). Status reads do not launch the companion or perform inference.
