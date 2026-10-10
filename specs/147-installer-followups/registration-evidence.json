@@ -1,0 +1,21 @@
+{
+  "baseline": "b4334bf",
+  "selected_components": [
+    "pyats",
+    "netbox",
+    "servicenow",
+    "nvd-cve",
+    "subnet-calc",
+    "wikipedia",
+    "markmap",
+    "drawio-rfc",
+    "packet-buddy",
+    "nmap",
+    "gtrace",
+    "tts"
+  ],
+  "generated_native_registration_count": 0,
+  "generator_returncode": 0,
+  "skill_invocation_paths_exist": true,
+  "live_tool_availability_not_tested": true
+}
