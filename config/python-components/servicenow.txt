@@ -1,0 +1,2 @@
+# ServiceNow uses the low-level SDK1 Server API. Do not share with MCP2 integrations.
+mcp>=1.13,<2

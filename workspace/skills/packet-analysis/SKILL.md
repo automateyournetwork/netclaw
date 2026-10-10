@@ -8,6 +8,8 @@ tags: [packets, pcap, wireshark, tshark, troubleshooting]
 
 # Packet Analysis Skill
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## MCP Server
 - **Script**: `$PACKET_BUDDY_MCP_SCRIPT`
 - **Invocation**: `python3 $MCP_CALL "python3 -u $PACKET_BUDDY_MCP_SCRIPT" <tool_name> '<json_args>'`

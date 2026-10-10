@@ -1,0 +1,10 @@
+{
+  "openclaw_package": "openclaw@latest",
+  "node_ranges": {
+    "openclaw": [{"min": [24, 16, 0], "max_exclusive": [25, 0, 0]}, {"min": [26, 1, 0]}],
+    "hermes": [{"min": [18, 0, 0]}]
+  },
+  "node_descriptions": {"openclaw": ">=24.16.0 <25 or >=26.1.0", "hermes": ">=18 (Node-based components)"},
+  "checked": "2026-10-10",
+  "source": "https://docs.openclaw.ai/install/node-compatibility"
+}

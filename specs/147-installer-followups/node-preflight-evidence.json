@@ -1,0 +1,41 @@
+{
+  "baseline": "b4334bf",
+  "fixture_only": true,
+  "cases": [
+    {
+      "node": "v18.20.8",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v20.20.2",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v22.0.0",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v24.15.0",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v24.16.0",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v25.9.0",
+      "preflight_ok": true,
+      "errors": []
+    },
+    {
+      "node": "v26.1.0",
+      "preflight_ok": true,
+      "errors": []
+    }
+  ]
+}

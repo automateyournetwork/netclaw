@@ -9,6 +9,8 @@ metadata:
 
 # Network Path Analysis with gtrace
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## How to Call the gtrace MCP Tools
 
 ```bash

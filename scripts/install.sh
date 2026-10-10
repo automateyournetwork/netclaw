@@ -506,7 +506,7 @@ echo ""
 # Verify installation (selected components only)
 # ═══════════════════════════════════════════
 
-log_step "Verifying installation..."
+log_step "Checking installed artifacts (tool discovery follows setup)..."
 
 SERVERS_OK=0
 SERVERS_FAIL=0
@@ -514,7 +514,7 @@ SERVERS_FAIL=0
 verify_file() {
     local name="$1" path="$2"
     if [ -f "$path" ]; then
-        log_info "$name: OK"
+        log_info "$name: artifact present (discovery pending)"
         SERVERS_OK=$((SERVERS_OK + 1))
     else
         log_error "$name: MISSING ($path)"
@@ -525,7 +525,7 @@ verify_file() {
 verify_dir() {
     local name="$1" path="$2"
     if [ -d "$path" ]; then
-        log_info "$name: OK"
+        log_info "$name: directory present (discovery pending)"
         SERVERS_OK=$((SERVERS_OK + 1))
     else
         log_warn "$name: NOT INSTALLED ($path missing)"
@@ -536,7 +536,7 @@ verify_dir() {
 verify_cmd_or_module() {
     local name="$1" cmd="$2" module="$3" hint="$4"
     if command -v "$cmd" &> /dev/null || python3 -c "import $module" 2>/dev/null; then
-        log_info "$name: OK"
+        log_info "$name: executable/module present (discovery pending)"
         SERVERS_OK=$((SERVERS_OK + 1))
     else
         log_warn "$name: NOT INSTALLED ($hint)"
@@ -547,7 +547,7 @@ verify_cmd_or_module() {
 verify_runner() {
     local name="$1" cmd="$2" note="$3"
     if command -v "$cmd" &> /dev/null; then
-        log_info "$name: OK ($note)"
+        log_info "$name: launcher present ($note; discovery pending)"
         SERVERS_OK=$((SERVERS_OK + 1))
     else
         log_warn "$name: NOT AVAILABLE ($cmd not installed)"
@@ -556,7 +556,7 @@ verify_runner() {
 }
 
 verify_remote() {
-    log_info "$1: OK (remote server — no local install)"
+    log_info "$1: remote declaration present (connectivity unverified)"
     SERVERS_OK=$((SERVERS_OK + 1))
 }
 
@@ -651,7 +651,7 @@ done
 verify_file "MCP Call Script" "$NETCLAW_DIR/scripts/mcp-call.py"
 
 echo ""
-log_info "Verification: $SERVERS_OK OK, $SERVERS_FAIL FAILED"
+log_info "Artifacts: $SERVERS_OK present/deferred, $SERVERS_FAIL FAILED; this is not tool readiness."
 
 SUCCESSFUL_COMPONENTS=""
 for id in $SELECTED; do
@@ -727,6 +727,15 @@ if [ -f "$SETUP_SCRIPT" ] && tui_is_tty; then
     fi
 fi
 
+# Check the actual registered commands after credentials/setup are available.
+# Missing credentials are configuration-required; failed discovery is a failure.
+READINESS_FAILED=0
+log_step "Checking selected MCP discovery and provider readiness..."
+python3 "$SCRIPT_DIR/installer-readiness.py" --runtime "$RUNTIME" \
+    --runtime-root "$NETCLAW_RUNTIME_ROOT" --config "$RUNTIME_CONFIG" \
+    --components "$SELECTED" --failed-components "$FAILED_COMPONENTS $VERIFY_FAILED_COMPONENTS" \
+    --output "$INSTALL_LOG_DIR/readiness.json" --probe --check-provider || READINESS_FAILED=1
+
 echo ""
 echo "========================================="
 echo "  Next Steps"
@@ -781,7 +790,7 @@ if [ -n "$PROBLEM_COMPONENTS" ]; then
         fi
     done
     echo ""
-    echo "  Everything else installed fine. Retry just these with:"
+    echo "  Retry these installation failures with:"
     echo ""
     echo "    ./scripts/install.sh --add \"$(echo $PROBLEM_COMPONENTS | tr '\n' ' ' | sed 's/ $//')\""
     echo ""
@@ -790,6 +799,10 @@ fi
 if [ "$CORE_FAILED" -ne 0 ]; then
     log_error "Core installation or configuration deployment failed. Review the errors above and $INSTALL_LOG_DIR/core-tokens.log before retrying."
 fi
-if [ -n "$PROBLEM_COMPONENTS" ] || [ "$SERVERS_FAIL" -ne 0 ] || [ "$CORE_FAILED" -ne 0 ]; then
+if [ "$READINESS_FAILED" -ne 0 ]; then
+    log_error "Tool/provider readiness failed. Inspect $INSTALL_LOG_DIR/readiness.json; installation is incomplete."
+fi
+if [ -n "$PROBLEM_COMPONENTS" ] || [ "$SERVERS_FAIL" -ne 0 ] || [ "$CORE_FAILED" -ne 0 ] || [ "$READINESS_FAILED" -ne 0 ]; then
     exit 1
 fi
+log_info "Installation steps finished. Review readiness.json for configuration-required/unverified checks before using tools."

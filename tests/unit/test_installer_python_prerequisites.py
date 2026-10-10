@@ -47,14 +47,16 @@ def run(tmp_path, body, **extra):
 def test_prerequisite_checks(tmp_path, installer_old, base_old, component, uv_missing, ok):
     interpreter(tmp_path / 'base-python', supported=not base_old)
     result = run(tmp_path, r'''
+NETCLAW_DIR="$PWD"
 source scripts/lib/install-steps.sh
 log_step() { echo "$*"; }
 log_info() { echo "$*"; }
 log_warn() { echo "$*"; }
 log_error() { echo "$*"; }
 check_command() { [ "$1" != uv ] || [ "$FIXTURE_UV_MISSING" != 1 ]; }
-node() { echo v22.0.0; }
+node() { echo v24.16.0; }
 python3() {
+    if [[ "$1" == */runtime-policy.py ]]; then command python3 "$@"; return; fi
     case "${2:-}" in
         *'sys.version_info >='*) [ "$FIXTURE_INSTALLER_OLD" != 1 ] ;;
         *) return 1 ;;

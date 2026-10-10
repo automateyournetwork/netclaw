@@ -6,6 +6,7 @@ import importlib.util
 import json
 import os
 from pathlib import Path
+import sys
 import time
 
 
@@ -47,6 +48,8 @@ def bind_entry(entry, repo, runtime):
         # Canonical source-venv templates follow the successful runtime record
         # after recovery. Custom interpreters, uvx and Node retain their command.
     value = result.get('command', '')
+    if value in ('python', 'python3') and not runtime:
+        result['command'] = sys.executable
     if value.startswith(('mcp-servers/', 'scripts/')):
         result['command'] = str(repo / value)
     if 'args' in result:
@@ -87,6 +90,11 @@ def merge_config(path, generated, template):
                     updated[key] = entry[key]
                 else:
                     updated.pop(key, None)
+            updated['env'] = {**entry.get('env', {}), **existing.get('env', {})}
+            if not updated['env']:
+                updated.pop('env')
+            if 'transport' in entry:
+                updated.setdefault('transport', entry['transport'])
             servers[name] = updated
         else:
             servers[name] = entry
@@ -122,6 +130,11 @@ def main():
         record = args.runtime_root / 'records' / component
         runtime = record.read_text().strip() if record.exists() else None
         generated[name] = bind_entry(entry, repo, runtime)
+        if 'scripts/component-launch.py' in entry.get('args', []):
+            generated[name].setdefault('env', {}).update({
+                'NETCLAW_RUNTIME_ROOT': str(args.runtime_root.resolve()),
+                'NETCLAW_RUNTIME_ENV': str(args.runtime_root.resolve().parent / '.env'),
+            })
     writer.write_private(args.output, json.dumps({'mcpServers': generated}, indent=2) + '\n')
     if args.config:
         merge_config(args.config, generated, template)

@@ -1,6 +1,6 @@
 # Spec 146: Preserve filled dotenv settings during onboarding
 
-Status: implemented and locally verified; awaiting review/publication. Scope authorized by the owner's request to investigate and fix initialization ignoring a filled `.env`. Date: 2026-10-09.
+Status: complete; merged in PR #288 on 2026-10-10 after all 31 PR checks passed. Source metadata: 1.6.1; no tag or GitHub release published. Scope authorized by the owner's request to investigate and fix initialization ignoring a filled `.env`. Created: 2026-10-09.
 
 ## User scenarios and acceptance
 

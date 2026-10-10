@@ -9,6 +9,8 @@ metadata:
 
 # Markmap Mind Map Visualization
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## How to Call the Tools
 
 The Markmap MCP server provides 5 tools. Call them via mcp-call:

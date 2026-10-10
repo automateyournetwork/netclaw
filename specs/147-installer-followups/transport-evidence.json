@@ -1,0 +1,52 @@
+{
+  "runtime": "OpenClaw 2026.7.1-2",
+  "node": "v24.19.0",
+  "fixture_only": true,
+  "cases": [
+    {
+      "name": "stdio",
+      "returncode": 0,
+      "fixture_tool_discovered": true,
+      "http_methods": [],
+      "stdio_methods": [
+        "initialize",
+        "notifications/initialized",
+        "tools/list"
+      ]
+    },
+    {
+      "name": "http-explicit",
+      "returncode": 0,
+      "fixture_tool_discovered": true,
+      "http_methods": [
+        {
+          "verb": "POST",
+          "method": "initialize"
+        },
+        {
+          "verb": "POST",
+          "method": "notifications/initialized"
+        },
+        {
+          "verb": "GET",
+          "method": null
+        },
+        {
+          "verb": "POST",
+          "method": "tools/list"
+        }
+      ]
+    },
+    {
+      "name": "http-url-only",
+      "returncode": 0,
+      "fixture_tool_discovered": false,
+      "http_methods": [
+        {
+          "verb": "GET",
+          "method": null
+        }
+      ]
+    }
+  ]
+}

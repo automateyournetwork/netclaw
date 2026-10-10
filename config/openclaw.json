@@ -1334,6 +1334,149 @@
         "EQUINIX_SERVICENOW_USERNAME": "${EQUINIX_SERVICENOW_USERNAME:-}",
         "EQUINIX_SERVICENOW_PASSWORD": "${EQUINIX_SERVICENOW_PASSWORD:-}"
       }
+    },
+    "pyats-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "pyats",
+        "--server",
+        "pyats-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "netbox-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "netbox",
+        "--server",
+        "netbox-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "servicenow-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "servicenow",
+        "--server",
+        "servicenow-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "nvd-cve-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "nvd-cve",
+        "--server",
+        "nvd-cve-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "subnet-calc-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "subnet-calc",
+        "--server",
+        "subnet-calc-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "wikipedia-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "wikipedia",
+        "--server",
+        "wikipedia-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "markmap-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "markmap",
+        "--server",
+        "markmap-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "drawio-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "drawio-rfc",
+        "--server",
+        "drawio-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "rfc-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "drawio-rfc",
+        "--server",
+        "rfc-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "packet-buddy-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "packet-buddy",
+        "--server",
+        "packet-buddy-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "nmap-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "nmap",
+        "--server",
+        "nmap-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "gtrace-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "gtrace",
+        "--server",
+        "gtrace-mcp"
+      ],
+      "transport": "stdio"
+    },
+    "tts-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "tts",
+        "--server",
+        "tts-mcp"
+      ],
+      "transport": "stdio"
     }
   }
 }

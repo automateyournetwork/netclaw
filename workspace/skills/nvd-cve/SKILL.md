@@ -9,6 +9,8 @@ metadata:
 
 # NVD CVE Vulnerability Search
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Available Tools
 
 ### 1. `get_cve` — Look Up a Specific CVE by ID

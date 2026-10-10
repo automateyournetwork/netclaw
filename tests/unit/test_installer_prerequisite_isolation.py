@@ -11,13 +11,14 @@ def test_prerequisites_do_not_disable_pep668(tmp_path):
     env.pop('PIP_BREAK_SYSTEM_PACKAGES', None)
     script = r'''
 set -eu
+NETCLAW_DIR="$PWD"
 source scripts/lib/install-steps.sh
 log_step() { :; }
 log_info() { :; }
 log_warn() { :; }
 log_error() { return 1; }
 check_command() { return 0; }
-node() { echo v22.0.0; }
+node() { echo v24.16.0; }
 # The actual PEP668 detector sees a managed interpreter.
 python3() { return 0; }
 NETCLAW_PY=python3
