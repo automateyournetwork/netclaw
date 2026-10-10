@@ -2,7 +2,7 @@
 
 **Feature Branch**: `148-hermes-hud-integration`
 **Created**: 2026-10-10
-**Status**: Implementation and Mac return acceptance passed; final platform-matrix disposition and release preparation pending (see [closure.md](closure.md))
+**Status**: Complete — owner-approved Mac/WSL qualification; source release 1.7.0 (see [closure.md](closure.md))
 **Input**: User description: "Hermes does NOT currently connect to NetClaws HUD if the user deploys Hermes instead of OpenClaw; I need this addressed please"
 
 ## Problem and intended outcome
@@ -20,6 +20,8 @@ The reported gap is corroborated by repository inspection, recorded in [baseline
 - Q: Should spec 148 also make Hermes execute n2n/iN2N federation? → A: Federation will be a separate spec, 149. Spec 148 covers Hermes HUD integration and accurate reporting of federation availability; it does not port federation execution to Hermes.
 - Workflow direction: The owner delegated planning through analysis and authorized automatic remediation of analysis findings, with a report before implementation starts.
 - Validation direction: After implementation/Mac tests, prepare a Windows WSL Ubuntu test handoff if needed; the owner can switch machines to finish validation and then return to Mac for the next spec.
+
+- Closure direction: After reviewing the Mac return record, the owner approved proceeding to PR/merge, a minor version bump and an early README runtime comparison. Final qualification covers the actual macOS 26.5.2 arm64 and Ubuntu 26.04 x86_64 WSL2 hosts. Ubuntu 24.04 and native Windows OpenClaw remain explicitly unverified, outside this release qualification; their unrun checks are not represented as passes. Federation remains spec 149.
 
 ## User Scenarios & Testing
 

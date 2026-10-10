@@ -1,8 +1,9 @@
-# Spec 148 Mac return acceptance
+# Spec 148 closure — Hermes HUD integration
 
 **Date:** 2026-10-10. **Implementation:** `9b65b3b` on `148-hermes-hud-integration`.
-**Disposition:** implementation and Mac acceptance complete; final platform-matrix
-clarification and release preparation pending. Nothing pushed, merged, tagged or published.
+**Disposition:** complete for the owner-approved Mac/WSL qualification scope. Source
+version **1.7.0**, changelog and [release notes](../../docs/releases/1.7.0.md) are prepared
+for the authorized PR/merge. This record does not claim a published GitHub release.
 
 The WSL handoff at `3252977` was fetched from origin and fast-forwarded on this Mac.
 The owner explicitly authorized the repository Anthropic credential for isolated Hermes
@@ -64,8 +65,11 @@ native PowerShell Hermes refusal. Both use the same pinned Hermes source revisio
 
 The original matrix also names Ubuntu 24.04 and native Windows OpenClaw launch. Neither
 was exercised by the completed WSL session. They remain **unverified**, with no support
-claim inferred from other hosts. The owner has been asked whether the tested Mac + WSL
-matrix is the final release qualification scope or these remain blocking gates.
+claim inferred from other hosts. On 2026-10-10, after reviewing this disposition, the
+owner approved proceeding to PR/merge, a minor version bump, release notes and a README
+runtime comparison. The tested Mac + Ubuntu 26.04 WSL matrix is therefore the final
+qualification scope; the two untested environments are recorded gaps outside that scope,
+not passed tests. No additional Windows handoff is required for spec 148.
 
 The last Mac fixes were tested on Mac; the historical WSL reports retain their actual
 commits. They are not relabeled as new WSL executions. Native Windows Hermes continues
@@ -73,17 +77,28 @@ to be explicitly unsupported; the actual refusal path passed on Windows.
 
 ## Requirements and boundaries
 
-SC-001 through SC-006 have passing scoped evidence across live/controlled agent,
-real browser, ownership/policy, fault and preservation tests. SC-007's Mac OpenClaw and
-upgrade evidence passes; the final declared platform matrix awaits the decision above.
-T029/T034/T039/T052/T053 are complete. T038/T055 await that platform disposition;
-T056 follows acceptance with release metadata reconciled against `origin/main` at
-`a67aba7369e847ef50fea8542eed919552088d0c` (already an ancestor). Proposed release: 1.7.0; [reviewable release notes](release-candidate.md) are prepared.
-The release helper preview passed; VERSION remains 1.6.2 until matrix acceptance.
+SC-001 through SC-007 have passing scoped evidence across live/controlled agent,
+real browser, ownership/policy, fault, preservation and existing OpenClaw checks. All 58
+implementation tasks are complete against the approved matrix. T038 includes actual
+native Windows Hermes refusal, with native Windows OpenClaw explicitly unqualified;
+T055 uses the actual Ubuntu 26.04 WSL evidence. T056 advances VERSION from 1.6.2 to
+1.7.0, reconciled against `origin/main` at `a67aba7369e847ef50fea8542eed919552088d0c`
+(already an ancestor). The HUD component version retains its independent lifecycle.
+
+Release review follows the repository's metadata, artifact, reconciliation and applicable
+CI gates. The owner authorized pushing this branch, opening and merging its PR, and
+returning the checkout to clean main. Tags and GitHub release publication are separate
+from this source-version change.
+
+Release preparation checks passed on 2026-10-10: metadata for 1.7.0, all six release-helper
+tests, 132 spec artifacts (four existing legacy exceptions), all six declaration
+reconciliation surfaces, regenerated HUD references and the production build. The existing
+large-chunk build advisory remains; it is not a failed budget check. Credentials and
+local state stay ignored. Applicable PR and main CI results are recorded by GitHub.
 
 Hermes uses the dedicated authenticated companion behind the HUD API and private MCP;
 port 3000 does not connect directly to the ordinary Hermes gateway. Initial tools are
 limited to the reviewed subnet calculator/skill. Attachments, arbitrary network MCPs,
 configuration APPLY, model/effort overrides, hosted Avatar, shared memory and auxiliary
 context compression are unavailable. Federation remains spec 149. Live CML tool
-qualification is not claimed. No package publication or main merge is part of local closure.
+qualification is not claimed. No production device change or owner gateway restart is required.

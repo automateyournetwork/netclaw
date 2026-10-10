@@ -82,7 +82,7 @@
 - [X] T035 [US6] Implement explicit safe legacy OpenClaw credential-source migration using `scripts/import-env.py` and runtime-selection preflight, preserving selected `.env` values; Hermes never implicitly imports repository/OpenClaw secrets. (FR-001,012,016–018)
 - [X] T036 [US6] Add `hermes-hud` catalog/profile/install entries, `hud-private` manifest/readiness handling and HUD-specific Node/Python requirements in `scripts/lib/{catalog,install-steps}.sh`, `config/installer-{access,runtime}.json` and `scripts/installer-readiness.py`. (FR-001–003,017,019; constitution XI)
 - [X] T037 [US6] Exclude the private conversation server from `scripts/openclaw-to-hermes-mcp.py` and `scripts/register-all-mcps.py`; add explicit external/private coverage in `scripts/verify-{catalog-coverage,inventory-counts}.py` and tests proving no recursive agent registration. (FR-006,016,017,019; constitution V,XI)
-- [ ] T038 [US6] Honor selected runtime or refuse unsupported native Windows Hermes before any OpenClaw action in `Start-NetClaw.ps1`, `Start-NetClaw-Canvas.ps1`, `Restart-NetClaw-API.ps1` and relevant launch tests without adding a Python requirement; document WSL Linux launch separately and test supported OpenClaw Node versions. (FR-001,002,017–019)
+- [X] T038 [US6] Honor selected runtime or refuse unsupported native Windows Hermes before any OpenClaw action in `Start-NetClaw.ps1`, `Start-NetClaw-Canvas.ps1`, `Restart-NetClaw-API.ps1` and relevant launch tests without adding a Python requirement; document WSL Linux launch separately and retain supported OpenClaw Node-version checks. Actual three-entrypoint native Hermes refusal passed; native OpenClaw live launch remains explicitly unverified outside the owner-approved release matrix (see closure.md). (FR-001,002,017–019)
 - [X] T039 [US6] Update `scripts/upgrade-hud.sh` with compatible selection/component preflight and migration guidance; preserve no-unrequested-restart behavior and owner config/browser backups, verifying seeded upgrade/rollback tests. (FR-012,017,018,021)
 - [X] T040 [US6] Add `hermes-hud` to `tests/contract-suites.json` and relevant `.github/workflows/{hud-ci,mcp-reconciliation}.yml` triggers/jobs; distinguish offline/real-agent/live-provider evidence and fail required capability gaps explicitly. (FR-018,019)
 
@@ -111,8 +111,8 @@
 - [X] T052 Complete browser acceptance for Chat/local Avatar, Canvas branching, scoped storage/history, progress/approval, draft retention and selected-runtime panels; save sanitized results in `specs/148-hermes-hud-integration/validation.md`. (FR-003–004,007–016,018,021,022; SC-002–006)
 - [X] T053 Complete Mac live five-turn/context/tool/skill and upgrade acceptance with qualified Hermes and existing OpenClaw; record exact environment and evidence in `specs/148-hermes-hud-integration/validation.md`. (FR-001–022; SC-001–007)
 - [X] T054 After Mac implementation/testing, assess remaining Linux/WSL cases and, if another machine is needed, write `specs/148-hermes-hud-integration/validation-handoff.md` with exact transferable commit, setup/commands/evidence and closure criteria; otherwise record why no handoff is needed in `validation.md`. (FR-019; user's WSL direction)
-- [ ] T055 Complete required Ubuntu/WSL integration, Windows-browser loopback/auth, permission/persistence/restart/canary and OpenClaw preservation checks from the handoff or local environment; append pass/fail/unverified evidence to `specs/148-hermes-hud-integration/validation.md` and resolve failures before closure. (FR-001–022; SC-001–007)
-- [ ] T056 Reconcile release metadata (`VERSION`, `CHANGELOG.md` and any actual release-linked manifests identified by `CONTRIBUTING.md`) with repository conventions/current main; target minor 1.7.0 from 1.6.2 only after acceptance, and document user-visible limitations/migration. (FR-018,019)
+- [X] T055 Complete required Ubuntu/WSL integration, Windows-browser loopback/auth, permission/persistence/restart/canary and OpenClaw preservation checks from the handoff or local environment; append pass/fail/unverified evidence to `specs/148-hermes-hud-integration/validation.md` and resolve failures before closure. Actual Ubuntu 26.04 WSL checks passed; owner approved this tested matrix, with Ubuntu 24.04 and native Windows OpenClaw explicitly unqualified (see closure.md). (FR-001–022; SC-001–007)
+- [X] T056 Reconcile release metadata (`VERSION`, `CHANGELOG.md` and any actual release-linked manifests identified by `CONTRIBUTING.md`) with repository conventions/current main; target minor 1.7.0 from 1.6.2 only after acceptance, and document user-visible limitations/migration. (FR-018,019)
 - [X] T057 Draft the milestone article locally in `specs/148-hermes-hud-integration/blog-draft.md`, with tested evidence and remaining limitations; no publication, PR or external message without the owner's separate direction. (FR-019; constitution XIV,XVII)
 - [X] T058 Re-run artifact/diff checks, reconcile task checkboxes against actual evidence, record final notes in `memory/YYYY-MM-DD.md` and GAIT, and report completed scope or exact remaining validation blockers through `specs/148-hermes-hud-integration/validation.md`. (FR-019; constitution IV,XVI)
 
@@ -131,6 +131,10 @@ Examples per story: T010 launcher tests while completing T009 adapter wiring; T0
 ## Delivery strategy
 
 US1 is the first demonstrable checkpoint, not sufficient for release. US2–US3 establish real agent value and private workspace behavior. US5 and US6 secure recovery/upgrades before US4 completes operational panels. Every story and the protected-agent/live-platform gates are required for final acceptance. All eight declared MCP tools, selected-runtime writers and legacy routes need coverage. Do not substitute skipped platform tests or unsupported core chat/tools for feature completion; prepare the authorized WSL handoff when needed.
+
+## Final acceptance disposition
+
+All 58 implementation tasks are complete for the owner-approved scope recorded in [closure.md](closure.md). The owner accepted actual Mac and Ubuntu 26.04 WSL qualification and requested PR/merge with minor release 1.7.0. This closes the prior matrix decision; it does not convert unrun Ubuntu 24.04 or native Windows OpenClaw checks into passes. Release notes: [1.7.0](../../docs/releases/1.7.0.md).
 
 ## Historical WSL remaining-task evidence
 
@@ -172,4 +176,4 @@ Top-level tasks remain unchecked when their full acceptance scope has not passed
 - [X] HUD 366 tests, Canvas 27 suites, installer 236 tests/25 subtests, isolated MCP smoke.
 - [X] Mac return real-browser, in-flight failure, rollback and live OpenClaw matrix (see closure.md).
 - [X] Mac-only T053 acceptance.
-- [ ] Final platform scope and T056 release/spec closure.
+- [X] Final platform scope approved by owner; T056 source version 1.7.0, changelog and release notes prepared. Unverified environments remain recorded in closure.md.

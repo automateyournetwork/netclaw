@@ -1,11 +1,11 @@
 # Spec 148 implementation validation
 
 **Date:** 2026-10-10. **Branch:** `148-hermes-hud-integration`.
-**Current disposition:** Mac return acceptance and defect remediation passed; see [closure.md](closure.md) and the portable Mac evidence. Platform-matrix clarification and release preparation remain open. The earlier results below are historical and retain their actual scope.
+**Current disposition:** Spec complete for the owner-approved Mac/Ubuntu 26.04 WSL scope; source release 1.7.0 prepared for PR/merge. See [closure.md](closure.md), the portable Mac evidence and [release notes](../../docs/releases/1.7.0.md). Ubuntu 24.04 and native Windows OpenClaw remain unverified outside this qualification. The earlier results below are historical and retain their actual scope.
 The exact transferable implementation commit is recorded in [validation-handoff.md](validation-handoff.md).
 The original Mac implementation validation below performed no live-provider request.
 The subsequent WSL acceptance section records actual Anthropic requests. No owner
-gateway restart, device change, push, merge or publication was performed.
+gateway restart or device change was performed. These historical acceptance sessions preceded the separately authorized release PR/merge.
 
 ## Environment and qualification
 

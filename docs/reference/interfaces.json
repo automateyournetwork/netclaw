@@ -1195,27 +1195,27 @@
       ],
       "declarations": [
         {
-          "line": 135,
+          "line": 140,
           "declaration": "argparse.ArgumentParser()"
         },
         {
-          "line": 135,
+          "line": 140,
           "declaration": "parser.add_argument('--home',required=True)"
         },
         {
-          "line": 135,
+          "line": 140,
           "declaration": "parser.add_argument('--source',required=True)"
         },
         {
-          "line": 135,
+          "line": 140,
           "declaration": "parser.add_argument('--installation',required=True)"
         },
         {
-          "line": 135,
+          "line": 140,
           "declaration": "parser.add_argument('--port',type=int,default=8643)"
         }
       ],
-      "sha256": "83eddd75dca6ccf275a66ad0a5b5adf3e112f61abba054bc00b7c1d42abf4be9",
+      "sha256": "a05d5a2f0ab2f7c861fde719b5de5d30e95a12acdd24cc29fac513422da2a933",
       "coverage": "Static source declarations; lexical flags may include delegated commands. No execution performed."
     },
     {
@@ -7358,7 +7358,7 @@
         "--global"
       ],
       "declarations": [],
-      "sha256": "4c4a8f0e8e6f16dfd41a78275b45932147093ec98a61902adb9b2e71e9263421",
+      "sha256": "aedccee7a895a1a47d553a2170a222e2b42d753ef062674ace5beb1f1e19ddf4",
       "coverage": "Node entry point; argument/source references only. npm wrapper commands are indexed separately."
     },
     {
@@ -8724,8 +8724,79 @@
       "name": "infrahub-mcp",
       "access": "agent-native",
       "transport": "stdio",
-      "tools": [],
-      "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
+      "tools": [
+        {
+          "name": "branch_create",
+          "signature": "ctx: Context, name: Annotated[str, Field(description='Name of the branch to create.')], sync_with_git: Annotated[bool, Field(default=False, description='Whether to sync the branch with git.')]",
+          "description": "Create a new branch in infrahub.\n\nParameters:\n    name: Name of the branch to create.\n    sync_with_git: Whether to sync the branch with git. Defaults to False.\n\nReturns:\n    Dictionary with success status and branch details.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/branch.py",
+          "line": 21
+        },
+        {
+          "name": "get_branches",
+          "signature": "ctx: Context",
+          "description": "Retrieve all branches from infrahub.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/branch.py",
+          "line": 55
+        },
+        {
+          "name": "get_graphql_schema",
+          "signature": "ctx: Context",
+          "description": "Retrieve the GraphQL schema from Infrahub\n\nParameters:\n    None\n\nReturns:\n    MCPResponse with the GraphQL schema as a string.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/gql.py",
+          "line": 16
+        },
+        {
+          "name": "query_graphql",
+          "signature": "ctx: Context, query: Annotated[str, Field(description='GraphQL query to execute.')], branch: Annotated[str | None, Field(default=None, description='Branch to execute the query against. Defaults to None (uses default branch).')]",
+          "description": "Execute a GraphQL query against Infrahub.\n\nParameters:\n    query: GraphQL query to execute.\n    branch: Branch to execute the query against. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with the result of the query.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/gql.py",
+          "line": 31
+        },
+        {
+          "name": "get_nodes",
+          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')], filters: Annotated[dict[str, Any] | None, Field(default=None, description='Dictionary of filters to apply.')], partial_match: Annotated[bool, Field(default=False, description='Whether to use partial matching for filters.')]",
+          "description": "Get all objects of a specific kind from Infrahub.\n\nTo retrieve the list of available kinds, use the `get_schema_mapping` tool.\nTo retrieve the list of available filters for a specific kind, use the `get_node_filters` tool.\n\nParameters:\n    kind: Kind of the objects to retrieve.\n    branch: Branch to retrieve the objects from. Defaults to None (uses default branch).\n    filters: Dictionary of filters to apply.\n    partial_match: Whether to use partial matching for filters.\n\nReturns:\n    MCPResponse with success status and objects.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
+          "line": 19
+        },
+        {
+          "name": "get_node_filters",
+          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')]",
+          "description": "Retrieve all the available filters for a specific schema node kind.\n\nThere's multiple types of filters\nattribute filters are in the form attribute__value\n\nrelationship filters are in the form relationship__attribute__value\nyou can find more information on the peer node of the relationship using the `get_schema` tool\n\nFilters that start with parent refer to a related generic schema node.\nYou can find the type of that related node by inspected the output of the `get_schema` tool.\n\nParameters:\n    kind: Kind of the objects to retrieve.\n    branch: Branch to retrieve the objects from. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with success status and filters.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
+          "line": 99
+        },
+        {
+          "name": "get_related_nodes",
+          "signature": "ctx: Context, kind: Annotated[str, Field(description='Kind of the objects to retrieve.')], relation: Annotated[str, Field(description='Name of the relation to fetch.')], filters: Annotated[dict[str, Any] | None, Field(default=None, description='Dictionary of filters to apply.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the objects from. Defaults to None (uses default branch).')]",
+          "description": "Retrieve related nodes by relation name and a kind.\n\nArgs:\n    kind: Kind of the node to fetch.\n    filters: Filters to apply on the node to fetch.\n    relation: Name of the relation to fetch.\n    branch: Branch to fetch the node from. Defaults to None (uses default branch).\n\nReturns:\n    MCPResponse with success status and objects.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/nodes.py",
+          "line": 156
+        },
+        {
+          "name": "get_schema_mapping",
+          "signature": "ctx: Context, branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the mapping from. Defaults to None (uses default branch).')]",
+          "description": "List all schema nodes and generics available in Infrahub\n\nParameters:\n    branch: Branch to retrieve the mapping from. Defaults to None (uses default branch).\n\nReturns:\n    Dictionary with success status and schema mapping.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
+          "line": 18
+        },
+        {
+          "name": "get_schema",
+          "signature": "ctx: Context, kind: Annotated[str, Field(description='Schema Kind to retrieve.')], branch: Annotated[str | None, Field(default=None, description='Branch to retrieve the schema from. Defaults to None (uses default branch).')]",
+          "description": "Retrieve the full schema for a specific kind.\nThis includes attributes, relationships, and their types.\n\nParameters:\n    kind: Schema Kind to retrieve.\n    branch: Branch to retrieve the schema from. Defaults to None (uses default branch).\n\nReturns:\n    Dictionary with success status and schema.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
+          "line": 56
+        },
+        {
+          "name": "get_schemas",
+          "signature": "ctx: Context, branch: Annotated[str | None, Field(default=None, description='Branch to retrieve schemas from. Defaults to None (uses default branch).')], exclude_profiles: Annotated[bool, Field(default=True, description='Whether to exclude Profile schemas. Defaults to True.')], exclude_templates: Annotated[bool, Field(default=True, description='Whether to exclude Template schemas. Defaults to True.')]",
+          "description": "Retrieve all schemas from Infrahub, optionally excluding Profiles and Templates.\n\nParameters:\n    infrahub_client: Infrahub client to use\n    branch: Branch to retrieve schemas from\n    exclude_profiles: Whether to exclude Profile schemas. Defaults to True.\n    exclude_templates: Whether to exclude Template schemas. Defaults to True.\n\nReturns:\n    Dictionary with success status and schemas.",
+          "source": "mcp-servers/infrahub-mcp/src/infrahub_mcp/tools/schema.py",
+          "line": 95
+        }
+      ],
+      "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."
     },
     {
       "name": "itential-mcp",
@@ -9989,8 +10060,16 @@
       "name": "servicenow-mcp",
       "access": "agent-native",
       "transport": "stdio",
-      "tools": [],
-      "coverage": "External, generated or non-decorator tools: runtime tools/list required; schema not inferred."
+      "tools": [
+        {
+          "name": "list_tool_packages",
+          "signature": "{'type': 'object', 'properties': {'random_string': {'type': 'string', 'description': 'Dummy parameter for no-parameter tools'}}, 'required': ['random_string']}",
+          "description": "Lists available tool packages and the currently loaded one.",
+          "source": "mcp-servers/servicenow-mcp/src/servicenow_mcp/server.py",
+          "line": 186
+        }
+      ],
+      "coverage": "Source-declared tool signatures/schemas; runtime tools/list is authoritative."
     },
     {
       "name": "sketchfab-mcp",
@@ -11308,7 +11387,7 @@
           "operationId": "post_api_chat_usage",
           "summary": "POST /api/chat/usage",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:33",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:35",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11340,7 +11419,7 @@
           "operationId": "get_api_chat_models",
           "summary": "GET /api/chat/models",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:30",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:32",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11361,7 +11440,7 @@
           "operationId": "post_api_chat",
           "summary": "POST /api/chat",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:92",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:94",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11388,7 +11467,7 @@
           "operationId": "get_api_chat_history",
           "summary": "GET /api/chat/history",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:108",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:110",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11696,7 +11775,7 @@
           "operationId": "get_api_chat_conversations",
           "summary": "GET /api/chat/conversations",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:34",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:36",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11715,7 +11794,7 @@
           "operationId": "post_api_chat_conversations",
           "summary": "POST /api/chat/conversations",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:17",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:19",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -11747,7 +11826,7 @@
           "operationId": "post_api_chat_conversations_id_open",
           "summary": "POST /api/chat/conversations/{id}/open",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:38",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:40",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -12185,7 +12264,7 @@
           "operationId": "get_api_terminal_intent_runs_id",
           "summary": "GET /api/terminal/intent/runs/{id}",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:34",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:39",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -12211,7 +12290,7 @@
           "operationId": "get_api_chat_requests",
           "summary": "GET /api/chat/requests",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:9",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:11",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."
@@ -12230,7 +12309,7 @@
           "operationId": "post_api_chat_requests",
           "summary": "POST /api/chat/requests",
           "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:93",
+          "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:95",
           "responses": {
             "200": {
               "description": "Successful response; see implementation for payload and other success codes."

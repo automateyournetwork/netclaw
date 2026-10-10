@@ -858,7 +858,7 @@
         "operationId": "post_api_chat_usage",
         "summary": "POST /api/chat/usage",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:33",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:35",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -890,7 +890,7 @@
         "operationId": "get_api_chat_models",
         "summary": "GET /api/chat/models",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:30",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:32",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -911,7 +911,7 @@
         "operationId": "post_api_chat",
         "summary": "POST /api/chat",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:92",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:94",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -938,7 +938,7 @@
         "operationId": "get_api_chat_history",
         "summary": "GET /api/chat/history",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:108",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:110",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1246,7 +1246,7 @@
         "operationId": "get_api_chat_conversations",
         "summary": "GET /api/chat/conversations",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:34",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:36",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1265,7 +1265,7 @@
         "operationId": "post_api_chat_conversations",
         "summary": "POST /api/chat/conversations",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:17",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:19",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1297,7 +1297,7 @@
         "operationId": "post_api_chat_conversations_id_open",
         "summary": "POST /api/chat/conversations/{id}/open",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:38",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:40",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1735,7 +1735,7 @@
         "operationId": "get_api_terminal_intent_runs_id",
         "summary": "GET /api/terminal/intent/runs/{id}",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:34",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/intent.js:39",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1761,7 +1761,7 @@
         "operationId": "get_api_chat_requests",
         "summary": "GET /api/chat/requests",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:9",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:11",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."
@@ -1780,7 +1780,7 @@
         "operationId": "post_api_chat_requests",
         "summary": "POST /api/chat/requests",
         "description": "Local Host/Origin guards apply. See x-source for implementation. General response schema is intentionally unspecified; this is not a promise of upstream device API compatibility.",
-        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:93",
+        "x-source": "ui/netclaw-visual/src/hud-server/runtime/routes.js:95",
         "responses": {
           "200": {
             "description": "Successful response; see implementation for payload and other success codes."

@@ -1,6 +1,6 @@
 # Implementation validation and handoff
 
-The commands below now exist. This procedure is not itself test evidence: see [validation.md](validation.md) for actual Mac results and [validation-handoff.md](validation-handoff.md) for remaining host acceptance. Use synthetic private homes and harmless tool fixtures; never overwrite an owner's installation or run production device writes to test this integration.
+The commands below now exist. This procedure is not itself test evidence: see [closure.md](closure.md) for the approved final qualification and [validation.md](validation.md) for historical Mac/WSL results. The original [handoff](validation-handoff.md) is retained for reproduction. Use synthetic private homes and harmless tool fixtures; never overwrite an owner's installation or run production device writes to test this integration.
 
 ## Prerequisites and evidence
 
@@ -9,12 +9,12 @@ Use branch `148-hermes-hud-integration`; record exact implementation commit, OS/
 | Environment | Required evidence | Current status |
 |---|---|---|
 | macOS 26.5.2 arm64 | Deterministic suites, real protected Hermes fixture, browser flows, live five-turn/provider/tool test | PASS: live, browser, real process and regression; see closure.md |
-| Ubuntu 24.04 x86_64 | Same core integration/launch/preservation and browser checks | Unverified; final qualification scope pending owner decision |
+| Ubuntu 24.04 x86_64 | Original qualification target | Unverified; outside the owner-approved 1.7.0 qualification |
 | Windows 11 WSL2 / Ubuntu 26.04 x86_64 (actual host) | Linux paths, private file modes, clean-shell launch, Windows-browser loopback/authentication, persistence/restart and live canary | PASS: WSL evidence; does not verify originally listed Ubuntu 24.04 |
 | Native Windows + Hermes | Early unsupported-host refusal, zero OpenClaw startup/config mutation | PASS: actual native PowerShell refusal; Hermes support excluded |
 | Existing OpenClaw | Current CI and supported-launch regression, owned history/migration, model controls, Canvas/local Avatar, Terminal Intent and panels | PASS on Mac: live Chat/model/Canvas/Avatar/Intent/panels; native Windows OpenClaw unverified |
 
-Do not claim every listed platform is supported until its required evidence passes. WSL is a Linux runtime target, not support for the native Windows PowerShell Hermes launch path.
+The owner approved the actual Mac and Ubuntu 26.04 WSL matrix on 2026-10-10. Ubuntu 24.04 and native Windows OpenClaw are not newly qualified by this release. Do not claim every listed platform was tested. WSL is a Linux runtime target, not support for the native Windows PowerShell Hermes launch path.
 
 ## Deterministic checks after code is built
 
@@ -56,7 +56,9 @@ Run `python3 tests/hermes-hud/run_real_fixture.py` separately for the required r
 
 All SC-001–007 require recorded results. Actual provider/tool results must be distinguishable from deterministic fixtures. A missing live environment remains unverified; do not check off its acceptance task based on source inspection.
 
-## Conditional Windows/WSL handoff after implementation
+## Historical Windows/WSL handoff procedure
+
+The offered WSL run and Mac return acceptance are complete. No further handoff is required for the approved scope. The original procedure below remains useful for future platform qualification.
 
 The owner has offered to switch machines after Mac implementation if needed. At that point, assess which Linux/WSL cases remain unrun. If they cannot be completed on the Mac, write `specs/148-hermes-hud-integration/validation-handoff.md` containing:
 

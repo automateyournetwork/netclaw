@@ -7,8 +7,9 @@ on a45225a. The full 366 HUD tests and build were rerun after the readiness badg
 No credentials, owner configuration or raw private transcripts are included.
 
 Mac return reports reference implementation `9b65b3b`. See ../closure.md for the
-completed Mac live, browser, fault, upgrade and OpenClaw checks and remaining matrix
-disposition. Historical WSL commits above remain unchanged.
+completed Mac live, browser, fault, upgrade and OpenClaw checks and the owner-approved
+Mac/WSL qualification scope. Historical WSL commits above remain unchanged.
 
 The deterministic provider is separate from the paid Anthropic result. A test's passing
-status applies only to its assertions. Preserve the open tasks in ../tasks.md.
+status applies only to its assertions. Ubuntu 24.04 and native Windows OpenClaw remain
+unverified outside the approved release scope; no historical test result is relabeled.

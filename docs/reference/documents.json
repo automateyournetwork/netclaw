@@ -588,6 +588,12 @@
     "category": "Guides"
   },
   {
+    "id": "fa1356e6b564b90c",
+    "path": "docs/releases/1.7.0.md",
+    "title": "NetClaw 1.7.0 \u2014 Hermes joins the shared HUD",
+    "category": "Guides"
+  },
+  {
     "id": "460a0c09b3013aa9",
     "path": "docs/social/MCP-TASKS-POST.md",
     "title": "Adding asynchronous MCP Tasks to pyATS\u2014and across NetClaw",

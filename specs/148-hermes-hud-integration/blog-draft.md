@@ -1,6 +1,6 @@
 # Draft: Bringing Hermes into the NetClaw HUD
 
-**Local draft — not published. Acceptance and release are pending.**
+**Local draft — not published. Spec 148 acceptance is complete for the owner-approved Mac/WSL scope; source version 1.7.0.**
 
 The shared NetClaw HUD previously assumed OpenClaw behind its chat and runtime panels.
 Spec 148 adds an explicit Hermes selection so a Hermes deployment can use the HUD's
@@ -34,5 +34,5 @@ Acceptance exposed and corrected deadline propagation, pre-admission error attri
 an empty Hermes Settings panel and background title inference outside the protected
 hook. Auxiliary title generation and automatic context compression are disabled in the
 private profile. The owner gateway and HUD were preserved. Exact tested platforms and
-remaining release-matrix disposition are recorded in [closure.md](closure.md). This
+explicitly unverified environments are recorded in [closure.md](closure.md). This
 remains an unpublished local draft; it is not a claim that a release has been published.

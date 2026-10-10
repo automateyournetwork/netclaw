@@ -1,10 +1,10 @@
 # Hermes in the NetClaw HUD
 
-Spec 148 connects the shared HUD to a dedicated, protected Hermes agent. Federation remains spec 149. Mac and WSL live/browser acceptance is recorded in [the Mac return record](../specs/148-hermes-hud-integration/closure.md), including the exact qualified hosts and remaining matrix disposition.
+NetClaw 1.7.0 (spec 148) connects the shared HUD to a dedicated, protected Hermes agent. Federation follows in spec 149. Mac and WSL live/browser acceptance is recorded in [the closure record](../specs/148-hermes-hud-integration/closure.md), including the exact qualified hosts and explicitly unverified environments.
 
 ## Install and launch
 
-On macOS or inside Ubuntu on WSL2, configure Hermes with `hermes setup` first. Keep credentials in the selected Hermes home's `.env`; repository or OpenClaw credentials are never imported automatically into Hermes.
+On macOS or inside Ubuntu on WSL2, configure Hermes with `hermes setup` first. Keep credentials in the selected Hermes home's `.env`. The HUD launcher never falls back to repository or OpenClaw credentials for Hermes. The installer can import supported repository `.env` settings before onboarding, preserving existing selected-home values; see [credential import](../README.md#filled-env-and-first-time-setup).
 
 ```sh
 ./scripts/install.sh --runtime hermes --add "subnet-calc hermes-hud"

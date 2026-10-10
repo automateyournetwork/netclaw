@@ -66,9 +66,18 @@
   ],
   "limits": [
     "Initial read-only subnet tool does not have an eligible approval pause; positive once/deny and UI pause tests are controlled protocol fixtures",
-    "Native Windows OpenClaw and Ubuntu 24.04 are unverified; matrix disposition pending owner clarification",
+    "Native Windows OpenClaw and Ubuntu 24.04 are unverified; owner approved the actual Mac/Ubuntu 26.04 WSL release qualification on 2026-10-10",
     "An initial live OpenClaw Intent free-form answer remained uncertain; a distinct format-only JSON test completed. No uncertain operation was replayed.",
     "Dashboard source rollback/reapply and legacy binding backup restoration were tested; no owner runtime downgrade performed"
   ],
-  "toolPolicySha256": "8b38a7bf0b6d50c99e2e66df1a98233d998f628930f664c184aa98d4cc591d4d"
+  "toolPolicySha256": "8b38a7bf0b6d50c99e2e66df1a98233d998f628930f664c184aa98d4cc591d4d",
+  "releaseDisposition": {
+    "ownerApproved": "2026-10-10",
+    "version": "1.7.0",
+    "qualifiedPlatforms": [
+      "macOS 26.5.2 arm64",
+      "Ubuntu 26.04 x86_64 on Windows 11 WSL2"
+    ],
+    "federationSpec": 149
+  }
 }

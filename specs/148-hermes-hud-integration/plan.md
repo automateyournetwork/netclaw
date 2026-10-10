@@ -2,7 +2,7 @@
 
 **Branch**: `148-hermes-hud-integration` | **Date**: 2026-10-10 | **Spec**: [spec.md](spec.md)
 **Input**: User's Hermes HUD request, federation exclusion for spec 149, and delegated planning through automatically remediated analysis.
-**Stage**: Implementation and Mac acceptance complete. See [closure.md](closure.md) for tested fixes, exact platform scope and final matrix/release disposition; [validation.md](validation.md) retains prior evidence.
+**Stage**: Complete for the owner-approved Mac/WSL scope; source release 1.7.0 prepared for PR/merge. See [closure.md](closure.md) for tested fixes and exact qualification limits; [validation.md](validation.md) retains prior evidence.
 
 ## Summary
 
@@ -16,7 +16,7 @@ Initial Hermes operational support is qualified read-only tools. Mutating operat
 **Primary Dependencies**: Existing Express 4/React 18/Vite 6; official MCP Node client 2.3.1; isolated FastMCP 4.0.11/MCP Python SDK 2.3.0; Hermes v0.21.6 at `818c13be1dc4fd28987e1e881a9408224afd4535`; bounded HTTP client pinned during component installation work.
 **Storage**: Existing private HUD bindings upgraded to schema 2; bridge SQLite request/session ledger (0600 under 0700 directory); runtime selection JSON; runtime-namespaced browser sessionStorage/IndexedDB; no external database.
 **Testing**: Node built-in tests, existing UI/browser suites, Python unittest/pytest contract harness, isolated real MCP process, pinned Hermes with controlled provider/tool fixture, separate live acceptance matrix.
-**Target Platform**: macOS 26.5.2 arm64 (actual qualification host), Ubuntu 24.04 x86_64, Ubuntu 24.04 on Windows 11 WSL2 (qualification targets). Native Windows Hermes refuses early; OpenClaw Windows launch behavior preserved.
+**Qualified Platforms**: macOS 26.5.2 arm64 and Ubuntu 26.04 x86_64 on Windows 11 WSL2, accepted by the owner on 2026-10-10. Native Windows Hermes early refusal passed. Ubuntu 24.04 and native Windows OpenClaw live launch remain unverified and outside this release qualification; no new support claim is inferred.
 **Project Type**: Existing local web application plus private MCP component and version-specific Hermes companion.
 **Performance Goals**: Readiness/metadata requests finish in 5 seconds; run admission returns within 10 seconds; progress poll at most once/second per active request; default run deadline 900 seconds, configurable 1–3600 seconds by existing HUD timeout policy. No unbounded pending browser request.
 **Constraints**: Loopback authenticated companion only; no browser credentials or upstream identifiers; no replay after ambiguous submission; one selected installation per HUD; no owner config overwrite; no raw reasoning projection; 4 MiB upstream response cap, 64 KiB text input, 1 MiB seeded context, 200 history messages/page, 20 progress events/poll, at most four concurrent runs and one per conversation.
@@ -35,7 +35,7 @@ Post-design check:
 | VI–VII | Reuse existing vendor MCP implementations and installed skill documentation; one focused HUD diagnostics skill, no duplicated network automation. |
 | IX–X, XIII | Least privilege, selected-home environment, protected companion, sanitized status/logs and graph node; provider keys in selected private `.env`, companion key in private `companion-auth.json`; never descriptors, browser output or argv. |
 | XI–XII | Catalog/profile/install function, manifests/readiness, README architecture/counts/setup, SOUL, TOOLS, `.env.example`, server README, skill, HUD node and generated references all assigned below and in tasks. Agent-native registration is deliberately **not applicable** for the private bridge, following Tavus precedent, with explicit coverage/exclusion tests. |
-| XIV | No messages, tickets, PRs or publications in this stage. Future milestone draft remains local pending review. |
+| XIV | Planning and implementation sent no external messages. The owner subsequently authorized this feature's PR/merge and minor source-version bump. The milestone blog draft remains local pending publication approval. |
 | XV | OpenClaw adapter regression, explicit schema/storage migration, upgrade preservation, isolated bridge dependencies and source-qualified Hermes companion. |
 | XVI–XVII | Numbered spec/design/tasks/analysis before code; local milestone blog draft and release evidence before completion. |
 
