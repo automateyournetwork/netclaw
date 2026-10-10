@@ -1,0 +1,20 @@
+Canvas regression: topology-facts.mjs
+Identifier parsers, independent freshness, scope control and IP/MAC/VLAN correlation checks passed.
+
+Canvas regression: topology-image-markers.mjs
+Topology marker tests passed: role mapping, direct suppression, LPM, stale/error isolation, VRF, inference, coordinates and shared diagram scope.
+
+Canvas regression: topology-image-sharing.mjs
+Topology sharing tests passed: linked mappings, device overrides, network default, future devices, opt-out, migration, conflict protection and safe IDs.
+Async sharing store tests passed: migration, conflict preservation, linked updates, atomic failure, stale edit rejection, notifications and DB cleanup.
+
+Canvas regression: topology-image-ui.mjs
+Topology image JSX tests passed: role markers, escaped labels, local-only rendering and mapping mode. Not visual browser QA.
+
+Canvas regression: topology-image.mjs
+Topology image validation, context isolation, storage lifecycle and failed replacement checks passed.
+
+Canvas regression: topology.mjs
+Topology parser, correlation, consent, lifecycle, persistence and SSH transport checks passed. No network devices contacted.
+
+27/27 Canvas suites passed.

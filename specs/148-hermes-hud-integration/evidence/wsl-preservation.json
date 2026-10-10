@@ -1,0 +1,22 @@
+{
+  "files": {
+    ".openclaw/.env": true,
+    ".openclaw/openclaw.json": true,
+    "netclaw/.env": true
+  },
+  "ownerProcessesAlive": {
+    "578": true,
+    "745": true,
+    "749": true
+  },
+  "privateFiles": {
+    "config/netclaw/runtime.json": true,
+    "Hermes Home/netclaw-hud/installation.json": true,
+    "Hermes Home/netclaw-hud/companion-auth.json": true,
+    "Hermes Home/netclaw-hud/ledger.db": true,
+    "Hermes Home/netclaw-hud/hermes/state.db": true
+  },
+  "sharedReadableDbDenied": true,
+  "sharedReadableDirDenied": true,
+  "symlinkDbDenied": true
+}

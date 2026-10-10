@@ -134,8 +134,39 @@ US1 is the first demonstrable checkpoint, not sufficient for release. US2–US3 
 
 ## Remaining task evidence
 
-- T029: deterministic lost POST, restart, late result, persistence and exact approval tests pass; the full host failure-category matrix remains in the handoff.
-- T034/T039: populated-home selection, private registration, dotenv preservation and build preflight tests pass; full populated upgrade/rollback/browser preservation acceptance remains open.
-- T038: early native-Windows refusal is implemented; actual PowerShell and native OpenClaw regression need the Windows host.
-- T052/T053/T055: real browser, owner-provider and cross-platform acceptance remain open.
-- T056: release preparation waits for acceptance; VERSION remains 1.6.2.
+WSL continuation evidence: [validation.md](validation.md), portable reports in
+[evidence/](evidence/), and [Mac return handoff](mac-return-handoff.md).
+Top-level tasks remain unchecked when their full acceptance scope has not passed.
+
+- T029: deterministic lost POST, nonce/restart, late result and exact approval tests pass;
+  actual companion restart between completed turns passes. Full in-flight process/browser
+  failure-category and eligible paused-approval matrix remains open.
+- T034/T039: 236 installer/HUD tests plus 25 subtests pass on WSL. Actual selected-profile
+  HUD upgrade check/apply preserves env/YAML/skills/records. Full populated repeated-install,
+  rollback and browser preservation acceptance remains open.
+- T038: actual native PowerShell early Hermes refusal passes for all three entrypoints;
+  native OpenClaw supported-version launch/regression remains unverified.
+- T052: Windows Edge core Chat/Avatar/history/ownership/rejection browser tests pass;
+  two real Canvas branches preserve quote-point context, graph and draft through refresh;
+  panel/approval/stop/installation-switch browser cases remain in the return handoff.
+- T053: Mac live provider, upgrade and existing OpenClaw acceptance remain open.
+- T055: WSL actual Anthropic five turns/tool/skill, real controlled-provider companion
+  restart, permissions, loopback, upgrade and owner preservation evidence recorded.
+  Full live OpenClaw and fault/rollback matrix remain open. Actual Ubuntu 26.04 does not
+  verify the requested Ubuntu 24.04 environment.
+- T056: release preparation waits for acceptance; VERSION remains 1.6.2. Current main
+  must be reconciled on the feature branch before choosing final release metadata.
+- T058: WSL sanitized evidence and return instructions committed on branch 148; no push,
+  merge, publication or federation work.
+
+### WSL acceptance subchecks completed
+
+- [X] Real pinned agent and subnet MCP with actual companion restart between turns.
+- [X] Live Anthropic five-turn context, reviewed skill/tool evidence, 14-host answer and usage.
+- [X] Native Windows three-entrypoint Hermes refusal without owner process/config changes.
+- [X] Windows Edge core loopback, Chat/local Avatar, owned history and rejected requests.
+- [X] Selected-profile HUD upgrade check/apply and env/YAML/skills/runtime-record preservation.
+- [X] Linux private state modes, shared-readable/symlink denial, owner file hash preservation.
+- [X] HUD 366 tests, Canvas 27 suites, installer 236 tests/25 subtests, isolated MCP smoke.
+- [ ] Full remaining real-browser, in-flight failure, rollback and live OpenClaw matrix.
+- [ ] Mac-only T053 acceptance and final release/spec closure.

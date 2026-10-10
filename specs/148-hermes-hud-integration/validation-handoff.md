@@ -1,6 +1,8 @@
 # Spec 148 — Windows / WSL Ubuntu acceptance handoff
 
-**Status:** ready for host acceptance, not release-complete. Read [validation.md](validation.md)
+**Status:** original Mac-to-WSL handoff, retained for reproduction. WSL continuation
+results and remaining gates are in [mac-return-handoff.md](mac-return-handoff.md).
+Not release-complete. Read [validation.md](validation.md)
 first. Federation remains spec 149. The Mac owner's running HUD was not restarted.
 
 ## Transfer the exact implementation

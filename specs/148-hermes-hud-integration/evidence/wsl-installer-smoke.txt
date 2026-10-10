@@ -1,0 +1,15 @@
+Memory MCP wheel packaging: PASS
+bgp-intel: isolated install PASS
+gnmi: isolated install PASS
+nautobot: isolated install PASS
+suzieq: isolated install PASS
+fwrule: BLOCKED_DEPENDENCY (optional source checkout absent)
+Prepared 4 selected MCP registrations.
+suzieq-mcp: legacy tools-list PASS (5 tools)
+suzieq-mcp: 2026-07-28 tools-list PASS (5 tools)
+gnmi-mcp: legacy tools-list PASS (10 tools)
+gnmi-mcp: 2026-07-28 tools-list PASS (10 tools)
+nautobot-mcp: legacy tools-list PASS (59 tools)
+nautobot-mcp: 2026-07-28 tools-list PASS (59 tools)
+bgp-intel-mcp: legacy tools-list PASS (10 tools)
+bgp-intel-mcp: 2026-07-28 tools-list PASS (10 tools)

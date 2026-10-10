@@ -3,8 +3,9 @@
 **Date:** 2026-10-10. **Branch:** `148-hermes-hud-integration`.
 **Disposition:** implementation available for acceptance; spec and release remain open.
 The exact transferable implementation commit is recorded in [validation-handoff.md](validation-handoff.md).
-No deployment, owner gateway restart, live-provider request, device operation, push or
-publication was performed. The owner's existing port 3000 process was left running.
+The original Mac implementation validation below performed no live-provider request.
+The subsequent WSL acceptance section records actual Anthropic requests. No owner
+gateway restart, device change, push, merge or publication was performed.
 
 ## Environment and qualification
 
@@ -124,3 +125,102 @@ validation/task documentation. GAIT branch: `hermes-hud-specification-2026-10-10
 implementation evidence recorded as `b926b01d`. Daily notes are in the ignored local
 `memory/2026-10-10.md`. No tickets or external communications were created.
 Completed: 50 of 58 tasks; the eight remaining tasks are explicitly listed above.
+
+
+## WSL continuation — 2026-10-10
+
+**Disposition: fixes committed; acceptance remains partial.** Use
+[the Mac return handoff](mac-return-handoff.md) for remaining gates. Do not interpret a
+clean worktree or passing automated suite as completion of T052/T053/T055/T056.
+
+Source was already available locally; at the owner's direction it was used instead of
+importing a missing bundle. A separate Linux-filesystem worktree was created at
+`/home/johncapobianco/netclaw-148`, on `148-hermes-hud-integration`, from `28cbc67`.
+Implementation fixes are commit `9f26dfa`; the Hermes badge correction and expanded
+Windows browser coverage are commit `a45225a`. The original `netclaw` checkout on `main`
+and its existing stashes were preserved. Its main ref advanced independently during
+the session; no checkout/reset/merge or commit on main was performed here.
+
+Actual host: Ubuntu **26.04** x86_64, WSL2 **3.0.1.0**, kernel **6.18.40.1**,
+Windows **10.0.26300.9550**, PowerShell **5.1.26100.9549**. The distro is still named
+`Ubuntu-22.04`; that label is not its installed version. The requested Ubuntu 24.04
+matrix is therefore **not verified** by this run. Isolated tools: Node **24.19.0**,
+uv **0.13.0**, agent Python **3.14.6**, bridge/tool Python **3.12.10**. Native Windows
+Node **24.11.1** was used only for early Hermes refusal/browser automation; it does
+not establish supported native OpenClaw startup.
+
+The owner populated a separate Hermes `.env` with an Anthropic key. The private profile
+is `/home/johncapobianco/netclaw-148 acceptance/Hermes Home`; selection is under its
+sibling `config` directory. UI/API/companion ports are 34000/34001/8644. Real reviewed
+subnet and bridge component installation functions were executed. The complete core
+installer was not run against the owner's runtime. No OpenClaw credentials were copied.
+
+### Results and limits
+
+| Check | Result | Actual evidence / boundary |
+|---|---|---|
+| Live Anthropic | PASS | Five completed turns on committed `9f26dfa`, `anthropic/claude-sonnet-4-6`; remembered violet, correlated subnet tool evidence, 14 usable hosts, actual usage. `evidence/wsl-live-provider.json` |
+| Pinned real agent / controlled provider / real MCP | PASS | Five-turn HTTP→MCP→Hermes run, actual companion stop/restart between turns, preserved context/evidence, no lazy dependency overlay. `evidence/wsl-real-agent.txt` |
+| Offline strict contract suite | PASS | Separate real-agent test intentionally skipped offline and passed by the real fixture. `evidence/wsl-contracts.txt` |
+| HUD unit / Canvas suites | PASS | 366 tests; 27/27 Canvas suites, including existing OpenClaw/Terminal Intent code regressions; these are not live owner acceptance |
+| Installer regression tests | PASS | 236 tests + 25 subtests; `python -m pytest -q tests/unit/test_installer_*.py tests/unit/test_hud_*.py tests/unit/test_hermes_hud_installer.py tests/unit/test_dotenv_onboarding.py` |
+| Installer smoke | PASS with optional gap | Real isolated bgp-intel/gnmi/nautobot/suzieq install/discovery, both protocol versions, 10/10/59/5 tools. Optional fwrule source absent, unverified |
+| Build / inventory | PASS | Production build and 400,000-byte Canvas budget; 37 owned FastMCP servers; 111 catalog entries; 237 skills / 176 integrations; 132 specs with four legacy exceptions |
+| Native PowerShell Hermes | PASS refusal only | Three entrypoints reject before actions with Ubuntu/WSL guidance; owner config hash and Node/OpenClaw PID set unchanged |
+| Linux private state | PASS sampled host + fault fixtures | Descriptor/installation/auth/ledger/native-state regular files mode 0600; shared-readable DB/directory and symlink DB refused. `evidence/wsl-preservation.json` |
+| Upgrade | PASS limited scope | Actual `upgrade-hud.sh --check` and `--apply`; selected profile env/YAML/skills/runtime record hashes unchanged. Full repeated component install, browser rollback and legacy populated upgrade matrix still open |
+| Owner preservation | PASS | Original OpenClaw env/config and repository env hashes unchanged; existing gateway/API/UI PIDs 578/745/749 still present. No owner service restart |
+| Fresh shell / ports / uncertainty | PASS automated scope | Actual subprocess custom-CWD/descriptor and occupied-three-port tests; ledger nonce/lost-POST/late-result/exact approval tests. Full real-process pending-request browser fault matrix remains open |
+| Existing OpenClaw live acceptance | UNVERIFIED | Automated regressions passed and running services preserved; no live contextual Chat/Canvas/Avatar/Terminal walkthrough performed on owner's installation |
+| Mac-specific acceptance / release | UNVERIFIED / deferred | T053 still requires actual Mac live provider, upgrade and existing OpenClaw; no version bump or spec closure |
+
+Windows Edge results are stored separately in `evidence/wsl-browser.json`; only its
+listed assertions are passing browser evidence. Panels, actual paused approvals,
+cooperative stop, late-result/unknown UX, complete installation switch/rollback and
+full failure-category walkthroughs remain open where not exercised. Cross-origin/Host
+checks are automated server regressions, not a new manual browser security claim.
+
+### Failures found and corrections
+
+- The owner found an incorrect “Gateway unavailable” badge on the live Hermes HUD.
+  The UI expected OpenClaw's `online` field, while Hermes reported `ready`. It now uses
+  the selected Hermes readiness response and says “Hermes ready”; Windows Edge confirms
+  this, and the full 366-test suite/build pass after the fix.
+- Windows Edge passed two Canvas branches with distinct quote-point contexts, excluded
+  later-parent/sibling messages, and restored graph/draft after refresh. The initial
+  browser test selected an earlier quote while expecting later context; the fixture now
+  provides distinct answers. Its asynchronous browser polling also returned before IDB
+  autosave; explicit bounded polling of actual saved rows corrected the test. No Canvas
+  product change was needed. The report includes zero browser page errors.
+
+- Old uv selected Python 3.14.0a6; the real agent exited with signal 11. Updated the
+  isolated test tooling and added stable-interpreter enforcement to installation.
+- Anthropic was absent from the pinned install. Upstream lazy installation created a
+  private overlay that hid the MCP SDK and broke qualified discovery. Install Anthropic
+  explicitly, disallow lazy installs, suppress optional plugin discovery for the entire
+  companion lifecycle, refuse existing overlays, and require actual qualified discovery.
+  Preserve failed test overlays rather than deleting owner state. Final live and controlled
+  runs passed after correction. Earlier failures were recorded, never replayed as success.
+- Upgrade on an incomplete source tree raised an irrelevant module error. Source/helper
+  preflight now precedes runtime inspection; affected upgrade regressions pass.
+- Two UI tests assumed fixed startup delays. Bounded observable-readiness waits replace
+  those delays; all 366 tests passed. An initial concurrent npm install/test run also failed
+  before dependencies finished; the completed-install rerun is the recorded result.
+
+Raw logs and private fixture homes remain under `~/.cache/netclaw-148-*` and the isolated
+acceptance directory, outside Git. Committed evidence contains sanitized results only;
+no keys, private configuration, raw provider transcripts or owner conversation data.
+
+
+At handoff, the owner-requested live test HUD remains running on
+**http://localhost:34000/** (Anthropic/Claude), separate from the existing OpenClaw HUD
+on port 3000. Only the qualified subnet tool is connected: general CML discussion is
+possible, but live CML lab queries are **not** qualified by this spec. Private credentials
+remain outside Git. The synthetic browser fixture is stopped after validation.
+
+Audit: GAIT branch `spec148-wsl-validation-20261010`, continuation `f67640e0`,
+final handoff `fbc15e63`; full inherited log retained privately at
+`~/.cache/netclaw-148-evidence/gait-session-log.json`. Daily memory recorded locally.
+Startup `pyats_list_devices` failed on an existing testbed schema field
+`devices.R1.connections.defaults.arguments`; no network-device operation followed.
+This does not establish device state and is not a passing device check.
