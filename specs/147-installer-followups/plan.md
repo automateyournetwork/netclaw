@@ -1,7 +1,7 @@
 # Implementation Plan: Installer and first-use reliability
 
 **Branch**: `147-installer-followups` | **Updated**: 2026-10-10 | **Spec**: [spec.md](spec.md)
-**Status**: Concrete scope defined; production implementation pending.
+**Status**: Implemented; verification and live boundaries are recorded in verification.md.
 
 ## Technical context
 

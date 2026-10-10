@@ -9,6 +9,8 @@ metadata:
 
 # pyATS Network Device Tool
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Server & Testbed
 
 - **Server script:** `$PYATS_MCP_SCRIPT`

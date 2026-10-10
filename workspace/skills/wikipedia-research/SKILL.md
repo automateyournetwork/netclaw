@@ -9,6 +9,8 @@ metadata:
 
 # Wikipedia Research
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## How to Call the Tools
 
 The Wikipedia MCP server uses FastMCP with typed input objects. All arguments must use the `{"input": {...}}` format. Call them via mcp-call:

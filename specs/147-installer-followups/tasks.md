@@ -11,28 +11,30 @@
 
 ## Phase A — Runtime compatibility/bootstrap
 
-- [ ] T007 Add shared target-aware Node compatibility rule and boundary fixtures.
-- [ ] T008 Add version-aware narrow npm lifecycle-script handling and rootless install recovery.
-- [ ] T009 Ensure runtime-install/executable failure propagation and clear Python/uv guidance.
+- [x] T007 Add shared target-aware Node compatibility rule and boundary fixtures.
+- [x] T008 Add version-aware narrow npm lifecycle-script handling and rootless install recovery.
+- [x] T009 Ensure runtime-install/executable failure propagation and clear Python/uv guidance.
 
 ## Phase B — Component access
 
-- [ ] T010 Declare access paths and expected capabilities for all twelve reported components.
-- [ ] T011 Bind supported native registrations and skill launchers to managed runtimes.
-- [ ] T012 Verify pyATS/CML and representative utility discovery without bypassing approval controls.
-- [ ] T013 Preserve operator state and reconcile inventory/registration/documentation surfaces.
+- [x] T010 Declare access paths and expected capabilities for all twelve reported components.
+- [x] T011 Bind supported native registrations and skill launchers to managed runtimes.
+- [x] T012 Verify pyATS/CML and representative utility discovery without bypassing approval controls.
+- [x] T013 Preserve operator state and reconcile inventory/registration/documentation surfaces.
 
 ## Phase C — First-use readiness
 
-- [ ] T014 Add structured readiness stages and bounded discovery with expected-tool checks.
-- [ ] T015 Check configured local/remote Ollama endpoint/model readiness and document deferred/live checks.
-- [ ] T016 Add evidence-backed synthetic canary and unavailable-tool negative cases.
-- [ ] T017 Reproduce any residual CML failure on matching versions before assigning upstream cause.
+- [x] T014 Add structured readiness stages and bounded discovery with expected-tool checks.
+- [x] T015 Check configured local/remote Ollama endpoint/model readiness and document deferred/live checks.
+- [x] T016 Add evidence-backed synthetic canary and unavailable-tool negative cases.
+- [x] T017 Record transport diagnosis and limits: synthetic transports plus four real catalogs verified on installed OpenClaw; exact historical CML/runtime trace unavailable, no upstream cause assigned.
 
 ## Completion
 
-- [ ] T018 Run appropriate unit/installer contracts and declaration/reconciliation checks.
-- [ ] T019 Record real-host/live acceptance boundaries and operator recovery instructions.
-- [ ] T020 Prepare one patch release proposal after implementation completes.
+- [x] T018 Run appropriate unit/installer contracts and declaration/reconciliation checks.
+- [x] T019 Record real-host/live acceptance boundaries and operator recovery instructions.
+- [x] T020 Prepare one patch release proposal after implementation completes.
 
 The six unnamed macOS component failures and exact original CML/runtime diagnostics remain pending evidence. They do not prevent work on the confirmed scoped defects; they are not invented acceptance cases.
+
+Release proposal: 1.6.2. PR/merge completion is recorded in verification.md once CI passes. Original live target acceptance remains a documented external evidence gap.

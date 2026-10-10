@@ -2,7 +2,7 @@
 
 **Feature Branch**: `147-installer-followups`
 **Created**: 2026-10-10
-**Status**: Specified from user reports and current-main investigation; implementation pending
+**Status**: Implemented for confirmed scoped defects; live acceptance boundaries recorded
 **Baseline**: `b4334bf255cd53aecd2e81f51abe63deea53f1df` (includes Nick's merged PR #287 and dotenv PR #288).
 
 ## Problem and evidence

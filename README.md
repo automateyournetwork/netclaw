@@ -1510,7 +1510,7 @@ NetClaw's WebEx support is **bidirectional**:
 ### Prerequisites
 
 - A **Cisco WebEx account** (free or paid)
-- **Node.js 18+** and **OpenClaw 2026.3.x** (already installed if you ran `install.sh`)
+- **Node.js 24.16+ (24.x) or 26.1+** and a compatible **OpenClaw** (already installed if you ran `install.sh`)
 - **ngrok** (free tier works) — only required for local/development setups where the gateway is not publicly reachable
 
 ### Step 1: Create a WebEx Bot
@@ -2752,7 +2752,7 @@ netclaw/
 The installer is an interactive TUI (pure bash — works over SSH, degrades gracefully without a TTY). Install logic lives in `scripts/lib/` (`common.sh` helpers, `tui.sh` interface, `catalog.sh` component catalog + profiles, `install-steps.sh` one install function per component).
 
 1. **Pick your components** — choose an install profile (Recommended, Cisco, Multivendor, Cloud, Security, Labs, Observability, Minimal, Everything) or hand-pick from all 72 components in a categorized multi-select checklist. Re-running the installer preselects what you already have.
-2. **Checks prerequisites** — Node.js >= 18, Python 3, pip3, git, npx — offers to run the install commands for anything missing (apt/dnf/yum/pacman/apk/brew), and handles PEP 668 externally-managed Pythons so pip installs work on modern distros
+2. **Checks prerequisites** — runtime-specific Node compatibility, Python/component bounds, npm, git and selected uv/Go/Docker/native tools before mutation. Python dependencies use isolated environments; system package protections remain enabled.
 3. **Installs OpenClaw** — `npm install -g openclaw@latest`
 4. **Imports filled `.env` settings, then runs OpenClaw onboard** — preserves existing runtime values; configures AI provider, gateway, channels and daemon service; stops on wizard failure, then verifies the gateway service actually started (systemd unit / LaunchAgent / port probe) and offers a retry with diagnostics if it didn't
 5. **Installs the selected MCP servers** — each component clones/pip-installs/pulls exactly what it needs (`./scripts/install.sh --list` shows every component and what it provides)
@@ -2793,7 +2793,7 @@ The `%ENV{NETCLAW_PASSWORD}` syntax pulls credentials from environment variables
 
 ## Prerequisites
 
-- Node.js >= 18 (>= 22 recommended for OpenClaw)
+- OpenClaw: Node.js **>=24.16.0 <25 or >=26.1.0**; Node 26 is recommended. Use a Node version manager if your distro ships an older release. Hermes keeps a separate Node floor for its Node-based components. See [installer readiness](docs/INSTALLER-READINESS.md).
 - Python 3.x with pip3
 - git
 - Network devices accessible via SSH (for pyATS)

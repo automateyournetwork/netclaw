@@ -29,3 +29,26 @@ The reports mix historical defects, dependency/platform requirements and residua
 Build on merged preflight, isolation, deployment and dotenv helpers. First fix runtime compatibility/bootstrap, then close explicit tool access and launcher gaps, then add trustworthy readiness/first-use verification. Preserve transport boundaries and existing approvals. Diagnose original CML failures with matched command/env/cwd/version and a minimal protocol fixture before proposing an upstream patch.
 
 No real credentials, package installation, model/provider request, daemon restart or device operation was performed for this investigation.
+
+## Implementation decisions
+
+Owner explicitly requested fixes followed by commit/PR/merge. Added thirteen native
+registrations for all twelve reported components; moved the same thirteen names
+out of the external inventory so integration totals remain unchanged. Both native
+registrations and recognized legacy skill invocations share a stdlib exec launcher.
+The launcher reads literal runtime dotenv settings and recorded interpreter paths;
+NetBox/ServiceNow/NVD use module invocation with their source roots. ServiceNow's
+low-level SDK1 remains isolated from MCP2. No approval policy or write gate is changed.
+
+Readiness uses actual OpenClaw discovery and its structured server/tool results.
+Hermes has a direct stdio probe with agent discovery explicitly unverified. Endpoint
+operations are always a separate unverified stage. Ollama checks only native model
+catalog/capabilities, not model generation or tool-call correctness. This bounds the
+claim we can substantiate instead of treating a successful install as live acceptance.
+
+Initial four-component smoke preparation exposed test-environment gaps: an
+unpatched legacy calculator copy, an absent edge-tts dependency, and settings not
+persisted into the temporary runtime dotenv. Applying the existing reviewed patch,
+installing declared dependencies in a disposable venv and writing fixture settings
+reproduced a fresh install's layout. All four then passed native discovery.
+No operator component environment was rebuilt or altered by that smoke test.

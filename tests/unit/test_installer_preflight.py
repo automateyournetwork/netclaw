@@ -21,7 +21,7 @@ class FixtureHost:
         self.commands = set(POLICY['core_commands']) | {'python3'} | set(commands)
         self.python_info = {'version': version, 'os': system, 'arch': arch, 'venv': True,
                             'ensurepip': True, 'isolated': True, 'libc': ['glibc','2.36']}
-        self.outputs = {('node', '--version'): 'v22.0.0', ('go', 'version'): 'go version go1.25.1 darwin/arm64',
+        self.outputs = {('node', '--version'): 'v24.16.0', ('go', 'version'): 'go version go1.25.1 darwin/arm64',
             ('go', 'env', 'CGO_ENABLED'): '1', ('go', 'env', 'CC'): 'clang',
             ('xcode-select', '-p'): '/fixture/CommandLineTools',
             ('docker', 'info', '--format', '{{.ServerVersion}}'): '28.0.0'}
@@ -194,7 +194,7 @@ def test_installer_preflight_never_writes_operator_state(tmp_path, preflight, co
     bin_dir = tmp_path/'bin'; bin_dir.mkdir()
     (bin_dir/'python3').symlink_to(sys.executable)
     for name in ('node','npm','npx'):
-        executable(bin_dir/name, 'if [ "$1" = --version ]; then echo v22.0.0; exit 0; fi\necho unexpected-install >&2\nexit 42\n')
+        executable(bin_dir/name, 'if [ "$1" = --version ]; then echo v24.16.0; exit 0; fi\necho unexpected-install >&2\nexit 42\n')
     executable(bin_dir/'uname', 'case "$1" in -s) echo Darwin;; -m) echo arm64;; -r) echo fixture;; esac\n')
     args = ['/bin/bash','scripts/install.sh','--runtime','hermes','--components',component]
     if preflight: args.append('--preflight')

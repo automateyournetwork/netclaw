@@ -1000,3 +1000,12 @@ Build passes; 358/359 HUD tests pass (remaining known 127.0.0.2 Mac fixture).
 Qwen3-TTS Base via MLX Audio is the researched own-voice candidate, not installed
 or benchmarked. Keep future recordings in ~/.openclaw/pal/voices, not the public
 asset directory. Research/license sources are in spec144/research.md.
+
+## Installer access and readiness (spec 147)
+
+The twelve reported skill-only components now have native registrations (thirteen
+servers because Draw.io and RFC are separate). `config/installer-access.json` and
+`scripts/component-launch.py` bind both native access and recognized MCP_CALL skill
+commands to the installed interpreter/source/transport. No new write permission is
+granted. `logs/install/run-*/readiness.json` separates artifacts, registration,
+discovery and unverified endpoint/agent operations. See [operator guidance](docs/INSTALLER-READINESS.md).

@@ -1,0 +1,137 @@
+{
+  "native": {
+    "schema_version": 1,
+    "runtime": "openclaw",
+    "components": [
+      {
+        "component": "packet-buddy",
+        "installation": "recorded",
+        "servers": [
+          {
+            "server": "packet-buddy-mcp",
+            "access": "native_mcp",
+            "registration": "verified",
+            "artifacts": "verified",
+            "discovery": {
+              "status": "verified",
+              "tool_count": 12
+            },
+            "endpoint": "unverified"
+          }
+        ],
+        "status": "discovery_verified"
+      },
+      {
+        "component": "subnet-calc",
+        "installation": "recorded",
+        "servers": [
+          {
+            "server": "subnet-calc-mcp",
+            "access": "native_mcp",
+            "registration": "verified",
+            "artifacts": "verified",
+            "discovery": {
+              "status": "verified",
+              "tool_count": 1
+            },
+            "endpoint": "unverified"
+          }
+        ],
+        "status": "discovery_verified"
+      },
+      {
+        "component": "tts",
+        "installation": "recorded",
+        "servers": [
+          {
+            "server": "tts-mcp",
+            "access": "native_mcp",
+            "registration": "verified",
+            "artifacts": "verified",
+            "discovery": {
+              "status": "verified",
+              "tool_count": 2
+            },
+            "endpoint": "unverified"
+          }
+        ],
+        "status": "discovery_verified"
+      },
+      {
+        "component": "netbox",
+        "installation": "recorded",
+        "servers": [
+          {
+            "server": "netbox-mcp",
+            "access": "native_mcp",
+            "registration": "verified",
+            "artifacts": "verified",
+            "discovery": {
+              "status": "verified",
+              "tool_count": 4
+            },
+            "endpoint": "unverified"
+          }
+        ],
+        "status": "discovery_verified"
+      }
+    ],
+    "endpoint_operations": "unverified",
+    "agent_turn": "unverified",
+    "ok": true,
+    "provider": {
+      "status": "unverified",
+      "reason": "not_an_ollama_primary",
+      "tool_calling": "unverified"
+    }
+  },
+  "subnet_canary": {
+    "exit": 0,
+    "result": {
+      "content": [
+        {
+          "text": "{\"network_address\":\"192.0.2.0\",\"broadcast_address\":\"192.0.2.3\",\"netmask\":\"255.255.255.252\",\"wildcard_mask\":\"0.0.0.3\",\"prefix_length\":30,\"with_netmask\":\"192.0.2.0/255.255.255.252\",\"with_hostmask\":\"192.0.2.0/0.0.0.3\",\"num_addresses\":4,\"usable_hosts_count\":2,\"usable_hosts_preview\":[\"192.0.2.1\",\"192.0.2.2\"],\"first_usable\":\"192.0.2.1\",\"last_usable\":\"192.0.2.2\",\"address_range\":\"192.0.2.1 - 192.0.2.2\",\"previous_subnet\":\"192.0.1.252/30\",\"next_subnet\":\"192.0.2.4/30\",\"host_bits\":2,\"total_bits\":32,\"is_private\":true,\"is_global\":false,\"is_link_local\":false,\"is_multicast\":false,\"is_loopback\":false,\"is_reserved\":false,\"is_unspecified\":false,\"summary\":\"CIDR 192.0.2.0/30 has 4 total addresses with 2 usable hosts (30 prefix, 2 host bits).\",\"note\":\"Showing first 10 usable hosts only (capped for large subnets).\"}",
+          "type": "text"
+        }
+      ],
+      "isError": false,
+      "structuredContent": {
+        "network_address": "192.0.2.0",
+        "broadcast_address": "192.0.2.3",
+        "netmask": "255.255.255.252",
+        "wildcard_mask": "0.0.0.3",
+        "prefix_length": 30,
+        "with_netmask": "192.0.2.0/255.255.255.252",
+        "with_hostmask": "192.0.2.0/0.0.0.3",
+        "num_addresses": 4,
+        "usable_hosts_count": 2,
+        "usable_hosts_preview": [
+          "192.0.2.1",
+          "192.0.2.2"
+        ],
+        "first_usable": "192.0.2.1",
+        "last_usable": "192.0.2.2",
+        "address_range": "192.0.2.1 - 192.0.2.2",
+        "previous_subnet": "192.0.1.252/30",
+        "next_subnet": "192.0.2.4/30",
+        "host_bits": 2,
+        "total_bits": 32,
+        "is_private": true,
+        "is_global": false,
+        "is_link_local": false,
+        "is_multicast": false,
+        "is_loopback": false,
+        "is_reserved": false,
+        "is_unspecified": false,
+        "summary": "CIDR 192.0.2.0/30 has 4 total addresses with 2 usable hosts (30 prefix, 2 host bits).",
+        "note": "Showing first 10 usable hosts only (capped for large subnets)."
+      }
+    },
+    "stderr_present": false,
+    "requested_cidr_returned": true
+  },
+  "runtime": "OpenClaw 2026.7.1-2",
+  "node": "24.19.0",
+  "python": "3.12.12",
+  "scope": "Temporary HOME/config/venv; installer-reviewed calculator patch applied to temporary source; synthetic NetBox credentials; discovery only plus local TEST-NET calculator call; no vendor/device/model calls."
+}

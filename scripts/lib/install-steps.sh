@@ -6,6 +6,7 @@
 # servers cannot import from.
 # shellcheck source=scripts/lib/pip-helper.sh
 source "$(dirname "${BASH_SOURCE[0]}")/pip-helper.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/runtime-install.sh"
 # NetClaw install steps — one function per component.
 # Extracted mechanically from the original monolithic install.sh (all install
 # logic preserved). Sourced by scripts/install.sh; requires lib/common.sh first.
@@ -106,13 +107,13 @@ prereqs_offer_install() {
     if [ "${NODE_TOO_OLD:-0}" -eq 1 ]; then
         local node_cmd=""
         case "$PKG_MGR" in
-            apt)     node_cmd="curl -fsSL https://deb.nodesource.com/setup_22.x | ${spe}bash - && ${sp}apt-get install -y nodejs" ;;
-            dnf|yum) node_cmd="curl -fsSL https://rpm.nodesource.com/setup_22.x | ${spe}bash - && ${sp}${PKG_MGR} install -y nodejs" ;;
+            apt)     node_cmd="curl -fsSL https://deb.nodesource.com/setup_26.x | ${spe}bash - && ${sp}apt-get install -y nodejs" ;;
+            dnf|yum) node_cmd="curl -fsSL https://rpm.nodesource.com/setup_26.x | ${spe}bash - && ${sp}${PKG_MGR} install -y nodejs" ;;
             brew)    node_cmd="brew install node" ;;
         esac
         if [ -n "$node_cmd" ]; then
             echo ""
-            echo "  Node.js is older than 18. It can be upgraded now with:"
+            echo "  Node.js does not satisfy the selected runtime. Upgrade with:"
             echo -e "    ${CYAN}${node_cmd}${NC}"
             echo ""
             read -rp "Run the Node.js upgrade now? [Y/n] " RUN_NODE_UP
@@ -121,7 +122,7 @@ prereqs_offer_install() {
                 if bash -c "$node_cmd"; then ran=0; else log_error "Node.js upgrade failed."; fi
             fi
         else
-            log_warn "Upgrade Node.js to >= 18 manually (https://nodejs.org/ or nvm)."
+            log_warn "Select supported Node.js (26.1+ or 24.16+ on OpenClaw) manually (https://nodejs.org/ or nvm)."
         fi
     fi
 
@@ -137,13 +138,11 @@ MISSING_IDS=""
 NODE_TOO_OLD=0
 
 if ! check_command node; then
-    log_error "Node.js is required (>= 18). Install from https://nodejs.org/"
+    log_error "Node.js is required. See config/installer-runtime.json and https://nodejs.org/"
     MISSING=1
     MISSING_IDS="$MISSING_IDS nodejs npm"
 else
-    NODE_VERSION=$(node --version | sed 's/v//' | cut -d. -f1)
-    if [ "$NODE_VERSION" -lt 18 ]; then
-        log_error "Node.js >= 18 required. Found: $(node --version)"
+    if ! python3 "$NETCLAW_DIR/scripts/runtime-policy.py" --runtime "${RUNTIME:-openclaw}" --node "$(node --version)"; then
         MISSING=1
         NODE_TOO_OLD=1
     else
@@ -196,6 +195,12 @@ if [ "$MISSING" -eq 1 ]; then
     if [ "$attempt" = "first" ] && prereqs_offer_install; then
         echo ""
         log_step "Re-checking prerequisites..."
+        hash -r
+        if [ "${NETCLAW_PY_EXPLICIT:-0}" != 1 ]; then
+            NETCLAW_PY="$(command -v python3)"
+            netclaw_choose_component_python
+            export NETCLAW_PY
+        fi
         core_prereqs retry
         return
     fi
@@ -217,34 +222,6 @@ echo ""
 
 # ── Step 2: Install OpenClaw ────────────────────────────────────
 
-# Run a command; if it fails and we aren't root, offer to retry it with sudo.
-# Global npm installs commonly hit EACCES when the npm prefix (e.g. /usr/lib)
-# is root-owned. Returns the final exit status.
-_run_or_offer_sudo() {
-    if "$@"; then
-        return 0
-    fi
-    if [ "$(id -u)" = "0" ] || ! command -v sudo &> /dev/null; then
-        return 1
-    fi
-    log_warn "'$*' failed — this usually means it needs root permissions."
-    if [ -t 0 ]; then
-        echo ""
-        echo "  It can be retried with:"
-        echo -e "    ${CYAN}sudo $*${NC}"
-        echo ""
-        read -rp "Retry with sudo now? [Y/n] " RETRY_SUDO
-        RETRY_SUDO="${RETRY_SUDO:-y}"
-        if [[ "$RETRY_SUDO" =~ ^[Yy] ]]; then
-            sudo "$@"
-            return $?
-        fi
-    else
-        log_warn "Re-run manually with: sudo $*"
-    fi
-    return 1
-}
-
 # ── Step 2: Install the agent runtime (OpenClaw or Hermes) ──────
 core_runtime() {
 log_step "Installing $RUNTIME_NAME..."
@@ -258,6 +235,7 @@ if [ "$RUNTIME" = "hermes" ]; then
         if ! curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash; then
             log_error "Hermes install script failed."
             log_warn "Re-run manually: curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash"
+            return 1
         fi
         # Hermes installs the launcher to ~/.local/bin — make it reachable now.
         case ":$PATH:" in
@@ -269,29 +247,24 @@ if [ "$RUNTIME" = "hermes" ]; then
         else
             log_error "hermes not found on PATH after install"
             log_warn "Add it to PATH: export PATH=\"\$HOME/.local/bin:\$PATH\""
+            return 1
         fi
     fi
+    hermes version >/dev/null 2>&1 || { log_error "Hermes executable verification failed"; return 1; }
     echo ""
     return 0
 fi
 
 # ── OpenClaw (default) ──
 if command -v openclaw &> /dev/null; then
-    log_info "OpenClaw already installed: $(openclaw --version 2>/dev/null || echo 'version unknown')"
+    if ! openclaw --version; then
+        log_error "Existing OpenClaw executable failed; repair it before onboarding."
+        return 1
+    fi
+    log_info "OpenClaw already installed."
 else
     log_info "Installing OpenClaw via npm..."
-    if ! _run_or_offer_sudo npm install -g openclaw@latest; then
-        log_error "npm install -g openclaw@latest failed."
-        log_warn "Alternative without root — use a user-level npm prefix:"
-        log_warn "  npm config set prefix ~/.local && export PATH=\"\$HOME/.local/bin:\$PATH\""
-        log_warn "  npm install -g openclaw@latest"
-    fi
-    if command -v openclaw &> /dev/null; then
-        log_info "OpenClaw installed successfully"
-    else
-        log_error "openclaw not found on PATH after install"
-        log_warn "Try: export PATH=\"$(npm config get prefix 2>/dev/null || echo /usr/local)/bin:\$PATH\""
-    fi
+    netclaw_install_openclaw || return 1
 fi
 
 echo ""
@@ -604,6 +577,7 @@ if [ ! -d "$MARKMAP_INNER" ]; then
     log_warn "Nested markmap-mcp/ not found, trying top-level..."
     BUILD_DIR="$MARKMAP_MCP_DIR"
 fi
+MARKMAP_INNER="$BUILD_DIR"
 
 log_info "Building Markmap MCP..."
 # Subshell keeps the installer's cwd intact even when the build fails.
@@ -647,7 +621,7 @@ clone_or_pull "$NETBOX_MCP_DIR" "https://github.com/netboxlabs/netbox-mcp-server
 
 log_info "Installing NetBox dependencies..."
 netclaw_pip_install httpx "fastmcp==4.0.11" "fastmcp-tasks==4.0.11" requests pydantic pydantic-settings 2>/dev/null || \
-    log_warn "Some NetBox deps failed"
+    { log_error "NetBox dependency installation failed"; return 1; }
 
 log_info "NetBox MCP ready: python3 -m netbox_mcp_server.server"
 
@@ -709,8 +683,8 @@ SERVICENOW_MCP_DIR="$MCP_DIR/servicenow-mcp"
 clone_or_pull "$SERVICENOW_MCP_DIR" "https://github.com/echelon-ai-labs/servicenow-mcp.git"
 
 log_info "Installing ServiceNow dependencies..."
-netclaw_pip_install "mcp[cli]>=1.3.0" requests "pydantic>=2.0.0" python-dotenv starlette uvicorn httpx PyYAML 2>/dev/null || \
-    log_warn "Some ServiceNow deps failed"
+netclaw_pip_install "mcp[cli]>=1.13,<2" requests "pydantic>=2.0.0" python-dotenv starlette uvicorn httpx PyYAML 2>/dev/null || \
+    { log_error "ServiceNow dependency installation failed"; return 1; }
 
 log_info "ServiceNow MCP ready"
 
@@ -783,8 +757,7 @@ NVD_MCP_DIR="$MCP_DIR/mcp-nvd"
 clone_or_pull "$NVD_MCP_DIR" "https://github.com/marcoeg/mcp-nvd.git"
 
 log_info "Installing NVD dependencies..."
-cd "$NVD_MCP_DIR" && netclaw_pip_install -e . 2>/dev/null && cd "$NETCLAW_DIR" || \
-    log_warn "NVD MCP install failed"
+(cd "$NVD_MCP_DIR" && netclaw_pip_install -e .) || return 1
 
 log_info "NVD CVE MCP ready: python3 -m mcp_nvd.main"
 
@@ -2730,7 +2703,8 @@ if [ "$RUNTIME" = "hermes" ]; then
                 --sidecar "$RUNTIME_HOME/netclaw-mcp-servers.yaml"; then
             log_info "Registered NetClaw MCP servers into $RUNTIME_CONFIG"
         else
-            log_warn "MCP translation reported an error — check $RUNTIME_CONFIG"
+            log_error "MCP translation failed — check $RUNTIME_CONFIG"
+            return 1
         fi
     else
         log_warn "config/openclaw.json not found in repo — no MCP servers registered"
@@ -2781,6 +2755,8 @@ OPENCLAW_ENV="$RUNTIME_ENV"
 _set_env_default "PYATS_TESTBED_PATH"   "$RUNTIME_WORKSPACE/testbed/testbed.yaml"
 _set_env_var "PYATS_MCP_SCRIPT"         "$PYATS_SCRIPT"
 _set_env_var "MCP_CALL"                 "$NETCLAW_DIR/scripts/mcp-call.py"
+_set_env_var "NETCLAW_RUNTIME_ROOT"     "$NETCLAW_RUNTIME_ROOT"
+_set_env_var "NETCLAW_RUNTIME_ENV"      "$RUNTIME_ENV"
 _set_env_var "MARKMAP_MCP_SCRIPT"       "$MARKMAP_INNER/dist/index.js"
 _set_env_var "GAIT_MCP_SCRIPT"          "$NETCLAW_DIR/scripts/gait-stdio.py"
 _set_env_var "NETBOX_MCP_SCRIPT"        "$NETBOX_MCP_DIR/src/netbox_mcp_server/server.py"

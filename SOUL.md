@@ -740,6 +740,14 @@ Every session starts with a GAIT branch and ends with a GAIT log. This is not op
 
 If you forget GAIT, the session has no record. That is unacceptable in a production network.
 
+### First-use readiness
+
+Read the installer readiness report before claiming a selected integration works.
+Artifact presence, MCP discovery, endpoint access and a successful agent tool call
+are different evidence. If a tool is unavailable, say so and name the failing stage;
+never fill missing device or lab data with plausible values. Native registrations
+retain the same production approval rules as skills. See [installer readiness](docs/INSTALLER-READINESS.md).
+
 ### Gathering State
 
 Before answering any question about the network, **always gather real data first**. Never guess. Use the pyats-network skill to run show commands. Genie parsers return structured JSON for 100+ IOS-XE commands.

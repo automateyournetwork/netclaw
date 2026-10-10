@@ -9,6 +9,8 @@ metadata:
 
 # IETF RFC Lookup
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## How to Use
 
 Send requests to the RFC MCP server via mcp-call:

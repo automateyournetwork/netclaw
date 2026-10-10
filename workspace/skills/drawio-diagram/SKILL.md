@@ -16,6 +16,8 @@ Generate network diagrams using two approaches:
 
 ---
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Mode 1: Native File Generation (Official Skill-CLI)
 
 Generate native `.drawio` files directly. Optionally export to PNG, SVG, or PDF with the diagram XML embedded (so the exported file remains editable in draw.io).

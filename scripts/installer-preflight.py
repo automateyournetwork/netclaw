@@ -16,6 +16,9 @@ from urllib.parse import urlparse
 
 ROOT = Path(__file__).resolve().parents[1]
 POLICY_PATH = ROOT / 'config/installer-preflight.json'
+_spec = importlib.util.spec_from_file_location('runtime_policy', ROOT / 'scripts/runtime-policy.py')
+runtime_policy = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(runtime_policy)
 
 
 def load_policy():
@@ -114,15 +117,15 @@ def vendor_source_ready(rule, env):
     return False
 
 
-def evaluate(policy, selected, system, arch, executable, host, launchers=None, explicit_venv=''):
+def evaluate(policy, selected, system, arch, executable, host, launchers=None, explicit_venv='', runtime='openclaw'):
     core = []
     for command in policy['core_commands']:
         if not host.command(command):
             core.append(command + ' missing from PATH')
     node = host.output(['node', '--version']) if host.command('node') else None
-    node_match = re.match(r'^v?(\d+)\.', node or '')
-    if node is not None and (not node_match or int(node_match[1]) < 18):
-        core.append('Node.js >=18 required; select a supported Node.js on PATH')
+    if node is not None and not runtime_policy.node_supported(node, runtime):
+        core.append('Node.js ' + runtime_policy.POLICY['node_descriptions'][runtime] +
+                    ' required; select a supported Node.js on PATH (for example nvm install 26)')
     elif host.command('node') and node is None:
         core.append('Could not read Node.js version')
     installer_python = host.python(host.command('python3')) if host.command('python3') else None
@@ -205,6 +208,7 @@ def main(argv=None):
     parser.add_argument('--platform-only', action='store_true')
     parser.add_argument('--validate-policy', action='store_true')
     parser.add_argument('--json', action='store_true')
+    parser.add_argument('--runtime', choices=['openclaw', 'hermes'], default='openclaw')
     args = parser.parse_args(argv)
     try:
         policy, catalog = load_policy()
@@ -222,7 +226,7 @@ def main(argv=None):
                     print(component + '|' + reason)
             return 0
         report = evaluate(policy, selected, args.os, args.arch, args.python, Host(), launch_commands(),
-                          os.environ.get('NETCLAW_VENV', ''))
+                          os.environ.get('NETCLAW_VENV', ''), args.runtime)
         if args.json:
             print(json.dumps(report))
         else:

@@ -9,6 +9,8 @@ metadata:
 
 # Network Scanning with nmap
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## How to Call the nmap MCP Tools
 
 ```bash

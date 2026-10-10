@@ -65,6 +65,8 @@ GROUPED_CONFIG_PREFIXES = {
 # clean prefix/suffix relationship to the id itself (pre-existing naming
 # conventions that predate this feature, plus this feature's own additions).
 GROUPED_CONFIG_EXACT = {
+    "drawio-mcp": "drawio-rfc",
+    "rfc-mcp": "drawio-rfc",
     "sketchfab-mcp": "threejs-viz",
     "comfyui-mcp": "comfyui-viz",
     "topology-diagram-mcp": "comfyui-viz",  # spec 121 federated pipeline, Stage A
@@ -118,15 +120,15 @@ VENDORED_STATE_REASONS = {
     "tavus-pal-mcp": "optional HUD-invoked stdio facade; deliberately absent from the main agent registry to prevent recursive agent dispatch (spec 144)",
     "netclaw-dot-mcp": "operator-run HTTP service (netclaw-dot.service) that ChatGPT Dots call over OAuth; deliberately NOT registered as an agent MCP (spec 134)",
     "gait_mcp": "registered as 'gait-mcp'; underscore/hyphen naming mismatch",
-    "pyATS_MCP": "external — installed on demand via pip (EXTERNAL_INTEGRATIONS: pyATS)",
+    "pyATS_MCP": "registered pyats-mcp uses the managed-source stdio bridge (spec 147)",
     "ISE_MCP": "external — installed on demand (EXTERNAL_INTEGRATIONS: Cisco ISE)",
     "ACI_MCP": "external — installed on demand (EXTERNAL_INTEGRATIONS: Cisco ACI)",
-    "Wikipedia_MCP": "external — installed on demand (EXTERNAL_INTEGRATIONS: Wikipedia)",
-    "markmap_mcp": "external — installed on demand (EXTERNAL_INTEGRATIONS: Markmap)",
-    "mcp-nvd": "external — installed on demand (EXTERNAL_INTEGRATIONS: NVD CVE)",
+    "Wikipedia_MCP": "registered wikipedia-mcp uses the installed component launcher (spec 147)",
+    "markmap_mcp": "registered markmap-mcp uses the installed component launcher (spec 147)",
+    "mcp-nvd": "registered nvd-cve-mcp uses the installed component launcher (spec 147)",
     "mcp-nautobot": "external community alternative (EXTERNAL_INTEGRATIONS: Nautobot community)",
-    "packet-buddy-mcp": "external — installed on demand (EXTERNAL_INTEGRATIONS: Packet Buddy)",
-    "subnet-calculator-mcp": "external — bundled (EXTERNAL_INTEGRATIONS: Subnet Calculator)",
+    "packet-buddy-mcp": "registered packet-buddy-mcp uses its isolated runtime (spec 147)",
+    "subnet-calculator-mcp": "registered subnet-calc-mcp uses the installed component launcher (spec 147)",
     "CiscoFMC-MCP-server-community": "community source for the 'fmc' component; registered as 'cisco-fmc-mcp'",
     "nautobot-mcp-v2": "backs the registered 'nautobot-mcp' entry (directory name differs from key)",
     "AAP-Enterprise-MCP-Server": "single source backing all four registered aap-* entries",

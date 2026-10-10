@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "components": {
+    "pyats": {
+      "servers": [
+        "pyats-mcp"
+      ],
+      "script": "scripts/pyats-stdio.py",
+      "script_env": "PYATS_MCP_SCRIPT",
+      "bridge": true,
+      "required_env": [
+        "PYATS_TESTBED_PATH"
+      ],
+      "expected_tools": [
+        "pyats_list_devices"
+      ]
+    },
+    "netbox": {
+      "servers": [
+        "netbox-mcp"
+      ],
+      "module": "netbox_mcp_server.server",
+      "pythonpath": "mcp-servers/netbox-mcp-server/src",
+      "script": "mcp-servers/netbox-mcp-server/src/netbox_mcp_server/server.py",
+      "script_env": "NETBOX_MCP_SCRIPT",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "required_env": [
+        "NETBOX_URL",
+        "NETBOX_TOKEN"
+      ],
+      "expected_tools": [
+        "netbox_get_objects"
+      ]
+    },
+    "servicenow": {
+      "servers": [
+        "servicenow-mcp"
+      ],
+      "module": "servicenow_mcp.cli",
+      "pythonpath": "mcp-servers/servicenow-mcp/src",
+      "script": "mcp-servers/servicenow-mcp/src/servicenow_mcp/cli.py",
+      "script_env": "SERVICENOW_MCP_SCRIPT",
+      "required_env": [
+        "SERVICENOW_INSTANCE_URL"
+      ],
+      "expected_tools": [
+        "list_tool_packages"
+      ]
+    },
+    "nvd-cve": {
+      "servers": [
+        "nvd-cve-mcp"
+      ],
+      "module": "mcp_nvd.main",
+      "pythonpath": "mcp-servers/mcp-nvd",
+      "script": "mcp-servers/mcp-nvd/mcp_nvd/main.py",
+      "script_env": "NVD_MCP_SCRIPT",
+      "args": [
+        "--transport",
+        "stdio"
+      ],
+      "expected_tools": [
+        "search_cve"
+      ]
+    },
+    "subnet-calc": {
+      "servers": [
+        "subnet-calc-mcp"
+      ],
+      "script": "mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py",
+      "script_env": "SUBNET_MCP_SCRIPT",
+      "expected_tools": [
+        "subnet_calculator"
+      ]
+    },
+    "wikipedia": {
+      "servers": [
+        "wikipedia-mcp"
+      ],
+      "script": "mcp-servers/Wikipedia_MCP/main.py",
+      "script_env": "WIKIPEDIA_MCP_SCRIPT",
+      "expected_tools": [
+        "search_pages"
+      ]
+    },
+    "markmap": {
+      "servers": [
+        "markmap-mcp"
+      ],
+      "command": "node",
+      "script": "mcp-servers/markmap_mcp/markmap-mcp/dist/index.js",
+      "script_env": "MARKMAP_MCP_SCRIPT",
+      "expected_tools": [
+        "markmap_generate"
+      ]
+    },
+    "drawio-rfc": {
+      "servers": [
+        "drawio-mcp",
+        "rfc-mcp"
+      ],
+      "variants": {
+        "drawio-mcp": [
+          "npx",
+          "-y",
+          "@drawio/mcp"
+        ],
+        "rfc-mcp": [
+          "npx",
+          "-y",
+          "@mjpitz/mcp-rfc"
+        ]
+      },
+      "expected_tools": []
+    },
+    "packet-buddy": {
+      "servers": [
+        "packet-buddy-mcp"
+      ],
+      "script": "mcp-servers/packet-buddy-mcp/server.py",
+      "script_env": "PACKET_BUDDY_MCP_SCRIPT",
+      "expected_tools": [
+        "list_pcaps"
+      ]
+    },
+    "nmap": {
+      "servers": [
+        "nmap-mcp"
+      ],
+      "script": "mcp-servers/nmap-mcp/server.py",
+      "script_env": "NMAP_MCP_SCRIPT",
+      "cwd": "mcp-servers/nmap-mcp",
+      "expected_tools": []
+    },
+    "gtrace": {
+      "servers": [
+        "gtrace-mcp"
+      ],
+      "command": "gtrace",
+      "command_env": "GTRACE_MCP_BIN",
+      "args": [
+        "mcp"
+      ],
+      "expected_tools": [
+        "traceroute"
+      ]
+    },
+    "tts": {
+      "servers": [
+        "tts-mcp"
+      ],
+      "script": "mcp-servers/tts-mcp/server.py",
+      "script_env": "TTS_MCP_SCRIPT",
+      "expected_tools": [
+        "list_voices"
+      ]
+    }
+  }
+}

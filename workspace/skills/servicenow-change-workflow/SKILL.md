@@ -9,6 +9,8 @@ metadata:
 
 # ServiceNow Change Workflow
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Golden Rule
 
 **NEVER execute a network change without an approved Change Request.** The only exception is an Emergency change, which still requires a CR and immediate human notification.

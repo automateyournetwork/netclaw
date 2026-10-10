@@ -9,6 +9,8 @@ metadata:
 
 # Subnet Calculator (IPv4 + IPv6)
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Available Tools
 
 ### 1. `subnet_calculator` — IPv4 Subnet Details

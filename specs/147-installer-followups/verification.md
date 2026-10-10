@@ -1,8 +1,8 @@
-# Verification — investigation on 2026-10-10
+# Verification — investigation and implementation on 2026-10-10
 
 ## Baseline
 
-Local main fast-forwarded to `b4334bf255cd53aecd2e81f51abe63deea53f1df` and merged into `147-installer-followups` as `cf12ec1`. Includes PR #287's host preflight/Zabbix fixes and PR #288's dotenv fix. No new production installer implementation is claimed here.
+Local main fast-forwarded to `b4334bf255cd53aecd2e81f51abe63deea53f1df` and merged into `147-installer-followups` as `cf12ec1`. Includes PR #287's host preflight/Zabbix fixes and PR #288's dotenv fix. Implementation below follows this baseline.
 
 ## Existing regressions
 
@@ -49,4 +49,18 @@ The original log archive is unavailable; six macOS component failures are unname
 - Final portable reproduction helper rerun: completed all three cases and reproduced the discovery results above.
 - `git diff --check`: PASS.
 
-Implementation and live acceptance remain pending tasks, not passing results.
+## Implementation verification
+
+- `python3 scripts/run-contract-tests.py --suite unit --json`: PASS, **826 passed / 2 skipped**, 94 isolated test files, 82.10 seconds. Includes the new runtime policy, launcher, readiness and failure-exit cases.
+- Reconciliation: catalog, documentation counts, registration portability, package references and dependency policy all PASS.
+- FastMCP compatibility: 36 owned servers, zero failures. MCP Tasks adoption: PASS.
+- Bash syntax, Python compilation, spec artifacts and `git diff --check`: PASS.
+- [Actual component probes](implementation-probes.json): OpenClaw 2026.7.1-2 / Node 24.19.0 on macOS arm64; temporary HOME, runtime config and Python 3.12.12 venv. Native discovery passed for Packet Buddy (12 tools), Subnet Calculator (1), TTS (2) and NetBox (4). NetBox used synthetic loopback credentials; no endpoint call was made.
+- Calculator canary: actual `mcp-call --component subnet-calc` returned the expected 192.0.2.0/30 network, /30 mask and two usable hosts. No model generated that result.
+- Negative cases cover RPC initialization error, closed/partial stdout, timeout, empty catalogs with exit 0, missing registration/runtime/credentials, and missing/unreachable/non-tool-capable Ollama models.
+
+To reproduce the four-component smoke, use [reproduce-installed-components.py](reproduce-installed-components.py) with `--node-bin /absolute/node/bin --output /tmp/netclaw-components.json`. It explicitly downloads declared test dependencies using uv into a disposable environment; it applies the existing reviewed calculator migration only to temporary source. It does not install or change operator component runtimes. Runtime dotenv settings are part of the fixture, matching installer deployment.
+
+The initial smoke setup intentionally exposed failures when dependencies/patches/settings were absent; readiness flagged them instead of reporting success. After preparing declared source/dependencies and persisting fixture settings, all four passed. This is representative discovery evidence, not a full-catalog fresh-host install or the original CML/pyATS endpoint reproduction.
+
+Release metadata: proposed patch 1.6.2. Live acceptance and arbitrary model answer grounding remain unverified; no tag or published release is implied. PR CI/merge evidence follows below.

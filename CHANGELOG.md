@@ -2,6 +2,10 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.6.2] - 2026-10-10
+
+Spec [147-installer-followups](specs/147-installer-followups/spec.md). See [release notes](docs/releases/1.6.2.md).
+
 ## [1.6.1] - 2026-10-09
 
 - Import filled checkout dotenv settings before runtime onboarding while preserving existing runtime credentials; add a previewable repair command.

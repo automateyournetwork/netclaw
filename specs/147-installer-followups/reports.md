@@ -45,3 +45,13 @@ The report describes Debian/Ubuntu, Node 20.20.2, 23 selected components, remote
 - Do not treat `openclaw mcp probe` exit 0 as proof of tool discovery.
 
 See [research](research.md) for sources and [verification](verification.md) for measured checks.
+
+## Shipped disposition after spec 147 implementation
+
+- L2/L3/L4: one Node target contract; npm-version-aware first-party script approval; user-owned prefix on permission conflicts; install/executable failure propagation.
+- L8/L9: all twelve components have thirteen selected native registrations and a shared native/skill launch contract. Module paths and recorded interpreters are used. Existing pyATS bridge is retained.
+- L5/L13: structured discovery and configured Ollama endpoint/model checks, truthful failure exits and explicit configuration-required/unverified stages.
+- L10: synthetic transports and four actual component catalogs verified through installed OpenClaw; original CML/runtime combination remains unreproduced, not labelled fixed upstream.
+- L12: failed-tool exits, deterministic readiness, SOUL guidance and a real local calculator canary added. Arbitrary Ollama answer grounding is not certified.
+- L1/L6/L7/L11 and macOS preflight/Zabbix fixes: retained and regression-tested. No need to reimplement merged fixes.
+- Six unnamed macOS failures and real network/lab acceptance still need the missing evidence; no blanket all-components installation claim is made.

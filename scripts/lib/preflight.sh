@@ -40,5 +40,5 @@ netclaw_platform_reason() {
 
 netclaw_component_preflight() {
     python3 "$SCRIPT_DIR/installer-preflight.py" --os "$NETCLAW_OS" \
-        --arch "$NETCLAW_ARCH" --python "$NETCLAW_PY" --components "$SELECTED"
+        --arch "$NETCLAW_ARCH" --python "$NETCLAW_PY" --components "$SELECTED" --runtime "${RUNTIME:-openclaw}"
 }

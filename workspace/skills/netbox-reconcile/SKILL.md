@@ -9,6 +9,8 @@ metadata:
 
 # NetBox Reconciliation
 
+Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
+
 ## Golden Rule
 
 **NetBox is READ-WRITE.** The MCP has full API access to create and update devices, IPs, interfaces, VLANs, and cables. However, during reconciliation, discrepancies are reported and ticketed first — they are NEVER auto-corrected without explicit human approval. NetBox is the intended state. If reality differs from NetBox, either the network is wrong or NetBox needs updating. NetClaw can update NetBox when explicitly authorized by the operator.
