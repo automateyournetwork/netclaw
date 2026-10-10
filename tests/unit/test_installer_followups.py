@@ -64,19 +64,30 @@ def make_runtime(tmp_path, component):
     return runtime, python
 
 
-def test_netbox_module_uses_record_and_source_not_gateway_path(tmp_path):
+@pytest.fixture
+def netbox_repo(tmp_path):
+    # Optional component clones are absent on a clean checkout/CI runner.
+    # Keep launcher tests independent of the developer's installed components.
+    repo = tmp_path / 'repo'
+    script = repo / launch.CONTRACT['netbox']['script']
+    script.parent.mkdir(parents=True)
+    script.write_text('')
+    return repo
+
+
+def test_netbox_module_uses_record_and_source_not_gateway_path(tmp_path, netbox_repo):
     runtime, python = make_runtime(tmp_path, 'netbox')
     env = {'NETCLAW_RUNTIME_ROOT': str(runtime), 'PATH': '/wrong/python/bin', 'NETBOX_TOKEN': 'fixture'}
-    parts, child_env, cwd = launch.resolve('netbox', env=env)
+    parts, child_env, cwd = launch.resolve('netbox', env=env, repo=netbox_repo)
     assert parts == [str(python), '-u', '-m', 'netbox_mcp_server.server', '--transport', 'stdio']
-    assert child_env['PYTHONPATH'] == str(ROOT / 'mcp-servers/netbox-mcp-server/src')
+    assert child_env['PYTHONPATH'] == str(netbox_repo / 'mcp-servers/netbox-mcp-server/src')
     assert child_env['NETBOX_TOKEN'] == 'fixture'
-    assert cwd == str(ROOT)
+    assert cwd == str(netbox_repo)
 
 
-def test_missing_record_fails_instead_of_global_fallback(tmp_path):
+def test_missing_record_fails_instead_of_global_fallback(tmp_path, netbox_repo):
     with pytest.raises(ValueError, match='interpreter record'):
-        launch.resolve('netbox', env={'NETCLAW_RUNTIME_ROOT':str(tmp_path / 'runtimes')})
+        launch.resolve('netbox', env={'NETCLAW_RUNTIME_ROOT':str(tmp_path / 'runtimes')}, repo=netbox_repo)
 
 
 def test_literal_env_precedence_and_custom_script_preserved(tmp_path):
