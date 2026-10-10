@@ -125,4 +125,8 @@ Total: 55 tasks. US8 remains part of this delivery; finish T045–T053 before fi
 
 - [x] T054 [US8] Verify an unused app version/build, archive all Apple bundles, validate and upload the qualified candidate to App Store Connect under the owner’s latest authorization; record receipt and processing without public release.
 
-- [ ] T055 Update source VERSION to 1.8.0, README, changelog/release notes and create the reviewed spec149 PR; publish “Good news for Hermes users!” with all five infographics, both PR links, NetClaw/Latest indexing and public verification on automateyournetwork.com.
+- [x] T055 Update source VERSION to 1.8.0, README, changelog/release notes and create the reviewed spec149 PR; publish “Good news for Hermes users!” with all five infographics, both PR links, NetClaw/Latest indexing and public verification on automateyournetwork.com.
+
+## Delivery disposition
+
+54/55tasks complete. T040 is deliberately open: no fresh Linux/WSL host/control acceptance was run; see validation-handoff.md. Source1.8.0 is committed/pushed in PR291 (open, not merged). Mobile1.0.3(6) was signed, exported and accepted by App Store Connect for processing. The five-image article is live and publicly verified. Public App Review/release remains outside this work.

@@ -174,7 +174,7 @@ class InventoryBuilder:
                         names.add(name)
             except (ValueError, TypeError):
                 continue
-        return [{"name": n, "invocable": True, "risk_aggregate": True} for n in sorted(names)]
+        return [{"name": n, "invocable": self.runtime.kind!='hermes' or n=='subnet-calculator', "risk_aggregate": True} for n in sorted(names)]
 
     def build(self, peer_identity: str, posture: Optional[dict] = None) -> dict:
         """Build the inventory (A2A capability card) to advertise to a peer.
@@ -184,6 +184,7 @@ class InventoryBuilder:
         + model-guard + immutable audit) or degraded/testing — visibility applied
         to capabilities as before, no secrets ever."""
         self._version += 1
+        all_servers = self._load_mcp_servers()
         skills = [s for s in self._load_skills()
                   if self._visibility("skill", s["name"], peer_identity)]
         for s in skills:
@@ -193,11 +194,13 @@ class InventoryBuilder:
                 import sys
                 sys.path.insert(0,str(ROOT/'mcp-servers/hermes-hud-mcp'))
                 from policy import qualified_skills
-                s['invocable']=bool(qualified_skills(self.runtime.home))
+                record=self.runtime.home/'python-runtimes/records/subnet-calc'
+                interpreter=Path(record.read_text().strip()) if record.is_file() else None
+                dependency=any(server['name']=='subnet-calc-mcp' and 'subnet_calculator' in server.get('invocable_tools',[]) for server in all_servers)
+                s['invocable']=bool(dependency and interpreter and interpreter.is_file() and qualified_skills(self.runtime.home))
         # Border: fold in member specialties as risk-level capabilities (FR-016).
         skills += [s for s in self._member_aggregate_skills({s["name"] for s in skills})
                    if self._visibility("skill", s["name"], peer_identity)]
-        all_servers = self._load_mcp_servers()
         servers = [s for s in all_servers
                    if self._visibility("mcp_server", s["name"], peer_identity)]
         badges = _derive_badges([s["name"] for s in servers])

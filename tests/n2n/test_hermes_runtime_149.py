@@ -44,3 +44,15 @@ def test_unknown_harness_is_display_only_and_provenance_not_trusted():
     assert result['source'] == 'peer-advertised'
     assert 'installationId' not in result
     assert project_harness({'type':'hermes','version':'bad\nversion'})['version'] is None
+
+
+def test_hermes_skill_advertisement_requires_tool_dependency(tmp_path,monkeypatch,manager):
+    import shutil
+    from bgp.federation.runtime import ROOT
+    from bgp.federation.inventory import InventoryBuilder
+    home=tmp_path/'hermes';skill=home/'skills/subnet-calculator';skill.mkdir(parents=True)
+    shutil.copyfile(ROOT/'workspace/skills/subnet-calculator/SKILL.md',skill/'SKILL.md')
+    (home/'config.yaml').write_text('model: fixture\nmcp_servers: {}\n')
+    monkeypatch.setenv('NETCLAW_RUNTIME','hermes');monkeypatch.setenv('HERMES_HOME',str(home))
+    card=InventoryBuilder(manager).build('peer')
+    assert next(s for s in card['skills'] if s['name']=='subnet-calculator')['invocable'] is False

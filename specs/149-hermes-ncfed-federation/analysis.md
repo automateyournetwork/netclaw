@@ -108,3 +108,9 @@ report does not mark T040 complete or convert prior spec148 WSL/browser evidence
 into spec149 evidence.
 
 A19 — Final actual daemon CLI test found `start` restarting an already running owned daemon and readiness appearing before authenticated companion startup finished. `start` is now idempotent; explicit `restart` performs the stop/start. Readiness becomes true only after the authenticated companion health check. Both real lifecycle tests and17focused follow-up checks pass. No broad process kill or foreign-listener replacement was introduced.
+
+A20 — Installer-generated n2n registrations carry the legacy local BGP endpoint field. The protected qualifier now accepts only its known placeholder or bounded loopback form, removes it from the scoped child, and still requires the private one-use broker permit. The actual generated-launcher fixture passed mobile internal/external delegation; a foreign endpoint is rejected.
+
+A21 — A Hermes skill file alone does not prove its MCP dependency is installed. Card invocability now requires the reviewed tool registration and recorded interpreter; nonqualified aggregated skills remain non-invocable on Hermes.23focused inventory/policy tests pass.
+
+Final delivery:54/55tasks complete; T040 retains its explicit pending host disposition. Public website54-file comparison and3live browser tests passed. No unverified physical-device/platform or public App Store release claim was introduced.

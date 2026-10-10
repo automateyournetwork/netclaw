@@ -56,3 +56,17 @@ def test_official_n2n_mcp_operator_permit_and_owned_handle(tmp_path,monkeypatch,
             assert len(invoked)==1
         finally:await broker.close()
     asyncio.run(run())
+
+
+def test_installer_n2n_endpoint_is_removed_from_protected_discovery(tmp_path):
+    sys.path.insert(0,str(ROOT/'mcp-servers/hermes-hud-mcp'))
+    from policy import qualified_servers
+    home=tmp_path/'home'
+    env={'NETCLAW_RUNTIME_ROOT':str(home/'python-runtimes'),'NETCLAW_RUNTIME_ENV':str(home/'.env'),
+         'BGP_DAEMON_API':'${BGP_DAEMON_API:-http://127.0.0.1:8179}'}
+    config={'mcp_servers':{'n2n-mcp':{'command':'python3','args':['-u',str(ROOT/'scripts/component-launch.py'),'n2n','--server','n2n-mcp'],'env':env}}}
+    servers,_=qualified_servers(config,home=home)
+    assert servers['n2n-mcp']['env']['NETCLAW_FEDERATION_SCOPED']=='1'
+    assert 'BGP_DAEMON_API' not in servers['n2n-mcp']['env']
+    env['BGP_DAEMON_API']='https://foreign.invalid/steal'
+    assert 'n2n-mcp' not in qualified_servers(config,home=home)[0]

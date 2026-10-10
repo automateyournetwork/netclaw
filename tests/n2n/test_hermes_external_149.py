@@ -23,7 +23,8 @@ def configure(home,url):
     (home/'config.yaml').write_text(json.dumps({'model':{'default':'hud-fixture','provider':'custom','base_url':url},'mcp_servers':{
         'subnet-calc-mcp':{'command':'python3','args':['-u',str(ROOT/'scripts/component-launch.py'),'subnet-calc','--server','subnet-calc-mcp'],
             'env':{'NETCLAW_RUNTIME_ROOT':str(home/'python-runtimes'),'NETCLAW_RUNTIME_ENV':str(home/'.env')}},
-        'n2n-mcp':{'command':'python3','args':['-u',str(ROOT/'mcp-servers/n2n-mcp/server.py')]}}}))
+        'n2n-mcp':{'command':'python3','args':['-u',str(ROOT/'scripts/component-launch.py'),'n2n','--server','n2n-mcp'],
+            'env':{'NETCLAW_RUNTIME_ROOT':str(home/'python-runtimes'),'NETCLAW_RUNTIME_ENV':str(home/'.env'),'BGP_DAEMON_API':'${BGP_DAEMON_API:-http://127.0.0.1:8179}'}}}}))
     skill=home/'skills/subnet-calculator';skill.mkdir(parents=True);shutil.copyfile(ROOT/'workspace/skills/subnet-calculator/SKILL.md',skill/'SKILL.md')
 
 

@@ -1,0 +1,10 @@
+subnet-calc: 1 reviewed files migrated
+.                                                                        [100%]
+=============================== warnings summary ===============================
+tests/n2n/test_hermes_external_149.py::test_real_hermes_internal_and_bidirectional_external
+tests/n2n/test_hermes_external_149.py::test_real_hermes_internal_and_bidirectional_external
+  <tmp>/netclaw149-installer-operator/repo/mcp-servers/protocol-mcp/bgp/federation/risk.py:114: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1 passed, 2 warnings in 54.04s

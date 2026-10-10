@@ -63,7 +63,15 @@ def qualified_servers(config, manifest=None, home=None):
         command=registration.get('command','')
         if Path(command).name not in ('python','python3','python3.12','python3.14'):continue
         if registration.get('url'):continue
-        registered_env=registration.get('env') or {}
+        registered_env=dict(registration.get('env') or {})
+        if rule.get('argumentPolicy')=='federation-operator' and 'BGP_DAEMON_API' in registered_env:
+            endpoint=registered_env.pop('BGP_DAEMON_API')
+            # Existing installer templates carry this ordinary-agent endpoint.
+            # It is never an execution destination in the protected profile.
+            import re
+            if endpoint!='${BGP_DAEMON_API:-http://127.0.0.1:8179}' and (not isinstance(endpoint,str) or not re.fullmatch(r'http://(?:127\.0\.0\.1|localhost):[0-9]{1,5}/?',endpoint)):
+                continue
+            registration={**registration,'env':registered_env}
         allowed_env={'NETCLAW_RUNTIME_ROOT':str(Path(home)/'python-runtimes'), 'NETCLAW_RUNTIME_ENV':str(Path(home)/'.env')} if home else {}
         if any(key not in allowed_env or value!=allowed_env[key] for key,value in registered_env.items()):continue
         if rule.get('argumentPolicy')=='federation-operator':

@@ -24,10 +24,10 @@ owner credentials/configuration/services. Reproduction is in tests/n2n/README.md
 | Check | Actual result / scope |
 |---|---|
 | Real Hermes lifecycle + process loss | Final rerun:2passed,21.38s. Includes actual selected daemon CLI start/status/repeat-start/stop/restart from another cwd, no OpenClaw home/provider inference, plus actual subnet evidence; conversation-only chat; kill owned companion after dispatch, restart, retained unknown and zero replay; owner configuration preserved. |
-| All-Hermes internal/external + mobile delegation | 1passed; actual iN2N and bidirectional eN2N tool/skill/contextual chat; two independent peer conversations; authenticated mobile→protected operator→official MCP→internal/external subnet result. Final combined acceptance run also passed this test. |
+| All-Hermes internal/external + mobile delegation | 1passed; actual iN2N and bidirectional eN2N tool/skill/contextual chat; two independent peer conversations; authenticated mobile→protected operator→official MCP→internal/external subnet result. Final generated n2n component-launcher configuration rerun:1passed,54.04s; the legacy local endpoint field was stripped from protected discovery and private broker execution remained mandatory. |
 | Real Hermes mobile | 1passed; authenticated WebSocket enrollment, text/context, voice-origin composition, progress/reconnect, cross-device/key-generation denial, requested versus confirmed cancellation, explicit media refusal. No physical phone involved. |
 | Mixed runtime matrix | 1passed,70.30s; six separate service processes and an isolated OpenClaw gateway; H/H,H/O,O/H,O/O internal skill results; bidirectional H/O external real tool/skill and two-turn contextual chat. |
-| Shared NCFED suite | 585passed,4skipped,52.18s. Includes existing OpenClaw gateway/Ask Border/origin/attachment/progress/recovery, grants, knowledge, replication and authenticated transport tests. Four real-runtime fixtures intentionally skipped here and executed separately above. |
+| Shared NCFED suite | 586passed,5skipped,47.74s. Includes existing OpenClaw gateway/Ask Border/origin/attachment/progress/recovery, grants, knowledge, replication and authenticated transport tests. Five real-runtime fixtures intentionally skipped here and executed separately above. |
 | Real Hermes HUD regressions | 24passed plus3subtests,57.57s, including all six real-agent/process integration tests, owned HTTP admission, Chat/Canvas/local Avatar contracts, source/config/auth failures, restart/stop and preservation. |
 | HUD Node tests / build | 372passed; production build passed. Existing >500kB bundle warning remains. |
 | Canvas regression runner | 27/27suites passed; no network devices contacted. |
@@ -35,6 +35,7 @@ owner credentials/configuration/services. Reproduction is in tests/n2n/README.md
 | Flutter analysis | No issues. |
 | Installer/CLI/preservation focused set | 46passed,8.51s. Final selected-lifecycle/runtime/recovery follow-up:17passed,2.03s. |
 | Declared unit contracts | 832passed,2skipped across 96isolated modules; passed. |
+| Final inventory/policy regressions | 23passed,2.36s; skill dependency closure, safe generated n2n registration and foreign endpoint refusal. |
 | Catalogue | 111components,124registered servers,52external integrations; zero unexplained gaps. |
 | Spec artifacts | 133specifications checked,4existing legacy exceptions; passed. |
 
@@ -89,3 +90,9 @@ Source rollback/owner preservation tests do not establish safe database downgrad
 New interactive HUD browser/device qualification was not run; real HTTP/process,
 Node and Flutter widget coverage is reported as such. Historical spec148 browser
 and WSL evidence retains its original scope. See validation-handoff.md.
+
+## Publication and source delivery
+
+Source1.8.0 is in [PR291](https://github.com/automateyournetwork/netclaw/pull/291), following merged[PR290](https://github.com/automateyournetwork/netclaw/pull/290). PR291 remains open; this record does not imply a merge or release tag.
+
+[Good news for Hermes users!](https://automateyournetwork.com/netclaw/good-news-for-hermes-users/) published at2026-10-10T22:21:38UTC with all five images, both PR links and version history.54changed public files matched the build,7local plus3live browser tests and9SEO/timeline tests passed; clean Astro check and1,274-page build. NetClaw, homepage/Latest, RSS, search and sitemap were verified. Existing website/AONE work, public-root ownership and analytics were preserved. See evidence/website-public.json.
