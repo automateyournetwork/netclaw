@@ -96,6 +96,15 @@ reconciliation surfaces, regenerated HUD references and the production build. Th
 large-chunk build advisory remains; it is not a failed budget check. Credentials and
 local state stay ignored. Applicable PR and main CI results are recorded by GitHub.
 
+PR #290 initially exposed a fresh-checkout CI preparation gap: the separate Hermes and
+unit contract jobs omitted the HUD's Node dependencies; the unit job also used the runner's
+older Node. Launcher tests failed importing `dotenv`. Both jobs now select qualified Node
+24 and run the locked `npm ci` before the unchanged contracts; the reproduction guide
+names that prerequisite. This is
+an environment setup correction; no assertion is skipped or weakened. The optional
+Tessl action reported missing authentication and supplied no substantive skill review;
+its green action status is not treated as review evidence.
+
 Hermes uses the dedicated authenticated companion behind the HUD API and private MCP;
 port 3000 does not connect directly to the ordinary Hermes gateway. Initial tools are
 limited to the reviewed subnet calculator/skill. Attachments, arbitrary network MCPs,

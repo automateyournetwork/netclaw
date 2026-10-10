@@ -21,6 +21,7 @@ The owner approved the actual Mac and Ubuntu 26.04 WSL matrix on 2026-10-10. Ubu
 From repository root:
 
 ```sh
+npm --prefix ui/netclaw-visual ci
 python3 scripts/run-contract-tests.py --suite hermes-hud --prepare --strict-capabilities
 bash tests/installer/run-tests.sh
 python3 scripts/verify-catalog-coverage.py

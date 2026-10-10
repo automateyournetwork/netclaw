@@ -3,6 +3,11 @@
 These tests distinguish a working protected Hermes agent from a simulated HUD reply.
 They never contact network devices. The default suite never uses owner credentials.
 
+Before either the offline contracts or the real fixture, install the locked HUD Node
+dependencies with `npm --prefix ui/netclaw-visual ci`. Launcher contracts import the
+production HUD's private-file helpers (including `dotenv`); the Python contract runner
+prepares Python dependencies only. CI installs both dependency sets for this suite.
+
 ## Three separate evidence levels
 
 1. `python3 scripts/run-contract-tests.py --suite hermes-hud --prepare --strict-capabilities`
