@@ -16,6 +16,8 @@ def test_cli_failure_is_visible_to_automation(tmp_path, failure):
     (tmp_path / 'mcp-servers/pyATS_MCP').mkdir(parents=True)
     if failure != 'verification':
         (tmp_path / 'mcp-servers/pyATS_MCP/pyats_mcp_server.py').touch()
+    # Host checks have their own entrypoint suite; isolate downstream exit handling.
+    (scripts / 'installer-preflight.py').write_text('raise SystemExit(0)\n')
     (scripts / 'mcp-call.py').touch()
     (scripts / 'netclaw').write_text('#!/bin/sh\nexit 0\n')
     (scripts / 'netclaw').chmod(0o700)

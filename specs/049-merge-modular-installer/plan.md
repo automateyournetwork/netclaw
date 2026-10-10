@@ -122,3 +122,22 @@ the specification, research, plan and task updates precede implementation.
 5. Extend focused tests and operator/evidence docs; update existing draft PR285
    around final installer scope. No private logs committed or external services
    operated. Full optional-component fleet coverage remains unverified.
+
+## Platform and selection preflight plan (2026-10-09)
+
+1. Add tracked host/component policy plus a stdlib read-only checker and Bash
+   platform/default-Python adapter. Probe bounded local version commands only;
+   no package downloads, secrets, installation or network-device tool calls
+   in preflight. Docker daemon readiness uses a bounded read-only probe.
+2. Run platform reporting before menus and component checks after selection,
+   before any install side effects. Add --preflight; disable known unsupported
+   custom choices and fail explicit unsupported or missing-prerequisite requests.
+3. Use policy Python ranges in pip helper recovery and selected-interpreter gates;
+   restore Zabbix cwd. Add fresh per-run log directories and report their path.
+4. Test Linux/macOS/unsupported OS fixtures, architecture/native SDK support,
+   Python min/max/explicit/recovery, command/Go/CGO/compiler readiness, selection
+   isolation and a no-mutation installer entrypoint. Real Zabbix install/discovery
+   uses temporary runtime/config only. Document installation and service gaps.
+5. PR285 merged; base new codex/fix-installer-preflight on aa90e7d and publish a
+   follow-up PR linked to 285, with current spec artifacts and verification.
+   Keep release metadata for maintainer coordination while this PR is draft.

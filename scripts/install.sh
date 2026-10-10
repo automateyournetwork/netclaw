@@ -23,11 +23,14 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 NETCLAW_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
+NETCLAW_PY_EXPLICIT=0
+[ -z "${NETCLAW_PY:-}" ] || NETCLAW_PY_EXPLICIT=1
 
 source "$SCRIPT_DIR/lib/common.sh"
 source "$SCRIPT_DIR/lib/tui.sh"
 source "$SCRIPT_DIR/lib/catalog.sh"
 source "$SCRIPT_DIR/lib/install-steps.sh"
+source "$SCRIPT_DIR/lib/preflight.sh"
 
 define_paths
 
@@ -56,6 +59,7 @@ usage() {
     echo "  --add \"id id ...\"         install components on top of an existing install;"
     echo "                            merges into the recorded component set"
     echo "  --all                     install everything ($TOTAL_COMPONENTS components)"
+    echo "  --preflight               check the selection without installing anything"
     echo "  --list                    list all components and profiles, then exit"
     echo "  --help                    this help"
 }
@@ -84,6 +88,7 @@ list_components() {
 SELECTED=""
 CLI_MODE=0
 ADD_MODE=0
+PREFLIGHT_ONLY=0
 
 while [ $# -gt 0 ]; do
     case "$1" in
@@ -116,11 +121,18 @@ while [ $# -gt 0 ]; do
         --all|--full)
             SELECTED="$(profile_components full)"
             CLI_MODE=1; shift ;;
+        --preflight) PREFLIGHT_ONLY=1; shift ;;
         --list)  list_components; exit 0 ;;
         --help|-h) usage; exit 0 ;;
         *) log_error "Unknown option: $1"; usage; exit 1 ;;
     esac
 done
+
+netclaw_detect_platform
+netclaw_choose_component_python
+netclaw_platform_banner
+NETCLAW_UNSUPPORTED_COMPONENTS="$(python3 "$SCRIPT_DIR/installer-preflight.py" \
+    --os "$NETCLAW_OS" --arch "$NETCLAW_ARCH" --platform-only)" || exit 1
 
 # ═══════════════════════════════════════════
 # Refuse to run under sudo
@@ -202,7 +214,7 @@ detect_banner() {
     echo ""
 }
 
-detect_existing
+[ "$PREFLIGHT_ONLY" -eq 1 ] || detect_existing
 
 # ═══════════════════════════════════════════
 # Component selection (TUI)
@@ -211,7 +223,7 @@ detect_existing
 # Fill CL_IDS/CL_LABELS/CL_ON from the catalog with category headers.
 # $1 = space-separated ids to preselect.
 build_checklist() {
-    local preselect=" $1 " entry id cat name desc last_cat="" label maxw
+    local preselect=" $1 " entry id cat name desc last_cat="" label maxw reason
     maxw=$(( $(tput cols 2>/dev/null || echo 100) - 12 ))
     CL_IDS=(); CL_LABELS=(); CL_ON=()
     for entry in "${CATALOG[@]}"; do
@@ -219,6 +231,11 @@ build_checklist() {
         if [ "$cat" != "$last_cat" ]; then
             CL_IDS+=(""); CL_LABELS+=("── $cat ──"); CL_ON+=(0)
             last_cat="$cat"
+        fi
+        reason="$(netclaw_platform_reason "$id")"
+        if [ -n "$reason" ]; then
+            CL_IDS+=(""); CL_LABELS+=("$name — unavailable: $reason"); CL_ON+=(0)
+            continue
         fi
         label="$(printf '%-26s %s' "$name" "$desc")"
         CL_IDS+=("$id")
@@ -329,9 +346,8 @@ if [ "$CLI_MODE" -eq 0 ]; then
     if tui_is_tty; then
         select_components
         show_selection
-        tui_yesno "Install these now?" "y" || { log_warn "Install cancelled."; exit 1; }
     else
-        # Piped / CI with no flags: don't guess — a full 72-component install
+        # Piped / CI with no flags: don't guess — a full catalog install
         # is far too big to start implicitly.
         log_error "No TTY and no selection flags — refusing to guess what to install."
         log_info "Scripted installs must pick explicitly:"
@@ -343,8 +359,17 @@ if [ "$CLI_MODE" -eq 0 ]; then
     fi
 else
     echo ""
-    detect_banner
+    [ "$PREFLIGHT_ONLY" -eq 1 ] || detect_banner
     show_selection
+fi
+
+if ! netclaw_component_preflight; then
+    log_error "Preflight blocked this selection. Resolve the reported prerequisites or choose fewer components."
+    exit 1
+fi
+[ "$PREFLIGHT_ONLY" -eq 0 ] || exit 0
+if [ "$CLI_MODE" -eq 0 ]; then
+    tui_yesno "Install these now?" "y" || { log_warn "Install cancelled."; exit 1; }
 fi
 
 SELECTED_COUNT=$(echo $SELECTED | wc -w | tr -d ' ')
@@ -376,8 +401,13 @@ core_mcpdir
 # terminal scrollback. NETCLAW_VERBOSE=1 streams everything like before.
 # Components whose installers prompt for input keep the terminal.
 
-INSTALL_LOG_DIR="$RUNTIME_HOME/logs/install"
-mkdir -p "$INSTALL_LOG_DIR"
+INSTALL_LOG_ROOT="$RUNTIME_HOME/logs/install"
+mkdir -p "$INSTALL_LOG_ROOT"
+INSTALL_LOG_DIR="$(mktemp -d "$INSTALL_LOG_ROOT/run-$(date -u +%Y%m%dT%H%M%SZ)-XXXXXX")"
+log_info "Logs for this run: $INSTALL_LOG_DIR"
+printf 'Host: %s %s / %s\nBash: %s\nComponent Python: %s\nSelected: %s\n' \
+    "$NETCLAW_OS" "$NETCLAW_OS_VERSION" "$NETCLAW_ARCH" "$BASH_VERSION" "$NETCLAW_PY" "$SELECTED" \
+    > "$INSTALL_LOG_DIR/run-info.txt"
 NETCLAW_RUNTIME_ROOT="$RUNTIME_HOME/python-runtimes"
 export NETCLAW_RUNTIME_ROOT
 INTERACTIVE_COMPONENTS=" checkpoint forward ipfabric threejs-viz jev "

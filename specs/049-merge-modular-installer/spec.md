@@ -152,3 +152,28 @@ portability problems. Keep this follow-up within installer reliability scope.
   after binary placement/executable checks succeed.
 - Document remaining Docker, kubectl, Ollama and Linux-desktop limitations;
   do not imply that a full macOS install supplies those external services.
+
+## Platform and component preflight follow-up (2026-10-09)
+
+The second archive confirms a Zabbix cwd regression, missing Forward Go,
+Python 3.14 incompatibility in Panorama/Zoom and RADKit vendor-index needs.
+This extends the modular installer's prerequisite and retry reliability scope.
+
+- Resolve Zabbix's local vendored requirement from its component directory.
+- Detect/report OS/version, architecture and Bash before interactive selection.
+- Prefer existing Python 3.12 for component environments unless NETCLAW_PY
+  is explicitly selected; never install Python or change global defaults.
+- Check every selected catalog entry against one tracked policy before runtime
+  install, onboarding, component downloads, manifest/config writes or services.
+- Aggregate unsupported platforms, missing tools, Python bounds, Forward Go
+  1.25/CGO/compiler requirements and RADKit vendor-source configuration.
+- Include interpreter-platform checks for native Zoom SDK wheels. Keep Linux
+  virtual desktop unavailable in the macOS custom picker. Explicit unsupported
+  selections fail; no unreported selection removal or false installation success.
+- Add a read-only --preflight mode with a nonzero result for blocked selections.
+- Apply the same component Python bounds to environment recovery, retaining
+  incompatible environments and success-only records; explicit venvs are refused
+  rather than rebuilt. Version checks use the chosen component interpreter.
+- Keep endpoint credentials/connectivity outside host prerequisite checks.
+- Store logs in separate run directories so old interactive logs cannot be
+  mistaken for new failures. Test offline and with a temporary real Zabbix install.
