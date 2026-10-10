@@ -5,7 +5,7 @@ first. Federation remains spec 149. The Mac owner's running HUD was not restarte
 
 ## Transfer the exact implementation
 
-Branch: `148-hermes-hud-integration`. **Implementation commit: PENDING_IMPLEMENTATION_COMMIT**.
+Branch: `148-hermes-hud-integration`. **Implementation commit: db5a1b0f3efdf87e469158337a2d1dfb770be230**.
 A subsequent documentation-only commit records this handoff and audit. Transfer the
 provided local Git bundle, `/tmp/netclaw-spec148.bundle`, to your Windows machine;
 the branch has **not** been pushed. The bundle contains committed repository history,
@@ -21,7 +21,7 @@ git clone --branch 148-hermes-hud-integration /mnt/c/Users/YOUR_USER/Downloads/n
 cd "$HOME/src/netclaw-148"
 git status --short
 git log -2 --oneline
-git merge-base --is-ancestor PENDING_IMPLEMENTATION_COMMIT HEAD
+git merge-base --is-ancestor db5a1b0f3efdf87e469158337a2d1dfb770be230 HEAD
 ```
 
 If using an existing checkout, fetch the bundle into a separate review branch and use a

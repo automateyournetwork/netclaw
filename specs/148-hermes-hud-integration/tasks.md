@@ -114,7 +114,7 @@
 - [ ] T055 Complete required Ubuntu/WSL integration, Windows-browser loopback/auth, permission/persistence/restart/canary and OpenClaw preservation checks from the handoff or local environment; append pass/fail/unverified evidence to `specs/148-hermes-hud-integration/validation.md` and resolve failures before closure. (FR-001–022; SC-001–007)
 - [ ] T056 Reconcile release metadata (`VERSION`, `CHANGELOG.md` and any actual release-linked manifests identified by `CONTRIBUTING.md`) with repository conventions/current main; target minor 1.7.0 from 1.6.2 only after acceptance, and document user-visible limitations/migration. (FR-018,019)
 - [X] T057 Draft the milestone article locally in `specs/148-hermes-hud-integration/blog-draft.md`, with tested evidence and remaining limitations; no publication, PR or external message without the owner's separate direction. (FR-019; constitution XIV,XVII)
-- [ ] T058 Re-run artifact/diff checks, reconcile task checkboxes against actual evidence, record final notes in `memory/YYYY-MM-DD.md` and GAIT, and report completed scope or exact remaining validation blockers through `specs/148-hermes-hud-integration/validation.md`. (FR-019; constitution IV,XVI)
+- [X] T058 Re-run artifact/diff checks, reconcile task checkboxes against actual evidence, record final notes in `memory/YYYY-MM-DD.md` and GAIT, and report completed scope or exact remaining validation blockers through `specs/148-hermes-hud-integration/validation.md`. (FR-019; constitution IV,XVI)
 
 ## Dependencies and parallel opportunities
 
