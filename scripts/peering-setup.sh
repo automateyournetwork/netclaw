@@ -22,11 +22,11 @@ source "$SCRIPT_DIR/lib/common.sh"
 # defaults safely (to "no") under a non-interactive invocation.
 source "$SCRIPT_DIR/lib/tui.sh"
 
-OPENCLAW_ENV="${OPENCLAW_ENV:-$HOME/.openclaw/.env}"
+eval "$(python3 "$SCRIPT_DIR/federation-control.py" env)"
+OPENCLAW_ENV="${OPENCLAW_ENV:-$RUNTIME_HOME/.env}"
 PROTOCOL_MCP_DIR="$NETCLAW_DIR/mcp-servers/protocol-mcp"
 BGP_DAEMON="$PROTOCOL_MCP_DIR/bgp-daemon-v2.py"
-BGP_API="http://127.0.0.1:8179"
-DAEMON_OUT="/tmp/bgp-daemon-v2.out"
+DAEMON_OUT="$RUNTIME_HOME/netclaw-federation/daemon.log"
 
 # Read a value from ~/.openclaw/.env ('' if unset)
 env_get() {
@@ -63,38 +63,11 @@ ask_yn() {
 
 # ── daemon control ───────────────────────────────────────────────
 daemon_running() {
-    curl -s -m 2 "$BGP_API/status" 2>/dev/null | grep -q '"running"'
+    python3 "$SCRIPT_DIR/federation-control.py" status >/dev/null 2>&1
 }
 
 daemon_start() {
-    [ -f "$BGP_DAEMON" ] || { log_error "BGP daemon not found: $BGP_DAEMON"; exit 1; }
-    grep -q "^NETCLAW_ROUTER_ID=" "$OPENCLAW_ENV" 2>/dev/null || {
-        log_error "Peering is not configured yet — run ./scripts/peering-setup.sh first."
-        exit 1
-    }
-
-    if daemon_running; then
-        log_info "Stopping running mesh daemon..."
-        pkill -f "bgp-daemon-v2\.py" 2>/dev/null || true
-        sleep 1
-    fi
-
-    # Pull only the daemon's keys from .env — values may contain JSON, and
-    # other .env lines have unquoted spaces that break plain `source`.
-    log_info "Starting mesh BGP daemon..."
-    nohup python3 "$SCRIPT_DIR/peering-launch.py" "$OPENCLAW_ENV" "$BGP_DAEMON" >> "$DAEMON_OUT" 2>&1 &
-    local pid=$!
-    sleep 3
-
-    if daemon_running; then
-        log_info "Mesh daemon running (pid $pid)"
-        log_info "  Control API: $BGP_API   BGP listen port: $(env_get BGP_LISTEN_PORT)"
-        log_info "  Logs: /tmp/bgp-daemon-v2.log"
-    else
-        log_error "Daemon did not come up — last output:"
-        tail -10 "$DAEMON_OUT" 2>/dev/null | sed 's/^/    /'
-        exit 1
-    fi
+    python3 "$SCRIPT_DIR/federation-control.py" start
 }
 
 daemon_status() {
@@ -123,17 +96,7 @@ for pfx, r in d.get("loc_rib", {}).items():
 }
 
 daemon_stop() {
-    if ! daemon_running; then
-        log_info "Mesh daemon is not running."
-        return 0
-    fi
-    pkill -f "bgp-daemon-v2\.py" 2>/dev/null || true
-    sleep 1
-    if daemon_running; then
-        log_error "Daemon did not stop — check for a stuck process."
-        exit 1
-    fi
-    log_info "Mesh daemon stopped."
+    python3 "$SCRIPT_DIR/federation-control.py" stop
 }
 
 case "${1:-}" in

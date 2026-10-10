@@ -1,0 +1,13 @@
+{
+  "version": "1.0.3",
+  "build": "6",
+  "bundleCount": 5,
+  "uploadStatus": "accepted-processing",
+  "uploadedAt": "2026-10-10T22:09:27Z",
+  "deliveryId": "40c66732-20b4-4977-997e-69d974b80a6c",
+  "source": "Xcode ContentDelivery upload log; UPLOAD SUCCEEDED with no errors",
+  "publicReviewSubmitted": false,
+  "publicRelease": false,
+  "processingCompleteObserved": false,
+  "wrapperNote": "Flutter export wrapper reported missing local IPA directory after successful destination=upload. Xcode/Apple receipt above is the authoritative upload result; separate local export follows."
+}

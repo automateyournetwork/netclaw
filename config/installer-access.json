@@ -178,6 +178,28 @@
         "hermes_hud_events",
         "hermes_hud_approval",
         "hermes_hud_stop"
+      ],
+      "private_variants": {
+        "federation": {
+          "script": "mcp-servers/hermes-hud-mcp/federation_server.py",
+          "tools": [
+            "hermes_federation_status",
+            "hermes_federation_open",
+            "hermes_federation_submit",
+            "hermes_federation_request_status",
+            "hermes_federation_history",
+            "hermes_federation_stop"
+          ]
+        }
+      }
+    },
+    "n2n": {
+      "servers": [
+        "n2n-mcp"
+      ],
+      "script": "mcp-servers/n2n-mcp/server.py",
+      "expected_tools": [
+        "n2n_status"
       ]
     }
   }

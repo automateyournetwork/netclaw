@@ -225,7 +225,7 @@ void main() {
 
       expect(source.calls, hasLength(1));
       expect(source.calls.single.$1, 'n2n/edge/ask');
-      expect(source.calls.single.$2, {'text': 'show bgp summary'});
+      expect(source.calls.single.$2, containsPair('text', 'show bgp summary'));
     });
   });
 
@@ -293,7 +293,7 @@ void main() {
       // Specifically the words past the old ~9 cut-off.
       expect(result!.$2, contains('ten eleven twelve'));
       expect(source.calls.single.$2,
-          {'text': result.$2});
+          containsPair('text', result.$2));
     });
 
     test('a recording may span many segments before the session ceiling', () {

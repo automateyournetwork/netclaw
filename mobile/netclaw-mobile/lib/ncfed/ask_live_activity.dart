@@ -36,13 +36,7 @@ void wireAskLiveActivity({
       liveActivity.updateAsk(taskId: update.taskId, progressDetail: update.progressDetail!);
       return;
     }
-    final stateName = switch (update.state) {
-      TaskState.completed => 'completed',
-      TaskState.failed => 'failed',
-      TaskState.cancelled => 'cancelled',
-      TaskState.working => 'working',
-      _ => 'pending',
-    };
-    await store.updateState(update.taskId, stateName, answerText: update.outputText);
+    final stateName = update.state.wireName;
+    await store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
   });
 }

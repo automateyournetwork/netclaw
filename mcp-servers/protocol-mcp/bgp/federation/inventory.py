@@ -57,24 +57,40 @@ class InventoryBuilder:
         self.manager = manager
         # protocol-mcp/bgp/federation/inventory.py → repo root is 4 levels up
         self.repo_root = Path(repo_root or Path(__file__).resolve().parents[4])
-        self.config_path = Path(openclaw_config or (self.repo_root / "config" / "openclaw.json"))
-        self.skills_dir = self.repo_root / "workspace" / "skills"
-        self.env_path = Path(env_path or os.path.expanduser("~/.openclaw/.env"))
+        from .runtime import selected
+        self.runtime=selected()
+        self.config_path = Path(openclaw_config or (self.repo_root/'config/openclaw.json' if repo_root else self.runtime.config))
+        self.skills_dir = self.repo_root/'workspace/skills' if repo_root else self.runtime.skills
+        self.env_path = Path(env_path or self.runtime.env_file)
         self._version = 0
 
     # ---- build --------------------------------------------------------
 
     def _load_mcp_servers(self) -> list:
         try:
-            cfg = json.loads(self.config_path.read_text())
+            if self.runtime.kind=='hermes':
+                import yaml
+                cfg=yaml.safe_load(self.config_path.read_text()) or {}
+            else:cfg = json.loads(self.config_path.read_text())
         except Exception as e:
             logger.warning("Cannot read openclaw.json: %s", e)
             return []
-        servers = cfg.get("mcpServers") or {}
+        servers = cfg.get('mcp_servers') if self.runtime.kind=='hermes' else (cfg.get('mcp') or {}).get('servers') or cfg.get("mcpServers")
+        servers=servers or {}
+        qualified={}
+        if self.runtime.kind=='hermes':
+            from .runtime import ROOT
+            import sys
+            sys.path.insert(0,str(ROOT/'mcp-servers/hermes-hud-mcp'))
+            from policy import qualified_servers
+            qualified,_=qualified_servers(cfg,home=self.runtime.home)
         out = []
         for name, spec in servers.items():
             tools = spec.get("tools") if isinstance(spec, dict) else None
-            out.append({"name": name, "tools": tools or []})
+            if isinstance(tools,dict):tools=tools.get('include',[])
+            approved=(qualified.get(name,{}).get('tools') or {}).get('include',[])
+            out.append({"name": name, "tools": tools or approved or [],'invocable_tools':approved if self.runtime.kind=='hermes' else tools or [],
+                        'qualification':'source-reviewed' if name in qualified else 'configured'})
         return out
 
     def _load_skills(self) -> list:
@@ -171,7 +187,13 @@ class InventoryBuilder:
         skills = [s for s in self._load_skills()
                   if self._visibility("skill", s["name"], peer_identity)]
         for s in skills:
-            s["invocable"] = True
+            s["invocable"] = self.runtime.kind!='hermes'
+            if self.runtime.kind=='hermes' and s['name']=='subnet-calculator':
+                from .runtime import ROOT
+                import sys
+                sys.path.insert(0,str(ROOT/'mcp-servers/hermes-hud-mcp'))
+                from policy import qualified_skills
+                s['invocable']=bool(qualified_skills(self.runtime.home))
         # Border: fold in member specialties as risk-level capabilities (FR-016).
         skills += [s for s in self._member_aggregate_skills({s["name"] for s in skills})
                    if self._visibility("skill", s["name"], peer_identity)]
@@ -190,14 +212,19 @@ class InventoryBuilder:
             "version": self._version,
             "skills": skills,
             "mcp_servers": [{"name": s["name"], "tools": s["tools"],
-                             "invocable_tools": s["tools"]} for s in servers],
+                             "invocable_tools": s['invocable_tools'],'qualification':s['qualification']} for s in servers],
             "knowledge": knowledge,
             "badges": badges,
             "posture": self._posture_card(posture),
             "llm": self._llm_card(),
+            'harness':self._harness_card(),
         }
         self._assert_no_secrets(inv)
         return inv
+
+    def _harness_card(self):
+        from .runtime import local_harness
+        return {**local_harness(self.runtime),'observed_at':_now()}
 
     def _load_knowledge(self, peer_identity: str) -> list:
         """Build the per-peer visible knowledge entries (feature 064). The
@@ -253,7 +280,13 @@ class InventoryBuilder:
     def _local_primary_model(self) -> str:
         """Read this claw's primary model from the OpenClaw config (no secrets)."""
         import json as _json
-        for p in (Path(os.path.expanduser("~/.openclaw/openclaw.json")),):
+        if self.runtime.kind=='hermes':
+            try:
+                import yaml
+                value=(yaml.safe_load(self.config_path.read_text()) or {}).get('model')
+                return (value.get('default') or value.get('model') or '') if isinstance(value,dict) else value or ''
+            except (OSError,ValueError):return ''
+        for p in (self.config_path,):
             try:
                 cfg = _json.loads(p.read_text())
                 ag = (cfg.get("agents") or {}).get("defaults") or {}
@@ -366,4 +399,6 @@ class InventoryBuilder:
                 stale = age < 0 or age > (2 * refresh_s)
             except Exception:
                 pass
+        from .runtime import project_harness
+        inv['harness']=project_harness(inv.get('harness'),observed_at=received_at)
         return {"inventory": inv, "received_at": received_at, "stale": stale}

@@ -1,0 +1,11 @@
+{
+  "status": "PASS",
+  "files": 96,
+  "counts": {
+    "passed": 832,
+    "skipped": 2,
+    "failed": 0
+  },
+  "durationSeconds": 93.27909312499105,
+  "isolation": "runner starts each test module in a separate process"
+}

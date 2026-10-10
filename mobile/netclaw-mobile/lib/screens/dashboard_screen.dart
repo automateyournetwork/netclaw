@@ -32,6 +32,12 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final identity = snapshot.identity;
+    final harness = snapshot.border['harness'] as Map?;
+    final type = harness?['type'] is String ? harness!['type'] as String : 'unknown';
+    final version = harness?['version'] is String ? harness!['version'] as String : 'unknown';
+    final model = snapshot.border['model'];
+    final capabilities = snapshot.border['capabilities'] as Map?;
+
 
     if (!identity.enrolled) {
       // FR-013/Edge Cases: a clear "not yet enrolled" state, never a blank
@@ -69,6 +75,17 @@ class DashboardScreen extends StatelessWidget {
           title: Text(snapshot.connected ? 'Connected to Border' : 'Reconnecting…'),
           subtitle: Text(identity.clawDomain),
         ),
+        ListTile(
+          leading: const Icon(Icons.memory),
+          title: Text('Border type: $type'),
+          subtitle: Text('Harness version: $version\nModel: ${model is String && model.isNotEmpty ? model : 'unknown'}${snapshot.connected ? '' : '\nLast received; reconnecting'}'),
+        ),
+        if (capabilities != null)
+          ListTile(
+            leading: const Icon(Icons.chat_outlined),
+            title: const Text('Ask Border capabilities'),
+            subtitle: Text('Text: ${capabilities['text'] == true ? 'available' : 'unknown'} • Voice text: ${capabilities['voice_text'] == true ? 'available' : 'unknown'}\nPhoto/video: ${capabilities['attachments'] == false ? 'unavailable' : capabilities['attachments'] == true ? 'available' : 'unknown'}'),
+          ),
         const Divider(),
         ListTile(
           leading: const Icon(Icons.badge_outlined),

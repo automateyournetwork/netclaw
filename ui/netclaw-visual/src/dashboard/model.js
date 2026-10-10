@@ -87,7 +87,7 @@ export function clawInventory(row) {
   const card = envelope.inventory || envelope;
   const servers = list(card.mcp_servers || raw.mcp_servers);
   const llm = card.llm || raw.llm || {};
-  return { servers, model: text(llm.primary_model || raw.model, row?.kind === 'edge' ? 'No local LLM · requests handled by Border / delegated Claw' : 'Not reported'),
+  return { servers, harness: text(card.harness?.type, 'unknown'), harnessVersion: text(card.harness?.version, 'unknown'), model: text(llm.primary_model || raw.model, row?.kind === 'edge' ? 'No local LLM · requests handled by Border / delegated Claw' : 'Not reported'),
     fallbacks: list(llm.fallbacks), guarded: llm.guarded, source: card.source || (row?.kind === 'peer' ? 'Peer capability advertisement' : 'Member configuration report'),
     observedAt: envelope.received_at || card.issued_at || card.generatedAt || raw.inventory_received_at,
     stale: envelope.stale === true, available: card.available !== false && Array.isArray(card.mcp_servers || raw.mcp_servers) };

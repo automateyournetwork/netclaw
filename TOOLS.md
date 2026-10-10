@@ -1013,3 +1013,16 @@ discovery and unverified endpoint/agent operations. See [operator guidance](docs
 ## Selected-runtime HUD
 
 Use `./scripts/netclaw hud status` for observation and `./scripts/netclaw hud` for an owner-requested launch. Selection persists separately from credentials. Hermes uses the selected home, private stdio conversation bridge and pinned isolated companion; no OpenClaw credential/history fallback. The initial eligible tool is the reviewed IPv4 subnet calculator (/24 through /30). Native Windows Hermes requires Ubuntu on WSL2. See `docs/HERMES-HUD.md` for setup, exact versions and recovery. The eight private bridge tools must never be registered with an agent.
+
+## Hermes federation qualification (spec149 / 1.8.0)
+
+The selected Hermes Border/member uses a private protected NCFED companion;
+OpenClaw remains the default when no runtime is selected. The initial receiver
+profile qualifies only the installed read-only subnet tool/skill; peer chat is
+conversation-only. HUD/mobile operator scope may delegate permitted subnet work,
+but no remote card, model claim or prompt grants operator authority. Missing harness
+metadata stays unknown. Preserve unknown/interrupted/cancellation-requested outcomes;
+never replay uncertain work. Hermes mobile media attachments are unavailable;
+voice-transcribed text and Siri voice origin are supported. Production Hermes
+model-guard/confinement remains unavailable and fails closed. See
+`docs/HERMES-FEDERATION.md` and spec149 verification before claiming broader support.

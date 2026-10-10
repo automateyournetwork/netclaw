@@ -18,7 +18,7 @@ struct AskLiveActivityView: Widget {
                 Text(context.attributes.questionPreview)
                     .font(.headline)
                     .lineLimit(2)
-                Text(timerInterval: context.state.startedAt...Date.distantFuture, countsDown: false)
+                status(context.state)
                     .font(.subheadline)
                     .monospacedDigit()
                 if let detail = context.state.progressDetail {
@@ -38,7 +38,7 @@ struct AskLiveActivityView: Widget {
                         Text(context.attributes.questionPreview)
                             .font(.headline)
                             .lineLimit(2)
-                        Text(timerInterval: context.state.startedAt...Date.distantFuture, countsDown: false)
+                        status(context.state)
                             .font(.subheadline)
                             .monospacedDigit()
                         if let detail = context.state.progressDetail {
@@ -51,13 +51,28 @@ struct AskLiveActivityView: Widget {
             } compactLeading: {
                 Image(systemName: "hourglass")
             } compactTrailing: {
-                Text(timerInterval: context.state.startedAt...Date.distantFuture, countsDown: false)
+                status(context.state)
                     .monospacedDigit()
                     .font(.caption2)
             } minimal: {
                 Image(systemName: "hourglass")
             }
             .widgetURL(chatDeepLink(for: context.attributes.taskId))
+        }
+    }
+
+    @ViewBuilder
+    private func status(_ state: AskActivityAttributes.ContentState) -> some View {
+        switch state.state {
+        case "working", "pending":
+            Text(timerInterval: state.startedAt...Date.distantFuture, countsDown: false)
+        case "outcome_unknown": Text("Outcome unknown — do not resend")
+        case "cancellation_requested": Text("Cancellation requested — stop unconfirmed")
+        case "interrupted": Text("Interrupted before execution")
+        case "completed": Text("Completed")
+        case "cancelled": Text("Cancellation confirmed")
+        case "failed": Text("Failed")
+        default: Text("Status unknown — check NetClaw")
         }
     }
 

@@ -75,12 +75,13 @@ class _ChatScreenState extends State<ChatScreen>
   final Set<String> _selectedStates = {};
   final Set<String> _selectedOrigins = {};
 
-  static const _stateChoices = ['pending', 'working', 'completed', 'failed', 'cancelled'];
-  static const _originChoices = ['phone', 'watch'];
+  static const _stateChoices = ['pending', 'working', 'completed', 'failed', 'cancelled', 'outcome_unknown', 'interrupted', 'cancellation_requested'];
+  static const _originChoices = ['phone', 'watch', 'siri'];
 
   @override
   void initState() {
     super.initState();
+    widget.askClient.store ??= widget.store;
     WidgetsBinding.instance.addObserver(this);
     widget.store.load().then((_) async {
       if (mounted) setState(() => _loading = false);
@@ -180,15 +181,9 @@ class _ChatScreenState extends State<ChatScreen>
       return;
     }
     _progress.remove(update.taskId); // terminal update supersedes any hint
-    final stateName = switch (update.state) {
-      TaskState.completed => 'completed',
-      TaskState.failed => 'failed',
-      TaskState.cancelled => 'cancelled',
-      TaskState.working => 'working',
-      _ => 'pending',
-    };
+    final stateName = update.state.wireName;
     final follow = _isNearBottom;
-    await widget.store.updateState(update.taskId, stateName, answerText: update.outputText);
+    await widget.store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
     if (stateName == 'completed') widget.haptics.chatAnswerCompleted();
     if (mounted) setState(() {});
     if (follow) _jumpToNewest(animate: true);
@@ -205,9 +200,15 @@ class _ChatScreenState extends State<ChatScreen>
   Future<void> _send() async {
     final text = _controller.text.trim();
     if (text.isEmpty) return;
-    _controller.clear();
-    final taskId = await widget.askClient.ask(text);
-    await widget.store.addPending(taskId, text);
+    try {
+      final taskId = await widget.askClient.ask(text);
+      await widget.store.addPending(taskId, text);
+      _controller.clear();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$error')));
+    }
+    if (!mounted) return;
     setState(() {});
     _jumpToNewest(animate: true);
   }
@@ -260,6 +261,7 @@ class _ChatScreenState extends State<ChatScreen>
   /// this actually resends the photo too rather than asking the operator to
   /// retake it.
   Future<void> _retry(ConversationTurn turn) async {
+    if (!['failed', 'cancelled', 'interrupted'].contains(turn.state)) return;
     var text = turn.requestText;
     Map<String, dynamic>? attachment;
     final photoPath = turn.photoPath;
@@ -292,6 +294,10 @@ class _ChatScreenState extends State<ChatScreen>
   }
 
   Future<void> _capturePhoto() async {
+    if (widget.askClient.attachmentsUnavailable) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Photo and video Ask Border requests are unavailable on this Hermes Border.')));
+      return;
+    }
     // Whatever's already typed becomes the question that goes with the
     // photo (feature 068, US2) -- same pattern _send() uses for a typed-only
     // request. Previously this was never read at all, so a photo could only
@@ -436,6 +442,7 @@ class _ChatScreenState extends State<ChatScreen>
                           highlighted: highlighted,
                           progressDetail: _progress[turns[index].taskId],
                           onCancel: () => _cancel(turns[index].taskId),
+                          onCheckStatus: _reconcileStaleTurns,
                           onRetry: () => _retry(turns[index]),
                           onAcknowledge: () => _acknowledge(turns[index].taskId),
                           onDelete: () => _delete(turns[index].taskId),
@@ -496,6 +503,7 @@ enum _AnswerAction { copyAnswer, copyBoth, share }
 class _TurnTile extends StatelessWidget {
   final ConversationTurn turn;
   final VoidCallback onCancel;
+  final VoidCallback onCheckStatus;
   final VoidCallback onRetry;
   final VoidCallback onAcknowledge;
   final VoidCallback onDelete;
@@ -518,6 +526,7 @@ class _TurnTile extends StatelessWidget {
     super.key,
     required this.turn,
     required this.onCancel,
+    required this.onCheckStatus,
     required this.onRetry,
     required this.onAcknowledge,
     required this.onDelete,
@@ -527,7 +536,7 @@ class _TurnTile extends StatelessWidget {
     this.highlightQuery = '',
   });
 
-  bool get _isRetryable => turn.state == 'failed' || turn.state == 'cancelled';
+  bool get _isRetryable => turn.state == 'failed' || turn.state == 'cancelled' || turn.state == 'interrupted';
 
   bool get _inProgress => turn.state == 'pending' || turn.state == 'working';
 
@@ -740,6 +749,14 @@ class _TurnTile extends StatelessWidget {
                   TextButton(onPressed: onCancel, child: const Text('Cancel')),
                 ],
               )
+            else if (['outcome_unknown', 'cancellation_requested', 'interrupted'].contains(turn.state))
+              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text(parseTaskState(turn.state).explanation, style: TextStyle(color: scheme.error)),
+                if (turn.state != 'interrupted')
+                  TextButton(onPressed: onCheckStatus, child: const Text('Check status')),
+                if (turn.state == 'interrupted')
+                  TextButton(onPressed: onRetry, child: const Text('Retry')),
+              ])
             else if (turn.state == 'cancelled')
               Row(children: [
                 Text('Cancelled', style: TextStyle(color: scheme.onSurfaceVariant)),

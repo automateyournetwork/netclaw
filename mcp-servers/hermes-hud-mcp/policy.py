@@ -37,6 +37,9 @@ class ToolPolicy:
             if not 24<=network.prefixlen<=30:raise HudError('input_invalid','Qualified subnet tool supports IPv4 /24 through /30.')
         elif rule=='fixture-echo':
             if set(args)!={'text'} or not isinstance(args['text'],str) or len(args['text'])>256:raise HudError('input_invalid')
+        elif rule=='federation-operator':
+            from federation_tools import validate_operator
+            validate_operator(name,args)
         else:raise HudError('policy_unverified')
 
 def qualified_servers(config, manifest=None, home=None):
@@ -63,6 +66,10 @@ def qualified_servers(config, manifest=None, home=None):
         registered_env=registration.get('env') or {}
         allowed_env={'NETCLAW_RUNTIME_ROOT':str(Path(home)/'python-runtimes'), 'NETCLAW_RUNTIME_ENV':str(Path(home)/'.env')} if home else {}
         if any(key not in allowed_env or value!=allowed_env[key] for key,value in registered_env.items()):continue
+        if rule.get('argumentPolicy')=='federation-operator':
+            # Discovery may expose schemas, but its process is never an execution
+            # fallback. Every real dispatch receives its own broker permit.
+            registration={**registration,'env':{**registered_env,'NETCLAW_FEDERATION_SCOPED':'1'}}
         # Bind live handlers at companion startup, including after a restart.
         # Cached lazy registrations can disappear when the agent changes its
         # profile scope; a schema cache is not execution qualification.

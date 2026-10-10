@@ -14,6 +14,23 @@ top of both: Border-triggered approvals resolved on the phone with device
 biometrics (Face ID/fingerprint), and camera/mic capture in either direction
 (attach a photo to your own request, or let the Border request one from you).
 
+## Hermes Border — 1.0.3 (build 6)
+
+This is the minimum app version for durable Hermes admission recovery and explicit
+unknown/interrupted/cancellation-requested states. Summary shows the Border harness,
+model and capabilities; missing metadata stays unknown. Typed and voice-transcribed
+Ask Border requests are supported, including Siri voice origin and permitted
+federation delegation. Photo/video/audio-file attachments are unavailable with the
+protected Hermes runtime and are refused before execution. Existing OpenClaw paths
+remain compatible. Never automatically resubmit uncertain work; use Check status.
+
+The signed iOS archive includes the app, Watch app and Live Activity extensions.
+Build6 was accepted by App Store Connect for processing; public release was not
+submitted. Flutter unit/widget tests and real authenticated backend protocol tests
+are distinct from physical iPhone/iPad/Watch/Siri testing. See
+[actual evidence and unrun coverage](../../specs/149-hermes-ncfed-federation/verification.md)
+and [the compatibility guide](../../docs/HERMES-FEDERATION.md).
+
 ## Structure
 
 ```

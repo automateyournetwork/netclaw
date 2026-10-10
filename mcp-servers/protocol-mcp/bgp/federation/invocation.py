@@ -106,7 +106,18 @@ class Invoker:
         self.tool_timeout = int(os.environ.get("N2N_TOOL_TIMEOUT_S", "120"))
         self.skill_timeout = int(os.environ.get("N2N_SKILL_TIMEOUT_S", "600"))
 
-    def _admit(self, peer, target_type, target, request_id, original, *, already_trusted=False):
+    def _approval(self,invocation_id,decision,peer,target_type,target,request_id,body):
+        from .execution import digest
+        decision.request_binding=digest([peer,target_type,target,request_id,decision.grant['id'],body])
+        approval=self.authz.create_approval(invocation_id,decision.request_binding)
+        decision.approval_id=approval['approval_id']
+        return approval
+
+    def _admit(self, peer, target_type, target, request_id, original, *, already_trusted=False,request_body=None):
+        if original.code=='approval_required':
+            from .execution import digest
+            expected=digest([peer,target_type,target,request_id,original.grant['id'],request_body])
+            if original.request_binding!=expected:raise RpcError(ERR_APPROVAL_EXPIRED,'request differs from approved operation')
         if target_type in ("knowledge", "knowledge_replica"):
             visible = {entry["collection_id"] for entry in self.service.inventory._load_knowledge(peer)}
             if target not in visible:
@@ -144,6 +155,10 @@ class Invoker:
         # See authorization.py's already_trusted param docstring.
         from .internal_channel import InternalChannel
         already_trusted = isinstance(channel, InternalChannel)
+        if already_trusted and self.service.risk.role()=='member':
+            from .runtime import selected
+            if selected().kind=='hermes' and ('subnet-calculator' not in self.service.member_scope or tool!='subnet-calc-mcp/subnet_calculator'):
+                raise RpcError(ERR_NOT_ALLOWLISTED,'tool is outside member scope')
         decision = self.authz.authorize(peer, "tool", tool, already_trusted=already_trusted)
 
         if not decision.allowed and decision.code != "approval_required":
@@ -155,7 +170,7 @@ class Invoker:
             inv_id = self.audit.record(direction="inbound", peer_identity=peer, target_type="tool",
                                        target_name=tool, request_id=req_id, decision="approval_required",
                                        outcome="pending")
-            appr = self.authz.create_approval(inv_id)
+            appr = self._approval(inv_id,decision,peer,'tool',tool,req_id,arguments)
             self.service.notify_approval(inv_id, peer, "tool", tool)
             if not await self._await_approval(appr["approval_id"]):
                 raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
@@ -165,7 +180,7 @@ class Invoker:
                               target_name=tool, request_id=req_id, decision="guardrail_blocked", outcome="denied")
             raise RpcError(ERR_GUARDRAIL_BLOCKED, "DefenseClaw inspection blocked the call")
 
-        self._admit(peer, "tool", tool, req_id, decision, already_trusted=already_trusted)
+        self._admit(peer, "tool", tool, req_id, decision, already_trusted=already_trusted,request_body=arguments)
         try:
             result = await self._exec_tool_stdio(tool, arguments)
             ref = self.audit.store_result(req_id or f"{peer}-{tool}", result)
@@ -204,9 +219,13 @@ class Invoker:
                               target_name=skill, request_id=req_id, decision=decision.code, outcome="denied")
             raise RpcError(_CODE_MAP.get(decision.code, -32000), decision.reason)
 
+        deadline=params.get('deadline')
+        import math
+        if deadline is not None and (not isinstance(deadline,(int,float)) or isinstance(deadline,bool) or not math.isfinite(deadline) or deadline<=time.time()):
+            raise RpcError(-32602,'invalid or expired parent deadline')
         tm = self.service.tasks
         task_id = tm.create(direction="inbound", peer_identity=peer, target_type="skill",
-                            target_name=skill, input_text=input_text)
+                            target_name=skill, input_text=input_text,client_request=req_id or None,request_payload={'deadline':deadline})
 
         async def worker(progress):
             # Approval (if required) happens inside the background worker so submit
@@ -215,23 +234,25 @@ class Invoker:
                 inv_id = self.audit.record(direction="inbound", peer_identity=peer, target_type="skill",
                                            target_name=skill, request_id=task_id,
                                            decision="approval_required", outcome="pending")
-                appr = self.authz.create_approval(inv_id)
+                appr = self._approval(inv_id,decision,peer,'skill',skill,task_id,input_text)
                 self.service.notify_approval(inv_id, peer, "skill", skill)
                 progress("awaiting approval")
                 if not await self._await_approval(appr["approval_id"]):
                     raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
-            self._admit(peer, "skill", skill, task_id, decision)
+            self._admit(peer, "skill", skill, task_id, decision,request_body=input_text)
             progress("running skill")
             try:
+                extra={}
+                if self.service.runtime.kind=='hermes':extra={'task_id':task_id,'channel':channel,'decision':decision,'deadline':deadline}
                 output, tokens = await self._exec_skill_gateway(
-                    skill, input_text, progress=progress, peer=peer)
+                    skill, input_text, progress=progress, peer=peer,**extra)
             except asyncio.TimeoutError:
                 self.audit.record(direction="inbound", peer_identity=peer, target_type="skill",
                                   target_name=skill, request_id=task_id, decision="allowlisted",
                                   outcome="timeout")
                 raise RpcError(ERR_EXECUTION_TIMEOUT,
                                f"skill {skill} timed out — a gateway scope approval may "
-                               f"still be pending; approve it and resubmit")
+                               f"still be pending; check its status before further action")
             except RpcError:
                 raise
             except Exception:
@@ -254,16 +275,34 @@ class Invoker:
     # authenticated channel identity must match the task's recorded owner, and
     # a non-owner is answered as if the task did not exist.
 
+    def _owned_task(self,channel,params):
+        member_id=getattr(channel,'member_id',None)
+        member=self.service.risk.get_member(member_id) if member_id else None
+        from .edge import EdgeChannel
+        edge=isinstance(channel,EdgeChannel) or bool(member and member['node_type']=='edge')
+        generation=getattr(channel,'owner_generation',None)
+        task=params.get('task_id','')
+        if edge:
+            if not member or not getattr(channel,'trusted',False) or member['state'] in ('removed','quarantined') or member['key_fingerprint']!=generation:
+                return '',True
+            if params.get('request_id'):task=self.service.tasks.resolve_owned_request(channel.peer_identity,params['request_id'],generation) or ''
+            if not self.service.tasks.generation_matches(task,channel.peer_identity,generation):return '',True
+        return task,edge
+
     async def handle_task_status(self, channel, params):
-        return self.service.tasks.status(params.get("task_id", ""),
-                                         owner=channel.peer_identity)
+        task,edge=self._owned_task(channel,params)
+        if edge:await self.service.reconcile_hermes_task(task)
+        result=self.service.tasks.status(task,owner=channel.peer_identity)
+        return self.service.tasks.project_edge(task,result) if edge else result
 
     async def handle_task_result(self, channel, params):
-        return self.service.tasks.result(params.get("task_id", ""),
-                                         owner=channel.peer_identity)
+        task,edge=self._owned_task(channel,params)
+        if edge:await self.service.reconcile_hermes_task(task)
+        result=self.service.tasks.result(task,owner=channel.peer_identity)
+        return self.service.tasks.project_edge(task,result) if edge else result
 
     async def handle_task_cancel(self, channel, params):
-        task_id = params.get("task_id", "")
+        task_id,edge=self._owned_task(channel,params)
         cancelled = self.service.tasks.cancel(task_id, owner=channel.peer_identity)
         # The phone's own Cancel button (chat_screen.dart _cancel()) never
         # reads this RPC's return value -- it waits for a pushed
@@ -284,7 +323,9 @@ class Invoker:
                     })
                 except Exception:
                     pass
-        return {"task_id": task_id, "cancelled": cancelled}
+        state=self.service.tasks.status(task_id,owner=channel.peer_identity).get('state')
+        return {"task_id": task_id, "cancelled": state=='cancelled','cancel_requested':cancelled,
+                'cancellation_confirmed':state=='cancelled','state':state}
 
     # ---- feature 064: federated knowledge retrieval -------------------
 
@@ -331,7 +372,7 @@ class Invoker:
                                        target_type="knowledge", target_name=collection_id,
                                        request_id=req_id, decision="approval_required",
                                        outcome="pending")
-            appr = self.authz.create_approval(inv_id)
+            appr = self._approval(inv_id,decision,peer,'knowledge',collection_id,req_id,params)
             self.service.notify_approval(inv_id, peer, "knowledge", collection_id)
             if not await self._await_approval(appr["approval_id"]):
                 raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
@@ -344,7 +385,7 @@ class Invoker:
                   f"'{collection}'. Using your RAG knowledge base, answer the question "
                   f"and cite the source document(s) and page(s). If the collection does "
                   f"not contain the answer, say so plainly.\n\nQuestion: {query}")
-        self._admit(peer, "knowledge", collection_id, req_id, decision)
+        self._admit(peer, "knowledge", collection_id, req_id, decision,request_body=params)
         try:
             answer, tokens = await run_agent_turn(
                 prompt, session_key=f"n2n-knowledge-{peer}", untrusted=True,
@@ -426,11 +467,11 @@ class Invoker:
                                        target_type="knowledge_replica", target_name=collection_id,
                                        request_id=req_id, decision="approval_required",
                                        outcome="pending")
-            appr = self.authz.create_approval(inv_id)
+            appr = self._approval(inv_id,decision,peer,'knowledge_replica',collection_id,req_id,params)
             self.service.notify_approval(inv_id, peer, "knowledge_replica", collection_id)
             if not await self._await_approval(appr["approval_id"]):
                 raise RpcError(ERR_APPROVAL_EXPIRED, "approval not granted")
-        self._admit(peer, "knowledge_replica", collection_id, req_id, decision)
+        self._admit(peer, "knowledge_replica", collection_id, req_id, decision,request_body=params)
         return (peer, collection_id, req_id), None
 
     async def handle_replicate_manifest(self, channel, params):
@@ -541,6 +582,28 @@ class Invoker:
         if "/" not in tool:
             raise RpcError(-32602, "tool must be 'server_id/tool_name'")
         server_id, tool_name = tool.split("/", 1)
+        from .runtime import selected, ROOT
+        runtime=self.service.runtime
+        if runtime.kind=='hermes':
+            import sys
+            import yaml
+            from .hermes_runtime import call_stdio
+            from .execution import Refused
+            if not self.service.hermes_runtime:raise Refused('selected federation runtime is not ready')
+            sys.path.insert(0,str(ROOT/'mcp-servers/hermes-hud-mcp'))
+            from policy import qualified_servers, ToolPolicy
+            import hashlib
+            config=yaml.safe_load(runtime.config.read_text()) or {}
+            servers,entries=qualified_servers(config,home=runtime.home)
+            native='mcp__'+server_id.replace('-','_')+'__'+tool_name
+            policy=ToolPolicy(entries,runtime.config,hashlib.sha256(runtime.config.read_bytes()).hexdigest())
+            policy.check_arguments(native,arguments)
+            registration=servers.get(server_id)
+            if tool!='subnet-calc-mcp/subnet_calculator' or not registration:raise Refused('unqualified direct Hermes tool')
+            env=runtime.environment()
+            env.update(registration.get('env') or {})
+            result=await call_stdio(registration['command'],registration.get('args',[]),env,tool_name,arguments,timeout=self.tool_timeout)
+            return {'content':[{'type':'text','text':json.dumps(result)}],'isError':False}
         cfg = _openclaw_config().get("mcpServers", {}).get(server_id)
         if not cfg:
             raise RpcError(-32602, f"unknown MCP server '{server_id}'")
@@ -591,7 +654,7 @@ class Invoker:
         return await asyncio.wait_for(run(), timeout=self.tool_timeout)
 
     async def _exec_skill_gateway(self, skill: str, input_text: str,
-                                  progress=None, peer: str = None):
+                                  progress=None, peer: str = None, task_id=None, channel=None, decision=None,deadline=None):
         """Delegate a skill to the local gateway agent (its model/policies/budget).
 
         Uses the `openclaw agent` CLI — the gateway is WebSocket-only and has no
@@ -615,9 +678,22 @@ class Invoker:
 
         prompt = (f"A federated NetClaw peer has requested you run the '{skill}' skill. "
                   f"Execute it for the following request and return only the result:\n\n{input_text}")
-        return await run_agent_turn(prompt, session_key=f"n2n-skill-{skill}",
-                                    timeout_s=self.skill_timeout,
-                                    untrusted=True, on_stall=on_stall)
+        from .execution import conversation_id
+        import uuid
+        request=task_id or str(uuid.uuid4())
+        session=conversation_id(self.service.runtime.installation or str(self.manager.base_dir),peer or 'local',request)
+        timeout_s=min(self.skill_timeout,max(.001,deadline-time.time())) if deadline else self.skill_timeout
+        extra={}
+        if self.service.runtime.kind=='hermes':
+            def current(_):
+                if not channel or getattr(channel,'_closed',False):return False
+                return self.authz.still_authorized(peer,'skill',skill,decision)
+            extra['execution']=self.service.execution_context(requester=peer,origin='external',request=request,conversation=session,
+                target_type='skill',target=skill,prompt=prompt,profile='subnet',authorize=current,task_id=task_id,
+                grant=decision.grant['id'] if decision and decision.grant else None,timeout_s=timeout_s)
+        return await run_agent_turn(prompt, session_key=session,
+                                    timeout_s=timeout_s,
+                                    untrusted=True, on_stall=on_stall,**extra)
 
     # ---- outbound: WE ask a peer to run something ----------------------
 
@@ -667,28 +743,34 @@ class Invoker:
                               target_type=target_type, target_name=target_name,
                               request_id=req_id, decision="requested", outcome=outcome)
 
+        self.service.tasks.outbound_intent(ident,method,params,request=req_id)
         try:
             result = await ch.call(method, params, timeout=timeout)
         except RpcError as e:
+            self.service.tasks.settle_intent(req_id,'outcome_unknown' if e.code==ERR_EXECUTION_TIMEOUT else 'refused')
             # A refusal returned by the peer is auditable evidence, not a transient
             # response to discard (FR-036). Its own timeout code maps to `timeout`
             # rather than being flattened into a denial (FR-037).
             _terminal("timeout" if e.code == ERR_EXECUTION_TIMEOUT else "denied")
             raise
         except (asyncio.TimeoutError, TimeoutError):
+            self.service.tasks.settle_intent(req_id,'outcome_unknown')
             _terminal("timeout")
             raise
         except Exception:
+            self.service.tasks.settle_intent(req_id,'outcome_unknown')
             # Channel dropped before a response. Still terminal — FR-037 forbids
             # leaving the row pending just because the failure was not a clean refusal.
             _terminal("error")
             raise
         _terminal("success")
+        self.service.tasks.settle_intent(req_id,'completed')
         return result
 
     async def invoke_remote_tool(self, ident, tool, arguments):
         ch = await self._channel(ident)
-        req_id = f"{self.service.local_identity}:{int(time.time()*1000)}"
+        import uuid
+        req_id = str(uuid.uuid4())
         self.audit.record(direction="outbound", peer_identity=ident, target_type="tool",
                           target_name=tool, request_id=req_id, decision="requested", outcome="pending")
         result = await self._outbound_call(
@@ -698,19 +780,26 @@ class Invoker:
             timeout=self.tool_timeout + 5)
         return {"source": ident, "trust": "remote-untrusted", "result": result}
 
-    async def submit_remote_skill(self, ident, skill, input_text):
+    async def submit_remote_skill(self, ident, skill, input_text, *, execution_scope=None):
         """Async (053): submit a skill task to a peer, return the task_id
         immediately. The peer runs it in the background; poll via task_status/
         task_result. Short call — survives ngrok resets (FR-005)."""
         ch = await self._channel(ident)
-        resp = await ch.call("n2n/tasks/submit",
-                             {"skill": skill, "input_text": input_text}, timeout=30.0)
+        import uuid
+        request=str(uuid.uuid4())
+        body={'skill':skill,'input_text':input_text,'request_id':request}
+        if execution_scope:body['deadline']=execution_scope.deadline
+        self.service.tasks.outbound_intent(ident,'n2n/tasks/submit',body,request=request)
+        try:resp = await ch.call("n2n/tasks/submit",body, timeout=min(30.,max(.001,execution_scope.deadline-time.time())) if execution_scope else 30.0)
+        except BaseException:
+            self.service.tasks.settle_intent(request,'outcome_unknown');raise
         task_id = resp.get("task_id")
         if task_id:
             self.service.tasks.record_outbound(task_id, ident, "skill", skill)
             self.audit.record(direction="outbound", peer_identity=ident, target_type="skill",
                               target_name=skill, request_id=task_id, decision="requested",
                               outcome="submitted")
+        self.service.tasks.settle_intent(request,'submitted' if task_id else 'refused',task_id)
         return {"source": ident, "trust": "remote-untrusted", **resp}
 
     async def poll_remote_task(self, ident, task_id, kind="status"):

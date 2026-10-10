@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum AskState {
-    case idle, waiting, answered, failed
+    case idle, waiting, answered, failed, uncertain, interrupted, cancellationRequested
 }
 
 /// User Story 3 (P3): dictate a question, submit it through the phone
@@ -36,6 +36,15 @@ struct AskView: View {
                     // separate claim on a different screen.
                     readAloudButton
                     Button("Ask another") { reset() }
+                case .uncertain:
+                    Text("Outcome unknown. Work may have run. Do not resend.").foregroundStyle(.orange)
+                    if taskId != nil { Button("Check status") { Task { await poll() } } }
+                case .interrupted:
+                    Text("Interrupted before execution.")
+                    Button("Ask another") { reset() }
+                case .cancellationRequested:
+                    Text("Cancellation requested; stop not confirmed.").foregroundStyle(.orange)
+                    Button("Check status") { Task { await poll() } }
                 case .failed:
                     Text("Couldn't get an answer.").foregroundStyle(.red)
                     Button("Try again") { reset() }
@@ -79,7 +88,7 @@ struct AskView: View {
         let reply = await WatchConnectivitySession.shared.send(method: "watch/ask/submit", args: ["text": text])
         connection = WatchConnectivitySession.connectionState(from: reply)
         guard connection == .connected, let id = reply?["task_id"] as? String else {
-            state = .failed
+            state = .uncertain
             return
         }
         taskId = id
@@ -108,12 +117,21 @@ struct AskView: View {
                 answerText = reply["answer_text"] as? String ?? ""
                 state = .answered
                 return
+            } else if watchState == "outcome_unknown" {
+                state = .uncertain
+                return
+            } else if watchState == "interrupted" {
+                state = .interrupted
+                return
+            } else if watchState == "cancellation_requested" {
+                state = .cancellationRequested
+                return
             } else if watchState == "failed" {
                 state = .failed
                 return
             }
             // still "waiting" -- poll again
         }
-        state = .failed
+        state = .uncertain
     }
 }

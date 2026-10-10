@@ -31,7 +31,6 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s [%(name)s] %(levelname)s %(message)s',
     handlers=[
-        logging.FileHandler('/tmp/bgp-daemon-v2.log'),
         logging.StreamHandler(),
     ]
 )
@@ -1259,7 +1258,12 @@ async def handle_http(reader, writer):
                 for peer_ip, session in _speaker.agent.sessions.items():
                     state = session.fsm.get_state_name() if hasattr(session, "fsm") else "unknown"
                     peers.append({"peer": peer_ip, "state": state})
-            resp_body = {"status": "running", "peers": peers, "injected_routes": list(_injected.keys())}
+            from bgp.federation.runtime import selected
+            runtime=selected()
+            resp_body = {"status": "running", "peers": peers, "injected_routes": list(_injected.keys()),
+                "installation_id":runtime.installation,"harness_type":runtime.kind,"pid":os.getpid(),
+                "n2n_enabled":bool(N2N_ENABLED),
+                "federation_ready":bool(N2N_ENABLED and _federation and (runtime.kind!='hermes' or getattr(getattr(_federation,'hermes_runtime',None),'ready',False)))}
 
         elif method == "GET" and path == "/rib":
             loc_rib_data = {}
@@ -1581,9 +1585,12 @@ async def main():
                 local_as=LOCAL_AS, router_id=ROUTER_ID,
                 display_name=N2N_DISPLAY_NAME, refresh_s=N2N_REFRESH_S,
             )
+            await _federation.start_runtime()
             _speaker.agent.federation_service = _federation
             logger.info("N2N federation ENABLED — identity %s", _federation.local_identity)
         except Exception as e:
+            from bgp.federation.runtime import selected
+            if selected().kind=='hermes':raise
             logger.error("N2N federation failed to init (continuing without it): %s", e)
     else:
         logger.info("N2N federation disabled (set N2N_ENABLED=true to enable)")
@@ -1642,4 +1649,19 @@ async def main():
 
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    async def owned_main():
+        import signal
+        from bgp.federation.runtime import selected
+        if not os.environ.get('NETCLAW_DAEMON_LOCK_FD'):
+            import importlib.util
+            from pathlib import Path
+            spec=importlib.util.spec_from_file_location('federation_control',Path(__file__).resolve().parents[2]/'scripts/federation-control.py')
+            module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+            module.claim(selected(initialize=True))
+        task=asyncio.current_task()
+        for signum in (signal.SIGTERM,signal.SIGINT):asyncio.get_running_loop().add_signal_handler(signum,task.cancel)
+        try:await main()
+        except asyncio.CancelledError:pass
+        finally:
+            if _federation is not None:await _federation.stop_runtime()
+    asyncio.run(owned_main())

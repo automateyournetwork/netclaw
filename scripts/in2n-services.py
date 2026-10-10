@@ -27,6 +27,9 @@ Usage:
 """
 
 import argparse
+import hashlib
+import json
+from pathlib import Path
 import os
 import shutil
 import subprocess
@@ -39,6 +42,22 @@ TEMPLATE = os.path.join(REPO, "scripts", "systemd", "netclaw-mesh.service")
 DEFENSECLAW_TEMPLATE = os.path.join(REPO, "scripts", "systemd", "defenseclaw-sidecar.service")
 
 sys.path.insert(0, os.path.join(REPO, "mcp-servers", "protocol-mcp"))
+
+
+def _runtime():
+    from bgp.federation.runtime import selected
+    return selected()
+
+
+def _suffix():
+    runtime=_runtime()
+    return '' if runtime.kind=='openclaw' and str(runtime.home)==str(Path(HOME)/'.openclaw') else '-'+hashlib.sha256(str(runtime.home).encode()).hexdigest()[:10]
+
+
+def _mesh_name():return 'netclaw-mesh'+_suffix()+'.service'
+
+
+def _quote(value):return json.dumps(str(value).replace('%','%%'))
 
 
 def _slug(member_id: str) -> str:
@@ -70,7 +89,7 @@ def _risk_mode() -> str:
     m = os.environ.get("N2N_RISK_MODE")
     if m:
         return m.strip()
-    envf = os.path.join(HOME, ".openclaw", "mesh.systemd.env")
+    envf = str(_runtime().home/"mesh.systemd.env")
     try:
         for line in open(envf):
             if line.startswith("N2N_RISK_MODE="):
@@ -81,7 +100,7 @@ def _risk_mode() -> str:
 
 
 def _unit_name(member_id: str) -> str:
-    return f"netclaw-member-{_slug(member_id)}.service"
+    return f"netclaw-member-{_slug(member_id)}{_suffix()}.service"
 
 
 _full_sandbox_cache = None
@@ -124,14 +143,18 @@ def _risk():
     """Open the live federation DB and return (manager, risk_mgr)."""
     from bgp.federation.manager import FederationManager
     from bgp.federation.risk import RiskManager
-    base = os.path.expanduser(os.environ.get("N2N_BASE_DIR", "~/.openclaw/n2n"))
+    base = os.path.expanduser(os.environ.get("N2N_BASE_DIR", str(_runtime().base)))
     mgr = FederationManager(base_dir=base)
     return mgr, RiskManager(mgr)
 
 
 def _mesh_unit_text() -> str:
-    with open(TEMPLATE) as fh:
-        return fh.read().replace("@REPO@", REPO).replace("@HOME@", HOME)
+    runtime=_runtime()
+    record=runtime.home/'python-runtimes/records/n2n'
+    python=record.read_text().strip() if record.exists() else sys.executable
+    with open(TEMPLATE) as fh:text=fh.read()
+    environment='\n'.join('Environment='+_quote(k+'='+v) for k,v in runtime.environment({}).items())
+    return text.replace('@REPO@',REPO).replace('@HOME@',HOME).replace('@RUNTIME_ENV@',_quote(runtime.home/'mesh.systemd.env')).replace('@PYTHON@',_quote(python)).replace('@SELECTION@',environment)
 
 
 def _defenseclaw_unit_text() -> str:
@@ -172,7 +195,7 @@ NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
 ReadWritePaths=%h
-InaccessiblePaths=-%h/.openclaw/.env
+@BORDER_SECRETS@
 """
     extra = """# ── kernel/namespace confinement (native Linux; skipped where unsupported) ──
 ProtectKernelTunables=yes
@@ -185,7 +208,9 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 SystemCallFilter=@system-service
 SystemCallErrorNumber=EPERM
 """
-    return base + (extra if _full_sandbox_supported() else "")
+    runtime=_runtime()
+    protected='InaccessiblePaths=-'+_quote(runtime.env_file)+' -'+_quote(runtime.config)+' -'+_quote(runtime.home/'netclaw-hud')+' -'+_quote(runtime.state)
+    return base.replace('@BORDER_SECRETS@',protected) + (extra if _full_sandbox_supported() else '')
 
 
 def _member_unit_text(member_id: str, launch_cmd: str, harden: bool = True) -> str:
@@ -198,8 +223,8 @@ def _member_unit_text(member_id: str, launch_cmd: str, harden: bool = True) -> s
         exec_start = " ".join([shutil.which("bash") or "/bin/bash", *parts[1:]])
     return f"""[Unit]
 Description=NetClaw iN2N member {member_id} — durable + confined, feature 057
-After=network-online.target netclaw-mesh.service
-Wants=netclaw-mesh.service
+After=network-online.target {_mesh_name()}
+Wants={_mesh_name()}
 
 [Service]
 Type=simple
@@ -232,10 +257,10 @@ def cmd_generate(args) -> int:
     os.makedirs(UNIT_DIR, exist_ok=True)
     written = []
     # 1. mesh daemon unit (from the checked-in template)
-    mesh_path = os.path.join(UNIT_DIR, "netclaw-mesh.service")
+    mesh_path = os.path.join(UNIT_DIR, _mesh_name())
     with open(mesh_path, "w") as fh:
         fh.write(_mesh_unit_text())
-    written.append("netclaw-mesh.service")
+    written.append(_mesh_name())
     # 2. DefenseClaw guardrail sidecar (model-guard proxy) — durable so production
     #    posture stays enforced across reboot (feature 057). Skipped if not installed.
     dc_text = _defenseclaw_unit_text()
@@ -250,7 +275,8 @@ def cmd_generate(args) -> int:
             unit = _unit_name(member_id)
             with open(os.path.join(UNIT_DIR, unit), "w") as fh:
                 fh.write(_member_unit_text(member_id, launch_cmd))
-            risk.set_managed_by(member_id, "service", service_unit=unit)
+            # Generated files alone do not establish an active service owner.
+            # Binding occurs only after enable --now succeeds.
             written.append(unit)
     finally:
         mgr.close()
@@ -272,7 +298,7 @@ def cmd_enable(args) -> int:
         print("systemctl --user unavailable — cannot enable (see `generate` note).")
         return 1
     subprocess.run(["systemctl", "--user", "daemon-reload"])
-    units = ["netclaw-mesh.service"]
+    units = [_mesh_name()]
     if _defenseclaw_unit_text():
         units.append("defenseclaw-sidecar.service")
     mgr, risk = _risk()
@@ -284,6 +310,12 @@ def cmd_enable(args) -> int:
     for u in units:
         r = subprocess.run(["systemctl", "--user", "enable", "--now", u])
         print(("enabled " if r.returncode == 0 else "FAILED  ") + u)
+        if r.returncode==0 and u.startswith('netclaw-member-'):
+            mgr,risk=_risk()
+            try:
+                for member_id,_ in _always_on_members(risk):
+                    if _unit_name(member_id)==u:risk.set_managed_by(member_id,'service',service_unit=u)
+            finally:mgr.close()
         rc = rc or r.returncode
     return rc
 
@@ -292,7 +324,7 @@ def cmd_status(args) -> int:
     if not _has_systemctl_user():
         print("systemctl --user unavailable.")
         return 1
-    units = ["netclaw-mesh.service"]
+    units = [_mesh_name()]
     if _defenseclaw_unit_text():
         units.append("defenseclaw-sidecar.service")
     mgr, risk = _risk()

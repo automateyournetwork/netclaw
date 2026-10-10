@@ -4,7 +4,9 @@ import 'dart:io';
 /// One request/answer turn in the phone's conversation with its Border
 /// (feature 067, FR-006/FR-007).
 class ConversationTurn {
-  final String taskId;
+  String taskId;
+  final String? requestId;
+  final String? ownerGeneration;
   final String requestText;
   String? answerText;
   String state; // 'pending' | 'working' | 'completed' | 'failed' | 'cancelled'
@@ -12,7 +14,7 @@ class ConversationTurn {
   // Absolute path to a locally-saved copy of a photo this turn sent, if any
   // -- purely for showing what was sent in the UI; never re-read to build
   // the wire request (that already went out as base64 at send time).
-  final String? photoPath;
+  String? photoPath;
   // Clears once the operator explicitly acknowledges this turn (073/FR-012)
   // -- distinct from [state]; a completed-but-unacknowledged turn still
   // counts toward the unread badge.
@@ -24,6 +26,8 @@ class ConversationTurn {
 
   ConversationTurn({
     required this.taskId,
+    this.requestId,
+    this.ownerGeneration,
     required this.requestText,
     this.answerText,
     this.state = 'pending',
@@ -35,6 +39,8 @@ class ConversationTurn {
 
   Map<String, dynamic> toJson() => {
         'task_id': taskId,
+        'request_id': requestId,
+        'owner_generation': ownerGeneration,
         'request_text': requestText,
         'answer_text': answerText,
         'state': state,
@@ -53,6 +59,8 @@ class ConversationTurn {
   /// pre-existing turn was never watch-originated.
   factory ConversationTurn.fromJson(Map<String, dynamic> json) => ConversationTurn(
         taskId: json['task_id'] as String,
+        requestId: json['request_id'] as String?,
+        ownerGeneration: json['owner_generation'] as String?,
         requestText: json['request_text'] as String,
         answerText: json['answer_text'] as String?,
         state: json['state'] as String,
@@ -102,7 +110,7 @@ class ConversationStore {
   /// Count of terminal-state turns not yet acknowledged -- feeds the
   /// combined app badge (073/FR-008). An in-progress turn has no answer to
   /// acknowledge yet, so it never counts as unread.
-  int get unreadCount => _turns.where((t) => _isTerminal(t.state) && !t.acknowledged).length;
+  int get unreadCount => _turns.where((t) => _needsAttention(t.state) && !t.acknowledged).length;
 
   File _file() => File('${directory.path}/ncfed_conversation.json');
 
@@ -119,14 +127,39 @@ class ConversationStore {
       ..addAll(list.map((e) => ConversationTurn.fromJson(e as Map<String, dynamic>)));
   }
 
-  Future<void> _save() async {
-    await _file().writeAsString(jsonEncode(_turns.map((t) => t.toJson()).toList()));
+  Future<void> _saving = Future.value();
+  Future<void> _save() {
+    final snapshot = jsonEncode(_turns.map((t) => t.toJson()).toList());
+    return _saving = _saving.catchError((Object _) {}).then((_) async {
+      await directory.create(recursive: true);
+      final temporary = File('${_file().path}.tmp');
+      await temporary.writeAsString(snapshot, flush: true);
+      await temporary.rename(_file().path);
+    });
   }
+
+  Future<void> prepareAdmission(String localId, String requestId, String text, {String origin = 'phone', String? ownerGeneration}) async {
+    await load();
+    _turns.add(ConversationTurn(taskId: localId, requestId: requestId, ownerGeneration: ownerGeneration, requestText: text, origin: origin, submittedAt: DateTime.now().toUtc()));
+    await _save();
+  }
+
+  Future<void> bindAdmission(String requestId, String taskId) async {
+    await load();
+    for (final turn in _turns) {
+      if (turn.requestId != requestId || turn.taskId == taskId) continue;
+      turn.taskId = taskId;
+      await _save();
+      onAdded?.call(turn);
+      return;
+    }
+  }
+
 
   /// True when at least one turn is still awaiting an answer — lets the UI warn
   /// before [clear] discards it.
   bool get hasInProgressTurns =>
-      _turns.any((t) => t.state == 'pending' || t.state == 'working');
+      _turns.any((t) => !_isTerminal(t.state));
 
   Future<void> addPending(String taskId, String requestText,
       {List<int>? photoBytes, String origin = 'phone'}) async {
@@ -136,6 +169,13 @@ class ConversationStore {
       final file = File('${directory.path}/photo_$taskId.jpg');
       await file.writeAsBytes(photoBytes);
       photoPath = file.path;
+    }
+    final existing = _turns.where((t) => t.taskId == taskId).firstOrNull;
+    if (existing != null) {
+      if (photoPath != null) existing.photoPath = photoPath;
+      existing.origin = origin;
+      await _save();
+      return;
     }
     _turns.add(ConversationTurn(
       taskId: taskId,
@@ -183,11 +223,12 @@ class ConversationStore {
         // Never let a stray late update flip an already-terminal turn (the
         // cancel-after-completion race from spec.md's edge cases).
         if (_isTerminal(t.state)) return;
+        if ((t.state == 'cancellation_requested' || t.state == 'outcome_unknown') && (state == 'pending' || state == 'working')) return;
         t.state = state;
         if (answerText != null) t.answerText = answerText;
         await _save();
         if (state == 'completed') onCompleted?.call(t);
-        if (_isTerminal(state)) onTerminal?.call(t);
+        if (_needsAttention(state)) onTerminal?.call(t);
         return;
       }
     }
@@ -195,7 +236,9 @@ class ConversationStore {
   }
 
   static bool _isTerminal(String state) =>
-      state == 'completed' || state == 'failed' || state == 'cancelled';
+      state == 'completed' || state == 'failed' || state == 'cancelled' || state == 'interrupted';
+
+  static bool _needsAttention(String state) => _isTerminal(state) || state == 'outcome_unknown' || state == 'cancellation_requested';
 
   /// Deletes the local conversation history, including every saved photo file
   /// -- without this, there was no way to manage a conversation that only

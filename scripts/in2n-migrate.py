@@ -25,6 +25,7 @@ Usage:
 """
 
 import argparse
+import json
 import importlib.util
 import os
 import sys
@@ -54,6 +55,25 @@ def _read_env(path):
     return out
 
 
+def stage_hermes(args, runtime):
+    """Create an inspectable, private subnet member plan; do not enroll or run it."""
+    from pathlib import Path
+    import shlex
+    spec=importlib.util.spec_from_file_location('member_home',Path(REPO)/'scripts/in2n-member-home.py')
+    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
+    staging=Path(args.staging).resolve();staging.mkdir(parents=True,exist_ok=True,mode=0o700)
+    home=module.provision_hermes(runtime,args.risk,'subnet',staging/'members/subnet/home')
+    envfile=home/'.env'
+    with envfile.open('a') as stream:
+        stream.write('N2N_BORDER_ENDPOINT='+json.dumps(args.border_endpoint)+'\n')
+    python=(home/'python-runtimes/records/n2n').read_text().strip()
+    runner=staging/'members/subnet/run.sh'
+    runner.write_text('#!/usr/bin/env bash\nset -euo pipefail\nexport N2N_MEMBER_ENV_FILE='+shlex.quote(str(envfile))+'\nexec '+shlex.quote(python)+' '+shlex.quote(str(Path(REPO)/'scripts/in2n-member.py'))+' --idle-exit '+str(args.idle_exit)+'\n')
+    runner.chmod(0o700)
+    (staging/'PLAN.md').write_text('# Hermes member migration\n\nQualified profile: subnet only. No enrollment or service was started. Existing Border files are preserved.\n\nSet a one-use enrollment token in the private member `.env`; register its launch command on the Border and explicitly choose testing mode for this qualified read-only scope. Production model-guard/confinement remains unavailable until separately qualified.\n\nLaunch: `bash '+str(runner)+'`\n')
+    print('Private Hermes staging prepared:',staging)
+
+
 def main():
     ap = argparse.ArgumentParser(description="iN2N migration scaffold (generate-only)")
     ap.add_argument("--risk", default="johns-risk")
@@ -63,9 +83,14 @@ def main():
                     help="comma-separated always-on members; the rest are cold/on-demand")
     ap.add_argument("--idle-exit", type=int, default=900,
                     help="idle seconds before a cold/on-demand member exits")
-    ap.add_argument("--live-env", default="~/.openclaw/.env")
+    ap.add_argument("--live-env", default=None)
     args = ap.parse_args()
 
+    sys.path.insert(0,os.path.join(REPO,'mcp-servers/protocol-mcp'))
+    from bgp.federation.runtime import selected
+    runtime=selected()
+    args.live_env=args.live_env or str(runtime.env_file)
+    if runtime.kind=='hermes':return stage_hermes(args,runtime)
     prof = _load_profiles()
     offered = prof.profiles()                      # env-gated: only configured members
     live_env = _read_env(args.live_env)
@@ -77,7 +102,7 @@ def main():
     summary = []
     for name, info in offered.items():
         mdir = os.path.join(members_dir, name)
-        os.makedirs(mdir, exist_ok=True)
+        os.makedirs(mdir, exist_ok=True, mode=0o700)
         member_id = f"{args.risk}/{name}"
         always_on = name in hot
         # least-privilege env slice (KEYS only listed here; VALUES copied verbatim)
@@ -113,6 +138,7 @@ def main():
             fh.write("# Integration + base-floor (memory/gait/humanrail) keys only.\n\n")
             fh.write("\n".join(env_lines) + ("\n\n" if env_lines else "\n"))
             fh.write("\n".join(member_cfg) + "\n")
+        os.chmod(os.path.join(mdir, ".env"), 0o600)
         idle = 0 if always_on else args.idle_exit
         with open(os.path.join(mdir, "run.sh"), "w") as fh:
             fh.write("#!/usr/bin/env bash\n")

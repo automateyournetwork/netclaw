@@ -61,7 +61,12 @@ def resolve_gateway_ws_config(config_path: str = None) -> tuple:
     if env_url and env_token:
         return env_url, env_token
 
-    path = config_path or _DEFAULT_OPENCLAW_CONFIG_PATH
+    path = config_path or os.environ.get('OPENCLAW_CONFIG_PATH')
+    if not path:
+        from .runtime import selected
+        runtime=selected()
+        if runtime.kind!='openclaw':raise GatewayWsError('selected runtime is not OpenClaw')
+        path=str(runtime.config)
     with open(path, "r", encoding="utf-8") as f:
         cfg = json.load(f)
     gw = cfg.get("gateway", {})

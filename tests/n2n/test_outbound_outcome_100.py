@@ -38,6 +38,8 @@ class _FakeService:
         self.manager = manager
         self.audit = auditor
         self.authz = None
+        from bgp.federation.tasks import TaskManager
+        self.tasks=TaskManager(manager,auditor)
         self.local_identity = "as65001-4.4.4.4"
 
 

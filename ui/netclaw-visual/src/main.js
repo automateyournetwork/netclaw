@@ -1406,6 +1406,7 @@ function setDetail(kind, payload, related = []) {
         <div class="detail-row"><span>State</span><strong class="n2n-state-${v.state.toLowerCase()}">${v.state}</strong></div>
         <div class="detail-row"><span>Meaning</span><strong>${v.stateSummary}</strong></div>
         <div class="detail-row"><span>Channel</span><strong>${v.channelState}</strong></div>
+        <div class="detail-row"><span>Harness</span><strong>${v.harness} · ${v.harnessVersion}</strong></div>
         <div class="detail-row"><span>Inventory</span><strong>${v.inventoryAge} · ${v.inventoryJudgement}</strong></div>
         <div class="detail-row"><span>Chat</span><strong>${v.chatText}</strong></div>
         <div class="detail-row"><span>In-flight tasks</span><strong>${v.inFlightText}</strong></div>

@@ -96,6 +96,11 @@ def test_retention_sweep(manager):
     manager._conn.execute("UPDATE delegated_task SET retention_until=? WHERE task_id=?",
                           ("2000-01-01T00:00:00Z", tid))
     manager._conn.commit()
+    # Spec149: retention cannot erase live/uncertain dispatch evidence.
+    assert tm.sweep() == 0
+    tm._set(tid,state='outcome_unknown',dispatch_started=1)
+    assert tm.sweep() == 0
+    tm._set(tid,state='completed')
     assert tm.sweep() == 1
     assert tm.status(tid)["state"] == "unknown"
 

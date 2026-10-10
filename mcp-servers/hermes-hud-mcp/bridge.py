@@ -19,18 +19,21 @@ def sanitize(value):
     return value
 
 class Bridge:
-    def __init__(self, home, installation, *, port=None, key=None, client=None):
+    def __init__(self, home, installation, *, port=None, key=None, client=None, namespace='hud'):
         self.home=Path(home);self.installation=installation
-        self.ledger=Ledger(self.home/'netclaw-hud/ledger.db',installation)
-        port=int(port or os.environ.get('NETCLAW_HERMES_HUD_PORT',8643))
+        if namespace not in ('hud','federation'):raise HudError('configuration_missing')
+        self.namespace=namespace
+        self.ledger=Ledger(self.home/('netclaw-'+namespace)/'ledger.db',installation)
+        port=int(port or os.environ.get('NETCLAW_HERMES_'+namespace.upper()+'_PORT',8643))
         if not 1024<=port<=65535:raise HudError('configuration_missing')
-        self.key=key or os.environ.get('NETCLAW_HERMES_HUD_API_KEY','')
+        self.key=key or os.environ.get('NETCLAW_HERMES_'+namespace.upper()+'_API_KEY','')
         self.client=client or httpx.Client(base_url=f'http://127.0.0.1:{port}',timeout=5,follow_redirects=False,trust_env=False)
 
-    def http(self, method, route, body=None, timeout=5, request=None):
+    def http(self, method, route, body=None, timeout=5, request=None, permit=None):
         if len(self.key)<32:raise HudError('configuration_missing','Run netclaw hud select and launch the private companion.')
         headers={'Authorization':'Bearer '+self.key}
         if request: headers.update({'Idempotency-Key':request,'X-NetClaw-Request-ID':request})
+        if permit:headers['X-NetClaw-Execution-Permit']=permit
         try:
             with self.client.stream(method,route,json=body,headers=headers,timeout=timeout) as response:
                 if response.status_code in (401,403):raise HudError('authentication_failed')
@@ -59,8 +62,9 @@ class Bridge:
             self.ledger.bind(conversation,identifier(session))
         return {'conversationId':conversation,'state':'open'}
 
-    def submit(self, conversation, request, nonce, text, deadline_ms=900000):
-        row,created=self.ledger.admit(conversation,request,nonce,text,deadline_ms)
+    def submit(self, conversation, request, nonce, text, deadline_ms=900000, execution_scope=None, permit=None):
+        if self.namespace=='federation' and (execution_scope is None or not permit):raise HudError('owner_invalid')
+        row,created=self.ledger.admit(conversation,request,nonce,text,deadline_ms,execution_scope)
         if not created:return self.project(row)
         conv=self.ledger.conversation(conversation)
         if not conv['session']:
@@ -71,7 +75,8 @@ class Bridge:
             count=db.execute('SELECT count(*) FROM requests WHERE conversation=?',(conversation,)).fetchone()[0]
         if count==1 and json.loads(conv['seed']):body['conversation_history']=json.loads(conv['seed'])
         try:
-            data=self.http('POST','/v1/runs',body,timeout=min(10,deadline_ms/1000),request=request)
+            options={'permit':permit} if permit else {}
+            data=self.http('POST','/v1/runs',body,timeout=min(10,deadline_ms/1000),request=request,**options)
             native=data.get('id') or data.get('run_id')
             if not isinstance(native,str):raise HudError('response_invalid')
             row=self.ledger.update(conversation,request,'queued',run_id=identifier(native))
@@ -88,7 +93,7 @@ class Bridge:
                 state=data.get('status')
                 if state=='awaiting_approval':state='waiting_approval'
                 if state not in ('queued','running','waiting_approval','stopping',*TERMINAL):raise HudError('response_invalid')
-                if time.time()>row['deadline'] and state not in TERMINAL:state='unknown'
+                if ((self.namespace=='federation' and row['state']=='unknown') or time.time()>row['deadline']) and state not in TERMINAL:state='unknown'
                 result={'output':sanitize(data.get('output') or ''),'runtime':sanitize(data.get('runtime') or {}),
                         'usage':sanitize(data.get('usage')) if data.get('usage') else None,
                         'approval':sanitize(data.get('approval') or data.get('pending_approval')),

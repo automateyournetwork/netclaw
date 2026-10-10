@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "note": "Individually reviewed read-only implementation. No annotations grant permission. Other registered tools remain unqualified.",
+  "note": "Individually reviewed subnet tool and scoped operator NCFED subset. Operator effects require a private one-use broker permit. Receiver profiles exclude all orchestration tools. No annotations grant permission.",
   "servers": {
     "subnet-calc-mcp": {
       "component": "subnet-calc",
@@ -15,6 +15,27 @@
       ],
       "reviewedCommit": "5178da6f83ebd894fa7331a62e1087ec9550751b",
       "sourceRepository": "https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension.git"
+    },
+    "n2n-mcp": {
+      "component": "n2n",
+      "source": "mcp-servers/n2n-mcp/server.py",
+      "tools": [
+        "n2n_status",
+        "n2n_risk_status",
+        "n2n_member_list",
+        "n2n_member_health",
+        "n2n_peer_capabilities",
+        "n2n_invoke",
+        "n2n_delegate",
+        "n2n_route",
+        "n2n_chat",
+        "n2n_task_status",
+        "n2n_task_result"
+      ],
+      "argumentPolicy": "federation-operator",
+      "sourceHashes": [
+        "8849663b12e9e05e61cc2a9b0b49600171c0a23da4319270e8616e8016edb493"
+      ]
     }
   }
 }

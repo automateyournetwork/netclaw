@@ -438,8 +438,8 @@ class _HomeShellState extends State<HomeShell> {
     getApplicationDocumentsDirectory().then((dir) async {
       if (!mounted) return;
       final feedStore = MessageFeedStore(dir);
-      final askClient = EdgeAskClient(widget.client);
       final conversationStore = ConversationStore(dir);
+      final askClient = EdgeAskClient(widget.client, store: conversationStore);
       final approvalClient = ApprovalClient(widget.client);
       // Own these before the first await so disposal cannot miss them.
       _askClient = askClient;
@@ -908,6 +908,7 @@ class _HomeShellState extends State<HomeShell> {
     final pages = [
       DashboardScreen(
         snapshot: buildDashboardSnapshot(
+                border: widget.client.border,
           connected: _connected,
           stored: widget.stored,
           feedStore: _feedStore,

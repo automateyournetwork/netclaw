@@ -14,8 +14,9 @@ WorkingDirectory=@REPO@/mcp-servers/protocol-mcp
 # are reachable when the daemon runs as a service — otherwise posture would report
 # them "not found on PATH" and (correctly) refuse to claim enforced (feature 057).
 Environment=PATH=%h/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-EnvironmentFile=-@HOME@/.openclaw/mesh.systemd.env
-ExecStart=/usr/bin/python3 @REPO@/mcp-servers/protocol-mcp/bgp-daemon-v2.py
+@SELECTION@
+EnvironmentFile=-@RUNTIME_ENV@
+ExecStart=@PYTHON@ "@REPO@/scripts/federation-control.py" run
 Restart=always
 RestartSec=5
 

@@ -43,7 +43,8 @@ def _security_config_path() -> Path:
     ~/.openclaw/config/openclaw.json — NOT the gateway's ~/.openclaw/openclaw.json,
     whose `security` object has a different schema (writing 'mode' there makes the
     gateway fail startup with 'security: Invalid input')."""
-    return Path(os.path.expanduser("~/.openclaw/config/openclaw.json"))
+    from .runtime import selected
+    return selected().home/'config/openclaw.json'
 
 
 def security_mode() -> str:
@@ -153,6 +154,9 @@ DEFENSECLAW_GUARD_PORT = int(os.environ.get("DEFENSECLAW_GUARD_PORT", "4000"))
 
 def guarded_model_route(model_override=None) -> Tuple[bool, str]:
     """Check the effective local configuration; never rewrite provider settings."""
+    from .runtime import selected as selected_runtime
+    runtime=selected_runtime()
+    if runtime.kind=='hermes':return False, 'Hermes model-guard integration is not qualified; production delegation is unavailable'
     try:
         state = Path(os.environ.get("OPENCLAW_STATE_DIR") or os.environ.get("OPENCLAW_HOME")
                      or os.path.expanduser("~/.openclaw"))

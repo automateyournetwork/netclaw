@@ -40,7 +40,7 @@ void main() {
     expect(source.calls.single.$1, 'n2n/edge/ask');
     // The exact request shape a typed message produces via
     // EdgeAskClient.ask() -- {"text": ...}, nothing voice-specific.
-    expect(source.calls.single.$2, {'text': 'check every core router for BGP problems'});
+    expect(source.calls.single.$2, containsPair('text', 'check every core router for BGP problems'));
   });
 
   test('nothing heard never sends an empty (or any) request', () async {

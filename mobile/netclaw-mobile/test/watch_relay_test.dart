@@ -271,7 +271,7 @@ void main() {
       final result = await relay.handle('watch/ask/submit', {'text': 'is R2 still flapping'});
 
       expect(result, {'task_id': 'task-watch-1'});
-      expect(source.calls.single.$2, {'text': 'is R2 still flapping'});
+      expect(source.calls.single.$2, containsPair('text', 'is R2 still flapping'));
     });
 
     test('empty/whitespace-only text never calls ask() at all (FR-010)', () async {

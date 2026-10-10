@@ -1,0 +1,5 @@
+Catalog entries: 111
+Registered config/openclaw.json servers: 124
+External (non-registered) integrations tracked: 52
+
+Catalog coverage check: PASS (zero unexplained gaps)

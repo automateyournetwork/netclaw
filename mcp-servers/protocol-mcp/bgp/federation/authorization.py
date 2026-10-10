@@ -30,6 +30,8 @@ class Decision:
     code: str            # allowlisted | approval_required | not_allowlisted | rate_limited | budget_exhausted | severed
     grant: Optional[dict] = None
     reason: str = ""
+    approval_id: Optional[int] = None
+    request_binding: Optional[str] = None
 
 
 class Authorizer:
@@ -110,7 +112,7 @@ class Authorizer:
         self._budget_row(peer_identity)  # ensure row exists
         self.manager._conn.execute(
             "UPDATE budget_counter SET requests_used=requests_used+?, tokens_used=tokens_used+? "
-            "WHERE peer_identity=? AND day=?", (requests, tokens, peer_identity, day))
+            "WHERE peer_identity=? AND day=?", (requests, tokens or 0, peer_identity, day))
         self.manager._conn.commit()
 
     def budget_status(self, peer_identity: str) -> dict:
@@ -163,9 +165,36 @@ class Authorizer:
             return Decision(False, "not_allowlisted", reason="original grant was revoked or replaced")
         if current.code == "approval_required" and original.code != "approval_required":
             return current
-        if not self.reserve_request(peer_identity):
+        if current.code=='approval_required':
+            db=self.manager._conn
+            db.execute('BEGIN IMMEDIATE')
+            try:
+                approved=db.execute("UPDATE approval_request SET consumed_at=? WHERE id=? AND status='approved' AND expires_at>? AND consumed_at IS NULL AND request_binding=?",
+                    (_now(),original.approval_id,_now(),original.request_binding))
+                if approved.rowcount!=1:
+                    db.rollback()
+                    return Decision(False,'approval_required',current.grant,'exact unexpired unused approval required')
+                reserved=db.execute('UPDATE budget_counter SET requests_used=requests_used+1 WHERE peer_identity=? AND day=? AND requests_used<? AND tokens_used<?',
+                    (peer_identity,_today(),self.daily_requests,self.daily_tokens))
+                if reserved.rowcount!=1:
+                    db.rollback()
+                    return Decision(False,'budget_exhausted',current.grant,'daily budget exhausted')
+                db.commit()
+            except BaseException:db.rollback();raise
+        elif not self.reserve_request(peer_identity):
             return Decision(False, "budget_exhausted", current.grant, "daily budget exhausted")
         return Decision(True, "allowlisted", current.grant)
+
+    def still_authorized(self,peer,target_type,target,original,*,already_trusted=False):
+        """Recheck an already reserved request without charging or reapproving it."""
+        if not already_trusted and not self.manager.is_federated(peer):return False
+        grant=self._find_grant(peer,target_type,target)
+        if not grant or not original.grant or grant['id']!=original.grant['id']:return False
+        if self._budget_row(peer)['tokens_used']>=self.daily_tokens:return False
+        if grant['requires_approval']:
+            row=self.manager._conn.execute('SELECT request_binding,consumed_at,status FROM approval_request WHERE id=?',(original.approval_id,)).fetchone()
+            return bool(row and row['request_binding']==original.request_binding and row['consumed_at'] and row['status']=='approved')
+        return True
 
     def reserve_request(self, peer_identity: str) -> bool:
         """Reserve a request before asynchronous execution, including chat."""
@@ -180,12 +209,12 @@ class Authorizer:
 
     # ---- approvals (FR-013) -------------------------------------------
 
-    def create_approval(self, invocation_id: int) -> dict:
+    def create_approval(self, invocation_id: int, request_binding=None) -> dict:
         expires = time.strftime("%Y-%m-%dT%H:%M:%SZ",
                                 time.gmtime(time.time() + self.approval_window_s))
         cur = self.manager._conn.execute(
-            "INSERT INTO approval_request (invocation_id, status, requested_at, expires_at) "
-            "VALUES (?,?,?,?)", (invocation_id, "pending", _now(), expires))
+            "INSERT INTO approval_request (invocation_id, status, requested_at, expires_at,request_binding) "
+            "VALUES (?,?,?,?,?)", (invocation_id, "pending", _now(), expires,request_binding))
         self.manager._conn.commit()
         return {"approval_id": cur.lastrowid, "expires_at": expires}
 
@@ -215,10 +244,10 @@ class Authorizer:
 
     def approval_status(self, approval_id: int) -> str:
         row = self.manager._conn.execute(
-            "SELECT status, expires_at FROM approval_request WHERE id=?", (approval_id,)).fetchone()
+            "SELECT status, expires_at,consumed_at FROM approval_request WHERE id=?", (approval_id,)).fetchone()
         if not row:
             return "unknown"
-        if row["status"] == "pending" and row["expires_at"] <= _now():
+        if row["status"] in ('pending','approved') and not row['consumed_at'] and row["expires_at"] <= _now():
             self.manager._conn.execute(
                 "UPDATE approval_request SET status='expired' WHERE id=?", (approval_id,))
             self.manager._conn.commit()
@@ -227,7 +256,7 @@ class Authorizer:
 
     def _expire_pending(self):
         self.manager._conn.execute(
-            "UPDATE approval_request SET status='expired' WHERE status='pending' AND expires_at<=?", (_now(),))
+            "UPDATE approval_request SET status='expired' WHERE status IN ('pending','approved') AND consumed_at IS NULL AND expires_at<=?", (_now(),))
         self.manager._conn.commit()
 
     def pending_approvals(self) -> list:

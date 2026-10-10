@@ -1,0 +1,60 @@
+✔ orgchart and freeform have no geometry of their own (0.052959ms)
+✔ ring: every node gets a position, Border at the centre (0.133208ms)
+✔ ring: is drawn on the XY plane the chart actually uses (0.077542ms)
+✔ ring: kinds occupy distinct radii, peers closest to the Border (0.078917ms)
+✔ ring: nodes of one kind do not collide (0.065541ms)
+✔ grid: uniform rows, bands ignored (0.104959ms)
+✔ grid: ordering is stable and does not depend on health (0.094417ms)
+✔ FR-042: neither preset invents membership (0.098666ms)
+✔ empty and malformed input do not throw (0.099583ms)
+✔ disabled advisor is absent; missing and stale snapshots cannot imply readiness (1.896667ms)
+✔ advisor status allowlist excludes secrets, endpoint, evidence and detailed answers (0.193583ms)
+✔ card escapes provider text and distinguishes authority, freshness and bounded case spending (0.410333ms)
+✔ zero limits and false confirmation override retain their meaning (1.424583ms)
+✔ invalid overrides retain the last valid layer (0.137792ms)
+✔ MCP command survives the Python parser with literal checkout characters (144.882333ms)
+6:02:53 PM [vite] ws proxy error:
+Error: connect ECONNRESET 127.0.0.1:62110
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+✔ Vite interface HTTP and WebSocket proxy retain Host/Origin enforcement (119.523958ms)
+✔ local CLI, both configured origins and IPv6 loopback are accepted (1.701167ms)
+✔ untrusted connections and rebinding/opaque/malformed origins are denied (0.145875ms)
+✔ ports are bounded, distinct and explicitly configurable (1.148917ms)
+✔ explicit interface allows remote UI clients but API remains local (0.175333ms)
+✔ binding requires a concrete IP and defaults to loopback (3.980875ms)
+✔ environment updates preserve literal secrets and unrelated lines privately (21.093833ms)
+✔ private atomic writes refuse links and preserve old state on failed replacement (17.669667ms)
+✔ same-name concurrent uploads retain distinct bytes until ingestion completes (99.281541ms)
+✔ invalid document cap fails instead of disabling upload limits (0.264042ms)
+✔ untrusted markup cannot introduce active content: <img src=x onerror="window.pwned=tr (48.97425ms)
+✔ untrusted markup cannot introduce active content: <svg><a onmouseover="window.pwned=t (5.893083ms)
+✔ untrusted markup cannot introduce active content: <math><mtext><img src=x onerror="wi (5.16375ms)
+✔ untrusted markup cannot introduce active content: <script>window.pwned=true</script>< (4.853458ms)
+✔ untrusted markup cannot introduce active content: <input value="title" onfocus="windo (7.091709ms)
+✔ untrusted markup cannot introduce active content: <form action="/api/env"><input type (5.003958ms)
+✔ untrusted markup cannot introduce active content: <style>@import "https://example.inv (4.504792ms)
+✔ safe formatting, controls, attributes and inline presentation survive (19.912416ms)
+✔ main and data panels cannot bypass the HTML insertion boundary (1.000125ms)
+✔ real HUD server rejects hostile HTTP and WebSocket requests before fixture access (2090.277209ms)
+✔ terminal guard accepts configured UI proxy but rejects direct/hostile clients (1.144208ms)
+✔ uses native UUID when available (0.619375ms)
+✔ HTTP context without randomUUID produces random UUIDv4 identifiers (2.351375ms)
+✔ runtime storage never imports OpenClaw content into Hermes and preserves both installations (2.433583ms)
+✔ unknown request survives refresh; observation never submits again and late result recovers (3.68525ms)
+✔ open tab refuses a changed runtime before submission and keeps the original storage binding (0.531084ms)
+NetClaw overlay change failed Error: Camera overlay change was not confirmed.
+    at Object.click (evalmachine.<anonymous>:116:28)
+    at async TestContext.<anonymous> (file://<checkout>/ui/netclaw-visual/src/zoom/overlay-state.test.js:24:51)
+    at async Test.run (node:internal/test_runner/test:1113:7)
+    at async Test.processPendingSubtests (node:internal/test_runner/test:788:7)
+✔ missing overlay cannot report enabled (1.8115ms)
+✔ failed overlay cannot report enabled (1.65425ms)
+✔ failed camera startup cleans up controller and returns false (1.395458ms)
+ℹ tests 372
+ℹ suites 0
+ℹ pass 372
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5763.276458

@@ -149,9 +149,7 @@ void main() {
         expect(taskId, 'task-device-1');
         expect(source.calls, hasLength(1));
         expect(source.calls.single.$1, 'n2n/edge/ask');
-        expect(source.calls.single.$2, {
-          'text': 'What is the current status of device switch-42?',
-        });
+        expect(source.calls.single.$2, containsPair('text', 'What is the current status of device switch-42?'));
       },
     );
 

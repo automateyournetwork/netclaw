@@ -297,7 +297,7 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
                          local: bool = False, model: str = None,
                          untrusted: bool = False, on_stall=None,
                          stall_after_s: int = 120, message_file: str = None,
-                         origin: str | None = None):
+                         origin: str | None = None, execution=None):
     """Run one agent turn. Returns (reply_text, tokens_used).
 
     Two modes:
@@ -345,6 +345,12 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
     unrecognized value is normalized to `None` rather than failing the request
     (FR-012). Gateway (WS) mode only; the embedded path does not use it.
     """
+    from .runtime import selected
+    if selected().kind == 'hermes':
+        if message_file or model: # selected Hermes config is the qualified model binding
+            if message_file:raise RuntimeError('capability_unsupported: file ingress is not qualified for Hermes federation')
+        from .hermes_runtime import run_turn
+        return await run_turn(prompt,execution)
     if local and untrusted:
         # Fail-closed eN2N gate: never run external-peer input embedded unless
         # the 057 production controls actually verify. This makes the one-line

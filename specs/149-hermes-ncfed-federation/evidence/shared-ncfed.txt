@@ -1,0 +1,31 @@
+........................................................................ [ 12%]
+........................................................................ [ 24%]
+........................................................................ [ 36%]
+......................................s........s...s.................... [ 48%]
+........................................................................ [ 61%]
+....................................................s................... [ 73%]
+........................................................................ [ 85%]
+........................................................................ [ 97%]
+.............                                                            [100%]
+=============================== warnings summary ===============================
+tests/n2n/test_certs_060.py::test_verify_rejects_expired_leaf_with_clock_hint
+  <checkout>/tests/n2n/test_certs_060.py:63: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    future = datetime.datetime.utcnow() + datetime.timedelta(days=3)
+
+tests/n2n/test_edge_enrollment.py: 1 warning
+tests/n2n/test_en2n_auth_baseline_060.py: 2 warnings
+tests/n2n/test_endpoint_persistence_063.py: 1 warning
+tests/n2n/test_enrollment.py: 8 warnings
+tests/n2n/test_hub_attestation_060.py: 1 warning
+tests/n2n/test_internal_tls_security.py: 1 warning
+tests/n2n/test_internal_transport.py: 4 warnings
+tests/n2n/test_member_delegation.py: 3 warnings
+tests/n2n/test_quarantine.py: 4 warnings
+tests/n2n/test_routing.py: 8 warnings
+tests/n2n/test_secured_federation_060.py: 2 warnings
+tests/n2n/test_two_daemon_loopback.py: 1 warning
+  <checkout>/mcp-servers/protocol-mcp/bgp/federation/risk.py:114: DeprecationWarning: datetime.datetime.utcnow() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.now(datetime.UTC).
+    now = datetime.datetime.utcnow()
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+585 passed, 4 skipped, 37 warnings in 52.18s
