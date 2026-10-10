@@ -1,5 +1,8 @@
 # Environment and secrets
 .env
+.env.*
+!.env.example
+!.env.*.example
 *.pre-voice-auth
 .voice-auth-*
 *.env.local
@@ -47,8 +50,22 @@ yarn-error.log*
 
 # Local agent state and audit harnesses
 .gait/
-memory/
+/memory/
 .pytest_cache/
+
+# Codex local credentials/settings/session state; keep shared skills and prompts.
+/.codex/*
+!/.codex/skills/
+!/.codex/prompts/
+
+# Spec Kit local caches, backups and machine-specific extension configuration.
+# Keep .agents/skills/, the constitution, templates, manifests and workflows tracked.
+/.specify/extensions/.cache/
+/.specify/extensions/.backup/
+/.specify/extensions/*/local-config.yml
+/.specify/extensions/*/*-config.local.yml
+/.specify/workflows/.cache/
+/.specify/workflows/runs/
 
 # Diagrams (generated)
 *.drawio.bak
