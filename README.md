@@ -108,6 +108,52 @@ Scripted / non-interactive installs:
 ./scripts/install.sh --list                       # see all components & profiles
 ```
 
+### Filled `.env` and first-time setup
+
+You can fill credentials before installing: copy `.env.example` to `.env` in the
+NetClaw checkout, then edit and uncomment the settings you need. The installer
+imports supported settings into `~/.openclaw/.env` **before onboarding starts**
+(`~/.hermes/.env` for Hermes). It resolves the checkout path regardless of where
+you run the installer. Existing runtime assignments, including empty ones, win;
+conflicts are listed by variable name without printing values.
+
+Onboarding still chooses your provider, model, gateway and channels. Reuse
+detected credentials when the runtime offers that choice. Filling an API key
+does not supply those other choices. Onboarding failure now stops installation
+with an error instead of reporting completion.
+
+For an existing installation, import without reinstalling components:
+
+```bash
+python3 scripts/import-env.py             # preview; writes nothing
+python3 scripts/import-env.py --apply     # add missing runtime settings
+# Hermes: add --runtime hermes to both commands
+```
+
+If OpenClaw has not been configured, continue with `openclaw onboard --install-daemon`.
+For an already-running gateway, run `openclaw gateway restart` to load newly
+imported settings. `./scripts/setup.sh` also imports before its platform questions;
+skip platforms that are already configured. To replace an existing runtime value,
+edit the runtime `.env` deliberately; import never overwrites it.
+
+The importer accepts single-line dotenv assignments declared in `.env.example`,
+keeps their literal syntax, skips blank values and obvious placeholders such as
+`changeme`/`sk-ant-...`, and never executes or expands them. Quote values containing
+`#`. Unknown names are reported for manual runtime configuration; malformed or
+multiline records fail before any write. Destination writes are atomic with mode
+`0600`; symlinks are refused. Generated MCP launcher paths remain installer-managed.
+An inherited process variable can still take precedence over either dotenv file.
+
+For a custom OpenClaw state directory, export `OPENCLAW_STATE_DIR` before import,
+installation and later OpenClaw commands; `OPENCLAW_CONFIG_PATH` can select its
+config file. For Hermes use `HERMES_HOME`. NetClaw retains its historical
+`OPENCLAW_HOME` state-directory fallback in the installer/importer; prefer
+`OPENCLAW_STATE_DIR` for consistency with upstream OpenClaw.
+
+Current OpenClaw intentionally filters provider keys from a working-directory
+`.env`; the durable runtime file is the appropriate location for them. See
+[OpenClaw environment precedence](https://docs.openclaw.ai/help/environment).
+
 ### Agent runtime — OpenClaw or Hermes
 
 NetClaw runs on top of an agent runtime. **OpenClaw** is the default and the
@@ -2692,7 +2738,7 @@ The installer is an interactive TUI (pure bash — works over SSH, degrades grac
 1. **Pick your components** — choose an install profile (Recommended, Cisco, Multivendor, Cloud, Security, Labs, Observability, Minimal, Everything) or hand-pick from all 72 components in a categorized multi-select checklist. Re-running the installer preselects what you already have.
 2. **Checks prerequisites** — Node.js >= 18, Python 3, pip3, git, npx — offers to run the install commands for anything missing (apt/dnf/yum/pacman/apk/brew), and handles PEP 668 externally-managed Pythons so pip installs work on modern distros
 3. **Installs OpenClaw** — `npm install -g openclaw@latest`
-4. **Runs OpenClaw onboard** — AI provider, gateway, channels, daemon service — then verifies the gateway service actually started (systemd unit / LaunchAgent / port probe) and offers a retry with diagnostics if it didn't
+4. **Imports filled `.env` settings, then runs OpenClaw onboard** — preserves existing runtime values; configures AI provider, gateway, channels and daemon service; stops on wizard failure, then verifies the gateway service actually started (systemd unit / LaunchAgent / port probe) and offers a retry with diagnostics if it didn't
 5. **Installs the selected MCP servers** — each component clones/pip-installs/pulls exactly what it needs (`./scripts/install.sh --list` shows every component and what it provides)
 6. **Deploys skills + workspace files** — copies all skills and the SOUL/AGENTS/IDENTITY/USER/TOOLS/HEARTBEAT files to `~/.openclaw/workspace/`
 7. **Writes the component manifest** — your selection is saved to `~/.openclaw/netclaw-components.conf` so `setup.sh` only prompts for credentials that matter

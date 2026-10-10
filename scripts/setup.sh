@@ -114,6 +114,7 @@ if [ ! -d "$OPENCLAW_DIR" ]; then
     exit 1
 fi
 
+_import_runtime_env
 [ -f "$OPENCLAW_ENV" ] || (umask 077; touch "$OPENCLAW_ENV")
 
 # ───────────────────────────────────────────
@@ -132,6 +133,8 @@ fi
 echo -e "  Re-run anytime: ${BOLD}./scripts/setup.sh${NC}"
 echo ""
 echo -e "  ${DIM}All credentials are stored in $OPENCLAW_ENV (never committed to git)${NC}"
+echo "  Filled checkout .env settings were imported above; existing runtime values win."
+echo "  Skip platforms already configured. Blank credential answers keep stored values."
 if [ -f "$NETCLAW_MANIFEST" ]; then
     echo -e "  ${DIM}Only platforms selected during install are offered below — re-run ./scripts/install.sh to add more.${NC}"
 fi

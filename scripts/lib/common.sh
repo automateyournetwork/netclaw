@@ -78,8 +78,8 @@ define_runtime() {
         openclaw)
             RUNTIME_CMD="openclaw"
             RUNTIME_NAME="OpenClaw"
-            RUNTIME_HOME="${OPENCLAW_HOME:-$HOME/.openclaw}"
-            RUNTIME_CONFIG="$RUNTIME_HOME/openclaw.json"
+            RUNTIME_HOME="${OPENCLAW_STATE_DIR:-${OPENCLAW_HOME:-$HOME/.openclaw}}"
+            RUNTIME_CONFIG="${OPENCLAW_CONFIG_PATH:-$RUNTIME_HOME/openclaw.json}"
             RUNTIME_WORKSPACE="$RUNTIME_HOME/workspace"
             RUNTIME_SKILLS="$RUNTIME_HOME/workspace/skills"
             ;;
@@ -111,6 +111,13 @@ _set_env_var() {
     local key="$1" val="$2"
     local env_file="${RUNTIME_ENV:-${OPENCLAW_ENV:-$HOME/.openclaw/.env}}"
     printf '%s' "$val" | python3 "$_NETCLAW_ENV_WRITER" "$env_file" "$key"
+}
+
+# Persist operator-filled settings before the runtime wizard/daemon reads them.
+# Deliberately do not source/export dotenv: it is data, not shell code.
+_import_runtime_env() {
+    python3 "$(dirname "$_NETCLAW_ENV_WRITER")/import-env.py" \
+        --source "$NETCLAW_DIR/.env" --target "$RUNTIME_ENV" --apply
 }
 
 # Bootstrap user-owned locations without replacing explicit operator choices.
