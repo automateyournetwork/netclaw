@@ -37,14 +37,22 @@
 # Interpreter that NetClaw's servers actually run under. Overridable for testing.
 : "${NETCLAW_PY:=$(command -v python3)}"
 NETCLAW_SHARED_CONSTRAINTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../config" && pwd)/python-shared-constraints.txt"
+NETCLAW_PREFLIGHT_POLICY="$(dirname "$NETCLAW_SHARED_CONSTRAINTS")/installer-preflight.json"
 
 _netclaw_python_supported() {
-    "$1" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 10) else 1)' >/dev/null 2>&1
+    "$1" -c 'import sys,json
+if not (sys.version_info >= (3, 10)): sys.exit(1)
+if not sys.argv[2]: sys.exit(0)
+policy=json.load(open(sys.argv[1]))
+rule={**policy["defaults"], **policy["components"].get(sys.argv[2], {})}
+version=sys.version_info[:2]
+sys.exit(0 if version >= tuple(rule["python_min"]) and ("python_max_exclusive" not in rule or version < tuple(rule["python_max_exclusive"])) else 1)
+' "$NETCLAW_PREFLIGHT_POLICY" "${NETCLAW_INSTALL_COMPONENT:-}" >/dev/null 2>&1
 }
 
 _netclaw_require_python() {
     _netclaw_python_supported "$1" && return 0
-    echo "NetClaw requires Python 3.10+; unsupported interpreter: $1 ($("$1" --version 2>&1 || true))" >&2
+    echo "NetClaw requires Python 3.10+ and the selected component's version bounds; unsupported interpreter: $1 ($("$1" --version 2>&1 || true))" >&2
     echo "  Select a compatible NETCLAW_PY and put its python3 on PATH; see docs/PYTHON-RUNTIME-MIGRATION.md." >&2
     return 1
 }

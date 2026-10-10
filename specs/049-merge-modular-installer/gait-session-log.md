@@ -51,3 +51,28 @@ checkout absent. Existing draft PR285 is the authorized publication target.
 Raw logs/private analysis remain local. No live services or network devices
 were operated, and no messages were sent to Greg. GAIT tools remain unavailable;
 this append-only record and daily memory document the session.
+
+
+## 2026-10-09 — platform/component preflight and Zabbix correction
+
+User explicitly authorized fixing Zabbix, implementing OS detection/component
+preflight, testing, committing, pushing and updating the PR. PR285 is merged;
+new codex/fix-installer-preflight is based on main aa90e7d for a linked follow-up.
+Read the second archive locally; no raw logs, private analysis or credentials
+are part of the commit. Extended spec artifacts before implementation.
+
+Restored Zabbix's requirement cwd, added shared host/component policy and bounded
+read-only preflight before install side effects, chose existing Python 3.12 by
+default, enforced component bounds during recovery, disabled unsupported picker
+rows and separated per-run logs. Updated operator guidance and regression tests.
+197 focused tests, real temporary Zabbix install/discovery, four-server installer
+contracts and required declaration/artifact checks pass. Endpoint tests require
+live credentials; optional fwrule checkout absent. Temporary install runtimes were
+removed. No global tools/runtimes installed; no device or vendor endpoint calls.
+GAIT tools remain unavailable; this append-only session record and ignored daily
+memory preserve the audit. Draft release coordination remains with maintainers.
+
+Publication: implementation commit 09b4db7 pushed to
+`calcuttin:codex/fix-installer-preflight`; follow-up draft
+[PR287](https://github.com/automateyournetwork/netclaw/pull/287) links merged PR285
+and records the final scope, verification and release-coordination plan.

@@ -2,8 +2,11 @@
 
 The installer requires Python 3.10+ for both `python3` on PATH and the
 `NETCLAW_PY` component base. Selecting pyATS or GAIT also requires `uv` on
-PATH before component installation begins. Python 3.12 matches the staged
-pyATS installer's default and is a useful choice for a new macOS installation.
+PATH before component installation begins. Component-specific upper and lower
+bounds also apply. Unless `NETCLAW_PY` is explicit, the installer prefers an existing
+Python 3.12 on PATH or under the standard Homebrew `python@3.12` prefixes. It does
+not download Python during this selection. Python 3.12 matches the staged pyATS
+installer's default and the declared component bounds in the current policy.
 
 ## macOS prerequisites and recovery
 
@@ -22,17 +25,19 @@ export NETCLAW_PY="$(brew --prefix python@3.12)/bin/python3.12"
 python3 --version
 "$NETCLAW_PY" --version
 uv --version
-./scripts/install.sh --runtime hermes --all
+./scripts/install.sh --runtime hermes --preflight --components "pyats gait zabbix"
+./scripts/install.sh --runtime hermes --components "pyats gait zabbix"
 ```
 
-Use the desired runtime and selection flags instead of `--runtime hermes --all`
+Use the desired runtime and selection flags instead of `--runtime hermes --components "pyats gait zabbix"`
 when appropriate. Homebrew documents the unversioned `python3` symlink directory
 in its [Python 3.12 formula](https://formulae.brew.sh/formula/python@3.12);
 see the [uv installation guide](https://docs.astral.sh/uv/getting-started/installation/)
 for other platforms.
 
 With the prerequisite/recovery fix installed, a retry detects automatic
-component environments whose Python cannot meet the minimum. It preserves
+component environments whose Python is below the minimum or above a declared
+component upper bound (for example, Python 3.14 with Panorama). It preserves
 the old directory and uses a separate version-suffixed target, such as
 `arista-cvp-component-bounds-py3.12`. A successful dependency installation
 records the replacement interpreter; a failure leaves the previous record
@@ -58,6 +63,55 @@ kubectl, Ollama, packet-capture tools and browser provisioning are separate from
 Python recovery. The Computer Use virtual desktop requires Linux. Configure
 credentials and reachable services only for the integrations you intend to use;
 installing Python packages does not establish that those services are ready.
+
+## Platform and component preflight
+
+`--preflight` runs the same selection checks used before every installation and
+exits without creating environments, logs or runtime configuration. It reports all
+known blockers together. Checks use `config/installer-preflight.json`, with common
+defaults for every catalog component and overrides for known restrictions. MCP
+launch templates also supply external `uvx`, Docker and `npx` requirements.
+Missing prerequisites must be installed or removed from the selection before
+retrying; the entrypoint now stops before its legacy prerequisite-install offers.
+Global pip is not required; a selected base must support isolated pip seeding,
+or an explicit `NETCLAW_VENV` must have a supported Python and usable pip.
+
+| Selection | Declared prerequisite |
+| --- | --- |
+| Forward Networks | Go 1.25+, CGO enabled, C compiler; Apple Command Line Tools on macOS |
+| Panorama | Python >=3.10,<3.13 |
+| Zoom RTMS | Python >=3.10,<3.14; Darwin arm64 or Linux x86_64 with glibc >=2.34 |
+| CML, NSO, UML, ThousandEyes Community | Python >=3.12 |
+| Memory MCP | Python >=3.11 |
+| Computer Use virtual desktop | Linux (Xvfb/XFCE); unavailable in the macOS custom picker |
+| RADKit | Explicit Cisco SDK index in `PIP_INDEX_URL`/`PIP_EXTRA_INDEX_URL`, or local `PIP_FIND_LINKS` directory containing the pinned 1.9.0 SDK wheel |
+
+[Forward's prerequisites](https://github.com/forwardnetworks/forward-mcp#prerequisites),
+[Panorama package metadata](https://pypi.org/project/iflow-mcp-cdot65-palo-alto-mcp/),
+[Zoom's rtms 1.1.0 wheels](https://pypi.org/project/rtms/1.1.0/), and
+[Cisco's RADKit package notice](https://pypi.org/project/cisco-radkit-client/)
+provide the upstream basis for these restrictions. Obtain vendor packages from
+the manufacturer and verify the selected version. Preflight checks explicit
+environment configuration for RADKit; it does not inspect pip configuration files,
+verify wheel contents or authenticate to Cisco's index.
+
+Docker selections require the CLI and a responsive configured Docker daemon.
+Packet Buddy needs tshark; capinfos is optional. kubectl, nmap, Ollama and other
+external launchers are checked only when relevant to the selection. These are host
+checks with bounded read-only probes; Go probes disable automatic toolchain
+downloads. Passing means the declared checks passed, not that every upstream
+package can resolve or endpoints, Kubernetes clusters, Ollama models, credentials
+and browser provisioning are ready. Linux host checks are covered with fixtures.
+
+Zabbix installs its relative `./vendor/zabbix-mcp-server` requirement from the
+component directory, including when reusing a version-suffixed environment.
+
+Each actual install creates a fresh `logs/install/run-<UTC time>-<suffix>/` below
+the selected runtime home and prints that exact path. `run-info.txt` records the
+host, Bash version, Python path and selection. Component logs never reuse an older
+run's errors. Interactive components still use the terminal, so their full output
+is not captured automatically. Older logs remain in place; archive the printed
+run directory when reporting a new failure.
 
 ## Component isolation
 

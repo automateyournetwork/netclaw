@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "defaults": {"os": ["Darwin", "Linux"], "python_min": [3, 10]},
+  "core_commands": ["node", "npm", "npx", "git", "curl", "tar"],
+  "components": {
+    "pyats": {"commands": ["uv"]},
+    "gait": {"commands": ["uv"]},
+    "atlassian": {"commands": ["uv"]},
+    "packet-buddy": {"commands": ["tshark"], "optional_commands": ["capinfos"]},
+    "nmap": {"commands": ["nmap"]},
+    "nsm": {"commands": ["docker"]},
+    "batfish": {"commands": ["docker"]},
+    "kubeshark": {"commands": ["kubectl"]},
+    "ollama": {"commands": ["ollama"]},
+    "aws": {"optional_commands": ["dot"]},
+    "cml": {"python_min": [3, 12]},
+    "nso": {"python_min": [3, 12]},
+    "uml": {"python_min": [3, 12]},
+    "te-community": {"python_min": [3, 12]},
+    "memory-mcp": {"python_min": [3, 11]},
+    "panorama": {
+      "python_max_exclusive": [3, 13],
+      "source": "https://pypi.org/project/iflow-mcp-cdot65-palo-alto-mcp/"
+    },
+    "zoom-rtms": {
+      "python_max_exclusive": [3, 14],
+      "platforms": [["Darwin", "arm64"], ["Linux", "x86_64"]],
+      "linux_glibc_min": [2, 34],
+      "source": "https://pypi.org/project/rtms/1.1.0/"
+    },
+    "computer-use": {"os": ["Linux"], "reason": "the Xvfb/XFCE virtual desktop requires Linux"},
+    "forward": {"go_min": [1, 25], "cgo": true, "source": "https://github.com/forwardnetworks/forward-mcp#prerequisites"},
+    "radkit": {
+      "vendor_index": "https://radkit.cisco.com/pip",
+      "vendor_wheel": "cisco_radkit_client-1.9.0-*.whl",
+      "source": "https://pypi.org/project/cisco-radkit-client/"
+    }
+  },
+  "command_remedies": {
+    "uv": "install uv and put uv/uvx on PATH (macOS: brew install uv)",
+    "uvx": "install uv and put uv/uvx on PATH (macOS: brew install uv)",
+    "docker": "install Docker and start its daemon before retrying",
+    "kubectl": "install kubectl; the integration also needs a configured Kubernetes cluster",
+    "ollama": "install Ollama; models and its service require separate setup",
+    "tshark": "install Wireshark CLI tools (macOS: brew install wireshark)",
+    "capinfos": "install Wireshark CLI tools; packet summaries otherwise use fallback mode",
+    "nmap": "install nmap (macOS: brew install nmap)",
+    "dot": "install Graphviz for AWS diagrams (macOS: brew install graphviz)"
+  }
+}
