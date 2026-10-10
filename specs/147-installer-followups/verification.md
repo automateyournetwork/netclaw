@@ -40,7 +40,7 @@ The fixture accepts initialization and discovery only. It starts its own tempora
 
 ## Limits
 
-The original log archive is unavailable; six macOS component failures are unnamed. The original CML server, Ollama endpoint, runtime config and precise command/environment are not reproduced. Native CLI probe success is not a gateway agent-turn or model grounding test. No secrets, real provider calls, real package installs, service restarts or device operations occurred.
+The original log archive is unavailable; six macOS component failures are unnamed. The original CML server, Ollama endpoint, runtime config and precise command/environment are not reproduced. Native CLI probe success is not a gateway agent-turn or model grounding test. The baseline investigation made no package installs. Implementation verification below installed test dependencies only in a disposable environment. No secrets, real provider calls, operator service restarts or device operations occurred.
 
 ## Specification checks
 
@@ -61,6 +61,8 @@ The original log archive is unavailable; six macOS component failures are unname
 
 To reproduce the four-component smoke, use [reproduce-installed-components.py](reproduce-installed-components.py) with `--node-bin /absolute/node/bin --output /tmp/netclaw-components.json`. It explicitly downloads declared test dependencies using uv into a disposable environment; it applies the existing reviewed calculator migration only to temporary source. It does not install or change operator component runtimes. Runtime dotenv settings are part of the fixture, matching installer deployment.
 
-The initial smoke setup intentionally exposed failures when dependencies/patches/settings were absent; readiness flagged them instead of reporting success. After preparing declared source/dependencies and persisting fixture settings, all four passed. This is representative discovery evidence, not a full-catalog fresh-host install or the original CML/pyATS endpoint reproduction.
+The initial smoke setup was missing dependencies/patches/settings; readiness flagged those failures instead of reporting success. After preparing declared source/dependencies and persisting fixture settings, all four passed. This is representative discovery evidence, not a full-catalog fresh-host install or the original CML/pyATS endpoint reproduction.
 
-Release metadata: proposed patch 1.6.2. Live acceptance and arbitrary model answer grounding remain unverified; no tag or published release is implied. PR CI/merge evidence follows below.
+The installer contract suite passed locally with Python 3.12 and in the first PR CI run. An initial local attempt used Python 3.10 and stopped during test-environment setup because the memory package requires Python 3.11 or later. The first PR unit job exposed two tests that depended on a locally installed NetBox source checkout. They now create temporary source fixtures; all 26 tests in that file pass locally. No launcher assertion was weakened.
+
+Release metadata: patch 1.6.2. Live acceptance and arbitrary model answer grounding remain unverified; no tag or published release is implied. [PR #289](https://github.com/automateyournetwork/netclaw/pull/289) records final CI and merge status.

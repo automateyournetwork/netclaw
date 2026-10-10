@@ -19,7 +19,7 @@
 
 - [x] T010 Declare access paths and expected capabilities for all twelve reported components.
 - [x] T011 Bind supported native registrations and skill launchers to managed runtimes.
-- [x] T012 Verify pyATS/CML and representative utility discovery without bypassing approval controls.
+- [x] T012 Verify pyATS/CML launch contracts with fixtures and representative utility discovery without bypassing approval controls; original live pyATS/CML targets remain unverified.
 - [x] T013 Preserve operator state and reconcile inventory/registration/documentation surfaces.
 
 ## Phase C — First-use readiness
@@ -37,4 +37,4 @@
 
 The six unnamed macOS component failures and exact original CML/runtime diagnostics remain pending evidence. They do not prevent work on the confirmed scoped defects; they are not invented acceptance cases.
 
-Release proposal: 1.6.2. PR/merge completion is recorded in verification.md once CI passes. Original live target acceptance remains a documented external evidence gap.
+Release metadata: 1.6.2. [PR #289](https://github.com/automateyournetwork/netclaw/pull/289) records final CI and merge status. Original live target acceptance remains a documented external evidence gap.
