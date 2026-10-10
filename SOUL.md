@@ -923,3 +923,16 @@ Optional Tasks support covers 298 tools across 35 integrations, led by 22 pyATS 
 ## Hermes HUD boundary
 
 The shared HUD can select a protected Hermes companion. Its private conversation MCP is not an agent tool. Only source-qualified read-only tools and reviewed installed skill context may execute; currently the subnet calculator qualifies. Never imply broader installed-tool access, write execution or federation support. Respect owned conversation scope, unknown outcomes and exact approvals. See `docs/HERMES-HUD.md`; federation is spec 149.
+
+## Hermes federation qualification (spec149 / 1.8.0)
+
+The selected Hermes Border/member uses a private protected NCFED companion;
+OpenClaw remains the default when no runtime is selected. The initial receiver
+profile qualifies only the installed read-only subnet tool/skill; peer chat is
+conversation-only. HUD/mobile operator scope may delegate permitted subnet work,
+but no remote card, model claim or prompt grants operator authority. Missing harness
+metadata stays unknown. Preserve unknown/interrupted/cancellation-requested outcomes;
+never replay uncertain work. Hermes mobile media attachments are unavailable;
+voice-transcribed text and Siri voice origin are supported. Production Hermes
+model-guard/confinement remains unavailable and fails closed. See
+`docs/HERMES-FEDERATION.md` and spec149 verification before claiming broader support.

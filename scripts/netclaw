@@ -39,17 +39,14 @@ if [ "${1:-}" = "hud" ]; then
     exec node "$NETCLAW_ROOT/scripts/hud-launch.mjs" "$@"
 fi
 
-# Agent runtime (openclaw default | hermes). The n2n federation subsystem
-# is OpenClaw-native; only the runtime binary and state-dir base are switched
-# here so `netclaw tui` and .env reads follow the chosen runtime.
-NETCLAW_RUNTIME="${NETCLAW_RUNTIME:-openclaw}"
+# Resolve the same persisted installation as the HUD and federation daemon.
+eval "$(python3 "$NETCLAW_ROOT/scripts/federation-control.py" env)"
 if [ "$NETCLAW_RUNTIME" = "hermes" ]; then
-    RUNTIME_CMD="hermes"; RUNTIME_HOME="${HERMES_HOME:-$HOME/.hermes}"; RUNTIME_TUI=(hermes --tui)
+    RUNTIME_CMD="hermes"; RUNTIME_TUI=(hermes --tui)
 else
-    RUNTIME_CMD="openclaw"; RUNTIME_HOME="$HOME/.openclaw"; RUNTIME_TUI=(openclaw tui)
+    RUNTIME_CMD="openclaw"; RUNTIME_TUI=(openclaw tui)
 fi
 
-BGP_API="${NETCLAW_BGP_API:-http://127.0.0.1:8179}"
 NGROK_API="${NETCLAW_NGROK_API:-http://127.0.0.1:4040}"
 CHATS_DIR="${NETCLAW_N2N_CHATS:-$RUNTIME_HOME/n2n/chats}"
 RENDER_MD="$NETCLAW_ROOT/scripts/lib/render_md.py"

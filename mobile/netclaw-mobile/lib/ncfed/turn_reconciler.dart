@@ -28,32 +28,23 @@ Future<int> reconcileStaleTurns(
   ConversationStore store, {
   void Function()? onChanged,
 }) async {
-  final stale = store.turns
-      .where((t) => t.state == 'pending' || t.state == 'working')
-      .map((t) => t.taskId)
-      .toList();
+  askClient.store ??= store;
+  final stale = store.turns.where((t) => ['pending', 'working', 'outcome_unknown', 'cancellation_requested'].contains(t.state)).toList();
   var recovered = 0;
-  for (final taskId in stale) {
+  for (final turn in stale) {
     try {
-      final update = await askClient.result(taskId);
-      if (update.state == TaskState.pending || update.state == TaskState.unknown) {
-        continue; // genuinely still running — leave it be
-      }
-      await store.updateState(
-        taskId,
-        switch (update.state) {
-          TaskState.completed => 'completed',
-          TaskState.failed => 'failed',
-          TaskState.cancelled => 'cancelled',
-          TaskState.working => 'working',
-          _ => 'pending',
-        },
-        answerText: update.outputText,
-      );
+      final update = await askClient.recover(turn);
+      if (update.state == TaskState.pending) continue;
+      await store.updateState(turn.taskId, update.state.wireName,
+          answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
       recovered++;
     } catch (_) {
-      // Disconnected again, or the Border is unreachable. The next reconnect
-      // retries; this must never block the UI or surface an error.
+      // Read-only reconciliation may fail on an old Border or after another
+      // disconnect. Keep a visible, durable uncertainty instead of a spinner.
+      if (turn.state != 'cancellation_requested') {
+        await store.updateState(turn.taskId, 'outcome_unknown', answerText: TaskState.outcomeUnknown.explanation);
+        recovered++;
+      }
     }
   }
   if (recovered > 0) onChanged?.call();

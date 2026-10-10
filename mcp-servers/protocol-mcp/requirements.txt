@@ -8,4 +8,5 @@ networkx>=3.0
 websockets>=12.0,<17
 qrcode>=7.4
 httpx>=0.27
+PyYAML>=6.0
 h2>=4.1

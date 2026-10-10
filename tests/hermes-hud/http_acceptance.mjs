@@ -23,7 +23,7 @@ try {
   const auth=await call('/api/hud/session','POST',{});cookie=auth.headers.get('set-cookie').split(';')[0];
   const foreign=(await call('/api/hud/session','POST',{},'')).headers.get('set-cookie').split(';')[0];
   assert.equal((await call('/api/pal/local/status')).status,200);
-  assert.equal((await call('/api/n2n')).status,409);
+  assert.equal((await call('/api/n2n')).status,503); // selected federation is not running in this HUD-only fixture
   assert.equal((await call('/api/budget/config','PUT',{budget:1})).status,409);
   assert.equal((await call('/api/sessions')).status,404);
   const switched=await fetch(origin+'/api/chat/requests',{method:'POST',headers:{'Content-Type':'application/json','X-NetClaw-Installation':'wrong',Cookie:cookie},body:JSON.stringify({hudThread:'wrong',message:'never'})});assert.equal(switched.status,409);

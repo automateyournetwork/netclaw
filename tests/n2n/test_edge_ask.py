@@ -102,6 +102,7 @@ async def _enroll(border, port, member_id="risk/phone1"):
         "token": token, "member_id": member_id, "cert_pem": cert_pem,
         "signature": signature, "runtime_kind": "mobile"})
     assert resp["pinned"] is True
+    phone.key_pem=key_pem;phone.fingerprint=resp["enroll_fingerprint"];phone.member_id=member_id
     return phone
 
 
@@ -220,7 +221,9 @@ async def _edge_ask_task_cancellable(tmp_path, monkeypatch):
         await asyncio.wait_for(started.wait(), timeout=5.0)
 
         cancel_resp = await phone.call("n2n/tasks/cancel", {"task_id": task_id})
-        assert cancel_resp["cancelled"] is True
+        assert cancel_resp['cancel_requested'] is True
+        # Receipt of a stop request is not confirmation that execution ceased.
+        assert cancel_resp['cancellation_confirmed'] is False
 
         result = await asyncio.wait_for(
             phone.wait_for_notification("n2n/edge/ask_result"), timeout=5.0)

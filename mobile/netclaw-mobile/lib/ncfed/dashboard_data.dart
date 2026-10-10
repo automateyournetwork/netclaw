@@ -52,11 +52,13 @@ class UnreadPendingSnapshot {
 /// `_HomeShellState` already holds for other screens -- no new network call.
 class DashboardSnapshot {
   final bool connected;
+  final Map<String, dynamic> border;
   final FederationIdentitySnapshot identity;
   final UnreadPendingSnapshot unreadPending;
 
   const DashboardSnapshot({
     required this.connected,
+    this.border = const {},
     required this.identity,
     required this.unreadPending,
   });
@@ -64,6 +66,7 @@ class DashboardSnapshot {
 
 DashboardSnapshot buildDashboardSnapshot({
   required bool connected,
+  Map<String, dynamic> border = const {},
   required StoredEnrollment? stored,
   required MessageFeedStore? feedStore,
   required ConversationStore? conversationStore,
@@ -71,6 +74,7 @@ DashboardSnapshot buildDashboardSnapshot({
 }) {
   return DashboardSnapshot(
     connected: connected,
+    border: border,
     identity: stored == null
         ? FederationIdentitySnapshot.notEnrolled()
         : FederationIdentitySnapshot.fromStored(stored),

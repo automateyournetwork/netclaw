@@ -20,7 +20,8 @@ class NoMemory:
     def checkin(self,*args,**kwargs):pass
     def close_all(self):pass
 
-async def serve(home,source,installation,port):
+async def serve(home,source,installation,port,namespace='hud'):
+    if namespace not in ('hud','federation'):raise HudError('configuration_missing')
     manifest=verify_source(source)
     from ruamel.yaml import YAML
     yaml=YAML(typ='safe')
@@ -28,7 +29,7 @@ async def serve(home,source,installation,port):
     config=yaml.load(config_file.read_text()) or {}
     config_hash=hashlib.sha256(config_file.read_bytes()).hexdigest()
     servers,entries=qualified_servers(config,home=original)
-    state=private_dir(original/'netclaw-hud');shadow=private_dir(state/'hermes')
+    state=private_dir(original/('netclaw-'+namespace));shadow=private_dir(state/'hermes')
     if (shadow/'installs').exists():
         raise HudError('configuration_missing','Unexpected companion dependency overlay. Stop the test companion and preserve/move netclaw-hud/hermes/installs before relaunching the qualified environment.')
     provenance={'schemaVersion':1,'installationId':installation,'python':str(Path(sys.executable).resolve()),'source':str(Path(source).resolve()),'revision':manifest['revision'],'configurationDigest':config_hash}
@@ -78,12 +79,19 @@ async def serve(home,source,installation,port):
             if set(entries)-set(discovered):
                 raise HudError('policy_unverified','Qualified MCP discovery failed; check the selected component runtimes.')
         ledger=Ledger(state/'ledger.db',installation)
+        if namespace=='federation':
+            # A restarted companion owns no previous in-memory worker. Upstream
+            # durable idempotency may still say queued; that is not live work.
+            with ledger.db() as db:
+                db.execute("UPDATE requests SET state='unknown',result=? WHERE state IN ('submitting','queued','running','waiting_approval','stopping')",
+                           (json.dumps({'code':'outcome_unknown','recovery':'Companion restarted; check owned result without resubmitting.'}),))
         policy=ToolPolicy(entries,config_file,config_hash)
         policy.runtime_source=source
+        policy.owner_home=original
         policy.skill_context=qualified_skills(original)
         from protected_agent import protected_class
         run_agent.AIAgent=protected_class(run_agent.AIAgent,policy,ledger,REQUEST)
-        key=os.environ.get('NETCLAW_HERMES_HUD_API_KEY','')
+        key=os.environ.get('NETCLAW_HERMES_'+namespace.upper()+'_API_KEY','')
         if len(key)<32:raise HudError('configuration_missing','Private companion key is missing.')
         allowed={('GET','/health/detailed'),('GET','/v1/capabilities'),('GET','/api/model/options'),
                  ('GET','/v1/skills'),('GET','/v1/toolsets'),('POST','/api/sessions'),
@@ -98,7 +106,7 @@ async def serve(home,source,installation,port):
                 with ledger.db() as db: verified=db.execute("SELECT 1 FROM metadata WHERE key='verified-policy' AND value=?",(policy.fingerprint,)).fetchone() is not None
                 return web.json_response({'ready':True,'runtime':'hermes','release':manifest['release'],
                     'installed':True,'authenticated':True,'providerConfigured':'unverified',
-                    'revision':manifest['revision'],'installationId':installation,
+                    'revision':manifest['revision'],'installationId':installation,'namespace':namespace,
                     'protected':True,'tools':sorted(entries),'toolQualification':'source-reviewed-read-only',
                     'executionVerified':verified,'qualifiedSkills':['subnet-calculator'] if policy.skill_context else [],'model':model if isinstance(model,str) else model.get('default') or model.get('model'),
                     'limitations':['write execution','attachments','model lock','effort','federation','hosted avatar']})
@@ -120,7 +128,17 @@ async def serve(home,source,installation,port):
                     with ledger.db() as db:row=db.execute('SELECT * FROM requests WHERE id=?',(request_id,)).fetchone()
                     if not row or row['state']!='submitting' or body.get('session_id')!=ledger.conversation(row['conversation'])['session']:raise HudError('owner_invalid')
                     if body.get('input')!=row['body']:raise HudError('input_invalid')
-                    token=REQUEST.set(request_id)
+                    context=request_id
+                    if namespace=='federation':
+                        with ledger.db() as db:saved=db.execute('SELECT scope FROM execution_scopes WHERE request=?',(request_id,)).fetchone()
+                        if not saved:raise HudError('owner_invalid')
+                        scope=json.loads(saved['scope'])
+                        permit=request.headers.get('X-NetClaw-Execution-Permit','')
+                        from federation_tools import check_receiver
+                        actual=await asyncio.to_thread(check_receiver,original,installation,permit,request_id)
+                        if actual!=scope:raise HudError('owner_invalid')
+                        context={'request':request_id,'scope':scope,'permit':permit}
+                    token=REQUEST.set(context)
                 except Exception:return web.json_response({'error':'Invalid owned admission'},status=403)
             try:return await handler(request)
             finally:
@@ -138,8 +156,9 @@ async def serve(home,source,installation,port):
 
 if __name__=='__main__':
     parser=argparse.ArgumentParser();parser.add_argument('--home',required=True);parser.add_argument('--source',required=True);parser.add_argument('--installation',required=True);parser.add_argument('--port',type=int,default=8643)
+    parser.add_argument('--namespace',choices=('hud','federation'),default='hud')
     args=parser.parse_args();os.umask(0o077)
-    try:asyncio.run(serve(args.home,args.source,args.installation,args.port))
+    try:asyncio.run(serve(args.home,args.source,args.installation,args.port,args.namespace))
     except Exception as error:
         from bridge import sanitize
         detail=': '+sanitize(str(error)) if isinstance(error,HudError) else ''

@@ -190,7 +190,7 @@ public class LiveActivityBridge: NSObject, FlutterPlugin {
                 startedAt: activity.content.state.startedAt,
                 progressDetail: activity.content.state.progressDetail,
                 state: state)
-            await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: .immediate)
+            await activity.end(.init(state: finalState, staleDate: nil), dismissalPolicy: ["outcome_unknown", "cancellation_requested", "interrupted"].contains(state) ? .after(Date().addingTimeInterval(3600)) : .immediate)
             askActivities.removeValue(forKey: taskId)
             result(nil)
         }

@@ -1,5 +1,7 @@
 """Local deterministic OpenAI-compatible fixture; never reaches a real provider."""
 import json
+import re
+import time
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import threading
 
@@ -29,11 +31,23 @@ class Provider:
                 if 'WAIT_FOR_TEST' in str(latest):
                     owner.started.set()
                     if not owner.release.wait(30):raise TimeoutError('Test did not release the controlled provider')
-                tool_results=[m for m in messages if m['role']=='tool']
+                turn_start=max((i for i,m in enumerate(messages) if m['role']=='user'),default=-1)
+                tool_results=[m for m in messages[turn_start+1:] if m['role']=='tool']
                 tool_calls=None
                 if 'SUBNET' in str(latest) and not tool_results:
                     tool=next((t['function']['name'] for t in body.get('tools',[]) if 'subnet_calculator' in t['function']['name']),None)
                     if tool:tool_calls=[{'id':'fixture-call-1','type':'function','function':{'name':tool,'arguments':'{"cidr":"192.0.2.0/28"}'}}]
+                delegation=re.search(r'MOBILE_DELEGATE:([A-Za-z0-9_./-]+)',str(latest))
+                if delegation:
+                    tool_name='n2n_delegate' if not tool_results else 'n2n_task_result'
+                    tool=next((t['function']['name'] for t in body.get('tools',[]) if t['function']['name'].endswith('__'+tool_name)),None)
+                    args={'peer':delegation.group(1),'target_name':'subnet-calculator','input_text':'SUBNET'}
+                    task=re.search(r'[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}',str(tool_results[0].get('content',''))) if tool_results else None
+                    finished=tool_results and any(word in str(tool_results[-1].get('content','')) for word in ('completed','failed','cancelled','outcome_unknown'))
+                    if tool_results:args={'task_id':task.group(0)} if task else {}
+                    if tool and not finished and (not tool_results or task):
+                        if tool_results:time.sleep(.4)
+                        tool_calls=[{'id':'delegate-call-'+str(len(tool_results)),'type':'function','function':{'name':tool,'arguments':json.dumps(args)}}]
                 if 'FORGED_SHELL' in str(latest):tool_calls=[{'id':'forged-call','type':'function','function':{'name':'terminal','arguments':'{"command":"echo forbidden"}'}}]
                 content=None if tool_calls else ('CANARY '+str(tool_results[-1]['content']) if tool_results else 'HERMES FIXTURE '+ ('violet' if any('violet' in str(m.get('content')) for m in messages) else str(latest)))
                 if not tool_calls and 'CANVAS_' in str(latest):

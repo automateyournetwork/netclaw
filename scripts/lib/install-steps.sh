@@ -1853,7 +1853,15 @@ if [ -f "$PROTOCOL_MCP_REQS" ]; then
         { log_warn "mesh daemon deps install failed — the NCFED edge listener will not bind"; return 1; }
 fi
 
-# Enable the federation layer in the OpenClaw .env
+# Hermes federation uses the same pinned companion and isolated bridge as HUD,
+# but does not install/start the browser UI or alter the selected runtime.
+if [ "$RUNTIME" = "hermes" ]; then
+    (export NETCLAW_INSTALL_COMPONENT=hermes-hud
+     netclaw_pip_install -r "$NETCLAW_DIR/mcp-servers/hermes-hud-mcp/requirements.txt") || return 1
+    python3 "$NETCLAW_DIR/scripts/install-hermes-hud-agent.py" --home "$RUNTIME_HOME" || return 1
+fi
+
+# Enable federation in the selected runtime .env
 _set_env_default N2N_ENABLED true || return 1
 _set_env_default N2N_DISPLAY_NAME "$(hostname)" || return 1
 log_info "N2N settings preserved/configured in $RUNTIME_ENV"
@@ -1861,7 +1869,7 @@ log_info "N2N settings preserved/configured in $RUNTIME_ENV"
 log_info "N2N Federation installed. Next:"
 echo "      1. Ensure the mesh is up (./scripts/peering-setup.sh start)"
 echo "      2. Restart the mesh daemon so the NCFED channel is live"
-echo "      3. Reload MCP servers (openclaw mcp reload) to pick up n2n-mcp"
+echo "      3. Restart the selected runtime to pick up n2n-mcp"
 echo "      4. Mutually consent with a peer — see N2N-PEERING-NETCLAWS.md"
 
 # ── iN2N (feature 056): standalone vs part of a "risk" ──────────────

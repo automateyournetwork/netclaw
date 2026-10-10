@@ -1,3 +1,4 @@
+import { federationEndpoint, federationReadiness } from './src/hud-server/runtime/federation.js';
 import { mountHermesIntent } from './src/hud-server/runtime/intent.js';
 import { resolveRuntime } from './src/hud-server/runtime/selection.js';
 import { createHermesRuntime } from './src/hud-server/runtime/hermes.js';
@@ -127,13 +128,17 @@ app.get('/api/runtime', async (_req, res) => {
   let readiness = { ready: false, code: 'runtime_stopped' };
   if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
   else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };
-  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
+  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
 });
 if (hermesRuntime) {
   mountHermesChat(app, { runtime: hermesRuntime, bindings: hudBindings });
   mountHermesIntent(app, {runtime:hermesRuntime,bindings:hudBindings});
   app.use('/api/pal', (req,res,next) => req.path.startsWith('/local/') ? next() : res.status(409).json({code:'capability_unsupported',error:'Hosted Pal is unavailable for Hermes. Use the local Avatar.'}));
-  app.use(['/api/n2n', '/api/bgp', '/api/budget', '/api/terminal/intent'], (_req,res) => res.status(409).json({ available:false, code:'capability_unsupported', error:'This capability is unavailable for Hermes in this release. Federation is planned separately in spec 149; Terminal Intent requires independently qualified execution policy.' }));
+  app.use(['/api/n2n', '/api/bgp'], async (_req,res,next) => {
+    const state=await federationReadiness(installation,BGP_API);
+    return state.ready ? next() : res.status(503).json({available:false,...state,error:'Selected Hermes federation is unavailable. Start its installation with netclaw peering up.'});
+  });
+  app.use(['/api/budget', '/api/terminal/intent'], (_req,res) => res.status(409).json({available:false,code:'capability_unsupported',error:'This operation requires independently qualified Hermes execution policy.'}));
   app.get('/api/hud/runtime', async (_req,res) => { try { res.json({ available:true, kind:'hermes', label:'Hermes', ...await hermesRuntime.call('status'), controlUi:{ available:false, reason:'Use the private NetClaw HUD conversation.' } }); } catch { res.status(503).json({available:false,error:'Hermes companion is stopped or unqualified. Run netclaw hud.'}); } });
   app.get('/api/gateway/status', async (_req,res) => { try { const status=await hermesRuntime.call('status'); res.json({ connected:status.ready, runtime:'hermes', ...status }); } catch { res.json({connected:false,runtime:'hermes',error:'Protected companion unavailable'}); } });
   app.get('/api/hud/tokenomics', (_req,res) => res.json({available:false,error:'Hermes usage is reported per owned request.'}));
@@ -1150,7 +1155,7 @@ app.get('/api/graph', (req, res) => {
 });
 
 // ── BGP topology endpoint ─────────────────────────────────────────
-const BGP_API = 'http://127.0.0.1:8179';
+const BGP_API = federationEndpoint({...parseEnvFile(),...process.env});
 
 async function fetchBGPState() {
   try {

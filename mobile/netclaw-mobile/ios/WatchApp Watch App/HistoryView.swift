@@ -42,7 +42,13 @@ struct HistoryView: View {
                             }
                             Text(turn.requestText).font(.headline)
                         }
-                        if let answer = turn.answerText {
+                        if turn.state == "outcome_unknown" {
+                            Text("Outcome unknown. Do not resend.").font(.caption).foregroundStyle(.orange)
+                        } else if turn.state == "cancellation_requested" {
+                            Text("Cancellation requested; stop not confirmed.").font(.caption).foregroundStyle(.orange)
+                        } else if turn.state == "interrupted" {
+                            Text("Interrupted before execution.").font(.caption)
+                        } else if let answer = turn.answerText {
                             Text(answer).font(.caption)
                             readAloudButton(text: answer)
                         } else if turn.state == "waiting" {

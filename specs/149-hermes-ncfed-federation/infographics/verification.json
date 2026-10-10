@@ -1,0 +1,40 @@
+{
+  "all_copies_identical": true,
+  "images": [
+    {
+      "file": "01-netclaw-harness-choice.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1643601,
+      "sha256": "06444c74bdd68e0a6d3a43ff03cc3d60253ddc21b4a910a1750dbb46ac5eb6ca"
+    },
+    {
+      "file": "02-mix-and-match-federation.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1762303,
+      "sha256": "776726621df3367c100d6ef89685ca1da29cabc16226b28a3eac3becc8a2aa3a"
+    },
+    {
+      "file": "03-msp-multitenant-architecture.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1589715,
+      "sha256": "1e594c5960a4330d05204c79c41bd67104ed15b6ecfc17a1152a81c2e0ade773"
+    },
+    {
+      "file": "04-capability-card-harness-identity.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1665490,
+      "sha256": "000475babd1e44b8d411d0ceb91fddfc3d5d86c420e82900263ca5289a0c28b0"
+    },
+    {
+      "file": "05-request-to-verified-result.png",
+      "width": 1672,
+      "height": 941,
+      "bytes": 1587775,
+      "sha256": "0d8a91f5b2d129258b1b0df9ec541755f84645a25d5daf94ce5c6abfcad9826e"
+    }
+  ]
+}

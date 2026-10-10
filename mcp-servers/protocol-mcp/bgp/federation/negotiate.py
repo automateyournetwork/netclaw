@@ -17,12 +17,15 @@ logger = logging.getLogger("n2n.negotiate")
 PROTO_VERSION = "053"
 FEATURES = ["async_tasks", "endpoint_reannounce", "negotiate"]
 
+_local_selection = None
 _local_descriptor = None  # cached — probe once per process (FR-014, do not re-probe per call)
 
 
 def _probe_agent_invoke() -> str:
     """Which session flag does the local `openclaw agent` accept? Probe --help
     once. Prefer --session-id (broadest support); fall back to --session-key."""
+    from .runtime import selected
+    if selected().kind=='hermes':return 'private-mcp'
     try:
         out = subprocess.run(["openclaw", "agent", "--help"],
                              capture_output=True, text=True, timeout=15).stdout
@@ -37,14 +40,19 @@ def _probe_agent_invoke() -> str:
 
 def local_descriptor() -> dict:
     """Build (and cache) this claw's capability descriptor."""
-    global _local_descriptor
-    if _local_descriptor is None:
+    global _local_descriptor,_local_selection
+    from .runtime import selected
+    runtime=selected();selection=(runtime.kind,str(runtime.home))
+    if _local_descriptor is None or _local_selection!=selection:
+        _local_selection=selection
         _local_descriptor = {
             "proto_version": PROTO_VERSION,
             "features": list(FEATURES),
             "agent_invoke": _probe_agent_invoke(),
             "reply_shapes": ["finalAssistantVisibleText", "payloads"],
         }
+        from .runtime import local_harness
+        _local_descriptor['harness']=local_harness()
         logger.info("Local capability descriptor: %s", _local_descriptor)
     return _local_descriptor
 

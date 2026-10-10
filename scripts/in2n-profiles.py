@@ -20,10 +20,11 @@ import os
 import sys
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DEFAULT_SKILLS_DIRS = [
-    os.path.join(REPO, "workspace", "skills"),
-    os.path.expanduser("~/.openclaw/workspace/skills"),
-]
+sys.path.insert(0,os.path.join(REPO,'mcp-servers/protocol-mcp'))
+from bgp.federation.runtime import selected
+_RUNTIME=selected()
+DEFAULT_SKILLS_DIRS = [str(_RUNTIME.skills)] if _RUNTIME.kind=='hermes' else [os.path.join(REPO,'workspace','skills'),str(_RUNTIME.skills)]
+
 
 # The mandatory base floor every member carries (mirror of bgp/federation/risk.py
 # BASE_FLOOR — kept here so the installer/profile tool has no cross-import).
@@ -34,7 +35,7 @@ BASE_FLOOR = [
     {"name": "member_report_audit","type": "tool",  "tier": "base"},
 ]
 
-ENV_FILE = os.path.expanduser("~/.openclaw/.env")
+ENV_FILE = str(_RUNTIME.env_file)
 
 # Profile definitions: skills (prefixes/exact) + `requires_env` (any-of). A
 # profile is offered ONLY when its skills are installed AND its backend is
@@ -43,6 +44,7 @@ ENV_FILE = os.path.expanduser("~/.openclaw/.env")
 # Granularity principle (interview): ONE claw per vendor/platform/tool. Real
 # integrations each get a dedicated, env-gated member; only UTILITIES stay grouped.
 PROFILE_MATCHERS = {
+    "subnet": {"exact": ["subnet-calculator"], "desc": "Qualified read-only IPv4 subnet calculation"},
     # ── virtual environments / labs (each dedicated) ──
     "cml":          {"prefixes": ["cml-"], "requires_env": ["CML_URL"],
                      "desc": "Cisco Modeling Labs"},
@@ -192,6 +194,7 @@ def env_slice_keys(profile, env_keys):
 # the member still gets its workspace skills + .env creds). memory-mcp is always
 # added as base floor by the provisioner.
 MCP_SERVERS = {
+    "subnet": ["subnet-calc-mcp"],
     "equinix": ["equinix-mcp"],
     "ipfabric": ["ipfabric-mcp"], "suzieq": ["suzieq-mcp"], "batfish": ["batfish-mcp"],
     "forward": ["forward-mcp"], "gns3": ["gns3-mcp"], "azure": ["azure-network-mcp"],
@@ -279,6 +282,7 @@ def profiles(skills_dir=None, include_unconfigured=False):
     env_keys = _configured_env()
     out = {}
     for pid, meta in PROFILE_MATCHERS.items():
+        if _RUNTIME.kind == "hermes" and pid != "subnet":continue
         skills = _match_profile(pid, installed)
         if not skills:
             continue

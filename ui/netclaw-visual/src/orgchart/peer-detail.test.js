@@ -143,3 +143,11 @@ test('the view-model contains no BGP-shaped fields', () => {
     assert.ok(!(leaked in view), `${leaked} belongs to the /api/graph shape, not this panel`);
   }
 });
+
+
+test('harness is additive and missing metadata stays unknown', () => {
+  assert.equal(peerDetailView({}).harness, 'unknown');
+  const view = peerDetailView({inventory: {inventory: {harness: {type: 'hermes', version: 'v0.21.6'}}}});
+  assert.equal(view.harness, 'hermes');
+  assert.equal(view.harnessVersion, 'v0.21.6');
+});

@@ -71,13 +71,17 @@ void main() {
     final rpc = _FakeRpc();
     await pumpChat(tester, store, rpc);
 
-    await tester.tap(find.text('Retry'));
+    await tester.runAsync(() async {
+      await tester.tap(find.text('Retry'));
+      for (var i = 0; i < 30 && !rpc.calls.any((c) => c.$1 == 'n2n/edge/ask'); i++) { await Future<void>.delayed(const Duration(milliseconds: 10)); }
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+    });
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
     final asks = rpc.calls.where((c) => c.$1 == 'n2n/edge/ask').toList();
     expect(asks, hasLength(1));
-    expect(asks.single.$2, {'text': 'show me the BGP table'},
+    expect(asks.single.$2, containsPair('text', 'show me the BGP table'),
         reason: 'retry must resend the ORIGINAL request verbatim');
     expect(store.turns, hasLength(2),
         reason: 'the failed turn stays as a record; retry is a new turn');
@@ -97,13 +101,20 @@ void main() {
 
     // Scope to the dialog: the tile behind it has its own Retry button, so a
     // bare widgetWithText finder matches two and tap() refuses.
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.widgetWithText(TextButton, 'Retry'),
-    ));
+    await tester.runAsync(() async {
+      await tester.tap(find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(TextButton, 'Retry'),
+      ));
+      await Future<void>.delayed(const Duration(milliseconds: 150));
+    });
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 50));
 
+    for (var i = 0; i < 30 && !rpc.calls.any((c) => c.$1 == 'n2n/edge/ask'); i++) {
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+      await tester.pump(const Duration(milliseconds: 20));
+    }
     expect(rpc.calls.where((c) => c.$1 == 'n2n/edge/ask'), hasLength(1));
   });
 

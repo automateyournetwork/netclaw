@@ -1590,3 +1590,21 @@ Changes in internal `-02` (July 2026, from internal `-01`):
 This protocol is developed and interoperation-tested by its authors on the first
 three-node NCFED mesh (AS 65001, AS 65007, and AS 65099). Thanks to the reviewers of
 the NetClaw project.
+
+## Implementation note: optional harness and task extensions (spec149)
+
+This repository's implementation adds optional `harness` metadata to capability
+inventories/cards: `type`, nullable `version`, `status`, `source`, and `observed_at`.
+It is descriptive, untrusted peer data; it MUST NOT select an executable, change
+trust or authorize a capability. Missing values remain unknown. Existing NCFED
+methods and enrollment remain unchanged; this note does not represent a newly
+submitted Internet-Draft revision.
+
+Mobile clients may supply `request_id`, `conversation_id` and
+`client_capabilities: ["task_outcomes_v1"]`. Admission is bound to installation,
+authenticated device/key generation and payload. Owned task queries can resolve a
+lost admission receipt without replay. Canonical `outcome_unknown` and `interrupted`
+states, plus `cancel_requested`/confirmation, distinguish uncertainty from failure
+or confirmed cancellation. Older clients receive an explanatory failed projection
+with canonical `outcome_state`; they must not silently keep such work pending.
+A request for cancellation is not proof that an external effect was stopped.

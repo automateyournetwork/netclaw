@@ -77,3 +77,30 @@ def test_replica_unshared_during_approval_refuses(tmp_path, monkeypatch):
         assert svc.authz.budget_status(channel.peer_identity)['requests_used'] == 0
     finally:
         svc.manager.close()
+
+
+@pytest.mark.parametrize('fault',['none','expired','changed','reused'])
+def test_exact_approval_is_consumed_once(tmp_path,monkeypatch,fault):
+    svc,channel=service(tmp_path,monkeypatch)
+    svc.authz.grant(channel.peer_identity,'tool','fixture/read',requires_approval=True)
+    executed=[]
+    args={'x':1}
+    async def approve(approval):
+        svc.authz.resolve_approval(approval,'approve')
+        if fault=='expired':
+            svc.manager._conn.execute("UPDATE approval_request SET expires_at='2000-01-01T00:00:00Z' WHERE id=?",(approval,));svc.manager._conn.commit()
+        if fault=='changed':args['x']=2
+        if fault=='reused':
+            svc.manager._conn.execute("UPDATE approval_request SET consumed_at='2026-10-10T00:00:00Z' WHERE id=?",(approval,));svc.manager._conn.commit()
+        return True
+    async def execute(*args):executed.append(args);return {}
+    svc.invoker._await_approval=approve;svc.invoker._exec_tool_stdio=execute
+    try:
+        if fault=='none':
+            asyncio.run(svc.invoker.handle_tools_call(channel,{'tool':'fixture/read','arguments':args}))
+            assert len(executed)==1
+            assert svc.manager._conn.execute('SELECT consumed_at FROM approval_request').fetchone()[0]
+        else:
+            with pytest.raises(RpcError):asyncio.run(svc.invoker.handle_tools_call(channel,{'tool':'fixture/read','arguments':args}))
+            assert executed==[]
+    finally:svc.manager.close()

@@ -10,7 +10,7 @@ Work from chat, the visual HUD, your phone, or a Zoom meeting. Start with one Ne
 
 **Start here:** [Choose a runtime](#hermes-or-openclaw) · [Install](#quick-install) · [Capabilities](#what-it-does) · [RAG](#rag--answers-grounded-in-your-documents) · [GCF](#gcf--compact-network-evidence) · [Mobile](#netclaw-mobile--your-network-in-your-pocket) · [Zoom](#zoom--network-investigations-in-the-meeting) · [HUD](#visual-hud) · [Jev](#optional-jev-science-officer)
 
-**Project:** [Source version 1.7.0](VERSION) · [Release notes](docs/releases/1.7.0.md) · [Contributing — numbered specs + Spec Kit](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+**Project:** [Source version 1.8.0](VERSION) · [Release notes](docs/releases/1.8.0.md) · [Contributing — numbered specs + Spec Kit](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
 
 **Reference:** [Architecture](#architecture) · [MCP servers](#mcp-servers-176) · [Skills](#skills-237) · [Workflows](#standard-workflows) · [Safety](#safety)
 
@@ -36,8 +36,10 @@ API uses a private MCP bridge and an authenticated companion on loopback `:8643`
 it does not connect directly to or restart your ordinary Hermes gateway. Hermes HUD
 acceptance passed on Mac and Ubuntu under Windows WSL2; native Windows uses WSL.
 
-Spec 148 delivers this shared HUD connection. **Spec 149 will add Hermes n2n/iN2N
-federation**, including the specialist-claw workflows described below.
+Spec 148 delivers the shared HUD connection. **NetClaw 1.8.0 / spec149 adds Hermes
+iN2N/eN2N and Mobile Ask Border** through protected execution. The initial qualified
+profile is subnet calculation; media attachments and production Hermes confinement
+remain unavailable. See [setup, mobile versions and tested scope](docs/HERMES-FEDERATION.md).
 [Runtime installation details](#agent-runtime--openclaw-or-hermes) · [Acceptance and exact tested platforms](specs/148-hermes-hud-integration/closure.md)
 
 The function-first HUD opens on standard Chat, with a Chat / Canvas interface switch,
@@ -226,8 +228,8 @@ Inspect the result with `hermes mcp list`.
 
 > **Scope:** the runtime choice covers install, onboarding, gateway, MCP
 > registration, skills, credentials and the shared HUD. Hermes HUD conversations
-> use the protected companion's qualified tools. **Spec 149** extends n2n/iN2N
-> federation to Hermes; current federation execution uses OpenClaw.
+> use the protected companion's qualified tools. **Spec149 / 1.8.0** adds protected Hermes iN2N/eN2N execution and Mobile Ask Border.
+> See [qualification and compatibility](docs/HERMES-FEDERATION.md); installed does not mean qualified.
 
 For the shared HUD, install `--runtime hermes --add "subnet-calc hermes-hud"`,
 then run `./scripts/netclaw hud select hermes "$HOME/.hermes"` and

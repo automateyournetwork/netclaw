@@ -1,0 +1,30 @@
+{
+  "meta": null,
+  "content": [
+    {
+      "type": "text",
+      "text": "{\n  \"ok\": true,\n  \"branch\": \"spec149-infographics-2026-10-10\",\n  \"commits\": [\n    {\n      \"commit\": \"3ad8ebc7\",\n      \"id\": \"3ad8ebc79c609f1462f57202f9bb5f0c972dcd9fe43517706f15cc754f0dfe68\",\n      \"created_at\": \"2026-10-10T17:23:47\",\n      \"kind\": \"auto\",\n      \"message\": \"spec149-infographics-complete\",\n      \"parents\": [],\n      \"turns\": 1,\n      \"merge\": false\n    }\n  ]\n}",
+      "annotations": null,
+      "meta": null
+    }
+  ],
+  "structuredContent": {
+    "result": {
+      "ok": true,
+      "branch": "spec149-infographics-2026-10-10",
+      "commits": [
+        {
+          "commit": "3ad8ebc7",
+          "id": "3ad8ebc79c609f1462f57202f9bb5f0c972dcd9fe43517706f15cc754f0dfe68",
+          "created_at": "2026-10-10T17:23:47",
+          "kind": "auto",
+          "message": "spec149-infographics-complete",
+          "parents": [],
+          "turns": 1,
+          "merge": false
+        }
+      ]
+    }
+  },
+  "isError": false
+}

@@ -145,7 +145,14 @@ def _local_model() -> dict:
     import json as _json
     import os as _os
     try:
-        cfg = _json.loads(open(_os.path.expanduser("~/.openclaw/openclaw.json")).read())
+        from .runtime import selected
+        runtime=selected()
+        if runtime.kind=='hermes':
+            import yaml
+            cfg=yaml.safe_load(runtime.config.read_text()) or {}
+            model=cfg.get('model') or {}
+            return {'primary':model.get('default') if isinstance(model,dict) else model,'guarded':False}
+        cfg = _json.loads(runtime.config.read_text())
         ag = (cfg.get("agents") or {}).get("defaults") or {}
         m = ag.get("model")
         primary = m.get("primary") if isinstance(m, dict) else m

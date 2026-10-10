@@ -43,7 +43,7 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 13
+    assert len(launch.CONTRACT) == 14
     for component, rule in launch.CONTRACT.items():
         if rule.get('access') == 'hud-private':
             assert component == 'hermes-hud'
@@ -118,11 +118,13 @@ def test_generated_entries_carry_runtime_location_without_credentials(tmp_path):
         capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     entries=json.loads(out.read_text())['mcpServers']
-    assert len(entries)==13
+    assert len(entries)==14
     for entry in entries.values():
         assert Path(entry['command']).is_absolute()
         assert entry['env']['NETCLAW_RUNTIME_ROOT']==str(tmp_path/'runtimes')
-        assert set(entry['env'])=={'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV'}
+        assert set(entry['env']) <= {'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV','BGP_DAEMON_API'}
+        if 'BGP_DAEMON_API' in entry['env']:
+            assert entry['env']['BGP_DAEMON_API']=='${BGP_DAEMON_API:-http://127.0.0.1:8179}'
 
 
 @pytest.mark.parametrize('npm_rc,version_rc,expected', [(0,0,0),(1,0,1),(0,1,1)])

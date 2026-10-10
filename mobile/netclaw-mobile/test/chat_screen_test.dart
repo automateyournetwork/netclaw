@@ -27,7 +27,7 @@ class _FakeEdgeRpcSource implements EdgeRpcSource {
     if (method == 'n2n/tasks/result' && taskResultResponse != null) {
       return taskResultResponse!;
     }
-    return {'task_id': 'task-1'};
+    return {'task_id': 'task-1', 'state': 'working'};
   }
 }
 

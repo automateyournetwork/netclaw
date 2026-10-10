@@ -199,22 +199,7 @@ class WatchRelay {
     };
   }
 
-  TaskState _taskStateFromString(String state) {
-    switch (state) {
-      case 'completed':
-        return TaskState.completed;
-      case 'failed':
-        return TaskState.failed;
-      case 'cancelled':
-        return TaskState.cancelled;
-      case 'working':
-        return TaskState.working;
-      case 'pending':
-        return TaskState.pending;
-      default:
-        return TaskState.unknown;
-    }
-  }
+  TaskState _taskStateFromString(String state) => parseTaskState(state);
 
   /// Fixes a real, existing defect (073/FR-016): a question asked from the
   /// watch used to call `EdgeAskClient.ask()` directly and never recorded
@@ -227,7 +212,8 @@ class WatchRelay {
     if (client == null) return {'error': 'not enrolled'};
     final text = (args['text'] as String? ?? '').trim();
     if (text.isEmpty) return {'error': 'nothing to submit'};
-    final taskId = await client.ask(text);
+    client.store ??= conversationStore;
+    final taskId = await client.ask(text, localOrigin: 'watch');
     await conversationStore?.addPending(taskId, text, origin: 'watch');
     return {'task_id': taskId};
   }
@@ -241,13 +227,11 @@ class WatchRelay {
     if (client == null) return {'error': 'not enrolled'};
     final taskId = args['task_id'] as String;
     final update = await client.result(taskId);
-    if (update.state == TaskState.completed ||
-        update.state == TaskState.failed ||
-        update.state == TaskState.cancelled) {
+    if (update.state.needsAttention) {
       await conversationStore?.updateState(
-        taskId,
-        update.state.name,
-        answerText: update.outputText,
+        update.taskId,
+        update.state.wireName,
+        answerText: update.outputText ?? update.state.explanation,
       );
     }
     return {
@@ -269,8 +253,14 @@ class WatchRelay {
         return 'failed';
       case TaskState.pending:
       case TaskState.working:
-      case TaskState.unknown:
         return 'waiting';
+      case TaskState.unknown:
+      case TaskState.outcomeUnknown:
+        return 'outcome_unknown';
+      case TaskState.interrupted:
+        return 'interrupted';
+      case TaskState.cancellationRequested:
+        return 'cancellation_requested';
     }
   }
 }

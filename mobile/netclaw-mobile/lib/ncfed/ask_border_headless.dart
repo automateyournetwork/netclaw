@@ -105,12 +105,7 @@ String stripMarkdownForSpeech(String text) {
 }
 
 /// `null` if [state] isn't one of the three terminal states.
-String? _terminalStateString(TaskState state) => switch (state) {
-      TaskState.completed => 'completed',
-      TaskState.failed => 'failed',
-      TaskState.cancelled => 'cancelled',
-      _ => null,
-    };
+String? _terminalStateString(TaskState state) => state.needsAttention ? state.wireName : null;
 
 /// The testable core of [askBorderMain]: given an already-connected [rpc],
 /// submits [question] and persists it into [store] as a pending turn with
@@ -139,7 +134,7 @@ Future<String> runAskBorder(
   Duration fastWindow = askBorderFastWindow,
   Duration postAckWindow = askBorderPostAckWindow,
 }) async {
-  final askClient = EdgeAskClient(rpc);
+  final askClient = EdgeAskClient(rpc, store: store);
   final String taskId;
   try {
     // This is the sole Siri-specific caller of EdgeAskClient.ask() in the
@@ -147,20 +142,25 @@ Future<String> runAskBorder(
     // marks its requests origin: 'voice' (spec 117 FR-002) so the Border
     // composes a short, plain-spoken answer instead of the Chat screen's
     // default structured style.
-    taskId = await askClient.ask(question, origin: 'voice');
+    taskId = await askClient.ask(question, origin: 'voice', localOrigin: 'siri');
   } catch (e) {
     onFinished();
     rethrow;
   }
   await store.addPending(taskId, question, origin: 'siri');
+  if (taskId.startsWith('request-')) {
+    await close();
+    onFinished();
+    return TaskState.outcomeUnknown.explanation;
+  }
 
   try {
     final update = await askClient.updates
-        .firstWhere((u) => u.taskId == taskId)
+        .firstWhere((u) => u.taskId == taskId && u.state.needsAttention)
         .timeout(fastWindow);
     final stateString = _terminalStateString(update.state);
     if (stateString != null) {
-      final answer = update.outputText ?? '';
+      final answer = update.outputText ?? update.state.explanation;
       await store.updateState(taskId, stateString, answerText: answer);
       await close();
       onFinished();
@@ -201,22 +201,15 @@ Future<void> _awaitResultAndNotify({
 }) async {
   try {
     final update = await askClient.updates
-        .firstWhere((u) => u.taskId == taskId)
+        .firstWhere((u) => u.taskId == taskId && u.state.needsAttention)
         .timeout(window);
-    if (update.state != TaskState.completed &&
-        update.state != TaskState.failed &&
-        update.state != TaskState.cancelled) {
+    if (!update.state.needsAttention) {
       return; // still working when the stream closed early — leave it pending
     }
-    final answer = update.outputText ?? '';
+    final answer = update.outputText ?? update.state.explanation;
     await store.updateState(
       taskId,
-      switch (update.state) {
-        TaskState.completed => 'completed',
-        TaskState.failed => 'failed',
-        TaskState.cancelled => 'cancelled',
-        _ => 'working',
-      },
+      update.state.wireName,
       answerText: answer,
     );
     await notify(

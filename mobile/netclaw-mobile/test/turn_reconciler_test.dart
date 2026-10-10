@@ -130,9 +130,9 @@ void main() {
 
     // First pass: still disconnected. Must not throw, must not corrupt state.
     final first = await reconcileStaleTurns(EdgeAskClient(rpc), store);
-    expect(first, 0);
-    expect(store.turns.single.state, 'pending',
-        reason: 'a failed fetch must leave the turn recoverable');
+    expect(first, 1);
+    expect(store.turns.single.state, 'outcome_unknown',
+        reason: 'a failed fetch remains visible and recoverable without resubmission');
 
     // Second pass (i.e. the next reconnect) succeeds.
     final second = await reconcileStaleTurns(EdgeAskClient(rpc), store);

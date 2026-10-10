@@ -76,6 +76,8 @@ export function peerDetailView(peer, nowEpochS, opts = {}) {
     // Raw channel_state kept alongside, so an operator can cross-reference the
     // panel against `n2n_health` output without translating.
     channelState: orPlaceholder(row.channel_state),
+    harness: orPlaceholder((row.inventory?.inventory || row.inventory)?.harness?.type || 'unknown'),
+    harnessVersion: orPlaceholder((row.inventory?.inventory || row.inventory)?.harness?.version || 'unknown'),
 
     inventoryAge: view.freshness.ageText,
     inventoryJudgement: view.freshness.judgement,

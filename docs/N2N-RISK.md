@@ -1,5 +1,8 @@
 # A Risk of NetClaws — Internal Federation (iN2N)
 
+> **1.8.0 / spec149:** Hermes Border/member federation and Mobile Ask Border now use a separate protected companion. See [Hermes federation setup, qualified tools and mobile limits](HERMES-FEDERATION.md). Production confinement is not newly qualified.
+
+
 > A **risk** is the (real) collective noun for a group of lobsters. NetClaw is a
 > lobster. So a coordinated group of NetClaws is **a risk of NetClaws** — and,
 > for a security-adjacent product, the pun is intentional.

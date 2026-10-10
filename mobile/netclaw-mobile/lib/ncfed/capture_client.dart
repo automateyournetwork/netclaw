@@ -38,6 +38,7 @@ class CaptureClient {
   /// enrollment.
   void wire(EdgeMethodSource client) {
     client.on('n2n/edge/capture', (params) async {
+      if (askClient.attachmentsUnavailable) return {'decision': 'declined', 'reason': 'unsupported_attachment'};
       final captureType = params['capability'] as String? ?? 'camera.capture';
       final result = await capture(captureType);
       if (result == null) {
@@ -69,6 +70,7 @@ class CaptureClient {
     String text = '',
     void Function(CaptureResult result)? onCaptured,
   }) async {
+    if (askClient.attachmentsUnavailable) throw EdgeClientException('unsupported_attachment', 'Photo and video are unavailable on this Hermes Border.');
     final result = await capture(captureType);
     if (result == null) return null;
     if (result.bytes.length > kMaxCaptureBytes) return null;

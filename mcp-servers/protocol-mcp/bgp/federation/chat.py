@@ -82,7 +82,10 @@ class ChatManager:
         session_id = params.get("session_id")
         text = params.get("text", "")
         self._append(session_id, f"[{peer}] {text}")
-        reply, tokens = await self._ask_gateway(text, session_key=f"n2n-chat-{peer}")
+        from .execution import conversation_id
+        session_key=conversation_id(self.service.runtime.installation or str(self.manager.base_dir),peer,session_id)
+        extra={'channel':channel,'peer':peer} if self.service.runtime.kind=='hermes' else {}
+        reply, tokens = await self._ask_gateway(text, session_key=session_key,**extra)
         self.authz.debit(peer, requests=0, tokens=tokens)
         self._append(session_id, f"[{self.service.local_identity}] {reply}")
         self._touch(session_id)
@@ -91,15 +94,22 @@ class ChatManager:
                           outcome="success")
         return {"session_id": session_id, "text": reply, "tokens_used": tokens}
 
-    async def _ask_gateway(self, text: str, session_key: str = "n2n-chat"):
+    async def _ask_gateway(self, text: str, session_key: str = "n2n-chat", channel=None, peer=None):
         # gateway.py talks to the gateway's own WS RPC protocol directly
         # (feature 116) -- see its module docstring for why a per-turn CLI
         # subprocess was replaced with a persistent connection.
         from .gateway import run_agent_turn
         idle = int(os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S", "300"))
         prompt = f"[A federated NetClaw peer is asking you this]\n{text}"
+        extra={}
+        if self.service.runtime.kind=='hermes':
+            def current(_):
+                row=self.manager.get_peer(peer)
+                return bool(channel and not getattr(channel,'_closed',False) and row and row['chat_enabled'] and self.manager.is_federated(peer))
+            extra['execution']=self.service.execution_context(requester=peer,origin='external',request=str(uuid.uuid4()),conversation=session_key,
+                target_type='chat',target=session_key,prompt=prompt,profile='chat',authorize=current,timeout_s=idle)
         return await run_agent_turn(prompt, session_key=session_key, timeout_s=idle,
-                                    untrusted=True)
+                                    untrusted=True,**extra)
 
     # ---- outbound: OUR operator chats with the PEER's agent -----------
 

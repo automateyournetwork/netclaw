@@ -95,6 +95,12 @@ class EdgeClient implements EdgeRpcSource {
   /// data, not something this client independently re-derives from the
   /// certificate (avoids needing an X.509/DER parser in Dart).
   String? enrollFingerprint;
+  Map<String, dynamic> border = {};
+
+  void _rememberBorder(Map<String, dynamic> result) {
+    final value = result['border'];
+    border = value is Map<String, dynamic> ? value : {};
+  }
 
   EdgeClient._(this._channel, this.identity) {
     _listen();
@@ -191,11 +197,12 @@ class EdgeClient implements EdgeRpcSource {
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
       final signature = await identity.sign(nonce);
-      await call('in2n/hello', {
+      final result = await call('in2n/hello', {
         'member_id': memberId,
         'key_fingerprint': keyFingerprint,
         'signature': hexEncode(signature),
       });
+      _rememberBorder(result);
       enrollFingerprint = keyFingerprint;
     } catch (e) {
       _failAll(e); // the redial itself failed -- let the caller's retry loop handle it
@@ -318,6 +325,7 @@ class EdgeClient implements EdgeRpcSource {
         'runtime_kind': runtimeKind,
         'display_name': ?displayName,
       });
+      client._rememberBorder(result);
       client.enrollFingerprint = result['enroll_fingerprint'] as String?;
       return client;
     } catch (_) {
@@ -356,11 +364,12 @@ class EdgeClient implements EdgeRpcSource {
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
       final signature = await identity.sign(nonce);
-      await client.call('in2n/hello', {
+      final result = await client.call('in2n/hello', {
         'member_id': memberId,
         'key_fingerprint': keyFingerprint,
         'signature': hexEncode(signature),
       });
+      client._rememberBorder(result);
       client.enrollFingerprint = keyFingerprint;
       return client;
     } catch (_) {

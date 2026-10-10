@@ -2,6 +2,16 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.8.0] - 2026-10-10
+
+- Add selected-installation Hermes NCFED Border/member execution, protected operator delegation, contextual peer chat and bounded qualified subnet work.
+- Carry additive harness metadata alongside capabilities without granting authority; preserve unknown values and existing enrollment/authorization.
+- Persist admission/effect ownership, uncertain outcomes and cancellation state without automatic replay.
+- Update Mobile to 1.0.3 (6): Summary Border type, durable request/reconnect recovery, voice-origin preservation, explicit media limits and Chat/Siri/Watch/Live Activity states. Signed build uploaded to App Store Connect; no public release.
+- Preserve existing OpenClaw paths and document actual acceptance coverage and remaining platform qualification.
+
+Spec [149-hermes-ncfed-federation](specs/149-hermes-ncfed-federation/spec.md). See [release notes](docs/releases/1.8.0.md).
+
 ## [1.7.0] - 2026-10-10
 
 - Connect Hermes to shared HUD Chat, Canvas, local Avatar, owned history and runtime panels through a private MCP bridge and protected companion.

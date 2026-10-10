@@ -398,3 +398,16 @@ n2n_set_edge_gate(peer="as65007-7.7.7.7", edge_gate="cloudflare_access")
 - `true` — this claw's own Cloudflare Tunnel is up and DNS resolves
 - `false` — tunnel process down or DNS failure (fault_class: "transport")
 - `"n/a"` — no peer uses `cloudflare_tunnel` (probe disabled/irrelevant)
+
+## Hermes federation qualification (spec149 / 1.8.0)
+
+The selected Hermes Border/member uses a private protected NCFED companion;
+OpenClaw remains the default when no runtime is selected. The initial receiver
+profile qualifies only the installed read-only subnet tool/skill; peer chat is
+conversation-only. HUD/mobile operator scope may delegate permitted subnet work,
+but no remote card, model claim or prompt grants operator authority. Missing harness
+metadata stays unknown. Preserve unknown/interrupted/cancellation-requested outcomes;
+never replay uncertain work. Hermes mobile media attachments are unavailable;
+voice-transcribed text and Siri voice origin are supported. Production Hermes
+model-guard/confinement remains unavailable and fails closed. See
+`docs/HERMES-FEDERATION.md` and spec149 verification before claiming broader support.

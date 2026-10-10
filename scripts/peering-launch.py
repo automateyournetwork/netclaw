@@ -11,8 +11,10 @@ def environment(path):
     writer = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(writer)
     values = writer.values(Path(path).read_text())
-    return {**os.environ, **{key: value for key, value in values.items()
-            if key.startswith(('NETCLAW_', 'N2N_', 'BGP_'))}}
+    sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mcp-servers/protocol-mcp'))
+    from bgp.federation.runtime import selected
+    return selected().environment({**os.environ, **{key: value for key, value in values.items()
+            if key.startswith(('NETCLAW_', 'N2N_', 'BGP_'))}})
 
 
 if __name__ == '__main__':

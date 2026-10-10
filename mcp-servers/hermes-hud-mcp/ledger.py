@@ -62,6 +62,8 @@ class Ledger:
                 result_digest TEXT, summary TEXT, created REAL NOT NULL);
               CREATE TABLE IF NOT EXISTS acknowledgments (request TEXT NOT NULL, conversation TEXT NOT NULL,
                 created REAL NOT NULL, PRIMARY KEY(request,conversation));
+              CREATE TABLE IF NOT EXISTS execution_scopes (request TEXT PRIMARY KEY,
+                scope TEXT NOT NULL, FOREIGN KEY(request) REFERENCES requests(id) ON DELETE CASCADE);
             ''')
             row = db.execute('SELECT value FROM metadata WHERE key=?', ('installation',)).fetchone()
             if row and row[0] != installation: raise HudError('owner_invalid')
@@ -120,11 +122,15 @@ class Ledger:
             db.execute('UPDATE conversations SET session=? WHERE id=? AND session IS NULL', (identifier(session),identifier(conversation)))
         return self.conversation(conversation)
 
-    def admit(self, conversation, request, nonce, text, deadline_ms):
+    def admit(self, conversation, request, nonce, text, deadline_ms, execution_scope=None):
         identifier(request); identifier(nonce); self.conversation(conversation)
         if not isinstance(text,str) or not text.strip() or len(text.encode()) > 65536: raise HudError('input_invalid')
         if not isinstance(deadline_ms,int) or not 1000 <= deadline_ms <= 3600000: raise HudError('input_invalid')
-        fingerprint = digest({'text':text,'conversation':conversation})
+        fingerprint = digest({'text':text,'conversation':conversation,**({'scope':execution_scope} if execution_scope is not None else {})})
+        if execution_scope is not None:
+            if not isinstance(execution_scope,dict) or execution_scope.get('installation')!=self.installation or execution_scope.get('request')!=request or execution_scope.get('conversation')!=conversation or execution_scope.get('body_digest')!=digest(text):
+                raise HudError('owner_invalid')
+            if not time.time()<execution_scope.get('deadline',0)<=time.time()+3601:raise HudError('input_invalid')
         with self.db() as db:
             old = db.execute('SELECT * FROM requests WHERE conversation=? AND nonce=?', (conversation,nonce)).fetchone()
             if old:
@@ -134,6 +140,8 @@ class Ledger:
             if db.execute('SELECT count(*) FROM requests WHERE state IN (?,?,?,?,?,?)', ACTIVE).fetchone()[0] >= 4: raise HudError('conversation_busy')
             now=time.time()
             db.execute('INSERT INTO requests VALUES (?,?,?,?,?,?,NULL,NULL,?,?)', (request,conversation,nonce,fingerprint,text,'submitting',now+deadline_ms/1000,now))
+            if execution_scope is not None:
+                db.execute('INSERT INTO execution_scopes VALUES (?,?)',(request,json.dumps(execution_scope,sort_keys=True)))
         return self.request(conversation,request), True
 
     def request(self, conversation, request):

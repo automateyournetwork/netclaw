@@ -1,5 +1,8 @@
 # Hermes in the NetClaw HUD
 
+> **1.8.0 / spec149:** Hermes Border/member federation and Mobile Ask Border now use a separate protected companion. See [Hermes federation setup, qualified tools and mobile limits](HERMES-FEDERATION.md). Production confinement is not newly qualified.
+
+
 NetClaw 1.7.0 (spec 148) connects the shared HUD to a dedicated, protected Hermes agent. Federation follows in spec 149. Mac and WSL live/browser acceptance is recorded in [the closure record](../specs/148-hermes-hud-integration/closure.md), including the exact qualified hosts and explicitly unverified environments.
 
 ## Install and launch
@@ -30,7 +33,8 @@ Native Windows launchers refuse Hermes with WSL guidance before starting OpenCla
 | Model and effort | Configured agent model; per-conversation model/effort selection unavailable |
 | Usage | Actual per-request provider counters when returned; otherwise unknown |
 | Attachments, APPLY/configuration execution | Unavailable in this release |
-| Hosted Avatar, n2n/iN2N | Unavailable; local Avatar remains supported, federation is spec 149 |
+| Hosted Avatar | Unavailable; local Avatar remains supported |
+| iN2N/eN2N | Available when the selected federation daemon is ready; bounded spec149 profile, see [guide](HERMES-FEDERATION.md) |
 
 Installed tools are not automatically safe to execute. The companion excludes shell, code, delegation, shared memory, arbitrary files/history, plugin tools, and unreviewed MCPs. New eligible tools require implementation review, policy qualification and tests. This deliberately narrow first qualification does **not** claim general Hermes network-tool parity. Direct terminal presentation and its existing endpoint/change controls remain separate.
 

@@ -211,7 +211,8 @@ CREATE TABLE IF NOT EXISTS auth_failure_bucket (
 
 class FederationManager:
     def __init__(self, db_path: Optional[str] = None, base_dir: Optional[str] = None):
-        base = Path(base_dir or os.path.expanduser("~/.openclaw/n2n"))
+        from .runtime import selected
+        base = Path(base_dir or os.environ.get('N2N_BASE_DIR') or selected().base)
         base.mkdir(parents=True, exist_ok=True)
         (base / "inventories").mkdir(exist_ok=True)
         (base / "results").mkdir(exist_ok=True)
@@ -224,6 +225,19 @@ class FederationManager:
         # Migrate existing DBs: add columns introduced after first release
         # (SQLite has no ADD COLUMN IF NOT EXISTS). Safe/idempotent.
         for table, col, decl in [
+            ('approval_request','request_binding','TEXT'),
+            ('approval_request','consumed_at','TEXT'),
+            ('delegated_task', 'execution_context', 'TEXT'),
+            ('delegated_task', 'installation_id', 'TEXT'),
+            ('delegated_task', 'runtime_kind', 'TEXT'),
+            ('delegated_task', 'client_request', 'TEXT'),
+            ('delegated_task', 'body_digest', 'TEXT'),
+            ('delegated_task', 'dispatch_started', 'INTEGER NOT NULL DEFAULT 0'),
+            ('delegated_task', 'execution_ref', 'TEXT'),
+            ('delegated_task', 'cancel_requested', 'INTEGER NOT NULL DEFAULT 0'),
+            ('delegated_task', 'usage_available', 'INTEGER NOT NULL DEFAULT 0'),
+            ('delegated_task', 'owner_generation', 'TEXT'),
+            ('delegated_task', 'client_features', 'TEXT'),
             ("federation_peer", "endpoint_updated_at", "TEXT"),
             # feature 056: discriminate internal vs external audit + link them
             ("remote_invocation_record", "channel_kind", "TEXT DEFAULT 'en2n'"),
@@ -286,6 +300,7 @@ class FederationManager:
         # feature 060: new tables (credential registry, rotation audit, per-source
         # failed-auth rate limiting). additive + idempotent (data-model.md §1/4/5).
         self._conn.executescript(SCHEMA_060)
+        self._conn.execute('CREATE UNIQUE INDEX IF NOT EXISTS task_request_owner ON delegated_task(direction,peer_identity,client_request) WHERE client_request IS NOT NULL')
         self._conn.commit()
         logger.info("FederationManager ready (db=%s)", self.db_path)
 

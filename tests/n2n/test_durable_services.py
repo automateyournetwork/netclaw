@@ -35,7 +35,7 @@ def test_mesh_unit_text_is_valid(monkeypatch):
     assert "Restart=always" in text
     assert "WantedBy=default.target" in text
     assert "@REPO@" not in text and "@HOME@" not in text   # substituted
-    assert "bgp-daemon-v2.py" in text
+    assert "federation-control.py\" run" in text
 
 
 def test_member_unit_text_binds_env_and_restart():

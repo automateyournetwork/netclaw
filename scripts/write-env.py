@@ -39,6 +39,12 @@ def values(text):
         if isinstance(decoded, str):
             result[match[1]] = decoded
         else:
+            if raw.startswith(('[','{')):
+                try:
+                    json.loads(raw)
+                    result[match[1]]=raw
+                    continue
+                except ValueError:pass
             # Preserve existing simple/exported/shell-quoted assignments;
             # shlex parses only and never executes expansions or commands.
             result[match[1]] = ' '.join(shlex.split(raw, comments=True))

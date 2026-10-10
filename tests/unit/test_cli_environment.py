@@ -33,3 +33,39 @@ def test_failed_cli_write_preserves_existing_file(tmp_path):
                           env=env,capture_output=True,text=True)
     assert result.returncode != 0
     assert path.read_text() == 'OTHER=preserved\n'
+
+
+def test_descriptor_only_cli_uses_custom_hermes_home(tmp_path):
+    import json
+    home=tmp_path/'Hermes with spaces';home.mkdir()
+    config=tmp_path/'xdg/netclaw';config.mkdir(parents=True)
+    descriptor=config/'runtime.json';descriptor.write_text(json.dumps({'schemaVersion':1,'kind':'hermes','home':str(home)}));descriptor.chmod(0o600)
+    env={k:v for k,v in os.environ.items() if k not in ('NETCLAW_RUNTIME','HERMES_HOME','OPENCLAW_HOME','OPENCLAW_STATE_DIR','OPENCLAW_CONFIG_PATH','NETCLAW_BGP_API')}
+    env.update(HOME=str(tmp_path),XDG_CONFIG_HOME=str(tmp_path/'xdg'))
+    result=subprocess.run(['python3',str(ROOT/'scripts/federation-control.py'),'env'],env=env,capture_output=True,text=True)
+    assert result.returncode==0,result.stderr
+    assert "NETCLAW_RUNTIME=hermes" in result.stdout and str(home) in result.stdout
+    assert not (home/'netclaw-hud').exists(), 'status/selection must not create a runtime'
+
+
+def test_owned_daemon_start_status_stop_and_foreign_home_isolation(tmp_path):
+    import json,socket,time,sys
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1',0));port=listener.getsockname()[1]
+    home=tmp_path/'openclaw';home.mkdir(mode=0o700)
+    (home/'.env').write_text(f'BGP_API_PORT={port}\nBGP_LISTEN_PORT=0\nNETCLAW_DRY_RUN=true\nN2N_ENABLED=false\nNETCLAW_BGP_PEERS=[]\n')
+    env=dict(os.environ,HOME=str(tmp_path),XDG_CONFIG_HOME=str(tmp_path/'config'),NETCLAW_RUNTIME='openclaw',OPENCLAW_STATE_DIR=str(home))
+    for key in ('NETCLAW_BGP_API','HERMES_HOME','NETCLAW_DAEMON_LOCK_FD'):env.pop(key,None)
+    cmd=[sys.executable,str(ROOT/'scripts/federation-control.py')]
+    try:
+        started=subprocess.run(cmd+['start'],env=env,capture_output=True,text=True,timeout=40)
+        assert started.returncode==0,started.stderr+(home/'netclaw-federation/daemon.log').read_text()[-2000:]
+        status=json.loads(started.stdout);assert status['federation_ready'] is False and status['n2n_enabled'] is False and status['harness_type']=='openclaw'
+        other=dict(env,OPENCLAW_STATE_DIR=str(tmp_path/'different'))
+        assert subprocess.run(cmd+['status'],env=other,capture_output=True).returncode!=0
+        assert subprocess.run(cmd+['stop'],env=other,capture_output=True).returncode==0
+        assert subprocess.run(cmd+['status'],env=env,capture_output=True).returncode==0
+    finally:
+        stopped=subprocess.run(cmd+['stop'],env=env,capture_output=True,text=True,timeout=15)
+        assert stopped.returncode==0,stopped.stderr
+    assert subprocess.run(cmd+['status'],env=env,capture_output=True).returncode!=0

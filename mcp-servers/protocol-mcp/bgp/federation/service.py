@@ -74,6 +74,10 @@ class FederationService:
         self.display_name = display_name or os.uname().nodename
         self.refresh_s = refresh_s
         self.manager = manager or FederationManager()
+        from .runtime import selected
+        self.runtime = selected()
+        self.execution_broker = None
+        self.hermes_runtime = None
         self.inventory = InventoryBuilder(self.manager)
         self.audit = Auditor(self.manager)
         self.channels: Dict[str, FederationChannel] = {}
@@ -1359,6 +1363,8 @@ class FederationService:
         Border-driven heartbeat loop (T011) — the BASE_FLOOR-equivalent
         health-monitoring guarantee for a member that never runs a skill
         (D5/T010)."""
+        member=self.risk.get_member(member_id)
+        if member:ch.owner_generation=member['key_fingerprint']
         def _deregister(closed_ch):
             if self.edge_channels.get(member_id) is closed_ch:
                 self.edge_channels.pop(member_id, None)
@@ -1569,7 +1575,15 @@ class FederationService:
                           decision="enrolled", outcome="success", channel_kind="in2n")
         logger.info("Edge node %s enrolled + active — confirm fingerprint out of band: %s",
                    member_id, res.get("enroll_fingerprint"))
-        return res
+        return {**res,'border':self._edge_border_capabilities()}
+
+    def _edge_border_capabilities(self):
+        from .member_inventory import _name
+        return {'harness':self.inventory._harness_card(),'model':_name(self.inventory._local_primary_model()),
+                'capabilities':{'text':True,'voice_text':True,'attachments':self.runtime.kind!='hermes',
+                    'task_outcomes_v1':True,'request_recovery':True},
+                'qualified_targets':['subnet-calculator'] if self.runtime.kind=='hermes' else None,
+                'minimum_mobile_version':'1.0.3+6' if self.runtime.kind=='hermes' else None}
 
     async def _edge_on_hello(self, channel, params):
         """Reconnect: authenticate against the pinned key, mirroring
@@ -1614,7 +1628,7 @@ class FederationService:
                     member_id, self._edge_channel_source(channel),
                     self.edge_queue.depth(member_id))
         return {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
-               "member_state": "active"}
+               "member_state": "active",'border':self._edge_border_capabilities()}
 
     @staticmethod
     def _edge_channel_source(channel) -> Optional[str]:
@@ -1742,12 +1756,25 @@ class FederationService:
         # since run_agent_turn's own _normalize_origin() (spec 116) already
         # treats anything it doesn't recognize as None.
         origin = params.get("origin")
+        if not isinstance(text,str) or len(text.encode())>65536:raise RpcError(-32602,'text exceeds the supported limit')
+        if self.runtime.kind=='hermes' and attachment is not None:
+            raise RpcError(-32602,'capability_unsupported: photo/video attachments are unavailable on this Hermes Border. Send text or a voice transcription.')
         if not text and not attachment:
             raise RpcError(-32602, "text or attachment required")
         member_id = channel.member_id
+        generation=getattr(channel,'owner_generation',None)
+        member=self.risk.get_member(member_id)
+        if self.runtime.kind=='hermes' and (not member or member['node_type']!='edge' or not generation or member['key_fingerprint']!=generation or member['state'] in ('removed','quarantined')):
+            raise RpcError(-32023,'current enrolled device ownership required')
+        conversation=params.get('conversation_id','mobile')
+        if not isinstance(conversation,str) or not 1<=len(conversation)<=128:raise RpcError(-32602,'invalid conversation id')
+        features=params.get('client_capabilities',[])
+        features=['task_outcomes_v1'] if isinstance(features,list) and 'task_outcomes_v1' in features else []
         task_id = self.tasks.create(direction="inbound", peer_identity=member_id,
                                     target_type="edge_ask", target_name="ask",
-                                    input_text=text)
+                                    input_text=text,client_request=params.get('request_id'),owner_generation=generation,client_features=features,
+                                    request_payload={'origin':'voice' if origin=='voice' else None,'attachment':attachment,'conversation':conversation})
+        if task_id in self.tasks._workers or self.tasks.status(task_id)['state']!='submitted':return {'task_id':task_id}
 
         async def worker(progress):
             from .gateway import run_agent_turn
@@ -1793,6 +1820,19 @@ class FederationService:
                 # The phone's budget must therefore always be >= the member
                 # budget it may have to wait on.
                 timeout_s = self._edge_ask_timeout()
+                execution=None
+                if self.runtime.kind=='hermes':
+                    from .execution import conversation_id
+                    session_key=conversation_id(self.runtime.installation,member_id+':'+generation,conversation)
+                    def current(_):
+                        current_member=self.risk.get_member(member_id)
+                        task=self.tasks.status(task_id)
+                        return bool(current_member and current_member['key_fingerprint']==generation and current_member['node_type']=='edge'
+                            and current_member['state'] not in ('removed','quarantined') and task['state'] in ('submitted','working') and not task.get('cancel_requested'))
+                    execution=self.execution_context(requester='edge:'+member_id+':'+generation,origin='operator',request=task_id,conversation=session_key,
+                        target_type='edge_ask',target='ask',prompt=prompt,profile='operator',authorize=current,task_id=task_id,
+                        timeout_s=timeout_s,presentation_origin=origin)
+                    execution['progress']=lambda detail: asyncio.create_task(self._edge_notify_progress(member_id,task_id,detail))
 
                 def on_stall(waited_s):
                     # The turn is alive but slow. Tell the phone rather than
@@ -1809,7 +1849,7 @@ class FederationService:
                     prompt, session_key=session_key, untrusted=False,
                     message_file=message_file,
                     timeout_s=timeout_s, on_stall=on_stall,
-                    origin=origin)
+                    origin=origin,**({'execution':execution} if execution else {}))
             finally:
                 if message_file:
                     try:
@@ -1840,6 +1880,7 @@ class FederationService:
             except asyncio.CancelledError:
                 pass
             result = self.tasks.result(task_id)
+            result=self.tasks.project_edge(task_id,result)
             ch = self.edge_channels.get(member_id)
             if ch is None:
                 logger.info(
@@ -1850,6 +1891,7 @@ class FederationService:
                 logger.warning(
                     "edge ask_result for %s not pushed — channel is not trusted", member_id)
                 return
+            if not self.tasks.generation_matches(task_id,member_id,getattr(ch,'owner_generation',None)):return
             if ch is not channel:
                 # Normal after a reconnect. Worth recording, because a silent
                 # skip here is exactly what hid this bug.
@@ -1864,6 +1906,8 @@ class FederationService:
                     # instead of showing a bare "failed" with no text.
                     "error": result.get("error"),
                     "tokens_used": result.get("tokens_used"),
+                    'outcome_state':result.get('outcome_state'),'cancel_requested':result.get('cancel_requested'),
+                    'cancellation_confirmed':result.get('cancellation_confirmed'),'may_have_executed':result.get('may_have_executed'),
                 })
             except Exception as e:
                 logger.warning("edge ask_result push to %s failed: %s", member_id, e)
@@ -1917,7 +1961,7 @@ class FederationService:
             self.risk.set_component_scan(member_id, verdict)
         return ok, verdict
 
-    async def route_and_delegate(self, capability: str, input_text: str) -> dict:
+    async def route_and_delegate(self, capability: str, input_text: str, *, execution_scope=None) -> dict:
         """Select the owning member (deterministic) and delegate the work as an
         async task over its channel. Returns {task_id, member_id} or an error.
 
@@ -1936,7 +1980,7 @@ class FederationService:
         member = self.risk.get_member(member_id)
         if member and member.get("node_type") == "edge":
             return await self.delegate_to_edge(member_id, capability)
-        return await self.delegate_to_member(member_id, capability, input_text)
+        return await self.delegate_to_member(member_id, capability, input_text, **({"execution_scope":execution_scope} if execution_scope else {}))
 
     async def delegate_to_edge(self, member_id: str, capability: str) -> dict:
         """Border-requested capture (feature 068, US3): mirrors
@@ -2067,7 +2111,7 @@ class FederationService:
             return False
 
     async def delegate_to_member(self, member_id: str, capability: str,
-                                 input_text: str) -> dict:
+                                 input_text: str, *, execution_scope=None) -> dict:
         from .channel import RpcError
         from . import controls, posture
 
@@ -2103,13 +2147,23 @@ class FederationService:
             return {"error": "member_unreachable", "enforcement": enforcement,
                     "message": f"member {member_id} has no live channel "
                                f"(and could not be cold-started)"}
+        import uuid
+        request_id=str(uuid.uuid4())
+        body={"skill":capability,"input_text":input_text,"request_id":request_id}
+        if execution_scope:
+            body['deadline']=execution_scope.deadline
+            body['origin']='external' if execution_scope.origin=='external' else 'internal'
+        self.tasks.outbound_intent(member_id,'n2n/tasks/submit',body,request=request_id)
         try:
-            resp = await ch.call("n2n/tasks/submit",
-                                 {"skill": capability, "input_text": input_text}, timeout=30.0)
+            resp = await ch.call("n2n/tasks/submit",body,timeout=min(30.0,max(.001,execution_scope.deadline-time.time())) if execution_scope else 30.0)
+            self.tasks.settle_intent(request_id,'acknowledged',resp.get('task_id'))
         except RpcError as e:
+            self.tasks.settle_intent(request_id,'refused')
             return {"error": "out_of_scope" if e.code == -32031 else "delegation_failed",
                     "code": e.code, "message": e.message, "member_id": member_id,
                     "enforcement": enforcement}
+        except BaseException:
+            self.tasks.settle_intent(request_id,'outcome_unknown');raise
         task_id = resp.get("task_id")
         if task_id:
             self.tasks.record_outbound(task_id, member_id, "skill", capability)
@@ -2233,6 +2287,61 @@ class FederationService:
             raise
 
 
+    async def start_runtime(self):
+        """Explicit owned daemon/member lifecycle, never a descriptor probe."""
+        from .runtime import selected
+        from .execution import ExecutionBroker
+        from .hermes_runtime import HermesRuntime, ACTIVE
+        self.runtime=selected(initialize=True)
+        self.tasks.recover()
+        if self.runtime.kind!='hermes':return
+        self.execution_broker=ExecutionBroker(self.manager,self.runtime)
+        from .operator import OperatorBridge
+        self.execution_broker.operator=OperatorBridge(self,self.execution_broker)
+        await self.execution_broker.start()
+        try:
+            self.hermes_runtime=HermesRuntime(self.runtime,self.execution_broker)
+            await self.hermes_runtime.start()
+            ACTIVE[self.runtime.installation]=self.hermes_runtime
+        except BaseException:
+            await self.execution_broker.close();raise
+
+    async def stop_runtime(self):
+        from .hermes_runtime import ACTIVE
+        if self.hermes_runtime:
+            ACTIVE.pop(self.runtime.installation,None)
+            await self.hermes_runtime.close()
+        if self.execution_broker:await self.execution_broker.close()
+
+    async def reconcile_hermes_task(self,task_id):
+        """Read an existing owned run; never recreate permits or submit work."""
+        row=self.manager._conn.execute('SELECT * FROM delegated_task WHERE task_id=?',(task_id,)).fetchone()
+        if not row or row['state']!='outcome_unknown' or row['runtime_kind']!='hermes' or row['installation_id']!=self.runtime.installation or not self.hermes_runtime:return
+        try:
+            context=json.loads(row['execution_context'])
+            result=await self.hermes_runtime.call('request_status',conversationId=context['conversation'],requestId=context['request'])
+            state=result.get('state')
+            if state not in ('completed','failed','cancelled','interrupted'):return
+            payload={'output_text':result.get('output','')}
+            if state!='completed':payload['error']='Hermes run '+state
+            reference=self.audit.store_result(task_id,payload)
+            usage=(result.get('usage') or {}).get('total_tokens')
+            self.tasks._set(task_id,state=state,result_ref=reference,tokens_used=usage or 0,usage_available=int(isinstance(usage,int)))
+        except Exception:
+            return # preserved uncertainty, never an implied failure/cancellation
+
+    def execution_context(self, *, requester, origin, request, conversation, target_type, target, prompt, profile, authorize, task_id=None, grant=None, approval=None,timeout_s=None,presentation_origin=None):
+        from .execution import ExecutionScope, digest, Refused
+        if self.runtime.kind!='hermes':return None
+        if not self.execution_broker or not self.hermes_runtime:raise Refused('selected Hermes federation runtime is not ready')
+        scope=ExecutionScope(installation=self.runtime.installation,requester=requester,origin=origin,request=request,
+                             conversation=conversation,target_type=target_type,target=target,body_digest=digest(prompt),
+                             deadline=time.time()+min(3600,timeout_s or self.invoker.skill_timeout),profile=profile,grant=str(grant) if grant else None,approval=approval,
+                             presentation_origin='voice' if presentation_origin=='voice' else None)
+        permit=self.execution_broker.issue(scope,authorize)
+        callback=(lambda:self.tasks.mark_dispatch(task_id,scope.as_dict(),self.runtime,scope.request)) if task_id else None
+        return {'scope':scope,'permit':permit,'on_dispatch':callback}
+
     async def _in2n_member_submit(self, channel, params):
         """Member side: the Border delegates a task. Enforce scope (FR-023),
         then run it as a background task reusing the 053 TaskManager + gateway
@@ -2248,15 +2357,20 @@ class FederationService:
         border = (getattr(channel, "peer_identity", None)
                   or getattr(channel, "member_id", None) or "border")
         self.member_last_activity = time.time()   # reset idle-exit timer (cold/on-demand)
-        if self.member_scope and skill not in self.member_scope:
+        if skill not in self.member_scope:
             self.audit.record(direction="inbound", peer_identity=border,
                               target_type="skill", target_name=skill,
                               decision="out_of_scope", outcome="denied", channel_kind="in2n")
             raise RpcError(IN2N_ERR_OUT_OF_SCOPE,
                            f"'{skill}' is outside this member's scope")
+        deadline=params.get('deadline')
+        import math
+        if deadline is not None and (not isinstance(deadline,(int,float)) or isinstance(deadline,bool) or not math.isfinite(deadline) or deadline<=time.time()):
+            raise RpcError(-32602,'invalid or expired parent deadline')
+        timeout_s=min(self.invoker.skill_timeout,max(.001,deadline-time.time())) if deadline else self.invoker.skill_timeout
         tm = self.tasks
         task_id = tm.create(direction="inbound", peer_identity=border,
-                            target_type="skill", target_name=skill, input_text=input_text)
+                            target_type="skill", target_name=skill, input_text=input_text,client_request=params.get('request_id'),request_payload={'origin':params.get('origin','internal'),'deadline':deadline})
 
         async def worker(progress):
             progress("running skill")
@@ -2268,6 +2382,12 @@ class FederationService:
             if self.risk.role() == "member":
                 prompt = (f"Execute the '{skill}' skill for the following request "
                           f"and return only the result:\n\n{input_text}")
+                from .execution import conversation_id
+                inherited='external' if params.get('origin')=='external' else 'internal'
+                execution=self.execution_context(requester=border,origin=inherited,request=task_id,
+                    conversation=conversation_id(self.runtime.installation or str(self.manager.base_dir),border,task_id),
+                    target_type='skill',target=skill,prompt=prompt,profile='subnet',task_id=task_id,timeout_s=timeout_s,
+                    authorize=lambda _:self.border_channel is channel and not getattr(channel,'_closed',True) and skill in self.member_scope)
                 # Session key is per TASK, not per skill. Keying on the skill name
                 # alone (`in2n-{skill}`) had two faults, found while testing
                 # spec 080's Fortinet skills:
@@ -2285,7 +2405,8 @@ class FederationService:
                 # session file per delegation rather than per skill.
                 output, tokens = await run_agent_turn(
                     prompt, session_key=f"in2n-{skill}-{task_id}",
-                    timeout_s=self.invoker.skill_timeout, local=True, model=member_model)
+                    timeout_s=timeout_s, local=True, model=member_model,
+                    **({'untrusted':True} if inherited=='external' else {}),**({'execution':execution} if execution else {}))
             else:
                 output, tokens = await self.invoker._exec_skill_gateway(skill, input_text)
             self.audit.record(direction="inbound", peer_identity=border,

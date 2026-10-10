@@ -1,0 +1,333 @@
+{
+  "url": "https://automateyournetwork.com/netclaw/good-news-for-hermes-users/",
+  "activatedAt": "2026-10-10T22:21:38.478214+00:00",
+  "changedFiles": 54,
+  "checks": [
+    {
+      "path": "/content-index.json",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/search-index.json",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/netclaw/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/latest/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/mcp/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/2026/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/feed/index.xml",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/timeline/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/writing/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/ai/aone-systems-thinking-and-hello-world-for-ai/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-adds-splunk-and-datadog-enterprise-observability-through-natural-language/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-adds-zscaler-and-cloudflare-zero-trust-security-through-natural-language/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/bisque-netclaw-gets-a-bookshelf-an-offline-agentic-rag-knowledge-base/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-gets-jenkins-gitlab-and-atlassian-superpowers-a-human-ai-collaboration-story/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/the-day-the-network-became-self-aware-building-a-multi-human-multi-netclaw-bgp-agent-mesh/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-gets-long-term-memory-community-contribution-brings-mempalace-integration/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/twenty-three-specs-in-six-days-netclaw-coverage-roadmap/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/optimizing-netclaws-soul-from-60k-to-8k-characters-with-modular-architecture/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/8-hours-of-netclaw-by-netclaw/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-adds-pagerduty-integration-ai-powered-incident-management-for-network-engineers/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/my-network-agent-lives-in-my-pocket-now-and-nobody-is-in-the-middle/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-adds-blender-3d-network-topology-visualization/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/giving-netclaw-eyes-and-hands-from-browser-control-to-full-desktop-control/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/i-rebuilt-a-real-cisco-network-as-a-3d-world-inside-netclaws-new-unreal-engine-5-8-integration/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/breakthrough-netclaw-brings-your-network-to-life-in-stunning-3d-with-blender-integration/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-now-has-direct-access-to-ciscos-official-meraki-and-catalyst-center-api-documentation/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/the-virtual-network-trifecta-netclaw-now-supports-gns3-cml-and-containerlab/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/claws-that-prove-who-they-are-certificate-security-comes-to-netclaw-federation/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaws-assemble-introducing-n2n-federation-and-the-ncfed-protocol/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/introducing-defenseclaw-enterprise-security-for-netclaw/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/i-taught-an-ai-agent-to-speak-ospf-its-now-my-routers-neighbour/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-adds-hashicorp-terraform-and-vault-infrastructure-as-code-meets-natural-language/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/wont-you-be-my-neighbor-part-2-the-multi-protocol-agent/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-ip-fabric-network-assurance-meets-ai-powered-automation/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-goes-spec-driven-5-new-capabilities-42-new-tools-and-a-constitution/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/6-days-of-netclaw-by-netclaw/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/local-raft-fine-tuning-llama3-with-domain-specific-knowledge-locally-and-privately/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-integrates-palo-alto-networks-prisma-sd-wan-complete-fabric-visibility-through-natural-language/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/netclaw-x-cisco-webex-your-networks-digital-coworker-just-got-multichannel/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/uncategorized/11892-probabilities-48-cents-what-happened-when-i-let-jev-grade-all-227-of-netclaws-skills/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/2026/10/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/mcp/i-saw-something-in-mcp/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/netclaw/good-news-for-hermes-users/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/netclaw/netclaw-1-1-0/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/netclaw/chatgpt-dot-mcp-plugin/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/netclaw/equinix-fabric-network-edge/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    },
+    {
+      "path": "/images/hermes-1-8/05-request-to-verified-result.webp",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/images/hermes-1-8/02-mix-and-match-federation.webp",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/images/hermes-1-8/03-msp-multitenant-architecture.webp",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/images/hermes-1-8/01-netclaw-harness-choice.webp",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/images/hermes-1-8/04-capability-card-harness-identity.webp",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": false
+    },
+    {
+      "path": "/blogs/running-cisco-antares-1b-locally-macos-apple-silicon/",
+      "status": 200,
+      "sha256Matches": true,
+      "knownHostingInjectionExcluded": true
+    }
+  ],
+  "productionAnalyticsPreserved": true,
+  "publicRootOwnerGroupPreserved": true
+}

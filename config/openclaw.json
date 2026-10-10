@@ -686,10 +686,14 @@
       }
     },
     "n2n-mcp": {
+      "transport": "stdio",
       "command": "python3",
       "args": [
         "-u",
-        "mcp-servers/n2n-mcp/server.py"
+        "scripts/component-launch.py",
+        "n2n",
+        "--server",
+        "n2n-mcp"
       ],
       "env": {
         "BGP_DAEMON_API": "${BGP_DAEMON_API:-http://127.0.0.1:8179}"

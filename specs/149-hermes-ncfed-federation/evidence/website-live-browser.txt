@@ -1,0 +1,14 @@
+
+Running 3 tests using 3 workers
+
+(node:76535) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:76536) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:76537) Warning: The 'NO_COLOR' env is ignored due to the 'FORCE_COLOR' env being set.
+(Use `node --trace-warnings ...` to show where the warning was created)
+  ✓  3 tests/hermes-release.spec.ts:4:3 › Hermes article has five usable diagrams and release links at 390px (1.5s)
+  ✓  1 tests/hermes-release.spec.ts:4:3 › Hermes article has five usable diagrams and release links at 1440px (2.1s)
+  ✓  2 tests/hermes-release.spec.ts:24:1 › Hermes article enters NetClaw, Latest, homepage, RSS, search and sitemap (5.3s)
+
+  3 passed (6.2s)
