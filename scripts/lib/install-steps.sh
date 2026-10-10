@@ -299,6 +299,7 @@ echo ""
 
 # ── Step 3: Runtime onboarding (provider, gateway, channels) ────
 core_onboard() {
+_import_runtime_env || return 1
 # ── Hermes: `hermes setup` wizard + `hermes gateway install` ──
 if [ "$RUNTIME" = "hermes" ]; then
     log_step "Running Hermes setup..."
@@ -318,8 +319,9 @@ if [ "$RUNTIME" = "hermes" ]; then
 
     if command -v hermes &> /dev/null; then
         hermes setup || {
-            log_warn "hermes setup exited with an error."
+            log_error "hermes setup failed; onboarding is incomplete."
             log_warn "You can re-run it later: hermes setup"
+            return 1
         }
         # Install the gateway as a background service (analogue to
         # openclaw's --install-daemon). Best-effort — the agent still
@@ -331,6 +333,7 @@ if [ "$RUNTIME" = "hermes" ]; then
     else
         log_error "hermes command not found — skipping setup"
         log_warn "After fixing your PATH, run: hermes setup"
+        return 1
     fi
 
     echo ""
@@ -342,8 +345,8 @@ log_step "Running OpenClaw onboard..."
 
 # Already onboarded? Don't drag the user through the wizard again just to
 # add components. NETCLAW_FORCE_ONBOARD=1 re-runs it regardless.
-if [ -f "$HOME/.openclaw/openclaw.json" ] && [ "${NETCLAW_FORCE_ONBOARD:-0}" != "1" ]; then
-    log_info "OpenClaw is already onboarded (~/.openclaw/openclaw.json exists) — skipping the wizard."
+if [ -f "$RUNTIME_CONFIG" ] && [ "${NETCLAW_FORCE_ONBOARD:-0}" != "1" ]; then
+    log_info "OpenClaw config exists ($RUNTIME_CONFIG) — skipping the wizard."
     log_info "Reconfigure provider/gateway/channels anytime: openclaw onboard --install-daemon"
     echo ""
     return 0
@@ -353,17 +356,21 @@ echo ""
 echo "  This is OpenClaw's built-in setup wizard."
 echo "  You'll pick your AI provider, set up the gateway, and connect"
 echo "  channels like Slack, Discord, Telegram, WebEx, etc."
+echo "  Filled .env settings were imported above; reuse detected credentials."
+echo "  Credentials alone do not choose a model or configure the gateway."
 echo ""
 
 if command -v openclaw &> /dev/null; then
-    openclaw onboard --install-daemon || {
-        log_warn "openclaw onboard exited with an error."
+    OPENCLAW_STATE_DIR="$RUNTIME_HOME" OPENCLAW_CONFIG_PATH="$RUNTIME_CONFIG" openclaw onboard --install-daemon || {
+        log_error "openclaw onboard failed; onboarding is incomplete."
         log_warn "You can re-run it later: openclaw onboard --install-daemon"
+        return 1
     }
     log_info "OpenClaw onboard complete"
 else
     log_error "openclaw command not found — skipping onboard"
     log_warn "After fixing your PATH, run: openclaw onboard --install-daemon"
+    return 1
 fi
 
 echo ""
@@ -2732,7 +2739,7 @@ else
     python3 "$NETCLAW_DIR/scripts/install-mcp-config.py" \
         --repo "$NETCLAW_DIR" --runtime-root "$NETCLAW_RUNTIME_ROOT" \
         --components "${SUCCESSFUL_COMPONENTS:-}" --output "$generated_config" \
-        --config "$OPENCLAW_DIR/openclaw.json" || return 1
+        --config "$RUNTIME_CONFIG" || return 1
 fi
 else
     log_warn "config/openclaw.json not found in repo; MCP registration skipped"
@@ -2832,8 +2839,8 @@ fi
 log_info "Environment variables written to $OPENCLAW_ENV"
 
 # Verify the config is correct (OpenClaw only — Hermes owns its own config.yaml)
-if [ "$RUNTIME" = "openclaw" ] && [ -f "$OPENCLAW_DIR/openclaw.json" ]; then
-    if grep -q '"mode": "local"' "$OPENCLAW_DIR/openclaw.json" 2>/dev/null; then
+if [ "$RUNTIME" = "openclaw" ] && [ -f "$RUNTIME_CONFIG" ]; then
+    if grep -q '"mode": "local"' "$RUNTIME_CONFIG" 2>/dev/null; then
         log_info "Gateway config verified: mode=local"
     else
         log_warn "openclaw.json may be missing gateway.mode=local"
