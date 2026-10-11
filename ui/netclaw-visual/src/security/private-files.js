@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import dotenv from 'dotenv';
+import { withManagementConfigurationLock } from '../management/shared-lock.js';
 
 export function regularTarget(file) {
   try {
@@ -47,6 +48,10 @@ export function parseEnvData(text) {
 }
 
 export function updateEnvironment(file, updates) {
+  return withManagementConfigurationLock(path.dirname(file), () => updateEnvironmentLocked(file, updates));
+}
+
+function updateEnvironmentLocked(file, updates) {
   if (!updates || typeof updates !== 'object' || Array.isArray(updates)) throw new Error('Expected environment assignments');
   for (const [key, value] of Object.entries(updates)) {
     if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(key) || typeof value !== 'string' || /[\r\n\0]/.test(value)) {

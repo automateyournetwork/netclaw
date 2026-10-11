@@ -1,0 +1,24 @@
+# Only these reviewable runtime assets belong in the extension package.
+**/*
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
+!PRIVACY.md
+!dist/extension.cjs
+!dist/extension.cjs.LEGAL.txt
+!dist/avatar.js
+!dist/avatar.js.LEGAL.txt
+!dist/canvas.js
+!resources/icon.png
+!resources/activity.svg
+!resources/workbench.css
+!resources/chat.js
+!resources/rag.js
+!resources/pal/john.glb
+!resources/pal/john.png
+!resources/pal/lobster.glb
+!resources/pal/lobster.png
+!resources/pal/manifest.json
+!resources/screenshots/rag.png
+!resources/screenshots/canvas.png

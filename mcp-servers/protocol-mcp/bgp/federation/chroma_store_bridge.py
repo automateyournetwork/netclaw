@@ -16,6 +16,7 @@ feature needs so rag-mcp's own tools work on the same on-disk data too.
 
 import importlib.util
 import os
+from contextlib import contextmanager
 from pathlib import Path
 
 _registry_mod = None
@@ -65,6 +66,18 @@ def chroma_store():
     chroma_dir = rag_data_dir() / "chroma"
     chroma_dir.mkdir(parents=True, exist_ok=True)
     return _chroma_module().ChromaStore(str(chroma_dir))
+
+
+@contextmanager
+def publication_lock():
+    """Do not block the federation event loop behind an active RAG ingestion."""
+    directory = rag_data_dir()
+    directory.mkdir(parents=True, exist_ok=True)
+    module = _load_module('_n2n_rag_coordination', _rag_mcp_dir() / 'storage' / 'coordination.py')
+    with module.StoreLock(directory).hold(blocking=False) as acquired:
+        if not acquired:
+            raise RuntimeError('RAG store busy; retain the existing replica and retry after indexing completes')
+        yield
 
 
 def chunk_count_for(collection: str) -> int:

@@ -27,6 +27,8 @@ from embeddings.embedder import Embedder, ModelsNotCachedError
 from storage.bm25_store import BM25Store
 from storage.chroma_store import ChromaStore
 from storage.registry import Registry
+from storage.coordination import StoreLock
+from functools import wraps
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 log = logging.getLogger("rag-mcp")
@@ -41,16 +43,27 @@ registry = Registry(config.DB_PATH)
 embedder = Embedder(config.EMBEDDING_MODEL)
 chroma = ChromaStore(config.CHROMA_DIR)
 bm25 = BM25Store(config.BM25_DIR)
+store_lock = StoreLock(config.DATA_DIR)
+
+
+def _store_operation(fn):
+    @wraps(fn)
+    def run(*args, **kwargs):
+        with store_lock.hold():
+            return fn(*args, **kwargs)
+    return run
 
 # Startup integrity sweep: purge partial index entries of interrupted ingests.
-for _row in registry.sweep_interrupted():
-    log.warning(f"Sweeping interrupted ingestion: {_row['id']} ({_row['title']})")
-    try:
-        bm25_chunks = chroma.get_document_chunks(_row["collection"], _row["id"])
-        bm25.remove_chunks(_row["collection"], [c["chunk_id"] for c in bm25_chunks])
-    except Exception:
-        log.exception("Could not purge interrupted BM25 entries for %s", _row["id"])
-    chroma.delete_document(_row["collection"], _row["id"])
+with store_lock.hold(blocking=False) as _recovery_owned:
+    # A HUD progress poll or editor connection must never sweep a live writer.
+    for _row in registry.sweep_interrupted() if _recovery_owned else []:
+        log.warning(f"Sweeping interrupted ingestion: {_row['id']} ({_row['title']})")
+        try:
+            bm25_chunks = chroma.get_document_chunks(_row["collection"], _row["id"])
+            bm25.remove_chunks(_row["collection"], [c["chunk_id"] for c in bm25_chunks])
+        except Exception:
+            log.exception("Could not purge interrupted BM25 entries for %s", _row["id"])
+        chroma.delete_document(_row["collection"], _row["id"])
 
 from functools import wraps
 from fastmcp.utilities.async_utils import call_sync_fn_in_threadpool
@@ -190,6 +203,7 @@ def _failed_ingest(doc_id: str, code: str, message: str) -> Dict[str, Any]:
     return error_response(code, message)
 
 
+@_store_operation
 def _do_ingest(
     file_path: str,
     doc_type: str = "other",
@@ -198,6 +212,8 @@ def _do_ingest(
     source: Optional[str] = None,
     *,
     _replace_id: Optional[str] = None,
+    replace_existing: bool = True,
+    expected_document_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     path = Path(file_path).expanduser()
     if doc_type not in config.DOC_TYPES:
@@ -233,6 +249,10 @@ def _do_ingest(
     # Stage replacements under a new ID. The last ready version must remain
     # available if parsing, embedding, copying or index persistence fails.
     prior = registry.get(_replace_id) if _replace_id else registry.find_by_title(parsed.title)
+    if expected_document_id is not None and (prior is None or prior['id'] != expected_document_id):
+        return error_response('STALE_DOCUMENT', 'The document changed since review.')
+    if prior and not replace_existing:
+        return error_response('REPLACEMENT_REQUIRED', 'A document with this title already exists.')
     reindexed = bool(prior and (_replace_id or prior["content_hash"] != parsed.content_hash))
     retiring = {row['id']: row for row in (prior if reindexed else None, existing)
                 if row is not None}
@@ -312,11 +332,14 @@ def rag_ingest(
     title: Optional[str] = None,
     version: Optional[str] = None,
     source: Optional[str] = None,
+    replace_existing: bool = True,
+    expected_document_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Ingest a document file (PDF/MD/HTML/TXT/DOCX/XLSX/PPTX/VSDX, plus legacy
     DOC/XLS/PPT/VSD via LibreOffice) into the knowledge base. doc_type is one of
     vendor|standard|customer|install-guide|other."""
-    return _do_ingest(file_path, doc_type, title, version, source)
+    return _do_ingest(file_path, doc_type, title, version, source,
+                      replace_existing=replace_existing, expected_document_id=expected_document_id)
 
 
 def _do_ingest_base64(
@@ -546,6 +569,7 @@ def _passes_date_filters(meta: Dict[str, Any], filters: Optional[Dict[str, Any]]
     return True
 
 
+@_store_operation
 def _do_search(
     query: str,
     k: int = 5,
@@ -763,6 +787,7 @@ def rag_stats() -> Dict[str, Any]:
     return _do_stats()
 
 
+@_store_operation
 def _do_update_metadata(
     document_id: str,
     doc_type: Optional[str] = None,
@@ -802,6 +827,7 @@ _CONFIRM_NOTICE = (
 )
 
 
+@_store_operation
 def _do_delete(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     row = registry.get(document_id)
     if not row:
@@ -830,6 +856,7 @@ def rag_delete(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     return _do_delete(document_id, confirmed)
 
 
+@_store_operation
 def _do_reindex(document_id: str, confirmed: bool = False) -> Dict[str, Any]:
     row = registry.get(document_id)
     if not row:
@@ -869,6 +896,7 @@ from ingestion.parsers import Section as _Section
 from scrubber import scrub
 
 
+@_store_operation
 def _do_snapshot(
     label: str,
     content: str,

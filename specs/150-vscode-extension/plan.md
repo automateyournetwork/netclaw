@@ -1,7 +1,7 @@
 # Implementation Plan: NetClaw for Visual Studio Code
 
 **Branch**: `150-vscode-extension` | **Date**: 2026-10-10 | **Spec**: [spec.md](spec.md)
-**Status**: Design complete for review; implementation requires ratification. No runtime qualification is claimed.
+**Status**: Ratified by owner on 2026-10-10; implementation in progress. Full runtime and release qualification remains pending.
 
 ## Summary
 
@@ -30,7 +30,7 @@ Design gates, not implementation passes:
 - IX/XIII: authenticate OS/SSH principal and backend grants, not client labels. Provider/integration credentials stay in .env. The new path must normalize legacy literal gateway/companion credentials through reviewed shared-launcher changes; copying them into another JSON/editor store is not acceptable.
 - X–XII/XV: catalog/install-step/coverage/HUD/skill/SOUL/TOOLS/README/.env.example coherence, explicit private registration and preservation of existing clients. The extension does not install its backend component; owners obtain it through their ordinary NetClaw installation/update process.
 - XIV/XVII: owner-selected publisher and explicit public-release authorization, blog draft for review, no automatic messages/tickets.
-- XVI: all product clarifications are resolved; complete contracts and tasks, run read-only cross-artifact analysis, then obtain ratification before implementation. No implementation is authorized by this draft.
+- XVI: all product clarifications are resolved; complete contracts and tasks, run read-only cross-artifact analysis, then obtain ratification before implementation. The owner subsequently ratified this design and authorized implementation on 2026-10-10.
 
 A separate executable or MCP tool inventory is not an OS security boundary against an unrestricted same-user terminal agent. Human approval must be independently validated by the backend/existing change-control system; stronger isolation needs qualified OS/account separation. Both hidden methods and direct calls must enforce permissions. External agents must not be given human approval or credential-management tools.
 
@@ -47,7 +47,7 @@ A separate executable or MCP tool inventory is not an OS security boundary again
 
 ## Project Structure
 
-Planned paths; not implemented:
+Planned component layout; implementation and qualification status are tracked in tasks and evidence:
 
 ```text
 extensions/netclaw-vscode/
@@ -72,9 +72,13 @@ workspace/skills/netclaw-operator/SKILL.md
 
 - [Research](research.md), [data model](data-model.md), [operator MCP](contracts/operator-mcp.md), [assistant MCP](contracts/assistant-mcp.md), [editor and domain coverage](contracts/editor.md), [qualification and release](contracts/qualification.md).
 - [Quickstart](quickstart.md) defines the intended product workflow and acceptance sequence. [Windows/WSL handoff](windows-wsl-handoff.md) separates the owner's real-host baseline now from later extension qualification, with exact prompts and evidence requirements.
+- [Implementation readiness review](implementation-readiness.md) incorporates the actual WSL baseline at `aa27953`, orders prerequisite resolution and records the owner-reported publisher `NetClaw`. The review itself was planning-only. The owner subsequently authorized steps 1–5, including implementation, qualification and release preparation; Windows/WSL work requires a handoff from this Mac.
 - [Tasks](tasks.md) deliver setup and authorization/durability foundations, US1–5, US9, then US6–8, coherence and full-platform acceptance, followed by authorized Marketplace publication. P1 milestones are development checkpoints; all domains are required for the full release.
 
-No new credentials, client registrations, installation migrations, services, external communications or Marketplace publication are performed by this planning session. The owner separately authorized committing and pushing these SDD artifacts to continue from Windows/WSL.
+The planning session performed no live mutations. Subsequent implementation uses
+isolated test homes and supported runtimes; its evidence is recorded separately.
+The owner authorized Git transfer for the Windows/WSL handoff and selected local
+authentication for automated publishing after qualification and review.
 
 ### Authority propagation
 
@@ -82,7 +86,7 @@ Each assistant call resolves a server-issued grant from its authenticated creden
 
 ### Compatibility and packaging
 
-Management contract major 1 is required; older backends return upgrade guidance and remain untouched. The backend source release must contain this feature's management components, regardless of source version numbering. Handshake checks explicit protocol/capabilities, not only semver. Pin exact supported backend, OS, editor, client and harness versions in release evidence; proposed test fixtures are listed in the qualification contract. A publisher identifier is acquired during release preparation before the first distributable candidate; no placeholder publisher reaches publication.
+Management contract major 1 is required; older backends return upgrade guidance and remain untouched. The backend source release must contain this feature's management components, regardless of source version numbering. Handshake checks explicit protocol/capabilities, not only semver. Pin exact supported backend, OS, editor, client and harness versions in release evidence; proposed test fixtures are listed in the qualification contract. The owner reports publisher `NetClaw` has been created. Authenticated publishing access, extension identity/version and release authorization remain prerequisites; no placeholder publisher reaches publication.
 
 ### Post-design constitution check
 

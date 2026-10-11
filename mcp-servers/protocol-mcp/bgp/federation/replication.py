@@ -98,8 +98,9 @@ class ReplicationManager:
         revoking the replication grant)."""
         identity = local_replica_identity(peer, collection_id)
         registry = _bridge.registry()
-        removed = registry.delete_by_collection(identity)
-        _bridge.chroma_store().delete_collection(identity)
+        with _bridge.publication_lock():
+            removed = registry.delete_by_collection(identity)
+            _bridge.chroma_store().delete_collection(identity)
         return {"peer": peer, "collection_id": collection_id,
                 "local_identity": identity, "documents_removed": removed}
 
@@ -180,21 +181,22 @@ class ReplicationManager:
             now = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
             publish = []
             try:
-                for doc_id, info in docs_seen.items():
-                    final_hash = _content_hash_for(peer, collection_id, doc_id)
-                    row_id = registry.new_document(
-                        kind="replica", title=info["title"], source=f"n2n:{peer}",
-                        doc_type="other", content_hash=uuid.uuid4().hex,
-                        collection=write_target, source_peer_identity=peer,
-                        source_collection_id=collection_id,
-                        source_embedding_model=remote_model, replicated_at=now)
-                    publish.append((row_id, final_hash, info["chunk_count"]))
-                # Publish registry rows only after the vector rename succeeds;
-                # promotion retains and restores the previous generation if
-                # the registry transaction fails. No await splits publication.
-                chroma.promote_staging(
-                    write_target, identity,
-                    on_promote=lambda: registry.publish_replica(write_target, identity, publish))
+                with _bridge.publication_lock():
+                    for doc_id, info in docs_seen.items():
+                        final_hash = _content_hash_for(peer, collection_id, doc_id)
+                        row_id = registry.new_document(
+                            kind="replica", title=info["title"], source=f"n2n:{peer}",
+                            doc_type="other", content_hash=uuid.uuid4().hex,
+                            collection=write_target, source_peer_identity=peer,
+                            source_collection_id=collection_id,
+                            source_embedding_model=remote_model, replicated_at=now)
+                        publish.append((row_id, final_hash, info["chunk_count"]))
+                    # Publish registry rows only after the vector rename succeeds;
+                    # promotion retains and restores the previous generation if
+                    # the registry transaction fails. No await splits publication.
+                    chroma.promote_staging(
+                        write_target, identity,
+                        on_promote=lambda: registry.publish_replica(write_target, identity, publish))
             except BaseException:
                 registry.delete_by_collection(write_target)
                 chroma.delete_collection(write_target)

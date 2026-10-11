@@ -31,7 +31,7 @@ Planned view files are under `extensions/netclaw-vscode/src/views/`; shared back
 | Integrations | `integrations.ts` | resources/configure; `configuration.js` | Catalog/install/discovery/reachability/verified states and supported configuration; no dependency installation. |
 | Settings | `settings.ts` | snapshot/change; `configuration.js`, `runtime.js`, `lifecycle.js` | Harness/provider/model/mode/budget/settings, real supported service control and restart impact. |
 | Configuration/.env | `configuration.ts` | snapshot/change; `configuration.js` | Typed fields, secret presence, explicit replacement/clear, revision conflict and redacted diff. |
-| RAG | `rag.ts` | workspace; `workspace.js` | Reviewed bounded upload, indexing outcome, collection search and citations. |
+| RAG | dedicated `rag.ts` panel, native Knowledge entry and Open RAG command | workspace; `workspace.js`, shared `rag-mcp` | Reviewed bounded upload, durable indexing outcome, collection search, citations, confidence/age warnings and explicit context selection for Chat/Canvas. No implicit LLM request or workspace ingestion. |
 | Tokenomics | `tokenomics.ts` | usage snapshot; `evidence.js` | Actual request/local scope, missing Hermes aggregate, budgets and estimate provenance. |
 | Documentation | `documentation.ts` | approved local docs index; `workspace.js` | Search guides including Sean's existing guidance, setup/troubleshooting and CLI/API references. |
 | Logs | `logs.ts` | evidence; `evidence.js` | Bounded time/source/severity filtering, truncation, diagnostic review and local export. |

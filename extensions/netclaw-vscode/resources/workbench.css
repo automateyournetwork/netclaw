@@ -1,0 +1,39 @@
+:root {color-scheme:light dark}
+body {font-family:var(--vscode-font-family);font-size:var(--vscode-font-size);color:var(--vscode-foreground);background:var(--vscode-editor-background);padding:24px 32px;max-width:1160px;margin:auto;line-height:1.5}
+header {border-bottom:1px solid var(--vscode-panel-border);padding-bottom:20px;margin-bottom:24px}
+.eyebrow {font-size:11px;letter-spacing:.18em;color:var(--vscode-descriptionForeground)}
+h1 {font-size:26px;font-weight:500;margin:6px 0}
+button {color:var(--vscode-button-foreground);background:var(--vscode-button-background);border:1px solid transparent;border-radius:3px;padding:7px 14px;cursor:pointer}
+button:hover {background:var(--vscode-button-hoverBackground)}
+button:focus-visible, a:focus-visible {outline:2px solid var(--vscode-focusBorder);outline-offset:3px}
+article {border:1px solid var(--vscode-panel-border);padding:14px 18px;margin:12px 0;border-radius:5px}
+dl {display:grid;grid-template-columns:minmax(100px,180px) minmax(0,1fr);gap:10px 20px;margin:10px 0}
+dt {color:var(--vscode-descriptionForeground);font-weight:500;overflow-wrap:anywhere}
+dd {margin:0;white-space:pre-wrap;overflow-wrap:anywhere}
+dd dl {grid-template-columns:minmax(90px,140px) minmax(0,1fr)}
+#status {color:var(--vscode-descriptionForeground)}
+.toolbar {display:flex;flex-wrap:wrap;gap:8px}
+label {display:block;margin:10px 0 5px}
+textarea,input,select {font:inherit;color:var(--vscode-input-foreground);background:var(--vscode-input-background);border:1px solid var(--vscode-input-border,var(--vscode-panel-border));border-radius:3px}
+textarea {display:block;width:100%;box-sizing:border-box;padding:10px;resize:vertical}
+textarea:focus-visible,input:focus-visible,select:focus-visible {outline:2px solid var(--vscode-focusBorder);outline-offset:2px}
+input[type=checkbox] {margin-right:8px;accent-color:var(--vscode-button-background)}
+button:disabled {opacity:.6;cursor:default}
+fieldset {border:1px solid var(--vscode-panel-border);margin:16px 0;padding:12px}
+.hint {color:var(--vscode-descriptionForeground);font-size:12px}
+pre {white-space:pre-wrap;overflow-wrap:anywhere;font:inherit}
+h2 {font-size:14px;font-weight:600}
+.canvas-lanes {display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px;align-items:start}
+.canvas-lane {min-width:0;margin:0}
+.canvas-lane button {margin:8px 8px 0 0}
+.local-pal-stage {position:relative;max-width:640px;margin:auto;text-align:center}
+.local-pal-canvas {height:360px;width:100%}
+.local-pal-fallback img {height:240px;max-width:100%;object-fit:contain}
+.local-pal-view-controls {display:flex;justify-content:center;gap:8px}
+.local-pal-stage-caption {display:block;margin:12px;color:var(--vscode-descriptionForeground);font-size:12px}
+.sr-only {position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
+#rag-search {display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+#rag-search input,#rag-search select {padding:9px;min-width:0}
+#rag-search button {justify-self:start}
+#documents h3 {font-size:14px;margin:0}
+@media(max-width:700px){body{padding:16px}dl,dd dl{grid-template-columns:1fr;gap:4px}dd{margin-bottom:12px}}

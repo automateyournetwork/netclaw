@@ -15,7 +15,7 @@ function disposeModel(model) {
   });
   resources.forEach(resource=>resource.dispose());
 }
-export default function PalAvatar({avatar='john',state='idle',replyId,player,active=true}) {
+export default function PalAvatar({avatar='john',state='idle',replyId,player,active=true,assetBase='/pal',fallbackDetail='Your chat and local voice still work.'}) {
   const host=useRef(null),controlsRef=useRef(null),latest=useRef({state,player,active});latest.current={state,player,active};
   const lastReply=useRef(replyId),replyAt=useRef(-Infinity);
   useEffect(()=>{if(replyId && replyId!==lastReply.current)replyAt.current=performance.now();lastReply.current=replyId;},[replyId]);
@@ -56,7 +56,7 @@ export default function PalAvatar({avatar='john',state='idle',replyId,player,act
       controls?.update();renderer.render(scene,camera);frame=requestAnimationFrame(render);
     };
     const visibility=()=>{cancelAnimationFrame(frame);if(!disposed && !failed && !document.hidden && visible && latest.current.active && renderer)frame=requestAnimationFrame(render);};
-    const loss=event=>{event.preventDefault();failed=true;cancelAnimationFrame(frame);setError('3D paused. Your chat and local voice still work.');};
+    const loss=event=>{event.preventDefault();failed=true;cancelAnimationFrame(frame);setError(`3D paused. ${fallbackDetail}`);};
     try {
       if(!window.WebGL2RenderingContext)throw Error('webgl-unavailable');
       renderer=new THREE.WebGLRenderer({alpha:true,antialias:true});renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
@@ -69,7 +69,7 @@ export default function PalAvatar({avatar='john',state='idle',replyId,player,act
       const resize=()=>{const width=Math.max(1,element.clientWidth),height=Math.max(1,element.clientHeight);renderer.setSize(width,height);camera.aspect=width/height;camera.updateProjectionMatrix();};
       observer=new ResizeObserver(resize);observer.observe(element);resize();
       if(window.IntersectionObserver){intersection=new IntersectionObserver(entries=>{visible=entries.some(entry=>entry.isIntersecting);visibility();});intersection.observe(element);}
-      new GLTFLoader().load(`/pal/${id}.glb`,gltf=>{
+      new GLTFLoader().load(`${assetBase}/${id}.glb`,gltf=>{
         if(disposed){disposeModel(gltf.scene);return;}
         model=gltf.scene;scene.add(model);
         head=model.getObjectByName('pal_head');mouth=model.getObjectByName('pal_mouth');jaw=model.getObjectByName('pal_jaw');
@@ -78,11 +78,11 @@ export default function PalAvatar({avatar='john',state='idle',replyId,player,act
         if(jaw)jaw.userData.restY=jaw.position.y;
         if(mouth)baseMouth=mouth.scale.y;
         setLoading(false);
-      },undefined,()=>{if(!disposed){failed=true;cancelAnimationFrame(frame);setLoading(false);setError('The avatar could not load. Your chat and local voice still work.');}});
+      },undefined,()=>{if(!disposed){failed=true;cancelAnimationFrame(frame);setLoading(false);setError(`The avatar could not load. ${fallbackDetail}`);}});
       document.addEventListener('visibilitychange',visibility);frame=requestAnimationFrame(render);
-    }catch{setLoading(false);setError('3D is unavailable in this browser. Your chat and local voice still work.');}
+    }catch{setLoading(false);setError(`3D is unavailable in this browser. ${fallbackDetail}`);}
     return()=>{disposed=true;cancelAnimationFrame(frame);motion?.removeEventListener?.('change',motionChange);document.removeEventListener('visibilitychange',visibility);observer?.disconnect();intersection?.disconnect();renderer?.domElement.removeEventListener('webglcontextlost',loss);controls?.dispose();controlsRef.current=null;disposeModel(model);renderer?.dispose();renderer?.forceContextLoss();renderer?.domElement.remove();};
-  },[id,retry]);
+  },[id,retry,assetBase,fallbackDetail]);
   function adjust(action) {
     const value=controlsRef.current;if(!value)return;
     const {controls,camera}=value;
@@ -102,5 +102,5 @@ export default function PalAvatar({avatar='john',state='idle',replyId,player,act
     else offset.setLength(THREE.MathUtils.clamp(offset.length()*(action==='in'?.82:1.22),controls.minDistance,controls.maxDistance));
     camera.position.copy(controls.target).add(offset);controls.update();
   }
-  return <div className="local-pal-stage"><div ref={host} className="local-pal-canvas" hidden={!!error} tabIndex={error?-1:0} role="group" aria-label={`${PAL_PROFILES[id].name} 3D view`} aria-describedby={helpId} onKeyDown={event=>{const action=avatarKeyAction(event);if(action && !loading && !error){event.preventDefault();adjust(action);}}}/>{error&&<div className="local-pal-fallback"><img src={`/pal/${id}.png`} alt={PAL_PROFILES[id].description}/><p role="status">{error}</p><button onClick={()=>setRetry(value=>value+1)}>Retry 3D</button></div>}{loading&&!error&&<span className="local-pal-loading" role="status">Loading {PAL_PROFILES[id].name}…</span>}<div className="local-pal-view-controls" role="group" aria-label="Avatar camera controls">{[['left','↶','Rotate left'],['right','↷','Rotate right'],['in','+','Zoom in'],['out','−','Zoom out'],['reset','Reset','Reset view']].map(([action,label,title])=><button key={action} aria-label={title} title={title} disabled={!!error||loading} onClick={()=>adjust(action)}>{label}</button>)}</div><span className="local-pal-stage-caption">Drag to rotate · scroll to zoom · right-drag to move<br/>{PAL_PROFILES[id].description}</span><span id={helpId} className="sr-only">Arrow keys rotate. Shift and arrows move. Plus and minus zoom. Home resets the view.</span></div>;
+  return <div className="local-pal-stage"><div ref={host} className="local-pal-canvas" hidden={!!error} tabIndex={error?-1:0} role="group" aria-label={`${PAL_PROFILES[id].name} 3D view`} aria-describedby={helpId} onKeyDown={event=>{const action=avatarKeyAction(event);if(action && !loading && !error){event.preventDefault();adjust(action);}}}/>{error&&<div className="local-pal-fallback"><img src={`${assetBase}/${id}.png`} alt={PAL_PROFILES[id].description}/><p role="status">{error}</p><button onClick={()=>setRetry(value=>value+1)}>Retry 3D</button></div>}{loading&&!error&&<span className="local-pal-loading" role="status">Loading {PAL_PROFILES[id].name}…</span>}<div className="local-pal-view-controls" role="group" aria-label="Avatar camera controls">{[['left','↶','Rotate left'],['right','↷','Rotate right'],['in','+','Zoom in'],['out','−','Zoom out'],['reset','Reset','Reset view']].map(([action,label,title])=><button key={action} aria-label={title} title={title} disabled={!!error||loading} onClick={()=>adjust(action)}>{label}</button>)}</div><span className="local-pal-stage-caption">Drag to rotate · scroll to zoom · right-drag to move<br/>{PAL_PROFILES[id].description}</span><span id={helpId} className="sr-only">Arrow keys rotate. Shift and arrows move. Plus and minus zoom. Home resets the view.</span></div>;
 }

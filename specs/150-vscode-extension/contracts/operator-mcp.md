@@ -32,7 +32,21 @@ Each row becomes fixed JSON schemas in `mcp-servers/netclaw-operator-mcp/schemas
 | `operator_change_prepare` | nonce, action enum, exact target IDs, expected revision, typed patch/intents | Observe and record real baseline/rollback, impact and redacted proposal. Preparation has no configuration effect. |
 | `operator_change_apply` | proposal ID, nonce, expected revision, authoritative approval reference where required, transient secret replacements | Revalidate identity, grant, revision, qualification, audit and independent approval; execute exact admitted change, verify and roll back on failure. No `approved` boolean or arbitrary shell. |
 | `operator_evidence` | kind gait/log/artifact/approval, owned ID or approved filters, cursor | Bounded redacted evidence; GAIT is inspect-only except backend-generated session/turn recording. |
-| `operator_workspace` | action rag-search/rag-stage/rag-index/memory-search/gcf-read/meeting-read/assessment-read/assessment-reconsider/canvas-import/canvas-export/mobile-capture-request, typed arguments | Per-action permission and consent. Advice is never authority. Index/reconsider/capture are admitted owned operations with budget/consent. Capture accepts only qualified `camera.capture` or `audio.record`, an exact enrolled edge ID and current consent; preserve declined/cancelled/offline and Hermes unavailable states. No arbitrary file path or automatic notification. |
+| `operator_workspace` | action rag-list/rag-search/rag-stage/rag-upload/rag-index/rag-context/memory-search/gcf-read/meeting-read/assessment-read/assessment-reconsider/canvas-import/canvas-export/mobile-capture-request, typed arguments | Per-action permission and consent. Advice is never authority. Index/reconsider/capture are admitted owned operations with budget/consent. Capture accepts only qualified `camera.capture` or `audio.record`, an exact enrolled edge ID and current consent; preserve declined/cancelled/offline and Hermes unavailable states. No arbitrary file path or automatic notification. |
+
+RAG actions keep staging distinct from indexing. `rag-list` paginates the existing
+document/snapshot/replica store and returns actual indexing states. `rag-search`
+accepts a query of 1–4000 characters, a bounded collection identifier and `k` of
+1–20; its owned search ID identifies the returned citations and confidence/age
+metadata. `rag-context` takes that ID plus selected result indices and a nonce;
+it stages the cited text without inference. `rag-stage` stages explicit text only.
+`rag-upload` accepts one reviewed basename, category and canonical base64 file up
+to 10 MiB, storing private content with only its digest in admission input.
+`rag-index` takes the upload ID, nonce and optional exact reviewed replacement
+document ID. A separately owned worker calls the existing RAG ingestion tool;
+closing the façade cannot cancel it. Unknown results are never automatically
+replayed. Shared RAG ownership protects active ingestion and replica publication
+from another client's recovery sweep.
 | `operator_client_prepare` / `operator_client_apply` | client type, installation, targets/actions/disclosure, expiry; reviewed proposal ID on apply | Owner-scoped grant configuration, exact preview and existing change-control rules where applicable; generates only the intended client credential in backend `.env` source. No client can mint its own grant. |
 | `operator_client_revoke` | grant ID, nonce | Revoke that grant generation, invalidate cached tools and prevent further dispatch; report actual in-flight cancellation state. |
 

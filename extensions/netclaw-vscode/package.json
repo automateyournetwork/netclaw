@@ -1,0 +1,261 @@
+{
+  "name": "netclaw",
+  "displayName": "NetClaw",
+  "description": "Manage existing NetClaw and Risk installations from Visual Studio Code.",
+  "version": "0.1.0",
+  "publisher": "NetClaw",
+  "license": "Apache-2.0",
+  "engines": {
+    "vscode": "^1.102.0"
+  },
+  "extensionKind": [
+    "workspace"
+  ],
+  "categories": [
+    "Other",
+    "Machine Learning"
+  ],
+  "keywords": [
+    "netclaw",
+    "network",
+    "openclaw",
+    "hermes",
+    "mcp"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/automateyournetwork/netclaw.git",
+    "directory": "extensions/netclaw-vscode"
+  },
+  "bugs": {
+    "url": "https://github.com/automateyournetwork/netclaw/issues"
+  },
+  "homepage": "https://github.com/automateyournetwork/netclaw",
+  "icon": "resources/icon.png",
+  "main": "./dist/extension.cjs",
+  "activationEvents": [
+    "onView:netclaw.connections"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": "limited",
+      "description": "Help and saved profile labels are available. Connections and operational actions require workspace trust."
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "scripts": {
+    "check": "tsc --noEmit",
+    "build": "node build.mjs",
+    "test": "node --test test/*.test.mjs",
+    "test:editor": "node ../../tests/vscode/runner.mjs",
+    "vscode:prepublish": "npm run check && npm run build",
+    "package": "node scripts/package.mjs",
+    "test:package": "node --test ../../tests/vscode/package.test.mjs",
+    "publisher:login": "vsce login NetClaw",
+    "publisher:verify": "vsce verify-pat NetClaw"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/client": "2.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "24.0.0",
+    "@types/vscode": "1.102.0",
+    "@vscode/test-electron": "3.1.0",
+    "@vscode/vsce": "4.0.0",
+    "esbuild": "0.28.2",
+    "typescript": "5.9.3"
+  },
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "netclaw",
+          "title": "NetClaw",
+          "icon": "resources/activity.svg"
+        }
+      ]
+    },
+    "views": {
+      "netclaw": [
+        {
+          "id": "netclaw.connections",
+          "name": "Connections"
+        },
+        {
+          "id": "netclaw.estate",
+          "name": "Risk & Federation"
+        },
+        {
+          "id": "netclaw.operations",
+          "name": "Operations"
+        },
+        {
+          "id": "netclaw.integrations",
+          "name": "Integrations"
+        },
+        {
+          "id": "netclaw.knowledge",
+          "name": "Knowledge"
+        },
+        {
+          "id": "netclaw.security",
+          "name": "Security"
+        },
+        {
+          "id": "netclaw.help",
+          "name": "Help"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "netclaw.addConnection",
+        "title": "Add Connection",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.selectConnection",
+        "title": "Select Connection",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.disconnect",
+        "title": "Disconnect",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.removeConnection",
+        "title": "Remove Connection",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openOverview",
+        "title": "Open Overview",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openSettings",
+        "title": "Open Settings",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openGait",
+        "title": "Open GAIT",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openTokenomics",
+        "title": "Open Tokenomics",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openDocumentation",
+        "title": "Open Documentation",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.help",
+        "title": "Getting Started",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.refresh",
+        "title": "Refresh Navigation",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.prepareChange",
+        "title": "Prepare Managed Change",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.reviewProposal",
+        "title": "Review Proposal",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.exportDiagnostics",
+        "title": "Export Diagnostics",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openDomain",
+        "title": "Open View",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openChat",
+        "title": "Open Chat",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.addSelectedContext",
+        "title": "Add Selected Context",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openAvatar",
+        "title": "Open Avatar",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openCanvas",
+        "title": "Open Canvas",
+        "category": "NetClaw"
+      },
+      {
+        "command": "netclaw.openRag",
+        "title": "Open RAG Knowledge Base",
+        "category": "NetClaw"
+      }
+    ],
+    "mcpServerDefinitionProviders": [
+      {
+        "id": "netclaw.assistant",
+        "label": "NetClaw scoped assistant"
+      }
+    ],
+    "menus": {
+      "commandPalette": [
+        {
+          "command": "netclaw.openDomain",
+          "when": "false"
+        }
+      ],
+      "editor/context": [
+        {
+          "command": "netclaw.addSelectedContext",
+          "when": "editorHasSelection && isWorkspaceTrusted",
+          "group": "navigation"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "netclaw.getStarted",
+        "title": "Manage your existing NetClaw",
+        "description": "Connect, inspect and review work in your selected installation.",
+        "steps": [
+          {
+            "id": "location",
+            "title": "Choose the execution host",
+            "description": "For WSL, open the intended distribution first. For Remote SSH, open the existing host.\n[Getting started](command:netclaw.help)",
+            "media": {
+              "markdown": "README.md"
+            }
+          },
+          {
+            "id": "connect",
+            "title": "Bind an existing installation",
+            "description": "Review the returned installation identity before connecting.\n[Add connection](command:netclaw.addConnection)",
+            "media": {
+              "markdown": "README.md"
+            }
+          }
+        ]
+      }
+    ]
+  }
+}

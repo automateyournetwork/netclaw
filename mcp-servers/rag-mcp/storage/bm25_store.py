@@ -56,6 +56,7 @@ class BM25Store:
         self.dir.mkdir(parents=True, exist_ok=True)
         # collection -> (chunk_ids, tokenized_corpus, bm25_index)
         self._cache: Dict[str, Tuple[List[str], List[List[str]], object]] = {}
+        self._fingerprints = {}
         self._lock = threading.RLock()
 
     def _path(self, collection: str) -> Path:
@@ -68,9 +69,11 @@ class BM25Store:
 
     @_synchronized
     def _load(self, collection: str):
-        if collection in self._cache:
-            return self._cache[collection]
         path = self._path(collection)
+        info = path.stat() if path.exists() else None
+        fingerprint = (info.st_ino, info.st_mtime_ns, info.st_size) if info else None
+        if collection in self._cache and self._fingerprints.get(collection) == fingerprint:
+            return self._cache[collection]
         chunk_ids: List[str] = []
         tokenized: List[List[str]] = []
         if path.exists():
@@ -88,6 +91,7 @@ class BM25Store:
                 raise ValueError("BM25 cache has an invalid corpus shape")
         index = self._build_index(tokenized)
         self._cache[collection] = (chunk_ids, tokenized, index)
+        self._fingerprints[collection] = fingerprint
         return self._cache[collection]
 
     @_synchronized
@@ -105,6 +109,8 @@ class BM25Store:
             if os.path.exists(temporary):
                 os.unlink(temporary)
         self._cache[collection] = (chunk_ids, tokenized, index)
+        info = self._path(collection).stat()
+        self._fingerprints[collection] = (info.st_ino, info.st_mtime_ns, info.st_size)
 
     @_synchronized
     def rebuild(self, collection: str, chunks: List[Dict]) -> None:

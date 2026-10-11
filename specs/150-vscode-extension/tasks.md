@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts](contracts/operator-mcp.md), [quickstart.md](quickstart.md).
 
-**Status**: Planned only. All implementation/acceptance tasks are unchecked. Ratify the design before implementation. The owner authorized pushing this specification and a real Windows/WSL handoff, not implementing or publishing the extension.
+**Status**: Owner authorized implementation through publication on 2026-10-10 after readiness review. Work is in progress on Mac; Windows/WSL qualification requires a later handoff. Local authentication is selected for automated Marketplace publishing. Checkboxes require actual completion evidence; no platform or release gate is waived.
 
 Tests are included because the specification explicitly requires contract, security, platform, real-client and release acceptance. Write behavioral tests before dependent handlers, then run them against the real implementation. Test scaffolding alone never closes acceptance.
 
@@ -14,10 +14,10 @@ Paths are repository-relative. `[P]` identifies independent files runnable toget
 
 **Independent test**: Schemas/package scripts load in the minimum editor test runner without contacting owner services.
 
-- [ ] T001 Create pinned workspace-extension manifest/build/test configuration in `extensions/netclaw-vscode/package.json`, `tsconfig.json` and lockfile; use VS Code ^1.102.0, TypeScript 5.9.3 and Node-compatible official SDK builds. (FR-003, FR-008, FR-039)
-- [ ] T002 Create private official-SDK server package boundaries and dependency locks in `mcp-servers/netclaw-operator-mcp/package.json` and `mcp-servers/netclaw-assistant-mcp/package.json`; keep Node/Python environments isolated. (FR-039)
-- [ ] T003 [P] Create synthetic installations, fake authoritative approval service and fault harness in `tests/operator/fixtures.mjs`, plus initially failing foundation behavior tests in `tests/operator/foundations.test.mjs`; forbid fixture defaults from selecting owner homes or real devices. (FR-022, FR-023, FR-036, SC-006, SC-008)
-- [ ] T004 [P] Add editor/minimum-version and platform runner scaffolding in `tests/vscode/runner.mjs` and `extensions/netclaw-vscode/test/`; record candidate versions without representing fixtures as real WSL. (FR-008, FR-040, SC-001, SC-003)
+- [X] T001 Create pinned workspace-extension manifest/build/test configuration in `extensions/netclaw-vscode/package.json`, `tsconfig.json` and lockfile; use VS Code ^1.102.0, TypeScript 5.9.3 and Node-compatible official SDK builds. (FR-003, FR-008, FR-039)
+- [X] T002 Create private official-SDK server package boundaries and dependency locks in `mcp-servers/netclaw-operator-mcp/package.json` and `mcp-servers/netclaw-assistant-mcp/package.json`; keep Node/Python environments isolated. (FR-039)
+- [X] T003 [P] Create synthetic installations, fake authoritative approval service and fault harness in `tests/operator/fixtures.mjs`, plus initially failing foundation behavior tests in `tests/operator/foundations.test.mjs`; forbid fixture defaults from selecting owner homes or real devices. (FR-022, FR-023, FR-036, SC-006, SC-008)
+- [X] T004 [P] Add editor/minimum-version and platform runner scaffolding in `tests/vscode/runner.mjs` and `extensions/netclaw-vscode/test/`; record candidate versions without representing fixtures as real WSL. (FR-008, FR-040, SC-001, SC-003)
 
 **Parallel example**: T003 and T004 can be authored together after the shared prerequisites; run their acceptance after the corresponding handlers exist.
 
@@ -51,7 +51,7 @@ Paths are repository-relative. `[P]` identifies independent files runnable toget
 - [ ] T017 [US1] Implement verified local/SSH transport and explicit WSL reopen flow in `extensions/netclaw-vscode/src/connection/connect.ts`; show backend compatibility/prerequisite guidance without installation. (FR-004, FR-005, FR-007, FR-008)
 - [ ] T018 [US1] Implement nonsecret host/principal/profile storage and immutable connection generations in `extensions/netclaw-vscode/src/state/profiles.ts`; never sync credentials or retarget running requests. (FR-004, FR-006, SC-005)
 - [ ] T019 [US1] Implement native explorer/status/output/commands and trust handlers in `extensions/netclaw-vscode/src/extension.ts` and `src/views/overview.ts`; typed resource identity and bounded partial failure. (FR-003, FR-014, FR-035, FR-037)
-- [ ] T020 [US1] Copy the actual mobile PNG and derive a theme-safe Activity Bar mark in `extensions/netclaw-vscode/resources/`; wire icon and walkthrough contributions in `package.json`. (FR-002, FR-003, FR-040, SC-010)
+- [X] T020 [US1] Copy the actual mobile PNG and derive a theme-safe Activity Bar mark in `extensions/netclaw-vscode/resources/`; wire icon and walkthrough contributions in `package.json`. (FR-002, FR-003, FR-040, SC-010)
 - [ ] T021 [US1] Execute US1 minimum-editor/local/remote connection scenarios and capture measured onboarding/isolation in `specs/150-vscode-extension/evidence/connections.md`; do not count future WSL acceptance early. (FR-005, FR-008, FR-035, SC-001, SC-005)
 
 **Parallel example**: T015 and T016 can be authored together after the shared prerequisites; run their acceptance after the corresponding handlers exist.
@@ -212,7 +212,7 @@ Deliver small story checkpoints with real behavioral evidence, preserve the exis
 
 ## Counts and traceability
 
-79 tasks; 13 explicitly parallel task entries. All unchecked. See [traceability.md](traceability.md) for the requirement-to-task index.
+79 tasks; 13 explicitly parallel task entries. Five setup/branding tasks are complete at the Mac development checkpoint; 74 remain unchecked. Partial implementations do not close full story or platform acceptance. See [development evidence](evidence/mac-development.md). See [traceability.md](traceability.md) for the requirement-to-task index.
 
 | Group | Tasks |
 |---|---|

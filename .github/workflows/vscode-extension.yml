@@ -1,0 +1,47 @@
+name: VS Code extension candidate
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'extensions/netclaw-vscode/**'
+      - 'ui/netclaw-visual/src/management/**'
+      - 'mcp-servers/netclaw-*-mcp/**'
+      - 'scripts/netclaw-*.mjs'
+      - 'tests/operator/**'
+      - 'tests/assistant-clients/**'
+      - 'tests/vscode/**'
+      - '.github/workflows/vscode-extension.yml'
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '24.19.0'
+      - name: Install isolated locked JavaScript packages
+        run: |
+          npm ci --ignore-scripts --prefix ui/netclaw-visual
+          npm ci --ignore-scripts --prefix mcp-servers/netclaw-operator-mcp
+          npm ci --ignore-scripts --prefix mcp-servers/netclaw-assistant-mcp
+          npm ci --ignore-scripts --prefix extensions/netclaw-vscode
+      - name: Behavioral checks
+        run: |
+          node --test tests/operator/*.test.mjs tests/assistant-clients/*.test.mjs
+          npm --prefix extensions/netclaw-vscode run check
+          npm --prefix extensions/netclaw-vscode test
+          npm --prefix extensions/netclaw-vscode run build
+          npm --prefix extensions/netclaw-vscode run test:package
+      - name: Minimum desktop editor, synthetic installations
+        run: xvfb-run -a npm --prefix extensions/netclaw-vscode run test:editor
+      - name: Build candidate; never publish from CI
+        run: npm --prefix extensions/netclaw-vscode run package
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: netclaw-vscode-development-candidate
+          path: extensions/netclaw-vscode/*.vsix
+          if-no-files-found: error
+          retention-days: 14

@@ -24,9 +24,22 @@ def isolated_gait_audit(tmp_path, monkeypatch):
 def server(tmp_path_factory):
     # Set before import: server startup must never inspect the operator's corpus.
     with pytest.MonkeyPatch.context() as patch:
-        patch.setenv('RAG_DATA_DIR', str(tmp_path_factory.mktemp('rag-guards')))
+        directory = tmp_path_factory.mktemp('rag-guards')
+        patch.setenv('RAG_DATA_DIR', str(directory))
         module = importlib.import_module('rag_mcp_server')
+        # Integration tests may already have imported the module during collection.
+        # Keep these 2-dimensional fault fixtures out of their 64-dimensional corpus.
+        for name, suffix in [('DATA_DIR', ''), ('DB_PATH', 'rag.db'), ('CHROMA_DIR', 'chroma'),
+                             ('BM25_DIR', 'bm25'), ('SOURCES_DIR', 'sources'), ('INTAKE_DIR', 'intake')]:
+            patch.setattr(module.config, name, directory / suffix)
+        module.config.ensure_dirs()
+        registry = module.Registry(module.config.DB_PATH)
+        patch.setattr(module, 'registry', registry)
+        patch.setattr(module, 'chroma', module.ChromaStore(module.config.CHROMA_DIR))
+        patch.setattr(module, 'bm25', module.BM25Store(module.config.BM25_DIR))
+        patch.setattr(module, 'store_lock', module.StoreLock(directory))
         yield module
+        registry._conn.close()
 
 
 @pytest.mark.parametrize('mime,body', [('text/html', b'<a href="/next">next</a>'), ('text/plain', b'guide')])

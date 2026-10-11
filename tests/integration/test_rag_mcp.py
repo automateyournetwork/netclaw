@@ -129,6 +129,19 @@ def test_dedupe_same_bytes_noop():
     assert again["data"]["document_id"] == first["data"]["document_id"]
 
 
+def test_managed_replacement_requires_review_of_exact_prior_document():
+    first = _ingest_md('# Reviewed title\n\nOriginal OSPF reference.', title='reviewed.md')
+    updated = '# Reviewed title\n\nChanged BGP reference.'
+    denied = _ingest_md(updated, title='reviewed.md', replace_existing=False)
+    assert denied['error']['code'] == 'REPLACEMENT_REQUIRED'
+    stale = _ingest_md(updated, title='reviewed.md', expected_document_id='stale-id')
+    assert stale['error']['code'] == 'STALE_DOCUMENT'
+    assert server.registry.get(first['data']['document_id'])['ingest_status'] == 'ready'
+    accepted = _ingest_md(updated, title='reviewed.md', expected_document_id=first['data']['document_id'])
+    assert accepted['success']
+    assert accepted['data']['reindexed']
+
+
 def test_reindex_same_title_new_content():
     first = _ingest_md(GUIDE_MD)
     updated = GUIDE_MD + "\n## Rollback\n\nUse install rollback to committed.\n"

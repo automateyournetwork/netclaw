@@ -143,7 +143,7 @@ An operator uses Tokenomics, MCP/skill inventory, network views, telemetry, logs
 
 ### User Story 7 - Use the wider HUD workspace (Priority: P2)
 
-An engineer retrieves RAG knowledge, recalls memory, reviews Science Officer advice, inspects mobile devices and opens NetClaw documentation and guides from the same workspace.
+An engineer opens a dedicated RAG panel to retrieve knowledge, recalls memory, reviews Science Officer advice, inspects mobile devices and opens NetClaw documentation and guides from the same workspace. RAG is integrated into Chat and Canvas context selection as well as having its own native navigation and searchable command.
 
 **Why this priority**: Full HUD coverage includes the supporting evidence and guidance that make operations useful.
 
@@ -151,7 +151,7 @@ An engineer retrieves RAG knowledge, recalls memory, reviews Science Officer adv
 
 **Acceptance Scenarios**:
 
-1. **Given** authorized RAG collections, **When** a selected document is uploaded or searched, **Then** indexing state, scope, citations and retrieval errors are visible; workspace-wide ingestion never happens automatically.
+1. **Given** authorized RAG collections, **When** a selected document is uploaded or searched in the dedicated RAG panel, **Then** indexing state, scope, citations and retrieval errors are visible; workspace-wide ingestion never happens automatically. Deliberately selected results retain citations, confidence and snapshot-age warnings when added to Chat or Canvas context; that selection alone never submits an LLM request.
 2. **Given** memory, GCF or meeting context, **When** it informs an investigation, **Then** provenance, recorded validity and measured versus estimated quantities remain visible.
 3. **Given** a Jev assessment, **When** it is opened, **Then** original/reconsidered advice, budget and effect on the recommendation belong to the originating task; advice does not supply execution authority.
 4. **Given** an enrolled mobile device, **When** capabilities or capture controls are inspected, **Then** existing consent and harness limitations remain enforced; offline does not mean unenrolled.
@@ -298,7 +298,7 @@ An engineer uses natural language in VS Code Copilot, Claude Code or Codex to in
 - Local installation paths and authenticated remote access are required. Exact connection protocol, extension-host placement, credential mechanism and compatibility versions belong to planning, grounded in [baseline.md](baseline.md).
 - Readiness and support are established per installed backend capability. This feature does not itself qualify every possible Hermes tool or introduce new federation authority, wire protocols or a multi-tenant cloud service.
 - Existing avatar/capture functionality is exposed only where supported; this feature does not create a new avatar generation, model-training or mobile application product.
-- Public Marketplace distribution is required. Additional registries and other editor products are outside this spec unless explicitly added. The owner will identify an authorized Marketplace publisher before publication; none is assumed registered or available.
+- Public Marketplace distribution is required. Additional registries and other editor products are outside this spec unless explicitly added. On 2026-10-10 the owner reported creating Marketplace publisher `NetClaw`; authenticated publishing access and release authorization remain unverified prerequisites.
 - Exact backend and extension release numbers will be selected under the repository release policy at implementation/release time; source, mobile and extension components need not have matching version numbers.
 - This branch starts from spec149 commit `d332344d5a039e5ee0f2a2202c556ba28e2af206`. Spec149's outstanding Linux/WSL and physical-mobile qualifications remain limitations, not inherited passes.
 - Clarifications precede technical planning. Plan and tasks will be generated before formal cross-artifact analysis, then reviewed before implementation; this draft is not ratified by its creation.

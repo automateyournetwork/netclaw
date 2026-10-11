@@ -207,3 +207,11 @@ local-permissions-backup.json
 mcp-servers/hermes-hud-mcp/.venv/
 mcp-servers/hermes-hud-mcp/__pycache__/
 .vite/
+
+# Spec150 source packages and local editor/release artifacts
+!mcp-servers/netclaw-operator-mcp/
+!mcp-servers/netclaw-assistant-mcp/
+.vscode-test/
+*.vsix
+extensions/netclaw-vscode/resources/pal/
+extensions/netclaw-vscode/out/
