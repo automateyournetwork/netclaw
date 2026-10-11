@@ -32,7 +32,7 @@ part of this checkpoint.
 
 | Check | Result and scope |
 |---|---|
-| Backend JavaScript behavior | `node --test tests/operator/*.test.mjs tests/assistant-clients/*.test.mjs`: **41 pass, 4 explicitly skipped** opt-in process tests. No failures. |
+| Backend JavaScript behavior | `node --test tests/operator/*.test.mjs tests/assistant-clients/*.test.mjs`: **42 pass, 4 explicitly skipped** opt-in process tests. No failures. |
 | Extension unit checks | `npm --prefix extensions/netclaw-vscode test`: **8 pass**; profile isolation/stale storage, safe SSH quoting, hostile content, Canvas restore and inert RAG citations. |
 | TypeScript and bundling | `npm run check` and `npm run build` pass in the extension package. |
 | Actual desktop editor | VS Code **1.102.0**, macOS arm64, kernel **25.5.0**, private profile: **13 assertion groups pass**. Real MCP identity on separate synthetic OpenClaw/Hermes homes; actual rendered Chat, Canvas, Avatar and RAG. |

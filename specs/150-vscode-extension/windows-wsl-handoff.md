@@ -1,94 +1,140 @@
-# Windows / WSL handoff — Spec 150
+# Windows/WSL development and qualification handoff
 
-Owner requested this handoff on 2026-10-10 for an **existing real NetClaw on their Windows/WSL machine**. Branch: `150-vscode-extension`, based on spec149 source commit `d332344d5a039e5ee0f2a2202c556ba28e2af206`. All Spec150 changes at this handoff are SDD documentation; no VSIX, extension implementation, new MCP launcher or Marketplace release exists yet.
+Updated 2026-10-10 after the owner authorized implementation, chose a WSL handoff
+and chose local authentication for eventual Marketplace publishing. The earlier
+read-only baseline prompt is superseded by this development handoff. Its actual
+observations remain unchanged in [wsl-baseline.md](evidence/wsl-baseline.md), from
+commit `aa2795313b487e00ccbe85d53f6a78db07b10a94`.
 
-## Transfer safely
+## What is ready to transfer
 
-In a WSL terminal, use a separate source checkout so the running installation and its files are preserved. For a new directory, this is sufficient:
+Branch: **`150-vscode-extension-implementation`**. First implementation checkpoint:
+`9b4a0ffcda18eaf750d3befa85f5e1387cd25616`; use the latest pushed tip and record it.
+This is a development candidate, not a completed extension or a release approval.
+Only five of 79 tasks are checked. The remaining tasks include implementation as
+well as actual platform/client acceptance. The original `150-vscode-extension`
+branch and the running Mac checkout were preserved.
+
+The candidate includes private management MCP, durable operator conversations,
+Chat/Canvas/local Avatar, environment proposals and a dedicated integrated RAG
+panel. RAG uses the existing backend store, supports reviewed uploads and cited
+retrieval, and supplies deliberately selected Chat/Canvas context. Actual Mac
+process/editor evidence is in [mac-development.md](evidence/mac-development.md).
+Assistant delegation is deliberately refused until its permission propagation is
+implemented and qualified. Remaining domains must not be passed by labeling them
+unavailable.
+
+## Get the source without touching running services
+
+In WSL, use a new directory. Do not run this over an existing checkout:
 
 ```bash
-git clone --branch 150-vscode-extension https://github.com/automateyournetwork/netclaw.git ~/netclaw-spec150
-cd ~/netclaw-spec150
+git clone --branch 150-vscode-extension-implementation https://github.com/automateyournetwork/netclaw.git ~/netclaw150-wsl
+cd ~/netclaw150-wsl
 git status --short --branch
 git log -1 --oneline
+git merge-base --is-ancestor aa2795313b487e00ccbe85d53f6a78db07b10a94 HEAD
 ```
 
-If the directory already exists, do not overwrite it. Inspect its work first and use a clean worktree or another directory. Do not switch/reset/pull the actively running installation blindly. For a previously cloned source repo, fetch and inspect `origin/150-vscode-extension`, then create an isolated worktree. The pushed branch includes its spec149 base; do not cherry-pick only these docs onto an older incompatible base. No `.env`, credentials, live GAIT history or private runtime state should be transferred through Git.
+If that path exists, inspect and preserve it; choose another unused checkout or a
+separate worktree. Never reset or switch the source beneath running NetClaw
+services. Private runtime homes, `.env`, credential stores, audit databases and
+real network evidence stay on their existing host and out of Git.
 
-## Prompt to run now
-
-Copy this into Codex or Claude Code in the separate WSL checkout:
+## Prompt to run in the WSL coding agent
 
 ```text
-Continue NetClaw Spec 150 (150-vscode-extension) on my real Windows/WSL machine.
-Read AGENTS.md, SOUL.md, USER.md, TOOLS.md, the current daily memory and
-specs/150-vscode-extension/{spec.md,plan.md,tasks.md,windows-wsl-handoff.md},
-plus contracts/qualification.md. Follow GAIT startup/record/end requirements.
+Continue NetClaw Spec150 on my Windows/WSL machine from the latest pushed
+origin/150-vscode-extension-implementation in an isolated source checkout.
+Confirm aa2795313b487e00ccbe85d53f6a78db07b10a94 is an ancestor. Preserve all
+existing work and running services; use a new branch 150-vscode-extension-wsl
+only if that branch name is not already in use.
 
-This handoff authorizes a read-only baseline of my EXISTING NetClaw/Risk in WSL
-and completion of the WSL handoff documentation. It does not authorize runtime
-installation, upgrades, restarts, shutdowns, provider requests, configuration
-changes, extension implementation or publication. Preserve the running install,
-credentials, saved investigations and active work. Use a separate source checkout.
+Read AGENTS.md, SOUL.md, USER.md, TOOLS.md, the constitution and daily memory.
+Follow GAIT startup, recording and session-end requirements. Read:
+- specs/150-vscode-extension/{spec.md,plan.md,tasks.md}
+- specs/150-vscode-extension/{implementation-readiness.md,windows-wsl-handoff.md}
+- specs/150-vscode-extension/evidence/{wsl-baseline.md,mac-development.md}
+- specs/150-vscode-extension/contracts/{operator-mcp.md,assistant-mcp.md,editor.md,qualification.md}
+- docs/VSCODE-PUBLISHING.md
+Use the established SDD implementation and analysis process.
 
-Verify the Windows build, WSL version, selected distribution and its Linux
-version/architecture, VS Code desktop version and actual WSL extension-host
-location. Identify the existing NetClaw path, source/version, selected harness,
-runtime versions, standalone/Risk role and supported read-only status. Ask only
-if the intended installation cannot be identified unambiguously. Inspect the
-actual CLI/status implementation before choosing commands; do not assume the
-planned Spec150 launchers exist. Do not print or copy .env values or credentials.
+The owner authorized implementation and qualification. This is a partially
+implemented development candidate, not a full release: five of 79 tasks were
+checked at the Mac checkpoint. Continue the remaining implementation and fix
+actual failures; do not limit this to rendering controls or a baseline review.
+RAG must remain a dedicated panel with existing-store collections, reviewed
+upload, indexing state, citations and explicit Chat/Canvas context selection.
+Do not register unrestricted operator tools with Copilot or terminal agents.
+Keep assistant delegation unavailable until runtime and per-hop grants are
+actually enforced and tested; assistants cannot approve their own changes.
 
-Compare observed state with spec150 requirements and spec149's outstanding
-Linux/WSL qualification. Record sanitized facts and explicit blocked/unrun items
-in specs/150-vscode-extension/evidence/wsl-baseline.md. Distinguish real host
-observations from source-only conclusions. The VS Code extension is not yet
-implemented: do not claim WSL extension acceptance. Review the spec/design and
-report the next implementation/qualification steps and any concrete blockers.
-Do not mark implementation tasks complete from this baseline. End with GAIT log.
+First re-observe Windows, WSL distribution, actual VS Code extension-host
+location, existing installations and active work. Keep Mac and WSL evidence
+separate. The earlier owner baseline found Node25.1 unsupported, missing live
+stable installation identity/management components, older loaded service
+shapes and outstanding Spec149 Linux/WSL qualification. Verify rather than
+assuming these conditions still hold. The extension must not install, upgrade
+or initialize its backend. Prepare concrete prerequisite changes through the
+normal backend workflow; apply only within the established authorization and
+change-control scope. Ask only when the intended target or necessary authority
+is genuinely missing. Never replace credentials, restart unrelated services,
+replay uncertain work or turn a legacy daemon into a verified identity by fiat.
+
+Use isolated supported Node (24.19–24.x or26.1+), Python3.12 federation/MCP and
+pinned Python3.14 Hermes environments. Install locked development dependencies
+only in the isolated checkout. Build/test the candidate there, then exercise
+actual Windows desktop VS Code connected to the intended WSL distro. Complete
+E3/E8 and applicable runtime/client/fault gates, including real Copilot, Claude
+Code and Codex workflows and a separately designated second distribution.
+Never infer live tool execution from an advertised integration or a mock result.
+Production network writes still require independently approved change control.
+
+Record commands, exact versions, source/VSIX digests, observed outcomes and
+remaining blocked/unrun checks in evidence/wsl-acceptance.md and the relevant
+story evidence. Mark only fully completed tasks. Finish the required catalog,
+installer, HUD, skills and documentation coherence. Commit and push reviewed
+source and sanitized evidence on the WSL branch; transfer no secrets or private
+runtime state. End with GAIT log and a precise Mac return prompt identifying the
+pushed commit, artifact, remaining work and any missing release prerequisites.
+Do not publish to Marketplace in this WSL phase: the owner will return the WSL
+results to the Mac session for review and finalization.
 ```
 
-## Real baseline evidence required now
+## Reproducible development commands
 
-| Evidence | Required observation |
-|---|---|
-| Source | Handoff branch/commit and installed NetClaw source/version separately; worktree cleanliness and no changes to running source. |
-| Host | Actual Windows build, WSL2 version, selected distribution name (redact privately identifying names in Git), distro/version/architecture, filesystem type and extension-host context. |
-| Runtime | Verified selected OpenClaw/Hermes and installed version; Node and isolated Python runtimes, installed management contract if any, exact missing prerequisites. |
-| Installation | Stable identity availability, nonsecret path alias, standalone/Border/member role and permitted read-only service status; no guessed “healthy” state. |
-| Clients | Installed VS Code/WSL extension, Copilot/Claude Code/Codex versions and MCP support/policy availability; no automatic registration or credential extraction. |
-| Preservation | Owner services/active work before and after read-only inspection, with no restart/stop/shutdown or hidden upgrade. |
-| Limitations | Spec149 production guard/confinement and broader tool gaps retained; no Mac qualification represented as WSL evidence. |
+After selecting supported Node explicitly for this shell, from the isolated
+checkout (these commands do not initialize the owner's backend):
 
-Public Git evidence contains sanitized versions, result summaries and digests. Raw private hostnames, addresses, network topology, prompts, tokens, configs and audit databases remain local. If a required read is denied, record that result and continue independent observations.
-
-## Later prompt — only after implementation and test scope are authorized
-
-```text
-Run Spec150's real Windows/WSL extension acceptance against the implemented
-candidate, following specs/150-vscode-extension/contracts/qualification.md.
-First verify the implementation, VSIX digest, installed backend contract and
-owner-designated test installation/distribution; stop dependent checks if absent.
-Use the read-only baseline as evidence, not as an extension pass. Complete E3/E8,
-the WSL runtime/client matrix and Q1-Q9 as applicable. Exercise the actual VS Code
-desktop WSL extension host and real Copilot, Claude Code and Codex clients with
-OpenClaw/Hermes targets. Record named-client versions and provider mode.
-Before disruptive restart/shutdown or any write, prepare the exact test target,
-active-work impact, baseline/recovery and applicable approval; obtain any missing
-authorization. Never interrupt unrelated owner workloads. Prove distro/target
-isolation, denial/self-approval, revocation, secret redaction, durable reconnect,
-no uncertain replay and extension uninstall preserving backend services/state.
-Record sanitized evidence and mark only actually passed tasks complete. Leave
-unsupported, blocked and unrun checks explicit. Do not publish to Marketplace
-without release authorization. End with a clear result and GAIT log.
+```bash
+npm ci --ignore-scripts --prefix ui/netclaw-visual
+npm ci --ignore-scripts --prefix mcp-servers/netclaw-operator-mcp
+npm ci --ignore-scripts --prefix mcp-servers/netclaw-assistant-mcp
+npm ci --ignore-scripts --prefix extensions/netclaw-vscode
+node --test tests/operator/*.test.mjs tests/assistant-clients/*.test.mjs
+npm --prefix extensions/netclaw-vscode run check
+npm --prefix extensions/netclaw-vscode test
+npm --prefix extensions/netclaw-vscode run build
+npm --prefix extensions/netclaw-vscode run test:package
 ```
 
-WSL qualification is mandatory before release. This handoff is not a waiver. Complete `evidence/wsl-acceptance.md` after actual extension tests; link failures and spec149 dependencies. A separate explicit implementation instruction ratifies the reviewed design; this handoff alone does not.
+The four opt-in process tests require explicit isolated runtime paths; skips are
+not passes. `tests/vscode/runner.mjs` tests the actual editor process it launches,
+which on Linux is not evidence of Windows desktop's WSL remote extension host.
+Actual E3/E8 observations must come from the Windows desktop application.
 
+From a clean committed checkout, `npm --prefix extensions/netclaw-vscode run
+package` produces `netclaw-0.1.0.vsix` and an ignored `out/package.json` containing
+its source SHA and package SHA-256. Packaging pins Marketplace documentation/image
+links to that commit and checks the exact file allowlist separately. ZIP timestamp
+metadata can change a rebuilt artifact's digest; record the artifact actually
+installed. Do not represent a development VSIX as published or release-qualified.
 
-## WSL read-only baseline collected
+## Return to Mac
 
-The 2026-10-10 owner-host observations and prerequisites are recorded in
-[evidence/wsl-baseline.md](evidence/wsl-baseline.md). The running installation was preserved.
-Implementation and all extension/client/fault acceptance remain pending; T075 is unchecked.
-Use that baseline before preparing any separately authorized runtime or acceptance work.
+Push the WSL source/evidence branch, then return its exact commit and the summary
+of `wsl-acceptance.md`. The Mac session should fetch that branch into an isolated
+checkout, review all changes/evidence, finish remaining tasks and release checks,
+then use the locally authenticated `NetClaw` publisher for the reviewed artifact.
+The user's Microsoft/Marketplace credentials are never needed in chat. Public
+completion still requires an observed Marketplace installation and connection.

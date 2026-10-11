@@ -7,6 +7,11 @@ const explanations = Object.freeze({
   EXPIRED: 'This request or grant expired.', AUDIT_UNAVAILABLE: 'Required audit recording is unavailable. No new action was dispatched.',
   BUSY: 'The resource is owned by another operation.', UNKNOWN_OUTCOME: 'The outcome is unknown. Reconcile existing work; do not resubmit it.',
   INVALID_INPUT: 'Input does not match the supported contract.', SOURCE_UNAVAILABLE: 'The selected source is unavailable.',
+  MODELS_NOT_CACHED: 'RAG models are not cached on the backend. Prepare them through the backend installer before indexing or searching.',
+  UNSUPPORTED_FORMAT: 'The backend does not support this document format.', PARSE_FAILED: 'The backend could not parse this document.',
+  CONVERTER_UNAVAILABLE: 'This document requires the backend LibreOffice converter.',
+  REPLACEMENT_REQUIRED: 'A document with this title exists. Review it before replacing it.', STALE_DOCUMENT: 'The document changed since review. Refresh and review it again.',
+  STORAGE_UNAVAILABLE: 'The RAG store is unavailable.', SIZE_LIMIT_EXCEEDED: 'The document exceeds the backend limit.', RAG_UNAVAILABLE: 'The RAG backend could not complete this request.',
 });
 export class ManagementError extends Error {
   constructor(code) { super(explanations[code] || explanations.SOURCE_UNAVAILABLE); this.code = Object.hasOwn(explanations, code) ? code : 'SOURCE_UNAVAILABLE'; }

@@ -5,6 +5,13 @@ import {installationFixture,nonce,auditFixture} from './fixtures.mjs';
 import {bindInstallation} from '../../ui/netclaw-visual/src/management/identity.js';
 import {Journal} from '../../ui/netclaw-visual/src/management/journal.js';
 import {Workspace} from '../../ui/netclaw-visual/src/management/workspace.js';
+import {RagToolError} from '../../ui/netclaw-visual/src/management/rag.js';
+import {safeError} from '../../ui/netclaw-visual/src/management/errors.js';
+
+test('RAG prerequisite failures retain actionable safe error codes',()=>{
+  assert.equal(safeError(new RagToolError('MODELS_NOT_CACHED')).code,'MODELS_NOT_CACHED');
+  assert.equal(safeError(new RagToolError('private backend exception content')).code,'RAG_UNAVAILABLE');
+});
 
 function fixture(t){
   const f=installationFixture(t),binding=bindInstallation(f),journal=new Journal(path.join(f.statePath,'management'),f.installationId);

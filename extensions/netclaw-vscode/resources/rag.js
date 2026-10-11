@@ -1,6 +1,7 @@
 (()=>{
   const api=acquireVsCodeApi(),viewId=document.body.dataset.viewId,$=id=>document.getElementById(id);
-  const post=(type,args={})=>api.postMessage({viewId,type,...args});
+  let sequence=0;
+  const post=(type,args={})=>api.postMessage({viewId,requestId:String(++sequence),type,...args});
   const text=(tag,value,parent)=>{const node=document.createElement(tag);node.textContent=String(value??'');parent.append(node);return node;};
   for(const id of ['refresh','upload','chat','canvas','more'])$(id).addEventListener('click',()=>post(id));
   $('rag-search').addEventListener('submit',event=>{event.preventDefault();$('status').textContent='Searching backend knowledge…';post('search',{query:$('query').value,collection:$('collection').value});});

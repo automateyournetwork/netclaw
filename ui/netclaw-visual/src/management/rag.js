@@ -1,14 +1,13 @@
-import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
 import {Client} from '@modelcontextprotocol/client';
 import {StdioClientTransport} from '@modelcontextprotocol/client/stdio';
 import {environment} from './configuration.js';
-import {invariant,fail} from './errors.js';
+import {invariant,fail,ManagementError} from './errors.js';
 
 const tools=new Set(['rag_list','rag_stats','rag_search','rag_ingest']);
-const messages={MODELS_NOT_CACHED:'RAG embedding or reranking models are not cached on the backend.',UNSUPPORTED_FORMAT:'This document format is not supported by the backend.',PARSE_FAILED:'The backend could not parse this document.',CONVERTER_UNAVAILABLE:'This document requires the backend LibreOffice converter.',REPLACEMENT_REQUIRED:'A document with this title already exists. Review that document before replacing it.',STALE_DOCUMENT:'The document changed since review. Refresh and review it again.',STORAGE_UNAVAILABLE:'The RAG store is unavailable.',SIZE_LIMIT_EXCEEDED:'The document exceeds the backend limit.'};
-export class RagToolError extends Error {constructor(code){super(messages[code]||'The RAG backend could not complete the request.');this.code=Object.hasOwn(messages,code)?code:'RAG_UNAVAILABLE';}}
+const errorCodes=new Set(['MODELS_NOT_CACHED','UNSUPPORTED_FORMAT','PARSE_FAILED','CONVERTER_UNAVAILABLE','REPLACEMENT_REQUIRED','STALE_DOCUMENT','STORAGE_UNAVAILABLE','SIZE_LIMIT_EXCEEDED']);
+export class RagToolError extends ManagementError {constructor(code){super(errorCodes.has(code)?code:'RAG_UNAVAILABLE');}}
 
 /** Fixed existing MCP integration. No executable, URL or tool names from webviews. */
 export class RagClient {

@@ -36,7 +36,7 @@ export function openRag(context:vscode.ExtensionContext,connection:Connection):v
   };
   panel.webview.onDidReceiveMessage(async(raw:unknown)=>{
     if(!raw||typeof raw!=='object')return;const m=raw as Record<string,unknown>;
-    if(JSON.stringify(m).length>16384||m.viewId!==viewId||!['ready','refresh','more','search','stage','upload','chat','canvas'].includes(String(m.type))||Object.keys(m).some(k=>!['viewId','type','query','collection','indices'].includes(k)))return;
+    if(JSON.stringify(m).length>16384||m.viewId!==viewId||typeof m.requestId!=='string'||m.requestId.length>100||!['ready','refresh','more','search','stage','upload','chat','canvas'].includes(String(m.type))||Object.keys(m).some(k=>!['viewId','requestId','type','query','collection','indices'].includes(k)))return;
     try{
       valid();if(busy)return;busy=true;
       if(m.type==='chat'||m.type==='canvas'){await vscode.commands.executeCommand(m.type==='chat'?'netclaw.openChat':'netclaw.openCanvas');return;}
