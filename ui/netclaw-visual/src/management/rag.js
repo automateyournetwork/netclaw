@@ -17,7 +17,8 @@ export class RagClient {
     const env=environment(this.binding),configured=env.RAG_DATA_DIR;
     const directory=configured?configured.replace(/^~(?=\/)/,os.homedir()):path.join(this.binding.home,'rag');
     invariant(path.isAbsolute(directory));
-    const python=env.RAG_MCP_PYTHON||process.env.NETCLAW_HUD_BRIDGE_PYTHON||'python3';
+    // RAG is an existing separate integration; never borrow Hermes' bridge venv.
+    const python=env.RAG_MCP_PYTHON||'python3';
     invariant(python==='python3'||path.isAbsolute(python));
     const client=new Client({name:'netclaw-operator-rag',version:'1.0.0'});
     // Models are installation prerequisites. Opening/searching this panel cannot fetch models.

@@ -91,3 +91,19 @@ reference, or `unavailable` with a warning. An unavailable audit does not undo a
 completed data write; do not repeat the write solely to retry logging. These
 components declare `gait-ai` in their own runtime and require an initialized
 GAIT repository discoverable from the server working directory.
+
+## VS Code management integration (Spec150 development candidate)
+
+The private operator facade uses this same store and these existing tools. It
+selects `RAG_MCP_PYTHON` from the backend `.env` when explicitly configured, or
+uses the existing `python3` RAG environment. It never borrows the Hermes companion
+or bridge interpreter. The selected interpreter must already have the RAG
+dependencies and model cache; the extension installs neither. The facade sets
+offline model flags for index/search and accepts only reviewed files up to
+10 MiB. Its RAG panel shows citations, indexing outcomes and selected context.
+
+Cross-process store ownership coordinates indexing, search, recovery and replica
+publication. A newly opened HUD/editor/runtime client does not sweep an active
+indexing job. Keyword caches observe changes from other processes. Managed
+replacement supplies the exact reviewed prior document ID; the legacy tools
+retain their existing default replacement behavior.

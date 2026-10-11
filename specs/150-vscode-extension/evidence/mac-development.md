@@ -71,6 +71,14 @@ with Hugging Face and Transformers offline flags.
   paths. Packaging now requires committed source and explicitly pins URLs to its
   commit and extension subdirectory.
 
+## Packaged lifecycle follow-up
+
+The actual VSIX passed clean installation, previous-candidate upgrade, disable,
+uninstall and rollback in VS Code 1.102.0, with its saved profile retained.
+A separate repeat hit an editor CLI abort during uninstall; the sequential rerun
+passed. The failed observation remains recorded, without an asserted root cause.
+See [artifact digests and package evidence](package.md).
+
 ## Still open
 
 Only T001–T004 and T020 are checked. Other tasks contain partial implementations

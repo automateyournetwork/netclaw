@@ -38,7 +38,12 @@ try{
   fs.writeFileSync(path.join(previous,'package.json'),JSON.stringify({...manifest,version:'0.0.1',scripts:{}}));
   fs.copyFileSync(path.join(extension,'.vscodeignore'),path.join(previous,'.vscodeignore'));
   const old=path.join(temporary,'previous.vsix');
-  await createVSIX({cwd:previous,packagePath:old,dependencies:false,readmePath:path.join(previous,'README.md'),changelogPath:path.join(previous,'CHANGELOG.md'),baseContentUrl:'https://github.com/automateyournetwork/netclaw/blob/150-vscode-extension-implementation/extensions/netclaw-vscode',baseImagesUrl:'https://raw.githubusercontent.com/automateyournetwork/netclaw/150-vscode-extension-implementation/extensions/netclaw-vscode'});
+  const priorCwd=process.cwd();
+  try{
+    // vsce's Markdown processor resolves document contents from process.cwd().
+    process.chdir(previous);
+    await createVSIX({cwd:previous,packagePath:old,dependencies:false,baseContentUrl:'https://github.com/automateyournetwork/netclaw/blob/150-vscode-extension-implementation/extensions/netclaw-vscode',baseImagesUrl:'https://raw.githubusercontent.com/automateyournetwork/netclaw/150-vscode-extension-implementation/extensions/netclaw-vscode'});
+  }finally{process.chdir(priorCwd);}
   await command(['--install-extension',old,'--force']);await phase('initial','0.0.1');
   await command(['--install-extension',current,'--force']);await phase('upgrade',manifest.version);
   await phase('disabled',manifest.version);

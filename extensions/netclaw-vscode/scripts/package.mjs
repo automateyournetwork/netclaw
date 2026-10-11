@@ -13,6 +13,7 @@ const dirty=execFileSync('git',['status','--porcelain'],{cwd:root,encoding:'utf8
 if(dirty)throw Error('Commit the reviewed source before packaging so Marketplace links and provenance identify the actual files.');
 const manifest=JSON.parse(fs.readFileSync(path.join(cwd,'package.json'),'utf8'));
 const packagePath=path.join(cwd,`netclaw-${manifest.version}.vsix`);
+process.chdir(cwd);
 await createVSIX({cwd,packagePath,dependencies:false,
   baseContentUrl:`https://github.com/automateyournetwork/netclaw/blob/${source}/extensions/netclaw-vscode`,
   baseImagesUrl:`https://raw.githubusercontent.com/automateyournetwork/netclaw/${source}/extensions/netclaw-vscode`});
