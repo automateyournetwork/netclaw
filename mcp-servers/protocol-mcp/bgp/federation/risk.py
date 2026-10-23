@@ -207,7 +207,11 @@ class RiskManager:
         cad = self.keys_dir / "risk-ca"
         hcrt, hkey = cad / "hub.crt", cad / "hub.key"
         if hcrt.exists() and hkey.exists():
-            return hcrt.read_text(), hkey.read_text()
+            existing = hcrt.read_text()
+            renew_before = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+            if certs.cert_not_after(existing) > renew_before:
+                return existing, hkey.read_text()
+            logger.info("Renewing expiring hub credential under the existing risk CA")
         ca_cert, ca_key = self.ensure_risk_ca()
         risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
         hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",
