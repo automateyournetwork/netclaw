@@ -18,7 +18,7 @@ The initial managed profile uses an installation-specific API key and fixed offi
 **Project Type**: MCP integration, runtime skill and narrow existing-workflow extensions.  
 **Performance Goals**: Local preparation bounded by a 20 MiB artifact ceiling (further narrowed by upstream capability); MCP calls finite, ordinary polling <=45 seconds/call and <=5 minutes per unattended sequence; resumable known-job reads afterward. No conversion latency guarantee.  
 **Constraints**: No upstream redistribution/license acceptance, raw source config in model arguments, generic shell/tool proxy, tool-denial bypass, production attachment or automatic destructive lab cleanup.  
-**Scale/Scope**: One optional component, one guarded registration and one new migration skill; reference ASA→Palo Alto SET and conditional IOS-XE↔JunOS workflows. Five recorded implementation review iterations.
+**Scale/Scope**: One optional component, one guarded registration and one new migration skill. Preferred live reference: owner-requested IOS-XE→JunOS with OSPF, actual adjacency/routes/traffic checks and an evidence-based community article. ASA→Palo Alto SET remains an additional conditional workflow. Five recorded implementation review iterations.
 
 ## Constitution Check
 

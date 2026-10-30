@@ -98,6 +98,7 @@ case "$component" in
   document) function_name=component_install_document ;;
   ollama) function_name=component_install_ollama ;;
   jev) function_name=component_install_jev ;;
+  netconverter) function_name=component_install_netconverter ;;
   humanrail) function_name=component_install_humanrail ;;
   *) exit 2 ;;
 esac

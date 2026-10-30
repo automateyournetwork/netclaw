@@ -8,6 +8,17 @@
 
 ## Device Automation Skills
 
+### netconverter
+
+Optional NetConverter conversion/validation/optimization with exact-file native
+approval, private artifacts and connection-bound jobs. Compose scoped inventory
+and collectors with actual virtual-target rehearsal, pyATS, Batfish, Jev and
+evidence-linked diagram/document/ticket drafts. Discover actual account paths
+and target images; unknown submissions/applies never replay. Read
+`workspace/skills/netconverter/SKILL.md` and [the guide](docs/NETCONVERTER.md).
+Controlled peers do not prove live vendor acceptance. Live Junos baseline collection
+and real conversion/target qualification remain explicit gates.
+
 ### pyats-network
 Core device automation: show commands, configure, ping, logging, dynamic tests. Use `pyats_run_command` for single commands, `pyats_run_command_batch` for multiple. Genie parsers return structured JSON for 100+ IOS-XE commands.
 

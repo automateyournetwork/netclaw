@@ -40,6 +40,10 @@ def environment(env):
 def resolve(component, server=None, env=None, repo=ROOT):
     env = environment(os.environ if env is None else env)
     rule = CONTRACT[component]
+    if component == 'pyats':
+        # The API and consumer share this selected installation's fixed vault.
+        # A model-supplied artifact path can never choose a different issuer.
+        env['NETCLAW_CHANGE_ROOT'] = str(runtime_root(env).parent / 'netclaw-changes')
     server = server or rule['servers'][0]
     if server not in rule['servers']:
         raise ValueError('Server does not belong to the selected component')

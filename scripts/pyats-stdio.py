@@ -97,8 +97,12 @@ def main():
     artifacts.mkdir(parents=True,exist_ok=True,mode=0o700)
     session=Path(tempfile.mkdtemp(prefix='session-',dir=artifacts))
     env['PYATS_MCP_ARTIFACTS_DIR']=str(session);env['PYATS_MCP_TASK_DB']=str(session/'tasks.sqlite3')
-    proc = subprocess.Popen([str(python), '-u', str(ROOT/'scripts/pyats-managed.py'),'--upstream',str(script)], env=env,
-                            stdin=subprocess.DEVNULL, stdout=sys.stderr, stderr=sys.stderr, start_new_session=True)
+    # Upstream/Unicon can log complete commands, configs and authentication
+    # diagnostics. Keep the entire child stream private, including on failure.
+    log_fd=os.open(session/'upstream.log',os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+    with os.fdopen(log_fd,'wb') as private_log:
+        proc = subprocess.Popen([str(python), '-u', str(ROOT/'scripts/pyats-managed.py'),'--upstream',str(script)], env=env,
+                                stdin=subprocess.DEVNULL, stdout=private_log, stderr=private_log, start_new_session=True)
     def interrupted(signum, frame):
         raise SystemExit(128 + signum)
     signal.signal(signal.SIGTERM, interrupted)

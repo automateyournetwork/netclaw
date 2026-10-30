@@ -13894,5 +13894,150 @@ export const COMPONENT_SETTINGS = {
         }
       ]
     }
+  ],
+  "netconverter": [
+    {
+      "key": "NETCONVERTER_MODE",
+      "label": "Mode",
+      "help": "Choose hosted-readonly or local-terminal. Setup never submits a file.",
+      "classification": "public",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "hosted-readonly",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_API_KEY",
+      "label": "API key",
+      "help": "Enabled installation-specific API key; configure later while account approval is pending.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_ACCOUNT_REF",
+      "label": "Account reference",
+      "help": "Your local account label; not a verified tenant identity.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_WORKSPACE",
+      "label": "Terminal workspace",
+      "help": "Absolute existing private workspace; its upstream privacy policy is preserved.",
+      "classification": "private",
+      "valueType": "path",
+      "required": "conditional",
+      "condition": {
+        "equals": {
+          "key": "NETCONVERTER_MODE",
+          "value": "local-terminal"
+        }
+      },
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_EXECUTABLE",
+      "label": "Licensed Terminal executable",
+      "help": "Absolute operator-installed executable. Installer never accepts the license.",
+      "classification": "private",
+      "valueType": "path",
+      "required": "conditional",
+      "condition": {
+        "equals": {
+          "key": "NETCONVERTER_MODE",
+          "value": "local-terminal"
+        }
+      },
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_DATA_DIR",
+      "label": "Private guard state",
+      "help": "Generated inside this installation.",
+      "classification": "private",
+      "valueType": "path",
+      "required": "always",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "generated",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    },
+    {
+      "key": "NETCONVERTER_INSTALLATION_ID",
+      "label": "Installation binding",
+      "help": "Generated from this installation identity.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "always",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "generated",
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ]
+    }
   ]
 };

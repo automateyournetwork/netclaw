@@ -16,6 +16,18 @@ Devices are defined in `testbed/testbed.yaml`. Update that file with your SSH-ac
 
 ## Platform Credentials
 
+Optional NetConverter settings belong to the selected installation: mode,
+account reference, separate API key, private workspace and operator-installed
+licensed executable. See [NetConverter operations](docs/NETCONVERTER.md).
+Never infer account entitlement from signup, or a target image from a lab
+template. Native relay reachability can differ from Python socket reachability;
+verify the actual selected transport before declaring a device unavailable.
+Keep private addressing and raw device observations in local session memory.
+
+The managed pyATS launcher selects `<claw>/netclaw-changes` for the API/consumer
+artifact boundary. It keeps upstream logs private and publishes process-bound
+inventory receipts when listing devices. These receipts authorize no writes.
+
 Credentials belong to the **selected installation's** private `.env`. The historical default is `~/.openclaw/.env`; a separate setup-owned OpenClaw or Hermes home has its own file. Verify the selected home and installation identity first. Never borrow another claw's credentials or put values in skill files, plans, reports or this document. [Separate-claw setup](docs/GETTING-STARTED-VSCODE.md) includes Spec155 Comms in source 1.13.0 / extension 1.3.0. Publishing these artifacts does not install or change any existing local runtime.
 
 The source Comms installer distinguishes native conversation ingress, Twilio API

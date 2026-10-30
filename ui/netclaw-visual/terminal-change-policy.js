@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 import { activityText } from './terminal-intent-live.js';
+import { createMigrationVault } from './terminal-migration-artifacts.js';
 
 const fail = (message, status = 400) => Object.assign(new Error(message), { status });
 const hash = value => crypto.createHash('sha256').update(value).digest('hex');
@@ -25,6 +26,7 @@ function atomicJson(file, data) {
 }
 
 export function createLocalChangePolicy({ directory, listDevices }) {
+  const migrationVault = createMigrationVault(directory);
   const root = () => typeof directory === 'function' ? directory() : directory;
   const policyFile = () => path.join(root(), 'policy.json');
   const readPolicy = () => {
@@ -64,6 +66,8 @@ export function createLocalChangePolicy({ directory, listDevices }) {
     }
   }
   return {
+    migrationInventories: () => migrationVault.inventories(),
+    captureCandidate: input => migrationVault.capture(input),
     state() {
       const policy = readPolicy();
       const live = listDevices();
@@ -87,7 +91,10 @@ export function createLocalChangePolicy({ directory, listDevices }) {
       return this.state();
     },
     resolve(input) {
-      if (!input.changeMode || input.changeMode === 'production') return { mode: 'production' };
+      if (!input.changeMode || input.changeMode === 'production') {
+        if (input.migration) throw fail('Private artifact application currently requires the Local/Lab workflow.');
+        return { mode: 'production' };
+      }
       if (input.changeMode !== 'local-lab') throw fail('Unknown change-control mode.');
       const policy = readPolicy();
       const ids = input.targetDeviceIds;
@@ -100,6 +107,7 @@ export function createLocalChangePolicy({ directory, listDevices }) {
       });
       const change = { mode: 'local-lab', revision: policy.revision, devices };
       validate(change);
+      if (input.migration) change.migration = migrationVault.bind(input.migration, devices);
       return change;
     },
     begin(id, input, scope) {
@@ -134,8 +142,13 @@ export function createLocalChangePolicy({ directory, listDevices }) {
       }
       audit(change.id, 'baseline-and-rollback-recorded', artifacts);
       const next = { ...readRecord(change.id), phase: 'apply', artifacts };
+      if (next.migration) {
+        next.applyRevision = crypto.randomUUID();
+        next.applyGrants = [crypto.randomUUID().replaceAll('-', '')];
+      }
       atomicJson(recordFile(change.id), next);
-      return { ...change, phase: 'apply', artifacts };
+      if (next.migration) migrationVault.issue(next);
+      return { ...change, ...next };
     },
     record(change, report, status) {
       // Only bounded/redacted reports, never transcript/config/secret payloads.

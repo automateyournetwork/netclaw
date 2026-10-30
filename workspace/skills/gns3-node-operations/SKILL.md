@@ -29,6 +29,10 @@ Manage network device nodes in GNS3 projects. Add devices from templates, contro
 - **Command**: `python3 -u mcp-servers/gns3-mcp-server/gns3_mcp_server.py` (stdio transport)
 - **Requires**: `GNS3_URL`, `GNS3_USER`, `GNS3_PASSWORD` environment variables
 
+## NetConverter rehearsal boundaries
+
+Discover the installed schemas, exact licensed image and host architecture first. Lifecycle access does not grant configuration permission. Startup-file paths belong to the lab host; a local NetClaw path is not remote staging. Console access is not a verified SSH identity. Use the existing artifact-bound change workflow for a reviewed candidate; no exec/console fallback after denial. Record creation attempts and exact provider ownership, retain resources by default, and follow `netconverter/references/rehearsal.md`. Destructive destroy/delete/reload/restore examples below are unavailable under AGENTS.md and are not automatic rehearsal cleanup.
+
 ## Available Tools
 
 | Tool | Parameters | What It Does |

@@ -1,0 +1,5 @@
+# NetClaw guard dependencies only. The licensed Terminal is operator-installed.
+fastmcp==4.0.11
+fastmcp-slim==4.0.11
+mcp==2.3.0
+jsonschema==4.26.0

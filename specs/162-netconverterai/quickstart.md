@@ -1,6 +1,6 @@
-# Spec162 planned operator walkthrough
+# Spec162 operator walkthrough
 
-This describes the intended implementation; the new commands/tools are not yet implemented.
+These source tools and controlled workflows are implemented. Actual licensed-client discovery, hosted conversion and vendor-target acceptance remain pending; see [verification](verification.md).
 
 1. Select NetConverter in a new isolated NetClaw setup. Choose hosted-readonly to inspect existing jobs, or local-terminal with an explicitly installed licensed Terminal, private workspace and installation-specific key. Review separate readiness results.
 2. Ask the new `netconverter` skill to discover supported directions and prepare a local configuration for the selected operation. A local metadata-only proposal identifies source/hash/size, target, options and exact hosted destination.
@@ -13,4 +13,6 @@ This describes the intended implementation; the new commands/tools are not yet i
 
 ## Feasibility currently observed
 
-The development Mac is ARM64. Its Docker client cannot reach the selected daemon socket, so image/capacity inventory is unavailable. The connected NetClaw read-only inventory request failed. No local Terminal executable/account was found by the bounded prerequisite checks. These observations do not establish that remote labs or an account are absent. Live qualification needs the selected host/image and enabled account; do not mark fixtures as live migration evidence.
+The development Mac is ARM64. After the owner started Docker, the Linux ARM64 daemon reported 14 CPUs and approximately 8.3 GB memory. Its existing pyATS MCP successfully listed four devices and completed four live `show version` checks through the existing local SSH relays. All four hostnames matched their inventory names and reported 17.18.2. No device configuration was changed. The separate connected NetClaw agent still returned an internal error; direct local MCP supplied the read-only evidence.
+
+The preferred reference is IOS-XE→JunOS OSPF. A compatible installed Junos image and NetConverter enabled account/licensed Terminal have not yet been established. Local CML HTTPS is reachable but the browser rejects its certificate. These are distinct qualification gaps; live source observations do not establish target boot, hosted conversion or migration acceptance.

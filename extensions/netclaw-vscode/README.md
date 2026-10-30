@@ -4,6 +4,8 @@ Set up a **new NetClaw or mixed Risk**, or manage your **existing NetClaw or Ris
 inspect operations, converse with its configured runtime, search RAG knowledge and
 review supported settings without leaving your editor.
 
+**Source 1.5.0 (unpublished):** Optional NetConverter setup selects hosted-readonly or local-Terminal mode with independent private settings and cancellation preservation. Requires source **1.15.0**; account capability and exact-file approval remain separate. See the [NetConverter guide](../../docs/NETCONVERTER.md) and [qualification evidence](../../specs/162-netconverterai/verification.md).
+
 **New in 1.4.0:** Choose **Static or Dynamic testbeds** per claw, with 14 source routes, native source selection, explicit plan review and preserved cancellation/reload. Dynamic setup requires source **1.14.0**. Read the [dynamic testbed guide](../../docs/DYNAMIC-TESTBEDS.md) and [Spec160 verification](../../specs/160-dynamic-pyats-testbeds/verification.md). Setup configures policy; source access, schema validation, activation and device execution are separate steps.
 
 **Patch 1.3.1:** Includes the optional MCP-default catalog/resolver in exact setup source review (Spec 156). Use source 1.13.1 for the coordinated minor fixes; see [release notes](../../docs/releases/1.13.1.md).
@@ -14,7 +16,7 @@ NetClaw remains your runtime. Opening the extension changes no runtime. Explicit
 
 ## Connect
 
-1. Extension 1.4.0 requires VS Code 1.109 or later on macOS or Linux. Extension 1.1.0 retains its 1.102 baseline. On Windows, first open your
+1. Extension 1.5.0 source and 1.4.0 require VS Code 1.109 or later on macOS or Linux. Extension 1.1.0 retains its 1.102 baseline. On Windows, first open your
    intended **WSL distribution** with VS Code Remote WSL and install this extension
    **in WSL**. For another Linux/Mac machine, use your existing Remote SSH workspace.
 2. Start your already-installed NetClaw HUD using its normal supported environment.

@@ -96,3 +96,26 @@ The synthetic terminal design page supports lab setup without real network acces
 ## Hermes runtime
 
 Spec 148 offers read-only Terminal Intent assistance through the protected Hermes companion. Local/Lab APPLY and configuration tools are unavailable and rejected before dispatch; this does not weaken the change-control requirements above. Direct terminal presentation remains available under its existing authorization. A hosted-Hermes approval never substitutes for endpoint grants, baseline/rollback artifacts, phase checks, verification or audit. See [Hermes HUD](../../docs/HERMES-HUD.md).
+## Private migration candidates (Spec162)
+
+Terminal Intent can attach one reviewed local candidate to one selected lab SSH
+endpoint. Its file chooser posts bytes only to the local API; the model receives
+hashes and references. Select the same persistent managed pyATS process used by
+Intent after `pyats_list_devices`; inventory and HUD endpoint identities must
+match. The UI review is distinct from NetConverter hosted-upload approval.
+
+After genuine baseline/rollback checks, the API signs a five-minute one-use
+capability bound to the candidate, endpoint, process/testbed, tool, record/task,
+policy revision and evidence hashes. The existing `pyats_configure_device`
+artifact form checks that capability and consumes its attempt before writing.
+It preserves tool-level denial and upstream dangerous-command controls. It does
+not expose a new configuration alias or MCP grant issuer. Lost responses remain
+unknown; verify live state before any further change.
+
+The fixed vault is `<selected-home>/netclaw-changes`. It trusts the local OS
+owner; signatures are not a sandbox against someone who can rewrite trusted
+runtime files or read the signing key. Private results and upstream logs stay
+local. Uncached, unambiguous ordinary SSH routes are required. Junos set-format
+application is present in source; live Junos baseline collection and
+commit/readback remain unqualified. Hermes Local/Lab APPLY remains unavailable.
+See [the complete guide](../../docs/NETCONVERTER.md) for exact behavior and limits.

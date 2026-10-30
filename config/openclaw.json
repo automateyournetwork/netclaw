@@ -1469,6 +1469,22 @@
         "tts-mcp"
       ],
       "transport": "stdio"
+    },
+    "netconverter-mcp": {
+      "command": "python3",
+      "args": [
+        "scripts/component-launch.py",
+        "netconverter"
+      ],
+      "env": {
+        "NETCONVERTER_MODE": "${NETCONVERTER_MODE}",
+        "NETCONVERTER_API_KEY": "${NETCONVERTER_API_KEY}",
+        "NETCONVERTER_ACCOUNT_REF": "${NETCONVERTER_ACCOUNT_REF}",
+        "NETCONVERTER_WORKSPACE": "${NETCONVERTER_WORKSPACE}",
+        "NETCONVERTER_EXECUTABLE": "${NETCONVERTER_EXECUTABLE}",
+        "NETCONVERTER_DATA_DIR": "${NETCONVERTER_DATA_DIR}",
+        "NETCONVERTER_INSTALLATION_ID": "${NETCONVERTER_INSTALLATION_ID}"
+      }
     }
   }
 }

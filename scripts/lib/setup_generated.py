@@ -61,6 +61,9 @@ def generated(claw,validator,python):
     if 'pyats' in claw['capabilities']['components']:
         from pyats_testbeds import policy_environment
         values.update(policy_environment(claw.get('testbed'),Path(claw['workspace'])/'testbed.yaml'))
+    if 'netconverter' in claw['capabilities']['components']:
+        values['NETCONVERTER_DATA_DIR']=str(home/'netconverter')
+        values['NETCONVERTER_INSTALLATION_ID']=claw['id']
     # Data/cache paths must stay local even when upstream's default is a global
     # .openclaw path. Operator-reviewed explicit settings remain authoritative.
     for component,key,directory in [('nsm','NSM_HOME','nsm'),('rag-mcp','RAG_DATA_DIR','rag'),

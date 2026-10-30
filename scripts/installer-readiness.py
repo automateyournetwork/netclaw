@@ -84,6 +84,10 @@ def native_probe(server, expected, env, config, timeout):
 
 def missing_credentials(rule, env):
     missing = [key for key in rule.get('required_env', []) if not env.get(key)]
+    if 'netconverter-mcp' in rule.get('servers',[]):
+        if env.get('NETCONVERTER_MODE') not in ('hosted-readonly','local-terminal'): missing.append('NETCONVERTER_MODE')
+        if env.get('NETCONVERTER_MODE')=='local-terminal':
+            missing += [key for key in ('NETCONVERTER_WORKSPACE','NETCONVERTER_EXECUTABLE') if not env.get(key)]
     if 'pyats-mcp' in rule.get('servers',[]) and env.get('NETCLAW_TESTBED_MODE')=='dynamic':
         missing=[key for key in missing if key!='PYATS_TESTBED_PATH']
         sys.path.insert(0,str(ROOT/'scripts/lib'))
@@ -217,6 +221,10 @@ def report(selected, failed, templates, live, env, config_path, runtime, do_prob
         rule = launcher.CONTRACT.get(component, {})
         expected = rule.get('servers') or [name for name in templates if registration.component_for(name) == component]
         row = {'component':component, 'installation':'failed' if component in failed else 'recorded', 'servers':[]}
+        if component=='netconverter':
+            row['netconverter']={'mode':env.get('NETCONVERTER_MODE','unconfigured'),
+                'authentication':'not_checked','capabilities':'not_checked','approval':'per_exact_request',
+                'license':'operator_managed','submission':'not_attempted','targetAcceptance':'not_tested'}
         if component=='pyats':
             sys.path.insert(0,str(ROOT/'scripts/lib'))
             from pyats_testbeds import environment_policy,TestbedError

@@ -1,6 +1,6 @@
-# Spec162 acceptance scenarios — draft
+# Spec162 acceptance scenarios
 
-These scenarios translate the current requirements into observable outcomes. Execution has not begun. Final task ownership and commands follow scope clarification and planning.
+These scenarios define expected outcomes. Actual source/fixture and live status is recorded in [verification.md](verification.md); the expectation table is not a pass list. Real account/client and virtual-target gates remain pending.
 
 | Scenario | Expected observation | Evidence classification |
 |---|---|---|

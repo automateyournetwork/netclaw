@@ -2,7 +2,7 @@
 
 **Feature Branch**: `162-netconverterai`  
 **Created**: 2026-10-30  
-**Status**: Scope clarified — implementation planning; live qualification environment pending  
+**Status**: Source implementation complete; live target/account qualification pending
 **Input**: Integrate NetConverter's MCP, Terminal toolkit and supplied skill first; compose existing NetClaw collection, Jev review, conversion, digital-twin preparation, pyATS/Batfish validation, diagrams, documents and ticket workflows. Use SDD with five Ralph review/fix/test iterations during implementation.
 
 ## Clarifications
@@ -11,6 +11,8 @@
 
 - Q: Which hosted-upload policy should NetClaw implement? → A: Exact-file approval before each hosted submission. This selects product behavior and does not authorize an upload during development.
 - Q: How far should digital twins go in Spec162? → A: Actually create the migration targets virtually and test them wherever feasible, using compatible available images and existing lab controls; do not stop at proposals and test plans.
+- Owner identified the local CML host and four local IOS devices; the DevNet sandbox is outside this run. Actual MCP inventory and four show-version reads confirm the local devices. Private endpoint details remain in ignored session evidence.
+- Owner requested a real IOS-XE→JunOS routing conversion as a tested/documented community demonstration. Prefer OSPF→OSPF using the published supported router path. EIGRP is explicitly not translated to JunOS; any EIGRP→OSPF proposal is a separately opted-in protocol redesign, not preservation of the original protocol.
 
 ## User Scenarios & Testing
 

@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md), [data-model.md](data-model.md), [contracts](contracts/)
 
-Tasks are source work unless explicitly labeled live qualification. Checked tasks require recorded evidence. A blocked live task remains unchecked. No source implementation or Ralph iteration has run at task generation.
+Tasks are source work unless explicitly labeled live qualification. Checked tasks require recorded evidence. A blocked live task remains unchecked. Initial implementation and controlled verification are recorded below and in verification.md. Live acceptance remains separate.
 
 ## Phase 1 — Specification and research
 
@@ -11,62 +11,62 @@ Tasks are source work unless explicitly labeled live qualification. Checked task
 
 ## Phase 2 — Shared private-artifact and transport foundation
 
-- [ ] T003 Add boundary tests for private artifacts, exact-request digests, one-use grants and unknown outcomes in `tests/netconverter/test_core.py`.
-- [ ] T004 Implement bounded descriptor-based capture, frozen snapshots, hash verification and no-clobber publication in `mcp-servers/netconverter-mcp/artifacts.py`.
-- [ ] T005 Implement connection/request/grant/attempt state and atomic reservation in `mcp-servers/netconverter-mcp/core.py`.
-- [ ] T006 Implement official SDK clients, fixed Terminal argv/environment, bounded capability discovery and no mutation retries in `mcp-servers/netconverter-mcp/transport.py`.
+- [x] T003 Add boundary tests for private artifacts, exact-request digests, one-use grants and unknown outcomes in `tests/netconverter/test_core.py`.
+- [x] T004 Implement bounded descriptor-based capture, frozen snapshots, hash verification and no-clobber publication in `mcp-servers/netconverter-mcp/artifacts.py`.
+- [x] T005 Implement connection/request/grant/attempt state and atomic reservation in `mcp-servers/netconverter-mcp/core.py`.
+- [x] T006 Implement official SDK clients, fixed Terminal argv/environment, bounded capability discovery and no mutation retries in `mcp-servers/netconverter-mcp/transport.py`.
 
 Checkpoint: tests distinguish source bytes from metadata and prove a single approved request cannot create two submission attempts.
 
 ## Phase 3 — US1: optional integration and readiness (P1)
 
-- [ ] T007 [US1] Implement the guarded MCP server/status surface with explicit mode and capability reporting in `mcp-servers/netconverter-mcp/server.py`.
-- [ ] T008 [US1] Add dependency-only isolated installation and guarded-only runtime registration in `scripts/lib/install-steps.sh`, `scripts/lib/plan-steps.sh`, `config/python-components/netconverter.txt`, `config/openclaw.json`, `config/installer-access.json` and reviewed `config/components/effects.json`.
-- [ ] T009 [US1] Add conditional per-installation settings, skill/server joins and effect/access metadata in `config/components/catalog.json` and `scripts/lib/setup_generated.py`.
-- [ ] T010 [US1] Add bounded mode selection and validation in `scripts/setup.sh`, `scripts/lib/setup_plan.py`, `extensions/netclaw-vscode/src/views/setup-wizard.ts` and `extensions/netclaw-vscode/src/setup/plan.ts`; reject `nck_live_` literals in non-secret plan fields.
-- [ ] T011 [US1] Distinguish installed/discovered/authenticated/capable/approved status in `scripts/installer-readiness.py`, existing setup verification/report projections and `ui/netclaw-visual/server.js`.
-- [ ] T012 [US1] Verify isolated setup, mode cancellation/save, owner preservation, secret references and guarded-only registrations in `tests/netconverter/test_installation.py`, existing setup tests and extension setup tests.
+- [x] T007 [US1] Implement the guarded MCP server/status surface with explicit mode and capability reporting in `mcp-servers/netconverter-mcp/server.py`.
+- [x] T008 [US1] Add dependency-only isolated installation and guarded-only runtime registration in `scripts/lib/install-steps.sh`, `scripts/lib/plan-steps.sh`, `config/python-components/netconverter.txt`, `config/openclaw.json`, `config/installer-access.json` and reviewed `config/components/effects.json`.
+- [x] T009 [US1] Add conditional per-installation settings, skill/server joins and effect/access metadata in `config/components/catalog.json` and `scripts/lib/setup_generated.py`.
+- [x] T010 [US1] Add bounded mode selection and validation in `scripts/setup.sh`, `scripts/lib/setup_plan.py`, `extensions/netclaw-vscode/src/views/setup-wizard.ts` and `extensions/netclaw-vscode/src/setup/plan.ts`; reject `nck_live_` literals in non-secret plan fields.
+- [x] T011 [US1] Distinguish installed/discovered/authenticated/capable/approved status in `scripts/installer-readiness.py`, existing setup verification/report projections and `ui/netclaw-visual/server.js`.
+- [x] T012 [US1] Verify isolated setup, mode cancellation/save, owner preservation, secret references and guarded-only registrations in `tests/netconverter/test_installation.py`, existing setup tests and extension setup tests.
 
 Independent test: configure each mode against controlled peers with no upstream transfer, owner-runtime change or license acceptance.
 
 ## Phase 4 — US2: approved conversion and evidence (P1)
 
-- [ ] T013 [US2] Implement local prepare and exact-reference submit-approved operations in `mcp-servers/netconverter-mcp/core.py` and `server.py`, including source/target/options qualification and durable unknown state.
-- [ ] T014 [US2] Implement operator review/single-use approval/status CLI in `scripts/netconverter-settings.py` without a model-facing grant tool.
-- [ ] T015 [US2] Implement schema-qualified read allowlist, connection-bound jobs, finite polling and verified private downloads in `mcp-servers/netconverter-mcp/transport.py` and `server.py`.
-- [ ] T016 [US2] Exercise the actual official SDK with controlled stdio/HTTP peers, denial, malformed receipts, exposure preservation, authentication isolation and corruption/fault cases in `tests/netconverter/test_transport.py`.
-- [ ] T017 [US2] Adapt the supplied bundle into `workspace/skills/netconverter/SKILL.md` and `references/operations.md`, preserve archive provenance and validate the skill; move the original supplied archive out of the repository root into the documented provenance location without loss.
+- [x] T013 [US2] Implement local prepare and exact-reference submit-approved operations in `mcp-servers/netconverter-mcp/core.py` and `server.py`, including source/target/options qualification and durable unknown state.
+- [x] T014 [US2] Implement operator review/single-use approval/status CLI in `scripts/netconverter-settings.py` without a model-facing grant tool.
+- [x] T015 [US2] Implement schema-qualified read allowlist, connection-bound jobs, finite polling and verified private downloads in `mcp-servers/netconverter-mcp/transport.py` and `server.py`.
+- [x] T016 [US2] Exercise the actual official SDK with controlled stdio/HTTP peers, denial, malformed receipts, exposure preservation, authentication isolation and corruption/fault cases in `tests/netconverter/test_transport.py`.
+- [x] T017 [US2] Adapt the supplied bundle into `workspace/skills/netconverter/SKILL.md` and `references/operations.md`, preserve archive provenance and validate the skill; move the original supplied archive out of the repository root into the documented provenance location without loss.
 
 Independent test: synthetic source → exact operator grant → one controlled submission → evidence review → verified local artifacts, including declined/changed/replayed/unknown cases.
 
 ## Phase 5 — US3: actual virtual migration targets (P1)
 
-- [ ] T018 [US3] Bind a natively reviewed candidate artifact, endpoint identities, testbed fingerprint, route and verification profile into the existing API request/record in `ui/netclaw-visual/terminal-change-policy.js`, `terminal-intent-live.js` and `src/canvas-chat/terminal-intent.js`.
-- [ ] T019 [US3] Implement API-issued one-use apply capabilities after real baseline/rollback transition in `ui/netclaw-visual/terminal-intent-execution.js` and a narrowly scoped shared issuer/consumer contract in `scripts/lib/migration_artifacts.py`; no model-issued approval or phase-file-only authorization.
-- [ ] T020 [US3] Add mutually exclusive artifact input to the existing managed pyATS configuration tool identity in `scripts/pyats-managed.py`, retaining runtime denial semantics, dangerous-command checks, exact endpoint/testbed binding and one-use attempts.
-- [ ] T021 [US3] Keep full configuration/diffs/upstream logs private and prove canary non-disclosure for artifact application in `scripts/lib/migration_artifacts.py`, `scripts/pyats-managed.py` and `tests/netconverter/test_private_apply.py`.
-- [ ] T022 [US3] Test prepare-phase refusal, wrong candidate/endpoint/testbed/harness, forged or replayed capability, denied original tool, interruption and restart in `ui/netclaw-visual/test/terminal-change-policy.mjs`, `test/terminal-intent-execution.mjs` and `tests/netconverter/test_apply_binding.py`.
-- [ ] T023 [US3] Implement bounded rehearsal/resource/evidence manifests and ownership reconciliation in `scripts/lib/migration_artifacts.py`; verify uncertain creation and unowned-resource refusal in `tests/netconverter/test_rehearsal.py`.
-- [ ] T024 [US3] Author actual provision/boot/apply/test/retain orchestration in `workspace/skills/netconverter/references/rehearsal.md`, discovering installed schemas and qualifying exact image/management/bootstrap support; correct only relevant stale CML tool examples and lab-control advice in existing CML/clab/GNS3 skills.
-- [ ] T025 [US3] Add explicit parse/query coverage to migration-facing Batfish results in `mcp-servers/batfish-mcp/batfish_mcp_server.py` and tests so partial parses or failed differential queries cannot claim equivalence.
-- [ ] T026 [US3] Verify the skill's execution decisions against controlled tool fixtures, including actual expected create/boot/test calls, unsupported images/FRR conversion, blocked apply and a deliberately failing traffic assertion; record outcomes in `specs/162-netconverterai/verification.md`.
+- [x] T018 [US3] Bind a natively reviewed candidate artifact, endpoint identities, testbed fingerprint, route and verification profile into the existing API request/record in `ui/netclaw-visual/terminal-change-policy.js`, `terminal-intent-execution.js`, `src/canvas-chat/TerminalChangeControl.jsx` and `src/canvas-chat/TerminalLane.jsx`.
+- [x] T019 [US3] Implement API-issued one-use apply capabilities after real baseline/rollback transition in `ui/netclaw-visual/terminal-intent-execution.js` and a narrowly scoped shared issuer/consumer contract in `scripts/lib/migration_artifacts.py`; no model-issued approval or phase-file-only authorization.
+- [x] T020 [US3] Add mutually exclusive artifact input to the existing managed pyATS configuration tool identity in `scripts/pyats-managed.py`, retaining runtime denial semantics, dangerous-command checks, exact endpoint/testbed binding and one-use attempts.
+- [x] T021 [US3] Keep full configuration/diffs/upstream logs private and prove canary non-disclosure for artifact application in `scripts/lib/migration_artifacts.py`, `scripts/pyats-managed.py` and `tests/netconverter/test_private_apply.py`.
+- [x] T022 [US3] Test prepare-phase refusal, wrong candidate/endpoint/testbed/harness, forged or replayed capability, denied original tool, interruption and restart in `ui/netclaw-visual/test/terminal-change-policy.mjs`, `test/terminal-intent-execution.mjs` and `tests/netconverter/test_private_apply.py`.
+- [x] T023 [US3] Implement bounded rehearsal/resource/evidence manifests and ownership reconciliation in `scripts/lib/migration_artifacts.py`; verify uncertain creation and unowned-resource refusal in `tests/netconverter/test_rehearsal.py`.
+- [x] T024 [US3] Author actual provision/boot/apply/test/retain orchestration in `workspace/skills/netconverter/references/rehearsal.md`, discovering installed schemas and qualifying exact image/management/bootstrap support; correct only relevant stale CML tool examples and lab-control advice in existing CML/clab/GNS3 skills.
+- [x] T025 [US3] Add explicit parse/query coverage to migration-facing Batfish results in `mcp-servers/batfish-mcp/batfish_mcp_server.py` and tests so partial parses or failed differential queries cannot claim equivalence.
+- [x] T026 [US3] Verify the skill's execution decisions against controlled tool fixtures, including actual expected create/boot/test calls, unsupported images/FRR conversion, blocked apply and a deliberately failing traffic assertion; record outcomes in `specs/162-netconverterai/verification.md`.
 
 Independent test: controlled provider/SDK rehearsal proves the actual orchestration sequence and gates; real vendor image acceptance is separately T035–T036. Neither a plan nor an FRR peer counts as a tested target firewall.
 
 ## Phase 6 — US4: cross-composition and review package (P2)
 
-- [ ] T027 [US4] Add a fixed private artifact-producing collection route as optional metadata-only artifact output on the existing `pyats_show_running_config` identity in `scripts/pyats-managed.py` and `scripts/lib/migration_artifacts.py`; test no raw config reaches model results in `tests/netconverter/test_collection.py`; mark other inline-only collector adapters unavailable until qualified.
-- [ ] T028 [P] [US4] Document inventory/collector/assurance/NetConverter/Jev/Batfish/pyATS handoff contracts and privacy boundaries in `workspace/skills/netconverter/references/composition.md`.
-- [ ] T029 [P] [US4] Define evidence-linked observed/proposed diagrams, test matrices, retained resources, rollback/manual actions and draft ticket/document workflow in `workspace/skills/netconverter/references/evidence.md` and `docs/NETCONVERTER.md`.
-- [ ] T030 [US4] Exercise a synthetic collection→conversion→rehearsal→Jev-unavailable→local-review-package case with truthful coverage and no external communication in `tests/netconverter/test_composition.py` and `specs/162-netconverterai/verification.md`.
+- [x] T027 [US4] Add a fixed private artifact-producing collection route as optional metadata-only artifact output on the existing `pyats_show_running_config` identity in `scripts/pyats-managed.py` and `scripts/lib/migration_artifacts.py`; test no raw config reaches model results in `tests/netconverter/test_private_apply.py`; mark other inline-only collector adapters unavailable until qualified.
+- [x] T028 [P] [US4] Document inventory/collector/assurance/NetConverter/Jev/Batfish/pyATS handoff contracts and privacy boundaries in `workspace/skills/netconverter/references/composition.md`.
+- [x] T029 [P] [US4] Define evidence-linked observed/proposed diagrams, test matrices, retained resources, rollback/manual actions and draft ticket/document workflow in `workspace/skills/netconverter/references/evidence.md` and `docs/NETCONVERTER.md`.
+- [x] T030 [US4] Exercise a synthetic collection→conversion→rehearsal→Jev-unavailable→local-review-package case with truthful coverage and no external communication in `tests/netconverter/test_composition.py` and `specs/162-netconverterai/verification.md`.
 
 Independent test: the review package preserves all failures, unsupported/unexecuted checks and artifact provenance through a complete controlled workflow.
 
 ## Phase 7 — Coherence and qualification
 
-- [ ] T031 Update `README.md`, `SOUL.md`, `SOUL-SKILLS.md`, `TOOLS.md`, `.env.example`, `mcp-servers/netconverter-mcp/README.md` and `ui/netclaw-visual/LOCAL-LAB-CHANGE-CONTROL.md` with actual behavior and platform/control limits.
-- [ ] T032 Regenerate `scripts/lib/catalog.sh`, `ui/netclaw-visual/env-map.js` and catalog payloads using existing generators; reconcile intentional counts in `tests/fixtures/setup/catalog-baseline.json` and inventory documentation.
-- [ ] T033 Run applicable catalog, installer, guard, managed-pyATS, Batfish, HUD and extension regressions; record exact versions/results and failures in `specs/162-netconverterai/verification.md`.
+- [x] T031 Update `README.md`, `SOUL.md`, `SOUL-SKILLS.md`, `TOOLS.md`, `.env.example`, `mcp-servers/netconverter-mcp/README.md` and `ui/netclaw-visual/LOCAL-LAB-CHANGE-CONTROL.md` with actual behavior and platform/control limits.
+- [x] T032 Regenerate `scripts/lib/catalog.sh`, `ui/netclaw-visual/env-map.js` and catalog payloads using existing generators; reconcile intentional counts in `tests/fixtures/setup/catalog-baseline.json` and inventory documentation.
+- [x] T033 Run applicable catalog, installer, guard, managed-pyATS, Batfish, HUD and extension regressions; record exact versions/results and failures in `specs/162-netconverterai/verification.md`.
 - [ ] T034 Perform an isolated native installer/approval UI pass and actual upstream licensed-client discovery when its prerequisites are available; record unavailable stages separately in `specs/162-netconverterai/verification.md`.
 - [ ] T035 Qualify a compatible authorized host/image/bootstrap and exact-file-approved live NetConverter reference conversion; record image/license/capacity/account evidence and any blockers in `specs/162-netconverterai/verification.md`.
 - [ ] T036 Create a real virtual migration target, load the approved candidate through the protected route and run actual positive/negative behavior checks; compare source twin where feasible and preserve run resources/evidence in `specs/162-netconverterai/verification.md`.
@@ -77,17 +77,17 @@ Live tasks T034–T036 remain unchecked if their external prerequisites are abse
 
 Each round uses the exact prompt in `ralph-iterations.md`, re-reads the current tasks/evidence, fixes supported findings and runs justified checks. The numbered focus is an additional review lens, not a replacement prompt.
 
-- [ ] T037 Run Ralph iteration 1 with the submission/privacy/concurrency lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
-- [ ] T038 Run Ralph iteration 2 with the installer/SDK/readiness/preservation lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
-- [ ] T039 Run Ralph iteration 3 with the virtual-target/apply-control/failure-recovery lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
-- [ ] T040 Run Ralph iteration 4 with the skill/cross-composition/coverage/reporting lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
-- [ ] T041 Run Ralph iteration 5 with the full requirement/task/evidence reconciliation lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
+- [x] T037 Run Ralph iteration 1 with the submission/privacy/concurrency lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
+- [x] T038 Run Ralph iteration 2 with the installer/SDK/readiness/preservation lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
+- [x] T039 Run Ralph iteration 3 with the virtual-target/apply-control/failure-recovery lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
+- [x] T040 Run Ralph iteration 4 with the skill/cross-composition/coverage/reporting lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
+- [x] T041 Run Ralph iteration 5 with the full requirement/task/evidence reconciliation lens; record findings, edits and checks in `specs/162-netconverterai/ralph-iterations.md`.
 
 ## Phase 9 — Honest completion and handoff
 
-- [ ] T042 Update appropriate source/extension versions and history at implemented feature completion in `VERSION`, `CHANGELOG.md`, `extensions/netclaw-vscode/package.json` and the repository's actual version metadata; verify current paths/conventions first.
-- [ ] T043 Draft the evidence-based community/milestone note in `docs/blog/2026-10-30-netconverterai.md`; no publication or external ticket is implied.
-- [ ] T044 Reconcile all requirements, actual task states, qualification limits and final GAIT/daily memory in `specs/162-netconverterai/verification.md`, `tasks.md` and the session logs. Do not report 100% or all tasks complete while a required live gate remains unchecked.
+- [x] T042 Update appropriate source/extension versions and history at implemented feature completion in `VERSION`, `CHANGELOG.md`, `extensions/netclaw-vscode/package.json` and the repository's actual version metadata; verify current paths/conventions first.
+- [x] T043 Draft the evidence-based community/milestone note in `docs/blog/2026-10-30-netconverterai.md`; no publication or external ticket is implied.
+- [x] T044 Reconcile all requirements, actual task states, qualification limits and final GAIT/daily memory in `specs/162-netconverterai/verification.md`, `tasks.md` and the session logs. Do not report 100% or all tasks complete while a required live gate remains unchecked.
 
 ## Dependencies and parallel opportunities
 

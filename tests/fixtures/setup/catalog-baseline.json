@@ -659,6 +659,12 @@
       "Platform Services",
       "HumanRail",
       "Human-in-the-loop escalation and approvals"
+    ],
+    [
+      "netconverter",
+      "Platform Services",
+      "NetConverter migration",
+      "Optional guarded vendor conversion and virtual-target rehearsal"
     ]
   ],
   "profiles": {
@@ -911,7 +917,8 @@
       "rag-mcp",
       "ollama",
       "jev",
-      "humanrail"
+      "humanrail",
+      "netconverter"
     ]
   },
   "skillIds": [
@@ -1054,6 +1061,7 @@
     "n2n-federation",
     "nautobot-sot",
     "netbox-reconcile",
+    "netconverter",
     "network-data-analysis",
     "network-report-documents",
     "nmap-network-scan",

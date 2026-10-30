@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.0] - 2026-10-30 (source milestone; unpublished)
+
+- Add optional NetConverter hosted-readonly/local-Terminal setup, account-bound discovery and native exact-file submission approval.
+- Keep source, conversion reports and candidate application private; extend the existing Local/Lab API and pyATS identities with one-use artifact binding and unknown-outcome recovery.
+- Add a migration skill, virtual-target rehearsal procedure, evidence templates and staged community article; correct Batfish partial-parse/query-failure interpretation.
+- Record five review/fix/test iterations. Live NetConverter account/client discovery, vendor-target acceptance and native UI/platform qualifications remain open; controlled tests do not complete those gates.
+
+Spec [162-netconverterai](specs/162-netconverterai/spec.md). See [milestone notes](docs/releases/1.15.0.md). Coordinated extension source: **1.5.0**, unpublished.
+
 ## [1.14.0] - 2026-10-30
 
 - Add static/dynamic testbed choice and source selection to VS Code, new-plan terminal setup and `setup.sh`.

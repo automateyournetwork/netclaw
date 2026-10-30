@@ -150,7 +150,9 @@ export function createIntentExecutionService({ getGatewayConfig, listDevices, fe
           try { job.changeControl = changePolicy.prepared(change, report); }
           catch (error) { error.policyBlocked = true; throw error; }
           append({ kind: 'lifecycle', title: 'Local baseline and rollback artifacts recorded', detail: 'The scoped operator request authorizes the apply phase. No ServiceNow instance is required for these lab devices.' });
-          messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `APPLY PHASE: Local record ${change.id} has passed the artifact check. Apply only the stated task to ${change.devices.map(d => d.id).join(', ')} through authorized configuration tools, then verify all endpoints. Do not repeat completed writes. Retain all non-ServiceNow controls. Return the execution report schema.` });
+          const migration = job.changeControl.migration;
+          const artifactInstruction = migration ? ` Private candidate application: call the SAME authorized pyats_configure_device tool with device_name=${JSON.stringify(migration.endpoint.id)}, artifact_ref=${JSON.stringify(migration.candidate.artifact_ref)}, grant_ref=${JSON.stringify(job.changeControl.applyGrants[0])}; omit config_commands. Never read or paste the candidate into chat or use another write tool after a denial. The capability expires in five minutes and is single use. Verify profile ${migration.profile}; a tool success is not a behavior-test pass.` : '';
+          messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `APPLY PHASE: Local record ${change.id} has passed the artifact check. Apply only the stated task to ${change.devices.map(d => d.id).join(', ')} through authorized configuration tools, then verify all endpoints. Do not repeat completed writes. Retain all non-ServiceNow controls.${artifactInstruction} Return the execution report schema.` });
           continue;
         }
         if (report.status !== 'in_progress') { job.status = report.status; return; }
@@ -221,6 +223,16 @@ export function registerIntentExecutionRoutes(app, options) {
   app.get('/api/terminal/intent/change-policy', (req, res) => {
     try { res.json(options.changePolicy.state()); }
     catch (error) { res.status(error.status || 503).json({ error: error.status ? error.message : 'Change policy is unavailable.' }); }
+  });
+  app.get('/api/terminal/intent/migration-inventories', (req, res) => {
+    try { res.json(options.changePolicy.migrationInventories()); }
+    catch { res.status(503).json({ error:'Active private pyATS inventory is unavailable.' }); }
+  });
+  app.post('/api/terminal/intent/migration-candidates', (req, res) => {
+    try {
+      if (service.isRunning()) return res.status(409).json({ error:'Wait for the current Intent run before reviewing another candidate.' });
+      res.json(options.changePolicy.captureCandidate(req.body));
+    } catch { res.status(400).json({ error:'Select a UTF-8 configuration file between 8 bytes and 2 MiB.' }); }
   });
   app.post('/api/terminal/intent/change-policy', (req, res) => {
     try {

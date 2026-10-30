@@ -53,6 +53,7 @@ class NativeDynamicTests(unittest.IsolatedAsyncioTestCase):
             'NETCLAW_USERNAME':'synthetic-user','NETCLAW_PASSWORD':'SYNTHETIC-NOT-A-REAL-PASSWORD',
             'NETCLAW_ENABLE_PASSWORD':'SYNTHETIC-NOT-A-REAL-ENABLE','PYTHON_DOTENV_DISABLED':'1',
             'NETCLAW_RUNTIME_ENV':str(self.private/'selected.env'),'NETCLAW_RUNTIME_ROOT':str(self.private/'python-runtimes')}
+        self.env['NETCLAW_CHANGE_ROOT']=str(self.private/'netclaw-changes')
         self.params=StdioServerParameters(command=sys.executable,args=[str(ROOT/'scripts/pyats-stdio.py')],env=self.env,cwd=self.private)
         self.client=Client(stdio_client(self.params,errlog=self.errors),read_timeout_seconds=60)
 
@@ -66,6 +67,11 @@ class NativeDynamicTests(unittest.IsolatedAsyncioTestCase):
     async def test_all_sources_actual_builder_schema_activation_and_guards(self):
         tools=(await self.client.list_tools()).tools
         self.assertEqual(len(tools),35)
+        config=next(t for t in tools if t.name=='pyats_configure_device')
+        self.assertIn('artifact_ref',config.input_schema['properties'])
+        self.assertIn('grant_ref',config.input_schema['properties'])
+        self.assertNotIn('config_commands',config.input_schema.get('required',[]))
+        self.assertFalse(any('approve' in t.name or 'grant' in t.name for t in tools))
         self.assertEqual(len([t for t in tools if t.name.startswith('pyats_testbed_')]),8)
         self.assertEqual((await self.call('pyats_testbed_list'))['active'],'none')
         for path in sorted((ROOT/'tests/fixtures/pyats-testbeds').glob('*.json')):
@@ -79,6 +85,7 @@ class NativeDynamicTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await self.call('pyats_testbed_activate',{'name':name}))['active'],name)
             devices=await self.call('pyats_list_devices')
             self.assertEqual(len(devices['devices']),1)
+            self.assertIn('privateMigration',devices)
             self.assertEqual((await self.call('netclaw_testbed_compose',{'envelope':candidate}))['code'],'candidate_name_already_used')
             self.assertEqual((await self.call('pyats_testbed_delete',{'name':name}))['code'],'active_candidate_cannot_be_deleted')
             self.assertEqual((await self.call('pyats_testbed_list'))['active'],name)

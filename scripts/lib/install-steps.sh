@@ -4007,6 +4007,19 @@ fi
 echo ""
 }
 
+# Spec162: only NetClaw guard dependencies; never install/accept the Terminal.
+component_install_netconverter() {
+    log_step "Installing the optional NetConverter guard..."
+    local nc_guard_dir="$NETCLAW_DIR/mcp-servers/netconverter-mcp"
+    [ -f "$nc_guard_dir/server.py" ] || return 1
+    netclaw_component_venv "$nc_guard_dir/.venv" || return 1
+    NETCLAW_VENV="$NETCLAW_COMPONENT_VENV" netclaw_pip_install -r "$NETCLAW_DIR/config/python-components/netconverter.txt" || return 1
+    _set_env_default NETCONVERTER_MODE hosted-readonly || return 1
+    _set_env_default NETCONVERTER_DATA_DIR "$RUNTIME_HOME/netconverter" || return 1
+    _set_env_default NETCONVERTER_INSTALLATION_ID "$(python3 -c 'import uuid; print(uuid.uuid4().hex)')" || return 1
+    log_info "Guard installed. Configure the selected account in setup; local submission requires an operator-installed licensed Terminal."
+}
+
 # ── Jev Science Officer (spec 125) ─────────────────────────────
 component_install_jev() {
     log_step "Installing optional Jev Science Officer..."
