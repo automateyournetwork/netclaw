@@ -10,3 +10,8 @@ disable and negative cases. Correct documentation or code only for reproduced ga
 No new MCP interface, schema or dependencies are planned. Existing read-only contracts
 and credential controls remain authoritative. Constitution coherence changes are limited
 to affected onboarding/docs/tests; capability inventory does not change.
+
+Observed model behavior warrants a tool-description clarification in server.py:
+name range/exporter arguments and prohibit interpreting zero sampling metadata as
+unsampled or byte asymmetry as application semantics. No schema change. Run the
+pinned convergence-read contract suite and repeat the actual gateway turn.

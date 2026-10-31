@@ -5,6 +5,11 @@ service. It adds two read-only tools and a traffic view: choose a ranking, selec
 an address, and inspect retained records from the **same observation window**.
 NetClaw does not install a collector, storage stack, IDS or case-management API.
 
+Starting from a fresh Linux machine? Follow the [Ubuntu walkthrough](CONVERGENCE-LINUX.md)
+for prerequisites, an isolated synthetic demo, reader installation and a real
+OpenClaw gateway chat. Its qualification record distinguishes executed results
+from instructions and remaining platform gaps.
+
 ## Start with the coverage you have
 
 | Source | What you can inspect |
@@ -165,9 +170,15 @@ HUD/runtime. The view is hidden, tools return disabled, and
 external data remains intact. Remove this component's runtime registration through
 your normal runtime configuration if you also want the tools absent.
 
-Executed evidence and remaining gaps are in [spec 162 verification](../specs/162-convergence-read/verification.md).
-Linux x86_64/ARM64 are the initial qualification targets. macOS, Windows/WSL2,
-Hermes execution, physical network capture and full model/gateway investigations
-remain unqualified until separately exercised. External service qualification does
-not substitute for testing this connector. The [operator skill](../workspace/skills/convergence-observations/SKILL.md)
+Connector/browser evidence is in [spec 162 verification](../specs/162-convergence-read/verification.md).
+[Spec 163](../specs/163-convergence-linux-qualification/qualification.md) records a
+fresh Ubuntu 24.04 amd64 installation and actual OpenClaw 2026.10.9 gateway tool
+execution with Ollama Cloud. Both tools preserved the exact window and scope.
+Model interpretation remains unqualified: the tested answer invented request/reply
+meaning despite accurate tool results. Review generated conclusions against the
+records; successful tool execution does not establish answer correctness.
+
+Linux x86_64/ARM64 are the initial connector targets. macOS, Windows/WSL2, Hermes,
+physical capture and broader end-to-end investigations remain unqualified. External
+service qualification does not substitute for testing this connector. The [operator skill](../workspace/skills/convergence-observations/SKILL.md)
 describes the same read-only workflow.

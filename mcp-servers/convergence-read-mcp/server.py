@@ -15,8 +15,11 @@ def configured_client():
 async def convergence_flow_summary(range: str = "1h", exporter: str | None = None) -> dict:
     """Read retained traffic rankings for the fixed configured site and allowed exporters.
 
-    Choose 15m, 1h, 6h or 24h. Preserve the returned start/end for evidence.
-    Exported counters and receipt age are not a threat verdict or collector health.
+    Use the argument range (not window): 15m, 1h, 6h or 24h. Optional exporter
+    must be allowlisted. Preserve returned start/end and exporter for evidence.
+    Counters describe exported observations, not exact wire totals. Missing or
+    zero sampling metadata does not prove unsampled traffic. Receipt age is not
+    collector health; byte asymmetry does not identify purpose or initiator.
     """
     try:
         return await configured_client().summary(range, exporter)
@@ -28,8 +31,11 @@ async def convergence_flow_summary(range: str = "1h", exporter: str | None = Non
 async def convergence_flow_evidence(address: str, start: str, end: str, exporter: str | None = None) -> dict:
     """Read at most 100 retained records involving an IP in the exact summary window.
 
-    Records include both source and destination directions; their bounded subset
-    need not reconstruct any directional ranking total. No raw query is accepted.
+    Arguments: address, start, end, and optional exporter from the summary.
+    Records include source and destination matches; direction does not establish
+    initiator, application, request/reply semantics or upload/download. Their
+    bounded subset need not reconstruct a ranking total. Missing or zero
+    sampling_rate is not proof of unsampled traffic. No raw query is accepted.
     """
     try:
         return await configured_client().evidence(address, start, end, exporter)

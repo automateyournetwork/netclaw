@@ -28,3 +28,9 @@ applicable repository gates precede completed qualification claims.
 Only Ubuntu 24.04 amd64, synthetic demo, OpenClaw and the chosen provider are in scope.
 Mac/Windows, Hermes, physical capture, production migration and K3s qualification
 remain separate. A missing provider credential is blocked coverage, not a pass.
+
+Observed qualification gap: the first successful model run guessed the argument
+`window` before recovering, and inferred unsampled traffic from `sampling_rate=0`.
+Tool descriptions must name accepted arguments and explicitly preserve uncertainty
+about missing/zero sampling metadata and traffic purpose. This clarifies guidance;
+no schema, normalization, permissions or backend response contract changes.
