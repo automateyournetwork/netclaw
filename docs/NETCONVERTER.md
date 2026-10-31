@@ -5,9 +5,10 @@ and its [official Terminal/MCP](https://netconverter.ai/mcp.html). NetClaw prepa
 an exact file review, submits only after native operator approval, keeps conversion
 evidence private, and composes the candidate with existing lab and validation tools.
 
-Source and controlled-peer tests are distinct from live qualification. The owner's
-free account is awaiting enablement. No real NetConverter job or Junos target
-rehearsal has run. See [current evidence](../specs/162-netconverterai/verification.md).
+Source and controlled-peer tests are distinct from live qualification. On
+2026-10-31, the real account and official Terminal 0.6.0 completed approved
+synthetic IOS-XE → Junos SET → IOS-XE conversions. Both remain **needs review**;
+no live target application or forwarding pass is claimed. See [current evidence](../specs/162-netconverterai/verification.md).
 
 ## Install and select a connection
 
@@ -31,8 +32,10 @@ not a verified tenant identifier.
 
 The managed submission profile currently accepts nonempty UTF-8 text only.
 Source and target roles and their explicit router/switch/firewall class must match
-an offered path. Archive/XML handoffs and legacy capability records without the
-required class/format metadata remain unavailable. Preview state is retained as
+an offered path. UTF-8 XML qualifies when the connection explicitly advertises
+text input (the observed Palo Alto XML route does). Binary/archive and non-text
+handoffs, including the observed Check Point bundle, and metadata-incomplete
+legacy paths remain unavailable. Preview state is retained as
 reported or marked unknown; this never enables guided-draft mutations.
 
 Existing terminal installations can run:
@@ -84,7 +87,8 @@ explicit `get_job_brief` read associates that job with the current connection an
 returns an opaque `job_ref`; it does not reconcile an unknown submission by guessing.
 Wait calls have a 45-second ceiling and a durable 300-second budget per reference.
 Explicit status reads remain available. Reports are private artifacts; known
-verdicts, counts and coverage flags may return to the model. No raw target tool,
+verdicts, review/manual-work counts, partial/truncated coverage and absent-report
+flags may return to the model, including nested hosted evidence envelopes. No raw target tool,
 mapping mutation, guided-draft submission or automatic exposure increase is enabled.
 
 ## Review and apply a candidate to a lab

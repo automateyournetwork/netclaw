@@ -11,7 +11,7 @@ The initial managed profile uses an installation-specific API key and fixed offi
 ## Technical Context
 
 **Language/Version**: Python 3.12 for isolated MCP execution; Python 3.10+ compatible installer utilities; existing TypeScript 5.9 and Node runtime policy for VS Code/HUD.  
-**Primary Dependencies**: Existing pinned FastMCP 4.0.11 and official MCP SDK 2.3.0; stdlib SQLite/hashlib/path utilities; existing UI stack. Official Terminal 0.5.0 is operator-installed, not vendored or patched.  
+**Primary Dependencies**: Existing pinned FastMCP 4.0.11 and official MCP SDK 2.3.0; stdlib SQLite/hashlib/path utilities; existing UI stack. Official Terminal is operator-installed, not vendored or patched (initial research 0.5.0; actual 2026-10-31 qualification 0.6.0).
 **Storage**: Private installation-owned SQLite request/attempt ledger and bounded artifact directories (0700 directories, 0600 private metadata; frozen inputs not writable through exposed tools). Existing API-owned Local/Lab records remain authoritative for candidate application.  
 **Testing**: Python unit/contract tests, real official-SDK controlled-peer tests, existing installer/TypeScript/Node suites, isolated native setup interaction and conditional live tenant/vendor-appliance acceptance.  
 **Target Platform**: Existing Mac/WSL installer targets; actual appliance execution on a verified compatible lab host. Source-platform qualification and target appliance qualification are separate.  

@@ -1,6 +1,6 @@
 # Spec162 operator walkthrough
 
-These source tools and controlled workflows are implemented. Actual licensed-client discovery, hosted conversion and vendor-target acceptance remain pending; see [verification](verification.md).
+These source tools and controlled workflows are implemented. Actual licensed Terminal 0.6.0 discovery and two approved synthetic routing conversions completed on 2026-10-31. Vendor-target application/forwarding and native desktop acceptance remain open; see [verification](verification.md).
 
 1. Select NetConverter in a new isolated NetClaw setup. Choose hosted-readonly to inspect existing jobs, or local-terminal with an explicitly installed licensed Terminal, private workspace and installation-specific key. Review separate readiness results.
 2. Ask the new `netconverter` skill to discover supported directions and prepare a local configuration for the selected operation. A local metadata-only proposal identifies source/hash/size, target, options and exact hosted destination.
@@ -15,4 +15,4 @@ These source tools and controlled workflows are implemented. Actual licensed-cli
 
 The development Mac is ARM64. After the owner started Docker, the Linux ARM64 daemon reported 14 CPUs and approximately 8.3 GB memory. Its existing pyATS MCP successfully listed four devices and completed four live `show version` checks through the existing local SSH relays. All four hostnames matched their inventory names and reported 17.18.2. No device configuration was changed. The separate connected NetClaw agent still returned an internal error; direct local MCP supplied the read-only evidence.
 
-The preferred reference is IOS-XE→JunOS OSPF. A compatible installed Junos image and NetConverter enabled account/licensed Terminal have not yet been established. Local CML HTTPS is reachable but the browser rejects its certificate. These are distinct qualification gaps; live source observations do not establish target boot, hosted conversion or migration acceptance.
+The preferred reference is IOS-XE→JunOS OSPF. The real account converted IOS-XE → Junos SET and the returned Junos → IOS-XE, both needs review. Authenticated local CML 2.10 discovery found IOS-XE 17.18.2 images but no Junos image. Scoped trust of the observed self-signed certificate enabled read-only API discovery; this is not independent certificate authentication or a global trust change. These are distinct qualification gaps; live source observations do not establish target boot, hosted conversion or migration acceptance.

@@ -2,6 +2,18 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.1] - 2026-10-31 (source milestone; unpublished)
+
+Minor fixes discovered using the real Spec162 account:
+
+- Recognize successful hosted account envelopes and reject explicit failed envelopes.
+- Preserve nested review verdicts, manual-work counts, partial/truncated evidence and absent reports without exposing private prose.
+- Correct text/XML capability guidance and record two separately approved real synthetic routing conversions, including verified downloads and unresolved review items.
+- Restore isolated Batfish startup compatibility for its pinned pybatfish client with `setuptools<81`.
+- Add three live qualification loops; retain the native UI and actual appliance/application/forwarding gates. Source checks do not establish 100% live acceptance.
+
+Spec [162-netconverterai](specs/162-netconverterai/spec.md). See [milestone notes](docs/releases/1.15.1.md). Extension source remains **1.5.0**; no extension code changed in this patch.
+
 ## [1.15.0] - 2026-10-30 (source milestone; unpublished)
 
 - Add optional NetConverter hosted-readonly/local-Terminal setup, account-bound discovery and native exact-file submission approval.

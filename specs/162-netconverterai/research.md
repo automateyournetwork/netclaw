@@ -128,3 +128,34 @@ Installer findings: canonical catalog drives Bash and HUD env-map generation; ex
 Lab findings: current CML tool names differ from some bundled examples; EVE template listing does not prove a disk image; GNS3 lifecycle/export metadata does not provide private config apply or a saved export; remote containerlab startup paths are server-local. pyATS requires the same persistent process for activated dynamic inventory and execution. Existing pyATS configuration APIs take inline data and can return/log config, so the private artifact extension and raw-log boundary are required. Hermes Local/Lab APPLY remains unavailable. Some provider “GAIT” decorators only log locally; call actual GAIT or the documented scoped local audit.
 
 The three refinements found during cross-artifact analysis are recorded in analysis.md. All task coverage is accounted for; source and live execution remain unimplemented/unverified at this planning checkpoint.
+
+
+## Actual upstream qualification update — 2026-10-31
+
+The earlier 0.5.0 source research is historical. The owner supplied an enabled key;
+actual qualification uses official Terminal 0.6.0, wheel SHA-256
+`6b98c11f9d73a6eefb92af28a5bc4cc2ac055ee4a97fb3ea9bd30cd0ef5e5a38`.
+The owner explicitly delegated license acceptance, then independently completed
+native exact-file approvals for two synthetic conversions. See
+[live iterations](live-iterations.md) for observed account paths, needs-review
+results, candidate hashes and concrete remaining lab prerequisites.
+
+Live catalogs qualify 47 convert plus 14 validate and 14 optimize combinations.
+Palo Alto XML is explicitly text, so the previous blanket XML exclusion was
+incorrect. Check Point's non-text handoff bundle and advanced guided/prescan
+operations remain outside the managed submission profile. Junos router OSPF
+knowledge lookup is supported/full; EIGRP lookup returns unknown and is not
+permission to treat EIGRP→OSPF as an automatic protocol translation.
+
+CML's own installed inventory distinguishes images from definitions, matching
+[Cisco's documented distinction](https://developer.cisco.com/docs/modeling-labs/creating-a-new-node-definition/).
+No Junos image exists in the observed host. Actual live resource and protected
+runtime availability continue to gate appliance rehearsal.
+
+Batfish now supplies native ARM64 images according to its
+[official releases](https://github.com/batfish/batfish/releases). The analysis run
+pins the observed official ARM64 image digest, keeps its API on loopback and
+preserves the original candidate bytes. The declared older pybatfish client
+imports pkg_resources, which [setuptools removed in 82](https://setuptools.pypa.io/en/latest/history.html#v82-0-0).
+Its own warning recommends setuptools<81; actual isolated startup verified the
+compatibility constraint. This does not upgrade the client or infer a device pass.

@@ -1095,3 +1095,11 @@ Separate MCP_CALL invocations cannot share dynamic state. HUD static inventory,
 Terminal Intent and collector grants remain separate. See `docs/DYNAMIC-TESTBEDS.md`
 and `specs/160-dynamic-pyats-testbeds/verification.md`. No owner device/source service
 was contacted during synthetic qualification.
+
+
+### Spec162 observed local lab and analysis — 2026-10-31
+
+- Local CML192.168.2.125 authenticated asdeveloper;2.10.0+build13. Scoped certificate trust only; observedcertSHA25616e8c018cfd9e301406617d11ddabbafa221d397366f2170038709e34b61fcf9,CN/SANcml-controller. Privatecredential/tokenfilesoutsideGit; donotprint.
+-12installedimagesincludeIOLXE17.18.02; noJunos.45nodedefinitionsarenot45images. ActivePersonalEVALobservedexpiry2027-01-22.8x86CPU4.10GBRAMtotal2.02GBfree atread;checkagainbeforeboot. ExistingorphanreporteddoNOTadopt/delete.
+- Nativecurl/opensslreachLAN;PythonLANsocketErrno65doesnotprovehostdown. ExistingR1/R2SW1/SW2untouched.
+- Run-ownedBatfishv2container netclaw-spec162-batfish-v2-20261031,loopback19997→9996,4CPUs4GiB. Firstnetclaw-spec162-batfish-20261031stoppedretained. ActualcurrentimageAPI9996;legacyexample9997wrongforit. Pinnedpybatfishrequiressetuptools<81. Threeprivateanalysis snapshots source/junos/reverse in network spec162-live-20261031.

@@ -1,7 +1,7 @@
 # From a converted configuration to a migration you can test
 
-*Staged Spec162 article. The integration is in development; real NetConverter
-account conversion and Junos-target acceptance remain pending. Not published.*
+*Spec162 development update, refreshed 2026-10-31. Two real synthetic
+conversions completed with review findings. Live appliance acceptance remains open.*
 
 Network migrations accumulate work at every handoff. Someone collects the old
 configuration. Someone translates it. Someone checks the warnings, builds a lab,
@@ -78,16 +78,37 @@ differential query must remain inconclusive. An empty difference list cannot
 stand in for a query that never succeeded. The composed review-package test
 deliberately includes a failed traffic assertion and retains that failure.
 
-Four local lab devices have returned actual identity/version observations. That
-does not establish an OSPF source configuration or a successful migration. My
-NetConverter account is awaiting enablement, and the licensed Junos image,
-management path and live commit/readback still need qualification.
+The real account has now completed IOS-XE OSPF → Junos SET and a separately
+approved Junos SET → IOS-XE reverse conversion. The first input was an authored
+477-byte synthetic fixture; the reverse input was the actual returned 857-byte
+Junos artifact. Both submissions consumed their own exact-file grants, and all
+six downloaded files passed byte/hash verification.
 
-The planned live demonstration is concrete: collect a synthetic IOS-XE OSPF
-source, run the approved NetConverter conversion, preserve the original and any
-interface adaptations, boot a Junos target, and test FULL adjacency, route/next
-hop, positive traffic, a negative control and management continuity. Its results
-will be added only after those operations actually run.
+Both jobs say **needs review**. The forward evidence has six warnings and one
+manual-review item; reverse has six warnings and five manual items. Both report
+partial coverage. The provider's forward OSPF analysis passed, while several
+other behavior categories were inconclusive. That is useful evidence to carry
+into a lab, not proof that an appliance accepted the candidate or forwarded packets.
+
+We also ran the original source and both actual candidates through a local
+Batfish engine with the same synthetic peer. All files parsed, OSPF sessions
+were modeled as established, and nine modeled traffic assertions passed: both
+loopback directions and an unadvertised-prefix negative control for each snapshot.
+The model still found a meaningful difference: the peer's route to the converted
+loopback had metric 10 in Junos versus 11 in IOS-XE. That difference stays in the
+review package. Modeled reachability is useful evidence, and it does not replace
+a real appliance, commit or packet test.
+
+Actual CML discovery found IOS-XE 17.18.2 images and an active evaluation license,
+but no installed Junos image. Capacity, isolated management, the real protected
+apply runtime and actual commit/readback still need qualification. Four existing
+lab devices supplied identity observations and remain unchanged.
+
+The remaining appliance demonstration is concrete: preserve the actual returned
+candidate and every reviewed interface adaptation, boot a compatible target,
+then test FULL adjacency, route/next hop, positive traffic, a negative control
+and management continuity. A reverse-converted IOS-XE rehearsal would test the
+round trip; it would not establish Junos runtime acceptance.
 
 This is where the value grows: conversion, simulation, validation and change
 review can share the same artifacts and evidence. Faster migration work becomes
@@ -96,11 +117,10 @@ applied, what passed and what still needs attention.
 
 ## Short community note
 
-We're building NetConverter integration into NetClaw: supported conversion workflows,
-exact-file approval, private artifacts, and a path to create and test real virtual
-migration targets with the existing lab and validation tools. The controlled MCP,
-installer and governance tests are passing. Our planned IOS-XE→Junos OSPF demo is
-waiting on account activation and target-image qualification; we won't label it
-tested until it runs. The goal is to carry a migration from source configuration
-through a reviewed candidate to observed behavior and an evidence-backed change
-proposal. [Spec162 guide](../NETCONVERTER.md).
+NetClaw has now used NetConverter for real synthetic IOS-XE OSPF → Junos SET →
+IOS-XE conversions, with separate exact-file approvals and verified downloads.
+The integration carries review findings and private artifacts into the existing
+lab, pyATS, Batfish and change-review workflows. Both real jobs remain needs
+review; live target application and forwarding tests are still open. This is a
+concrete step toward turning migration candidates into testable engineering
+work, with the remaining gaps visible. [Spec162 guide](../NETCONVERTER.md).

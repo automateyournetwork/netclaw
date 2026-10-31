@@ -17,7 +17,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[2]/'mcp-servers/netconver
 from artifacts import Artifacts, Refused
 from core import Config
 from server import Guard
-from transport import Session, Upstream, child_environment, qualified_read, terminal_args, verify_download, response_guard, MAX_RESULT, normalize_capabilities
+from transport import Session, Upstream, child_environment, qualified_read, terminal_args, verify_download, response_guard, MAX_RESULT, normalize_capabilities, private_report, result_payload
 
 PEER=Path(__file__).with_name('peer.py')
 
@@ -156,6 +156,57 @@ class TransportTest(unittest.IsolatedAsyncioTestCase):
         config=dataclasses.replace(self.config,mode='hosted-readonly',workspace=None,executable=None)
         result=await Guard(config,Peer()).status(True)
         self.assertFalse(result['authenticated']);self.assertFalse(result['capable'])
+
+    async def test_hosted_live_shaped_account_envelope_is_authenticated_only_on_success(self):
+        class Peer:
+            response={'success':True,'tool':'get_account','error':None,'data':{'auth':'api_key','view_mode':'strict'}}
+            @asynccontextmanager
+            async def session(self):yield self
+            async def discover(self):return {'get_account':{}}
+            async def call(self,*args):return self.response
+        config=dataclasses.replace(self.config,mode='hosted-readonly',workspace=None,executable=None)
+        peer=Peer();result=await Guard(config,peer).status(True)
+        self.assertTrue(result['authenticated']);self.assertTrue(result['capable'])
+        for response in ({'success':False,'data':{'auth':'api_key'}},
+                         {'success':True,'tool':'different_tool','data':{'auth':'api_key'}},
+                         {'success':True,'tool':'get_account','data':{'auth':'api_key','status':'signed_out'}}):
+            peer.response=response;result=await Guard(config,peer).status(True)
+            self.assertFalse(result['authenticated'])
+
+    def test_enveloped_report_preserves_warnings_without_exposing_prose(self):
+        value={'success':True,'tool':'get_report','truncated':True,'data':{
+            'verdict':'NEEDS REVIEW','warning_count':3,'truncated':False,'report':'PRIVATE_CANARY'}}
+        result=private_report(self.config,value)
+        self.assertEqual(result['summary']['verdict'],'NEEDS REVIEW')
+        self.assertEqual(result['summary']['warning_count'],3)
+        self.assertTrue(result['summary']['truncated']);self.assertNotIn('PRIVATE_CANARY',json.dumps(result))
+
+    def test_explicit_unsuccessful_envelope_is_never_a_successful_tool_result(self):
+        from types import SimpleNamespace
+        result=SimpleNamespace(is_error=False,structured_content={'success':False,'error':None,'data':{}},model_dump_json=lambda:'{}')
+        with self.assertRaises(Refused):result_payload(result)
+
+    def test_live_evidence_review_gaps_survive_direct_and_brief_envelopes(self):
+        evidence={'overall_verdict':'needs-review','translation_status':'needs_review',
+            'review_required':True,'manual_review_required_items':1,'manual_steps_total':1,
+            'warnings_total':6,'data_quality':'partial','digest_truncated':True,
+            'review_scope':'PRIVATE_CONFIG_CANARY','manual_recreation_steps':'PRIVATE_CONFIG_CANARY'}
+        for data in (evidence,{'evidence':evidence}):
+            result=private_report(self.config,{'success':True,'data':data,'truncated':False})
+            self.assertEqual(result['summary'],{k:v for k,v in evidence.items()
+                if k not in ('review_scope','manual_recreation_steps')}|{'truncated':False})
+            self.assertFalse(result['deployment_approval'])
+            self.assertEqual(result['evidence_completeness'],'not_established')
+            self.assertNotIn('PRIVATE_CONFIG_CANARY',json.dumps(result))
+
+    def test_absent_report_is_explicit_and_untrusted_fields_stay_private(self):
+        value={'success':True,'tool':'get_report','data':{'absent':True,
+            'translation_status':'needs_review','reason':'PRIVATE_CONFIG_CANARY',
+            'overall_verdict':'PRIVATE_CONFIG_CANARY','data_quality':'PRIVATE_CONFIG_CANARY',
+            'manual_steps_total':True,'warnings_total':-1}}
+        result=private_report(self.config,value)
+        self.assertEqual(result['summary'],{'absent':True,'translation_status':'needs_review'})
+        self.assertNotIn('PRIVATE_CONFIG_CANARY',json.dumps(result))
 
     async def test_actual_guard_mcp_exposes_only_eight_owned_tools_and_no_approval_tool(self):
         from mcp.client.client import Client

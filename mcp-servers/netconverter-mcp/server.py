@@ -14,7 +14,7 @@ import uuid
 sys.path.insert(0,str(Path(__file__).resolve().parent))
 from artifacts import Refused, directory, read_file
 from core import Config, Ledger
-from transport import Upstream, READS, qualified_read, private_report, verify_download
+from transport import Upstream, READS, qualified_read, private_report, verify_download, account_authenticated
 
 ENV_KEYS=frozenset({'NETCONVERTER_MODE','NETCONVERTER_DATA_DIR','NETCONVERTER_INSTALLATION_ID',
                     'NETCONVERTER_WORKSPACE','NETCONVERTER_EXECUTABLE','NETCONVERTER_ACCOUNT_REF',
@@ -52,7 +52,7 @@ class Guard:
                 else:
                     account=await session.call('get_account',{})
                     result['account_evidence']=private_report(self.config,account)
-                    result['authenticated']=(account.get('signed_in') is True or account.get('auth_kind')=='api_key') and account.get('status') not in ('signed_out','not_signed_in','unauthorized')
+                    result['authenticated']=account_authenticated(account)
                     result['authentication_evidence']='confirmed' if result['authenticated'] else 'not_established'
                     result['capable']=result['authenticated'] and bool(result['available_reads'])
         return result

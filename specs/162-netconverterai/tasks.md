@@ -73,6 +73,13 @@ Independent test: the review package preserves all failures, unsupported/unexecu
 
 Live tasks T034–T036 remain unchecked if their external prerequisites are absent; they cannot be satisfied by fixture results. Continue independent source work and review iterations.
 
+2026-10-31 update: real Terminal/account discovery, two native exact-file approvals,
+two actual conversions and six verified downloads now complete those portions of
+T034/T035. Actual local Batfish/MCP analysis adds scoped model evidence, including
+a forward route-metric difference. T034 still lacks the complete native installer/UI
+pass; T035 lacks qualified target/bootstrap/capacity; T036 lacks actual appliance
+creation, protected application and live behavior. See [three additional loops](live-iterations.md).
+
 ## Phase 8 — Five Ralph implementation review/fix/test iterations
 
 Each round uses the exact prompt in `ralph-iterations.md`, re-reads the current tasks/evidence, fixes supported findings and runs justified checks. The numbered focus is an additional review lens, not a replacement prompt.

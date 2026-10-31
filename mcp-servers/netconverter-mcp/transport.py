@@ -84,8 +84,20 @@ def result_payload(result):
         try: value=json.loads(blocks[0].text)
         except (ValueError,TypeError): raise Refused('unstructured_upstream_result') from None
     if not isinstance(value,dict): raise Refused('invalid_upstream_result')
-    if value.get('status')=='error' or value.get('error'): raise Refused('upstream_tool_refused')
+    if value.get('success') is False or value.get('status')=='error' or value.get('error'): raise Refused('upstream_tool_refused')
     return value
+
+
+def account_authenticated(value):
+    """Qualify explicit auth evidence in the hosted envelope or legacy shape."""
+    account=value
+    if 'success' in value:
+        if value.get('success') is not True or value.get('tool')!='get_account' or value.get('error'):
+            return False
+        account=value.get('data')
+    if not isinstance(account,dict) or account.get('status') in ('signed_out','not_signed_in','unauthorized'):
+        return False
+    return account.get('signed_in') is True or account.get('auth_kind')=='api_key' or account.get('auth')=='api_key'
 
 
 def normalize_capabilities(raw, tools, account):
@@ -235,16 +247,25 @@ def private_report(config, value):
     if len(data)>MAX_RESULT: raise Refused('upstream_result_too_large')
     report_id=uuid.uuid4().hex; path=config.state_dir/'reports'/(report_id+'.json')
     publish_file(path,data)
-    summary={}
-    for key in ('status','verdict','translation_status'):
-        val=value.get(key)
-        if val in ('queued','running','processing','completed','complete','failed','error','unknown','passed',
-                   'PASS','FAIL','NEEDS REVIEW','NEEDS_REVIEW','needs_review','BLOCKED','blocked'):
-            summary[key]=val
-    for key in ('partial','truncated','redacted','timed_out','view_clamped'):
-        if type(value.get(key)) is bool: summary[key]=value[key]
-    for key in ('blocking_reason_count','review_reason_count','warning_count','error_count','bytes'):
-        if type(value.get(key)) is int and value[key]>=0: summary[key]=value[key]
+    summary={};views=[value]
+    if value.get('success') is True and isinstance(value.get('data'),dict):
+        views.append(value['data'])
+        # get_job_brief nests the same digest returned by get_evidence. Only
+        # this known container is traversed; arbitrary prose stays in the file.
+        if isinstance(value['data'].get('evidence'),dict):views.append(value['data']['evidence'])
+    for view in views:
+        for key in ('status','verdict','translation_status','overall_verdict'):
+            val=view.get(key)
+            if val in ('queued','running','processing','completed','complete','failed','error','unknown','passed',
+                       'PASS','FAIL','NEEDS REVIEW','NEEDS_REVIEW','needs_review','needs-review','BLOCKED','blocked'):
+                summary[key]=val
+        if view.get('data_quality') in ('complete','partial','unknown'):
+            summary['data_quality']=view['data_quality']
+        for key in ('partial','truncated','redacted','timed_out','view_clamped','review_required','digest_truncated','absent'):
+            if type(view.get(key)) is bool: summary[key]=summary.get(key,False) or view[key]
+        for key in ('blocking_reason_count','review_reason_count','warning_count','error_count','bytes',
+                    'manual_review_required_items','manual_steps_total','warnings_total'):
+            if type(view.get(key)) is int and view[key]>=0: summary[key]=max(summary.get(key,0),view[key])
     return {'artifact_id':report_id,'path':str(path),'sha256':hashlib.sha256(data).hexdigest(),
             'bytes':len(data),'summary':summary,'evidence_completeness':'not_established',
             'content_exposure':'private_local_artifact','deployment_approval':False}

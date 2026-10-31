@@ -3,7 +3,9 @@
 Owner requested this concrete conversion for live testing, documentation and the community article on 2026-10-30. It is the preferred reference, conditional on actual account/path support and a compatible licensed Junos router image.
 
 An [authored synthetic source fixture](examples/README.md) is ready for account
-capability qualification and exact-file review. It has not been uploaded, applied
+capability qualification and exact-file review. On 2026-10-31 the owner approved
+its exact hosted submission; real IOS-XE → Junos SET conversion and a separately
+approved reverse conversion completed, both needs review. It has not been applied
 or represented as a collection from the owner's routers.
 
 The [current vendor matrix](https://netconverter.ai/docs/supported-vendors.html) lists IOS-XE↔JunOS router translation including OSPF and BGP. Router results remain NEEDS REVIEW. It explicitly excludes EIGRP translation to JunOS; EIGRP→OSPF is an opt-in redesign. The public matrix is eligibility research, not proof that this account or a particular configuration is supported.

@@ -3,7 +3,9 @@
 Official references: [MCP setup](https://netconverter.ai/mcp.html),
 [Terminal repository](https://github.com/valeronlabs/netconverter_terminals),
 [vendor matrix](https://netconverter.ai/docs/supported-vendors.html).
-Terminal research baseline: 0.5.0, source ef28f5613a5f014dca7e8b2e38b8219cb461559f.
+Initial research: Terminal 0.5.0, source ef28f5613a5f014dca7e8b2e38b8219cb461559f.
+Actual account/client qualification on 2026-10-31 used official Terminal 0.6.0;
+see [live evidence](../../../../specs/162-netconverterai/live-iterations.md).
 The operator installs and accepts the Terminal license. NetClaw installs its own
 guard dependencies only; it does not redistribute or patch the Terminal.
 
@@ -26,8 +28,9 @@ Guided preparation itself may upload data; it is not an approval-free alternativ
    Confirm device class and format. A CMDB row or lab topology is insufficient.
 2. Discover account capabilities. Match an offered source/target/operation.
    Require explicit matching device class and source/target roles. The guard
-   currently accepts UTF-8 text inputs only; archive/XML and metadata-incomplete
-   legacy paths remain unavailable. Preserve unknown preview status as unknown.
+   currently accepts UTF-8 text inputs only. XML advertised as text is eligible;
+   binary/archive and non-text handoffs and metadata-incomplete legacy paths
+   remain unavailable. Preserve unknown preview status as unknown.
    ASA and ArubaOS are source-only; SCM is not a hosted target; FMC output is an
    import file, not a controller deployment. FRR has no established native path.
    IOS-XE router↔Junos router is distinct from switch paths; IOS-XE switch↔Junos
