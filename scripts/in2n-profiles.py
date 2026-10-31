@@ -16,6 +16,8 @@ No third-party deps (stdlib only), matching scripts/register-all-mcps.py.
 """
 
 import json
+import importlib.util
+from pathlib import Path
 import os
 import sys
 
@@ -44,6 +46,9 @@ ENV_FILE = str(_RUNTIME.env_file)
 # Granularity principle (interview): ONE claw per vendor/platform/tool. Real
 # integrations each get a dedicated, env-gated member; only UTILITIES stay grouped.
 PROFILE_MATCHERS = {
+    "convergence": {"exact": ["convergence-observations"],
+                    "requires_env": ["CONVERGENCE_ENABLED", "CONVERGENCE_API_URL", "CONVERGENCE_API_TOKEN", "CONVERGENCE_SITE", "CONVERGENCE_EXPORTERS"],
+                    "desc": "Convergence retained flow evidence for Border investigation"},
     "subnet": {"exact": ["subnet-calculator"], "desc": "Qualified read-only IPv4 subnet calculation"},
     # ── virtual environments / labs (each dedicated) ──
     "cml":          {"prefixes": ["cml-"], "requires_env": ["CML_URL"],
@@ -155,6 +160,7 @@ SECURITY_POSTURE = {
 # A member receives ONLY its integration's secrets + the base-member keys below +
 # its iN2N/model vars. The Border gets comms secrets and ZERO device creds.
 ENV_PREFIXES = {
+    "convergence": ["CONVERGENCE_"],
     "equinix": ["EQUINIX_"],
     "cml": ["CML_"], "containerlab": ["CLAB_"], "pyats": ["PYATS_"],
     "ipfabric": ["IPFABRIC_"], "suzieq": ["SUZIEQ_"], "batfish": ["BATFISH_"],
@@ -191,9 +197,10 @@ def env_slice_keys(profile, env_keys):
 
 # Profile → OpenClaw mcp.servers names to keep in a member's scoped config
 # (many integrations are skill-driven with no MCP server → empty list is fine;
-# the member still gets its workspace skills + .env creds). memory-mcp is always
-# added as base floor by the provisioner.
+# the member still gets its workspace skills + .env creds). The generic legacy
+# provisioner adds memory-mcp; Convergence uses only the protocol base floor.
 MCP_SERVERS = {
+    "convergence": ["convergence-read-mcp"],
     "subnet": ["subnet-calc-mcp"],
     "equinix": ["equinix-mcp"],
     "ipfabric": ["ipfabric-mcp"], "suzieq": ["suzieq-mcp"], "batfish": ["batfish-mcp"],
@@ -272,6 +279,42 @@ def _equinix_enabled():
     return str(value).lower() == "true"
 
 
+def convergence_settings(env):
+    """Use the connector's canonical validator without importing HTTP/MCP deps."""
+    name = '_netclaw_convergence_settings'
+    module = sys.modules.get(name)
+    if module is None:
+        spec = importlib.util.spec_from_file_location(name, Path(REPO)/'mcp-servers/convergence-read-mcp/settings.py')
+        module = importlib.util.module_from_spec(spec)
+        sys.modules[name] = module
+        spec.loader.exec_module(module)
+    return module.Settings.from_env(env)
+
+
+def configured_values(env_file=None, *, include_process=True):
+    """Read literal selected values; process overrides match component-launch."""
+    spec = importlib.util.spec_from_file_location('_profile_dotenv', Path(REPO)/'scripts/write-env.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    path = Path(env_file or ENV_FILE)
+    values = module.values(path.read_text()) if path.is_file() else {}
+    if include_process:
+        values.update(os.environ)
+    return values
+
+
+def _convergence_configured():
+    try:
+        convergence_settings(configured_values())
+        return True
+    except (ValueError, OSError):
+        return False
+    except Exception as error:
+        # ReadError exposes only static messages; never print credentials or config.
+        if getattr(error, 'code', None) in ('disabled', 'not_configured'):
+            return False
+        raise
+
+
 def profiles(skills_dir=None, include_unconfigured=False):
     """Profiles whose skills are installed AND whose backend is configured.
 
@@ -287,6 +330,8 @@ def profiles(skills_dir=None, include_unconfigured=False):
         if not skills:
             continue
         configured = _env_satisfied(meta, env_keys)
+        if pid == "convergence":
+            configured = _convergence_configured()
         if pid == "equinix":
             configured = configured and _equinix_enabled()
         if configured or include_unconfigured:

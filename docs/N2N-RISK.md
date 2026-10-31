@@ -112,6 +112,12 @@ production-mode security layer.
 
 ## Operating a risk
 
+The optional OpenClaw `convergence` profile supplies retained flow evidence through
+`convergence-observations`; the Border owns correlation with other authorized sources.
+It requires an enabled, complete reader configuration and member-local environment
+paths. See [Convergence](CONVERGENCE.md). This source integration does not qualify
+live cross-source interpretation or extend Hermes's subnet-only protected federation.
+
 On the Border (MCP tools, or `netclaw risk …` / the `netclaw` TUI):
 
 | Action | Tool / command |

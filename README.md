@@ -783,7 +783,7 @@ The HUD's fourth Chat interface, **Avatar**, offers selectable local John and Lo
 
 ## MCP Servers (177)
 
-Optional [Convergence flow evidence](docs/CONVERGENCE.md) connects a separately operated archive through two read-only tools. Its HUD view preserves the selected observation window and source coverage.
+Optional [Convergence flow evidence](docs/CONVERGENCE.md) connects a separately operated archive through two read-only tools. Its HUD hands bounded, same-window evidence to Canvas for investigation by the NetClaw Border. Standalone use remains supported; an OpenClaw Risk can use a focused Convergence member.
 
 **Existing voice installations:** complete the [voice authentication migration](docs/VOICE-SECURITY.md) before restarting the upgraded Twilio webhook service. Callbacks now require valid signatures; alert triggers require a separate bearer token.
 

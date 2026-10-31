@@ -160,6 +160,70 @@ sampling/duplicate-counting limitations remain visible.
 Receipt age is shown separately: quiet traffic alone does not prove a broken
 collector. Observed strings are data, never instructions to change the service.
 
+## Ask NetClaw to investigate
+
+After selecting an address and loading its records, choose **Investigate in Canvas**.
+NetClaw receives the selected observation, exact window, site/exporter scope, source
+coverage and evidence limits. Record samples are bounded and any omissions are
+identified. Refresh failed or stale observations before handing them off. The
+Convergence panel does not start an autonomous investigation; the normal Canvas
+conversation and its permission controls handle the request.
+
+Convergence supplies evidence to NetClaw's coordinating brain, the **Border Claw**.
+The Border can correlate it with whichever authorized firewall, IDS, DNS or inventory
+tools are available. Missing sources should be reported as gaps. Flow volume alone
+does not establish an incident, and opposite flow directions do not prove request
+and reply. The latest-100 limit bounds one records response, not the investigation.
+
+A single NetClaw installation can do this without federation. For an existing
+OpenClaw [internal Risk](N2N-RISK.md), the `convergence` member profile scopes a
+specialist to `convergence-observations` and the existing read connector. Configure
+the reader first, then inspect the offered profile using the selected runtime:
+
+```bash
+python3 scripts/in2n-profiles.py list
+python3 scripts/in2n-profiles.py show convergence
+```
+
+Use the Risk's normal member setup/enrollment path; no separate Convergence brain
+or new write permission is needed. Each member must use its own private environment.
+For an existing Linux OpenClaw Risk with both `n2n` and `convergence-read` installed,
+prepare a new member home from the selected Border configuration:
+
+```bash
+border_home="$HOME/.openclaw"  # replace with the intended Border installation
+member_home="$HOME/.openclaw-example-convergence"  # a new, separate home
+NETCLAW_RUNTIME=openclaw OPENCLAW_STATE_DIR="$border_home" \
+OPENCLAW_CONFIG_PATH="$border_home/openclaw.json" NETCLAW_RUNTIME_ENV="$border_home/.env" \
+python3 scripts/in2n-member-home.py --risk example --member convergence --home "$member_home"
+```
+
+This prepares files only; it does not enroll or start the member. It reuses the
+selected provider/model, copies only its explicit credential references and the
+Convergence settings, and gives the member its own workspace and runtime records.
+The member can read its workspace skill and call the two observation tools. The
+federation service retains its status/heartbeat/audit base functions. Other Border
+skills, communication accounts and memory credentials are not copied. Existing
+member homes are preserved rather than overwritten.
+
+Use `--model provider/model` to choose a different declared model or `--provider-env`
+to select a private file containing its referenced credentials. OAuth/vault/file/exec
+credential providers and custom authentication headers require separate setup; the
+helper does not inspect account stores. Set the member's Border endpoint and one-use
+enrollment token through the normal Risk enrollment process. Explicit loopback
+providers such as local Ollama may omit an API key when they require no authentication;
+remote providers must have a configured credential. Then launch with its
+private `N2N_MEMBER_ENV_FILE`. The source Risk mode is retained; an absent mode defaults
+to production, which must pass the existing controls. Testing mode must be explicit.
+The configuration does not prove OS confinement or model answer correctness.
+
+Configuration readiness is not proof that the remote service is reachable or that
+its credential is authorized. Hermes's protected federation remains subnet-only;
+this profile does not extend that qualification. Source checks and outstanding live
+investigation evidence are tracked in [spec 164](../specs/164-convergence-border/verification.md).
+The IDE's existing Mac/WSL component qualification restrictions remain in place;
+the Linux CLI path above is the supported source workflow for this milestone.
+
 ## Upgrade, disable and qualification
 
 Upgrade NetClaw normally; retain the selected installation's private environment.

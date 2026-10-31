@@ -12,7 +12,7 @@ const fixture = () => ({
   status: 'active', site: 'synthetic-lab', coverage: { mode: 'demo', label: 'Synthetic demonstration', description: 'Example traffic, not your network.', detail: '<img src=x onerror=alert(1)>' },
   range: '1h', start: '2026-10-30T23:00:00.000Z', end: '2026-10-31T00:00:00.000Z', read_at: '2026-10-31T00:00:01Z', exporter: null, exporters: ['127.0.0.1'],
   total: { bytes: 100000, packets: 1000, records: 200, last_received: '2020-01-01T00:00:00Z' },
-  sources: [{ src_addr: '192.0.2.10', bytes: 50000, packets: 500 }], destinations: [{ dst_addr: '198.51.100.20', bytes: 50000, packets: 500 }],
+  sources: [{ src_addr: '192.0.2.10', bytes: 50000, packets: 500, records: 100 }], destinations: [{ dst_addr: '198.51.100.20', bytes: 50000, packets: 500, records: 100 }],
   basis: 'Exported counters, not billing.', limitations: ['Sampling is not extrapolated.'], sampling: [],
 });
 const evidence = address => ({ site: 'synthetic-lab', coverage: fixture().coverage, address, start: fixture().start, end: fixture().end, limit: 100, records: [
@@ -93,4 +93,72 @@ test('late evidence from a previous selection cannot replace the current address
   await new Promise(resolve => setTimeout(resolve, 15));
   assert.match(f.w.document.querySelector('[aria-label="Selected flow records"]').textContent, /Records involving 198\.51\.100\.20/);
   assert.doesNotMatch(f.w.document.querySelector('[aria-label="Selected flow records"]').textContent, /192\.0\.2\.10/);
+});
+
+test('Investigate forwards current evidence only on explicit click and blocks failed or changing scope', async t => {
+  const handoffs = []; let fail = false, hold;
+  const f = await setup(t, url => {
+    if (fail) return { ok: false, error: { code: 'unavailable' } };
+    if (hold) return new Promise(resolve => { hold.resolve = resolve; });
+    const query = new URL(url, 'http://local').searchParams;
+    return { ok: true, data: url.includes('/records?') ? evidence(query.get('address')) : { ...fixture(), exporter: query.get('exporter') } };
+  }, { enabled: true, installationId: 'fixture-installation', investigate: (...args) => handoffs.push(args) });
+  await until(() => f.buttons().some(b => b.textContent === 'Inspect records'));
+  f.buttons().find(b => b.getAttribute('aria-label') === 'Inspect sources 192.0.2.10').click();
+  await until(() => f.buttons().some(b => b.textContent === 'Investigate in Canvas'));
+  assert.equal(handoffs.length, 0);
+  f.buttons().find(b => b.textContent === 'Investigate in Canvas').click();
+  assert.equal(handoffs.length, 1);
+  const [title, context, source, retrievedAt] = handoffs[0];
+  assert.match(title, /192\.0\.2\.10/); assert.equal(context.site, fixture().site);
+  assert.equal(context.start, fixture().start); assert.equal(context.end, fixture().end);
+  assert.equal(context.evidence.record_limit, 100); assert.equal(context.evidence.returned_records, 2);
+  assert.equal(source, 'Convergence retained flow archive'); assert.equal(retrievedAt, context.evidence_read_at);
+  hold = {};
+  const selector = f.w.document.querySelector('[aria-label="Flow exporter"]'); selector.value = '127.0.0.1'; selector.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+  await until(() => hold.resolve);
+  assert.equal(f.buttons().some(b => b.textContent === 'Investigate in Canvas' && !b.disabled), false);
+  hold.resolve({ ok: true, data: { ...fixture(), exporter: '127.0.0.1' } }); hold = null;
+  await until(() => !f.body().includes('Reading flows'));
+  fail = true; f.buttons().find(b => b.textContent === 'Refresh flows').click();
+  await until(() => f.body().includes('Stale cached data'));
+  assert.ok(f.buttons().filter(b => b.textContent === 'Inspect records').every(b => b.disabled));
+  assert.equal(f.buttons().some(b => b.textContent === 'Investigate in Canvas' && !b.disabled), false);
+  assert.equal(handoffs.length, 1);
+  assert.ok(f.calls.every(call => call.url.startsWith('/api/hud/')));
+});
+
+test('mismatched response never enables investigation and failed detail does not reuse an old selection', async t => {
+  let mismatch = true, failed = false; const handoffs = [];
+  const f = await setup(t, url => {
+    if (!url.includes('/records?')) return { ok: true, data: fixture() };
+    if (failed) return { ok: false, error: { code: 'unauthorized' } };
+    const address = new URL(url, 'http://local').searchParams.get('address');
+    return { ok: true, data: { ...evidence(address), ...(mismatch ? { site: 'different-site' } : {}) } };
+  }, { enabled: true, installationId: 'fixture-installation', investigate: (...args) => handoffs.push(args) });
+  await until(() => f.buttons().some(b => b.textContent === 'Inspect records'));
+  const inspect = () => f.buttons().find(b => b.getAttribute('aria-label') === 'Inspect sources 192.0.2.10').click();
+  inspect(); await until(() => f.buttons().some(b => b.textContent === 'Investigate in Canvas'));
+  assert.equal(f.buttons().find(b => b.textContent === 'Investigate in Canvas').disabled, true);
+  mismatch = false; inspect(); await until(() => f.buttons().some(b => b.textContent === 'Investigate in Canvas' && !b.disabled));
+  failed = true; inspect(); await until(() => f.body().includes('Access denied'));
+  assert.equal(f.buttons().some(b => b.textContent === 'Investigate in Canvas'), false);
+  assert.equal(handoffs.length, 0);
+});
+
+test('changing installation clears old summary and investigation context', async t => {
+  const handoffs = []; let nextPending;
+  const props = { enabled: true, installationId: 'first', investigate: (...args) => handoffs.push(args) };
+  const f = await setup(t, (url, options) => {
+    if (options.headers['X-NetClaw-Installation'] === 'second') return new Promise(resolve => { nextPending = resolve; });
+    const address = new URL(url, 'http://local').searchParams.get('address');
+    return { ok: true, data: address ? evidence(address) : fixture() };
+  }, props);
+  await until(() => f.buttons().some(b => b.textContent === 'Inspect records'));
+  f.buttons().find(b => b.getAttribute('aria-label') === 'Inspect sources 192.0.2.10').click();
+  await until(() => f.buttons().some(b => b.textContent === 'Investigate in Canvas' && !b.disabled));
+  f.w.show({ ...props, installationId: 'second' });
+  await until(() => nextPending);
+  assert.equal(f.buttons().some(b => b.textContent === 'Investigate in Canvas' && !b.disabled), false);
+  assert.equal(handoffs.length, 0);
 });

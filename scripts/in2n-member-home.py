@@ -18,8 +18,12 @@ Usage: python3 scripts/in2n-member-home.py --risk johns-risk --member ipfabric \
 """
 import argparse, copy, importlib.util, json, os, sys, re, shutil
 from pathlib import Path
+import ipaddress
+from urllib.parse import urlsplit
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mcp-servers/protocol-mcp'))
 from bgp.federation.runtime import selected, private_dir
+sys.path.insert(0, str(Path(__file__).resolve().parent/'lib'))
+from convergence_member_policy import native_tool_policy
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser("~")
@@ -84,14 +88,178 @@ def provision_hermes(runtime, risk, member, destination=None, model=None):
     return home
 
 
+def _convergence_provider(source, values, model=None):
+    """Copy one declared provider/model; never inspect an auth vault or OAuth state."""
+    defaults = (source.get('agents') or {}).get('defaults') or {}
+    binding = model or defaults.get('model')
+    if isinstance(binding, dict):
+        binding = binding.get('primary')
+    if not isinstance(binding, str):
+        raise ValueError('select an explicit provider/model for the Convergence member')
+    if '/' not in binding:
+        binding = 'anthropic/'+binding
+    provider, model_id = binding.split('/', 1)
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', provider) or not model_id or len(model_id)>200:
+        raise ValueError('invalid member provider/model binding')
+    declared = (source.get('models') or {}).get('providers', {}).get(provider)
+    if declared is None and provider == 'anthropic':
+        declared = {'api': 'anthropic-messages', 'apiKey': '${ANTHROPIC_API_KEY}'}
+    if not isinstance(declared, dict) or declared.get('headers'):
+        raise ValueError('declare a supported member provider explicitly; vault/OAuth or custom headers require separate setup')
+    models = None
+    if 'models' in declared:
+        if not isinstance(declared['models'], list):
+            raise ValueError('provider models must be a list')
+        models = [item for item in declared['models'] if isinstance(item, dict) and item.get('id') == model_id]
+        if len(models) != 1:
+            raise ValueError('selected member model must have one explicit provider model declaration')
+    elif provider not in ('anthropic', 'openai', 'openrouter'):
+        raise ValueError('custom member providers require an explicit selected model declaration')
+    config = {}
+    env = {}
+    for field in ('api', 'baseUrl', 'authHeader'):
+        if field not in declared:
+            continue
+        value = declared[field]
+        if field == 'authHeader':
+            if not isinstance(value, bool):raise ValueError('invalid provider authHeader')
+        elif not isinstance(value, str):
+            raise ValueError('provider api/baseUrl must be explicit text')
+        if isinstance(value, str) and '${' in value:
+            match = re.fullmatch(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}', value)
+            if not match or not values.get(match[1]):
+                raise ValueError('unresolved member provider environment reference')
+            env[match[1]] = values[match[1]]
+        config[field] = value
+    local_without_auth = False
+    if 'apiKey' not in declared and not declared.get('authHeader', False):
+        try:
+            address = urlsplit(declared.get('baseUrl', ''))
+            local_without_auth = (address.scheme in ('http', 'https') and bool(address.hostname)
+                and ipaddress.ip_address(address.hostname).is_loopback and address.username is None
+                and address.password is None and not address.query and not address.fragment
+                and (address.port is None or 1 <= address.port <= 65535))
+        except (ValueError, TypeError):
+            pass
+    key = None
+    credential = declared.get('apiKey')
+    if isinstance(credential, dict):
+        if (set(credential) != {'source', 'provider', 'id'} or credential.get('source') != 'env'
+                or credential.get('provider') != 'default' or not isinstance(credential.get('id'), str)
+                or not re.fullmatch(r'[A-Za-z_][A-Za-z0-9_]*', credential['id'])):
+            raise ValueError('only default env provider SecretRef is supported; vault/file/exec lookup is not performed')
+        key = credential['id']
+        secret = values.get(key)
+        config['apiKey'] = dict(credential)
+    elif isinstance(credential, str) and credential:
+        match = re.fullmatch(r'\$\{([A-Za-z_][A-Za-z0-9_]*)\}', credential)
+        key = match[1] if match else {'anthropic':'ANTHROPIC_API_KEY','ollama':'OLLAMA_API_KEY'}.get(provider,'OPENAI_API_KEY')
+        secret = values.get(key) if match else credential
+        if not match and '${' in credential:
+            raise ValueError('unresolved member provider credential; configure its private environment first')
+        config['apiKey'] = '${'+key+'}'
+    elif not local_without_auth:
+        raise ValueError('member provider needs an explicit API-key setting; vault/OAuth lookup is not performed')
+    if key is not None:
+        if not secret:
+            raise ValueError('unresolved member provider credential; configure its private environment first')
+        env[key] = secret
+    # Keep only the chosen model's declared inference metadata.
+    allowed = ('id', 'name', 'api', 'reasoning', 'input', 'cost', 'contextWindow', 'maxTokens', 'compat')
+    if models is not None:
+        config['models'] = [{key:value for key,value in models[0].items() if key in allowed}]
+    return binding, provider, config, env
+
+
+def provision_convergence(runtime, risk, destination=None, model=None, key_file=None, env_file=None):
+    """Prepare an isolated OpenClaw evidence member, without enrollment or launch.
+
+    Source/interpreter executables are shared; mutable env, records and workspace
+    belong to the member. This is configuration isolation, not OS confinement.
+    """
+    if runtime.kind != 'openclaw':
+        raise ValueError('Convergence member execution requires OpenClaw; Hermes is not qualified')
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', risk):
+        raise ValueError('risk/member must be safe local names')
+    prof = _profiles()
+    values = prof.configured_values(env_file or runtime.env_file, include_process=False)
+    try:
+        prof.convergence_settings(values)
+    except Exception:
+        raise ValueError('enabled and complete Convergence configuration is required') from None
+    source = json.loads(runtime.config.read_text())
+    if 'convergence-read-mcp' not in (source.get('mcp') or {}).get('servers', {}):
+        raise ValueError('install the native Convergence reader in the selected Border first')
+    records = {}
+    for component in ('convergence-read', 'n2n'):
+        record = runtime.home/'python-runtimes/records'/component
+        command = record.read_text().strip() if record.is_file() else ''
+        if not Path(command).is_absolute() or not os.access(command, os.X_OK):
+            raise ValueError('install '+component+' in the selected Border before provisioning')
+        records[component] = command
+    provider_values = values
+    if key_file:
+        provider_values = prof.configured_values(key_file, include_process=False)
+    binding, provider, provider_config, provider_env = _convergence_provider(source, provider_values, model)
+    risk_mode = values.get('N2N_RISK_MODE', 'production').strip().lower()
+    if risk_mode not in ('production', 'testing'):
+        raise ValueError('select production or explicitly opted-in testing risk mode')
+    home = Path(destination or Path(HOME)/('.openclaw-'+risk+'-convergence')).expanduser().absolute()
+    if home == runtime.home or (home.exists() and any(home.iterdir())):
+        raise ValueError('member already provisioned; existing home is preserved')
+    if home.is_symlink():
+        raise ValueError('member home must not be a symlink')
+    # Do not copy registrations whose absolute paths or embedded env values may
+    # select the Border. Build the existing canonical component-launch entry.
+    registration = {
+        'command': sys.executable,
+        'args': ['-u', str(Path(REPO)/'scripts/component-launch.py'), 'convergence-read',
+                 '--server', 'convergence-read-mcp'],
+        'transport': 'stdio',
+        'env': {'NETCLAW_RUNTIME': 'openclaw', 'OPENCLAW_HOME': str(home),
+                'OPENCLAW_STATE_DIR': str(home), 'OPENCLAW_CONFIG_PATH': str(home/'openclaw.json'),
+                'NETCLAW_RUNTIME_ROOT': str(home/'python-runtimes'),
+                'NETCLAW_RUNTIME_ENV': str(home/'.env')},
+    }
+    config = {
+        'mcp': {'servers': {'convergence-read-mcp': registration}},
+        'channels': {},
+        'tools': native_tool_policy(),
+        'models': {'providers': {provider: provider_config}},
+        'agents': {'defaults': {'workspace': str(home/'workspace'),
+            'model': {'primary': binding}, 'models': {binding: {'alias': 'member'}}}},
+    }
+    # Exact connector settings only; no wildcard copying of unrelated future keys.
+    keys = ('CONVERGENCE_ENABLED', 'CONVERGENCE_API_URL', 'CONVERGENCE_API_TOKEN',
+            'CONVERGENCE_SITE', 'CONVERGENCE_EXPORTERS', 'CONVERGENCE_ALLOW_LOOPBACK_HTTP')
+    member_values = {k: values[k] for k in keys if k in values}
+    member_values.update(provider_env)
+    member_values.update(NETCLAW_RUNTIME='openclaw',
+        OPENCLAW_HOME=str(home), OPENCLAW_STATE_DIR=str(home), OPENCLAW_CONFIG_PATH=str(home/'openclaw.json'),
+        NETCLAW_RUNTIME_ROOT=str(home/'python-runtimes'), NETCLAW_RUNTIME_ENV=str(home/'.env'),
+        N2N_ROLE='member', N2N_RISK_MODE=risk_mode, N2N_RISK_NAME=risk, N2N_MEMBER_ID=risk+'/convergence',
+        N2N_MEMBER_BASE=str(home/'n2n'), N2N_MEMBER_MODEL=binding,
+        N2N_MEMBER_SCOPE=json.dumps([item['name'] for item in prof.BASE_FLOOR]+['convergence-observations']))
+    private_dir(home)
+    record_dir = private_dir(home/'python-runtimes/records')
+    for component, command in records.items():
+        file = record_dir/component; file.write_text(command+'\n'); file.chmod(0o600)
+    skill = private_dir(home/'workspace/skills/convergence-observations')
+    shutil.copyfile(Path(REPO)/'workspace/skills/convergence-observations/SKILL.md', skill/'SKILL.md')
+    file = home/'openclaw.json'; file.write_text(json.dumps(config, indent=2)+'\n'); file.chmod(0o600)
+    file = home/'.env'; file.write_text(''.join(k+'='+json.dumps(v)+'\n' for k,v in member_values.items())); file.chmod(0o600)
+    return home
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--risk", required=True)
     ap.add_argument("--member", required=True, help="profile/member name, e.g. ipfabric")
     ap.add_argument("--runtime", choices=["hermes","openclaw"], default=None)
     ap.add_argument("--home", default=None)
-    ap.add_argument("--model", default=None, help="override model (default: profile tier)")
-    ap.add_argument("--anthropic-key-from", default=None)
+    ap.add_argument("--model", default=None, help="override provider/model (Convergence defaults to selected primary; other profiles use tier)")
+    ap.add_argument("--anthropic-key-from", "--provider-env", dest="anthropic_key_from", default=None,
+                    help="provider credential env file (Convergence: explicit selected-provider references only)")
     ap.add_argument("--border-config", default=None)
     args = ap.parse_args()
 
@@ -99,6 +267,13 @@ def main():
     if (args.runtime or runtime.kind)=='hermes':
         home=provision_hermes(runtime,args.risk,args.member,args.home,args.model)
         print('Scoped Hermes member home:',home)
+        print('Set N2N_BORDER_ENDPOINT and the one-use enrollment token in its private .env; launch with N2N_MEMBER_ENV_FILE.')
+        return
+    if args.member == 'convergence':
+        if args.border_config and Path(args.border_config).resolve() != runtime.config.resolve():
+            raise ValueError('select the Convergence Border runtime explicitly; alternate templates are not supported')
+        home = provision_convergence(runtime, args.risk, args.home, args.model, args.anthropic_key_from)
+        print('Scoped OpenClaw Convergence member home:', home)
         print('Set N2N_BORDER_ENDPOINT and the one-use enrollment token in its private .env; launch with N2N_MEMBER_ENV_FILE.')
         return
     if not all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', value) for value in (args.risk,args.member)):

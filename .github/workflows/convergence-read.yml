@@ -50,6 +50,10 @@ jobs:
         run: |
           "$RUNNER_TEMP/connector-test/bin/python" tests/convergence-read-integration/run-tests.py \
             --service-checkout external-service --evidence-dir "$RUNNER_TEMP/convergence-read-evidence"
+      - name: Convergence evidence handoff through Dashboard and Canvas
+        env:
+          CONVERGENCE_PLAYWRIGHT_MODULE: ${{ runner.temp }}/browser/node_modules/playwright/index.mjs
+        run: node ui/netclaw-visual/integration/convergence-handoff.mjs "$RUNNER_TEMP/convergence-handoff-evidence"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -58,4 +62,5 @@ jobs:
             ${{ runner.temp }}/convergence-read-evidence/convergence-*.png
             ${{ runner.temp }}/convergence-read-evidence/convergence-*.json
             ${{ runner.temp }}/convergence-read-evidence/*-resources.json
+            ${{ runner.temp }}/convergence-handoff-evidence/convergence-handoff*
           if-no-files-found: warn
