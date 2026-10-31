@@ -1,8 +1,8 @@
 # Plan
 
 Coordinator owns spec, catalog/installer/config/docs/skill, integration qualification,
-release metadata and publication. WorkerA owns mcp-servers/convergence-read-mcp and
-tests/convergence-read Python connector tests. WorkerB owns ui/netclaw-visual route,
+release metadata and publication. Worker A owns mcp-servers/convergence-read-mcp and
+tests/convergence-read Python connector tests. Worker B owns ui/netclaw-visual route,
 view/wiring and tests. After both finish, independently review the integrated diff.
 
 Shared contract: tools return {ok:true,data:validated_service_payload} or

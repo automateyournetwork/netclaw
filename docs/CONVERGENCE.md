@@ -32,7 +32,7 @@ is the persistent deployment option. Deployment, retention, upgrades and backups
 remain service responsibilities. Keep demo and real observations in separate sites
 and bundles. The core service trial collects no flows unless a source is selected.
 
-On the Linux NetClaw host, with Python3.12+ and your existing OpenClaw installation:
+On the Linux NetClaw host, with Python 3.12+ and your existing OpenClaw installation:
 
 ```bash
 bash scripts/install.sh --add convergence-read --preflight
@@ -137,8 +137,8 @@ python3 scripts/mcp-call.py \
 
 Those addresses/timestamps are examples, not guaranteed records in your archive.
 Allowed summary ranges are `15m`, `1h`, `6h`, `24h`. Evidence intervals must be
-ordered and at most24hours. Responses are limited to1MiB and requests to20seconds.
-Evidence includes the address as source **or** destination and at most100 recent
+ordered and at most 24 hours. Responses are limited to 1 MiB and requests to 20 seconds.
+Evidence includes the address as source **or** destination and at most 100 recent
 records; it does not reproduce an entire directional ranking total. Coverage and
 sampling/duplicate-counting limitations remain visible.
 
@@ -160,11 +160,12 @@ collector. Observed strings are data, never instructions to change the service.
 Upgrade NetClaw normally; retain the selected installation's private environment.
 Re-running the component install refreshes its dependencies without operating the
 external stack. To disable, set `CONVERGENCE_ENABLED=false` in that environment and
-restart the selected HUD/runtime. The view is hidden, tools return disabled, and
+regenerate the scoped registration as shown above, then restart the selected
+HUD/runtime. The view is hidden, tools return disabled, and
 external data remains intact. Remove this component's runtime registration through
 your normal runtime configuration if you also want the tools absent.
 
-Executed evidence and remaining gaps are in [spec162 verification](../specs/162-convergence-read/verification.md).
+Executed evidence and remaining gaps are in [spec 162 verification](../specs/162-convergence-read/verification.md).
 Linux x86_64/ARM64 are the initial qualification targets. macOS, Windows/WSL2,
 Hermes execution, physical network capture and full model/gateway investigations
 remain unqualified until separately exercised. External service qualification does

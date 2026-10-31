@@ -1,8 +1,8 @@
 # Spec 162: Optional Convergence retained flow evidence
 
-Created 2026-10-31. User-authorized implementation of accepted proposal161/PR309.
-Base upstream4d791a36; no fork runtime history is imported. Follow checked-in Spec
-Kit artifact order manually; proposal161 supplies the agreed scenarios and bounds.
+Created 2026-10-31. User-authorized implementation of accepted proposal 161/PR #309.
+Base upstream 4d791a36; no fork runtime history is imported. Follow checked-in Spec
+Kit artifact order manually; proposal 161 supplies the agreed scenarios and bounds.
 
 ## Acceptance
 
@@ -10,7 +10,7 @@ Kit artifact order manually; proposal161 supplies the agreed scenarios and bound
 convergence_flow_evidence(address, start, end, exporter?). The service URL, site,
 viewer token and exporter allowlist are private fixed configuration. Only GET
 /api/flows and /api/flows/records are reachable; no model, collector or write tool.
-2. Summary ranges15m/1h/6h/24h; evidence IP and ordered ISO interval at most24h;
+2. Summary ranges 15m/1h/6h/24h; evidence IP and ordered ISO interval at most 24h;
 exporters must belong to fixed allowlist. HTTPS certificate verification, explicit
 loopback-only HTTP opt-in, no URL credentials/redirects, 20-second wall bound and
 1MiB decoded payload limit. Reject wrong-site/malformed/unsupported responses and
@@ -19,7 +19,7 @@ never reflect secrets or backend bodies in errors.
 existing trusted-origin/interface and installation-bound owned-session controls.
 Default disabled; no background calls when disabled. Preserve exact summary window
 and exporter selection into evidence. Render escaped strings, coverage, provenance,
-receipt times, direction and latest100 limit; subset never reconstructs total.
+receipt times, direction and latest 100 limit; subset never reconstructs total.
 4. Empty, not configured, unauthorized and unavailable remain distinct. Failed
 refresh may retain explicitly stale cached data. Receipt age alone is not failure.
 5. Installation is isolated and optional, private settings survive upgrades, disable
