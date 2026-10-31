@@ -6,3 +6,6 @@
 - [x] T004 Independent review, applicable gates and truthful qualification handover.
 
 T002 native execution passed; semantic acceptance remains open (see qualification.md).
+
+- [x] T005 Record the owner-directed Risk/member/Border responsibility split and
+  identify existing integration paths; runtime handoff implementation remains next.
