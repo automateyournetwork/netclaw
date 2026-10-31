@@ -97,3 +97,72 @@ native reload command (`openclaw mcp reload`, no positional server) succeeded; p
 has no diagnostics and config validation has no warnings. All findings disclosed.
 Qualification report is qualification.md. Spec remains incomplete, so no source
 version bump/tag/release is prepared. Preserve existing spec162 release metadata.
+
+## Authorized continuation: grounding-20261031
+
+User approved two additional model-validation attempts after the prior wall-clock
+window expired. Linked continuation starts 2026-10-31 03:47:35 UTC; deadline
+2026-10-31 04:32:35 UTC. T002 total limit is now5 attempts (prior3 preserved).
+Attempt4/5 begins: use available Ollama Cloud kimi-k3, clarify the observation skill
+with an evidence audit and explicit unknown request/reply semantics. Same dedicated
+VM and private provider reference; no production changes. Coordinator owns edits
+and installation; independent verifier receives final outputs without model calls.
+Acceptance unchanged: both native tools, exact scope/window, correct counters,
+synthetic coverage, bounded evidence and no unsupported semantic/sampling claims.
+Re-generate fresh demo records because the prior one-hour window has elapsed.
+
+Attempt4 setup: deployed identical skill v1.0.1 into the guest checkout and runtime;
+selected catalog-available ollama-cloud/kimi-k3; regenerated synthetic records.
+Canonical catalog metadata/parity/spec checks pass. Generic Codex skill validator
+rejects the repository's pre-existing `version`/`tags` frontmatter; those fields are
+supported by NetClaw's canonical metadata checker, which passes. Initial catalog
+build needed extension dependencies and non-group-writable owned config directories;
+after npm ci and narrowing permissions on this dedicated checkout, parity passed.
+These setup corrections did not alter runtime policy or tool contracts.
+
+Attempt4 FAIL: kimi-k3 loaded the skill, followed a setup-guide pointer outside
+normal observation, and used shell/source inspection, a new local dependency venv
+and an alternate client instead of discovering native MCP tools. It claimed to
+override a disabled setting in that process. Gateway was stopped; no production
+state changed. Reject this result even though parts of its prose were cautious.
+Independent verifier confirmed native-tool absence and scope violations.
+
+Attempt5/5 begins: return to minimax-m2.7 (previously demonstrated native tools),
+require native discovery, and stop on missing tools rather than read credentials,
+install dependencies or call alternate APIs. Make the setup link conditional on
+operator setup requests. Preserve exact acceptance; no further model attempts after5.
+
+Attempt5 prerequisite correction: systemctl start returned before the gateway
+listener was ready. CLI dispatch failed before any model run; no extra model turn
+was consumed. Wait for the supported gateway restart readiness check before the
+single attempt5 model turn. Final skill/catalog review passed independently.
+
+Continuation checks: all18 pinned connector contracts pass (7.14s); skill/catalog
+metadata and generation parity pass. Reviewer independently approved final skill
+scope. Attempt4 complete trajectory retained privately (132 events). Redacted export
+contains no literal matching sensitive runtime values; this is not proof of what
+an external provider observed. The test-only viewer credential will be refreshed
+and the extra venv quarantined after attempt5 finishes. No source/provider credentials
+will be printed or committed. T004 continuation review is attempt2/3.
+
+Attempt5 complete: 42-event trajectory independently confirms final skill loaded,
+only read/tool_search/tool_call/tool_call, both native results ok, same explicit
+exporter127.0.0.1/site demo/synthetic coverage and 15m interval
+03:40:04.306Z–03:55:04.306Z. Structured results:2 records/2148bytes/15packets/limit100.
+Interpretation FAIL:100-record bound omitted; sampling0 asserted to mean missing
+metadata; distinct nanosecond receipt times described as same instant. T002 remains
+BUDGET_EXHAUSTED at5/5. No more model calls. Independent code/skill/scope review PASS;
+semantic acceptance remains open. Do not mark spec complete or bump its release.
+
+Cleanup: test viewer refreshed; new key HTTP200, old key HTTP401. Extra model-created
+venv quarantined outside source; no production changes. Native gateway/reader
+recovery check follows this credential change. Provider/model defaults remain scoped
+to the dedicated guest. Full evidence retained in private attempt4/attempt5 artifacts.
+
+Recovery PASS: supported gateway restart, native MCP doctor and authenticated
+installed-reader summary succeeded after viewer refresh. Same synthetic counters
+remain available. Final independent verdict: skill/code and native execution PASS;
+T002 answer acceptance FAIL. Both additional authorized model attempts are consumed.
+The follow-up preserves this finding and the prior model failures; no model-runtime
+sandbox or universal correctness is claimed. Local canonical metadata/parity,
+reconciliation across six surfaces, spec artifacts and release checks pass.

@@ -15,3 +15,9 @@ Observed model behavior warrants a tool-description clarification in server.py:
 name range/exporter arguments and prohibit interpreting zero sampling metadata as
 unsampled or byte asymmetry as application semantics. No schema change. Run the
 pinned convergence-read contract suite and repeat the actual gateway turn.
+
+The user-authorized continuation adds a final claim-to-record audit to the existing
+observation skill and updates its generated catalog hashes. Select an available
+second Ollama model on the isolated VM; run at most two additional real gateway
+turns and independently inspect both interpretation and execution evidence. No
+request schemas or server permissions change. Preserve model-specific limitations.

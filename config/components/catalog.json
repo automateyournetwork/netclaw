@@ -28881,7 +28881,7 @@
       "title": "convergence-observations",
       "description": "Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.",
       "path": "workspace/skills/convergence-observations/SKILL.md",
-      "sha256": "94e7bb72356493f8b4021d2000097785301a8d9dda15c5e2c41f369e68fdcbd6",
+      "sha256": "b332efb4ede8b82bc67fbfa98d58a9bea487d12b1c7e4e8508908abe8224e4c2",
       "components": [
         "convergence-read"
       ],

@@ -34,3 +34,8 @@ Observed qualification gap: the first successful model run guessed the argument
 Tool descriptions must name accepted arguments and explicitly preserve uncertainty
 about missing/zero sampling metadata and traffic purpose. This clarifies guidance;
 no schema, normalization, permissions or backend response contract changes.
+
+Authorized continuation also clarifies the existing observation skill: a final
+claim-to-record audit must remove unsupported request/reply, application and sampling
+interpretations. Test representative natural requests with a second available model.
+Provider-specific passes are limited evidence, not a guarantee for every model.

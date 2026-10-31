@@ -77,3 +77,41 @@ All scope, counters and uncertainty must survive the generated explanation;
 request/reply, application, initiator and unsampled claims require supporting evidence.
 
 See [verification.md](verification.md) for commands, attempts and review dispositions.
+
+## Two authorized additional attempts
+
+The owner authorized two more model-validation attempts, preserving the earlier
+three failures. This continuation used the same VM and OpenClaw version.
+
+| Attempt | Model and result |
+|---|---|
+| 4 | Kimi K3 loaded the observation skill but used shell/source inspection, dependency installation and an alternate client instead of native MCP discovery. Rejected for leaving the read-only observation workflow. |
+| 5 | MiniMax M2.7 loaded the tightened skill and used only its skill read, tool discovery and the two native Convergence tools. Execution/scope passed; interpretation still failed. |
+
+The skill now requires native discovery and stops if tools are unavailable. It
+prohibits credential inspection, shell/API substitutes, installations, settings
+changes and packet capture during observation. Setup documentation is conditional
+on a separate operator setup request. A final claim-to-record audit preserves
+unknown application, role and sampling semantics. Its canonical catalog hashes
+were regenerated. These are instruction boundaries, not a runtime permission sandbox.
+
+The final attempt preserved exporter `127.0.0.1`, site `demo`, synthetic coverage,
+and the exact 15-minute interval 2026-10-31T03:40:04.306Z–03:55:04.306Z. Both tools
+succeeded with two records, 2,148 bytes and 15 packets. The complete 42-event
+trajectory confirms the final skill loaded and no shell/install substitute ran.
+
+The answer nevertheless omitted the 100-record bound, asserted zero sampling meant
+an unpopulated field, and described two distinct receipt timestamps as the same
+instant. A model disclaimer did not repair those unsupported claims. Independent
+review therefore retains semantic acceptance as FAIL; neither tested model is
+qualified for reliable interpretation by this evidence. No further model calls
+were made after the two additional attempts.
+
+After testing, the extra dependency environment was quarantined and the test-only
+viewer key refreshed. The new key returned HTTP 200 and the old key HTTP 401.
+The native reader was restored using the existing private runtime environment.
+Production systems and credentials were unchanged.
+
+The next engineering decision is how to preserve a deterministic statement of
+counters, window, scope and limits alongside generated interpretation, with explicit
+checks for unsupported claims. More prompt wording alone has not closed acceptance.

@@ -174,8 +174,8 @@ Connector/browser evidence is in [spec 162 verification](../specs/162-convergenc
 [Spec 163](../specs/163-convergence-linux-qualification/qualification.md) records a
 fresh Ubuntu 24.04 amd64 installation and actual OpenClaw 2026.10.9 gateway tool
 execution with Ollama Cloud. Both tools preserved the exact window and scope.
-Model interpretation remains unqualified: the tested answer invented request/reply
-meaning despite accurate tool results. Review generated conclusions against the
+Model interpretation remains unqualified: tested answers inferred unsupported
+sampling or request/reply meaning and omitted a required evidence bound. Review generated conclusions against the
 records; successful tool execution does not establish answer correctness.
 
 Linux x86_64/ARM64 are the initial connector targets. macOS, Windows/WSL2, Hermes,
