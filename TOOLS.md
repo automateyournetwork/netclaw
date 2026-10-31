@@ -1103,3 +1103,15 @@ was contacted during synthetic qualification.
 -12installedimagesincludeIOLXE17.18.02; noJunos.45nodedefinitionsarenot45images. ActivePersonalEVALobservedexpiry2027-01-22.8x86CPU4.10GBRAMtotal2.02GBfree atread;checkagainbeforeboot. ExistingorphanreporteddoNOTadopt/delete.
 - Nativecurl/opensslreachLAN;PythonLANsocketErrno65doesnotprovehostdown. ExistingR1/R2SW1/SW2untouched.
 - Run-ownedBatfishv2container netclaw-spec162-batfish-v2-20261031,loopback19997→9996,4CPUs4GiB. Firstnetclaw-spec162-batfish-20261031stoppedretained. ActualcurrentimageAPI9996;legacyexample9997wrongforit. Pinnedpybatfishrequiressetuptools<81. Threeprivateanalysis snapshots source/junos/reverse in network spec162-live-20261031.
+
+
+## Spec162 rehearsal runtime update — 2026-10-31
+The owner-approved isolated minimal claw now runs OpenClaw 2026.7.1-2 and Claude
+Sonnet 4.6. Its provider key was deliberately replaced from the repository
+environment on owner instruction. Native discovery verifies NetConverter (8
+tools), dynamic pyATS (35), Batfish (8) and GAIT (23); actual model tool execution
+also succeeds. The original setup report remains partial, with separate private
+repair receipts. CML HTTPS and MCP startup currently time out. Dynamic inventory
+is inactive; image/bootstrap and live configuration acceptance remain unproven.
+The staged pyATS replacement retains the prior runtime, and bound source remains
+unchanged. Source 1.15.2 fixes runtime placement and the stale native pyATS pin.
