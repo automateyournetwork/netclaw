@@ -102,3 +102,23 @@ open: actual Border/member and standalone cross-source model interpretation must
 qualified separately. Spec163 failures and attempt exhaustion remain unchanged.
 This follow-up is a draft source milestone, stacked on spec162; it does not replace
 or claim completion of upstream PR311 or Hermes/production confinement qualification.
+
+Publication: source commitdde78b44 is in draft
+[fork PR6](https://github.com/byrn-baker/netclaw-convergence/pull/6), based on
+162-convergence-read. Hosted CI started; final hosted results are reported on that PR.
+
+Additional reproducibility details from the worker:
+
+```bash
+python3 -m pytest tests/n2n/test_convergence_member_164.py \
+  tests/n2n/test_execution_context_149.py tests/n2n/test_hermes_members_149.py \
+  tests/n2n/test_internal_transport.py tests/n2n/test_routing.py -q
+```
+
+Result:17 passed,13 existing datetime.utcnow deprecation warnings,2.59s.
+`openclaw config validate --json` against isolated temporary member homes returned
+valid=true with no warnings for declared Ollama and native built-in Anthropic env
+SecretRef configurations on2026.10.9. Native `isToolAllowedByPolicyName` matcher
+accepted read/summary/evidence and rejected9 other tools. These native checks were
+recorded in tool output; temporary fixtures were cleaned and no persistent native
+check artifact was saved. They made no provider requests.
