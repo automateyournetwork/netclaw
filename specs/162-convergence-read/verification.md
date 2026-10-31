@@ -44,13 +44,19 @@ Demo produced two records; the host summary had 62 records and the later bounded
 sample had 64 while traffic continued. Browser 156.0.8078.4 reported zero JavaScript
 errors. Both screenshots were visually inspected.
 
-**T006, attempt 1, complete:** independent review and local gates passed. Prepared source
+**T006, attempt 1:** independent review and local gates passed. Prepared source
 release 1.15.0 and published [upstream PR #311](https://github.com/automateyournetwork/netclaw/pull/311).
 All 40 hosted checks passed on implementation commit `3ca7b8b6`, including native
 Linux amd64 and ARM64 demo/host integration. See the [integration run](https://github.com/automateyournetwork/netclaw/actions/runs/41150919562)
 and [repository gates](https://github.com/automateyournetwork/netclaw/actions/runs/41150919451).
 The final documentation commit will receive the same hosted checks before the PR
 is marked ready. No tag, deployment or upstream merge has been performed.
+
+**T006, attempt 2:** hosted catalog parity correctly rejected the final skill wording
+cleanup because its generated content hash was stale. Regenerated the catalog with
+the official Node and Python generators and rechecked parity and metadata before
+pushing. Runtime integration code is unchanged from the fully passing first run.
+Final-commit hosted results are reported in PR #311 before marking it ready.
 
 ## Reproducible local checks
 
