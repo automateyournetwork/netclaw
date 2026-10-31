@@ -99,10 +99,18 @@ loopback had metric 10 in Junos versus 11 in IOS-XE. That difference stays in th
 review package. Modeled reachability is useful evidence, and it does not replace
 a real appliance, commit or packet test.
 
+We then installed a real, separate minimal NetClaw. Claude invoked the guarded
+NetConverter MCP and received authenticated capability discovery. Native OpenClaw
+also discovers the repaired dynamic pyATS runtime, Batfish and GAIT. That exercise
+caught two installer defects that fixtures had missed: the guard's Python runtime
+location and a stale native pyATS revision. Both are corrected with regressions.
+The original partial installation report and separate repair evidence stay visible.
+
 Actual CML discovery found IOS-XE 17.18.2 images and an active evaluation license,
-but no installed Junos image. Capacity, isolated management, the real protected
-apply runtime and actual commit/readback still need qualification. Four existing
-lab devices supplied identity observations and remain unchanged.
+but no installed Junos image. CML connectivity subsequently became unavailable.
+Capacity, isolated management, protected application and actual commit/readback
+still need qualification. Four existing lab devices supplied identity observations
+and remain unchanged.
 
 The remaining appliance demonstration is concrete: preserve the actual returned
 candidate and every reviewed interface adaptation, boot a compatible target,

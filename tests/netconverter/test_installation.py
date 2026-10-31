@@ -7,7 +7,9 @@ from pathlib import Path
 import subprocess
 import sys
 import tempfile
+from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT/'scripts/lib'));sys.path.insert(0,str(ROOT/'tests'))
@@ -92,6 +94,33 @@ component_install_netconverter
         self.assertEqual(result.returncode,0,result.stderr)
         self.assertIn('config/python-components/netconverter.txt',marker.read_text())
         self.assertEqual(self.env.read_text(),'# preserve\nOTHER_KEY=private-canary\n')
+
+    def test_installed_interpreter_passes_real_owned_dependency_observation(self):
+        from setup_components import dependency_ready
+        source=self.home/'.setup/source'
+        for directory in ('scripts','config','mcp-servers/netconverter-mcp'):
+            (source/directory).mkdir(parents=True,exist_ok=True)
+        (source/'scripts/component-launch.py').write_text('# qualified launcher fixture\n')
+        (source/'mcp-servers/netconverter-mcp/server.py').write_text('# source fixture\n')
+        (source/'config/openclaw.json').write_bytes((ROOT/'config/openclaw.json').read_bytes())
+        bootstrap=self.home/'owned-python';bootstrap.write_text('#!/bin/sh\nexit 0\n');bootstrap.chmod(0o700)
+        runtimes=self.home/'python-runtimes';(runtimes/'records').mkdir(parents=True)
+        # Preserve the real install function, runtime record and dependency
+        # observer. Only the package download boundary is controlled.
+        script='''source scripts/lib/install-steps.sh
+log_step() { :; }; log_info() { :; }; _set_env_default() { :; }
+netclaw_component_venv() { NETCLAW_COMPONENT_VENV="$1"; mkdir -p "$1/bin"; ln -s "$FIXTURE_PYTHON" "$1/bin/python"; }
+netclaw_pip_install() { printf '%s\\n' "$NETCLAW_VENV/bin/python" > "$NETCLAW_RUNTIME_ROOT/records/netconverter"; chmod 600 "$NETCLAW_RUNTIME_ROOT/records/netconverter"; }
+component_install_netconverter
+'''
+        env={**os.environ,'NETCLAW_DIR':str(source),'RUNTIME_HOME':str(self.home),
+             'NETCLAW_RUNTIME_ROOT':str(runtimes),'FIXTURE_PYTHON':str(bootstrap)}
+        result=subprocess.run(['bash','--noprofile','--norc','-c',script],cwd=ROOT,env=env,capture_output=True,text=True)
+        self.assertEqual(result.returncode,0,result.stderr)
+        deploy=SimpleNamespace(root=self.home,source=source,validator=PlanValidator(ROOT),claw={'harness':'openclaw'})
+        harness=SimpleNamespace(environment=lambda:{'PATH':os.defpath})
+        with patch('setup_components.helper',return_value=module('nc_binder',Path('scripts/install-mcp-config.py'))):
+            self.assertTrue(dependency_ready('netconverter',deploy,harness))
 
 
 if __name__=='__main__':unittest.main()

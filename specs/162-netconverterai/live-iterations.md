@@ -144,6 +144,59 @@ Overall qualification remains incomplete until every required live gate is prove
   Loop 3 continues with that isolated build and native exact-plan review.
   T034–T036 remain open; **overall live qualification is not 100%**.
 
+### Native minimal runtime continuation
+
+The owner completed the real plan confirmation and three hidden credential
+prompts. OpenClaw 2026.7.1-2 and its HUD started in a separate home. The installer
+reported `configuration_required`; its original journal is retained. Continuing
+qualification found and corrected two source defects:
+
+1. NetConverter's source-tree venv symlink failed native ownership observation.
+   Move it under the selected runtime root; preserve the symlink/ownership check.
+   A real install-function/observer regression failed before the fix, then passed.
+   Scoped repair installed the guard and added only its missing registration.
+2. The native pyATS installer still checked out `f11b02f…`, while the staged
+   installer qualified dynamic revision `4a3c1e3…`. The older server exited without
+   a static testbed. Share the staged installer's revision and required source
+   files, including the dynamic builder, between native install and observation.
+   The new checkout regression failed before the fix. The actual selected runtime
+   was replaced through staged recovery; the old generation remains available.
+
+Owner-directed provider repair changed only the new claw's Anthropic setting to
+the selected repository key. HTTP 200 authentication and a real gateway Claude
+Sonnet 4.6 response establish provider execution. An actual model tool call then
+proved NetConverter discovery/authentication/capability in the selected runtime.
+The first call returned generic `upstream_tool_unavailable`: the official
+Terminal's license state was separate in this isolated home. Official acceptance
+of the same v1.0 license used the owner's existing delegation; the next call
+returned installed/discovered/authenticated/capable true. This was not a hosted
+file upload or an approval transfer between installations.
+
+Use typed tool evidence: nine allowed reads and 75 qualified operation/path
+combinations, seven unqualified. The model's prose miscounted lists; it is not
+used to establish those totals. Native OpenClaw probes verify guard 8, pyATS 35,
+Batfish 8 and GAIT 23 tools. GAIT is initialized in the selected workspace with a
+real audit branch/turn. pyATS reports no active dynamic inventory; listing devices
+correctly refuses rather than borrowing another runtime's testbed.
+
+A subsequent actual Claude-driven turn read the empty dynamic inventory, called
+Batfish validation for all three snapshots and recorded/logged GAIT. All three
+returned complete parsing, with behavior explicitly unestablished by parsing.
+Its narrative mislabeled the reverse candidate as a peer in one sentence; the
+stored source/candidate hashes and typed evidence establish the actual inputs.
+CML native
+HTTPS and MCP startup currently time out; the owner has been notified. No target
+was created, no candidate applied, and the licensed Junos image is still absent.
+No raw SSH or replacement approval issuer was used.
+
+Validation: 67 feature tests, 273 setup tests run (27 optional skips), four runtime
+recovery tests and six actual dynamic-runtime tests pass. Catalog coverage and
+the owned guard's dependency check pass. The broad dependency scan reports the
+separate local HumanRail checkout's unbounded MCP requirement; record the limit.
+Source advances to 1.15.2; extension remains 1.5.0. Bound installed source and the
+original journal are preserved, with separate private maintenance receipts.
+Loop 3 remains open for actual appliance acceptance; T034–T036 remain unchecked.
+
 ## Retained evidence and resources
 
 Full service responses, original/returned candidates, request/grant/job ledgers,

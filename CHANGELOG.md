@@ -2,6 +2,17 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.2] - 2026-10-31 (source milestone; unpublished)
+
+Minor fixes discovered in the owner-approved real Spec162 rehearsal installation:
+
+- Install the NetConverter guard's Python environment under the selected runtime root so native dependency observation accepts it without weakening source ownership or symlink checks.
+- Make the native pyATS installer and observer use the same qualified revision and required source files as the staged runtime installer. This removes a stale pin that installed a server without dynamic-testbed support.
+- Verify an actual OpenClaw/Claude turn, agent-driven NetConverter authentication/capability discovery, native MCP discovery and the repaired dynamic pyATS runtime. Keep the original partial installation report and separate maintenance evidence.
+- Record remaining CML connectivity, image, protected application and live behavior gaps; no 100% acceptance or deployment claim.
+
+Spec [162-netconverterai](specs/162-netconverterai/spec.md), including a correction to the Spec160 native installation path. See [milestone notes](docs/releases/1.15.2.md). Extension source remains **1.5.0**; no extension code changed in this patch.
+
 ## [1.15.1] - 2026-10-31 (source milestone; unpublished)
 
 Minor fixes discovered using the real Spec162 account:

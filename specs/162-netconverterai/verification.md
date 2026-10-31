@@ -4,7 +4,7 @@
 
 Source implementation and five original review/fix/test iterations are complete.
 Three additional live qualification loops are recorded in [live-iterations.md](live-iterations.md).
-Source is now **1.15.1**, extension source remains **1.5.0**; neither is published
+Source is now **1.15.2**, extension source remains **1.5.0**; neither is published
 by this session. **41 of 44 tasks remain checked**: T034–T036 are partly advanced,
 not complete. Actual Terminal 0.6.0/account discovery and two separately approved
 synthetic conversions succeeded. Both returned **needs review**. No live device
@@ -28,7 +28,8 @@ application, Junos appliance acceptance or forwarding pass is claimed.
 | Account and licensed client | Official 0.6.0 wheel verified; delegated license acceptance succeeded; authenticated strict hosted/Terminal discovery | Native installer/desktop/platform acceptance remains separate |
 | Exact synthetic transfer approval | Operator approved each file in the native CLI; two one-use submissions completed and six downloads verified | Further submissions always require their own review |
 | Compatible lab host/image | CML 2.10 authenticated; 12 images including IOS-XE 17.18.2; evaluation license active; no Junos image | Junos image for forward appliance acceptance, capacity and isolated management/bootstrap |
-| Protected artifact apply route | Source/control fixtures implemented; no live local Intent/Gateway listener found | Real selected runtime, exact endpoint designation, genuine baseline/rollback and API APPLY transition |
+| Real selected runtime | Owner completed native plan review and secret entry; OpenClaw 2026.7.1-2 gateway/HUD run; actual Claude response and NetConverter discovery succeed after scoped repair | Original setup remains partial; CML discovery and full native acceptance remain open |
+| Protected artifact apply route | Source/control fixtures implemented; real isolated runtime now exists | Exact endpoint designation, genuine baseline/rollback and API APPLY transition, with actual target verification |
 | Real vendor-target migration rehearsal | Not run | Boot, authorized import/readback and actual positive/negative assertions |
 | Windows/WSL and harness-specific acceptance | Not run | Actual isolated platform observations; no inference from Mac/fixtures |
 
@@ -56,6 +57,60 @@ found eight x86 cores, 4.10 GB RAM total and 2.02 GB free; two default IOL route
 need 2 GiB before overhead. Existing labs/devices and the reported orphan remain
 untouched. No image is inferred from a node definition. Native CUA still fails
 its pipe startup. See the additional loop record for exact provenance and limits.
+
+## Real minimal NetClaw and native installer fixes
+
+The owner completed the actual native plan confirmation and three private secret
+prompts. The installer created an isolated OpenClaw 2026.7.1-2 home with five MCP
+components, ten skills, no communication channels, dynamic CML inventory policy
+and testing posture. Gateway/HUD identity verification passed. Its original
+journal ended `configuration_required`: NetConverter failed dependency observation,
+and pyATS/CML discovery did not pass. That record remains unchanged.
+
+- NetConverter's source-tree venv interpreter is a symlink. The dependency
+  observer correctly rejects source symlinks; the installer now places this venv
+  under the selected runtime root. A new regression failed before the fix and
+  passed afterward. Scoped maintenance created that environment and added only
+  the missing guard registration; existing configuration was checked unchanged.
+- The native pyATS adapter had an independent old revision (`f11b02f…`) while
+  the staged installer used the qualified dynamic revision (`4a3c1e3…`). It
+  installed a server requiring a static file, so dynamic startup exited. A new
+  regression reproduced the wrong checkout. Native installation and observation
+  now use the staged installer's revision and complete required-file contract.
+  The rehearsal's previous runtime is retained; its repaired generation discovers
+  35 tools and passes six actual dynamic-runtime tests with synthetic inventories.
+- The owner explicitly selected the repository's Anthropic key after a bad paste.
+  Only this new claw's provider setting changed; a private backup and hashes were
+  retained. Models API authentication returned HTTP 200, and an actual gateway
+  turn using Claude Sonnet 4.6 returned `SPEC162_PROVIDER_OK`.
+- A real agent invoked the guard after the official Terminal's same v1.0 license
+  was accepted in this separate home under the owner's earlier delegation.
+  Typed MCP evidence reports installed/discovered/authenticated/capable true,
+  nine reads, 75 qualified combinations and seven unqualified combinations.
+  The initial generic unavailable response was a license-state issue, not proof
+  of an upstream network outage. Narrative count errors are not used as evidence.
+- Native discovery verifies NetConverter 8, pyATS 35, Batfish 8 and GAIT 23 tools.
+  GAIT was initialized in the selected workspace and records actual local turns.
+  Dynamic inventory reports `active: none`; device listing correctly refuses
+  until an inventory is explicitly activated. No device access is inferred.
+- A subsequent real Claude-driven turn calls pyATS, validates all three Batfish
+  snapshots and records/logs GAIT. All three return PASS/complete parsing with
+  `behavioral_equivalence: not_established_by_parsing`. The reverse target is the
+  actual downloaded IOS-XE candidate; one narrative sentence mislabeled it as a
+  peer. The private snapshot manifest and typed tool evidence remain authoritative.
+  CML currently times out, including a native HTTPS recheck. Existing lab resources
+  remain untouched. No candidate has been applied to an appliance.
+
+The bound installation source and original setup journal were not rewritten to
+claim a fresh installer pass. Separate maintenance receipts record runtime
+replacement, additive registration, policy append/backups and source-binding
+verification. Desktop CUA remains unavailable. T034–T036 therefore stay open.
+
+Regression evidence: 67 NetConverter tests (31.147s); 273 setup tests run
+(40.239s, 27 optional skips); four staged-runtime recovery tests (0.04s); six
+actual dynamic-runtime tests (15.700s). Catalog coverage and the owned guard's
+dependency check pass. A broad dependency scan flags an unrelated local HumanRail
+checkout's unbounded MCP requirement; it is not silently classified as passing.
 
 ## Actual local Batfish cross-composition
 
