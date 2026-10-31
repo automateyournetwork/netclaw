@@ -13926,7 +13926,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }
@@ -13945,7 +13945,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }
@@ -13964,7 +13964,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }
@@ -13983,7 +13983,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }
@@ -14002,7 +14002,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }
@@ -14021,7 +14021,7 @@ export const COMPONENT_SETTINGS = {
       "input": "user",
       "provenance": [
         {
-          "source": "mcp-servers/convergence-read-mcp/client.py",
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
           "checkedAt": "2026-10-31",
           "note": "Fixed server-side connector configuration; required when enabled."
         }

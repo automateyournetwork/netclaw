@@ -13,6 +13,14 @@ const output=await build({stdin:{contents:`import React from 'react';import {cre
 }]});
 const settle=()=>new Promise(resolve=>setTimeout(resolve,25));
 
+async function until(predicate) {
+  const deadline=Date.now()+3000;
+  while(!predicate()) {
+    if(Date.now()>deadline)assert.fail('Pal fixture did not become ready');
+    await new Promise(resolve=>setTimeout(resolve,5));
+  }
+}
+
 test('avatar suspends offscreen, recovers context loss and releases render resources',async t=>{
   const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true});
   t.after(()=>dom.window.close());const w=dom.window;
@@ -26,7 +34,7 @@ test('avatar suspends offscreen, recovers context loss and releases render resou
     domElement=w.document.createElement('canvas');
     setPixelRatio(){}setSize(){}render(){renders++;}dispose(){disposed++;}forceContextLoss(){lost++;}
   };
-  w.eval(output.outputFiles[0].text);w.showAvatar({avatar:'john'});await settle();
+  w.eval(output.outputFiles[0].text);w.showAvatar({avatar:'john'});await until(()=>w.loadedAvatars.length===1);
   assert.deepEqual([...w.loadedAvatars],['/pal/john.glb']);frame(100);assert.equal(renders,1);
   observe([{isIntersecting:false}]);assert.equal(frames.size,0);
   observe([{isIntersecting:true}]);frame(200);assert.equal(renders,2);

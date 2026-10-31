@@ -60,7 +60,7 @@ configuration, authentication, transport and message delivery retain separate re
 
 ## Convergence flow evidence
 
-Optional `convergence-read-mcp`: `convergence_flow_summary` and `convergence_flow_evidence`. Fixed site/exporters, private viewer key and explicit enablement; see [connection guide](docs/CONVERGENCE.md). No collection, case mutation or automated investigation.
+Optional `convergence-read-mcp`: `convergence_flow_summary` and `convergence_flow_evidence`. Fixed site/exporters, private viewer key and explicit enablement; see [connection guide](docs/CONVERGENCE.md). The OpenClaw `convergence` member supplies evidence to the Border for authorized correlation. No collection, case mutation or automated investigation.
 
 ## Detailed Per-Integration Notes
 

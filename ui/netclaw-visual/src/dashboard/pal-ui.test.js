@@ -7,6 +7,14 @@ const built=await build({stdin:{contents:`import React from 'react';import {crea
 }]});
 const js=built.outputFiles[0].text;
 const settle=()=>new Promise(resolve=>setTimeout(resolve,35));
+
+async function until(predicate) {
+  const deadline=Date.now()+3000;
+  while(!predicate()) {
+    if(Date.now()>deadline)assert.fail('Pal fixture did not become ready');
+    await new Promise(resolve=>setTimeout(resolve,5));
+  }
+}
 async function fixture(t){
   const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true});
   const window=dom.window,calls=[];window.sent=[];
@@ -19,7 +27,8 @@ async function fixture(t){
       url.endsWith('/speech/call_1')?{event_type:'conversation.echo',properties:{text:'Private local answer'}}:{};
     return {ok:true,json:async()=>result};
   };
-  window.eval(js);await settle();t.after(()=>{window.closePal();dom.window.close();});
+  t.after(()=>{window.closePal?.();dom.window.close();});
+  window.eval(js);await until(()=>button(window.document,'Start two-minute call')?.disabled===false);
   return {window,document:window.document,calls};
 }
 const button=(document,label)=>[...document.querySelectorAll('button')].find(b=>b.textContent===label);
@@ -36,7 +45,7 @@ test('opening Pal does not create a call; local icon selection never uploads',as
 });
 test('call camera is disabled, automatic results exclude answers, speech requires click and navigation ends',async t=>{
   const {window,document,calls}=await fixture(t);
-  button(document,'Start two-minute call').click();await settle();
+  button(document,'Start two-minute call').click();await until(()=>window.dailyOptions && window.dailyHandlers?.['app-message']);
   assert.equal(window.dailyOptions.videoSource,false);assert.equal(window.dailyOptions.startVideoOff,true);
   await window.dailyHandlers['app-message']({fromId:'tavus',data:{event_type:'conversation.tool_call'}});await settle();
   assert.match(document.querySelector('.pal-answer').textContent,/Private local answer/);

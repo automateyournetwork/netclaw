@@ -22127,7 +22127,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -22146,7 +22146,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -22165,7 +22165,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -22184,7 +22184,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -22203,7 +22203,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -22222,7 +22222,7 @@
           "input": "user",
           "provenance": [
             {
-              "source": "mcp-servers/convergence-read-mcp/client.py",
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
               "checkedAt": "2026-10-31",
               "note": "Fixed server-side connector configuration; required when enabled."
             }
@@ -28881,7 +28881,7 @@
       "title": "convergence-observations",
       "description": "Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.",
       "path": "workspace/skills/convergence-observations/SKILL.md",
-      "sha256": "b332efb4ede8b82bc67fbfa98d58a9bea487d12b1c7e4e8508908abe8224e4c2",
+      "sha256": "b6d95cd9aff209bc2d6ef2af6918a324aef04aaa401bb283902f9074b493eac6",
       "components": [
         "convergence-read"
       ],
@@ -29222,6 +29222,22 @@
         "hermes"
       ],
       "qualification": "Spec149 protected runtime closure: subnet only; each new installation still needs observed verification."
+    },
+    {
+      "id": "convergence",
+      "components": [
+        "convergence-read"
+      ],
+      "skills": [
+        "convergence-observations"
+      ],
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "harnesses": [
+        "openclaw"
+      ],
+      "qualification": "Spec164 source integration with bounded evidence and member-local configuration. Live cross-source interpretation and protected Hermes execution remain unqualified."
     },
     {
       "id": "cml",

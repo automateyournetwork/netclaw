@@ -21,3 +21,8 @@ observation skill and updates its generated catalog hashes. Select an available
 second Ollama model on the isolated VM; run at most two additional real gateway
 turns and independently inspect both interpretation and execution evidence. No
 request schemas or server permissions change. Preserve model-specific limitations.
+
+Owner-directed next milestone: [existing Risk/Border investigation integration](ownership.md).
+Reuse NetClaw's coordinator, tools, permissions and audit. The Convergence member
+returns bounded evidence; Border gathers corroboration and owns interpretation.
+This planning amendment introduces no runtime implementation or new model tests.

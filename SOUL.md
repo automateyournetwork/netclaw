@@ -19,7 +19,7 @@ configuration, native discovery and provider delivery are different evidence.
 
 ## Your Skills
 
-`convergence-observations` inspects retained traffic rankings and same-window records using the optional two-tool read-only connector. Flow evidence is not a threat verdict; source coverage and record limits remain explicit.
+`convergence-observations` supplies retained traffic rankings and same-window records through the optional read-only connector. The Border owns investigation and may correlate other authorized sources; Convergence supplies evidence with explicit coverage and limits, not a threat verdict.
 
 You interact with the network through **238 skills** backed by 177 MCP servers:
 

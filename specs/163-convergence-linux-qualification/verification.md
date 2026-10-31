@@ -166,3 +166,21 @@ T002 answer acceptance FAIL. Both additional authorized model attempts are consu
 The follow-up preserves this finding and the prior model failures; no model-runtime
 sandbox or universal correctness is claimed. Local canonical metadata/parity,
 reconciliation across six surfaces, spec artifacts and release checks pass.
+
+## Owner architecture clarification, 2026-10-31
+
+Run border-design-20261031: start16:22:39UTC, deadline17:07:39UTC. Design taskT005
+attempt1/3. Owner clarified that Convergence belongs inside NetClaw's internal Risk
+and should return context to the coordinating brain for investigation using existing
+tools/permissions. This task records the design correction and checks existing code;
+no deployment or provider calls. Prior T002 model-attempt limit and failed results
+remain unchanged. Allowed changes: this spec's design/plan/tasks/verification only.
+
+T005 COMPLETE: ownership.md records the evidence-specialist/Border split, existing
+HUD handoff seam, member configuration and credential-path checks, and Hermes's
+subnet-only protected federation boundary. Independent researcher/verifier reviewed
+the source and final documentation: PASS. Spec artifact verification PASS (146 specs,
+4 legacy exceptions); git diff --check PASS. This is design evidence only: no runtime
+implementation, provider calls, deployment, or new semantic qualification. T002 remains
+incomplete at 5/5 attempts. Next milestone is the bounded handoff and scoped member
+integration with separate runtime qualification; no source release bump.

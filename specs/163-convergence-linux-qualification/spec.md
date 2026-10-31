@@ -39,3 +39,12 @@ Authorized continuation also clarifies the existing observation skill: a final
 claim-to-record audit must remove unsupported request/reply, application and sampling
 interpretations. Test representative natural requests with a second available model.
 Provider-specific passes are limited evidence, not a guarantee for every model.
+
+## Owner clarification: investigation ownership
+
+The owner clarified that Convergence should participate in NetClaw's internal Risk
+and return evidence context to the coordinating brain, which selects existing
+authorized investigation tools/members. See [ownership.md](ownership.md) for the
+role split, current extension points and next qualification target. Convergence's
+read-only retrieval boundary does not restrict the entire investigation to its two
+tools. Earlier flow-only model failures remain recorded and are not reclassified.
