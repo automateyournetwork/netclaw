@@ -122,3 +122,16 @@ SecretRef configurations on2026.10.9. Native `isToolAllowedByPolicyName` matcher
 accepted read/summary/evidence and rejected9 other tools. These native checks were
 recorded in tool output; temporary fixtures were cleaned and no persistent native
 check artifact was saved. They made no provider requests.
+
+Hosted follow-up T004 attempt3/3: exact e10b09d9 extension candidate failed one
+Hermes lifecycle fixture because its selected local port was already occupied.
+The same candidate suite passed at dde78b44; the only intervening diff is this
+verification document, with no extension/process/fixture changes. Inspect the fixture
+and rerun the failed hosted job once; do not weaken ownership checks or call a failed
+run passing. Other hosted checks continue. Evidence: fork Actions run41222533070.
+
+The failed candidate job's retry PASSED at e10b09d9 with no source or test changes;
+the observed port collision did not repeat. At17:06UTC37/39 hosted checks passed,
+with both retained-evidence architecture jobs still running. T004 source acceptance
+remains COMPLETE; hosted outcomes on the final documentation commit are recorded
+on PR6 rather than repeatedly changing source to record each CI status.
