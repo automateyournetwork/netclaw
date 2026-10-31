@@ -9,4 +9,4 @@
 - [x] T007 Guidance attempt3 for S3 attempt2 failures (check Risk member list before "no member"; no inference from absent records; provenance always stated).
 - [x] T008 Continued VM qualification: target met (3 consecutive passes per scenario); tally in verification.md.
 - [x] T010 Router refusal names routable specialty capabilities (from R15).
-- [ ] T009 Commit, fork push and upstream PR to automateyournetwork/netclaw main.
+- [x] T009 Commit, fork push and upstream PR #312 to automateyournetwork/netclaw main.

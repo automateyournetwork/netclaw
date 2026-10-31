@@ -328,3 +328,12 @@ contract (exit 3, uncached exit 1, quarantined member). tests/n2n 637 passed/5
 skipped/1 inherited; ruff F/E9: only the pre-existing posture.py unused import.
 Release 1.16.0: VERSION, CHANGELOG and docs/releases/1.16.0.md cover specs 164 and
 165; `scripts/prepare-release.py --check` PASS, test-prepare-release OK.
+
+T009: commits f0502606, 2c46f724, 13abf611 pushed to fork branch
+165-convergence-confinement; upstream PR
+[automateyournetwork/netclaw#312](https://github.com/automateyournetwork/netclaw/pull/312)
+opened against main (upstream PR311 merged earlier). Final local checks: release
+metadata 1.16.0 PASS, spec artifacts148 PASS, catalog parity/metadata PASS,
+reconcile-mcp all surfaces PASS except environment-dependent `startup` (missing
+fastmcp_tasks locally; identical at 2d930087, where hosted CI passed). Maintainer
+scope review requested on the PR. Hosted CI results are reported on the PR.
