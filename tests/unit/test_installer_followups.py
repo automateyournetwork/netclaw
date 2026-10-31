@@ -43,7 +43,7 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 14
+    assert len(launch.CONTRACT) == 15
     for component, rule in launch.CONTRACT.items():
         if rule.get('access') == 'hud-private':
             assert component == 'hermes-hud'
@@ -113,17 +113,24 @@ def test_legacy_skill_matches_only_owned_invocations():
 
 def test_generated_entries_carry_runtime_location_without_credentials(tmp_path,monkeypatch):
     monkeypatch.delenv('BGP_DAEMON_API',raising=False)
+    convergence_defaults = json.loads((ROOT / 'config/mcp-env-defaults.json').read_text())['servers']['convergence-read-mcp']
+    for key in convergence_defaults:
+        monkeypatch.delenv(key, raising=False)
     out=tmp_path/'selected.json'
     result=subprocess.run([sys.executable,str(ROOT/'scripts/install-mcp-config.py'), '--repo',str(ROOT),
         '--runtime-root',str(tmp_path/'runtimes'),'--components',' '.join(launch.CONTRACT), '--output',str(out)],
         capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     entries=json.loads(out.read_text())['mcpServers']
-    assert len(entries)==14
-    for entry in entries.values():
+    assert len(entries)==15
+    for name, entry in entries.items():
         assert Path(entry['command']).is_absolute()
         assert entry['env']['NETCLAW_RUNTIME_ROOT']==str(tmp_path/'runtimes')
-        assert set(entry['env']) <= {'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV','BGP_DAEMON_API'}
+        allowed = {'NETCLAW_RUNTIME_ROOT','NETCLAW_RUNTIME_ENV','BGP_DAEMON_API'}
+        if name == 'convergence-read-mcp':
+            allowed |= set(convergence_defaults)
+            assert {key: entry['env'][key] for key in convergence_defaults} == convergence_defaults
+        assert set(entry['env']) <= allowed
         if 'BGP_DAEMON_API' in entry['env']:
             assert entry['env']['BGP_DAEMON_API']=='http://127.0.0.1:8179'
 

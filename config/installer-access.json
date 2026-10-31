@@ -204,6 +204,17 @@
       "expected_tools": [
         "n2n_status"
       ]
+    },
+    "convergence-read": {
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "script": "mcp-servers/convergence-read-mcp/server.py",
+      "required_env": [],
+      "expected_tools": [
+        "convergence_flow_summary",
+        "convergence_flow_evidence"
+      ]
     }
   }
 }

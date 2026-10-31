@@ -1,0 +1,61 @@
+name: Convergence read integration
+on:
+  pull_request:
+    paths:
+      - 'mcp-servers/convergence-read-mcp/**'
+      - 'tests/convergence-read*/**'
+      - 'ui/netclaw-visual/**'
+      - 'scripts/component-launch.py'
+      - 'scripts/mcp-call.py'
+      - 'scripts/install-mcp-config.py'
+      - 'scripts/lib/install-steps.sh'
+      - 'config/installer-access.json'
+      - 'config/mcp-env-defaults.json'
+      - 'config/python-components/convergence-read.txt'
+      - '.github/workflows/convergence-read.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  retained-evidence:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+        with:
+          repository: byrn-baker/netclaw-convergence
+          ref: f54bafca82f339d8573c55c53795fa05bd9dd843
+          path: external-service
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.19.0'
+      - name: Isolated connector and browser dependencies
+        run: |
+          python3 -m venv "$RUNNER_TEMP/connector-test"
+          "$RUNNER_TEMP/connector-test/bin/pip" install -r mcp-servers/convergence-read-mcp/requirements.txt
+          npm --prefix ui/netclaw-visual ci
+          npm install --prefix "$RUNNER_TEMP/browser" --no-package-lock playwright@1.58.2
+          "$RUNNER_TEMP/browser/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Real demo and host flow evidence, native projection, MCP and browser
+        env:
+          CONVERGENCE_PLAYWRIGHT_MODULE: ${{ runner.temp }}/browser/node_modules/playwright/index.mjs
+        run: |
+          "$RUNNER_TEMP/connector-test/bin/python" tests/convergence-read-integration/run-tests.py \
+            --service-checkout external-service --evidence-dir "$RUNNER_TEMP/convergence-read-evidence"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: convergence-read-${{ matrix.os }}
+          path: |
+            ${{ runner.temp }}/convergence-read-evidence/convergence-*.png
+            ${{ runner.temp }}/convergence-read-evidence/convergence-*.json
+            ${{ runner.temp }}/convergence-read-evidence/*-resources.json
+          if-no-files-found: warn

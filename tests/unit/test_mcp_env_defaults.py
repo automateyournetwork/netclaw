@@ -26,7 +26,7 @@ def test_every_optional_default_and_override_resolves_without_shell_evaluation()
     from mcp_environment import defaults_for, native_entry
     servers = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
     catalog = json.loads((ROOT / 'config/mcp-env-defaults.json').read_text())['servers']
-    assert len(catalog) == 64
+    assert len(catalog) == 65
     for name, defaults in catalog.items():
         entry = servers[name]
         assert defaults_for(name) == defaults
