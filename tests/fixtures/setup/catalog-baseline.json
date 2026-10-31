@@ -659,6 +659,12 @@
       "Platform Services",
       "HumanRail",
       "Human-in-the-loop escalation and approvals"
+    ],
+    [
+      "convergence-read",
+      "Observability & Telemetry",
+      "Convergence flow evidence",
+      "Optional retained flow rankings and same-window evidence (2 read-only tools)"
     ]
   ],
   "profiles": {
@@ -799,7 +805,8 @@
       "zabbix",
       "k8s",
       "elastic",
-      "anta"
+      "anta",
+      "convergence-read"
     ],
     "full": [
       "hermes-hud",
@@ -911,7 +918,8 @@
       "rag-mcp",
       "ollama",
       "jev",
-      "humanrail"
+      "humanrail",
+      "convergence-read"
     ]
   },
   "skillIds": [
@@ -965,6 +973,7 @@
     "cml-packet-capture",
     "cml-topology-builder",
     "comfyui-topology-viz",
+    "convergence-observations",
     "datadog-apm",
     "datadog-incidents",
     "datadog-logs",

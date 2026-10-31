@@ -2,6 +2,13 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.0] - 2026-10-31
+
+- Add an optional, disabled-by-default Convergence reader and HUD for retained flow summaries and same-window evidence.
+- Include isolated Linux installation, viewer-scoped access, coverage labels and disposable demo/host integration checks.
+
+Spec [162-convergence-read](specs/162-convergence-read/spec.md). See [release notes](docs/releases/1.15.0.md).
+
 ## [1.14.0] - 2026-10-30
 
 - Add static/dynamic testbed choice and source selection to VS Code, new-plan terminal setup and `setup.sh`.

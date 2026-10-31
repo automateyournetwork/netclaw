@@ -1,3 +1,4 @@
+import { convergenceEnabled, createConvergenceReader, mountConvergence } from './src/hud-server/convergence.js';
 import { managementDiscovery } from './src/hud-server/management.js';
 import { ENV_MAP } from './env-map.js';
 import { mountMcpConfiguration } from './mcp-configuration.js';
@@ -134,7 +135,7 @@ app.get('/api/runtime', async (_req, res) => {
   let readiness = { ready: false, code: 'runtime_stopped' };
   if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
   else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };
-  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
+  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { convergence: convergenceEnabled({ ...parseEnvFile(), ...process.env }), attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
 });
 app.get('/api/hud/management', async (req, res) => {
   try { hudBindings.read(cookieFrom(req)); } catch { return res.status(401).json({error:'An owned HUD session is required.'}); }
@@ -159,6 +160,7 @@ if (hermesRuntime) {
 }
 app.use(['/api/sessions','/api/session'], (_req,res) => res.status(404).json({error:'Use owned conversation history and request events.'}));
 mountLocalPal(app, { bindings: hudBindings });
+mountConvergence(app, { bindings: hudBindings, allowedRequest: allowedLocalRequest, getEnv: () => ({ ...parseEnvFile(), ...process.env }), read: createConvergenceReader(ROOT, () => ({ ...parseEnvFile(), ...process.env })) });
 mountAssessmentRoutes(app, { bindings: hudBindings, audit: assessmentAudit(ROOT), readAssessment: createJevReader(ROOT, () => ({ ...parseEnvFile(), ...process.env }), installation.home) });
 registerGenieRoutes(app, { getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 registerObservabilityRoutes(app, { getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
@@ -226,6 +228,7 @@ const INTEGRATION_CATALOG = [
   { id: 'catc', name: 'Catalyst Center (read-only)', category: 'Device Automation', prefixes: ['catc_'], color: '#00bceb', transport: 'stdio', toolEstimate: 10, description: 'All 514 read-only Catalyst Center operations behind 8 grouped dispatchers plus find/describe — 1,821-token manifest where inlining every tool would cost 64,420. Adopts Cisco official catalogue (Apache-2.0), not its runtime. An empty inventory is a statement about the controller, never about the network.' },
   { id: 'document', name: 'Document Generation', category: 'Platform Services', prefixes: ['docx_', 'xlsx_', 'pptx_', 'pdf_', 'list_documents'], color: '#4c956c', transport: 'stdio', toolEstimate: 6, description: 'Change-record .docx, audit .xlsx, exec .pptx and PDF form filling from real NetClaw data. No credentials, writes files only. Per-element provenance at a chokepoint — a missing value renders as NOT AVAILABLE, never as a blank.' },
   { id: 'globalping', name: 'Globalping', category: 'Observability', prefixes: ['globalping-'], color: '#00b4d8', transport: 'http', toolEstimate: 12, description: 'Outside-in measurement from ~4,800 probes across ~1,390 ASNs — ping, traceroute, DNS, MTR and HTTP toward a public target. The only vantage point NetClaw has outside its own administrative domain. Public endpoints only; "no probes matched" is not "the service is down".' },
+  { id: 'convergence-read', name: 'Convergence', category: 'Observability', prefixes: ['convergence-observations'], color: '#2e7d32', transport: 'stdio', toolEstimate: 2, description: 'Optional retained flow rankings and same-window evidence from a separately operated Convergence service; read-only and site scoped.' },
   { id: 'topolograph', name: 'Topolograph', category: 'Observability', prefixes: ['topolograph-'], color: '#2e7d32', transport: 'http', toolEstimate: 27, description: 'OSPF/IS-IS link-state and BGP topology analysis over a stored Topolograph snapshot — shortest/backup path, per-area nodes/edges with role flags, MPLS-TE/CSPF feasibility, topology-change event timeline, edge/node failure simulation, plus BGP speakers/sessions/route search, VRF/VPN inventory, and BGP-to-IGP graph binding. Sees the topology as a graph, not one device\'s routing table. Remote HTTP against the operator\'s own instance, read-only.' },
   { id: 'suzieq', name: 'SuzieQ', category: 'Observability', prefixes: ['suzieq-'], color: '#a8dadc', transport: 'stdio', toolEstimate: 5, description: 'Network state queries, assertions, summaries, and path tracing.' },
   { id: 'aws', name: 'AWS', category: 'Cloud', prefixes: ['aws-'], color: '#f77f00', transport: 'http', toolEstimate: 55, description: 'Networking, monitoring, security, cost, and diagram generation in AWS.' },

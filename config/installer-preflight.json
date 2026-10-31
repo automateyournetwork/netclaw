@@ -159,6 +159,12 @@
         "git"
       ],
       "reason": "Bridge Python 3.12; separate companion installs Python 3.14. HUD requires Node 24.19+."
+    },
+    "convergence-read": {
+      "python_min": [
+        3,
+        12
+      ]
     }
   },
   "command_remedies": {
