@@ -4051,3 +4051,10 @@ component_install_hermes_hud() {
     node "$NETCLAW_DIR/scripts/hud-launch.mjs" select hermes "$RUNTIME_HOME" || return 1
     log_info "Hermes HUD installed. Start it with: netclaw hud"
 }
+
+# Spec162: optional external retained-flow reader, isolated by pip-helper.
+component_install_convergence_read() {
+    log_step "Installing Convergence read-only connector..."
+    netclaw_pip_install -r "$NETCLAW_DIR/mcp-servers/convergence-read-mcp/requirements.txt" || return 1
+    log_info "Disabled by default. Configure a site-scoped viewer key using docs/CONVERGENCE.md."
+}

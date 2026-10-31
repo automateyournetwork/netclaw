@@ -915,6 +915,20 @@ export const ENV_MAP = {
       "workspace/skills/worldlabs-topology-viz/"
     ],
     "notes": "Only needed for the generate step (spends real World Labs credits, ~5 minutes per world) — the free preview mode needs no credential at all. Requires a funded World Labs account (platform.worldlabs.ai/billing). generate_world itself refuses to run without an explicit user_confirmed=true argument, in addition to the conversational confirmation the skill also requires."
+  },
+  "convergence-read": {
+    "env": [
+      "CONVERGENCE_ENABLED",
+      "CONVERGENCE_API_URL",
+      "CONVERGENCE_API_TOKEN",
+      "CONVERGENCE_SITE",
+      "CONVERGENCE_EXPORTERS",
+      "CONVERGENCE_ALLOW_LOOPBACK_HTTP"
+    ],
+    "files": [
+      "mcp-servers/convergence-read-mcp/server.py"
+    ],
+    "notes": "Optional read-only retained-flow connector."
   }
 };
 export const COMPONENT_ALIASES = {
@@ -1172,6 +1186,9 @@ export const COMPONENT_ALIASES = {
   ],
   "worldlabs-viz": [
     "worldlabs-marble"
+  ],
+  "convergence-read": [
+    "convergence-read"
   ]
 };
 export const COMPONENT_SETTINGS = {
@@ -13891,6 +13908,122 @@ export const COMPONENT_SETTINGS = {
           "source": "ui/netclaw-visual/env-map.js",
           "checkedAt": "2026-10-17",
           "note": "Existing card field inventory; requirement and classification reconciled into this catalog."
+        }
+      ]
+    }
+  ],
+  "convergence-read": [
+    {
+      "key": "CONVERGENCE_ENABLED",
+      "label": "Enabled",
+      "help": "Explicitly enable this optional connector; default false.",
+      "classification": "public",
+      "valueType": "boolean",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
+        }
+      ]
+    },
+    {
+      "key": "CONVERGENCE_API_URL",
+      "label": "Api Url",
+      "help": "Verified HTTPS origin, or explicit literal loopback HTTP for a local trial.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
+        }
+      ]
+    },
+    {
+      "key": "CONVERGENCE_API_TOKEN",
+      "label": "Api Token",
+      "help": "Private API viewer credential restricted to this site.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
+        }
+      ]
+    },
+    {
+      "key": "CONVERGENCE_SITE",
+      "label": "Site",
+      "help": "One fixed site identifier.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
+        }
+      ]
+    },
+    {
+      "key": "CONVERGENCE_EXPORTERS",
+      "label": "Exporters",
+      "help": "Comma-separated allowed exporter IP addresses.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
+        }
+      ]
+    },
+    {
+      "key": "CONVERGENCE_ALLOW_LOOPBACK_HTTP",
+      "label": "Allow Loopback Http",
+      "help": "Explicit local-development HTTP opt-in; default false.",
+      "classification": "public",
+      "valueType": "boolean",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "mcp-servers/convergence-read-mcp/settings.py",
+          "checkedAt": "2026-10-31",
+          "note": "Fixed server-side connector configuration; required when enabled."
         }
       ]
     }

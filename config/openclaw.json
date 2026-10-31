@@ -1469,6 +1469,25 @@
         "tts-mcp"
       ],
       "transport": "stdio"
+    },
+    "convergence-read-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "convergence-read",
+        "--server",
+        "convergence-read-mcp"
+      ],
+      "env": {
+        "CONVERGENCE_ENABLED": "${CONVERGENCE_ENABLED}",
+        "CONVERGENCE_API_URL": "${CONVERGENCE_API_URL}",
+        "CONVERGENCE_API_TOKEN": "${CONVERGENCE_API_TOKEN}",
+        "CONVERGENCE_SITE": "${CONVERGENCE_SITE}",
+        "CONVERGENCE_EXPORTERS": "${CONVERGENCE_EXPORTERS}",
+        "CONVERGENCE_ALLOW_LOOPBACK_HTTP": "${CONVERGENCE_ALLOW_LOOPBACK_HTTP}"
+      },
+      "transport": "stdio"
     }
   }
 }

@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "dfaab879869e5229466c626f3c25c4e21493a75829fd0bb46ecc1547b61cf5e6",
+  "sourceSha256": "0b738768b376d2b7f98bb508096f8f04a275230a088462f38007f4629a79a7ed",
   "components": [
     {
       "id": "hermes-hud",
@@ -1004,6 +1004,15 @@
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_humanrail"
+    },
+    {
+      "id": "convergence-read",
+      "function": "component_install_convergence_read",
+      "sha256": "364a2f851772d8538cdfbf8c5895628cfec7d93ef5c919a5cfe82dd5381fa6e1",
+      "adapter": "isolated-shell",
+      "reason": "Install pinned connector dependencies in its own runtime; no external service changes or credentials used during install.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_convergence_read"
     }
   ]
 }

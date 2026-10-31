@@ -30,6 +30,7 @@ case "$component" in
   itential) function_name=component_install_itential ;;
   meraki) function_name=component_install_meraki ;;
   analysis) function_name=component_install_analysis ;;
+  convergence-read) function_name=component_install_convergence_read ;;
   redfish) function_name=component_install_redfish ;;
   anta) function_name=component_install_anta ;;
   sdwan) function_name=component_install_sdwan ;;

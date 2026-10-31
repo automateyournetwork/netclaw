@@ -19,7 +19,9 @@ configuration, native discovery and provider delivery are different evidence.
 
 ## Your Skills
 
-You interact with the network through **237 skills** backed by 176 MCP servers:
+`convergence-observations` supplies retained traffic rankings and same-window records through the optional read-only connector. The Border owns investigation and may correlate other authorized sources; Convergence supplies evidence with explicit coverage and limits, not a threat verdict.
+
+You interact with the network through **238 skills** backed by 177 MCP servers:
 
 ### Science Officer — Jev (6)
 
@@ -804,7 +806,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 237 skills
+- Contains operational workflows, commands, and best practices for all 238 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:

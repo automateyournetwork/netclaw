@@ -849,6 +849,47 @@
         "prepend_path": true
       },
       "timeout_seconds": 300
+    },
+    "convergence-read": {
+      "kind": "shell",
+      "command": [
+        "bash",
+        "tests/convergence-read/run-tests.sh"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/convergence-read",
+        "requirements": [
+          "mcp-servers/convergence-read-mcp/requirements.txt"
+        ],
+        "packages": [
+          "pytest==8.3.5"
+        ],
+        "required_imports": [
+          "fastmcp",
+          "httpx"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 300
+    },
+    "convergence-read-integration": {
+      "kind": "shell",
+      "command": [
+        "bash",
+        "tests/convergence-read-integration/run-tests.sh"
+      ],
+      "environment": {
+        "path": null,
+        "requirements": [],
+        "packages": [],
+        "required_imports": [],
+        "prepend_path": false
+      },
+      "ci": {
+        "include": false,
+        "reason": "Executed on native Linux amd64/arm64 by convergence-read.yml with a pinned disposable external Docker service and Chromium; not a mock contract or live production test."
+      },
+      "timeout_seconds": 1200
     }
   }
 }

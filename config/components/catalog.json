@@ -22083,6 +22083,193 @@
         "note": "Permissions depend on the selected tools and backend account. This entry is not a read-only guarantee; review tool behavior and access scope before use.",
         "source": "scripts/lib/install-steps.sh#component_install_humanrail"
       }
+    },
+    {
+      "id": "convergence-read",
+      "category": "Observability & Telemetry",
+      "title": "Convergence flow evidence",
+      "description": "Optional retained flow rankings and same-window evidence (2 read-only tools)",
+      "whenToChoose": "Inspect a separately operated Convergence archive; no collector or storage deployment.",
+      "order": 110,
+      "platforms": [],
+      "platformReason": "Linux CLI connector qualification is recorded in spec162. macOS/WSL2 IDE installation remains unqualified.",
+      "dependencies": [],
+      "prerequisites": [
+        "Python3.12+ and a separately operated compatible Convergence API with a site-scoped viewer key."
+      ],
+      "installer": {
+        "function": "component_install_convergence_read",
+        "mode": "scoped",
+        "effects": [
+          "runtime-home",
+          "owned-source",
+          "download"
+        ],
+        "reason": "Uses the fixed component function with owned source/runtime paths; execution requires the scoped bridge and postcondition checks."
+      },
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "skills": [
+        "convergence-observations"
+      ],
+      "settings": [
+        {
+          "key": "CONVERGENCE_ENABLED",
+          "label": "Enabled",
+          "help": "Explicitly enable this optional connector; default false.",
+          "classification": "public",
+          "valueType": "boolean",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        },
+        {
+          "key": "CONVERGENCE_API_URL",
+          "label": "Api Url",
+          "help": "Verified HTTPS origin, or explicit literal loopback HTTP for a local trial.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        },
+        {
+          "key": "CONVERGENCE_API_TOKEN",
+          "label": "Api Token",
+          "help": "Private API viewer credential restricted to this site.",
+          "classification": "secret",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        },
+        {
+          "key": "CONVERGENCE_SITE",
+          "label": "Site",
+          "help": "One fixed site identifier.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        },
+        {
+          "key": "CONVERGENCE_EXPORTERS",
+          "label": "Exporters",
+          "help": "Comma-separated allowed exporter IP addresses.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        },
+        {
+          "key": "CONVERGENCE_ALLOW_LOOPBACK_HTTP",
+          "label": "Allow Loopback Http",
+          "help": "Explicit local-development HTTP opt-in; default false.",
+          "classification": "public",
+          "valueType": "boolean",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/convergence-read-mcp/settings.py",
+              "checkedAt": "2026-10-31",
+              "note": "Fixed server-side connector configuration; required when enabled."
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "role": "upstream",
+          "target": "https://github.com/byrn-baker/netclaw-convergence/tree/f54bafca82f339d8573c55c53795fa05bd9dd843",
+          "unavailableReason": ""
+        },
+        {
+          "role": "netclaw",
+          "target": "docs/CONVERGENCE.md",
+          "unavailableReason": ""
+        },
+        {
+          "role": "vendor",
+          "target": "",
+          "unavailableReason": "Convergence is independently operated; use the pinned service guide."
+        }
+      ],
+      "verification": {
+        "adapter": "native-discovery",
+        "level": "discovery",
+        "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
+      },
+      "estimate": {
+        "schemas": 2,
+        "method": "documented",
+        "source": "mcp-servers/convergence-read-mcp/README.md",
+        "reason": "Exactly two declared read-only tools."
+      },
+      "provenance": [
+        {
+          "source": "specs/162-convergence-read/spec.md",
+          "checkedAt": "2026-10-31",
+          "note": "Approved focused integration and explicit platform boundary."
+        }
+      ],
+      "kind": "mcp-integration",
+      "access": {
+        "mode": "read-only",
+        "note": "Only two fixed GET endpoints; no mutations or arbitrary queries.",
+        "source": "mcp-servers/convergence-read-mcp/client.py"
+      }
     }
   ],
   "skills": [
@@ -28688,6 +28875,34 @@
         "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
         "source": "workspace/skills/zscaler-zpa/SKILL.md"
       }
+    },
+    {
+      "id": "convergence-observations",
+      "title": "convergence-observations",
+      "description": "Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.",
+      "path": "workspace/skills/convergence-observations/SKILL.md",
+      "sha256": "b6d95cd9aff209bc2d6ef2af6918a324aef04aaa401bb283902f9074b493eac6",
+      "components": [
+        "convergence-read"
+      ],
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "availability": "supported",
+      "reason": "Linux-first read-only procedure; backend and platform qualification are explicit.",
+      "links": [
+        {
+          "role": "skill",
+          "target": "workspace/skills/convergence-observations/SKILL.md",
+          "unavailableReason": ""
+        }
+      ],
+      "kind": "skill",
+      "access": {
+        "mode": "unknown",
+        "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
+        "source": "workspace/skills/convergence-observations/SKILL.md"
+      }
     }
   ],
   "profiles": [
@@ -28867,7 +29082,8 @@
         "zabbix",
         "k8s",
         "elastic",
-        "anta"
+        "anta",
+        "convergence-read"
       ]
     },
     {
@@ -28984,7 +29200,8 @@
         "rag-mcp",
         "ollama",
         "jev",
-        "humanrail"
+        "humanrail",
+        "convergence-read"
       ]
     }
   ],
@@ -29005,6 +29222,22 @@
         "hermes"
       ],
       "qualification": "Spec149 protected runtime closure: subnet only; each new installation still needs observed verification."
+    },
+    {
+      "id": "convergence",
+      "components": [
+        "convergence-read"
+      ],
+      "skills": [
+        "convergence-observations"
+      ],
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "harnesses": [
+        "openclaw"
+      ],
+      "qualification": "Spec164 source integration with bounded evidence and member-local configuration. Live cross-source interpretation and protected Hermes execution remain unqualified."
     },
     {
       "id": "cml",
@@ -31141,6 +31374,25 @@
       "files": [
         "mcp-servers/worldlabs-marble-mcp/",
         "workspace/skills/worldlabs-topology-viz/"
+      ]
+    },
+    {
+      "surface": "convergence-read",
+      "components": [
+        "convergence-read"
+      ],
+      "role": "install",
+      "reason": "Optional read-only retained-flow connector.",
+      "fieldKeys": [
+        "CONVERGENCE_ENABLED",
+        "CONVERGENCE_API_URL",
+        "CONVERGENCE_API_TOKEN",
+        "CONVERGENCE_SITE",
+        "CONVERGENCE_EXPORTERS",
+        "CONVERGENCE_ALLOW_LOOPBACK_HTTP"
+      ],
+      "files": [
+        "mcp-servers/convergence-read-mcp/server.py"
       ]
     }
   ],
