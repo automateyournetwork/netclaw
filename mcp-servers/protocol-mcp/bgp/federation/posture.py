@@ -23,11 +23,13 @@ _CONTROL_KIND = {"sandbox": "containment", "model-guard": "containment", "audit"
 
 
 def _on_demand_members(service) -> list:
-    """Spawnable on-demand members the Border would cold-start (spec 165): local
-    launch_cmd, on_demand, not owned by a durable service unit."""
+    """Spawnable on-demand members the Border would cold-start (spec 165): routable,
+    local launch_cmd, on_demand, not owned by a durable service unit."""
+    from .router import _ROUTABLE_STATES
     try:
         return [m["member_id"] for m in service.risk.list_members()
-                if m.get("launch_cmd") and m.get("on_demand") and m.get("managed_by") != "service"]
+                if m.get("state") in _ROUTABLE_STATES and m.get("launch_cmd")
+                and m.get("on_demand") and m.get("managed_by") != "service"]
     except Exception:   # no service / risk (tests, non-Border callers)
         return []
 

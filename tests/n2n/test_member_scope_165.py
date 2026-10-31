@@ -237,7 +237,7 @@ def test_pidns_probe_command_result_and_cache(monkeypatch):
     calls = []
     async def _run(cmd, timeout_s=12.0):
         calls.append((cmd, timeout_s))
-        return 1, "PermissionError: [Errno 13] Permission denied: '/proc/self/ns/pid'"
+        return 3, ""                                              # child: PermissionError
     monkeypatch.setattr(controls, "_run", _run)
     monkeypatch.setattr(controls.shutil, "which", lambda name: "/usr/bin/" + name)
     assert asyncio.run(controls.user_scope_pidns_readable()) is False
@@ -247,7 +247,8 @@ def test_pidns_probe_command_result_and_cache(monkeypatch):
     assert cmd[:6] == ["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet"]
     assert cmd[6:10] == ["-p", "PrivateTmp=yes", "-p", "ProtectSystem=strict"]
     assert cmd[10] == sys.executable
-    assert "/proc/self/ns/pid" in cmd[-1] and timeout > 0
+    assert "/proc/self/ns/pid" in cmd[-1] and "except PermissionError: sys.exit(3)" in cmd[-1]
+    assert timeout > 0
     controls.invalidate_cache()
     monkeypatch.setattr(controls, "_run", lambda cmd, timeout_s=12.0: asyncio.sleep(0, (0, "")))
     assert asyncio.run(controls.user_scope_pidns_readable()) is True
@@ -408,7 +409,7 @@ def test_root_without_system_and_operator_with_system_dispatch(monkeypatch, tmp_
 def test_pidns_probe_timeout_is_retried_not_cached(monkeypatch):
     # F1: a timeout/launch error is not a host property.
     controls.invalidate_cache()
-    results = [(-1, "probe timed out"), (-1, "probe error: x"), (0, ""), (1, "denied")]
+    results = [(-1, "probe timed out"), (-1, "probe error: x"), (1, "systemd-run failed"), (0, ""), (3, "")]
     calls = []
     async def _run(cmd, timeout_s=12.0):
         calls.append(cmd)
@@ -417,9 +418,10 @@ def test_pidns_probe_timeout_is_retried_not_cached(monkeypatch):
     monkeypatch.setattr(controls.shutil, "which", lambda name: "/usr/bin/" + name)
     assert asyncio.run(controls.user_scope_pidns_readable()) is False
     assert asyncio.run(controls.user_scope_pidns_readable()) is False
+    assert asyncio.run(controls.user_scope_pidns_readable()) is False   # L1: not the stat refusal
     assert asyncio.run(controls.user_scope_pidns_readable()) is True
     assert asyncio.run(controls.user_scope_pidns_readable()) is True
-    assert len(calls) == 3                                        # success cached after retries
+    assert len(calls) == 4                                        # success cached after retries
     controls.invalidate_cache()
 
 
@@ -458,16 +460,19 @@ def test_compute_posture_passes_spawnable_on_demand_members(monkeypatch, tmp_pat
     monkeypatch.setattr(controls, "gait_recording", lambda: (True, ""))
     monkeypatch.setattr(controls, "is_production", lambda: True)
     members = [{"member_id": "risk/cml", "launch_cmd": "bash /x/run.sh", "on_demand": 0,
-                "managed_by": "service"},
+                "managed_by": "service", "state": "active"},
                {"member_id": "risk/odsvc", "launch_cmd": "bash /x/s.sh", "on_demand": 1,
-                "managed_by": "service"},
-               {"member_id": "risk/remote", "launch_cmd": None, "on_demand": 1, "managed_by": "cold"}]
+                "managed_by": "service", "state": "active"},
+               {"member_id": "risk/remote", "launch_cmd": None, "on_demand": 1, "managed_by": "cold",
+                "state": "provisioned"},
+               {"member_id": "risk/quar", "launch_cmd": "bash /x/q.sh", "on_demand": 1,
+                "managed_by": "cold", "state": "quarantined"}]                # L2: not routable
     fake = types.SimpleNamespace(risk=types.SimpleNamespace(list_members=lambda: members))
     controls.invalidate_cache()
     p = asyncio.run(posture.compute_posture(fake))
     assert p["state"] == "enforced"                               # system-only, nothing spawnable
     members.append({"member_id": "risk/viz", "launch_cmd": "bash /x/v.sh", "on_demand": 1,
-                    "managed_by": "cold"})
+                    "managed_by": "cold", "state": "provisioned"})
     controls.invalidate_cache()
     p = asyncio.run(posture.compute_posture(fake))
     sandbox = next(c for c in p["controls"] if c["name"] == "sandbox")

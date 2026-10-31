@@ -367,11 +367,12 @@ def cmd_generate(args) -> int:
             written.append(unit)
     finally:
         mgr.close()
-    if staged and _install_system_units(staged):
-        return 1
+    failed = bool(staged) and _install_system_units(staged)
     print("Generated units in %s:" % UNIT_DIR)
     for u in written:
         print("  -", u)
+    if failed:
+        return 1
     if system:
         print(f"Installed system units in {SYSTEM_UNIT_DIR}:")
         for u, _ in staged:

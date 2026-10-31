@@ -38,6 +38,19 @@ class RiskRouter:
             if m["state"] in _ROUTABLE_STATES and self.rm.covers(m, capability)
         ]
 
+    def specialty_capabilities(self) -> set:
+        """Specialty skill names covered by routable members (base floor excluded)."""
+        names = set()
+        for m in self.rm.list_members():
+            if m["state"] not in _ROUTABLE_STATES:
+                continue
+            for e in self.rm._scope_list(m.get("scope")):
+                if isinstance(e, dict) and e.get("tier") == "specialty" and e.get("name"):
+                    names.add(e["name"])
+                elif isinstance(e, str) and e not in self.rm._BASE_NAMES:
+                    names.add(e)
+        return names
+
     def select_member(self, capability: str) -> dict:
         """Deterministically select the member to handle `capability`.
 
@@ -47,8 +60,13 @@ class RiskRouter:
         cands = self.candidates(capability)
         if not cands:
             risk = self.rm.get_risk().get("risk_name") or "this risk"
+            # Name routable specialty skills so a caller that guessed a server or
+            # tool name can retry with a capability the risk actually covers.
+            names = sorted(self.specialty_capabilities())
+            hint = (" Routable specialty capabilities: " + ", ".join(names) + "."
+                    if names else "")
             raise NoCapableMember(
-                f"No member in risk '{risk}' can perform '{capability}'.")
+                f"No member in risk '{risk}' can perform '{capability}'.{hint}")
         # Deterministic tie-break (FR-012):
         #   1) most-specific: fewest SPECIALTY capabilities (base floor excluded, FR-021b)
         #   2) lexicographically smallest member_id

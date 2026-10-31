@@ -117,6 +117,9 @@ _COLD_START_FIX = ("make them always-on system units (on_demand=false, then gene
                    "can stat /proc/self/ns/pid")
 
 
+_PIDNS_REFUSED = 3
+
+
 async def user_scope_pidns_readable() -> bool:
     """Can a mount-namespaced `systemd --user` unit stat /proc/self/ns/pid?
     OpenClaw 2026.10.9+ keys its gateway lock on that inode and refuses to run
@@ -129,10 +132,13 @@ async def user_scope_pidns_readable() -> bool:
         return _pidns_probe
     if not shutil.which("systemd-run"):
         return False
+    # The child exits 3 only for the stat refusal, so a systemd-run failure (also
+    # non-zero) is not mistaken for a definitive answer.
     rc, _ = await _run(["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet",
                         "-p", "PrivateTmp=yes", "-p", "ProtectSystem=strict", sys.executable,
-                        "-c", "import os;os.stat('/proc/self/ns/pid')"], timeout_s=20)
-    if rc is None or rc < 0:
+                        "-c", "import os,sys\ntry: os.stat('/proc/self/ns/pid')\n"
+                              "except PermissionError: sys.exit(3)"], timeout_s=20)
+    if rc not in (0, _PIDNS_REFUSED):
         return False
     _pidns_probe = rc == 0
     return _pidns_probe

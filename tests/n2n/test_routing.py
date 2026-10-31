@@ -83,3 +83,11 @@ def test_base_floor_capability_routes_but_specificity_excludes_it(border):
     # specialty count is 1, not 1+len(BASE_FLOOR)
     mem = border.get_member("risk/cml")
     assert border.specialty_count(mem["scope"]) == 1
+
+
+def test_no_capable_member_names_routable_specialty_capabilities(border):
+    _enroll(border, "risk/conv", ["convergence-observations"])
+    out = RiskRouter(border).route("convergence-read-mcp")
+    assert out["error"] == "IN2N_ERR_NO_CAPABLE_MEMBER"
+    assert "Routable specialty capabilities: convergence-observations." in out["message"]
+    assert "self-status" not in out["message"]
