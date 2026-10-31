@@ -1,0 +1,12 @@
+# Plan
+
+1. Record the clean VM baseline and use published Docker/demo setup.
+2. Install supported Node, OpenClaw and only the optional convergence-read component.
+3. Configure a dedicated viewer and minimal private provider; project native MCP.
+4. Execute actual gateway chat, examine tool execution evidence, and test restart,
+disable and negative cases. Correct documentation or code only for reproduced gaps.
+5. Independent review, affected contract suites and sanitized qualification report.
+
+No new MCP interface, schema or dependencies are planned. Existing read-only contracts
+and credential controls remain authoritative. Constitution coherence changes are limited
+to affected onboarding/docs/tests; capability inventory does not change.
