@@ -2045,7 +2045,9 @@ class FederationService:
         # the on-demand member inside a transient confined systemd unit.
         confined = False
         if controls.is_production():
-            ok, detail = await controls.sandbox_available()
+            # Spec 165: naming this member fails fast where user-scope cold-start
+            # confinement cannot run OpenClaw, instead of launching and waiting.
+            ok, detail = await controls.sandbox_available(on_demand_members=[member_id])
             if not ok:
                 logger.warning("iN2N production: refusing cold-start of %s — "
                                "confinement unavailable (%s)", member_id, detail)
@@ -2094,7 +2096,18 @@ class FederationService:
         """US5 single-owner: start a member's durable systemd --user unit if it
         isn't already active (never shell-spawn a service-managed member).
         Best-effort; returns True if the unit is (now) active."""
+        from . import controls
         try:
+            if os.path.exists(os.path.join(controls.SYSTEM_UNIT_DIR, unit)):
+                # Spec 165 system-scope member: query unprivileged; starting needs
+                # root, and the unit's Restart=always owns recovery.
+                proc = await asyncio.create_subprocess_exec(
+                    "systemctl", "is-active", "--quiet", unit)
+                if await proc.wait() == 0:
+                    return True
+                logger.warning("iN2N: system member unit %s is not active; "
+                               "start it with sudo systemctl start %s", unit, unit)
+                return False
             proc = await asyncio.create_subprocess_exec(
                 "systemctl", "--user", "is-active", "--quiet", unit)
             if await proc.wait() == 0:

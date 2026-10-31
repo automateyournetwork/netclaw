@@ -22,9 +22,20 @@ logger = logging.getLogger("n2n.posture")
 _CONTROL_KIND = {"sandbox": "containment", "model-guard": "containment", "audit": "audit"}
 
 
-async def _probe_controls() -> list:
+def _on_demand_members(service) -> list:
+    """Spawnable on-demand members the Border would cold-start (spec 165): local
+    launch_cmd, on_demand, not owned by a durable service unit."""
+    try:
+        return [m["member_id"] for m in service.risk.list_members()
+                if m.get("launch_cmd") and m.get("on_demand") and m.get("managed_by") != "service"]
+    except Exception:   # no service / risk (tests, non-Border callers)
+        return []
+
+
+async def _probe_controls(service=None) -> list:
     """Probe all three controls; return the list of control dicts (data-model §2)."""
-    sandbox_ok, sandbox_detail = await controls.sandbox_available()
+    sandbox_ok, sandbox_detail = await controls.sandbox_available(
+        on_demand_members=_on_demand_members(service))
     guard_ok, guard_detail = await controls.defenseclaw_available()
     audit_ok, audit_detail = controls.gait_recording()
     now = time.time()
@@ -39,12 +50,12 @@ async def _probe_controls() -> list:
 
 
 async def compute_posture(service=None) -> dict:
-    """Return the current RiskPosture (data-model §1). `service` is accepted for
-    signature stability / future use (e.g. per-risk overrides) but posture is
-    derived from N2N_RISK_MODE + the control probes."""
+    """Return the current RiskPosture (data-model §1), derived from N2N_RISK_MODE +
+    the control probes. `service` (optional) supplies the channel-security block and
+    the on-demand members the sandbox probe must account for (spec 165)."""
     production = controls.is_production()
     strict = controls.strict_all()
-    ctrls = await _probe_controls()
+    ctrls = await _probe_controls(service)
     missing = [c["name"] for c in ctrls if not c["available"]]
 
     if not production:
