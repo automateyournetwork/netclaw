@@ -10,6 +10,31 @@ from test_setup_plan import sample_plan
 
 
 class HarnessTests(unittest.TestCase):
+    def test_pyats_native_install_and_observation_share_dynamic_runtime_contract(self):
+        from setup_deploy import helper
+        from setup_state import guarded_write
+        from unittest.mock import patch
+        policy=helper(ROOT,'setup-pyats-runtime.py')
+        self.deploy.home({'id':'home'})
+        guarded_write(self.deploy.root/'.setup/python312',b'/fixture/owned-python\n')
+        harness=self.Harness(ROOT,self.claw,self.context,self.deploy,execute=self.execute)
+        with patch('setup_harness.shutil.which',side_effect=lambda name,**_:str(self.root/name)), patch.object(harness,'observe_pyats',return_value=True):
+            self.assertTrue(harness.install_pyats({'id':'pyats'}))
+        checkout=next(args for args,_ in self.calls if 'checkout' in args)
+        self.assertEqual(checkout[-1],policy.REVISION)
+        upstream=self.deploy.root/'pyats-venv/upstream';upstream.mkdir(parents=True)
+        for name in ('pyats_mcp_server.py','pyats_tasks.py'):(upstream/name).write_text('# source\n')
+        observed=[policy.REVISION]
+        def execute(args,**kwargs):
+            return {'returncode':0,'stdout':(observed[0]+'\n').encode() if 'rev-parse' in args else b''}
+        harness=self.Harness(ROOT,self.claw,self.context,self.deploy,execute=execute)
+        with patch('setup_harness.shutil.which',side_effect=lambda name,**_:str(self.root/name)):
+            self.assertFalse(harness.observe_pyats({'id':'pyats'}))
+            (upstream/'pyats_testbed_builder.py').write_text('# dynamic source\n')
+            self.assertTrue(harness.observe_pyats({'id':'pyats'}))
+            observed[0]='f11b02f06e0561392603cdd147d28f82373b5470'
+            self.assertFalse(harness.observe_pyats({'id':'pyats'}))
+
     @unittest.skipUnless(os.environ.get('NETCLAW_SETUP_HERMES_PYTHON'),'opt-in isolated pinned Hermes interpreter')
     def test_actual_pinned_hermes_loader_validates_selected_config(self):
         import subprocess

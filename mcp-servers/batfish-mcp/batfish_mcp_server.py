@@ -343,7 +343,7 @@ def batfish_validate_config(
     node_props = bf.q.nodeProperties().answer().frame()
 
     device_results = []
-    overall_pass = True
+    overall_pass = not parse_status.empty
 
     for _, row in parse_status.iterrows():
         file_name = str(row.get("File_Name", ""))
@@ -353,6 +353,7 @@ def batfish_validate_config(
         # Determine device-level status
         if status_val in ("PASSED", "PARTIALLY_UNRECOGNIZED"):
             dev_status = "PASS" if status_val == "PASSED" else "PARTIALLY_PARSED"
+            if status_val != "PASSED": overall_pass = False
         else:
             dev_status = "FAIL"
             overall_pass = False
@@ -394,6 +395,8 @@ def batfish_validate_config(
     result = {
         "snapshot_name": snapshot_name,
         "overall_status": "PASS" if overall_pass else "FAIL",
+        "parse_coverage": "complete" if overall_pass else "incomplete",
+        "behavioral_equivalence": "not_established_by_parsing",
         "device_results": device_results,
         "warnings": global_warnings,
         "timestamp": datetime.now(timezone.utc).isoformat(),
@@ -658,142 +661,74 @@ def batfish_diff_configs(
                            f"Available snapshots: {', '.join(existing_snapshots)}",
             }, indent=2)
 
-    # Handle identical snapshots gracefully (T025)
-    if reference_snapshot == candidate_snapshot:
-        result = {
-            "reference_snapshot": reference_snapshot,
-            "candidate_snapshot": candidate_snapshot,
-            "route_diffs": [],
-            "reachability_diffs": [],
-            "summary": {"added": 0, "removed": 0, "changed": 0,
-                         "reachability_changes": 0},
-            "message": "Reference and candidate snapshots are identical. No differences.",
-            "timestamp": datetime.now(timezone.utc).isoformat(),
-        }
-        _gait_log(
-            analysis_type="diff_configs",
-            snapshot_name=f"{reference_snapshot} vs {candidate_snapshot}",
-            parameters={"include_routes": include_routes,
-                         "include_reachability": include_reachability},
-            result_summary="IDENTICAL: No differences (same snapshot)",
-        )
-        return _gcf_dumps(result)
-
-    route_diffs: List[Dict[str, Any]] = []
-    reachability_diffs: List[Dict[str, Any]] = []
-
-    # Route diff logic (T023)
-    if include_routes:
-        bf.set_snapshot(reference_snapshot)
-        ref_routes = bf.q.routes().answer().frame()
-
-        bf.set_snapshot(candidate_snapshot)
-        cand_routes = bf.q.routes().answer().frame()
-
-        # Build route keys for comparison
-        def _route_key(row):
-            return (str(row.get("Node", "")),
-                    str(row.get("Network", "")),
-                    str(row.get("Protocol", "")))
-
-        def _route_nexthop(row):
-            return str(row.get("Next_Hop", ""))
-
-        ref_map = {}
-        if not ref_routes.empty:
-            for _, row in ref_routes.iterrows():
-                key = _route_key(row)
-                ref_map[key] = _route_nexthop(row)
-
-        cand_map = {}
-        if not cand_routes.empty:
-            for _, row in cand_routes.iterrows():
-                key = _route_key(row)
-                cand_map[key] = _route_nexthop(row)
-
-        # Find ADDED, REMOVED, CHANGED
-        all_keys = set(ref_map.keys()) | set(cand_map.keys())
-        for key in all_keys:
-            node, network_prefix, proto = key
-            in_ref = key in ref_map
-            in_cand = key in cand_map
-
-            if in_ref and not in_cand:
-                route_diffs.append({
-                    "device": node,
-                    "network": network_prefix,
-                    "change_type": "REMOVED",
-                    "old_next_hop": ref_map[key],
-                    "new_next_hop": None,
-                    "protocol": proto,
-                })
-            elif not in_ref and in_cand:
-                route_diffs.append({
-                    "device": node,
-                    "network": network_prefix,
-                    "change_type": "ADDED",
-                    "old_next_hop": None,
-                    "new_next_hop": cand_map[key],
-                    "protocol": proto,
-                })
-            elif ref_map[key] != cand_map[key]:
-                route_diffs.append({
-                    "device": node,
-                    "network": network_prefix,
-                    "change_type": "CHANGED",
-                    "old_next_hop": ref_map[key],
-                    "new_next_hop": cand_map[key],
-                    "protocol": proto,
-                })
-
-    # Differential reachability (T022)
-    if include_reachability:
-        bf.set_snapshot(candidate_snapshot)
-        bf.set_reference_snapshot(reference_snapshot)
+    # Even a snapshot compared with itself needs real parse/query evidence.
+    # Empty/partial parsing and swallowed query exceptions cannot prove equality.
+    coverage = {}
+    for snapshot in (reference_snapshot, candidate_snapshot):
         try:
-            diff_reach = bf.q.differentialReachability().answer().frame()
-            if not diff_reach.empty:
-                for _, row in diff_reach.iterrows():
-                    flow = row.get("Flow", None)
-                    if flow:
-                        reachability_diffs.append({
-                            "src_ip": str(getattr(flow, "srcIp", "")),
-                            "dst_ip": str(getattr(flow, "dstIp", "")),
-                            "old_disposition": str(row.get("Reference_Disposition", "")),
-                            "new_disposition": str(row.get("Snapshot_Disposition", "")),
-                        })
-        except Exception as exc:
-            logger.warning("Differential reachability query failed: %s", exc)
-
-    # Format result (T024)
-    added = sum(1 for d in route_diffs if d["change_type"] == "ADDED")
-    removed = sum(1 for d in route_diffs if d["change_type"] == "REMOVED")
-    changed = sum(1 for d in route_diffs if d["change_type"] == "CHANGED")
-
+            bf.set_snapshot(snapshot)
+            rows = [row for _, row in bf.q.fileParseStatus().answer().frame().iterrows()]
+            coverage[snapshot] = {
+                "status": "complete" if rows and all(str(r.get("Status")) == "PASSED" for r in rows) else "incomplete",
+                "files": len(rows), "parsed": sum(str(r.get("Status")) == "PASSED" for r in rows),
+            }
+        except Exception:
+            coverage[snapshot] = {"status": "query_failed", "files": None, "parsed": None}
+    queries = {"routes": "not_requested", "reachability": "not_requested"}
+    route_diffs, reachability_diffs = [], []
+    if include_routes:
+        try:
+            maps = []
+            for snapshot in (reference_snapshot, candidate_snapshot):
+                bf.set_snapshot(snapshot)
+                routes = {}
+                for _, row in bf.q.routes().answer().frame().iterrows():
+                    key = tuple(str(row.get(k, "")) for k in ("Node", "VRF", "Network", "Protocol"))
+                    routes.setdefault(key, set()).add(str(row.get("Next_Hop", "")))
+                maps.append(routes)
+            ref, cand = maps
+            for key in sorted(set(ref) | set(cand)):
+                if ref.get(key) == cand.get(key): continue
+                node, vrf, prefix, protocol = key
+                route_diffs.append({"device":node, "vrf":vrf, "network":prefix, "protocol":protocol,
+                    "change_type":"ADDED" if key not in ref else "REMOVED" if key not in cand else "CHANGED",
+                    "old_next_hop":sorted(ref.get(key, set())), "new_next_hop":sorted(cand.get(key, set()))})
+            queries["routes"] = "succeeded"
+        except Exception:
+            queries["routes"] = "failed"
+            route_diffs = []
+    if include_reachability:
+        try:
+            bf.set_snapshot(candidate_snapshot); bf.set_reference_snapshot(reference_snapshot)
+            for _, row in bf.q.differentialReachability().answer().frame().iterrows():
+                flow = row.get("Flow")
+                if flow is None: raise ValueError("Missing flow evidence")
+                reachability_diffs.append({"src_ip":str(getattr(flow,"srcIp","")), "dst_ip":str(getattr(flow,"dstIp","")),
+                    "old_disposition":str(row.get("Reference_Disposition","")), "new_disposition":str(row.get("Snapshot_Disposition",""))})
+            queries["reachability"] = "succeeded"
+        except Exception:
+            queries["reachability"] = "failed"
+            reachability_diffs = []
+    requested = [v for v in queries.values() if v != "not_requested"]
+    qualified = bool(requested) and all(v == "succeeded" for v in requested) and all(v["status"] == "complete" for v in coverage.values())
+    equal = qualified and not route_diffs and not reachability_diffs
     result = {
-        "reference_snapshot": reference_snapshot,
-        "candidate_snapshot": candidate_snapshot,
-        "route_diffs": route_diffs,
-        "reachability_diffs": reachability_diffs,
-        "summary": {
-            "added": added,
-            "removed": removed,
-            "changed": changed,
-            "reachability_changes": len(reachability_diffs),
-        },
-        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "reference_snapshot":reference_snapshot, "candidate_snapshot":candidate_snapshot,
+        "route_diffs":route_diffs, "reachability_diffs":reachability_diffs,
+        "parse_coverage":coverage, "query_status":queries,
+        "comparison_status":"no_differences_in_requested_queries" if equal else "differences_found" if qualified else "inconclusive",
+        "evidence_class":"static-model", "behavioral_equivalence":False,
+        "limitations":["Only the requested modeled queries are compared; parser success does not establish complete feature support.",
+                       "No live traffic, NAT, management, hardware or performance equivalence is implied."],
+        "summary":{"added":sum(d["change_type"]=="ADDED" for d in route_diffs),
+                   "removed":sum(d["change_type"]=="REMOVED" for d in route_diffs),
+                   "changed":sum(d["change_type"]=="CHANGED" for d in route_diffs),
+                   "reachability_changes":len(reachability_diffs)},
+        "timestamp":datetime.now(timezone.utc).isoformat(),
     }
-
-    # GAIT logging (T026)
-    _gait_log(
-        analysis_type="diff_configs",
-        snapshot_name=f"{reference_snapshot} vs {candidate_snapshot}",
-        parameters={"include_routes": include_routes,
-                     "include_reachability": include_reachability},
-        result_summary=(f"Routes: +{added} -{removed} ~{changed} | "
-                        f"Reachability: {len(reachability_diffs)} changes"),
-    )
-
+    _gait_log(analysis_type="diff_configs", snapshot_name=f"{reference_snapshot} vs {candidate_snapshot}",
+              parameters={"include_routes":include_routes,"include_reachability":include_reachability},
+              result_summary=result["comparison_status"])
     return _gcf_dumps(result)
 
 

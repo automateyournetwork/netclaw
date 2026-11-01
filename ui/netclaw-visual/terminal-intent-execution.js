@@ -62,6 +62,7 @@ export function buildExecutionMessages(input, devices, change = { mode: 'product
 This specific API-created local change record replaces the ServiceNow ticket/approval requirement ONLY for its selected lab endpoints and the operator's stated task. It is not a global lab-mode flag. Do not require ServiceNow for this record. Use the local record as the audit trail when GAIT is unavailable; do not invent a ServiceNow number or a GAIT commit. Other tool/SSH/host-key/security controls remain required; never bypass an actual tool-level denial using raw SSH helpers.
 FIRST SEGMENT IS READ-ONLY PREPARATION. No configuration writes until the API sends APPLY PHASE for this record. Inspect BOTH endpoints (all selected devices), discover capabilities/addressing and propose an appropriate design. Ask only for decisions that cannot be discovered, such as protected traffic and approved secret reference; do not ask the user to manually gather information tools can read.
 For a change, capture real pre-change configuration/state in each device's exact baselinePath, and write a scoped actionable rollback plan to its rollbackPath. These files stay local; never print their secret-bearing contents. Files must come from live prechecks, never fabricated placeholders. Return status prepared, requestKind change, outcome pending, with baseline and rollback arrays of {device: exact inventory ID, summary: non-secret evidence}. Include read-only actions and the specific planned change in summary. If any selected device is not part of the requested task, ask the user to narrow the selection instead of modifying it. The API checks that artifacts exist before authorizing the next segment.
+For a private migration, pyats_show_running_config(output_mode="private", change_ref=<record ID>) writes the actual baseline and its receipt for you. Do not write, replace or summarize baselinePath or its receipt. Write only the separate rollbackPath. A reference note cannot substitute for the captured baseline; the API verifies its exact bytes against the collector's private artifact before issuing an apply grant.
 During APPLY PHASE use the installed configuration tools to apply only the requested change, then verify every selected endpoint and preserved connectivity. Report actions/verification using exact inventory IDs. On failure, use the captured rollback plan only within the authorized task and verify recovery; never claim success after a failed check. Questions/explanations authorize no configuration even in this mode. Return completed/answered for read-only requests without unnecessary baseline artifacts.`
     : '\nPRODUCTION CHANGE CONTROL: ServiceNow approval and existing production audit/baseline/apply/verify rules remain required. No Local/Lab exemption is enabled for this request.';
   return [{ role: 'system', content: CONTRACT + policy }, {
@@ -150,7 +151,9 @@ export function createIntentExecutionService({ getGatewayConfig, listDevices, fe
           try { job.changeControl = changePolicy.prepared(change, report); }
           catch (error) { error.policyBlocked = true; throw error; }
           append({ kind: 'lifecycle', title: 'Local baseline and rollback artifacts recorded', detail: 'The scoped operator request authorizes the apply phase. No ServiceNow instance is required for these lab devices.' });
-          messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `APPLY PHASE: Local record ${change.id} has passed the artifact check. Apply only the stated task to ${change.devices.map(d => d.id).join(', ')} through authorized configuration tools, then verify all endpoints. Do not repeat completed writes. Retain all non-ServiceNow controls. Return the execution report schema.` });
+          const migration = job.changeControl.migration;
+          const artifactInstruction = migration ? ` Private candidate application: call the SAME authorized pyats_configure_device tool with device_name=${JSON.stringify(migration.endpoint.id)}, artifact_ref=${JSON.stringify(migration.candidate.artifact_ref)}, grant_ref=${JSON.stringify(job.changeControl.applyGrants[0])}; omit config_commands. Never read or paste the candidate into chat or use another write tool after a denial. The capability expires in five minutes and is single use. Verify profile ${migration.profile}; a tool success is not a behavior-test pass.` : '';
+          messages.push({ role: 'assistant', content: raw }, { role: 'user', content: `APPLY PHASE: Local record ${change.id} has passed the artifact check. Apply only the stated task to ${change.devices.map(d => d.id).join(', ')} through authorized configuration tools, then verify all endpoints. Do not repeat completed writes. Retain all non-ServiceNow controls.${artifactInstruction} Return the execution report schema.` });
           continue;
         }
         if (report.status !== 'in_progress') { job.status = report.status; return; }
@@ -221,6 +224,16 @@ export function registerIntentExecutionRoutes(app, options) {
   app.get('/api/terminal/intent/change-policy', (req, res) => {
     try { res.json(options.changePolicy.state()); }
     catch (error) { res.status(error.status || 503).json({ error: error.status ? error.message : 'Change policy is unavailable.' }); }
+  });
+  app.get('/api/terminal/intent/migration-inventories', (req, res) => {
+    try { res.json(options.changePolicy.migrationInventories()); }
+    catch { res.status(503).json({ error:'Active private pyATS inventory is unavailable.' }); }
+  });
+  app.post('/api/terminal/intent/migration-candidates', (req, res) => {
+    try {
+      if (service.isRunning()) return res.status(409).json({ error:'Wait for the current Intent run before reviewing another candidate.' });
+      res.json(options.changePolicy.captureCandidate(req.body));
+    } catch { res.status(400).json({ error:'Select a UTF-8 configuration file between 8 bytes and 2 MiB.' }); }
   });
   app.post('/api/terminal/intent/change-policy', (req, res) => {
     try {

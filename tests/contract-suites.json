@@ -890,6 +890,30 @@
         "reason": "Executed on native Linux amd64/arm64 by convergence-read.yml with a pinned disposable external Docker service and Chromium; not a mock contract or live production test."
       },
       "timeout_seconds": 1200
+    },
+    "netconverter": {
+      "kind": "pytest",
+      "paths": [
+        "tests/netconverter"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/netconverter",
+        "requirements": [
+          "config/python-components/netconverter.txt"
+        ],
+        "packages": [
+          "pytest>=8,<9",
+          "PyYAML>=6,<7"
+        ],
+        "required_imports": [
+          "pytest",
+          "fastmcp",
+          "mcp",
+          "yaml"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 300
     }
   }
 }

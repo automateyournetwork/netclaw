@@ -141,6 +141,8 @@ mcp-servers/anta-mcp/.venv/
 !mcp-servers/worldlabs-marble-mcp/
 !mcp-servers/jev-mcp/
 mcp-servers/jev-mcp/.venv/
+!mcp-servers/netconverter-mcp/
+mcp-servers/netconverter-mcp/.venv/
 # Spec 122: World Labs Marble fantastical topology viz, NetClaw-authored, not vendored.
 
 # Traces

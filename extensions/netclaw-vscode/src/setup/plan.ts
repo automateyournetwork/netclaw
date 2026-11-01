@@ -44,12 +44,20 @@ export class SetupDraft {
     strictJson(canonical(value));
     if(!validateShape(value,this.schema,true))throw Error('Draft has unknown, invalid or unsupported fields.');
     const inspect=(item:any)=>{
-      if(typeof item==='string'&&/(?:\b(?:sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9_-]{8,}|\bAKIA[A-Z0-9]{16}\b|\bBearer\s+\S+|\bBasic\s+[A-Za-z0-9+/=]{12,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|-----BEGIN [A-Z ]*PRIVATE KEY-----|[a-z][a-z0-9+.-]*:\/\/[^/\s]+@)/i.test(item))throw Error('Enter credentials only through native secret input.');
+      if(typeof item==='string'&&/(?:\b(?:sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-|nck_(?:live|test)_)[A-Za-z0-9_-]{8,}|\bAKIA[A-Z0-9]{16}\b|\bBearer\s+\S+|\bBasic\s+[A-Za-z0-9+/=]{12,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+|-----BEGIN [A-Z ]*PRIVATE KEY-----|[a-z][a-z0-9+.-]*:\/\/[^/\s]+@)/i.test(item))throw Error('Enter credentials only through native secret input.');
       if(item&&typeof item==='object')for(const [key,child] of Object.entries(item)){
         if(this.secretKeys.has(key)&&(!child||typeof child!=='object'||(child as any).kind!=='secret'))throw Error('Credential settings must contain scoped references, never values.');
         inspect(child);
       }
     };inspect(value);
+    for(const claw of value.claws||[]){
+      const mode=claw.settings?.NETCONVERTER_MODE;
+      if(mode&&(mode.kind!=='value'||!['hosted-readonly','local-terminal'].includes(mode.value)))throw Error('Choose a supported NetConverter mode.');
+      for(const key of ['NETCONVERTER_WORKSPACE','NETCONVERTER_EXECUTABLE']){
+        const entry=claw.settings?.[key];if(entry?.kind==='value'&&entry.value&&
+          (typeof entry.value!=='string'||!entry.value.startsWith('/')||entry.value.split('/').includes('..')))throw Error('NetConverter paths must be absolute host paths.');
+      }
+    }
   }
   replace(value:DraftInput,expected:number){
     if(expected!==this.revision)throw Error('Setup changed. Refresh before editing.');

@@ -569,6 +569,12 @@ export class SetupWizard implements vscode.Disposable {
       const source=await choose(field.label,[{id:'prompt',title:'Prompt securely during installation'},{id:'later',title:'Configure later'}]);if(!source)return;
       claw.settings[key]={kind:'secret',key,owner,source};
       if(this.catalog.choices.find((c:any)=>c.kind==='provider'&&c.id===claw.provider.id)?.settingKeys.includes(key)&&!claw.provider.credentialKeys.includes(key))claw.provider.credentialKeys.push(key);
+    }else if(key==='NETCONVERTER_MODE'){
+      const mode=await choose('NetConverter mode · no file submission during setup',[
+        {id:'hosted-readonly',title:'Hosted read-only',description:'Review existing job evidence using your enabled account.'},
+        {id:'local-terminal',title:'Local Terminal',description:'Operator-installed licensed client; exact-file approval before each submission.'}]);
+      if(!mode)return;
+      claw.settings[key]={kind:'value',value:mode};
     }else{
       const value=await input(field.label,field.help,claw.settings[key]?.value?.toString());if(value===undefined)return;
       const typed=field.valueType==='integer'?Number(value):field.valueType==='boolean'?value==='true'?true:value==='false'?false:undefined:value;

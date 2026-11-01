@@ -16,6 +16,18 @@ Devices are defined in `testbed/testbed.yaml`. Update that file with your SSH-ac
 
 ## Platform Credentials
 
+Optional NetConverter settings belong to the selected installation: mode,
+account reference, separate API key, private workspace and operator-installed
+licensed executable. See [NetConverter operations](docs/NETCONVERTER.md).
+Never infer account entitlement from signup, or a target image from a lab
+template. Native relay reachability can differ from Python socket reachability;
+verify the actual selected transport before declaring a device unavailable.
+Keep private addressing and raw device observations in local session memory.
+
+The managed pyATS launcher selects `<claw>/netclaw-changes` for the API/consumer
+artifact boundary. It keeps upstream logs private and publishes process-bound
+inventory receipts when listing devices. These receipts authorize no writes.
+
 Credentials belong to the **selected installation's** private `.env`. The historical default is `~/.openclaw/.env`; a separate setup-owned OpenClaw or Hermes home has its own file. Verify the selected home and installation identity first. Never borrow another claw's credentials or put values in skill files, plans, reports or this document. [Separate-claw setup](docs/GETTING-STARTED-VSCODE.md) includes Spec155 Comms in source 1.13.0 / extension 1.3.0. Publishing these artifacts does not install or change any existing local runtime.
 
 The source Comms installer distinguishes native conversation ingress, Twilio API
@@ -1087,3 +1099,64 @@ Separate MCP_CALL invocations cannot share dynamic state. HUD static inventory,
 Terminal Intent and collector grants remain separate. See `docs/DYNAMIC-TESTBEDS.md`
 and `specs/160-dynamic-pyats-testbeds/verification.md`. No owner device/source service
 was contacted during synthetic qualification.
+
+
+### Spec162 observed local lab and analysis — 2026-10-31
+
+- Local CML192.168.2.125 authenticated asdeveloper;2.10.0+build13. Scoped certificate trust only; observedcertSHA25616e8c018cfd9e301406617d11ddabbafa221d397366f2170038709e34b61fcf9,CN/SANcml-controller. Privatecredential/tokenfilesoutsideGit; donotprint.
+-12installedimagesincludeIOLXE17.18.02; noJunos.45nodedefinitionsarenot45images. ActivePersonalEVALobservedexpiry2027-01-22.8x86CPU4.10GBRAMtotal2.02GBfree atread;checkagainbeforeboot. ExistingorphanreporteddoNOTadopt/delete.
+- Nativecurl/opensslreachLAN;PythonLANsocketErrno65doesnotprovehostdown. ExistingR1/R2SW1/SW2untouched.
+- Run-ownedBatfishv2container netclaw-spec162-batfish-v2-20261031,loopback19997→9996,4CPUs4GiB. Firstnetclaw-spec162-batfish-20261031stoppedretained. ActualcurrentimageAPI9996;legacyexample9997wrongforit. Pinnedpybatfishrequiressetuptools<81. Threeprivateanalysis snapshots source/junos/reverse in network spec162-live-20261031.
+
+
+## Spec162 rehearsal runtime update — 2026-10-31 (historical)
+The owner-approved isolated minimal claw now runs OpenClaw 2026.7.1-2 and Claude
+Sonnet 4.6. Its provider key was deliberately replaced from the repository
+environment on owner instruction. Native discovery verifies NetConverter (8
+tools), dynamic pyATS (35), Batfish (8) and GAIT (23); actual model tool execution
+also succeeds. The original setup report remains partial, with separate private
+repair receipts. CML HTTPS and MCP startup currently time out. Dynamic inventory
+is inactive; image/bootstrap and live configuration acceptance remain unproven.
+The staged pyATS replacement retains the prior runtime, and bound source remains
+unchanged. Source 1.15.2 fixes runtime placement and the stale native pyATS pin.
+
+### CML recheck — 2026-11-01 (earlier observation, superseded below)
+
+Native HTTPS API reads work again with the existing private session. Fresh
+inventory: two labs, six running nodes, 12 installed images, no Junos image and
+about 1.95 GB free RAM. A temporary TLS adapter preserving upstream verification
+and restricting writes enabled discovery of 51 CML tools. Fresh authentication
+with the rehearsal's saved credentials fails with HTTP 403, confirmed directly
+without the adapter. Discovery is not authenticated tool access. Credentials and
+live registration remain unchanged; no lab or device was modified.
+
+### Spec162 actual acceptance — 2026-11-01 (current)
+
+Later authenticated CML access supersedes the earlier failure above. The enforced
+license limit is five nodes. Owner-approved stop/start juggling completed twice;
+R1/R2 returned to BOOTED with private configurations matching original baselines
+except display timestamp/size metadata. Owned rehearsal nodes are stopped and
+retained, and their Local/Lab write authorization is disabled. Exact identities,
+management topology and private evidence locations are recorded in daily memory.
+
+The real protected IOS-XE round-trip repeat passed OSPF FULL, reciprocal metric-11
+routes, bidirectional 5/5 positive and 0/3 negative pings, with management preserved.
+No Junos image or Junos appliance acceptance is established. The owner-requested
+Mac Risk pass now completes native installation acceptance: simulated review input,
+actual adapters/services/HUD and real Border/member authenticated discovery. The
+original partial journal and failed Risk trial are retained, never rewritten.
+
+Operational lessons: this IOL bootstrap rejects passwords over 25 characters;
+legacy IOSv SSH negotiation can differ from current IOL. The owned target generates
+a new RSA key on boot. Compare it with the exact-node authenticated CML console
+public key before reconciling known_hosts; never disable host checks. OpenClaw
+2026.7.1-2 closes STDIO between turns, so reviewed dynamic-inventory application
+uses an explicitly started authenticated foreground pyATS session. See
+`docs/DYNAMIC-TESTBEDS.md` and Spec162 verification for the supported boundaries.
+
+Spec162 Risk lessons: native registration freezes environment aliases before Risk
+materialization. Bind each selected local API port before registration (1.15.5).
+Tool discovery alone does not establish working routing. NetConverter discover=false
+skips upstream checks in a cold process; false flags mean unverified, not bad credentials.
+Use typed capability arrays/counts instead of a model's manual arithmetic. The live
+reference observed 75 operation paths, not the narrative's 70. See Spec162 verification.

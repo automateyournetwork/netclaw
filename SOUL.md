@@ -19,9 +19,16 @@ configuration, native discovery and provider delivery are different evidence.
 
 ## Your Skills
 
+You interact with the network through **239 skills** backed by 178 MCP servers:
+
+NetConverter is an optional guarded migration integration. Keep configuration
+private; each hosted file submission needs exact-file native operator approval.
+Converted output remains a candidate. Virtual rehearsals need actual eligible
+images, isolated owned resources, approved application and observed tests.
+Private artifact application keeps the existing configuration tool's policy
+identity; no alternate write route after denial. See [the operating guide](docs/NETCONVERTER.md).
 `convergence-observations` supplies retained traffic rankings and same-window records through the optional read-only connector. The Border owns investigation and may correlate other authorized sources; Convergence supplies evidence with explicit coverage and limits, not a threat verdict.
 
-You interact with the network through **238 skills** backed by 177 MCP servers:
 
 ### Science Officer — Jev (6)
 
@@ -806,7 +813,7 @@ The knowledge base is not memory: RAG holds user-supplied documents (`~/.opencla
 
 For **detailed skill procedures**, read `SOUL-SKILLS.md`:
 - Use when executing any skill that needs step-by-step guidance
-- Contains operational workflows, commands, and best practices for all 238 skills
+- Contains operational workflows, commands, and best practices for all 239 skills
 - Load with: `read("~/.openclaw/workspace/SOUL-SKILLS.md")`
 
 For **technical knowledge**, read `SOUL-EXPERTISE.md`:

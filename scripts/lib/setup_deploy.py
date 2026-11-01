@@ -132,8 +132,12 @@ class Deployment:
         pending = []
         for raw in names:
             relative = Path(raw.decode('utf-8','strict'))
-            # Include the operational dynamic-testbed contract referenced by skills.
-            if relative.parts[0] not in ('scripts','config','mcp-servers','workspace','ui','src','bin') and len(relative.parts) != 1 and relative.as_posix() not in ('tests/contract-suites.json','docs/DYNAMIC-TESTBEDS.md') and not relative.as_posix().startswith('installer/native-comms/'):
+            # The installed HUD imports these public snapshots at module load.
+            # Keep them in the reviewed source set alongside the skill contract.
+            runtime_documents = ('docs/DYNAMIC-TESTBEDS.md',
+                                 'docs/reference/interfaces.json',
+                                 'docs/reference/documents.json')
+            if relative.parts[0] not in ('scripts','config','mcp-servers','workspace','ui','src','bin') and len(relative.parts) != 1 and relative.as_posix() not in ('tests/contract-suites.json', *runtime_documents) and not relative.as_posix().startswith('installer/native-comms/'):
                 continue
             if any(p in ('.env','.git','node_modules','.venv','__pycache__') or p.startswith('.env.') for p in relative.parts):
                 continue

@@ -83,6 +83,19 @@ class DeployTests(unittest.TestCase):
         self.assertEqual(audit.components['subnet-calc']['adapter'],'isolated-shell')
         audit.verify()
 
+    def test_installed_dashboard_has_its_imported_reference_snapshots(self):
+        import re
+        from setup_deploy import Deployment
+        deploy=Deployment(ROOT,self.claw,self.context)
+        outputs={target:data for target,data,_ in deploy.source_outputs()}
+        view=deploy.source/'ui/netclaw-visual/src/dashboard/ReferenceViews.jsx'
+        imports=re.findall(r"from\s+['\"]([^'\"]+\.json)['\"]",outputs[view].decode())
+        self.assertTrue(imports, 'Exercise the actual dashboard data imports')
+        for relative in imports:
+            target=(view.parent/relative).resolve()
+            self.assertTrue(target in outputs, f'Missing installed HUD import: {relative}')
+            self.assertTrue(isinstance(json.loads(outputs[target]),(dict,list)))
+
     def test_only_successful_components_registered_and_built_source_revision_owned(self):
         from setup_deploy import Deployment
         from setup_schema import canonical,loads
@@ -127,6 +140,49 @@ class DeployTests(unittest.TestCase):
         self.assertEqual(result['GAIT_VENV'],str(self.root/'claw/gait-venv'))
         self.assertIn('component-launch.py',result['FORTINET_MCP_CMD'])
         self.assertEqual(child_environment(self.root/'claw','openclaw',result)['GAIT_VENV'],result['GAIT_VENV'])
+
+    def test_risk_registration_uses_selected_api_before_materialization(self):
+        from setup_deploy import Deployment
+        from setup_harness import Harness
+        from setup_schema import canonical
+        from setup_secrets import _dotenv
+        from setup_generated import generated
+        from setup_plan import PlanValidator
+        import copy
+        for role,port in [('border',8262),('member',8272)]:
+            claw=copy.deepcopy(self.claw)
+            claw.update(id=role,role=role,runtimeHome=str(self.root/role),workspace=str(self.root/role/'workspace'))
+            claw['endpoints']['bgpApiPort']=port
+            claw['capabilities']['components']=['n2n','protocol']
+            effects=[]
+            context={**self.context,'journal':{'effects':effects}}
+            def effect(name,**kwargs):
+                item={'id':name,'owner':role,'phase':name,'component':'','artifacts':[],**kwargs}
+                effects.append(item);return item
+            context['artifactIntent']=lambda key,items:next(e for e in effects if e['id']==key)['artifacts'].extend(items)
+            deploy=Deployment(ROOT,claw,context);deploy.home(effect('home'))
+            runtime=effect('runtime');python=deploy.root/'python/bin/python'
+            deploy.write(runtime,python,b'#!/bin/sh\nexit 0\n');python.chmod(0o700)
+            deploy.write(runtime,deploy.root/'.setup/python312',(str(python)+'\n').encode())
+            for component in claw['capabilities']['components']:
+                deploy.write(runtime,deploy.root/'python-runtimes/records'/component,(str(python)+'\n').encode())
+                effect(component,phase='components',component=component,state='verified')
+            # Reproduce the component's default before Risk materialization.
+            deploy.write(effect('credentials'),deploy.root/'.env',b'BGP_DAEMON_API=http://127.0.0.1:8179\n',kind='credentials')
+            deploy.write(effect('onboard'),deploy.root/'openclaw.json',canonical(Harness(ROOT,claw,context,deploy).base_config()))
+            deploy.registration(effect('registration'))
+            expected='http://127.0.0.1:'+str(port)
+            environment=_dotenv.values((deploy.root/'.env').read_text())
+            for file,keys in [('openclaw.json',('mcp','servers')),('netclaw-mcp-config.json',('mcpServers',))]:
+                config=json.loads((deploy.root/file).read_text())
+                for key in keys:config=config[key]
+                for server in ['n2n-mcp','protocol-mcp']:
+                    value=config[server]['env']['BGP_DAEMON_API']
+                    if value.startswith('${') and value.endswith('}'):value=environment[value[2:-1]]
+                    self.assertEqual(value,expected)
+            self.assertEqual(environment['BGP_DAEMON_API'],expected)
+        focused=copy.deepcopy(self.claw);focused['capabilities']['components']=['n2n']
+        self.assertNotIn('BGP_DAEMON_API',generated(focused,PlanValidator(ROOT),sys.executable))
 
 
 if __name__=='__main__':unittest.main()

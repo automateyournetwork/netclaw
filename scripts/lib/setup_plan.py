@@ -10,7 +10,7 @@ from setup_schema import Invalid, canonical, loads, validate
 from setup_state import guarded_read
 from setup_comms import CommsCatalog
 
-SECRET_PATTERN = re.compile(r'(?:-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-)[A-Za-z0-9_-]{8,}|\bAKIA[A-Z0-9]{16}\b|\bBearer\s+\S+|\bBasic\s+[A-Za-z0-9+/=]{12,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)', re.I)
+SECRET_PATTERN = re.compile(r'(?:-----BEGIN [A-Z ]*PRIVATE KEY-----|\b(?:sk-(?:ant-)?|gh[pousr]_|github_pat_|xox[baprs]-|nck_(?:live|test)_)[A-Za-z0-9_-]{8,}|\bAKIA[A-Z0-9]{16}\b|\bBearer\s+\S+|\bBasic\s+[A-Za-z0-9+/=]{12,}|\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+)', re.I)
 BORDER_COMPONENTS = {'n2n', 'protocol', 'gait', 'mempalace', 'memory-mcp', 'humanrail', 'tts', 'hermes-hud', 'claw-certs', 'in2n-production'}
 
 
@@ -226,6 +226,8 @@ class PlanValidator:
                 elif setting['kind'] != 'value': bad(setting_pointer, 'value_required')
                 else:
                     value = setting['value']; typ = field['valueType']
+                    if key=='NETCONVERTER_MODE' and value not in ('hosted-readonly','local-terminal'): bad(setting_pointer,'invalid_netconverter_mode')
+                    if key in ('NETCONVERTER_WORKSPACE','NETCONVERTER_EXECUTABLE') and value and (not isinstance(value,str) or not self.absolute(value)): bad(setting_pointer,'absolute_netconverter_path_required')
                     if typ == 'boolean' and type(value) is not bool or typ == 'integer' and type(value) is not int or typ in ('string','path','url') and not isinstance(value,str): bad(setting_pointer, 'setting_type')
                     if typ == 'url' and isinstance(value,str) and value:
                         try:

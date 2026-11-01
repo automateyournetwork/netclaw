@@ -1470,6 +1470,18 @@
       ],
       "transport": "stdio"
     },
+    "netconverter-mcp": {
+      "command": "python3",
+      "args": [
+        "-u",
+        "scripts/component-launch.py",
+        "netconverter",
+        "--server",
+        "netconverter-mcp"
+      ],
+      "env": {},
+      "transport": "stdio"
+    },
     "convergence-read-mcp": {
       "command": "python3",
       "args": [

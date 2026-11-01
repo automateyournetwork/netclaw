@@ -14,17 +14,23 @@ tags: [cml, labs, simulation, lifecycle]
 - **Requires**: `CML_URL`, `CML_USERNAME`, `CML_PASSWORD` environment variables
 - **Optional**: `CML_VERIFY_SSL` (default: true)
 
+## Migration rehearsal and current tool contracts
+
+Discover installed schemas before every new workflow. The current [upstream tool catalog](https://github.com/xorrkaz/cml-mcp#available-mcp-tools) names `create_empty_lab`, `add_node_to_cml_lab`, `connect_two_nodes`, `start_cml_lab` and `get_nodes_for_cml_lab`. Parameter examples and other historical names below are illustrative, not evidence that an installed tool accepts them. Node definitions are not proof of installed images.
+
+For NetConverter rehearsal, use `netconverter/references/rehearsal.md`: qualify the actual licensed image, capacity, isolated management and private apply route; record the attempt before creation; create/boot the target and test observed behavior. Retain exact run-owned resource IDs. Do not hide the migration candidate in bootstrap, infer device-write permission from lifecycle access, or use console/CLI after a configuration-tool denial. Delete, wipe, reload and automatic destructive cleanup examples are unavailable under AGENTS.md; an export does not authorize them. Local/Lab changes require the existing API-created record; production keeps ServiceNow approval.
+
 ## Available Tools
 
 ### Lab CRUD Operations
 
 | Tool | Parameters | What It Does |
 |------|-----------|-------------|
-| `create_lab` | `title` | Create a new empty lab with a title |
+| `create_empty_lab` | `title` | Create a new empty lab with a title |
 | `get_lab` | `lab_id` or `lab_title` | Get lab details (state, node count, link count) |
-| `get_labs` | none | List all labs on the CML server |
-| `start_lab` | `lab_id` or `lab_title` | Start all nodes in a lab (boot the topology) |
-| `stop_lab` | `lab_id` or `lab_title` | Stop all nodes in a lab (graceful shutdown) |
+| `get_cml_labs` | none | List all labs on the CML server |
+| `start_cml_lab` | `lab_id` or `lab_title` | Start all nodes in a lab (boot the topology) |
+| `stop_cml_lab` | `lab_id` or `lab_title` | Stop all nodes in a lab (graceful shutdown) |
 | `wipe_lab` | `lab_id` or `lab_title` | Wipe lab node configurations (reset to factory) |
 | `delete_lab` | `lab_id` or `lab_title` | Delete a lab permanently |
 
@@ -34,57 +40,57 @@ tags: [cml, labs, simulation, lifecycle]
 |------|-----------|-------------|
 | `import_lab` | `topology` (YAML string) | Import a lab from CML topology YAML |
 | `export_lab` | `lab_id` or `lab_title` | Export a lab as CML topology YAML |
-| `clone_lab` | `lab_id` or `lab_title` | Clone an existing lab (deep copy) |
+| `clone_cml_lab` | `lab_id` or `lab_title` | Clone an existing lab (deep copy) |
 | `download_lab_configs` | `lab_id` or `lab_title` | Download all node configs from a running lab |
 
 ## Workflow: Create a Lab from Scratch (Slack)
 
 When a user says something like "build me a 3-router OSPF lab" in Slack:
 
-1. **Create the lab**: Use `create_lab` with a descriptive title
+1. **Create the lab**: Use `create_empty_lab` with a descriptive title
 2. **Add nodes**: (See cml-topology-builder skill) Add routers, switches, servers
 3. **Wire the topology**: (See cml-topology-builder skill) Create interfaces and links
 4. **Apply configs**: (See cml-node-operations skill) Set startup configs
-5. **Start the lab**: Use `start_lab` to boot everything
+5. **Start the lab**: Use `start_cml_lab` to boot everything
 6. **Verify convergence**: (See cml-node-operations skill) Execute show commands to verify routing
 7. **Report back**: Tell the user the lab is ready with node names and management IPs
 
 ### Example Slack Conversations
 
 **"Build me a 3-router OSPF lab"**
-→ create_lab "OSPF Lab - 3 Routers"
-→ create_node x3 (IOSv: R1, R2, R3)
-→ create_interface + create_link (R1-R2, R2-R3, R1-R3 full mesh)
-→ set_node_config for each (OSPF area 0, loopbacks, point-to-point links)
-→ start_lab
-→ execute_command: "show ip ospf neighbor" on each router
+→ create_empty_lab "OSPF Lab - 3 Routers"
+→ add_node_to_cml_lab x3 (IOSv: R1, R2, R3)
+→ add_interface_to_node + connect_two_nodes (R1-R2, R2-R3, R1-R3 full mesh)
+→ configure_cml_node for each (OSPF area 0, loopbacks, point-to-point links)
+→ start_cml_lab
+→ send_cli_command: "show ip ospf neighbor" on each router
 → Report: "Lab ready! R1, R2, R3 all have FULL OSPF adjacencies."
 
 **"Add a 4th router to the OSPF lab"**
-→ stop_lab (topology changes require stopped state)
-→ create_node R4 (IOSv)
-→ create_interface + create_link (R4 to R2 and R3)
-→ set_node_config for R4 (OSPF area 0)
+→ stop_cml_lab (topology changes require stopped state)
+→ add_node_to_cml_lab R4 (IOSv)
+→ add_interface_to_node + connect_two_nodes (R4 to R2 and R3)
+→ configure_cml_node for R4 (OSPF area 0)
 → Update R2 and R3 configs if needed
-→ start_lab
+→ start_cml_lab
 → Verify all 4 routers have adjacencies
 
 **"Create a lab from this YAML topology"**
 → import_lab with the provided YAML
-→ start_lab
+→ start_cml_lab
 → Report node count, link count, state
 
 **"Clone the OSPF lab and add BGP peering"**
-→ clone_lab "OSPF Lab - 3 Routers" → "OSPF+BGP Lab"
+→ clone_cml_lab "OSPF Lab - 3 Routers" → "OSPF+BGP Lab"
 → Modify configs to add BGP router stanzas
-→ start_lab
+→ start_cml_lab
 → Verify both OSPF and BGP adjacencies
 
 ## Workflow: Lab Cleanup
 
 When a user is done with a lab:
 
-1. **Stop the lab**: `stop_lab` — graceful shutdown of all nodes
+1. **Stop the lab**: `stop_cml_lab` — graceful shutdown of all nodes
 2. **Optional export**: Ask if they want to save the topology (`export_lab`)
 3. **Wipe configs**: `wipe_lab` to reset node configs (if reusing later)
 4. **Delete the lab**: `delete_lab` to free CML resources
@@ -93,9 +99,9 @@ When a user is done with a lab:
 
 When a user wants to experiment with a variant of an existing lab:
 
-1. **Clone the lab**: `clone_lab` creates a deep copy
+1. **Clone the lab**: `clone_cml_lab` creates a deep copy
 2. **Modify the clone**: Add/remove nodes, change links, update configs
-3. **Start the clone**: `start_lab` on the new copy
+3. **Start the clone**: `start_cml_lab` on the new copy
 4. Keep the original untouched for comparison
 
 ## Workflow: Export for Sharing
@@ -148,7 +154,7 @@ Labs go through these states:
 ## Important Rules
 
 - **Always check lab state** before operations — don't try to start an already-running lab
-- **Use `get_labs`** first to see what already exists — avoid duplicate lab names
+- **Use `get_cml_labs`** first to see what already exists — avoid duplicate lab names
 - **Export before delete** — ask the user if they want to save the topology before destroying it
 - **Lab titles can be used** instead of lab IDs — the CML MCP resolves titles to IDs
 - **Wipe requires stop** — a lab must be stopped before configs can be wiped

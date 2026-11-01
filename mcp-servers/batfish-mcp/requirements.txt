@@ -3,4 +3,7 @@ fastmcp==4.0.11
 fastmcp-tasks==4.0.11
 mcp==2.3.0
 pybatfish>=2024.1.0,<2025
+# This qualified pybatfish line imports pkg_resources (removed in setuptools 82).
+# Follow its own compatibility guidance until the client is upgraded separately.
+setuptools<81
 python-dotenv>=1.0.0

@@ -22085,12 +22085,231 @@
       }
     },
     {
+      "id": "netconverter",
+      "category": "Platform Services",
+      "title": "NetConverter migration",
+      "description": "Optional guarded vendor conversion and virtual-target rehearsal",
+      "whenToChoose": "Convert supported local configuration files with exact-file approval, inspect evidence and rehearse on eligible virtual targets.",
+      "order": 110,
+      "platforms": [
+        "macos",
+        "wsl2"
+      ],
+      "platformReason": "Target platform per installer-preflight policy; native dependencies and actual discovery are checked separately.",
+      "dependencies": [],
+      "prerequisites": [
+        "Python 3.12 for the isolated guard; enabled account; local mode also requires an operator-installed licensed Terminal."
+      ],
+      "installer": {
+        "function": "component_install_netconverter",
+        "mode": "native",
+        "effects": [
+          "runtime-home",
+          "owned-source",
+          "download"
+        ],
+        "reason": "Install guard dependencies in the selected runtime; no Terminal installation, license acceptance, account call or upload."
+      },
+      "servers": [
+        "netconverter-mcp"
+      ],
+      "skills": [
+        "netconverter"
+      ],
+      "settings": [
+        {
+          "key": "NETCONVERTER_MODE",
+          "label": "Mode",
+          "help": "Choose hosted-readonly or local-terminal. Setup never submits a file.",
+          "classification": "public",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "hosted-readonly",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_API_KEY",
+          "label": "API key",
+          "help": "Enabled installation-specific API key; configure later while account approval is pending.",
+          "classification": "secret",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_ACCOUNT_REF",
+          "label": "Account reference",
+          "help": "Your local account label; not a verified tenant identity.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_WORKSPACE",
+          "label": "Terminal workspace",
+          "help": "Absolute existing private workspace; its upstream privacy policy is preserved.",
+          "classification": "private",
+          "valueType": "path",
+          "required": "conditional",
+          "condition": {
+            "equals": {
+              "key": "NETCONVERTER_MODE",
+              "value": "local-terminal"
+            }
+          },
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_EXECUTABLE",
+          "label": "Licensed Terminal executable",
+          "help": "Absolute operator-installed executable. Installer never accepts the license.",
+          "classification": "private",
+          "valueType": "path",
+          "required": "conditional",
+          "condition": {
+            "equals": {
+              "key": "NETCONVERTER_MODE",
+              "value": "local-terminal"
+            }
+          },
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_DATA_DIR",
+          "label": "Private guard state",
+          "help": "Generated inside this installation.",
+          "classification": "private",
+          "valueType": "path",
+          "required": "always",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "generated",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        },
+        {
+          "key": "NETCONVERTER_INSTALLATION_ID",
+          "label": "Installation binding",
+          "help": "Generated from this installation identity.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "always",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "generated",
+          "provenance": [
+            {
+              "source": "mcp-servers/netconverter-mcp/server.py",
+              "checkedAt": "2026-10-30",
+              "note": "Guarded integration; live account and target qualification separate."
+            }
+          ]
+        }
+      ],
+      "links": [
+        {
+          "role": "upstream",
+          "target": "https://github.com/valeronlabs/netconverter_terminals",
+          "unavailableReason": ""
+        },
+        {
+          "role": "netclaw",
+          "target": "mcp-servers/netconverter-mcp/README.md",
+          "unavailableReason": ""
+        },
+        {
+          "role": "vendor",
+          "target": "https://netconverter.ai/mcp.html",
+          "unavailableReason": ""
+        }
+      ],
+      "verification": {
+        "adapter": "native-discovery",
+        "level": "discovery",
+        "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
+      },
+      "estimate": {
+        "schemas": 8,
+        "method": "documented",
+        "source": "mcp-servers/netconverter-mcp/server.py",
+        "reason": "Guard tools only; upstream capabilities are discovered separately."
+      },
+      "provenance": [
+        {
+          "source": "mcp-servers/netconverter-mcp/server.py",
+          "checkedAt": "2026-10-30",
+          "note": "Guarded integration; live account and target qualification separate."
+        }
+      ],
+      "kind": "mcp-integration",
+      "access": {
+        "mode": "unknown",
+        "note": "Hosted reads or exact-file-approved submission; no device deployment authority.",
+        "source": "mcp-servers/netconverter-mcp/server.py"
+      }
+    },
+    {
       "id": "convergence-read",
       "category": "Observability & Telemetry",
       "title": "Convergence flow evidence",
       "description": "Optional retained flow rankings and same-window evidence (2 read-only tools)",
       "whenToChoose": "Inspect a separately operated Convergence archive; no collector or storage deployment.",
-      "order": 110,
+      "order": 111,
       "platforms": [],
       "platformReason": "Linux CLI connector qualification is recorded in spec162. macOS/WSL2 IDE installation remains unqualified.",
       "dependencies": [],
@@ -23304,7 +23523,7 @@
       "title": "clab-lab-management",
       "description": "ContainerLab network lab lifecycle management — authenticate, list, deploy, inspect, execute commands on, and destroy containerized network labs via the ContainerLab API. Use when deploying containerized network labs, spinning up SR Linux or cEOS topologies, running commands on lab nodes, or tearing down test environments.",
       "path": "workspace/skills/clab-lab-management/SKILL.md",
-      "sha256": "3957e64b240aa51da355a9d38a95fd0bbe0cfce7148717a7e0d7a79e3c57c193",
+      "sha256": "1210d10f1830814867ab0e10000fac05afd602b608115b8ec48e987aa5e4f39b",
       "components": [
         "containerlab"
       ],
@@ -23602,7 +23821,7 @@
       "title": "cml-lab-lifecycle",
       "description": "Cisco CML lab lifecycle management — create, start, stop, wipe, delete, clone, import/export labs. Use when building a network lab, starting or stopping a CML lab, cloning a topology, or importing lab YAML files.",
       "path": "workspace/skills/cml-lab-lifecycle/SKILL.md",
-      "sha256": "9315f10005873b68a51c5a2cb83911a51a01339818c941b38014d5110722606c",
+      "sha256": "e875d1d64f6428df04b57cd97099b2a1b86cfc2c7643058e5ccd6d967b8db9f2",
       "components": [
         "cml"
       ],
@@ -23686,7 +23905,7 @@
       "title": "cml-topology-builder",
       "description": "Build CML topologies — add nodes, create interfaces, wire links, set link conditioning, add annotations. Use when building a network topology in CML, adding routers or switches to a lab, wiring links between nodes, or simulating WAN conditions.",
       "path": "workspace/skills/cml-topology-builder/SKILL.md",
-      "sha256": "8674d930c2934e139678398d5ebb1b24762d6e4976fb3cf5b06b3235db3d86fe",
+      "sha256": "c9c122adcc0c643214dd1f8c4f93e605a58647467c5c5c1ef45d5167dc958883",
       "components": [
         "cml"
       ],
@@ -24832,7 +25051,7 @@
       "title": "gns3-node-operations",
       "description": "Manage GNS3 nodes - add from templates, start/stop/suspend/reload, console access",
       "path": "workspace/skills/gns3-node-operations/SKILL.md",
-      "sha256": "1283a8a43783727ae4cac8279d4834165658335e0ff342a602250ed02396d47b",
+      "sha256": "3ec414591827bca0c3e3f5c30bb99c17c052ee31d514ebd4bcb6a960e8bd4f05",
       "components": [
         "gns3"
       ],
@@ -28877,6 +29096,34 @@
       }
     },
     {
+      "id": "netconverter",
+      "title": "netconverter",
+      "description": "Convert, validate and optimize supported network configuration files with NetConverter, then rehearse migration candidates on eligible virtual targets and assemble evidence. Use for vendor migration and conversion requests; inventory alone is not a configuration.",
+      "path": "workspace/skills/netconverter/SKILL.md",
+      "sha256": "ee56c2fe3d05060a7fa9dfe79d0598f1976f5bb008b8ee3ca9f3da6817bfc879",
+      "components": [
+        "netconverter"
+      ],
+      "servers": [
+        "netconverter-mcp"
+      ],
+      "availability": "supported",
+      "reason": "Requires the explicitly listed components and their configured backends; discovery is verified separately.",
+      "links": [
+        {
+          "role": "skill",
+          "target": "workspace/skills/netconverter/SKILL.md",
+          "unavailableReason": ""
+        }
+      ],
+      "kind": "skill",
+      "access": {
+        "mode": "unknown",
+        "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
+        "source": "workspace/skills/netconverter/SKILL.md"
+      }
+    },
+    {
       "id": "convergence-observations",
       "title": "convergence-observations",
       "description": "Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.",
@@ -29201,6 +29448,7 @@
         "ollama",
         "jev",
         "humanrail",
+        "netconverter",
         "convergence-read"
       ]
     }
@@ -29222,22 +29470,6 @@
         "hermes"
       ],
       "qualification": "Spec149 protected runtime closure: subnet only; each new installation still needs observed verification."
-    },
-    {
-      "id": "convergence",
-      "components": [
-        "convergence-read"
-      ],
-      "skills": [
-        "convergence-observations"
-      ],
-      "servers": [
-        "convergence-read-mcp"
-      ],
-      "harnesses": [
-        "openclaw"
-      ],
-      "qualification": "Spec164 source integration with bounded evidence and member-local configuration. Live cross-source interpretation and protected Hermes execution remain unqualified."
     },
     {
       "id": "cml",
@@ -30017,6 +30249,38 @@
         "openclaw"
       ],
       "qualification": "OpenClaw native member composition; protected Hermes execution is unavailable until this profile is qualified."
+    },
+    {
+      "id": "netconverter",
+      "components": [
+        "netconverter"
+      ],
+      "skills": [
+        "netconverter"
+      ],
+      "servers": [
+        "netconverter-mcp"
+      ],
+      "harnesses": [
+        "openclaw"
+      ],
+      "qualification": "Independent OpenClaw NetConverter member using the guarded MCP. Account discovery and each exact-file submission require their own evidence and review; protected Hermes member execution is unqualified."
+    },
+    {
+      "id": "convergence",
+      "components": [
+        "convergence-read"
+      ],
+      "skills": [
+        "convergence-observations"
+      ],
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "harnesses": [
+        "openclaw"
+      ],
+      "qualification": "Spec164 source integration with bounded evidence and member-local configuration. Live cross-source interpretation and protected Hermes execution remain unqualified."
     },
     {
       "id": "comms",

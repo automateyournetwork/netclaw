@@ -57,6 +57,7 @@ import { registerGenieRoutes } from './genie-parser.js';
 import { registerIntentExecutionRoutes } from './terminal-intent-execution.js';
 import { createTranscriptActivityReader } from './terminal-intent-live.js';
 import { createLocalChangePolicy } from './terminal-change-policy.js';
+import { gatewayBearerToken } from './src/hud-server/gateway-auth.js';
 import {
   applySshAlgorithmPolicy,
   keyExchangeFailureDetails,
@@ -185,6 +186,7 @@ const SOUL_FILE = path.join(ROOT, 'SOUL.md');
 const INTEGRATION_CATALOG = [
   {id:'hermes-hud',name:'Hermes HUD',category:'Runtime',prefixes:['hermes-hud-'],color:'#ffb454',transport:'private stdio',toolEstimate:8,description:'Private HUD conversation bridge. Registration, qualification and observed execution are separate states.'},
   { id: 'pyats', name: 'pyATS', category: 'Device Automation', prefixes: ['pyats-'], color: '#4cc9f0', transport: 'stdio', toolEstimate: 35, description: 'Static or reviewed dynamic testbeds, CLI checks and controlled changes. Dynamic MCP activation is separate from HUD static inventory.' },
+  { id: 'netconverter', name: 'NetConverter', category: 'Platform Services', prefixes: ['netconverter'], color: '#70d6b1', transport: 'stdio', toolEstimate: 8, description: 'Optional guarded migration workflow. Account capability, exact-file upload approval and tested target acceptance are verified separately.' },
   { id: 'aci', name: 'Cisco ACI', category: 'Fabric Control', prefixes: ['aci-'], color: '#ff5d73', transport: 'stdio', toolEstimate: 20, description: 'APIC-backed policy audit and guarded ACI change delivery.' },
   { id: 'ise', name: 'Cisco ISE', category: 'Security', prefixes: ['ise-'], color: '#f94144', transport: 'stdio', toolEstimate: 16, description: 'Identity, posture, and incident-response workflows for endpoints.' },
   { id: 'f5', name: 'F5 BIG-IP', category: 'Load Balancing', prefixes: ['f5-', 'pyats-f5-'], color: '#ff8c42', transport: 'stdio', toolEstimate: 110, description: 'Virtual server, pool, platform, and config-management operations.' },
@@ -1511,7 +1513,7 @@ function getGatewayConfig() {
     return {
       agentId: gatewayAgentId(config),
       port: config?.gateway?.port || 18789,
-      token: config?.gateway?.auth?.token || '',
+      token: gatewayBearerToken(config, { ...process.env, ...parseOneEnvFile(OPENCLAW_ENV) }),
       chatCompletionsEnabled:
         config?.gateway?.http?.endpoints?.chatCompletions?.enabled === true,
     };

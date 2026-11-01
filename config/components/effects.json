@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "4edfd5ef1ce552d324e68aa4e6419147b7a85877e980f424e495c33fc2a06c84",
+  "sourceSha256": "bf2dbcb559887cde53998c5ace0d10f178e940a5effd318df30a2fefc8c1bd4b",
   "components": [
     {
       "id": "hermes-hud",
@@ -1004,6 +1004,15 @@
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_humanrail"
+    },
+    {
+      "id": "netconverter",
+      "function": "component_install_netconverter",
+      "sha256": "d9ed4e4bc82c9fca0a621d484d6e186a55cf8e1c10e1d31a67f31f25164e8642",
+      "adapter": "isolated-shell",
+      "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_netconverter"
     },
     {
       "id": "convergence-read",

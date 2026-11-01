@@ -4,6 +4,8 @@ Set up a **new NetClaw or mixed Risk**, or manage your **existing NetClaw or Ris
 inspect operations, converse with its configured runtime, search RAG knowledge and
 review supported settings without leaving your editor.
 
+**Version 1.5.0:** Optional NetConverter setup selects hosted-readonly or local-Terminal mode with independent private settings and cancellation preservation. Requires source **1.18.0**; account capability and exact-file approval remain separate. See the [NetConverter guide](../../docs/NETCONVERTER.md) and [qualification evidence](../../specs/162-netconverterai/verification.md).
+
 **New in 1.4.0:** Choose **Static or Dynamic testbeds** per claw, with 14 source routes, native source selection, explicit plan review and preserved cancellation/reload. Dynamic setup requires source **1.14.0**. Read the [dynamic testbed guide](../../docs/DYNAMIC-TESTBEDS.md) and [Spec160 verification](../../specs/160-dynamic-pyats-testbeds/verification.md). Setup configures policy; source access, schema validation, activation and device execution are separate steps.
 
 **Patch 1.3.1:** Includes the optional MCP-default catalog/resolver in exact setup source review (Spec 156). Use source 1.13.1 for the coordinated minor fixes; see [release notes](../../docs/releases/1.13.1.md).
@@ -14,7 +16,7 @@ NetClaw remains your runtime. Opening the extension changes no runtime. Explicit
 
 ## Connect
 
-1. Extension 1.4.0 requires VS Code 1.109 or later on macOS or Linux. Extension 1.1.0 retains its 1.102 baseline. On Windows, first open your
+1. Extension 1.5.0 source and 1.4.0 require VS Code 1.109 or later on macOS or Linux. Extension 1.1.0 retains its 1.102 baseline. On Windows, first open your
    intended **WSL distribution** with VS Code Remote WSL and install this extension
    **in WSL**. For another Linux/Mac machine, use your existing Remote SSH workspace.
 2. Start your already-installed NetClaw HUD using its normal supported environment.
@@ -240,4 +242,4 @@ Backend integration tests require the HUD dependencies
 `npm run test:editor` launches an isolated desktop extension test. RAG and named
 assistant live checks are explicit opt-ins documented in Spec150 evidence.
 
-`npm run package` requires a clean committed checkout, checks that every runtime bundle and license notice is included, and records source and VSIX digest in `out/package.json`. Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=NetClaw.netclaw). Version 1.4.0 adds static/dynamic testbed and source selection, retains guided Comms from 1.3.0 and the reviewed separate-claw setup from 1.2.0, retains workspace files and owned lifecycle controls from 1.1.0, and includes the [1.0.1 input/address hotfix](HOTFIX-1.0.1.md). Install the tested artifact and reload the window; an installed version label does not establish which code the current extension host is running. The earlier 0.1.1 WSL-tested VSIX passed native Mac acceptance and was published unchanged; Microsoft completed its validation on October 11, 2026. See [production readiness](../../specs/151-extension-experience/production-readiness.md) for qualification, artifact verification and platform limits. Earlier [Spec151 verification](../../specs/151-extension-experience/verification.md) records the original Mac source checkpoint.
+`npm run package` requires a clean committed checkout, checks that every runtime bundle and license notice is included, and records source and VSIX digest in `out/package.json`. Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=NetClaw.netclaw). Version 1.5.0 adds optional NetConverter setup; version 1.4.0 adds static/dynamic testbed and source selection, retains guided Comms from 1.3.0 and the reviewed separate-claw setup from 1.2.0, retains workspace files and owned lifecycle controls from 1.1.0, and includes the [1.0.1 input/address hotfix](HOTFIX-1.0.1.md). Install the tested artifact and reload the window; an installed version label does not establish which code the current extension host is running. The earlier 0.1.1 WSL-tested VSIX passed native Mac acceptance and was published unchanged; Microsoft completed its validation on October 11, 2026. See [production readiness](../../specs/151-extension-experience/production-readiness.md) for qualification, artifact verification and platform limits. Earlier [Spec151 verification](../../specs/151-extension-experience/verification.md) records the original Mac source checkpoint.

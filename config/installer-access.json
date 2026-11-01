@@ -205,6 +205,29 @@
         "n2n_status"
       ]
     },
+    "netconverter": {
+      "servers": [
+        "netconverter-mcp"
+      ],
+      "script": "mcp-servers/netconverter-mcp/server.py",
+      "required_env": [
+        "NETCONVERTER_MODE",
+        "NETCONVERTER_API_KEY",
+        "NETCONVERTER_ACCOUNT_REF",
+        "NETCONVERTER_DATA_DIR",
+        "NETCONVERTER_INSTALLATION_ID"
+      ],
+      "expected_tools": [
+        "netconverter_status",
+        "netconverter_prepare_submission",
+        "netconverter_submit_approved",
+        "netconverter_request_status",
+        "netconverter_read",
+        "netconverter_job_status",
+        "netconverter_wait_for_job",
+        "netconverter_download"
+      ]
+    },
     "convergence-read": {
       "servers": [
         "convergence-read-mcp"

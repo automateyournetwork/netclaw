@@ -61,6 +61,15 @@ def generated(claw,validator,python):
     if 'pyats' in claw['capabilities']['components']:
         from pyats_testbeds import policy_environment
         values.update(policy_environment(claw.get('testbed'),Path(claw['workspace'])/'testbed.yaml'))
+    if 'netconverter' in claw['capabilities']['components']:
+        values['NETCONVERTER_DATA_DIR']=str(home/'netconverter')
+        values['NETCONVERTER_INSTALLATION_ID']=claw['id']
+    if claw.get('role') in ('border','member'):
+        # Registration precedes Risk materialization and freezes native MCP
+        # aliases. Bind to the reviewed local endpoint now, not the component's
+        # default 8179 or another claw's API. Focused settings remain unchanged.
+        endpoint='http://127.0.0.1:'+str(claw['endpoints']['bgpApiPort'])
+        values.update(BGP_DAEMON_API=endpoint,NETCLAW_BGP_API=endpoint)
     # Data/cache paths must stay local even when upstream's default is a global
     # .openclaw path. Operator-reviewed explicit settings remain authoritative.
     for component,key,directory in [('nsm','NSM_HOME','nsm'),('rag-mcp','RAG_DATA_DIR','rag'),

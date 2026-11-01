@@ -2,7 +2,7 @@
   "name": "netclaw",
   "displayName": "NetClaw",
   "description": "Set up and manage independent NetClaw and Risk installations from Visual Studio Code.",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "publisher": "NetClaw",
   "license": "Apache-2.0",
   "engines": {

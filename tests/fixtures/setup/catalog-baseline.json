@@ -661,6 +661,12 @@
       "Human-in-the-loop escalation and approvals"
     ],
     [
+      "netconverter",
+      "Platform Services",
+      "NetConverter migration",
+      "Optional guarded vendor conversion and virtual-target rehearsal"
+    ],
+    [
       "convergence-read",
       "Observability & Telemetry",
       "Convergence flow evidence",
@@ -919,6 +925,7 @@
       "ollama",
       "jev",
       "humanrail",
+      "netconverter",
       "convergence-read"
     ]
   },
@@ -1063,6 +1070,7 @@
     "n2n-federation",
     "nautobot-sot",
     "netbox-reconcile",
+    "netconverter",
     "network-data-analysis",
     "network-report-documents",
     "nmap-network-scan",

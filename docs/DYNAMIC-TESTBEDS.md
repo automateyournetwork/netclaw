@@ -160,7 +160,7 @@ process lifetime. `source_inventories` directs callers to the existing source MC
 
 The registry belongs to one owned server process. Separate `$MCP_CALL` invocations
 start separate processes: build in one invocation cannot feed activate in another.
-Use a persistent native MCP client, or the bounded session helper:
+Use a persistent native MCP client, the explicit foreground session below, or the bounded session helper:
 
 ```bash
 chmod 600 /absolute/private/candidate.json
@@ -180,6 +180,42 @@ operations, compose/validate/activate in the persistent native client that will 
 them. Restart always requires rebuild/revalidation/explicit activation; nothing silently
 re-fetches changed inventory or replays work. Each process has its own private artifact
 and task database directory, avoiding cross-client state and database locks.
+
+### Clients that close STDIO between turns
+
+Actual OpenClaw 2026.7.1-2 qualification showed that its STDIO child ends after
+each agent turn. For multi-turn operations, including Terminal Intent's private
+candidate review and APPLY phases, explicitly start one managed foreground session.
+Use the selected installation's environment and installed pyATS interpreter:
+
+```bash
+# Use a fresh descriptor in an owner-only directory. Keep this terminal open.
+# These values must match the same selected MCP registration.
+export PYATS_VENV=/absolute/selected/home/pyats-venv
+export NETCLAW_CHANGE_ROOT=/absolute/selected/home/netclaw-changes
+export NETCLAW_TESTBED_MODE=dynamic
+export NETCLAW_TESTBED_SOURCES=cml
+python3 scripts/pyats-stdio.py \
+  --serve-session /absolute/private/session-unique.json
+```
+
+Load device credential references through the selected runtime's existing private
+environment; never paste secrets into these commands. Add `PYATS_SESSION_FILE`
+pointing to that exact descriptor to the same `pyats-mcp` registration's environment.
+The registration continues using `pyats-stdio.py` and the original tool identities.
+Refresh the runtime registration, then compose, validate and activate through its
+tools. The descriptor binds the installation vault, interpreter, upstream and
+testbed policy; a different selection fails closed.
+
+The owner process binds only loopback, requires a fresh private bearer on every
+HTTP request, and retains inventory when a client disconnects. Default lifetime is
+four hours (`--session-seconds`, 60–28800); Ctrl-C stops its child. Private descriptors
+must be owned regular files in a 0700 directory and have mode 0600. Do not share
+them. Stopped/expired sessions fail closed; there is no auto-start, inventory recovery
+or grant replay. Use a new descriptor and rebuild/revalidate/review after restart
+or credential changes. Remove the registration's `PYATS_SESSION_FILE` to return to
+the default per-client lifetime. Existing private apply grants still expire after
+five minutes and bind the same live process, inventory and reviewed candidate.
 
 ## Static HUD, collectors and readiness
 

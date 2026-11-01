@@ -1081,7 +1081,7 @@ function TerminalLane({ node, color, isActive, selected, animate, dark, laneRef,
       response = await fetch('/api/terminal/intent/runs', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id, request: requestText, deviceId, transcript: intentTerminalContext(), history, continueFrom,
-          changeMode: intentChangeControl.mode, targetDeviceIds: intentChangeControl.targetDeviceIds, policyRevision: intentChangeControl.policyRevision }),
+          changeMode: intentChangeControl.mode, targetDeviceIds: intentChangeControl.targetDeviceIds, policyRevision: intentChangeControl.policyRevision, migration: intentChangeControl.migration }),
       });
       if (!response.ok) throw await apiError(response);
       const run = await response.json();

@@ -13,22 +13,28 @@ tags: [cml, topology, nodes, links, interfaces]
 - **Command**: `cml-mcp` (pip-installed, stdio transport)
 - **Requires**: `CML_URL`, `CML_USERNAME`, `CML_PASSWORD` environment variables
 
+## Migration rehearsal and current tool contracts
+
+Discover installed schemas before every new workflow. The current [upstream tool catalog](https://github.com/xorrkaz/cml-mcp#available-mcp-tools) names `create_empty_lab`, `add_node_to_cml_lab`, `connect_two_nodes`, `start_cml_lab` and `get_nodes_for_cml_lab`. Parameter examples and other historical names below are illustrative, not evidence that an installed tool accepts them. Node definitions are not proof of installed images.
+
+For NetConverter rehearsal, use `netconverter/references/rehearsal.md`: qualify the actual licensed image, capacity, isolated management and private apply route; record the attempt before creation; create/boot the target and test observed behavior. Retain exact run-owned resource IDs. Do not hide the migration candidate in bootstrap, infer device-write permission from lifecycle access, or use console/CLI after a configuration-tool denial. Delete, wipe, reload and automatic destructive cleanup examples are unavailable under AGENTS.md; an export does not authorize them. Local/Lab changes require the existing API-created record; production keeps ServiceNow approval.
+
 ## Available Tools
 
 ### Node Management
 
 | Tool | Parameters | What It Does |
 |------|-----------|-------------|
-| `get_node_defs` | none | List all available node definitions (IOSv, NX-OS, IOS-XR, etc.) |
-| `create_node` | `lab_id`/`lab_title`, `node_def`, `label`, `x`, `y` | Add a node to a lab |
-| `get_nodes` | `lab_id`/`lab_title` | List all nodes in a lab |
+| `get_cml_node_definitions` | none | List all available node definitions (IOSv, NX-OS, IOS-XR, etc.) |
+| `add_node_to_cml_lab` | `lab_id`/`lab_title`, `node_def`, `label`, `x`, `y` | Add a node to a lab |
+| `get_nodes_for_cml_lab` | `lab_id`/`lab_title` | List all nodes in a lab |
 | `get_node` | `lab_id`/`lab_title`, `node_id`/`node_label` | Get details of a specific node |
 
 ### Interface Management
 
 | Tool | Parameters | What It Does |
 |------|-----------|-------------|
-| `create_interface` | `lab_id`/`lab_title`, `node_id`/`node_label`, `slot?` | Create a new interface on a node |
+| `add_interface_to_node` | `lab_id`/`lab_title`, `node_id`/`node_label`, `slot?` | Create a new interface on a node |
 | `get_interfaces` | `lab_id`/`lab_title`, `node_id`/`node_label` | List all interfaces on a node |
 | `get_interface` | `lab_id`/`lab_title`, `node_id`/`node_label`, `interface_id`/`interface_label` | Get interface details |
 
@@ -36,7 +42,7 @@ tags: [cml, topology, nodes, links, interfaces]
 
 | Tool | Parameters | What It Does |
 |------|-----------|-------------|
-| `create_link` | `lab_id`/`lab_title`, `src_node`/`src_label`, `src_intf`, `dst_node`/`dst_label`, `dst_intf` | Create a link between two interfaces |
+| `connect_two_nodes` | `lab_id`/`lab_title`, `src_node`/`src_label`, `src_intf`, `dst_node`/`dst_label`, `dst_intf` | Create a link between two interfaces |
 | `get_links` | `lab_id`/`lab_title` | List all links in a lab |
 | `get_link` | `lab_id`/`lab_title`, `link_id` | Get link details |
 | `set_link_condition` | `lab_id`/`lab_title`, `link_id`, `bandwidth?`, `latency?`, `jitter?`, `loss?` | Set link conditioning (WAN simulation) |
@@ -52,7 +58,7 @@ tags: [cml, topology, nodes, links, interfaces]
 
 ## Available Node Definitions
 
-Common node types available in CML (use `get_node_defs` to get the full list):
+Common node types available in CML (use `get_cml_node_definitions` to get the full list):
 
 | Node Definition ID | Description | Typical Use |
 |--------------------|-------------|-------------|
@@ -73,13 +79,13 @@ Common node types available in CML (use `get_node_defs` to get the full list):
 When the user describes a topology:
 
 1. **Create the lab** (or get an existing one via `get_lab`)
-2. **Get node definitions**: `get_node_defs` to know what's available
+2. **Get node definitions**: `get_cml_node_definitions` to know what's available
 3. **Plan the layout**: Calculate x,y coordinates for visual placement
    - Use a grid layout: 200px spacing horizontally, 200px vertically
    - Group by role: core in center, edge on sides, servers at bottom
-4. **Create nodes**: `create_node` for each device with meaningful labels
-5. **Create interfaces**: `create_interface` for each connection point
-6. **Wire links**: `create_link` to connect interface pairs
+4. **Create nodes**: `add_node_to_cml_lab` for each device with meaningful labels
+5. **Create interfaces**: `add_interface_to_node` for each connection point
+6. **Wire links**: `connect_two_nodes` to connect interface pairs
 7. **Set conditions** (if requested): `set_link_condition` for WAN links
 8. **Add annotations**: `create_annotation` for labels, IP addressing plans
 9. **Report the topology**: List all nodes, interfaces, and links
@@ -135,7 +141,7 @@ After building a topology, add visual documentation:
 When testing network resilience:
 
 1. **Get the link**: `get_links` to find the link ID between the two nodes
-2. **Capture baseline**: Use `execute_command` to check routing tables before failure
+2. **Capture baseline**: Use `send_cli_command` to check routing tables before failure
 3. **Bring link down**: `set_link_state` with state "down"
 4. **Observe convergence**: Execute show commands on affected nodes (OSPF neighbors, BGP summary, routing table)
 5. **Optionally capture traffic**: Use cml-packet-capture to capture reconvergence traffic
@@ -145,7 +151,7 @@ When testing network resilience:
 
 ## Important Rules
 
-- **Always use `get_node_defs` first** to verify available node types before creating nodes
+- **Always use `get_cml_node_definitions` first** to verify available node types before creating nodes
 - **Create interfaces before links** — you need interface IDs to wire links
 - **Use descriptive labels** — "R1-Core" not "Node1"
 - **Plan before building** — figure out the full topology before starting to create nodes

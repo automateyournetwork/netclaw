@@ -179,6 +179,10 @@ while true; do
 done
 [ "${1:-}" = "--testbed-only" ] && exit 0
 
+if want "netconverter" "Configure NetConverter for this runtime?"; then
+    python3 "$SCRIPT_DIR/configure-netconverter.py" --env "$OPENCLAW_ENV" --home "$RUNTIME_HOME" --interactive
+fi
+
 # ═══════════════════════════════════════════
 # Step 2: Network Platforms
 # ═══════════════════════════════════════════

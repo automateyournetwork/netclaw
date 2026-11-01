@@ -19,6 +19,10 @@ user-invokable: true
 python3 $MCP_CALL "python3 -u $CLAB_MCP_SCRIPT" <tool_name> '<args_json>'
 ```
 
+## NetConverter rehearsal boundaries
+
+Discover the installed schemas, exact licensed image and host architecture first. Lifecycle access does not grant configuration permission. Startup-file paths belong to the lab host; a local NetClaw path is not remote staging. Console access is not a verified SSH identity. Use the existing artifact-bound change workflow for a reviewed candidate; no exec/console fallback after denial. Record creation attempts and exact provider ownership, retain resources by default, and follow `netconverter/references/rehearsal.md`. Destructive destroy/delete/reload/restore examples below are unavailable under AGENTS.md and are not automatic rehearsal cleanup.
+
 ## Available Tools
 
 | Tool | Parameters | What It Does |

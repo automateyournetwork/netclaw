@@ -10,6 +10,7 @@ from setup_schema import Invalid, canonical, loads
 from setup_state import Conflict, guarded_read
 from setup_secrets import child_environment, read_owned_environment
 from setup_process import run, WriterUncertain
+from setup_deploy import helper
 from convergence_member_policy import native_tool_policy
 
 
@@ -106,6 +107,7 @@ class Harness:
         return self.call(effect,[node,'--input-type=module','--eval',check],cwd=base,timeout=20)['returncode']==0
 
     def install_pyats(self,effect):
+        policy=helper(self.repository,'setup-pyats-runtime.py')
         env=self.environment();uv=shutil.which('uv',path=env['PATH']);git=shutil.which('git',path=env['PATH'])
         if not uv or not git:return False
         base=self.home/'pyats-venv';source=base/'upstream'
@@ -114,8 +116,8 @@ class Harness:
         if base.exists():return self.observe_pyats(effect)
         python=guarded_read(self.home/'.setup/python312',8192).decode().strip()
         commands=[[uv,'venv',str(base),'--python',python],
-            [git,'clone','--no-checkout','https://github.com/automateyournetwork/pyATS_MCP.git',str(source)],
-            [git,'-C',str(source),'checkout','--detach','f11b02f06e0561392603cdd147d28f82373b5470'],
+            [git,'clone','--no-checkout',policy.REPOSITORY,str(source)],
+            [git,'-C',str(source),'checkout','--detach',policy.REVISION],
             [uv,'pip','install','--python',str(base/'bin/python'),'-r',str(source/'requirements.txt'),'mcp==2.3.0']]
         for args in commands:
             if self.call(effect,args,timeout=1200)['returncode']:return False
@@ -124,12 +126,13 @@ class Harness:
         return True
 
     def observe_pyats(self,effect):
+        policy=helper(self.repository,'setup-pyats-runtime.py')
         base=self.home/'pyats-venv'
-        if not (base/'upstream/pyats_mcp_server.py').is_file() or not (base/'upstream/pyats_tasks.py').is_file():return False
+        if any(not (base/'upstream'/name).is_file() for name in policy.SOURCE_FILES):return False
         git=shutil.which('git',path=self.environment()['PATH'])
         if not git:return False
         revision=self.call(effect,[git,'-C',str(base/'upstream'),'rev-parse','HEAD'],capture=True,timeout=15)
-        if revision['returncode'] or revision['stdout'].decode().strip()!='f11b02f06e0561392603cdd147d28f82373b5470':return False
+        if revision['returncode'] or revision['stdout'].decode().strip()!=policy.REVISION:return False
         changed=self.call(effect,[git,'-C',str(base/'upstream'),'status','--porcelain','--untracked-files=no'],capture=True,timeout=15)
         if changed['returncode'] or changed['stdout'].strip():return False
         result=self.call(effect,[str(base/'bin/python'),'-c','import pyats,genie,unicon; from mcp.client.client import Client'],timeout=20)
