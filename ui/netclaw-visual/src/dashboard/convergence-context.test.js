@@ -22,6 +22,12 @@ test('handoff preserves scope, exact receipts, counters and sampling without inv
   assert.equal(context.evidence.included_records, 2); assert.equal(context.evidence.omitted_records, 0);
   assert.match(context.task, /available, authorized NetClaw tools or Risk members/);
   assert.match(context.limits.join(' '), /not the investigation/);
+  assert.match(context.task, /search available tools and Risk members by capability \(metrics\/monitoring/);
+  assert.match(context.task, /latest-100 record bound/);
+  assert.match(context.task, /Synthetic coverage still needs this handling and supports no verdict/);
+  assert.match(context.limits.join(' '), /an exchange or session/);
+  assert.match(context.limits.join(' '), /Distinct receipt timestamps are distinct instants/);
+  assert.match(context.limits.join(' '), /do not establish flow collector health, liveness or freshness/);
 });
 test('bounded selection stays valid JSON through Canvas and explicitly counts omitted records', () => {
   const context = convergenceContext(fixture(100));

@@ -217,6 +217,16 @@ private `N2N_MEMBER_ENV_FILE`. The source Risk mode is retained; an absent mode 
 to production, which must pass the existing controls. Testing mode must be explicit.
 The configuration does not prove OS confinement or model answer correctness.
 
+OpenClaw 2026.10.9 and later cannot run an embedded member inside a hardened
+`systemd --user` unit: the unit's private mount namespace hides the PID-namespace
+identity OpenClaw's ownership check needs. On such hosts run always-on members as
+system units (`python3 scripts/in2n-services.py generate --system`, then `enable
+--system`; both use `sudo -n` and print the commands if sudo needs a password). The
+Risk posture reports confinement unavailable until then; on-demand cold-start
+members remain a gap. Members are confined, but the Border is not by default. To
+keep the Border's own shell and file tools away from Convergence settings, use the
+optional [Border hardening](N2N-RISK.md#border-hardening-optional-spec-165) helper.
+
 Configuration readiness is not proof that the remote service is reachable or that
 its credential is authorized. Hermes's protected federation remains subnet-only;
 this profile does not extend that qualification. Source checks and outstanding live

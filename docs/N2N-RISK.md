@@ -191,6 +191,83 @@ On a non-systemd host the generator degrades gracefully and posture reports the
 durable-runtime aspect accordingly. Full detail:
 [specs/057-in2n-production-enforcement](../specs/057-in2n-production-enforcement/).
 
+**System-scope members (`--system`, spec 165).** OpenClaw 2026.10.9 and later
+refuses to run an embedded member (`openclaw agent --local`) when it cannot stat
+`/proc/self/ns/pid` (`GatewayLockNamespaceError`). On some hosts (systemd 255,
+for example) a `systemd --user` unit with mount-namespace hardening (`PrivateTmp`,
+`ProtectSystem`, `InaccessiblePaths`) gets EACCES there, so every confined OpenClaw
+member fails. The Border probes this with a throwaway user unit carrying
+`PrivateTmp=yes` and `ProtectSystem=strict`. When the probe fails, posture reports
+the sandbox control unavailable and names this remediation. `--system` moves the
+always-on member units into the system manager (`/etc/systemd/system`, `User=`/
+`Group=` of the operator, the full hardening set) where the stat works. The mesh
+daemon and DefenseClaw sidecar stay user scope. Hermes Risks, older OpenClaw
+releases and hosts where the probe passes need nothing.
+
+Migrate one Risk in this order, as the operator user (never as root):
+
+```bash
+python3 scripts/in2n-services.py disable <member>          # remove each user-scope member unit (reverts to cold)
+python3 scripts/in2n-services.py generate --system          # stage + `sudo -n install` the system units
+python3 scripts/in2n-services.py enable --system            # `sudo -n systemctl enable --now`, then bind
+python3 scripts/in2n-services.py status --system
+python3 scripts/in2n-services.py disable --system <member>  # tear a system member down
+```
+
+`--system` uses only `sudo -n` and never prompts. If sudo needs a password, it
+prints the exact remaining commands (including which units were and were not
+installed) and exits non-zero; run `sudo -v` and retry, or run those commands as an
+administrator. `disable` without `--system` refuses a member that has a system unit.
+
+**Cold-start gap.** On-demand members are still cold-started inside a transient
+`systemd-run --user` unit, which cannot run OpenClaw on a host where the probe
+fails. In production the Border refuses such a cold start at once, and posture
+reports the sandbox control unavailable while spawnable on-demand members exist.
+Make those members always-on (`on_demand=false`) system units, or run them on a
+host where the probe passes.
+
+### Border hardening (optional, spec 165)
+
+Production mode confines **members**; the **Border** is an ordinary OpenClaw gateway
+and is not confined by feature 057. In spec 164 T005 a standalone Border with host
+exec/read reached Convergence secrets, while OpenClaw's Docker sandbox contained the
+same attempt. `scripts/border-harden.py` opts a Border into that containment. It
+changes settings only through the OpenClaw CLI (`openclaw config set --batch-file`),
+never by editing `openclaw.json`:
+
+| Setting | Value |
+|---------|-------|
+| `agents.defaults.sandbox.mode` / `backend` / `scope` / `workspaceAccess` | `all` / `docker` / `session` / `none` |
+| `agents.defaults.sandbox.docker.network` | `none` (other `docker` keys, such as `image`, are kept) |
+| `tools.elevated.enabled` | `false` (other `elevated` keys are kept) |
+| `tools.sandbox.tools.alsoAllow` | existing entries + `bundle-mcp`, so MCP tools pass the sandbox gate (merged into `allow` instead when that list is set, because OpenClaw rejects both in one scope) |
+| `skills.workshop.autonomous.mode` | `off` — Skill Workshop no longer persists learned procedures (spec 164 saw it save a bypass) or makes extra provider calls |
+
+Each change is a leaf assignment, so sibling settings are not rewritten. Only those
+paths are read (through redacted `openclaw config get --json`) or printed.
+
+**Trade-off — not a default.** With no network and no workspace access, every Border
+session runs in the sandbox: skills that run host scripts, read host files or need
+host network fail or behave differently. Use it on Borders that delegate that work to
+members over MCP.
+
+```bash
+python3 scripts/border-harden.py            # dry run (default): planned changes + OpenClaw's dry-run, writes nothing
+python3 scripts/border-harden.py --apply    # OpenClaw dry-run, write, then `openclaw config validate`
+openclaw sandbox explain --agent main       # verify the effective policy afterwards
+```
+
+Preflight requires `openclaw` on PATH, `docker info` working for the current user and
+the configured sandbox image (default `openclaw-sandbox:bookworm-slim`) present. When
+the image is missing, the helper prints OpenClaw's documented `docker build` and
+refuses `--apply` unless `--skip-image-check` is given. If Docker reports permission
+denied, add the user to the `docker` group, then log in again or run
+`sudo systemctl restart user@$(id -u)`. A user manager that started before the group
+change keeps the old groups. The helper never builds images, restarts services or runs
+sudo. Exit codes: `0` success, `1` OpenClaw rejected the change, `2` preflight failure.
+OpenClaw reports whether the gateway hot-reloads; existing sandbox runtimes keep old
+settings until `openclaw sandbox recreate --all`.
+
 ## A2A capability cards (what a peer/member learns)
 
 Every claw advertises an **A2A capability card** (the federation inventory) to

@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.16.0] - 2026-10-31
+
+- Keep hardened iN2N members working on OpenClaw 2026.10.9 and later: always-on members can run as system units (`in2n-services.py generate|enable --system`, sudo -n only) with full confinement, and the Risk posture reports confinement unavailable instead of claiming a configuration that cannot run OpenClaw members.
+- Add an opt-in `scripts/border-harden.py` that places an OpenClaw Border in the Docker sandbox and turns off Skill Workshop learning, dry-run by default.
+- Hand Convergence observations from the HUD to the Border through Canvas with a bounded evidence envelope; add an optional `convergence` Risk member profile and stronger evidence guidance (capability search, latest-100 bound, record-only semantics, provenance).
+- Name routable specialty capabilities when a Risk route has no capable member.
+
+Specs [164-convergence-border](specs/164-convergence-border/spec.md) and [165-convergence-confinement](specs/165-convergence-confinement/spec.md). See [release notes](docs/releases/1.16.0.md).
+
 ## [1.15.0] - 2026-10-31
 
 - Add an optional, disabled-by-default Convergence reader and HUD for retained flow summaries and same-window evidence.

@@ -27,6 +27,7 @@ import logging
 import os
 import re
 import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Tuple
@@ -100,7 +101,69 @@ def _store(name: str, value: Tuple[bool, str]) -> Tuple[bool, str]:
 
 def invalidate_cache():
     """Drop cached probe results (tests / after a known state change)."""
+    global _pidns_probe
     _cache.clear()
+    _pidns_probe = None
+
+
+SYSTEM_UNIT_DIR = "/etc/systemd/system"
+_pidns_probe = None   # host property: a definitive probe result is kept per process (spec 165)
+_SYSTEM_REMEDIATION = ("run always-on members as system units: python3 scripts/in2n-services.py "
+                       "generate --system && python3 scripts/in2n-services.py enable --system")
+_COLD_START_GAP = ("on-demand (cold-start) members still use user-scope confinement, which "
+                   "cannot run OpenClaw on this host")
+_COLD_START_FIX = ("make them always-on system units (on_demand=false, then generate --system "
+                   "and enable --system) or run them on a host where user-scope confinement "
+                   "can stat /proc/self/ns/pid")
+
+
+_PIDNS_REFUSED = 3
+
+
+async def user_scope_pidns_readable() -> bool:
+    """Can a mount-namespaced `systemd --user` unit stat /proc/self/ns/pid?
+    OpenClaw 2026.10.9+ keys its gateway lock on that inode and refuses to run
+    (GatewayLockNamespaceError) where the stat is EACCES — systemd 255 user units
+    with PrivateTmp/ProtectSystem/ProtectHome/InaccessiblePaths (spec 165).
+    Applies the generated units' mount directives. Only a definitive exit code is
+    cached; a timeout/launch error reports False now and is re-probed next call."""
+    global _pidns_probe
+    if _pidns_probe is not None:
+        return _pidns_probe
+    if not shutil.which("systemd-run"):
+        return False
+    # The child exits 3 only for the stat refusal, so a systemd-run failure (also
+    # non-zero) is not mistaken for a definitive answer.
+    rc, _ = await _run(["systemd-run", "--user", "--wait", "--collect", "--pipe", "--quiet",
+                        "-p", "PrivateTmp=yes", "-p", "ProtectSystem=strict", sys.executable,
+                        "-c", "import os,sys\ntry: os.stat('/proc/self/ns/pid')\n"
+                              "except PermissionError: sys.exit(3)"], timeout_s=20)
+    if rc not in (0, _PIDNS_REFUSED):
+        return False
+    _pidns_probe = rc == 0
+    return _pidns_probe
+
+
+async def openclaw_user_scope_ok() -> bool:
+    """Can user-scope confinement (member user units, confined_cold_start) run this
+    Risk's runtime? Hermes is unaffected by the OpenClaw pid-namespace check."""
+    return _runtime_kind() != "openclaw" or await user_scope_pidns_readable()
+
+
+def _runtime_kind() -> str:
+    try:
+        from .runtime import selected
+        return selected().kind
+    except (OSError, ValueError):
+        return "openclaw"
+
+
+def _member_units(unit_dir: str) -> list:
+    try:
+        return sorted(f for f in os.listdir(unit_dir)
+                      if f.startswith("netclaw-member-") and f.endswith(".service"))
+    except OSError:
+        return []
 
 
 async def openshell_available() -> Tuple[bool, str]:
@@ -108,7 +171,7 @@ async def openshell_available() -> Tuple[bool, str]:
     return await sandbox_available()
 
 
-async def sandbox_available() -> Tuple[bool, str]:
+async def sandbox_available(on_demand_members=()) -> Tuple[bool, str]:
     """(True, "") if member CONFINEMENT is in effect; else (False, reason).
 
     Feature 057 US2 sandbox = HOST-LEVEL kernel confinement of each member process
@@ -120,7 +183,25 @@ async def sandbox_available() -> Tuple[bool, str]:
     Probe: `systemctl --user` is available AND the generated member units carry the
     confinement directives (NoNewPrivileges + ProtectSystem). On a host without a
     systemd user manager the confinement cannot be applied → unavailable → the
-    posture honestly reports the sandbox control degraded."""
+    posture honestly reports the sandbox control degraded.
+
+    Spec 165: system-scope member units (/etc/systemd/system, `--system`) count
+    too. Where OpenClaw cannot run under user-scope confinement (see
+    user_scope_pidns_readable) user units — or no units at all — are reported
+    unavailable with the --system remediation, never as working confinement.
+    `on_demand_members` (spawnable cold-start member ids, from the caller that
+    holds the risk) degrade an otherwise confined system-only setup on such a
+    host: confined_cold_start cannot run them."""
+    ok, detail = await _sandbox_units()
+    if ok and on_demand_members and not await openclaw_user_scope_ok():
+        return False, (f"on-demand members ({', '.join(on_demand_members)}) cannot be cold-started: "
+                       f"{_COLD_START_GAP} (a mount-namespaced user unit cannot stat "
+                       f"/proc/self/ns/pid, GatewayLockNamespaceError) — {_COLD_START_FIX}")
+    return ok, detail
+
+
+async def _sandbox_units() -> Tuple[bool, str]:
+    """Unit/manager half of sandbox_available, cached ~3s."""
     cached = _cached("sandbox")
     if cached is not None:
         return cached
@@ -130,23 +211,34 @@ async def sandbox_available() -> Tuple[bool, str]:
     rc, _ = await _run(["systemctl", "--user", "show-environment"], timeout_s=10)
     if rc != 0:
         return _store("sandbox", (False, "systemd --user manager unavailable"))
-    # Are member units confined? Check any generated member unit for the directives.
-    unit_dir = os.path.expanduser("~/.config/systemd/user")
-    try:
-        members = [f for f in os.listdir(unit_dir) if f.startswith("netclaw-member-")]
-    except OSError:
-        members = []
-    if not members:
+    # Are member units confined? Check every generated member unit (user scope,
+    # and system scope from `in2n-services.py --system`) for the directives.
+    members = _member_units(os.path.expanduser("~/.config/systemd/user"))
+    system_members = _member_units(SYSTEM_UNIT_DIR)
+    for scope, units in ((["--user"], members), ([], system_members)):
+        for unit in units:
+            rc, out = await _run(["systemctl", *scope, "show", unit,
+                                  "-p", "NoNewPrivileges,ProtectSystem"], timeout_s=10)
+            if "NoNewPrivileges=yes" not in out or "ProtectSystem=" not in out or "ProtectSystem=no" in out:
+                flag = " --system" if not scope else ""
+                return _store("sandbox", (False, f"member unit {unit} is not confined "
+                                                  f"(regenerate: scripts/in2n-services.py generate{flag})"))
+    # Spec 165: user-scope confinement (mount namespaces) breaks OpenClaw members
+    # on some hosts. Hermes is unaffected; system units keep the full hardening.
+    pidns_ok = await openclaw_user_scope_ok()
+    if not pidns_ok and (members or not system_members):
+        where, fix = "systemd --user confinement", _SYSTEM_REMEDIATION
+        if members:
+            where = f"user-scope member units ({', '.join(members)})"
+            fix = f"disable them (scripts/in2n-services.py disable <member>), then {fix}"
+        return _store("sandbox", (False, f"{where} cannot run OpenClaw members: a mount-namespaced "
+                                          f"user unit cannot stat /proc/self/ns/pid "
+                                          f"(GatewayLockNamespaceError) — {fix}; {_COLD_START_GAP}"))
+    if not members and not system_members:
         # No member units yet — the mechanism is available; confinement applies on
         # generate. Report available so a fresh Border isn't falsely degraded.
         return _store("sandbox", (True, "systemd confinement available (no member units yet)"))
-    for unit in members:
-        rc, out = await _run(["systemctl", "--user", "show", unit,
-                              "-p", "NoNewPrivileges,ProtectSystem"], timeout_s=10)
-        if "NoNewPrivileges=yes" not in out or "ProtectSystem=" not in out or "ProtectSystem=no" in out:
-            return _store("sandbox", (False, f"member unit {unit} is not confined "
-                                              f"(regenerate: scripts/in2n-services.py generate)"))
-    return _store("sandbox", (True, ""))
+    return _store("sandbox", (True, "" if pidns_ok else f"system-scope member units confined; {_COLD_START_GAP}"))
 
 
 DEFENSECLAW_GUARD_PORT = int(os.environ.get("DEFENSECLAW_GUARD_PORT", "4000"))

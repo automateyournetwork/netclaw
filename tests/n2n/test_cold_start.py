@@ -81,3 +81,13 @@ async def _always_on(tmp_path):
     ch = await svc.ensure_member_up("risk/cml", wait_s=1)
     assert ch is svc.member_channels["risk/cml"]      # returned immediately, no spawn
     svc.manager.close()
+
+
+def test_confined_cold_start_stays_user_scope(monkeypatch):
+    # Spec 165: on-demand members keep transient user-scope confinement (the
+    # posture reports the OpenClaw gap); --system covers always-on members only.
+    from bgp.federation import controls
+    monkeypatch.setattr(controls.shutil, "which", lambda name: "/usr/bin/" + name)
+    argv = controls.confined_cold_start("true", "risk/cml")
+    assert argv[:3] == ["systemd-run", "--user", "--collect"]
+    assert "PrivateTmp=yes" in argv and argv[-3:] == ["/bin/sh", "-c", "true"]

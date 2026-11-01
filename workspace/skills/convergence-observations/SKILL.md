@@ -1,7 +1,7 @@
 ---
 name: convergence-observations
 description: Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.
-version: 1.1.0
+version: 1.2.0
 license: Apache-2.0
 tags: [convergence, flows, evidence, read-only]
 ---
@@ -22,7 +22,11 @@ planning and correlation. In standalone NetClaw, the same claw performs both rol
 The Border may use other available, authorized read-only tools or members for IDS,
 firewall, DNS or identity evidence. This source's two-tool boundary does not restrict
 that broader investigation. A denied Convergence read remains denied; another client
-is not a workaround. Discover capabilities rather than assuming they are installed.
+is not a workaround. Discover capabilities rather than assuming they are installed:
+before reporting a source as missing, search tools and Risk members by capability
+(metrics/monitoring such as Prometheus or Grafana, inventory, firewall, DNS, IDS)
+and name what was searched. Synthetic or demo coverage still requires this handling;
+it supports no threat or benign verdict.
 
 Only for a separate operator setup request, consult [the connection guide](../../../docs/CONVERGENCE.md)
 in the NetClaw source checkout. That source-relative link is not a prerequisite
@@ -53,6 +57,21 @@ not permission to search the filesystem for configuration or credentials.
    as unknown unless separate evidence establishes them. Zero or missing sampling
    metadata does not prove unsampled traffic. Remove unsupported interpretations
    from prose as well as tables; a disclaimer does not make an inference supported.
+6. Final check before answering:
+   - State the exact window and the latest-100 bound.
+   - List each record as `source → destination` with counters. Unless separate
+     evidence establishes it, do not call records an exchange, reply, response,
+     session, inbound/outbound or sent/received pair. Distinct receipt timestamps
+     stay distinct.
+   - Always state provenance: this claw when this turn called a `convergence_*` tool
+     directly; a named Risk member only when this turn received its delegated result.
+     Audit or history rows from other sessions are not this answer's evidence.
+   - Name each capability search that found nothing. Risk members come from the
+     member list or Risk status; external peers (`n2n_status` peers) are a different
+     set, so an empty peer list does not mean the Risk has no members.
+   - Absence from retained records is not evidence that traffic, a protocol or a
+     lookup never happened. API scrape, probe or receipt-time data does not establish
+     flow collector liveness, outage or freshness; say what those sources measured.
 
 Completion: provide the observation, exact evidence window, source coverage and
 limits, or the specific unavailable state. Every factual claim must be traceable to

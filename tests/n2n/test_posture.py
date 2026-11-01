@@ -18,7 +18,7 @@ from bgp.federation import posture, controls
 
 
 def _stub_controls(monkeypatch, *, sandbox, guard, audit, production=True, strict=False):
-    async def _os_avail():
+    async def _os_avail(on_demand_members=()):
         return (sandbox, "" if sandbox else "sandbox down")
     async def _dc_avail():
         return (guard, "" if guard else "guard down")
