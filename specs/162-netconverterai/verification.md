@@ -2,7 +2,7 @@
 
 ## Current status
 
-Source is **1.15.4**, extension source remains **1.5.0**, unpublished.
+Source is **1.15.5**, extension source remains **1.5.0**, unpublished.
 **43/44 tasks are checked**: T035 and T036 have actual image/bootstrap/access
 and protected appliance behavior evidence. T034 fresh native installation
 acceptance remains open. Five original review loops and the first two additional live loops

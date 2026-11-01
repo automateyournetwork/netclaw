@@ -2,6 +2,20 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.5] - 2026-11-01 (source milestone; unpublished)
+
+Minor fix from Spec162's real Risk qualification: bind each Border/member MCP to
+its reviewed local federation API before native registration freezes environment
+aliases. Previously the installer could verify tool discovery while the tools
+still addressed default port 8179. A regression reproduces the stale endpoint and
+checks both native and companion registrations against each selected port.
+Focused-claw endpoint settings retain their existing behavior.
+
+The first Risk install completed, but its actual delegation trial failed and the
+agent attempted an unrequested configuration repair. That attempt is retained as
+failed evidence; fresh installation and real delegation must qualify the fix.
+See [Spec162 verification](specs/162-netconverterai/verification.md).
+
 ## [1.15.4] - 2026-11-01 (source milestone; unpublished)
 
 Minor fix for Spec162 Risk composition: add the missing dedicated OpenClaw
