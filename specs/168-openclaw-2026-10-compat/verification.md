@@ -95,3 +95,11 @@ including `main` (`agents.entries` or `agents.list`), uses `N2N_MEMBER_AGENT` wh
 and otherwise adds nothing. `tests/n2n/test_gateway_member_agent.py`: 8 passed (several
 agents, list layout, zero/one/several-without-main/unreadable config, override, error
 detail). `tests/n2n`: 764 passed, 5 skipped, the inherited Hermes failure unchanged.
+
+Final run with the corrected selection (members restarted 19:10 UTC, OpenClaw 2026.10.9
+after `openclaw update repair`): lab inventory, testbed inventory, alert summary and
+self-status completed; four members' homes list `main` and `alert`, one lists only
+`main` and so ran unnamed. The visualization task hit the member's 600 s skill timeout
+(an earlier run of the same request on 2026.10.9 completed; this member's model spends
+1.6-3.9 M tokens on it). A timeout records an empty task error; that diagnostic gap is
+outside this change and noted as a follow-up.
