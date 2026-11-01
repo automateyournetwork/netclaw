@@ -199,6 +199,22 @@ def _extract_reply_from_envelopes(objs: list):
     return reply, int(tokens or 0)
 
 
+def _cli_error_detail(output_file) -> str:
+    """The CLI's own `{"ok": false, "error": {"message": ...}}` reason, if any.
+
+    Only the structured message is surfaced (never stderr, which can echo
+    configuration), single-lined and capped so a failed task says *why*."""
+    try:
+        output_file.seek(0)
+        doc = json.loads(output_file.read(64 * 1024).decode(errors="replace"))
+        message = (doc.get("error") or {}).get("message") if isinstance(doc, dict) else None
+    except (ValueError, OSError, AttributeError):
+        return ""
+    if not isinstance(message, str) or not message.strip():
+        return ""
+    return ": " + " ".join(message.split())[:300]
+
+
 def _extract_reply(stdout: str):
     """Parse the `openclaw agent --json` envelope (which is preceded by banner
     noise) and return (reply_text, tokens_used). Still used by the `local=True`
@@ -407,7 +423,8 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
                 await proc.wait()
                 raise
             if proc.returncode != 0:
-                raise RuntimeError(f"Agent process exited {proc.returncode}; task result unavailable")
+                raise RuntimeError(f"Agent process exited {proc.returncode}; task result unavailable"
+                                   + _cli_error_detail(output_file))
             output_file.seek(0)
             out = output_file.read(16 * 1024 * 1024 + 1)
             if len(out) > 16 * 1024 * 1024:
