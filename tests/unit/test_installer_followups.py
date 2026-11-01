@@ -43,7 +43,8 @@ def test_npm_script_policy(version, flag):
 
 def test_all_reported_components_registered():
     templates = json.loads((ROOT / 'config/openclaw.json').read_text())['mcpServers']
-    assert len(launch.CONTRACT) == 15
+    assert len(launch.CONTRACT) == 16
+    assert {"netconverter", "convergence-read"} <= set(launch.CONTRACT)
     for component, rule in launch.CONTRACT.items():
         if rule.get('access') == 'hud-private':
             assert component == 'hermes-hud'
@@ -89,6 +90,20 @@ def test_netbox_module_uses_record_and_source_not_gateway_path(tmp_path, netbox_
     assert cwd == str(netbox_repo)
 
 
+
+def test_netconverter_launcher_reads_selected_private_environment(tmp_path):
+    runtime, python = make_runtime(tmp_path, 'netconverter')
+    selected = tmp_path / '.env'
+    selected.write_text('NETCONVERTER_API_KEY="fixture-selected-key"\nNETCONVERTER_INSTALLATION_ID="fixture-selected"\n')
+    selected.chmod(0o600)
+    parts, env, _ = launch.resolve('netconverter', server='netconverter-mcp', env={
+        'NETCLAW_RUNTIME_ROOT': str(runtime), 'NETCLAW_RUNTIME_ENV': str(selected), 'PATH': os.defpath,
+    })
+    assert parts == [str(python), '-u', str(ROOT / 'mcp-servers/netconverter-mcp/server.py')]
+    assert env['NETCONVERTER_API_KEY'] == 'fixture-selected-key'
+    assert env['NETCONVERTER_INSTALLATION_ID'] == 'fixture-selected'
+
+
 def test_missing_record_fails_instead_of_global_fallback(tmp_path, netbox_repo):
     with pytest.raises(ValueError, match='interpreter record'):
         launch.resolve('netbox', env={'NETCLAW_RUNTIME_ROOT':str(tmp_path / 'runtimes')}, repo=netbox_repo)
@@ -122,7 +137,7 @@ def test_generated_entries_carry_runtime_location_without_credentials(tmp_path,m
         capture_output=True,text=True)
     assert result.returncode==0,result.stderr
     entries=json.loads(out.read_text())['mcpServers']
-    assert len(entries)==15
+    assert len(entries)==16
     for name, entry in entries.items():
         assert Path(entry['command']).is_absolute()
         assert entry['env']['NETCLAW_RUNTIME_ROOT']==str(tmp_path/'runtimes')

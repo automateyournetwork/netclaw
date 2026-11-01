@@ -106,7 +106,8 @@ class InstallationTest(unittest.TestCase):
         registration=json.loads((ROOT/'config/openclaw.json').read_text())['mcpServers']
         matching={k:v for k,v in registration.items() if 'netconverter' in k}
         self.assertEqual(set(matching),{'netconverter-mcp'})
-        self.assertEqual(matching['netconverter-mcp']['args'],['scripts/component-launch.py','netconverter'])
+        self.assertEqual(matching['netconverter-mcp']['args'],['-u','scripts/component-launch.py','netconverter','--server','netconverter-mcp'])
+        self.assertEqual(matching['netconverter-mcp']['env'],{})
         EffectAudit(ROOT).verify()
         # Execute the real function with a controlled dependency boundary.
         marker=self.root/'calls'
@@ -131,6 +132,7 @@ component_install_netconverter
         (source/'scripts/component-launch.py').write_text('# qualified launcher fixture\n')
         (source/'mcp-servers/netconverter-mcp/server.py').write_text('# source fixture\n')
         (source/'config/openclaw.json').write_bytes((ROOT/'config/openclaw.json').read_bytes())
+        (source/'config/installer-access.json').write_bytes((ROOT/'config/installer-access.json').read_bytes())
         bootstrap=self.home/'owned-python';bootstrap.write_text('#!/bin/sh\nexit 0\n');bootstrap.chmod(0o700)
         runtimes=self.home/'python-runtimes';(runtimes/'records').mkdir(parents=True)
         # Preserve the real install function, runtime record and dependency
@@ -145,10 +147,15 @@ component_install_netconverter
              'NETCLAW_RUNTIME_ROOT':str(runtimes),'FIXTURE_PYTHON':str(bootstrap)}
         result=subprocess.run(['bash','--noprofile','--norc','-c',script],cwd=ROOT,env=env,capture_output=True,text=True)
         self.assertEqual(result.returncode,0,result.stderr)
-        deploy=SimpleNamespace(root=self.home,source=source,validator=PlanValidator(ROOT),claw={'harness':'openclaw'})
+        claw=sample_plan(str(self.root))['claws'][0]
+        claw.update(runtimeHome=str(self.home),workspace=str(self.home/'workspace'))
+        claw['capabilities'].update(components=['netconverter'],skills=['netconverter'])
+        deploy=SimpleNamespace(root=self.home,source=source,validator=PlanValidator(ROOT),claw=claw)
         harness=SimpleNamespace(environment=lambda:{'PATH':os.defpath})
         with patch('setup_components.helper',return_value=module('nc_binder',Path('scripts/install-mcp-config.py'))):
             self.assertTrue(dependency_ready('netconverter',deploy,harness))
+            (source/'mcp-servers/netconverter-mcp/server.py').unlink()
+            self.assertFalse(dependency_ready('netconverter',deploy,harness))
 
 
 if __name__=='__main__':unittest.main()

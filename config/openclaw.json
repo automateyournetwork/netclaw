@@ -1473,18 +1473,14 @@
     "netconverter-mcp": {
       "command": "python3",
       "args": [
+        "-u",
         "scripts/component-launch.py",
-        "netconverter"
+        "netconverter",
+        "--server",
+        "netconverter-mcp"
       ],
-      "env": {
-        "NETCONVERTER_MODE": "${NETCONVERTER_MODE}",
-        "NETCONVERTER_API_KEY": "${NETCONVERTER_API_KEY}",
-        "NETCONVERTER_ACCOUNT_REF": "${NETCONVERTER_ACCOUNT_REF}",
-        "NETCONVERTER_WORKSPACE": "${NETCONVERTER_WORKSPACE}",
-        "NETCONVERTER_EXECUTABLE": "${NETCONVERTER_EXECUTABLE}",
-        "NETCONVERTER_DATA_DIR": "${NETCONVERTER_DATA_DIR}",
-        "NETCONVERTER_INSTALLATION_ID": "${NETCONVERTER_INSTALLATION_ID}"
-      }
+      "env": {},
+      "transport": "stdio"
     },
     "convergence-read-mcp": {
       "command": "python3",

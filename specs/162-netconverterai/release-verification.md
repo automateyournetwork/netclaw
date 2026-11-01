@@ -18,3 +18,13 @@ Final automated checks, PR/merge, tag and verified package receipts are recorded
 - The release audit found and fixed a missing NetConverter CI contract registration and adjacent owned-server dependency manifest. These checks now run in the existing matrix with qualified Node and HUD dependencies.
 - This working checkout's six-surface reconciliation detects an existing ignored HumanRail clone with an unbounded upstream MCP requirement. The other five surfaces pass. The clone is unchanged; clean-checkout CI must pass the complete source reconciliation before merge.
 - Website PR [#12](https://github.com/automateyournetwork/modern_website/pull/12) contains only the staged article, supplied image/provenance and derived content. Content generation, Astro check (99 files), review build (1,284 pages), links and SEO checks pass; the article is excluded from generated posts/search. No website deployment occurs.
+
+The first PR run caught two legacy installer assertions expecting 15 wrapper
+components after the merge added a sixteenth. Exercising the full assertion also
+exposed NetConverter's noncanonical template. The release now uses the standard
+explicit `--server` STDIO wrapper, with settings loaded from the selected private
+runtime environment rather than copied credential placeholders in registration.
+The stronger existing owned-source dependency observer remains active. Focused
+regressions verify selected credential/installation loading, both merged connector
+entries, actual guard source presence and refusal when that source is missing.
+The initial failed CI remains available; merge requires the corrected head to pass.
