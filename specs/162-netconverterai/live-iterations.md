@@ -253,3 +253,25 @@ The explicit foreground pyATS session retains the same process across clients
 with private bearer authentication and installation/policy binding. Nine actual
 pinned runtime/session checks pass, including unauthorized access and stopped
 session refusal. No tool identity, live-process check or apply authority was bypassed.
+
+### Clean repeat and final native plan
+
+The clean actual repeat `74ce25ed-b2e7-486e-bb13-b3a7b389e4a1` completed through
+the tightened baseline gate. Seventeen typed native tool results retain the
+observed bootstrap, genuine collector baseline, single protected application and
+actual target checks. Independent peer MCP readbacks confirm FULL adjacency,
+metric-11 reciprocal routing, 5/5 positive and 0/3 negative pings and MGMT isolation.
+The baseline still matches its private original and all receipt bindings. T036
+is complete; the first flawed acceptance remains retained as failure evidence.
+
+A new clean, pinned-source native installation plan validates as apply-ready.
+It selects the four affected components, new home/ports, two private credential
+prompts and testing posture. CML remains separately qualified in the original
+runtime. Native human review is pending, so T034 and live loop 3 remain open;
+43/44 tasks are complete. No approval or installer journal has been fabricated.
+
+After the clean repeat, the owned lab was stopped and R1/R2 were restored to BOOTED.
+Fresh private running-configuration comparisons match their original pre-juggle
+baselines after excluding only display timestamp/size metadata. The second-round
+manifest is reconciled with `restore_required:false`. The rehearsal's Local/Lab
+authorization was disabled through the actual API; retained records stay intact.

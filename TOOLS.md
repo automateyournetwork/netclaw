@@ -1105,7 +1105,7 @@ was contacted during synthetic qualification.
 - Run-ownedBatfishv2container netclaw-spec162-batfish-v2-20261031,loopback19997→9996,4CPUs4GiB. Firstnetclaw-spec162-batfish-20261031stoppedretained. ActualcurrentimageAPI9996;legacyexample9997wrongforit. Pinnedpybatfishrequiressetuptools<81. Threeprivateanalysis snapshots source/junos/reverse in network spec162-live-20261031.
 
 
-## Spec162 rehearsal runtime update — 2026-10-31
+## Spec162 rehearsal runtime update — 2026-10-31 (historical)
 The owner-approved isolated minimal claw now runs OpenClaw 2026.7.1-2 and Claude
 Sonnet 4.6. Its provider key was deliberately replaced from the repository
 environment on owner instruction. Native discovery verifies NetConverter (8
@@ -1116,7 +1116,7 @@ is inactive; image/bootstrap and live configuration acceptance remain unproven.
 The staged pyATS replacement retains the prior runtime, and bound source remains
 unchanged. Source 1.15.2 fixes runtime placement and the stale native pyATS pin.
 
-### CML recheck — 2026-11-01
+### CML recheck — 2026-11-01 (earlier observation, superseded below)
 
 Native HTTPS API reads work again with the existing private session. Fresh
 inventory: two labs, six running nodes, 12 installed images, no Junos image and
@@ -1125,3 +1125,25 @@ and restricting writes enabled discovery of 51 CML tools. Fresh authentication
 with the rehearsal's saved credentials fails with HTTP 403, confirmed directly
 without the adapter. Discovery is not authenticated tool access. Credentials and
 live registration remain unchanged; no lab or device was modified.
+
+### Spec162 actual acceptance — 2026-11-01 (current)
+
+Later authenticated CML access supersedes the earlier failure above. The enforced
+license limit is five nodes. Owner-approved stop/start juggling completed twice;
+R1/R2 returned to BOOTED with private configurations matching original baselines
+except display timestamp/size metadata. Owned rehearsal nodes are stopped and
+retained, and their Local/Lab write authorization is disabled. Exact identities,
+management topology and private evidence locations are recorded in daily memory.
+
+The real protected IOS-XE round-trip repeat passed OSPF FULL, reciprocal metric-11
+routes, bidirectional 5/5 positive and 0/3 negative pings, with management preserved.
+No Junos image or Junos appliance acceptance is established. Fresh native installer
+acceptance remains pending; the original partial journal is never rewritten.
+
+Operational lessons: this IOL bootstrap rejects passwords over 25 characters;
+legacy IOSv SSH negotiation can differ from current IOL. The owned target generates
+a new RSA key on boot. Compare it with the exact-node authenticated CML console
+public key before reconciling known_hosts; never disable host checks. OpenClaw
+2026.7.1-2 closes STDIO between turns, so reviewed dynamic-inventory application
+uses an explicitly started authenticated foreground pyATS session. See
+`docs/DYNAMIC-TESTBEDS.md` and Spec162 verification for the supported boundaries.

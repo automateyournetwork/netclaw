@@ -69,7 +69,7 @@ Independent test: the review package preserves all failures, unsupported/unexecu
 - [x] T033 Run applicable catalog, installer, guard, managed-pyATS, Batfish, HUD and extension regressions; record exact versions/results and failures in `specs/162-netconverterai/verification.md`.
 - [ ] T034 Perform an isolated native installer/approval UI pass and actual upstream licensed-client discovery when its prerequisites are available; record unavailable stages separately in `specs/162-netconverterai/verification.md`.
 - [x] T035 Qualify a compatible authorized host/image/bootstrap and exact-file-approved live NetConverter reference conversion; record image/license/capacity/account evidence and any blockers in `specs/162-netconverterai/verification.md`.
-- [ ] T036 Create a real virtual migration target, load the approved candidate through the protected route and run actual positive/negative behavior checks; compare source twin where feasible and preserve run resources/evidence in `specs/162-netconverterai/verification.md`.
+- [x] T036 Create a real virtual migration target, load the approved candidate through the protected route and run actual positive/negative behavior checks; compare source twin where feasible and preserve run resources/evidence in `specs/162-netconverterai/verification.md`.
 
 Live tasks T034–T036 remain unchecked if their external prerequisites are absent; they cannot be satisfied by fixture results. Continue independent source work and review iterations.
 
@@ -92,7 +92,10 @@ trials are retained. T034 still requires a fresh native installation acceptance
 pass after the discovered fixes; its real HUD candidate/Local-Lab review now runs.
 T036 completed a first real apply/forwarding trial, which exposed baseline-file
 substitution. Its original configuration remains retained; the source now checks
-collector receipts and exact captured bytes. A clean protected repeat remains open.
+collector receipts and exact captured bytes. The clean protected repeat now passes:
+actual target and independent peer both show OSPF FULL, metric-11 reciprocal routes,
+5/5 positive and 0/3 negative pings, with management preserved. T034 is the sole
+remaining task; the new exact native plan is validated and awaiting human review.
 
 ## Phase 8 — Five Ralph implementation review/fix/test iterations
 

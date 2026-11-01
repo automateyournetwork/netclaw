@@ -3,9 +3,9 @@
 ## Current status
 
 Source is **1.15.3**, extension source remains **1.5.0**, unpublished.
-**42/44 tasks are checked**: T035 now has actual image/bootstrap/access evidence;
-T034 fresh native installation acceptance and T036 protected appliance behavior
-remain open. Five original review loops and the first two additional live loops
+**43/44 tasks are checked**: T035 and T036 have actual image/bootstrap/access
+and protected appliance behavior evidence. T034 fresh native installation
+acceptance remains open. Five original review loops and the first two additional live loops
 are complete; the third is in progress. Two separately approved real synthetic
 conversions completed with provider review findings preserved.
 
@@ -15,7 +15,9 @@ conversions completed with provider review findings preserved.
   despite a feature description mentioning twenty. The owner authorized stop/start
   juggling. Real private R1/R2 baselines were captured first; their first restoration
   returned both to BOOTED with configuration equal except display timestamp/size
-  metadata. A second scoped capacity round is active while testing.
+  metadata. The second scoped round also restored both to BOOTED and verified
+  the same baseline equality. All owned rehearsal nodes are stopped and retained;
+  the rehearsal Local/Lab write policy is disabled.
 - Actual owned IOS-XE **17.18.2** target and modern peer booted with management in
   separate MGMT VRFs and an isolated synthetic test link. An initial bootstrap's
   32-character password was rejected (device limit 25); the retained replacement
@@ -67,7 +69,50 @@ exact baseline against the original captured artifact before APPLY, and again
 in the consumer. A regression reproduced the defect before the fix; 18 private
 apply tests now pass, including reference substitution and changed original
 artifact refusal. The original completed record and results remain unmodified;
-a clean reset/review/apply repeat is in progress. This is why T036 remains open.
+a clean reset/review/apply repeat has now passed, as recorded below.
+
+### Clean protected repeat — passed
+
+Actual browser review created record `74ce25ed-b2e7-486e-bb13-b3a7b389e4a1`.
+The target started from its observed management-only bootstrap: no Loopback0,
+no OSPF process and an unassigned, shut test interface. The real NetClaw agent
+collected the 1905-byte baseline and left its collector-written bytes and receipt
+intact. The API transitioned from PREPARE to APPLY with one grant; the original
+`pyats_configure_device` tool consumed it once and returned `applied_unverified`,
+with `replay: false`. Actual readbacks then completed the record successfully.
+
+| Assertion | Actual target | Independent peer readback |
+|---|---|---|
+| OSPF adjacency | FULL, point-to-point on Ethernet0/2 | FULL on Ethernet0/1 |
+| Remote loopback route | 192.0.2.2/32, metric 11 | 192.0.2.1/32, metric 11 |
+| Positive loopback ping | 5/5, 1 ms | 5/5 |
+| Unadvertised-prefix negative ping | 0/3 | 0/3 |
+| Management continuity | Ethernet0/0 up; MGMT VRF retained; private post-read succeeds | MGMT VRF retains Ethernet0/0 |
+
+Baseline SHA-256 `58992b79cc0cd5952bfa7cad274b4239177f7756477f0772e944ca946662a44f`
+matches the retained original and the API record. Receipt bindings match the
+actual record, installation, live harness, inventory and endpoint. Post-change
+private configuration is 2311 bytes, SHA-256
+`8244a58c2d6aa8fff874fd0da73038a43e8509a35c3b76b35aa297f28fccae1f`.
+The consumed-attempt marker remains its immutable pre-write `unknown` reservation;
+the separately retained tool result, device readbacks and completed API record
+provide outcome evidence. It is not reset or replayed.
+
+Private evidence: `protected-apply-final-completed.json`, `protected-final-audit.json`,
+`final-intent-typed-evidence/` and `peer-final-verification/assertions.json` beneath
+the owner-only `spec162-live-20261031` evidence directory. No running configuration,
+credential or private topology is copied into this repository.
+
+T036 passes for the IOS-XE round-trip reference. Source, Junos and reverse candidates
+also have the separately recorded Batfish comparison; Junos metric 10 versus IOS-XE
+11 remains visible. No original-source appliance or Junos appliance comparison is
+claimed. Rollback is an actionable retained plan, not a claimed executed rollback test.
+
+T034 remains open. A clean source worktree pinned to `93514861` and a new empty-home
+four-component native plan passed validation, explanation and host/port checks.
+The plan hash is `3d5f2e5f6610279d87efd026dddf4db97dd8b69b344497ec3778c50813278ac1`.
+It covers NetConverter, pyATS, Batfish, GAIT, gateway and HUD; the separately qualified
+CML adapter remains outside this fresh installation. Human native review is pending.
 
 No Junos image is installed. Forward Junos appliance behavior and other vendors
 remain unqualified; the available IOS-XE round-trip reference does not imply them.
@@ -223,7 +268,8 @@ Junos's modeled loopback cost is 0 versus IOS-XE's 1. This remains a review
 finding, with original output preserved. Full semantic equivalence is not claimed.
 Actual Batfish MCP discovery and three validation calls report complete parsing
 while explicitly declining to establish behavior from parsing. Neither those
-calls nor modeled traces replace the remaining appliance/traffic tests.
+calls nor modeled traces replace appliance/traffic tests. The later real IOS-XE
+repeat is recorded separately above; Junos appliance qualification remains open.
 
 ```mermaid
 flowchart LR
@@ -235,7 +281,7 @@ flowchart LR
   D --> E[9 modeled traffic checks pass]
   D --> F[Forward route metric differs: 11 to 10]
   B -. Pending image and protected apply .-> G[Live Junos rehearsal]
-  C -. Pending runtime and lab prerequisites .-> H[Live IOS-XE round trip]
+  C -->|Reviewed interface mapping and protected apply| H[Live IOS-XE round trip: passed]
 ```
 
 ## Implementation evidence
@@ -298,16 +344,17 @@ Manual execution-decision review against the current skill/reference contracts:
 The real JavaScript API issuer and Python consumer are tested together. Original
 configuration-tool identity/annotations remain; no new apply alias or grant tool
 is registered. Controlled original-tool denial is verified. Real OpenClaw broker
-policy acceptance and a live Junos commit/readback remain live qualification.
+policy acceptance is established by the clean IOS-XE repeat above. Live Junos
+commit/readback remains unqualified.
 Junos set-format collection/application are implemented at the existing identities;
 installed Unicon source has commit behavior, but source inspection is not device
 acceptance. Cached, ambiguous/proxy/console routes are refused. One candidate/one
 endpoint per request; Hermes Local/Lab and production artifact grants unavailable.
 Same-OS-user filesystem trust is explicit in the contract and guide.
 
-Source compilation and controlled tests do not make T034–T036 complete. Existing
-owner labs/devices remain unchanged. The later live account/license actions above
-supersede the original no-service-action state.
+Source compilation and controlled tests do not make live tasks complete. T035
+and T036 now have separate actual evidence. The owner authorized temporary R1/R2
+stop/start; both are restored and configuration equality verified. T034 remains open.
 
 ## Original implementation reconciliation (historical)
 
@@ -339,32 +386,32 @@ reconciliation failure remains visible and was not relabeled as a pass.
 | FR-001–003 | Catalog/installers, guarded registration, fixed modes and isolated SDK transport | Native desktop/platform pass (T034); real client/account discovery now observed |
 | FR-004–005 | Adapted skill/provenance and explicit role/class/text capability tests | Account directions/limits now observed; non-text/archive and incomplete metadata unavailable |
 | FR-006–009, FR-017 | Exact native review, durable single-use attempts, binding/integrity/unknown cases, restricted read surface | Two approved real jobs now observed; advanced draft mutations unavailable |
-| FR-010–013 | Private pyATS collector, composition contracts, actual controlled CML choreography, ownership ledger, OSPF topology/matrix/local ticket template | Actual licensed target, bootstrap/access, live broker permission and configuration/behavior acceptance (T035–T036) |
-| FR-014–016 | 66 controlled feature tests after live fixes, broader regressions, five original plus three additional loops, docs and article | Live acceptance remains separate; source work is not 100% overall qualification |
-| FR-018–019 | Actual JS issuer/Python consumer, original tool identity, guarded cancellation and Batfish failure/coverage tests | Real runtime policy, Junos commit/readback and forwarding evidence; no universal equivalence claim |
+| FR-010–013 | Private collector and composition contracts; actual licensed CML target, protected native apply, observed OSPF/traffic matrix and retained ownership/evidence (T035–T036 pass) | Other lab platforms, vendor appliances and separately authorized external reviewers/tickets remain unqualified |
+| FR-014–016 | 69 controlled feature tests after live fixes, broader regressions, five original loops, two completed extra loops and ongoing third, actual conversion/appliance evidence and article | T034 fresh native acceptance and completion of live loop 3 remain open; 43/44 tasks |
+| FR-018–019 | Actual JS issuer/Python consumer and native protected IOS-XE apply; original identity, exact captured baseline checks, guarded cancellation and Batfish failure/coverage tests | Junos commit/readback and other runtime/platform routes remain unqualified; no universal equivalence claim |
 
 SC-001/002/004 have controlled and actual service evidence; native UI scope remains
 open. SC-003 has explicit source/lab handoff limits. SC-005 has all five recorded
-iterations. SC-006 is **not satisfied by fixtures**: an image-backed target is now created,
-but protected apply and actual behavior acceptance remain open.
+iterations. SC-006 has an actual image-backed IOS-XE target, protected native apply,
+positive/negative behavior checks, retained resources and verified owner restoration.
+Unavailable Junos and hardware-specific behavior remain explicit limits.
 
 The authored [synthetic IOS-XE OSPF input](examples/README.md) has now completed
 its approved real conversion. It has not been applied and does not establish
 the existing routers' protocol state.
 
-### Resume the remaining live reference
+### Remaining native acceptance
 
-1. Supply an installed licensed Junos router image for forward appliance testing,
-   or complete the reviewed IOS-XE round-trip target scope using an available image.
-   Establish sufficient capacity and isolated, reachable SSH management first.
-2. Use the actual selected OpenClaw/Intent runtime and designate exact lab
-   endpoints. Do not create a fixture issuer or bypass a denied tool to fill this gap.
-3. Complete the native installer/desktop stage, genuine baseline/rollback, exact
-   candidate review, API APPLY transition, commit/readback and positive/negative
-   OSPF checks. A modeled Batfish result cannot close appliance acceptance.
-4. Record all failed/unexecuted tests and retained resources before making a
-   working-migration claim. No additional hosted transfer is implied by either
-   existing approval.
+T034 is the sole open task. Complete the exact reviewed fresh installation using
+the pinned source and new home described above; inspect its authoritative journal,
+required verification tiers and actual HUD/guard discovery. Preserve the first
+partial journal and repair history. Only close live loop 3 and report 44/44 after
+this pass succeeds. No additional hosted transfer, appliance write or publication
+is implied by native installation review.
+
+Junos appliance testing needs a separately available licensed router image; it is
+not claimed by the completed IOS-XE round-trip reference. Other vendors/platforms
+retain the handoff and qualification states in the composition matrix.
 
 The separate modern_website article already has `draft: false` in the owner's
 current clean checkout; its publication flag was not changed by this session.

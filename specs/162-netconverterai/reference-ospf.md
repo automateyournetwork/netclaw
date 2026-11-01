@@ -5,8 +5,9 @@ Owner requested this concrete conversion for live testing, documentation and the
 An [authored synthetic source fixture](examples/README.md) is ready for account
 capability qualification and exact-file review. On 2026-10-31 the owner approved
 its exact hosted submission; real IOS-XE → Junos SET conversion and a separately
-approved reverse conversion completed, both needs review. It has not been applied
-or represented as a collection from the owner's routers.
+approved reverse conversion completed, both needs review. The reverse candidate
+subsequently passed the real IOS-XE rehearsal below. The source fixture remains
+authored input, not a collection from the owner's routers.
 
 The [current vendor matrix](https://netconverter.ai/docs/supported-vendors.html) lists IOS-XE↔JunOS router translation including OSPF and BGP. Router results remain NEEDS REVIEW. It explicitly excludes EIGRP translation to JunOS; EIGRP→OSPF is an opt-in redesign. The public matrix is eligibility research, not proof that this account or a particular configuration is supported.
 
@@ -43,3 +44,29 @@ isolated topology, test matrix and local change draft. It contains synthetic
 addresses and no fabricated observed topology or results.
 
 The article should show a simple source→NetConverter→Junos-target diagram, actual observed steps and outcomes, warnings/manual adaptations, exact test coverage and retained resources. Publish a conversion claim only after the real service produces the candidate; publish a working migration claim only after the actual target accepts it and the stated checks run. Pending prerequisites remain pending in drafts. No publication or external communication is implied by preparing the article.
+
+## Observed IOS-XE round-trip rehearsal — 2026-11-01
+
+The real account converted the synthetic IOS-XE fixture to Junos SET, then converted
+that returned artifact back to IOS-XE under a separate exact-file approval. No Junos
+image was available. The returned IOS-XE candidate was adapted only from
+`GigabitEthernet0/0/1` to `Ethernet0/2` and applied through the real protected route
+to an IOS-XE 17.18.2 target that started with management configuration only.
+
+```mermaid
+flowchart LR
+    Source["Synthetic IOS-XE OSPF source"] -->|Approved upload| Junos["NetConverter Junos SET artifact"]
+    Junos -->|Separately approved reverse upload| Reverse["NetConverter IOS-XE artifact"]
+    Reverse -->|Reviewed interface mapping and API apply grant| Target["Actual IOS-XE target: Lo0 192.0.2.1"]
+    Target <-->|"198.51.100.0/30: OSPF FULL"| Peer["Actual IOS-XE peer: Lo0 192.0.2.2"]
+    Target --> Evidence["5/5 positive, 0/3 negative, metric 11, MGMT preserved"]
+    Peer --> Evidence
+```
+
+This diagram contains only synthetic addresses and the observed test relationship.
+Management addresses and topology remain private. Both routers passed independent
+readbacks. The source/Junos/reverse Batfish comparison remains a separate modeled
+result, including Junos metric 10 versus IOS-XE 11. No physical hardware equivalence,
+executed rollback or Junos appliance behavior is inferred. See
+[verification](verification.md#clean-protected-repeat--passed) for artifact hashes,
+the clean repeat and the earlier control failure retained in the evidence.

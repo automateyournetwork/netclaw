@@ -1,7 +1,8 @@
 # From a converted configuration to a migration you can test
 
-*Spec162 development update, refreshed 2026-10-31. Two real synthetic
-conversions completed with review findings. Live appliance acceptance remains open.*
+*Spec162 development update, refreshed 2026-11-01. Real synthetic conversion,
+protected IOS-XE appliance application and bidirectional packet tests passed.
+Fresh native installer acceptance remains the last open task.*
 
 Network migrations accumulate work at every handoff. Someone collects the old
 configuration. Someone translates it. Someone checks the warnings, builds a lab,
@@ -106,17 +107,40 @@ caught two installer defects that fixtures had missed: the guard's Python runtim
 location and a stale native pyATS revision. Both are corrected with regressions.
 The original partial installation report and separate repair evidence stay visible.
 
-Actual CML discovery found IOS-XE 17.18.2 images and an active evaluation license,
-but no installed Junos image. CML connectivity subsequently became unavailable.
-Capacity, isolated management, protected application and actual commit/readback
-still need qualification. Four existing lab devices supplied identity observations
-and remain unchanged.
+The next step is now real. CML booted an IOS-XE 17.18.2 target and peer with
+separate management VRFs and an isolated test link. NetClaw composed and activated
+their dynamic pyATS inventory. The reviewed candidate came from the actual
+NetConverter reverse conversion; its only local adaptation mapped the physical
+interface name to the virtual target's Ethernet0/2. The target bootstrap contained
+management access only, so the converted routing configuration had to prove itself.
 
-The remaining appliance demonstration is concrete: preserve the actual returned
-candidate and every reviewed interface adaptation, boot a compatible target,
-then test FULL adjacency, route/next hop, positive traffic, a negative control
-and management continuity. A reverse-converted IOS-XE rehearsal would test the
-round trip; it would not establish Junos runtime acceptance.
+Through the actual HUD and Terminal Intent, NetClaw captured a private baseline,
+prepared a scoped rollback plan and obtained an API-issued, one-use apply grant.
+The existing pyATS configuration tool applied the candidate. Then real device
+checks and an independent peer readback established:
+
+- OSPF **FULL** adjacency on both routers.
+- Reciprocal loopback routes with the expected IOS-XE metric of **11**.
+- **5/5 successful pings in each direction**.
+- **0/3 pings to an unadvertised prefix**, the expected negative result.
+- Management access preserved in its separate VRF, with fresh private collection.
+
+The live exercise also improved the controls. An initial run exposed an agent
+replacing the record's captured baseline with a reference note. We retained the
+original configuration and flawed run, added exact-byte checks against the
+collector's original artifact, reproduced the failure in a regression, and ran
+a clean protected repeat from the management-only bootstrap. That repeat passed.
+Native HUD loading, gateway SecretRef handling and cross-turn dynamic inventory
+lifetime were also repaired and tested. These are concrete lessons from running
+the whole chain through a real NetClaw.
+
+The five-slot CML license required temporary, owner-authorized stop/start of two
+existing routers, with captured baselines and restoration checks. The rehearsal
+resources and failed trials are retained for inspection. No Junos image was
+available, so this qualifies the IOS-XE round trip, not Junos appliance behavior.
+Both hosted conversion jobs still carry their original review findings. The
+final fresh native installer pass remains open; all appliance assertions above
+have actual evidence.
 
 This is where the value grows: conversion, simulation, validation and change
 review can share the same artifacts and evidence. Faster migration work becomes
@@ -125,10 +149,11 @@ applied, what passed and what still needs attention.
 
 ## Short community note
 
-NetClaw has now used NetConverter for real synthetic IOS-XE OSPF → Junos SET →
-IOS-XE conversions, with separate exact-file approvals and verified downloads.
-The integration carries review findings and private artifacts into the existing
-lab, pyATS, Batfish and change-review workflows. Both real jobs remain needs
-review; live target application and forwarding tests are still open. This is a
-concrete step toward turning migration candidates into testable engineering
-work, with the remaining gaps visible. [Spec162 guide](../NETCONVERTER.md).
+NetClaw + NetConverter has crossed from configuration generation into a real
+virtual-router rehearsal: synthetic IOS-XE OSPF → Junos SET → IOS-XE, separately
+approved uploads, a reviewed candidate applied through NetClaw's protected pyATS
+route, OSPF FULL, 5/5 pings both ways and passing negative controls. Private
+baselines, conversion warnings and Batfish's metric difference stay in the
+evidence. This is the IOS-XE round trip; Junos appliance behavior remains
+unqualified, and the fresh installer pass is the final open task.
+[Spec162 guide](../NETCONVERTER.md).

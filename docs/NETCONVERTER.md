@@ -7,8 +7,11 @@ evidence private, and composes the candidate with existing lab and validation to
 
 Source and controlled-peer tests are distinct from live qualification. On
 2026-10-31, the real account and official Terminal 0.6.0 completed approved
-synthetic IOS-XE → Junos SET → IOS-XE conversions. Both remain **needs review**;
-no live target application or forwarding pass is claimed. See [current evidence](../specs/162-netconverterai/verification.md).
+synthetic IOS-XE → Junos SET → IOS-XE conversions. Both remain **needs review**.
+On November 1, a clean protected application of the reverse candidate to a real
+IOS-XE 17.18.2 virtual router passed OSPF FULL, reciprocal routes, bidirectional
+5/5 pings and 0/3 negative controls. The fresh native installer pass remains open;
+Junos appliance behavior is unqualified. See [current evidence](../specs/162-netconverterai/verification.md).
 
 ## Install and select a connection
 
@@ -100,14 +103,19 @@ per request. In **Review a local migration candidate**, choose a UTF-8 file up t
 profile, and confirm the exact candidate for that target.
 
 The same persistent managed pyATS process must first run `pyats_list_devices`.
-Its private receipt binds the actual inventory and ordinary SSH connection. A
+Its private receipt binds the actual inventory and ordinary SSH connection.
+For clients that close STDIO between turns, explicitly start the authenticated
+foreground session described in [dynamic testbeds](DYNAMIC-TESTBEDS.md). A
 dynamic testbed does not change the HUD's inventory automatically; both endpoint
 identities must match. Restart, changed inventory, ambiguous/proxy/console routes
 or cached connections require reconciliation and may leave this route unavailable.
 
 Submit the explicit change intent. PREPARE remains read-only and needs genuine
 baseline and actionable rollback files. Private collection can write the record's
-baseline with `change_ref`; it does not invent a rollback plan. Only the real API
+baseline with `change_ref`; it does not invent a rollback plan. The collector
+writes a bound receipt, and the API and consumer verify the exact baseline bytes
+against the retained original. Replacing that file with a reference note is refused.
+Only the real API
 transition issues a five-minute capability bound to candidate, endpoint, tool,
 inventory, process, task, policy, baseline and rollback hashes.
 
