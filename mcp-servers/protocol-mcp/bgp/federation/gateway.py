@@ -376,7 +376,11 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         from .negotiate import local_descriptor
         flag = "--" + local_descriptor().get("agent_invoke", "session-id")
         message_args = ["--message-file", message_file] if message_file else ["-m", prompt]
-        cmd = [_openclaw_bin(), "agent", "--local"]
+        # OpenClaw >= 2026.10 refuses `--session-id` session creation when the
+        # home configures more than one agent and no owner is named; member homes
+        # inherit the Border's agent entries, so always name the member's agent.
+        cmd = [_openclaw_bin(), "agent", "--local",
+               "--agent", os.environ.get("N2N_MEMBER_AGENT") or "main"]
         if model:
             cmd += ["--model", model]
         cmd += [flag, session_key, "--json"] + message_args
