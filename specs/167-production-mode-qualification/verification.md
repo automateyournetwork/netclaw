@@ -165,3 +165,10 @@ enable/standalone unit tests 36 passed; convergence-read PASS; setup-installer 2
 parity, docs reconcile, links, ruff F/E9, diff --check PASS.
 T004 COMPLETE pending commit/upstream PR. Upstream #312 and #313 merged; this PR
 targets main directly (base 48804dd1 is in main 616e5306).
+
+Upstream PR creation for spec167 was blocked by the session permission policy;
+awaiting owner approval. Branch pushed to the fork (85849ffc); PR body drafted.
+Owner approved: upstream PR automateyournetwork/netclaw#314 opened. F1 reported to
+DefenseClaw as cisco-ai-defense/defenseclaw#1404 (no duplicate found; versions,
+reproduction, code locations at main 7dca866a, expected behaviour, workaround; no
+private data); DEFENSECLAW.md known-limitation section links it.

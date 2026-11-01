@@ -522,7 +522,8 @@ enable script prints the provider hosts in your gateway config so you can compar
 
 DefenseClaw 1.0.x `init` copies `gateway.auth.token` from the OpenClaw gateway config as
 is. When the token is a SecretRef object instead of a string, `init` fails with
-`gateway defaults: str expected, not dict` (seen on 1.0.4; the same code is in 1.0.5). The
+`gateway defaults: str expected, not dict` (seen on 1.0.4; the same code is in 1.0.5;
+reported as [cisco-ai-defense/defenseclaw#1404](https://github.com/cisco-ai-defense/defenseclaw/issues/1404)). The
 enable script detects this and stops before installing anything; it never prints or
 rewrites the token. Either give the gateway a literal token (for example rotate it to a
 new random value with your usual OpenClaw procedure, then restart the gateway), or keep
