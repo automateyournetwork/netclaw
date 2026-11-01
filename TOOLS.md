@@ -1115,3 +1115,13 @@ repair receipts. CML HTTPS and MCP startup currently time out. Dynamic inventory
 is inactive; image/bootstrap and live configuration acceptance remain unproven.
 The staged pyATS replacement retains the prior runtime, and bound source remains
 unchanged. Source 1.15.2 fixes runtime placement and the stale native pyATS pin.
+
+### CML recheck — 2026-11-01
+
+Native HTTPS API reads work again with the existing private session. Fresh
+inventory: two labs, six running nodes, 12 installed images, no Junos image and
+about 1.95 GB free RAM. A temporary TLS adapter preserving upstream verification
+and restricting writes enabled discovery of 51 CML tools. Fresh authentication
+with the rehearsal's saved credentials fails with HTTP 403, confirmed directly
+without the adapter. Discovery is not authenticated tool access. Credentials and
+live registration remain unchanged; no lab or device was modified.

@@ -28,7 +28,7 @@ application, Junos appliance acceptance or forwarding pass is claimed.
 | Account and licensed client | Official 0.6.0 wheel verified; delegated license acceptance succeeded; authenticated strict hosted/Terminal discovery | Native installer/desktop/platform acceptance remains separate |
 | Exact synthetic transfer approval | Operator approved each file in the native CLI; two one-use submissions completed and six downloads verified | Further submissions always require their own review |
 | Compatible lab host/image | CML 2.10 authenticated; 12 images including IOS-XE 17.18.2; evaluation license active; no Junos image | Junos image for forward appliance acceptance, capacity and isolated management/bootstrap |
-| Real selected runtime | Owner completed native plan review and secret entry; OpenClaw 2026.7.1-2 gateway/HUD run; actual Claude response and NetConverter discovery succeed after scoped repair | Original setup remains partial; CML discovery and full native acceptance remain open |
+| Real selected runtime | Owner completed native plan review and secret entry; OpenClaw 2026.7.1-2 gateway/HUD run; actual Claude response and NetConverter discovery succeed after scoped repair; scoped CML discovery succeeds on November 1 | Original setup remains partial; selected CML credentials are rejected and full native acceptance remains open |
 | Protected artifact apply route | Source/control fixtures implemented; real isolated runtime now exists | Exact endpoint designation, genuine baseline/rollback and API APPLY transition, with actual target verification |
 | Real vendor-target migration rehearsal | Not run | Boot, authorized import/readback and actual positive/negative assertions |
 | Windows/WSL and harness-specific acceptance | Not run | Actual isolated platform observations; no inference from Mac/fixtures |
@@ -58,7 +58,34 @@ need 2 GiB before overhead. Existing labs/devices and the reported orphan remain
 untouched. No image is inferred from a node definition. Native CUA still fails
 its pipe startup. See the additional loop record for exact provenance and limits.
 
-## Real minimal NetClaw and native installer fixes
+## CML retry — 2026-11-01
+
+The owner's requested retry succeeded against the actual CML API: HTTP 200,
+version 2.10.0+build.13, using the previously established private session and
+scoped certificate verification. Fresh reads found two labs, six running nodes,
+one existing orphan, 12 installed images and 45 node definitions. Free RAM was
+1,953,910,784 bytes (about 1.95 GB), with 4.10 GB total and eight CPUs. IOS-XE
+17.18.02 is installed; no Junos image is present. Licensing reports Personal EVAL
+with an authorization expiry of 2027-01-22. Existing resources remain untouched.
+
+The registered MCP connection still failed startup. A temporary loopback TLS
+adapter preserved verification to the same pinned CML endpoint and allowed only
+GET plus authentication; a PUT denial returned HTTP 403 without forwarding.
+The actual OpenClaw MCP probe then discovered **51 CML tools**, without diagnostics.
+This is discovery only: all attempted read tools failed authentication. A separate
+direct native HTTPS authentication check, bypassing the adapter, also returned
+HTTP 403 with the rehearsal's saved credentials. The earlier session still reads
+the API. Credentials were not printed or silently changed; the owner was asked
+for the current local credential source.
+
+The first adapter attempt used HTTP, which the installed virl2 client refuses;
+the TLS-only probe corrected that qualification mistake without disabling TLS
+checks. The probe used a private temporary config, not a replacement live
+registration. No source code, device configuration, lab resources or setup journal
+changed. CML reachability is restored; selected-account authentication, target
+image/bootstrap and protected application remain open. T034–T036 stay unchecked.
+
+## Real minimal NetClaw and native installer fixes — 2026-10-31
 
 The owner completed the actual native plan confirmation and three private secret
 prompts. The installer created an isolated OpenClaw 2026.7.1-2 home with five MCP

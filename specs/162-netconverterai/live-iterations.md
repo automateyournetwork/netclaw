@@ -197,6 +197,23 @@ Source advances to 1.15.2; extension remains 1.5.0. Bound installed source and t
 original journal are preserved, with separate private maintenance receipts.
 Loop 3 remains open for actual appliance acceptance; T034–T036 remain unchecked.
 
+### CML follow-up — 2026-11-01
+
+Owner requested another CML attempt. Actual native HTTPS API reads now succeed:
+HTTP 200, CML 2.10.0+build.13, two labs/six running nodes, 12 installed images,
+no Junos image, approximately 1.95 GB free RAM, and Personal EVAL authorization
+through 2027-01-22. Existing resources and the reported orphan were not changed.
+
+A scoped loopback TLS adapter, with verified upstream TLS and a read-only rule
+plus authentication, enabled actual native discovery of 51 CML tools. HTTP was
+first refused by virl2; the TLS probe preserves certificate checks. Discovery did
+not establish login: read calls returned authentication failures, and a direct
+native HTTPS login using the selected runtime's saved credentials independently
+returned HTTP 403. The previous private session still reads the API. The owner
+was asked for the current local credential source; no secret value was exposed.
+Temporary probe configuration did not replace the live registration. Reachability
+is restored; authentication and remaining appliance gates are still open.
+
 ## Retained evidence and resources
 
 Full service responses, original/returned candidates, request/grant/job ledgers,
