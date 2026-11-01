@@ -29399,6 +29399,22 @@
       "qualification": "OpenClaw native member composition; protected Hermes execution is unavailable until this profile is qualified."
     },
     {
+      "id": "netconverter",
+      "components": [
+        "netconverter"
+      ],
+      "skills": [
+        "netconverter"
+      ],
+      "servers": [
+        "netconverter-mcp"
+      ],
+      "harnesses": [
+        "openclaw"
+      ],
+      "qualification": "Independent OpenClaw NetConverter member using the guarded MCP. Account discovery and each exact-file submission require their own evidence and review; protected Hermes member execution is unqualified."
+    },
+    {
       "id": "forward",
       "components": [
         "forward"

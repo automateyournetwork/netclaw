@@ -54,6 +54,20 @@ authentication, capabilities, license management and per-request approval.
 `netconverter_status(discover=false)` makes no account call. Readiness never claims
 that an installed component has converted a file or tested a device.
 
+## A Border with one NetConverter member
+
+In native Risk setup, select the OpenClaw **NetConverter** member profile. Keep
+`n2n` and `protocol` on the Border and `n2n` plus `netconverter` on the member.
+Select the `netconverter` skill for the member, which owns the account key,
+workspace and generated private guard state. The Border routes requests and
+receives bounded evidence; it does not inherit the converter credential.
+This profile is offered by both consumers of the canonical setup catalog.
+
+Installing or delegating to the member never authorizes a hosted upload. Exact-file
+review is performed in the member's installation context. Discover authenticated
+capabilities through the member before proposing a supported conversion direction.
+Hermes NetConverter member execution remains unqualified.
+
 ## Convert an exact private file
 
 1. Collect an authorized file using private artifact output or stage it locally.

@@ -67,6 +67,34 @@ class InstallationTest(unittest.TestCase):
         claw['settings']['NETCONVERTER_MODE']['value']='invalid'
         self.assertIn('invalid_netconverter_mode',{e['code'] for e in validator.inspect(plan)['errors']})
 
+    def test_risk_netconverter_member_is_selectable_and_keeps_border_unprivileged(self):
+        plan=sample_plan(str(self.root));plan['shape']='risk';plan['verification']['risk']=True
+        border=plan['claws'][0];border['role']='border'
+        border['capabilities'].update(components=['n2n','protocol'],skills=['n2n-federation'])
+        member=copy.deepcopy(border)
+        member.update(id='converter',role='member',harnessChoice='inherit',
+                      runtimeHome=str(self.root/'converter'),workspace=str(self.root/'converter/workspace'))
+        member['service']['name']='netclaw-converter'
+        member['endpoints']={key:value+100 for key,value in member['endpoints'].items()}
+        member['capabilities'].update(profile='netconverter',components=['n2n','netconverter'],skills=['netconverter'])
+        member['settings']={key:{**value,'owner':member['id']} for key,value in member['settings'].items()}
+        member['settings'].update(NETCONVERTER_MODE={'kind':'value','value':'hosted-readonly'},
+            NETCONVERTER_ACCOUNT_REF={'kind':'value','value':'fixture member'},
+            NETCONVERTER_API_KEY={'kind':'secret','key':'NETCONVERTER_API_KEY','owner':member['id'],'source':'prompt'})
+        plan['claws'].append(member);validator=PlanValidator(ROOT)
+        report=validator.inspect(plan)
+        self.assertTrue(report['valid'],report['errors'])
+        self.assertTrue(report['applyReady'],report['configurationRequired'])
+        profile=validator.members['netconverter']
+        self.assertEqual(profile['servers'],['netconverter-mcp'])
+        self.assertEqual(profile['harnesses'],['openclaw'])
+        self.assertFalse(any(key.startswith('NETCONVERTER_') for key in border['settings']))
+        values=generated(member,validator,sys.executable)
+        self.assertEqual(values['NETCONVERTER_DATA_DIR'],str(self.root/'converter/netconverter'))
+        self.assertEqual(values['NETCONVERTER_INSTALLATION_ID'],'converter')
+        border['capabilities']['components'].append('netconverter')
+        self.assertIn('border_domain_capability',{e['code'] for e in validator.inspect(plan)['errors']})
+
     def test_literal_keys_and_generated_override_are_rejected(self):
         for key in ['nck_live_12345678','nck_test_12345678']:self.assertTrue(contains_literal({'note':key}))
         plan=sample_plan(str(self.root));claw=plan['claws'][0]

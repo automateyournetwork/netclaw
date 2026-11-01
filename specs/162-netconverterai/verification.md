@@ -2,7 +2,7 @@
 
 ## Current status
 
-Source is **1.15.3**, extension source remains **1.5.0**, unpublished.
+Source is **1.15.4**, extension source remains **1.5.0**, unpublished.
 **43/44 tasks are checked**: T035 and T036 have actual image/bootstrap/access
 and protected appliance behavior evidence. T034 fresh native installation
 acceptance remains open. Five original review loops and the first two additional live loops
@@ -424,3 +424,18 @@ observations, implementation and review milestones, including final source
 reconciliation `ca420cff`. Ignored daily memory was appended with the later Docker/
 local-pyATS findings, changes, actual results and remaining gates. No external
 record was created. Final Git checkpoint and GAIT trail accompany the handoff.
+
+## Owner-requested Risk installer simulation — in progress
+
+The owner superseded the pending four-component Focused plan: retire the temporary
+claw and test a Border with one NetConverter member. Review inputs are simulated
+for this expressly requested automated test; installation, services, federation
+and guarded account discovery must still have actual evidence. The original human
+native review and partial journal remain retained. No simulated input is described
+as a fresh human UI approval.
+
+This uncovered the missing canonical member profile. The new test first rejected
+the plan with `unsupported_member_profile`, then passed after adding the guarded
+OpenClaw NetConverter profile. Border domain-component refusal, member-owned
+settings and generated private state are checked. T034 remains open until the
+actual requested Risk installation and verification finish.

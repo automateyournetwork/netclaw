@@ -2,6 +2,19 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.4] - 2026-11-01 (source milestone; unpublished)
+
+Minor fix for Spec162 Risk composition: add the missing dedicated OpenClaw
+NetConverter member profile to the shared VS Code/terminal setup catalog. The
+Border remains a router with no NetConverter component or account credential;
+the member owns its guarded MCP, skill and private integration state. A regression
+reproduced the previously rejected member plan and verifies Border isolation.
+
+The owner requested an automated disposable Border-plus-one-member installation
+test with simulated review input. Actual runtime/federation/guard evidence is
+tracked separately from human native review. See [verification](specs/162-netconverterai/verification.md).
+Extension code remains 1.5.0; profiles are read from the selected source catalog.
+
 ## [1.15.3] - 2026-11-01 (source milestone; unpublished)
 
 Minor fixes discovered during real Spec162 native runtime and appliance qualification:
