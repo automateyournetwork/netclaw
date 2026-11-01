@@ -2,6 +2,12 @@
 
 **DefenseClaw** from Cisco AI Defense + **OpenShell** from NVIDIA provide comprehensive enterprise security for NetClaw. Together they deliver container-based isolation, runtime guardrails, and full audit compliance.
 
+> **Status (spec 167).** The install and guardrail commands below are the ones that
+> worked with DefenseClaw 1.0.4 and OpenClaw 2026.10.9 on NetClaw's qualification VM.
+> Spec 167 qualified an iN2N Risk in production mode with this setup in observe mode
+> (standalone, federated and denied-scope runs); action mode, other DefenseClaw releases
+> and the other commands in this guide have not been re-verified by NetClaw.
+
 ---
 
 ## Table of Contents
@@ -36,7 +42,7 @@ The NetClaw enterprise security stack combines two technologies:
 | **Container Sandbox** | OpenShell | Docker-based isolation with YAML policies |
 | **Component Scanning** | DefenseClaw | Static analysis of skills, MCPs, plugins before execution |
 | **CodeGuard Analysis** | DefenseClaw | Detects credentials, eval(), shell commands, SQL injection |
-| **LLM Inspection** | DefenseClaw | Monitors prompts and completions across 7 AI providers |
+| **LLM Inspection** | DefenseClaw | Monitors prompts and completions for known provider domains, plus [custom providers](#providers-defenseclaw-does-not-know) |
 | **Tool Call Inspection** | DefenseClaw | Enforces 6 rule categories on all tool executions |
 | **Audit Logging** | DefenseClaw | SQLite database with compliance-ready exports |
 | **SIEM Integration** | DefenseClaw | Splunk HEC, OTLP HTTP, webhooks |
@@ -70,21 +76,19 @@ The NetClaw enterprise security stack combines two technologies:
 └───────────────────────────────────────────────────────────────────┘
 ```
 
+OpenShell is optional. For an iN2N Risk in production mode, NetClaw's sandbox control is
+**systemd host confinement** of each member (feature 057, specs 165/166), not an OpenShell
+container; see [N2N-RISK.md](N2N-RISK.md). DefenseClaw provides the model-guard control.
+
 ---
 
 ## Installation
 
 ### Fresh Install
 
-During NetClaw installation:
-
-```bash
-./scripts/install.sh
-# When prompted:
-# Enable DefenseClaw + OpenShell (recommended)? [y/N]: y
-```
-
-This installs both DefenseClaw and OpenShell automatically.
+Install NetClaw first (`./scripts/install.sh`), then run the enable script below. It is
+the reviewed path: a pinned DefenseClaw release whose installer is checksum-verified
+before it runs.
 
 ### Existing Installation
 
@@ -92,45 +96,89 @@ This installs both DefenseClaw and OpenShell automatically.
 ./scripts/defenseclaw-enable.sh
 ```
 
+The script:
+
+1. Checks prerequisites, and stops before installing anything if the OpenClaw gateway
+   token is a SecretRef object (see [SecretRef gateway token](#known-limitation-secretref-gateway-token)).
+2. Backs up `~/.openclaw/config/openclaw.json` and the gateway config `~/.openclaw/openclaw.json`.
+3. Downloads `install.sh` and `checksums.txt` for the pinned release into a private
+   temporary directory, checks the SHA-256 of `install.sh` against `checksums.txt`, and
+   refuses to run it on a mismatch or a missing entry. It then runs
+   `bash install.sh --yes --connector openclaw`. The installer keeps a newer OpenClaw; it
+   may install OpenClaw if it is absent or older.
+4. Runs `defenseclaw init` and `defenseclaw setup guardrail` non-interactively (observe
+   mode). Errors are shown and stop the script.
+5. Sets `security.mode` to `defenseclaw` in `~/.openclaw/config/openclaw.json`.
+6. Prints the remaining steps: custom providers, starting the sidecar, restarting the
+   OpenClaw gateway.
+
+| Variable | Default | Effect |
+|----------|---------|--------|
+| `DEFENSECLAW_VERSION` | `1.0.4` | DefenseClaw release tag to install |
+| `DEFENSECLAW_GUARDRAIL_MODE` | `observe` | `observe` or `action` |
+| `DEFENSECLAW_REINSTALL` | unset | `1` reinstalls when `defenseclaw` is already present |
+| `INSTALL_OPENSHELL` | unset | `1` also installs OpenShell, only with `OPENSHELL_INSTALL_SHA256` set to the SHA-256 of an installer you reviewed |
+| `REGISTER_MCPS` | unset | `1` registers the gateway's MCP servers with `defenseclaw mcp set` (not verified on 1.0.4) |
+| `NETCLAW_ENABLE_SERVICES` | unset | `1` on a Risk host runs `scripts/in2n-services.py generate` and `enable`, which includes `defenseclaw-sidecar.service` |
+
 ### Manual Install
 
+Do not pipe a branch's `install.sh` into a shell. Fetch a release, verify it, then run it:
+
 ```bash
-# 1. Install NVIDIA OpenShell
-curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
+# 1. Download the pinned release installer and its checksums
+DEFENSECLAW_VERSION=1.0.4
+dir=$(mktemp -d) && chmod 700 "$dir"
+base=https://github.com/cisco-ai-defense/defenseclaw/releases/download/$DEFENSECLAW_VERSION
+curl -fsSL --proto '=https' --tlsv1.2 -o "$dir/install.sh" "$base/install.sh"
+curl -fsSL --proto '=https' --tlsv1.2 -o "$dir/checksums.txt" "$base/checksums.txt"
 
-# 2. Install Cisco DefenseClaw
-curl -LsSf https://raw.githubusercontent.com/cisco-ai-defense/defenseclaw/main/scripts/install.sh | bash
+# 2. Verify (must print "install.sh: OK"), read it, then run it
+(cd "$dir" && grep -E '[[:space:]]\*?install\.sh$' checksums.txt | sha256sum -c -) \
+  && bash "$dir/install.sh" --yes --connector openclaw
 
-# 3. Initialize DefenseClaw with guardrails
-defenseclaw init --enable-guardrail
+# 3. Initialize and install the OpenClaw guardrail plugin (observe mode)
+defenseclaw init --connector openclaw --non-interactive --yes --scanner-mode local
+defenseclaw setup guardrail --connector openclaw --mode observe --scanner-mode local \
+  --detection-strategy regex_only --non-interactive --no-restart
 
-# 4. Start OpenShell gateway
-openshell gateway start
+# 4. Start the guardrail sidecar (see "Running NetClaw Securely"), then load the plugin
+openclaw gateway restart
 ```
+
+Then set `security.mode` to `defenseclaw` in `~/.openclaw/config/openclaw.json` (not the
+gateway's `~/.openclaw/openclaw.json`, whose schema rejects that key).
+
+OpenShell is optional. To install it, review NVIDIA's installer first and run the copy
+you reviewed; the enable script does this only with `INSTALL_OPENSHELL=1` and
+`OPENSHELL_INSTALL_SHA256`.
 
 ### Prerequisites
 
 | Requirement | Minimum | Check | Required For |
 |-------------|---------|-------|--------------|
-| Docker | Running | `docker info` | OpenShell sandbox |
-| Python | 3.10+ | `python3 --version` | DefenseClaw |
-| Go | 1.25+ | `go version` | DefenseClaw gateway |
-| Node.js | 20+ | `node --version` | DefenseClaw plugin |
+| Python | 3.10+ | `python3 --version` | DefenseClaw CLI, enable script |
+| Node.js | 20+ | `node --version` | OpenClaw and the DefenseClaw plugin |
+| curl, sha256sum (or shasum) | any | `curl --version` | Pinned download and verification |
+| Docker | Running | `docker info` | OpenShell sandbox only |
+
+The release installer ships prebuilt binaries; the qualification VM had no Go toolchain.
 
 ### Verify Installation
 
 ```bash
-# Check OpenShell
-openshell --version
-
-# Check DefenseClaw CLI
+# DefenseClaw CLI and sidecar binary
 defenseclaw --version
+command -v defenseclaw-gateway
 
-# Check DefenseClaw gateway
-pgrep defenseclaw-gateway
+# OpenClaw plugin installed by `setup guardrail`
+ls ~/.openclaw/extensions/defenseclaw
 
-# Check extension
-ls ~/.defenseclaw/extensions/defenseclaw
+# Guardrail proxy listening on loopback :4000 (after the sidecar starts)
+ss -ltn 'sport = :4000'
+
+# Sidecar as a durable service (Risk hosts)
+systemctl --user status defenseclaw-sidecar.service
 ```
 
 ---
@@ -194,18 +242,23 @@ openshell run netclaw -- claw
 
 ### Option 2: DefenseClaw Only (Guardrails without Container)
 
-This runs NetClaw with DefenseClaw guardrails but without container isolation.
+This runs NetClaw with DefenseClaw guardrails but without container isolation. This is
+the shape an iN2N Risk uses: members are confined by systemd, and DefenseClaw guards
+model traffic.
 
 ```bash
-# 1. Start DefenseClaw gateway (if not already running)
-defenseclaw-gateway &
+# 1. Start the guardrail sidecar durably. On a Risk host:
+python3 scripts/in2n-services.py generate   # writes defenseclaw-sidecar.service
+python3 scripts/in2n-services.py enable     # when defenseclaw-gateway is on PATH
+#    Elsewhere, run defenseclaw-gateway under your service manager.
 
-# 2. Enable blocking mode (optional, recommended for production)
-defenseclaw setup guardrail --mode action
+# 2. Load the DefenseClaw plugin
+openclaw gateway restart
 
-# 3. Run OpenClaw/NetClaw normally
-openclaw gateway &
-claw
+# 3. Optional: block instead of log (see Runtime Guardrails)
+defenseclaw setup guardrail --connector openclaw --mode action --scanner-mode local \
+  --detection-strategy regex_only --non-interactive --no-restart
+openclaw gateway restart
 ```
 
 **What this provides:**
@@ -411,15 +464,80 @@ Guardrails inspect all LLM calls and tool executions at runtime.
 | **observe** | Log violations, allow execution (default) |
 | **action** | Log violations AND block dangerous operations |
 
+Start in **observe** and check the audit log for a few real turns before switching to
+**action**. Observe mode still routes every model call through the proxy, and the proxy
+still refuses unknown provider domains in either mode (see below).
+
 ### Change Mode
 
 ```bash
 # Enable blocking mode
-defenseclaw setup guardrail --mode action --restart
+defenseclaw setup guardrail --connector openclaw --mode action --scanner-mode local \
+  --detection-strategy regex_only --non-interactive --no-restart
+openclaw gateway restart
 
 # Return to observe mode
-defenseclaw setup guardrail --mode observe --restart
+defenseclaw setup guardrail --connector openclaw --mode observe --scanner-mode local \
+  --detection-strategy regex_only --non-interactive --no-restart
+openclaw gateway restart
 ```
+
+### How model traffic reaches the guardrail
+
+DefenseClaw 1.x does not add a model provider to OpenClaw. `defenseclaw setup guardrail
+--connector openclaw` installs an **OpenClaw plugin** at `~/.openclaw/extensions/defenseclaw`
+and registers it in the gateway config (`plugins.allow`, `plugins.entries`,
+`plugins.load.paths`). After `openclaw gateway restart` the plugin intercepts each model
+request and sends it to the DefenseClaw guardrail proxy on `127.0.0.1:4000` (the
+`defenseclaw-gateway` sidecar), with the original provider URL in a header. The proxy
+inspects the request and response and forwards to the real provider.
+
+The proxy forwards only to domains in its provider registry: the providers built into the
+release, `llm_providers` in `~/.defenseclaw/config.yaml` (managed with `defenseclaw setup
+provider`), the host of `llm.base_url`, and the derived `~/.defenseclaw/custom-providers.json`.
+Anything else is blocked.
+
+### Providers DefenseClaw does not know
+
+A model call to an unknown provider domain is **blocked fail-closed**: the sidecar logs
+`BLOCKED ... passthrough to unknown domain: <host>` and OpenClaw receives a **403**. On
+the qualification VM this happened for Ollama Cloud (`ollama.com`). Register the provider
+with DefenseClaw's provider command (it writes `llm_providers` in `config.yaml`;
+`~/.defenseclaw/custom-providers.json` is derived from it, so do not edit that file):
+
+```bash
+defenseclaw setup provider add --name ollama-cloud --domain ollama.com \
+  --env-key OLLAMA_API_KEY --profile-id ollama-cloud:default --base-provider-type ollama
+defenseclaw setup provider list          # confirm the domain is registered
+systemctl --user restart defenseclaw-sidecar   # if the live reload reports the sidecar unreachable
+```
+
+`--env-key` names the environment variable that holds the provider key; never pass key
+values on the command line. With the provider registered the plugin routed the turn
+(`intercepted ollama-cloud/api/chat -> https://ollama.com/api/chat`) and the audit
+database recorded the model response. The
+enable script prints the provider hosts in your gateway config so you can compare them.
+
+### Known limitation: SecretRef gateway token
+
+DefenseClaw 1.0.x `init` copies `gateway.auth.token` from the OpenClaw gateway config as
+is. When the token is a SecretRef object instead of a string, `init` fails with
+`gateway defaults: str expected, not dict` (seen on 1.0.4; the same code is in 1.0.5;
+reported as [cisco-ai-defense/defenseclaw#1404](https://github.com/cisco-ai-defense/defenseclaw/issues/1404)). The
+enable script detects this and stops before installing anything; it never prints or
+rewrites the token. Either give the gateway a literal token (for example rotate it to a
+new random value with your usual OpenClaw procedure, then restart the gateway), or keep
+the SecretRef and wait for a DefenseClaw release that resolves it.
+
+### How NetClaw's production posture recognises it
+
+For a Risk with `N2N_RISK_MODE=production`, the model-guard control requires
+`security.mode` = `defenseclaw` in `~/.openclaw/config/openclaw.json`, the `defenseclaw`
+CLI, the guardrail proxy reachable on loopback `:4000` (`DEFENSECLAW_GUARD_PORT`), and a
+guarded model route in the effective OpenClaw config. Either route counts: the DefenseClaw
+plugin route above, or a `defenseclaw/<model>` provider whose `baseUrl` is the loopback
+guard port. If any part is missing, posture reports `production — DEGRADED (model-guard
+missing)` and delegations are refused. Details: [N2N-RISK.md](N2N-RISK.md).
 
 ### Rule Categories
 
@@ -444,6 +562,9 @@ DefenseClaw inspects prompts/completions for:
 - Azure OpenAI
 - Cohere
 - Mistral
+
+The exact list depends on the release's built-in provider registry. Any other provider
+needs a [custom provider](#providers-defenseclaw-does-not-know) entry.
 
 ---
 
@@ -538,9 +659,10 @@ defenseclaw alerts --export csv > audit-$(date +%Y%m%d).csv
 ~/.defenseclaw/audit.db
 ```
 
-Query directly with SQLite:
+Query directly with SQLite (DefenseClaw 1.0.4 records model turns, such as
+`llm_response` events, in `audit_events`; use `.tables` to check your release):
 ```bash
-sqlite3 ~/.defenseclaw/audit.db "SELECT * FROM events ORDER BY timestamp DESC LIMIT 10;"
+sqlite3 ~/.defenseclaw/audit.db "SELECT * FROM audit_events ORDER BY rowid DESC LIMIT 10;"
 ```
 
 ---
@@ -608,11 +730,23 @@ Add to shell profile:
 export PATH="$HOME/.local/bin:$PATH"
 ```
 
+### `defenseclaw init` fails: "gateway defaults: str expected, not dict"
+
+The OpenClaw gateway token is a SecretRef object. See
+[Known limitation: SecretRef gateway token](#known-limitation-secretref-gateway-token).
+
+### Model calls return 403 after enabling the guardrail
+
+The proxy blocked a provider domain it does not know (sidecar log:
+`BLOCKED ... passthrough to unknown domain`). Register the provider with
+`defenseclaw setup provider add` ([Providers DefenseClaw does not know](#providers-defenseclaw-does-not-know))
+and restart the sidecar.
+
 ### Gateway won't start
 
-1. Check port availability:
+1. Check port availability (4000 is the guardrail proxy):
    ```bash
-   lsof -i :8080
+   lsof -i :4000
    ```
 
 2. Check logs:
@@ -668,8 +802,8 @@ openshell gateway start
 openshell sandbox create netclaw
 openshell run netclaw -- claw
 
-# Or guardrails only (no container)
-defenseclaw setup guardrail --mode action
+# Or guardrails only (no container): start the sidecar, then
+openclaw gateway restart
 claw
 ```
 
@@ -698,7 +832,7 @@ openshell --version                      # Version
 ```bash
 # Installation & Setup
 defenseclaw --version                    # Check version
-defenseclaw init --enable-guardrail      # Initialize guardrails
+defenseclaw init --connector openclaw --non-interactive --yes --scanner-mode local
 
 # Component Scanning
 defenseclaw skill scan <name>            # Scan a skill
@@ -710,9 +844,10 @@ defenseclaw tool block <tool> --reason   # Block a tool
 defenseclaw tool allow <tool>            # Allow a tool
 defenseclaw tool list                    # List rules
 
-# Guardrails
-defenseclaw setup guardrail --mode observe  # Logging only
-defenseclaw setup guardrail --mode action   # Blocking mode
+# Guardrails (add --scanner-mode local --detection-strategy regex_only
+#   --non-interactive --no-restart, then: openclaw gateway restart)
+defenseclaw setup guardrail --connector openclaw --mode observe  # Logging only
+defenseclaw setup guardrail --connector openclaw --mode action   # Blocking mode
 
 # Audit & Alerts
 defenseclaw alerts                       # View alerts
@@ -734,6 +869,9 @@ defenseclaw config webhook --slack URL   # Setup webhook
 | `~/.defenseclaw/` | DefenseClaw home |
 | `~/.defenseclaw/audit.db` | Audit database |
 | `~/.defenseclaw/config.yaml` | DefenseClaw config |
+| `~/.defenseclaw/custom-providers.json` | Extra provider domains, derived from `llm_providers` (edit with `defenseclaw setup provider`) |
+| `~/.openclaw/extensions/defenseclaw` | DefenseClaw OpenClaw plugin |
+| `~/.config/systemd/user/defenseclaw-sidecar.service` | Durable sidecar unit (Risk hosts) |
 | `/etc/openshell/policies/` | OpenShell policies |
 
 ### Configuration File

@@ -1309,7 +1309,12 @@ class FederationService:
                 age = round(max(0.0, time.time() - float(hb)), 1)
         except (ValueError, TypeError, KeyError):
             age = None
-        return {"live": live, "heartbeat_age_s": age}
+        # A down on-demand (or service-owned) local member is still routable: a
+        # route starts it. Without this a caller reads `live: false` as "cannot
+        # delegate" (spec 167 live run). Same rule as health_report's will_cold_start.
+        start = (not live) and bool(m.get("launch_cmd")) and (
+            bool(m.get("on_demand")) or m.get("managed_by") == "service")
+        return {"live": live, "heartbeat_age_s": age, "starts_on_route": start}
 
     # ---- edge (phone) agent-turn budget --------------------------------
 
@@ -2043,9 +2048,17 @@ class FederationService:
         # US2 fail-closed: in production a member must run CONFINED. Refuse to
         # cold-start if the confinement mechanism is unavailable; otherwise launch
         # the on-demand member inside a transient confined systemd unit.
-        confined = False
+        confined = system = False
         if controls.is_production():
-            ok, detail = await controls.sandbox_available()
+            # Spec 165: naming this member fails fast where user-scope cold-start
+            # confinement cannot run OpenClaw, instead of launching and waiting.
+            # Spec 166: on such a host it passes only when the confined system
+            # cold-start template is installed and authorized — then use it.
+            ok, detail = await controls.sandbox_available(on_demand_members=[member_id])
+            if ok and not await controls.openclaw_user_scope_ok():
+                system = await controls.system_coldstart_available()
+                if not system:
+                    ok, detail = False, "system cold-start template not installed or not authorized"
             if not ok:
                 logger.warning("iN2N production: refusing cold-start of %s — "
                                "confinement unavailable (%s)", member_id, detail)
@@ -2059,11 +2072,28 @@ class FederationService:
             self._spawning.add(member_id)
             try:
                 if confined:
-                    argv = controls.confined_cold_start(launch_cmd, member_id)
-                    logger.info("iN2N cold-start (confined): %s", member_id)
-                    await asyncio.create_subprocess_exec(
+                    argv = controls.confined_cold_start(launch_cmd, member_id, system=system)
+                    logger.info("iN2N cold-start (confined%s): %s",
+                                ", system instance" if system else "", member_id)
+                    proc = await asyncio.create_subprocess_exec(
                         *argv, stdout=asyncio.subprocess.DEVNULL,
                         stderr=asyncio.subprocess.DEVNULL)
+                    # `systemctl start --no-block` returns at once: a refusal
+                    # (rule removed since the probe) fails fast, not after 90s.
+                    if system:
+                        try:
+                            rc = await asyncio.wait_for(proc.wait(), timeout=30)
+                        except asyncio.TimeoutError:
+                            try:
+                                proc.kill()
+                            except ProcessLookupError:
+                                pass   # reaped at the deadline; still treated as failed
+                            await proc.wait()
+                            rc = None
+                        if rc != 0:
+                            controls.forget_system_coldstart()
+                            raise RuntimeError("systemctl start of the cold-start instance "
+                                               + ("timed out" if rc is None else "failed"))
                 else:
                     logger.info("iN2N cold-start: spawning on-demand member %s", member_id)
                     await asyncio.create_subprocess_shell(
@@ -2094,7 +2124,18 @@ class FederationService:
         """US5 single-owner: start a member's durable systemd --user unit if it
         isn't already active (never shell-spawn a service-managed member).
         Best-effort; returns True if the unit is (now) active."""
+        from . import controls
         try:
+            if os.path.exists(os.path.join(controls.SYSTEM_UNIT_DIR, unit)):
+                # Spec 165 system-scope member: query unprivileged; starting needs
+                # root, and the unit's Restart=always owns recovery.
+                proc = await asyncio.create_subprocess_exec(
+                    "systemctl", "is-active", "--quiet", unit)
+                if await proc.wait() == 0:
+                    return True
+                logger.warning("iN2N: system member unit %s is not active; "
+                               "start it with sudo systemctl start %s", unit, unit)
+                return False
             proc = await asyncio.create_subprocess_exec(
                 "systemctl", "--user", "is-active", "--quiet", unit)
             if await proc.wait() == 0:

@@ -101,3 +101,11 @@
 .local-pal-audio-controls input{width:100%;accent-color:#ffb08b;min-height:28px}
 .local-pal-voice .local-pal-voice-hint{color:#d1dfdf}
 @media(max-width:700px){.pal-conversation-layout{gap:14px}.pal-conversation-layout .local-pal-stage{min-height:280px}.pal-conversation-layout .local-pal-canvas{height:280px}.pal-conversation-layout>.standard-chat{height:75dvh;min-height:500px}.pal-conversation-layout .local-pal-options{padding:16px}.local-pal-view-controls button{min-width:42px;min-height:42px}}
+
+/* Optional retained flow evidence. */
+.convergence-filters { display:flex; flex-wrap:wrap; gap:1rem; margin:1rem 0; }
+.convergence-filters label { display:flex; align-items:center; gap:.5rem; }
+.convergence-rankings { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,24rem),1fr)); gap:1rem; }
+.convergence-coverage { border-left:3px solid currentColor; padding:.5rem 1rem; margin:1rem 0; }
+.convergence-evidence { border-top:1px solid currentColor; margin-top:1.5rem; padding-top:1rem; }
+.convergence-view td { overflow-wrap:anywhere; }

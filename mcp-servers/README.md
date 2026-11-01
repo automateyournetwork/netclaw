@@ -191,3 +191,7 @@ async def get_device(device_id: str):
 [jev-mcp](jev-mcp/README.md): optional isolated Python FastMCP stdio service with three
 tools (`jev_status`, `jev_evaluate`, `jev_assessment`), mixed dynamic typed judgments,
 persistent daily/task budgets and exact scoped private disclosure consent. No device writes.
+
+## Convergence read-only connector
+
+[convergence-read-mcp](convergence-read-mcp/README.md) provides two fixed-site retained flow tools over stdio. Install the optional `convergence-read` component; [connection guide](../docs/CONVERGENCE.md). It operates no collection or storage services.

@@ -833,9 +833,11 @@ start_all() {
     log_step "Ring 1/3: OpenShell (Container Isolation)..."
 
     if ! command -v openshell &> /dev/null; then
+        # Spec 167: never pipe an unpinned installer. Install a reviewed release first.
         log_error "OpenShell not installed."
-        log_info "Installing OpenShell..."
-        curl -LsSf https://raw.githubusercontent.com/NVIDIA/OpenShell/main/install.sh | sh
+        log_info "Install a reviewed release, e.g. INSTALL_OPENSHELL=1 OPENSHELL_INSTALL_SHA256=<sha256>"
+        log_info "  $SCRIPT_DIR/defenseclaw-enable.sh (see docs/DEFENSECLAW.md), then rerun."
+        exit 1
     fi
 
     if ! command -v docker &> /dev/null || ! docker info &> /dev/null 2>&1; then
@@ -862,9 +864,9 @@ start_all() {
     log_step "Ring 2/3: DefenseClaw (Runtime Guardrails)..."
 
     if ! command -v defenseclaw &> /dev/null; then
-        log_warn "DefenseClaw not installed. Installing..."
-        curl -LsSf https://raw.githubusercontent.com/cisco-ai-defense/defenseclaw/main/scripts/install.sh | bash
-        defenseclaw init --enable-guardrail 2>/dev/null || true
+        # Spec 167: pinned, checksum-verified install through the reviewed enable script.
+        log_warn "DefenseClaw not installed. Running $SCRIPT_DIR/defenseclaw-enable.sh..."
+        bash "$SCRIPT_DIR/defenseclaw-enable.sh" || { log_error "DefenseClaw enable did not complete."; exit 1; }
     fi
 
     if pgrep -f defenseclaw-gateway &> /dev/null; then

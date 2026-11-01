@@ -170,6 +170,12 @@
         13
       ],
       "reason": "Isolated NetClaw guard; licensed Terminal interpreter is operator-managed."
+    },
+    "convergence-read": {
+      "python_min": [
+        3,
+        12
+      ]
     }
   },
   "command_remedies": {

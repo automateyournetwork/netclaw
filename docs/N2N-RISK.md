@@ -112,6 +112,12 @@ production-mode security layer.
 
 ## Operating a risk
 
+The optional OpenClaw `convergence` profile supplies retained flow evidence through
+`convergence-observations`; the Border owns correlation with other authorized sources.
+It requires an enabled, complete reader configuration and member-local environment
+paths. See [Convergence](CONVERGENCE.md). This source integration does not qualify
+live cross-source interpretation or extend Hermes's subnet-only protected federation.
+
 On the Border (MCP tools, or `netclaw risk …` / the `netclaw` TUI):
 
 | Action | Tool / command |
@@ -139,8 +145,8 @@ honest posture that the Border **never** overstates.
 
 | Layer | Kind | How it's wired | Effect if unavailable |
 |-------|------|----------------|-----------------------|
-| **Member sandbox — host-level kernel confinement** | containment | Each member runs as a **`systemd --user` unit hardened** with `NoNewPrivileges`, `ProtectSystem=strict` (read-only system), `InaccessiblePaths=~/.openclaw/.env` (the operator's master secrets are invisible to the member), `PrivateTmp`, and — on a native-Linux manager — syscall/namespace/address-family restrictions. On-demand members are cold-started inside a transient hardened `systemd-run` unit. *(OpenShell containers were evaluated and rejected for live-infra members: they are empty, network-egress-denied sandboxes — a member that must reach real devices/APIs can't run in one. Host confinement keeps the member's real tools/network while confining it.)* | delegation **refused** (no unconfined run) |
-| **Model-guard — DefenseClaw LLM guardrail proxy** | containment | `defenseclaw setup guardrail` stands up a Go proxy (`:4000`) and patches OpenClaw to route the model through it; **every prompt/response is inspected**. Availability = `defenseclaw` present **and the proxy reachable** (started via `defenseclaw-gateway start`). Members' skill/MCP sets are also **component-scanned** (`defenseclaw skill scan`) before they run. | delegation **refused** (no unguarded run) |
+| **Member sandbox — host-level kernel confinement** | containment | Each member runs as a **`systemd --user` unit hardened** with `NoNewPrivileges`, `ProtectSystem=strict` (read-only system), `InaccessiblePaths=~/.openclaw/.env` (the operator's master secrets are invisible to the member), `PrivateTmp`, and — on a native-Linux manager — syscall/namespace/address-family restrictions. On-demand members are cold-started inside a transient hardened `systemd-run` unit (or, where OpenClaw cannot run in user units, an instance of the confined system template `netclaw-coldmember@.service`, spec 166). *(OpenShell containers were evaluated and rejected for live-infra members: they are empty, network-egress-denied sandboxes — a member that must reach real devices/APIs can't run in one. Host confinement keeps the member's real tools/network while confining it.)* | delegation **refused** (no unconfined run) |
+| **Model-guard — DefenseClaw LLM guardrail proxy** | containment | The `defenseclaw-gateway` sidecar runs a guardrail proxy on loopback `:4000`; **every prompt/response routed through it is inspected**. Two routes into the proxy are recognised: the **plugin route** (DefenseClaw 1.x: `defenseclaw setup guardrail --connector openclaw` installs an OpenClaw plugin under `~/.openclaw/extensions/defenseclaw` that sends each model call to the proxy; recognised when `plugins.entries.defenseclaw.enabled` is true, plugins are not globally disabled, `plugins.allow` (if set) includes it, `plugins.deny` does not, and `plugins.load.paths` lists the existing `defenseclaw` extension directory) and the **provider route** (every selected model — primary, override, fallbacks — is `defenseclaw/<model>` and the `defenseclaw` provider's `baseUrl` is the loopback guard port). Availability = `security.mode` `defenseclaw`, the `defenseclaw` CLI present, one of those routes in the effective OpenClaw config (a member's home config must carry it too; the Convergence member-home builder copies only the DefenseClaw plugin configuration), **and the proxy reachable**. The proxy blocks provider domains it does not know **fail-closed** (OpenClaw gets a 403); providers outside DefenseClaw's built-in registry, such as Ollama Cloud (`ollama.com`), need registering with `defenseclaw setup provider add` ([DEFENSECLAW.md](DEFENSECLAW.md#providers-defenseclaw-does-not-know)). Members' skill/MCP sets are also **component-scanned** (`defenseclaw skill scan`) before they run. | delegation **refused** (no unguarded run) |
 | **Audit — GAIT immutable git trail** | audit | Every delegation/enrollment/removal/quarantine is committed to a git repo at `~/.openclaw/n2n/gait/` (append-only, never rewritten), cross-referenced to the SQLite audit row. Emitted on **both** the Border and the member side. | delegation **runs but flagged `audit-degraded`** |
 | **Least-privilege secrets** | containment (by construction) | Each member's `.env` is a scoped slice — only its integration's secrets. Combined with the sandbox hiding the master `.env`, a compromised member has no path to another member's keys. | — |
 | **Durable runtime** | resilience | Mesh daemon + always-on members are `systemd --user` services (`Restart=always`, survive churn + reboot), generated repeatably by `scripts/in2n-services.py`. | — |
@@ -155,9 +161,16 @@ blocks on *any* gap (including audit). Per-control policy: a **containment** gap
 > runs as a **durable `systemd --user` service** (`defenseclaw-sidecar.service`,
 > `Restart=always`), generated + enabled by `scripts/in2n-services.py` alongside the
 > mesh daemon and members — so model-guard survives a reboot with no manual step.
-> One-time prerequisite: `defenseclaw setup guardrail` (patches OpenClaw to route
-> model I/O through the proxy). If the proxy is ever down, posture honestly reports
-> `production — DEGRADED (model-guard missing)` and containment fail-closes.
+> One-time prerequisite: `./scripts/defenseclaw-enable.sh` (pinned, checksum-verified
+> DefenseClaw release; `defenseclaw init` and `setup guardrail --connector openclaw`,
+> which installs the OpenClaw plugin), `defenseclaw setup provider add` for any model
+> provider domain DefenseClaw does not know, then `openclaw gateway restart` to load the plugin. If the proxy is
+> ever down or the route is removed, posture honestly reports
+> `production — DEGRADED (model-guard missing)` and containment fail-closes. DefenseClaw
+> 1.0.x `init` cannot read a SecretRef `gateway.auth.token`; see
+> [DEFENSECLAW.md](DEFENSECLAW.md#known-limitation-secretref-gateway-token).
+> Spec 167 qualified production mode with DefenseClaw 1.0.4 in observe mode; action mode,
+> other providers/models, Hermes and macOS/WSL are not qualified.
 
 ```bash
 # ask the Border its posture (MCP), or:
@@ -184,6 +197,121 @@ The generator emits, and `enable` starts, all durable units: `netclaw-mesh.servi
 On a non-systemd host the generator degrades gracefully and posture reports the
 durable-runtime aspect accordingly. Full detail:
 [specs/057-in2n-production-enforcement](../specs/057-in2n-production-enforcement/).
+
+**System-scope members (`--system`, spec 165).** OpenClaw 2026.10.9 and later
+refuses to run an embedded member (`openclaw agent --local`) when it cannot stat
+`/proc/self/ns/pid` (`GatewayLockNamespaceError`). On some hosts (systemd 255,
+for example) a `systemd --user` unit with mount-namespace hardening (`PrivateTmp`,
+`ProtectSystem`, `InaccessiblePaths`) gets EACCES there, so every confined OpenClaw
+member fails. The Border probes this with a throwaway user unit carrying
+`PrivateTmp=yes` and `ProtectSystem=strict`. When the probe fails, posture reports
+the sandbox control unavailable and names this remediation. `--system` moves the
+always-on member units into the system manager (`/etc/systemd/system`, `User=`/
+`Group=` of the operator, the full hardening set) where the stat works. The mesh
+daemon and DefenseClaw sidecar stay user scope. Hermes Risks, older OpenClaw
+releases and hosts where the probe passes need nothing.
+
+Migrate one Risk in this order, as the operator user (never as root):
+
+```bash
+python3 scripts/in2n-services.py disable <member>          # remove each user-scope member unit (reverts to cold)
+python3 scripts/in2n-services.py generate --system          # stage + `sudo -n install` the system units
+python3 scripts/in2n-services.py enable --system            # `sudo -n systemctl enable --now`, then bind
+python3 scripts/in2n-services.py status --system
+python3 scripts/in2n-services.py disable --system <member>  # tear a system member down
+```
+
+`--system` uses only `sudo -n` and never prompts. If sudo needs a password, it
+prints the exact remaining commands (including which units were and were not
+installed) and exits non-zero; run `sudo -v` and retry, or run those commands as an
+administrator. `disable` without `--system` refuses a member that has a system unit.
+
+**On-demand members on those hosts (`coldstart`, spec 166).** On-demand members
+are normally cold-started inside a transient `systemd-run --user` unit, which
+cannot run OpenClaw on a host where the probe fails. Install, once, a confined
+system template for them:
+
+```bash
+python3 scripts/in2n-services.py coldstart install   # template unit + polkit rule, via `sudo -n install`
+python3 scripts/in2n-services.py coldstart status    # template present? authorization probe
+python3 scripts/in2n-services.py coldstart remove    # `sudo -n rm -f` both, daemon-reload
+```
+
+`install` writes `/etc/systemd/system/netclaw-coldmember@.service` and
+`/etc/polkit-1/rules.d/60-netclaw-coldmember-<user>.rules`. The template runs as
+`User=`/`Group=` of the operator with the same full hardening as `--system` member
+units and `Restart=no`; its `ExecStart` is `scripts/in2n-coldstart.py %i`, which
+looks the instance name up in the Risk registry and execs only the launch command
+of a registered, local, routable on-demand member that no durable unit owns (no
+shell; any other name exits without running anything). The polkit rule lets only
+the installing user, only the `org.freedesktop.systemd1.manage-units` action,
+start or stop only units named `netclaw-coldmember@<instance>.service`; every other
+unit, verb (enable, restart, reload, mask) and user falls through to the system's
+normal policy. With the template installed the instance runs as the operator, more
+confined than the Border itself. The rule depends on the template: systemd 257 and
+later also authorize transient units (`systemd-run --system --unit=...`) by the
+requested name, and only an existing unit file for that name stops a same-named
+transient unit with arbitrary properties such as `User=root`. The rule therefore
+checks that the template exists on every request, `install` writes the rule only
+after the template and daemon-reload succeed, and `remove` deletes the rule first.
+Do not delete the template by hand while the rule is installed; use `coldstart
+remove`. The instance `probe` is reserved: it exits 0
+without opening the registry, and starting it (no sudo, no password prompt) is how
+`coldstart status` and the Border verify the authorization — the rules directory is
+not readable by the operator. Same `sudo -n` handling as `--system`; never run it as
+root. `remove` leaves running instances until their members idle-exit (`sudo
+systemctl stop 'netclaw-coldmember@*.service'` stops them at once).
+
+With the template installed and authorized, posture accepts on-demand OpenClaw
+members as confined and production cold-start runs `systemctl start --no-block
+netclaw-coldmember@<member-slug>.service`. Without it, nothing changes from spec 165:
+the Border refuses such a cold start at once, and posture reports the sandbox
+control unavailable while spawnable on-demand members exist, naming `coldstart
+install`, always-on (`on_demand=false`) system units, or a host where the probe
+passes as remedies. Hermes Risks, hosts where the probe passes and testing mode
+(unconfined cold start) never use the template.
+
+### Border hardening (optional, spec 165)
+
+Production mode confines **members**; the **Border** is an ordinary OpenClaw gateway
+and is not confined by feature 057. In spec 164 T005 a standalone Border with host
+exec/read reached Convergence secrets, while OpenClaw's Docker sandbox contained the
+same attempt. `scripts/border-harden.py` opts a Border into that containment. It
+changes settings only through the OpenClaw CLI (`openclaw config set --batch-file`),
+never by editing `openclaw.json`:
+
+| Setting | Value |
+|---------|-------|
+| `agents.defaults.sandbox.mode` / `backend` / `scope` / `workspaceAccess` | `all` / `docker` / `session` / `none` |
+| `agents.defaults.sandbox.docker.network` | `none` (other `docker` keys, such as `image`, are kept) |
+| `tools.elevated.enabled` | `false` (other `elevated` keys are kept) |
+| `tools.sandbox.tools.alsoAllow` | existing entries + `bundle-mcp`, so MCP tools pass the sandbox gate (merged into `allow` instead when that list is set, because OpenClaw rejects both in one scope) |
+| `skills.workshop.autonomous.mode` | `off` — Skill Workshop no longer persists learned procedures (spec 164 saw it save a bypass) or makes extra provider calls |
+
+Each change is a leaf assignment, so sibling settings are not rewritten. Only those
+paths are read (through redacted `openclaw config get --json`) or printed.
+
+**Trade-off — not a default.** With no network and no workspace access, every Border
+session runs in the sandbox: skills that run host scripts, read host files or need
+host network fail or behave differently. Use it on Borders that delegate that work to
+members over MCP.
+
+```bash
+python3 scripts/border-harden.py            # dry run (default): planned changes + OpenClaw's dry-run, writes nothing
+python3 scripts/border-harden.py --apply    # OpenClaw dry-run, write, then `openclaw config validate`
+openclaw sandbox explain --agent main       # verify the effective policy afterwards
+```
+
+Preflight requires `openclaw` on PATH, `docker info` working for the current user and
+the configured sandbox image (default `openclaw-sandbox:bookworm-slim`) present. When
+the image is missing, the helper prints OpenClaw's documented `docker build` and
+refuses `--apply` unless `--skip-image-check` is given. If Docker reports permission
+denied, add the user to the `docker` group, then log in again or run
+`sudo systemctl restart user@$(id -u)`. A user manager that started before the group
+change keeps the old groups. The helper never builds images, restarts services or runs
+sudo. Exit codes: `0` success, `1` OpenClaw rejected the change, `2` preflight failure.
+OpenClaw reports whether the gateway hot-reloads; existing sandbox runtimes keep old
+settings until `openclaw sandbox recreate --all`.
 
 ## A2A capability cards (what a peer/member learns)
 

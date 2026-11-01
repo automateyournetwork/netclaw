@@ -117,3 +117,17 @@ def test_no_reporting_call_site_computes_liveness_inline():
         svc = f.read()
     # Exactly one occurrence: the definition inside member_liveness itself.
     assert svc.count("in self.member_channels or mid in self.edge_channels") == 1
+
+
+def test_down_on_demand_member_reports_it_starts_on_route():
+    # Spec 167: a Border reading `live: false` for an on-demand member must see
+    # that routing starts it, not conclude it cannot delegate.
+    s = _svc()
+    cold = dict(_member("risk/conv"), launch_cmd="bash /x/run.sh", on_demand=1, managed_by="cold")
+    assert s.member_liveness(cold) == {"live": False, "heartbeat_age_s": None, "starts_on_route": True}
+    remote = dict(_member("risk/remote"), launch_cmd=None, on_demand=1)
+    assert s.member_liveness(remote)["starts_on_route"] is False
+    owned = dict(_member("risk/svc"), launch_cmd="bash /x/s.sh", on_demand=0, managed_by="service")
+    assert s.member_liveness(owned)["starts_on_route"] is True
+    live = _svc(member_channels=("risk/conv",))
+    assert live.member_liveness(cold)["starts_on_route"] is False

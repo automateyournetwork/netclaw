@@ -210,3 +210,8 @@ local-permissions-backup.json
 mcp-servers/hermes-hud-mcp/.venv/
 mcp-servers/hermes-hud-mcp/__pycache__/
 .vite/
+
+# Spec162 first-party connector; generated environments remain private/ignored.
+!mcp-servers/convergence-read-mcp/
+mcp-servers/convergence-read-mcp/.venv/
+mcp-servers/convergence-read-mcp/__pycache__/

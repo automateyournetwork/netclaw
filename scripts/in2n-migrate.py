@@ -29,6 +29,8 @@ import json
 import importlib.util
 import os
 import sys
+import shlex
+from pathlib import Path
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -92,6 +94,7 @@ def main():
     args.live_env=args.live_env or str(runtime.env_file)
     if runtime.kind=='hermes':return stage_hermes(args,runtime)
     prof = _load_profiles()
+    prof.ENV_FILE = args.live_env
     offered = prof.profiles()                      # env-gated: only configured members
     live_env = _read_env(args.live_env)
     hot = {h.strip() for h in args.hot.split(",") if h.strip()}
@@ -105,6 +108,22 @@ def main():
         os.makedirs(mdir, exist_ok=True, mode=0o700)
         member_id = f"{args.risk}/{name}"
         always_on = name in hot
+        if name == 'convergence':
+            spec = importlib.util.spec_from_file_location('member_home', Path(REPO)/'scripts/in2n-member-home.py')
+            module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+            home = module.provision_convergence(runtime, args.risk, Path(mdir)/'home', env_file=args.live_env)
+            envfile = home/'.env'
+            with envfile.open('a') as stream:
+                stream.write('N2N_BORDER_ENDPOINT='+json.dumps(args.border_endpoint)+'\n')
+            python = (home/'python-runtimes/records/n2n').read_text().strip()
+            idle = 0 if always_on else args.idle_exit
+            runner = Path(mdir)/'run.sh'
+            runner.write_text('#!/usr/bin/env bash\nset -euo pipefail\nexport N2N_MEMBER_ENV_FILE='+shlex.quote(str(envfile))+
+                '\nexec '+shlex.quote(python)+' '+shlex.quote(str(Path(REPO)/'scripts/in2n-member.py'))+' --idle-exit '+str(idle)+'\n')
+            runner.chmod(0o700)
+            summary.append((name, member_id, 'always-on' if always_on else 'on-demand', len(info['skills']),
+                            len(prof.env_slice_keys(name, set(live_env)))))
+            continue
         # least-privilege env slice (KEYS only listed here; VALUES copied verbatim)
         slice_keys = prof.env_slice_keys(name, set(live_env.keys()))
         env_lines = [live_env[k] for k in slice_keys]
@@ -212,7 +231,7 @@ def _write_runbook(staging, args, summary):
     api = "127.0.0.1:8179"
     for name, mid, _mode, _sk, _ek in hot:
         run = os.path.join(staging, 'members', name, 'run.sh')
-        env = os.path.join(staging, 'members', name, '.env')
+        env = os.path.join(staging, 'members', name, 'home', '.env') if name == 'convergence' else os.path.join(staging, 'members', name, '.env')
         lines += [
             f"# --- {mid}  (always-on) ---",
             f"curl -s -XPOST {api}/n2n/members/add -H 'Content-Type: application/json' \\",
@@ -230,7 +249,7 @@ def _write_runbook(staging, args, summary):
               "```bash"]
     for name, mid, _mode, _sk, _ek in cold:
         run = os.path.join(staging, 'members', name, 'run.sh')
-        env = os.path.join(staging, 'members', name, '.env')
+        env = os.path.join(staging, 'members', name, 'home', '.env') if name == 'convergence' else os.path.join(staging, 'members', name, '.env')
         lines += [
             f"curl -s -XPOST {api}/n2n/members/add -H 'Content-Type: application/json' \\",
             f"  -d '{{\"name\":\"{name}\",\"profile\":\"{name}\",\"launch_cmd\":\"bash {run}\",\"on_demand\":true}}'",

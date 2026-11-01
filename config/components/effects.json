@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "c60feee0ad92c278460b6260b5c0292f3d4102bc3a6471e0f9e9b037354af84e",
+  "sourceSha256": "bf2dbcb559887cde53998c5ace0d10f178e940a5effd318df30a2fefc8c1bd4b",
   "components": [
     {
       "id": "hermes-hud",
@@ -1013,6 +1013,15 @@
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_netconverter"
+    },
+    {
+      "id": "convergence-read",
+      "function": "component_install_convergence_read",
+      "sha256": "364a2f851772d8538cdfbf8c5895628cfec7d93ef5c919a5cfe82dd5381fa6e1",
+      "adapter": "isolated-shell",
+      "reason": "Install pinned connector dependencies in its own runtime; no external service changes or credentials used during install.",
+      "postcondition": "selected-registration-artifacts-and-discovery",
+      "source": "scripts/lib/install-steps.sh#component_install_convergence_read"
     }
   ]
 }

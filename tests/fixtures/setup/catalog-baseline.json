@@ -665,6 +665,12 @@
       "Platform Services",
       "NetConverter migration",
       "Optional guarded vendor conversion and virtual-target rehearsal"
+    ],
+    [
+      "convergence-read",
+      "Observability & Telemetry",
+      "Convergence flow evidence",
+      "Optional retained flow rankings and same-window evidence (2 read-only tools)"
     ]
   ],
   "profiles": {
@@ -805,7 +811,8 @@
       "zabbix",
       "k8s",
       "elastic",
-      "anta"
+      "anta",
+      "convergence-read"
     ],
     "full": [
       "hermes-hud",
@@ -918,7 +925,8 @@
       "ollama",
       "jev",
       "humanrail",
-      "netconverter"
+      "netconverter",
+      "convergence-read"
     ]
   },
   "skillIds": [
@@ -1159,6 +1167,7 @@
     "zscaler-insights",
     "zscaler-zdx",
     "zscaler-zia",
-    "zscaler-zpa"
+    "zscaler-zpa",
+    "convergence-observations"
   ]
 }

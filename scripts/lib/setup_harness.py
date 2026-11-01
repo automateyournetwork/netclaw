@@ -11,6 +11,7 @@ from setup_state import Conflict, guarded_read
 from setup_secrets import child_environment, read_owned_environment
 from setup_process import run, WriterUncertain
 from setup_deploy import helper
+from convergence_member_policy import native_tool_policy
 
 
 class Harness:
@@ -210,6 +211,8 @@ class Harness:
             'auth':{'mode':'token','token':{'source':'env','provider':'default','id':'OPENCLAW_GATEWAY_TOKEN'}}},
             'agents':{'defaults':{'workspace':claw['workspace'],'model':{'primary':primary},'models':{primary:{}}}},
             'models':{'providers':{}},'mcp':{'servers':{}},'channels':{}}
+        if claw.get('role') == 'member' and claw.get('capabilities', {}).get('profile') == 'convergence':
+            config['tools'] = native_tool_policy()
         config['models']['providers'][native_provider]={'api':self.policy['apiModes'][mode]}
         # Comms effects configure channels after provider/MCP registration.
         if provider['endpoint']:

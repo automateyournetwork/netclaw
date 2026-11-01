@@ -227,6 +227,17 @@
         "netconverter_wait_for_job",
         "netconverter_download"
       ]
+    },
+    "convergence-read": {
+      "servers": [
+        "convergence-read-mcp"
+      ],
+      "script": "mcp-servers/convergence-read-mcp/server.py",
+      "required_env": [],
+      "expected_tools": [
+        "convergence_flow_summary",
+        "convergence_flow_evidence"
+      ]
     }
   }
 }

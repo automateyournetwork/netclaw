@@ -286,6 +286,14 @@
       "EQUINIX_SERVICENOW_URL": "",
       "EQUINIX_SERVICENOW_USERNAME": "",
       "EQUINIX_SERVICENOW_PASSWORD": ""
+    },
+    "convergence-read-mcp": {
+      "CONVERGENCE_ENABLED": "false",
+      "CONVERGENCE_API_URL": "",
+      "CONVERGENCE_API_TOKEN": "",
+      "CONVERGENCE_SITE": "",
+      "CONVERGENCE_EXPORTERS": "",
+      "CONVERGENCE_ALLOW_LOOPBACK_HTTP": "false"
     }
   }
 }

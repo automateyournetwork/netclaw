@@ -6,7 +6,7 @@ export const VIEWS = [
   ['mobile', 'Mobile devices', '05'], ['science', 'Science Officer', '06'],
   ['network', 'Network', '07'], ['knowledge', 'Knowledge', '08'],
   ['operations', 'Operations', '09'], ['integrations', 'Integrations', '10'],
-  ['settings', 'Settings', '11'], ['rag', 'RAG', '12'], ['configuration', 'Configuration', '13'], ['tokenomics', 'Tokenomics', '14'], ['documentation', 'Documentation', '15'], ['logs', 'Logs', '16'], ['security', 'Security', '17'], ['pal', 'Avatar', '18'],
+  ['settings', 'Settings', '11'], ['rag', 'RAG', '12'], ['configuration', 'Configuration', '13'], ['tokenomics', 'Tokenomics', '14'], ['documentation', 'Documentation', '15'], ['logs', 'Logs', '16'], ['security', 'Security', '17'], ['pal', 'Avatar', '18'], ['convergence', 'Convergence', '19'],
 ];
 export const GUIDES = {
   knowledge: [
