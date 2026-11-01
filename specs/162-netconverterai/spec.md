@@ -2,7 +2,7 @@
 
 **Feature Branch**: `162-netconverterai`  
 **Created**: 2026-10-30  
-**Status**: Source, real account and IOS-XE target qualification complete; fresh native installer acceptance pending
+**Status**: 44/44 scoped tasks complete, including real account, IOS-XE target and owner-requested Mac Risk qualification; platform/appliance limits recorded
 **Input**: Integrate NetConverter's MCP, Terminal toolkit and supplied skill first; compose existing NetClaw collection, Jev review, conversion, digital-twin preparation, pyATS/Batfish validation, diagrams, documents and ticket workflows. Use SDD with five Ralph review/fix/test iterations during implementation.
 
 ## Clarifications
@@ -13,6 +13,15 @@
 - Q: How far should digital twins go in Spec162? → A: Actually create the migration targets virtually and test them wherever feasible, using compatible available images and existing lab controls; do not stop at proposals and test plans.
 - Owner identified the local CML host and four local IOS devices; the DevNet sandbox is outside this run. Actual MCP inventory and four show-version reads confirm the local devices. Private endpoint details remain in ignored session evidence.
 - Owner requested a real IOS-XE→JunOS routing conversion as a tested/documented community demonstration. Prefer OSPF→OSPF using the published supported router path. EIGRP is explicitly not translated to JunOS; any EIGRP→OSPF proposal is a separately opted-in protocol redesign, not preservation of the original protocol.
+
+### Session 2026-11-01 — final installer scope
+
+- Owner requested simulating the pending fresh installer review, retiring the
+  temporary Focused NetClaw and creating a Border with one NetConverter member.
+  Review/credential input may be simulated for this automated test; actual native
+  installer effects, services, enrollment, HUD and member execution must be
+  verified. Do not claim fresh human review. Preserve earlier human review,
+  partial/failed journals and original appliance evidence before retiring homes.
 
 ## User Scenarios & Testing
 

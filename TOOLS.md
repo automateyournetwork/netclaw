@@ -1137,8 +1137,10 @@ management topology and private evidence locations are recorded in daily memory.
 
 The real protected IOS-XE round-trip repeat passed OSPF FULL, reciprocal metric-11
 routes, bidirectional 5/5 positive and 0/3 negative pings, with management preserved.
-No Junos image or Junos appliance acceptance is established. Fresh native installer
-acceptance remains pending; the original partial journal is never rewritten.
+No Junos image or Junos appliance acceptance is established. The owner-requested
+Mac Risk pass now completes native installation acceptance: simulated review input,
+actual adapters/services/HUD and real Border/member authenticated discovery. The
+original partial journal and failed Risk trial are retained, never rewritten.
 
 Operational lessons: this IOL bootstrap rejects passwords over 25 characters;
 legacy IOSv SSH negotiation can differ from current IOL. The owned target generates
@@ -1147,3 +1149,10 @@ public key before reconciling known_hosts; never disable host checks. OpenClaw
 2026.7.1-2 closes STDIO between turns, so reviewed dynamic-inventory application
 uses an explicitly started authenticated foreground pyATS session. See
 `docs/DYNAMIC-TESTBEDS.md` and Spec162 verification for the supported boundaries.
+
+Spec162 Risk lessons: native registration freezes environment aliases before Risk
+materialization. Bind each selected local API port before registration (1.15.5).
+Tool discovery alone does not establish working routing. NetConverter discover=false
+skips upstream checks in a cold process; false flags mean unverified, not bad credentials.
+Use typed capability arrays/counts instead of a model's manual arithmetic. The live
+reference observed 75 operation paths, not the narrative's 70. See Spec162 verification.

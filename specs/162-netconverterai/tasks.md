@@ -67,7 +67,7 @@ Independent test: the review package preserves all failures, unsupported/unexecu
 - [x] T031 Update `README.md`, `SOUL.md`, `SOUL-SKILLS.md`, `TOOLS.md`, `.env.example`, `mcp-servers/netconverter-mcp/README.md` and `ui/netclaw-visual/LOCAL-LAB-CHANGE-CONTROL.md` with actual behavior and platform/control limits.
 - [x] T032 Regenerate `scripts/lib/catalog.sh`, `ui/netclaw-visual/env-map.js` and catalog payloads using existing generators; reconcile intentional counts in `tests/fixtures/setup/catalog-baseline.json` and inventory documentation.
 - [x] T033 Run applicable catalog, installer, guard, managed-pyATS, Batfish, HUD and extension regressions; record exact versions/results and failures in `specs/162-netconverterai/verification.md`.
-- [ ] T034 Perform an isolated native installer/approval UI pass and actual upstream licensed-client discovery when its prerequisites are available; record unavailable stages separately in `specs/162-netconverterai/verification.md`.
+- [x] T034 Perform isolated installer/UI and actual upstream licensed-client discovery qualification. The owner superseded fresh human review with simulated review inputs and a real Border-plus-one-member installation; preserve the earlier real human review and partial journal separately. Record that scope, actual adapters, rendered HUD and authenticated native delegation in `specs/162-netconverterai/verification.md`.
 - [x] T035 Qualify a compatible authorized host/image/bootstrap and exact-file-approved live NetConverter reference conversion; record image/license/capacity/account evidence and any blockers in `specs/162-netconverterai/verification.md`.
 - [x] T036 Create a real virtual migration target, load the approved candidate through the protected route and run actual positive/negative behavior checks; compare source twin where feasible and preserve run resources/evidence in `specs/162-netconverterai/verification.md`.
 
@@ -96,6 +96,15 @@ collector receipts and exact captured bytes. The clean protected repeat now pass
 actual target and independent peer both show OSPF FULL, metric-11 reciprocal routes,
 5/5 positive and 0/3 negative pings, with management preserved. T034 is the sole
 remaining task; the new exact native plan is validated and awaiting human review.
+
+Final November 1 update: the owner replaced the pending Focused plan with an
+expressly requested automated Risk installation. Review/credential inputs were
+simulated; real installer adapters, downloads, services, enrollment, verification,
+HUD rendering and native Border/member execution were used. The corrected clean
+run passed all 26 effects, required tiers 1–3 and Risk verification. Authenticated
+NetConverter discovery passed through real delegation. T034 is complete for this
+Mac scope; 44/44 tasks and all three additional loops are complete. Fresh human
+review, native Windows/WSL and other vendor appliances are not implied.
 
 ## Phase 8 — Five Ralph implementation review/fix/test iterations
 

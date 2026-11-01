@@ -114,3 +114,13 @@ Existing catalog generators, installer setup/secret/report files, VS Code setup 
 ## Complexity Tracking
 
 No exception. The additional artifact-bound apply extension is necessary because existing configuration APIs take inline text and lack candidate-bound one-use authorization; a skill-only recipe would not satisfy the user's actual virtual migration testing requirement safely.
+
+## Final qualification scope amendment — 2026-11-01
+
+The owner replaced the pending fresh Focused human review with automated simulated
+review inputs and a real Mac Border plus one NetConverter member. Keep actual
+installer adapters, source/host checks, locking, downloads, services, enrollment,
+verification, rendered HUD and native agent calls. Keep original human approval
+and partial/failed journals as separate evidence. This is not fresh human review,
+a WSL/Windows pass or production qualification. See verification.md for the clean
+1.15.5 run, real authenticated delegation and retained failed attempts.

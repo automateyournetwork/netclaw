@@ -13,7 +13,10 @@ Focused-claw endpoint settings retain their existing behavior.
 
 The first Risk install completed, but its actual delegation trial failed and the
 agent attempted an unrequested configuration repair. That attempt is retained as
-failed evidence; fresh installation and real delegation must qualify the fix.
+failed evidence. A fresh clean run then passed all 26 effects, required verification,
+rendered HUD and real native Border/member authenticated discovery. All 44 scoped
+Spec162 tasks and three additional live loops are complete, with simulated review
+inputs explicitly distinguished from human approval.
 See [Spec162 verification](specs/162-netconverterai/verification.md).
 
 ## [1.15.4] - 2026-11-01 (source milestone; unpublished)

@@ -3,11 +3,15 @@
 ## Current status
 
 Source is **1.15.5**, extension source remains **1.5.0**, unpublished.
-**43/44 tasks are checked**: T035 and T036 have actual image/bootstrap/access
-and protected appliance behavior evidence. T034 fresh native installation
-acceptance remains open. Five original review loops and the first two additional live loops
-are complete; the third is in progress. Two separately approved real synthetic
-conversions completed with provider review findings preserved.
+**44/44 scoped tasks are complete.** Five original implementation loops and all
+three additional live loops are complete. T034 passed the owner-requested Mac
+Risk installation with simulated review inputs and actual installer effects,
+services, rendered HUD and native Border/member execution. The previous real
+human review and partial journal remain retained; no fresh human UI approval is
+claimed. T035/T036 retain actual image/bootstrap/access and protected IOS-XE
+behavior evidence. Two separately approved synthetic conversions completed with
+provider review findings preserved. This task closure does not qualify every
+vendor, appliance, platform or production deployment.
 
 ### November 1 live qualification
 
@@ -48,9 +52,11 @@ conversions completed with provider review findings preserved.
   sole adaptation `GigabitEthernet0/0/1` → `Ethernet0/2`;
   reviewed 727-byte SHA-256 `020df9533e5549c6e28f3de5273e9478d8008cf16ca904bb80d22e7a6506ef0f`.
 
-Current regressions: **69 NetConverter tests** (29.987s), **9 actual pinned
-pyATS/session tests** (14.021s), **10 focused Node entries**, **8 deployment tests**,
-and **274 setup tests with 32 optional skips**. One direct unittest module invocation
+Current regressions: **70 NetConverter tests** (37.125s), **9 actual pinned
+pyATS/session tests** (14.021s), **10 focused Node entries**, **9 deployment tests**,
+**8 Risk tests**, **7 NetConverter installation tests**, **9 catalog tests** and
+**18 plan tests**. The earlier broader setup run passed **274 tests with 32 optional
+skips**. One direct unittest module invocation
 failed because its sibling imports require discovery; the corrected discovery run
 passed all eight deployment tests. No new extension changes or publication.
 
@@ -108,11 +114,12 @@ also have the separately recorded Batfish comparison; Junos metric 10 versus IOS
 11 remains visible. No original-source appliance or Junos appliance comparison is
 claimed. Rollback is an actionable retained plan, not a claimed executed rollback test.
 
-T034 remains open. A clean source worktree pinned to `93514861` and a new empty-home
+Historical superseded Focused plan: a clean worktree pinned to `93514861` and a new empty-home
 four-component native plan passed validation, explanation and host/port checks.
 The plan hash is `3d5f2e5f6610279d87efd026dddf4db97dd8b69b344497ec3778c50813278ac1`.
 It covers NetConverter, pyATS, Batfish, GAIT, gateway and HUD; the separately qualified
-CML adapter remains outside this fresh installation. Human native review is pending.
+CML adapter remained outside this plan. The owner subsequently replaced its pending
+human review with the explicit Risk simulation recorded below.
 
 No Junos image is installed. Forward Junos appliance behavior and other vendors
 remain unqualified; the available IOS-XE round-trip reference does not imply them.
@@ -165,7 +172,7 @@ need 2 GiB before overhead. Existing labs/devices and the reported orphan remain
 untouched. No image is inferred from a node definition. Native CUA still fails
 its pipe startup. See the additional loop record for exact provenance and limits.
 
-## CML retry — 2026-11-01
+## CML retry — 2026-11-01 (historical)
 
 The owner's requested retry succeeded against the actual CML API: HTTP 200,
 version 2.10.0+build.13, using the previously established private session and
@@ -192,7 +199,7 @@ registration. No source code, device configuration, lab resources or setup journ
 changed. CML reachability is restored; selected-account authentication, target
 image/bootstrap and protected application remain open. T034–T036 stay unchecked.
 
-## Real minimal NetClaw and native installer fixes — 2026-10-31
+## Real minimal NetClaw and native installer fixes — 2026-10-31 (historical)
 
 The owner completed the actual native plan confirmation and three private secret
 prompts. The installer created an isolated OpenClaw 2026.7.1-2 home with five MCP
@@ -354,7 +361,8 @@ Same-OS-user filesystem trust is explicit in the contract and guide.
 
 Source compilation and controlled tests do not make live tasks complete. T035
 and T036 now have separate actual evidence. The owner authorized temporary R1/R2
-stop/start; both are restored and configuration equality verified. T034 remains open.
+stop/start; both are restored and configuration equality verified. T034 also has
+actual owner-requested Risk evidence below and is complete.
 
 ## Original implementation reconciliation (historical)
 
@@ -383,15 +391,15 @@ reconciliation failure remains visible and was not relabeled as a pass.
 
 | Requirements | Implemented evidence | Remaining qualification |
 |---|---|---|
-| FR-001–003 | Catalog/installers, guarded registration, fixed modes and isolated SDK transport | Native desktop/platform pass (T034); real client/account discovery now observed |
+| FR-001–003 | Catalog/installers, guarded registration, fixed modes and isolated SDK transport | Owner-requested Mac Risk pass and real client/account discovery observed; fresh human review and other platforms not claimed |
 | FR-004–005 | Adapted skill/provenance and explicit role/class/text capability tests | Account directions/limits now observed; non-text/archive and incomplete metadata unavailable |
 | FR-006–009, FR-017 | Exact native review, durable single-use attempts, binding/integrity/unknown cases, restricted read surface | Two approved real jobs now observed; advanced draft mutations unavailable |
 | FR-010–013 | Private collector and composition contracts; actual licensed CML target, protected native apply, observed OSPF/traffic matrix and retained ownership/evidence (T035–T036 pass) | Other lab platforms, vendor appliances and separately authorized external reviewers/tickets remain unqualified |
-| FR-014–016 | 69 controlled feature tests after live fixes, broader regressions, five original loops, two completed extra loops and ongoing third, actual conversion/appliance evidence and article | T034 fresh native acceptance and completion of live loop 3 remain open; 43/44 tasks |
+| FR-014–016 | 70 controlled feature tests, broader regressions, five original and three completed extra loops, actual conversion/appliance/Risk evidence and article | 44/44 scoped tasks; other runtime/platform/appliance limits remain explicit |
 | FR-018–019 | Actual JS issuer/Python consumer and native protected IOS-XE apply; original identity, exact captured baseline checks, guarded cancellation and Batfish failure/coverage tests | Junos commit/readback and other runtime/platform routes remain unqualified; no universal equivalence claim |
 
-SC-001/002/004 have controlled and actual service evidence; native UI scope remains
-open. SC-003 has explicit source/lab handoff limits. SC-005 has all five recorded
+SC-001/002/004 have controlled and actual service evidence, rendered native HUD
+and the owner-requested simulated-review Risk pass. SC-003 has explicit source/lab handoff limits. SC-005 has all five recorded
 iterations. SC-006 has an actual image-backed IOS-XE target, protected native apply,
 positive/negative behavior checks, retained resources and verified owner restoration.
 Unavailable Junos and hardware-specific behavior remain explicit limits.
@@ -400,14 +408,13 @@ The authored [synthetic IOS-XE OSPF input](examples/README.md) has now completed
 its approved real conversion. It has not been applied and does not establish
 the existing routers' protocol state.
 
-### Remaining native acceptance
+### Native acceptance scope
 
-T034 is the sole open task. Complete the exact reviewed fresh installation using
-the pinned source and new home described above; inspect its authoritative journal,
-required verification tiers and actual HUD/guard discovery. Preserve the first
-partial journal and repair history. Only close live loop 3 and report 44/44 after
-this pass succeeds. No additional hosted transfer, appliance write or publication
-is implied by native installation review.
+T034 and live loop 3 are complete through the owner's requested Risk simulation
+below. The exact fresh installer ran from empty homes with real adapters; only
+review and named credential input were simulated. Original partial/failed journals
+and repair history remain retained. No additional hosted transfer, appliance write
+or publication was performed as part of this installation.
 
 Junos appliance testing needs a separately available licensed router image; it is
 not claimed by the completed IOS-XE round-trip reference. Other vendors/platforms
@@ -425,7 +432,7 @@ reconciliation `ca420cff`. Ignored daily memory was appended with the later Dock
 local-pyATS findings, changes, actual results and remaining gates. No external
 record was created. Final Git checkpoint and GAIT trail accompany the handoff.
 
-## Owner-requested Risk installer simulation — in progress
+## Owner-requested Risk installer simulation — passed
 
 The owner superseded the pending four-component Focused plan: retire the temporary
 claw and test a Border with one NetConverter member. Review inputs are simulated
@@ -437,5 +444,57 @@ as a fresh human UI approval.
 This uncovered the missing canonical member profile. The new test first rejected
 the plan with `unsupported_member_profile`, then passed after adding the guarded
 OpenClaw NetConverter profile. Border domain-component refusal, member-owned
-settings and generated private state are checked. T034 remains open until the
-actual requested Risk installation and verification finish.
+settings and generated private state are checked. The actual clean qualification
+below completes T034 for the owner-requested scope.
+
+### Corrected clean Risk run — source 1.15.5
+
+The first Risk install completed but actual delegation exposed native MCP aliases
+frozen to default port 8179 before Risk materialization set selected local ports.
+The agent then attempted an unrequested configuration repair. Its gateway was
+stopped; that trial is failed evidence, not accepted repair. Selected credential
+values were absent from its retained transcript. All six exact owned services were
+stopped and both homes retained privately; the journal was not rewritten.
+
+A regression reproduced the wrong endpoint through actual native and companion
+registration. `setup_generated.py` now binds each Risk claw's selected API before
+aliases freeze, retaining focused-claw behavior. Nine deployment tests pass.
+The new clean worktree is pinned to `0e48614ac10c1f1e526cb31d8401f28af2515524`.
+
+| Gate | Actual evidence |
+|---|---|
+| Plan | `0620c4b4fce8a61777394be46dad12cc8449f9f87071fa2be5dc6568365c08af` |
+| Installer | `run-4d1a736b6d47c25b9675e6fe25c00ac8`, completed, all 26 effects verified |
+| Review | Explicitly labeled `owner-requested-simulation-spec162-risk`; simulated review/secret-input callbacks, real Engine/EffectRunner/host/source/locks/effects |
+| Both claws | OpenClaw 2026.7.1-2, Claude Sonnet 4.6; tiers 1–3 and Risk verified; optional tiers 4–6 unselected |
+| Isolation | Separate identities, homes, gateway tokens and HUD keys; Border n2n/protocol only and no NetConverter settings/key; member n2n plus guarded NetConverter and skill |
+| Native HUD | Actual Chrome renders one active NetConverter member and available gateway |
+| Border MCP → member | Task `bf95d05a-eeab-4b65-9f1a-c738c7f439a0` completed; real member agent called `netconverter-mcp__netconverter_status(discover=true)` |
+| Border agent → member agent | Task `2dad175e-93d6-47a2-8185-ac8616714a04` completed through native n2n routing and native member guard; exact true discovery/authentication/capability fields returned |
+| Authenticated capabilities | 75 qualified operation paths: 47 convert, 14 optimize, 14 validate; nine read operations; seven schema-unqualified paths retained |
+| Side effects | Configuration/environment hashes unchanged; no exec/write/edit agent tools in the clean trials; guard requests/events/imported-jobs/polling tables all empty |
+
+The member's first narrative miscounted 75 paths as 70 and inferred reasons for
+unqualified paths. The typed capability arrays take precedence; unqualified is
+not evidence of an account entitlement failure. A separate `discover=false` task
+returned unverified cold-process flags, as expected without an account call. The
+final Border-agent discovery corrected that interpretation with actual true flags.
+No discovered path counts as a completed conversion or appliance test.
+
+Terminal license v1.0 was accepted in the new member HOME under the owner's
+existing explicit delegation. The installer never autoaccepted it. Earlier exact-file
+approvals were not transferred; no new upload was attempted.
+
+Private evidence under the owner-only `spec162-risk-20261101` directory includes
+`final-risk-acceptance.json`, `risk-install-result.json`, the authoritative setup
+journal, `credential-isolation-evidence.json`, `border-route/`, `route-final/`, native
+agent transcripts/results and `browser-risk-repeat-member-active.png`. The earlier
+Focused home was removed only after a verified complete private archive; its
+original baseline paths now resolve within `retired-focused-claw.tar.gz`, with
+hashes and mapping in `focused-retirement.json`. The first Risk homes remain under
+`failed-risk-attempt1/`; neither failure history nor genuine baseline was discarded.
+
+The new Border and exactly one member remain running. Existing owner runtimes and
+restored CML routers were not changed by this installation. This is Mac testing
+posture, with no external conversation channels. Production containment, other
+platforms, Hermes member execution and Junos/other appliances remain unqualified.

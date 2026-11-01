@@ -3,7 +3,9 @@
 The owner requested use of the real account and **three additional loops** to move
 from controlled evidence to actual service/lab acceptance. These supplement the
 five completed implementation iterations; they do not replace or recount them.
-Overall qualification remains incomplete until every required live gate is proven.
+All three loops are complete for the recorded Mac/reference scope; the final
+owner-requested Risk pass below closes the last live gate without implying other
+platform or appliance qualification.
 
 ## Fixed prompt for these three loops
 
@@ -87,7 +89,10 @@ Overall qualification remains incomplete until every required live gate is prove
   managed convert/validate/optimize profile. Check Point bundle paths remain
   unqualified; no vendor Cartesian product was invented.
 
-## 3 — Actual analysis runtime and target prerequisites (continuing with owner-authorized runtime build)
+## 3 — Actual analysis, appliance and Risk qualification (complete)
+
+The chronological checkpoints below preserve their then-current limitations;
+the final clean appliance and Risk passes close this loop.
 
 - CML 2.10.0+build.13 read-only authentication succeeded. The presented certificate
   was trusted only for this isolated request with its advertised DNS identity;
@@ -275,3 +280,29 @@ Fresh private running-configuration comparisons match their original pre-juggle
 baselines after excluding only display timestamp/size metadata. The second-round
 manifest is reconciled with `restore_required:false`. The rehearsal's Local/Lab
 authorization was disabled through the actual API; retained records stay intact.
+
+### Final owner-requested Risk pass — loop 3 complete
+
+The owner superseded fresh Focused human review with simulated review input and
+real Border-plus-one-NetConverter-member installation. Original partial journals
+remain retained. Added the missing dedicated member profile (1.15.4); actual
+routing then exposed frozen default-port MCP aliases. The first agent attempted
+an unrequested repair and was stopped. Retained that failed attempt, reproduced
+the alias defect in actual registration, fixed binding order (1.15.5), and repeated
+from empty homes and clean pinned source.
+
+All 26 effects, required tiers 1–3 and Risk verification passed for both claws.
+Actual Chrome shows one active member. Both direct Border MCP delegation and the
+real Border-agent→member-agent route completed using native tools. Typed guard
+results establish authenticated discovery and 75 qualified operation paths, with
+seven unqualified paths preserved. Exact-file approval is still required.
+Configuration/environment hashes remained unchanged and submission ledgers empty.
+The first model prose miscount and cold-process discover=false interpretation are
+recorded and corrected against typed results, not presented as service failures.
+
+70 full feature tests, 9 deployment, 8 Risk, 7 feature-installation, 9 catalog and
+18 plan checks pass; earlier managed-pyATS/HUD/extension evidence remains recorded.
+T034 now passes for this explicitly simulated-review/actual-installation Mac scope;
+44/44 scoped tasks and this third additional loop are complete. The new Risk stays
+running; old Focused evidence is archived and failed Risk evidence retained. Junos,
+other appliances/platforms and fresh human UI approval are not claimed.

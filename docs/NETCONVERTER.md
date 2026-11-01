@@ -10,8 +10,10 @@ Source and controlled-peer tests are distinct from live qualification. On
 synthetic IOS-XE → Junos SET → IOS-XE conversions. Both remain **needs review**.
 On November 1, a clean protected application of the reverse candidate to a real
 IOS-XE 17.18.2 virtual router passed OSPF FULL, reciprocal routes, bidirectional
-5/5 pings and 0/3 negative controls. The fresh native installer pass remains open;
-Junos appliance behavior is unqualified. See [current evidence](../specs/162-netconverterai/verification.md).
+5/5 pings and 0/3 negative controls. A fresh Mac Border-plus-one-member install
+also passed, using owner-requested simulated review inputs with real services, HUD
+and native agent delegation. All 44 scoped tasks are complete; Junos appliance
+behavior remains unqualified. See [current evidence](../specs/162-netconverterai/verification.md).
 
 ## Install and select a connection
 
@@ -51,7 +53,9 @@ python3 scripts/configure-netconverter.py --env /absolute/claw/.env \
 Choose the mode, account reference and (for local mode) paths. Key entry is hidden;
 cancel preserves existing values. Status distinguishes installation, discovery,
 authentication, capabilities, license management and per-request approval.
-`netconverter_status(discover=false)` makes no account call. Readiness never claims
+`netconverter_status(discover=false)` makes no account call; false discovery/authentication
+flags in a cold process mean unverified state, not a failed credential check. Use
+`discover=true` for actual account evidence. Readiness never claims
 that an installed component has converted a file or tested a device.
 
 ## A Border with one NetConverter member
@@ -67,6 +71,24 @@ Installing or delegating to the member never authorizes a hosted upload. Exact-f
 review is performed in the member's installation context. Discover authenticated
 capabilities through the member before proposing a supported conversion direction.
 Hermes NetConverter member execution remains unqualified.
+
+The actual Mac qualification passed all 26 installer effects and native
+Border-agent → member-agent → guarded NetConverter discovery. Typed results showed
+75 operation paths (47 convert, 14 optimize, 14 validate), nine reads and seven
+unqualified paths. Those are discovered capabilities, not 75 tested migrations.
+The rendered HUD showed exactly one active member. See the
+[Risk evidence](../specs/162-netconverterai/verification.md#corrected-clean-risk-run--source-1155).
+
+```mermaid
+flowchart LR
+    Engineer --> Border[Border: route and review]
+    Border --> Member[One NetConverter member]
+    Member --> Guard[NetConverter guard]
+    Guard --> Terminal[Official Terminal / MCP]
+    Terminal --> Evidence[Bounded results and private artifacts]
+    Evidence --> Border
+```
+
 
 ## Convert an exact private file
 

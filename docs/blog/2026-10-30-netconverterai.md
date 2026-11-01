@@ -2,7 +2,9 @@
 
 *Spec162 development update, refreshed 2026-11-01. Real synthetic conversion,
 protected IOS-XE appliance application and bidirectional packet tests passed.
-Fresh native installer acceptance remains the last open task.*
+A fresh Border-plus-one-member installation and real native delegation also
+passed, using owner-requested simulated installer review inputs. All 44 scoped
+tasks are complete; platform and appliance limits remain explicit.*
 
 Network migrations accumulate work at every handoff. Someone collects the old
 configuration. Someone translates it. Someone checks the warnings, builds a lab,
@@ -139,13 +141,30 @@ existing routers, with captured baselines and restoration checks. The rehearsal
 resources and failed trials are retained for inspection. No Junos image was
 available, so this qualifies the IOS-XE round trip, not Junos appliance behavior.
 Both hosted conversion jobs still carry their original review findings. The
-final fresh native installer pass remains open; all appliance assertions above
-have actual evidence.
+fresh Border-plus-one-member installation also passed: all 26 installer effects,
+required verification, an actual rendered HUD and real native delegation. The
+owner explicitly requested simulated review inputs; downloads, services,
+enrollment and account checks were real. No fresh human approval is implied.
 
 This is where the value grows: conversion, simulation, validation and change
 review can share the same artifacts and evidence. Faster migration work becomes
 more useful when the engineer can explain exactly what was submitted, what was
 applied, what passed and what still needs attention.
+
+## A specialist member behind the Border
+
+We also built a fresh Risk with exactly one NetConverter specialist. The Border
+holds routing tools; the member owns its guarded integration, account key and
+private workspace. A real Border agent delegated a discovery request, the real
+member called the native NetConverter guard, and the answer came back with typed
+authentication and approval evidence. The Border never needed the converter key.
+
+That run exposed a stale local routing-port binding which tool discovery alone
+had missed. We retained the failed attempt, fixed the registration order, and
+repeated from empty homes. The clean run passed. The account exposed 75 qualified
+operation paths—47 convert, 14 optimize and 14 validate—plus nine reads, with seven
+paths still unqualified. These are discovered options, not 75 tested migrations.
+Every hosted file submission still requires its own exact-file approval.
 
 ## Short community note
 
@@ -155,5 +174,8 @@ approved uploads, a reviewed candidate applied through NetClaw's protected pyATS
 route, OSPF FULL, 5/5 pings both ways and passing negative controls. Private
 baselines, conversion warnings and Batfish's metric difference stay in the
 evidence. This is the IOS-XE round trip; Junos appliance behavior remains
-unqualified, and the fresh installer pass is the final open task.
+unqualified. A fresh Border with one NetConverter member now also passes real
+native delegation and authenticated discovery. All 44 scoped Spec162 tasks are
+complete; the installer review inputs were explicitly simulated at the owner's
+request, with the actual installation and services independently verified.
 [Spec162 guide](../NETCONVERTER.md).
