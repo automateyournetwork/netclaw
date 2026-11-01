@@ -2,6 +2,18 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.17.1] - 2026-11-01
+
+Production-mode fixes found by live qualification (spec 167):
+
+- Recognise DefenseClaw 1.x's OpenClaw plugin route (plugin enabled, allowed and loaded; proxy reachable) as model-guarded, alongside the `defenseclaw/<model>` provider route. Unknown provider domains stay blocked fail-closed by the proxy.
+- Member homes carry only the DefenseClaw plugin entries and the Border's `security.mode`, so production members run guarded instead of refusing or bypassing the guard.
+- Member list and health report `starts_on_route` for down on-demand members, so a Border routes to them instead of reporting them unavailable.
+- `gateway_ws` resolves env SecretRef gateway tokens and refuses unsupported SecretRef sources instead of sending an object as the token.
+- `defenseclaw-enable.sh`, `install.sh` and `netclaw-secure-start.sh` install a pinned, checksum-verified DefenseClaw release instead of piping unpinned installers; OpenShell is opt-in and must match a reviewed checksum. Docs cover non-interactive setup, provider registration and the DefenseClaw SecretRef gateway-token limitation.
+
+Spec [167-production-mode-qualification](specs/167-production-mode-qualification/spec.md). See [release notes](docs/releases/1.17.1.md).
+
 ## [1.17.0] - 2026-10-31
 
 - Cold-start on-demand iN2N members as confined system instances on OpenClaw 2026.10.9 and later: `in2n-services.py coldstart install` adds a hardened `netclaw-coldmember@.service` template and a polkit rule that lets only the installing operator start or stop only those instances, without sudo at run time. Posture and production cold-start use it when installed and authorized.

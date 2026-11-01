@@ -87,6 +87,20 @@ class MemberTests(unittest.TestCase):
         self.assertNotIn('AWS_SECRET_ACCESS_KEY', keys); self.assertNotIn('OLLAMA_API_KEY', keys)
         self.assertIn('CONVERGENCE_API_TOKEN', keys)
 
+    def test_member_home_mirrors_only_border_security_mode(self):
+        # Spec 167: a production member checks security.mode in its own home.
+        (self.border/'config').mkdir(mode=0o700)
+        (self.border/'config/openclaw.json').write_text(json.dumps(
+            {'security': {'mode': 'defenseclaw', 'other': 'must-not-copy'}}))
+        home = self.home.provision_convergence(self.runtime, 'lab', self.member)
+        mirrored = home/'config/openclaw.json'
+        self.assertEqual(json.loads(mirrored.read_text()), {'security': {'mode': 'defenseclaw'}})
+        self.assertEqual(mirrored.stat().st_mode & 0o777, 0o600)
+
+    def test_member_home_without_border_security_config_writes_none(self):
+        home = self.home.provision_convergence(self.runtime, 'lab', self.member)
+        self.assertFalse((home/'config/openclaw.json').exists())
+
     def test_provisioned_home_uses_member_credentials_and_scoped_workspace(self):
         before = self.runtime.config.read_bytes()
         home = self.home.provision_convergence(self.runtime, 'lab', self.member)

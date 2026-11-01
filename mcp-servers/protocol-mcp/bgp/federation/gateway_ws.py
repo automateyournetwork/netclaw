@@ -47,6 +47,30 @@ class GatewayWsError(RuntimeError):
     """Raised when the gateway returns an error response or refuses handshake."""
 
 
+def _resolve_token_ref(token, path):
+    """gateway.auth.token may be a literal string or an OpenClaw SecretRef object
+    (spec 167 F2). Only an `env` SecretRef is resolved here (from this process's
+    environment); other sources (store/file/exec/...) are refused rather than read,
+    and a dict is never returned as the token."""
+    if not isinstance(token, dict):
+        if token is not None and not isinstance(token, str):
+            raise GatewayWsError(f"gateway.auth.token in {path} is not a string or SecretRef")
+        return token
+    source, ref_id = token.get("source"), token.get("id")
+    if source == "env":
+        if not isinstance(ref_id, str) or not ref_id:
+            raise GatewayWsError(f"gateway.auth.token env SecretRef in {path} has no id")
+        value = os.environ.get(ref_id)
+        if not value:
+            raise GatewayWsError(
+                f"gateway.auth.token in {path} references env var {ref_id}, which is not set "
+                f"(set {ref_id} or the {_ENV_TOKEN} override)")
+        return value
+    raise GatewayWsError(
+        f"gateway.auth.token in {path} is a SecretRef with source {source!r}, which is not "
+        f"supported here; set the {_ENV_TOKEN} override")
+
+
 def resolve_gateway_ws_config(config_path: str = None) -> tuple:
     """Resolve (ws_url, token) the same way the `openclaw` CLI resolves gateway
     connection details today: from openclaw.json's gateway.port/bind/auth.token,
@@ -72,7 +96,7 @@ def resolve_gateway_ws_config(config_path: str = None) -> tuple:
     gw = cfg.get("gateway", {})
     port = gw.get("port", 18789)
     url = env_url or f"ws://127.0.0.1:{port}"
-    token = env_token or (gw.get("auth", {}) or {}).get("token")
+    token = env_token or _resolve_token_ref((gw.get("auth", {}) or {}).get("token"), path)
     if not token:
         raise GatewayWsError(
             f"no gateway auth token found in {path} (gateway.auth.token) and "
