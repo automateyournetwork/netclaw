@@ -106,3 +106,7 @@ ruff F/E9 clean; diff --check clean. Live: reinstall over an existing install ->
 rule gate present, status 0, service-context probe authorized.
 Release 1.17.0: VERSION, CHANGELOG and docs/releases/1.17.0.md; prepare-release
 --check PASS. docs/CONVERGENCE.md points to `coldstart install`.
+
+T004: commit 9c09c34f pushed to fork branch 166-coldstart-system-members; upstream
+[automateyournetwork/netclaw#313](https://github.com/automateyournetwork/netclaw/pull/313)
+opened against main, stacked on #312 (merge #312 first). Hosted CI reported on the PR.
