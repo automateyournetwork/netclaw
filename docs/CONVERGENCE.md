@@ -222,8 +222,10 @@ OpenClaw 2026.10.9 and later cannot run an embedded member inside a hardened
 identity OpenClaw's ownership check needs. On such hosts run always-on members as
 system units (`python3 scripts/in2n-services.py generate --system`, then `enable
 --system`; both use `sudo -n` and print the commands if sudo needs a password). The
-Risk posture reports confinement unavailable until then; on-demand cold-start
-members remain a gap. Members are confined, but the Border is not by default. To
+Risk posture reports confinement unavailable until then. For on-demand members,
+`python3 scripts/in2n-services.py coldstart install` adds a confined system template
+and a narrow polkit rule so the Border can cold-start them without sudo (see
+[N2N-RISK](N2N-RISK.md)). Members are confined, but the Border is not by default. To
 keep the Border's own shell and file tools away from Convergence settings, use the
 optional [Border hardening](N2N-RISK.md#border-hardening-optional-spec-165) helper.
 
