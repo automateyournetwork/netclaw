@@ -980,6 +980,7 @@
     "cml-packet-capture",
     "cml-topology-builder",
     "comfyui-topology-viz",
+    "convergence-observations",
     "datadog-apm",
     "datadog-incidents",
     "datadog-logs",
@@ -1167,7 +1168,6 @@
     "zscaler-insights",
     "zscaler-zdx",
     "zscaler-zia",
-    "zscaler-zpa",
-    "convergence-observations"
+    "zscaler-zpa"
   ]
 }

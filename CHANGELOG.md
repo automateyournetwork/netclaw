@@ -267,4 +267,3 @@ Spec [162-netconverterai](specs/162-netconverterai/spec.md). See [milestone note
 - Record five review/fix/test iterations. Live NetConverter account/client discovery, vendor-target acceptance and native UI/platform qualifications remain open; controlled tests do not complete those gates.
 
 Spec [162-netconverterai](specs/162-netconverterai/spec.md). See [milestone notes](specs/162-netconverterai/source-milestone-1.15.0.md). Coordinated extension source: **1.5.0**, unpublished.
-

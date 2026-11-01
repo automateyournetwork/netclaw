@@ -1,10 +1,10 @@
 # Changelog
 
-## 1.5.0 — optional NetConverter setup (source; unpublished)
+## 1.5.0 — optional NetConverter setup
 
 - Choose hosted-readonly or local-Terminal mode in the native setup picker, with preserved cancellation and independent per-claw settings.
 - Reject API-key literals in non-secret plan fields; installation, account capability and per-file approval remain separate states.
-- Use matching source 1.15.0. Controlled installer tests pass; native desktop acceptance, real account/client discovery and live conversion remain pending in Spec162.
+- Use matching source 1.18.0. Spec162 records real account/client discovery, approved synthetic conversions, protected IOS-XE rehearsal and native Border/member delegation. The final Mac Risk installer used simulated review inputs; Windows/WSL, Hermes member and Junos appliance acceptance remain unqualified.
 
 ## 1.4.0 — dynamic pyATS testbeds
 

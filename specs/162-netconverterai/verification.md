@@ -2,7 +2,7 @@
 
 ## Current status
 
-Source is **1.15.5**, extension source remains **1.5.0**, unpublished.
+Final release preparation is **source 1.18.0 / extension 1.5.0**, reconciled with upstream 1.17.1. Earlier source 1.15.0–1.15.5 records below are unpublished branch milestones. See [release verification](release-verification.md) for publication evidence.
 **44/44 scoped tasks are complete.** Five original implementation loops and all
 three additional live loops are complete. T034 passed the owner-requested Mac
 Risk installation with simulated review inputs and actual installer effects,

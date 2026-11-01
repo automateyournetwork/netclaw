@@ -145,17 +145,17 @@ jobs:
         uses: astral-sh/setup-uv@v6
 
       - name: Qualified HUD Node for Hermes launcher contracts
-        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit'
+        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit' || matrix.suite == 'netconverter'
         uses: actions/setup-node@v4
         with:
           node-version: '24'
 
       - name: Install HUD dependencies for Hermes launcher contracts
-        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit'
+        if: matrix.suite == 'hermes-hud' || matrix.suite == 'unit' || matrix.suite == 'netconverter'
         run: npm --prefix ui/netclaw-visual ci
 
       - name: Qualified Node for offline installer contracts
-        if: matrix.suite == 'setup-installer'
+        if: matrix.suite == 'setup-installer' || matrix.suite == 'netconverter'
         uses: actions/setup-node@v4
         with:
           node-version: '24.19.0'

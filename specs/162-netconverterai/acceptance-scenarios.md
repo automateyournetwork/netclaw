@@ -1,6 +1,6 @@
 # Spec162 acceptance scenarios
 
-These scenarios define expected outcomes. Actual source/fixture and live status is recorded in [verification.md](verification.md); the expectation table is not a pass list. Real account/client and virtual-target gates remain pending.
+These scenarios define expected outcomes. Actual source/fixture and live status is recorded in [verification.md](verification.md); the expectation table is not a pass list. Current scoped completion and remaining platform/appliance limits are recorded there; the historical pending gates were superseded by actual qualification.
 
 | Scenario | Expected observation | Evidence classification |
 |---|---|---|
