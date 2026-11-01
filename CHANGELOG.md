@@ -2,6 +2,18 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.15.3] - 2026-11-01 (source milestone; unpublished)
+
+Minor fixes discovered during real Spec162 native runtime and appliance qualification:
+
+- Include the two public reference snapshots imported by the installed HUD, fixing its first-load module failure.
+- Resolve the native gateway's environment SecretRef for authenticated HUD and Terminal Intent requests; unresolved explicit references fail closed.
+- Add an explicitly started, authenticated, installation-bound foreground pyATS session for clients that close STDIO between turns. Keep the original tool identities, live inventory binding, private task store and one-use apply controls. Process exit requires fresh composition and review.
+- Bind migration baseline receipts to the real captured private artifact and reject reference-note substitution before API APPLY and again in the configuration consumer. The live agent exposed this gap; the original baseline remained retained.
+- Record actual CML capacity juggling, IOS-XE target/peer boot and private baseline collection, including retained failed bootstrap/legacy SSH attempts and independently verified target host-key rotation.
+
+Spec [162-netconverterai](specs/162-netconverterai/spec.md). See [milestone notes](docs/releases/1.15.3.md) and current [qualification evidence](specs/162-netconverterai/verification.md). Extension source remains **1.5.0**; no extension code changed in this patch.
+
 ## [1.15.2] - 2026-10-31 (source milestone; unpublished)
 
 Minor fixes discovered in the owner-approved real Spec162 rehearsal installation:

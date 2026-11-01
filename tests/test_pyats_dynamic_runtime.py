@@ -13,6 +13,9 @@ import subprocess
 import sys
 import tempfile
 import unittest
+import time
+import urllib.request
+import urllib.error
 
 ROOT=Path(__file__).resolve().parents[1]
 RUNTIME=os.environ.get('PYATS_TEST_RUNTIME')
@@ -62,6 +65,45 @@ class NativeDynamicTests(unittest.IsolatedAsyncioTestCase):
         response=await (client or self.client).call_tool(name,args or {})
         self.assertFalse(response.is_error)
         return json.loads(''.join(b.text for b in response.content if b.type=='text'))
+
+    async def test_explicit_session_survives_clients_and_rejects_unauthenticated_access(self):
+        from mcp.client.client import Client
+        from mcp.client.stdio import StdioServerParameters,stdio_client
+        descriptor=self.private/'persistent.json'
+        owner=subprocess.Popen([sys.executable,str(ROOT/'scripts/pyats-stdio.py'),'--serve-session',str(descriptor)],
+                               env=self.env,stdout=self.errors,stderr=self.errors)
+        try:
+            deadline=time.monotonic()+45
+            while not descriptor.exists():
+                self.assertIsNone(owner.poll(),'Persistent owner failed')
+                if time.monotonic()>deadline:self.fail('Session startup timed out')
+                await asyncio.sleep(.1)
+            state=json.loads(descriptor.read_text())
+            with self.assertRaises(urllib.error.HTTPError) as error:
+                urllib.request.build_opener(urllib.request.ProxyHandler({})).open(
+                    f"http://127.0.0.1:{state['port']}/mcp",timeout=5)
+            self.assertEqual(error.exception.code,401)
+            params=StdioServerParameters(command=sys.executable,args=[str(ROOT/'scripts/pyats-stdio.py')],
+                                        env={**self.env,'PYATS_SESSION_FILE':str(descriptor)},cwd=self.private)
+            async with Client(stdio_client(params,errlog=self.errors),read_timeout_seconds=60) as first:
+                self.assertEqual(len((await first.list_tools()).tools),35)
+                candidate=fixture(name='across-turns')
+                self.assertEqual((await self.call('netclaw_testbed_compose',{'envelope':candidate},first))['status'],'completed')
+                self.assertEqual((await self.call('pyats_testbed_validate',{'name':'across-turns'},first))['status'],'completed')
+                self.assertEqual((await self.call('pyats_testbed_activate',{'name':'across-turns'},first))['active'],'across-turns')
+                original=await self.call('pyats_list_devices',client=first)
+            async with Client(stdio_client(params,errlog=self.errors),read_timeout_seconds=60) as second:
+                current=await self.call('pyats_list_devices',client=second)
+                self.assertEqual(current['privateMigration'],original['privateMigration'])
+                self.assertEqual((await self.call('pyats_testbed_list',client=second))['active'],'across-turns')
+            owner.terminate();owner.wait(timeout=10)
+            # Stale descriptors cannot recreate the process or inventory.
+            failed=subprocess.run([sys.executable,str(ROOT/'scripts/pyats-stdio.py')],env=params.env,
+                                  input='',capture_output=True,text=True,timeout=10)
+            self.assertNotEqual(failed.returncode,0)
+            self.assertNotIn(state['token'],failed.stdout+failed.stderr)
+        finally:
+            if owner.poll() is None:owner.terminate();owner.wait(timeout=10)
 
     @native_case
     async def test_all_sources_actual_builder_schema_activation_and_guards(self):

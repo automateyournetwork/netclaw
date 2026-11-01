@@ -226,3 +226,30 @@ Run-owned analysis containers: `netclaw-spec162-batfish-20261031` is stopped;
 API 19997 and CPU/memory limits. No CML target was created. Resource and artifact
 IDs, original evidence and precise metadata are retained locally.
 
+
+### November 1 continuation — actual appliance behavior and discovered control gap
+
+T035 now passes for the available IOS-XE round-trip reference. The owner authorized
+stop/start juggling of five enforced CML licenses; genuine owner baselines were
+captured and first restoration verified. Two real IOS-XE 17.18.2 nodes booted with
+separate management VRFs and an isolated synthetic link. Password length and
+legacy IOSv SSH failures remain retained. Reboot host-key changes were independently
+verified against actual public keys read through authenticated CML TLS consoles.
+
+Actual native NetClaw composition, private collection, HUD review and API-issued
+application succeeded. OSPF FULL, metric-11 reciprocal loopback routes, 5/5 pings
+each direction and 0/3 negative controls were observed with management preserved.
+The agent nevertheless replaced baselinePath with an artifact reference note.
+The actual original stayed private and retained; the API should have rejected
+that substitution. A red regression reproduced it. Added collector receipts and
+exact baseline/original hash checks in API preparation, issuance and consumption;
+18 private apply tests and 69 complete feature tests pass. The original live
+record is retained, not rewritten. A clean repeat through the fixed source is
+still required, as is fresh native installer acceptance.
+
+Other live defects fixed: missing native HUD reference JSON imports, environment
+SecretRef gateway authentication, and OpenClaw per-turn STDIO process termination.
+The explicit foreground pyATS session retains the same process across clients
+with private bearer authentication and installation/policy binding. Nine actual
+pinned runtime/session checks pass, including unauthorized access and stopped
+session refusal. No tool identity, live-process check or apply authority was bypassed.

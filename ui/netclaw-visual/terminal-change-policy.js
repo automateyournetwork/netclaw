@@ -140,6 +140,7 @@ export function createLocalChangePolicy({ directory, listDevices }) {
           artifacts.push({ device: device.id, kind: field, sha256: hash(fs.readFileSync(file)), bytes: stat.size });
         }
       }
+      if(change.migration) for(const device of change.devices)migrationVault.verifyBaseline(change,device);
       audit(change.id, 'baseline-and-rollback-recorded', artifacts);
       const next = { ...readRecord(change.id), phase: 'apply', artifacts };
       if (next.migration) {

@@ -2,13 +2,75 @@
 
 ## Current status
 
-Source implementation and five original review/fix/test iterations are complete.
-Three additional live qualification loops are recorded in [live-iterations.md](live-iterations.md).
-Source is now **1.15.2**, extension source remains **1.5.0**; neither is published
-by this session. **41 of 44 tasks remain checked**: T034–T036 are partly advanced,
-not complete. Actual Terminal 0.6.0/account discovery and two separately approved
-synthetic conversions succeeded. Both returned **needs review**. No live device
-application, Junos appliance acceptance or forwarding pass is claimed.
+Source is **1.15.3**, extension source remains **1.5.0**, unpublished.
+**42/44 tasks are checked**: T035 now has actual image/bootstrap/access evidence;
+T034 fresh native installation acceptance and T036 protected appliance behavior
+remain open. Five original review loops and the first two additional live loops
+are complete; the third is in progress. Two separately approved real synthetic
+conversions completed with provider review findings preserved.
+
+### November 1 live qualification
+
+- Actual CML authentication works. Its enforced limit is **five licensed nodes**,
+  despite a feature description mentioning twenty. The owner authorized stop/start
+  juggling. Real private R1/R2 baselines were captured first; their first restoration
+  returned both to BOOTED with configuration equal except display timestamp/size
+  metadata. A second scoped capacity round is active while testing.
+- Actual owned IOS-XE **17.18.2** target and modern peer booted with management in
+  separate MGMT VRFs and an isolated synthetic test link. An initial bootstrap's
+  32-character password was rejected (device limit 25); the retained replacement
+  uses 24 characters. The IOSv peer's legacy-only SSH negotiation failed; it is
+  stopped and retained, replaced by the same available modern IOS-XE image.
+- Native NetClaw/Claude composed, validated and activated the dynamic CML inventory,
+  collected private running baselines and obtained actual version/interface/route
+  evidence. A model's claim that the peer lacked its management VRF was incorrect;
+  the private baseline confirms both the VRF and interface binding. Typed device
+  evidence takes precedence over the narrative.
+- Target reboot regenerated its RSA key. Strict host checking rejected the stale
+  entry. The new key was read through the exact-node CML console over scoped pinned
+  TLS and matched against SSH keyscan before updating only that owned target entry.
+  Subsequent actual NetClaw private collection and read commands passed.
+- The native HUD exposed missing reference JSON imports and gateway SecretRef
+  authentication errors. Source fixes and focused regressions pass. Scoped repairs
+  preserve original bound source files, private backups and the original partial
+  installation journal. Actual Chrome now renders the HUD, Canvas and Intent.
+- OpenClaw **2026.7.1-2** ends STDIO children between turns. Added an explicit
+  authenticated foreground pyATS session: actual separate SDK clients and native
+  agent turns retain the same live inventory; unauthenticated access fails; owner
+  exit invalidates the session. Original configuration-tool identities and private
+  candidate/grant binding are unchanged. No inventory receipt or grant was forged.
+- Actual HUD review captured the adapted candidate, designated only the owned
+  target and created the real Local/Lab record. The first real record completed application and behavior checks, but exposed
+  baseline-file substitution as described below. It is not counted as clean acceptance.
+  Original reverse output SHA-256 `b13f9f92bcfa7dfe463fe70d2dfac220870bc620b73f80e93dff8358a5477282`;
+  sole adaptation `GigabitEthernet0/0/1` → `Ethernet0/2`;
+  reviewed 727-byte SHA-256 `020df9533e5549c6e28f3de5273e9478d8008cf16ca904bb80d22e7a6506ef0f`.
+
+Current regressions: **69 NetConverter tests** (29.987s), **9 actual pinned
+pyATS/session tests** (14.021s), **10 focused Node entries**, **8 deployment tests**,
+and **274 setup tests with 32 optional skips**. One direct unittest module invocation
+failed because its sibling imports require discovery; the corrected discovery run
+passed all eight deployment tests. No new extension changes or publication.
+
+The first actual API-issued apply used the original `pyats_configure_device`
+identity and returned `applied_unverified`, followed by actual device checks:
+OSPF FULL on both ends; reciprocal loopback routes with metric 11; positive pings
+5/5 in both directions; unadvertised-prefix negative pings 0/3 in both directions;
+management VRFs preserved and fresh private target collection successful.
+
+That live run exposed an approval-evidence defect: the agent overwrote the
+record's genuine baseline file with a metadata reference note. The original
+1905-byte configuration remained safely retained in the private artifact store,
+but the API accepted the substituted file. The source now writes a collector
+receipt bound to record/installation/harness/testbed/endpoint and verifies the
+exact baseline against the original captured artifact before APPLY, and again
+in the consumer. A regression reproduced the defect before the fix; 18 private
+apply tests now pass, including reference substitution and changed original
+artifact refusal. The original completed record and results remain unmodified;
+a clean reset/review/apply repeat is in progress. This is why T036 remains open.
+
+No Junos image is installed. Forward Junos appliance behavior and other vendors
+remain unqualified; the available IOS-XE round-trip reference does not imply them.
 
 ## Initial planning evidence (historical)
 
@@ -21,7 +83,7 @@ application, Junos appliance acceptance or forwarding pass is claimed.
 - No local NetConverter executable on PATH; bounded repository environment-name checks found no relevant account/lab settings. No credential values read.
 - Startup pyATS inventory initially failed. Later direct local MCP discovery below succeeded.
 
-## Current live qualification evidence — 2026-10-31
+## Historical live qualification evidence — 2026-10-31
 
 | Gate | Observed status | Remaining evidence |
 |---|---|---|
@@ -283,8 +345,8 @@ reconciliation failure remains visible and was not relabeled as a pass.
 
 SC-001/002/004 have controlled and actual service evidence; native UI scope remains
 open. SC-003 has explicit source/lab handoff limits. SC-005 has all five recorded
-iterations. SC-006 is **not satisfied by fixtures**: no image-backed target has
-been created or behavior-tested in this run.
+iterations. SC-006 is **not satisfied by fixtures**: an image-backed target is now created,
+but protected apply and actual behavior acceptance remain open.
 
 The authored [synthetic IOS-XE OSPF input](examples/README.md) has now completed
 its approved real conversion. It has not been applied and does not establish

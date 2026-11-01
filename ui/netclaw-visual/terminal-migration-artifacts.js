@@ -69,6 +69,19 @@ export function createMigrationVault(directory) {
       write(path.join(root(), 'candidates', ref + '.json'), JSON.stringify(meta));
       return meta;
     },
+    verifyBaseline(record, device) {
+      const m=record.migration;
+      if (!m || path.dirname(device.baselinePath) !== path.join(root(),'records',id(record.id))) throw fail();
+      const receipt=JSON.parse(read(device.baselinePath+'.receipt.json',65536));
+      if(receipt.schema!==1 || receipt.record!==record.id || receipt.installation!==m.installation ||
+         receipt.harness!==m.harness || receipt.testbed!==m.testbed || !same(receipt.endpoint,device)) throw fail();
+      const artifact=receipt.artifact;
+      const captured=read(path.join(root(),'artifacts',id(artifact?.artifact_ref)+'.artifact'),LIMIT);
+      const baseline=read(device.baselinePath,LIMIT);
+      if(artifact.role!=='running-configuration' || artifact.bytes!==captured.length ||
+         artifact.sha256!==hash(captured) || baseline.length!==captured.length || hash(baseline)!==artifact.sha256) throw fail();
+      return {sha256:artifact.sha256,bytes:artifact.bytes};
+    },
     bind(input, devices) {
       if (!input) return undefined;
       if (devices.length !== 1 || !['ospf-routing-v1','firewall-policy-v1'].includes(input.profile)) throw fail();
@@ -82,6 +95,7 @@ export function createMigrationVault(directory) {
     issue(record) {
       const m = record.migration;
       if (!m || record.phase !== 'apply' || record.status !== 'running') throw fail();
+      for(const device of record.devices)this.verifyBaseline(record,device);
       const rebound = this.bind({ ...m.candidate, harness:m.harness, testbed:m.testbed, profile:m.profile }, record.devices);
       if (JSON.stringify(rebound) !== JSON.stringify(m)) throw fail();
       const keyFile = path.join(root(), 'api-signing.key');

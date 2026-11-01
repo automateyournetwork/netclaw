@@ -68,7 +68,7 @@ Independent test: the review package preserves all failures, unsupported/unexecu
 - [x] T032 Regenerate `scripts/lib/catalog.sh`, `ui/netclaw-visual/env-map.js` and catalog payloads using existing generators; reconcile intentional counts in `tests/fixtures/setup/catalog-baseline.json` and inventory documentation.
 - [x] T033 Run applicable catalog, installer, guard, managed-pyATS, Batfish, HUD and extension regressions; record exact versions/results and failures in `specs/162-netconverterai/verification.md`.
 - [ ] T034 Perform an isolated native installer/approval UI pass and actual upstream licensed-client discovery when its prerequisites are available; record unavailable stages separately in `specs/162-netconverterai/verification.md`.
-- [ ] T035 Qualify a compatible authorized host/image/bootstrap and exact-file-approved live NetConverter reference conversion; record image/license/capacity/account evidence and any blockers in `specs/162-netconverterai/verification.md`.
+- [x] T035 Qualify a compatible authorized host/image/bootstrap and exact-file-approved live NetConverter reference conversion; record image/license/capacity/account evidence and any blockers in `specs/162-netconverterai/verification.md`.
 - [ ] T036 Create a real virtual migration target, load the approved candidate through the protected route and run actual positive/negative behavior checks; compare source twin where feasible and preserve run resources/evidence in `specs/162-netconverterai/verification.md`.
 
 Live tasks T034–T036 remain unchecked if their external prerequisites are absent; they cannot be satisfied by fixture results. Continue independent source work and review iterations.
@@ -79,9 +79,20 @@ T034/T035. Actual local Batfish/MCP analysis adds scoped model evidence, includi
 a forward route-metric difference. The owner completed a real native plan review
 and minimal installation; scoped repairs now prove Claude/NetConverter execution
 and native dynamic pyATS discovery. The original partial setup report is retained.
-T034 still lacks complete native installer/UI acceptance; T035 lacks qualified
-target/bootstrap/capacity and CML is currently unreachable; T036 lacks actual appliance
-creation, protected application and live behavior. See [three additional loops](live-iterations.md).
+This is historical October 31 status. The November 1 qualification below supersedes
+the CML/target prerequisites; fresh native installation and protected behavior
+acceptance remain separate. See [three additional loops](live-iterations.md).
+
+2026-11-01 update: T035 is complete for the available IOS-XE round-trip reference.
+Actual CML authentication, five-slot licensing, owned IOS-XE 17.18.2 image boot,
+isolated management/data links, SSH identity and private target/peer baselines are
+verified. The owner explicitly authorized temporary R1/R2 stop/start; first
+restoration was verified against real baselines. Failed bootstrap and legacy-SSH
+trials are retained. T034 still requires a fresh native installation acceptance
+pass after the discovered fixes; its real HUD candidate/Local-Lab review now runs.
+T036 completed a first real apply/forwarding trial, which exposed baseline-file
+substitution. Its original configuration remains retained; the source now checks
+collector receipts and exact captured bytes. A clean protected repeat remains open.
 
 ## Phase 8 — Five Ralph implementation review/fix/test iterations
 

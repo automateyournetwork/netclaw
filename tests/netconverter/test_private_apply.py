@@ -104,6 +104,31 @@ class ApplyTests(unittest.TestCase):
         self.assertIn('CANARY',Path(f['change']['devices'][0]['baselinePath']).read_text())
         self.assertFalse(Path(f['change']['devices'][0]['rollbackPath']).exists())
 
+    def test_api_refuses_agent_replacing_real_baseline_with_reference_note(self):
+        f=self.issue(True)
+        result=json.loads(asyncio.run(self.managed.call('pyats_show_running_config',{'device_name':'target','output_mode':'private','change_ref':f['change']['id']})))
+        self.assertEqual(result['status'],'completed')
+        d=f['change']['devices'][0]
+        Path(d['baselinePath']).write_text('Reference only: '+json.dumps(result['artifact']))
+        Path(d['rollbackPath']).write_text('Synthetic scoped inverse plan; original private artifact retained.')
+        args={'root':str(self.vault),'devices':self.current['devices'],'finalize':f['change']['id']}
+        run=subprocess.run([os.environ.get('NETCLAW_TEST_NODE') or shutil.which('node'),str(ROOT/'tests/netconverter/issue-fixture.mjs')],input=json.dumps(args),text=True,capture_output=True)
+        self.assertNotEqual(run.returncode,0,'API must reject a reference note replacing actual baseline bytes')
+        record=self.managed.private.read('records/'+f['change']['id']+'/record.json')
+        self.assertEqual(record['phase'],'prepare');self.assertNotIn('applyGrants',record)
+
+    def test_real_collector_receipt_allows_api_transition_and_detects_changed_original(self):
+        f=self.issue(True)
+        result=json.loads(asyncio.run(self.managed.call('pyats_show_running_config',{'device_name':'target','output_mode':'private','change_ref':f['change']['id']})))
+        self.assertEqual(result['status'],'completed')
+        Path(f['change']['devices'][0]['rollbackPath']).write_text('Synthetic scoped inverse plan, with captured baseline reference.')
+        args={'root':str(self.vault),'devices':self.current['devices'],'finalize':f['change']['id']}
+        run=subprocess.run([os.environ.get('NETCLAW_TEST_NODE') or shutil.which('node'),str(ROOT/'tests/netconverter/issue-fixture.mjs')],input=json.dumps(args),text=True,capture_output=True)
+        self.assertEqual(run.returncode,0,run.stderr)
+        f['grant']=json.loads(run.stdout)['grant']
+        original=Path(result['artifact']['path']);original.chmod(0o600);original.write_text('changed captured original')
+        self.assertEqual(self.apply(f)['code'],'collected_baseline_changed');self.assertFalse(self.calls)
+
     def test_mixed_input_and_unqualified_route_refused(self):
         f=self.issue()
         result=json.loads(asyncio.run(self.managed.call('pyats_configure_device',{'device_name':'target','config_commands':'hostname other',

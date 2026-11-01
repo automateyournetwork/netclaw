@@ -139,7 +139,7 @@ class ManagedTestbeds:
                 if device['os']=='junos':self.server._execute_get_running_config_str=collector
             if result.get('status')!='completed' or not isinstance(result.get('output'),str):
                 raise Refused('private_collection_failed')
-            artifact=self.private.collection(result['output'],device,change_ref=args.get('change_ref'))
+            artifact=self.private.collection(result['output'],device,change_ref=args.get('change_ref'),current=current)
             return encoded({'status':'completed','device':args['device_name'],'artifact':artifact,'content':'private'})
         finally:
             self.server._load_testbed=load
@@ -297,7 +297,14 @@ def main():
     required=('pyats_testbed_build','pyats_testbed_validate','pyats_testbed_activate','pyats_testbed_sources')
     if any(not hasattr(server,name) for name in required):raise RuntimeError('Pinned dynamic upstream runtime required')
     managed=ManagedTestbeds(server);asyncio.run(managed.register())
-    server.mcp.run(transport='streamable-http',host='127.0.0.1',port=int(os.environ['PYATS_MCP_HTTP_PORT']),json_response=True,stateless_http=True)
+    token=os.environ.get('NETCLAW_PYATS_HTTP_TOKEN')
+    if token:
+        import uvicorn
+        from pyats_session import BearerAuth
+        app=server.mcp.streamable_http_app(json_response=True,stateless_http=True,host='127.0.0.1')
+        uvicorn.run(BearerAuth(app,token),host='127.0.0.1',port=int(os.environ['PYATS_MCP_HTTP_PORT']),log_level='warning')
+    else:
+        server.mcp.run(transport='streamable-http',host='127.0.0.1',port=int(os.environ['PYATS_MCP_HTTP_PORT']),json_response=True,stateless_http=True)
 
 
 if __name__=='__main__':

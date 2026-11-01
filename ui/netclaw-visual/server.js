@@ -56,6 +56,7 @@ import { registerGenieRoutes } from './genie-parser.js';
 import { registerIntentExecutionRoutes } from './terminal-intent-execution.js';
 import { createTranscriptActivityReader } from './terminal-intent-live.js';
 import { createLocalChangePolicy } from './terminal-change-policy.js';
+import { gatewayBearerToken } from './src/hud-server/gateway-auth.js';
 import {
   applySshAlgorithmPolicy,
   keyExchangeFailureDetails,
@@ -1509,7 +1510,7 @@ function getGatewayConfig() {
     return {
       agentId: gatewayAgentId(config),
       port: config?.gateway?.port || 18789,
-      token: config?.gateway?.auth?.token || '',
+      token: gatewayBearerToken(config, { ...process.env, ...parseOneEnvFile(OPENCLAW_ENV) }),
       chatCompletionsEnabled:
         config?.gateway?.http?.endpoints?.chatCompletions?.enabled === true,
     };

@@ -72,3 +72,9 @@ Use `python3 scripts/migration-rehearsal.py --root /absolute/private/state --run
 - `evidence`: `assertion`, `verdict`, `evidence_class` and private `artifact` reference. Preserve deliberately failed checks after recovery.
 
 For the private apply path, run managed `pyats_list_devices`, review the local file/hash in Terminal Intent, select the same process and one exact target, and submit the explicit Local/Lab change. The API returns the artifact_ref/grant_ref only after real preparation. IOS/IOS-XE and fixed Junos display-set private collection are implemented; live Junos baseline collection is not yet qualified. Keep that prerequisite explicit even when Junos set-format candidate application is available in source.
+
+Confirm the native client's process lifetime before review. OpenClaw 2026.7.1-2
+closes STDIO after each turn; use the explicit authenticated foreground session in
+`docs/DYNAMIC-TESTBEDS.md` for the selected installation. A binding from a dead
+process must never be accepted or recreated by editing its receipt. Client
+disconnect preserves an explicitly owned session; owner exit invalidates it.

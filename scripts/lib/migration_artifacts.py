@@ -101,6 +101,19 @@ class PrivateMigration:
             raw_artifact, _ = read_file(target, limit=4 * LIMIT)
             if len(raw_artifact) != entry['bytes'] or digest(raw_artifact) != entry['sha256']:
                 raise Refused('baseline_or_rollback_changed')
+            if entry['kind']=='baseline':
+                receipt_raw,_=read_file(Path(str(target)+'.receipt.json'),limit=65536)
+                receipt=json.loads(receipt_raw);captured=receipt.get('artifact',{})
+                if (receipt.get('schema')!=1 or receipt.get('record')!=record['id'] or
+                    receipt.get('installation')!=self.installation or receipt.get('harness')!=self.harness or
+                    receipt.get('testbed')!=current['testbed'] or
+                    any(receipt.get('endpoint',{}).get(k)!=device[k] for k in ('id','host','port','protocol')) or
+                    captured.get('role')!='running-configuration' or captured.get('bytes')!=len(raw_artifact) or
+                    captured.get('sha256')!=digest(raw_artifact)):
+                    raise Refused('collected_baseline_changed')
+                original,_=read_file(self.root/'artifacts'/(ident(captured['artifact_ref'])+'.artifact'),limit=LIMIT)
+                if len(original)!=len(raw_artifact) or digest(original)!=digest(raw_artifact):
+                    raise Refused('collected_baseline_changed')
         raw_candidate, _ = read_file(self.root / 'candidates' / (ident(artifact_ref) + '.cfg'), limit=LIMIT)
         if len(raw_candidate) != candidate['bytes'] or digest(raw_candidate) != candidate['sha256']:
             raise Refused('candidate_changed')
@@ -114,7 +127,7 @@ class PrivateMigration:
         publish_file(self.root / 'attempts' / (grant_ref + '.json'), pack({'state': 'unknown', 'claim': claim, 'at': now}))
         return text
 
-    def collection(self, output, device, *, change_ref=None):
+    def collection(self, output, device, *, change_ref=None, current=None):
         """No caller-chosen output path. Optional baseline is tied to PREPARE."""
         data = output.encode()
         if not 8 <= len(data) <= LIMIT: raise Refused('invalid_collection_size')
@@ -124,11 +137,20 @@ class PrivateMigration:
             if record['phase'] != 'prepare' or record['status'] != 'running': raise Refused('collection_requires_prepare')
             matched = next((d for d in record['devices'] if all(d.get(k) == device[k] for k in ('id','host','port','protocol'))), None)
             if not matched: raise Refused('collection_endpoint_mismatch')
+            migration=record.get('migration')
+            if migration and (not current or migration['harness']!=self.harness or
+                              migration['installation']!=self.installation or migration['testbed']!=current['testbed']):
+                raise Refused('collection_inventory_mismatch')
             expected = self.root / 'records' / record['id']
             for field in ('baselinePath',):
                 path = Path(matched[field])
                 if path.parent != expected: raise Refused('baseline_outside_record')
                 publish_file(path, data)
+                if migration:
+                    receipt={'schema':1,'record':record['id'],'installation':self.installation,
+                             'harness':self.harness,'testbed':current['testbed'],
+                             'endpoint':device,'artifact':artifact}
+                    publish_file(Path(str(path)+'.receipt.json'),pack(receipt),mode=0o400)
             # Keep rollback planning separate: a captured config is not evidence
             # that replaying it restores deleted/changed device state.
         return artifact

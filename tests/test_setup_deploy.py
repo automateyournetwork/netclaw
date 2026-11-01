@@ -83,6 +83,19 @@ class DeployTests(unittest.TestCase):
         self.assertEqual(audit.components['subnet-calc']['adapter'],'isolated-shell')
         audit.verify()
 
+    def test_installed_dashboard_has_its_imported_reference_snapshots(self):
+        import re
+        from setup_deploy import Deployment
+        deploy=Deployment(ROOT,self.claw,self.context)
+        outputs={target:data for target,data,_ in deploy.source_outputs()}
+        view=deploy.source/'ui/netclaw-visual/src/dashboard/ReferenceViews.jsx'
+        imports=re.findall(r"from\s+['\"]([^'\"]+\.json)['\"]",outputs[view].decode())
+        self.assertTrue(imports, 'Exercise the actual dashboard data imports')
+        for relative in imports:
+            target=(view.parent/relative).resolve()
+            self.assertTrue(target in outputs, f'Missing installed HUD import: {relative}')
+            self.assertTrue(isinstance(json.loads(outputs[target]),(dict,list)))
+
     def test_only_successful_components_registered_and_built_source_revision_owned(self):
         from setup_deploy import Deployment
         from setup_schema import canonical,loads
