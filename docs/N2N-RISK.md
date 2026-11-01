@@ -146,7 +146,7 @@ honest posture that the Border **never** overstates.
 | Layer | Kind | How it's wired | Effect if unavailable |
 |-------|------|----------------|-----------------------|
 | **Member sandbox — host-level kernel confinement** | containment | Each member runs as a **`systemd --user` unit hardened** with `NoNewPrivileges`, `ProtectSystem=strict` (read-only system), `InaccessiblePaths=~/.openclaw/.env` (the operator's master secrets are invisible to the member), `PrivateTmp`, and — on a native-Linux manager — syscall/namespace/address-family restrictions. On-demand members are cold-started inside a transient hardened `systemd-run` unit (or, where OpenClaw cannot run in user units, an instance of the confined system template `netclaw-coldmember@.service`, spec 166). *(OpenShell containers were evaluated and rejected for live-infra members: they are empty, network-egress-denied sandboxes — a member that must reach real devices/APIs can't run in one. Host confinement keeps the member's real tools/network while confining it.)* | delegation **refused** (no unconfined run) |
-| **Model-guard — DefenseClaw LLM guardrail proxy** | containment | `defenseclaw setup guardrail` stands up a Go proxy (`:4000`) and patches OpenClaw to route the model through it; **every prompt/response is inspected**. Availability = `defenseclaw` present **and the proxy reachable** (started via `defenseclaw-gateway start`). Members' skill/MCP sets are also **component-scanned** (`defenseclaw skill scan`) before they run. | delegation **refused** (no unguarded run) |
+| **Model-guard — DefenseClaw LLM guardrail proxy** | containment | The `defenseclaw-gateway` sidecar runs a guardrail proxy on loopback `:4000`; **every prompt/response routed through it is inspected**. Two routes into the proxy are recognised: the **plugin route** (DefenseClaw 1.x: `defenseclaw setup guardrail --connector openclaw` installs an OpenClaw plugin under `~/.openclaw/extensions/defenseclaw` that sends each model call to the proxy; recognised when `plugins.entries.defenseclaw.enabled` is true, plugins are not globally disabled, `plugins.allow` (if set) includes it, `plugins.deny` does not, and `plugins.load.paths` lists the existing `defenseclaw` extension directory) and the **provider route** (every selected model — primary, override, fallbacks — is `defenseclaw/<model>` and the `defenseclaw` provider's `baseUrl` is the loopback guard port). Availability = `security.mode` `defenseclaw`, the `defenseclaw` CLI present, one of those routes in the effective OpenClaw config (a member's home config must carry it too; the Convergence member-home builder copies only the DefenseClaw plugin configuration), **and the proxy reachable**. The proxy blocks provider domains it does not know **fail-closed** (OpenClaw gets a 403); providers outside DefenseClaw's built-in registry, such as Ollama Cloud (`ollama.com`), need registering with `defenseclaw setup provider add` ([DEFENSECLAW.md](DEFENSECLAW.md#providers-defenseclaw-does-not-know)). Members' skill/MCP sets are also **component-scanned** (`defenseclaw skill scan`) before they run. | delegation **refused** (no unguarded run) |
 | **Audit — GAIT immutable git trail** | audit | Every delegation/enrollment/removal/quarantine is committed to a git repo at `~/.openclaw/n2n/gait/` (append-only, never rewritten), cross-referenced to the SQLite audit row. Emitted on **both** the Border and the member side. | delegation **runs but flagged `audit-degraded`** |
 | **Least-privilege secrets** | containment (by construction) | Each member's `.env` is a scoped slice — only its integration's secrets. Combined with the sandbox hiding the master `.env`, a compromised member has no path to another member's keys. | — |
 | **Durable runtime** | resilience | Mesh daemon + always-on members are `systemd --user` services (`Restart=always`, survive churn + reboot), generated repeatably by `scripts/in2n-services.py`. | — |
@@ -161,9 +161,16 @@ blocks on *any* gap (including audit). Per-control policy: a **containment** gap
 > runs as a **durable `systemd --user` service** (`defenseclaw-sidecar.service`,
 > `Restart=always`), generated + enabled by `scripts/in2n-services.py` alongside the
 > mesh daemon and members — so model-guard survives a reboot with no manual step.
-> One-time prerequisite: `defenseclaw setup guardrail` (patches OpenClaw to route
-> model I/O through the proxy). If the proxy is ever down, posture honestly reports
-> `production — DEGRADED (model-guard missing)` and containment fail-closes.
+> One-time prerequisite: `./scripts/defenseclaw-enable.sh` (pinned, checksum-verified
+> DefenseClaw release; `defenseclaw init` and `setup guardrail --connector openclaw`,
+> which installs the OpenClaw plugin), `defenseclaw setup provider add` for any model
+> provider domain DefenseClaw does not know, then `openclaw gateway restart` to load the plugin. If the proxy is
+> ever down or the route is removed, posture honestly reports
+> `production — DEGRADED (model-guard missing)` and containment fail-closes. DefenseClaw
+> 1.0.x `init` cannot read a SecretRef `gateway.auth.token`; see
+> [DEFENSECLAW.md](DEFENSECLAW.md#known-limitation-secretref-gateway-token).
+> Spec 167 qualified production mode with DefenseClaw 1.0.4 in observe mode; action mode,
+> other providers/models, Hermes and macOS/WSL are not qualified.
 
 ```bash
 # ask the Border its posture (MCP), or:

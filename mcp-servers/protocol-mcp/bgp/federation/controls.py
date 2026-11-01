@@ -22,6 +22,7 @@ No new third-party packages — stdlib + the already-installed CLIs.
 """
 
 import asyncio
+import ipaddress
 import json
 import logging
 import os
@@ -311,28 +312,176 @@ async def _sandbox_units() -> Tuple[bool, str]:
 DEFENSECLAW_GUARD_PORT = int(os.environ.get("DEFENSECLAW_GUARD_PORT", "4000"))
 
 
-def guarded_model_route(model_override=None) -> Tuple[bool, str]:
-    """Check the effective local configuration; never rewrite provider settings."""
-    from .runtime import selected as selected_runtime
-    runtime=selected_runtime()
-    if runtime.kind=='hermes':return False, 'Hermes model-guard integration is not qualified; production delegation is unavailable'
+DEFENSECLAW_PLUGIN_ID = "defenseclaw"
+_PLUGIN_ABSENT = "DefenseClaw OpenClaw plugin is not configured"
+
+
+def _defenseclaw_plugin_paths(plugins) -> list:
+    """Absolute `plugins.load.paths` directories named `defenseclaw` that hold the
+    DefenseClaw plugin manifest (openclaw.plugin.json with id `defenseclaw`)."""
+    load = plugins.get("load")
+    paths = load.get("paths") if isinstance(load, dict) else None
+    if not isinstance(paths, list):
+        return []
+    found = []
+    for raw in paths:
+        if not isinstance(raw, str) or not raw.strip():
+            continue
+        path = Path(os.path.expanduser(raw))
+        if not (path.is_absolute() and path.name == DEFENSECLAW_PLUGIN_ID and path.is_dir()):
+            continue
+        try:
+            manifest = json.loads((path / "openclaw.plugin.json").read_text())
+        except (OSError, ValueError):
+            continue
+        if isinstance(manifest, dict) and manifest.get("id") == DEFENSECLAW_PLUGIN_ID:
+            found.append(raw)
+    return found
+
+
+def _defenseclaw_guardrail() -> Tuple[bool, str]:
+    """Does DefenseClaw's own config send the OpenClaw connector's traffic to the
+    guard port probed here? The plugin entry carries no target; the plugin reads
+    `guardrail` from $DEFENSECLAW_HOME/config.yaml (default ~/.defenseclaw). Only
+    the top-level `guardrail:` block's scalar keys are read (no YAML dependency):
+    enabled must be true, connector must be openclaw, and port, when set, must
+    equal DEFENSECLAW_GUARD_PORT (DefenseClaw's default is 4000)."""
+    home = Path(os.environ.get("DEFENSECLAW_HOME") or os.path.expanduser("~/.defenseclaw"))
     try:
-        state = Path(os.environ.get("OPENCLAW_STATE_DIR") or os.environ.get("OPENCLAW_HOME")
-                     or os.path.expanduser("~/.openclaw"))
-        config = Path(os.environ.get("OPENCLAW_CONFIG_PATH") or state / "openclaw.json")
-        cfg = json.loads(config.read_text())
-        agents = cfg.get("agents") or {}
-        model = (agents.get("defaults") or {}).get("model")
-        inherited_fallbacks = model.get("fallbacks", []) if isinstance(model, dict) else []
-        agent_id = os.environ.get("N2N_AGENT_ID", "main")
-        for agent in agents.get("list") or []:
-            if agent.get("id") == agent_id and agent.get("model") is not None:
-                model = agent["model"]
-        primary = model.get("primary") if isinstance(model, dict) else model
-        fallbacks = model.get("fallbacks", []) if isinstance(model, dict) else []
-        if not isinstance(fallbacks, list) or not isinstance(inherited_fallbacks, list):
-            return False, "model fallback configuration is invalid"
-        selected = [model_override if model_override is not None else primary, *fallbacks, *inherited_fallbacks]
+        lines = (home / "config.yaml").read_text().splitlines()
+    except OSError:
+        return False, "DefenseClaw config.yaml is unavailable"
+    block, inside = {}, False
+    for line in lines:
+        if not line.strip() or line.lstrip().startswith("#"):
+            continue
+        if not line.startswith(" "):
+            inside = line.split("#", 1)[0].strip() == "guardrail:"
+            continue
+        if inside and line.startswith("  ") and not line.startswith("   ") and ":" in line:
+            key, _, value = line.strip().partition(":")
+            block[key.strip()] = value.split("#", 1)[0].strip().strip("'\"")
+    if block.get("enabled", "").lower() != "true":
+        return False, "DefenseClaw guardrail is not enabled in config.yaml"
+    if block.get("connector") != "openclaw":
+        return False, "DefenseClaw guardrail connector is not openclaw"
+    port = block.get("port")
+    if port and port != str(DEFENSECLAW_GUARD_PORT):
+        return False, f"DefenseClaw guardrail port {port} is not the probed guard port {DEFENSECLAW_GUARD_PORT}"
+    return True, ""
+
+
+# Providers that are local by default when no baseUrl is declared.
+_LOCAL_PROVIDERS = {"ollama", "lmstudio", "lm_studio", "vllm", "llamacpp", "llama-cpp"}
+
+
+def _local_model_provider(cfg, models) -> str:
+    """The first selected model whose provider endpoint is loopback, private or
+    link-local (or a local-by-default provider without a baseUrl), else ''. The
+    plugin route is not trusted for those: an interceptor need not route local
+    traffic through the proxy, and the proxy's unknown-domain block cannot help."""
+    providers = ((cfg.get("models") or {}).get("providers") or {}) if isinstance(cfg, dict) else {}
+    for model in models:
+        if not isinstance(model, str) or "/" not in model:
+            continue
+        name = model.split("/", 1)[0]
+        decl = providers.get(name) if isinstance(providers, dict) else None
+        base = decl.get("baseUrl") if isinstance(decl, dict) else None
+        if not base:
+            if name.lower() in _LOCAL_PROVIDERS:
+                return model
+            continue
+        host = (urlsplit(base).hostname or "").lower()
+        if host == "localhost" or host.endswith((".local", ".localhost", ".internal")):
+            return model
+        try:
+            addr = ipaddress.ip_address(host)
+        except ValueError:
+            continue
+        if addr.is_loopback or addr.is_private or addr.is_link_local:
+            return model
+    return ""
+
+
+def defenseclaw_plugin_route(cfg) -> Tuple[bool, str]:
+    """Is the DefenseClaw 1.x OpenClaw plugin connector configured (spec 167 F3)?
+
+    `defenseclaw setup guardrail --connector openclaw` does not add a
+    `defenseclaw/<model>` provider; it installs an OpenClaw plugin (installed at
+    ~/.openclaw/extensions/defenseclaw) whose fetch interceptor sends every model
+    request through the guardrail proxy. Accepted only when ALL hold in the
+    effective OpenClaw config:
+      * `plugins.enabled` is not false (the global plugin switch);
+      * `plugins.entries.defenseclaw.enabled` is true;
+      * `plugins.allow`, if present, is a list that includes "defenseclaw";
+      * `plugins.deny`, if present, is a list that does not include it;
+      * `plugins.load.paths` contains an existing absolute directory whose
+        basename is `defenseclaw`.
+    Anything malformed is rejected (fail-closed). Returns (ok, detail)."""
+    plugins = cfg.get("plugins") if isinstance(cfg, dict) else None
+    if not isinstance(plugins, dict):
+        return False, _PLUGIN_ABSENT
+    entries = plugins.get("entries")
+    entry = entries.get(DEFENSECLAW_PLUGIN_ID) if isinstance(entries, dict) else None
+    if entry is None:
+        return False, _PLUGIN_ABSENT
+    if plugins.get("enabled") is False:
+        return False, "OpenClaw plugins are disabled (plugins.enabled=false)"
+    if not isinstance(entry, dict) or entry.get("enabled") is not True:
+        return False, "DefenseClaw OpenClaw plugin is not enabled (plugins.entries.defenseclaw.enabled)"
+    allow = plugins.get("allow")
+    if allow is not None and (not isinstance(allow, list) or DEFENSECLAW_PLUGIN_ID not in allow):
+        return False, "DefenseClaw OpenClaw plugin is not in plugins.allow"
+    deny = plugins.get("deny")
+    if deny is not None and (not isinstance(deny, list) or DEFENSECLAW_PLUGIN_ID in deny):
+        return False, "DefenseClaw OpenClaw plugin is denied (plugins.deny)"
+    if not _defenseclaw_plugin_paths(plugins):
+        return False, ("DefenseClaw OpenClaw plugin is not loaded: plugins.load.paths has no "
+                       "defenseclaw extension directory with its plugin manifest")
+    guard_ok, guard_detail = _defenseclaw_guardrail()
+    if not guard_ok:
+        return False, guard_detail
+    return True, "guarded via DefenseClaw OpenClaw plugin"
+
+
+def defenseclaw_plugin_config(cfg):
+    """Only the DefenseClaw plugin configuration from `cfg` (a fresh `plugins`
+    object), or None when defenseclaw_plugin_route(cfg) does not accept it. Other
+    plugins' entries, allow-list items and load paths are never included."""
+    if not defenseclaw_plugin_route(cfg)[0]:
+        return None
+    plugins = cfg["plugins"]
+    out = {"entries": {DEFENSECLAW_PLUGIN_ID: json.loads(json.dumps(plugins["entries"][DEFENSECLAW_PLUGIN_ID]))},
+           "load": {"paths": _defenseclaw_plugin_paths(plugins)}}
+    if isinstance(plugins.get("allow"), list):
+        out["allow"] = [DEFENSECLAW_PLUGIN_ID]
+    return out
+
+
+def _selected_models(cfg, model_override=None) -> list:
+    """Primary (or override), agent fallbacks and inherited default fallbacks for
+    N2N_AGENT_ID. Raises ValueError when the fallback configuration is invalid."""
+    agents = cfg.get("agents") or {}
+    model = (agents.get("defaults") or {}).get("model")
+    inherited_fallbacks = model.get("fallbacks", []) if isinstance(model, dict) else []
+    agent_id = os.environ.get("N2N_AGENT_ID", "main")
+    for agent in agents.get("list") or []:
+        if agent.get("id") == agent_id and agent.get("model") is not None:
+            model = agent["model"]
+    primary = model.get("primary") if isinstance(model, dict) else model
+    fallbacks = model.get("fallbacks", []) if isinstance(model, dict) else []
+    if not isinstance(fallbacks, list) or not isinstance(inherited_fallbacks, list):
+        raise ValueError("model fallback configuration is invalid")
+    return [model_override if model_override is not None else primary, *fallbacks, *inherited_fallbacks]
+
+
+def _provider_model_route(cfg, model_override=None) -> Tuple[bool, str]:
+    """Every selected model uses the `defenseclaw/<model>` loopback provider."""
+    try:
+        try:
+            selected = _selected_models(cfg, model_override)
+        except ValueError as e:
+            return False, str(e)
         if not all(isinstance(m, str) and m.startswith("defenseclaw/") and m.split("/", 1)[1]
                    for m in selected):
             return False, "primary, override and fallback models must use the defenseclaw provider"
@@ -342,8 +491,58 @@ def guarded_model_route(model_override=None) -> Tuple[bool, str]:
                 or url.port != DEFENSECLAW_GUARD_PORT or url.username or url.password):
             return False, "defenseclaw provider must target the configured loopback guard port"
         return True, "guarded model route configured"
+    except (ValueError, TypeError, AttributeError):
+        return False, "effective model route configuration is unavailable or invalid"
+
+
+def guarded_model_route(model_override=None) -> Tuple[bool, str]:
+    """Check the effective local configuration; never rewrite provider settings.
+
+    Two OpenClaw routes are accepted:
+      * provider route: primary, override and every fallback model use a
+        `defenseclaw/<model>` provider whose baseUrl is the loopback guard port;
+      * plugin route (DefenseClaw 1.x, spec 167): the DefenseClaw OpenClaw
+        plugin is enabled, allowed, not denied and loaded from an existing
+        `defenseclaw` extension directory (defenseclaw_plugin_route). The plugin
+        intercepts every model request, so any model/override is routed through
+        the proxy, provided DefenseClaw's own guardrail config targets this guard
+        port for the openclaw connector and the extension holds the plugin
+        manifest. A model whose provider domain DefenseClaw does not know cannot
+        bypass the guard: the proxy blocks unknown provider domains fail-closed
+        (403), so it needs `defenseclaw setup provider add` to work at all. Models
+        on loopback/private/local providers are refused on this route: a fetch
+        interceptor need not send local traffic through the proxy.
+    Proxy reachability and security.mode are checked by defenseclaw_available.
+    Hermes is not qualified for either route."""
+    from .runtime import selected as selected_runtime
+    runtime=selected_runtime()
+    if runtime.kind=='hermes':return False, 'Hermes model-guard integration is not qualified; production delegation is unavailable'
+    try:
+        state = Path(os.environ.get("OPENCLAW_STATE_DIR") or os.environ.get("OPENCLAW_HOME")
+                     or os.path.expanduser("~/.openclaw"))
+        config = Path(os.environ.get("OPENCLAW_CONFIG_PATH") or state / "openclaw.json")
+        cfg = json.loads(config.read_text())
+        if not isinstance(cfg, dict):
+            raise ValueError("config is not an object")
     except (OSError, ValueError, TypeError, AttributeError):
         return False, "effective model route configuration is unavailable or invalid"
+    ok, detail = _provider_model_route(cfg, model_override)
+    if ok:
+        return ok, detail
+    plugin_ok, plugin_detail = defenseclaw_plugin_route(cfg)
+    if plugin_ok:
+        try:
+            local = _local_model_provider(cfg, _selected_models(cfg, model_override))
+        except (ValueError, TypeError, AttributeError):
+            return False, "effective model route configuration is unavailable or invalid"
+        if local:
+            return False, (f"model {local} uses a local or private provider endpoint; the "
+                           "DefenseClaw plugin route is not trusted for it (use the defenseclaw provider route)")
+        return plugin_ok, plugin_detail
+    # A present-but-unusable plugin explains the failure better than the provider.
+    if plugin_detail != _PLUGIN_ABSENT:
+        return False, f"{detail}; {plugin_detail}"
+    return False, detail
 
 
 async def defenseclaw_available() -> Tuple[bool, str]:

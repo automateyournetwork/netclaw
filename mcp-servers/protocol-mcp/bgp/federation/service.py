@@ -1309,7 +1309,12 @@ class FederationService:
                 age = round(max(0.0, time.time() - float(hb)), 1)
         except (ValueError, TypeError, KeyError):
             age = None
-        return {"live": live, "heartbeat_age_s": age}
+        # A down on-demand (or service-owned) local member is still routable: a
+        # route starts it. Without this a caller reads `live: false` as "cannot
+        # delegate" (spec 167 live run). Same rule as health_report's will_cold_start.
+        start = (not live) and bool(m.get("launch_cmd")) and (
+            bool(m.get("on_demand")) or m.get("managed_by") == "service")
+        return {"live": live, "heartbeat_age_s": age, "starts_on_route": start}
 
     # ---- edge (phone) agent-turn budget --------------------------------
 

@@ -171,6 +171,23 @@ def _convergence_provider(source, values, model=None):
     return binding, provider, config, env
 
 
+def _mirror_security_mode(border_home, member_home):
+    """A production member checks security.mode in ITS OWN home
+    (<home>/config/openclaw.json, see controls._security_config_path). Mirror only
+    the Border's mode there; never copy the rest of the Border's security config.
+    Absent or unreadable on the Border: write nothing (the member stays 'hobby')."""
+    try:
+        mode = (json.loads((Path(border_home)/'config/openclaw.json').read_text())
+                .get('security') or {}).get('mode')
+    except (OSError, ValueError, AttributeError):
+        return
+    if not isinstance(mode, str) or not mode:
+        return
+    cfg = private_dir(Path(member_home)/'config')
+    file = cfg/'openclaw.json'
+    file.write_text(json.dumps({'security': {'mode': mode}}, indent=2)+'\n'); file.chmod(0o600)
+
+
 def provision_convergence(runtime, risk, destination=None, model=None, key_file=None, env_file=None):
     """Prepare an isolated OpenClaw evidence member, without enrollment or launch.
 
@@ -229,6 +246,12 @@ def provision_convergence(runtime, risk, destination=None, model=None, key_file=
         'agents': {'defaults': {'workspace': str(home/'workspace'),
             'model': {'primary': binding}, 'models': {binding: {'alias': 'member'}}}},
     }
+    # Spec 167 F5: keep the Border's DefenseClaw OpenClaw plugin (model guard) and
+    # nothing else from its plugin configuration; no other plugin is copied.
+    from bgp.federation.controls import defenseclaw_plugin_config
+    guard_plugin = defenseclaw_plugin_config(source)
+    if guard_plugin is not None:
+        config['plugins'] = guard_plugin
     # Exact connector settings only; no wildcard copying of unrelated future keys.
     keys = ('CONVERGENCE_ENABLED', 'CONVERGENCE_API_URL', 'CONVERGENCE_API_TOKEN',
             'CONVERGENCE_SITE', 'CONVERGENCE_EXPORTERS', 'CONVERGENCE_ALLOW_LOOPBACK_HTTP')
@@ -248,6 +271,7 @@ def provision_convergence(runtime, risk, destination=None, model=None, key_file=
     shutil.copyfile(Path(REPO)/'workspace/skills/convergence-observations/SKILL.md', skill/'SKILL.md')
     file = home/'openclaw.json'; file.write_text(json.dumps(config, indent=2)+'\n'); file.chmod(0o600)
     file = home/'.env'; file.write_text(''.join(k+'='+json.dumps(v)+'\n' for k,v in member_values.items())); file.chmod(0o600)
+    _mirror_security_mode(runtime.home, home)
     return home
 
 
@@ -322,6 +346,7 @@ def main():
     if (Path(mh)/'openclaw.json').exists():raise ValueError('member already provisioned; existing config is preserved')
     json.dump(m, open(f"{mh}/openclaw.json", "w"), indent=2)
     os.chmod(f"{mh}/openclaw.json", 0o600)
+    _mirror_security_mode(Path(args.border_config).expanduser().resolve().parent, Path(mh))
     ws = f"{mh}/workspace"
     if not os.path.exists(ws):
         os.symlink(str(Path(args.border_config).expanduser().resolve().parent/"workspace"), ws)

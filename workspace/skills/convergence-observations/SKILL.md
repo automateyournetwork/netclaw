@@ -1,7 +1,7 @@
 ---
 name: convergence-observations
 description: Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.
-version: 1.2.0
+version: 1.2.1
 license: Apache-2.0
 tags: [convergence, flows, evidence, read-only]
 ---
@@ -68,7 +68,10 @@ not permission to search the filesystem for configuration or credentials.
      Audit or history rows from other sessions are not this answer's evidence.
    - Name each capability search that found nothing. Risk members come from the
      member list or Risk status; external peers (`n2n_status` peers) are a different
-     set, so an empty peer list does not mean the Risk has no members.
+     set, so an empty peer list does not mean the Risk has no members. A member that
+     is not live but reports `starts_on_route: true` is on-demand: route the request
+     to its skill and the Border starts it; do not report it as unavailable unless
+     the route itself is refused.
    - Absence from retained records is not evidence that traffic, a protocol or a
      lookup never happened. API scrape, probe or receipt-time data does not establish
      flow collector liveness, outage or freshness; say what those sources measured.
