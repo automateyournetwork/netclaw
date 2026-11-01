@@ -1,7 +1,6 @@
-"""Embedded member turns must name their agent (OpenClaw >= 2026.10)."""
+"""Embedded member turns name their agent when OpenClaw would otherwise refuse."""
 import asyncio
 import json
-import os
 import shutil
 
 import pytest
@@ -9,7 +8,7 @@ import pytest
 from bgp.federation import gateway, negotiate
 
 
-def _run(tmp_path, monkeypatch, env_agent=None):
+def _run(tmp_path, monkeypatch, agents=None, env_agent=None):
     node = shutil.which("node")
     if not node:
         pytest.skip("Node required for the CLI argv fixture")
@@ -21,6 +20,12 @@ def _run(tmp_path, monkeypatch, env_agent=None):
         "process.stdout.write(JSON.stringify({payloads:[{text:'OK'}],meta:{}}));\n"
     )
     cli.chmod(0o700)
+    config = tmp_path / "openclaw.json"
+    if agents is None:
+        config.write_text("not json")
+    else:
+        config.write_text(json.dumps({"agents": agents}))
+    monkeypatch.setenv("OPENCLAW_CONFIG_PATH", str(config))
     monkeypatch.setattr(gateway, "_openclaw_bin", lambda: str(cli))
     monkeypatch.setattr(negotiate, "local_descriptor", lambda: {"agent_invoke": "session-id"})
 
@@ -37,14 +42,25 @@ def _run(tmp_path, monkeypatch, env_agent=None):
     return json.loads(seen.read_text())
 
 
-def test_embedded_turn_names_main_agent_by_default(tmp_path, monkeypatch):
-    argv = _run(tmp_path, monkeypatch)
+def test_several_agents_name_main(tmp_path, monkeypatch):
+    argv = _run(tmp_path, monkeypatch, {"entries": {"main": {}, "alert": {}}})
     assert argv[:4] == ["agent", "--local", "--agent", "main"]
     assert argv[argv.index("--model") + 1] == "ollama/m"
 
 
+def test_agents_list_layout_is_recognised(tmp_path, monkeypatch):
+    argv = _run(tmp_path, monkeypatch, {"list": [{"id": "main"}, {"id": "alert"}]})
+    assert argv[:4] == ["agent", "--local", "--agent", "main"]
+
+
+@pytest.mark.parametrize("agents", [{}, {"entries": {"ops": {}}}, {"entries": {"ops": {}, "alert": {}}}, None])
+def test_unambiguous_or_unknown_homes_keep_the_unnamed_command(tmp_path, monkeypatch, agents):
+    argv = _run(tmp_path, monkeypatch, agents)
+    assert "--agent" not in argv
+
+
 def test_embedded_turn_agent_is_overridable(tmp_path, monkeypatch):
-    argv = _run(tmp_path, monkeypatch, env_agent="triage")
+    argv = _run(tmp_path, monkeypatch, {"entries": {"ops": {}}}, env_agent="triage")
     assert argv[argv.index("--agent") + 1] == "triage"
 
 
@@ -60,6 +76,7 @@ def test_failed_turn_reports_cli_error_message(tmp_path, monkeypatch):
         "process.exit(1);\n"
     )
     cli.chmod(0o700)
+    monkeypatch.setenv("OPENCLAW_CONFIG_PATH", str(tmp_path / "missing.json"))
     monkeypatch.setattr(gateway, "_openclaw_bin", lambda: str(cli))
     monkeypatch.setattr(negotiate, "local_descriptor", lambda: {"agent_invoke": "session-id"})
 

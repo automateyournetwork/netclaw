@@ -199,6 +199,30 @@ def _extract_reply_from_envelopes(objs: list):
     return reply, int(tokens or 0)
 
 
+def _member_agent_args() -> list:
+    """`--agent <id>` for an embedded turn, or nothing when OpenClaw can choose.
+
+    OpenClaw >= 2026.10 refuses `--session-id` session creation when the home
+    configures more than one agent and none is named. Member homes inherit the
+    Border's agent entries, so name `main` when it is one of several agents. A
+    home with zero or one agent keeps the unnamed command (forcing `main` fails
+    when the only agent has another id). N2N_MEMBER_AGENT overrides."""
+    agent = os.environ.get("N2N_MEMBER_AGENT", "").strip()
+    if agent:
+        return ["--agent", agent]
+    state = (os.environ.get("OPENCLAW_STATE_DIR") or os.environ.get("OPENCLAW_HOME")
+             or os.path.expanduser("~/.openclaw"))
+    path = os.environ.get("OPENCLAW_CONFIG_PATH") or os.path.join(state, "openclaw.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            agents = (json.load(f).get("agents") or {})
+        ids = set(agents.get("entries") or {})
+        ids |= {a.get("id") for a in agents.get("list") or [] if isinstance(a, dict)}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return []
+    return ["--agent", "main"] if len(ids) > 1 and "main" in ids else []
+
+
 def _cli_error_detail(output_file) -> str:
     """The CLI's own `{"ok": false, "error": {"message": ...}}` reason, if any.
 
@@ -392,11 +416,7 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         from .negotiate import local_descriptor
         flag = "--" + local_descriptor().get("agent_invoke", "session-id")
         message_args = ["--message-file", message_file] if message_file else ["-m", prompt]
-        # OpenClaw >= 2026.10 refuses `--session-id` session creation when the
-        # home configures more than one agent and no owner is named; member homes
-        # inherit the Border's agent entries, so always name the member's agent.
-        cmd = [_openclaw_bin(), "agent", "--local",
-               "--agent", os.environ.get("N2N_MEMBER_AGENT") or "main"]
+        cmd = [_openclaw_bin(), "agent", "--local", *_member_agent_args()]
         if model:
             cmd += ["--model", model]
         cmd += [flag, session_key, "--json"] + message_args

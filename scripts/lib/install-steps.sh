@@ -2608,6 +2608,22 @@ log_info "Deployed skills to $RUNTIME_SKILLS/ with recovery originals retained"
 # These are bootstrap defaults, never an upgrade payload.
 mkdir -p "$RUNTIME_WORKSPACE"
 for mdfile in SOUL.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
+    # Older installs linked these into the checkout. OpenClaw 2026.10+ refuses
+    # symlinked bootstrap files, so the agent silently ran without them: copy
+    # the linked checkout file in place. Other operator links are preserved.
+    if [ -L "$RUNTIME_WORKSPACE/$mdfile" ] && [ -f "$RUNTIME_WORKSPACE/$mdfile" ]; then
+        local link_target netclaw_real
+        link_target="$(python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$RUNTIME_WORKSPACE/$mdfile")" || return 1
+        netclaw_real="$(python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$NETCLAW_DIR")" || return 1
+        case "$link_target" in
+            "$netclaw_real"/*)
+                cp "$link_target" "$RUNTIME_WORKSPACE/.$mdfile.netclaw-copy" &&
+                    mv -f "$RUNTIME_WORKSPACE/.$mdfile.netclaw-copy" "$RUNTIME_WORKSPACE/$mdfile" || return 1
+                log_info "Replaced $mdfile symlink (-> $link_target) with a copy; OpenClaw refuses symlinked bootstrap files"
+                continue
+                ;;
+        esac
+    fi
     if [ -e "$RUNTIME_WORKSPACE/$mdfile" ] || [ -L "$RUNTIME_WORKSPACE/$mdfile" ]; then
         log_info "Preserved operator $mdfile"
     elif [ -f "$NETCLAW_DIR/$mdfile" ]; then

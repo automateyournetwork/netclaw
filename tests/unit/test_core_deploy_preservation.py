@@ -101,3 +101,24 @@ def test_dynamic_deploy_preserves_policy_and_never_creates_static_placeholder(tm
     assert 'PYATS_TESTBED_PATH=' not in data
     assert 'NETCLAW_TESTBED_MODE=dynamic' in data
     assert 'NETCLAW_PASSWORD=fixture-private' in data
+
+
+def test_upgrade_replaces_legacy_checkout_symlinks_only(tmp_path):
+    repo = tmp_path / "checkout & pipe|quote' space"
+    repo.mkdir()
+    (repo / 'USER.md').write_text('repository default\n')
+    elsewhere = tmp_path / 'operator-tools.md'
+    elsewhere.write_text('operator tools\n')
+    workspace = tmp_path / '.openclaw/workspace'
+    workspace.mkdir(parents=True)
+    (workspace / 'USER.md').symlink_to(repo / 'USER.md')
+    (workspace / 'TOOLS.md').symlink_to(elsewhere)
+    (workspace / 'SOUL.md').write_text('operator notes\n')
+    deploy(tmp_path)
+    user = workspace / 'USER.md'
+    assert not user.is_symlink()
+    assert user.read_text() == 'repository default\n'
+    assert (workspace / 'TOOLS.md').is_symlink()
+    assert (workspace / 'TOOLS.md').read_text() == 'operator tools\n'
+    assert (workspace / 'SOUL.md').read_text() == 'operator notes\n'
+    assert not list(workspace.glob('.*.netclaw-copy'))

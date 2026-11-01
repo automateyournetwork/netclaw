@@ -2,6 +2,16 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.1] - 2026-11-01
+
+Fixes for existing Risks on OpenClaw 2026.10, found while moving a multi-agent Risk to system member units and OpenClaw 2026.10.9 (spec 168):
+
+- Embedded member turns pass `--agent main` when the member home has several agents including `main` (or `--agent $N2N_MEMBER_AGENT`). OpenClaw 2026.10 and later refuse an unnamed `--session-id` turn when the home has several agents, and member homes copy the Border's agent entries, so every delegated task failed on a multi-agent Border. Homes with one agent keep the unnamed command.
+- A failed embedded turn records the CLI's own error message (single line, capped; never stderr) instead of only "Agent process exited 1".
+- Re-running the installer replaces workspace `AGENTS.md`/`USER.md`/`TOOLS.md` (and the other bootstrap files) that are symlinks into the NetClaw checkout with copies. OpenClaw 2026.10 refuses symlinked bootstrap files, so older installs ran without NetClaw's agent instructions and the operator's profile.
+
+Spec [168-openclaw-2026-10-compat](specs/168-openclaw-2026-10-compat/spec.md). See [release notes](docs/releases/1.18.1.md).
+
 ## [1.18.0] - 2026-11-01
 
 Spec [162-netconverterai](specs/162-netconverterai/spec.md): guarded NetConverter conversion, exact-file hosted approval, private pyATS candidate application, installer modes and a dedicated Risk member. Actual approved synthetic conversions, modeled Batfish checks, protected IOS-XE rehearsal and native Border/member discovery are recorded with their limits. Includes the minor fixes found during live qualification and preserves upstream Convergence and production-mode work through 1.17.1. See [release notes](docs/releases/1.18.0.md).
