@@ -2,6 +2,12 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.17.0] - 2026-10-31
+
+- Cold-start on-demand iN2N members as confined system instances on OpenClaw 2026.10.9 and later: `in2n-services.py coldstart install` adds a hardened `netclaw-coldmember@.service` template and a polkit rule that lets only the installing operator start or stop only those instances, without sudo at run time. Posture and production cold-start use it when installed and authorized.
+
+Spec [166-coldstart-system-members](specs/166-coldstart-system-members/spec.md). See [release notes](docs/releases/1.17.0.md).
+
 ## [1.16.0] - 2026-10-31
 
 - Keep hardened iN2N members working on OpenClaw 2026.10.9 and later: always-on members can run as system units (`in2n-services.py generate|enable --system`, sudo -n only) with full confinement, and the Risk posture reports confinement unavailable instead of claiming a configuration that cannot run OpenClaw members.

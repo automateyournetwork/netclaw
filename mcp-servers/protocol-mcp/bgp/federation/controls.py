@@ -101,9 +101,10 @@ def _store(name: str, value: Tuple[bool, str]) -> Tuple[bool, str]:
 
 def invalidate_cache():
     """Drop cached probe results (tests / after a known state change)."""
-    global _pidns_probe
+    global _pidns_probe, _coldstart_probe
     _cache.clear()
     _pidns_probe = None
+    _coldstart_probe = None
 
 
 SYSTEM_UNIT_DIR = "/etc/systemd/system"
@@ -112,9 +113,23 @@ _SYSTEM_REMEDIATION = ("run always-on members as system units: python3 scripts/i
                        "generate --system && python3 scripts/in2n-services.py enable --system")
 _COLD_START_GAP = ("on-demand (cold-start) members still use user-scope confinement, which "
                    "cannot run OpenClaw on this host")
-_COLD_START_FIX = ("make them always-on system units (on_demand=false, then generate --system "
-                   "and enable --system) or run them on a host where user-scope confinement "
-                   "can stat /proc/self/ns/pid")
+_COLDSTART_INSTALL = "python3 scripts/in2n-services.py coldstart install"
+_COLD_START_FIX = ("install the confined system cold-start template (" + _COLDSTART_INSTALL +
+                   "), make them always-on system units (on_demand=false, then generate "
+                   "--system and enable --system) or run them on a host where user-scope "
+                   "confinement can stat /proc/self/ns/pid")
+# Spec 166: on-demand members cold-started as instances of a confined system
+# template the operator may start through a narrow polkit rule.
+COLDSTART_TEMPLATE = "netclaw-coldmember@.service"
+COLDSTART_PROBE_UNIT = "netclaw-coldmember@probe.service"
+_COLD_START_SYSTEM = ("on-demand members cold-start as confined system instances "
+                      "(netclaw-coldmember@)")
+_coldstart_probe = None   # (template stat signature, True) once authorization is proven
+
+
+def _cold_start_clause(system_ok: bool) -> str:
+    """How on-demand members cold-start where user-scope confinement fails."""
+    return _COLD_START_SYSTEM if system_ok else f"{_COLD_START_GAP} (fix: {_COLDSTART_INSTALL})"
 
 
 _PIDNS_REFUSED = 3
@@ -142,6 +157,46 @@ async def user_scope_pidns_readable() -> bool:
         return False
     _pidns_probe = rc == 0
     return _pidns_probe
+
+
+async def system_coldstart_available() -> bool:
+    """Can this (unprivileged) process cold-start on-demand members as confined
+    system instances (spec 166)? True iff the template is installed AND starting
+    the reserved no-op instance `netclaw-coldmember@probe.service` succeeds without
+    sudo or a password prompt — i.e. the polkit rule authorizes this user.
+
+    Only the definitive success is kept, keyed on the template file's identity,
+    so `coldstart install`/`remove` is picked up without a restart. A refusal is
+    cached for the usual ~3s (polkitd may be starting); a timeout or launch error
+    is not cached at all. invalidate_cache() / forget_system_coldstart() reset it."""
+    global _coldstart_probe
+    try:
+        st = os.stat(os.path.join(SYSTEM_UNIT_DIR, COLDSTART_TEMPLATE))
+    except OSError:
+        return False
+    signature = (st.st_dev, st.st_ino, st.st_mtime_ns, st.st_size)
+    if _coldstart_probe is not None and _coldstart_probe[0] == signature:
+        return _coldstart_probe[1]
+    cached = _cached("coldstart")
+    if cached is not None:
+        return cached[0]
+    if not shutil.which("systemctl"):
+        return False
+    rc, _ = await _run(["systemctl", "--no-ask-password", "start", COLDSTART_PROBE_UNIT],
+                       timeout_s=30)
+    if rc == -1:
+        return False
+    if rc == 0:
+        _coldstart_probe = (signature, True)
+        return True
+    return _store("coldstart", (False, f"systemctl start {COLDSTART_PROBE_UNIT} exit {rc}"))[0]
+
+
+def forget_system_coldstart():
+    """Drop the cached system cold-start authorization (a start just failed)."""
+    global _coldstart_probe
+    _coldstart_probe = None
+    _cache.pop("coldstart", None)
 
 
 async def openclaw_user_scope_ok() -> bool:
@@ -191,9 +246,15 @@ async def sandbox_available(on_demand_members=()) -> Tuple[bool, str]:
     unavailable with the --system remediation, never as working confinement.
     `on_demand_members` (spawnable cold-start member ids, from the caller that
     holds the risk) degrade an otherwise confined system-only setup on such a
-    host: confined_cold_start cannot run them."""
+    host: user-scope confined_cold_start cannot run them.
+
+    Spec 166: unless the confined system cold-start template is installed and
+    authorized (system_coldstart_available) — then they cold-start as system
+    instances with the same confinement as system member units."""
     ok, detail = await _sandbox_units()
     if ok and on_demand_members and not await openclaw_user_scope_ok():
+        if await system_coldstart_available():
+            return True, detail if _COLD_START_SYSTEM in detail else _COLD_START_SYSTEM
         return False, (f"on-demand members ({', '.join(on_demand_members)}) cannot be cold-started: "
                        f"{_COLD_START_GAP} (a mount-namespaced user unit cannot stat "
                        f"/proc/self/ns/pid, GatewayLockNamespaceError) — {_COLD_START_FIX}")
@@ -226,19 +287,25 @@ async def _sandbox_units() -> Tuple[bool, str]:
     # Spec 165: user-scope confinement (mount namespaces) breaks OpenClaw members
     # on some hosts. Hermes is unaffected; system units keep the full hardening.
     pidns_ok = await openclaw_user_scope_ok()
-    if not pidns_ok and (members or not system_members):
+    # Spec 166: the system cold-start template is a working mechanism for
+    # on-demand members even before any member unit exists.
+    system_cold = not pidns_ok and await system_coldstart_available()
+    if not pidns_ok and (members or not (system_members or system_cold)):
         where, fix = "systemd --user confinement", _SYSTEM_REMEDIATION
         if members:
             where = f"user-scope member units ({', '.join(members)})"
             fix = f"disable them (scripts/in2n-services.py disable <member>), then {fix}"
         return _store("sandbox", (False, f"{where} cannot run OpenClaw members: a mount-namespaced "
                                           f"user unit cannot stat /proc/self/ns/pid "
-                                          f"(GatewayLockNamespaceError) — {fix}; {_COLD_START_GAP}"))
+                                          f"(GatewayLockNamespaceError) — {fix}; "
+                                          f"{_cold_start_clause(system_cold)}"))
     if not members and not system_members:
         # No member units yet — the mechanism is available; confinement applies on
         # generate. Report available so a fresh Border isn't falsely degraded.
-        return _store("sandbox", (True, "systemd confinement available (no member units yet)"))
-    return _store("sandbox", (True, "" if pidns_ok else f"system-scope member units confined; {_COLD_START_GAP}"))
+        return _store("sandbox", (True, "systemd confinement available (no member units yet)"
+                                        + ("" if pidns_ok else f"; {_COLD_START_SYSTEM}")))
+    return _store("sandbox", (True, "" if pidns_ok else
+                              f"system-scope member units confined; {_cold_start_clause(system_cold)}"))
 
 
 DEFENSECLAW_GUARD_PORT = int(os.environ.get("DEFENSECLAW_GUARD_PORT", "4000"))
@@ -357,13 +424,26 @@ _CONFINE_PROPS = [
 ]
 
 
-def confined_cold_start(launch_cmd: str, member_id: str) -> list:
+_INSTANCE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_.-]{0,127}")
+
+
+def confined_cold_start(launch_cmd: str, member_id: str, system: bool = False) -> list:
     """Return an argv that cold-starts a member CONFINED via a transient
     `systemd-run --user` unit (feature 057). Falls back to the bare command if
-    systemd-run is unavailable (the posture will report the sandbox degraded)."""
+    systemd-run is unavailable (the posture will report the sandbox degraded).
+
+    system=True (spec 166; the caller has established system_coldstart_available):
+    start the member's instance of the confined system template instead. The
+    instance launcher resolves the member's own launch command from the Risk
+    registry, so launch_cmd is not passed. --no-ask-password: never a prompt."""
+    slug = member_id.replace("/", "-")
+    if system:
+        if not _INSTANCE.fullmatch(slug) or slug == "probe":   # probe: reserved no-op
+            raise ValueError(f"member id {member_id!r} is not a valid cold-start instance name")
+        return ["systemctl", "start", "--no-block", "--no-ask-password",
+                f"netclaw-coldmember@{slug}.service"]
     if not shutil.which("systemd-run"):
         return ["/bin/sh", "-c", launch_cmd]
-    slug = member_id.replace("/", "-")
     argv = ["systemd-run", "--user", "--collect",
             "--unit", f"netclaw-coldmember-{slug}"]
     # systemd-run sends -p properties over D-Bus, where %-specifiers are NOT

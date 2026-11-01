@@ -2043,11 +2043,17 @@ class FederationService:
         # US2 fail-closed: in production a member must run CONFINED. Refuse to
         # cold-start if the confinement mechanism is unavailable; otherwise launch
         # the on-demand member inside a transient confined systemd unit.
-        confined = False
+        confined = system = False
         if controls.is_production():
             # Spec 165: naming this member fails fast where user-scope cold-start
             # confinement cannot run OpenClaw, instead of launching and waiting.
+            # Spec 166: on such a host it passes only when the confined system
+            # cold-start template is installed and authorized — then use it.
             ok, detail = await controls.sandbox_available(on_demand_members=[member_id])
+            if ok and not await controls.openclaw_user_scope_ok():
+                system = await controls.system_coldstart_available()
+                if not system:
+                    ok, detail = False, "system cold-start template not installed or not authorized"
             if not ok:
                 logger.warning("iN2N production: refusing cold-start of %s — "
                                "confinement unavailable (%s)", member_id, detail)
@@ -2061,11 +2067,28 @@ class FederationService:
             self._spawning.add(member_id)
             try:
                 if confined:
-                    argv = controls.confined_cold_start(launch_cmd, member_id)
-                    logger.info("iN2N cold-start (confined): %s", member_id)
-                    await asyncio.create_subprocess_exec(
+                    argv = controls.confined_cold_start(launch_cmd, member_id, system=system)
+                    logger.info("iN2N cold-start (confined%s): %s",
+                                ", system instance" if system else "", member_id)
+                    proc = await asyncio.create_subprocess_exec(
                         *argv, stdout=asyncio.subprocess.DEVNULL,
                         stderr=asyncio.subprocess.DEVNULL)
+                    # `systemctl start --no-block` returns at once: a refusal
+                    # (rule removed since the probe) fails fast, not after 90s.
+                    if system:
+                        try:
+                            rc = await asyncio.wait_for(proc.wait(), timeout=30)
+                        except asyncio.TimeoutError:
+                            try:
+                                proc.kill()
+                            except ProcessLookupError:
+                                pass   # reaped at the deadline; still treated as failed
+                            await proc.wait()
+                            rc = None
+                        if rc != 0:
+                            controls.forget_system_coldstart()
+                            raise RuntimeError("systemctl start of the cold-start instance "
+                                               + ("timed out" if rc is None else "failed"))
                 else:
                     logger.info("iN2N cold-start: spawning on-demand member %s", member_id)
                     await asyncio.create_subprocess_shell(

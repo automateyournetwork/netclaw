@@ -145,7 +145,7 @@ honest posture that the Border **never** overstates.
 
 | Layer | Kind | How it's wired | Effect if unavailable |
 |-------|------|----------------|-----------------------|
-| **Member sandbox — host-level kernel confinement** | containment | Each member runs as a **`systemd --user` unit hardened** with `NoNewPrivileges`, `ProtectSystem=strict` (read-only system), `InaccessiblePaths=~/.openclaw/.env` (the operator's master secrets are invisible to the member), `PrivateTmp`, and — on a native-Linux manager — syscall/namespace/address-family restrictions. On-demand members are cold-started inside a transient hardened `systemd-run` unit. *(OpenShell containers were evaluated and rejected for live-infra members: they are empty, network-egress-denied sandboxes — a member that must reach real devices/APIs can't run in one. Host confinement keeps the member's real tools/network while confining it.)* | delegation **refused** (no unconfined run) |
+| **Member sandbox — host-level kernel confinement** | containment | Each member runs as a **`systemd --user` unit hardened** with `NoNewPrivileges`, `ProtectSystem=strict` (read-only system), `InaccessiblePaths=~/.openclaw/.env` (the operator's master secrets are invisible to the member), `PrivateTmp`, and — on a native-Linux manager — syscall/namespace/address-family restrictions. On-demand members are cold-started inside a transient hardened `systemd-run` unit (or, where OpenClaw cannot run in user units, an instance of the confined system template `netclaw-coldmember@.service`, spec 166). *(OpenShell containers were evaluated and rejected for live-infra members: they are empty, network-egress-denied sandboxes — a member that must reach real devices/APIs can't run in one. Host confinement keeps the member's real tools/network while confining it.)* | delegation **refused** (no unconfined run) |
 | **Model-guard — DefenseClaw LLM guardrail proxy** | containment | `defenseclaw setup guardrail` stands up a Go proxy (`:4000`) and patches OpenClaw to route the model through it; **every prompt/response is inspected**. Availability = `defenseclaw` present **and the proxy reachable** (started via `defenseclaw-gateway start`). Members' skill/MCP sets are also **component-scanned** (`defenseclaw skill scan`) before they run. | delegation **refused** (no unguarded run) |
 | **Audit — GAIT immutable git trail** | audit | Every delegation/enrollment/removal/quarantine is committed to a git repo at `~/.openclaw/n2n/gait/` (append-only, never rewritten), cross-referenced to the SQLite audit row. Emitted on **both** the Border and the member side. | delegation **runs but flagged `audit-degraded`** |
 | **Least-privilege secrets** | containment (by construction) | Each member's `.env` is a scoped slice — only its integration's secrets. Combined with the sandbox hiding the master `.env`, a compromised member has no path to another member's keys. | — |
@@ -219,12 +219,50 @@ prints the exact remaining commands (including which units were and were not
 installed) and exits non-zero; run `sudo -v` and retry, or run those commands as an
 administrator. `disable` without `--system` refuses a member that has a system unit.
 
-**Cold-start gap.** On-demand members are still cold-started inside a transient
-`systemd-run --user` unit, which cannot run OpenClaw on a host where the probe
-fails. In production the Border refuses such a cold start at once, and posture
-reports the sandbox control unavailable while spawnable on-demand members exist.
-Make those members always-on (`on_demand=false`) system units, or run them on a
-host where the probe passes.
+**On-demand members on those hosts (`coldstart`, spec 166).** On-demand members
+are normally cold-started inside a transient `systemd-run --user` unit, which
+cannot run OpenClaw on a host where the probe fails. Install, once, a confined
+system template for them:
+
+```bash
+python3 scripts/in2n-services.py coldstart install   # template unit + polkit rule, via `sudo -n install`
+python3 scripts/in2n-services.py coldstart status    # template present? authorization probe
+python3 scripts/in2n-services.py coldstart remove    # `sudo -n rm -f` both, daemon-reload
+```
+
+`install` writes `/etc/systemd/system/netclaw-coldmember@.service` and
+`/etc/polkit-1/rules.d/60-netclaw-coldmember-<user>.rules`. The template runs as
+`User=`/`Group=` of the operator with the same full hardening as `--system` member
+units and `Restart=no`; its `ExecStart` is `scripts/in2n-coldstart.py %i`, which
+looks the instance name up in the Risk registry and execs only the launch command
+of a registered, local, routable on-demand member that no durable unit owns (no
+shell; any other name exits without running anything). The polkit rule lets only
+the installing user, only the `org.freedesktop.systemd1.manage-units` action,
+start or stop only units named `netclaw-coldmember@<instance>.service`; every other
+unit, verb (enable, restart, reload, mask) and user falls through to the system's
+normal policy. With the template installed the instance runs as the operator, more
+confined than the Border itself. The rule depends on the template: systemd 257 and
+later also authorize transient units (`systemd-run --system --unit=...`) by the
+requested name, and only an existing unit file for that name stops a same-named
+transient unit with arbitrary properties such as `User=root`. The rule therefore
+checks that the template exists on every request, `install` writes the rule only
+after the template and daemon-reload succeed, and `remove` deletes the rule first.
+Do not delete the template by hand while the rule is installed; use `coldstart
+remove`. The instance `probe` is reserved: it exits 0
+without opening the registry, and starting it (no sudo, no password prompt) is how
+`coldstart status` and the Border verify the authorization — the rules directory is
+not readable by the operator. Same `sudo -n` handling as `--system`; never run it as
+root. `remove` leaves running instances until their members idle-exit (`sudo
+systemctl stop 'netclaw-coldmember@*.service'` stops them at once).
+
+With the template installed and authorized, posture accepts on-demand OpenClaw
+members as confined and production cold-start runs `systemctl start --no-block
+netclaw-coldmember@<member-slug>.service`. Without it, nothing changes from spec 165:
+the Border refuses such a cold start at once, and posture reports the sandbox
+control unavailable while spawnable on-demand members exist, naming `coldstart
+install`, always-on (`on_demand=false`) system units, or a host where the probe
+passes as remedies. Hermes Risks, hosts where the probe passes and testing mode
+(unconfined cold start) never use the template.
 
 ### Border hardening (optional, spec 165)
 
