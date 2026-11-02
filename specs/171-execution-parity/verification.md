@@ -147,3 +147,48 @@ the control-by-control status is in [parity-matrix.md](parity-matrix.md).
 Private evidence is retained under the work root in `browser-qualification/`,
 `guard-qualification/`, `wire-qualification/`, `r1-host-verification/` and
 `live-qualification/`. No cloud resource or existing R01 runtime was changed.
+
+## Actual native integration attempts (not acceptance)
+
+Integrated revision/containment/raw-MCP fixes at `aedf4277`, truthful supported
+profile labels at `6c57ccd2`, guard HOME inspection at `05430447`, and the empty
+nested secret-bind mountpoint at `d6750cba`. The last full protected suite passed
+288 tests; later guard/cleanup subset passed 62. The unchanged complete HUD suite
+passed 436 tests with serialized file execution; its first parallel run had two
+fixed-delay avatar/UI timing failures, and both files passed in isolation. Eight
+independent HTTP boundary checks and the HUD production build passed.
+
+The first private bootstrap attempt `run-20261102T144824-da682e` refused a
+qualification-helper risk-name mismatch before enrollment; corrected only that
+helper and retained the failed run. `run-20261102T144902-9ea3de` then passed all
+26 actual HTTP refusal checks, but its OpenClaw approval stopped before guard
+start because the new inspector expected the wrong image HOME. The operation
+`6109ae81-c450-4837-b78a-00034657b40e` remains conservatively unknown/spent,
+with no effect claim, provider ledger or started guard; it was never replayed.
+
+Guard-only preflights subsequently exposed Docker Desktop's nested bind mountpoint
+requirement and root-private public policy asset modes. Fixed the mountpoint
+without copying a credential, and rebuilt only public policy file/directory
+permissions (0444/0555). Earlier standalone guard evidence did not establish this
+non-root fresh-home startup; the new evidence below supersedes that assumption.
+No fallback to root or weaker policy enforcement was introduced.
+
+Current immutable guard image:
+`sha256:5aec2081925656378df61a978c634f266e743dc5f77bb08cad07bee37a406aa1`.
+Actual production guard preflight `guard-preflight-be2f0fb0-adb3-4522-9118-42487a177335`
+passed and was independently inspected: UID503, exact containment/mounts,
+DefenseClaw1.0.4 action/running health, all80 bootstrapped policy hashes and source
+hashes correct, stopped exit0. Provider receipt and SQLite independently show
+zero requests/dispatch claims. Old images, failed preflights and unused profile
+bindings remain preserved as evidence.
+
+The next native run `run-20261102T145948-e065ce` again passed26 actual HTTP refusal
+checks. Its OpenClaw operation `a0b69c48-f9e7-4eaf-b3a8-c1ce2727b7de` reached the
+isolated agent and guard, but the guard's local upstream returned403 before any
+provider ledger claim or tool. One outer inference claim remains unknown/spent;
+there was no automatic replay. All owned workers/HUD/containers stopped. Native
+request translation is under investigation (OpenClaw emits
+max_completion_tokens; the guarded provider contract uses max_tokens).
+
+There have still been **zero actual R02 Anthropic dispatches and zero pyATS
+show-version reads**. Do not label these failed attempts as execution acceptance.

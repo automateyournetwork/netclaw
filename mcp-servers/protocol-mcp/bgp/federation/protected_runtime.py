@@ -171,6 +171,16 @@ class ScopedInference:
         request["stream"] = False
         request.pop("stream_options", None)
         request["parallel_tool_calls"] = False
+        # The qualified guard does not translate max_completion_tokens and
+        # otherwise selects its much larger vendor default. Normalize at this
+        # trusted boundary, without widening the provider fence's token cap.
+        token_fields = set(request) & {"max_tokens", "max_completion_tokens"}
+        if len(token_fields) > 1:
+            raise RuntimeRefused("ambiguous_inference_token_limit")
+        maximum = request.pop(next(iter(token_fields))) if token_fields else 2048
+        if type(maximum) is not int or not 1 <= maximum <= 4096:
+            raise RuntimeRefused("inference_token_limit_refused")
+        request["max_tokens"] = maximum
         ordinal = self.fence.claim(self.payload["operation_id"], request,
                                    tool_finished=self.tool_finished())
         try:

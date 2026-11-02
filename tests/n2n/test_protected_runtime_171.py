@@ -72,6 +72,37 @@ def test_untrusted_routing_headers_do_not_reach_fixed_forwarder(inference, paylo
     assert "attacker" not in str(forwarded)
 
 
+@pytest.mark.parametrize("fields", [{}, {"max_tokens": 2048}, {"max_completion_tokens": 2048}])
+def test_guard_receives_explicit_bounded_vendor_token_limit(inference, payload, fields):
+    _, facade, _, forwarded, _ = inference
+    body = dict(request(payload), **fields)
+    before = copy.deepcopy(body)
+    call(facade, body)
+    assert body == before
+    assert forwarded[0]['max_tokens'] == 2048
+    assert 'max_completion_tokens' not in forwarded[0]
+
+
+@pytest.mark.parametrize("fields", [
+    {"max_tokens": 2048, "max_completion_tokens": 2048},
+    *[{"max_completion_tokens": value} for value in (0, -1, True, 1.5, "2048", 4097, None)],
+])
+def test_ambiguous_or_invalid_token_limit_refuses_before_claim(inference, payload, fields):
+    runtime, facade, fence, forwarded, _ = inference
+    with pytest.raises(runtime.RuntimeRefused):
+        call(facade, dict(request(payload), **fields))
+    assert forwarded == [] and fence.count(payload['operation_id']) == 0
+
+
+def test_token_alias_cannot_disguise_an_inference_replay(inference, payload):
+    runtime, facade, fence, forwarded, completed = inference
+    call(facade, dict(request(payload), max_completion_tokens=2048))
+    completed[0] = True
+    with pytest.raises(runtime.RuntimeRefused):
+        call(facade, dict(request(payload), max_tokens=2048))
+    assert len(forwarded) == 1 and fence.count(payload['operation_id']) == 1
+
+
 @pytest.mark.parametrize("mutate", [lambda b: b.update(model="unapproved-model"),
     lambda b: b.update(base_url="https://attacker.example"),
     lambda b: b.update(api_key="attacker-key"), lambda b: b.update(messages="not-a-list")])
