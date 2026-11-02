@@ -17,6 +17,9 @@ Invariants (FR-012/012a):
 """
 
 import json
+import fcntl
+import stat
+from contextlib import contextmanager
 import logging
 import os
 import subprocess
@@ -47,7 +50,7 @@ def _now() -> str:
 def _git(gait_dir: Path, *args, timeout_s: float = 15.0) -> Tuple[int, str]:
     try:
         proc = subprocess.run(
-            ["git", "-C", str(gait_dir), *args],
+            ["git", "-c", "core.fsync=all", "-C", str(gait_dir), *args],
             capture_output=True, text=True, timeout=timeout_s)
         return proc.returncode, (proc.stdout + proc.stderr)
     except FileNotFoundError:
@@ -90,9 +93,9 @@ def ensure_repo(gait_dir: Optional[Path] = None) -> Tuple[bool, str]:
     return _repo_ready[key]
 
 
-def emit(event: str, *, actor: str, subject: str, target: Optional[str] = None,
+def _emit_unlocked(event: str, *, actor: str, subject: str, target: Optional[str] = None,
          channel_kind: str = "in2n", sqlite_row_id: Optional[int] = None,
-         gait_dir: Optional[Path] = None) -> Optional[str]:
+         gait_dir: Optional[Path] = None, structured: Optional[dict] = None) -> Optional[str]:
     """Append one federation event to the trail and commit it immutably.
     Returns the commit SHA, or None on failure (best-effort — the SQLite row
     stays authoritative; production drives posture degraded if this returns None)."""
@@ -107,10 +110,14 @@ def emit(event: str, *, actor: str, subject: str, target: Optional[str] = None,
         "event": event, "actor": actor, "subject": subject, "target": target,
         "channel_kind": channel_kind, "sqlite_row_id": sqlite_row_id, "ts": _now(),
     }
+    if structured is not None:
+        record["protected"] = structured
     try:
         trail = gait_dir / TRAIL_FILE
         with trail.open("a") as fh:
             fh.write(json.dumps(record) + "\n")
+            fh.flush()
+            os.fsync(fh.fileno())
         rc, out = _git(gait_dir, "add", TRAIL_FILE)
         if rc != 0:
             logger.warning("gait.emit git add failed: %s", out.strip()[:120])
@@ -125,6 +132,54 @@ def emit(event: str, *, actor: str, subject: str, target: Optional[str] = None,
     except Exception as e:  # pragma: no cover
         logger.warning("gait.emit error: %s", e)
         return None
+
+
+@contextmanager
+def _audit_lock(gait_dir):
+    gait_dir.mkdir(parents=True, mode=0o700, exist_ok=True)
+    fd = os.open(gait_dir / '.federation-audit.lock', os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW, 0o600)
+    try:
+        info = os.fstat(fd)
+        if not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid() or info.st_mode & 0o077:
+            raise ValueError('unsafe audit lock')
+        fcntl.flock(fd, fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(fd, fcntl.LOCK_UN)
+        os.close(fd)
+
+
+def emit(event: str, *, actor: str, subject: str, target=None, channel_kind='in2n', sqlite_row_id=None, gait_dir=None):
+    directory = Path(gait_dir) if gait_dir else default_gait_dir()
+    try:
+        with _audit_lock(directory):
+            return _emit_unlocked(event, actor=actor, subject=subject, target=target,
+                                  channel_kind=channel_kind, sqlite_row_id=sqlite_row_id, gait_dir=directory)
+    except Exception:
+        logger.warning('gait.emit: audit unavailable')
+        return None
+
+
+def emit_protected(event, *, record, gait_dir=None):
+    """Required structured audit. Failure never degrades to best-effort success."""
+    from .protected_contract import ProtectedError, encode, require, validate_principal
+    directory = Path(gait_dir) if gait_dir else default_gait_dir()
+    require(isinstance(event, str) and event.startswith('protected_') and len(event) <= 80)
+    validate_principal(record['principal'])
+    require(len(encode(record)) <= 65536, 'audit_record_too_large')
+    try:
+        directory.mkdir(mode=0o700, parents=True, exist_ok=True)
+        info = directory.lstat()
+        require(stat.S_ISDIR(info.st_mode) and info.st_uid == os.getuid() and not info.st_mode & 0o077, 'unsafe_audit_directory')
+        with _audit_lock(directory):
+            result = _emit_unlocked(event, actor=record['principal']['subject'], subject=record['operation_id'],
+                                    target=record.get('approval_id'), channel_kind='in2n', gait_dir=directory,
+                                    structured=record)
+        require(result is not None, 'audit_unavailable', 503)
+        return result
+    except Exception as exc:
+        if isinstance(exc, ProtectedError): raise
+        raise ProtectedError('audit_unavailable', 503) from None
 
 
 def recent(limit: int = 50, gait_dir: Optional[Path] = None) -> list:

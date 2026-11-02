@@ -77,6 +77,8 @@ class FederationService:
         from .runtime import selected
         self.runtime = selected()
         self.execution_broker = None
+        self.protected_operations = None
+        self.protected_enabled = os.environ.get('N2N_PROTECTED_OPERATIONS', '') == '1'
         self.hermes_runtime = None
         self.inventory = InventoryBuilder(self.manager)
         self.audit = Auditor(self.manager)
@@ -215,6 +217,18 @@ class FederationService:
             # a possession proof).
             "n2n/tools/call": self.invoker.handle_tools_call,
         }
+        if self.protected_enabled:
+            # Refuse every legacy inference/tool route before the first channel starts.
+            for method in ('n2n/tools/call', 'n2n/tasks/submit', 'n2n/knowledge/query',
+                           'n2n/knowledge/replicate_manifest', 'n2n/knowledge/replicate_batch',
+                           'n2n/chat/open', 'n2n/chat/message'):
+                if method in self.handlers: self.handlers[method] = self._protected_legacy_refusal
+                if method in self._in2n_member_handlers: self._in2n_member_handlers[method] = self._protected_legacy_refusal
+            for method, action in {'execution/catalog':'member_catalog', 'execution/submit':'submit',
+                                   'execution/status':'member_status', 'execution/result':'member_result',
+                                   'execution/ack':'acknowledge'}.items():
+                self._in2n_member_handlers[method] = self._protected_handler(action)
+            self._in2n_border_handlers['execution/effect-authorize'] = self._protected_handler('effect_authorize')
         # feature 066: Border-side handlers for edge (phone) connections. Only
         # the handshake + built-in health methods (FR-012) — never BGP/eN2N/
         # inventory. n2n/edge/message has no server-side handler because it is
@@ -238,6 +252,11 @@ class FederationService:
             # spec 111, US2: PendingApprovalsIntent's live count.
             "n2n/edge/approvals_list": self._edge_on_approvals_list,
         }
+        if self.protected_enabled:
+            self._edge_border_handlers['n2n/edge/ask'] = self._protected_legacy_refusal
+            for name in ('handle_tools_call', 'handle_task_submit', 'handle_knowledge_query',
+                         'handle_replicate_manifest', 'handle_replicate_batch'):
+                setattr(self.invoker, name, self._protected_legacy_refusal)
 
     def notify_approval(self, invocation_id, peer, target_type, target_name):
         """Push an approval prompt to the operator's channels (FR-013). Best-effort."""
@@ -1405,11 +1424,16 @@ class FederationService:
                 logger.info("iN2N member %s channel closed — deregistered", member_id)
         ch.on_close = _deregister
         if ch.strict:
-            fingerprint = (self.risk.get_member(member_id) or {}).get('key_fingerprint')
+            initial = self.risk.get_member(member_id) or {}
+            fingerprint = initial.get('key_fingerprint')
+            generation = initial.get('enrollment_generation')
+            ch.enrollment_generation = generation
+            ch.attestation = 'possession'
             def current():
                 member = self.risk.get_member(member_id) or {}
                 return (member.get('state') in ('enrolled','active','unreachable')
-                        and member.get('key_fingerprint') == fingerprint and bool(fingerprint))
+                        and member.get('key_fingerprint') == fingerprint and bool(fingerprint)
+                        and member.get('enrollment_generation') == generation)
             ch.authority_current = current
             self.observe_transport(ch.registry_id, ch.registry_revision, 'admitted')
         self.member_channels[member_id] = ch
@@ -1433,7 +1457,8 @@ class FederationService:
                 scope=params.get("scope"),
                 runtime_kind=params.get("runtime_kind", "process"),
                 display_name=params.get("display_name"),
-                transport_binding=params.get("transport_binding", "distributed"))
+                transport_binding=params.get("transport_binding", "distributed"),
+                installation_id=params.get("installation_id"))
         except ValueError as e:
             # Map the risk-layer sentinel to its wire code: a member_id already
             # pinned to a different key is MEMBER_ID_TAKEN (-32022), distinct
@@ -1986,6 +2011,9 @@ class FederationService:
         return {"count": len(self.authz.pending_approvals())}
 
     async def _edge_on_ask(self, channel, params):
+        from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, 'protected operation approval required')
         """Phone asks the Border something (feature 067, US1/US2/US3): create
         a delegated_task (feature 053, TaskManager) and run a real agent turn
         in the background via gateway.run_agent_turn(), mirroring
@@ -2409,6 +2437,8 @@ class FederationService:
     async def delegate_to_member(self, member_id: str, capability: str,
                                  input_text: str, *, execution_scope=None) -> dict:
         from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, 'protected operation approval required')
         from . import controls, posture
 
         # US1/FR-003a: synchronous production preflight — the authoritative
@@ -2573,6 +2603,7 @@ class FederationService:
             if enrollment_token:
                 resp = await admission_call("in2n/enroll", {**profile,
                     "token": enrollment_token, "member_id": member_id,
+                    "installation_id": self.runtime.installation,
                     "cert_pem": cert_pem, "signature": signature,
                     "member_nonce": member_nonce.hex(),
                     "scope": list(self.member_scope) or None,
@@ -2598,6 +2629,29 @@ class FederationService:
                 logger.info("iN2N: verified hub attestation for %s", risk_name)
             if enrollment_token and anchor and not self.risk.risk_anchor():
                 self.risk.store_risk_anchor(anchor)
+            if enrollment_token and resp.get('enrollment_generation'):
+                self.risk.store_protected_enrollment({'member_id': member_id,
+                    'installation_id': self.runtime.installation,
+                    'enrollment_generation': resp['enrollment_generation']})
+            if self.protected_enabled:
+                from .protected_contract import require, key_id
+                from .protected_owner import private_file
+                from .protected_contract import decode
+                configuration = decode(private_file(self.runtime.state / 'protected-profile.json'))
+                border_binding = configuration.get('border')
+                hub_cert = (resp.get('hub_attestation') or {}).get('hub_cert')
+                require(strict and isinstance(border_binding, dict) and hub_cert and key_id(hub_cert) == border_binding['key_id'], 'protected_border_binding_refused', 403)
+                ch.protected_peer_binding = border_binding
+                ch.protected_peer_certificate = hub_cert
+                own_enrollment = self.risk.protected_enrollment()
+                def current_border_authority():
+                    try:
+                        current_config = decode(private_file(self.runtime.state / 'protected-profile.json'))
+                        return (current_config.get('border') == border_binding and
+                                self.risk.protected_enrollment() == own_enrollment)
+                    except Exception:
+                        return False
+                ch.authority_current = current_border_authority
             ch.trusted = True   # we pinned the Border endpoint at provisioning
             # spec 121: by this point we've proven possession of our own pinned key
             # (self.risk.self_sign(nonce) above) and, if we hold an anchor, verified
@@ -2644,6 +2698,20 @@ class FederationService:
             raise ValueError('member is not authenticated and connected')
         return await channel.call('in2n/self-status',{},timeout=10.0)
 
+    async def _protected_legacy_refusal(self, channel, params):
+        raise RpcError(-32023, 'protected operation approval required')
+
+    def _protected_handler(self, action):
+        async def handler(channel, params):
+            from .protected_contract import ProtectedError
+            if not self.protected_operations:
+                raise RpcError(-32023, 'protected operations unavailable')
+            try:
+                return await getattr(self.protected_operations, action)(channel, params)
+            except ProtectedError as exc:
+                raise RpcError(-32023, exc.code) from None
+        return handler
+
     async def start_runtime(self):
         """Explicit owned daemon/member lifecycle, never a descriptor probe."""
         from .runtime import selected
@@ -2651,6 +2719,13 @@ class FederationService:
         from .hermes_runtime import HermesRuntime, ACTIVE
         self.runtime=selected(initialize=True)
         self.tasks.recover()
+        if self.protected_enabled:
+            from .protected_service import from_service
+            self.protected_operations = from_service(self)
+            await self.protected_operations.start()
+            if self.protected_operations.bridge:
+                await self.protected_operations.bridge.start()
+            return
         if self.runtime.kind!='hermes':return
         self.execution_broker=ExecutionBroker(self.manager,self.runtime)
         from .operator import OperatorBridge
@@ -2664,6 +2739,8 @@ class FederationService:
             await self.execution_broker.close();raise
 
     async def stop_runtime(self):
+        if self.protected_operations:
+            await self.protected_operations.close()
         from .hermes_runtime import ACTIVE
         if self.hermes_runtime:
             ACTIVE.pop(self.runtime.installation,None)
@@ -2700,6 +2777,9 @@ class FederationService:
         return {'scope':scope,'permit':permit,'on_dispatch':callback}
 
     async def _in2n_member_submit(self, channel, params):
+        from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, "protected operation approval required")
         """Member side: the Border delegates a task. Enforce scope (FR-023),
         then run it as a background task reusing the 053 TaskManager + gateway
         executor. Auth is implicit within the risk (no grants), but scope is not."""
