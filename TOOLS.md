@@ -1216,3 +1216,21 @@ Private evidence: `~/.local/share/netclaw/roadmap-r02-r05-20261102/r1-host-verif
 and `live-qualification/`. CML account credentials must never substitute for
 separate device credentials. Native `unicon.Unicon` resolves to its exported
 class in `unicon.adapters.topology`; compare object identity, not module strings.
+
+Later R02 acceptance on the same day independently captured and parsed R1's
+`show version` through both protected OpenClaw and Hermes members: IOS-XE
+17.18.2, one captured execution per successful operation. CML is at
+192.168.2.125; saved device addresses are R1 .201, R2 .202, SW1 .211 and SW2 .212.
+Only R1 was selected for R02 execution. The owner restored CML a second time
+after an SSH timeout; exact-node interface/key verification matched the prior
+pin. The earlier timed-out operation remains unknown and was never replayed.
+Both original inventory hashes remain unchanged. Current acceptance evidence is
+under `live-qualification/run-20261102T155125-625aeb/`; see Spec171 verification
+for separate native, synthetic, restart and platform qualification claims.
+
+Exact-command lesson: Unicon25.2 IOS-XE probes operating mode even with empty
+init lists and MIT. The protected adapter now pins the qualified IOS-XE/IOL
+dependency tree and uses its internal skip-discovery marker, disables learning
+and reconnect, and requires initial enable state. Final full native transcripts
+contain only the approved command. Do not generalize this policy to other
+plugins or claim execute-call counts alone prove total device-command scope.

@@ -244,3 +244,18 @@ owner correction. Budget alerts are not hard spending caps. Optional bounded
 implementation/test/review passes are capped at five total across R02–R05.
 The entire-roadmap release, version and public rollout hold remains in force.
 Spec171 implements R02; R03 cannot begin before its human evidence gate.
+
+### R02/Spec171 technical acceptance — 2026-11-02
+
+Source8c178ff8 passed both actual protected OpenClaw/Hermes Sonnet reads through
+fresh Mac/Docker members: one R1show-version, zero setup commands, signed results,
+durable ACK, attributable GAIT and no-repeat restart recovery. Independent review
+passes. T001–T035 are complete; T036 human evidence acceptance remains open before
+R03. See specs/171-execution-parity/verification.md, parity-matrix.md and resume.md.
+Two of the five bounded implementation passes were used. The earlier unknown SSH
+operation and authentic reads with an implicit Unicon setup probe remain retained
+with their limitations, never replayed. The corrected native policy is narrowly
+pinned to IOS-XE/IOL and the qualified Mac dependencies. No arbitrary provider,
+cloud, other-plugin, write or multi-user qualification is implied. Source1.18.3
+and extension1.5.0 unchanged; entire-roadmap release hold remains. No R03 resource
+or existing R01 runtime was changed.

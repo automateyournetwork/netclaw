@@ -30,10 +30,10 @@ complete acceptance. Shared contracts are authoritative. No release/version bump
 
 ## Phase 4 — US2 guarded credential-owning execution
 
-- [ ] T016 [US2] Implement trusted executor/effect-gate adapter and refusal of every legacy execution bypass for protected members in protected_runtime.py and service.py.
-- [ ] T017 [US2] Add operation-scoped inference facade with pinned routing and durable two-call limit in scripts/protected-inference.py.
-- [ ] T018 [US2] Add exact approved MCP broker forwarding and execute-once/parse-captured-output pyATS adapter in scripts/protected-tool-broker.py and scripts/pyats-managed.py.
-- [ ] T019 [US2] Prepare pinned official OpenClaw and Hermes runtimes with DefenseClaw in fresh Docker topologies and honest containment verification in specs/171-execution-parity/qualification/ and scripts/protected-runtime.py.
+- [x] T016 [US2] Implement trusted executor/effect-gate adapter and refusal of every legacy execution bypass for protected members in protected_runtime.py and service.py.
+- [x] T017 [US2] Add operation-scoped inference facade with pinned routing and durable two-call limit in scripts/protected-inference.py and protected_runtime.py, with SDK retry deduplication in scripts/lib/protected_provider.py.
+- [x] T018 [US2] Add exact approved MCP broker forwarding and execute-once/parse-captured-output pyATS adapter in scripts/protected-tool-broker.py and scripts/lib/protected_pyats.py. Pass2 corrected implicit native discovery; fresh full transcripts independently show only the approved command.
+- [x] T019 [US2] Prepare pinned official OpenClaw and Hermes runtimes with DefenseClaw in fresh Docker topologies and honest containment verification in specs/171-execution-parity/qualification/ and protected_docker.py.
 - [x] T020 [P] [US2] Add runtime/argument/profile/bypass tests in tests/n2n/test_protected_runtime_171.py; no test may fake live production posture as acceptance.
 
 ## Phase 5 — US3 durable result and no-replay recovery
@@ -52,13 +52,13 @@ complete acceptance. Shared contracts are authoritative. No release/version bump
 
 ## Phase 7 — US5 integration and actual qualification
 
-- [ ] T029 [US5] Integrate separate worker commits and review shared boundaries; record bounded implementation passes in specs/171-execution-parity/verification.md.
-- [ ] T030 [US5] Prepare exact fresh local activation/verification packet with pins, homes, model limits, baseline, device scope, preservation and stop procedure in specs/171-execution-parity/runtime-review.md.
-- [ ] T031 [US5] Verify actual fresh runtime containment/guard readiness and credential absence, preserving private receipts and sanitized specs/171-execution-parity/verification.md.
-- [ ] T032 [US5] Execute actual browser-approved pyATS show version for both OpenClaw and Hermes, with principal/approval/attempt/tool/result/ACK/GAIT correlation and independently checked parsed output in specs/171-execution-parity/verification.md.
-- [ ] T033 [US5] Run actual approved refusal/bypass and lost-ACK recovery drills with one real show effect; record evidence in specs/171-execution-parity/verification.md.
-- [ ] T034 [US5] Verify existing relevant federation/HUD/installer contracts, HUD build and platform limits in specs/171-execution-parity/verification.md.
-- [ ] T035 [US5] Independent final security/evidence review and required fixes in specs/171-execution-parity/analysis.md; no self-certified fixture-only completion.
+- [x] T029 [US5] Integrate separate worker commits and review shared boundaries; record bounded implementation passes in specs/171-execution-parity/verification.md.
+- [x] T030 [US5] Prepare exact fresh local activation/verification packet with pins, homes, model limits, baseline, device scope, preservation and stop procedure in specs/171-execution-parity/runtime-review.md.
+- [x] T031 [US5] Verify actual fresh runtime containment/guard readiness and credential absence, preserving private receipts and sanitized specs/171-execution-parity/verification.md.
+- [x] T032 [US5] Execute actual browser-approved pyATS show version for both OpenClaw and Hermes, with principal/approval/attempt/tool/result/ACK/GAIT correlation and independently checked parsed output in specs/171-execution-parity/verification.md.
+- [x] T033 [US5] Run actual approved refusal/bypass and lost-ACK recovery drills with one real show effect; record evidence in specs/171-execution-parity/verification.md.
+- [x] T034 [US5] Verify existing relevant federation/HUD/installer contracts, HUD build and platform limits in specs/171-execution-parity/verification.md.
+- [x] T035 [US5] Independent final security/evidence review and required fixes in specs/171-execution-parity/analysis.md; no self-certified fixture-only completion.
 - [ ] T036 [US5] Complete parity matrix and human R02 evidence gate in specs/171-execution-parity/verification.md before R03 begins.
 
 ## Dependencies and parallel work

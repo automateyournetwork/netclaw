@@ -1,67 +1,80 @@
-# R02–R05 active work — 2026-11-02
+# R02–R05 checkpoint — R02 human gate ready
 
-Owner scope: finish R02–R05 with a coordinator and three parallel agents, with at
-most five optional implementation-loop passes total. Pass 1 is still active; the
-Claude Code Ralph stop-hook plugin is not running. The release/version/public
-rollout hold remains. Human roadmap gates and exact cloud-resource/spend reviews
-remain. Conservatively use CAD100/month total including R01. No new cloud plan
-is approved, and R03 is behind the human R02 evidence gate.
+2026-11-02. Technical R02 acceptance is complete: T001–T035 pass; T036 is pending
+human review of parity-matrix.md and verification.md. The R02 roadmap brief and
+FR016 explicitly gate R03 on that review. Do not infer acceptance from silence.
 
-Branch `171-execution-parity`, baseline `5e50bbba`; source 1.18.3/extension 1.5.0
-unchanged. Design gate passed. Backend, owner authority, protected HUD, guarded
-OpenClaw/Hermes runtime and independent tests are integrated in stages. Current
-progress: 24/36 tasks checked; real provider/device qualification is outstanding.
-See verification.md, runtime-review.md, parity-matrix.md and contracts/.
+Owner scope remains R02–R05 with coordinator plus three parallel agents, separate
+worktrees and at most five optional implementation passes total. Two passes were
+used; no Claude Code Ralph stop-hook ran. Preserve the full-roadmap release,
+version and public-rollout hold. Total GCP lab ceiling is conservatively CAD100
+per month including R01, with exact resource/spend review. R03–R05 have not started;
+no new cloud resource or existing R01 runtime change occurred.
 
-Private work root: `~/.local/share/netclaw/roadmap-r02-r05-20261102/` (0700).
-GAIT branch of the same name is active. Latest checkpoint receipt:
-`gait-before-live.json`. Startup reads were completed; do not restart them.
-Preserve existing R01 homes, cloud state, owner inventories and all prior evidence.
+Branch `171-execution-parity`, qualified runtime source `8c178ff8`; source1.18.3
+and extension1.5.0 unchanged. Final native run under private root
+`~/.local/share/netclaw/roadmap-r02-r05-20261102/`:
+`live-qualification/run-20261102T155125-625aeb/`.
 
-Actual fixture evidence: both native harnesses passed two model callbacks and
-one MCP callback; strict TLS/iN2N transport passed ten checks, signed receipts
-were independently verified, and lost-ACK/full restart retained one synthetic
-effect. Chrome now passes sixteen checks including uncertain prepare-response
-recovery. Official DefenseClaw runner/action/strict policy startup and stop pass;
-actual SDK retry/drop/restart tests prove the new inner provider fence works
-against local stubs. None of that is real provider/device acceptance.
+- OpenClaw operation `ff22d921-951b-4024-8eaa-b5547417c980`.
+- Hermes operation `dc674dfe-5af0-46ce-a5dc-9091fb0bd0d1`.
+- Each: two guarded Sonnet4.6 provider calls, one R1 `show version`, zero setup
+  commands, parsed IOS-XE17.18.2, verified signatures/ACK and correlated GAIT.
+- Native driver7 groups, Chrome15, HTTP26 and wire12 checks pass. Actual submit
+  reply loss, result-ACK reply loss and full restart preserve original identities
+  and provider/inference/tool evidence. All owned services/containers stopped.
+- Independent report `independent-native-receipts-20261102T155405.json` passes
+  strict signature/authority/transcript/provider/tool/GAIT/recovery checks.
+- Credential scan86 files has no matches; original inventories unchanged.
 
-CML is now reachable after the owner started it. Original R1/R2/SW1/SW2 are
-booted. Exact-node authenticated console public key matches R1 SSH. Private
-`live-qualification/pyats-config.json` and strict R1-only inventory are ready;
-actual native load and SSH argv checks passed offline. Original inventories are
-unchanged. Root commit `ef53e606` pins global known-host exclusion and exact native
-Unicon class identity. Device credentials are copied from the original testbed,
-never from the CML controller account. No R02 SSH authentication/show version yet.
+Tests: protected311 (two existing utcnow warnings), relevant legacy/installer219,
+HUD436 serialized (initial parallel run had two fixed-delay flakes, isolated
+files23 passes), Node boundary8 and HUD build. Actual same-image network probes
+and actual production ASGI/MCP negative fixtures passed; their external synthetic
+seams and platform limits are explicit. Do not rerun successful real operations
+or broaden tests without a new reason.
 
-Guard image/config/policy pins are in runtime-review.md. Existing authorized
-Anthropic key is only in private `live-qualification/guard.env`; do not print it.
-`member.env` has only the three device aliases and a separate guard-client token.
-`guard-client.env` retains that token. Border and model never receive those keys.
-Hermes qualifies the compatible HTTP guard adapter/MCP broker, not native hooks.
+## Important retained history
 
-Current agent ownership:
-- r02_protocol: fixes signed runtime/tool revision binding in protected_docker.py
-  and a deterministic helper; exact local Docker socket/config and raw MCP
-  arguments also being hardened. It owns this file; root has a pre-existing
-  uncommitted per-operation guard launch patch it incorporated. Cherry-pick only
-  its focused fix commit, not its local baseline snapshot.
-- r02_runtime_design: UX integrated at `1453778b` atop `8e510a98`; final independent
-  source/evidence review preparation is active. Tests/build/browser passed.
-- r02_hud: guard and R1 identity/inventory work complete; reviewing private native
-  qualification driver and preparing independent raw/parsed-result validation.
+Pass1 produced authentic guarded signed reads in run152632-4e16f6, but independent
+full transcripts found an extra Unicon `show version | include operating mode`
+connection probe. Empty init lists and MIT alone do not suppress this. That
+run's aggregate report failed on tuple serialization; clearly labelled salvage
+and independent20-check read-only restart evidence remain. It does not establish
+exact-command acceptance. The final pass2 run above has original complete reports
+and sole-command acceptance; no old approval was replayed.
 
-Private native driver `live-qualification/live.py` prepares fresh real enrolled
-homes and uses worker.py `--executor native` (no fixture factory). It is NOT yet
-started. Runtime-openclaw.json/runtime-hermes.json generation awaits the revision
-helpers. It waits for browser-done.json, checks actual result and retained
-provider/tool artifacts, then restarts/reconciles. Helpers launch-hud.py and
-browser.mjs require an explicit current run path. Driver reads have deadlines.
-Finish reviewing scoped cleanup and real refusal probes before launching.
+Pass2 pins pyATS/Genie/Unicon25.2 and all580 Unicon .py/.so files for this Mac
+IOS-XE/IOL profile. Internal operating_mode=True is the vendor skip-discovery
+marker, not a device-mode assertion. Fixed MIT/no-learning/no-reconnect settings,
+actual setting checks and an already-enable state prevent unreviewed setup/state
+transitions. Tool/source revisions bind this policy; other profiles refuse.
+Native source manifest e53e542cee1b5b531ffeb9042e43685eaad3cf1fc36a4f0c46fe23a949f3f7b7.
+Current tool revision6ed490f59921afee69780ba5e90a9d3a0ae95baa32cb7952ca6ce70293b01f68.
+Exact image/runtime pins remain in runtime-review.md; guard image5aec2081….
 
-Next: integrate revision fix; generate exact native configs; final independent
-pre-live check; execute two actual delegated browser-approved reads (Hermes loses
-ACK reply after durable member ACK); inspect raw/parsed output independently,
-verify provider/tool counts and no-repeat recovery; full relevant regressions,
-final matrix/security review, then present human R02 gate. Do not claim 100% or
-start R03 until that evidence and gate are complete. No release or public docs.
+Earlier failed bootstrap/guard/token runs and the SSH timeout run151005-bf2245
+remain preserved. Operation1a7a0400-d272-4d68-80ff-cb1d6efaa205 is still unknown/
+spent: one provider call, claimed tool, no captured result. Independent14-check
+reconciliation-only restart caused no new effects. Never replay that operation.
+
+CML restored twice by owner; saved addresses controller192.168.2.125, R1.201,
+R2.202, SW1.211, SW2.212. Only R1 qualified in R02. Exact-node interface/public-key
+verification and latest endpoint key check matched the original pin. Native
+credentials are separate from controller credentials; no trust relaxation.
+
+## Resume action
+
+Present/resolve the concrete T036 human evidence gate. After acceptance, record
+it and begin the R03 Spec Kit cycle, rechecking the next available spec number.
+R03 is an authenticated control-only GCP Border plus outbound on-prem members
+reading four CML devices; it does not inherit R01's open-lab exception. Later
+R04 is a cloud NetBox/subnet member, R05 cloud/local Ollama, each with its own
+human gate. Prepare exact reviewable resource/cost plans before cloud changes;
+no budget alert is a hard spending cap. The $100 total ceiling remains binding.
+
+Preserve all private successful/failed homes, receipts, stopped containers,
+source manifests, original testbeds and authoritative R01 tfstate. No new real
+operation is needed to close R02. Startup reads and GAIT session already exist.
+GAIT branch `roadmap-r02-r05-20261102`; retain final gate/log receipts and daily
+memory. MemPalace tools were unavailable. No external messages/tickets were sent.

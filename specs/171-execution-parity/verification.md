@@ -2,18 +2,31 @@
 
 ## Current status
 
-Design analysis passed after six corrections. Implementation pass 1 is active.
-Actual harnesses, official guard, browser and strict-wire checks have passed
-with synthetic effects/upstreams. Fresh CML console reads verified R1's SSH
-identity; the native pyATS inventory/SSH arguments passed offline checks.
-Real R02 Sonnet/pyATS operations have not yet run. Do not count fixtures as live
-acceptance or mark R02 complete before T036.
+**Technical acceptance complete: T001–T035 pass; T036 human review is pending.**
+Corrected source `8c178ff8` passed both actual local OpenClaw and Hermes operations
+with guarded Sonnet, one approved `show version`, **zero setup commands**, signed
+results/ACKs and independently checked IOS-XE 17.18.2 output. The authoritative
+run is `live-qualification/run-20261102T155125-625aeb/` under the private R02 work
+root. Original runtime and independent reports both pass; no reconstruction was
+needed for this final run. Earlier authentic runs with an extra implicit Unicon
+read retain that limitation and were not replayed.
+
+The [parity matrix](parity-matrix.md) is ready for human review. The
+[R02 roadmap brief](../../docs/roadmap/issue-310/briefs/R02-execution-parity.md)
+requires that review before R03. R03–R05 have not started.
+
+Current automated regression evidence: 311 protected Python tests; 219 relevant
+legacy federation/installer tests; 436 HUD tests with serialized file execution;
+eight independent Node boundary checks and the HUD build. Earlier failures,
+synthetic fixtures and their limits below are historical checkpoints, not current
+acceptance claims. Source is 1.18.3, extension 1.5.0; no release or cloud change.
 
 ## Bounded passes
 
 | Pass | Scope | Status |
 |---|---|---|
-| 1 of at most 5 across R02–R05 | Implement, test and independently review R02 | In progress |
+| 1 of at most 5 across R02–R05 | Implement, test and independently review R02 | Completed with an exact-command scope finding |
+| 2 of at most 5 across R02–R05 | Remove implicit Unicon connection read; independently qualify exact command scope | Passed actual acceptance and independent review |
 
 These are explicitly counted implementation passes. The Claude Code Ralph
 stop-hook plugin is not running in this Codex session.
@@ -192,3 +205,198 @@ max_completion_tokens; the guarded provider contract uses max_tokens).
 
 There have still been **zero actual R02 Anthropic dispatches and zero pyATS
 show-version reads**. Do not label these failed attempts as execution acceptance.
+
+The token translation cause was subsequently proven with the actual official
+guard and a local stub: native max_completion_tokens2048 became vendor
+max_tokens64000 and was refused; explicit max_tokens2048 passed. Commitab728b2d
+normalizes the supported fields before the inference claim, rejects ambiguity
+and invalid/out-of-range values, and preserves the4096 provider-fence ceiling.
+Independent review passed; the complete protected suite now passes301 tests.
+
+Native run `run-20261102T151005-bf2245` passed26 HTTP refusal checks and performed
+one real Anthropic request (HTTP200). Sonnet proposed the exact reviewed R1
+show-version arguments and the broker claimed the tool. The SSH connection then
+timed out before a result could be captured. Operation
+`1a7a0400-d272-4d68-80ff-cb1d6efaa205` remains unknown/spent with effect_claimed1,
+effect_finished0 and no tool evidence; it is not a successful read. Independent
+native SSH and CML HTTPS diagnostics both timed out before authentication. The
+owner subsequently restored CML; HTTPS200 returned and R1 identity recheck is
+pending. All owned failed-run workers/HUD/containers stopped.
+
+Independent actual restart/reconciliation of that uncertain operation passed
+14 checks: three fresh native worker processes re-established strictTLS1.3
+channels, authenticated the same owner and performed status/reconcile only.
+Approval/attempt records, provider/inference counters, every retained tool
+artifact and original failed report stayed unchanged; no containers started.
+The operation correctly remained unknown. All three workers stopped exit0.
+Private report: the failed run's
+`independent-unknown-recovery-20261102T152238-336534/report.json`.
+
+## First native read evidence — exact-command qualification failed
+
+After the second owner restoration, authenticated exact-node CML interface/key
+reads matched the existing R1 identity and pinned SSH host key. No inventory or
+trust relaxation was needed. Fresh run `run-20261102T152632-4e16f6` used the actual
+source at `ab728b2d`, native enrolled TLS 1.3 channels, the private owner HUD,
+OpenClaw 2026.7.1-2 / Hermes v0.21.6, official DefenseClaw 1.0.4 action mode,
+Anthropic Sonnet 4.6 and the dedicated strict pyATS adapter.
+
+| Native member | Operation | Captured tool execution | Model/provider |
+|---|---|---|---|
+| OpenClaw | `af612982-7348-4835-9216-2d120cf4177b` | One `show version`, one attempt, parsed captured output | Two finished guarded inference/provider calls; verified answer |
+| Hermes | `24eaa3a1-a5f5-45b3-be08-bc053db4348d` | One `show version`, one attempt, parsed captured output | Two finished guarded inference/provider calls; verified answer |
+
+Both independent raw/parsed inspections matched the observed hostname and
+IOS-XE 17.18.2. Empty initialization command lists were retained. The identical
+raw SHA256 was `c40c8ad1acf529dc85fed97b35c4d647ef00fe285375f25f9929a8f4a4120e22`;
+separate operation identities, claims and receipts establish the two reads.
+The earlier timed-out operation remains uncertain; these successful counts do
+not retroactively establish zero effects for that earlier attempt.
+
+Actual Chrome 156 passed 13 checks: both exact reviews, two approvals, verified
+answers, refresh without resubmission, native owner revocation/relogin/logout,
+owner cookies, protected navigation and legacy API/WebSocket refusal. Browser
+artifacts retain the complete verified receipt payloads and screenshots. Hermes
+correctly displayed a durable verified ACK with delivery still pending after the
+deliberate reply loss. OpenClaw's submit reply was deliberately lost after
+admission, while the channel remained open for authorization; the original
+operation completed through reconciliation. There were two prepare and two
+approve POSTs, with zero refresh mutation requests.
+
+The run also retained 26 actual owner HTTP checks and 12 strict-channel
+refusal/replay checks. Unknown devices, changed commands/arguments/profile/tool,
+missing/used tickets, forged client principal, cross-origin/CSRF violations,
+stale catalogs and denied reviews refused. Wire checks covered missing approval,
+signature/argument/device tampering, validly signed already-expired specimens and
+concurrent replay of each **completed** approval. Runtime artifact hashes stayed
+unchanged. The expiry specimen was constructed already expired; first-admission
+concurrency is separately covered by process-level tests, not this wire replay.
+
+The private qualification driver completed its restart/reconciliation and wire
+checks, but its final aggregate serialization failed in the strict protocol
+encoder. Independently saved browser, tool, provider, wire and cleanup artifacts
+remain intact. Missing in-memory pre-restart snapshots/exit-code maps are not
+fabricated. A separately recorded reconciliation-only restart subsequently
+passed 20 checks with before/after snapshots and zero additional effects. The
+original two approvals were not repeated to obtain a new test report.
+
+Independent credential-byte inspection scanned 84 fresh Border/model artifacts
+and found no actual provider/device credential values. Both original inventory
+SHA256 values still match their pre-test baselines. Actual containment records
+show non-root UID503, read-only roots, dropped capabilities, no-new-privileges,
+internal isolated agent networks and only the reviewed agent mount/environment.
+Both guard health records show action mode; all six operation containers stopped.
+Agent/guard exits were zero; relay shutdown required termination (137), and the
+owned HUD API/Vite were deliberately terminated. Cleanup is confirmed, not a
+claim that every process exited normally.
+
+Private evidence in this run: `browser-1793651221024/browser-report.json`,
+`verified-evidence-{openclaw,hermes}.json` in that browser directory,
+`negative-http-before.json`, `negative-wire-after.json`,
+`independent-parsed-monitor.json`, per-operation tool/provider/containment/cleanup
+records, `independent-credential-absence.json`,
+`original-inventory-preservation.json` and
+`independent-success-recovery-20261102T153444-460bcb/report.json`.
+Final signature/GAIT inspection and targeted isolated bypass probes are recorded
+separately when complete; they do not authorize another real operation.
+
+### Final-review finding: implicit Unicon setup read
+
+The independent receipt inspector verified the actual signatures, authority,
+result/ACK, provider budgets and GAIT correlations for both operations. Full
+connection transcripts additionally showed `show version | include operating
+mode` before the approved command. Empty init-exec/config lists did not suppress
+this native Unicon platform-discovery read. The adapter's `execute_calls:1`
+counts its approved callback, not every command sent during connection setup.
+
+This extra command is read-only but exceeds the exact reviewed packet. These
+runs prove real guarded execution/result/recovery, **not exact-command acceptance**.
+Retain their receipts and the finding. Pass2 fixes the connection policy, tests
+it against the actual installed Unicon plugin and requires fresh reviewed
+operations with a complete command-transcript check; never replay prior approvals.
+
+## Pass2 correction and independent boundary evidence
+
+Commit `8c178ff8` suppresses the implicit IOS-XE discovery path using fixed,
+internal connection settings, qualified package versions and a 580-file Unicon
+source/native-module digest. It refuses other plugin profiles, unapplied settings,
+a non-enable initial state and reconnection. The signed tool revision changes;
+old runtime profiles/approvals remain preserved. There is no testbed override
+or exposed bypass flag. This native dependency pin is deliberately Mac-specific,
+not full Python dependency attestation or general pyATS platform support.
+
+The actual installed pyATS/Unicon local mock independently proved that MIT alone
+still probes, while the corrected adapter emits zero setup commands and exactly
+one requested read, parses captured output, and refuses disconnected execution
+without reconnecting. Final native adapter proof is
+`live-qualification/unicon-full-adapter-mock-20261102T155036/report.json`.
+Six transcript-verifier self-tests reject both prior real extra-probe logs and
+additional command/echo mutations. No provider or device was used in those tests.
+Final protected regression: **311 passed**, two existing utcnow warnings.
+
+Separate actual network probes used both pinned images with the same container
+security flags and isolated network topology; only entrypoint, dummy capability,
+owned names and copied nonsecret config changed. Bridge positive controls reached
+internet TCP443 and the owned host tripwire. Both isolated probes failed internet
+and declared gateway TCP and host/gateway DNS, sent zero application bytes, and
+had no provider/device environment or Docker socket. Three probe containers exited
+zero and stopped; host listener closed. `/root/.ssh` was inaccessible, not proven
+absent. Docker Desktop host/gateway literal addresses learned by the positive
+control were not directly attempted. Evidence: `agent-boundary-probe-20261102/receipt.json`.
+
+The production DockerExecutor ASGI/Uvicorn/official MCP SDK path also passed
+17 negative HTTP cases plus two discovery checks, with missing/wrong capability,
+headers/routes/queries, altered tool/device/command/timeout, extra or missing
+arguments, coercion values, batch and duplicate JSON. Gate/effect/provider/inference
+counts remained zero, and825 real evidence files stayed unchanged. External
+Docker/guard/pyATS seams were synthetic; this proves the actual HTTP/MCP boundary,
+not live tool execution or first-admission concurrency. Evidence:
+`mcp-negative-http-qualification/report.json`.
+
+## Final corrected acceptance and human gate
+
+Fresh source `8c178ff8`, run `run-20261102T155125-625aeb`, completed successfully:
+
+| Harness | Operation | Independently verified outcome |
+|---|---|---|
+| OpenClaw | `ff22d921-951b-4024-8eaa-b5547417c980` | One exact R1 read, zero setup commands; two guarded provider calls; signed result/ACK; submit-loss recovery |
+| Hermes | `dc674dfe-5af0-46ce-a5dc-9091fb0bd0d1` | One exact R1 read, zero setup commands; two guarded provider calls; signed result/ACK; ACK-loss recovery |
+
+The actual Chrome run passed15 checks, including the complete native command
+transcript before allowing the next harness approval. Owner HTTP26 and wire12
+refusal/replay checks passed. The native driver passed7 grouped checks and exited
+zero; its final report retained the genuine pre/post restart snapshots. Both
+approved operations preserve their approval, attempt, receipt and ACK identities
+and provider/inference/tool hashes across full process restart/reconciliation.
+All owned execution containers, native workers and HUD processes stopped.
+
+The independent verifier used the exact bytes frozen before activation and
+passed both operations' domain-separated P-256 signatures, trusted enrollment
+bindings, raw-to-parsed evidence, exact single-command transcript, provider/tool
+budgets, GAIT commit linkage, restart invariants and cleanup. No additional
+runtime, model or device calls were made by the verifier. The final credential
+scan covered86 Border/model/provider-body files with zero actual credential-byte
+matches. Both original inventories still match their baselines.
+
+Authoritative private evidence, relative to the final run:
+
+- `report.json` — original complete driver report, source/pins/restart snapshots.
+- `browser-1793652734808/browser-report.json` and verified-evidence JSON/screenshots.
+- `independent-native-receipts-20261102T155405.json` — independent strict acceptance.
+- `negative-http-before.json`, `negative-wire-after.json`.
+- `independent-credential-absence.json`, `original-inventory-preservation.json`.
+- Per-operation native logs, raw/parsed tool evidence, provider ledger/receipt,
+  guard health, containment and cleanup;14 frozen helper sources/manifests.
+
+T001–T035 are complete for the two pinned Mac/Docker ARM64 harnesses, Sonnet4.6
+and this IOS-XE/IOL read. This does not qualify arbitrary providers/models,
+Linux/WSL/cloud native execution, other device plugins, writes, physical mobile,
+native Hermes hooks or multi-user/SSO/RBAC. Trusted host/Docker and the trusted
+guard process domain remain explicit. Earlier failed/unknown/limited runs are
+preserved; none was silently replayed or rewritten as acceptance.
+
+**T036 remains open:** the human must review this evidence and the completed
+parity matrix before R03, as required by the R02 brief and FR016. No new cloud
+resources, deployment changes, version bump, release or public rollout material
+were made. The total later GCP lab ceiling remains conservatively CAD100/month,
+including R01; exact resource/spend review is still required.

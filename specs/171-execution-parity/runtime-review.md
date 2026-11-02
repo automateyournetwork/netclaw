@@ -50,17 +50,19 @@ policy manifest and host adapter revisions. The tool digest must bind its schema
 and execution source closure. Final generated bindings and exact file hashes are
 retained in the private packet before activation. A changed pin refuses execution.
 
-Final unused configs were regenerated after source `d6750cba` and the corrected non-root policy image and passed actual
+Final unused configs were regenerated after source `8c178ff8`, including the
+corrected non-root policy image, bounded token-field normalization and suppression
+of implicit Unicon connection discovery. They passed actual
 `revision_bindings()`/`validate_execution_bindings()` without executing a process:
 
 | Binding | SHA256 |
 |---|---|
-| OpenClaw runtime profile | `bb166ccc76b7b60307e896c8609d3ab93847b758991bf80f3a946280edb4ae08` |
-| Hermes runtime profile | `101c503fb87740869a4db4031d517f2c48f14d748862f1ae5df5ea931ab1bcfb` |
+| OpenClaw runtime profile | `78ddd51ad6028ee930cd5cea835031181e4a057db8dad96f5b77dcd2735c840f` |
+| Hermes runtime profile | `a394464111bd419384e5ef50b8b48712612526a0e26d6549f470ea2d201452c5` |
 | Guard policy/config/image contract | `f44bdecaac8115c77b4419cd46c8169c6287883f9407f2951faae9e6d205ec05` |
-| Tool schema and enforced source contract | `aeda96b8966036936f9d8ac28f98483e6f9a54126c7fdda402142415880a093f` |
+| Tool schema and enforced source contract | `6ed490f59921afee69780ba5e90a9d3a0ae95baa32cb7952ca6ce70293b01f68` |
 
-The private runtime JSON hashes are `74ea15fa…` and `4426d1b4…` respectively;
+The private runtime JSON hashes are `ffeae5eb…` and `479f354f…` respectively;
 full hashes are retained in `live-qualification/runtime-bindings.json`. The
 unused earlier bindings remain archived. Fresh-home state paths do not change
 the executable contract; they remain private and installation-owned.
@@ -94,6 +96,17 @@ R1-only inventory, frozen source/testbed/host-key copies and captured output.
 The baseline console reads were only `show ip interface brief` and
 `show crypto key mypubkey rsa`; no device configuration or node lifecycle action
 was taken. Exact private addresses, credentials and transcripts stay local.
+
+The qualified adapter is restricted to this IOS-XE/IOL plugin on Mac Python3.12,
+with pyATS/Genie/Unicon25.2. It pins all580 installed Unicon `.py`/`.so` files to
+manifest SHA256 `e53e542cee1b5b531ffeb9042e43685eaad3cf1fc36a4f0c46fe23a949f3f7b7`.
+Those pins are part of the signed adapter/tool revision and checked before
+connecting. Other platforms/plugins refuse. Fixed internal connection settings
+disable learning, initialization and reconnect; `operating_mode=True` is the
+pinned plugin's skip-discovery marker, not a device-mode assertion. The actual
+settings and initial enable state must match before the approved command.
+MIT alone was proven insufficient. Final acceptance inspects the whole native
+command transcript, not only the adapter's explicit execute-call counter.
 
 ## Evidence, stop and limits
 
