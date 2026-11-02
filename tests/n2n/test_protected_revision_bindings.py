@@ -71,7 +71,7 @@ def bound(tmp_path, monkeypatch):
         "docker_host": "unix://" + str(socket_path), "guard_token_env": "NETCLAW_FIXTURE_TOKEN",
         "sandbox_address_pool": "198.18.0.0/15", "model_profile": {
             "profile_id": "fixture", "profile_revision": "pending", "runtime_kind": "openclaw",
-            "runtime_version": "fixture", "provider": "anthropic", "model": "claude-sonnet-4-6",
+            "runtime_version": "2026.7.1-2", "provider": "anthropic", "model": "claude-sonnet-4-6",
             "guard_policy_sha256": "0" * 64},
         "guard": {"image": "sha256:" + "3" * 64, "config_file": str(guard_config),
             "config_sha256": digest(guard_config.read_bytes()), "policy_manifest_sha256": "4" * 64,
@@ -102,6 +102,34 @@ def test_actual_files_and_native_endpoints_bind_successfully(bound):
     assert docker.validate_execution_bindings(config, payload) == docker.revision_bindings(config)
     assert len(payload["model_profile"]["profile_revision"]) == 64
     assert set(docker.protected_tool_input_schema()["properties"]) == set(payload["tool_call"]["arguments"])
+
+
+@pytest.mark.parametrize("change", [
+    {"provider": "openai"}, {"provider": "fixture-provider"},
+    {"model": "claude-opus-4-6"}, {"model": "fixture-sonnet"},
+    {"runtime_kind": "unqualified"}, {"runtime_version": "2026.7.1"},
+    {"runtime_kind": "openclaw", "runtime_version": "v0.21.6"},
+    {"runtime_kind": "hermes", "runtime_version": "2026.7.1-2"},
+    {"runtime_kind": "hermes", "runtime_version": "v0.21.7"},
+])
+def test_profile_cannot_mislabel_fixed_provider_or_qualified_harness(bound, change):
+    config, payload, _ = bound
+    config["model_profile"].update(change)
+    payload["model_profile"] = copy.deepcopy(config["model_profile"])
+    # Even recomputing a fresh revision cannot qualify an unsupported label.
+    with pytest.raises(runtime.RuntimeRefused, match="unqualified_execution_profile"):
+        docker.revision_bindings(config)
+    with pytest.raises(runtime.RuntimeRefused, match="unqualified_execution_profile"):
+        docker.validate_execution_bindings(config, payload)
+
+
+def test_qualified_hermes_profile_can_bind_without_claiming_actual_image_qualification(bound):
+    config, payload, _ = bound
+    config["model_profile"].update(runtime_kind="hermes", runtime_version="v0.21.6")
+    pins = docker.revision_bindings(config)
+    config["model_profile"].update({key: pins[key] for key in ("profile_revision", "guard_policy_sha256")})
+    payload["model_profile"] = copy.deepcopy(config["model_profile"])
+    assert docker.validate_execution_bindings(config, payload) == pins
 
 
 @pytest.mark.parametrize("field", ["agent_image", "relay_image", "sandbox_address_pool"])

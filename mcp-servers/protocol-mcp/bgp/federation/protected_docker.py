@@ -31,6 +31,9 @@ _RUNTIME_FIELDS = {"state_dir", "agent_image", "relay_image", "docker", "docker_
                    "sandbox_address_pool", "model_profile", "guard", "pyats"}
 _PYATS_FIELDS = {"python", "upstream", "upstream_sha256", "source_sha256", "adapter_sha256", "testbed",
                  "testbed_sha256", "known_hosts", "known_hosts_sha256", "endpoint_sha256", "credential_env"}
+# These are the qualified R02 profiles. Exact immutable image/version pairs are
+# supplied by the separately reviewed runtime packet, not inferred from labels.
+_QUALIFIED_HARNESSES = {"openclaw": "2026.7.1-2", "hermes": "v0.21.6"}
 
 
 def _digest(value):
@@ -110,6 +113,12 @@ def runtime_profile_revision(config):
     profile = config["model_profile"]
     if set(config) != _RUNTIME_FIELDS:
         raise RuntimeRefused("runtime_configuration_fields_refused")
+    if (not isinstance(profile, dict) or profile.get("provider") != "anthropic"
+            or profile.get("model") != "claude-sonnet-4-6"
+            or not isinstance(profile.get("runtime_kind"), str)
+            or profile.get("runtime_kind") not in _QUALIFIED_HARNESSES
+            or profile.get("runtime_version") != _QUALIFIED_HARNESSES[profile["runtime_kind"]]):
+        raise RuntimeRefused("unqualified_execution_profile")
     for name, path in _HOST_SOURCE_PATHS.items():
         if hashlib.sha256(_public_bytes(path)).hexdigest() != _HOST_SOURCE_PINS[name]:
             raise RuntimeRefused("loaded_runtime_source_changed")
