@@ -11,6 +11,7 @@ const ports = hudPorts();
 const chatDeadlines = chatTimeouts();
 const host = hudHost();
 const allowed = createLocalAccess(ports, { host, allowRemote: true });
+const protectedHeaders = process.env.N2N_PROTECTED_OPERATIONS === '1' ? { 'Cache-Control': 'no-store' } : {};
 const localOnly = () => ({
   name: 'netclaw-local-access',
   configureServer(server) { guardHudServer(server, allowed); server.middlewares.use(protectedDocumentHeaders(process.env.N2N_PROTECTED_OPERATIONS === '1')); },
@@ -32,11 +33,12 @@ export default defineConfig({
       },
     },
   },
-  preview: { host, port: ports.ui, strictPort: true },
+  preview: { host, port: ports.ui, strictPort: true, headers: protectedHeaders },
   server: {
     host,
     port: ports.ui,
     strictPort: true,
+    headers: protectedHeaders,
     proxy: {
       '/api': {
         target: `http://127.0.0.1:${ports.api}`,

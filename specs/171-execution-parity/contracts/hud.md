@@ -72,3 +72,14 @@ generation, expiry and revocation; a matching principal alone is insufficient.
 The browser may not submit auth_context. The backend holds its owner lock through
 final active-session checks and durable decision/dispatch claims, and rechecks
 read access after external I/O before returning private data.
+
+## R02 protected profile isolation
+
+The explicitly selected protected profile reads only its selected installation
+environment, never the repository .env fallback. Its API exposes runtime bootstrap
+metadata and the authenticated owner/operation routes only; legacy API and
+WebSocket execution is refused even if owner/origin configuration is missing.
+The protected navigation presents approved operations and does not poll legacy
+local runtimes. Existing unselected profiles, including R01's owner-authorized
+lab, remain unchanged. Member-backed broader HUD features belong to subsequent
+roadmap acceptance; this profile must not silently invoke a local model/tool.

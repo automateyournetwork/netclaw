@@ -5,6 +5,8 @@ import { createProtectedClient, ProtectedError, strictJson } from './protected-c
 const SESSION = '/api/hud/owner/session', OPERATIONS = '/api/hud/operations';
 const token = value => typeof value === 'string' && /^[A-Za-z0-9_-]{43}$/.test(value);
 const identifier = value => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,200}$/.test(value);
+// Enrolled iN2N names include risk/member (unlike route operation IDs).
+const memberIdentifier = value => typeof value === 'string' && value.length > 0 && value.length <= 200 && !/[\u0000-\u001f\u007f]/.test(value);
 const object = value => value && typeof value === 'object' && !Array.isArray(value);
 const exact = (value, keys) => object(value) && Object.keys(value).length === keys.length && keys.every(key => Object.hasOwn(value, key));
 const equal = (a, b) => typeof a === 'string' && typeof b === 'string' && a.length <= 256 && b.length <= 256 && Buffer.byteLength(a) === Buffer.byteLength(b) && crypto.timingSafeEqual(Buffer.from(a), Buffer.from(b));
@@ -30,6 +32,19 @@ export function protectedDocumentHeaders(enabled) {
     }
     next();
   };
+}
+
+// R02's explicit protected profile has one reviewed execution surface. Missing
+// owner configuration must not reopen ordinary local gateway/device routes.
+export function protectedLegacyBoundary(requested) {
+  return (req, res, next) => {
+    if (!requested || !req.path.startsWith('/api/') || req.path === '/api/runtime') return next();
+    return res.status(403).set('Cache-Control', 'no-store').json({ code: 'protected_route_required', error: 'Use the approved operation workspace.' });
+  };
+}
+
+export function selectedEnvironmentFiles(installation, rootEnvironment, protectedProfile) {
+  return installation.kind === 'hermes' || protectedProfile ? [installation.envPath] : [installation.envPath, rootEnvironment];
 }
 
 export function mountProtectedOperations(app, { installation, config = protectedHudConfig(), client = createProtectedClient(installation), now = Date.now } = {}) {
@@ -111,7 +126,7 @@ export function mountProtectedOperations(app, { installation, config = protected
   router.post(OPERATIONS, operation('prepare', req => {
     noQuery(req);
     const body = req.body;
-    if (!exact(body, ['client_nonce', 'catalog_revision', 'member_id', 'model_profile_id', 'tool', 'arguments']) || !['client_nonce', 'member_id', 'model_profile_id', 'tool'].every(key => identifier(body[key])) || !(identifier(body.catalog_revision) || Number.isSafeInteger(body.catalog_revision)) || !object(body.arguments) || Buffer.byteLength(JSON.stringify(body.arguments)) > 65536) throw new ProtectedError('invalid_argument', 400);
+    if (!exact(body, ['client_nonce', 'catalog_revision', 'member_id', 'model_profile_id', 'tool', 'arguments']) || !['client_nonce', 'model_profile_id', 'tool'].every(key => identifier(body[key])) || !memberIdentifier(body.member_id) || !(identifier(body.catalog_revision) || Number.isSafeInteger(body.catalog_revision)) || !object(body.arguments) || Buffer.byteLength(JSON.stringify(body.arguments)) > 65536) throw new ProtectedError('invalid_argument', 400);
     return body;
   }));
   router.get(OPERATIONS, operation('status', req => {
