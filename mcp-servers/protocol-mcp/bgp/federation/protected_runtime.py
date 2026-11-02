@@ -16,13 +16,14 @@ import sqlite3
 import stat
 import time
 import uuid
+from .protected_contract import ProtectedError, ProtectedOutcomeUnknown
 
 
-class RuntimeRefused(ValueError):
+class RuntimeRefused(ProtectedError):
     pass
 
 
-class RuntimeUnknown(RuntimeError):
+class RuntimeUnknown(ProtectedOutcomeUnknown):
     """A durable claim may have reached its upstream; do not retry."""
 
 
@@ -85,6 +86,8 @@ class InferenceFence:
             request_sha256 TEXT NOT NULL, state TEXT NOT NULL,
             response_sha256 TEXT, PRIMARY KEY(operation_id,ordinal),
             UNIQUE(operation_id,request_sha256))""")
+        if "response_json" not in {row[1] for row in self.db.execute("PRAGMA table_info(protected_inference)")}:
+            self.db.execute("ALTER TABLE protected_inference ADD COLUMN response_json TEXT")
 
     def claim(self, operation_id, request, *, tool_finished=False):
         hashed = sha(request)
@@ -96,7 +99,7 @@ class InferenceFence:
                     or (rows and (rows[-1][3] != "finished" or not tool_finished))):
                 raise RuntimeRefused("inference_spent_or_unreconciled")
             ordinal = len(rows) + 1
-            self.db.execute("INSERT INTO protected_inference VALUES (?,?,?,'claimed',NULL)",
+            self.db.execute("INSERT INTO protected_inference(operation_id,ordinal,request_sha256,state) VALUES (?,?,?,'claimed')",
                             (operation_id, ordinal, hashed))
             self.db.execute("COMMIT")
             return ordinal
@@ -105,15 +108,34 @@ class InferenceFence:
             raise
 
     def finish(self, operation_id, ordinal, response):
-        changed = self.db.execute("""UPDATE protected_inference SET state='finished',response_sha256=?
+        changed = self.db.execute("""UPDATE protected_inference SET state='finished',response_sha256=?,response_json=?
             WHERE operation_id=? AND ordinal=? AND state='claimed'""",
-                                  (sha(response), operation_id, ordinal)).rowcount
+                                  (sha(response), canonical(response).decode(), operation_id, ordinal)).rowcount
         if changed != 1:
             raise RuntimeUnknown("inference_result_conflict")
 
     def count(self, operation_id):
         return self.db.execute("SELECT COUNT(*) FROM protected_inference WHERE operation_id=?",
                                (operation_id,)).fetchone()[0]
+
+    def final_answer(self, operation_id):
+        rows = self.db.execute("SELECT state,response_json FROM protected_inference WHERE operation_id=? ORDER BY ordinal",
+                               (operation_id,)).fetchall()
+        if any(state != "finished" or response is None for state, response in rows):
+            raise RuntimeUnknown("inference_outcome_unknown")
+        if len(rows) != 2:
+            raise RuntimeRefused("guarded_summary_missing")
+        response = json.loads(rows[-1][1])
+        choices = response.get("choices", [])
+        if len(choices) != 1:
+            raise RuntimeRefused("guarded_summary_invalid")
+        choice = choices[0]
+        message = choice.get("message") or {}
+        if (choice.get("finish_reason") != "stop" or message.get("role") != "assistant"
+                or message.get("tool_calls") or not isinstance(message.get("content"), str)
+                or not message["content"].strip()):
+            raise RuntimeRefused("guarded_summary_invalid")
+        return message["content"]
 
     def close(self):
         self.db.close()
@@ -153,7 +175,9 @@ class ScopedInference:
                                    tool_finished=self.tool_finished())
         try:
             # Only the fixed trusted callback supplies guard URL and credential.
-            response = await self.forward(request)
+            remaining = (self.payload["limits"]["expires_at_ms"] - self.clock_ms()) / 1000
+            async with asyncio.timeout(min(remaining, self.payload["limits"]["inference_timeout_ms"] / 1000)):
+                response = await self.forward(request)
             if not isinstance(response, dict) or len(canonical(response)) > 1024 * 1024:
                 raise RuntimeUnknown("inference_response_bound")
             self.fence.finish(self.payload["operation_id"], ordinal, response)
@@ -192,21 +216,84 @@ async def invoke_pyats(config, arguments, operation_root):
     approved = operation_root / "approved-arguments.json"
     private_write(approved, canonical(arguments))
     source = Path(config["upstream"])
-    if hashlib.sha256(source.read_bytes()).hexdigest() != config["upstream_sha256"]:
+    manifest = config["source_sha256"]
+    if set(manifest) != {"pyats_mcp_server.py", "pyats_testbed_builder.py", "pyats_tasks.py"}:
+        raise RuntimeRefused("pyats_source_closure_required")
+    frozen_source = private_directory(operation_root / "source")
+    for name, digest in manifest.items():
+        raw_source = (source.parent / name).read_bytes()
+        if hashlib.sha256(raw_source).hexdigest() != digest:
+            raise RuntimeRefused("pyats_source_changed")
+        private_write(frozen_source / name, raw_source)
+        os.chmod(frozen_source / name, 0o400)
+    source = frozen_source / "pyats_mcp_server.py"
+    if manifest[source.name] != config["upstream_sha256"]:
         raise RuntimeRefused("pyats_source_changed")
-    script = Path(__file__).resolve().parents[4] / "scripts" / "protected-tool-broker.py"
+    private_write(operation_root / "source-manifest.json", canonical(manifest))
+    os.chmod(frozen_source, 0o500)
+    testbed = Path(config["testbed"])
+    info = testbed.lstat()
+    if (not stat.S_ISREG(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_mode & 0o077 or testbed.absolute() != testbed.resolve()):
+        raise RuntimeRefused("unsafe_private_testbed")
+    raw_testbed = testbed.read_bytes()
+    if hashlib.sha256(raw_testbed).hexdigest() != config["testbed_sha256"]:
+        raise RuntimeRefused("testbed_revision_changed")
+    known_hosts = Path(config["known_hosts"])
+    known_info = known_hosts.lstat()
+    if (not stat.S_ISREG(known_info.st_mode) or known_info.st_uid != os.getuid()
+            or known_info.st_mode & 0o077 or known_hosts.absolute() != known_hosts.resolve()):
+        raise RuntimeRefused("unsafe_known_hosts")
+    host_keys = known_hosts.read_bytes()
+    if hashlib.sha256(host_keys).hexdigest() != config["known_hosts_sha256"]:
+        raise RuntimeRefused("known_hosts_changed")
+    frozen_keys = operation_root / "known_hosts"
+    private_write(frozen_keys, host_keys)
+    os.chmod(frozen_keys, 0o400)
+    import yaml
+    document = yaml.safe_load(raw_testbed)
+    connections = document["devices"][arguments["device_name"]]["connections"]
+    names = set(connections) - {"defaults"}
+    if len(names) != 1:
+        raise RuntimeRefused("minimal_connection_required")
+    connection = connections[next(iter(names))]
+    prefix = "-F /dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile="
+    if connection.get("ssh_options") != prefix + str(known_hosts):
+        raise RuntimeRefused("reviewed_ssh_policy_changed")
+    connection["ssh_options"] = prefix + str(frozen_keys)
+    frozen_testbed = operation_root / "testbed.yaml"
+    private_write(frozen_testbed, yaml.safe_dump(document, sort_keys=False).encode())
+    private_write(operation_root / "inventory-binding.json", canonical({
+        "reviewed_testbed_sha256": config["testbed_sha256"],
+        "materialized_testbed_sha256": hashlib.sha256(frozen_testbed.read_bytes()).hexdigest(),
+        "known_hosts_sha256": config["known_hosts_sha256"]}))
+    scripts = Path(__file__).resolve().parents[4] / "scripts"
+    adapters = config["adapter_sha256"]
+    if set(adapters) != {"protected-tool-broker.py", "lib/protected_pyats.py"}:
+        raise RuntimeRefused("adapter_source_closure_required")
+    adapter_root = private_directory(operation_root / "adapter")
+    private_directory(adapter_root / "lib")
+    for name, expected in adapters.items():
+        raw_adapter = (scripts / name).read_bytes()
+        if hashlib.sha256(raw_adapter).hexdigest() != expected:
+            raise RuntimeRefused("adapter_revision_changed")
+        private_write(adapter_root / name, raw_adapter)
+        os.chmod(adapter_root / name, 0o400)
+    script = adapter_root / "protected-tool-broker.py"
     # Explicit small environment; no inherited provider keys, profiles or proxies.
     environment = {"PATH": os.defpath, "HOME": str(operation_root),
                    "PYTHONUNBUFFERED": "1", "PYTHON_DOTENV_DISABLED": "1",
-                   "PYATS_TESTBED_PATH": config["testbed"], "PYATS_MCP_CONN_CACHE_TTL": "0",
+                   "PYATS_TESTBED_PATH": str(frozen_testbed), "PYATS_MCP_CONN_CACHE_TTL": "0",
                    "PYATS_MCP_ARTIFACTS_DIR": str(operation_root / "pyats")}
     for name in config.get("credential_env", []):
-        if not name.startswith("PYATS_") or name not in os.environ:
+        if name not in {"PYATS_R02_USERNAME", "PYATS_R02_PASSWORD", "PYATS_R02_ENABLE_PASSWORD"} or name not in os.environ:
             raise RuntimeRefused("missing_scoped_device_credential")
         environment[name] = os.environ[name]
     params = StdioServerParameters(command=config["python"], env=environment,
                                    args=[str(script), "--upstream", str(source),
                                          "--upstream-sha256", config["upstream_sha256"],
+                                         "--source-manifest", str(operation_root / "source-manifest.json"),
+                                         "--endpoint-sha256", config["endpoint_sha256"],
                                          "--approved", str(approved),
                                          "--logfile", str(operation_root / "device.log")])
     with (operation_root / "pyats-stderr.log").open("w") as error_log:

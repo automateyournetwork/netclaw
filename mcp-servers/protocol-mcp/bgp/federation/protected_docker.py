@@ -5,6 +5,7 @@ import hashlib
 import hmac
 import ipaddress
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -16,6 +17,26 @@ from urllib.parse import urlparse
 from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
                                 RuntimeUnknown, ScopedInference, canonical,
                                 invoke_pyats, private_directory, private_write)
+
+
+def strict_inference_json(raw):
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            if key in result:
+                raise RuntimeRefused("duplicate_inference_key")
+            result[key] = value
+        return result
+    def finite(value):
+        number = float(value)
+        if not math.isfinite(number):
+            raise RuntimeRefused("nonfinite_inference_number")
+        return number
+    try:
+        return json.loads(raw.decode("utf-8", errors="strict"), object_pairs_hook=pairs,
+                          parse_float=finite, parse_constant=lambda _: (_ for _ in ()).throw(RuntimeRefused("nonfinite_inference_number")))
+    except (ValueError, UnicodeError, RecursionError):
+        raise RuntimeRefused("invalid_inference_json") from None
 
 
 def inspect_agent(container, network, *, image, mounts, uid=None, gid=None, harness="openclaw"):
@@ -188,7 +209,16 @@ class DockerExecutor:
         private_write(operation_root / "agent.env", ("NETCLAW_OPERATION_TOKEN=" + token + "\n").encode())
 
         async def invoke(tool, arguments):
-            return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+            if payload["tool_call"]["inventory_revision"] != self.config["pyats"]["testbed_sha256"]:
+                raise RuntimeRefused("approved_inventory_changed")
+            if payload["tool_call"]["endpoint_sha256"] != self.config["pyats"]["endpoint_sha256"]:
+                raise RuntimeRefused("approved_endpoint_changed")
+            remaining = (payload["limits"]["expires_at_ms"] - int(time.time() * 1000)) / 1000
+            try:
+                async with asyncio.timeout(min(remaining, payload["limits"]["tool_timeout_ms"] / 1000)):
+                    return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+            except TimeoutError as exc:
+                raise RuntimeUnknown("tool_outcome_unknown") from exc
 
         broker = ExactToolBroker(payload, gate, invoke)
         facade = ScopedInference(payload, token, self.fence,
@@ -229,7 +259,7 @@ class DockerExecutor:
                 if not message.get("more_body"):
                     break
             try:
-                body = json.loads(raw)
+                body = strict_inference_json(bytes(raw))
                 response = await facade.invoke("POST", scope["path"],
                       {key.decode(): value.decode() for key, value in headers.items()}, body)
                 if body.get("stream"):
@@ -267,8 +297,8 @@ class DockerExecutor:
                      "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=171",
                      "--env", "NETCLAW_TRUSTED_PORT=" + str(port), self.config["relay_image"])
                 await self.command("network", "connect", "--alias", relay, network, relay)
-                await self.command("start", relay)
                 started.append(relay)
+                await self.command("start", relay)
                 prompt = ("Execute the single owner-approved MCP read exactly once using pyats_run_show_command. "
                           "Use these exact arguments: " + canonical(payload["tool_call"]["arguments"]).decode()
                           + ". Then summarize the returned version evidence. Do not use other tools or retry.")
@@ -289,16 +319,23 @@ class DockerExecutor:
                 evidence = inspect_agent(inspected, net, image=self.config["agent_image"],
                                          mounts={"/run/netclaw": agent_files}, harness=harness)
                 private_write(operation_root / "containment.json", canonical(evidence))
-                await self.command("start", agent)
                 started.append(agent)
-                await self.command("wait", agent, timeout=210)
+                await self.command("start", agent)
+                exit_status = (await self.command("wait", agent, timeout=210)).strip()
                 raw = await self.command("logs", agent)
                 private_write(operation_root / "agent-output.json", raw)
                 if broker.evidence is None:
                     if broker.claimed:
                         raise RuntimeUnknown("tool_claim_without_evidence")
                     raise RuntimeRefused("agent_produced_no_tool_evidence")
-                return {"output": {"tool": broker.evidence, "agent": raw.decode(errors="replace")},
+                # Retain real tool evidence even when the summary failed. A
+                # finished read does not establish successful model completion.
+                answer = self.fence.final_answer(operation_id)
+                if exit_status != b"0":
+                    raise RuntimeRefused("agent_summary_failed")
+                if token in answer or self.guard_token in answer:
+                    raise RuntimeRefused("capability_in_model_output")
+                return {"output": {"tool": broker.evidence, "model_answer": answer},
                         "tool_evidence": broker.evidence,
                         "usage": {"inference_calls": self.fence.count(operation_id),
                                   "tool_calls": 1, "provider_usage": "unavailable"},
@@ -306,12 +343,21 @@ class DockerExecutor:
         finally:
             # No retries or new containers after interruption. Keep named stopped
             # containers, private evidence and claims for inspection/reconciliation.
+            unresolved = []
             for name in reversed(started):
                 try:
                     await self.command("stop", "--time", "3", name, timeout=10)
                 except Exception:
-                    pass
+                    unresolved.append(name)
+            private_write(operation_root / "cleanup.json", canonical({"owned": started, "unresolved": unresolved}))
             server.should_exit = True
             if server_task:
-                await server_task
+                try:
+                    await asyncio.wait_for(server_task, 10)
+                except (TimeoutError, asyncio.CancelledError):
+                    server.force_exit = True
+                    server_task.cancel()
+                    unresolved.append("owned_http_server")
             listener.close()
+            if unresolved:
+                raise RuntimeUnknown("owned_runtime_stop_unconfirmed")
