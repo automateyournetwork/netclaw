@@ -222,8 +222,11 @@ without user controls. Keep technical specs/evidence for maintainers; rollout
 copy is deferred under specs/168-ngrok-transport-contract/deferred-docs/ and absent
 from the public README, setup wizard and general installation guides. Existing
 owner pilot authorization is a bounded exception, not a user deployment recipe.
-Upstream1.18.1 and extension1.5.0 are preserved; no R01 version increment.
-Next roadmap brief is R02 execution parity, expected next available spec169;
+R01 integrated on upstream 1.18.1 without a version increment. Subsequent upstream
+fixes #317/spec169 and #318/spec170 advance source to 1.18.3; extension 1.5.0 is
+unchanged. These maintenance fixes do not release or qualify the cloud roadmap.
+Next roadmap brief is R02 execution parity, expected next available spec 171
+(recheck at kickoff; 169 and 170 are occupied by those upstream fixes);
 it is not started by this integration request. No R02 cloud/device operation is
 authorized here. Keep the original R01 directory name despite the parallel
 upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
