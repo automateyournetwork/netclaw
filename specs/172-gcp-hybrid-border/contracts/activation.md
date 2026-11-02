@@ -41,3 +41,18 @@ Source/runtime directories are root-owned and non-writable by the service on
 the pinned GCP image. This does not qualify arbitrary host Python installations.
 Full profile drift, including the Border authority binding, latches the member
 selector until restart, including the final reread after effect authorization.
+
+Fresh member enrollment is a separate trusted-native preparation step. It MUST
+construct the service in protected mode from the outset, with no executor,
+model/gateway/runtime start, legacy execution or public listener. The explicit
+approved Border binding and strict dial registration are verified before any
+enrollment token is sent; the attested hub key must match that binding. After
+one enrollment, close the channel, retain the actual generation and finish the
+private profile. Ordinary member start then validates the complete profile.
+
+No temporary executable profile and no protected-mode-off bootstrap are allowed.
+The enrollment-only API is not exposed over HUD/MCP/peer routes. A private durable
+one-use attempt record precedes network admission; uncertain outcomes are not
+replayed. Recovery inspects retained local/Border evidence and may finish profile
+preparation without another enrollment. Reconnect uses the existing key/generation.
+This adds no permission for a model/tool/provider/device effect during onboarding.

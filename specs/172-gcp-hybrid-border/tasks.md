@@ -33,7 +33,7 @@ and external network observations; no provider/device authority on Border.
 - [x] T013 [P] [US2] Implement dedicated protected production entrypoint and exact asset closure in ui/netclaw-visual/protected-server.mjs and src/hud-server/.
 - [x] T014 [US2] Test authority/Origin/proxy/CSRF/cookie/revocation/route/asset refusal and production browser CSP in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
 - [x] T015 [P] [US2] Implement strict provider-neutral role validator/launcher in scripts/lib/protected_role.py and scripts/protected-role.py.
-- [x] T016 [US2] Enforce role-specific protected configuration and catalog hooks in mcp-servers/protocol-mcp/bgp/federation/protected_service.py.
+- [ ] T016 [US2] Enforce role-specific configuration/catalog hooks in protected_service.py and a strict enrollment-only native API/CLI in service.py and scripts/protected-enroll.py; test no executor/legacy bootstrap and durable no-replay admission.
 - [x] T017 [US2] Add verified control-only posture and dormant private eN2N policy in existing federation production/listener paths with tests.
 - [ ] T018 [US2] Render confined non-root federation/HUD/Caddy system units and startup secret projection in labs/cloud/gcp/r03/.
 - [x] T019 [US2] Test role/env/path/source tampering, no ambient-home fallback and service rendering in tests/n2n/test_protected_role_172.py.
