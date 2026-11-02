@@ -37,6 +37,8 @@ def test_members_cannot_run_agent(registry_data):
 
 def test_two_owned_processes_and_foreign_pid_refusal(tmp_path, registry_data, monkeypatch):
     # This test qualifies process ownership only, not a live daemon or endpoint.
+    # The full config path must remain visible even on a narrow Linux terminal.
+    monkeypatch.setenv('COLUMNS', '80')
     monkeypatch.setattr(control.Controller, 'verify_border_ready', lambda self: None)
     fake = tmp_path/'fake-ngrok'
     fake.write_text('#!/usr/bin/env python3\nimport time\nwhile True: time.sleep(.1)\n')

@@ -77,7 +77,9 @@ def _process(pid):
     if not state or state.startswith('Z'):
         return None
     started = subprocess.run(['ps','-p',str(pid),'-o','lstart='], capture_output=True, text=True).stdout.strip()
-    command = subprocess.run(['ps','-p',str(pid),'-o','command='], capture_output=True, text=True).stdout.strip()
+    # Linux ps otherwise truncates argv to the display width, hiding the owned
+    # config path. Both macOS and Linux accept -ww for unlimited output width.
+    command = subprocess.run(['ps','-ww','-p',str(pid),'-o','command='], capture_output=True, text=True).stdout.strip()
     return {'started':started, 'command':command}
 
 

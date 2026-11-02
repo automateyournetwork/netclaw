@@ -63,6 +63,12 @@ protocol pins and explicitly installs/checks its asyncio test plugin and TLS
 imports. No dependency or refusal check was disabled. Failed command invocations
 and pre-regeneration receipts remain private alongside successful checks.
 
+Hosted Linux CI also exposed `ps` truncating the owned process command at the
+display width. An isolated Linux reproduction confirmed the missing config path.
+The controller now requests unlimited command width on macOS/Linux; the actual
+two-process lifecycle test forces an 80-column display and retains its refusal
+to signal a foreign PID. No existing runtime was changed for this repair.
+
 Private integration receipts: ~/.local/share/netclaw/spec168-main-integration-20261102/.
 The maintainer summary is a shareable draft, not an announcement sent to others.
 Hosted CI and merge outcomes are retained in that directory and the PR checks.
