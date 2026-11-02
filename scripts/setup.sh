@@ -832,8 +832,8 @@ echo ""
 # ───────────────────────────────────────────
 
 echo -e "${BOLD}Protocol Peering (BGP/OSPF) & NetClaw Mesh${NC}"
-echo "  Participate in BGP/OSPF as a real routing peer, and mesh with other"
-echo "  NetClaw instances worldwide over BGP via ngrok."
+echo "  Configure private BGP/OSPF routing and existing NetClaw peering."
+echo "  Keep routing listeners private; transport setup requires explicit review."
 echo ""
 if want "peering protocol" "Configure protocol peering now?"; then
     bash "$SCRIPT_DIR/peering-setup.sh"

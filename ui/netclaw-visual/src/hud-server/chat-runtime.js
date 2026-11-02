@@ -35,9 +35,13 @@ export async function gatewayCall(method, params, port, configPath) {
       try{await access(candidate,constants.X_OK);executable=candidate;break locate;}catch{}
     }
   }
+  // Small cloud hosts can spend longer starting the native CLI. Keep the
+  // operator override bounded and limited to confirmed settings mutations.
+  const requestedTimeout = Number(process.env.NETCLAW_GATEWAY_SETTINGS_TIMEOUT_MS);
+  const timeout = method === 'sessions.patch' && Number.isInteger(requestedTimeout) && requestedTimeout >= 20000 && requestedTimeout <= 120000 ? requestedTimeout : 20000;
   const { stdout } = await execute(executable, ['gateway', 'call', method, '--params', JSON.stringify(params),
     '--timeout', '10000', '--json'],
-  { env: gatewayEnvironment(config, port, configPath), timeout: 20000, maxBuffer: 4 * 1024 * 1024, windowsHide: true });
+  { env: gatewayEnvironment(config, port, configPath), timeout, maxBuffer: 4 * 1024 * 1024, windowsHide: true });
   return JSON.parse(stdout.slice(stdout.indexOf('{')));
 }
 export function createChatRuntime(call = gatewayCall) {

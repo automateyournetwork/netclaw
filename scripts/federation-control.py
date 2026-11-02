@@ -39,8 +39,16 @@ def api_url(runtime):
 
 
 def status(runtime):
-    with urllib.request.urlopen(api_url(runtime)+'/status',timeout=2) as response:
-        result=json.loads(response.read(65536))
+    env=environment(runtime)
+    if env.get('N2N_ENDPOINT_REGISTRY') and env.get('N2N_ROLE')=='member':
+        result=read_private(runtime.state/'member-daemon-status.json')
+        owner=read_private(runtime.state/'daemon.json')
+        if (result.get('pid')!=owner.get('pid') or owner.get('installationId')!=runtime.installation
+                or stamp(owner['pid'])!=owner.get('started') or time.time()-result.get('observed_at',0)>10):
+            raise ValueError('strict member daemon status is stale or foreign')
+    else:
+        with urllib.request.urlopen(api_url(runtime)+'/status',timeout=2) as response:
+            result=json.loads(response.read(65536))
     if not runtime.installation or result.get('installation_id')!=runtime.installation or result.get('harness_type')!=runtime.kind:
         raise ValueError('foreign or legacy daemon: selected installation identity does not match')
     return result

@@ -1,0 +1,25 @@
+[Unit]
+Description=NetClaw R01 cloud Border Sonnet gateway
+After=network-online.target netclaw-r01-federation.service
+Wants=network-online.target
+[Service]
+Type=simple
+User=netclaw-r01
+Group=netclaw-r01
+UMask=0077
+WorkingDirectory=/var/lib/netclaw-r01/claw/workspace
+EnvironmentFile=/var/lib/netclaw-r01/claw/.env
+Environment=HOME=/var/lib/netclaw-r01/claw
+Environment=PATH=/opt/netclaw-r01/node/bin:/var/lib/netclaw-r01/claw/.setup/prefix/bin:/opt/netclaw-r01/venv/bin:/usr/bin:/bin
+Environment=NODE_OPTIONS=--max-old-space-size=640
+ExecStart=/var/lib/netclaw-r01/claw/.setup/prefix/bin/openclaw gateway run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netclaw-r01
+[Install]
+WantedBy=multi-user.target

@@ -10,3 +10,7 @@ qrcode>=7.4
 httpx>=0.27
 PyYAML>=6.0
 h2>=4.1
+# R01: public TLS 1.3 exporter and independent SAN verification. Isolated runtime.
+pyOpenSSL==26.4.0
+cryptography==50.0.2
+service-identity==26.1.0

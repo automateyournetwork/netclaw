@@ -153,6 +153,9 @@ class FederationChannel:
         if self._closed:
             return
         self._closed = True
+        expiry = getattr(self, '_read_task_expiry', None)
+        if expiry and expiry is not asyncio.current_task():
+            expiry.cancel()
         for t in (self._read_task, self._hb_task):
             if t and t is not asyncio.current_task():
                 t.cancel()

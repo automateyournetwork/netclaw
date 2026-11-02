@@ -30,7 +30,7 @@ _ERR_NOT_TRUSTED = -32023
 _ERR_NOT_A_BORDER = -32024
 
 # Methods allowed before a member is trusted (the handshake itself).
-_PRE_TRUST_METHODS = (IN2N_METHOD_HELLO, IN2N_METHOD_ENROLL)
+_PRE_TRUST_METHODS = (IN2N_METHOD_HELLO, IN2N_METHOD_ENROLL, 'in2n/attest')
 
 
 class InternalChannel(FederationChannel):
@@ -53,8 +53,41 @@ class InternalChannel(FederationChannel):
         self.peer_identity = member_id or "<unauthenticated-member>"
         self.is_border_side = is_border_side
         self.trusted = False          # set True once the member authenticates
+        self.strict = False
+        self.auth_attempted = False
+        self.attest_attempted = False
+        self.member_challenge = None
+        self.authority_current = None
+        self.on_security_refusal = None
+        self._refusal_recorded = False
+        self.admission_deadline = None
         self.nonce = nonce            # Border-issued challenge (border side)
         self.logger = logging.getLogger(f"n2n.in2n[{self.peer_identity}]")
+
+    async def refuse(self, reason):
+        """Record one fixed reason per channel, then close even if audit fails."""
+        if reason not in ('authentication_refused', 'current_authority_refused', 'admission_timeout'):
+            raise ValueError('invalid strict refusal reason')
+        try:
+            if not self._refusal_recorded:
+                self._refusal_recorded = True
+                if self.on_security_refusal:
+                    self.on_security_refusal(reason)
+        finally:
+            await self.close()
+
+    async def _check_current_authority(self):
+        if self.strict and self.trusted and self.authority_current and not self.authority_current():
+            await self.refuse('current_authority_refused')
+            raise RpcError(_ERR_NOT_TRUSTED, 'current authority refused')
+
+    async def call(self, method: str, params: dict, timeout: float = 30.0) -> dict:
+        await self._check_current_authority()
+        return await super().call(method, params, timeout=timeout)
+
+    async def notify(self, method: str, params: dict):
+        await self._check_current_authority()
+        await super().notify(method, params)
 
     async def _handle_request(self, msg: dict):
         """iN2N dispatch: only the handshake methods are allowed before the
@@ -62,6 +95,28 @@ class InternalChannel(FederationChannel):
         method = msg.get("method")
         req_id = msg.get("id")
         params = msg.get("params") or {}
+
+        if self.strict:
+            denied = (self.trusted and method in _PRE_TRUST_METHODS)
+            reason = 'authentication_refused'
+            if self.trusted and self.authority_current and not self.authority_current():
+                denied = True
+                reason = 'current_authority_refused'
+            if method == 'in2n/attest':
+                denied = denied or self.attest_attempted or self.auth_attempted
+                self.attest_attempted = True
+            elif method in (IN2N_METHOD_HELLO, IN2N_METHOD_ENROLL):
+                denied = denied or self.auth_attempted or self.member_challenge is None
+                self.auth_attempted = True
+                denied = denied or params.get('binding_profile') != 'in2n-tls-exporter-v1'
+                denied = denied or params.get('member_nonce') != (self.member_challenge or b'').hex()
+            if denied:
+                try:
+                    if req_id is not None:
+                        await self._send_frames(self._err(req_id, _ERR_NOT_TRUSTED, 'authentication or current authority refused'))
+                finally:
+                    await self.refuse(reason)
+                return
 
         if not self.trusted and method not in _PRE_TRUST_METHODS:
             if req_id is not None:
@@ -76,15 +131,33 @@ class InternalChannel(FederationChannel):
             return
         try:
             result = await handler(self, params)
+            if self.trusted and self.admission_deadline:
+                self.admission_deadline.cancel()
             if req_id is not None:
                 await self._send_frames({"jsonrpc": "2.0", "id": req_id, "result": result or {}})
         except RpcError as e:
-            if req_id is not None:
-                await self._send_frames(self._err(req_id, e.code, e.message))
+            try:
+                if req_id is not None:
+                    await self._send_frames(self._err(req_id, e.code, e.message))
+            finally:
+                if self.strict and method in _PRE_TRUST_METHODS:
+                    await self.refuse('authentication_refused')
         except Exception as e:
-            self.logger.error("iN2N handler %s failed: %s", method, e)
-            if req_id is not None:
-                await self._send_frames(self._err(req_id, -32000, str(e)))
+            if self.strict:
+                self.logger.error('strict iN2N handler failed')
+            else:
+                self.logger.error("iN2N handler %s failed: %s", method, e)
+            try:
+                if req_id is not None:
+                    await self._send_frames(self._err(req_id, -32000, 'strict admission failed' if self.strict else str(e)))
+            finally:
+                if self.strict and method in _PRE_TRUST_METHODS:
+                    await self.refuse('authentication_refused')
+
+    async def close(self):
+        if self.admission_deadline and self.admission_deadline is not asyncio.current_task():
+            self.admission_deadline.cancel()
+        await super().close()
 
 
 # ── transport preamble helpers (byte-level, before the JSON-RPC channel) ──

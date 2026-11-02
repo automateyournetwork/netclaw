@@ -43,3 +43,11 @@ test('production summary requires fresh complete control evidence; LAB bypass re
   assert.equal(securitySummary({},posture,false).enforced,false);
   assert.match(securitySummary({}, {...posture,mode:'unknown'},true).label,/unknown/);
 });
+
+test('connection observation is explicit and never invents a heartbeat for offline members', () => {
+  const now = '2026-11-01T21:00:00Z';
+  const rows = entities({ generatedAt: now, members: [{ member_id: 'risk/mac', live: true }, { member_id: 'risk/offline', live: false }], peers: [{ identity: 'live-peer', channel_state: 'up', last_seen: 0 }, { identity: 'old-peer', state: 'severed', channel_state: 'unknown' }] });
+  assert.equal(rows[0].seen, now); assert.equal(rows[0].seenKind, 'connection');
+  assert.equal(rows[1].seen, null); assert.equal(rows[1].seenKind, 'unknown');
+  assert.equal(rows[2].seen, now); assert.equal(rows[3].status, 'severed');
+});

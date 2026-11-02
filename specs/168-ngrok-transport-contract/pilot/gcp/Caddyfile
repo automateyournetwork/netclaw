@@ -1,0 +1,22 @@
+{
+	admin off
+	persist_config off
+	default_bind 10.168.0.2
+	auto_https disable_redirects
+	servers {
+		protocols h1 h2
+	}
+}
+
+http://r01-gcp-montreal.lobsternet.automateyournetwork.com {
+	redir https://r01-gcp-montreal.lobsternet.automateyournetwork.com{uri} 308
+}
+
+https://r01-gcp-montreal.lobsternet.automateyournetwork.com {
+	tls {
+		issuer acme {
+			dir https://acme-v02.api.letsencrypt.org/directory
+		}
+	}
+	reverse_proxy 127.0.0.1:13002
+}

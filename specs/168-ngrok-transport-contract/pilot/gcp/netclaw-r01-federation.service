@@ -1,0 +1,26 @@
+[Unit]
+Description=NetClaw R01 isolated cloud Border federation
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=netclaw-r01
+Group=netclaw-r01
+UMask=0077
+WorkingDirectory=/opt/netclaw-r01/source
+EnvironmentFile=/var/lib/netclaw-r01/claw/.env
+Environment=PYTHONUNBUFFERED=1
+Environment=PATH=/opt/netclaw-r01/venv/bin:/opt/netclaw-r01/node/bin:/usr/bin:/bin
+ExecStart=/opt/netclaw-r01/venv/bin/python /opt/netclaw-r01/source/scripts/federation-control.py run
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netclaw-r01
+
+[Install]
+WantedBy=multi-user.target

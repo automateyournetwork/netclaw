@@ -147,7 +147,8 @@ def _channel_security(service) -> dict:
                 "pq_mode": getattr(service, "pq_mode", "opportunistic"),
                 "pq_available": getattr(service, "pq_available", False),
                 "ech_available": _tls.ech_available(),
-                "channels_kex": channels_kex}
+                "channels_kex": channels_kex,
+                "endpoint_registry": service.endpoint_status() if hasattr(service, 'endpoint_status') else None}
     except Exception:
         return {}
 

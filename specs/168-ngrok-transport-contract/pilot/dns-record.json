@@ -1,0 +1,7 @@
+{
+  "zone": "automateyournetwork.com",
+  "name": "r01-gcp-montreal.lobsternet",
+  "type": "A",
+  "data": "34.95.60.45",
+  "ttl": 600
+}

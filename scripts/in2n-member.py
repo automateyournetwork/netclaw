@@ -50,7 +50,9 @@ async def _dial_loop(svc, host, port, token):
         ch = svc.border_channel
         if ch is None or getattr(ch, "_closed", True):
             try:
-                await svc.dial_border(host, port, enrollment_token=used_token)
+                from bgp.federation.internal_security import dial_options
+                dial_host, dial_port, options = dial_options(svc, host, port)
+                await svc.dial_border(dial_host, dial_port, enrollment_token=used_token, **options)
                 used_token = ""          # token is single-use / spent after enroll
                 backoff = 5
             except Exception as e:
@@ -130,6 +132,11 @@ async def _run(idle_exit):
         svc.member_scope = set()
 
     endpoint = os.environ.get("N2N_BORDER_ENDPOINT", "")
+    if os.environ.get('N2N_ENDPOINT_REGISTRY'):
+        from bgp.federation.endpoint_registry import configured
+        runtime.fence(initialize=True)
+        entry = configured(runtime=runtime).entry(os.environ.get('N2N_BORDER_REGISTRY_ID'), direction='dial', service='in2n')
+        endpoint = entry['routing_host'] + ':' + str(entry['routing_port'])
     if ":" not in endpoint:
         log.error("N2N_BORDER_ENDPOINT (host:port) is required"); return 2
     host, _, port = endpoint.rpartition(":")

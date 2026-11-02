@@ -4,6 +4,7 @@ Called under the setup writer locks. Tokens exist only in this process; live
 channel authentication and execution are separate verification evidence.
 """
 import hashlib
+import importlib.util
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,26 @@ import sqlite3
 import sys
 from setup_schema import loads
 from setup_state import Conflict,guarded_read
+
+
+def materialize_remote_transport(runtime, bundle, registry_path, *, expected_revision):
+    """Explicit reviewed public transport import; no token/key creation or dial.
+
+    Existing local setup enrollment remains unchanged. R03 owns the surrounding
+    remote installation workflow. An interrupted import is inspected, never
+    silently converted into a replacement identity or enrollment token.
+    """
+    from bgp.federation.endpoint_registry import Registry, import_bundle
+    runtime.fence()
+    registry = Registry(registry_path, runtime.installation)
+    result = import_bundle(registry, bundle, expected_revision=expected_revision)
+    source = Path(__file__).resolve().parents[1]/'write-env.py'
+    spec = importlib.util.spec_from_file_location('_remote_enrollment_env', source)
+    writer = importlib.util.module_from_spec(spec); spec.loader.exec_module(writer)
+    writer.update(runtime.env_file, 'N2N_ENDPOINT_REGISTRY', str(registry.path.absolute()))
+    if bundle['endpoint']['service'] == 'in2n':
+        writer.update(runtime.env_file, 'N2N_BORDER_REGISTRY_ID', bundle['endpoint']['id'])
+    return result
 
 
 def binding(record):

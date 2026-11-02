@@ -85,6 +85,15 @@ def _suffix():
 def _mesh_name():return 'netclaw-mesh'+_suffix()+'.service'
 
 
+def cmd_ngrok_unit(args):
+    """Render only: enabling public ingress remains an explicit operator action."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location('_owned_ngrok_unit', Path(REPO)/'scripts/ngrok-control.py')
+    module = importlib.util.module_from_spec(spec); spec.loader.exec_module(module)
+    print(module.Controller(_runtime()).unit(), end='')
+    return 0
+
+
 def _quote(value):return json.dumps(str(value).replace('%','%%'))
 
 
@@ -696,6 +705,7 @@ def cmd_coldstart(args) -> int:
 def main() -> int:
     ap = argparse.ArgumentParser(description="iN2N durable-runtime service generator")
     sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser('ngrok-unit', help='render selected Border ngrok unit; does not install or start it')
     parsers = [sub.add_parser(name) for name in ("generate", "enable", "status", "disable")]
     parsers[3].add_argument("member", help="member id (<risk>/<name>) or bare name")
     for p in parsers:
@@ -712,7 +722,7 @@ def main() -> int:
               "for the privileged steps.", file=sys.stderr)
         return 1
     return {"generate": cmd_generate, "enable": cmd_enable, "status": cmd_status,
-            "disable": cmd_disable, "coldstart": cmd_coldstart}[args.cmd](args)
+            "disable": cmd_disable, "coldstart": cmd_coldstart, "ngrok-unit": cmd_ngrok_unit}[args.cmd](args)
 
 
 if __name__ == "__main__":

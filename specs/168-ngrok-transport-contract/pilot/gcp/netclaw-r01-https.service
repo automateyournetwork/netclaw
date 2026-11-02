@@ -1,0 +1,30 @@
+[Unit]
+Description=NetClaw R01 lab HUD HTTPS and ACME renewal
+After=network-online.target netclaw-r01-public-hud.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=netclaw-r01-web
+Group=netclaw-r01-web
+UMask=0077
+Environment=XDG_DATA_HOME=/var/lib/netclaw-r01-web/data
+Environment=XDG_CONFIG_HOME=/var/lib/netclaw-r01-web/config
+WorkingDirectory=/opt/netclaw-r01/public-hud
+ExecStart=/opt/netclaw-r01/public-hud/caddy run --config /opt/netclaw-r01/public-hud/Caddyfile --adapter caddyfile
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netclaw-r01-web
+InaccessiblePaths=/var/lib/netclaw-r01/claw
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+LimitNOFILE=8192
+
+[Install]
+WantedBy=multi-user.target

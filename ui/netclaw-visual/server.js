@@ -25,6 +25,7 @@ import { mountDocumentation } from './src/hud-server/documentation.js';
 import { readUsage, runtimeInventory } from './src/hud-server/tokenomics.js';
 import { configurationInventory } from './src/hud-server/configuration.js';
 import { ragSearchHandler } from './src/hud-server/rag-search.js';
+import { createRagQueue } from './src/hud-server/rag-queue.js';
 import { assessmentAudit } from './src/hud-server/audit.js';
 import { Bindings, cookieFrom, newMessageRef, readTranscript, assessmentProofs, attachInfluences, displayBorderText } from './src/hud-server/bindings.js';
 import { mountAssessmentRoutes } from './src/hud-server/assessment-routes.js';
@@ -911,6 +912,7 @@ async function fetchN2NState() {
     } catch { /* edge push audit optional (pre-066 daemon) */ }
 
     return { available: true, identity: status.identity, peers, approvals,
+      endpointRegistry: status.endpoint_registry || null,
              risk, members, advisors, posture, gait, replicationJobs, edgeNodes, recentPushes,
              generatedAt: new Date().toISOString() };
   } catch {
@@ -1906,7 +1908,7 @@ const RAG_MAX_DOC_MB = Number(process.env.RAG_MAX_DOC_MB || '100');
 const RAG_SUPPORTED_EXT = ['.pdf', '.md', '.markdown', '.html', '.htm', '.txt',
   '.docx', '.xlsx', '.pptx', '.vsdx', '.doc', '.xls', '.ppt', '.vsd'];
 
-function callRagTool(tool, args = {}, timeoutSec = 300) {
+const callRagTool = createRagQueue(function callRagTool(tool, args = {}, timeoutSec = 300) {
   return new Promise((resolve, reject) => {
     execFile(
       'python3',
@@ -1931,7 +1933,7 @@ function callRagTool(tool, args = {}, timeoutSec = 300) {
       }
     );
   });
-}
+});
 
 // Progress poller: while any ingest is non-terminal, poll rag_list and
 // broadcast per-document status transitions over /ws (FR-062).

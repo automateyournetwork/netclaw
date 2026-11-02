@@ -436,7 +436,7 @@
       "peering",
       "Labs & Simulation",
       "Protocol Peering Wizard",
-      "Configure BGP/OSPF participation + NetClaw Mesh (interactive)"
+      "Configure private routing and explicitly reviewed federation transport"
     ],
     [
       "n2n",

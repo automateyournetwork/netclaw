@@ -1779,7 +1779,7 @@ if [ -d "$PROTOCOL_MCP_DIR" ]; then
     log_info "Installing Protocol MCP dependencies..."
     if [ -f "$PROTOCOL_MCP_DIR/requirements.txt" ]; then
         netclaw_pip_install -r "$PROTOCOL_MCP_DIR/requirements.txt" || {
-            log_warn "Full Protocol MCP install failed — installing core deps..."
+            log_warn "Full Protocol MCP install failed — installing pinned core deps..."
             # Spec 105: websockets/qrcode/httpx/h2 belong in this fallback, not
             # just in requirements.txt. They are the mesh daemon's own runtime
             # deps (NCFED edge listener + enrollment QR + push), so omitting them
@@ -1787,8 +1787,8 @@ if [ -d "$PROTOCOL_MCP_DIR" ]; then
             # bind the mobile edge listener — diagnosed as a role problem.
             #
             # Spec 141: fallback must use the same modern framework pins.
-            netclaw_pip_install scapy networkx 'fastmcp==4.0.11' 'mcp==2.3.0' 'websockets>=12,<17' qrcode httpx h2 || \
-                log_warn "Protocol MCP core deps install failed"
+            netclaw_pip_install scapy networkx 'fastmcp==4.0.11' 'mcp==2.3.0' 'websockets>=12,<17' qrcode httpx h2 'pyOpenSSL==26.4.0' 'cryptography==50.0.2' 'service-identity==26.1.0' || \
+                { log_warn "Protocol MCP dependencies failed; transport is not ready"; return 1; }
         }
     fi
     log_info "Protocol MCP installed (stdio transport via FastMCP)"
@@ -1803,8 +1803,8 @@ echo ""
 # install loop is never blocked by prompts. Install now, configure later.
 component_install_peering() {
 log_step "Protocol Peering selected..."
-echo "  NetClaw can participate in BGP/OSPF as a real routing peer, and mesh"
-echo "  with other NetClaw instances worldwide over BGP via ngrok."
+echo "  Keep BGP/OSPF routing private. Federation uses distinct iN2N/NCFED services."
+echo "  Configure only explicitly reviewed transport endpoints."
 
 log_info "Nothing to install — peering is configured, not installed."
 log_info "Configure it after the install finishes (setup.sh offers it), or anytime with:"
@@ -1819,8 +1819,9 @@ echo ""
 component_install_n2n() {
 log_step "Installing N2N Federation..."
 echo "  Peer NetClaws: exchange capability inventories, invoke each other's"
-echo "  allowlisted tools/skills, and chat claw-to-claw — over the existing BGP mesh."
-echo "  New protocol: NCFED (JSON-RPC 2.0, MCP + A2A semantics). Requires the mesh."
+echo "  allowlisted tools/skills, and chat claw-to-claw over NCFED."
+echo "  Members dial their Border over iN2N; external Borders use NCFED/eN2N."
+echo "  Transport reachability does not grant identity or execution authority."
 
 N2N_MCP_DIR="$MCP_DIR/n2n-mcp"
 if [ -d "$N2N_MCP_DIR" ]; then
@@ -1849,7 +1850,7 @@ PROTOCOL_MCP_REQS="$MCP_DIR/protocol-mcp/requirements.txt"
 if [ -f "$PROTOCOL_MCP_REQS" ]; then
     log_info "Ensuring mesh daemon (protocol-mcp) dependencies — N2N runs on it..."
     netclaw_pip_install -r "$PROTOCOL_MCP_REQS" || \
-        netclaw_pip_install websockets qrcode httpx h2 || \
+        netclaw_pip_install 'websockets>=12,<17' qrcode httpx h2 'pyOpenSSL==26.4.0' 'cryptography==50.0.2' 'service-identity==26.1.0' || \
         { log_warn "mesh daemon deps install failed — the NCFED edge listener will not bind"; return 1; }
 fi
 

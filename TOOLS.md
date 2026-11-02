@@ -16,6 +16,49 @@ Devices are defined in `testbed/testbed.yaml`. Update that file with your SSH-ac
 
 ## Platform Credentials
 
+Strict remote federation uses the selected installation's private
+`N2N_ENDPOINT_REGISTRY`; members select `N2N_BORDER_REGISTRY_ID`. Only a Border
+using optional ngrok loads `NGROK_AUTHTOKEN`, which is transport-only. Account API keys used for
+inventory are separate operator credentials and are not inherited by the agent.
+See [ngrok transport operations](specs/168-ngrok-transport-contract/deferred-docs/NGROK-TRANSPORT.md). Reserved addresses,
+account limits, DNS ownership and certificate issuance must be verified for each
+operator; repository examples confer no entitlement or access.
+The installed ngrok3.36.1 config checker rejected `tcp://` upstream origins;
+the renderer uses bare loopback host:port under reserved TCP endpoints. Validate
+the rendered config with the actual installed agent before activation.
+Spec168 account check on2026-11-01 at19:04:54 UTC succeeded using root `.env`
+`NGROK_API_KEY`: complete inventory found zero reserved TCP addresses and one
+existing ephemeral endpoint, unchanged. The owner confirmed the Free plan,
+which does not support reserved TCP addresses. The owner subsequently selected
+direct cloud TCP, so no paid ngrok plan is needed for this pilot. Optional ngrok
+live qualification still needs suitable entitlement; API access alone does not
+qualify transport. See [deployment choices](specs/168-ngrok-transport-contract/deferred-docs/DEPLOYMENT-TOPOLOGIES.md).
+See the [live runbook](specs/168-ngrok-transport-contract/live-runbook.md).
+Root `NGROK` is the separate agent authtoken (HTTP400/ERR_NGROK_206 when earlier
+tested as an API key). An earlier `NGROK_*` name scan missed this exact spelling;
+never infer credential absence from an assumed naming prefix. The credentials
+list omits token values, so it did not establish that the two credentials belong
+to the same account. No agent authentication or tunnel activation was performed.
+Fresh local/GCP pilot preparation is in Spec168 `fresh-pilot.md`.
+
+Spec168 current GCP pilot (2026-11-01): project netclaw-506315, Montréal VM
+netclaw-r01-20261101, private10.168.0.2/public34.95.60.45. Twelve managed resources;
+actual IP relocation/recovery and unchanged on-prem enrollment key verified.
+Public full HUD: https://r01-gcp-montreal.lobsternet.automateyournetwork.com/
+GoDaddy A/TTL600 and Let's Encrypt HTTPS live; Caddy renews from private persistent
+state. Owner fully delegated R01 activation/DNS/HTTPS/relocation, then explicitly
+requested full Chat/Canvas/RAG and own Anthropic Sonnet. Isolated pinned OpenClaw
+supports Sonnet4.6;5.5 rejected its thinking format, preserved as a failed attempt.
+On-prem member is a fresh Mac subnet-calculator, not the owner's pyATS claw.
+External transport probe usesAS64519 (cloudAS64520); oldAS64521 is retired.
+Browser Chat and actual member tool correlation, RAG indexing/cited retrieval and
+Canvas answer all passed. R01 is40/40; details in Spec168 resume/verification.
+HUD RAG helper calls are serialized; independent clients still require coordination.
+All private state/process ownership/evidence: ~/.local/share/netclaw/spec168-direct-cloud-pivot-20261101/.
+IAP remains for private administration. Users/SSO/RBAC remain R15–R17; stop afterR01.
+
+
+
 Optional NetConverter settings belong to the selected installation: mode,
 account reference, separate API key, private workspace and operator-installed
 licensed executable. See [NetConverter operations](docs/NETCONVERTER.md).
