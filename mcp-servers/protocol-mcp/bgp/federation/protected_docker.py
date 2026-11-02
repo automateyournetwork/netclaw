@@ -402,6 +402,11 @@ class DockerExecutor:
             raise RuntimeRefused("guard_configuration_changed")
         home = private_directory(operation_root / "guard")
         private_write(home / "config.yaml", raw_config)
+        # Docker Desktop needs the nested read-only bind's mountpoint to exist
+        # in the writable parent bind before creating a read-only rootfs. This
+        # empty owned file never receives or copies the provider credential.
+        mountpoint = os.open(home / "guard.env", os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        os.close(mountpoint)
         await self.command("create", "--name", name, "--network", "bridge", "--read-only",
              "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
              "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=171",
