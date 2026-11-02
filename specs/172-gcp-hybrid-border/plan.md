@@ -44,8 +44,8 @@ clarification; cost/delegation are explicit execution dependencies.
 
 - `specs/172-gcp-hybrid-border/`: specification, plan, research, data model,
   contracts, tasks, private-packet references, verification and resume.
-- `mcp-servers/protocol-mcp/bgp/federation/protected_docker.py`: immutable profile
-  selector/factory; `protected_service.py`: catalog and role validation.
+- `mcp-servers/protocol-mcp/bgp/federation/protected_selection.py`: immutable profile
+  selector; `protected_runtime.py`: factory; `protected_service.py`: catalog and role validation.
 - `scripts/lib/protected_role.py`, `scripts/protected-role.py`: provider-neutral
   explicit activation contract validation/rendering and controlled launch.
 - `mcp-servers/protocol-mcp/bgp/federation/posture.py`: role-aware posture if

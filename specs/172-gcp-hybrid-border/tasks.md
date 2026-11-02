@@ -9,18 +9,18 @@ unit fixtures do not satisfy live tasks. No release/version/public rollout.
 - [x] T001 Preserve accepted R02 and R01 baselines; create Spec172 branch and GAIT session in specs/172-gcp-hybrid-border/resume.md.
 - [x] T002 Complete spec, research, plan and contracts in specs/172-gcp-hybrid-border/.
 - [x] T003 Independently analyze requirement/task/constitution coverage and freeze contracts in specs/172-gcp-hybrid-border/analysis.md.
-- [ ] T004 Create separate implementation worktrees, verify ignores and record pass3 scope in specs/172-gcp-hybrid-border/resume.md.
+- [x] T004 Create separate implementation worktrees, verify ignores and record pass3 scope in specs/172-gcp-hybrid-border/resume.md.
 
 ## Phase2 — US1 four independent device reads
 
 Independent test: four actual approvals, sole-command transcripts, parsed versions,
 signed results and durable ACKs; fixtures first establish selection isolation.
 
-- [ ] T005 [P] [US1] Implement immutable profile selector and factory dispatch in mcp-servers/protocol-mcp/bgp/federation/protected_selection.py and protected_runtime.py.
-- [ ] T006 [US1] Validate catalog identity uniqueness and exact selector coverage in protected_contract.py and protected_service.py.
-- [ ] T007 [US1] Test concurrent profile isolation, substitutions, malformed/edited config and preserved single-runtime behavior in tests/n2n/test_protected_selection_172.py.
-- [ ] T008 [P] [US1] Add bounded retained operation references, ID-only recovery and independent result presentation in ui/netclaw-visual/src/dashboard/ApprovedOperationsView.jsx and shared helpers.
-- [ ] T009 [US1] Test four-device selection/recovery/unknown states and verified parsed projection in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
+- [x] T005 [P] [US1] Implement immutable profile selector and factory dispatch in mcp-servers/protocol-mcp/bgp/federation/protected_selection.py and protected_runtime.py.
+- [x] T006 [US1] Validate catalog identity uniqueness and exact selector coverage in protected_contract.py and protected_service.py.
+- [x] T007 [US1] Test concurrent profile isolation, substitutions, malformed/edited config and preserved single-runtime behavior in tests/n2n/test_protected_selection_172.py.
+- [x] T008 [P] [US1] Add bounded retained operation references, ID-only recovery and independent result presentation in ui/netclaw-visual/src/dashboard/ApprovedOperationsView.jsx and shared helpers.
+- [x] T009 [US1] Test four-device selection/recovery/unknown states and verified parsed projection in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
 - [ ] T010 [US1] Qualify exact CML host-key provenance and fresh one-device profiles without changing original inventories; record private hashes in specs/172-gcp-hybrid-border/runtime-review.md.
 - [ ] T011 [US1] Execute four actual named-HTTPS browser-approved OpenClaw reads and correlate native/provider/receipt/ACK evidence in specs/172-gcp-hybrid-border/verification.md.
 - [ ] T012 [US1] Verify scope refusals, disconnect/lost reply/owned restart and unchanged spent counters in specs/172-gcp-hybrid-border/verification.md.
@@ -30,13 +30,13 @@ signed results and durable ACKs; fixtures first establish selection isolation.
 Independent test: production source fixtures then actual HTTPS, host/IAM/process
 and external network observations; no provider/device authority on Border.
 
-- [ ] T013 [P] [US2] Implement dedicated protected production entrypoint and exact asset closure in ui/netclaw-visual/protected-server.mjs and src/hud-server/.
-- [ ] T014 [US2] Test authority/Origin/proxy/CSRF/cookie/revocation/route/asset refusal and production browser CSP in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
-- [ ] T015 [P] [US2] Implement strict provider-neutral role validator/launcher in scripts/lib/protected_role.py and scripts/protected-role.py.
-- [ ] T016 [US2] Enforce role-specific protected configuration and catalog hooks in mcp-servers/protocol-mcp/bgp/federation/protected_service.py.
-- [ ] T017 [US2] Add verified control-only posture and dormant private eN2N policy in existing federation production/listener paths with tests.
+- [x] T013 [P] [US2] Implement dedicated protected production entrypoint and exact asset closure in ui/netclaw-visual/protected-server.mjs and src/hud-server/.
+- [x] T014 [US2] Test authority/Origin/proxy/CSRF/cookie/revocation/route/asset refusal and production browser CSP in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
+- [x] T015 [P] [US2] Implement strict provider-neutral role validator/launcher in scripts/lib/protected_role.py and scripts/protected-role.py.
+- [x] T016 [US2] Enforce role-specific protected configuration and catalog hooks in mcp-servers/protocol-mcp/bgp/federation/protected_service.py.
+- [x] T017 [US2] Add verified control-only posture and dormant private eN2N policy in existing federation production/listener paths with tests.
 - [ ] T018 [US2] Render confined non-root federation/HUD/Caddy system units and startup secret projection in labs/cloud/gcp/r03/.
-- [ ] T019 [US2] Test role/env/path/source tampering, no ambient-home fallback and service rendering in tests/n2n/test_protected_role_172.py.
+- [x] T019 [US2] Test role/env/path/source tampering, no ambient-home fallback and service rendering in tests/n2n/test_protected_role_172.py.
 - [ ] T020 [US2] Freeze exact runtime/key/secret/source/DNS/TLS activation and scoped repair packet in specs/172-gcp-hybrid-border/runtime-review.md; obtain delegation before execution.
 - [ ] T021 [US2] Activate only reviewed services/hostname/private secrets; capture actual systemd/process/identity/IAM evidence in specs/172-gcp-hybrid-border/verification.md.
 - [ ] T022 [US2] Verify real DNS/trusted TLS/owner browser/login refusal/CSRF/Origin/revocation and legacy/WS denial in specs/172-gcp-hybrid-border/verification.md.

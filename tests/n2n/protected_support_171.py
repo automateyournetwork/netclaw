@@ -159,7 +159,7 @@ class OperationPair:
         self.auth = self.login()
         self.catalog_entry = {"member": self.template["member"],
             "model_profiles": [self.template["model_profile"]],
-            "tools": [{**self.template["tool_call"], "limits": self.template["limits"]}]}
+            "tools": [{**self.template["tool_call"], "limits": {k: v for k, v in self.template["limits"].items() if k != "expires_at_ms"}}]}
         self.transport_calls, self.audit_events, self.effects = [], [], []
         self.executor_calls = 0
         self.failed_audits = set()

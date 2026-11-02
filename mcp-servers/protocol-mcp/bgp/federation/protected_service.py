@@ -8,7 +8,8 @@ import time
 import uuid
 from .protected_contract import (APPROVAL, RESULT, ACK, MAX_OUTPUT, ProtectedError, ProtectedOutcomeUnknown, canonical_bytes,
     decode, digest, encode, exact, ident, key_id, require, review_from_payload, sha256,
-    sign, validate_binding, validate_model, validate_review, validate_tool, verify, uuid_field, digest_field)
+    sign, validate_binding, validate_model, validate_review, validate_tool, verify, uuid_field, digest_field,
+    validate_catalog_entry)
 from .protected_store import ProtectedStore
 from .protected_owner import OwnerAuthority, private_file, write_private
 
@@ -98,13 +99,9 @@ class ProtectedOperations:
         members = await maybe_await(self.catalog_provider())
         members = members if isinstance(members, list) else [members]
         for entry in members:
-            exact(entry, 'member model_profiles tools')
-            validate_binding(entry['member'], 'member'); self._trust(entry['member'])
-            require(isinstance(entry['model_profiles'], list) and isinstance(entry['tools'], list))
-            for model in entry['model_profiles']: validate_model(model)
-            for tool in entry['tools']:
-                require(isinstance(tool, dict) and 'limits' in tool)
-                validate_tool({k: v for k, v in tool.items() if k != 'limits'})
+            validate_catalog_entry(entry)
+            self._trust(entry['member'])
+        require(len({entry['member']['member_id'] for entry in members}) == len(members), 'ambiguous_catalog')
         members.sort(key=lambda entry: entry['member']['member_id'])
         result = {'revision': sha256(members), 'members': members}
         with self._owner(params['auth_context']): return result
@@ -277,6 +274,7 @@ class ProtectedOperations:
         binding = getattr(channel, 'protected_peer_binding', None)
         self._channel(channel, binding)
         result = await maybe_await(self.catalog_provider())
+        validate_catalog_entry(result)
         require(result['member'] == self.identity, 'catalog_identity_mismatch')
         return result
 
@@ -326,6 +324,7 @@ class ProtectedOperations:
 
     async def _check_catalog(self, payload):
         catalog = await maybe_await(self.catalog_provider())
+        validate_catalog_entry(catalog)
         require(catalog['member'] == payload['member'] and payload['model_profile'] in catalog['model_profiles'], 'profile_changed', 403)
         expected = payload['tool_call']
         entry = next((item for item in catalog['tools'] if {key: value for key, value in item.items() if key != 'limits'} == expected), None)
@@ -559,12 +558,26 @@ class OperatorBridge:
         finally: writer.close(); await writer.wait_closed()
 
 
+def validate_profile(config, *, role=None, identity=None):
+    """A Border cannot silently ignore a supplied local executor/credential catalog."""
+    require(isinstance(config, dict), 'protected_profile_invalid')
+    selected_role = config.get('role')
+    require(selected_role in ('border', 'member'), 'unsupported_role')
+    exact(config, 'schemaVersion role identity' if selected_role == 'border'
+          else 'schemaVersion role identity catalog runtime border')
+    require(type(config['schemaVersion']) is int and config['schemaVersion'] == 1, 'protected_profile_invalid')
+    validate_binding(config['identity'], selected_role)
+    if role is not None:
+        require(selected_role == role and config['identity'] == identity, 'local_authority_changed', 403)
+    return config
+
+
 def from_service(service):
     """Production-only factory: fixed private configuration and enrolled trust."""
     runtime, risk = service.runtime, service.risk
     require(runtime.installation is not None, 'installation_uninitialized', 503)
-    config = decode(private_file(runtime.state / 'protected-profile.json'))
-    require(isinstance(config, dict) and set(config) <= {'schemaVersion', 'role', 'identity', 'catalog', 'runtime', 'border'} and config.get('schemaVersion') == 1)
+    config = validate_profile(decode(private_file(runtime.state / 'protected-profile.json')))
+    original_profile = encode(config)
     role = config.get('role'); require(role in ('border', 'member'), 'unsupported_role')
     require((role == 'border') == risk.is_border(), 'role_mismatch', 503)
     identity = config['identity']; validate_binding(identity, role)
@@ -579,9 +592,24 @@ def from_service(service):
         require(enrollment is not None and enrollment['enrollment_generation'] == identity['enrollment_generation'] and enrollment['member_id'] == identity['member_id'] and enrollment['installation_id'] == runtime.installation, 'protected_enrollment_required', 503)
     require(key_id(own_cert) == identity['key_id'], 'identity_key_mismatch', 403)
 
+    def current_profile():
+        try:
+            current = validate_profile(decode(private_file(runtime.state / 'protected-profile.json')),
+                                       role=role, identity=identity)
+            require(encode(current) == original_profile, 'local_profile_changed', 403)
+            # Trust is rechecked after remote effect authorization awaits. Bind
+            # that final reread too, so drift during the await cannot execute an
+            # old child merely because role/identity still match.
+            if role == 'member' and hasattr(executor, 'validate_catalog'):
+                executor.validate_catalog(current['catalog'], runtime_config=current['runtime'])
+            return current
+        except Exception:
+            if hasattr(executor, 'invalidate'):
+                executor.invalidate()
+            raise
+
     def trust(binding, historical=False):
-        current_configuration = decode(private_file(runtime.state / 'protected-profile.json'))
-        require(current_configuration.get('identity') == identity, 'local_authority_changed', 403)
+        current_configuration = current_profile()
         require(not historical, 'recorded_snapshot_required')
         require(isinstance(binding, dict), 'missing_authority', 403)
         if binding == identity:
@@ -615,7 +643,10 @@ def from_service(service):
 
     async def catalog():
         if role == 'member':
-            data = decode(private_file(runtime.state / 'protected-profile.json'))['catalog']
+            current = current_profile()
+            data = current['catalog']
+            if not hasattr(executor, 'validate_catalog'):
+                validate_catalog_entry(data)
             require(data['member'] == identity, 'catalog_identity_mismatch')
             return data
         entries = []
@@ -637,7 +668,15 @@ def from_service(service):
     executor = None
     if role == 'member':
         from .protected_runtime import build_executor
+        validate_catalog_entry(config['catalog'])
+        require(config['catalog']['member'] == identity, 'catalog_identity_mismatch')
         executor = build_executor(config['runtime'], manager=service.manager)
+        try:
+            if hasattr(executor, 'validate_catalog'):
+                executor.validate_catalog(config['catalog'], runtime_config=config['runtime'])
+        except BaseException:
+            executor.close()
+            raise
     operations = ProtectedOperations(service.manager, role=role, identity=identity,
         signer=lambda schema, payload: sign(schema, payload, own_key), trust_resolver=trust,
         catalog_provider=catalog, owner=owner, executor=executor,

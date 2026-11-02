@@ -79,6 +79,10 @@ class FederationService:
         self.execution_broker = None
         self.protected_operations = None
         self.protected_enabled = os.environ.get('N2N_PROTECTED_OPERATIONS', '') == '1'
+        if (self.runtime.state / 'protected-profile.json').exists() and not self.protected_enabled:
+            # An owned protected installation cannot fall back to legacy execution
+            # because a service environment lost its opt-in flag on restart.
+            raise ValueError('protected profile requires N2N_PROTECTED_OPERATIONS=1')
         self.hermes_runtime = None
         self.inventory = InventoryBuilder(self.manager)
         self.audit = Auditor(self.manager)

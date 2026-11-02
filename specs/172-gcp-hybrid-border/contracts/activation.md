@@ -26,3 +26,18 @@ exact reviewed teardown scope. Source implementation grants no cloud mutation.
 Before runtime activation: exact source/secret/key/transfer/unit/DNS operations and
 approved repairs/restarts. Before destroy: verified exported evidence and exact
 R03-only destroy plan. A prior R01 delegation is not a new R03 delegation.
+
+R03's launcher qualifies only the control-only Border role. It explicitly refuses
+cloud-member activation, which remains R04; the provider-neutral role concept is
+not a claim that every role can already launch. On-prem qualification reuses R02's
+protected execution runner with fresh selected homes and the device selector.
+
+Bootstrap uses a clean environment and `/usr/bin/python3 -I -S -B` (stdlib only)
+to verify the closed source bundle and immutable Python environment manifest,
+including pyvenv.cfg, site-packages, directories and explicit symlinks. Only then
+may it exec the pinned venv with `-I -B`; the daemon retains isolation flags.
+The manifest excludes system site packages and rejects unpinned import files.
+Source/runtime directories are root-owned and non-writable by the service on
+the pinned GCP image. This does not qualify arbitrary host Python installations.
+Full profile drift, including the Border authority binding, latches the member
+selector until restart, including the final reread after effect authorization.
