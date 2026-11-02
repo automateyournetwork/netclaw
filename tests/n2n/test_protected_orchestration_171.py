@@ -24,6 +24,8 @@ from protected_support_171 import NOW, approval, docker_module, identity, runtim
 def orchestrator(tmp_path, monkeypatch):
     docker, runtime = docker_module(), runtime_module()
     payload = approval(identity("border"), identity("member"), now=9_000_000_000_000)
+    payload["model_profile"].update(runtime_version="2026.7.1-2",
+                                    provider="anthropic", model="claude-sonnet-4-6")
     harness = {"commands": [], "tool": None, "facade": None, "forwards": [],
         "fault": None, "effect_count": 0, "exit_status": b"0\n", "final_message": None,
         "final_finish_reason": "stop"}
