@@ -83,10 +83,16 @@ def orchestrator(tmp_path, monkeypatch):
             async def app(*args): raise AssertionError("no external MCP transport in this fixture")
             return app
     class FakeServer:
-        def __init__(self, config): self.should_exit = False
+        def __init__(self, config):
+            self.should_exit = False
+            harness["http_server"] = self
         async def serve(self, **kwargs):
-            while not self.should_exit:
-                await asyncio.sleep(0)
+            harness["http_task"] = asyncio.current_task()
+            try:
+                while not self.should_exit or harness["fault"] == "http_stop_hangs":
+                    await asyncio.sleep(0)
+            finally:
+                harness["http_exited"] = True
     import mcp.server.mcpserver
     import uvicorn
     monkeypatch.setattr(mcp.server.mcpserver, "MCPServer", FakeMCP)
@@ -279,3 +285,41 @@ def test_static_guard_url_cannot_replace_owned_operation_guard(orchestrator, mon
     with pytest.raises(runtime_module().RuntimeRefused, match="operation_bound_guard_unavailable"):
         asyncio.run(docker_module().DockerExecutor.forward(executor, payload, {"model": payload["model_profile"]["model"]}))
     assert harness["forwards"] == [] and harness["effect_count"] == 0
+
+
+def test_http_shutdown_uncertainty_is_in_final_cleanup_receipt(orchestrator, monkeypatch):
+    executor, payload, gate, harness = orchestrator
+    harness["fault"] = "http_stop_hangs"
+    original_wait_for = asyncio.wait_for
+    async def fast_cleanup_deadline(awaitable, timeout):
+        # Only shorten the owned synthetic server's shutdown deadline. All
+        # effect/inference gates and their signed deadlines remain unchanged.
+        if awaitable is harness.get("http_task") and timeout == 10:
+            timeout = 0.01
+        return await original_wait_for(awaitable, timeout)
+    monkeypatch.setattr(asyncio, "wait_for", fast_cleanup_deadline)
+    with pytest.raises(runtime_module().RuntimeUnknown):
+        asyncio.run(executor.run(payload, gate))
+    evidence = json.loads((executor.state / payload["operation_id"] / "cleanup.json").read_text())
+    assert "owned_http_server" in evidence["unresolved"]
+    assert harness["http_exited"] and harness["effect_count"] == 1
+
+
+def test_cleanup_receipt_failure_cannot_skip_owned_http_shutdown(orchestrator, monkeypatch):
+    executor, payload, gate, harness = orchestrator
+    docker = docker_module()
+    original_write = docker.private_write
+    def unavailable_receipt(path, data):
+        if Path(path).name == "cleanup.json":
+            raise OSError("synthetic full evidence storage")
+        return original_write(path, data)
+    monkeypatch.setattr(docker, "private_write", unavailable_receipt)
+    async def run():
+        with pytest.raises(runtime_module().RuntimeUnknown):
+            await executor.run(payload, gate)
+        # Check before asyncio.run automatically cancels leftover tasks; that
+        # automatic test cleanup must not disguise a production listener leak.
+        assert harness["http_server"].should_exit
+        assert harness["http_task"].done() and harness["http_exited"]
+    asyncio.run(run())
+    assert harness["effect_count"] == 1 and len(harness["forwards"]) == 2
