@@ -215,3 +215,11 @@ mcp-servers/hermes-hud-mcp/__pycache__/
 !mcp-servers/convergence-read-mcp/
 mcp-servers/convergence-read-mcp/.venv/
 mcp-servers/convergence-read-mcp/__pycache__/
+
+# Private cloud review inputs/state (roadmap work remains unreleased)
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json
+*.tfplan
