@@ -61,6 +61,12 @@ def orchestrator(tmp_path, monkeypatch):
                 "command": "show version", "output": {"version": "fixture"}}
     monkeypatch.setattr(docker, "invoke_pyats", tool)
     executor = docker.DockerExecutor(config, manager=SimpleNamespace())
+    async def start_guard(approved, operation_root, name, owned):
+        # Explicit synthetic seam: actual guard containers and upstream budgets
+        # are qualified separately. No Docker/provider runs in this fixture.
+        harness["guard_payload"] = copy.deepcopy(approved)
+        executor.guards[approved["operation_id"]] = "http://127.0.0.1:1"
+    executor.start_guard = start_guard
     async def forward(payload, body):
         harness["forwards"].append(copy.deepcopy(body))
         if len(harness["forwards"]) == 2 and harness["fault"] == "summary_unknown":
@@ -206,3 +212,23 @@ def test_signed_tool_deadline_bounds_entire_owned_invocation(orchestrator):
     with pytest.raises(runtime_module().RuntimeUnknown):
         asyncio.run(run())
     assert harness["effect_count"] == 1
+
+
+def test_missing_operation_guard_fails_before_agent_or_tool(orchestrator):
+    executor, payload, gate, harness = orchestrator
+    executor.start_guard = docker_module().DockerExecutor.start_guard.__get__(executor)
+    with pytest.raises(runtime_module().RuntimeRefused, match="operation_bound_guard_required"):
+        asyncio.run(executor.run(payload, gate))
+    assert harness["commands"] == []
+    assert harness["forwards"] == [] and harness["effect_count"] == 0
+
+
+def test_static_guard_url_cannot_replace_owned_operation_guard(orchestrator, monkeypatch):
+    executor, payload, _, harness = orchestrator
+    import httpx
+    def forbidden_client(*args, **kwargs):
+        raise AssertionError("an unowned guard must not initiate HTTP")
+    monkeypatch.setattr(httpx, "AsyncClient", forbidden_client)
+    with pytest.raises(runtime_module().RuntimeRefused, match="operation_bound_guard_unavailable"):
+        asyncio.run(docker_module().DockerExecutor.forward(executor, payload, {"model": payload["model_profile"]["model"]}))
+    assert harness["forwards"] == [] and harness["effect_count"] == 0
