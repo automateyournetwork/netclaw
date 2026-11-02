@@ -253,7 +253,7 @@ def guard_inspect(config, payload, home):
         "Entrypoint": ["python3", "/opt/netclaw/scripts/protected-guard.py"],
         "Cmd": ["--home", "/guard", "--config-sha256", config["guard"]["config_sha256"],
                 "--policy-manifest-sha256", config["guard"]["policy_manifest_sha256"]],
-        "Env": ["HOME=/guard-user", "DEFENSECLAW_HOME=/guard", "NETCLAW_OPERATION_ID=" + payload["operation_id"],
+        "Env": ["HOME=/guard/official-user", "DEFENSECLAW_HOME=/guard", "NETCLAW_OPERATION_ID=" + payload["operation_id"],
             "NETCLAW_OPERATION_EXPIRES_MS=" + str(payload["limits"]["expires_at_ms"]),
             "NETCLAW_OPERATION_MODEL=" + payload["model_profile"]["model"], "NETCLAW_OPERATION_MAX_PROVIDER_CALLS=2"]},
         "HostConfig": {"ReadonlyRootfs": True, "CapDrop": ["ALL"], "SecurityOpt": ["no-new-privileges"],
@@ -265,7 +265,7 @@ def guard_inspect(config, payload, home):
             {"Type": "bind", "Destination": "/guard/guard.env", "Source": config["guard"]["env_file"], "RW": False}]}
 
 
-@pytest.mark.parametrize("mutation", ["none", "public", "provider_env", "extra_mount", "privileged", "memory", "cmd", "image", "host_network"])
+@pytest.mark.parametrize("mutation", ["none", "public", "provider_env", "extra_mount", "privileged", "memory", "cmd", "image", "host_network", "wrong_home"])
 def test_guard_inspection_matches_fixed_owned_launch(bound, mutation):
     config, payload, root = bound
     inspected = guard_inspect(config, payload, root / "guard")
@@ -277,6 +277,7 @@ def test_guard_inspection_matches_fixed_owned_launch(bound, mutation):
     elif mutation == "cmd": inspected["Config"]["Cmd"] += ["--unreviewed"]
     elif mutation == "image": inspected["Image"] = "sha256:" + "9" * 64
     elif mutation == "host_network": inspected["HostConfig"]["NetworkMode"] = "host"
+    elif mutation == "wrong_home": inspected["Config"]["Env"][0] = "HOME=/guard-user"
     kwargs = dict(image=config["guard"]["image"], home=root / "guard", env_file=config["guard"]["env_file"], payload=payload,
         config_sha256=config["guard"]["config_sha256"], policy_manifest_sha256=config["guard"]["policy_manifest_sha256"], running=True)
     if mutation == "none":

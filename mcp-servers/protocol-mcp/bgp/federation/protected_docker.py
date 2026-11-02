@@ -233,7 +233,7 @@ def inspect_guard(container, *, image, home, env_file, payload, config_sha256, p
                "NETCLAW_OPERATION_ID", "NETCLAW_OPERATION_EXPIRES_MS", "NETCLAW_OPERATION_MODEL", "NETCLAW_OPERATION_MAX_PROVIDER_CALLS"}
     expected = {"NETCLAW_OPERATION_ID": payload["operation_id"], "NETCLAW_OPERATION_EXPIRES_MS": str(payload["limits"]["expires_at_ms"]),
                 "NETCLAW_OPERATION_MODEL": payload["model_profile"]["model"], "NETCLAW_OPERATION_MAX_PROVIDER_CALLS": "2"}
-    if (set(environment)-allowed or environment.get("HOME") != "/guard-user"
+    if (set(environment)-allowed or environment.get("HOME") != "/guard/official-user"
             or environment.get("DEFENSECLAW_HOME") != "/guard"
             or any(environment.get(key) != value for key, value in expected.items())):
         raise RuntimeRefused("guard_environment_changed")
