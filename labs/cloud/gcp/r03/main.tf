@@ -29,6 +29,7 @@ resource "google_compute_network" "r03" {
 }
 
 resource "google_compute_subnetwork" "r03" {
+  description              = local.note
   name                     = local.name
   network                  = google_compute_network.r03.id
   ip_cidr_range            = "10.172.0.0/28"
@@ -57,6 +58,7 @@ resource "google_secret_manager_secret_iam_member" "operator" {
 }
 
 resource "google_compute_address" "r03" {
+  description  = local.note
   name         = local.name
   address_type = "EXTERNAL"
   network_tier = "PREMIUM"
@@ -64,6 +66,7 @@ resource "google_compute_address" "r03" {
 }
 
 resource "google_compute_firewall" "iap" {
+  description             = local.note
   name                    = "${local.name}-iap"
   network                 = google_compute_network.r03.id
   direction               = "INGRESS"
@@ -77,6 +80,7 @@ resource "google_compute_firewall" "iap" {
 
 # Second exact reviewed plan only, after offline provisioning and host guard proof.
 resource "google_compute_firewall" "https" {
+  description             = local.note
   count                   = var.network_activated ? 1 : 0
   name                    = "${local.name}-https"
   network                 = google_compute_network.r03.id
@@ -90,6 +94,7 @@ resource "google_compute_firewall" "https" {
 }
 
 resource "google_compute_firewall" "in2n" {
+  description             = local.note
   count                   = var.network_activated ? 1 : 0
   name                    = "${local.name}-in2n"
   network                 = google_compute_network.r03.id
@@ -103,6 +108,7 @@ resource "google_compute_firewall" "in2n" {
 }
 
 resource "google_compute_firewall" "private_egress" {
+  description             = local.note
   name                    = "${local.name}-deny-private"
   network                 = google_compute_network.r03.id
   direction               = "EGRESS"
@@ -113,6 +119,7 @@ resource "google_compute_firewall" "private_egress" {
 }
 
 resource "google_compute_firewall" "web_egress" {
+  description             = local.note
   count                   = var.network_activated ? 1 : 0
   name                    = "${local.name}-web-egress"
   network                 = google_compute_network.r03.id
@@ -127,6 +134,7 @@ resource "google_compute_firewall" "web_egress" {
 }
 
 resource "google_compute_firewall" "deny_egress" {
+  description             = local.note
   name                    = "${local.name}-deny-egress"
   network                 = google_compute_network.r03.id
   direction               = "EGRESS"

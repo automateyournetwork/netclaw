@@ -45,6 +45,10 @@ The module has10 foundation resources: dedicated network/subnet/service account,
 empty operator secret and one secret-level accessor binding, one regional IPv4,
 IAP ingress, private-destination egress denial, default egress denial and one
 Shielded Ubuntu24.04 e2-small VM with20GiB auto-delete standard boot disk.
+VM/disk/address/secret carry roadmap/expiry labels; network/subnet/firewalls and
+service account carry the fixed roadmap/expiry description where labels are not
+supported. The secret IAM binding has no label/description field and inherits
+its scoped parent secret plus the exact resource manifest.
 Only IAP22 is initially reachable. No startup package download or application
 service is present. Frozen tools/dependencies transfer through reviewed IAP.
 
