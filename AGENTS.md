@@ -169,6 +169,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Spec162 planned: private installation-owned SQLite request/attempt ledger and bounded artifact directories (0700 directories, 0600 private metadata; frozen inputs not writable through exposed tools). Existing API-owned Local/Lab records remain authoritative for candidate application. (162-netconverterai)
 - Python 3.12 isolated protocol/n2n runtime; Python 3.10+ installer; existing Bash and HUD JavaScript. + Existing asyncio/federation stack; pyOpenSSL 26.4.0, cryptography 50.0.2, service-identity 26.1.0. Preserve separate certificate-helper environment. No new MCP server or web framework. (168-ngrok-transport-contract)
 - Private installation-owned schema1/ngrok and schema2/direct-or-ngrok registries, atomic revision updates and explicit prior-revision recovery; owned daemon/ngrok process records. Direct GCP transport-only pilot and owner-selected open read-only lab HUD; users/SSO/RBAC remain R15–R17. No tokens in registry/bundles. (168-ngrok-transport-contract)
+- Spec171 planned: isolated Python 3.12; existing Node 24.19/React 18 HUD, cryptography 50/P-256, SQLite, asyncio and MCP. (171-execution-parity)
+- Spec171 planned: additive federation.db tables, private artifacts and owner authority, existing GAIT audit. (171-execution-parity)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -230,3 +232,15 @@ Next roadmap brief is R02 execution parity, expected next available spec 171
 it is not started by this integration request. No R02 cloud/device operation is
 authorized here. Keep the original R01 directory name despite the parallel
 upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
+
+## R02–R05 work authorization — 2026-11-02
+
+The owner subsequently authorized driving R02–R05 to completion with a
+coordinator and three parallel agents, using separate worktrees. This supersedes
+the earlier R01-only stop and R02 source-work hold. Human roadmap acceptance
+gates and exact cloud-resource/spend reviews remain. Total GCP lab spend must
+not exceed $100/month; use CAD100 conservatively, including R01, pending any
+owner correction. Budget alerts are not hard spending caps. Optional bounded
+implementation/test/review passes are capped at five total across R02–R05.
+The entire-roadmap release, version and public rollout hold remains in force.
+Spec171 implements R02; R03 cannot begin before its human evidence gate.
