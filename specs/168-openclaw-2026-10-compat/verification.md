@@ -103,3 +103,33 @@ self-status completed; four members' homes list `main` and `alert`, one lists on
 (an earlier run of the same request on 2026.10.9 completed; this member's model spends
 1.6-3.9 M tokens on it). A timeout records an empty task error; that diagnostic gap is
 outside this change and noted as a follow-up.
+
+## PR316 review continuation (owner: keep working)
+
+Run resume-20261102, start00:24UTC, deadline01:09UTC; shared with read-only
+heartbeat source/deployment reconciliation. Existing model attempt budgets unchanged;
+no provider calls. Baseline b5feb9b5, all38 hostedchecks PASS, PR316 open.
+Independent review FAIL: predictable .USER.md.netclaw-copy follows a pre-existing
+symlink and overwrites an unrelated operator file, then installs that symlink as
+USER.md. Disposable reproduction saved privately in spec168-review/symlink-probe.json.
+Focused13tests/release/spec checks PASS despite defect. Also correct release notes:
+final corrected-selection run was four completions plus one viz timeout.
+T005 attempt1/3: acceptance/plan amended before repair. Root owns implementation;
+independent verifier will rerun the adversarial reproduction and appropriate tests.
+No production installer/runtime changes authorized or needed for this source fix.
+
+T005 attempt1 outcome: local implementation and independent review PASS. The
+original adversarial fixture now preserves the unrelated file and staging symlink,
+installs a regular0600 USER.md, and leaves no owned temporary files. New tests cover
+occupied symlink/file/directory staging, copy/rename failures and concurrent
+operator edits. Effects manifest sourceSha256 regenerated; component hashes unchanged.
+Initial focused run under the shell's umask002 failed7 fixture policy checks;
+with the documented umask077, all19 focused tests passed (also independently).
+Setup-installer:277 total,245 passed/32 skipped. Release1.18.1 metadata, spec152,
+catalog metadata, shell syntax, whitespace and all six declaration surfaces PASS.
+Release notes distinguish the initial five completions from final four plus viz
+timeout. Historical live/model qualification and its limitations are unchanged.
+Private review evidence: spec168-review/focused-final.log and
+spec168-review/symlink-probe-final.json under the upgrade evidence directory.
+Hosted checks must pass for the new commit before merging PR316; earlier green
+checks are not evidence for the repaired source.

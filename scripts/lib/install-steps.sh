@@ -2617,8 +2617,34 @@ for mdfile in SOUL.md AGENTS.md IDENTITY.md USER.md TOOLS.md HEARTBEAT.md; do
         netclaw_real="$(python3 -c 'import os,sys;print(os.path.realpath(sys.argv[1]))' "$NETCLAW_DIR")" || return 1
         case "$link_target" in
             "$netclaw_real"/*)
-                cp "$link_target" "$RUNTIME_WORKSPACE/.$mdfile.netclaw-copy" &&
-                    mv -f "$RUNTIME_WORKSPACE/.$mdfile.netclaw-copy" "$RUNTIME_WORKSPACE/$mdfile" || return 1
+                python3 - "$RUNTIME_WORKSPACE/$mdfile" "$link_target" <<'PY' || return 1
+import os
+import shutil
+import stat
+import sys
+import tempfile
+
+destination, source = sys.argv[1:]
+before = os.lstat(destination)
+if not stat.S_ISLNK(before.st_mode):
+    raise SystemExit('Bootstrap entry changed before repair; preserved')
+# Never open a predictable staging path: it may be an operator file or symlink.
+fd, temporary = tempfile.mkstemp(prefix='.' + os.path.basename(destination) + '.netclaw-copy-',
+                                 dir=os.path.dirname(destination))
+try:
+    with os.fdopen(fd, 'wb') as output, open(source, 'rb') as original:
+        shutil.copyfileobj(original, output)
+        output.flush()
+        os.fsync(output.fileno())
+    current = os.lstat(destination)
+    if ((current.st_dev, current.st_ino, current.st_mode, current.st_mtime_ns, current.st_ctime_ns) !=
+            (before.st_dev, before.st_ino, before.st_mode, before.st_mtime_ns, before.st_ctime_ns)):
+        raise RuntimeError('Bootstrap entry changed during repair; preserved')
+    os.replace(temporary, destination)
+finally:
+    if os.path.lexists(temporary):
+        os.unlink(temporary)
+PY
                 log_info "Replaced $mdfile symlink (-> $link_target) with a copy; OpenClaw refuses symlinked bootstrap files"
                 continue
                 ;;

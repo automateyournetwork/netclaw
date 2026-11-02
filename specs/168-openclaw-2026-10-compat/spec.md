@@ -37,6 +37,9 @@ installed after the installer switched to copies.
 4. P1: Re-running the installer replaces a workspace bootstrap file that is a symlink
    into the NetClaw checkout with a regular copy of its target. Regular files and
    symlinks elsewhere are preserved.
+   Copy staging must use an exclusively created private regular file. Existing
+   staging-looking files/symlinks and their targets are preserved; failed copies
+   leave the original bootstrap link and clean up only the owned temporary file.
 
 ## Boundaries
 
