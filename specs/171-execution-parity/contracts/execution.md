@@ -1,4 +1,4 @@
-Status: coordinator-adopted design; implementation and live qualification pending.
+Status: implementation integrated; actual provider/device qualification pending.
 
 # Protected operation contract v1 — R02
 
@@ -84,8 +84,23 @@ retries}`. The catalog pins its complete schema and adapter source revision;
 `timeout` and `device_name` must match the reviewed profile. Execute once, then
 parse captured output. Preserve the upstream tool for other profiles. No
 arbitrary shell, URL, executable, server, file or argument default comes from the
-browser/model. The broker independently matches the entire normalized approved
-call and rechecks current catalog/profile revisions before its effect claim.
+browser/model. The broker independently matches the entire raw approved call
+before SDK coercion/defaults can alter it, and rechecks current catalog/profile
+revisions before its effect claim.
+
+`tool_schema_sha256` is the domain-labelled digest of the complete MCP input
+schema **and its enforced implementation contract**: fixed read/one-attempt
+policy, three upstream source files, two trusted broker/adapter files, native
+Python/venv identity and the three credential alias names. It is not a digest
+of JSON properties alone. `guard_policy_sha256` binds immutable guard image,
+configuration and official policy manifest. `profile_revision` binds harness
+metadata, agent/relay images, derived guard digest, native Docker executable,
+explicit local Docker socket, reviewed address pool and loaded host adapter
+sources. `revision_bindings()` in protected_docker.py derives these values;
+execution recomputes them before startup, guarded forwarding and tool invocation.
+Only the qualified Anthropic/Sonnet and OpenClaw/Hermes version pairs are accepted.
+Image-to-version truth is established by the actual qualification packet;
+hashing a supplied label alone is not version attestation.
 
 Trusted backend methods for the HUD bridge:
 
