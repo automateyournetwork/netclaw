@@ -7,8 +7,12 @@ calls a provider/device. It detects success/cleanup mistakes outside unit helper
 import asyncio
 from contextlib import asynccontextmanager
 import copy
+import hashlib
 import json
 import os
+from pathlib import Path
+import socket
+import tempfile
 from types import SimpleNamespace
 
 import pytest
@@ -20,14 +24,54 @@ from protected_support_171 import NOW, approval, docker_module, identity, runtim
 def orchestrator(tmp_path, monkeypatch):
     docker, runtime = docker_module(), runtime_module()
     payload = approval(identity("border"), identity("member"), now=9_000_000_000_000)
-    payload["tool_call"]["inventory_revision"] = "c" * 64
     harness = {"commands": [], "tool": None, "facade": None, "forwards": [],
         "fault": None, "effect_count": 0, "exit_status": b"0\n", "final_message": None,
         "final_finish_reason": "stop"}
+    # Real owned files/socket let revision enforcement run unchanged. These
+    # executable-shaped files are NEVER executed: command(), invoke_pyats() and
+    # start_guard() below remain the explicitly synthetic external seams.
+    def pinned_file(relative, raw, *, executable=False):
+        path = tmp_path / relative
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+        path.chmod(0o700 if executable else 0o600)
+        return str(path), hashlib.sha256(raw).hexdigest()
+    docker_path, _ = pinned_file("native/docker", b"#!/bin/sh\nexit 99\n", executable=True)
+    python_path, _ = pinned_file("venv/bin/python", b"#!/bin/sh\nexit 99\n", executable=True)
+    pinned_file("venv/pyvenv.cfg", b"home = /synthetic-never-executed\n")
+    sources = {}
+    for name in ("pyats_mcp_server.py", "pyats_testbed_builder.py", "pyats_tasks.py"):
+        _, sources[name] = pinned_file("upstream/" + name, b"# synthetic upstream; never imported\n")
+    known_hosts, keys_hash = pinned_file("known_hosts", b"synthetic reviewed public host key\n")
+    testbed, testbed_hash = pinned_file("testbed.yaml", b"# synthetic inventory; no device access\n")
+    guard_file, guard_hash = pinned_file("guard.yaml", b"# synthetic guard; never started\n")
+    guard_env, _ = pinned_file("guard.env", b"FIXTURE_NO_REAL_SECRET=1\n")
+    scripts = Path(runtime.__file__).resolve().parents[4] / "scripts"
+    adapters = {name: hashlib.sha256((scripts / name).read_bytes()).hexdigest()
+                for name in ("protected-tool-broker.py", "lib/protected_pyats.py")}
+    # AF_UNIX paths are bounded on macOS; use an owned short path, resolved so
+    # the explicit no-symlink Docker socket check is genuinely exercised.
+    socket_directory = tempfile.TemporaryDirectory(prefix="r02-fixture-", dir="/tmp")
+    local_socket = socket.socket(socket.AF_UNIX)
+    socket_path = Path(socket_directory.name).resolve() / "docker.sock"
+    local_socket.bind(str(socket_path))
     config = {"state_dir": str(tmp_path / "owned"), "agent_image": "sha256:" + "1" * 64,
-        "relay_image": "sha256:" + "2" * 64, "guard_url": "http://127.0.0.1:4000",
+        "relay_image": "sha256:" + "2" * 64, "docker": docker_path,
+        "docker_host": "unix://" + str(socket_path),
         "guard_token_env": "NETCLAW_TEST_GUARD_TOKEN", "sandbox_address_pool": "198.18.0.0/15",
-        "model_profile": payload["model_profile"], "pyats": {"testbed_sha256": "c" * 64, "endpoint_sha256": "c" * 64}}
+        "model_profile": copy.deepcopy(payload["model_profile"]),
+        "guard": {"image": "sha256:" + "3" * 64, "config_file": guard_file,
+            "config_sha256": guard_hash, "policy_manifest_sha256": "4" * 64, "env_file": guard_env},
+        "pyats": {"python": python_path, "upstream": str(tmp_path / "upstream/pyats_mcp_server.py"),
+            "upstream_sha256": sources["pyats_mcp_server.py"], "source_sha256": sources,
+            "adapter_sha256": adapters, "testbed": testbed, "testbed_sha256": testbed_hash,
+            "known_hosts": known_hosts, "known_hosts_sha256": keys_hash, "endpoint_sha256": "c" * 64,
+            "credential_env": ["PYATS_R02_USERNAME", "PYATS_R02_PASSWORD", "PYATS_R02_ENABLE_PASSWORD"]}}
+    bindings = docker.revision_bindings(config)
+    config["model_profile"].update({key: bindings[key] for key in ("profile_revision", "guard_policy_sha256")})
+    payload["model_profile"] = copy.deepcopy(config["model_profile"])
+    payload["tool_call"].update(tool_schema_sha256=bindings["tool_schema_sha256"],
+                                inventory_revision=testbed_hash)
     monkeypatch.setenv("NETCLAW_TEST_GUARD_TOKEN", "fixture-private-guard-token")
 
     class FakeMCP:
@@ -123,6 +167,8 @@ def orchestrator(tmp_path, monkeypatch):
         return await invoke()
     yield executor, payload, gate, harness
     executor.fence.close()
+    local_socket.close()
+    socket_directory.cleanup()
 
 
 def test_finished_tool_cannot_hide_unknown_final_inference(orchestrator):
@@ -216,6 +262,7 @@ def test_signed_tool_deadline_bounds_entire_owned_invocation(orchestrator):
 
 def test_missing_operation_guard_fails_before_agent_or_tool(orchestrator):
     executor, payload, gate, harness = orchestrator
+    executor.config["guard"] = None
     executor.start_guard = docker_module().DockerExecutor.start_guard.__get__(executor)
     with pytest.raises(runtime_module().RuntimeRefused, match="operation_bound_guard_required"):
         asyncio.run(executor.run(payload, gate))
