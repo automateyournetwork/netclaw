@@ -55,6 +55,8 @@ def orchestrator(tmp_path, monkeypatch):
     monkeypatch.setattr(docker, "ScopedInference", facade)
     async def tool(config, arguments, operation_root):
         harness["effect_count"] += 1
+        if harness["fault"] == "tool_hangs":
+            await asyncio.sleep(10)  # Synthetic child/parse path; no real process.
         return {"status": "completed", "parsed": True, "device": "fixture-router",
                 "command": "show version", "output": {"version": "fixture"}}
     monkeypatch.setattr(docker, "invoke_pyats", tool)
@@ -191,3 +193,16 @@ def test_signed_binding_cannot_change_before_trusted_tool_start(orchestrator, bo
     with pytest.raises(runtime_module().RuntimeRefused):
         asyncio.run(executor.run(payload, gate))
     assert harness["effect_count"] == 0
+
+
+def test_signed_tool_deadline_bounds_entire_owned_invocation(orchestrator):
+    executor, payload, gate, harness = orchestrator
+    payload["limits"]["tool_timeout_ms"] = 10
+    harness["fault"] = "tool_hangs"
+    async def run():
+        # This outer test timeout distinguishes production enforcement from a
+        # stuck test. Only the production-owned RuntimeUnknown is acceptable.
+        return await asyncio.wait_for(executor.run(payload, gate), 0.5)
+    with pytest.raises(runtime_module().RuntimeUnknown):
+        asyncio.run(run())
+    assert harness["effect_count"] == 1

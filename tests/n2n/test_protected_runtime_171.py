@@ -129,6 +129,35 @@ def test_expired_inference_never_claims_or_forwards(inference, payload):
     assert forwarded == [] and fence.count(payload["operation_id"]) == 0
 
 
+def test_signed_inference_deadline_bounds_full_forward_without_replay(inference, payload):
+    runtime, facade, fence, forwarded, _ = inference
+    payload["limits"]["inference_timeout_ms"] = 10
+    cancelled = []
+    async def stalled(body):
+        forwarded.append(body)
+        try:
+            await asyncio.sleep(10)
+        finally:
+            cancelled.append(True)
+    facade.forward = stalled
+    async def run():
+        task = asyncio.create_task(facade.invoke("POST", "/v1/chat/completions",
+            {"authorization": "Bearer fixture-operation-token"}, request(payload)))
+        done, pending = await asyncio.wait({task}, timeout=0.5)
+        if pending:
+            task.cancel()
+            await asyncio.gather(task, return_exceptions=True)
+            pytest.fail("signed inference deadline was not enforced by the runtime")
+        return await task
+    with pytest.raises(runtime.RuntimeUnknown):
+        asyncio.run(run())
+    assert cancelled == [True] and len(forwarded) == 1
+    assert fence.count(payload["operation_id"]) == 1
+    with pytest.raises(runtime.RuntimeRefused):
+        call(facade, request(payload, "retry after full forward deadline"))
+    assert len(forwarded) == 1
+
+
 def test_broker_wraps_exact_effect_and_retains_actual_result(payload):
     runtime = runtime_module()
     calls, order = [], []
