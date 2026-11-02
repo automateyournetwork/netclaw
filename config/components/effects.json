@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "f1afb18af2dc5c9db9c803d5895368e41737608f5852f5108aaab016dbeb2162",
+  "sourceSha256": "5ed3bbd69dcb0d27b79e3f0e492ea93dc9383315f186c7e97123d2fabee685d0",
   "components": [
     {
       "id": "hermes-hud",
@@ -660,7 +660,7 @@
     {
       "id": "peering",
       "function": "component_install_peering",
-      "sha256": "53becafd3c58511d3fee912c9ade5f10a8f363f6cb0b12c267610b1dd2b2b8a6",
+      "sha256": "a749d865498aa5186c459db1be129463550a6ae046f16e6c239591f6407f17b7",
       "adapter": "isolated-shell",
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
@@ -669,7 +669,7 @@
     {
       "id": "n2n",
       "function": "component_install_n2n",
-      "sha256": "8690f1c56c222ff6d9ba3c6451d2e175b980179a911e633e89fb07d88b2ab44d",
+      "sha256": "635be0f386a35d483b23f9b66655df345318958bf34d140e78c3153f732e1c56",
       "adapter": "isolated-python",
       "reason": "dedicated-risk-adapter",
       "postcondition": "selected-registration-artifacts-and-discovery",

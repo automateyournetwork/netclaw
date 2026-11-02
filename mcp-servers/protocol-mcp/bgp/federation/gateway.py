@@ -199,6 +199,46 @@ def _extract_reply_from_envelopes(objs: list):
     return reply, int(tokens or 0)
 
 
+def _member_agent_args() -> list:
+    """`--agent <id>` for an embedded turn, or nothing when OpenClaw can choose.
+
+    OpenClaw >= 2026.10 refuses `--session-id` session creation when the home
+    configures more than one agent and none is named. Member homes inherit the
+    Border's agent entries, so name `main` when it is one of several agents. A
+    home with zero or one agent keeps the unnamed command (forcing `main` fails
+    when the only agent has another id). N2N_MEMBER_AGENT overrides."""
+    agent = os.environ.get("N2N_MEMBER_AGENT", "").strip()
+    if agent:
+        return ["--agent", agent]
+    state = (os.environ.get("OPENCLAW_STATE_DIR") or os.environ.get("OPENCLAW_HOME")
+             or os.path.expanduser("~/.openclaw"))
+    path = os.environ.get("OPENCLAW_CONFIG_PATH") or os.path.join(state, "openclaw.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            agents = (json.load(f).get("agents") or {})
+        ids = set(agents.get("entries") or {})
+        ids |= {a.get("id") for a in agents.get("list") or [] if isinstance(a, dict)}
+    except (OSError, ValueError, AttributeError, TypeError):
+        return []
+    return ["--agent", "main"] if len(ids) > 1 and "main" in ids else []
+
+
+def _cli_error_detail(output_file) -> str:
+    """The CLI's own `{"ok": false, "error": {"message": ...}}` reason, if any.
+
+    Only the structured message is surfaced (never stderr, which can echo
+    configuration), single-lined and capped so a failed task says *why*."""
+    try:
+        output_file.seek(0)
+        doc = json.loads(output_file.read(64 * 1024).decode(errors="replace"))
+        message = (doc.get("error") or {}).get("message") if isinstance(doc, dict) else None
+    except (ValueError, OSError, AttributeError):
+        return ""
+    if not isinstance(message, str) or not message.strip():
+        return ""
+    return ": " + " ".join(message.split())[:300]
+
+
 def _extract_reply(stdout: str):
     """Parse the `openclaw agent --json` envelope (which is preceded by banner
     noise) and return (reply_text, tokens_used). Still used by the `local=True`
@@ -376,7 +416,7 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         from .negotiate import local_descriptor
         flag = "--" + local_descriptor().get("agent_invoke", "session-id")
         message_args = ["--message-file", message_file] if message_file else ["-m", prompt]
-        cmd = [_openclaw_bin(), "agent", "--local"]
+        cmd = [_openclaw_bin(), "agent", "--local", *_member_agent_args()]
         if model:
             cmd += ["--model", model]
         cmd += [flag, session_key, "--json"] + message_args
@@ -403,7 +443,8 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
                 await proc.wait()
                 raise
             if proc.returncode != 0:
-                raise RuntimeError(f"Agent process exited {proc.returncode}; task result unavailable")
+                raise RuntimeError(f"Agent process exited {proc.returncode}; task result unavailable"
+                                   + _cli_error_detail(output_file))
             output_file.seek(0)
             out = output_file.read(16 * 1024 * 1024 + 1)
             if len(out) > 16 * 1024 * 1024:

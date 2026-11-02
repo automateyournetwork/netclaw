@@ -414,7 +414,10 @@ python3 scripts/in2n-migrate.py --risk my-risk --border-endpoint 127.0.0.1:11790
 See `.env.example` (`N2N_ROLE`, `N2N_RISK_NAME`, `N2N_ENABLED_STACKS`,
 `N2N_IN2N_PORT`, `N2N_BORDER_ENDPOINT`, `N2N_QUARANTINE_THRESHOLD`, and the member
 vars `N2N_MEMBER_ID` / `N2N_MEMBER_MODEL` / `N2N_MEMBER_SCOPE` /
-`N2N_ENROLLMENT_TOKEN` / `N2N_IDLE_EXIT_S`). Production enforcement (feature 057):
+`N2N_ENROLLMENT_TOKEN` / `N2N_IDLE_EXIT_S` / `N2N_MEMBER_AGENT`). OpenClaw 2026.10 and
+later refuse an unnamed `--session-id` turn when the home configures more than one agent,
+and member homes copy the Border's agent entries, so a member's embedded turn names
+agent `main` when it is one of several; set `N2N_MEMBER_AGENT` to choose another. Production enforcement (feature 057):
 `N2N_RISK_MODE` (`testing` | `production`), `N2N_STRICT_ALL` (block on any missing
 control), `N2N_GAIT_DIR` (immutable GAIT git trail location).
 
