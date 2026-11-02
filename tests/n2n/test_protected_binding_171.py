@@ -26,7 +26,7 @@ def strict_document(known_hosts):
         "devices": {"fixture-router": {"os": "iosxe", "connections": {
             "defaults": {"class": "unicon.Unicon"},
             "cli": {"protocol": "ssh", "ip": "192.0.2.171", "port": 22,
-                "ssh_options": "-F /dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile=" + str(known_hosts)}}}}}
+                "ssh_options": "-F /dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile=" + str(known_hosts)}}}}}
 
 
 @pytest.fixture
@@ -92,6 +92,18 @@ def test_known_host_key_drift_refuses_before_child_creation(source_binding):
     assert launched == []
 
 
+def test_system_known_hosts_cannot_supply_unreviewed_trust(source_binding):
+    runtime, config, _, _, testbed, operation, launched = source_binding
+    document = yaml.safe_load(testbed.read_text())
+    connection = document['devices']['fixture-router']['connections']['cli']
+    connection['ssh_options'] = connection['ssh_options'].replace(' -o GlobalKnownHostsFile=/dev/null', '')
+    testbed.write_text(yaml.safe_dump(document))
+    config['testbed_sha256'] = hashlib.sha256(testbed.read_bytes()).hexdigest()
+    with pytest.raises(runtime.RuntimeRefused, match='reviewed_ssh_policy_changed'):
+        asyncio.run(runtime.invoke_pyats(config, ARGUMENTS, operation))
+    assert launched == []
+
+
 @pytest.mark.parametrize("adapter", ["protected-tool-broker.py", "lib/protected_pyats.py"])
 def test_reviewed_adapter_digest_mismatch_refuses_before_child_creation(source_binding, adapter):
     runtime, config, _, _, _, operation, launched = source_binding
@@ -135,7 +147,7 @@ def test_child_receives_frozen_source_and_testbed_after_originals_change(source_
         materialized = yaml.safe_load(Path(params.env["PYATS_TESTBED_PATH"]).read_bytes())
         expected = yaml.safe_load(original_testbed)
         expected["devices"]["fixture-router"]["connections"]["cli"]["ssh_options"] = (
-            "-F /dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile=" + str(operation / "known_hosts"))
+            "-F /dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile=" + str(operation / "known_hosts"))
         assert materialized == expected
         assert (operation / "known_hosts").read_bytes() == original_keys
         assert Path(params.args[0]) == operation / "adapter" / "protected-tool-broker.py"
@@ -191,6 +203,18 @@ def test_resolved_endpoint_binding_selects_exact_connection(tmp_path):
     server, _, trace, digest = endpoint_fixture()
     result = pyats_module().execute_once(server, ARGUMENTS, logfile=tmp_path / "device.log", endpoint_sha256=digest)
     assert result["execute_calls"] == 1 and trace["connect"][0]["via"] == "cli"
+
+
+def test_resolved_connection_class_uses_identity_not_spoofable_name(monkeypatch):
+    import sys
+    qualified = type('Unicon', (), {'__module__': 'unicon.adapters.topology'})
+    monkeypatch.setitem(sys.modules, 'unicon', SimpleNamespace(Unicon=qualified))
+    _, device, _, _ = endpoint_fixture()
+    device.connections['defaults'] = {'class': qualified}
+    assert pyats_module().endpoint_identity('fixture-router', device)['host'] == '192.0.2.171'
+    device.connections['defaults']['class'] = type('Unicon', (), {'__module__': 'unicon.adapters.topology'})
+    with pytest.raises(pyats_module().ProtectedPyatsRefused, match='connection_class_refused'):
+        pyats_module().endpoint_identity('fixture-router', device)
 
 
 @pytest.mark.parametrize("field,value", [

@@ -1,8 +1,8 @@
 """Opt-in R02 runtime boundaries; no provider/device credentials reach the agent.
 
 The trusted host owns Docker and the stdio MCP child. An isolated agent network
-reaches only an owned relay, which forwards HTTP to this process over a Unix
-socket. The agent never receives the guard credential, Docker socket or testbed.
+reaches only an owned relay, which forwards HTTP to this process's fixed loopback
+listener. The agent never receives the guard credential, Docker socket or testbed.
 """
 import asyncio
 import contextlib
@@ -257,7 +257,7 @@ async def invoke_pyats(config, arguments, operation_root):
     if len(names) != 1:
         raise RuntimeRefused("minimal_connection_required")
     connection = connections[next(iter(names))]
-    prefix = "-F /dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile="
+    prefix = "-F /dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile="
     if connection.get("ssh_options") != prefix + str(known_hosts):
         raise RuntimeRefused("reviewed_ssh_policy_changed")
     connection["ssh_options"] = prefix + str(frozen_keys)

@@ -37,10 +37,13 @@ def endpoint_identity(device_name, device):
     if set(defaults) - {"class"}:
         raise ProtectedPyatsRefused("connection_defaults_refused")
     default_class = defaults.get("class")
-    if default_class is not None and default_class != "unicon.Unicon" and not (
-            getattr(default_class, "__name__", None) == "Unicon"
-            and getattr(default_class, "__module__", None) == "unicon"):
-        raise ProtectedPyatsRefused("connection_class_refused")
+    if default_class is not None and default_class != "unicon.Unicon":
+        try:
+            from unicon import Unicon
+        except ImportError:
+            raise ProtectedPyatsRefused("connection_class_refused") from None
+        if default_class is not Unicon:
+            raise ProtectedPyatsRefused("connection_class_refused")
     names = set(connections) - {"defaults"}
     if len(names) != 1 or not names <= {"cli", "ssh"}:
         raise ProtectedPyatsRefused("ambiguous_connection")
@@ -62,7 +65,7 @@ def endpoint_identity(device_name, device):
                 "host": host, "port": port, "connection": name}
     options = connection.get("ssh_options")
     if options:
-        prefix = "-F /dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile="
+        prefix = "-F /dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile="
         if not isinstance(options, str) or not options.startswith(prefix):
             raise ProtectedPyatsRefused("ssh_routing_options_refused")
         path = Path(options[len(prefix):])
