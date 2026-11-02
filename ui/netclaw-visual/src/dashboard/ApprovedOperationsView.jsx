@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import OwnerSessionGate from './OwnerSessionGate.jsx';
+import RetainedOperationsView from './RetainedOperationsView.jsx';
 import { operationReference } from '../shared/protected-operations-client.js';
 import './protected-operations.css';
 
@@ -95,6 +96,7 @@ function Operations({ api, session, installationId }) {
   </>;
 }
 
-export default function ApprovedOperationsView({ enabled, installationId }) {
-  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <Operations key={installationId + session.principal.subject} api={api} session={session} installationId={installationId}/>}</OwnerSessionGate>;
+export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false }) {
+  const View = retainMultiple ? RetainedOperationsView : Operations;
+  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <View key={installationId + session.principal.subject} api={api} session={session} installationId={installationId}/>}</OwnerSessionGate>;
 }

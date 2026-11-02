@@ -38,7 +38,8 @@ Version projection requires result.verified===true and
 result.evidence.output.tool.parsed===true. Display bounded string fields
 result.evidence.output.tool.output.version.version and .os only when present
 in a plain structured object. Otherwise show unavailable and full receipt.
-A reference is removable only for refused/revoked-before-dispatch or a verified
+A reference is removable only for refused/denied/revoked-before-dispatch (zero
+attempts, may_have_executed=false, no reconciliation and no receipt), or a verified
 terminal receipt with durable ACK and ack_delivery_pending=false. No unknown,
 reconciliation_required, audit_pending or unresolved dispatch may be evicted.
 

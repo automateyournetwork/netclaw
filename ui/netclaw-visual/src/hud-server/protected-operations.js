@@ -65,9 +65,9 @@ export function mountProtectedOperations(app, { installation, config = protected
     const count = req.rawHeaders.filter((_, i) => i % 2 === 0 && req.rawHeaders[i].toLowerCase() === name.toLowerCase()).length;
     return count === 1 && typeof req.headers[name.toLowerCase()] === 'string';
   };
-  const router = express.Router();
+  const router = express.Router({ caseSensitive: config.exactRoutes === true, strict: config.exactRoutes === true });
   router.use((req, res, next) => {
-    res.set({ 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': "frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff' });
+    res.set({ 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': config.contentSecurityPolicy || "frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff' });
     if (!config.enabled) return res.status(404).json({ code: 'protected_operations_disabled', error: 'Protected operations are unavailable.' });
     if (!headerOnce(req, 'X-NetClaw-Installation') || req.headers['x-netclaw-installation'] !== installation.installationId) return res.status(409).json({ code: 'installation_changed', error: 'Reload the selected installation.' });
     const origin = req.headers.origin;

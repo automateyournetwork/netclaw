@@ -11,10 +11,10 @@ const args = { device_name: 'fixture-router', command: 'show version', timeout: 
 const catalog = { revision: 'catalog-1', members: [{ member: { member_id: 'onprem-fixture', key_id: 'member-key', installation_id: ID }, model_profiles: [{ profile_id: 'sonnet-fixture', provider: 'anthropic', model: 'fixture-model' }], tools: [{ tool: 'pyats_run_show_command', arguments: args, device_ref: 'fixture-router' }] }] };
 function operation(nonce, changes = {}) { return { operation_id: 'operation-171', client_nonce: nonce, revision: 1, state: 'review_pending', review_digest: 'd'.repeat(64), attempt_count: 0, may_have_executed: false, reconciliation_required: false, review: { principal, border: { identity: 'fixture-border' }, member: catalog.members[0].member, model_profile: catalog.members[0].model_profiles[0], tool_call: { tool: 'pyats_run_show_command', arguments: args, arguments_sha256: 'a'.repeat(64) }, limits: { expires_at_ms: Date.now() + 600000, max_tool_calls: 1, max_inference_calls: 2 } }, allowed_actions: ['approve', 'deny'], ...changes }; }
 async function until(predicate) { const end = Date.now() + 3000; while (!predicate()) { if (Date.now() > end) assert.fail('UI condition did not become ready'); await new Promise(resolve => setTimeout(resolve, 5)); } }
-async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved } = {}) {
+async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false } = {}) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost:3000', runScripts: 'outside-only', pretendToBeVisual: true }), w = dom.window, calls = [];
-  const props = { enabled, installationId: ID }; let signedIn = authenticated;
-  if (saved) w.sessionStorage.setItem(`netclaw.protected.${ID}.operation`, JSON.stringify(saved));
+  const props = { enabled, installationId: ID, retainMultiple }; let signedIn = authenticated;
+  if (saved) w.sessionStorage.setItem(`netclaw.protected.${ID}.${Array.isArray(saved) ? 'operations.v2' : 'operation'}`, JSON.stringify(saved));
   const session = () => ({ authenticated: true, principal, csrf_token: 'csrf-private-fixture', expires_ms: Date.now() + 3600000, installation_id: ID });
   w.fetch = async (url, options = {}) => {
     const method = options.method || 'GET', body = options.body ? JSON.parse(options.body) : undefined;
@@ -162,4 +162,70 @@ test('foreign operation recovery never displays private response or enables a de
   const f = await setup(t, url => url === '/api/hud/operations/operation-171' ? operation('foreign-nonce', { operation_id: 'foreign-operation' }) : undefined, { saved: { client_nonce: 'saved-nonce', operation_id: 'operation-171' } });
   await until(() => f.body().includes('identity changed'));
   assert.doesNotMatch(f.body(), /Immutable approval review|foreign-operation|member-key/); assert.equal(f.button('Approve once'), undefined);
+});
+
+const devices = ['R1', 'R2', 'SW1', 'SW2'];
+const fourCatalog = { ...catalog, members: [{ ...catalog.members[0], tools: devices.map(device => ({ ...catalog.members[0].tools[0], device_ref: device, arguments: { ...args, device_name: device } })) }] };
+function deviceOperation(nonce, device, number, changes = {}) {
+  const original = operation(nonce);
+  return { ...original, operation_id: `operation-${number}`, review: { ...original.review, tool_call: { ...original.review.tool_call, device_ref: device, arguments: { ...args, device_name: device } } }, ...changes };
+}
+const receipt = (version = '17.18.2') => ({ verified: true, durable_ack: true, ack_delivery_pending: false, digest: 'fixture-digest', evidence: { output: { model_answer: 'not used for facts', tool: { parsed: true, output: { version: { version, os: 'IOS' } } } } } });
+function input(f, selector, value, event = 'input') {
+  const field = f.w.document.querySelector(selector);
+  Object.getOwnPropertyDescriptor((field.tagName === 'SELECT' ? f.w.HTMLSelectElement : f.w.HTMLInputElement).prototype, 'value').set.call(field, value);
+  field.dispatchEvent(new f.w.Event(event, { bubbles: true }));
+}
+test('production four-device reviews remain independent and reload restores all receipts by status only', async t => {
+  const operations = new Map(); let count = 0;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations/catalog') return fourCatalog;
+    if (url === '/api/hud/operations' && options.method === 'POST') { const op = deviceOperation(options.body.client_nonce, options.body.arguments.device_name, ++count); operations.set(op.operation_id, op); return op; }
+    const id = url.split('/')[4], previous = operations.get(id);
+    if (previous && url.endsWith('/decision')) { const done = { ...previous, state: 'completed', may_have_executed: true, attempt_count: 1, allowed_actions: [], result: receipt() }; operations.set(id, done); return done; }
+    if (previous) return previous;
+  }, { retainMultiple: true });
+  await until(() => f.button('Prepare review') && !f.button('Prepare review').disabled);
+  for (let i = 0; i < devices.length; i++) {
+    // Each selector is under a separate label: select by its label text.
+    const select = [...f.w.document.querySelectorAll('label')].find(label => label.textContent.startsWith('Read-only call')).querySelector('select');
+    select.value = String(i); select.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+    await until(() => !f.button('Prepare review').disabled); f.button('Prepare review').click();
+    await until(() => f.button('Approve once') && !f.button('Approve once').disabled);
+    assert.match(f.w.document.querySelector('[aria-label="Immutable operation review"]').textContent, new RegExp(devices[i]));
+    f.button('Approve once').click(); f.button('Approve once').click(); await until(() => f.button('Remove resolved reference'));
+  }
+  assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 4);
+  assert.equal(f.w.document.querySelectorAll('tbody tr').length, 4); assert.match(f.body(), /IOS \/ 17.18.2/);
+  const saved = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`)); assert.equal(saved.length, 4); assert.equal(new Set(saved.map(row => row.client_nonce)).size, 4); assert.ok(saved.every(row => Object.keys(row).sort().join(',') === 'client_nonce,operation_id'));
+  const boundary = f.calls.length; f.w.remount(f.props); await until(() => f.w.document.querySelectorAll('tbody tr').length === 4 && !f.body().includes('Awaiting confirmation'));
+  assert.ok(f.calls.slice(boundary).every(row => row.method === 'GET')); assert.equal(count, 4);
+});
+test('production unknown row stays retained, does not retry, and preserves another device selection', async t => {
+  let current;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations/catalog') return fourCatalog;
+    if (url === '/api/hud/operations' && options.method === 'POST') return current = deviceOperation(options.body.client_nonce, 'R1', 1);
+    if (url.endsWith('/decision')) { current = { ...current, state: 'reconciliation_required', may_have_executed: true, reconciliation_required: true, allowed_actions: ['reconcile'] }; throw Error('lost'); }
+    if (url === '/api/hud/operations/operation-1') return current;
+  }, { retainMultiple: true });
+  await until(() => f.button('Prepare review') && !f.button('Prepare review').disabled); f.button('Prepare review').click(); await until(() => f.button('Approve once') && !f.button('Approve once').disabled); f.button('Approve once').click();
+  await until(() => f.body().includes('nothing was resent')); assert.equal(f.button('Remove resolved reference'), undefined); assert.equal(f.button('Prepare review').disabled, true);
+  const select = [...f.w.document.querySelectorAll('label')].find(label => label.textContent.startsWith('Read-only call')).querySelector('select'); select.value = '1'; select.dispatchEvent(new f.w.Event('change', { bubbles: true })); await until(() => !f.button('Prepare review').disabled);
+  f.w.remount(f.props); await until(() => f.body().includes('reconciliation_required'));
+  assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 1); assert.equal(f.calls.filter(row => row.url === '/api/hud/operations' && row.method === 'POST').length, 1);
+});
+test('production typed-ID recovery is an authenticated status read and rejects a substituted operation', async t => {
+  const f = await setup(t, url => url === '/api/hud/operations/retained-id' ? deviceOperation('retained-nonce', 'R1', 1, { operation_id: 'retained-id', state: 'completed', allowed_actions: [], result: receipt() }) : url === '/api/hud/operations/foreign-id' ? deviceOperation('foreign-nonce', 'R2', 2) : undefined, { retainMultiple: true });
+  await until(() => f.button('Recover existing operation'));
+  input(f, 'input', 'retained-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('retained-id') && f.body().includes('Execution evidence'));
+  assert.equal(f.w.document.querySelectorAll('tbody tr').length, 1); assert.ok(f.calls.every(row => row.method === 'GET'));
+  input(f, 'input', 'foreign-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('identity changed'));
+  assert.equal(f.w.document.querySelectorAll('tbody tr').length, 1); assert.doesNotMatch(f.body(), /foreign-nonce/);
+});
+test('production pending ACK cannot be removed and unverified or malformed parsed fields stay unavailable', async t => {
+  const values = [deviceOperation('n1', 'R1', 1, { state: 'completed', result: { ...receipt(), ack_delivery_pending: true } }), deviceOperation('n2', 'R2', 2, { state: 'completed', result: { ...receipt('invented'), verified: false } })];
+  const f = await setup(t, url => values.find(value => url === '/api/hud/operations/' + value.operation_id), { retainMultiple: true, saved: values.map(({ client_nonce, operation_id }) => ({ client_nonce, operation_id })) });
+  await until(() => f.body().includes('ACK delivery pending')); assert.equal(f.button('Remove resolved reference'), undefined); assert.doesNotMatch(f.body(), /invented/);
+  assert.match(f.w.document.querySelectorAll('tbody tr')[1].textContent, /Unavailable \/ Unavailable/);
 });
