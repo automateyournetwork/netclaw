@@ -56,3 +56,39 @@ one-use attempt record precedes network admission; uncertain outcomes are not
 replayed. Recovery inspects retained local/Border evidence and may finish profile
 preparation without another enrollment. Reconnect uses the existing key/generation.
 This adds no permission for a model/tool/provider/device effect during onboarding.
+
+The native command is `python -I -B scripts/protected-enroll.py --home
+<never-existing-owned-home> enroll --packet <private-json> --token-file
+<private-token-file>`. Packet exact keys are `schemaVersion:1`, `runtime_kind`
+(`openclaw` or `hermes`, metadata only), `member_id`, `border` (the existing full
+Border binding) and `registration` (one schema2/direct_tcp iN2N dial entry).
+Member risk prefix, registration application identity and Border identity must
+match. The helper copies only the validated public transport CA into the new
+home; no credential bundle is copied and no full protected profile is written.
+It writes an installation-bound one-entry registry and constructs the native
+service with a clean environment and protected mode on. R03's required actual
+read qualification remains OpenClaw; accepting Hermes identity metadata here
+does not qualify a Hermes/cloud executor.
+
+`FederationService.enroll_protected_member(registration=..., registry_revision=...,
+border_binding=..., enrollment_token=...)` is trusted-native only. It rejects an
+existing enrollment/anchor/profile, active channels/workers or started runtime.
+An exclusive, fsynced `netclaw-federation/protected-enrollment-attempt.json` records
+`outcome_unknown` before opening transport. The private dial path accepts only
+that in-memory claim and verifies the CA-attested hub key against the approved
+binding before sending the token. Success saves the real generation, closes the
+channel without inventory publication and completes the receipt. Every existing
+attempt is permanently spent, including transport/receipt failures.
+Protected normal dialing refuses a token outside this native claim; normal
+pinned-key hello and legacy unprotected enrollment retain their existing behavior.
+Enrollment packet/attempt markers also require protected mode before the complete
+profile exists, preventing accidental legacy startup after partial onboarding.
+
+`python -I -B scripts/protected-enroll.py --home <home> status` reads local
+installation, claim, public self certificate and retained generation only. It
+never initializes a home, connects, retries, rewrites a receipt or promotes an
+unknown result to success. If the generation was saved before a later failure,
+status reports it while retaining `outcome_unknown`; operator review of local and
+Border evidence may then support explicit profile completion. If the reply was
+lost before saving a generation, obtain the Border's retained evidence through
+the reviewed private administration path. Neither case permits reenrollment.

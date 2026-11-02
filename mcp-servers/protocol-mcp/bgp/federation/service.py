@@ -79,7 +79,11 @@ class FederationService:
         self.execution_broker = None
         self.protected_operations = None
         self.protected_enabled = os.environ.get('N2N_PROTECTED_OPERATIONS', '') == '1'
-        if (self.runtime.state / 'protected-profile.json').exists() and not self.protected_enabled:
+        self._protected_from_construction = self.protected_enabled
+        protected_markers = ('protected-profile.json', 'enrollment-packet.json',
+                             'protected-enrollment-attempt.json')
+        if any((self.runtime.state / name).exists() or (self.runtime.state / name).is_symlink()
+               for name in protected_markers) and not self.protected_enabled:
             # An owned protected installation cannot fall back to legacy execution
             # because a service environment lost its opt-in flag on restart.
             raise ValueError('protected profile requires N2N_PROTECTED_OPERATIONS=1')
@@ -2536,14 +2540,121 @@ class FederationService:
 
     # ---- Member side: dial the Border + run delegated work ------------
 
+    async def enroll_protected_member(self, *, registration, registry_revision,
+                                      border_binding, enrollment_token):
+        """One-use trusted-native onboarding; never a peer/HUD/executor route.
+
+        No runtime is started and legacy handlers already refuse. A durable
+        unknown-outcome claim precedes even opening the transport. If the Border
+        consumes a token but its reply is lost, inspect both retained authorities;
+        neither this API nor the native CLI retries or reenrolls that home.
+        """
+        import hashlib
+        import re
+        import stat
+        import time
+        import uuid
+        from .endpoint_registry import validate_entry
+        from .protected_contract import decode, encode, key_id, require, validate_binding
+        from .protected_owner import private_directory, private_file, write_private
+        from pathlib import Path
+        registration = decode(encode(registration))
+        border_binding = decode(encode(border_binding))
+        validate_entry(registration, 2)
+        validate_binding(border_binding, 'border')
+        require(self.protected_enabled and self._protected_from_construction and self.risk.role() == 'member'
+                and self.runtime.installation and self.runtime.kind in ('openclaw', 'hermes'),
+                'protected_fresh_member_required', 403)
+        self.runtime.fence()
+        require(Path(self.manager.base_dir).resolve() == self.runtime.base,
+                'enrollment_installation_state_mismatch', 403)
+        require(not self.protected_operations and not self.execution_broker
+                and not self.hermes_runtime and not self.border_channel
+                and not self.member_channels and not self.channels
+                and not self.tasks._workers
+                and not getattr(self, '_in2n_server', None)
+                and not getattr(self, '_public_ncfed_server', None)
+                and not getattr(self, '_protected_enrollment_attempt', None),
+                'enrollment_runtime_active', 403)
+        profile = self.runtime.state / 'protected-profile.json'
+        require(not profile.exists() and not profile.is_symlink()
+                and self.risk.protected_enrollment() is None
+                and not self.risk.risk_anchor(), 'fresh_enrollment_only', 409)
+        member_id = self.risk.self_member_id()
+        require(isinstance(member_id, str)
+                and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]{0,127}', member_id)
+                and member_id.split('/', 1)[0] == self.risk.get_risk().get('risk_name')
+                and registration['direction'] == 'dial' and registration['service'] == 'in2n'
+                and registration['transport'] == 'direct_tcp'
+                and registration['application_identity'] == border_binding['identity']
+                == member_id.split('/', 1)[0] + '/border', 'enrollment_binding_mismatch', 403)
+        require(type(registry_revision) is int and 0 < registry_revision <= 2**53 - 1,
+                'enrollment_registry_revision_required')
+        require(isinstance(enrollment_token, str)
+                and re.fullmatch(r'in2n_[A-Za-z0-9_-]{32}', enrollment_token) is not None,
+                'enrollment_token_required')
+        # Validate the approved local transport trust before committing an attempt.
+        ca = Path(registration['ca_file'])
+        require(ca.absolute() == ca.resolve(), 'unsafe_enrollment_ca', 403)
+        ca_sha256 = hashlib.sha256(private_file(ca, 65536)).hexdigest()
+        cert = self.risk.self_cert_pem()
+        attempt = {'schemaVersion': 1, 'attempt_id': str(uuid.uuid4()),
+                   'state': 'outcome_unknown', 'started_at_ms': int(time.time() * 1000),
+                   'installation_id': self.runtime.installation, 'member_id': member_id,
+                   'member_key_id': key_id(cert), 'border': border_binding,
+                   'registration_sha256': hashlib.sha256(encode(registration)).hexdigest(),
+                   'registry_revision': registry_revision, 'transport_ca_sha256': ca_sha256,
+                   'enrollment_generation': None}
+        path = self.runtime.state / 'protected-enrollment-attempt.json'
+        private_directory(path.parent)
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        except FileExistsError:
+            require(False, 'enrollment_attempt_already_spent', 409)
+        # A failed/partial write still reserves this home. No network before both
+        # file and directory fsync, and no external wait while holding a DB lock.
+        with os.fdopen(fd, 'wb') as stream:
+            require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), 'unsafe_enrollment_attempt')
+            stream.write(encode(attempt)); stream.flush(); os.fsync(stream.fileno())
+        directory = os.open(path.parent, os.O_RDONLY)
+        try: os.fsync(directory)
+        finally: os.close(directory)
+        self._protected_enrollment_attempt = attempt
+        try:
+            await self.dial_border(registration['routing_host'], registration['routing_port'],
+                enrollment_token=enrollment_token, registration=registration,
+                registry_revision=registry_revision, _enrollment_only=attempt)
+            enrolled = self.risk.protected_enrollment()
+            require(enrolled is not None, 'enrollment_generation_unavailable', 503)
+            # Never upgrade a different/tampered attempt to a successful receipt.
+            require(decode(private_file(path)) == attempt, 'enrollment_attempt_changed', 409)
+            completed = dict(attempt, state='enrolled', finished_at_ms=int(time.time() * 1000),
+                             enrollment_generation=enrolled['enrollment_generation'])
+            write_private(path, completed)
+            return completed
+        finally:
+            self._protected_enrollment_attempt = None
+
     async def dial_border(self, host: str, port: int, enrollment_token: str = "",
                           ssl_context=None, *, server_hostname=None, registration=None,
-                          registry_revision=None):
+                          registry_revision=None, _enrollment_only=None):
         """Member side: connect outbound to the Border, complete the handshake
         (enroll if we have a token, else hello with pinned-key proof), and stay
         available for delegated tasks. No inbound port is opened (FR-006/SC-011)."""
         from .internal_channel import InternalChannel, read_border_preamble
         strict = registration is not None
+        if self.protected_enabled and enrollment_token and _enrollment_only is None:
+            from .protected_contract import require
+            require(False, 'protected_native_enrollment_required', 403)
+        if _enrollment_only is not None:
+            import hashlib
+            from .protected_contract import encode, require
+            require(_enrollment_only is getattr(self, '_protected_enrollment_attempt', None)
+                    and self.protected_enabled and self.protected_operations is None
+                    and strict and enrollment_token
+                    and _enrollment_only['registration_sha256'] == hashlib.sha256(encode(registration)).hexdigest()
+                    and _enrollment_only['registry_revision'] == registry_revision,
+                    'native_enrollment_claim_required', 403)
         if strict:
             from .endpoint_registry import validate_entry
             from .exporter_tls import open_connection
@@ -2569,13 +2680,12 @@ class FederationService:
         from .internal_security import channel_binding
         try:
             binding = channel_binding(writer, strict=strict)
-        except ValueError:
+            nonce = await read_border_preamble(reader)
+            if nonce is None:
+                raise RuntimeError("bad iN2N preamble from Border")
+        except BaseException:
             writer.close()
             raise
-        nonce = await read_border_preamble(reader)
-        if nonce is None:
-            writer.close()
-            raise RuntimeError("bad iN2N preamble from Border")
         ch = InternalChannel(reader, writer, local_identity=self.local_identity,
                              member_id=self.risk.self_member_id(), is_border_side=False,
                              handlers=self._in2n_member_handlers, nonce=nonce)
@@ -2604,6 +2714,11 @@ class FederationService:
                                                        member_nonce + binding,
                                                        registration['application_identity'].removesuffix('/border')):
                     raise RuntimeError('strict Border application identity refused before enrollment')
+                if _enrollment_only is not None:
+                    from .protected_contract import key_id, require
+                    hub = (attested.get('hub_attestation') or {}).get('hub_cert')
+                    require(hub and key_id(hub) == _enrollment_only['border']['key_id'],
+                            'protected_border_binding_refused', 403)
             if enrollment_token:
                 resp = await admission_call("in2n/enroll", {**profile,
                     "token": enrollment_token, "member_id": member_id,
@@ -2631,12 +2746,26 @@ class FederationService:
                     writer.close()
                     raise RuntimeError("iN2N hub attestation failed — refusing to trust Border")
                 logger.info("iN2N: verified hub attestation for %s", risk_name)
+            if _enrollment_only is not None:
+                from .protected_contract import key_id, require, validate_binding
+                hub = (resp.get('hub_attestation') or {}).get('hub_cert')
+                require(hub and key_id(hub) == _enrollment_only['border']['key_id'],
+                        'protected_border_binding_refused', 403)
+                validate_binding({'installation_id': self.runtime.installation,
+                    'member_id': member_id, 'key_id': _enrollment_only['member_key_id'],
+                    'enrollment_generation': resp.get('enrollment_generation')}, 'member')
             if enrollment_token and anchor and not self.risk.risk_anchor():
                 self.risk.store_risk_anchor(anchor)
             if enrollment_token and resp.get('enrollment_generation'):
                 self.risk.store_protected_enrollment({'member_id': member_id,
                     'installation_id': self.runtime.installation,
                     'enrollment_generation': resp['enrollment_generation']})
+            if _enrollment_only is not None:
+                # Do not publish inventory or leave an executable member channel.
+                # Full protected profile construction is a later native step.
+                await ch.close()
+                self.observe_transport(registration['id'], registry_revision, 'closed')
+                return resp
             if self.protected_enabled:
                 from .protected_contract import require, key_id
                 from .protected_owner import private_file
