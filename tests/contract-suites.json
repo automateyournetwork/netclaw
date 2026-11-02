@@ -554,14 +554,17 @@
         ],
         "packages": [
           "pytest>=8,<9",
-          "cryptography>=43,<45",
-          "chromadb>=0.5,<2"
+          "chromadb>=0.5,<2",
+          "pytest-asyncio>=0.24,<2"
         ],
         "required_imports": [
           "pytest",
           "websockets",
           "cryptography",
-          "chromadb"
+          "chromadb",
+          "OpenSSL",
+          "service_identity",
+          "pytest_asyncio"
         ],
         "prepend_path": true
       },
