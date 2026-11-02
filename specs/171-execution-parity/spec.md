@@ -2,7 +2,7 @@
 
 **Feature Branch**: `171-execution-parity`
 **Created**: 2026-11-02
-**Status**: Specified; architecture and implementation planning in progress
+**Status**: Implementation pass 1; independent design gate passed
 **Roadmap**: R02 — execution parity on NetClaw production mode
 **Input**: Owner directs R02–R05 to complete with independent parallel agents and at most five implementation-loop iterations, retaining the roadmap release hold and human acceptance/cloud-resource gates.
 
@@ -225,3 +225,12 @@ relevant regression suites and show the new protected path in fresh local homes.
 - The full-roadmap release/rollout hold remains. This instruction authorizes
   progression through R02–R05, subject to the existing human acceptance gates and
   exact cloud resource/spend review; it does not start later roadmap features.
+
+## Owner clarification — harness coverage
+
+On 2026-11-02 the owner explicitly added Hermes to R02 testing. Qualify both
+OpenClaw and Hermes through the same signed operation, exact tool gate, isolated
+credential boundary and no-replay recovery contract. Each has a separately pinned
+image/runtime profile and actual acceptance row. A passing OpenClaw result does
+not qualify Hermes, and synthetic fixture results do not qualify a live provider
+or device. Broader model/provider/platform support remains evidence-specific.

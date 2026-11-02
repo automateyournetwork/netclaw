@@ -1,0 +1,9 @@
+# Private build context contains git archive of the compatibility manifest pin.
+FROM python:3.14.6-slim-bookworm
+COPY hermes.tar /tmp/hermes.tar
+COPY hermes-hud-agent-constraints.txt /opt/constraints.txt
+RUN mkdir /opt/hermes && tar xf /tmp/hermes.tar -C /opt/hermes && rm /tmp/hermes.tar \
+    && pip install --no-cache-dir -c /opt/constraints.txt -e '/opt/hermes[mcp,anthropic]'
+COPY protected-hermes.py /opt/netclaw/protected-hermes.py
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+ENTRYPOINT ["python", "-I", "/opt/netclaw/protected-hermes.py"]

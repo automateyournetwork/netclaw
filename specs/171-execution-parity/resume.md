@@ -26,3 +26,14 @@ test files/review. Separate worktrees prevent overlapping edits.
 The installed Ralph plugin uses Claude Code stop hooks; no native Codex start
 interface is exposed. Use explicitly counted implementation/test/review passes,
 not fabricated hook records. Pass 1 starts now; maximum five across R02–R05.
+
+Checkpoint progress: design3551cd6a, HUD cherry-pick1c11ac2d froma57db7be.
+Root runtime implements isolated OpenClaw/Hermes, fixed relay, durable inference
+limits and execute-once pyATS. Both actual harnesses passed synthetic2model/1tool
+sequences; no real provider/device acceptance yet. Independent suite154passed
+against sibling protocol and root runtime; verifier commit73a2335d ready.
+Official guard startup/retry qualification is delegated to r02_hud in private
+guard-qualification. Protocol agent preparing commit. Three worktrees under the
+private root. Runtime profile requires sandbox_address_pool198.18.0.0/15 because
+Docker default subnet pools are exhausted; no existing networks removed.
+Hermes explicit scope addition is recorded in spec.md.

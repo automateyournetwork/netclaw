@@ -1,0 +1,5 @@
+# Resolve and record the resulting immutable image ID before qualification.
+FROM node:24.19.0-bookworm-slim
+RUN npm install --global --omit=dev openclaw@2026.7.1-2 && npm cache clean --force
+ENV NODE_ENV=production
+ENTRYPOINT ["openclaw"]
