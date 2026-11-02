@@ -25,6 +25,13 @@ export const GUIDES = {
 };
 export const list = value => Array.isArray(value) ? value : [];
 export const text = (value, fallback = 'Not recorded') => typeof value === 'string' && value.trim() ? value : typeof value === 'number' && Number.isFinite(value) ? String(value) : fallback;
+export function protectedWorkspace(runtime) {
+  if (runtime?.capabilities?.protectedProfile !== true) return null;
+  const role = runtime.role === 'border' ? 'Border' : runtime.role === 'member' ? 'Member' : 'Protected role unverified';
+  return { name: text(runtime.label, 'Protected NetClaw'), role,
+    status: runtime.role === 'border' && runtime.capabilities.protectedOperations === true && runtime.readiness?.ready === true
+      ? 'Approval workspace configured' : 'Approval workspace unavailable' };
+}
 export function age(value, now = Date.now()) {
   const time = typeof value === 'number' ? (value < 1e12 ? value * 1000 : value) : Date.parse(value);
   if (!Number.isFinite(time)) return 'Time unknown';

@@ -105,6 +105,19 @@ test('all authority mutations reject CSRF, cross-site, duplicate cookies, unknow
   assert.equal(count(), 1);
 });
 
+test('only a prepare refusal before the bridge marks a draft safe to discard', async t => {
+  const f = await fixture(t);
+  const local = await f.request('/api/hud/operations', 'POST', { ...CANDIDATE, unexpected: true });
+  assert.equal(local.status, 400); assert.equal((await local.json()).admission, 'not_submitted');
+  assert.equal(f.calls.some(call => call.method === 'prepare'), false);
+  f.state.hook = () => { throw new ProtectedError('invalid_argument', 400); };
+  const forwarded = await f.request('/api/hud/operations', 'POST', CANDIDATE);
+  assert.equal(forwarded.status, 400); assert.equal((await forwarded.json()).admission, undefined);
+  assert.equal(f.calls.filter(call => call.method === 'prepare').length, 1);
+  const status = await f.request('/api/hud/operations?client_nonce=bad/nonce');
+  assert.equal(status.status, 400); assert.equal((await status.json()).admission, undefined);
+});
+
 test('fixed routes carry derived identity and no arbitrary method/tool/authority proxy', async t => {
   const f = await fixture(t);
   assert.equal((await f.request('/api/hud/operations/fixture-operation/decision', 'POST', { revision: 1, review_digest: 'd'.repeat(64), decision: 'approve' })).status, 200);

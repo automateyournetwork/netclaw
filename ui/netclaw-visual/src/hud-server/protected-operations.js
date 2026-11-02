@@ -48,6 +48,7 @@ export function selectedEnvironmentFiles(installation, rootEnvironment, protecte
 }
 
 export function mountProtectedOperations(app, { installation, config = protectedHudConfig(), client = createProtectedClient(installation), now = Date.now } = {}) {
+  const prepareForwarded = Symbol('prepareForwarded');
   const cookieName = `${config.secure ? '__Host-' : ''}nc_owner_${installation.installationId}`;
   const cookiePairs = req => {
     const pairs = String(req.headers.cookie || '').split(';').map(row => row.trim()).filter(Boolean);
@@ -118,6 +119,9 @@ export function mountProtectedOperations(app, { installation, config = protected
   }));
   const operation = (method, parameters) => wrap(async (req, res) => {
     const params = parameters(req), auth = await authenticate(req);
+    // Once the bridge is called, even an error may follow durable admission.
+    // Only this process's refusal before that boundary permits draft discard.
+    if (method === 'prepare') req[prepareForwarded] = true;
     const result = await client.call(method, { ...params, auth_context: auth.auth_context });
     await session(auth.raw); // Revoked/expired sessions cannot receive late private output.
     res.json(result);
@@ -144,10 +148,11 @@ export function mountProtectedOperations(app, { installation, config = protected
     const id = operationId(req); if (!exact(req.body, [])) throw new ProtectedError('invalid_argument', 400); return id;
   }));
   router.use((_req, res) => res.status(404).json({ code: 'protected_route_unavailable', error: 'The protected route is unavailable.' }));
-  router.use((error, _req, res, _next) => {
+  router.use((error, req, res, _next) => {
     const status = error?.type === 'entity.too.large' ? 413 : error instanceof ProtectedError ? error.status : 503;
     const code = error?.type === 'entity.too.large' ? 'payload_too_large' : error instanceof ProtectedError ? error.code : 'protected_operations_unavailable';
-    res.status(status).json({ code, error: status === 401 ? 'Owner session expired or is unavailable. Sign in again.' : status === 503 ? 'Status is unavailable. The operation may have been accepted; check the same operation before continuing.' : 'The protected request was refused.' });
+    const notSubmitted = req.method === 'POST' && req.path === OPERATIONS && !req[prepareForwarded];
+    res.status(status).json({ code, ...(notSubmitted ? { admission: 'not_submitted' } : {}), error: status === 401 ? 'Owner session expired or is unavailable. Sign in again.' : status === 503 ? 'Status is unavailable. The operation may have been accepted; check the same operation before continuing.' : 'The protected request was refused.' });
   });
   // Must precede express.json and the legacy conversation cookie rewrite.
   app.use((req, res, next) => req.path === SESSION || req.path === OPERATIONS || req.path.startsWith(OPERATIONS + '/') ? router(req, res, next) : next());

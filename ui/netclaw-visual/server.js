@@ -139,12 +139,20 @@ app.use((req,_res,next) => {
 });
 const hermesRuntime = installation.kind === 'hermes' ? createHermesRuntime(installation, ROOT) : null;
 app.get('/api/runtime', async (_req, res) => {
-  if (protectedProfile) return res.set('Cache-Control', 'no-store').json({ kind: installation.kind,
-    installationId: installation.installationId, label: 'Protected Border',
+  if (protectedProfile) {
+    let role = 'unknown';
+    try {
+      const profile = JSON.parse(readText(path.join(installation.home, 'netclaw-federation/protected-profile.json')));
+      if (profile.identity?.installation_id === installation.installationId && ['border', 'member'].includes(profile.role)) role = profile.role;
+    } catch { /* An unbound or missing profile is not a verified role. */ }
+    return res.set('Cache-Control', 'no-store').json({ kind: installation.kind,
+    installationId: installation.installationId, role,
+    label: role === 'border' ? 'Protected Border' : role === 'member' ? 'Protected Member' : 'Protected NetClaw',
     readiness: { ready: protectedOperations.enabled, executionVerified: false },
     capabilities: { protectedProfile: true, protectedOperations: protectedOperations.enabled,
       convergence: false, attachments: false, modelSelection: false, effort: false,
       federation: true, hostedAvatar: false, writes: false } });
+  }
   let readiness = { ready: false, code: 'runtime_stopped' };
   if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
   else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };

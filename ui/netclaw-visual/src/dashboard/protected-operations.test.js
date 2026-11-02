@@ -94,9 +94,52 @@ test('lost prepare is recovered by original nonce; authority is never recreated 
     if (url.startsWith('/api/hud/operations?client_nonce=')) { assert.equal(decodeURIComponent(url.split('=')[1]), current.client_nonce); return current; }
   });
   await until(() => f.button('Prepare review')); f.button('Prepare review').click(); await until(() => f.body().includes('nothing was resent'));
-  assert.equal(f.button('Prepare review'), undefined); f.w.remount(f.props);
+  assert.equal(f.button('Prepare review'), undefined); assert.equal(f.button('Discard rejected review'), undefined); f.w.remount(f.props);
   await until(() => f.body().includes('operation-171'));
   assert.equal(f.calls.filter(call => call.url === '/api/hud/operations' && call.method === 'POST').length, 1);
+});
+
+test('confirmed pre-admission refusal requires explicit discard and a fresh prepare nonce', async t => {
+  let submissions = 0;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations' && options.method === 'POST') {
+      if (++submissions === 1) return { status: 400, code: 'invalid_argument', admission: 'not_submitted' };
+      return operation(options.body.client_nonce);
+    }
+  });
+  await until(() => f.button('Prepare review')); f.button('Prepare review').click();
+  await until(() => f.button('Discard rejected review') && !f.button('Discard rejected review').disabled);
+  assert.match(f.body(), /rejected before submission/); assert.doesNotMatch(f.body(), /may have been accepted/);
+  assert.equal(f.w.sessionStorage.length, 0); assert.equal(submissions, 1);
+  assert.equal(f.button('Check status'), undefined); assert.equal(f.button('Approve once'), undefined);
+  f.button('Discard rejected review').click(); await until(() => f.button('Prepare review') && !f.button('Prepare review').disabled);
+  assert.equal(submissions, 1); f.button('Prepare review').click(); await until(() => f.button('Approve once'));
+  const requests = f.calls.filter(call => call.method === 'POST' && call.url === '/api/hud/operations');
+  assert.equal(requests.length, 2); assert.notEqual(requests[0].body.client_nonce, requests[1].body.client_nonce);
+  assert.equal(f.calls.filter(call => call.url.endsWith('/decision')).length, 0);
+});
+
+test('reload after a confirmed unsubmitted draft does not strand its nonce or resubmit', async t => {
+  const f = await setup(t, (url, options) => url === '/api/hud/operations' && options.method === 'POST'
+    ? { status: 400, code: 'invalid_argument', admission: 'not_submitted' } : undefined);
+  await until(() => f.button('Prepare review')); f.button('Prepare review').click();
+  await until(() => f.button('Discard rejected review')); f.w.remount(f.props);
+  await until(() => f.button('Prepare review'));
+  assert.equal(f.w.sessionStorage.length, 0);
+  assert.equal(f.calls.filter(call => call.method === 'POST' && call.url === '/api/hud/operations').length, 1);
+});
+
+for (const status of [400, 409, 503]) test(`prepare HTTP${status} without pre-admission proof preserves recovery identity`, async t => {
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations' && options.method === 'POST') return { status, code: 'fixture_refusal' };
+    if (url.startsWith('/api/hud/operations?client_nonce=')) return { status: 404, admission: 'not_submitted' };
+  });
+  await until(() => f.button('Prepare review')); f.button('Prepare review').click();
+  await until(() => f.button('Check status') && !f.button('Check status').disabled);
+  assert.equal(f.button('Discard rejected review'), undefined); assert.equal(f.w.sessionStorage.length, 1);
+  f.button('Check status').click(); await until(() => f.body().includes('No owned operation'));
+  assert.equal(f.button('Discard rejected review'), undefined); assert.equal(f.w.sessionStorage.length, 1);
+  assert.equal(f.calls.filter(call => call.method === 'POST' && call.url === '/api/hud/operations').length, 1);
 });
 
 test('receipt verification and durable ACK remain distinct and evidence is escaped', async t => {

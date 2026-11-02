@@ -9,6 +9,7 @@ function Operations({ api, session, installationId }) {
   const references = useMemo(() => operationReference(installationId), [installationId]);
   const [catalog, setCatalog] = useState(null), [memberIndex, setMemberIndex] = useState(0), [profileIndex, setProfileIndex] = useState(0), [toolIndex, setToolIndex] = useState(0);
   const [reference, setReference] = useState(() => references.read()), [operation, setOperation] = useState(null), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState('');
+  const [rejectedDraft, setRejectedDraft] = useState(false);
   const lock = useRef(false), alive = useRef(true), referenceRef = useRef(reference);
   const [clock, setClock] = useState(Date.now);
   useEffect(() => {
@@ -20,7 +21,7 @@ function Operations({ api, session, installationId }) {
   const retain = value => {
     const expected = referenceRef.current;
     if (!value || typeof value.operation_id !== 'string' || typeof value.client_nonce !== 'string' || expected?.operation_id && expected.operation_id !== value.operation_id || expected?.client_nonce && expected.client_nonce !== value.client_nonce) throw Error('Operation identity changed. Nothing was resent.');
-    references.write(value); referenceRef.current = { operation_id: value.operation_id, client_nonce: value.client_nonce }; setReference(referenceRef.current); setOperation(value); setUncertain(false);
+    references.write(value); referenceRef.current = { operation_id: value.operation_id, client_nonce: value.client_nonce }; setReference(referenceRef.current); setOperation(value); setUncertain(false); setRejectedDraft(false);
   };
   useEffect(() => {
     alive.current = true;
@@ -29,11 +30,18 @@ function Operations({ api, session, installationId }) {
     if (saved) { setBusy(true); setUncertain(true); api.status(saved).then(value => { if (alive.current) retain(value); }).catch(failure => { if (alive.current) setError(failure.message); }).finally(() => { if (alive.current) setBusy(false); }); }
     return () => { alive.current = false; };
   }, [api, references]);
-  const run = async (action, mutating = false) => {
+  const run = async (action, mutating = false, preparing = false) => {
     if (lock.current) return; lock.current = true; setBusy(true); setError('');
     if (mutating) setUncertain(true);
     try { const value = await action(); if (alive.current) retain(value); }
-    catch (failure) { if (alive.current) { setError(failure.message); setUncertain(true); } }
+    catch (failure) {
+      const notSubmitted = preparing && failure.prepareNotSubmitted === true && !referenceRef.current?.operation_id;
+      // A confirmed local refusal never reached admission. Do not strand its
+      // nonce after reload or session loss; the next preparation still needs an
+      // explicit user action and gets a fresh nonce. Unknown replies keep it.
+      if (notSubmitted) { try { references.clear(); } catch { /* Explicit discard will retry storage cleanup. */ } }
+      if (alive.current) { setError(failure.message); setUncertain(!notSubmitted); setRejectedDraft(notSubmitted); }
+    }
     finally { lock.current = false; if (alive.current) setBusy(false); }
   };
   const members = catalog?.members || [], selected = members[memberIndex], profile = selected?.model_profiles?.[profileIndex], tool = selected?.tools?.[toolIndex];
@@ -43,7 +51,14 @@ function Operations({ api, session, installationId }) {
     // Persist identity BEFORE I/O. Never persist the reviewed authority or credentials.
     try { references.write({ client_nonce }); } catch { setError('Private operation identity could not be saved. Nothing was submitted.'); return; }
     referenceRef.current = { client_nonce }; setReference(referenceRef.current);
-    run(() => api.prepare({ client_nonce, catalog_revision: catalog.revision, member_id: selected.member.member_id, model_profile_id: profile.profile_id, tool: tool.tool, arguments: tool.arguments }), true);
+    run(() => api.prepare({ client_nonce, catalog_revision: catalog.revision, member_id: selected.member.member_id, model_profile_id: profile.profile_id, tool: tool.tool, arguments: tool.arguments }), true, true);
+  };
+  const discardRejected = () => {
+    if (!rejectedDraft || busy || referenceRef.current?.operation_id) return;
+    try { references.clear(); } catch { setError('The rejected draft could not be cleared. Nothing was submitted.'); return; }
+    referenceRef.current = null; setReference(null); setOperation(null); setRejectedDraft(false); setUncertain(false); setError('');
+    setCatalog(null); setMemberIndex(0); setProfileIndex(0); setToolIndex(0);
+    api.catalog().then(value => { if (alive.current) setCatalog(value); }).catch(failure => { if (alive.current) setError(failure.message); });
   };
   const actions = !uncertain && !busy ? operation?.allowed_actions || [] : [];
   const review = operation?.review;
@@ -60,11 +75,12 @@ function Operations({ api, session, installationId }) {
         <button className="primary" disabled={busy || !tool || !profile} onClick={prepare}>Prepare review</button>
       </div>}
     </section>}
-    {reference && <section className="panel"><h2>Operation {operation?.state || 'awaiting confirmation'}</h2><dl className="facts"><div><dt>Operation</dt><dd>{reference.operation_id || 'Recovering from client nonce'}</dd></div><div><dt>Client nonce</dt><dd>{reference.client_nonce}</dd></div><div><dt>Recorded attempts</dt><dd>{operation?.attempt_count ?? 'Not confirmed'}</dd></div></dl>
+    {reference && <section className="panel"><h2>Operation {rejectedDraft ? 'not submitted' : operation?.state || 'awaiting confirmation'}</h2><dl className="facts"><div><dt>Operation</dt><dd>{reference.operation_id || (rejectedDraft ? 'No operation submitted' : 'Recovering from client nonce')}</dd></div><div><dt>Client nonce</dt><dd>{reference.client_nonce}</dd></div><div><dt>Recorded attempts</dt><dd>{rejectedDraft ? 0 : operation?.attempt_count ?? 'Not confirmed'}</dd></div></dl>
+      {rejectedDraft && <><p role="status">This review was rejected before submission. Discard the draft to choose again; nothing will be retried automatically.</p><button disabled={busy} onClick={discardRejected}>Discard rejected review</button></>}
       {(uncertain || operation?.reconciliation_required || operation?.may_have_executed && !terminal.has(operation.state)) && <p role="status">The operation may have been accepted or executed. Check this same operation; no approval, model call or tool call will be automatically repeated.</p>}
-      <div className="protected-actions"><button disabled={busy} onClick={() => run(() => api.status(reference))}>{busy ? 'Checking…' : 'Check status'}</button>
+      {!rejectedDraft && <div className="protected-actions"><button disabled={busy} onClick={() => run(() => api.status(reference))}>{busy ? 'Checking…' : 'Check status'}</button>
         {reference.operation_id && <button disabled={busy} onClick={() => run(() => api.reconcile(reference.operation_id))}>Reconcile existing operation</button>}
-      </div>
+      </div>}
       {review && <><h3>Immutable approval review</h3><p>Review the complete principal, member identity, model profile, tool arguments and limits before approving once.</p><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Signed-in owner</dt><dd>{session.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{new Date(review.limits.expires_at_ms).toISOString()}</dd></div></dl><pre aria-label="Immutable operation review">{json(review)}</pre>
         {!reviewCurrent && <p>This review has expired. It cannot authorize execution.</p>}
         <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={!actions.includes(decision) || decision === 'approve' && !reviewCurrent} onClick={() => run(() => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true)}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}
