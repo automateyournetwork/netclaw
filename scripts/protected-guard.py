@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Run one official DefenseClaw process behind a durable operation provider fence.
 
-Only the guard runner reads guard.env. The official child receives a non-secret
-upstream sentinel; the real Anthropic credential stays in this proxy process.
+The runner loads guard.env and passes a non-secret upstream sentinel to the
+official child. The provider key is absent from the child environment; these
+trusted guard processes share a UID and the private filesystem. The unauthenticated
+loopback proxy requires the dedicated guard-container network namespace.
 """
 import argparse
 import asyncio
