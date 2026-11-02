@@ -1,4 +1,5 @@
 import { chatTimeouts } from './src/hud-server/chat-transport.js';
+import { protectedDocumentHeaders } from './src/hud-server/protected-operations.js';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
@@ -12,8 +13,8 @@ const host = hudHost();
 const allowed = createLocalAccess(ports, { host, allowRemote: true });
 const localOnly = () => ({
   name: 'netclaw-local-access',
-  configureServer(server) { guardHudServer(server, allowed); },
-  configurePreviewServer(server) { guardHudServer(server, allowed); },
+  configureServer(server) { guardHudServer(server, allowed); server.middlewares.use(protectedDocumentHeaders(process.env.N2N_PROTECTED_OPERATIONS === '1')); },
+  configurePreviewServer(server) { guardHudServer(server, allowed); server.middlewares.use(protectedDocumentHeaders(process.env.N2N_PROTECTED_OPERATIONS === '1')); },
 });
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
