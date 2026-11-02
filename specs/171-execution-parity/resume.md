@@ -1,8 +1,9 @@
-# R02–R05 checkpoint — R02 human gate ready
+# R02–R05 checkpoint — R02 complete, R03 next
 
-2026-11-02. Technical R02 acceptance is complete: T001–T035 pass; T036 is pending
-human review of parity-matrix.md and verification.md. The R02 roadmap brief and
-FR016 explicitly gate R03 on that review. Do not infer acceptance from silence.
+2026-11-02. R02 is complete: all36 tasks pass. The owner explicitly answered yes
+to accepting parity-matrix.md and verification.md and beginning R03 planning.
+The R02 roadmap brief/FR016 human gate is satisfied. Exact cloud-resource/spend
+review and the R03/R04/R05 human acceptance gates remain.
 
 Owner scope remains R02–R05 with coordinator plus three parallel agents, separate
 worktrees and at most five optional implementation passes total. Two passes were
@@ -65,8 +66,7 @@ credentials are separate from controller credentials; no trust relaxation.
 
 ## Resume action
 
-Present/resolve the concrete T036 human evidence gate. After acceptance, record
-it and begin the R03 Spec Kit cycle, rechecking the next available spec number.
+Begin the authorized R03 Spec Kit cycle, rechecking the next available spec number.
 R03 is an authenticated control-only GCP Border plus outbound on-prem members
 reading four CML devices; it does not inherit R01's open-lab exception. Later
 R04 is a cloud NetBox/subnet member, R05 cloud/local Ollama, each with its own

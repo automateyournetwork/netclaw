@@ -250,8 +250,9 @@ Spec171 implements R02; R03 cannot begin before its human evidence gate.
 Source8c178ff8 passed both actual protected OpenClaw/Hermes Sonnet reads through
 fresh Mac/Docker members: one R1show-version, zero setup commands, signed results,
 durable ACK, attributable GAIT and no-repeat restart recovery. Independent review
-passes. T001–T035 are complete; T036 human evidence acceptance remains open before
-R03. See specs/171-execution-parity/verification.md, parity-matrix.md and resume.md.
+passes. All36 tasks are complete; the owner accepted T036 on 2026-11-02 and
+authorized R03 planning. Exact cloud-resource/spend review and later human gates
+remain. See specs/171-execution-parity/verification.md, parity-matrix.md and resume.md.
 Two of the five bounded implementation passes were used. The earlier unknown SSH
 operation and authentic reads with an implicit Unicon setup probe remain retained
 with their limitations, never replayed. The corrected native policy is narrowly

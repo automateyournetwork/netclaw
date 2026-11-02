@@ -1,8 +1,8 @@
 # R02 execution parity matrix
 
 Both corrected native harnesses pass exact-command, signed-result, recovery and
-independent security/evidence review. T001–T035 are complete; the human T036 gate
-remains open. The implicit Unicon probe found in the first run was corrected and
+independent security/evidence review. All36 tasks are complete; the owner accepted
+the T036 human gate on 2026-11-02. The implicit Unicon probe found in the first run was corrected and
 fresh full transcripts contain only the approved command. Evidence is detailed in
 [verification.md](verification.md); exact pins and limits are in
 [runtime-review.md](runtime-review.md). These guarantees apply to the selected

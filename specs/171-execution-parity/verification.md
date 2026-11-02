@@ -2,7 +2,7 @@
 
 ## Current status
 
-**Technical acceptance complete: T001–T035 pass; T036 human review is pending.**
+**Complete: all 36 tasks pass; the owner accepted R02 on 2026-11-02.**
 Corrected source `8c178ff8` passed both actual local OpenClaw and Hermes operations
 with guarded Sonnet, one approved `show version`, **zero setup commands**, signed
 results/ACKs and independently checked IOS-XE 17.18.2 output. The authoritative
@@ -11,9 +11,11 @@ root. Original runtime and independent reports both pass; no reconstruction was
 needed for this final run. Earlier authentic runs with an extra implicit Unicon
 read retain that limitation and were not replayed.
 
-The [parity matrix](parity-matrix.md) is ready for human review. The
+The owner accepted the [parity matrix](parity-matrix.md) and this verification,
+responding “yes” to the explicit R02 acceptance/R03 planning question. The
 [R02 roadmap brief](../../docs/roadmap/issue-310/briefs/R02-execution-parity.md)
-requires that review before R03. R03–R05 have not started.
+requires that review before R03; the gate is now satisfied. R03 planning may
+proceed. Its exact cloud-resource/spend review and later human gates remain.
 
 Current automated regression evidence: 311 protected Python tests; 219 relevant
 legacy federation/installer tests; 436 HUD tests with serialized file execution;
@@ -395,8 +397,9 @@ native Hermes hooks or multi-user/SSO/RBAC. Trusted host/Docker and the trusted
 guard process domain remain explicit. Earlier failed/unknown/limited runs are
 preserved; none was silently replayed or rewritten as acceptance.
 
-**T036 remains open:** the human must review this evidence and the completed
-parity matrix before R03, as required by the R02 brief and FR016. No new cloud
+**T036 accepted on 2026-11-02:** the owner explicitly accepted this evidence and
+the completed parity matrix in response to the R02 acceptance/R03 planning
+question, satisfying the R02 brief and FR016. No new cloud
 resources, deployment changes, version bump, release or public rollout material
 were made. The total later GCP lab ceiling remains conservatively CAD100/month,
 including R01; exact resource/spend review is still required.

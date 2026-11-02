@@ -50,4 +50,5 @@ none of the actual credential bytes. Original inventories are unchanged.
 
 Qualification limits in verification.md and parity-matrix.md are part of this
 verdict. This is not cloud, arbitrary provider/plugin/platform, device-write,
-SSO/RBAC or untrusted-host qualification. T036 human acceptance remains open.
+SSO/RBAC or untrusted-host qualification. The owner subsequently accepted T036
+on 2026-11-02; exact cloud-resource review and later roadmap gates remain.

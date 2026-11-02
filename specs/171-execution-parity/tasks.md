@@ -59,7 +59,7 @@ complete acceptance. Shared contracts are authoritative. No release/version bump
 - [x] T033 [US5] Run actual approved refusal/bypass and lost-ACK recovery drills with one real show effect; record evidence in specs/171-execution-parity/verification.md.
 - [x] T034 [US5] Verify existing relevant federation/HUD/installer contracts, HUD build and platform limits in specs/171-execution-parity/verification.md.
 - [x] T035 [US5] Independent final security/evidence review and required fixes in specs/171-execution-parity/analysis.md; no self-certified fixture-only completion.
-- [ ] T036 [US5] Complete parity matrix and human R02 evidence gate in specs/171-execution-parity/verification.md before R03 begins.
+- [x] T036 [US5] Complete parity matrix and human R02 evidence gate in specs/171-execution-parity/verification.md before R03 begins. Owner accepted on 2026-11-02.
 
 ## Dependencies and parallel work
 
