@@ -2,8 +2,9 @@
 
 2026-11-02. Owner accepted R02 and requested “drive R03 to100%”. Branch
 `172-gcp-hybrid-border` preserves accepted R02 `96cbdf0f`; upstream main remains
-`5e50bbba`. R03 source lanes are integrated through `aa861ee3`; pass3 private
-activation preparation is active. R03 is not deployed/qualified or human accepted.
+`5e50bbba`. R03 runtime source lanes are integrated through `aa861ee3`; checkpoint
+`fbd41cb1` includes integrated tests/evidence. Pass3 offline activation preparation
+and independent reviews are complete. R03 is not deployed/qualified or human accepted.
 
 GAIT branch `roadmap-r03-20261102`, planning record `2e1daad3`, source checkpoint
 `dff8b808`, integrated-source/lab-correction checkpoint `c253e6e8`. Private evidence:
@@ -50,9 +51,15 @@ public documentation/publication remains held through the whole issue310 roadmap
   archives. Use only `offline-runtime-20261102/artifacts-export`; earlier artifacts
   is a retained incomplete attempt. Fresh network-disabled nonroot verification
   passed. Actual VM package delta/stdlib/networkd/kernel controls remain pending.
-- Private builder, on-prem worker, four-device evidence adapter and cloud bootstrap
-  are being prepared and independently reviewed. They must not invent actual
-  cloud identity/enrollment or execute a local Border as a substitute.
+- Private builder37, worker21, snapshot adapter10 and independent receipt core25
+  tests pass with independent reviews. Actual four host-key inputs validate; no
+  member profile/worker has been activated. See runtime-review.md.
+- Cloud first-create preparation passed actual offline LinuxAMD64 install, replay
+  refusal, no-executor factory, certificate and asset proofs. Preserve intended
+  identity `0d02acd4-4349-45a8-951e-215f91a1174e` in
+  `cloud-runtime-staging/bootstrap-fbd41cb1-final/`; never regenerate or replay
+  initial state over an active home. Its archive contains private keys/owner state.
+  Source archive is frozen at fbd41cb1;994 files,16 assets; no listener/upload.
 
 ## Immediate execution gates
 
@@ -63,7 +70,9 @@ public documentation/publication remains held through the whole issue310 roadmap
 2. Exact foundation plan creates10 resources, changes/deletes0. Private packet:
    `foundation-review-20261102T215532Z/foundation-packet.md`, saved plan SHA256
    `8373323e4f7406fdb94892c74f29ccbcf3710fcf2852c36a78cdcbde4867a3eb`.
-   Fixed STOP2026-11-04T20:55:32Z; regenerate/review if stale. No apply delegated.
+   Fixed STOP2026-11-04T20:55:32Z; regenerate/review if stale. Exact foundation
+   delegation was requested and is pending. Private apply-reviewed.py check passes;
+   do not run apply until delegation AND cost gates are resolved.
 3. After reviewed foundation, read-only actual host preflight determines the exact
    offline package delta and actual kernel/boot/rate/quota checks. Public ingress
    stays closed. Separate exact runtime/source/key/secret/DNS activation follows.
@@ -74,6 +83,6 @@ public documentation/publication remains held through the whole issue310 roadmap
 
 Original worktrees: private root/worktrees/{hud,protocol,cloud}; enrollment worktree
 at worktrees/enrollment is based on5843d6ae. Source is cherry-picked into root.
-Current private lanes: HUD worker/inspector, protocol four-device builder, cloud
-bootstrap/staging helper. Coordinator owns final packet/integration/GAIT. No source
+All three private preparation lanes are complete; no active agent work remains.
+Coordinator owns final actual-state packet/integration/GAIT. No source
 merge/push, version bump, release or public cloud-deployment instructions.

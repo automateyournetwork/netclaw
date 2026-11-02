@@ -9,6 +9,24 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
+## Current execution status — 2026-11-02
+
+The earlier integration/assessment sections below are historical. The owner later
+authorized R02–R05 with a coordinator and three parallel agents, capped optional
+implementation passes at five, and set a hard total GCP lab maximum of $100/month
+(CAD100 conservatively, including R01, pending currency/tax confirmation).
+
+R02 is [Spec171](../../../specs/171-execution-parity/verification.md),36/36 tasks
+and human accepted. R03 is [Spec172](../../../specs/172-gcp-hybrid-border/verification.md):
+source and offline preparation are independently reviewed,19/36 tasks complete,
+but no new cloud deployment or acceptance is claimed. Four actual lab identity/
+endpoint baselines passed; the four protected cloud-dispatched reads remain pending.
+Observed billing/finite total cost, exact resource/runtime delegation, live cloud
+controls/HTTPS/workload/recovery and reviewed teardown are still gates. The R01
+pilot remains running and unchanged; its proposed cost-control pause is not yet
+delegated. R04 waits for human R03 acceptance. Source1.18.3/extension1.5.0 and the
+entire-roadmap release/public rollout hold remain unchanged.
+
 
 ## Roadmap source integration and release hold — 2026-11-02
 

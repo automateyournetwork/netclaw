@@ -4,6 +4,13 @@
 - **Depends on:** R01, R02
 - **Gate:** human review before R04
 
+Current implementation: [Spec172](../../../../specs/172-gcp-hybrid-border/spec.md).
+As of2026-11-02, source/offline preparation is reviewed; actual cloud apply,
+activation, four protected reads, recovery, teardown and acceptance remain open.
+See [verification](../../../../specs/172-gcp-hybrid-border/verification.md) and
+[resume](../../../../specs/172-gcp-hybrid-border/resume.md). This brief's input
+questions do not replace the ratified spec or its exact execution gates.
+
 ## Specify input
 
 Run a NetClaw Border on a GCP VM in one region, with the HUD reachable through a

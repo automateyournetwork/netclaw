@@ -277,5 +277,7 @@ Current billing/total CAD100 gate, exact cloud/runtime delegation, actual GCP
 controls/HTTPS/four protected reads/recovery and reviewed teardown remain open.
 The optional exact R01 stop in Spec172 cost-bound-review.md is awaiting owner
 choice; do not execute it without delegation. Source1.18.3/extension1.5.0 and
-roadmap release hold remain unchanged. Pass3 is active; no automatic Ralph hook.
+roadmap release hold remain unchanged. Pass3 source/offline preparation is complete;
+actual execution remains gated. No automatic Ralph hook. Exact foundation apply
+delegation was requested and is pending; no elapsed time supplies approval.
 See Spec172 verification.md/resume.md and private roadmap-r03-20261102 evidence.

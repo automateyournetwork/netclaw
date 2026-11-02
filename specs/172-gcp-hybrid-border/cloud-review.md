@@ -30,6 +30,19 @@ project-wide role or existing-resource change is in this plan.
 Fixed STOP is `2026-11-04T20:55:32Z`, initially47 hours after generation. A stale
 plan must be regenerated and reviewed. This file supplies no apply delegation.
 
+Exact private runner, **only after owner delegation and cost clearance**:
+
+```sh
+python3 /Users/john.capobianco/.local/share/netclaw/roadmap-r03-20261102/foundation-review-20261102T215532Z/apply-reviewed.py apply
+```
+
+Its inert `check` passed. It verifies saved-plan/tool/source hashes, the fresh
+R03-only backend, unchanged R01 state and at least12 hours remaining; strips
+ambient TF variables; and invokes only that saved plan. A durable attempt marker
+prevents automatic reapplication after an unknown/partial outcome. It has not
+been run in apply mode. Actual state inspection and a new reviewed recovery plan
+are required after a partial failure.
+
 ## Cost and activation gates
 
 Authenticated account CAD prices put the47h new base at approximately CAD1.63

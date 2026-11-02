@@ -17,13 +17,15 @@ No version/release/public cloud rollout is authorized. Human acceptance gatesR04
 | Cloud infrastructure/host source |20 focused tests;53 integrated cloud/role tests plus23 subtests; OpenTofu schema/format, actual Caddy and Ubuntu systemd validation | Not applied; actual GCP quota/boot/rate enforcement pending |
 | Protected enrollment |41 focused tests passed independently;77 focused integrated tests;464 full protected/posture tests | Actual cloud enrollment pending; no executor/legacy bootstrap permitted |
 | Offline LinuxAMD64 dependencies |Fresh network-disabled, non-root extraction accepted immutable venv; real TLS1.3/exporter/SAN checks; Node/Express/Caddy/Git checks pass | Actual GCP package delta, base OS and kernel compatibility pending |
+| First-create cloud staging |Actual offline install/replay refusal/no-executor factory/certificate/asset proofs; independent archive/source audit passes | Prepared identity has never listened or been uploaded; cloud activation pending |
+| Private member/evidence helpers |Builder37, worker21, snapshot adapter10, receipt core25 tests pass; independent reviews complete | Synthetic helper tests and actual host-input validation; no actual protected operation |
 
 Commits: `af0f855e` design; `a7367bca` selector; `ff11d713` HUD;
 `398346e9` control-only role/service/posture; `cb0846f0` and `685032b9` cloud
 source/expiry; `5843d6ae` strict enrollment contract; `aa861ee3` enrollment source.
 Source lanes are integrated; final whole-packet live evidence remains pending.
-Shared implementation pass3 remains
-active; no automatic Ralph hook, two prior passes used byR02.
+Shared implementation pass3 source/preparation is complete; actual activation is
+gated. No automatic Ralph hook, two prior passes used byR02.
 
 Independent review corrected: source/runtime drift across an awaited effect
 permission; whole private-profile edits including Border binding; untrusted
@@ -89,6 +91,11 @@ hashes. `offline-runtime-preparation.md` and
 payloads only. Use artifacts-export, never the retained incomplete artifacts copy.
 `cml-readonly/` retains failed console attempts, successful R1 console evidence and
 distinct R2/SW1/SW2 trusted-SSH evidence. No failed probe was relabeled successful.
+`cloud-runtime-staging/README.md`, `prepared-file-manifest.json` and
+`independent-audit.json` bind the intended first-activation identity, original
+private state and all upload/source/asset hashes. See runtime-review.md for its
+preservation and actual-state activation gates. All owned offline test containers
+are removed. Source1.18.3/extension1.5.0 remain unchanged.
 
 No existing runtime, source inventory, R01 state, DNS or cloud resource has been
 changed. R02 unknown/spent operations and earlier qualification failures remain
