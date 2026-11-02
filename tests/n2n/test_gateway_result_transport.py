@@ -60,6 +60,21 @@ def test_failed_process_cannot_report_success(tmp_path, monkeypatch):
         asyncio.run(gateway.run_agent_turn("fixture", local=True, timeout_s=10))
 
 
+
+def test_timed_out_turn_names_the_timeout(tmp_path, monkeypatch):
+    cli = tmp_path / "hung-cli"
+    cli.write_text("#!/bin/sh\nexec sleep 30\n")
+    cli.chmod(0o700)
+    monkeypatch.setattr(gateway, "_openclaw_bin", lambda: str(cli))
+    monkeypatch.setattr(negotiate, "local_descriptor", lambda: {"agent_invoke": "session-id"})
+
+    async def controls(cmd, prompt):
+        return cmd
+
+    monkeypatch.setattr(gateway, "_apply_production_controls", controls)
+    with pytest.raises(asyncio.TimeoutError, match="session 'n2n-viz' timed out after 1s"):
+        asyncio.run(gateway.run_agent_turn("fixture", session_key="n2n-viz", local=True, timeout_s=1))
+
 def test_large_reply_with_braces_and_trailing_noise():
     text = "Topology report {observations}:\n" * 4000
     output = 'plugin banner\n' + json.dumps({"payloads": [{"text": text}],

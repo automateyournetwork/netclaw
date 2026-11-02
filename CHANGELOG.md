@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.2] - 2026-11-02
+
+A member turn that runs out of time now says so (spec 169):
+
+- An embedded member turn that exceeds its time budget fails with "agent turn for session '<session>' timed out after <n>s" instead of an empty error, so the Border's task status shows the timeout.
+- Any delegated task that fails with a message-less exception records the exception's type name rather than an empty error.
+
+Spec [169-task-timeout-error](specs/169-task-timeout-error/spec.md). See [release notes](docs/releases/1.18.2.md).
+
 ## [1.18.1] - 2026-11-01
 
 Fixes for existing Risks on OpenClaw 2026.10, found while moving a multi-agent Risk to system member units and OpenClaw 2026.10.9 (spec 168):
