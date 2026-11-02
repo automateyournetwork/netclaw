@@ -4,6 +4,8 @@ This module deliberately does not change the ordinary upstream MCP tools.
 Its caller owns authentication, exact approved arguments and the effect claim.
 """
 import hashlib
+import importlib.metadata
+import importlib.util
 import ipaddress
 import json
 import os
@@ -16,6 +18,50 @@ class ProtectedPyatsRefused(ValueError):
 
 
 ARGUMENT_KEYS = {"device_name", "command", "timeout", "retries"}
+
+# Qualification is deliberately narrower than ordinary pyATS support. In this
+# pinned IOS-XE plugin, operating_mode=True suppresses automatic mode discovery;
+# it is an internal skip marker, not a claim about the device's operating mode.
+# MIT alone does not suppress that discovery (which can also change PnP state).
+UNICON_SOURCE_SHA256 = "e53e542cee1b5b531ffeb9042e43685eaad3cf1fc36a4f0c46fe23a949f3f7b7"
+NATIVE_VERSIONS = {"unicon": "25.2", "unicon.plugins": "25.2", "pyats": "25.2", "genie": "25.2"}
+
+
+def validate_native_policy(document, device_name):
+    """Before connecting, pin the qualified plugin and its native interpreter seams.
+
+    The digest covers all installed Unicon .py/.so files, including the selected
+    providers, state machines, settings, services and compiled topology adapter.
+    It is bound by this adapter's signed source revision. This Mac qualification
+    does not attest every Python dependency or qualify other vendor platforms.
+    """
+    selected = document["devices"][device_name]
+    if selected.get("os") != "iosxe" or selected.get("platform") != "iol":
+        raise ProtectedPyatsRefused("unqualified_connection_plugin")
+    for name, expected in NATIVE_VERSIONS.items():
+        if importlib.metadata.version(name) != expected:
+            raise ProtectedPyatsRefused("native_dependency_version_changed")
+    spec = importlib.util.find_spec("unicon")
+    if spec is None or not spec.origin:
+        raise ProtectedPyatsRefused("native_dependency_missing")
+    root = Path(spec.origin).resolve(strict=True).parent
+    manifest = {}
+    for path in sorted(root.rglob("*")):
+        if path.suffix not in (".py", ".so") or "__pycache__" in path.parts:
+            continue
+        if path.is_symlink() or not path.is_file():
+            raise ProtectedPyatsRefused("native_dependency_path_changed")
+        manifest[path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
+    digest = hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+    if digest != UNICON_SOURCE_SHA256:
+        raise ProtectedPyatsRefused("native_dependency_source_changed")
+
+
+def connection_policy():
+    return {"mit": True, "operating_mode": True, "learn_os": False,
+            "learn_tokens": False, "learn_hostname": False, "reconnect": False,
+            "settings": {"LEARN_DEVICE_TOKENS": False},
+            "init_config_commands": [], "init_exec_commands": []}
 
 
 def validate_arguments(arguments):
@@ -136,10 +182,8 @@ def execute_once(server, arguments, *, logfile, before_execute=None, endpoint_sh
 
     def connection_args(selected):
         # Do not import arbitrary testbed connection hooks into this profile.
-        options = {"init_config_commands": [], "init_exec_commands": [],
-                "log_stdout": False, "logfile": str(logfile),
-                "connection_timeout": arguments["timeout"],
-                "learn_hostname": False}
+        options = {**connection_policy(), "log_stdout": False,
+                   "logfile": str(logfile), "connection_timeout": arguments["timeout"]}
         if endpoint is not None:
             options["via"] = endpoint["connection"]
         return options
@@ -148,6 +192,15 @@ def execute_once(server, arguments, *, logfile, before_execute=None, endpoint_sh
     actual = None
     try:
         actual = server._get_device(arguments["device_name"])
+        # Never let execute's state transition or automatic reconnect send an
+        # unreviewed enable/setup command. The qualified SSH login lands in exec.
+        for name in ("mit", "operating_mode", "learn_os", "learn_tokens", "learn_hostname", "reconnect"):
+            if getattr(actual, name, None) is not connection_policy()[name]:
+                raise ProtectedPyatsRefused("connection_policy_not_applied")
+        if getattr(getattr(actual, "settings", None), "LEARN_DEVICE_TOKENS", None) is not False:
+            raise ProtectedPyatsRefused("connection_policy_not_applied")
+        if getattr(getattr(actual, "state_machine", None), "current_state", None) != "enable":
+            raise ProtectedPyatsRefused("initial_exec_state_required")
         if before_execute is not None:
             before_execute()
         raw = actual.execute(arguments["command"], timeout=arguments["timeout"])
@@ -165,7 +218,8 @@ def execute_once(server, arguments, *, logfile, before_execute=None, endpoint_sh
                 "parsed": parsed is not None, "raw_output": raw,
                 "raw_sha256": hashlib.sha256(raw.encode()).hexdigest(),
                 "execute_calls": 1, "attempts_made": 1,
-                "connection_init_config_commands": [], "connection_init_exec_commands": []}
+                "connection_init_config_commands": [], "connection_init_exec_commands": [],
+                "connection_policy": connection_policy(), "initial_state": "enable"}
     finally:
         try:
             server._disconnect_device(actual)

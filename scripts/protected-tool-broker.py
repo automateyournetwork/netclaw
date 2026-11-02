@@ -14,7 +14,7 @@ from pathlib import Path
 import sys
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "lib"))
-from protected_pyats import execute_once, validate_arguments, validate_document
+from protected_pyats import execute_once, validate_arguments, validate_document, validate_native_policy
 
 
 def main():
@@ -38,7 +38,9 @@ def main():
     approved = json.loads(args.approved.read_text())
     validate_arguments(approved)
     import yaml
-    validate_document(yaml.safe_load(Path(os.environ["PYATS_TESTBED_PATH"]).read_text()), approved["device_name"])
+    document = yaml.safe_load(Path(os.environ["PYATS_TESTBED_PATH"]).read_text())
+    validate_document(document, approved["device_name"])
+    validate_native_policy(document, approved["device_name"])
     os.environ["PYTHON_DOTENV_DISABLED"] = "1"
     os.environ["PYATS_MCP_CONN_CACHE_TTL"] = "0"
     sys.path.insert(0, str(args.upstream.parent))
@@ -56,6 +58,7 @@ def main():
         if candidate != approved or spent:
             raise ValueError("approved_call_spent_or_changed")
         spent = True
+        validate_native_policy(document, approved["device_name"])
         return await asyncio.to_thread(execute_once, upstream, candidate, logfile=args.logfile,
                                        endpoint_sha256=args.endpoint_sha256)
 

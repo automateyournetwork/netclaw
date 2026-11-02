@@ -250,7 +250,12 @@ def fake_pyats(*, parse_failure=False, execute_failure=False):
     server._get_testbed_connection_args = lambda _: {"init_config_commands": ["unsafe fixture init"]}
     def get_device(name):
         chosen = server._load_testbed().devices[name]
-        trace["connect"].append(server._get_testbed_connection_args(chosen))
+        options = server._get_testbed_connection_args(chosen)
+        trace["connect"].append(options)
+        for name in ("mit", "operating_mode", "learn_os", "learn_tokens", "learn_hostname", "reconnect"):
+            setattr(chosen, name, options.get(name))
+        chosen.state_machine = SimpleNamespace(current_state="enable")
+        chosen.settings = SimpleNamespace(**options.get("settings", {}))
         return chosen
     server._get_device = get_device
     server._disconnect_device = lambda chosen: trace["disconnect"].append(chosen)
@@ -269,6 +274,11 @@ def test_pyats_parses_captured_output_without_second_execute(tmp_path, payload, 
     assert result["raw_sha256"] == hashlib.sha256(result["raw_output"].encode()).hexdigest()
     assert trace["connect"][0]["init_config_commands"] == []
     assert trace["connect"][0]["init_exec_commands"] == []
+    assert trace["connect"][0]["mit"] is True
+    assert trace["connect"][0]["operating_mode"] is True
+    assert trace["connect"][0]["reconnect"] is False
+    assert trace["connect"][0]["learn_tokens"] is False
+    assert trace["connect"][0]["settings"]["LEARN_DEVICE_TOKENS"] is False
     assert len(trace["disconnect"]) == 1
     assert server._get_testbed_connection_args is before
 
@@ -290,6 +300,48 @@ def test_pyats_refused_final_gate_runs_no_command(tmp_path, payload):
         adapter.execute_once(server, payload["tool_call"]["arguments"],
             logfile=tmp_path / "fixture.log", before_execute=refused)
     assert trace["execute"] == [] and trace["parse"] == []
+
+
+@pytest.mark.parametrize("change", ["user_state", "reconnect", "ignored_skip_marker", "ignored_learning_setting"])
+def test_pyats_connection_policy_failure_never_executes(tmp_path, payload, change):
+    adapter = pyats_module()
+    server, trace = fake_pyats()
+    original = server._get_device
+    def changed(name):
+        selected = original(name)
+        if change == "user_state": selected.state_machine.current_state = "disable"
+        elif change == "reconnect": selected.reconnect = True
+        elif change == "ignored_learning_setting": selected.settings.LEARN_DEVICE_TOKENS = True
+        else: selected.operating_mode = False
+        return selected
+    server._get_device = changed
+    with pytest.raises(adapter.ProtectedPyatsRefused):
+        adapter.execute_once(server, payload["tool_call"]["arguments"], logfile=tmp_path / "fixture.log")
+    assert trace["execute"] == [] and trace["parse"] == []
+    assert len(trace["disconnect"]) == 1
+
+
+@pytest.mark.parametrize("change", [None, "version", "source", "extra_source", "os", "platform"])
+def test_pyats_native_policy_pins_selected_plugin_before_connection(tmp_path, monkeypatch, change):
+    import json
+    adapter = pyats_module()
+    package = tmp_path / "unicon"
+    package.mkdir()
+    (package / "__init__.py").write_text("# fixture native client\n")
+    manifest = {"__init__.py": hashlib.sha256((package / "__init__.py").read_bytes()).hexdigest()}
+    monkeypatch.setattr(adapter, "UNICON_SOURCE_SHA256", hashlib.sha256(json.dumps(manifest, sort_keys=True, separators=(",", ":")).encode()).hexdigest())
+    monkeypatch.setattr(adapter.importlib.util, "find_spec", lambda name: SimpleNamespace(origin=str(package / "__init__.py")))
+    monkeypatch.setattr(adapter.importlib.metadata, "version", lambda name: "changed" if change == "version" else "25.2")
+    document = {"devices": {"R1": {"os": "iosxe", "platform": "iol"}}}
+    if change == "source": (package / "__init__.py").write_text("# changed\n")
+    if change == "extra_source": (package / "extra.py").write_text("# changed\n")
+    if change == "os": document["devices"]["R1"]["os"] = "ios"
+    if change == "platform": document["devices"]["R1"]["platform"] = "sdwan"
+    if change is None:
+        adapter.validate_native_policy(document, "R1")
+    else:
+        with pytest.raises(adapter.ProtectedPyatsRefused):
+            adapter.validate_native_policy(document, "R1")
 
 
 @pytest.mark.parametrize("key,value", [("device_name", "unknown-device"),
