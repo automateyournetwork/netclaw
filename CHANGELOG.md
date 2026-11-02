@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.3] - 2026-11-02
+
+Domain-verified certificates renew again (spec 170):
+
+- ACME issuance and renewal give lego the DNS provider's credentials (for example `CLOUDFLARE_DNS_API_TOKEN`) from `~/.openclaw/.env` or `mesh.systemd.env`. Since 2026-09-27 the mesh launchers pass only `NETCLAW_`/`N2N_`/`BGP_` settings to the daemon, so lego never saw them and every renewal failed. Only the variables `lego dnshelp` lists for the configured provider are passed, and only to lego.
+- Renewal skips lego's random pre-renewal sleep (up to about 8 minutes), which outlasted the 180-second run timeout and held operator rotation requests.
+
+Spec [170-acme-renewal-credentials](specs/170-acme-renewal-credentials/spec.md). See [release notes](docs/releases/1.18.3.md).
+
 ## [1.18.2] - 2026-11-02
 
 A member turn that runs out of time now says so (spec 169):

@@ -79,9 +79,10 @@ def test_acme_renewal_requests_existing_pinned_key(tmp_path, monkeypatch):
     monkeypatch.setenv('N2N_ACME_EMAIL', 'fixture@example.test')
     monkeypatch.setenv('N2N_ACME_DNS_PROVIDER', 'fixture')
     calls = []
-    async def run(argv):
+    async def run(argv, **kwargs):
         calls.append(argv)
         return 0, ''
     monkeypatch.setattr(acme, '_run', run)
     asyncio.run(acme.renew('example.test', tmp_path))
-    assert calls[0][calls[0].index('renew') + 1:] == ['--days', '30', '--reuse-key']
+    renew = [c for c in calls if 'renew' in c][0]
+    assert renew[renew.index('renew') + 1:] == ['--days', '30', '--reuse-key', '--no-random-sleep']
