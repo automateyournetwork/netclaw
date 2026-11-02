@@ -23,11 +23,50 @@ without user controls. Keep technical specs/evidence for maintainers; rollout
 copy is deferred under specs/168-ngrok-transport-contract/deferred-docs/ and absent
 from the public README, setup wizard and general installation guides. Existing
 owner pilot authorization is a bounded exception, not a user deployment recipe.
-Upstream1.18.1 and extension1.5.0 are preserved; no R01 version increment.
-Next roadmap brief is R02 execution parity, expected next available spec169;
+R01 integrated on upstream 1.18.1 without a version increment. Subsequent upstream
+fixes #317/spec169 and #318/spec170 advance source to 1.18.3; extension 1.5.0 is
+unchanged. These maintenance fixes do not release or qualify the cloud roadmap.
+Next roadmap brief is R02 execution parity, expected next available spec 171
+(recheck at kickoff; 169 and 170 are occupied by those upstream fixes);
 it is not started by this integration request. No R02 cloud/device operation is
 authorized here. Keep the original R01 directory name despite the parallel
 upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
+
+## Upstream reconciliation and parallel-work assessment — 2026-11-02
+
+[PR317](https://github.com/automateyournetwork/netclaw/pull/317) records useful
+member timeout errors; cancellation, time budgets and uncertain-outcome handling
+are unchanged. [PR318](https://github.com/automateyournetwork/netclaw/pull/318)
+restores DNS-provider credential delivery to the lego child process and skips its
+random renewal delay. Both are merged; source 1.18.3 includes R01. The combined
+source passed 888 federation tests with 5 existing skips, and its tested tree
+matches merge a8d7e348. Provider coverage and unattended-renewal limits remain
+in spec170 verification; this review made no live certificate or runtime changes.
+The R01 cloud HUD uses Caddy for HTTPS, so lego qualification does not qualify
+that separate certificate lifecycle. R01 stays spec168; R02 has not started.
+
+R02–R05 remain ordered by their acceptance gates: execution parity → GCP Border
+with on-prem pyATS → GCP NetBox/subnet member → cloud/local Ollama members. The
+R01 open Sonnet lab is transport and demonstration evidence; it does not satisfy
+R03's authenticated HUD, control-only Border or member-held credential criteria.
+User/SSO/RBAC work stays in R15–R17; R03 uses the existing owner session boundary.
+
+Parallel agents can divide one ratified feature after its contracts are agreed:
+
+- Coordinator: parity matrix, shared approval/result/principal contracts,
+  integration and gate review.
+- Execution agent: approval consumption, broker/guard enforcement and durable
+  result handling under those contracts.
+- HUD agent: exact owner review and approval/result presentation.
+- Verification agent: independent refusal, lost-reply and no-replay tests,
+  credential-isolation checks and evidence review.
+
+Use separate worktrees and explicit file ownership; one coordinator integrates
+shared federation code. Later-brief feasibility research can overlap if separately
+requested, but implementation and live qualification do not bypass the R02→R03,
+R03→R04 or R04→R05 human gates. The owner has asked for this assessment, not started
+R02–R05 or delegated new cloud, model or device operations. No parallel agents
+were launched for this review. The release hold above remains unchanged.
 
 ## Owner decisions — 2026-11-01
 
