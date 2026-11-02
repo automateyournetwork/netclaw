@@ -1234,3 +1234,27 @@ dependency tree and uses its internal skip-discovery marker, disables learning
 and reconnect, and requires initial enable state. Final full native transcripts
 contain only the approved command. Do not generalize this policy to other
 plugins or claim execute-call counts alone prove total device-command scope.
+
+### R03 lab and source preparation — 2026-11-02
+
+Fresh authenticated CML metadata and read-only device output corrected the saved
+switch management addresses. Keep the exact addresses and raw transcripts in
+`~/.local/share/netclaw/roadmap-r03-20261102/cml-readonly/`; original inventories
+remain unchanged. R1 has authenticated console-to-SSH RSA proof. R2/SW1/SW2 use
+preexisting owner known_hosts pins, strict SSH and authenticated CML exact-node
+metadata; their historical pin establishment is unknown, not a console proof.
+All three SSH sessions landed directly in the expected enable prompt and their
+interface/key diagnostics passed. No configuration or lifecycle change occurred.
+These diagnostics do not qualify the future four protected show-version reads.
+
+Python sockets returned EHOSTUNREACH while native nc/curl/SSH and Node could reach
+the same lab. Cause is unverified; do not infer a stopped CML host from that probe.
+Fresh exact-node console-key API attempts for three nodes opened but yielded no
+frames; retained failures must not be called successful. No terminal-server SSH
+trust pin was present, so no untrusted controller SSH fallback was used.
+
+R03 source is integrated and its combined protected/posture suite passes464 tests.
+LinuxAMD64 public dependencies are verified offline, not deployed. Private review
+packets retain exact resource hashes and unresolved actual billing/egress gates.
+R01 is still running and unchanged; its proposed cost-control stop is not delegated.
+No new R03 cloud resource, DNS record or protected provider operation exists yet.

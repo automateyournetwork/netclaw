@@ -33,9 +33,9 @@ and external network observations; no provider/device authority on Border.
 - [x] T013 [P] [US2] Implement dedicated protected production entrypoint and exact asset closure in ui/netclaw-visual/protected-server.mjs and src/hud-server/.
 - [x] T014 [US2] Test authority/Origin/proxy/CSRF/cookie/revocation/route/asset refusal and production browser CSP in ui/netclaw-visual/src/dashboard/protected-operations.test.js and src/hud-server/protected-server.test.js.
 - [x] T015 [P] [US2] Implement strict provider-neutral role validator/launcher in scripts/lib/protected_role.py and scripts/protected-role.py.
-- [ ] T016 [US2] Enforce role-specific configuration/catalog hooks in protected_service.py and a strict enrollment-only native API/CLI in service.py and scripts/protected-enroll.py; test no executor/legacy bootstrap and durable no-replay admission.
+- [x] T016 [US2] Enforce role-specific configuration/catalog hooks in protected_service.py and a strict enrollment-only native API/CLI in service.py and scripts/protected-enroll.py; test no executor/legacy bootstrap and durable no-replay admission.
 - [x] T017 [US2] Add verified control-only posture and dormant private eN2N policy in existing federation production/listener paths with tests.
-- [ ] T018 [US2] Render confined non-root federation/HUD/Caddy system units and startup secret projection in labs/cloud/gcp/r03/.
+- [x] T018 [US2] Render confined non-root federation/HUD/Caddy system units and startup secret projection in labs/cloud/gcp/r03/.
 - [x] T019 [US2] Test role/env/path/source tampering, no ambient-home fallback and service rendering in tests/n2n/test_protected_role_172.py.
 - [ ] T020 [US2] Freeze exact runtime/key/secret/source/DNS/TLS activation and scoped repair packet in specs/172-gcp-hybrid-border/runtime-review.md; obtain delegation before execution.
 - [ ] T021 [US2] Activate only reviewed services/hostname/private secrets; capture actual systemd/process/identity/IAM evidence in specs/172-gcp-hybrid-border/verification.md.
@@ -47,8 +47,8 @@ and external network observations; no provider/device authority on Border.
 Independent test: exact fresh plan/apply, no-drift, finite resource/traffic bounds,
 exported evidence and reviewed teardown with no billable residues.
 
-- [ ] T024 [P] [US3] Implement isolated labelled/expiring GCP IaC and provider-neutral host inputs in labs/cloud/gcp/r03/.
-- [ ] T025 [US3] Validate IaC formatting/schema and resource isolation using existing OpenTofu; record in specs/172-gcp-hybrid-border/cloud-review.md.
+- [x] T024 [P] [US3] Implement isolated labelled/expiring GCP IaC and provider-neutral host inputs in labs/cloud/gcp/r03/.
+- [x] T025 [US3] Validate IaC formatting/schema and resource isolation using existing OpenTofu; record in specs/172-gcp-hybrid-border/cloud-review.md.
 - [ ] T026 [US3] Reconcile accrued billing, total ceiling, finite egress/expiry and residual charges in specs/172-gcp-hybrid-border/cloud-review.md.
 - [ ] T027 [US3] Freeze exact saved resource plan/hash, IAM/firewalls/DNS scope and teardown preparation; obtain delegation in specs/172-gcp-hybrid-border/cloud-review.md.
 - [ ] T028 [US3] Apply only the delegated new R03 resources and verify no drift/R01 changes in specs/172-gcp-hybrid-border/verification.md.
@@ -58,7 +58,7 @@ exported evidence and reviewed teardown with no billable residues.
 
 ## Phase5 — Integration and closure
 
-- [ ] T032 Integrate independently tested source lanes; run appropriate protected/legacy/HUD/build regressions and record limits in specs/172-gcp-hybrid-border/verification.md.
+- [x] T032 Integrate independently tested source lanes; run appropriate protected/legacy/HUD/build regressions and record limits in specs/172-gcp-hybrid-border/verification.md.
 - [ ] T033 Independently review security boundaries and actual receipt correlations; remediate findings within remaining bounded passes in specs/172-gcp-hybrid-border/verification.md.
 - [ ] T034 Reconcile all FR/SC/task evidence, preserved failures/unknowns and supported platform matrix in specs/172-gcp-hybrid-border/verification.md.
 - [ ] T035 Record maintainer-only handoff, current blockers/acceptance and next R04 gate in specs/172-gcp-hybrid-border/resume.md; keep release hold.

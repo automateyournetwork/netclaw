@@ -262,3 +262,20 @@ pinned to IOS-XE/IOL and the qualified Mac dependencies. No arbitrary provider,
 cloud, other-plugin, write or multi-user qualification is implied. Source1.18.3
 and extension1.5.0 unchanged; entire-roadmap release hold remains. No R03 resource
 or existing R01 runtime was changed.
+
+### R03/Spec172 source checkpoint — 2026-11-02
+
+The owner requested driving R03 to100%. Source is integrated on
+`172-gcp-hybrid-border`: immutable four-device selection, production owner HUD,
+strict control-only Border role/posture, one-use protected enrollment and isolated
+GCP IaC/host controls. Combined protected/posture464 tests and fullHUD453 tests
+pass; actual LinuxAMD64 dependency extraction is verified offline. Four lab
+endpoint/host-key diagnostic proofs are private, with explicit console versus
+historical SSH-pin provenance. No actual R03 cloud apply/activation/provider read,
+DNS change or R01 runtime change has occurred. R03 is not100% or human accepted.
+Current billing/total CAD100 gate, exact cloud/runtime delegation, actual GCP
+controls/HTTPS/four protected reads/recovery and reviewed teardown remain open.
+The optional exact R01 stop in Spec172 cost-bound-review.md is awaiting owner
+choice; do not execute it without delegation. Source1.18.3/extension1.5.0 and
+roadmap release hold remain unchanged. Pass3 is active; no automatic Ralph hook.
+See Spec172 verification.md/resume.md and private roadmap-r03-20261102 evidence.
