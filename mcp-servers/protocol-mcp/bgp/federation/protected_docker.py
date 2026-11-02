@@ -23,7 +23,8 @@ from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
 
 
 _HOST_SOURCE_PATHS = {"protected_docker.py": Path(__file__),
-                      "protected_runtime.py": Path(_runtime_source.__file__)}
+                      "protected_runtime.py": Path(_runtime_source.__file__),
+                      "protected_selection.py": Path(__file__).with_name("protected_selection.py")}
 _HOST_SOURCE_PINS = {name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for name, path in _HOST_SOURCE_PATHS.items()}
 _GUARD_FIELDS = {"image", "config_file", "config_sha256", "policy_manifest_sha256", "env_file"}

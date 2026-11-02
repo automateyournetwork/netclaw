@@ -158,6 +158,32 @@ def validate_limits(value):
     require(0 < value['inference_timeout_ms'] <= 600000 and 0 < value['tool_timeout_ms'] <= 300000)
 
 
+def validate_catalog_entry(entry):
+    """Validate one member's public catalog without loading an execution runtime.
+
+    A tool name plus its complete arguments is the browser's selection identity.
+    Even identical duplicates are refused rather than relying on list order.
+    Catalog limits omit expiry; preparation alone creates the expiring review.
+    """
+    require(len(encode(entry)) <= MAX_ENVELOPE, 'catalog_too_large', 413)
+    exact(entry, 'member model_profiles tools')
+    validate_binding(entry['member'], 'member')
+    require(isinstance(entry['model_profiles'], list) and isinstance(entry['tools'], list))
+    models, calls = set(), set()
+    for model in entry['model_profiles']:
+        validate_model(model)
+        require(model['profile_id'] not in models, 'duplicate_model_profile', 409)
+        models.add(model['profile_id'])
+    for tool in entry['tools']:
+        exact(tool, 'tool tool_schema_sha256 arguments arguments_sha256 device_ref inventory_revision endpoint_sha256 limits')
+        validate_tool({key: value for key, value in tool.items() if key != 'limits'})
+        identity = (tool['tool'], encode(tool['arguments']))
+        require(identity not in calls, 'duplicate_tool_profile', 409)
+        calls.add(identity)
+        exact(tool['limits'], 'inference_timeout_ms tool_timeout_ms max_inference_calls max_tool_calls max_output_bytes')
+        validate_limits(dict(tool['limits'], expires_at_ms=1))
+
+
 def review_from_payload(payload):
     return {key: payload[key] for key in ('principal', 'border', 'member', 'model_profile', 'tool_call', 'limits', 'change_request_ref')}
 

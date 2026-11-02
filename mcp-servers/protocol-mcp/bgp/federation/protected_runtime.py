@@ -325,5 +325,10 @@ async def invoke_pyats(config, arguments, operation_root):
 
 
 def build_executor(config, *, manager):
+    # Presence of either wrapper discriminator commits to the strict wrapper
+    # parser. A malformed wrapper must never fall back to a legacy executor.
+    if isinstance(config, dict) and ('schemaVersion' in config or 'profiles' in config):
+        from .protected_selection import ProfiledExecutor
+        return ProfiledExecutor(config, manager=manager)
     from .protected_docker import DockerExecutor
     return DockerExecutor(config, manager=manager)
