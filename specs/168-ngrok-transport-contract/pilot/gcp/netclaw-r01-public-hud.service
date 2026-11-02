@@ -1,0 +1,26 @@
+[Unit]
+Description=NetClaw R01 full lab HUD (HTTPS upstream)
+After=network-online.target netclaw-r01-hud.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=netclaw-r01
+Group=netclaw-r01
+UMask=0077
+WorkingDirectory=/opt/netclaw-r01/public-hud
+Environment=R01_HUD_DIST=/opt/netclaw-r01/public-hud/dist
+ExecStart=/opt/netclaw-r01/node/bin/node /opt/netclaw-r01/public-hud/public-hud.mjs
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=15
+NoNewPrivileges=true
+CapabilityBoundingSet=
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+InaccessiblePaths=/var/lib/netclaw-r01/claw
+RestrictAddressFamilies=AF_INET AF_UNIX
+
+[Install]
+WantedBy=multi-user.target

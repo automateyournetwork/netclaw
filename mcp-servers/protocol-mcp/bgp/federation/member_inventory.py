@@ -57,7 +57,7 @@ def local_inventory(env=None):
                 model = agent["model"]
         primary = env.get("N2N_MEMBER_MODEL") or (model.get("primary") if isinstance(model, dict) else model)
         return project_inventory({'harness':local_harness(runtime),"llm": {"primary_model": primary}, "mcp_servers": [
-            {"name": name, "tools": value.get("tools", [])} for name, value in servers.items() if isinstance(value, dict)]})
+            {"name": name, "tools": (value.get("toolFilter") or {}).get("include", value.get("tools", []))} for name, value in servers.items() if isinstance(value, dict)]})
     except (OSError, ValueError, TypeError, AttributeError):
         return {"mcp_servers": [], "llm": {"primary_model": _name(env.get("N2N_MEMBER_MODEL"))}, "source": "member configuration unavailable", "available": False,'harness':local_harness(runtime)}
 

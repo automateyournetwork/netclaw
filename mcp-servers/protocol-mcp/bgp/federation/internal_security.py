@@ -35,7 +35,30 @@ def client_context(host):
     return ctx
 
 
-def channel_binding(writer):
+def dial_options(service, host, port):
+    """Shared by both launchers; reload the approved registry on every attempt."""
+    from .endpoint_registry import configured
+    registry = configured(runtime=getattr(service, 'runtime', None))
+    if registry is None:
+        return host, port, {'ssl_context': client_context(host)}
+    document = registry.load()
+    entries = [e for e in document['entries'] if e['id'] == os.environ.get('N2N_BORDER_REGISTRY_ID')
+               and e['direction'] == 'dial' and e['service'] == 'in2n']
+    if len(entries) != 1:
+        raise ValueError('strict member Border registration missing')
+    entry = entries[0]
+    return entry['routing_host'], entry['routing_port'], {
+        'registration': entry, 'registry_revision': document['revision']}
+
+
+def channel_binding(writer, *, strict=False):
+    profile = writer.get_extra_info('tls_profile')
+    if strict or profile == 'in2n-tls-exporter-v1':
+        binding = writer.get_extra_info('tls_exporter')
+        if (profile != 'in2n-tls-exporter-v1' or writer.get_extra_info('tls_version') != 'TLSv1.3'
+                or not isinstance(binding, bytes) or len(binding) != 32):
+            raise ValueError('strict iN2N TLS 1.3 exporter unavailable')
+        return b'netclaw-in2n-tls-exporter-v1\0' + binding
     sslobj=writer.get_extra_info('ssl_object')
     if sslobj is not None:
         binding=sslobj.get_channel_binding('tls-unique')

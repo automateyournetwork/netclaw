@@ -47,7 +47,6 @@ else
     RUNTIME_CMD="openclaw"; RUNTIME_TUI=(openclaw tui)
 fi
 
-NGROK_API="${NETCLAW_NGROK_API:-http://127.0.0.1:4040}"
 CHATS_DIR="${NETCLAW_N2N_CHATS:-$RUNTIME_HOME/n2n/chats}"
 RENDER_MD="$NETCLAW_ROOT/scripts/lib/render_md.py"
 
@@ -68,7 +67,6 @@ api_post() {
     curl -s --max-time 30 -H 'Content-Type: application/json' -d "$body" "$BGP_API$1" 2>/dev/null || true
 }
 
-ngrok_get() { curl -s --max-time 3 "$NGROK_API$1" 2>/dev/null || true; }
 
 daemon_up() { api_get /status | grep -q '"running"'; }
 
@@ -107,62 +105,16 @@ env_set() {
     fi
 }
 
-ngrok_up() { pgrep -f 'ngrok (tcp|start)' >/dev/null 2>&1; }
-
-ngrok_start() {
-    if ngrok_up; then
-        echo -e "  ${T_DIM}ngrok is already running.${T_NC}"
-        return 0
-    fi
-    local port
-    port="$(env_get BGP_LISTEN_PORT)"
-    if [ -z "$port" ]; then
-        echo -e "  ${T_YELLOW}BGP_LISTEN_PORT not set in $RUNTIME_HOME/.env — run peering-setup.sh first.${T_NC}"
-        return 1
-    fi
-    echo -e "  ${T_DIM}starting ngrok tcp $port...${T_NC}"
-    setsid nohup ngrok tcp "$port" --log /tmp/ngrok-mesh.log --log-format json \
-        > /dev/null 2>&1 < /dev/null &
-    disown
-    local i
-    for i in 1 2 3 4 5 6 7 8 9 10; do
-        sleep 1
-        local url
-        url="$(ngrok_get /api/tunnels | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    tcp = [t for t in d.get("tunnels", []) if t.get("proto") == "tcp"]
-    print(tcp[0]["public_url"].replace("tcp://", "") if tcp else "")
-except Exception:
-    print("")
-' 2>/dev/null)"
-        if [ -n "$url" ]; then
-            echo -e "  ${T_CYAN}ngrok up${T_NC}  endpoint: ${T_BOLD}${url}${T_NC}"
-            return 0
-        fi
-    done
-    echo -e "  ${T_YELLOW}ngrok started but no tcp tunnel appeared after 10s — check /tmp/ngrok-mesh.log${T_NC}"
-    return 1
+ngrok_control() { python3 "$NETCLAW_ROOT/scripts/ngrok-control.py" "$@"; }
+ngrok_up() {
+    ngrok_control status | python3 -c 'import json,sys; d=json.load(sys.stdin); sys.exit(0 if d.get("state")=="running-owned" or d.get("federation_ready") is True else 1)'
 }
-
-ngrok_stop() {
-    if ! ngrok_up; then
-        echo -e "  ${T_DIM}ngrok is not running.${T_NC}"
-        return 0
-    fi
-    pkill -f 'ngrok (tcp|start)' 2>/dev/null || true
-    sleep 1
-    if ngrok_up; then
-        echo -e "  ${T_YELLOW}ngrok did not stop — check for a stuck process.${T_NC}"
-        return 1
-    fi
-    echo -e "  ${T_CYAN}ngrok stopped.${T_NC}  peers can no longer reach this node."
-}
+ngrok_start() { ngrok_control start; }
+ngrok_stop() { ngrok_control stop; }
 
 peering_start_all() {
     echo ""
-    echo -e "  ${T_BOLD}Starting peering (daemon + ngrok)${T_NC}"
+    echo -e "  ${T_BOLD}Starting peering (owned daemon and selected transport)${T_NC}"
     echo ""
     "$NETCLAW_ROOT/scripts/peering-setup.sh" start
     ngrok_start
@@ -170,7 +122,7 @@ peering_start_all() {
 
 peering_stop_all() {
     echo ""
-    echo -e "  ${T_BOLD}Stopping peering (ngrok + daemon)${T_NC}"
+    echo -e "  ${T_BOLD}Stopping peering (selected transport and owned daemon)${T_NC}"
     echo ""
     ngrok_stop
     "$NETCLAW_ROOT/scripts/peering-setup.sh" stop
@@ -182,21 +134,13 @@ peering_stop_all() {
 # current endpoint out-of-band (Slack, text, etc.) so the peer can redial.
 peer_announce() {
     if ! ngrok_up; then
-        echo -e "  ${T_YELLOW}ngrok is not running — nothing to announce. Start it first.${T_NC}"
+        echo -e "  ${T_YELLOW}Selected transport is not running — start it before announcing.${T_NC}"
         return 1
     fi
     local endpoint
-    endpoint="$(ngrok_get /api/tunnels | python3 -c '
-import json, sys
-try:
-    d = json.load(sys.stdin)
-    tcp = [t for t in d.get("tunnels", []) if t.get("proto") == "tcp"]
-    print(tcp[0]["public_url"].replace("tcp://", "") if tcp else "")
-except Exception:
-    print("")
-' 2>/dev/null)"
+    endpoint="$(ngrok_control endpoint)"
     if [ -z "$endpoint" ]; then
-        echo -e "  ${T_YELLOW}Could not read the current ngrok endpoint.${T_NC}"
+        echo -e "  ${T_YELLOW}Could not read the registered external endpoint.${T_NC}"
         return 1
     fi
     local as router_id name
@@ -237,7 +181,7 @@ peering_overview() {
     echo -e "  ${T_BOLD}Protocol Peering — overview${T_NC}"
     echo ""
     if ! daemon_up; then daemon_down_msg; return 0; fi
-    { api_get /status; api_get /n2n/status; ngrok_get /api/tunnels; } | python3 -c '
+    { api_get /status; api_get /n2n/status; ngrok_control status; } | python3 -c '
 import json, sys
 docs = json.JSONDecoder()
 raw = sys.stdin.read()
@@ -260,11 +204,10 @@ for p in n2n.get("peers", []):
     stale = " STALE" if p.get("stale") else ""
     chat = "chat" if p.get("chat_enabled") else "no-chat"
     print("      %-24s %-12s %-10s %s%s" % (p.get("identity", "?"), p.get("display_name") or "-", p.get("state", "?"), chat, stale))
-tun = [t for t in (out[2].get("tunnels", []) if len(out) > 2 else []) if t.get("proto") == "tcp"]
-if tun:
-    print("    ngrok      : up  %s -> %s" % (tun[0].get("public_url", "?").replace("tcp://", ""), tun[0].get("config", {}).get("addr", "?")))
-else:
-    print("    ngrok      : DOWN (no tcp tunnel — mesh peers cannot reach this node)")
+agent = out[2] if len(out) > 2 else {}
+print("    transport  : %s (process state only; admission is separate)" % (agent.get("state") or ("daemon-ready" if agent.get("federation_ready") else "unavailable")))
+for entry in (n2n.get("endpoint_registry") or {}).get("services", []):
+    print("      %s %s:%s TLS=%s admitted=%s" % (entry["service"], entry["routing_host"], entry["routing_port"], entry.get("tls_verified"), entry.get("authenticated")))
 '
 }
 
@@ -317,31 +260,8 @@ for p in peers:
 }
 
 peering_ngrok() {
-    echo ""
-    echo -e "  ${T_BOLD}Ngrok tunnel (mesh transport)${T_NC}"
-    echo ""
-    local tunnels
-    tunnels="$(ngrok_get /api/tunnels)"
-    if [ -z "$tunnels" ]; then
-        echo -e "  ${T_YELLOW}ngrok agent is not running (no API on ${NGROK_API}).${T_NC}"
-        echo -e "  ${T_DIM}Mesh peers cannot dial in without the tunnel. See scripts/peering-setup.sh${T_NC}"
-        return 0
-    fi
-    printf '%s' "$tunnels" | python3 -c '
-import json, sys
-d = json.load(sys.stdin)
-tcp = [t for t in d.get("tunnels", []) if t.get("proto") == "tcp"]
-if not tcp:
-    print("    agent up, but NO tcp tunnel — mesh peers cannot reach this node")
-for t in tcp:
-    c = t.get("metrics", {}).get("conns", {})
-    print("    endpoint   : %s" % t.get("public_url", "?").replace("tcp://", ""))
-    print("    forwards to: %s" % t.get("config", {}).get("addr", "?"))
-    print("    conns      : %s total, %s open" % (c.get("count", 0), c.get("gauge", 0)))
-'
-    local proc
-    proc="$(pgrep -af "ngrok (tcp|start)" 2>/dev/null | head -1 || true)"
-    [ -n "$proc" ] && echo -e "    ${T_DIM}agent      : pid ${proc%% *}${T_NC}"
+    ngrok_control status
+    ngrok_control validate
 }
 
 # ── N2N chat viewer ───────────────────────────────────────────────
@@ -992,13 +912,13 @@ peering_menu() {
     while true; do
         clear
         tui_menu "Protocol Peering" \
-            "Overview (BGP · mesh · N2N · ngrok)" \
+            "Overview (private routing · N2N · transport)" \
             "BGP detail (sessions + RIB)" \
             "N2N federation detail" \
-            "Ngrok tunnel (mesh transport)" \
+            "Selected federation transport" \
             "N2N chat logs" \
-            "▶ Start peering (daemon + ngrok)" \
-            "■ Stop peering (ngrok + daemon)" \
+            "▶ Start selected peering" \
+            "■ Stop selected peering" \
             "Announce endpoint (relay message for peers)" \
             "← Back" || return 0
         case "$TUI_CHOICE" in
@@ -1056,11 +976,12 @@ case "${1:-}" in
             status)   peering_overview ;;
             bgp)      peering_bgp ;;
             n2n)      peering_n2n ;;
-            ngrok)    peering_ngrok ;;
+            ngrok)    if [ "$#" -gt 2 ]; then shift 2; ngrok_control "$@"; else peering_ngrok; fi ;;
+            transport) shift 2; ngrok_control "$@" ;;
             up)       peering_start_all ;;
             down)     peering_stop_all ;;
             announce) peer_announce ;;
-            *)        echo "Usage: netclaw peering [status|bgp|n2n|ngrok|up|down|announce]"; exit 1 ;;
+            *)        echo "Usage: netclaw peering [status|bgp|n2n|ngrok|transport|up|down|announce]"; exit 1 ;;
         esac ;;
     risk)
         case "${2:-status}" in

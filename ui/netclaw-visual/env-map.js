@@ -10687,7 +10687,27 @@ export const COMPONENT_SETTINGS = {
       ]
     }
   ],
-  "peering": [],
+  "peering": [
+    {
+      "key": "NGROK_AUTHTOKEN",
+      "label": "Border ngrok agent token",
+      "help": "Optional for a home/NAT Border using ngrok. Direct cloud, private and air-gapped transport require no ngrok token. Never distribute to members or use as identity.",
+      "classification": "secret",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "scripts/ngrok-control.py",
+          "checkedAt": "2026-11-01",
+          "note": "Loaded only from selected private environment; inherited values excluded."
+        }
+      ]
+    }
+  ],
   "n2n": [
     {
       "key": "BGP_DAEMON_API",
@@ -10927,6 +10947,44 @@ export const COMPONENT_SETTINGS = {
           "source": "ui/netclaw-visual/env-map.js",
           "checkedAt": "2026-10-17",
           "note": "Existing card field inventory; requirement and classification reconciled into this catalog."
+        }
+      ]
+    },
+    {
+      "key": "N2N_ENDPOINT_REGISTRY",
+      "label": "Endpoint registry",
+      "help": "Owned strict endpoint registry. Schema2 selects direct_tcp for cloud/private/air-gapped reachability or optional ngrok_tcp for a NAT Border; schema1 keeps the original ngrok contract.",
+      "classification": "private",
+      "valueType": "path",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "specs/168-ngrok-transport-contract/deferred-docs/NGROK-TRANSPORT.md",
+          "checkedAt": "2026-11-01",
+          "note": "R01 explicit selected-runtime transport contract; live qualification is separate."
+        }
+      ]
+    },
+    {
+      "key": "N2N_BORDER_REGISTRY_ID",
+      "label": "Border registration",
+      "help": "Member-only endpoint ID for the approved Border; routing and TLS/application identity stay separate.",
+      "classification": "private",
+      "valueType": "string",
+      "required": "optional",
+      "condition": null,
+      "example": "",
+      "sharedWith": [],
+      "input": "user",
+      "provenance": [
+        {
+          "source": "specs/168-ngrok-transport-contract/deferred-docs/NGROK-TRANSPORT.md",
+          "checkedAt": "2026-11-01",
+          "note": "R01 explicit selected-runtime transport contract; live qualification is separate."
         }
       ]
     }

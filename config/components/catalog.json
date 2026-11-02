@@ -15650,8 +15650,8 @@
       "id": "peering",
       "category": "Labs & Simulation",
       "title": "Protocol Peering Wizard",
-      "description": "Configure BGP/OSPF participation + NetClaw Mesh (interactive)",
-      "whenToChoose": "Configure BGP/OSPF participation + NetClaw Mesh (interactive)",
+      "description": "Configure private routing and explicitly reviewed federation transport",
+      "whenToChoose": "Configure private BGP/OSPF routing; use the deployment guide for Border reachability.",
       "order": 72,
       "platforms": [
         "macos",
@@ -15675,7 +15675,27 @@
       },
       "servers": [],
       "skills": [],
-      "settings": [],
+      "settings": [
+        {
+          "key": "NGROK_AUTHTOKEN",
+          "label": "Border ngrok agent token",
+          "help": "Optional for a home/NAT Border using ngrok. Direct cloud, private and air-gapped transport require no ngrok token. Never distribute to members or use as identity.",
+          "classification": "secret",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "scripts/ngrok-control.py",
+              "checkedAt": "2026-11-01",
+              "note": "Loaded only from selected private environment; inherited values excluded."
+            }
+          ]
+        }
+      ],
       "links": [
         {
           "role": "upstream",
@@ -15733,7 +15753,7 @@
       "category": "Labs & Simulation",
       "title": "N2N Federation",
       "description": "Peer NetClaws: capability exchange, remote tool/skill invocation, claw-to-claw chat",
-      "whenToChoose": "Peer NetClaws: capability exchange, remote tool/skill invocation, claw-to-claw chat",
+      "whenToChoose": "Connect members outbound to their Border using iN2N; federate independent Borders with NCFED. Keep SSH/internal-system members on premises; place cloud-friendly members in cloud.",
       "order": 73,
       "platforms": [
         "macos",
@@ -16001,6 +16021,44 @@
               "note": "Existing card field inventory; requirement and classification reconciled into this catalog."
             }
           ]
+        },
+        {
+          "key": "N2N_ENDPOINT_REGISTRY",
+          "label": "Endpoint registry",
+          "help": "Owned strict endpoint registry. Schema2 selects direct_tcp for cloud/private/air-gapped reachability or optional ngrok_tcp for a NAT Border; schema1 keeps the original ngrok contract.",
+          "classification": "private",
+          "valueType": "path",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "specs/168-ngrok-transport-contract/deferred-docs/NGROK-TRANSPORT.md",
+              "checkedAt": "2026-11-01",
+              "note": "R01 explicit selected-runtime transport contract; live qualification is separate."
+            }
+          ]
+        },
+        {
+          "key": "N2N_BORDER_REGISTRY_ID",
+          "label": "Border registration",
+          "help": "Member-only endpoint ID for the approved Border; routing and TLS/application identity stay separate.",
+          "classification": "private",
+          "valueType": "string",
+          "required": "optional",
+          "condition": null,
+          "example": "",
+          "sharedWith": [],
+          "input": "user",
+          "provenance": [
+            {
+              "source": "specs/168-ngrok-transport-contract/deferred-docs/NGROK-TRANSPORT.md",
+              "checkedAt": "2026-11-01",
+              "note": "R01 explicit selected-runtime transport contract; live qualification is separate."
+            }
+          ]
         }
       ],
       "links": [
@@ -16018,6 +16076,11 @@
           "role": "vendor",
           "target": "",
           "unavailableReason": "Project/upstream documentation is authoritative for this integration; no separate vendor guide is declared."
+        },
+        {
+          "role": "netclaw",
+          "target": "specs/168-ngrok-transport-contract/deferred-docs/REMOTE-TRANSPORT.md",
+          "unavailableReason": ""
         }
       ],
       "verification": {

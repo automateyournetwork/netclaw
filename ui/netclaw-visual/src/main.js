@@ -966,6 +966,21 @@ function findFederationPeer(peer) {
 }
 
 // 056 iN2N: this claw's own risk view (role + members) for the local-core panel.
+function renderEndpointRegistry() {
+  const registry = state.n2n?.endpointRegistry;
+  if (!registry) return '';
+  if (registry.state === 'invalid') return '<p class="n2n-muted">Remote transport configuration needs attention.</p>';
+  const rows = (registry.services || []).map((entry) => {
+    const observed = entry.observation || 'not_observed';
+    const tcp = entry.tcp_reachable === true ? 'reachable' : entry.tcp_reachable === false ? 'unreachable' : 'not observed';
+    return `<li><strong>${escapeHtml(String(entry.service))}</strong> ${escapeHtml(String(entry.routing_host))}:${Number(entry.routing_port)}
+      <br>Transport: ${entry.transport === 'direct_tcp' ? 'Direct TCP' : entry.transport === 'ngrok_tcp' ? 'ngrok TCP' : 'Not reported'} · TLS identity: ${escapeHtml(String(entry.tls_server_name))}
+      <br>TCP: ${tcp} · TLS: ${entry.tls_verified ? 'verified' : 'not verified'} · Admission: ${entry.authenticated ? 'authenticated' : 'not authenticated'}
+      <br><span class="n2n-muted">${escapeHtml(String(observed))}</span></li>`;
+  }).join('');
+  return `<div class="n2n-section"><h4>Remote transport</h4><ul class="n2n-list">${rows}</ul></div>`;
+}
+
 function renderRiskSection() {
   const risk = state.n2n?.risk;
   const scienceOfficerHtml = renderScienceOfficer(state.n2n?.advisors);
@@ -976,7 +991,7 @@ function renderRiskSection() {
   if (risk.role === 'member') {
     return `<div class="n2n-section"><h3>Risk: ${risk.risk_name} (Member)</h3>
       <div class="detail-row"><span>Member</span><strong>${risk.self_member_id || '—'}</strong></div>
-      <p class="n2n-muted">Focused specialist — dials the Border; not internet-facing.</p></div>`;
+      <p class="n2n-muted">Focused specialist — dials the Border; not internet-facing.</p>${renderEndpointRegistry()}</div>`;
   }
   // Border: hub with member spokes
   const members = state.n2n?.members || [];
@@ -993,6 +1008,7 @@ function renderRiskSection() {
   return `<div class="n2n-section n2n-federated">
       <h3>Risk: ${risk.risk_name} (Border)</h3>
       ${postureHtml}
+      ${renderEndpointRegistry()}
       <div class="detail-row"><span>Stacks</span><strong>${risk.enabled_stacks || '—'}</strong></div>
       <div class="detail-row"><span>Members</span><strong>${risk.members_active ?? 0}/${risk.member_count ?? 0} active</strong></div>
       <h4>Member spokes (${members.length})</h4>

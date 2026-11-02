@@ -123,6 +123,7 @@ class FederationService:
         # US2 auto-reconnect: per-peer ChannelHealth (in-memory) + supervisor.
         self.peer_caps: Dict[str, dict] = {}   # ident -> capability descriptor (US4)
         self.health: Dict[str, dict] = {}   # ident -> {state, attempts, next_retry_at, last_seen}
+        self.transport_observations = {}  # registry ID -> bounded local observation
         self._supervisor_task = None
         self._backoff_min = _env_int("N2N_RECONNECT_BACKOFF_MIN_S", 5)
         self._backoff_max = _env_int("N2N_RECONNECT_BACKOFF_MAX_S", 60)
@@ -191,6 +192,7 @@ class FederationService:
             self.member_scope = set()
         # Border-side iN2N handlers (the member authenticates, then we route to it).
         self._in2n_border_handlers = {
+            "in2n/attest": self._in2n_on_attest,
             "in2n/enroll": self._in2n_on_enroll,
             "in2n/hello": self._in2n_on_hello,
             "n2n/inventory": self._in2n_on_member_inventory,
@@ -293,6 +295,10 @@ class FederationService:
                 pass
 
     async def _on_hello(self, channel, params):
+        strict_peer = getattr(channel, 'strict_peer', None)
+        if strict_peer and (channel.authenticated or params.get('identity') != channel.peer_identity):
+            channel._auth_failed = True
+            raise RpcError(ERR_NOT_FEDERATED, 'strict peer identity or repeated authentication refused')
         # eN2N possession auth (baseline — reconciled from Josh/TunnelMind's report,
         # closing CWE-290 by default; reuses risk.py possession primitives). Only
         # the ACCEPTOR issued a nonce, so only it challenges.
@@ -309,7 +315,11 @@ class FederationService:
                 # On a TLS channel, bind the proof to this session via the
                 # tls-server-end-point value (hash of OUR certificate, which the
                 # dialer also signed over); empty on cleartext (RFC 5929).
-                binding = self._channel_binding_own()
+                if strict_peer:
+                    from .tls import binding_from_own_cert
+                    binding = binding_from_own_cert(channel.strict_local_cert)
+                else:
+                    binding = self._channel_binding_own()
                 if not self.risk.verify_possession(cert_pem, channel.nonce, signature, binding):
                     logger.warning("n2n.auth.failed: possession proof failed for claimed %s",
                                    channel.peer_identity)
@@ -318,7 +328,10 @@ class FederationService:
                 # TOFU pin: bind this identity to its cert on first contact; a later
                 # key change is possible impersonation — reject + alert, NEVER
                 # silently re-pin.
-                if self.risk.check_peer_pin(channel.peer_identity, cert_pem) == "mismatch":
+                from . import certs
+                pin_mismatch = (certs.key_fingerprint(cert_pem) != strict_peer['application_trust']
+                                if strict_peer else self.risk.check_peer_pin(channel.peer_identity, cert_pem) == 'mismatch')
+                if pin_mismatch:
                     logger.warning("NCFED key changed for %s", channel.peer_identity)
                     self.notify_key_change(channel.peer_identity)
                     channel._auth_failed = True
@@ -332,7 +345,7 @@ class FederationService:
                                           certs.key_fingerprint(cert_pem))
                 self.manager.set_peer_trust(channel.peer_identity, "pinned",
                                             verify_state="verified")
-            elif self.cert_enforce:
+            elif self.cert_enforce or strict_peer:
                 # Mandatory certs: a keyless peer cannot federate in enforce mode.
                 logger.warning("cert enforce: refusing keyless (tier-0) hello from %s",
                                channel.peer_identity)
@@ -341,6 +354,8 @@ class FederationService:
                                "peer requires certificate-secured federation — run "
                                "scripts/patch-claw-certs.sh")
             channel.authenticated = True
+            if strict_peer:
+                self.observe_transport(channel.registry_id, channel.registry_revision, 'admitted')
             if not self._register_channel(channel.peer_identity, channel):
                 channel._auth_failed = True
                 raise RpcError(ERR_NOT_FEDERATED,
@@ -351,6 +366,12 @@ class FederationService:
         self.peer_caps[channel.peer_identity] = normalize(params.get("capabilities"))
         # Peer presence on the channel implies they consented to us.
         self.manager.remote_consent(channel.peer_as, channel.peer_router_id)
+        if strict_peer:
+            # The acceptor also knows the explicitly registered transport. Do not
+            # leave its authenticated direct peer with the legacy ngrok default.
+            from .endpoint_registry import transport_kind
+            self.manager.upsert_peer(channel.peer_as, channel.peer_router_id,
+                transport='other' if transport_kind(strict_peer) == 'direct_tcp' else 'ngrok')
         state = self.manager._recompute_state(channel.peer_identity)
         if state == PeerState.FEDERATED:
             asyncio.create_task(self._advertise_to(channel))
@@ -385,6 +406,10 @@ class FederationService:
         from .negotiate import allows
         endpoint = params.get("endpoint", "")
         ident = channel.peer_identity  # bound to the authenticated session, not attacker-supplied
+        registry = self.transport_registry()
+        if registry and any(e['application_identity'] == ident and e['service'] == 'en2n'
+                            for e in registry.load()['entries']):
+            return {'accepted': False, 'reason': 'operator-owned registration requires explicit revision update'}
         if not allows(getattr(channel, "attestation", "self-asserted"), "endpoint_update"):
             logger.info("tier-0 peer %s denied endpoint_update — possession proof required", ident)
             return {"accepted": False}
@@ -549,13 +574,24 @@ class FederationService:
                 self._host_cred = (cert_pem, key_pem)
         return self._host_cred
 
-    async def _secure_dial(self, reader, writer, ident: str):
+    async def _secure_dial(self, reader, writer, ident: str, registration=None):
         """Dialer side, cert_mode ENCRYPTION layer (feature 060): upgrade the
         connection to TLS and verify the LISTENER (domain-verified WebPKI chain +
         SAN, or pinned fingerprint / TOFU). The dialer authenticates ITSELF to the
         listener separately, over n2n/hello (baseline possession proof). Returns
         the upgraded (reader, writer) or None on refusal."""
         from . import tls, certs
+        if registration:
+            context, name = tls.client_context('domain-verified', claw_domain=registration['tls_server_name'],
+                                               cafile=registration['ca_file'])
+            reader, writer = await tls.upgrade_to_tls(reader, writer, context, server_side=False, server_hostname=name)
+            sslobj = writer.get_extra_info('ssl_object')
+            if (sslobj is None or sslobj.version() != 'TLSv1.3'
+                    or tls.leaf_key_fingerprint(sslobj) != registration['application_trust']
+                    or not self._pq_ok(sslobj, ident)):
+                self._cert_refuse(ident, 'strict peer key or TLS profile refused')
+                return None
+            return reader, writer
         peer = self.manager.get_peer(ident) or {}
         trust = peer.get("trust_model") or "pinned"
         if trust == "legacy":
@@ -586,13 +622,13 @@ class FederationService:
         self.manager.set_peer_trust(ident, trust, verify_state="verified")
         return reader, writer
 
-    async def _secure_accept(self, reader, writer, ident: str):
+    async def _secure_accept(self, reader, writer, ident: str, registration=None):
         """Listener side, cert_mode ENCRYPTION layer: present our credential and
         upgrade to TLS. The dialer verifies OUR cert during its handshake; we
         authenticate the DIALER separately via its n2n/hello possession proof.
         Returns upgraded (reader, writer) or None on failure."""
         from . import tls
-        cert_pem, key_pem = self.host_credential()
+        cert_pem, key_pem = self.registered_credential(registration) if registration else self.host_credential()
         reader, writer = await tls.upgrade_to_tls(
             reader, writer, tls.server_context(cert_pem, key_pem), server_side=True)
         sslobj = writer.get_extra_info("ssl_object")
@@ -636,7 +672,13 @@ class FederationService:
             logger.warning("External federation refused: role state unavailable")
             return False
 
-    async def accept_channel(self, peer_as: int, router_id: str, reader, writer):
+    async def accept_channel(self, peer_as: int, router_id: str, reader, writer, *,
+                             registration=None, peer_registration=None, registry_revision=None):
+        if registration is None and self.transport_registry() is not None:
+            # Explicit strict deployment cannot bypass its public contract through
+            # the legacy shared-port dispatcher, even on an apparently local hop.
+            writer.close()
+            return
         if not self._en2n_allowed():
             logger.info("iN2N Member role — refusing inbound eN2N channel (FR-014)")
             try:
@@ -663,9 +705,9 @@ class FederationService:
         await writer.drain()
         # cert_mode ENCRYPTION layer (feature 060): upgrade to TLS before anything
         # sensitive (the possession nonce + hello then ride inside TLS).
-        if self.cert_mode:
+        if self.cert_mode or registration:
             try:
-                upgraded = await self._secure_accept(reader, writer, ident)
+                upgraded = await self._secure_accept(reader, writer, ident, registration)
             except Exception as e:
                 logger.warning("Secure accept from %s failed: %s", ident, e)
                 upgraded = None
@@ -685,11 +727,64 @@ class FederationService:
                                peer_as=peer_as, peer_router_id=router_id,
                                manager=self.manager, is_initiator=False, handlers=self.handlers)
         ch.nonce = nonce
+        if registration:
+            ch.strict_peer = peer_registration
+            ch.strict_local_cert = self.registered_credential(registration)[0]
+            ch.registry_id, ch.registry_revision = registration['id'], registry_revision
+            self.observe_transport(ch.registry_id, registry_revision, 'tls_verified')
+            async def expire():
+                await asyncio.sleep(15)
+                if not ch.authenticated:
+                    self.observe_transport(ch.registry_id, registry_revision, 'refused')
+                    await ch.close()
+            expiry = asyncio.create_task(expire())
+            ch._read_task_expiry = expiry
         ch.cred_status = self._cred_status()
         await ch.start()
         # The initiator sends n2n/hello carrying the possession proof; _on_hello
         # verifies it, registers the channel (tier gate), and advertises.
         logger.info("Accepted NCFED channel from %s (awaiting possession proof)", ident)
+        return ch
+
+    def transport_registry(self):
+        from .endpoint_registry import configured
+        return configured(runtime=getattr(self, 'runtime', None))
+
+    def registered_credential(self, entry):
+        from .endpoint_registry import validate_entry, _read
+        from .certs import key_fingerprint
+        validate_entry(entry)
+        if entry['service'] != 'en2n' or entry['direction'] != 'listen' or entry['application_identity'] != self.local_identity:
+            raise ValueError('external listener application identity mismatch')
+        cert, key = _read(entry['cert_file']).decode(), _read(entry['key_file']).decode()
+        if key_fingerprint(cert) != entry['application_trust']:
+            raise ValueError('external listener key does not match approved application key')
+        return cert, key
+
+    async def accept_public_ncfed(self, reader, writer, registration, registry_revision):
+        """Dedicated public ingress. Never dispatches BGP or NCTUN bytes."""
+        try:
+            if not self.risk.is_border():
+                raise ValueError('only a Border may expose NCFED')
+            self.registered_credential(registration)
+            self.observe_transport(registration['id'], registry_revision, 'tcp_connected')
+            async with asyncio.timeout(15):
+                if await reader.readexactly(len(NCFED_MAGIC)) != NCFED_MAGIC:
+                    raise ValueError('public ingress permits NCFED identification only')
+                handshake = await read_handshake(reader)
+                if not handshake:
+                    raise ValueError('invalid NCFED identification')
+                ident = peer_identity(*handshake)
+                registry = self.transport_registry()
+                peers = [e for e in registry.load()['entries'] if e['direction'] == 'dial'
+                         and e['service'] == 'en2n' and e['application_identity'] == ident]
+                if len(peers) != 1 or not self.manager._has_consent(ident, 'local_grant'):
+                    raise ValueError('approved external peer and local consent required')
+                await self.accept_channel(*handshake, reader, writer, registration=registration,
+                                          peer_registration=peers[0], registry_revision=registry_revision)
+        except (Exception, asyncio.CancelledError):
+            self.observe_transport(registration['id'], registry_revision, 'refused')
+            writer.close()
 
     # ---- outbound channel (lower-AS initiates) ------------------------
 
@@ -699,6 +794,24 @@ class FederationService:
             logger.info("iN2N Member role — not opening outbound eN2N channel (FR-014)")
             return
         ident = peer_identity(peer_as, router_id)
+        registry = self.transport_registry()
+        registration, local_registration, revision = None, None, None
+        if registry:
+            document = registry.load()
+            matches = [e for e in document['entries'] if e['direction'] == 'dial'
+                       and e['service'] == 'en2n' and e['application_identity'] == ident]
+            if len(matches) != 1:
+                raise ValueError('strict external peer registration required; no discovery fallback')
+            registration, revision = matches[0], document['revision']
+            local = [e for e in document['entries'] if e['direction'] == 'listen' and e['service'] == 'en2n']
+            if len(local) != 1 or not self.risk.is_border() or not self.manager._has_consent(ident, 'local_grant'):
+                raise ValueError('strict external Border registration and consent required')
+            local_registration = local[0]
+            self.registered_credential(local_registration)
+            host, port = registration['routing_host'], registration['routing_port']
+            from .endpoint_registry import transport_kind
+            transport = 'other' if transport_kind(registration) == 'direct_tcp' else 'ngrok'
+            self.observe_transport(registration['id'], revision, 'connecting')
         from ..constants import ncfed_initiates
         if not ncfed_initiates(self.local_as, self.router_id, peer_as, router_id):
             logger.debug("Not initiating to %s — higher (AS, router-id) tuple waits", ident)
@@ -732,8 +845,8 @@ class FederationService:
                 return
             # cert_mode ENCRYPTION layer (feature 060): upgrade to TLS + verify
             # the listener (domain/pin) before anything sensitive.
-            if self.cert_mode:
-                upgraded = await self._secure_dial(reader, writer, ident)
+            if self.cert_mode or registration:
+                upgraded = await self._secure_dial(reader, writer, ident, registration)
                 if upgraded is None:
                     writer.close()
                     return
@@ -745,7 +858,7 @@ class FederationService:
                                    manager=self.manager, is_initiator=True, handlers=self.handlers)
             ch.cred_status = self._cred_status()
             sslobj = writer.get_extra_info("ssl_object")
-            if self.cert_mode and sslobj is not None:
+            if (self.cert_mode or registration) and sslobj is not None:
                 # Dialer-side tier: the TLS handshake proved the LISTENER possesses
                 # the key for the certificate _secure_dial just verified (pin /
                 # domain SAN), which is the same possession property _on_hello
@@ -757,6 +870,9 @@ class FederationService:
                 from . import tls as _tls
                 ch.attestation = "possession"
                 ch.cert_pem = _tls.peer_leaf_pem(sslobj)
+            if registration:
+                ch.registry_id, ch.registry_revision = registration['id'], revision
+                self.observe_transport(ch.registry_id, revision, 'tls_verified')
             self._register_channel(ident, ch)
             await ch.start()
             from .negotiate import local_descriptor, normalize
@@ -764,12 +880,19 @@ class FederationService:
             # bound to this TLS session by the tls-server-end-point value (the hash
             # of the listener's certificate we just verified) when encrypted — so
             # the proof cannot be relayed to a different session (RFC 5929).
-            binding = self._channel_binding(writer)
+            if registration:
+                from .tls import binding_from_peer
+                binding = binding_from_peer(writer.get_extra_info('ssl_object'))
+                certificate, private_key = self.registered_credential(local_registration)
+                signature = self.risk.sign_challenge(private_key, nonce + binding).hex()
+            else:
+                binding = self._channel_binding(writer)
+                certificate, signature = self.risk.self_cert_pem(), self.risk.self_sign(nonce, binding).hex()
             resp = await ch.call("n2n/hello", {"identity": self.local_identity,
                                                "display_name": self.display_name,
                                                "versions": ["1.0"],
-                                               "cert_pem": self.risk.self_cert_pem(),
-                                               "signature": self.risk.self_sign(nonce, binding).hex(),
+                                               "cert_pem": certificate,
+                                               "signature": signature,
                                                "capabilities": local_descriptor()})
             # A well-behaved peer returns a dict; guard against a peer that returns
             # a bare string or other shape so one odd hello reply can't abort the
@@ -779,6 +902,12 @@ class FederationService:
                                "treating as empty", ident, type(resp).__name__)
                 resp = {}
             ch.display_name = resp.get("display_name")
+            if registration:
+                if resp.get('identity') != ident:
+                    await ch.close()
+                    raise ValueError('strict external application identity mismatch')
+                ch.authenticated = True
+                self.observe_transport(ch.registry_id, revision, 'admitted')
             self.peer_caps[ident] = normalize(resp.get("capabilities"))  # US4
             self.manager.remote_consent(peer_as, router_id)
             if self.manager._recompute_state(ident) == PeerState.FEDERATED:
@@ -807,6 +936,11 @@ class FederationService:
             h["last_seen"] = time.time()
             h["connected_since"] = time.time()
         except Exception as e:
+            if registration:
+                self.observe_transport(registration['id'], revision, 'refused')
+                if 'writer' in locals(): writer.close()
+                failed = self.channels.pop(ident, None)
+                if failed: await failed.close()
             self._note_dial_failure(ident, e)
 
     # ---- US2: auto-reconnect supervisor + health ----------------------
@@ -943,12 +1077,23 @@ class FederationService:
             try:
                 await asyncio.sleep(2)
                 now = time.time()
+                registry = self.transport_registry()
+                document = registry.load() if registry else None
                 for peer in self.manager.list_peers():
                     ident = peer["identity"]
                     if peer["state"] != PeerState.FEDERATED.value:
                         continue
 
                     h = self._health_for(ident)
+                    if document:
+                        approved = [e for e in document['entries'] if e['service'] == 'en2n'
+                                    and e['direction'] == 'dial' and e['application_identity'] == ident]
+                        if len(approved) != 1:
+                            h['state'] = 'unavailable'
+                            continue
+                        peer = dict(peer, endpoint_host=approved[0]['routing_host'],
+                                    endpoint_port=approved[0]['routing_port'],
+                                    endpoint_updated_at='registry:' + str(document['revision']))
 
                     # FR-013: an endpoint change means the peer re-registered. Reset the
                     # backoff immediately so it reconnects within seconds no matter how
@@ -981,7 +1126,8 @@ class FederationService:
                             h["cause_sig"] = None
                         continue  # live
                     # Only the lower-AS side dials; higher-AS waits for inbound.
-                    if self.local_as >= peer["peer_as"]:
+                    from ..constants import ncfed_initiates
+                    if not ncfed_initiates(self.local_as, self.router_id, peer['peer_as'], peer['router_id']):
                         continue
                     if not peer.get("endpoint_host") or not peer.get("endpoint_port"):
                         # FR-023: no endpoint → never dialled. This pre-existing skip is
@@ -1110,6 +1256,55 @@ class FederationService:
         return {"daemon": "up" if daemon_up else "down", "members": members,
                 "backends": backends, "fault_class": fault_class}
 
+    def endpoint_status(self):
+        try:
+            registry = self.transport_registry()
+            if registry is None:
+                return None
+            document = registry.load()
+            status = registry.status(document)
+            registrations = {e['id']: e for e in document['entries']}
+        except (ValueError, OSError):
+            return {'state': 'invalid', 'services': [], 'error': 'selected registry unavailable or invalid'}
+        channels = list(self.channels.values()) + list(self.member_channels.values())
+        if self.border_channel:
+            channels.append(self.border_channel)
+        for entry in status['services']:
+            if entry['direction'] == 'listen':
+                active = getattr(self, '_registered_listeners', {}).get(entry['id'])
+                current = registrations[entry['id']]
+                stable = lambda value: {k:v for k,v in value.items() if k not in ('routing_host','routing_port','reservation_id','address_ref')}
+                listener = getattr(self, '_in2n_server' if entry['service'] == 'in2n' else '_public_ncfed_server', None)
+                entry['listener_ready'] = bool(active and stable(active) == stable(current)
+                                              and listener and listener.is_serving())
+            observation = self.transport_observations.get(entry['id'], {})
+            if observation.get('revision') == status['revision']:
+                entry.update({k:v for k,v in observation.items() if k != 'revision'})
+            entry['authenticated'] = any(
+                getattr(ch, 'registry_id', None) == entry['id']
+                and getattr(ch, 'registry_revision', None) == status['revision']
+                and not ch._closed and (getattr(ch, 'trusted', False) or ch.authenticated)
+                for ch in channels)
+        return status
+
+    def observe_transport(self, entry_id, revision, stage):
+        if stage not in ('connecting', 'tcp_connected', 'tls_verified', 'admitted', 'refused', 'closed'):
+            raise ValueError('invalid transport observation')
+        previous = self.transport_observations.get(entry_id, {})
+        if previous.get('revision') != revision or stage == 'connecting':
+            previous = {'tcp_reachable': None, 'tls_verified': False}
+        value = dict(previous, revision=revision, observation=stage, observed_at=time.time())
+        if stage != 'refused':
+            value.pop('failure_reason', None)
+        if stage in ('tcp_connected', 'tls_verified', 'admitted'):
+            value['tcp_reachable'] = True
+        if stage in ('tls_verified', 'admitted'):
+            value['tls_verified'] = True
+        self.transport_observations[entry_id] = value
+        if stage in ('refused', 'closed'):
+            self.audit.record(direction='internal', peer_identity=entry_id, target_type='transport',
+                              target_name=entry_id, decision=stage, outcome=stage)
+
     async def sever_local(self, ident: str) -> bool:
         # Severing is a local operator action (kill switch): revoke our grant and
         # drop the channel. There is deliberately NO peer-to-peer sever message
@@ -1130,14 +1325,27 @@ class FederationService:
 
     # ---- Border side: accept a member dial-in + authenticate ----------
 
-    async def accept_internal(self, reader, writer):
+    async def accept_internal(self, reader, writer, *, registration=None, registry_revision=None):
         """Border side: a member dialed our iN2N listener. Send the challenge
         preamble, then run an InternalChannel; the member authenticates via
         in2n/enroll (first time) or in2n/hello (pinned-key proof)."""
         from .internal_channel import InternalChannel, send_border_preamble
         from .internal_security import channel_binding
         try:
-            binding = channel_binding(writer)
+            strict = registration is not None
+            if not self.risk.is_border():
+                raise ValueError('members cannot accept iN2N peers')
+            if strict:
+                from .endpoint_registry import validate_entry
+                validate_entry(registration)
+                expected = (self.risk.get_risk().get('risk_name') or '') + '/border'
+                if (registration['direction'] != 'listen' or registration['service'] != 'in2n'
+                        or registration['application_identity'] != expected
+                        or registration['application_trust'] != self.risk.risk_ca_pem()):
+                    raise ValueError('listener does not match enrolled Border identity')
+            elif writer.get_extra_info('tls_profile') == 'in2n-tls-exporter-v1':
+                raise ValueError('strict iN2N listener registration required')
+            binding = channel_binding(writer, strict=strict)
         except ValueError:
             writer.close()
             raise
@@ -1146,9 +1354,47 @@ class FederationService:
                              member_id=None, is_border_side=True,
                              handlers=self._in2n_border_handlers, nonce=nonce)
         ch.auth_binding = binding
+        ch.strict = strict
+        if strict:
+            ch.registry_id, ch.registry_revision = registration['id'], registry_revision
+            self.observe_transport(ch.registry_id, registry_revision, 'tls_verified')
+            def refused(reason):
+                # Only trusted registry metadata and a fixed reason enter audit;
+                # never serialize the caller's identity, token, proof or params.
+                self.audit.record(direction='inbound', peer_identity=ch.registry_id,
+                                  target_type='transport', target_name=ch.registry_id,
+                                  decision=reason, outcome='denied', channel_kind='in2n',
+                                  event='transport-refusal')
+                observation = self.transport_observations.get(ch.registry_id, {})
+                if observation.get('revision') == registry_revision:
+                    observation.update(observation='refused', failure_reason=reason, observed_at=time.time())
+            ch.on_security_refusal = refused
+            async def expire():
+                await asyncio.sleep(15)
+                if not ch.trusted:
+                    await ch.refuse('admission_timeout')
+            ch.admission_deadline = asyncio.create_task(expire())
         await ch.start()
         logger.info("Accepted iN2N dial-in (awaiting member auth)")
         return ch
+
+    async def _in2n_on_attest(self, channel, params):
+        from .channel import RpcError
+        if not channel.strict or not self.risk.is_border() or set(params) != {'member_nonce','binding_profile'}:
+            raise RpcError(-32023, 'strict Border attestation required')
+        if params['binding_profile'] != 'in2n-tls-exporter-v1':
+            raise RpcError(-32023, 'binding profile refused')
+        try:
+            nonce = bytes.fromhex(params['member_nonce'])
+        except (ValueError, TypeError):
+            raise RpcError(-32023, 'invalid attestation challenge') from None
+        if len(nonce) != 32:
+            raise RpcError(-32023, 'invalid attestation challenge')
+        result = self.risk.attest_hub(nonce + channel.auth_binding)
+        if not result:
+            raise RpcError(-32023, 'Border attestation unavailable')
+        channel.member_challenge = nonce
+        return {'hub_attestation': result}
 
     def _register_member_channel(self, member_id, ch):
         """Track a member's channel; deregister + mark unreachable on close."""
@@ -1158,6 +1404,14 @@ class FederationService:
                 self.risk.mark_unreachable(member_id)
                 logger.info("iN2N member %s channel closed — deregistered", member_id)
         ch.on_close = _deregister
+        if ch.strict:
+            fingerprint = (self.risk.get_member(member_id) or {}).get('key_fingerprint')
+            def current():
+                member = self.risk.get_member(member_id) or {}
+                return (member.get('state') in ('enrolled','active','unreachable')
+                        and member.get('key_fingerprint') == fingerprint and bool(fingerprint))
+            ch.authority_current = current
+            self.observe_transport(ch.registry_id, ch.registry_revision, 'admitted')
         self.member_channels[member_id] = ch
 
     async def _in2n_on_enroll(self, channel, params):
@@ -2249,16 +2503,38 @@ class FederationService:
     # ---- Member side: dial the Border + run delegated work ------------
 
     async def dial_border(self, host: str, port: int, enrollment_token: str = "",
-                          ssl_context=None):
+                          ssl_context=None, *, server_hostname=None, registration=None,
+                          registry_revision=None):
         """Member side: connect outbound to the Border, complete the handshake
         (enroll if we have a token, else hello with pinned-key proof), and stay
         available for delegated tasks. No inbound port is opened (FR-006/SC-011)."""
         from .internal_channel import InternalChannel, read_border_preamble
-        reader, writer = await asyncio.wait_for(
-            asyncio.open_connection(host, port, ssl=ssl_context), timeout=30.0)
+        strict = registration is not None
+        if strict:
+            from .endpoint_registry import validate_entry
+            from .exporter_tls import open_connection
+            validate_entry(registration)
+            member_id = self.risk.self_member_id() or ''
+            if (registration['direction'] != 'dial' or registration['service'] != 'in2n'
+                    or not member_id or registration['application_identity'] != member_id.split('/', 1)[0] + '/border'):
+                raise ValueError('member requires its enrolled Border registration')
+            host, port = registration['routing_host'], registration['routing_port']
+            self.observe_transport(registration['id'], registry_revision, 'connecting')
+            try:
+                reader, writer = await open_connection(host, port, ca_file=registration['ca_file'],
+                                                       server_hostname=registration['tls_server_name'])
+                self.observe_transport(registration['id'], registry_revision, 'tls_verified')
+            except BaseException:
+                self.observe_transport(registration['id'], registry_revision, 'refused')
+                raise
+        else:
+            options = {'ssl': ssl_context}
+            if ssl_context and server_hostname:
+                options['server_hostname'] = server_hostname
+            reader, writer = await asyncio.wait_for(asyncio.open_connection(host, port, **options), timeout=30.0)
         from .internal_security import channel_binding
         try:
-            binding = channel_binding(writer)
+            binding = channel_binding(writer, strict=strict)
         except ValueError:
             writer.close()
             raise
@@ -2269,6 +2545,11 @@ class FederationService:
         ch = InternalChannel(reader, writer, local_identity=self.local_identity,
                              member_id=self.risk.self_member_id(), is_border_side=False,
                              handlers=self._in2n_member_handlers, nonce=nonce)
+        ch.strict = strict
+        deadline = asyncio.get_running_loop().time() + 15
+        async def admission_call(method, params):
+            timeout = max(.001, deadline - asyncio.get_running_loop().time()) if strict else 30.0
+            return await ch.call(method, params, timeout=timeout)
         try:
             await ch.start()
             cert_pem = self.risk.self_cert_pem()
@@ -2276,23 +2557,36 @@ class FederationService:
             member_id = self.risk.self_member_id()
             # US2: challenge the Border to attest it is our legitimate hub.
             member_nonce = os.urandom(32)
+            profile = {}
+            if strict:
+                ch.registry_id, ch.registry_revision = registration['id'], registry_revision
+                profile = {'binding_profile': 'in2n-tls-exporter-v1'}
+                anchor = registration['application_trust']
+                existing = self.risk.risk_anchor()
+                if existing and existing != anchor:
+                    raise ValueError('provisioned Border anchor changed; explicit trust migration required')
+                attested = await admission_call('in2n/attest', dict(profile, member_nonce=member_nonce.hex()))
+                if not self.risk.verify_hub_attestation(attested.get('hub_attestation') or {}, anchor,
+                                                       member_nonce + binding,
+                                                       registration['application_identity'].removesuffix('/border')):
+                    raise RuntimeError('strict Border application identity refused before enrollment')
             if enrollment_token:
-                resp = await ch.call("in2n/enroll", {
+                resp = await admission_call("in2n/enroll", {**profile,
                     "token": enrollment_token, "member_id": member_id,
                     "cert_pem": cert_pem, "signature": signature,
                     "member_nonce": member_nonce.hex(),
                     "scope": list(self.member_scope) or None,
                     "runtime_kind": os.environ.get("N2N_MEMBER_RUNTIME", "process"),
-                    "transport_binding": "distributed"}, timeout=30.0)
+                    "transport_binding": "distributed"})
             else:
-                resp = await ch.call("in2n/hello", {
+                resp = await admission_call("in2n/hello", {**profile,
                     "member_id": member_id,
                     "key_fingerprint": self.risk.fingerprint_of(cert_pem),
                     "member_nonce": member_nonce.hex(),
-                    "signature": signature}, timeout=30.0)
+                    "signature": signature})
             # US2 hub attestation: if we hold an anchor, the Border MUST prove it is
             # the legitimate hub for our risk; a missing/invalid attestation aborts.
-            anchor = self.risk.risk_anchor() or resp.get("risk_ca")
+            anchor = registration['application_trust'] if strict else self.risk.risk_anchor() or resp.get("risk_ca")
             if anchor:
                 risk_name = (member_id.split("/", 1)[0] if member_id else
                              (self.risk.get_risk() or {}).get("risk_name") or "risk")
@@ -2315,6 +2609,8 @@ class FederationService:
             # every internal channel regardless of how well authenticated it is.
             ch.attestation = "possession"
             self.border_channel = ch
+            if strict:
+                self.observe_transport(ch.registry_id, registry_revision, 'admitted')
             # Optional content-free configuration observation; never changes scope.
             from .member_inventory import local_inventory
             try:
@@ -2325,6 +2621,8 @@ class FederationService:
                         {k: v for k, v in resp.items() if k not in ("risk_ca", "hub_attestation")})
             return resp
         except BaseException:
+            if strict:
+                self.observe_transport(registration['id'], registry_revision, 'refused')
             await ch.close()
             raise
 

@@ -44,3 +44,14 @@ def test_empty_scoped_mcp_list_never_falls_back_to_border_and_agent_model_wins(t
     assert result['llm']['primary_model'] == 'agent/model'
     missing = project_inventory({'available': False})
     assert missing['available'] is False
+
+
+def test_native_tool_filter_is_projected_without_private_launch_configuration(tmp_path):
+    cfg = tmp_path / 'openclaw.json'
+    cfg.write_text(json.dumps({'mcp': {'servers': {'subnet-calc-mcp': {
+        'toolFilter': {'include': ['subnet_calculator']},
+        'command': '/private/python', 'env': {'ANTHROPIC_API_KEY': 'private-secret'}
+    }}}}))
+    result = local_inventory({'OPENCLAW_CONFIG_PATH': str(cfg)})
+    assert result['mcp_servers'] == [{'name': 'subnet-calc-mcp', 'tools': ['subnet_calculator']}]
+    assert 'private' not in json.dumps(result)

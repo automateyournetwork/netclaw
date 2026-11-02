@@ -1,0 +1,25 @@
+[Unit]
+Description=NetClaw R01 cloud HUD (IAP SSH access only)
+After=network-online.target netclaw-r01-federation.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=netclaw-r01
+Group=netclaw-r01
+UMask=0077
+WorkingDirectory=/opt/netclaw-r01/source
+EnvironmentFile=/var/lib/netclaw-r01/claw/.env
+Environment=PATH=/opt/netclaw-r01/node/bin:/opt/netclaw-r01/venv/bin:/usr/bin:/bin
+ExecStart=/opt/netclaw-r01/node/bin/node /opt/netclaw-r01/source/scripts/hud-launch.mjs start --runtime openclaw --home /var/lib/netclaw-r01/claw
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/netclaw-r01 /opt/netclaw-r01/source/ui/netclaw-visual/node_modules/.vite /opt/netclaw-r01/source/ui/netclaw-visual/node_modules/.vite-temp
+
+[Install]
+WantedBy=multi-user.target

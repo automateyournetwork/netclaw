@@ -167,6 +167,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Secret-free Claw Plans and private per-claw environment; process-local dynamic candidates, private per-process task evidence, no dynamic-to-static fallback. See specs/160-dynamic-pyats-testbeds/verification.md. (160-dynamic-pyats-testbeds)
 - Spec162 planned: Python 3.12 for isolated MCP execution; Python 3.10+ compatible installer utilities; existing TypeScript 5.9 and Node runtime policy for VS Code/HUD. + Existing pinned FastMCP 4.0.11 and official MCP SDK 2.3.0; stdlib SQLite/hashlib/path utilities; existing UI stack. Official Terminal 0.5.0 is operator-installed, not vendored or patched. (162-netconverterai)
 - Spec162 planned: private installation-owned SQLite request/attempt ledger and bounded artifact directories (0700 directories, 0600 private metadata; frozen inputs not writable through exposed tools). Existing API-owned Local/Lab records remain authoritative for candidate application. (162-netconverterai)
+- Python 3.12 isolated protocol/n2n runtime; Python 3.10+ installer; existing Bash and HUD JavaScript. + Existing asyncio/federation stack; pyOpenSSL 26.4.0, cryptography 50.0.2, service-identity 26.1.0. Preserve separate certificate-helper environment. No new MCP server or web framework. (168-ngrok-transport-contract)
+- Private installation-owned schema1/ngrok and schema2/direct-or-ngrok registries, atomic revision updates and explicit prior-revision recovery; owned daemon/ngrok process records. Direct GCP transport-only pilot and owner-selected open read-only lab HUD; users/SSO/RBAC remain R15–R17. No tokens in registry/bundles. (168-ngrok-transport-contract)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -188,3 +190,40 @@ Spec155 production publication was explicitly authorized on 2026-10-25 after Mac
 Spec160 release authorization (2026-10-30): the owner requested versioned source and touched-extension publication, README/community notes, commit/push/PR/merge, completed-branch cleanup and return to main. Earlier Spec160 source-only publication holds are superseded. The two-part modern_website writeup remains staged as drafts; no website deployment or existing-runtime upgrade is requested. Preserve all recorded qualification limits.
 
 Spec162 NetConverter release was explicitly authorized on 2026-11-01: reconcile upstream, publish the versioned source and touched extension, PR/merge and return to main. Source 1.18.0 combines this feature with upstream 1.17.1; extension is 1.5.0. This supersedes the earlier unpublished source milestone hold. The website article remains a staged draft, and the leadership/community messages remain unsent. Existing running lab/Risk installations are not upgraded. See specs/162-netconverterai/release-verification.md for exact scope and qualification limits.
+
+### Spec168/R01 closure (2026-11-01)
+
+The owner fully delegated the isolated R01 cloud/DNS/HTTPS activation, relocation,
+full open lab HUD and scoped Anthropic Sonnet demonstration. R01 is40/40 for that
+amended scope; stop here. R02/R03, source commit/push/release, existing-runtime
+upgrade and device operations are not authorized. Live lab URL and correlated
+cloud-to-on-prem evidence: specs/168-ngrok-transport-contract/verification.md and
+onprem-answer-evidence.md. Cloud Border and fresh Mac subnet member use
+Sonnet4.6; the member is not the existing pyATS installation. Actual browser Chat,
+RAG indexing/retrieval, cited Canvas handoff/answer, unchanged-key relocation,
+DNS/trusted HTTPS and no-drift checks passed. Optional ngrok stays supported;
+live ngrok and the explicitly untested platforms remain unqualified. The full
+public lab exception does not implement users/SSO/RBAC (R15–R17). Private operator
+access stays IAP; no raw admin/device-write API is published. Preserve the
+authoritative private pilot.tfstate and active homes; never replay old activation
+plans or initial secret payloads. VM stops December1; disk/IP costs remain until
+separately reviewed teardown. GAIT and private receipts retain the full trail.
+
+## Roadmap source integration and release hold — 2026-11-02
+
+The owner authorized committing, pushing and merging the completed R01 source into
+main, with a short maintainer summary. This supersedes R01's earlier source-merge
+hold only. The issue310 roadmap work remains unreleased until the entire roadmap
+is complete, including user identities, SSO and RBAC (R15–R17) and closure (R20).
+Do not bump a version, create a release/tag, publish a package/Marketplace build,
+publish a blog/changelog/announcement, or promote general cloud deployment for
+this work. R01 transport proof is not authorization to deploy a cloud Border
+without user controls. Keep technical specs/evidence for maintainers; rollout
+copy is deferred under specs/168-ngrok-transport-contract/deferred-docs/ and absent
+from the public README, setup wizard and general installation guides. Existing
+owner pilot authorization is a bounded exception, not a user deployment recipe.
+Upstream1.18.1 and extension1.5.0 are preserved; no R01 version increment.
+Next roadmap brief is R02 execution parity, expected next available spec169;
+it is not started by this integration request. No R02 cloud/device operation is
+authorized here. Keep the original R01 directory name despite the parallel
+upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.

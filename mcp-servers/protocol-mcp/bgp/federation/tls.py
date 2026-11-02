@@ -8,10 +8,8 @@ Why a signed nonce and not TLS client certificates:
   Let's Encrypt is removing the clientAuth EKU, so mutual TLS with public certs on
   both ends is not durable. Instead the LISTENER presents a TLS server credential
   (domain-verified WebPKI chain, or pinned self-signed) and the DIALER proves key
-  possession at the application layer by signing (nonce || tls_exporter) with the
-  private key behind the certificate it presents. The exporter value binds the
-  signature to this TLS session (RFC 9266 pattern), closing the "no channel
-  binding" gap the NCFED draft (059) flags.
+  possession by signing the fresh nonce plus the listener certificate hash.
+  This is tls-server-end-point, not an exporter or a session-unique value.
 
 Verification split (mirrors how channel.py / internal_channel.py already work):
   * domain-verified — the TLS stack verifies the WebPKI chain + hostname (SNI =
@@ -276,6 +274,11 @@ async def upgrade_to_tls(reader, writer, ctx: ssl.SSLContext, *, server_side: bo
 
     Returns the SAME (reader, writer) with their transport swapped to the TLS
     transport. Raises ssl.SSLError / OSError on handshake failure."""
+    if hasattr(writer, 'start_tls'):
+        # Python 3.11+: public stream API infers server side from its protocol.
+        await writer.start_tls(ctx, server_hostname=server_hostname, ssl_handshake_timeout=10)
+        return reader, writer
+    # Explicit legacy Python compatibility; strict R01 runtime requires 3.12.
     loop = asyncio.get_event_loop()
     transport = writer.transport
     protocol = transport.get_protocol()

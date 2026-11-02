@@ -137,8 +137,10 @@ class RiskManager:
         proves possession of the self-signed key whose cert was pinned. `binding`
         is the optional tls-server-end-point channel binding (feature 060): when
         the channel is TLS, the caller passes the SHA-256 of the peer's server
-        certificate so the proof is bound to this session (RFC 5929). Empty on a
-        cleartext channel (and for iN2N, which is unchanged)."""
+        certificate (RFC 5929). Strict iN2N supplies the versioned RFC 9266
+        exporter binding; explicit legacy local IPC supplies an empty binding.
+        A certificate hash is not unique to a TLS connection; fresh nonces remain
+        required for the eN2N proof."""
         self.ensure_self_identity(self.self_member_id() or self.role())
         key_pem = (self.keys_dir / "self.key").read_text()
         return self.sign_challenge(key_pem, nonce + binding)

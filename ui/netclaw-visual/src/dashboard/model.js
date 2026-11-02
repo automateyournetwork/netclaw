@@ -49,9 +49,12 @@ export function entities(feed = {}) {
     // Never collapse two unknown identities by their display name.
     if (!identity || typeof identity !== 'string') return;
     const key = `${kind}:${identity}`;
-    const status = text(item.status || item.channel_state || item.state, 'Unknown');
+    const status = text(/severed|quarantined|retired/.test(item.state) ? item.state : item.status || item.channel_state || item.state, 'Unknown');
+    const reportedSeen = item.last_seen || item.updated_at || item.last_heartbeat;
+    const observedConnection = item.live === true || ['live','up'].includes(item.channel_state);
+    const seen = reportedSeen || (observedConnection ? feed.generatedAt : null);
     const row = { key, identity, kind, name: text(item.display_name || item.name || item.member_id || item.identity || item.advisor_id),
-      status, freshness: freshness(item.last_seen || item.updated_at || item.last_heartbeat), seen: item.last_seen || item.updated_at || item.last_heartbeat || null,
+      status, freshness: freshness(seen), seen, seenKind: reportedSeen ? 'reported' : observedConnection ? 'connection' : 'unknown',
       capabilities: item.capabilities || item.scope || item.skills || [],
       authority: kind === 'advisor' ? 'Advisory only · cannot execute' : kind === 'peer' ? 'External · permission scoped' : kind === 'edge' ? 'Edge · operator capabilities' : 'Execution member · scoped', raw: item };
     const i = rows.findIndex(r => r.key === key);

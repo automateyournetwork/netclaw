@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# NetClaw — Protocol Peering & Mesh configuration (BGP/OSPF over GRE + ngrok).
+# NetClaw — private routing configuration and explicit federation transport controls.
 #
 # Standalone and re-runnable: existing values from ~/.openclaw/.env are shown
 # as defaults, so fixing one answer is a 30-second re-run, not a reinstall.
@@ -103,8 +103,9 @@ case "${1:-}" in
     start)  daemon_start;  exit 0 ;;
     stop)   daemon_stop;   exit 0 ;;
     status) daemon_status; exit 0 ;;
+    transport) shift; exec python3 "$SCRIPT_DIR/ngrok-control.py" "$@" ;;
     "") ;;
-    *) echo "Usage: $0 [start|stop|status]"; exit 1 ;;
+    *) echo "Usage: $0 [start|stop|status|transport <action>]"; exit 1 ;;
 esac
 
 # ── configuration wizard ─────────────────────────────────────────
@@ -135,24 +136,25 @@ MESH_PEERS_JSON="[{\"ip\":\"$PROTO_PEER_IP\",\"as\":$PROTO_PEER_AS}"
 
 echo ""
 echo -e "  ${BOLD}── NetClaw Mesh ──${NC}"
-echo "  Peer with other NetClaw instances worldwide over BGP via ngrok."
+echo "  Configure private routing peers reachable through your trusted network."
+echo "  Federation transport requires a separately reviewed configuration."
 echo ""
-ask_yn ENABLE_MESH "Enable NetClaw Mesh peering (BGP over ngrok)?" "n"
+ask_yn ENABLE_MESH "Enable private NetClaw Mesh routing?" "n"
 
 if [ "$ENABLE_MESH" = "y" ]; then
     ask MESH_BGP_PORT "BGP listen port" "$(env_get BGP_LISTEN_PORT)"
     MESH_BGP_PORT="${MESH_BGP_PORT:-1179}"
 
     echo ""
-    echo "  Add remote NetClaw peers (other people's ngrok endpoints)."
+    echo "  Add remote NetClaw peers (private routed endpoints)."
     echo "  You can also add peers at runtime — no restart needed:"
     echo "    curl -X POST $BGP_API/add_peer -d '{\"ip\":\"HOST\",\"as\":AS,\"port\":PORT,\"hostname\":true}'"
     echo ""
     MESH_REMOTE_COUNT=0
     ask_yn ADD_REMOTE "Add a remote NetClaw peer?" "n"
     while [ "$ADD_REMOTE" = "y" ]; do
-        ask REMOTE_HOST "  Remote ngrok hostname (e.g. 0.tcp.ngrok.io)" ""
-        ask REMOTE_PORT "  Remote ngrok port (e.g. 12345)" ""
+        ask REMOTE_HOST "  Private peer hostname or IP" ""
+        ask REMOTE_PORT "  Private peer TCP port" ""
         ask REMOTE_AS   "  Remote AS number (e.g. 65002)" ""
         if [ -n "$REMOTE_HOST" ] && [ -n "$REMOTE_PORT" ] && [ -n "$REMOTE_AS" ]; then
             MESH_PEERS_JSON="${MESH_PEERS_JSON},{\"ip\":\"${REMOTE_HOST}\",\"as\":${REMOTE_AS},\"port\":${REMOTE_PORT},\"hostname\":true}"
@@ -179,8 +181,8 @@ if [ "$ENABLE_MESH" = "y" ]; then
     log_info "NetClaw Mesh configured:"
     log_info "  BGP listen port: $MESH_BGP_PORT · remote peers: $MESH_REMOTE_COUNT · accept inbound: $MESH_OPEN"
     echo ""
-    log_info "To expose your BGP port to other operators:  ngrok tcp $MESH_BGP_PORT"
-    log_info "Share the ngrok hostname/port it prints plus your AS ($PROTO_LOCAL_AS)."
+    log_info "Keep this routing port private. Do not expose it through public cloud ingress or ngrok."
+    log_info "External federation uses the dedicated NCFED listener and approved identity/consent."
 else
     MESH_PEERS_JSON="${MESH_PEERS_JSON}]"
     _set_env_var "NETCLAW_BGP_PEERS"    "$MESH_PEERS_JSON"

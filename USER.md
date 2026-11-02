@@ -82,3 +82,73 @@
 - Spec155 source handoff authorization (2026-10-25): after resuming parallel implementation, the owner explicitly requested that all Spec155 source be pushed and a copyable WSL NetClaw qualification prompt be returned. Commit/push the feature branch with exact evidence; no merge, release/Marketplace publication or existing-runtime deployment is requested.
 
 Spec160 release authorization (2026-10-30): the owner requested versioned source and touched-extension publication, README/community notes, commit/push/PR/merge, completed-branch cleanup and return to main. Earlier Spec160 source-only publication holds are superseded. The two-part modern_website writeup remains staged as drafts; no website deployment or existing-runtime upgrade is requested. Preserve all recorded qualification limits.
+
+- Issue310 roadmap direction (2026-11-01): assess the supplied 20-brief roadmap and ask questions FIRST, before creating any spec. First operational milestone is a GCP Border directing local member claws. Follow one brief per Spec Kit cycle, retain evidence qualification boundaries, stop after each brief for "next", provide major milestone updates with verified live URLs and draft writeups. Bounded Ralph implementation loops may be used if useful. The driver reserves cloud/spend mutations, ngrok account/endpoint changes, IdP registrations and device operations outside the approved read set for explicit human action/review; access availability does not waive these gates.
+
+- Issue310 initial choices (2026-11-01): use the existing GCP project identified in assessment, described by the owner as having $1,000 in credit budget (remaining credit, expiry and applicability still to verify). Three new local claws: pyATS/SSH against local CML devices and a separate CML API member, both using latest Sonnet; an Ollama member for the IPv4 subnet calculator. Keep the cloud Border control-only. Resolve and record the actual model ID during qualification. Owner supplied `lobsternet.autoamteyourntwork.com`; confirm spelling before DNS/certificate work, likely intended `lobsternet.automateyournetwork.com`. Use unique deployment names across providers/regions while keeping application identities independent of placement. Reusable installation and migration to/from clouds must be credential-agnostic for other users: parameterized role contracts, owner-supplied secret references, explicit identity move versus clone, fenced cutover, durable state and rollback verification. Assessment discussion continues; no spec started.
+
+- Issue310 final opening clarification (2026-11-01, supersedes pending details above): owner confirmed `lobsternet.automateyournetwork.com`, Montréal and a 30-day initial trial. The roughly $1,000 credit was ONLY to identify the intended GCP account/project, not a spending cap or instruction to consume it. Use that selected project; do not repeatedly ask the same budget question. Proceed with R01 after the completed opening assessment, retaining the driver's concrete infrastructure approval gates and per-brief stop.
+
+- R01 fresh-pilot direction (2026-11-01): owner said to start fresh with local/GCP participants and delegated the choice; do not ask for existing host references again. Root `.env` credential is named exactly `NGROK`. Preserve existing installations and source work. Prepare new isolated pilot participants for R01 qualification; retain the recorded exact cloud/endpoint/spend review boundary and stop within R01. Direct account API checks identified this value as an agent authtoken (ERR_NGROK_206); an API key remains a separate prerequisite.
+
+### Spec168 direct-cloud pivot (2026-11-01)
+John explicitly approved pivoting cloud Borders from mandatory ngrok to native
+cloud TCP ingress. Preserve home/commercial-Internet Border ngrok configuration.
+Cloud-friendly members may live in cloud; members needing local SSH/internal
+systems stay on premises and dial outbound to their Border. Private/air-gapped
+on-prem Border/member topology needs no ngrok; offline provisioning is separate.
+Keep hybrid, multi-cloud and multi-region in the roadmap. Update README, setup.sh,
+VS Code and all affected guidance consistently. Protocol distinction remains
+member iN2N versus independent-Border NCFED/eN2N. Preserve R01 stop and exact
+cloud/spend approval boundaries; do not ask for a paid ngrok plan for this pilot.
+
+John also requested a working cloud HUD link and actual on-prem member-to-cloud
+iN2N evidence. Include this in the R01 pilot, without treating it as completion
+of R03 or model/device workload acceptance. The existing HUD is a trusted local
+operator interface with SSH access, not a public authenticated application;
+IAP/SSH access is the scoped pilot default unless John chooses a reviewed public
+login gateway. Never label a planned URL or loopback fixture as live evidence.
+
+R01 explicit execution decisions: John selected IAP HUD access, delegated the
+exact11-resource foundation apply, then explicitly approved the budget-only
+recovery after the quota-project403. Both approvals are consumed by those scoped
+operations, not by later runtime activation or IP relocation. The runtime packet
+is a separate pending review; record subsequent replies here before treating
+future actions as authorized.
+
+John subsequently explicitly authorized the reviewed R01 runtime packet, including
+scoped pilot repairs/restarts: OS Login key, IAP/SSH, cloud-only secret/source
+transfer, two owned services and fresh on-prem iN2N/NCFED qualification. This
+supersedes the pending-runtime-review note above. No new public port, device/model
+execution or later roadmap brief is authorized; exact IP-relocation/teardown
+plans retain their separate review boundary.
+
+Spec168 R01 access steering (2026-11-01): John superseded IAP-only viewing with
+an open cloud HUD URL for lab testing, without login, then explicitly requested
+DNS/certificates and fully delegated remaining R01 activation/relocation changes.
+He corrected the two-view status-only narrowing: restore the full HUD, Chat,
+Canvas, RAG and other views. He authorized his Anthropic key and Sonnet for the
+cloud Border and scoped on-prem member, with actual question/answer evidence.
+The member must be clearly named and its real capability shown; it is a fresh
+Mac subnet-calculator, not an existing pyATS member. Users/SSO/RBAC remain R15–17.
+No need to re-ask delegated R01 permission. No later brief, existing owner-runtime
+upgrade, device changes, commit or publication is authorized.
+
+## Roadmap source integration and release hold — 2026-11-02
+
+The owner authorized committing, pushing and merging the completed R01 source into
+main, with a short maintainer summary. This supersedes R01's earlier source-merge
+hold only. The issue310 roadmap work remains unreleased until the entire roadmap
+is complete, including user identities, SSO and RBAC (R15–R17) and closure (R20).
+Do not bump a version, create a release/tag, publish a package/Marketplace build,
+publish a blog/changelog/announcement, or promote general cloud deployment for
+this work. R01 transport proof is not authorization to deploy a cloud Border
+without user controls. Keep technical specs/evidence for maintainers; rollout
+copy is deferred under specs/168-ngrok-transport-contract/deferred-docs/ and absent
+from the public README, setup wizard and general installation guides. Existing
+owner pilot authorization is a bounded exception, not a user deployment recipe.
+Upstream1.18.1 and extension1.5.0 are preserved; no R01 version increment.
+Next roadmap brief is R02 execution parity, expected next available spec169;
+it is not started by this integration request. No R02 cloud/device operation is
+authorized here. Keep the original R01 directory name despite the parallel
+upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
