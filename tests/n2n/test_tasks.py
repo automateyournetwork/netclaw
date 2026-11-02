@@ -44,6 +44,22 @@ async def _task_lifecycle(manager):
     assert res["output_text"] == "done!" and res["tokens_used"] == 42
 
 
+
+def test_task_error_without_text_records_its_type(manager):
+    asyncio.run(_task_error_without_text(manager))
+
+
+async def _task_error_without_text(manager):
+    tm = TaskManager(manager, Auditor(manager))
+    tid = tm.create(direction="inbound", peer_identity="p", target_type="skill", target_name="hung")
+
+    async def worker(progress):
+        raise asyncio.TimeoutError()
+
+    await tm.run(tid, worker)
+    assert tm.status(tid)["state"] == "failed"
+    assert tm.result(tid)["error"] == "TimeoutError"
+
 def test_task_cancel(manager):
     asyncio.run(_task_cancel(manager))
 

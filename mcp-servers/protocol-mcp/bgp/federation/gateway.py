@@ -434,13 +434,18 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
                 *cmd, stdout=output_file, stderr=error_file, env=_agent_env())
             try:
                 await asyncio.wait_for(proc.wait(), timeout=float(timeout_s))
-            except BaseException:
+            except BaseException as e:
                 if proc.returncode is None:
                     try:
                         proc.kill()
                     except ProcessLookupError:
                         pass
                 await proc.wait()
+                if isinstance(e, asyncio.TimeoutError):
+                    # wait_for's own TimeoutError has no message, which would
+                    # leave the task's recorded error empty.
+                    raise asyncio.TimeoutError(
+                        f"agent turn for session '{session_key}' timed out after {timeout_s}s") from e
                 raise
             if proc.returncode != 0:
                 raise RuntimeError(f"Agent process exited {proc.returncode}; task result unavailable"

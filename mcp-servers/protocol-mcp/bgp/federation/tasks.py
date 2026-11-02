@@ -105,13 +105,14 @@ class TaskManager:
                 raise
             except Exception as e:
                 from .execution import OutcomeUnknown
+                error = str(e) or type(e).__name__
                 try:
-                    ref = self.audit.store_result(task_id, {"error": str(e)})
+                    ref = self.audit.store_result(task_id, {"error": error})
                 except Exception:
                     ref = None
                     logger.warning("Task %s error payload could not be persisted", task_id)
                 self._set(task_id, state="outcome_unknown" if isinstance(e,OutcomeUnknown) or self.dispatched(task_id) else "failed", result_ref=ref, completed_at=_now())
-                logger.warning("Task %s failed: %s", task_id, e)
+                logger.warning("Task %s failed: %s", task_id, error)
             finally:
                 self._workers.pop(task_id, None)
         t = asyncio.create_task(_run())
