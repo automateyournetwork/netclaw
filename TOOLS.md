@@ -1203,3 +1203,16 @@ Tool discovery alone does not establish working routing. NetConverter discover=f
 skips upstream checks in a cold process; false flags mean unverified, not bad credentials.
 Use typed capability arrays/counts instead of a model's manual arithmetic. The live
 reference observed 75 operation paths, not the narrative's 70. See Spec162 verification.
+
+### R02 local lab recheck — 2026-11-02
+
+After the owner restored CML, authenticated inventory confirmed the original
+four lab nodes booted. Exact-node console reads verified R1's management state
+and public SSH key against the endpoint. Fresh protected qualification uses a
+private, pinned known_hosts file and disables ambient SSH/global host trust.
+Actual pyATS loading and generated Unicon SSH arguments were checked offline;
+no R02 show-version execution is implied. Original inventories are unchanged.
+Private evidence: `~/.local/share/netclaw/roadmap-r02-r05-20261102/r1-host-verification/`
+and `live-qualification/`. CML account credentials must never substitute for
+separate device credentials. Native `unicon.Unicon` resolves to its exported
+class in `unicon.adapters.topology`; compare object identity, not module strings.

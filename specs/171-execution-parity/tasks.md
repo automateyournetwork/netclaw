@@ -13,20 +13,20 @@ complete acceptance. Shared contracts are authoritative. No release/version bump
 
 ## Phase 2 — Foundations
 
-- [ ] T005 Implement strict canonical signed approval/result/ACK schemas and pinned-key validation in mcp-servers/protocol-mcp/bgp/federation/protected_contract.py.
-- [ ] T006 Implement additive SQLite ledger, atomic claims and retained spent authority in mcp-servers/protocol-mcp/bgp/federation/protected_store.py.
-- [ ] T007 Add enrollment generations and attested Border authority bindings in mcp-servers/protocol-mcp/bgp/federation/risk.py and service.py without reenrolling existing members.
-- [ ] T008 Implement private one-use owner tickets/session authority and native CLI in mcp-servers/protocol-mcp/bgp/federation/protected_owner.py and scripts/protected-owner.py.
-- [ ] T009 Define fixed authenticated private bridge and opt-in lifecycle in mcp-servers/protocol-mcp/bgp/federation/protected_service.py and service.py.
-- [ ] T010 [P] Add independent canonical/signature and separate-process atomic-claim tests in tests/n2n/test_protected_contract_171.py and test_protected_claims_171.py.
+- [x] T005 Implement strict canonical signed approval/result/ACK schemas and pinned-key validation in mcp-servers/protocol-mcp/bgp/federation/protected_contract.py.
+- [x] T006 Implement additive SQLite ledger, atomic claims and retained spent authority in mcp-servers/protocol-mcp/bgp/federation/protected_store.py.
+- [x] T007 Add enrollment generations and attested Border authority bindings in mcp-servers/protocol-mcp/bgp/federation/risk.py and service.py without reenrolling existing members.
+- [x] T008 Implement private one-use owner tickets/session authority and native CLI in mcp-servers/protocol-mcp/bgp/federation/protected_owner.py and scripts/protected-owner.py.
+- [x] T009 Define fixed authenticated private bridge and opt-in lifecycle in mcp-servers/protocol-mcp/bgp/federation/protected_service.py and service.py.
+- [x] T010 [P] Add independent canonical/signature and separate-process atomic-claim tests in tests/n2n/test_protected_contract_171.py and test_protected_claims_171.py.
 
 ## Phase 3 — US1 exact owner-approved read
 
-- [ ] T011 [US1] Freeze catalog, candidate idempotency, review and exact signed decisions in mcp-servers/protocol-mcp/bgp/federation/protected_service.py.
-- [ ] T012 [US1] Add authenticated protected submit and stable operation lookup over existing iN2N in mcp-servers/protocol-mcp/bgp/federation/service.py.
+- [x] T011 [US1] Freeze catalog, candidate idempotency, review and exact signed decisions in mcp-servers/protocol-mcp/bgp/federation/protected_service.py.
+- [x] T012 [US1] Add authenticated protected submit and stable operation lookup over existing iN2N in mcp-servers/protocol-mcp/bgp/federation/service.py.
 - [x] T013 [P] [US1] Implement strict owner Origin/CSRF/cookie routes and fixed bridge client in ui/netclaw-visual/src/hud-server/protected-operations.js and protected-client.js.
 - [x] T014 [P] [US1] Add OwnerSessionGate and ApprovedOperationsView in ui/netclaw-visual/src/dashboard/ with capability-gated server.js/Dashboard.jsx wiring.
-- [ ] T015 [P] [US1] Test approval tamper/expiry/replay/principal and owner-session/origin/CSRF refusals in tests/n2n/test_protected_approvals_171.py and HUD protected-operations.test.js.
+- [x] T015 [P] [US1] Test approval tamper/expiry/replay/principal and owner-session/origin/CSRF refusals in tests/n2n/test_protected_approvals_171.py and HUD protected-operations.test.js.
 
 ## Phase 4 — US2 guarded credential-owning execution
 
@@ -34,21 +34,21 @@ complete acceptance. Shared contracts are authoritative. No release/version bump
 - [ ] T017 [US2] Add operation-scoped inference facade with pinned routing and durable two-call limit in scripts/protected-inference.py.
 - [ ] T018 [US2] Add exact approved MCP broker forwarding and execute-once/parse-captured-output pyATS adapter in scripts/protected-tool-broker.py and scripts/pyats-managed.py.
 - [ ] T019 [US2] Prepare pinned official OpenClaw and Hermes runtimes with DefenseClaw in fresh Docker topologies and honest containment verification in specs/171-execution-parity/qualification/ and scripts/protected-runtime.py.
-- [ ] T020 [P] [US2] Add runtime/argument/profile/bypass tests in tests/n2n/test_protected_runtime_171.py; no test may fake live production posture as acceptance.
+- [x] T020 [P] [US2] Add runtime/argument/profile/bypass tests in tests/n2n/test_protected_runtime_171.py; no test may fake live production posture as acceptance.
 
 ## Phase 5 — US3 durable result and no-replay recovery
 
-- [ ] T021 [US3] Persist executor/effect claims before their effects and preserve uncertainty on timeout/cancel/restart in protected_store.py and protected_service.py.
-- [ ] T022 [US3] Sign member receipts, verify bindings and atomically persist Border receipt/ACK before completion in protected_contract.py and protected_service.py.
-- [ ] T023 [US3] Implement authenticated operation reconciliation and idempotent ACK delivery without submit replay in protected_service.py and service.py.
-- [ ] T024 [P] [US3] Add independently owned crash/lost-ACK/conflicting-result/retention tests in tests/n2n/test_protected_recovery_171.py.
+- [x] T021 [US3] Persist executor/effect claims before their effects and preserve uncertainty on timeout/cancel/restart in protected_store.py and protected_service.py.
+- [x] T022 [US3] Sign member receipts, verify bindings and atomically persist Border receipt/ACK before completion in protected_contract.py and protected_service.py.
+- [x] T023 [US3] Implement authenticated operation reconciliation and idempotent ACK delivery without submit replay in protected_service.py and service.py.
+- [x] T024 [P] [US3] Add independently owned crash/lost-ACK/conflicting-result/retention tests in tests/n2n/test_protected_recovery_171.py.
 - [x] T025 [P] [US3] Add browser refresh/uncertain decision/reconcile behavior and tests in ui/netclaw-visual/src/dashboard/ApprovedOperationsView.jsx and its test harness.
 
 ## Phase 6 — US4 attributable audit
 
-- [ ] T026 [US4] Extend existing GAIT with structured principal/correlation and process-safe required protected emission in mcp-servers/protocol-mcp/bgp/federation/gait.py and audit.py.
-- [ ] T027 [US4] Enforce required pre-boundary audit and post-effect pending-audit recovery in protected_service.py.
-- [ ] T028 [P] [US4] Test unavailable/concurrent audit and principal attribution in tests/n2n/test_protected_audit_171.py.
+- [x] T026 [US4] Extend existing GAIT with structured principal/correlation and process-safe required protected emission in mcp-servers/protocol-mcp/bgp/federation/gait.py and audit.py.
+- [x] T027 [US4] Enforce required pre-boundary audit and post-effect pending-audit recovery in protected_service.py.
+- [x] T028 [P] [US4] Test unavailable/concurrent audit and principal attribution in tests/n2n/test_protected_audit_171.py.
 
 ## Phase 7 — US5 integration and actual qualification
 

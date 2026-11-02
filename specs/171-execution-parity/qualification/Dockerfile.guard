@@ -1,0 +1,10 @@
+# Private build context: verified official 1.0.4 binary and pinned public policy
+# assets only. Never include guard.env, provider keys or installation state.
+FROM python:3.12-slim-bookworm
+COPY --chmod=0755 defenseclaw-gateway /usr/local/bin/defenseclaw
+COPY policies/ /opt/defenseclaw/policies/
+COPY official-policy-manifest.json /opt/defenseclaw/official-policy-manifest.json
+COPY scripts/protected-guard.py /opt/netclaw/scripts/protected-guard.py
+COPY scripts/lib/protected_provider.py /opt/netclaw/scripts/lib/protected_provider.py
+ENV HOME=/guard/official-user DEFENSECLAW_HOME=/guard
+ENTRYPOINT ["python3", "/opt/netclaw/scripts/protected-guard.py"]
