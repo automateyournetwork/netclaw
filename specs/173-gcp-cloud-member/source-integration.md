@@ -1,5 +1,8 @@
 # R04 accepted source integration — 2026-11-03
 
+Pull request: [#324](https://github.com/automateyournetwork/netclaw/pull/324).
+The GitHub record carries the final merge and check outcomes.
+
 The owner accepted completed R04 and requested full commit, PR, merge, completed
 branch cleanup and return to main. This includes the separate R04a/client roadmap
 amendment. Source1.18.4 and extension1.5.0 remain unchanged; the complete-roadmap
