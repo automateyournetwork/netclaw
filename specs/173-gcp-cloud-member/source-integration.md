@@ -35,3 +35,18 @@ Actual deployed evidence remains pinned to81b35fc9 and its exact image/profile.
 Integration and documentation commits do not claim a redeployment. Private full
 audit/evidence remains outside Git. PR, final merge and branch-cleanup outcomes
 are recorded in the integration handoff and the linked GitHub pull request.
+
+
+CI initially rejected a stale generated NetBox skill descriptor. Canonical
+regeneration updated only that skill's hash in config/components/catalog.json
+and the aggregate hash comment in scripts/lib/catalog.sh; generated environment
+mapping bytes stayed unchanged. This catalog-only integration correction does not
+change the qualified execution implementation or imply a new live deployment.
+The original failing CI run remains visible in PR#324. Full-range whitespace
+review also removed three Markdown trailing-space pairs from spec.md.
+
+The setup-catalog workflow then passed locally with qualified Node24.19.0 and
+Python3.12.12: both builder checks,112 components/239 skills, zero unexplained
+coverage gaps,9+15+4 unit tests and zero new changed-link URLs. No dependency,
+lockfile, source version or extension version changed. The final PR CI checks
+remain the merge gate; their actual outcomes are linked above.

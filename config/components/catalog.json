@@ -26440,7 +26440,7 @@
       "title": "netbox-reconcile",
       "description": "Reconcile NetBox source of truth against live network state - detect IP drift, missing interfaces, undocumented links, cable mismatches, VLAN mismatches, and ticket discrepancies in ServiceNow. Use when validating NetBox accuracy, checking for config drift, auditing network documentation, or reconciling source of truth after changes",
       "path": "workspace/skills/netbox-reconcile/SKILL.md",
-      "sha256": "1681ec31f6deb321887990e91301ac253286c22f8015f0d519c92ebf378bb373",
+      "sha256": "de2dfff4c42b718360544eebe0ab03101d1f906fd863be3072fa7b2fcfb19c10",
       "components": [
         "netbox"
       ],
