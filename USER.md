@@ -22,6 +22,8 @@
 
 ## Notes
 
+- R04 direction (2026-11-03): proceed autonomously to completion using the existing NetClaw member, NetBox skills and MCP. Owner selected the public NetBox demo and supplied a private credential. Complete bounded GCP qualification, evidence and cleanup without repeated permission requests; preserve R01 and the roadmap release hold. Human review remains before R05.
+
 - R02/R03 handoff (2026-11-03): after the completed R03 evidence and cleanup,
   quietly commit, PR, merge and return to main; provide a short maintainer blurb.
   This accepts R03 for source integration. Keep the full-roadmap release hold.

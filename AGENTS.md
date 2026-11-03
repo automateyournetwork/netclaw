@@ -173,6 +173,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Spec171 planned: additive federation.db tables, private artifacts and owner authority, existing GAIT audit. (171-execution-parity)
 - Python3.12 federation/native tools; Python3.10+ role/IaC helpers; existing JavaScript ESM/React18 and qualified Node24.19. + Existing strict TLS/federation, FastMCP/MCP, SQLite, Express/React/Vite build; OpenTofu1.13.2 Google8.9.0, Caddy2.11.7. No new MCP server or UI framework. (172-gcp-hybrid-border)
 - Selected private homes/SQLite authority and ledger; one-device frozen profiles; external0700 private cloud state/evidence; bounded installation-scoped browser reference storage. (172-gcp-hybrid-border)
+- Python3.12 federation/MCP; Python3.10+ host helpers; existing Node24.19/React18 HUD. + Existing FastMCP/MCP, requests, P256, SQLite, Docker, OpenClaw2026.7.1-2, strict iN2N, OpenTofu1.13.2/Google8.9.0, Caddy2.11.7. Existing NetBox/subnet MCPs; no new server/framework. (173-gcp-cloud-member)
+- Private SQLite/GAIT and immutable profiles; external0700 state/evidence and0600 secrets; bounded browser identifiers only. (173-gcp-cloud-member)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -326,3 +328,14 @@ The complete-roadmap release hold through R20 is still in force. Keep historical
 full path; never rename historical specs to hide the collision. R03 live evidence
 remains tied to its frozen tested source, not a claim that merged source was redeployed.
 See specs/172-gcp-hybrid-border/source-integration.md for verification and PR outcome.
+
+### R04 autonomous execution — 2026-11-03
+
+Owner requested R04 to100%, supplied the existing public NetBox demo source and
+private credential, required actual NetClaw member/NetBox skills/MCP, then delegated
+autonomous completion. Use fresh isolated cloud Border/member and separate subnet,
+read-only device/prefix/subnet workloads, finite bounds, real evidence and full
+owned cleanup. Existing source guard pins select Sonnet4.6 instead of historical
+Haiku default. Do not repeat delegated permissions. Preserve R01, retired R03
+archives and source1.18.4/extension1.5.0; no release/public rollout or R05.
+Pass4 is R04; see specs/173-gcp-cloud-member/activation-delegation.md.
