@@ -1,8 +1,8 @@
 # Feature Specification: R04 — GCP NetClaw member for NetBox and subnet work
 
-**Feature Branch**: `173-gcp-cloud-member`  
-**Created**: 2026-11-03  
-**Roadmap**: R04; depends on accepted R03, `specs/172-gcp-hybrid-border/`  
+**Feature Branch**: `173-gcp-cloud-member`
+**Created**: 2026-11-03
+**Roadmap**: R04; depends on accepted R03, `specs/172-gcp-hybrid-border/`
 **Status**: Implementation, actual qualification and owned retirement complete; pass4 complete, owner accepted; source integration authorized
 
 **Input**: Owner: “proceed with R04 … drive this to 100%”; supplied an existing
