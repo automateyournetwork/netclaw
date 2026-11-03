@@ -10,7 +10,7 @@ Created 2026-11-03. Feature: [spec.md](../spec.md).
 - [x] Existing skill/MCP use is an explicit product requirement.
 - [x] Credential boundary and public demo data are distinguished from private lab data.
 - [x] Live evidence, source fixtures and historical qualification remain separate.
-- [x] Cleanup, release hold and R05 human gate retained.
+- [x] Cleanup, release hold and R04a → R05 human gate retained.
 
 No unresolved clarification markers. Technical identities in requirements bind
 the requested existing integrations; implementation structure belongs in plan.md.

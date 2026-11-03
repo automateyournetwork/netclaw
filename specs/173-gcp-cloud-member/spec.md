@@ -3,7 +3,7 @@
 **Feature Branch**: `173-gcp-cloud-member`  
 **Created**: 2026-11-03  
 **Roadmap**: R04; depends on accepted R03, `specs/172-gcp-hybrid-border/`  
-**Status**: Design analyzed; pass4 implementation starting, live qualification pending
+**Status**: Implementation, actual qualification and owned retirement complete; pass4 complete, human acceptance pending before R04a
 
 **Input**: Owner: “proceed with R04 … drive this to 100%”; supplied an existing
 NetBox demo endpoint and credential, required “we have netbox skills and MCP use
@@ -166,9 +166,9 @@ artifacts and final absence checks account for every R04 resource.
 - **FR-015**: Export private evidence, retire every owned temporary resource and
   verify no billable residue; preserve R01 and all historical/current-state archives.
 - **FR-016**: Preserve source1.18.4/extension1.5.0 and the roadmap release hold.
-  No public rollout documentation, release, announcement or R05 execution.
+  No public rollout documentation, release, announcement or R04a/R05 execution.
 - **FR-017**: Map all acceptance rows to actual evidence or an explicit unresolved
-  status; use independent review and stop for owner acceptance before R05.
+  status; use independent review and stop for owner acceptance before R04a (then R05).
 - **FR-018**: Preserve existing OpenClaw/Hermes, local/optional ngrok paths and
   HUD portfolio behavior; qualify only the actual tested R04 environment.
 
@@ -198,7 +198,7 @@ artifacts and final absence checks account for every R04 resource.
 - **SC-005**: Actual cloud confinement/topology checks pass and all owned temporary
   resources are retired with zero billable residue; added cost is documented.
 - **SC-006**: All acceptance rows have current evidence, independent review and
-  qualification limits; human acceptance remains an explicit R05 gate.
+  qualification limits; human acceptance remains an explicit gate before R04a (then R05).
 
 ## Assumptions
 

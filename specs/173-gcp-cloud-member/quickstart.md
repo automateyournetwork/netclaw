@@ -1,7 +1,7 @@
 # R04 maintainer qualification sequence
 
 Verification outline for the delegated isolated trial; not general cloud guidance.
-Never replay retired R01/R03 or spent R04 packets.
+Never replay historical R01 or retired R03 or spent R04 packets.
 
 1. Read spec/delegation/tasks; select fresh private state and homes.
 2. Discover exact existing skill/MCP/schema pins and run source/native Linux checks.
@@ -14,4 +14,4 @@ Never replay retired R01/R03 or spent R04 packets.
 8. Stop/restart owned member, recover old results and compare counters/identity.
 9. Export current evidence/state, teardown owned resources/DNS/temporary access;
    verify zero billable residue and unchanged R01.
-10. Complete coherence/memory/GAIT; human acceptance before R05.
+10. Complete coherence/memory/GAIT; human acceptance before R04a, then R05.

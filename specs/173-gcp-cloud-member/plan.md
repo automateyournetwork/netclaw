@@ -34,7 +34,7 @@ contracts and regressions preserve existing integrations.
 Owner release hold overrides generic version/public README/blog/publication steps;
 maintainer technical evidence and deferred documentation only. Current R04 delegation
 covers finite resource/runtime changes; exact plans, receipts and cleanup remain.
-Human acceptance remains required before R05. No constitutional waiver.
+Human acceptance remains required before R04a, then R05. No constitutional waiver.
 
 ## Project Structure
 
@@ -98,7 +98,7 @@ credit is not a verified balance or spending target.
 6. Negative scope/credential/network cases; member stop/restart with unchanged
    effect counts; independent evidence review.
 7. Export private state/evidence, exact teardown and zero-residue/R01 checks;
-   report limitations and obtain owner acceptance before R05.
+   report limitations and obtain owner acceptance before R04a, then R05.
 
 ## Complexity Tracking
 
