@@ -2,7 +2,8 @@
 
 **Feature Branch**: `172-gcp-hybrid-border`  
 **Created**: 2026-11-02  
-**Status**: Specified; implementation and live acceptance pending  
+**Status**: Technical qualification and cleanup complete; human acceptance pending (35/36 tasks)
+
 **Input**: Owner: “drive R03 to 100%”. Authoritative brief: `docs/roadmap/issue-310/briefs/R03-gcp-border-onprem-members.md`. R02 accepted at `96cbdf0f`.
 
 ## User Scenarios & Testing
@@ -68,9 +69,10 @@ and reviewed teardown with a final resource/state inventory.
 - An unknown effect remains spent. No restart, reconcile, new browser session or
   recovery path may turn uncertainty into permission to execute again.
 - Public sign-in assets are deliberately reachable; operational data is private.
-- Price estimates/alerts are not an enforceable hard cap. Missing actual charges
-  or an inability to meet the owner's ceiling blocks cloud activation, not safe
-  source development. No assumption silently relaxes the ceiling.
+- Price estimates/alerts are not an enforceable hard cap. The owner's November3
+  execution-and-cleanup delegation supersedes the earlier unresolved billing
+  ceiling gate. Stated credit is not a verified balance or spending target;
+  finite resources/traffic/lifetime and removal of billable residues remain required.
 
 ## Requirements
 
@@ -109,9 +111,10 @@ and reviewed teardown with a final resource/state inventory.
   unknown outcomes; never replay old activation plans or secret payloads.
 - **FR-012**: Supply reproducible IaC, activation and teardown under exact review;
   label owned resources by roadmap/expiry and record observed cost visibility.
-- **FR-013**: Respect the owner's total **CAD100/month maximum**, conservatively
-  including R01. No billable change until exact costs, bounded duration, residual
-  charges and limitations are reviewed and execution explicitly delegated.
+- **FR-013**: Follow the owner's November3 execution-and-cleanup delegation in
+  activation-delegation.md, which supersedes the earlier CAD100/month execution
+  gate. Record exact costs/visibility limits, bounded duration and residual charges;
+  retain finite safeguards and remove owned billable residues after evidence export.
 - **FR-014**: Preserve the issue310 release hold: no version/tag/package/Marketplace,
   public deployment instructions, blog/changelog or cloud rollout promotion.
 - **FR-015**: End R03 with independent evidence and human acceptance before R04.
@@ -149,7 +152,7 @@ and reviewed teardown with a final resource/state inventory.
   the R02 configured-owner session, and OpenTofu/provider-neutral roles. Dedicated
   Caddy on an isolated e2-small avoids a load balancer's standing cost. Exact plan
   approval still precedes resources/DNS/activation; these are design defaults.
-- Proposed hostname: `r03-gcp-montreal.lobsternet.automateyournetwork.com`.
+- Qualified and now retired hostname: `r03-gcp-montreal.lobsternet.automateyournetwork.com`.
   Owner identities/SSO/RBAC remain R15–R17; this is one configured owner.
 - Cloud installation metadata is OpenClaw; no cloud inference is qualified.
   Hermes cloud remains unqualified. Preserve on-prem OpenClaw/Hermes support;
@@ -157,8 +160,8 @@ and reviewed teardown with a final resource/state inventory.
   evidence is optional and must not be claimed without execution receipts.
 - CML API member, cloud members, Ollama, HA, multi-cloud, writes and batch approval
   are outside R03. Existing optional ngrok support remains unchanged.
-- Cloud qualification is a proposed finite window of at most 48 hours with
+- Cloud qualification is a finite window of at most 48 hours with
   automatic VM stop and reviewed teardown. This does not alone guarantee the
-  total billing ceiling; actual charges and remaining exposure require review.
+  final billed amount; actual cost visibility and remaining exposure require review.
 - Two of the owner's maximum five implementation passes were used by R02.
   R03 starts pass 3 only after contract/task consistency review.

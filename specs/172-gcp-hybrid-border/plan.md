@@ -19,7 +19,7 @@ apply/workload/recovery/teardown while preserving R01 and release holds.
 **Target Platform**: Ubuntu24.04 GCP AMD64 control-only Border; qualified Mac on-prem native pyATS25.2 and isolated OpenClaw/Hermes containers. Cloud Hermes remains unqualified.  
 **Project Type**: Existing federation service/HUD plus maintainer-only IaC and activation tooling.  
 **Performance Goals**: Existing one-effect/two-inference bounds and finite operation deadlines; <=32 retained browser references; <=16 immutable device profiles; no unattended loop/retry.  
-**Constraints**: CAD100/month total hard ceiling including R01; exact cloud/DNS/runtime/teardown review; <=48h proposed qualification; R01 untouched; no cloud provider/device keys or model; five implementation passes overall, two already used.  
+**Constraints**: November3 owner execution/cleanup delegation supersedes the earlier unresolved CAD100/month gate; retain exact cloud/DNS/runtime/teardown review, finite traffic and <=48h qualification, R01 preservation and no cloud provider/device keys/model. Five implementation passes overall; two already used by R02.
 **Scale/Scope**: One configured owner, one GCP region, one fresh Border, one on-prem pyATS member with four device profiles; optional retained Hermes evidence, no cloud member/batch/write/SSO.
 
 ## Constitution Check
@@ -36,9 +36,10 @@ Owner's explicit issue310 release hold overrides release/version/public README,
 blog/announcement/package steps in generic constitution workflow; no waiver of
 execution safety is inferred. Technical spec/evidence stays under this directory,
 IaC is maintainer-only and cannot be advertised as general deployment support.
-Exact cloud mutations and R03 human acceptance remain separate gates. Budget
-uncertainty blocks live apply, not source implementation. No unresolved design
-clarification; cost/delegation are explicit execution dependencies.
+Exact cloud mutation review and R03 human acceptance remain separate gates.
+The owner's November3 delegation resolved execution/spend confirmation; actual
+billing visibility limits remain recorded. See activation-delegation.md and
+verification.md for actual completion, cleanup and the remaining human gate.
 
 ## Project Structure
 

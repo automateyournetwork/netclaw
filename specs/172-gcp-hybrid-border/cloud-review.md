@@ -1,4 +1,32 @@
-# R03 cloud review — prepared, not applied
+# R03 cloud review — activation and retirement complete
+
+## Actual outcome — 2026-11-03
+
+The owner's [November3 delegation](activation-delegation.md) resolved the earlier
+billing/execution hold and authorized isolated R03 completion and cleanup. The
+stated credit is unverified; finite resource/traffic/lifetime safeguards remained.
+
+The saved10-create foundation applied once at12:37Z, followed by a10-no-op plan.
+Actual guard and network-manager verification preceded network activation plan
+`9e444b986b0e41b1eddbe26d3f278bdb9ece6b1c2a504e317ded1cab39198d21`:
+three scoped firewall creates and ten no-ops. It applied once at12:54Z; fresh plan
+`eb28371c5e2934947f364c211b23a817b175039b0e12652c7164cb595ce2460b`
+then verified13 no-op resources. Actual host/IAM/network/HTTPS and all four
+protected workload reads passed; see [verification.md](verification.md).
+
+After evidence export and independent review, exact13-delete plan
+`5e3c15cb63ea1efff89249e9cb6d3751d05d22dc097aa3683f4570c8ae9c6369`
+completed at13:36:26Z. Actual GCP inventories verified zero R03 billable residues;
+DNS and the temporary OS Login key are removed. The authoritative private state
+is empty. See [teardown-review.md](teardown-review.md). **All saved apply/activation/
+teardown plans are spent; do not replay the historical commands below.**
+
+Observed VM lifetime was0.995 hours. Prorated authenticated base estimate is
+CAD0.035, excluding traffic, tax, secret operations, model calls and R01. Actual
+billing remains unavailable and no zero-charge claim is made. R01 remains running
+and unchanged; its optional stop was not executed and existing costs remain.
+
+## Historical preparation record — 2026-11-02 (superseded, not executable)
 
 2026-11-02. Maintainer-only unreleased qualification packet. R03 has no deployed
 resources. The owner's hard CAD100 total monthly lab ceiling and exact delegation
@@ -30,7 +58,7 @@ project-wide role or existing-resource change is in this plan.
 Fixed STOP is `2026-11-04T20:55:32Z`, initially47 hours after generation. A stale
 plan must be regenerated and reviewed. This file supplies no apply delegation.
 
-Exact private runner, **only after owner delegation and cost clearance**:
+Historical private runner invocation, **already consumed; do not execute again**:
 
 ```sh
 python3 /Users/john.capobianco/.local/share/netclaw/roadmap-r03-20261102/foundation-review-20261102T215532Z/apply-reviewed.py apply
@@ -39,8 +67,8 @@ python3 /Users/john.capobianco/.local/share/netclaw/roadmap-r03-20261102/foundat
 Its inert `check` passed. It verifies saved-plan/tool/source hashes, the fresh
 R03-only backend, unchanged R01 state and at least12 hours remaining; strips
 ambient TF variables; and invokes only that saved plan. A durable attempt marker
-prevents automatic reapplication after an unknown/partial outcome. It has not
-been run in apply mode. Actual state inspection and a new reviewed recovery plan
+prevents automatic reapplication after an unknown/partial outcome. At this November2 checkpoint it had not
+been run in apply mode; the November3 outcome above supersedes that state. Actual state inspection and a new reviewed recovery plan
 are required after a partial failure.
 
 ## Cost and activation gates

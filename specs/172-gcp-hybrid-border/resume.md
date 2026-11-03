@@ -1,88 +1,77 @@
 # Resume R03 / Spec172
 
-2026-11-02. Owner accepted R02 and requested “drive R03 to100%”. Branch
-`172-gcp-hybrid-border` preserves accepted R02 `96cbdf0f`; upstream main remains
-`5e50bbba`. R03 runtime source lanes are integrated through `aa861ee3`; checkpoint
-`fbd41cb1` includes integrated tests/evidence. Pass3 offline activation preparation
-and independent reviews are complete. R03 is not deployed/qualified or human accepted.
+2026-11-03: **technical qualification and cleanup complete; human acceptance
+pending.** R01/R02 are complete and accepted. R03 has35/36 tasks closed; T036's
+memory/GAIT work is recorded, but human acceptance cannot be inferred from
+execution delegation. Do not begin R04 until that gate is accepted.
 
-GAIT branch `roadmap-r03-20261102`, planning record `2e1daad3`, source checkpoint
-`dff8b808`, integrated-source/lab-correction checkpoint `c253e6e8`. Private evidence:
-`~/.local/share/netclaw/roadmap-r03-20261102/`. Use the existing GAIT interpreter
+Read [verification.md](verification.md), [maintainer-handoff.md](maintainer-handoff.md)
+and [teardown-review.md](teardown-review.md). The November3 owner delegation in
+[activation-delegation.md](activation-delegation.md) resolved earlier spending/
+execution questions. Do not ask them again or treat available credit as a target.
+
+## Completed outcome
+
+- Fresh GCP Montréal control-only Border and actual named trusted HTTPS owner HUD;
+  four independently approved outbound-iN2N reads from the on-prem member.
+- R1/R2/SW1/SW2 each returned IOS17.18.2 from one `show version`, zero setup commands,
+  two OpenClaw/Sonnet provider calls, signed results and durable ACKs. Exactly four
+  effects/eight provider calls; actual submit/ACK reply loss, same-key service/
+  member restart, fresh login and ID-only browser recovery caused no extra effect.
+- 62 combined workload/browser/auth checks, actual host/IAM/route/port/metadata
+  boundary and finite quota/rate/expiry configuration verified. Actual VM reboot
+  and scheduled expiry firing were not tested. Full limits/failures are retained.
+- All13 R03 GCP resources, boot disk, DNS A record and temporary OS Login key are
+  gone. Actual inventories found zero owned billable residue. Both member workers
+  stopped;12 owned stopped containers and4 networks removed. Private homes/evidence,
+  images, original inventories and R01 remain preserved.
+- R03 existed for under one hour; prorated base estimate CAD0.035 excludes traffic,
+  tax, model/secret operations and R01. Actual invoice/credit balance is unknown.
+  R01 continues to run and retains its existing costs. R03 hostname is retired.
+
+## Authoritative state and evidence
+
+Branch `172-gcp-hybrid-border` preserves accepted R02 `96cbdf0f`. Runtime source
+through `aa861ee3` was deployed from frozen snapshot `fbd41cb1`; November3 changed
+private configuration/helpers and maintainer records, not production source.
+Source1.18.3/extension1.5.0 unchanged. Do not publish, bump, tag, release, merge a
+public rollout recipe or deploy this as a general user cloud Border. Entire
+issue310 release hold lasts through R20, including user controls in R15–R17.
+
+Private evidence root: `~/.local/share/netclaw/roadmap-r03-20261102/`.
+Actual run: `activation-20261103/`; verification.md indexes the receipts.
+Authoritative `foundation-review-20261102T215532Z/r03.tfstate` is now empty,
+SHA256 `2a736c2bd6d0fff4bcf2f58cd9cfc2e52d9cdff07c01f30496acedf2a1944455`.
+R01 state remains serial6,
+SHA256 `62364e466434974c6b4f55c395ef95a9376113aa9fcf4d44518511a160643fbf`.
+Never replay initial foundation/activation plans, operator payloads or enrollment.
+
+`activation-20261103/final-preservation/current-r03-state.tar` is the verified
+current-state archive, SHA256
+`3f9fe622b119b3285532760532bdaee66ffd66b0e87a077b0650076eea432d46`.
+It contains private keys/owner state and must remain private. It is preservation,
+not an activation payload. Prepared `cloud-runtime-staging/bootstrap-fbd41cb1-final`
+is older initial state; never restore it over current records. All failed
+browser/export/observer attempts remain alongside the accepted continuation.
+R02's unknown/spent operation remains intact and must never be replayed.
+
+GAIT branch `roadmap-r03-activation-20261103` retains delegation `e700f381`,
+foundation/network review `b77cd3cf` and final technical/cleanup `1869ca6e`.
+Private `activation-20261103/gait-final-log.json` and `memory/2026-11-03.md` retain the session trail. Use
 `/Users/john.capobianco/gait_mcp/venv/bin/python` with repository gait-stdio.py;
-ambient Python3.14 cannot import gait. No runtime reinstall required.
+ambient Python3.14 cannot import GAIT. No MemPalace connector was exposed.
 
-Spec/plan/contracts/tasks freeze a separate control-only Montréal Border, exact
-owner HTTPS, four individually approved on-prem pyATS reads, immutable device
-profiles and no new history/batch authority. R01 is preserved. Source work may
-proceed after independent consistency review; exact resource/runtime/DNS/teardown
-packets require delegation. CAD100/month total ceiling is not an alert target.
-Current billing/egress exposure remains an open cloud execution gate; owner was
-asked for current gross accrued billing and currency/tax confirmation.
+All parallel lanes are complete. Existing private worktrees are retained under
+`worktrees/{hud,protocol,cloud,enrollment}`; their source was integrated already.
+R02 used passes1–2 and R03 used source/preparation pass3 of the maximum five;
+no automatic Ralph hook ran. No device/model action is authorized by retrying a
+failed observer or by a new browser session.
 
-Required remaining work is tracked in tasks.md. No cloud apply/SSH/key upload,
-DNS/secret mutation, model/provider call or R01 modification has occurred for R03.
-Four actual read-only diagnostic baselines verified interface/address and SSH
-public keys. These are separate from the required future protected show-version
-operations. Preserve the R02 unknown spent attempt and all previous limits.
+## Next gate
 
-Implementation pass3 is reserved for R03; two of maximum five passes were used
-by R02. No actual Ralph hook enabled. Human acceptance gates R04. Release/version/
-public documentation/publication remains held through the whole issue310 roadmap.
-
-## Completed source and private preparation
-
-- Source commits: `af0f855e` design, `a7367bca` selector, `ff11d713` productionHUD,
-  `398346e9` Border role/service/posture, `cb0846f0`/`685032b9` cloud/expiry,
-  `5843d6ae` enrollment contract, `aa861ee3` enrollment API/CLI.
-- Tests:464 full protected/posture;453 fullHUD serialized; production build;
-  82 transport/service regressions;53 integrated cloud/role plus23 subtests.
-  Independent enrollment41 and role33 pass. The expanded-suite failure was a
-  test-only noncanonical import, corrected without weakening source checks.
-- Authenticated CML node metadata and actual read-only output corrected the saved
-  switch addresses. Exact addresses stay in private `cml-readonly/` receipts;
-  original inventories remain unchanged. R1 console-to-SSH key proof is distinct
-  from R2/SW1/SW2 existing-owner-SSH-pin continuity plus CML metadata. Historical
-  pin establishment is unknown. All devices reached expected enable prompts.
-- Python EHOSTUNREACH did not indicate CML down: native nc/curl/SSH/Node work.
-  Three console WebSocket failures remain failures, even after fresh key API use.
-  No restart/configuration/lifecycle repair was performed or needed for SSH.
-- `offline-runtime-preparation.md` describes frozen LinuxAMD64 public dependency
-  archives. Use only `offline-runtime-20261102/artifacts-export`; earlier artifacts
-  is a retained incomplete attempt. Fresh network-disabled nonroot verification
-  passed. Actual VM package delta/stdlib/networkd/kernel controls remain pending.
-- Private builder37, worker21, snapshot adapter10 and independent receipt core25
-  tests pass with independent reviews. Actual four host-key inputs validate; no
-  member profile/worker has been activated. See runtime-review.md.
-- Cloud first-create preparation passed actual offline LinuxAMD64 install, replay
-  refusal, no-executor factory, certificate and asset proofs. Preserve intended
-  identity `0d02acd4-4349-45a8-951e-215f91a1174e` in
-  `cloud-runtime-staging/bootstrap-fbd41cb1-final/`; never regenerate or replay
-  initial state over an active home. Its archive contains private keys/owner state.
-  Source archive is frozen at fbd41cb1;994 files,16 assets; no listener/upload.
-
-## Immediate execution gates
-
-1. Resolve owner billing/currency/tax input and a finite total cost bound. See
-   cloud-review.md. Budget alerts do not cap Compute Engine. Optional R01-only
-   stop is concrete in cost-bound-review.md; owner choice is pending. R01 still
-   runs unchanged. Do not act on that proposal without delegation.
-2. Exact foundation plan creates10 resources, changes/deletes0. Private packet:
-   `foundation-review-20261102T215532Z/foundation-packet.md`, saved plan SHA256
-   `8373323e4f7406fdb94892c74f29ccbcf3710fcf2852c36a78cdcbde4867a3eb`.
-   Fixed STOP2026-11-04T20:55:32Z; regenerate/review if stale. Exact foundation
-   delegation was requested and is pending. Private apply-reviewed.py check passes;
-   do not run apply until delegation AND cost gates are resolved.
-3. After reviewed foundation, read-only actual host preflight determines the exact
-   offline package delta and actual kernel/boot/rate/quota checks. Public ingress
-   stays closed. Separate exact runtime/source/key/secret/DNS activation follows.
-4. Required actual evidence: trusted named HTTPS owner controls, strict outbound
-   enrollment, four separately approved native reads, negative/recovery/no-repeat
-   tests, independent receipt/export verification, reviewed teardown and no billable
-   residues. Human R03 acceptance then gates R04.
-
-Original worktrees: private root/worktrees/{hud,protocol,cloud}; enrollment worktree
-at worktrees/enrollment is based on5843d6ae. Source is cherry-picked into root.
-All three private preparation lanes are complete; no active agent work remains.
-Coordinator owns final actual-state packet/integration/GAIT. No source
-merge/push, version bump, release or public cloud-deployment instructions.
+Only human R03 acceptance remains. After explicit acceptance, close T036 and use
+[the R04 brief](../../docs/roadmap/issue-310/briefs/R04-gcp-cloud-member-netbox.md)
+for cloud NetBox/subnet members with a hosted model. Recheck the next free spec
+number at kickoff. R05 adds Ollama members. Their resource/runtime plans and
+actual qualification remain separate; nothing here starts them or qualifies
+arbitrary LLM/harness/cloud combinations.

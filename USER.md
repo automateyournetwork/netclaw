@@ -22,6 +22,11 @@
 
 ## Notes
 
+- R03 direction (2026-11-03): use the available GCP credit and proceed through the
+  reviewed cloud qualification without repeatedly blocking on cost confirmation.
+  Record scoped plans and clean up owned resources afterward so ongoing charges
+  are not left behind. Keep the roadmap release/version hold and evidence quality.
+
 - Spec153 handoff (2026-10-18): after the fixed Mac engineering gate passed, commit and push the completed source to the feature branch and provide an exact WSL continuation prompt. Windows is bounded smoke/platform-difference qualification, then return to Mac for regression, packaging readiness, recording and the owner walkthrough.
 
 - Spec153 direction (2026-10-17): start a new branch and full Spec Kit cycle using the supplied IDE installer spec, plan and Codex kickoff. Ask five additional clarification questions before planning, then generate tasks, analyze and resolve every finding before implementing and testing. The current request supersedes the kickoff's G2 stop; real installations and publication remain outside scope.

@@ -1,4 +1,46 @@
-# R03 runtime packet preparation — not activated
+# R03 runtime — actual qualification complete and retired
+
+2026-11-03: actual activation, strict enrollment, four protected reads, loss/restart
+recovery, owner controls and independent signed/GAIT verification passed. The
+R03 deployment was then retired after verified current-state export. See
+[verification.md](verification.md) and [teardown-review.md](teardown-review.md).
+[activation-delegation.md](activation-delegation.md) superseded earlier pending
+permission/billing language. The historical packet below is spent, not a recipe
+to reactivate the retired deployment.
+
+Actual Ubuntu24.04 AMD64 installed only three missing verified offline packages:
+python3.12-venv3.12.3-1ubuntu0.17, python3-pip-whl24.0+dfsg-1ubuntu1.3 and
+python3-setuptools-whl68.1.2-2ubuntu1.2. No upgrades/removals. Frozen source/runtime
+and the intended installation identity were preserved. Actual kernel quota/rate,
+service confinement, least-privilege IAM and direct TLS boundaries passed.
+
+A dormant eN2N registration mismatch caused the first federation start to exit.
+The scoped CAS1→2 repair changed its application identity/transport-public-key
+binding and the role registry digest only; iN2N, source, protected profile and all
+keys remained unchanged. The accepted final registry SHA256 is
+`4d5e451dfb61f40b2cf5c4026fc446e2eb2bfe2a54fd61c9dbb4893fb4735d79`;
+role SHA256 `86f1ee5d24a619787c1af0faf6d336024e6d88ea51fbf14b07f808d57fd2e179`.
+Failed helper/start attempts remain retained without device/model effects.
+
+Fresh member installation `9fcc74ba-72b9-44b5-8bed-1d42fc82b96d` enrolled outbound
+once as `r03-20261102-a91adf/onprem-pyats`, preserving generation
+`415594e7-cf75-407f-8edf-ba065579b8ff` through actual restart. Four immutable profiles
+used local credentials, OpenClaw2026.7.1-2 and Anthropic Sonnet4.6. Exactly four
+`show version` effects/eight provider calls returned parsed IOS17.18.2 and durable
+ACKs; zero extra effects on loss, browser recovery or owned service/member restart.
+R1's console-backed host key and the other three existing owner pins/CML metadata
+have distinct recorded provenance. Original inventories and known_hosts unchanged.
+
+Actual receipts live under private `activation-20261103/`, indexed by
+`cloud-runtime-final-evidence-index.json`, `onprem/lane-completion.json` and
+`hud-evidence-lane-completion.json`. The current-state archive in
+`final-preservation/current-r03-state.tar` retains the final registry, identities,
+closed SQLite, manifests and edge/host evidence. It contains secrets and is not
+an activation payload. Do not restore the old first-create archive over it.
+All R03 cloud services/resources, DNS/key and local worker/container/network
+resources are retired. R01 remains unchanged. Human acceptance is the only R04 gate.
+
+## Historical preparation record — superseded, not executable
 
 2026-11-02. The local preparation and independent source reviews are complete.
 This is not the final activation delegation: the new foundation does not yet

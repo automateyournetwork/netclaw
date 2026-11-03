@@ -11,7 +11,9 @@ Separate non-root federation and HUD services bind only required listeners. Keep
 admin/routing/broker interfaces loopback and eN2N registered but loopback/dormant;
 public direct iN2N is distinct. System units use UMask0077, NoNewPrivileges,
 PrivateTmp, ProtectSystem=strict, ProtectHome and precise writable state paths,
-no capabilities and bounded resources. Actual systemd inspection/restart is
+no capabilities for federation/HUD and bounded resources. The separate Caddy
+edge has only CAP_NET_BIND_SERVICE; the root network guard uses CAP_NET_ADMIN.
+Actual systemd inspection/restart is
 required; templates alone are not qualification.
 
 GCP IaC lives in `labs/cloud/gcp/r03`, uses explicit project and fresh private state,

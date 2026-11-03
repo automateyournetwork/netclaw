@@ -1,4 +1,11 @@
-# Optional R01 pause to bound remaining R03 qualification cost
+# Historical optional R01 pause — not executed
+
+November3 outcome: the owner delegated isolated R03 completion/cleanup and removed
+the earlier billing input as an execution blocker. R03 is now qualified and fully
+retired. This optional R01 pause was never executed; R01 remains unchanged and
+retains its existing costs. The old cost gate below is historical, not current.
+See [activation-delegation.md](activation-delegation.md) and
+[verification.md](verification.md). Do not execute this preserved proposal.
 
 Prepared2026-11-02; **not executed or delegated**. This is a separate proposed
 change to the preserved R01 pilot, not part of the10-resource R03 foundation plan.

@@ -281,3 +281,33 @@ roadmap release hold remain unchanged. Pass3 source/offline preparation is compl
 actual execution remains gated. No automatic Ralph hook. Exact foundation apply
 delegation was requested and is pending; no elapsed time supplies approval.
 See Spec172 verification.md/resume.md and private roadmap-r03-20261102 evidence.
+
+### R03 activation delegation — 2026-11-03
+
+The owner explicitly said to do what is needed, push forward using the stated
+GCP credit, stop treating money as the blocker, and clean up owned resources so
+charges do not continue. This supersedes the Nov2 billing/approval holds for the
+reviewed isolated R03 foundation/runtime/DNS/four-read/verification/cleanup scope.
+Do not repeat those permission requests. Preserve exact plans, bounded safeguards,
+unknown outcomes and audit evidence; the credit is not a spend target. Cleanup
+follows evidence export and includes billable residues. R01/R02 work and unrelated
+runtimes stay preserved. Release/version/public rollout holds and R04 human gate
+remain. See specs/172-gcp-hybrid-border/activation-delegation.md.
+
+
+### R03 technical qualification and retirement — 2026-11-03
+
+R03 implementation, actual GCP/on-prem qualification and reviewed cleanup are
+complete;35/36 tasks closed. T036 memory/GAIT is recorded but human acceptance
+remains pending before R04. Four browser-approved R1/R2/SW1/SW2 `show version`
+reads returned IOS17.18.2 with one command/two OpenClaw-Sonnet provider calls each,
+signed results, durable ACKs and unchanged effects after loss/restart recovery.
+62 browser/auth checks and actual cloud confinement/IAM/network checks passed.
+See Spec172 verification.md for narrow platform/provider scope and retained failures.
+All13 R03 cloud resources, owned DNS and temporary OS Login key are removed;
+actual inventories found zero owned billable residues. Local workers and owned
+containers/networks are retired; private homes/current-state archive remain.
+R01 state/DNS and running pilot are unchanged, with existing costs retained.
+Never replay spent R03 plans, enrollment or first-create state; use the private
+current-state preservation record only as evidence, not an activation payload.
+Source1.18.3/extension1.5.0 and the entire-roadmap release hold remain unchanged.

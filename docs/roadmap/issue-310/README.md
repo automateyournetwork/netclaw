@@ -9,24 +9,23 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
-## Current execution status — 2026-11-02
+## Current execution status — 2026-11-03
 
-The earlier integration/assessment sections below are historical. The owner later
-authorized R02–R05 with a coordinator and three parallel agents, capped optional
-implementation passes at five, and set a hard total GCP lab maximum of $100/month
-(CAD100 conservatively, including R01, pending currency/tax confirmation).
+R01 and [R02/Spec171](../../../specs/171-execution-parity/verification.md) are
+complete and accepted. [R03/Spec172](../../../specs/172-gcp-hybrid-border/verification.md)
+has completed source, actual GCP/on-prem qualification, independent evidence review
+and cleanup:35/36 tasks, with only human acceptance in T036 pending before R04.
+Four browser-approved reads returned parsed versions with signed results/ACKs;
+actual loss/restart recovery caused no repeated device/model execution. All13 R03
+cloud resources, DNS and the temporary SSH key are removed; zero owned billable
+residues remain. R01's existing running pilot remains preserved.
 
-R02 is [Spec171](../../../specs/171-execution-parity/verification.md),36/36 tasks
-and human accepted. R03 is [Spec172](../../../specs/172-gcp-hybrid-border/verification.md):
-source and offline preparation are independently reviewed,19/36 tasks complete,
-but no new cloud deployment or acceptance is claimed. Four actual lab identity/
-endpoint baselines passed; the four protected cloud-dispatched reads remain pending.
-Observed billing/finite total cost, exact resource/runtime delegation, live cloud
-controls/HTTPS/workload/recovery and reviewed teardown are still gates. The R01
-pilot remains running and unchanged; its proposed cost-control pause is not yet
-delegated. R04 waits for human R03 acceptance. Source1.18.3/extension1.5.0 and the
-entire-roadmap release/public rollout hold remain unchanged.
-
+The owner authorized the coordinator/three-agent team and at most five bounded
+implementation passes. November3 delegation superseded the earlier CAD100/billing
+execution hold for isolated R03 completion/cleanup; stated GCP credit is unverified
+and not a target. Finite safeguards and exact evidence/cleanup were retained.
+Source1.18.3/extension1.5.0 and the entire-roadmap release/public rollout hold remain
+unchanged. R04/R05 have not started. Earlier assessment sections below are historical.
 
 ## Roadmap source integration and release hold — 2026-11-02
 
