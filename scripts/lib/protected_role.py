@@ -189,10 +189,13 @@ _FIXED = {'N2N_ENABLED': 'true', 'N2N_PROTECTED_OPERATIONS': '1',
 
 def validate(contract_path):
     contract_path = path(str(contract_path)); cfg = document(contract_path)
-    exact(cfg, 'schemaVersion installation_id role runtime_kind control_only home source_root python python_sha256 python_env python_env_manifest python_env_manifest_sha256 source_manifest source_manifest_sha256 profile_sha256 registry registry_sha256 origin environment')
-    need(type(cfg['schemaVersion']) is int and cfg['schemaVersion'] == 1, 'role_schema_invalid')
-    need(cfg['role'] == 'border', 'cloud_member_activation_unqualified')
-    need(cfg['control_only'] is True, 'control_only_required')
+    fields = 'schemaVersion installation_id role runtime_kind control_only home source_root python python_sha256 python_env python_env_manifest python_env_manifest_sha256 source_manifest source_manifest_sha256 profile_sha256 registry registry_sha256 origin environment'
+    member = cfg.get('role') == 'member' and type(cfg.get('schemaVersion')) is int and cfg['schemaVersion'] == 2
+    exact(cfg, fields + (' guard_token_file' if member else ''))
+    if not member:
+        need(type(cfg['schemaVersion']) is int and cfg['schemaVersion'] == 1, 'role_schema_invalid')
+        need(cfg['role'] == 'border', 'cloud_member_activation_unqualified')
+    need(cfg['control_only'] is (not member), 'control_only_required')
     need(cfg['runtime_kind'] == 'openclaw', 'cloud_harness_unqualified')
     try:
         need(str(uuid.UUID(cfg['installation_id'])) == cfg['installation_id'], 'installation_invalid')
@@ -214,7 +217,7 @@ def validate(contract_path):
     need(type(profile['schemaVersion']) is int and profile['schemaVersion'] == 1
          and profile['role'] == cfg['role'] and profile.get('identity', {}).get('installation_id') == cfg['installation_id'], 'profile_mismatch')
     binding = profile['identity']
-    exact(binding, 'installation_id identity key_id authority_generation')
+    exact(binding, 'installation_id member_id key_id enrollment_generation' if member else 'installation_id identity key_id authority_generation')
     need(all(isinstance(v, str) and 0 < len(v) <= 200 and not any(ord(c) < 32 for c in v)
              for v in binding.values()) and re.fullmatch('[a-f0-9]{64}', binding['key_id']), 'identity_invalid')
     registry_path = path(cfg['registry'])
@@ -244,7 +247,18 @@ def validate(contract_path):
             need(document(config_path) == {'netclaw': {'controlOnly': True}}, 'border_harness_config_refused')
     else:
         need(cfg['origin'] is None and len(entries) == 1 and entries[0].get('service') == 'in2n'
-             and entries[0].get('direction') == 'dial', 'member_outbound_only_required')
+             and entries[0].get('direction') == 'dial' and entries[0].get('transport') == 'direct_tcp', 'member_outbound_only_required')
+        border = profile['border']
+        exact(border, 'installation_id identity key_id authority_generation')
+        need(all(isinstance(v, str) and 0 < len(v) <= 200 and not any(ord(c) < 32 for c in v)
+                 for v in border.values()) and re.fullmatch('[a-f0-9]{64}', border['key_id']), 'border_identity_invalid')
+        need(entries[0]['application_identity'] == border['identity'], 'member_border_identity_mismatch')
+        enrollment = document(home / 'n2n/keys/protected/enrollment.json')
+        need(all(enrollment.get(k) == binding[k] for k in ('installation_id', 'member_id', 'enrollment_generation')), 'member_enrollment_mismatch')
+        capability = path(cfg['guard_token_file'])
+        need(capability == home / 'netclaw-federation/guard-capability', 'member_guard_path_refused')
+        guard_token = private_bytes(capability, 256).decode('ascii').strip()
+        need(re.fullmatch('[A-Za-z0-9_-]{43}', guard_token), 'member_guard_capability_invalid')
     env = cfg['environment']; need(isinstance(env, dict) and set(env) <= _OPTIONAL, 'environment_refused')
     need(all(isinstance(v, str) and 0 < len(v) <= 200 and not re.search('[\x00-\x1f\x7f]', v) for v in env.values()), 'environment_invalid')
     for key in ('BGP_API_PORT', 'BGP_LISTEN_PORT'):
@@ -266,8 +280,10 @@ def validate(contract_path):
                    'N2N_ENABLED_STACKS': 'in2n', 'N2N_ENDPOINT_REGISTRY': str(registry_path),
                    'N2N_GAIT_DIR': str(home / 'n2n/gait'), 'NETCLAW_PROTECTED_ROLE_CONTRACT': str(contract_path)}
     if cfg['role'] == 'member':
-        need(isinstance(row[3], str) and row[3], 'member_identity_required')
+        need(isinstance(row[3], str) and row[3] == binding['member_id'] and row[2] == 'in2n', 'member_identity_required')
         environment['N2N_MEMBER_ID'] = row[3]
+        environment['N2N_BORDER_REGISTRY_ID'] = entries[0]['id']
+        environment['NETCLAW_R04_GUARD_TOKEN'] = guard_token
     if cfg['runtime_kind'] == 'openclaw':
         environment.update(OPENCLAW_HOME=str(home), OPENCLAW_STATE_DIR=str(home), OPENCLAW_CONFIG_PATH=str(home / 'openclaw.json'))
     else:
