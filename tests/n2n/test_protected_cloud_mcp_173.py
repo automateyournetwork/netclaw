@@ -235,3 +235,18 @@ def test_mixed_tool_completed_claims_survive_lost_ack_and_restart(tmp_path,tool,
         assert len(pair.effects)==1 and pair.executor_calls==1
         await pair.border.close();await pair.member.close()
     asyncio.run(scenario())
+
+
+def test_profile_materializer_uses_actual_files_without_invocation(mcp_config,tmp_path):
+    spec=importlib.util.spec_from_file_location('r04_profile_builder',ROOT/'scripts/protected-mcp-profile.py')
+    builder=importlib.util.module_from_spec(spec);spec.loader.exec_module(builder)
+    output=tmp_path/'materialized/profile.json'
+    result=builder.materialize(kind='netbox',python=mcp_config['python'],source=mcp_config['source_root'],
+        skill=mcp_config['skill']['path'],arguments=DEVICE,input_schema={'type':'object'},output=output,
+        netbox_origin=mcp_config['origin'],credential_file=mcp_config['credential_file'])
+    integration.validate_binding(result,arguments=DEVICE)
+    assert b'nbt_fixture.secret' not in output.read_bytes()
+    with pytest.raises(runtime.RuntimeRefused,match='mcp_profile_exists'):
+        builder.materialize(kind='netbox',python=mcp_config['python'],source=mcp_config['source_root'],
+            skill=mcp_config['skill']['path'],arguments=DEVICE,input_schema={'type':'object'},output=output,
+            netbox_origin=mcp_config['origin'],credential_file=mcp_config['credential_file'])
