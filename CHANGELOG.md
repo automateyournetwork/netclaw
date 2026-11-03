@@ -2,6 +2,14 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.4] - 2026-11-03
+
+Delegated skills report tool failures (spec 171):
+
+- Every delegated skill request, from the Border to a member and from a federated peer, now tells the agent that if a tool or command the skill needs is missing or fails, it replies with that error and stops, rather than substituting output it produced another way. A member whose mind-map server failed had returned a hand-written placeholder file, which the Border recorded as a completed task.
+
+Spec [171-skill-failure-reporting](specs/171-skill-failure-reporting/spec.md). See [release notes](docs/releases/1.18.4.md).
+
 ## [1.18.3] - 2026-11-02
 
 Domain-verified certificates renew again (spec 170):
