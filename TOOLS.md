@@ -1258,3 +1258,22 @@ LinuxAMD64 public dependencies are verified offline, not deployed. Private revie
 packets retain exact resource hashes and unresolved actual billing/egress gates.
 R01 is still running and unchanged; its proposed cost-control stop is not delegated.
 No new R03 cloud resource, DNS record or protected provider operation exists yet.
+
+
+### R03 actual qualification and retirement — 2026-11-03
+
+This supersedes the November2 preparation status above. The fresh GCP Montréal
+control-only Border and Mac OpenClaw/Sonnet member completed all four protected
+show-version reads, signed results/ACKs and same-key recovery. Exactly four device
+commands and eight provider calls; original inventories and R01 remain unchanged.
+R1/R2/SW1/SW2 returned parsed IOS17.18.2. Scope and host-key provenance limits are
+in specs/172-gcp-hybrid-border/verification.md.
+
+The temporary R03 deployment is retired: all13 cloud resources, its DNS A record
+and temporary OS Login key are absent; both local workers and12 owned containers/
+4 networks are removed. Do not connect to or recreate the old R03 hostname/IP,
+replay spent plans/enrollment, or restore old first-create state. Current private
+identity/SQLite/audit preservation is under
+`~/.local/share/netclaw/roadmap-r03-20261102/activation-20261103/final-preservation/`.
+It contains secrets and is not an activation payload. R01 remains running under
+its separate pilot authorization; R03 cleanup did not retire R01 or its costs.
