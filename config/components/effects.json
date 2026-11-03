@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "5ed3bbd69dcb0d27b79e3f0e492ea93dc9383315f186c7e97123d2fabee685d0",
+  "sourceSha256": "f27bf517cadd4b3622b851c023678863f4d6ba31a9b2f7471653bde112c22669",
   "components": [
     {
       "id": "hermes-hud",
@@ -113,7 +113,7 @@
     {
       "id": "netbox",
       "function": "component_install_netbox",
-      "sha256": "118a88a6a401fa602aebd80dc3a10c465d00657088e4ae9a2425d5d6851267a7",
+      "sha256": "f88f0921dbbf31795b0519b1ee1fc9b9cf1a8228ab0066a9468820a849617eb4",
       "adapter": "isolated-shell",
       "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",

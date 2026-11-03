@@ -50,3 +50,17 @@ Python3.12.12: both builder checks,112 components/239 skills, zero unexplained
 coverage gaps,9+15+4 unit tests and zero new changed-link URLs. No dependency,
 lockfile, source version or extension version changed. The final PR CI checks
 remain the merge gate; their actual outcomes are linked above.
+
+The installer and one NetConverter contract also refused the stale effect-audit
+pins for the already reviewed NetBox installation step. Independent review
+confirmed the compatibility helper only patches the exact owned source and copies
+its adjacent HTTP helper; no network, token read, service start or external write
+was added. With no effect-manifest generator in tracked source, the exact
+EffectAudit extraction refreshed only the aggregate install-steps hash and the
+NetBox function hash. All112 policy entries and effect classifications are retained;
+the verifier remains strict. Original CI failures are preserved in PR#324.
+
+The complete canonical setup-installer contract suite then passed under
+Python3.12.12/Node24.19.0, as did the affected NetConverter installation test,
+EffectAudit.verify and full-range whitespace review. This is source integration
+validation; no existing installation or retired cloud runtime was changed.
