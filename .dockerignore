@@ -1,0 +1,10 @@
+.git
+**/node_modules
+**/__pycache__
+**/.env
+**/.env.*
+**/*.log
+**/*.tfstate*
+**/*.tfvars*
+**/*.tfplan
+**/.terraform

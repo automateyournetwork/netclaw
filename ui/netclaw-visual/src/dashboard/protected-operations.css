@@ -1,0 +1,9 @@
+.protected-operations { display: grid; gap: 1rem; }
+.protected-operations form, .protected-selectors { display: grid; gap: 1rem; }
+.protected-operations label { display: grid; gap: .5rem; }
+.protected-operations input, .protected-operations select { color: inherit; background: var(--panel, #13202c); border: 1px solid currentColor; border-radius: .4rem; padding: .7rem; max-width: 100%; }
+.protected-operations pre { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 40rem; overflow: auto; padding: 1rem; border: 1px solid #607185; border-radius: .4rem; }
+.protected-operations dd { overflow-wrap: anywhere; }
+.protected-actions, .owner-session { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.protected-actions button:disabled { opacity: .5; cursor: not-allowed; }
+.protected-operations [role=alert] { border-left: 3px solid #e9a54b; padding: .7rem; }

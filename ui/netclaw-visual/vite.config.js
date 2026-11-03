@@ -1,4 +1,5 @@
 import { chatTimeouts } from './src/hud-server/chat-transport.js';
+import { protectedDocumentHeaders } from './src/hud-server/protected-operations.js';
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
@@ -10,10 +11,11 @@ const ports = hudPorts();
 const chatDeadlines = chatTimeouts();
 const host = hudHost();
 const allowed = createLocalAccess(ports, { host, allowRemote: true });
+const protectedHeaders = process.env.N2N_PROTECTED_OPERATIONS === '1' ? { 'Cache-Control': 'no-store' } : {};
 const localOnly = () => ({
   name: 'netclaw-local-access',
-  configureServer(server) { guardHudServer(server, allowed); },
-  configurePreviewServer(server) { guardHudServer(server, allowed); },
+  configureServer(server) { guardHudServer(server, allowed); server.middlewares.use(protectedDocumentHeaders(process.env.N2N_PROTECTED_OPERATIONS === '1')); },
+  configurePreviewServer(server) { guardHudServer(server, allowed); server.middlewares.use(protectedDocumentHeaders(process.env.N2N_PROTECTED_OPERATIONS === '1')); },
 });
 
 const rootDir = fileURLToPath(new URL('.', import.meta.url));
@@ -31,11 +33,12 @@ export default defineConfig({
       },
     },
   },
-  preview: { host, port: ports.ui, strictPort: true },
+  preview: { host, port: ports.ui, strictPort: true, headers: protectedHeaders },
   server: {
     host,
     port: ports.ui,
     strictPort: true,
+    headers: protectedHeaders,
     proxy: {
       '/api': {
         target: `http://127.0.0.1:${ports.api}`,

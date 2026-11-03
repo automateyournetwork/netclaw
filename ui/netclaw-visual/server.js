@@ -1,4 +1,5 @@
 import { convergenceEnabled, createConvergenceReader, mountConvergence } from './src/hud-server/convergence.js';
+import { mountProtectedOperations, protectedHudConfig, protectedLegacyBoundary, selectedEnvironmentFiles } from './src/hud-server/protected-operations.js';
 import { managementDiscovery } from './src/hud-server/management.js';
 import { ENV_MAP } from './env-map.js';
 import { mountMcpConfiguration } from './mcp-configuration.js';
@@ -106,6 +107,10 @@ const ports = hudPorts();
 const chatDeadlines = chatTimeouts();
 const allowedLocalRequest = createLocalAccess(ports);
 app.use(localAccessMiddleware(allowedLocalRequest));
+const protectedEnvironment = { ...parseEnvData(readText(installation.envPath) || ''), ...process.env };
+const protectedProfile = protectedEnvironment.N2N_PROTECTED_OPERATIONS === '1';
+const protectedOperations = mountProtectedOperations(app, { installation, config: protectedHudConfig(protectedEnvironment) });
+app.use(protectedLegacyBoundary(protectedProfile));
 const TERMINAL_ENRICHMENT_FILE = path.join(installation.home, 'netclaw-terminal-enrichment.json');
 function loadTerminalAliases() {
   try { return JSON.parse(fs.readFileSync(TERMINAL_ENRICHMENT_FILE, 'utf8')).aliases || {}; } catch { return {}; }
@@ -134,10 +139,24 @@ app.use((req,_res,next) => {
 });
 const hermesRuntime = installation.kind === 'hermes' ? createHermesRuntime(installation, ROOT) : null;
 app.get('/api/runtime', async (_req, res) => {
+  if (protectedProfile) {
+    let role = 'unknown';
+    try {
+      const profile = JSON.parse(readText(path.join(installation.home, 'netclaw-federation/protected-profile.json')));
+      if (profile.identity?.installation_id === installation.installationId && ['border', 'member'].includes(profile.role)) role = profile.role;
+    } catch { /* An unbound or missing profile is not a verified role. */ }
+    return res.set('Cache-Control', 'no-store').json({ kind: installation.kind,
+    installationId: installation.installationId, role,
+    label: role === 'border' ? 'Protected Border' : role === 'member' ? 'Protected Member' : 'Protected NetClaw',
+    readiness: { ready: protectedOperations.enabled, executionVerified: false },
+    capabilities: { protectedProfile: true, protectedOperations: protectedOperations.enabled,
+      convergence: false, attachments: false, modelSelection: false, effort: false,
+      federation: true, hostedAvatar: false, writes: false } });
+  }
   let readiness = { ready: false, code: 'runtime_stopped' };
   if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
   else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };
-  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { convergence: convergenceEnabled({ ...parseEnvFile(), ...process.env }), attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
+  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { protectedOperations: protectedOperations.enabled, convergence: convergenceEnabled({ ...parseEnvFile(), ...process.env }), attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
 });
 app.get('/api/hud/management', async (req, res) => {
   try { hudBindings.read(cookieFrom(req)); } catch { return res.status(401).json({error:'An owned HUD session is required.'}); }
@@ -174,7 +193,7 @@ registerIntentExecutionRoutes(app, { getGatewayConfig, listDevices: listTerminal
 const server = http.createServer(app);
 const wss = new WebSocketServer({
   server, path: '/ws', maxPayload: 64 * 1024,
-  verifyClient: ({ req }, done) => done(allowedLocalRequest(req), 403, 'Forbidden'),
+  verifyClient: ({ req }, done) => done(!protectedProfile && allowedLocalRequest(req), 403, 'Forbidden'),
 });
 
 const SKILLS_DIR = installation.kind === 'hermes' || fs.existsSync(installation.skillsPath) ? installation.skillsPath : path.join(ROOT, 'workspace/skills');
@@ -290,7 +309,7 @@ if (!hermesRuntime) mountPal(app, { root: ROOT, home: OPENCLAW_HOME, bindings: h
   getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 
 // Ordered list — first file wins per key, but we merge all
-const ENV_FILES = installation.kind === 'hermes' ? [OPENCLAW_ENV] : [OPENCLAW_ENV, ROOT_ENV];
+const ENV_FILES = selectedEnvironmentFiles(installation, ROOT_ENV, protectedProfile);
 
 function parseOneEnvFile(filePath) {
   return parseEnvData(readText(filePath) || '');

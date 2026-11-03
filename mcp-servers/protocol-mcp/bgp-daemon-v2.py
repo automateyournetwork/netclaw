@@ -1055,8 +1055,12 @@ async def _start_in2n(fed):
             # host security config.
             from bgp.federation import controls as _controls
             if _controls.is_production():
-                ok, detail = _controls.require_defenseclaw_mode()
-                logger.info("iN2N production: %s", detail)
+                from bgp.federation.posture import protected_control_only
+                if protected_control_only(fed):
+                    logger.info("iN2N production: protected control-only role; local execution disabled, posture checks owner/transport/audit")
+                else:
+                    ok, detail = _controls.require_defenseclaw_mode()
+                    logger.info("iN2N production: %s", detail)
             asyncio.create_task(_in2n_posture_poller(fed))
         elif role == "member" and (registry or risk.get("border_endpoint")):
             if registry:

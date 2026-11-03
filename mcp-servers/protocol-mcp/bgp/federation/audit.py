@@ -39,6 +39,11 @@ class Auditor:
         # in tests and equals ~/.openclaw/n2n/gait for a live Border (feature 057).
         self.gait_dir = manager.base_dir / "gait"
 
+    def protected(self, event, record):
+        """Mandatory structured GAIT boundary for the explicitly selected profile."""
+        from .gait import emit_protected
+        return emit_protected(event, record=record, gait_dir=self.gait_dir)
+
     def store_result(self, request_id: str, payload) -> str:
         """Persist a result payload, return its file reference."""
         # Request ids belong to peers and are not globally unique. Never use

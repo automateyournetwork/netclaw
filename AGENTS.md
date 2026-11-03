@@ -169,6 +169,10 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Spec162 planned: private installation-owned SQLite request/attempt ledger and bounded artifact directories (0700 directories, 0600 private metadata; frozen inputs not writable through exposed tools). Existing API-owned Local/Lab records remain authoritative for candidate application. (162-netconverterai)
 - Python 3.12 isolated protocol/n2n runtime; Python 3.10+ installer; existing Bash and HUD JavaScript. + Existing asyncio/federation stack; pyOpenSSL 26.4.0, cryptography 50.0.2, service-identity 26.1.0. Preserve separate certificate-helper environment. No new MCP server or web framework. (168-ngrok-transport-contract)
 - Private installation-owned schema1/ngrok and schema2/direct-or-ngrok registries, atomic revision updates and explicit prior-revision recovery; owned daemon/ngrok process records. Direct GCP transport-only pilot and owner-selected open read-only lab HUD; users/SSO/RBAC remain R15–R17. No tokens in registry/bundles. (168-ngrok-transport-contract)
+- Spec171 planned: isolated Python 3.12; existing Node 24.19/React 18 HUD, cryptography 50/P-256, SQLite, asyncio and MCP. (171-execution-parity)
+- Spec171 planned: additive federation.db tables, private artifacts and owner authority, existing GAIT audit. (171-execution-parity)
+- Python3.12 federation/native tools; Python3.10+ role/IaC helpers; existing JavaScript ESM/React18 and qualified Node24.19. + Existing strict TLS/federation, FastMCP/MCP, SQLite, Express/React/Vite build; OpenTofu1.13.2 Google8.9.0, Caddy2.11.7. No new MCP server or UI framework. (172-gcp-hybrid-border)
+- Selected private homes/SQLite authority and ledger; one-device frozen profiles; external0700 private cloud state/evidence; bounded installation-scoped browser reference storage. (172-gcp-hybrid-border)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -230,3 +234,95 @@ Next roadmap brief is R02 execution parity, expected next available spec 171
 it is not started by this integration request. No R02 cloud/device operation is
 authorized here. Keep the original R01 directory name despite the parallel
 upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
+
+## R02–R05 work authorization — 2026-11-02
+
+The owner subsequently authorized driving R02–R05 to completion with a
+coordinator and three parallel agents, using separate worktrees. This supersedes
+the earlier R01-only stop and R02 source-work hold. Human roadmap acceptance
+gates and exact cloud-resource/spend reviews remain. Total GCP lab spend must
+not exceed $100/month; use CAD100 conservatively, including R01, pending any
+owner correction. Budget alerts are not hard spending caps. Optional bounded
+implementation/test/review passes are capped at five total across R02–R05.
+The entire-roadmap release, version and public rollout hold remains in force.
+Spec171 implements R02; R03 cannot begin before its human evidence gate.
+
+### R02/Spec171 technical acceptance — 2026-11-02
+
+Source8c178ff8 passed both actual protected OpenClaw/Hermes Sonnet reads through
+fresh Mac/Docker members: one R1show-version, zero setup commands, signed results,
+durable ACK, attributable GAIT and no-repeat restart recovery. Independent review
+passes. All36 tasks are complete; the owner accepted T036 on 2026-11-02 and
+authorized R03 planning. Exact cloud-resource/spend review and later human gates
+remain. See specs/171-execution-parity/verification.md, parity-matrix.md and resume.md.
+Two of the five bounded implementation passes were used. The earlier unknown SSH
+operation and authentic reads with an implicit Unicon setup probe remain retained
+with their limitations, never replayed. The corrected native policy is narrowly
+pinned to IOS-XE/IOL and the qualified Mac dependencies. No arbitrary provider,
+cloud, other-plugin, write or multi-user qualification is implied. Source1.18.3
+and extension1.5.0 unchanged; entire-roadmap release hold remains. No R03 resource
+or existing R01 runtime was changed.
+
+### R03/Spec172 source checkpoint — 2026-11-02
+
+The owner requested driving R03 to100%. Source is integrated on
+`172-gcp-hybrid-border`: immutable four-device selection, production owner HUD,
+strict control-only Border role/posture, one-use protected enrollment and isolated
+GCP IaC/host controls. Combined protected/posture464 tests and fullHUD453 tests
+pass; actual LinuxAMD64 dependency extraction is verified offline. Four lab
+endpoint/host-key diagnostic proofs are private, with explicit console versus
+historical SSH-pin provenance. No actual R03 cloud apply/activation/provider read,
+DNS change or R01 runtime change has occurred. R03 is not100% or human accepted.
+Current billing/total CAD100 gate, exact cloud/runtime delegation, actual GCP
+controls/HTTPS/four protected reads/recovery and reviewed teardown remain open.
+The optional exact R01 stop in Spec172 cost-bound-review.md is awaiting owner
+choice; do not execute it without delegation. Source1.18.3/extension1.5.0 and
+roadmap release hold remain unchanged. Pass3 source/offline preparation is complete;
+actual execution remains gated. No automatic Ralph hook. Exact foundation apply
+delegation was requested and is pending; no elapsed time supplies approval.
+See Spec172 verification.md/resume.md and private roadmap-r03-20261102 evidence.
+
+### R03 activation delegation — 2026-11-03
+
+The owner explicitly said to do what is needed, push forward using the stated
+GCP credit, stop treating money as the blocker, and clean up owned resources so
+charges do not continue. This supersedes the Nov2 billing/approval holds for the
+reviewed isolated R03 foundation/runtime/DNS/four-read/verification/cleanup scope.
+Do not repeat those permission requests. Preserve exact plans, bounded safeguards,
+unknown outcomes and audit evidence; the credit is not a spend target. Cleanup
+follows evidence export and includes billable residues. R01/R02 work and unrelated
+runtimes stay preserved. Release/version/public rollout holds and R04 human gate
+remain. See specs/172-gcp-hybrid-border/activation-delegation.md.
+
+
+### R03 technical qualification and retirement — 2026-11-03
+
+R03 implementation, actual GCP/on-prem qualification and reviewed cleanup are
+complete;35/36 tasks closed. T036 memory/GAIT is recorded but human acceptance
+remains pending before R04. Four browser-approved R1/R2/SW1/SW2 `show version`
+reads returned IOS17.18.2 with one command/two OpenClaw-Sonnet provider calls each,
+signed results, durable ACKs and unchanged effects after loss/restart recovery.
+62 browser/auth checks and actual cloud confinement/IAM/network checks passed.
+See Spec172 verification.md for narrow platform/provider scope and retained failures.
+All13 R03 cloud resources, owned DNS and temporary OS Login key are removed;
+actual inventories found zero owned billable residues. Local workers and owned
+containers/networks are retired; private homes/current-state archive remain.
+R01 state/DNS and running pilot are unchanged, with existing costs retained.
+Never replay spent R03 plans, enrollment or first-create state; use the private
+current-state preservation record only as evidence, not an activation payload.
+Source1.18.3/extension1.5.0 and the entire-roadmap release hold remain unchanged.
+
+
+### R02/R03 source integration and R03 acceptance — 2026-11-03
+
+After receiving the completed R03 technical/cleanup handoff, the owner requested
+commit, PR, quiet merge and return to main, plus a small maintainer blurb. This
+accepts the completed R03 scope and closes T036 (36/36); no new R04/cloud/device
+work is implied. Commit/push/PR/merge of completed R02/R03 source is authorized.
+Reconcile upstream #321 failure reporting and retain its source1.18.4 version;
+extension1.5.0 remains unchanged, with no additional roadmap bump or publication.
+The complete-roadmap release hold through R20 is still in force. Keep historical
+`171-execution-parity` (R02) and upstream `171-skill-failure-reporting` distinct by
+full path; never rename historical specs to hide the collision. R03 live evidence
+remains tied to its frozen tested source, not a claim that merged source was redeployed.
+See specs/172-gcp-hybrid-border/source-integration.md for verification and PR outcome.

@@ -225,6 +225,8 @@ class FederationManager:
         # Migrate existing DBs: add columns introduced after first release
         # (SQLite has no ADD COLUMN IF NOT EXISTS). Safe/idempotent.
         for table, col, decl in [
+            ('member', 'enrollment_generation', 'TEXT'),
+            ('member', 'installation_id', 'TEXT'),
             ('approval_request','request_binding','TEXT'),
             ('approval_request','consumed_at','TEXT'),
             ('delegated_task', 'execution_context', 'TEXT'),

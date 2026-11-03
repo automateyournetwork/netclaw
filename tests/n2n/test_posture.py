@@ -11,8 +11,10 @@ import sys
 
 import pytest
 
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                                "..", "..", "mcp-servers", "protocol-mcp"))
+# Keep the imported source path canonical when collected with protected-runtime
+# tests; their source closure deliberately refuses paths containing `..`.
+sys.path.insert(0, os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                                "..", "..", "mcp-servers", "protocol-mcp")))
 
 from bgp.federation import posture, controls
 

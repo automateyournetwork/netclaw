@@ -77,6 +77,16 @@ class FederationService:
         from .runtime import selected
         self.runtime = selected()
         self.execution_broker = None
+        self.protected_operations = None
+        self.protected_enabled = os.environ.get('N2N_PROTECTED_OPERATIONS', '') == '1'
+        self._protected_from_construction = self.protected_enabled
+        protected_markers = ('protected-profile.json', 'enrollment-packet.json',
+                             'protected-enrollment-attempt.json')
+        if any((self.runtime.state / name).exists() or (self.runtime.state / name).is_symlink()
+               for name in protected_markers) and not self.protected_enabled:
+            # An owned protected installation cannot fall back to legacy execution
+            # because a service environment lost its opt-in flag on restart.
+            raise ValueError('protected profile requires N2N_PROTECTED_OPERATIONS=1')
         self.hermes_runtime = None
         self.inventory = InventoryBuilder(self.manager)
         self.audit = Auditor(self.manager)
@@ -215,6 +225,18 @@ class FederationService:
             # a possession proof).
             "n2n/tools/call": self.invoker.handle_tools_call,
         }
+        if self.protected_enabled:
+            # Refuse every legacy inference/tool route before the first channel starts.
+            for method in ('n2n/tools/call', 'n2n/tasks/submit', 'n2n/knowledge/query',
+                           'n2n/knowledge/replicate_manifest', 'n2n/knowledge/replicate_batch',
+                           'n2n/chat/open', 'n2n/chat/message'):
+                if method in self.handlers: self.handlers[method] = self._protected_legacy_refusal
+                if method in self._in2n_member_handlers: self._in2n_member_handlers[method] = self._protected_legacy_refusal
+            for method, action in {'execution/catalog':'member_catalog', 'execution/submit':'submit',
+                                   'execution/status':'member_status', 'execution/result':'member_result',
+                                   'execution/ack':'acknowledge'}.items():
+                self._in2n_member_handlers[method] = self._protected_handler(action)
+            self._in2n_border_handlers['execution/effect-authorize'] = self._protected_handler('effect_authorize')
         # feature 066: Border-side handlers for edge (phone) connections. Only
         # the handshake + built-in health methods (FR-012) — never BGP/eN2N/
         # inventory. n2n/edge/message has no server-side handler because it is
@@ -238,6 +260,11 @@ class FederationService:
             # spec 111, US2: PendingApprovalsIntent's live count.
             "n2n/edge/approvals_list": self._edge_on_approvals_list,
         }
+        if self.protected_enabled:
+            self._edge_border_handlers['n2n/edge/ask'] = self._protected_legacy_refusal
+            for name in ('handle_tools_call', 'handle_task_submit', 'handle_knowledge_query',
+                         'handle_replicate_manifest', 'handle_replicate_batch'):
+                setattr(self.invoker, name, self._protected_legacy_refusal)
 
     def notify_approval(self, invocation_id, peer, target_type, target_name):
         """Push an approval prompt to the operator's channels (FR-013). Best-effort."""
@@ -1405,11 +1432,16 @@ class FederationService:
                 logger.info("iN2N member %s channel closed — deregistered", member_id)
         ch.on_close = _deregister
         if ch.strict:
-            fingerprint = (self.risk.get_member(member_id) or {}).get('key_fingerprint')
+            initial = self.risk.get_member(member_id) or {}
+            fingerprint = initial.get('key_fingerprint')
+            generation = initial.get('enrollment_generation')
+            ch.enrollment_generation = generation
+            ch.attestation = 'possession'
             def current():
                 member = self.risk.get_member(member_id) or {}
                 return (member.get('state') in ('enrolled','active','unreachable')
-                        and member.get('key_fingerprint') == fingerprint and bool(fingerprint))
+                        and member.get('key_fingerprint') == fingerprint and bool(fingerprint)
+                        and member.get('enrollment_generation') == generation)
             ch.authority_current = current
             self.observe_transport(ch.registry_id, ch.registry_revision, 'admitted')
         self.member_channels[member_id] = ch
@@ -1433,7 +1465,8 @@ class FederationService:
                 scope=params.get("scope"),
                 runtime_kind=params.get("runtime_kind", "process"),
                 display_name=params.get("display_name"),
-                transport_binding=params.get("transport_binding", "distributed"))
+                transport_binding=params.get("transport_binding", "distributed"),
+                installation_id=params.get("installation_id"))
         except ValueError as e:
             # Map the risk-layer sentinel to its wire code: a member_id already
             # pinned to a different key is MEMBER_ID_TAKEN (-32022), distinct
@@ -1986,6 +2019,9 @@ class FederationService:
         return {"count": len(self.authz.pending_approvals())}
 
     async def _edge_on_ask(self, channel, params):
+        from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, 'protected operation approval required')
         """Phone asks the Border something (feature 067, US1/US2/US3): create
         a delegated_task (feature 053, TaskManager) and run a real agent turn
         in the background via gateway.run_agent_turn(), mirroring
@@ -2409,6 +2445,8 @@ class FederationService:
     async def delegate_to_member(self, member_id: str, capability: str,
                                  input_text: str, *, execution_scope=None) -> dict:
         from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, 'protected operation approval required')
         from . import controls, posture
 
         # US1/FR-003a: synchronous production preflight — the authoritative
@@ -2502,14 +2540,121 @@ class FederationService:
 
     # ---- Member side: dial the Border + run delegated work ------------
 
+    async def enroll_protected_member(self, *, registration, registry_revision,
+                                      border_binding, enrollment_token):
+        """One-use trusted-native onboarding; never a peer/HUD/executor route.
+
+        No runtime is started and legacy handlers already refuse. A durable
+        unknown-outcome claim precedes even opening the transport. If the Border
+        consumes a token but its reply is lost, inspect both retained authorities;
+        neither this API nor the native CLI retries or reenrolls that home.
+        """
+        import hashlib
+        import re
+        import stat
+        import time
+        import uuid
+        from .endpoint_registry import validate_entry
+        from .protected_contract import decode, encode, key_id, require, validate_binding
+        from .protected_owner import private_directory, private_file, write_private
+        from pathlib import Path
+        registration = decode(encode(registration))
+        border_binding = decode(encode(border_binding))
+        validate_entry(registration, 2)
+        validate_binding(border_binding, 'border')
+        require(self.protected_enabled and self._protected_from_construction and self.risk.role() == 'member'
+                and self.runtime.installation and self.runtime.kind in ('openclaw', 'hermes'),
+                'protected_fresh_member_required', 403)
+        self.runtime.fence()
+        require(Path(self.manager.base_dir).resolve() == self.runtime.base,
+                'enrollment_installation_state_mismatch', 403)
+        require(not self.protected_operations and not self.execution_broker
+                and not self.hermes_runtime and not self.border_channel
+                and not self.member_channels and not self.channels
+                and not self.tasks._workers
+                and not getattr(self, '_in2n_server', None)
+                and not getattr(self, '_public_ncfed_server', None)
+                and not getattr(self, '_protected_enrollment_attempt', None),
+                'enrollment_runtime_active', 403)
+        profile = self.runtime.state / 'protected-profile.json'
+        require(not profile.exists() and not profile.is_symlink()
+                and self.risk.protected_enrollment() is None
+                and not self.risk.risk_anchor(), 'fresh_enrollment_only', 409)
+        member_id = self.risk.self_member_id()
+        require(isinstance(member_id, str)
+                and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]{0,127}', member_id)
+                and member_id.split('/', 1)[0] == self.risk.get_risk().get('risk_name')
+                and registration['direction'] == 'dial' and registration['service'] == 'in2n'
+                and registration['transport'] == 'direct_tcp'
+                and registration['application_identity'] == border_binding['identity']
+                == member_id.split('/', 1)[0] + '/border', 'enrollment_binding_mismatch', 403)
+        require(type(registry_revision) is int and 0 < registry_revision <= 2**53 - 1,
+                'enrollment_registry_revision_required')
+        require(isinstance(enrollment_token, str)
+                and re.fullmatch(r'in2n_[A-Za-z0-9_-]{32}', enrollment_token) is not None,
+                'enrollment_token_required')
+        # Validate the approved local transport trust before committing an attempt.
+        ca = Path(registration['ca_file'])
+        require(ca.absolute() == ca.resolve(), 'unsafe_enrollment_ca', 403)
+        ca_sha256 = hashlib.sha256(private_file(ca, 65536)).hexdigest()
+        cert = self.risk.self_cert_pem()
+        attempt = {'schemaVersion': 1, 'attempt_id': str(uuid.uuid4()),
+                   'state': 'outcome_unknown', 'started_at_ms': int(time.time() * 1000),
+                   'installation_id': self.runtime.installation, 'member_id': member_id,
+                   'member_key_id': key_id(cert), 'border': border_binding,
+                   'registration_sha256': hashlib.sha256(encode(registration)).hexdigest(),
+                   'registry_revision': registry_revision, 'transport_ca_sha256': ca_sha256,
+                   'enrollment_generation': None}
+        path = self.runtime.state / 'protected-enrollment-attempt.json'
+        private_directory(path.parent)
+        try:
+            fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
+        except FileExistsError:
+            require(False, 'enrollment_attempt_already_spent', 409)
+        # A failed/partial write still reserves this home. No network before both
+        # file and directory fsync, and no external wait while holding a DB lock.
+        with os.fdopen(fd, 'wb') as stream:
+            require(stat.S_ISREG(os.fstat(stream.fileno()).st_mode), 'unsafe_enrollment_attempt')
+            stream.write(encode(attempt)); stream.flush(); os.fsync(stream.fileno())
+        directory = os.open(path.parent, os.O_RDONLY)
+        try: os.fsync(directory)
+        finally: os.close(directory)
+        self._protected_enrollment_attempt = attempt
+        try:
+            await self.dial_border(registration['routing_host'], registration['routing_port'],
+                enrollment_token=enrollment_token, registration=registration,
+                registry_revision=registry_revision, _enrollment_only=attempt)
+            enrolled = self.risk.protected_enrollment()
+            require(enrolled is not None, 'enrollment_generation_unavailable', 503)
+            # Never upgrade a different/tampered attempt to a successful receipt.
+            require(decode(private_file(path)) == attempt, 'enrollment_attempt_changed', 409)
+            completed = dict(attempt, state='enrolled', finished_at_ms=int(time.time() * 1000),
+                             enrollment_generation=enrolled['enrollment_generation'])
+            write_private(path, completed)
+            return completed
+        finally:
+            self._protected_enrollment_attempt = None
+
     async def dial_border(self, host: str, port: int, enrollment_token: str = "",
                           ssl_context=None, *, server_hostname=None, registration=None,
-                          registry_revision=None):
+                          registry_revision=None, _enrollment_only=None):
         """Member side: connect outbound to the Border, complete the handshake
         (enroll if we have a token, else hello with pinned-key proof), and stay
         available for delegated tasks. No inbound port is opened (FR-006/SC-011)."""
         from .internal_channel import InternalChannel, read_border_preamble
         strict = registration is not None
+        if self.protected_enabled and enrollment_token and _enrollment_only is None:
+            from .protected_contract import require
+            require(False, 'protected_native_enrollment_required', 403)
+        if _enrollment_only is not None:
+            import hashlib
+            from .protected_contract import encode, require
+            require(_enrollment_only is getattr(self, '_protected_enrollment_attempt', None)
+                    and self.protected_enabled and self.protected_operations is None
+                    and strict and enrollment_token
+                    and _enrollment_only['registration_sha256'] == hashlib.sha256(encode(registration)).hexdigest()
+                    and _enrollment_only['registry_revision'] == registry_revision,
+                    'native_enrollment_claim_required', 403)
         if strict:
             from .endpoint_registry import validate_entry
             from .exporter_tls import open_connection
@@ -2535,13 +2680,12 @@ class FederationService:
         from .internal_security import channel_binding
         try:
             binding = channel_binding(writer, strict=strict)
-        except ValueError:
+            nonce = await read_border_preamble(reader)
+            if nonce is None:
+                raise RuntimeError("bad iN2N preamble from Border")
+        except BaseException:
             writer.close()
             raise
-        nonce = await read_border_preamble(reader)
-        if nonce is None:
-            writer.close()
-            raise RuntimeError("bad iN2N preamble from Border")
         ch = InternalChannel(reader, writer, local_identity=self.local_identity,
                              member_id=self.risk.self_member_id(), is_border_side=False,
                              handlers=self._in2n_member_handlers, nonce=nonce)
@@ -2570,9 +2714,15 @@ class FederationService:
                                                        member_nonce + binding,
                                                        registration['application_identity'].removesuffix('/border')):
                     raise RuntimeError('strict Border application identity refused before enrollment')
+                if _enrollment_only is not None:
+                    from .protected_contract import key_id, require
+                    hub = (attested.get('hub_attestation') or {}).get('hub_cert')
+                    require(hub and key_id(hub) == _enrollment_only['border']['key_id'],
+                            'protected_border_binding_refused', 403)
             if enrollment_token:
                 resp = await admission_call("in2n/enroll", {**profile,
                     "token": enrollment_token, "member_id": member_id,
+                    "installation_id": self.runtime.installation,
                     "cert_pem": cert_pem, "signature": signature,
                     "member_nonce": member_nonce.hex(),
                     "scope": list(self.member_scope) or None,
@@ -2596,8 +2746,45 @@ class FederationService:
                     writer.close()
                     raise RuntimeError("iN2N hub attestation failed — refusing to trust Border")
                 logger.info("iN2N: verified hub attestation for %s", risk_name)
+            if _enrollment_only is not None:
+                from .protected_contract import key_id, require, validate_binding
+                hub = (resp.get('hub_attestation') or {}).get('hub_cert')
+                require(hub and key_id(hub) == _enrollment_only['border']['key_id'],
+                        'protected_border_binding_refused', 403)
+                validate_binding({'installation_id': self.runtime.installation,
+                    'member_id': member_id, 'key_id': _enrollment_only['member_key_id'],
+                    'enrollment_generation': resp.get('enrollment_generation')}, 'member')
             if enrollment_token and anchor and not self.risk.risk_anchor():
                 self.risk.store_risk_anchor(anchor)
+            if enrollment_token and resp.get('enrollment_generation'):
+                self.risk.store_protected_enrollment({'member_id': member_id,
+                    'installation_id': self.runtime.installation,
+                    'enrollment_generation': resp['enrollment_generation']})
+            if _enrollment_only is not None:
+                # Do not publish inventory or leave an executable member channel.
+                # Full protected profile construction is a later native step.
+                await ch.close()
+                self.observe_transport(registration['id'], registry_revision, 'closed')
+                return resp
+            if self.protected_enabled:
+                from .protected_contract import require, key_id
+                from .protected_owner import private_file
+                from .protected_contract import decode
+                configuration = decode(private_file(self.runtime.state / 'protected-profile.json'))
+                border_binding = configuration.get('border')
+                hub_cert = (resp.get('hub_attestation') or {}).get('hub_cert')
+                require(strict and isinstance(border_binding, dict) and hub_cert and key_id(hub_cert) == border_binding['key_id'], 'protected_border_binding_refused', 403)
+                ch.protected_peer_binding = border_binding
+                ch.protected_peer_certificate = hub_cert
+                own_enrollment = self.risk.protected_enrollment()
+                def current_border_authority():
+                    try:
+                        current_config = decode(private_file(self.runtime.state / 'protected-profile.json'))
+                        return (current_config.get('border') == border_binding and
+                                self.risk.protected_enrollment() == own_enrollment)
+                    except Exception:
+                        return False
+                ch.authority_current = current_border_authority
             ch.trusted = True   # we pinned the Border endpoint at provisioning
             # spec 121: by this point we've proven possession of our own pinned key
             # (self.risk.self_sign(nonce) above) and, if we hold an anchor, verified
@@ -2644,6 +2831,20 @@ class FederationService:
             raise ValueError('member is not authenticated and connected')
         return await channel.call('in2n/self-status',{},timeout=10.0)
 
+    async def _protected_legacy_refusal(self, channel, params):
+        raise RpcError(-32023, 'protected operation approval required')
+
+    def _protected_handler(self, action):
+        async def handler(channel, params):
+            from .protected_contract import ProtectedError
+            if not self.protected_operations:
+                raise RpcError(-32023, 'protected operations unavailable')
+            try:
+                return await getattr(self.protected_operations, action)(channel, params)
+            except ProtectedError as exc:
+                raise RpcError(-32023, exc.code) from None
+        return handler
+
     async def start_runtime(self):
         """Explicit owned daemon/member lifecycle, never a descriptor probe."""
         from .runtime import selected
@@ -2651,6 +2852,13 @@ class FederationService:
         from .hermes_runtime import HermesRuntime, ACTIVE
         self.runtime=selected(initialize=True)
         self.tasks.recover()
+        if self.protected_enabled:
+            from .protected_service import from_service
+            self.protected_operations = from_service(self)
+            await self.protected_operations.start()
+            if self.protected_operations.bridge:
+                await self.protected_operations.bridge.start()
+            return
         if self.runtime.kind!='hermes':return
         self.execution_broker=ExecutionBroker(self.manager,self.runtime)
         from .operator import OperatorBridge
@@ -2664,6 +2872,8 @@ class FederationService:
             await self.execution_broker.close();raise
 
     async def stop_runtime(self):
+        if self.protected_operations:
+            await self.protected_operations.close()
         from .hermes_runtime import ACTIVE
         if self.hermes_runtime:
             ACTIVE.pop(self.runtime.installation,None)
@@ -2700,6 +2910,9 @@ class FederationService:
         return {'scope':scope,'permit':permit,'on_dispatch':callback}
 
     async def _in2n_member_submit(self, channel, params):
+        from .channel import RpcError
+        if getattr(self, 'protected_enabled', False):
+            raise RpcError(-32023, "protected operation approval required")
         """Member side: the Border delegates a task. Enforce scope (FR-023),
         then run it as a background task reusing the 053 TaskManager + gateway
         executor. Auth is implicit within the risk (no grants), but scope is not."""

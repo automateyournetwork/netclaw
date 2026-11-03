@@ -1,8 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { entities, age, freshness, observation, selectedContext, relations } from './model.js';
+import { entities, age, freshness, observation, protectedWorkspace, selectedContext, relations } from './model.js';
 import { previewSources } from './fixtures.js';
 const now = Date.parse('2026-09-28T12:00:00Z');
+test('protected workspace uses selected role and configuration instead of legacy gateway health', () => {
+  const runtime = { role: 'border', label: 'Protected Border', readiness: { ready: true, executionVerified: false },
+    capabilities: { protectedProfile: true, protectedOperations: true } };
+  assert.deepEqual(protectedWorkspace(runtime), { name: 'Protected Border', role: 'Border', status: 'Approval workspace configured' });
+  assert.equal(protectedWorkspace({ ...runtime, readiness: { ready: false } }).status, 'Approval workspace unavailable');
+  assert.equal(protectedWorkspace({ ...runtime, role: 'unknown' }).role, 'Protected role unverified');
+  assert.equal(protectedWorkspace({ capabilities: { protectedProfile: false } }), null);
+});
 test('mixed deployment separates members, edges, peers and non-executing advisors', () => {
   const rows = entities(previewSources(new Date(now).toISOString()).n2n.payload);
   assert.equal(rows.filter(r => r.kind === 'member').length,3);

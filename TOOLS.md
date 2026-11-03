@@ -1203,3 +1203,77 @@ Tool discovery alone does not establish working routing. NetConverter discover=f
 skips upstream checks in a cold process; false flags mean unverified, not bad credentials.
 Use typed capability arrays/counts instead of a model's manual arithmetic. The live
 reference observed 75 operation paths, not the narrative's 70. See Spec162 verification.
+
+### R02 local lab recheck — 2026-11-02
+
+After the owner restored CML, authenticated inventory confirmed the original
+four lab nodes booted. Exact-node console reads verified R1's management state
+and public SSH key against the endpoint. Fresh protected qualification uses a
+private, pinned known_hosts file and disables ambient SSH/global host trust.
+Actual pyATS loading and generated Unicon SSH arguments were checked offline;
+no R02 show-version execution is implied. Original inventories are unchanged.
+Private evidence: `~/.local/share/netclaw/roadmap-r02-r05-20261102/r1-host-verification/`
+and `live-qualification/`. CML account credentials must never substitute for
+separate device credentials. Native `unicon.Unicon` resolves to its exported
+class in `unicon.adapters.topology`; compare object identity, not module strings.
+
+Later R02 acceptance on the same day independently captured and parsed R1's
+`show version` through both protected OpenClaw and Hermes members: IOS-XE
+17.18.2, one captured execution per successful operation. CML is at
+192.168.2.125; saved device addresses are R1 .201, R2 .202, SW1 .211 and SW2 .212.
+Only R1 was selected for R02 execution. The owner restored CML a second time
+after an SSH timeout; exact-node interface/key verification matched the prior
+pin. The earlier timed-out operation remains unknown and was never replayed.
+Both original inventory hashes remain unchanged. Current acceptance evidence is
+under `live-qualification/run-20261102T155125-625aeb/`; see Spec171 verification
+for separate native, synthetic, restart and platform qualification claims.
+
+Exact-command lesson: Unicon25.2 IOS-XE probes operating mode even with empty
+init lists and MIT. The protected adapter now pins the qualified IOS-XE/IOL
+dependency tree and uses its internal skip-discovery marker, disables learning
+and reconnect, and requires initial enable state. Final full native transcripts
+contain only the approved command. Do not generalize this policy to other
+plugins or claim execute-call counts alone prove total device-command scope.
+
+### R03 lab and source preparation — 2026-11-02
+
+Fresh authenticated CML metadata and read-only device output corrected the saved
+switch management addresses. Keep the exact addresses and raw transcripts in
+`~/.local/share/netclaw/roadmap-r03-20261102/cml-readonly/`; original inventories
+remain unchanged. R1 has authenticated console-to-SSH RSA proof. R2/SW1/SW2 use
+preexisting owner known_hosts pins, strict SSH and authenticated CML exact-node
+metadata; their historical pin establishment is unknown, not a console proof.
+All three SSH sessions landed directly in the expected enable prompt and their
+interface/key diagnostics passed. No configuration or lifecycle change occurred.
+These diagnostics do not qualify the future four protected show-version reads.
+
+Python sockets returned EHOSTUNREACH while native nc/curl/SSH and Node could reach
+the same lab. Cause is unverified; do not infer a stopped CML host from that probe.
+Fresh exact-node console-key API attempts for three nodes opened but yielded no
+frames; retained failures must not be called successful. No terminal-server SSH
+trust pin was present, so no untrusted controller SSH fallback was used.
+
+R03 source is integrated and its combined protected/posture suite passes464 tests.
+LinuxAMD64 public dependencies are verified offline, not deployed. Private review
+packets retain exact resource hashes and unresolved actual billing/egress gates.
+R01 is still running and unchanged; its proposed cost-control stop is not delegated.
+No new R03 cloud resource, DNS record or protected provider operation exists yet.
+
+
+### R03 actual qualification and retirement — 2026-11-03
+
+This supersedes the November2 preparation status above. The fresh GCP Montréal
+control-only Border and Mac OpenClaw/Sonnet member completed all four protected
+show-version reads, signed results/ACKs and same-key recovery. Exactly four device
+commands and eight provider calls; original inventories and R01 remain unchanged.
+R1/R2/SW1/SW2 returned parsed IOS17.18.2. Scope and host-key provenance limits are
+in specs/172-gcp-hybrid-border/verification.md.
+
+The temporary R03 deployment is retired: all13 cloud resources, its DNS A record
+and temporary OS Login key are absent; both local workers and12 owned containers/
+4 networks are removed. Do not connect to or recreate the old R03 hostname/IP,
+replay spent plans/enrollment, or restore old first-create state. Current private
+identity/SQLite/audit preservation is under
+`~/.local/share/netclaw/roadmap-r03-20261102/activation-20261103/final-preservation/`.
+It contains secrets and is not an activation payload. R01 remains running under
+its separate pilot authorization; R03 cleanup did not retire R01 or its costs.

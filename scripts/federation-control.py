@@ -131,7 +131,8 @@ def main():
         env=environment(runtime)
         os.environ.update(env)
         claim(runtime)
-        os.execve(sys.executable,[sys.executable,str(ROOT/'mcp-servers/protocol-mcp/bgp-daemon-v2.py')],dict(os.environ))
+        isolated = ['-I', '-B'] if env.get('NETCLAW_PROTECTED_ROLE_CONTRACT') else []
+        os.execve(sys.executable,[sys.executable,*isolated,str(ROOT/'mcp-servers/protocol-mcp/bgp-daemon-v2.py')],dict(os.environ))
     raise ValueError('expected env, start, restart, stop, status or run')
 
 if __name__=='__main__':

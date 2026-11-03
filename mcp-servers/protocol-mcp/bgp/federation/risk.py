@@ -132,6 +132,19 @@ class RiskManager:
         cert_pem, _ = self.ensure_self_identity(self.self_member_id() or self.role())
         return cert_pem
 
+    def protected_enrollment(self):
+        from .protected_owner import private_file
+        from .protected_contract import decode
+        path = self.keys_dir / 'protected' / 'enrollment.json'
+        try:
+            return decode(private_file(path))
+        except FileNotFoundError:
+            return None
+
+    def store_protected_enrollment(self, value):
+        from .protected_owner import write_private
+        write_private(self.keys_dir / 'protected' / 'enrollment.json', value)
+
     def self_sign(self, nonce: bytes, binding: bytes = b"") -> bytes:
         """Sign a peer/Border-issued nonce with this claw's own private key —
         proves possession of the self-signed key whose cert was pinned. `binding`
@@ -387,10 +400,25 @@ class RiskManager:
             (_sha256_hex(raw.encode()),)).fetchone()
 
     def consume_token(self, raw_token: str, member_id: str, cert_pem: str,
+                      scope: Optional[list] = None, runtime_kind: str = 'process',
+                      display_name: Optional[str] = None, transport_binding: str = 'loopback',
+                      node_type: str = 'agent', installation_id: str = None) -> dict:
+        # Serialize token consumption and the new authority generation together.
+        self._conn.execute('BEGIN IMMEDIATE')
+        try:
+            return self._consume_token(raw_token, member_id, cert_pem, scope=scope,
+                runtime_kind=runtime_kind, display_name=display_name,
+                transport_binding=transport_binding, node_type=node_type,
+                installation_id=installation_id)
+        except BaseException:
+            self._conn.rollback()
+            raise
+
+    def _consume_token(self, raw_token: str, member_id: str, cert_pem: str,
                       scope: Optional[list] = None, runtime_kind: str = "process",
                       display_name: Optional[str] = None,
                       transport_binding: str = "loopback",
-                      node_type: str = "agent") -> dict:
+                      node_type: str = "agent", installation_id: str = None) -> dict:
         """Validate a single-use token + pin the member's self-signed key (TOFU).
         Raises ValueError(code) on invalid/spent/expired token or id/key clash."""
         if not self.is_border():
@@ -428,6 +456,14 @@ class RiskManager:
                 "enrolled_at, updated_at, node_type) VALUES (?,?,?,?,?,?,?,?,?,0,?,?,?)",
                 (member_id, display_name, cert_pem, fp, None, scope_json, runtime_kind,
                  transport_binding, STATE_ENROLLED, now, now, node_type))
+        # Each enrollment is a distinct authority, even when it reuses a key.
+        import uuid
+        generation = str(uuid.uuid4())
+        if installation_id is not None:
+            if not isinstance(installation_id, str) or len(installation_id) > 200:
+                raise ValueError('IN2N_ERR_INVALID_INSTALLATION')
+        self._conn.execute("UPDATE member SET enrollment_generation=?, installation_id=? WHERE member_id=?",
+                           (generation, installation_id, member_id))
         # Spend the token atomically.
         self._conn.execute(
             "UPDATE enrollment_token SET spent_at=?, spent_by_member_id=? WHERE token_hash=?",
@@ -444,7 +480,8 @@ class RiskManager:
         self._conn.commit()
         logger.info("Enrolled member %s — confirm fingerprint out of band: %s", member_id, fp)
         return {"member_id": member_id, "pinned": True, "state": STATE_ENROLLED,
-                "enroll_fingerprint": fp}
+                "enroll_fingerprint": fp, "enrollment_generation": generation,
+                "installation_id": installation_id}
 
     # ---- member registry (FR-008/029) ---------------------------------
 

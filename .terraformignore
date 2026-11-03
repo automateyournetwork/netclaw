@@ -1,0 +1,9 @@
+**/.terraform/**
+**/*.tfstate
+**/*.tfstate.*
+**/*.tfvars
+**/*.tfvars.json
+**/*.tfplan
+**/.env*
+**/node_modules/**
+.git/**
