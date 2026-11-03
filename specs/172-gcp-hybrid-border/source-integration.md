@@ -29,6 +29,33 @@ R01's existing pilot and all private homes/evidence remain unchanged.
 
 ## Validation and merge
 
-Integration checks and exact PR/merge identity will be recorded after observation.
+Resumed source integration on November3 after the local upstream merge at
+`b1188676`; no PR had yet been created. The accepted implementation and live
+qualification remained complete. The remaining work was source verification and
+the previously authorized PR/merge/return to main.
+
+The interrupted regression run retained 13 failures caused by an existing
+`test_member_delegation.py` helper assigning the gateway mock globally without
+restoration (also present on upstream main). Scoped pytest monkeypatch cleanup
+fixes test isolation; production behavior is unchanged. The formerly failing
+gateway/bypass files pass 15 tests alone, and the combined delegation, gateway,
+protected execution, posture and cloud-host run passes 489 tests plus 23 subtests.
+
+Node 24.19.0 HUD unit tests (453 passed), production build and Canvas bundle budget pass; the
+separate protected HTTP boundary run passes 8 tests. Source checks pass for SDD
+artifacts, 39 owned FastMCP servers, MCP tasks, all six declaration reconciliation
+surfaces, release metadata and contract-suite matrix parity. The local installed
+tree's dependency scan flags the unrelated ignored HumanRail checkout's unbounded
+MCP requirement; the clean source snapshot passes. Initial archive-only FastMCP/
+task checks required a Git index; after indexing the exact exported files, both
+pass. Retained failed logs remain private beside the corrected results.
+
+Startup `pyats_list_devices` succeeded against the existing credential-free
+inventory and listed R1/R2/SW1/SW2 without device connections. No operational
+workload, cloud activation or live qualification was repeated. No MemPalace
+connector is exposed in this session.
+
+The exact PR/merge identity and observed CI outcome are recorded after observation.
 GAIT branch `roadmap-r02-r03-merge-20261103`, owner instruction record `0a5262bd`.
+Continuation branch `roadmap-r03-resume-merge-20261103`, resume record `56c59cca`.
 Private integration receipts: `~/.local/share/netclaw/roadmap-r03-20261102/source-integration-20261103/`.

@@ -20,7 +20,7 @@ def _service(base, name):
     return FederationService(local_as=65001, router_id="4.4.4.4", display_name=name, manager=mgr)
 
 
-async def _stand_up_risk(tmp_path, member_scope):
+async def _stand_up_risk(tmp_path, member_scope, monkeypatch):
     border = _service(tmp_path / "border", "Border")
     member = _service(tmp_path / "member", "Member")
     border.risk.set_role("border", risk_name="risk", enabled_stacks="in2n")
@@ -32,7 +32,7 @@ async def _stand_up_risk(tmp_path, member_scope):
     import bgp.federation.gateway as gw
     async def _fake_run(prompt, session_key="in2n", timeout_s=600, local=False, model=None):
         return (f"embedded run ok :: {prompt}", 42)
-    gw.run_agent_turn = _fake_run
+    monkeypatch.setattr(gw, "run_agent_turn", _fake_run)
 
     # Enroll the member with a scope that covers its specialty so the Border can route.
     scope = list(BASE_FLOOR) + [
@@ -54,12 +54,12 @@ async def _stand_up_risk(tmp_path, member_scope):
     return border, member, server
 
 
-def test_route_and_delegate_completes(tmp_path):
-    asyncio.run(_route_and_delegate(tmp_path))
+def test_route_and_delegate_completes(tmp_path, monkeypatch):
+    asyncio.run(_route_and_delegate(tmp_path, monkeypatch))
 
 
-async def _route_and_delegate(tmp_path):
-    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
+async def _route_and_delegate(tmp_path, monkeypatch):
+    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"], monkeypatch)
     # NOTE: not `async with server:` — since Python 3.12.1, Server.wait_closed()
     # (run by __aexit__) blocks until every accepted connection finishes, and the
     # member channel here stays open, so the block would never exit (hang seen on
@@ -93,12 +93,12 @@ async def _route_and_delegate(tmp_path):
     border.manager.close(); member.manager.close()
 
 
-def test_no_capable_member(tmp_path):
-    asyncio.run(_no_capable(tmp_path))
+def test_no_capable_member(tmp_path, monkeypatch):
+    asyncio.run(_no_capable(tmp_path, monkeypatch))
 
 
-async def _no_capable(tmp_path):
-    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
+async def _no_capable(tmp_path, monkeypatch):
+    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"], monkeypatch)
     try:
         out = await border.route_and_delegate("something-nobody-has", "x")
         assert out["error"] == "IN2N_ERR_NO_CAPABLE_MEMBER"
@@ -107,14 +107,14 @@ async def _no_capable(tmp_path):
     border.manager.close(); member.manager.close()
 
 
-def test_out_of_scope_refused(tmp_path):
-    asyncio.run(_out_of_scope(tmp_path))
+def test_out_of_scope_refused(tmp_path, monkeypatch):
+    asyncio.run(_out_of_scope(tmp_path, monkeypatch))
 
 
-async def _out_of_scope(tmp_path):
+async def _out_of_scope(tmp_path, monkeypatch):
     # Member is enrolled with cml scope, but we ask it (directly) for a capability
     # its runtime scope does not allow → ERR_OUT_OF_SCOPE (FR-023/SC-007).
-    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"])
+    border, member, server = await _stand_up_risk(tmp_path, ["cml-lab-lifecycle"], monkeypatch)
     try:
         # Force-route a capability the member is NOT scoped to run.
         out = await border.delegate_to_member("risk/cml", "dangerous-config-push", "x")
