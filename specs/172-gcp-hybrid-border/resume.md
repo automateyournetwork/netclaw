@@ -1,9 +1,9 @@
 # Resume R03 / Spec172
 
-2026-11-03: **technical qualification and cleanup complete; human acceptance
-pending.** R01/R02 are complete and accepted. R03 has35/36 tasks closed; T036's
-memory/GAIT work is recorded, but human acceptance cannot be inferred from
-execution delegation. Do not begin R04 until that gate is accepted.
+2026-11-03: **R03 complete and owner accepted,36/36 tasks.** After the completed
+technical/cleanup handoff, the owner instructed commit, PR, merge and return to
+main. This closes T036 and authorizes source integration; R04 has not started.
+R01/R02 remain complete and accepted. See [source-integration.md](source-integration.md).
 
 Read [verification.md](verification.md), [maintainer-handoff.md](maintainer-handoff.md)
 and [teardown-review.md](teardown-review.md). The November3 owner delegation in
@@ -34,7 +34,8 @@ execution questions. Do not ask them again or treat available credit as a target
 Branch `172-gcp-hybrid-border` preserves accepted R02 `96cbdf0f`. Runtime source
 through `aa861ee3` was deployed from frozen snapshot `fbd41cb1`; November3 changed
 private configuration/helpers and maintainer records, not production source.
-Source1.18.3/extension1.5.0 unchanged. Do not publish, bump, tag, release, merge a
+Live qualification used source1.18.3/extension1.5.0. Integration preserves
+upstream1.18.4 from #321; no roadmap version bump or extension change. Do not publish, bump, tag, release, merge a
 public rollout recipe or deploy this as a general user cloud Border. Entire
 issue310 release hold lasts through R20, including user controls in R15–R17.
 
@@ -67,11 +68,10 @@ R02 used passes1–2 and R03 used source/preparation pass3 of the maximum five;
 no automatic Ralph hook ran. No device/model action is authorized by retrying a
 failed observer or by a new browser session.
 
-## Next gate
+## Next brief
 
-Only human R03 acceptance remains. After explicit acceptance, close T036 and use
-[the R04 brief](../../docs/roadmap/issue-310/briefs/R04-gcp-cloud-member-netbox.md)
-for cloud NetBox/subnet members with a hosted model. Recheck the next free spec
-number at kickoff. R05 adds Ollama members. Their resource/runtime plans and
-actual qualification remain separate; nothing here starts them or qualifies
-arbitrary LLM/harness/cloud combinations.
+Human R03 acceptance is complete. The current request ends on main after source
+integration. R04 is next: [cloud NetBox/subnet members with a hosted model](../../docs/roadmap/issue-310/briefs/R04-gcp-cloud-member-netbox.md).
+Recheck the next free spec number at kickoff. R05 adds Ollama members. Their
+resource/runtime plans and actual qualification remain separate; nothing here
+starts them or qualifies arbitrary LLM/harness/cloud combinations.

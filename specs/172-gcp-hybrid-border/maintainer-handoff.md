@@ -12,11 +12,11 @@ and actual credential/IAM/network confinement checks passed.
 All 13 temporary GCP resources, DNS and the temporary SSH key were removed after
 private evidence export; zero R03 billable residues remain. Local workers and
 owned operation containers/networks are also removed. R01 remains unchanged and
-available. Source 1.18.3 / extension 1.5.0 and the entire-roadmap release hold remain:
+available. The integration preserves upstream source 1.18.4 and extension 1.5.0, with no
+roadmap version bump. The entire-roadmap release hold remains:
 this is maintainer evidence, not a general cloud deployment release. Hermes cloud,
 arbitrary providers, writes and multi-user controls are not qualified by this run.
 
-R01/R02 are accepted; R03 is 35/36 pending human acceptance in T036. After that
-gate, R04 covers cloud NetBox/subnet members with a hosted model; R05 adds Ollama
-members. See [verification](verification.md) for exact evidence and limitations,
+R01–R03 are accepted; R03 is36/36. R04 is next and covers cloud NetBox/subnet
+members with a hosted model; R05 adds Ollama members. See [verification](verification.md) for exact evidence and limitations,
 and [resume](resume.md) for private preservation and the next gate.

@@ -2,10 +2,11 @@
 
 2026-11-03. R01 and R02 are complete and accepted. R03 implementation, actual
 GCP/on-prem qualification, independent evidence review and teardown are complete.
-**35/36 tasks are closed; T036 human acceptance remains pending before R04.**
-Daily memory and GAIT are recorded separately from acceptance. No version,
-release or public deployment guidance is authorized. Source1.18.3/extension1.5.0
-remain unchanged.
+**36/36 tasks are closed.** After receiving the completed evidence/cleanup
+handoff, the owner requested commit, PR, merge and return to main on November3.
+That accepts R03 for source integration and closes T036; R04 has not started. No version,
+release or public deployment guidance is authorized. The live qualification used source1.18.3/extension1.5.0; source integration
+preserves upstream1.18.4 from #321 without a roadmap version bump.
 
 The owner's [November3 delegation](activation-delegation.md) resolved the earlier
 execution/spending gate. The stated credit was not verified or treated as a spend
@@ -168,7 +169,7 @@ Never replay the prepared initial archive or any spent resource/activation plan.
 | FR008–010; SC004 | Actual control-only role, confined processes, scoped IAM/network, strict outbound unchanged-key enrollment; T015–T019,T021–T023 complete |
 | FR011–013; SC005 | Exact apply/no-drift/retirement, finite safeguards, explicit billing limits and R01/original-file preservation; T001,T020,T024–T031 complete |
 | FR014 | Maintainer-only evidence; versions and entire-roadmap release hold unchanged; T035 complete |
-| FR015; SC006 | Independent technical evidence complete and task accounting reconciled; **human acceptance pending in T036**, so no overall accepted100% claim and no R04 work |
+| FR015; SC006 | Independent evidence, audit/memory and owner acceptance complete; T036 closed by the post-handoff merge instruction. R03 is36/36; no R04 work started |
 
 Source validation remains464 protected/posture tests,453 serialized HUD tests and
 production build,82 transport/service tests,53 cloud/role tests plus23 subtests,
@@ -182,3 +183,10 @@ Mac OpenClaw/Sonnet member and four pinned IOS-XE/IOL endpoints. Hermes cloud,
 arbitrary models/providers/platforms, cloud members, Ollama, CML API execution,
 multi-user/SSO/RBAC, writes, HA and multi-cloud are not qualified here. R02's
 separate OpenClaw/Hermes evidence remains valid within its recorded scope.
+
+## Source integration
+
+The owner authorized a quiet commit/PR/merge and return to main after reviewing
+the technical handoff. See [source-integration.md](source-integration.md) for
+upstream reconciliation, merge checks and the unchanged entire-roadmap release
+hold. This does not authorize R04 execution or another cloud/device operation.

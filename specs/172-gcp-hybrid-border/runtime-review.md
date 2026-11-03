@@ -38,7 +38,7 @@ Actual receipts live under private `activation-20261103/`, indexed by
 closed SQLite, manifests and edge/host evidence. It contains secrets and is not
 an activation payload. Do not restore the old first-create archive over it.
 All R03 cloud services/resources, DNS/key and local worker/container/network
-resources are retired. R01 remains unchanged. Human acceptance is the only R04 gate.
+resources are retired. R01 remains unchanged. The owner subsequently accepted R03 for source integration; R04 has not started.
 
 ## Historical preparation record — superseded, not executable
 

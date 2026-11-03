@@ -22,6 +22,10 @@
 
 ## Notes
 
+- R02/R03 handoff (2026-11-03): after the completed R03 evidence and cleanup,
+  quietly commit, PR, merge and return to main; provide a short maintainer blurb.
+  This accepts R03 for source integration. Keep the full-roadmap release hold.
+
 - R03 direction (2026-11-03): use the available GCP credit and proceed through the
   reviewed cloud qualification without repeatedly blocking on cost confirmation.
   Record scoped plans and clean up owned resources afterward so ongoing charges

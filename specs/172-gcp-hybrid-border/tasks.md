@@ -1,8 +1,8 @@
 # Tasks: R03 GCP hybrid Border
 
-2026-11-03:35/36 complete. All implementation, actual qualification and cleanup
-tasks are closed with evidence in verification.md. T036 memory/GAIT work is done;
-human acceptance remains pending before R04. The November3 delegation covered
+2026-11-03:36/36 complete. All implementation, actual qualification, cleanup,
+memory/GAIT and human acceptance are recorded in verification.md. The owner
+accepted the completed handoff by requesting commit/PR/merge and return to main. The November3 delegation covered
 exact reviewed R03 execution and cleanup. No release/version/public rollout.
 
 ## Phase1 — Specification and foundation
@@ -63,7 +63,7 @@ exported evidence and reviewed teardown with no billable residues.
 - [x] T033 Independently review security boundaries and actual receipt correlations; remediate findings within remaining bounded passes in specs/172-gcp-hybrid-border/verification.md.
 - [x] T034 Reconcile all FR/SC/task evidence, preserved failures/unknowns and supported platform matrix in specs/172-gcp-hybrid-border/verification.md.
 - [x] T035 Record maintainer-only handoff, current blockers/acceptance and next R04 gate in specs/172-gcp-hybrid-border/resume.md; keep release hold.
-- [ ] T036 Record daily memory/GAIT log and obtain human R03 acceptance before R04 in specs/172-gcp-hybrid-border/resume.md. Memory/GAIT complete; **human acceptance pending**.
+- [x] T036 Record daily memory/GAIT log and obtain human R03 acceptance before R04 in specs/172-gcp-hybrid-border/resume.md. Memory/GAIT complete; owner accepted the completed handoff and authorized source integration on2026-11-03.
 
 ## Dependencies and parallel execution
 
@@ -75,7 +75,7 @@ T020→T021 require exact delegation; T021–T023 and T010 precede T011/T012.
 T029–T031 follow live evidence, export and exact teardown approval. T033 reviews
 both source before activation and final actual receipts. T034–T036 close only
 when all actual evidence is complete. No missing cloud gate is marked complete
-because source tests pass. R04 remains blocked on human R03 acceptance.
+because source tests pass. R03 human acceptance is recorded; this source-integration turn does not start R04.
 
 ## Implementation strategy
 

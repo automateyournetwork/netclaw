@@ -2,7 +2,7 @@
 
 **Feature Branch**: `172-gcp-hybrid-border`  
 **Created**: 2026-11-02  
-**Status**: Technical qualification and cleanup complete; human acceptance pending (35/36 tasks)
+**Status**: Complete and owner accepted for source integration (36/36 tasks)
 
 **Input**: Owner: “drive R03 to 100%”. Authoritative brief: `docs/roadmap/issue-310/briefs/R03-gcp-border-onprem-members.md`. R02 accepted at `96cbdf0f`.
 

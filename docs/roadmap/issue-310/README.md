@@ -14,7 +14,8 @@ takes the next free number at specify time (168 unless something lands first).
 R01 and [R02/Spec171](../../../specs/171-execution-parity/verification.md) are
 complete and accepted. [R03/Spec172](../../../specs/172-gcp-hybrid-border/verification.md)
 has completed source, actual GCP/on-prem qualification, independent evidence review
-and cleanup:35/36 tasks, with only human acceptance in T036 pending before R04.
+and cleanup:36/36 tasks, accepted by the owner with the post-handoff source-merge
+instruction on November3. R04 has not started.
 Four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable
@@ -24,8 +25,8 @@ The owner authorized the coordinator/three-agent team and at most five bounded
 implementation passes. November3 delegation superseded the earlier CAD100/billing
 execution hold for isolated R03 completion/cleanup; stated GCP credit is unverified
 and not a target. Finite safeguards and exact evidence/cleanup were retained.
-Source1.18.3/extension1.5.0 and the entire-roadmap release/public rollout hold remain
-unchanged. R04/R05 have not started. Earlier assessment sections below are historical.
+Integration preserves upstream source1.18.4 from #321 and extension1.5.0 without
+a roadmap version bump. The entire-roadmap release/public rollout hold remains. R04/R05 have not started. Earlier assessment sections below are historical.
 
 ## Roadmap source integration and release hold — 2026-11-02
 

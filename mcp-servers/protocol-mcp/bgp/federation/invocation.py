@@ -667,7 +667,7 @@ class Invoker:
         approval notifications and the task's progress state, and extends the
         wait by the approval window so a human can approve instead of the task
         dying on a blind hard timeout."""
-        from .gateway import run_agent_turn
+        from .gateway import run_agent_turn, SKILL_FAILURE_RULE
 
         def on_stall(waited_s):
             if progress:
@@ -677,7 +677,8 @@ class Invoker:
             return self.authz.approval_window_s
 
         prompt = (f"A federated NetClaw peer has requested you run the '{skill}' skill. "
-                  f"Execute it for the following request and return only the result:\n\n{input_text}")
+                  f"Execute it for the following request and return only the result. "
+                  f"{SKILL_FAILURE_RULE}\n\n{input_text}")
         from .execution import conversation_id
         import uuid
         request=task_id or str(uuid.uuid4())

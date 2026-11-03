@@ -311,3 +311,18 @@ R01 state/DNS and running pilot are unchanged, with existing costs retained.
 Never replay spent R03 plans, enrollment or first-create state; use the private
 current-state preservation record only as evidence, not an activation payload.
 Source1.18.3/extension1.5.0 and the entire-roadmap release hold remain unchanged.
+
+
+### R02/R03 source integration and R03 acceptance — 2026-11-03
+
+After receiving the completed R03 technical/cleanup handoff, the owner requested
+commit, PR, quiet merge and return to main, plus a small maintainer blurb. This
+accepts the completed R03 scope and closes T036 (36/36); no new R04/cloud/device
+work is implied. Commit/push/PR/merge of completed R02/R03 source is authorized.
+Reconcile upstream #321 failure reporting and retain its source1.18.4 version;
+extension1.5.0 remains unchanged, with no additional roadmap bump or publication.
+The complete-roadmap release hold through R20 is still in force. Keep historical
+`171-execution-parity` (R02) and upstream `171-skill-failure-reporting` distinct by
+full path; never rename historical specs to hide the collision. R03 live evidence
+remains tied to its frozen tested source, not a claim that merged source was redeployed.
+See specs/172-gcp-hybrid-border/source-integration.md for verification and PR outcome.
