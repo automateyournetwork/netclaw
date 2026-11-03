@@ -192,6 +192,8 @@ def saved_review(tmp_path):
         tofu=str(tool),tofu_sha256=hashlib.sha256(tool.read_bytes()).hexdigest(),
         saved_plan=str(saved),plan_sha256=hashlib.sha256(saved.read_bytes()).hexdigest(),
         state_path=str(tmp_path/'r04.tfstate'),state_sha256=None,teardown_plan=False,
+        window_started_at=dt.datetime.now(dt.timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ'),
+        expires_at=(dt.datetime.now(dt.timezone.utc)+dt.timedelta(hours=1)).strftime('%Y-%m-%dT%H:%M:%SZ'),
         run_id='20261103-aabbcc',project='netclaw-fixture')
 
 
@@ -234,3 +236,9 @@ def test_foreign_state_even_with_allowed_type_refused():
     plan.validate_state(json.dumps(own).encode(),'netclaw-r04-20261103-aabbcc','netclaw-fixture')
     own['resources'][0]['instances'][0]['attributes']['account_id']='r01-20261101-member'
     with pytest.raises(ValueError,match='foreign_run'):plan.validate_state(json.dumps(own).encode(),'netclaw-r04-20261103-aabbcc','netclaw-fixture')
+
+
+def test_expired_saved_plan_refuses_before_partial_cloud_apply(tmp_path,monkeypatch):
+    runner=plan_runner(monkeypatch);review=saved_review(tmp_path)
+    review['expires_at']='2020-01-01T00:00:00Z'
+    with pytest.raises(ValueError,match='expired'):runner.verify(review)

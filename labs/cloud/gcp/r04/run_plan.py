@@ -6,6 +6,7 @@ create plans or infer authority from access. Teardown additionally needs a verif
 private export manifest; R01 and preexisting budgets must never enter this state.
 """
 import argparse
+import datetime as dt
 import hashlib
 import json
 import os
@@ -21,6 +22,11 @@ def digest(path):
 
 def verify(review, export_manifest=None):
     need(review.get('applied') is False and review.get('delegation_required') is False, 'review_not_executable')
+    if not review['teardown_plan']:
+        now = dt.datetime.now(dt.timezone.utc)
+        start = dt.datetime.strptime(review['window_started_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc)
+        expires = dt.datetime.strptime(review['expires_at'], '%Y-%m-%dT%H:%M:%SZ').replace(tzinfo=dt.timezone.utc)
+        need(start <= now < expires <= start + dt.timedelta(hours=48), 'saved_plan_expired_or_window_invalid')
     source = Path(review['source_root'])
     need(source.is_absolute() and source.resolve() == source, 'source_path_invalid')
     for name, expected in review['source_files'].items():

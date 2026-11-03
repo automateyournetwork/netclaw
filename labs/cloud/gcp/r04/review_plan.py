@@ -116,6 +116,7 @@ def main():
                'plan_sha256': hashlib.sha256(private(output)).hexdigest(), 'teardown_plan': args.teardown_plan,
                'source_files': {p.name: hashlib.sha256(p.read_bytes()).hexdigest() for p in source.glob('*.tf')},
                'tofu_sha256': hashlib.sha256(tool.read_bytes()).hexdigest(), 'changes': validate_plan(plan),
+               'window_started_at': variables['window_started_at'], 'expires_at': variables['expires_at'],
                'saved_plan': str(output), 'source_root': str(source), 'tofu': str(tool), 'state_path': str(state),
                'state_sha256': hashlib.sha256(private(state)).hexdigest() if state.exists() else None,
                'budget': budget, 'applied': False, 'delegation_required': False, 'cost_is_hard_cap': False}
