@@ -55,7 +55,10 @@ inventory and listed R1/R2/SW1/SW2 without device connections. No operational
 workload, cloud activation or live qualification was repeated. No MemPalace
 connector is exposed in this session.
 
-The exact PR/merge identity and observed CI outcome are recorded after observation.
+Source integration is tracked by [PR323](https://github.com/automateyournetwork/netclaw/pull/323).
+This record describes pre-merge verification; the final GitHub check result and
+observed merge commit are retained in the private integration receipt, daily
+memory and session GAIT log. The qualified live source remains unchanged.
 GAIT branch `roadmap-r02-r03-merge-20261103`, owner instruction record `0a5262bd`.
 Continuation branch `roadmap-r03-resume-merge-20261103`, resume record `56c59cca`.
 Private integration receipts: `~/.local/share/netclaw/roadmap-r03-20261102/source-integration-20261103/`.
