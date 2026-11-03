@@ -87,9 +87,10 @@ class ProfiledExecutor:
                 for field in ('config_file', 'env_file'):
                     _private_path(runtime['guard'][field])
                     require(',' not in runtime['guard'][field], 'unsafe_guard_binding', 503)
-                for field in ('testbed', 'known_hosts'):
-                    _private_path(runtime['pyats'][field])
-                require(tool['arguments']['timeout'] <= 120, 'unsupported_tool_policy', 503)
+                if 'pyats' in runtime:
+                    for field in ('testbed', 'known_hosts'):
+                        _private_path(runtime['pyats'][field])
+                    require(tool['arguments']['timeout'] <= 120, 'unsupported_tool_policy', 503)
             except ProtectedError:
                 raise
             except (OSError, KeyError, TypeError, ValueError):

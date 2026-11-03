@@ -15,6 +15,8 @@ import time
 from urllib.parse import urlparse
 
 from . import protected_runtime as _runtime_source
+from . import protected_mcp as _mcp_source
+from .protected_mcp import (invoke_mcp, validate_binding as validate_mcp_binding, contract_digest as mcp_contract_digest, skill_context)
 
 from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
                                 RuntimeUnknown, ScopedInference, canonical,
@@ -24,7 +26,8 @@ from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
 
 _HOST_SOURCE_PATHS = {"protected_docker.py": Path(__file__),
                       "protected_runtime.py": Path(_runtime_source.__file__),
-                      "protected_selection.py": Path(__file__).with_name("protected_selection.py")}
+                      "protected_selection.py": Path(__file__).with_name("protected_selection.py"),
+                      "protected_mcp.py": Path(_mcp_source.__file__)}
 _HOST_SOURCE_PINS = {name: hashlib.sha256(path.read_bytes()).hexdigest()
                     for name, path in _HOST_SOURCE_PATHS.items()}
 _GUARD_FIELDS = {"image", "config_file", "config_sha256", "policy_manifest_sha256", "env_file"}
@@ -32,6 +35,19 @@ _RUNTIME_FIELDS = {"state_dir", "agent_image", "relay_image", "docker", "docker_
                    "sandbox_address_pool", "model_profile", "guard", "pyats"}
 _PYATS_FIELDS = {"python", "upstream", "upstream_sha256", "source_sha256", "adapter_sha256", "testbed",
                  "testbed_sha256", "known_hosts", "known_hosts_sha256", "endpoint_sha256", "credential_env"}
+
+_MCP_RUNTIME_FIELDS = (_RUNTIME_FIELDS - {'pyats'}) | {'mcp', 'relay_transport'}
+
+
+def validate_runtime_fields(config):
+    fields = set(config)
+    if fields == _RUNTIME_FIELDS:
+        return 'pyats'
+    if fields == _MCP_RUNTIME_FIELDS and config.get('relay_transport') in ('unix', 'tcp'):
+        validate_mcp_binding(config['mcp'], check_files=False)
+        return 'mcp'
+    raise RuntimeRefused('runtime_configuration_fields_refused')
+
 # These are the qualified R02 profiles. Exact immutable image/version pairs are
 # supplied by the separately reviewed runtime packet, not inferred from labels.
 _QUALIFIED_HARNESSES = {"openclaw": "2026.7.1-2", "hermes": "v0.21.6"}
@@ -112,8 +128,7 @@ def guard_policy_digest(guard):
 
 def runtime_profile_revision(config):
     profile = config["model_profile"]
-    if set(config) != _RUNTIME_FIELDS:
-        raise RuntimeRefused("runtime_configuration_fields_refused")
+    validate_runtime_fields(config)
     if (not isinstance(profile, dict) or profile.get("provider") != "anthropic"
             or profile.get("model") != "claude-sonnet-4-6"
             or not isinstance(profile.get("runtime_kind"), str)
@@ -128,7 +143,8 @@ def runtime_profile_revision(config):
         "agent_image": _image(config["agent_image"]), "relay_image": _image(config["relay_image"]),
         "guard_policy_sha256": guard_policy_digest(config["guard"]),
         "native_docker": _native_identity(config["docker"]), "docker_host": _docker_host(config["docker_host"]),
-        "sandbox_address_pool": config["sandbox_address_pool"], "host_adapter_sha256": dict(_HOST_SOURCE_PINS)})
+        "sandbox_address_pool": config["sandbox_address_pool"], "host_adapter_sha256": dict(_HOST_SOURCE_PINS),
+        **({"relay_transport": config["relay_transport"]} if "mcp" in config else {})})
 
 
 def tool_contract_digest(pyats):
@@ -165,7 +181,7 @@ def revision_bindings(config):
     """Populate these three fields before signing a catalog; paths/secrets are not returned."""
     return {"guard_policy_sha256": guard_policy_digest(config["guard"]),
             "profile_revision": runtime_profile_revision(config),
-            "tool_schema_sha256": tool_contract_digest(config["pyats"])}
+            "tool_schema_sha256": (mcp_contract_digest(config["mcp"]) if "mcp" in config else tool_contract_digest(config["pyats"]))}
 
 
 def validate_execution_bindings(config, payload):
@@ -175,7 +191,17 @@ def validate_execution_bindings(config, payload):
             or payload["model_profile"]["profile_revision"] != bindings["profile_revision"]
             or payload["tool_call"]["tool_schema_sha256"] != bindings["tool_schema_sha256"]):
         raise RuntimeRefused("signed_execution_revision_changed")
-    guard = config["guard"]; pyats = config["pyats"]
+    guard = config["guard"]
+    if "mcp" in config:
+        validate_mcp_binding(config["mcp"], arguments=payload["tool_call"]["arguments"])
+        if (payload["tool_call"]["tool"] != config["mcp"]["tool"]
+                or payload["tool_call"]["inventory_revision"] != config["mcp"]["selection_sha256"]
+                or payload["tool_call"]["endpoint_sha256"] != config["mcp"]["endpoint_sha256"]):
+            raise RuntimeRefused("approved_mcp_binding_changed")
+        if hashlib.sha256(_public_bytes(guard["config_file"])).hexdigest() != guard["config_sha256"]:
+            raise RuntimeRefused("guard_configuration_changed")
+        return bindings
+    pyats = config["pyats"]
     if hashlib.sha256(_public_bytes(guard["config_file"])).hexdigest() != guard["config_sha256"]:
         raise RuntimeRefused("guard_configuration_changed")
     scripts = Path(_runtime_source.__file__).resolve().parents[4] / "scripts"
@@ -194,12 +220,12 @@ def validate_execution_bindings(config, payload):
     return bindings
 
 
-def validate_raw_mcp_call(body, approved):
+def validate_raw_mcp_call(body, approved, tool="pyats_run_show_command"):
     if not isinstance(body, dict):
         raise RuntimeRefused("mcp_object_required")
     if body.get("method") == "tools/call":
         params = body.get("params")
-        if (not isinstance(params, dict) or params.get("name") != "pyats_run_show_command"
+        if (not isinstance(params, dict) or params.get("name") != tool
                 or "arguments" not in params or canonical(params["arguments"]) != canonical(approved)):
             raise RuntimeRefused("raw_mcp_arguments_changed")
 
@@ -319,6 +345,7 @@ def inspect_agent(container, network, *, image, mounts, uid=None, gid=None, harn
 
 def openclaw_config(payload, relay):
     model = payload["model_profile"]["model"]
+    tool = payload["tool_call"]["tool"]
     return {
         "models": {"mode": "replace", "providers": {"defenseclaw": {
             "baseUrl": f"http://{relay}:8090/v1", "api": "openai-completions",
@@ -332,8 +359,8 @@ def openclaw_config(payload, relay):
                 "transport": "streamable-http", "supportsParallelToolCalls": False,
                 "timeout": 150, "connectTimeout": 10,
                 "headers": {"Authorization": "Bearer ${NETCLAW_OPERATION_TOKEN}"},
-                "toolFilter": {"include": ["pyats_run_show_command"]}}}},
-        "tools": {"allow": ["approved__pyats_run_show_command"],
+                "toolFilter": {"include": [tool]}}}},
+        "tools": {"allow": ["approved__" + tool],
                   "deny": ["group:runtime", "group:fs", "group:web", "group:ui",
                            "group:sessions", "group:messaging", "group:automation", "nodes"]},
         "plugins": {"allow": []}, "gateway": {"mode": "local"},
@@ -358,8 +385,7 @@ def completion_sse(response):
 class DockerExecutor:
     def __init__(self, config, *, manager):
         config = json.loads(canonical(config))
-        if set(config) != _RUNTIME_FIELDS:
-            raise RuntimeRefused("runtime_configuration_fields_refused")
+        validate_runtime_fields(config)
         self.config, self.manager = config, manager
         self.state = private_directory(config["state_dir"])
         self.docker = _native_identity(config["docker"])["resolved_path"]
@@ -533,20 +559,23 @@ class DockerExecutor:
             private_write(agent_files / "job.json", canonical({"operation_id": operation_id,
                           "model": payload["model_profile"]["model"],
                           "base_url": f"http://{relay}:8090/v1", "mcp_url": f"http://{relay}:8090/mcp",
-                          "arguments": payload["tool_call"]["arguments"]}))
+                          "arguments": payload["tool_call"]["arguments"], "tool": payload["tool_call"]["tool"],
+                          "skill_context": skill_context(self.config["mcp"]) if "mcp" in self.config else ""}))
         else:
             raise RuntimeRefused("unqualified_harness")
         private_write(operation_root / "agent.env", ("NETCLAW_OPERATION_TOKEN=" + token + "\n").encode())
 
         async def invoke(tool, arguments):
             validate_execution_bindings(self.config, payload)
-            if payload["tool_call"]["inventory_revision"] != self.config["pyats"]["testbed_sha256"]:
+            if "mcp" not in self.config and payload["tool_call"]["inventory_revision"] != self.config["pyats"]["testbed_sha256"]:
                 raise RuntimeRefused("approved_inventory_changed")
-            if payload["tool_call"]["endpoint_sha256"] != self.config["pyats"]["endpoint_sha256"]:
+            if "mcp" not in self.config and payload["tool_call"]["endpoint_sha256"] != self.config["pyats"]["endpoint_sha256"]:
                 raise RuntimeRefused("approved_endpoint_changed")
             remaining = (payload["limits"]["expires_at_ms"] - int(time.time() * 1000)) / 1000
             try:
                 async with asyncio.timeout(min(remaining, payload["limits"]["tool_timeout_ms"] / 1000)):
+                    if "mcp" in self.config:
+                        return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool")
                     return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc
@@ -561,7 +590,16 @@ class DockerExecutor:
             return await broker.call("pyats_run_show_command",
                       dict(device_name=device_name, command=command, timeout=timeout, retries=retries))
 
-        mcp.add_tool(pyats_run_show_command, description="The exact owner-approved show version read.")
+        async def netbox_get_object_by_id(object_type: str, object_id: int, fields: list[str], brief: bool) -> dict:
+            return await broker.call("netbox_get_object_by_id", dict(object_type=object_type, object_id=object_id, fields=fields, brief=brief))
+
+        async def subnet_calculator(cidr: str) -> dict:
+            return await broker.call("subnet_calculator", {"cidr": cidr})
+
+        native_tools = {"pyats_run_show_command": pyats_run_show_command,
+                        "netbox_get_object_by_id": netbox_get_object_by_id,
+                        "subnet_calculator": subnet_calculator}
+        mcp.add_tool(native_tools[payload["tool_call"]["tool"]], description="Execute only the exact owner-approved read once.")
         mcp_app = mcp.streamable_http_app(json_response=True, stateless_http=True,
                                          max_request_body_size=1048576)
 
@@ -590,7 +628,7 @@ class DockerExecutor:
             try:
                 body = strict_inference_json(bytes(raw))
                 if scope["path"] == "/mcp":
-                    validate_raw_mcp_call(body, payload["tool_call"]["arguments"])
+                    validate_raw_mcp_call(body, payload["tool_call"]["arguments"], payload["tool_call"]["tool"])
                     delivered = False
                     async def replay_body():
                         nonlocal delivered
@@ -611,9 +649,24 @@ class DockerExecutor:
                 reply = JSONResponse({"error": "inference_outcome_unknown"}, status_code=502)
             return await reply(scope, receive, send)
 
-        listener = socket.socket()
-        listener.bind(("127.0.0.1", 0))
-        port = listener.getsockname()[1]
+        unix_relay = self.config.get("relay_transport") == "unix"
+        if unix_relay:
+            broker_dir = private_directory(operation_root / "broker")
+            broker_socket = broker_dir / "broker.sock"
+            if len(str(broker_socket).encode()) > 103:
+                raise RuntimeRefused("broker_socket_path_too_long")
+            listener = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            listener.bind(str(broker_socket))
+            broker_socket.chmod(0o600)
+            relay_args = ["--mount", f"type=bind,src={broker_dir},dst=/broker,readonly",
+                          "--env", "NETCLAW_TRUSTED_SOCKET=/broker/broker.sock"]
+            relay_network = network
+        else:
+            listener = socket.socket()
+            listener.bind(("127.0.0.1", 0))
+            port = listener.getsockname()[1]
+            relay_args = ["--env", "NETCLAW_TRUSTED_PORT=" + str(port)]
+            relay_network = "bridge"
         listener.listen(64)
         server = uvicorn.Server(uvicorn.Config(app, log_level="error", access_log=False, lifespan="off"))
         server_task = None
@@ -632,16 +685,20 @@ class DockerExecutor:
                      "com.docker.network.bridge.gateway_mode_ipv4=isolated", "--subnet", subnet,
                      "--label", "netclaw.spec=171", network)
                 # Relay alone has a second network to the fixed host endpoint.
-                await self.command("create", "--name", relay, "--network", "bridge", "--read-only",
+                await self.command("create", "--name", relay, "--network", relay_network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
                      "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=171",
-                     "--env", "NETCLAW_TRUSTED_PORT=" + str(port), self.config["relay_image"])
-                await self.command("network", "connect", "--alias", relay, network, relay)
+                     *relay_args, self.config["relay_image"])
+                if not unix_relay:
+                    await self.command("network", "connect", "--alias", relay, network, relay)
                 started.append(relay)
                 await self.command("start", relay)
-                prompt = ("Execute the single owner-approved MCP read exactly once using pyats_run_show_command. "
+                prompt = ("Execute the single owner-approved MCP read exactly once using " + payload["tool_call"]["tool"] + ". "
                           "Use these exact arguments: " + canonical(payload["tool_call"]["arguments"]).decode()
-                          + ". Then summarize the returned version evidence. Do not use other tools or retry.")
+                          + ". Then summarize the actual returned evidence. Do not use other tools or retry.")
+                if "mcp" in self.config:
+                    prompt += skill_context(self.config["mcp"])
+                    private_write(operation_root / "reviewed-skill-context.txt", prompt.encode())
                 native_env = (["--env", "OPENCLAW_CONFIG_PATH=/run/netclaw/openclaw.json",
                                "--env", "OPENCLAW_STATE_DIR=/home/agent/state"] if harness == "openclaw" else [])
                 native_args = (["agent", "--local", "--json", "--session-id", operation_id,

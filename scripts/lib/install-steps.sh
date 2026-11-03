@@ -623,6 +623,7 @@ log_info "Installing NetBox dependencies..."
 netclaw_pip_install httpx "fastmcp==4.0.11" "fastmcp-tasks==4.0.11" requests pydantic pydantic-settings 2>/dev/null || \
     { log_error "NetBox dependency installation failed"; return 1; }
 
+python3 "$SCRIPT_DIR/netbox-compat.py" --source "$NETBOX_MCP_DIR" || return 1
 log_info "NetBox MCP ready: python3 -m netbox_mcp_server.server"
 
 echo ""

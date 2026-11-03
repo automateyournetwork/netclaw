@@ -11,6 +11,17 @@ metadata:
 
 Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
 
+## Protected member reads
+
+When an exact protected operation is approved, use only its named MCP tool and
+complete approved arguments. R04 permits `netbox_get_object_by_id` for one selected
+`dcim.device` or `ipam.prefix`, with fixed fields and `brief:false`. This scoped
+read does not authorize reconciliation, pyATS, ticket creation, write operations,
+search, pagination or retry. Report the actual returned evidence and any missing
+or changed record; never substitute another object. Installed tools/list and
+source mappings establish available types; do not infer them from REST plurals.
+The broker holds NETBOX_TOKEN; never request or include it in a prompt.
+
 ## Golden Rule
 
 **NetBox is READ-WRITE.** The MCP has full API access to create and update devices, IPs, interfaces, VLANs, and cables. However, during reconciliation, discrepancies are reported and ticketed first — they are NEVER auto-corrected without explicit human approval. NetBox is the intended state. If reality differs from NetBox, either the network is wrong or NetBox needs updating. NetClaw can update NetBox when explicitly authorized by the operator.
@@ -42,13 +53,13 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python
 
 | Object Type | Contains |
 |-------------|----------|
-| `dcim.devices` | Devices: name, role, platform, site, status |
-| `dcim.interfaces` | Interfaces: name, type, enabled, MAC, MTU, mode (access/tagged), untagged_vlan, tagged_vlans |
-| `ipam.ip-addresses` | IP addresses: address (CIDR), assigned_object, status, role |
-| `dcim.cables` | Physical cables: A-side termination, B-side termination, type, length |
-| `ipam.vlans` | VLANs: vid, name, site, tenant, status |
-| `ipam.prefixes` | Prefixes: prefix (CIDR), VRF, site, status |
-| `dcim.sites` | Sites: name, region, physical_address |
+| `dcim.device` | Devices: name, role, platform, site, status |
+| `dcim.interface` | Interfaces: name, type, enabled, MAC, MTU, mode (access/tagged), untagged_vlan, tagged_vlans |
+| `ipam.ipaddress` | IP addresses: address (CIDR), assigned_object, status, role |
+| `dcim.cable` | Physical cables: A-side termination, B-side termination, type, length |
+| `ipam.vlan` | VLANs: vid, name, site, tenant, status |
+| `ipam.prefix` | Prefixes: prefix (CIDR), VRF, site, status |
+| `dcim.site` | Sites: name, region, physical_address |
 
 ---
 
@@ -75,7 +86,7 @@ Severity order: CRITICAL > HIGH > MEDIUM > LOW
 #### 1A: Get Device Inventory from NetBox
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.devices","filters":{"status":"active"},"brief":true}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.device","filters":{"status":"active"},"brief":true}'
 ```
 
 This returns all active devices. Match against the pyATS testbed to determine which devices can be reconciled.
@@ -83,7 +94,7 @@ This returns all active devices. Match against the pyATS testbed to determine wh
 #### 1B: Get Interfaces from NetBox (per device)
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.interfaces","filters":{"device":"R1"}}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.interface","filters":{"device":"R1"}}'
 ```
 
 **Extract per interface:**
@@ -95,7 +106,7 @@ python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_t
 #### 1C: Get IP Addresses from NetBox (per device)
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.ip-addresses","filters":{"device":"R1"}}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.ipaddress","filters":{"device":"R1"}}'
 ```
 
 **Extract per IP:**
@@ -107,7 +118,7 @@ python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_t
 #### 1D: Get Cables from NetBox (per device)
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.cables","filters":{"device":"R1"}}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.cable","filters":{"device":"R1"}}'
 ```
 
 **Extract per cable:**
@@ -118,7 +129,7 @@ python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_t
 #### 1E: Get VLANs from NetBox
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.vlans","filters":{"site":"main-site"}}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"ipam.vlan","filters":{"site":"main-site"}}'
 ```
 
 ### Step 2: Collect Live Device State
@@ -346,7 +357,7 @@ PYATS_TESTBED_PATH=$PYATS_TESTBED_PATH python3 $MCP_CALL "${PYATS_PYTHON:-python
 Then query NetBox for all active devices:
 
 ```bash
-python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.devices","filters":{"status":"active"},"brief":true}'
+python3 $MCP_CALL "python3 -u $NETBOX_MCP_SCRIPT" netbox_get_objects '{"object_type":"dcim.device","filters":{"status":"active"},"brief":true}'
 ```
 
 Run Steps 1-7 for each device that exists in both the pyATS testbed and NetBox. Produce a fleet summary:

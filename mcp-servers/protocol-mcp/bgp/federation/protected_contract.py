@@ -2,6 +2,7 @@
 import base64
 import hashlib
 import json
+import ipaddress
 import re
 import uuid
 
@@ -140,13 +141,37 @@ def validate_tool(value):
         digest_field(value[key])
     require(len(encode(value['arguments'])) <= MAX_ARGUMENTS, 'arguments_too_large')
     require(sha256(value['arguments']) == value['arguments_sha256'], 'arguments_digest_mismatch')
-    # R02's qualified profile deliberately has one read-only integration.
-    require(value['tool'] == 'pyats_run_show_command', 'unsupported_tool')
-    exact(value['arguments'], 'device_name command timeout retries')
-    args = value['arguments']
-    ident(args['device_name'])
-    require(args['command'] == 'show version' and type(args['retries']) is int and args['retries'] == 1, 'unsupported_tool_policy')
-    require(type(args['timeout']) is int and 1 <= args['timeout'] <= 300, 'unsupported_tool_policy')
+    validate_tool_arguments(value['tool'], value['arguments'])
+
+
+NETBOX_FIELDS = {
+    'dcim.device': ['id', 'name', 'status', 'site', 'device_type', 'last_updated'],
+    'ipam.prefix': ['id', 'prefix', 'status', 'vrf', 'last_updated'],
+}
+
+
+def validate_tool_arguments(tool, args):
+    if tool == 'pyats_run_show_command':
+        exact(args, 'device_name command timeout retries')
+        ident(args['device_name'])
+        require(args['command'] == 'show version' and type(args['retries']) is int and args['retries'] == 1, 'unsupported_tool_policy')
+        require(type(args['timeout']) is int and 1 <= args['timeout'] <= 300, 'unsupported_tool_policy')
+    elif tool == 'netbox_get_object_by_id':
+        exact(args, 'object_type object_id fields brief')
+        require(isinstance(args['object_type'], str) and args['object_type'] in NETBOX_FIELDS, 'unsupported_object_type')
+        require(type(args['object_id']) is int and 0 < args['object_id'] < 2**53, 'invalid_object_id')
+        require(args['fields'] == NETBOX_FIELDS[args['object_type']] and args['brief'] is False, 'unsupported_netbox_fields')
+    elif tool == 'subnet_calculator':
+        exact(args, 'cidr')
+        require(isinstance(args['cidr'], str), 'invalid_subnet')
+        try:
+            network = ipaddress.IPv4Network(args['cidr'], strict=True)
+            require(str(network) == args['cidr'] and 24 <= network.prefixlen <= 30, 'unsupported_subnet')
+            require(int(network.network_address) >= network.num_addresses and int(network.broadcast_address) + network.num_addresses < 2**32, 'subnet_boundary_refused')
+        except (ValueError, TypeError):
+            raise ProtectedError('unsupported_subnet') from None
+    else:
+        raise ProtectedError('unsupported_tool')
 
 
 def validate_limits(value):

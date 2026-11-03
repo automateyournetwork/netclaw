@@ -7,6 +7,30 @@ The host rechecks operation capabilities and owns all inference/tool claims.
 import http.client
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import os
+import socket
+import stat
+from pathlib import Path
+
+
+class UnixHTTPConnection(http.client.HTTPConnection):
+    def __init__(self, path):
+        super().__init__("localhost", timeout=180)
+        self.path = path
+
+    def connect(self):
+        self.sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.sock.settimeout(self.timeout)
+        self.sock.connect(self.path)
+
+
+def trusted_socket(value):
+    path = Path(value)
+    info = path.lstat()
+    if (str(path) != "/broker/broker.sock" or path.resolve() != path
+            or not stat.S_ISSOCK(info.st_mode) or info.st_uid != os.getuid()
+            or info.st_mode & 0o077):
+        raise ValueError("Invalid trusted socket")
+    return str(path)
 
 
 class Relay(BaseHTTPRequestHandler):
@@ -43,9 +67,9 @@ class Relay(BaseHTTPRequestHandler):
         if len(body) != size:
             self.reject(400)
             return
-        headers["Host"] = "127.0.0.1:" + str(PORT)
+        headers["Host"] = "localhost" if SOCKET else "127.0.0.1:" + str(PORT)
         # Host is constant, port is trusted container startup configuration.
-        connection = http.client.HTTPConnection("host.docker.internal", PORT, timeout=180)
+        connection = UnixHTTPConnection(SOCKET) if SOCKET else http.client.HTTPConnection("host.docker.internal", PORT, timeout=180)
         try:
             connection.request("POST", self.path, body, headers)
             response = connection.getresponse()
@@ -79,8 +103,16 @@ class Relay(BaseHTTPRequestHandler):
         pass  # No request or bearer logging.
 
 
+SOCKET = None
+
+
 if __name__ == "__main__":
-    PORT = int(os.environ["NETCLAW_TRUSTED_PORT"])
-    if not 1 <= PORT <= 65535:
-        raise SystemExit("Invalid trusted port")
+    if "NETCLAW_TRUSTED_SOCKET" in os.environ:
+        if "NETCLAW_TRUSTED_PORT" in os.environ: raise SystemExit("Ambiguous trusted transport")
+        SOCKET = trusted_socket(os.environ["NETCLAW_TRUSTED_SOCKET"])
+        PORT = None
+    else:
+        PORT = int(os.environ["NETCLAW_TRUSTED_PORT"])
+        if not 1 <= PORT <= 65535:
+            raise SystemExit("Invalid trusted port")
     ThreadingHTTPServer(("0.0.0.0", 8090), Relay).serve_forever()

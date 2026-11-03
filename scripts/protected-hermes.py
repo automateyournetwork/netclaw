@@ -40,7 +40,7 @@ def main():
         from tools.mcp_tool_discovery import discover_mcp_tools
         from tools.registry import registry
         discovered = discover_mcp_tools(["approved"])
-        name = "mcp__approved__pyats_run_show_command"
+        name = "mcp__approved__" + job.get("tool", "pyats_run_show_command")
         if name not in discovered:
             raise ValueError("protected_mcp_tool_not_discovered")
         entry = registry.get_entry(name)
@@ -55,7 +55,7 @@ def main():
                                  skip_memory=True, skip_background_review=True, skip_context_files=True,
                                  load_soul_identity=False, checkpoints_enabled=False, fallback_model=None,
                                  memory_manager=None, quiet_mode=True, session_id=job["operation_id"],
-                                 ephemeral_system_prompt="Use only the exact approved MCP read once, then summarize its evidence.")
+                                 ephemeral_system_prompt="Use only the exact approved MCP read once, then summarize its evidence." + job.get("skill_context", ""))
                 if self.tools:
                     raise ValueError("unexpected_native_tools")
                 self.tools = [{"type": "function", "function": copy.deepcopy(entry.schema)}]
@@ -82,7 +82,7 @@ def main():
                                  "name": call.function.name, "content": result})
 
         agent = ProtectedAgent()
-        result = agent.run_conversation("Execute the approved show version read with exact arguments: "
+        result = agent.run_conversation("Execute the approved " + job.get("tool", "pyats_run_show_command") + " read with exact arguments: "
                                         + json.dumps(job["arguments"]) + ". Summarize actual evidence; do not retry.")
         print(json.dumps(result, ensure_ascii=False))
 
