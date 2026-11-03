@@ -67,7 +67,10 @@ class Relay(BaseHTTPRequestHandler):
         if len(body) != size:
             self.reject(400)
             return
-        headers["Host"] = "localhost" if SOCKET else "127.0.0.1:" + str(PORT)
+        # The MCP SDK's enabled localhost rebinding defense requires an explicit
+        # port in its allowed authority pattern. This is a fixed virtual HTTP
+        # authority over AF_UNIX, never a caller-selected host or TCP connection.
+        headers["Host"] = "localhost:80" if SOCKET else "127.0.0.1:" + str(PORT)
         # Host is constant, port is trusted container startup configuration.
         connection = UnixHTTPConnection(SOCKET) if SOCKET else http.client.HTTPConnection("host.docker.internal", PORT, timeout=180)
         try:
