@@ -1,7 +1,7 @@
 # R05 — Ollama members: cloud IPv6 and on-prem IPv4
 
 - **Roadmap item:** 3 — Border and cloud member using Ollama (subnet)
-- **Depends on:** R04
+- **Depends on:** R04a (and the accepted R04 execution baseline)
 - **Gate:** human review before R06/R07
 
 ## Specify input
@@ -18,6 +18,11 @@ User stories:
   arithmetic is independently verified.
 - P1: Nothing but the member's guard can reach either Ollama instance.
 - P2: Time and resource use are recorded for local versus cloud CPU inference.
+
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
 
 ## Clarify: decisions (recommended default first)
 
@@ -44,3 +49,5 @@ User stories:
 | Isolation | Ollama port unreachable from the Border, other members and the internet; direct model call bypassing the guard refused |
 | Accounting | Per-child time, CPU/memory and usage recorded; no provider API charges on Ollama paths |
 | Failure | One child failing does not corrupt or replay the other |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Combined two-child request, separate approvals/results and one-child failure through the extension |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Changed request/result and approval contracts for cloud/local Ollama; reconnect without replay; reasoned no-impact outcome if unaffected |

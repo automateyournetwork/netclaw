@@ -32,6 +32,11 @@ User stories:
   terminals, files or background results by any path.
 - P2: Existing single-user installs upgrade with the owner's history intact.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Isolation under OpenClaw: per-user agent session namespace, per-user workspace
@@ -69,3 +74,5 @@ User stories:
 | Audit | GAIT shows the principal on every action |
 | Mesh | Same user, same history through Borders in different providers |
 | Compatibility | Single-user mode unchanged with the flag off |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Signed-in user, server-owned session and account switching preserve cross-user isolation |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected identity/session/account-switch flows preserve per-user isolation and revoke stale access; reasoned no-impact outcome if unaffected |

@@ -229,3 +229,86 @@ test('production pending ACK cannot be removed and unverified or malformed parse
   await until(() => f.body().includes('ACK delivery pending')); assert.equal(f.button('Remove resolved reference'), undefined); assert.doesNotMatch(f.body(), /invented/);
   assert.match(f.w.document.querySelectorAll('tbody tr')[1].textContent, /Unavailable \/ Unavailable/);
 });
+
+const cloudTools = [
+  { tool: 'netbox_get_object_by_id', device_ref: 'NetBox device 7', endpoint_sha256: 'e'.repeat(64), arguments: { object_type: 'dcim.device', object_id: 7, fields: ['id', 'name', 'status', 'site', 'device_type', 'last_updated'], brief: false } },
+  { tool: 'netbox_get_object_by_id', device_ref: 'NetBox prefix 7', endpoint_sha256: 'e'.repeat(64), arguments: { object_type: 'ipam.prefix', object_id: 7, fields: ['id', 'prefix', 'status', 'vrf', 'last_updated'], brief: false } },
+  { tool: 'subnet_calculator', device_ref: 'Subnet 198.51.100.0/24', endpoint_sha256: 'e'.repeat(64), arguments: { cidr: '198.51.100.0/24' } },
+];
+const cloudCatalog = { ...catalog, members: [{ ...catalog.members[0], member: { ...catalog.members[0].member, member_id: 'risk/cloud-member' }, tools: cloudTools }] };
+const cloudOutputs = [{ id: 7, name: 'demo-router' }, { id: 7, prefix: '198.51.100.0/24' }, { network_address: '198.51.100.0', prefix_length: 24, num_addresses: 256, usable_hosts_count: 254 }];
+function cloudOperation(nonce, index, id, changes = {}) {
+  const original = operation(nonce);
+  return { ...original, operation_id: id, review: { ...original.review, member: cloudCatalog.members[0].member, tool_call: cloudTools[index] }, ...changes };
+}
+function cloudReceipt(index, output = cloudOutputs[index]) {
+  return { verified: true, durable_ack: true, ack_delivery_pending: false, digest: 'fixture-native-digest', evidence: { output: {
+    model_answer: 'fixture-only-private-response', tool: { schemaVersion: 1, tool: cloudTools[index].tool, arguments: structuredClone(cloudTools[index].arguments), output,
+      endpoint_sha256: 'e'.repeat(64), source_sha256: 'a'.repeat(64), skill_sha256: 'b'.repeat(64), mcp_schema_sha256: 'c'.repeat(64), mcp_calls: 1 },
+  } } };
+}
+function selectCall(f, index) {
+  const select = [...f.w.document.querySelectorAll('label')].find(label => label.textContent.startsWith('Read-only call')).querySelector('select');
+  select.value = String(index); select.dispatchEvent(new f.w.Event('change', { bubbles: true }));
+}
+test('production mixed NetBox and subnet approvals retain exact identities and reload only reads status', async t => {
+  const operations = new Map(); let count = 0;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations/catalog') return cloudCatalog;
+    if (url === '/api/hud/operations' && options.method === 'POST') {
+      const index = cloudTools.findIndex(tool => tool.tool === options.body.tool && JSON.stringify(tool.arguments) === JSON.stringify(options.body.arguments));
+      assert.notEqual(index, -1); const op = cloudOperation(options.body.client_nonce, index, `cloud-${++count}`); operations.set(op.operation_id, { op, index }); return op;
+    }
+    const row = operations.get(url.split('/')[4]);
+    if (row && url.endsWith('/decision')) return row.op = { ...row.op, state: 'completed', may_have_executed: true, attempt_count: 1, allowed_actions: [], result: cloudReceipt(row.index) };
+    if (row) return row.op;
+  }, { retainMultiple: true });
+  await until(() => f.button('Prepare review') && !f.button('Prepare review').disabled);
+  assert.doesNotMatch(f.body(), /on-prem|Each device requires/);
+  for (let index = 0; index < 3; index++) {
+    selectCall(f, index); await until(() => !f.button('Prepare review').disabled); f.button('Prepare review').click();
+    await until(() => f.button('Approve once') && !f.button('Approve once').disabled);
+    const review = JSON.parse(f.w.document.querySelector('[aria-label="Immutable operation review"]').textContent);
+    assert.deepEqual(review.tool_call, cloudTools[index]); f.button('Approve once').click(); await until(() => f.button('Remove resolved reference'));
+  }
+  const rows = [...f.w.document.querySelectorAll('tbody tr')].map(row => row.textContent);
+  assert.match(rows[0], /NetBox device demo-router · ID 7/); assert.match(rows[1], /NetBox prefix 198.51.100.0\/24 · ID 7/); assert.match(rows[2], /198.51.100.0\/24 · 254 usable hosts/);
+  const stored = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`));
+  assert.equal(stored.length, 3); assert.ok(stored.every(row => Object.keys(row).sort().join(',') === 'client_nonce,operation_id'));
+  assert.doesNotMatch(JSON.stringify([...Object.keys(f.w.sessionStorage).map(key => f.w.sessionStorage.getItem(key))]), /demo-router|private-response|object_type|cidr|csrf/);
+  const boundary = f.calls.length; f.w.remount(f.props); await until(() => f.w.document.querySelectorAll('tbody tr').length === 3 && !f.body().includes('Awaiting confirmation'));
+  assert.ok(f.calls.slice(boundary).every(row => row.method === 'GET')); assert.equal(count, 3);
+  assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 3);
+});
+test('unknown NetBox selection stays blocked while distinct same-member prefix and subnet remain eligible', async t => {
+  let current;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations/catalog') return cloudCatalog;
+    if (url === '/api/hud/operations' && options.method === 'POST') return current = cloudOperation(options.body.client_nonce, 0, 'cloud-unknown');
+    if (url.endsWith('/decision')) {
+      current = { ...current, state: 'reconciliation_required', may_have_executed: true, reconciliation_required: true, allowed_actions: ['reconcile'] }; throw Error('lost response');
+    }
+    if (url === '/api/hud/operations/cloud-unknown') return current;
+  }, { retainMultiple: true });
+  await until(() => f.button('Prepare review') && !f.button('Prepare review').disabled); f.button('Prepare review').click();
+  await until(() => f.button('Approve once') && !f.button('Approve once').disabled); f.button('Approve once').click(); await until(() => f.body().includes('nothing was resent'));
+  assert.equal(f.button('Prepare review').disabled, true); assert.equal(f.button('Remove resolved reference'), undefined);
+  selectCall(f, 1); await until(() => !f.button('Prepare review').disabled);
+  selectCall(f, 2); await until(() => f.w.document.querySelector('[aria-label="Candidate arguments"]').textContent.includes('cidr')); assert.equal(f.button('Prepare review').disabled, false);
+  selectCall(f, 0); await until(() => f.button('Prepare review').disabled);
+  const boundary = f.calls.length; f.w.remount(f.props); await until(() => f.body().includes('reconciliation_required'));
+  assert.equal(f.button('Prepare review').disabled, true); assert.ok(f.calls.slice(boundary).every(row => row.method === 'GET'));
+  assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 1); assert.equal(f.calls.filter(row => row.url === '/api/hud/operations' && row.method === 'POST').length, 1);
+});
+test('native cloud summaries escape source markup and exclude unverified or mismatched evidence', async t => {
+  const hostile = '<img src=x onerror=alert(1)>', values = [
+    cloudOperation('cloud-safe-nonce', 0, 'cloud-safe', { state: 'completed', result: cloudReceipt(0, { id: 7, name: hostile }) }),
+    cloudOperation('cloud-unverified-nonce', 0, 'cloud-unverified', { state: 'completed', result: { ...cloudReceipt(0, { id: 7, name: 'unverified-native-name' }), verified: false } }),
+    cloudOperation('cloud-mismatch-nonce', 1, 'cloud-mismatch', { state: 'completed', result: cloudReceipt(1, { id: 99, prefix: '203.0.113.0/24' }) }),
+  ];
+  const f = await setup(t, url => values.find(value => url === '/api/hud/operations/' + value.operation_id), { retainMultiple: true, saved: values.map(({ client_nonce, operation_id }) => ({ client_nonce, operation_id })) });
+  await until(() => f.body().includes('Verified result') && f.body().includes(hostile));
+  assert.equal(f.w.document.querySelectorAll('img,script').length, 0); assert.doesNotMatch(f.body(), /unverified-native-name/);
+  const rows = [...f.w.document.querySelectorAll('tbody tr')];
+  assert.match(rows[0].textContent, /<img src=x onerror=alert\(1\)>/); assert.match(rows[1].textContent, /Unavailable/); assert.match(rows[2].textContent, /Unavailable/); assert.doesNotMatch(rows[2].textContent, /203\.0\.113/);
+});

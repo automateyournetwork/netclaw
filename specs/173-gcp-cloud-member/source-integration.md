@@ -1,0 +1,66 @@
+# R04 accepted source integration — 2026-11-03
+
+Pull request: [#324](https://github.com/automateyournetwork/netclaw/pull/324).
+The GitHub record carries the final merge and check outcomes.
+
+The owner accepted completed R04 and requested full commit, PR, merge, completed
+branch cleanup and return to main. This includes the separate R04a/client roadmap
+amendment. Source1.18.4 and extension1.5.0 remain unchanged; the complete-roadmap
+release/public rollout hold through R20 remains. No later milestone starts here.
+
+R04 demonstrated actual protected cloud-member execution through the existing
+NetBox and subnet skills/MCPs: separate device, prefix and subnet approvals,
+three tool calls, six guarded Sonnet calls, signed results and durable ACKs.
+Actual loss/restart preserved results and counters without replay. Independent
+credential/evidence reviews passed, and all24 owned cloud resources, DNS and
+temporary access were retired with zero owned residues. R01 remains preserved.
+All33 tasks are complete. Both earlier unknown attempts and qualification limits
+remain visible in [verification.md](verification.md).
+
+R04a is next: reproduce and fix VS Code cloud Border connectivity, qualify the
+supported read-only workflow and recovery, and assess/fix affected Mobile flows.
+Both clients become explicit integration obligations for every later stage.
+R05 then adds guarded Ollama inference on a cloud member for IPv6 subnet work and
+an on-premises member for IPv4, with separate child approvals, combined results,
+isolation and measured CPU/resource usage. R04a acceptance precedes R05.
+
+The fetched upstream baseline is52b3fbdb (R02/R03 PR#323). The R04 branch was
+already based on it; no additional upstream source or conflict needed merging.
+Previously qualified source suites passed643 protected/host tests (one skip,
+26 subtests) and459 HUD tests. The81b35fc9 UDS correction passed61 focused tests
+and actual native/cloud qualification. Final documentation checks passed33/33
+tasks, local links and diff whitespace. No runtime code changed during closure.
+
+Actual deployed evidence remains pinned to81b35fc9 and its exact image/profile.
+Integration and documentation commits do not claim a redeployment. Private full
+audit/evidence remains outside Git. PR, final merge and branch-cleanup outcomes
+are recorded in the integration handoff and the linked GitHub pull request.
+
+
+CI initially rejected a stale generated NetBox skill descriptor. Canonical
+regeneration updated only that skill's hash in config/components/catalog.json
+and the aggregate hash comment in scripts/lib/catalog.sh; generated environment
+mapping bytes stayed unchanged. This catalog-only integration correction does not
+change the qualified execution implementation or imply a new live deployment.
+The original failing CI run remains visible in PR#324. Full-range whitespace
+review also removed three Markdown trailing-space pairs from spec.md.
+
+The setup-catalog workflow then passed locally with qualified Node24.19.0 and
+Python3.12.12: both builder checks,112 components/239 skills, zero unexplained
+coverage gaps,9+15+4 unit tests and zero new changed-link URLs. No dependency,
+lockfile, source version or extension version changed. The final PR CI checks
+remain the merge gate; their actual outcomes are linked above.
+
+The installer and one NetConverter contract also refused the stale effect-audit
+pins for the already reviewed NetBox installation step. Independent review
+confirmed the compatibility helper only patches the exact owned source and copies
+its adjacent HTTP helper; no network, token read, service start or external write
+was added. With no effect-manifest generator in tracked source, the exact
+EffectAudit extraction refreshed only the aggregate install-steps hash and the
+NetBox function hash. All112 policy entries and effect classifications are retained;
+the verifier remains strict. Original CI failures are preserved in PR#324.
+
+The complete canonical setup-installer contract suite then passed under
+Python3.12.12/Node24.19.0, as did the affected NetConverter installation test,
+EffectAudit.verify and full-range whitespace review. This is source integration
+validation; no existing installation or retired cloud runtime was changed.

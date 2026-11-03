@@ -1277,3 +1277,42 @@ identity/SQLite/audit preservation is under
 `~/.local/share/netclaw/roadmap-r03-20261102/activation-20261103/final-preservation/`.
 It contains secrets and is not an activation payload. R01 remains running under
 its separate pilot authorization; R03 cleanup did not retire R01 or its costs.
+
+
+### R04 NetBox member qualification — 2026-11-03
+
+Actual cloud member qualification uses the existing NetBox skills and managed
+original MCP source14ec2fe7, with singular `device`/`prefix` object types and v2
+Bearer authentication for the owner-supplied public demo. Device1 and prefix1
+were observed; no application version was established and no private CML inventory
+was uploaded. The subnet MCP independently calculated192.0.2.0/26. Runtime scope:
+Ubuntu24.04 AMD64/Python3.12, OpenClaw2026.7.1-2, DefenseClaw1.0.4,
+Sonnet4.6, FastMCP4.0.11/MCP2.3.0. Source81b35fc9 fixes the native UDS relay's
+fixed HTTP authority to localhost:80, as required by the actual SDK rebinding check.
+
+Operational lessons: image checks must use the actual nonroot UID10001/default
+entrypoint. A private build-context umask made a relay script root-only0600;
+explicit COPY --chmod=0444 fixed packaging. Both original unknown attempts retain
+their own approval/source/profile pins and zero provider/MCP calls; never replay
+or relabel them successful. Three later approved workloads passed with exactly
+three MCP calls, six guarded provider/native inference calls and signed results/ACKs.
+
+Private archive exclusions must include exact known guard/shims/.token projections
+as well as integration environment/capability files. Guard identity/correlation
+keys are distinct private authority material, intentionally preserved and still
+scanned for integration values. SQLite read-only integrity checks can touch/create
+WAL/SHM metadata; validate private copies of DB+WAL+SHM and verify original inventory
+unchanged. Do not use immutable SQLite mode to silently ignore committed WAL data.
+Private R04 evidence is under ~/.local/share/netclaw/roadmap-r04-20261103/ and must
+never be treated as a replayable activation payload. Final lifecycle status is in
+specs/173-gcp-cloud-member/verification.md.
+
+R04 retirement is complete: all24 owned cloud resources, DNS and temporary key
+are removed, with zero owned residues in actual final inventories. The R01 pilot
+remains running; its checked resources/state/DNS/HTTPS/budgets are preserved.
+Do not use the retired R04 addresses or replay its spent plans and credentials.
+OS Login import may identify a key by email while describe canonicalizes the same
+account to a numeric path; verify both exact identities and every other key field
+before removing only the owned fingerprint. R01 state also contains data, budget,
+secret/IAM and account entries; validate its exact type set instead of assuming
+all resources are Compute. Preserve explicit before-metadata coverage limits.

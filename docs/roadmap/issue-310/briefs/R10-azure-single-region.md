@@ -12,6 +12,11 @@ member, with the on-prem members attached. The same workloads, refusals and
 evidence apply. Azure is qualified as its own environment so the GCP cluster is
 unaffected.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Region. [HUMAN]
@@ -28,4 +33,9 @@ unaffected.
 
 ## Acceptance evidence
 
-All R03, R04 and R05 acceptance rows, re-run on Azure, plus cost and teardown.
+All R03, R04, R04a and R05 acceptance rows, re-run on Azure, plus cost and teardown.
+
+| Group | Evidence |
+|---|---|
+| VS Code integration | Explicit G12 impact/disposition and evidence: Azure Border connection, verified identity/authentication and supported workflows |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected Azure endpoint/enrollment/Ask Border paths use the supported verified transport; reasoned no-impact outcome if unaffected |

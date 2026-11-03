@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { operationIdentifier, operationReferences, parsedVersion, REFERENCE_CAPACITY, removableOperation } from '../shared/protected-operation-references.js';
+import { operationIdentifier, operationReferences, operationSelection, verifiedResultSummary, REFERENCE_CAPACITY, removableOperation } from '../shared/protected-operation-references.js';
 
 const json = value => JSON.stringify(value, null, 2);
 export default function RetainedOperationsView({ api, session, installationId }) {
@@ -44,13 +44,16 @@ export default function RetainedOperationsView({ api, session, installationId })
     } finally { locked.current = false; if (alive.current) setBusy(false); }
   };
   const members = catalog?.members || [], member = members[memberIndex], profile = member?.model_profiles?.[profileIndex], tool = member?.tools?.[toolIndex];
+  const selection = operationSelection(member?.member?.member_id, tool);
   const unresolvedSelection = references.some(ref => {
     const row = records[ref.client_nonce], op = row?.operation;
-    if (!op) return true; // An unknown nonce cannot safely be assigned to a different device.
-    return !removableOperation(op) && op.review?.member?.member_id === member?.member?.member_id && op.review?.tool_call?.arguments?.device_name === tool?.arguments?.device_name;
+    if (!op) return true; // An unknown nonce cannot safely be assigned to a different selection.
+    if (removableOperation(op)) return false;
+    const retainedSelection = operationSelection(op.review?.member?.member_id, op.review?.tool_call);
+    return !retainedSelection || retainedSelection === selection;
   });
   const prepare = () => {
-    if (locked.current || storageError || !member || !profile || !tool || unresolvedSelection || refs.current.length >= REFERENCE_CAPACITY) return;
+    if (locked.current || storageError || !member || !profile || !tool || !selection || unresolvedSelection || refs.current.length >= REFERENCE_CAPACITY) return;
     const ref = { client_nonce: crypto.randomUUID() };
     try { retainRefs(store.put(ref)); setSelectedNonce(ref.client_nonce); }
     catch (failure) { setStorageError(true); setError(failure.message); return; }
@@ -67,23 +70,23 @@ export default function RetainedOperationsView({ api, session, installationId })
   };
   const actions = !busy && !current?.uncertain ? operation?.allowed_actions || [] : [];
   return <>
-    <p>Cloud Border controls approvals. Qualified on-prem members execute each separately approved read.</p>
+    <p>The Border controls approvals. Qualified NetClaw members execute each separately approved read or calculation.</p>
     {error && <p role="alert">{error}</p>}
-    <section className="panel"><h2>Prepare an exact operation</h2><p>Each device requires its own review and approval. Preparing does not execute.</p>
+    <section className="panel"><h2>Prepare an exact operation</h2><p>Each exact call requires its own review and approval. Preparing does not execute.</p>
       {!catalog ? <p>Reading eligible profiles…</p> : !members.length ? <p>No eligible protected member profiles are available.</p> : <div className="protected-selectors">
         <label>Member<select value={memberIndex} onChange={event => { setMemberIndex(Number(event.target.value)); setProfileIndex(0); setToolIndex(0); }}>{members.map((value, index) => <option key={value.member.member_id} value={index}>{value.member.member_id}</option>)}</select></label>
         <label>Model profile<select value={profileIndex} onChange={event => setProfileIndex(Number(event.target.value))}>{member.model_profiles.map((value, index) => <option key={value.profile_id} value={index}>{value.profile_id} · {value.runtime_kind} · {value.provider} / {value.model}</option>)}</select></label>
         <label>Read-only call<select value={toolIndex} onChange={event => setToolIndex(Number(event.target.value))}>{member.tools.map((value, index) => <option key={index} value={index}>{value.tool} · {value.device_ref}</option>)}</select></label>
         {tool && <pre aria-label="Candidate arguments">{json(tool.arguments)}</pre>}
-        <button className="primary" disabled={busy || storageError || !profile || !tool || unresolvedSelection || references.length >= REFERENCE_CAPACITY} onClick={prepare}>Prepare review</button>
+        <button className="primary" disabled={busy || storageError || !profile || !tool || !selection || unresolvedSelection || references.length >= REFERENCE_CAPACITY} onClick={prepare}>Prepare review</button>
         {unresolvedSelection && <p>Recover the existing unresolved operation for this selection before preparing another.</p>}
       </div>}
       {references.length >= REFERENCE_CAPACITY && <p>All {REFERENCE_CAPACITY} retained slots are occupied. Explicitly remove a resolved reference before preparing another; unresolved references are preserved.</p>}
     </section>
     <section className="panel"><h2>Retained operations</h2><p>{references.length} of {REFERENCE_CAPACITY} references retained in this browser session. Keep an operation ID to recover it after signing in elsewhere; automatic history discovery is unavailable.</p>
-      <div className="table-scroll"><table><thead><tr><th>Device / operation</th><th>Member / runtime</th><th>Outcome</th><th>Parsed OS / version</th><th>Receipt / acknowledgement</th><th>Inspect</th></tr></thead><tbody>{references.map(ref => {
-        const row = records[ref.client_nonce], op = row?.operation, version = parsedVersion(op);
-        return <tr key={ref.client_nonce} aria-selected={selectedNonce === ref.client_nonce}><td>{op?.review?.tool_call?.device_ref || op?.review?.tool_call?.arguments?.device_name || 'Awaiting owned status'}<small>{ref.operation_id || ref.client_nonce}</small></td><td>{op?.review?.member?.member_id || 'Unavailable'}<small>{op?.review?.model_profile?.runtime_kind || 'Unavailable'}</small></td><td>{row?.uncertain ? 'Awaiting confirmation' : op?.state || 'Unavailable'}</td><td>{version.os || 'Unavailable'} / {version.version || 'Unavailable'}</td><td>{op?.result?.verified === true ? 'Verified receipt' : 'Not verified'}<small>{op?.result?.durable_ack === true ? op.result.ack_delivery_pending ? 'ACK delivery pending' : 'Durable ACK' : 'ACK not confirmed'}</small></td><td><button onClick={() => setSelectedNonce(ref.client_nonce)} aria-label={`Inspect operation ${ref.operation_id || ref.client_nonce}`}>Inspect</button></td></tr>;
+      <div className="table-scroll"><table><thead><tr><th>Target / operation</th><th>Member / runtime</th><th>Outcome</th><th>Verified result</th><th>Receipt / acknowledgement</th><th>Inspect</th></tr></thead><tbody>{references.map(ref => {
+        const row = records[ref.client_nonce], op = row?.operation;
+        return <tr key={ref.client_nonce} aria-selected={selectedNonce === ref.client_nonce}><td>{op?.review?.tool_call?.device_ref || op?.review?.tool_call?.arguments?.device_name || 'Awaiting owned status'}<small>{ref.operation_id || ref.client_nonce}</small></td><td>{op?.review?.member?.member_id || 'Unavailable'}<small>{op?.review?.model_profile?.runtime_kind || 'Unavailable'}</small></td><td>{row?.uncertain ? 'Awaiting confirmation' : op?.state || 'Unavailable'}</td><td>{verifiedResultSummary(op)}</td><td>{op?.result?.verified === true ? 'Verified receipt' : 'Not verified'}<small>{op?.result?.durable_ack === true ? op.result.ack_delivery_pending ? 'ACK delivery pending' : 'Durable ACK' : 'ACK not confirmed'}</small></td><td><button onClick={() => setSelectedNonce(ref.client_nonce)} aria-label={`Inspect operation ${ref.operation_id || ref.client_nonce}`}>Inspect</button></td></tr>;
       })}</tbody></table></div>
       <form onSubmit={recover}><label>Recover retained operation ID<input value={recoverId} onChange={event => setRecoverId(event.target.value)} autoComplete="off" spellCheck="false" maxLength={200}/></label><button disabled={busy || storageError || !operationIdentifier(recoverId)}>Recover existing operation</button></form>
     </section>

@@ -20,6 +20,11 @@ User stories:
 - P1: Losing an entire provider keeps service, with no replay.
 - P1: Shared dependencies are visible and their failure behavior is known.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Voters: five placed 2/2/1 across providers (survives any one provider loss);
@@ -52,3 +57,5 @@ User stories:
 | Partitions | Cross-provider partitions: at most one authority |
 | Transport dependency | Documented provider/address outage drill; optional ngrok outage scoped to its deployments |
 | Cost and inventory | Monthly cost; service endpoint/public-IP counts versus provider quotas |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Cross-cloud Border selection/failover preserves principal, capabilities and result attribution |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected cross-cloud endpoint changes preserve verified identity, enrollment and operation recovery; reasoned no-impact outcome if unaffected |

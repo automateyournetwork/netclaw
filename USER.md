@@ -8,6 +8,13 @@
 
 ## Preferences
 
+- Roadmap client integration direction (2026-11-03): insert R04a after R04 and
+  before R05 to fix VS Code cloud Border connectivity and catch up Mobile if
+  affected. Every later roadmap step must explicitly consider both VS Code and
+  Mobile, include required code/contract changes in that step, and retain separate
+  acceptance evidence or a reasoned no-impact decision. This is a roadmap
+  amendment; current R04 execution/cleanup and publication holds remain intact.
+
 - **Communication style:** Technical, concise — include CLI output and protocol details
 - **Report format:** Severity-sorted tables with HEALTHY / WARNING / CRITICAL ratings
 - **Change management:** Production requires approved ServiceNow CRs. Explicitly opted-in Terminal Intent Local/Lab requests use scoped local approval and audit under AGENTS.md; lab mode is never assumed or enabled by default.
@@ -21,6 +28,8 @@
 - **ITSM:** ServiceNow
 
 ## Notes
+
+- R04 direction (2026-11-03): proceed autonomously to completion using the existing NetClaw member, NetBox skills and MCP. Owner selected the public NetBox demo and supplied a private credential. Complete bounded GCP qualification, evidence and cleanup without repeated permission requests; preserve R01 and the roadmap release hold. Human review remains before R05.
 
 - R02/R03 handoff (2026-11-03): after the completed R03 evidence and cleanup,
   quietly commit, PR, merge and return to main; provide a short maintainer blurb.
@@ -164,3 +173,44 @@ Next roadmap brief is R02 execution parity, expected next available spec 171
 it is not started by this integration request. No R02 cloud/device operation is
 authorized here. Keep the original R01 directory name despite the parallel
 upstream168-openclaw-2026-10-compat feature; cite R01/full path to distinguish them.
+
+
+### R04 technical qualification and retirement — 2026-11-03
+
+R04/Spec173 implementation, actual cloud-member qualification and owned cleanup
+are complete. The existing NetClaw NetBox skill/MCP read the observed demo device
+and prefix; the existing subnet tool calculated192.0.2.0/26. Three separate
+browser approvals produced three native MCP calls, six guarded Sonnet4.6 provider
+calls, signed results and durable ACKs. Actual member loss/restart preserved the
+same authorities/results/effect counts without replay. Two earlier attempts remain
+unknown with zero provider/MCP calls and their original witnesses. Driver and
+archive failures and all narrow qualification limits remain in verification.md.
+
+All24 owned R04 cloud resources, DNS and temporary OS Login access are removed.
+Actual12-category inventory found zero owned residues; R01's checked resources,
+state, DNS, HTTPS and shared budgets remain preserved, with R01 costs retained.
+Private current-state archives and the1423-file frozen export are local under
+~/.local/share/netclaw/roadmap-r04-20261103/. They contain private authority and
+are evidence-only, never activation payloads. Do not replay spent R04 plans,
+enrollment or attempts, or reconnect to its retired hostname/IPs.
+
+Human acceptance remains required before R04a, then R05. Pass4 of five bounded
+R02–R05 implementation passes is complete; no automatic loop. Source1.18.4 and
+extension1.5.0 are unchanged, with the entire-roadmap release/public rollout hold
+through R20 intact. No R04a, later roadmap, existing-runtime upgrade, release or
+external announcement was performed. See specs/173-gcp-cloud-member/verification.md
+and resume.md. This does not self-record the owner's acceptance.
+
+
+### R04 acceptance and source integration — 2026-11-03
+
+After the completed R04 qualification/retirement handoff, the owner explicitly
+requested full commit, PR, merge, completed-branch deletion, return to main and a
+short R04/R04a/R05 writeup. This accepts the completed R04 scope (33/33) and
+supersedes its pending acceptance/source-integration gate. Preserve all frozen
+live evidence and original qualification limits; merged source is not a claim
+of redeployment. Include the owner's R04a and continuing VS Code/Mobile roadmap
+amendment in this integration. R04a is next, then R05; neither starts here.
+Source1.18.4/extension1.5.0 remain unchanged. No version, release, Marketplace,
+blog or public rollout authorization; the entire-roadmap hold through R20 remains.
+See specs/173-gcp-cloud-member/source-integration.md.

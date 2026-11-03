@@ -1,7 +1,7 @@
 # R07 — Single-region recovery and transport lifecycle gate
 
 - **Roadmap item:** gate before multi-region
-- **Depends on:** R03, R04, R05, R06
+- **Depends on:** R03, R04, R04a, R05, R06
 - **Gate:** no multi-region work starts until this passes
 
 ## Specify input
@@ -15,6 +15,11 @@ User stories:
 - P1: Border and member restarts (plus optional tunnel/agent restarts) recover without re-enrollment.
 - P1: Revoked tokens, certificates and members stop working immediately.
 - P1: Lost replies, duplicate submissions and cancellations reconcile correctly.
+
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
 
 ## Clarify: decisions (recommended default first)
 
@@ -39,3 +44,5 @@ User stories:
 | Lost reply or acknowledgement | Reconciliation, no duplicate effect |
 | Duplicate submission, cancellation | Exactly one effect or none, recorded |
 | Runbook | One documented operator procedure per row |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Actual connection loss, endpoint changes and recovery preserve pending operations and results |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected foreground/background reconnect and endpoint/identity recovery preserve authority and results; reasoned no-impact outcome if unaffected |

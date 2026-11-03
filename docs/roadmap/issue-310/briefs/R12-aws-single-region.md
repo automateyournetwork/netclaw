@@ -10,6 +10,11 @@ Repeat the R03–R05 pattern on AWS using the provider-neutral role contract: an
 AWS Border, an AWS NetBox member with a hosted model and an AWS Ollama member,
 with the on-prem members attached. Same workloads, refusals and evidence.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Region. [HUMAN]
@@ -25,4 +30,9 @@ with the on-prem members attached. Same workloads, refusals and evidence.
 
 ## Acceptance evidence
 
-All R03, R04 and R05 acceptance rows, re-run on AWS, plus cost and teardown.
+All R03, R04, R04a and R05 acceptance rows, re-run on AWS, plus cost and teardown.
+
+| Group | Evidence |
+|---|---|
+| VS Code integration | Explicit G12 impact/disposition and evidence: AWS Border connection, verified identity/authentication and supported workflows |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected AWS endpoint/enrollment/Ask Border paths use the supported verified transport; reasoned no-impact outcome if unaffected |

@@ -19,6 +19,11 @@ User stories:
 - P1: A user deletes a memory and it can no longer be retrieved anywhere.
 - P1: Another user cannot surface it by any prompt or tool.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Storage: reuse NetClaw's RAG and Chroma bridge (`chroma_store_bridge.py`) with
@@ -38,3 +43,5 @@ User stories:
 | Erasure | Deleted items absent from vector stores and replicas on every Border |
 | Leakage | Canary memories cannot be retrieved by another user through prompts, tools or search |
 | Retention | Expiry enforced |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Personal history/memory access, correction and deletion remain scoped to the signed-in user |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected personal history/memory and account-switch flows preserve the same ownership boundaries; reasoned no-impact outcome if unaffected |

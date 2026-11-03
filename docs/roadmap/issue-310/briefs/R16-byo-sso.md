@@ -21,6 +21,11 @@ User stories:
 - P1: Logout and admin revocation take effect on all Borders within a stated bound.
 - P2: CLI and VS Code users sign in without a browser redirect to localhost.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Provider configuration: declarative file plus secret references, validated at
@@ -73,3 +78,5 @@ User stories:
 | Sessions | Logout and revocation effective on all nine Borders within the stated bound |
 | Proxy | Works behind a reverse proxy; spoofed forwarded headers ignored |
 | Failure | IdP outage fails closed except the audited break-glass path |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Supported SSO sign-in, callback, renewal/logout and expired/revoked identity behavior |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected SSO handoff/deep-link, renewal/logout and revoked-session flows preserve identity; reasoned no-impact outcome if unaffected |
