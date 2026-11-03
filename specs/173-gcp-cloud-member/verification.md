@@ -1,7 +1,8 @@
 # R04 verification — technical qualification and retirement complete
 
 2026-11-03. R04 implementation, actual qualification and owned retirement are
-complete. Human acceptance remains pending before R04a, then R05. R03 remains
+complete and owner accepted by the subsequent source-integration instruction.
+R04a is next, then R05; neither starts in this integration. R03 remains
 accepted36/36; R01 remains the preserved running pilot. The fresh R04 hosts are
 retired after protected enrollment and all three guarded workloads passed. Two earlier approved device attempts retained unknown outcomes before any provider or
 tool call. Both authorities are preserved without replay. Source1.18.4/extension1.5.0 and release hold remain unchanged.
@@ -360,7 +361,7 @@ pilot and costs remain preserved.
 | Actual cloud topology and member/public listener refusal | Actual foundation48/effective-firewall19 and 18 bounded external port negative probes passed, with timeouts recorded as timeouts |
 | Actual member unavailable/restart with no replay | Passed actual outage/refusal, same-identity restart, supplemental browser restoration and independent before/after no-replay verification; original driver limits retained |
 | Added cost and complete teardown | All24 owned resources, DNS and temporary access removed; actual inventories show zero R04 billable residues; R01 and budgets preserved |
-| Independent evidence review and owner acceptance | Technical and cleanup evidence reviewed; owner acceptance remains pending before R04a → R05 |
+| Independent evidence review and owner acceptance | Passed; owner accepted completed R04 and authorized source integration. R04a → R05 remain next and unstarted |
 
 ## Final technical handoff
 
@@ -396,3 +397,12 @@ technical scope/cleanup complete and retains human acceptance=false. GAIT final
 record4b2cd8e0 and the full returned trail, including kickoff6ea8944c, are preserved
 at the private root under `final-audit/` (responseb587ec87). All33 task rows are
 closed; T033 is evidence presentation, not the owner's acceptance.
+
+## Subsequent owner acceptance and integration
+
+The owner then requested full commit, PR, merge, completed-branch cleanup and
+return to main. This accepts the completed33/33 R04 scope. Earlier private reports
+correctly retain acceptance=false at their capture times; the separate owner
+acceptance record is additive and does not rewrite those evidence snapshots.
+See source-integration.md for the source handoff and short R04/R04a/R05 writeup.
+R04a and R05 remain unstarted; all release/version/public-rollout holds remain.

@@ -339,3 +339,55 @@ owned cleanup. Existing source guard pins select Sonnet4.6 instead of historical
 Haiku default. Do not repeat delegated permissions. Preserve R01, retired R03
 archives and source1.18.4/extension1.5.0; no release/public rollout or R05.
 Pass4 is R04; see specs/173-gcp-cloud-member/activation-delegation.md.
+
+### R04a and continuing client integration — 2026-11-03
+
+The owner inserted R04a between accepted R04 and R05 to catch up VS Code cloud
+Border connectivity and affected Mobile flows. See
+docs/roadmap/issue-310/briefs/R04a-cloud-border-client-integration.md.
+Every subsequent stage must separately assess, implement where affected and
+verify VS Code and Mobile integration under roadmap G12/G13; record evidence for
+no-impact decisions instead of silently deferring client work to R20. R04a is
+planned, not started by this documentation amendment. Preserve current R04
+qualification/cleanup, human gates, existing milestone IDs and release holds.
+
+
+### R04 technical qualification and retirement — 2026-11-03
+
+R04/Spec173 implementation, actual cloud-member qualification and owned cleanup
+are complete. The existing NetClaw NetBox skill/MCP read the observed demo device
+and prefix; the existing subnet tool calculated192.0.2.0/26. Three separate
+browser approvals produced three native MCP calls, six guarded Sonnet4.6 provider
+calls, signed results and durable ACKs. Actual member loss/restart preserved the
+same authorities/results/effect counts without replay. Two earlier attempts remain
+unknown with zero provider/MCP calls and their original witnesses. Driver and
+archive failures and all narrow qualification limits remain in verification.md.
+
+All24 owned R04 cloud resources, DNS and temporary OS Login access are removed.
+Actual12-category inventory found zero owned residues; R01's checked resources,
+state, DNS, HTTPS and shared budgets remain preserved, with R01 costs retained.
+Private current-state archives and the1423-file frozen export are local under
+~/.local/share/netclaw/roadmap-r04-20261103/. They contain private authority and
+are evidence-only, never activation payloads. Do not replay spent R04 plans,
+enrollment or attempts, or reconnect to its retired hostname/IPs.
+
+Human acceptance remains required before R04a, then R05. Pass4 of five bounded
+R02–R05 implementation passes is complete; no automatic loop. Source1.18.4 and
+extension1.5.0 are unchanged, with the entire-roadmap release/public rollout hold
+through R20 intact. No R04a, later roadmap, existing-runtime upgrade, release or
+external announcement was performed. See specs/173-gcp-cloud-member/verification.md
+and resume.md. This does not self-record the owner's acceptance.
+
+
+### R04 acceptance and source integration — 2026-11-03
+
+After the completed R04 qualification/retirement handoff, the owner explicitly
+requested full commit, PR, merge, completed-branch deletion, return to main and a
+short R04/R04a/R05 writeup. This accepts the completed R04 scope (33/33) and
+supersedes its pending acceptance/source-integration gate. Preserve all frozen
+live evidence and original qualification limits; merged source is not a claim
+of redeployment. Include the owner's R04a and continuing VS Code/Mobile roadmap
+amendment in this integration. R04a is next, then R05; neither starts here.
+Source1.18.4/extension1.5.0 remain unchanged. No version, release, Marketplace,
+blog or public rollout authorization; the entire-roadmap hold through R20 remains.
+See specs/173-gcp-cloud-member/source-integration.md.

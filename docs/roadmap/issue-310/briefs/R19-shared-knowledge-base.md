@@ -26,6 +26,11 @@ User stories:
   shows its provenance and runs verification reads before suggesting the fix.
 - P2: Outdated entries are superseded and clearly labeled.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Reviewers: the Approver role from R17.
@@ -47,3 +52,5 @@ User stories:
 | Privacy | Personal memory never published without the author's confirmation |
 | Search | Semantic retrieval and deduplication behave as specified |
 | Freshness | Stale flags appear when linked device facts change |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Personal/shared knowledge visibility, retrieval and explicit publication confirmation |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected knowledge retrieval/publication flows preserve visibility, provenance and confirmation; reasoned no-impact outcome if unaffected |

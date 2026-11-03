@@ -1,7 +1,7 @@
 # R06 — External Border over eN2N/NCFED over direct TCP
 
 - **Roadmap item:** eN2N (independent organizations)
-- **Depends on:** R03
+- **Depends on:** R03, R04a
 - **Gate:** feeds R07
 
 ## Specify input
@@ -17,6 +17,11 @@ User stories:
   capability.
 - P1: Missing, one-sided or revoked consent is refused.
 - P1: The external peer cannot reach anything not explicitly exported.
+
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
 
 ## Clarify: decisions (recommended default first)
 
@@ -43,3 +48,5 @@ User stories:
 | Consent | Missing, one-sided and revoked consent refused |
 | Identity | Wrong peer identity, wrong pin, altered binding refused |
 | Boundary | Direct member invocation, prohibited enumeration, cluster/authority access and BGP routing control all refused |
+| VS Code integration | Explicit G12 impact/disposition and evidence: External peer selection, consent and answer attribution preserve the local principal |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Ask Border and delegated-answer attribution preserve external-peer consent and scope; reasoned no-impact outcome if unaffected |

@@ -1,9 +1,10 @@
-# R04 handoff — technical scope complete, owner acceptance pending
+# R04 handoff — accepted; R04a and R05 next
 
 2026-11-03. The delegated R04 implementation, actual cloud-member workload and
 recovery qualification, evidence preservation and owned retirement are complete.
-Read verification.md and coherence.md for evidence and limits. This handoff does
-not supply the owner's acceptance. R04a is next only after that gate, then R05.
+Read verification.md and coherence.md for evidence and limits. The owner then
+accepted this scope and authorized full source integration and branch cleanup.
+R04a is next, then R05; neither starts in this wrap-up.
 
 ## Proven scope
 
@@ -40,7 +41,7 @@ payloads, replay spent plans/enrollment/approvals or reconnect to retired addres
 Original failed raw archive partials were not exported; their local hashes, claims
 and diagnostics and the final complete state are retained.
 
-## Source and next gate
+## Source and next milestones
 
 Actual final runtime source is81b35fc9869b3e0c09cd6936bbe3130c4452f620; final
 member imagee01e4f557d47/profile6d42cf14. Historical initial8c6b9434 qualification
@@ -52,6 +53,6 @@ publication or announcement occurred. The entire-roadmap hold through R20 remain
 The owner's separate shared-worktree R04a/VS Code/Mobile amendment is preserved.
 Do not replace or discard those changes while preparing any later source review.
 No R04a or R05 implementation has started. No further credential or cloud resource
-is needed for this completed R04 scope; the remaining roadmap gate is owner review
-of the completed evidence. MemPalace was unavailable; daily file memory and GAIT
+is needed for this completed and accepted R04 scope. See source-integration.md
+for the source handoff and next-stage writeup. MemPalace was unavailable; daily file memory and GAIT
 provide the session record.

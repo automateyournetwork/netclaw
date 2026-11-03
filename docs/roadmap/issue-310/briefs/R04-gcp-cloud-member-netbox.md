@@ -2,7 +2,18 @@
 
 - **Roadmap item:** 2 — Border and cloud member in GCP (NetBox; subnet)
 - **Depends on:** R03
-- **Gate:** human review before R05
+- **Gate:** human review before R04a; R04a client integration precedes R05
+
+## Qualified implementation — 2026-11-03
+
+[Spec173](../../../../specs/173-gcp-cloud-member/verification.md) completed actual
+NetClaw member device/prefix/subnet workloads, guarded Sonnet4.6 execution,
+no-replay recovery, private preservation and complete owned retirement. All24
+cloud resources, DNS and temporary access are removed; R01 remains preserved.
+The owner accepted the completed scope and authorized source integration; R04a is next. The choices below are the historical
+brief; the owner resolved them through the Spec173 delegation, including the
+existing public NetBox demo rather than a newly seeded service. No private CML
+data was uploaded. Runtime/platform/client limits and the release hold remain.
 
 ## Specify input
 

@@ -3,7 +3,7 @@
 **Feature Branch**: `173-gcp-cloud-member`  
 **Created**: 2026-11-03  
 **Roadmap**: R04; depends on accepted R03, `specs/172-gcp-hybrid-border/`  
-**Status**: Implementation, actual qualification and owned retirement complete; pass4 complete, human acceptance pending before R04a
+**Status**: Implementation, actual qualification and owned retirement complete; pass4 complete, owner accepted; source integration authorized
 
 **Input**: Owner: “proceed with R04 … drive this to 100%”; supplied an existing
 NetBox demo endpoint and credential, required “we have netbox skills and MCP use

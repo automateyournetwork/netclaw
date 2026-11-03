@@ -1,7 +1,9 @@
 # NetClaw roadmap: cloud mesh → multi-cloud → multi-user (closes #310)
 
-This folder turns the cloud-first roadmap and issue #310 into 20 ordered feature
-briefs for Spec Kit. Each brief is the *input* to one feature's
+This folder turns the cloud-first roadmap and issue #310 into 21 ordered feature
+briefs for Spec Kit (R01–R20 plus R04a). VS Code and Mobile integration are
+continuing delivery objectives alongside the cloud, federation and user features.
+Each brief is the *input* to one feature's
 specify → clarify → plan → tasks → analyze → implement cycle; it is not itself a
 ratified spec (Constitution XVI).
 
@@ -15,8 +17,11 @@ R01 and [R02/Spec171](../../../specs/171-execution-parity/verification.md) are
 complete and accepted. [R03/Spec172](../../../specs/172-gcp-hybrid-border/verification.md)
 has completed source, actual GCP/on-prem qualification, independent evidence review
 and cleanup:36/36 tasks, accepted by the owner with the post-handoff source-merge
-instruction on November3. R04 has not started.
-Four browser-approved reads returned parsed versions with signed results/ACKs;
+instruction on November3. [R04/Spec173](../../../specs/173-gcp-cloud-member/verification.md)
+has completed actual qualification and owned cleanup (33/33), accepted by the
+owner with the source-integration instruction. R04a is next, then R05; both remain
+unstarted. Its evidence and limits remain tracked there.
+R03’s four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable
 residues remain. R01's existing running pilot remains preserved.
@@ -26,7 +31,28 @@ implementation passes. November3 delegation superseded the earlier CAD100/billin
 execution hold for isolated R03 completion/cleanup; stated GCP credit is unverified
 and not a target. Finite safeguards and exact evidence/cleanup were retained.
 Integration preserves upstream source1.18.4 from #321 and extension1.5.0 without
-a roadmap version bump. The entire-roadmap release/public rollout hold remains. R04/R05 have not started. Earlier assessment sections below are historical.
+a roadmap version bump. The entire-roadmap release/public rollout hold remains.
+R04a and R05 are not started. Earlier assessment sections below are historical.
+
+## VS Code and Mobile integration amendment — 2026-11-03
+
+The owner reports that VS Code cannot currently connect to the cloud Border.
+This is an open client integration gap; backend or browser qualification alone
+does not establish that the VS Code extension works with that Border.
+
+Insert [R04a — cloud Border client integration](briefs/R04a-cloud-border-client-integration.md)
+after accepted R04 and before R05. R04a catches up VS Code connection and affected
+workflows, assesses Mobile against the same cloud contracts, and fixes/qualifies
+affected mobile flows. R04 → R04a → R05 replaces the former direct R04 → R05 gate;
+existing milestone IDs and completed evidence retain their names. Allocate the
+next free Spec Kit number at R04a kickoff, not in this planning amendment.
+
+From R04a onward, every stage has two separate integration obligations: VS Code
+(G12) and Mobile (G13). Carry them through specification, design, implementation
+tasks and acceptance evidence as the backend evolves. A reviewed no-impact finding
+is valid; omission or automatic deferral to R20 is not. This amendment schedules
+the work and does not start R04a, extend the active R04 deployment, change its
+cleanup obligations, or lift any release/publication hold.
 
 ## Roadmap source integration and release hold — 2026-11-02
 
@@ -150,19 +176,25 @@ You are executing the roadmap in docs/roadmap/issue-310/. Work on exactly one
 brief at a time, in the order of the Sequence table in README.md.
 
 For the current brief:
-1. Read README.md (global invariants G1–G11), the brief, both reference files,
+1. Read README.md (global invariants G1–G13), the brief, both reference files,
    and the spec.md and verification.md of every spec the brief depends on.
 2. Run /speckit.specify with the brief's "Specify input" section. Put the brief
    ID (e.g. "Roadmap: R03") in the spec header.
 3. Run /speckit.clarify. Resolve each listed decision with the recommended
    default unless repository evidence contradicts it; record every deviation
    and its reason. Any decision tagged [HUMAN] stops and asks me.
-4. Run /speckit.plan using the brief's plan notes, then /speckit.tasks, then
+4. For R04a and every later brief, explicitly assess VS Code and Mobile impact
+   separately (G12/G13). Put affected client/API/configuration work and its
+   verification into this feature's spec, plan and tasks; document the basis for
+   each no-impact conclusion. Run /speckit.plan using the brief's plan notes, then /speckit.tasks, then
    /speckit.analyze. Do not implement while analyze reports CRITICAL or HIGH.
 5. Run /speckit.implement. Write specs/<NNN>/verification.md mapping every row
    of the brief's "Acceptance evidence" to real evidence (command, excerpt,
    timestamp) or an explicit UNQUALIFIED / FIXTURE-ONLY status. Never relabel
-   fixture or historical evidence as live qualification.
+   fixture or historical evidence as live qualification. Include separate
+   VS Code and Mobile acceptance rows, with the actual versions, platforms,
+   endpoint/identity/authentication paths and qualification limits. Resolve
+   affected integration gaps in this stage; do not silently defer them to R20.
 6. Run the Artifact Coherence Checklist (Constitution XI). Draft, but do not
    publish, the milestone blog post (XIV, XVII).
 7. Stop and report: spec number, branch, PR, verification summary, open risks,
@@ -242,6 +274,33 @@ and transport in each verification.md.
 NetBox reads, subnet calculations. Device or system writes arrive only with
 R17's authority, approval and audit model.
 
+**G12 VS Code integration as work progresses.** From R04a, every brief must assess
+how its endpoint/transport, identity/authentication, API, capability, installation
+or workflow changes affect `extensions/netclaw-vscode/`. Include required client
+and server changes in the same feature. Verify the affected experience in actual
+VS Code against the selected Border, including connection, the relevant workflow,
+failure/reconnection and retained results/approvals where applicable. Preserve
+local installations and correctly bind remote profiles to their selected Border.
+Do not expose private admin/workload services, weaken TLS/authentication or copy
+member integration credentials into the client to make connectivity work.
+
+**G13 Mobile integration as work progresses.** From R04a, every brief separately
+assesses `mobile/netclaw-mobile/` and its Border-side contracts: enrollment,
+verified transport, authentication/identity, Ask Border, approvals, results and
+reconnection/background recovery as affected. Implement and qualify necessary
+changes in the same feature. If unaffected, record the inspected contract/code
+and why existing behavior remains valid. If affected, retain actual mobile-client
+evidence for the selected platform/device; emulator or protocol fixtures do not
+establish physical-device qualification. Mobile never gains implicit authority
+or a direct path to member credentials, models or MCP servers.
+
+For both G12 and G13, every later verification report has an explicit impact
+decision, implementation disposition and evidence/qualification row. Unverified
+affected paths stay UNQUALIFIED and open; a backend-only pass cannot close them.
+Preserve declared platform limits rather than claiming every desktop or phone
+platform passed. These two obligations extend G10, including identity, SSO, RBAC,
+personal memory and shared knowledge work in R15–R20.
+
 ## Sequence
 
 | ID | Feature | Your roadmap item | Depends on |
@@ -250,9 +309,10 @@ R17's authority, approval and audit model.
 | R02 | Execution parity on NetClaw production mode | prerequisite | — (parallel with R01) |
 | R03 | GCP Border with on-prem members (pyATS/SSH, CML) | 1 | R01, R02 |
 | R04 | GCP cloud member: NetBox and subnet, hosted model | 2 | R03 |
-| R05 | Ollama members: cloud IPv6 and on-prem IPv4 | 3 | R04 |
-| R06 | External Border over direct eN2N/NCFED | eN2N | R03 |
-| R07 | Single-region recovery and tunnel lifecycle gate | gate | R03–R06 |
+| R04a | [Cloud Border client integration: VS Code and affected Mobile flows](briefs/R04a-cloud-border-client-integration.md) | client integration gate | R04 |
+| R05 | Ollama members: cloud IPv6 and on-prem IPv4 | 3 | R04a |
+| R06 | External Border over direct eN2N/NCFED | eN2N | R03, R04a |
+| R07 | Single-region recovery and tunnel lifecycle gate | gate | R03–R06, including R04a |
 | R08 | Border HA authority and protected quorum transport | prerequisite for 4 | R07 |
 | R09 | GCP multi-region: three meshed Borders | 4 | R08 |
 | R10 | Azure single region | 5 | R09 |
@@ -322,6 +382,8 @@ Thermidor's execution controls are mapped onto NetClaw's existing production mod
 | Authorization and audit in phase one, not later (byrn-baker) | R15 flag rule, R17 |
 | Security considerations list (WebSocket, cross-user retrieval, indirect tool access, retention) | R15, R17, R18, R20 |
 | UX: sign-in, current user, personal vs shared, role-aware visibility | R15–R20 |
+| Actual VS Code cloud Border connectivity and affected client workflows (owner amendment) | R04a, G12, every later brief |
+| Mobile cloud-contract impact assessment and affected-flow qualification (owner amendment) | R04a, G13, every later brief |
 | Answers to the maintainers' questions; closing the issue | R20 |
 
 ## Glossary

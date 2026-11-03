@@ -29,6 +29,11 @@ User stories:
 - P1: A member refuses a delegation that exceeds the user's grants.
 - P2: An auditor queries who touched a device in a time window.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Permission model: subject (principal or group) × action (read, diagnose,
@@ -62,3 +67,5 @@ User stories:
 | Delegation | Member refuses assertions exceeding user grants, expired assertions and assertions from a non-authority Border |
 | Approvals | Four-eyes enforced; self-approval refused; CR required for production changes |
 | Audit | Each required field present; secrets redacted; non-auditors refused; tampering detected |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Role-aware capabilities and exact approvals agree with server-side authorization |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected approval/biometric and role-aware flows retain server authority, revocation and audit attribution; reasoned no-impact outcome if unaffected |

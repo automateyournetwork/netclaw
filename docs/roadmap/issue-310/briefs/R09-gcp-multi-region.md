@@ -19,6 +19,11 @@ User stories:
 - P1: Losing any one region keeps service with no replay.
 - P2: Status shows every attachment and cluster link with health.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Regions. [HUMAN]
@@ -39,3 +44,5 @@ User stories:
 | Region loss | Each region taken down in turn: service continues, no replay |
 | WAN | Measured latency, partition behavior and lease timings |
 | Cost | Monthly cost for the three-region stage |
+| VS Code integration | Explicit G12 impact/disposition and evidence: GCP regional Border selection and failover retain identity, capability and operation context |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected regional endpoint selection/reconnection preserves enrollment and existing operations; reasoned no-impact outcome if unaffected |

@@ -2,8 +2,8 @@
 
 Implementation, actual workload/recovery qualification, private preservation and
 owned retirement are complete. Independent reviews and actual final inventories
-support this scoped handoff; human acceptance remains pending before R04a, then
-R05. No broader provider/platform/client or public-release qualification is implied.
+support this scoped handoff. The owner subsequently accepted R04 and authorized
+source integration; R04a, then R05, remain next and unstarted. No broader provider/platform/client or public-release qualification is implied.
 
 | Requirements | Source and evidence contract | Current live status |
 |---|---|---|
@@ -105,3 +105,7 @@ technical scope/cleanup complete and retains human acceptance=false. GAIT final
 record4b2cd8e0 and the full returned trail, including kickoff6ea8944c, are preserved
 at the private root under `final-audit/` (responseb587ec87). All33 task rows are
 closed; T033 is evidence presentation, not the owner's acceptance.
+
+The subsequent owner wrap-up instruction accepts R04 and authorizes commit/PR/
+merge/branch cleanup only. Earlier acceptance=false report fields are historical
+snapshots, preserved unchanged. Source-integration.md records the additive decision.

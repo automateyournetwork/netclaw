@@ -21,6 +21,11 @@ User stories:
 - P1: A stale or returning Border cannot execute anything.
 - P2: Any Border serves the HUD; protected actions forward to the authority.
 
+For this stage, include separate VS Code and Mobile impact decisions and
+implementation/verification work under [G12/G13](../README.md#global-invariants-every-brief-inherits-these).
+Record a reasoned no-change disposition for an unaffected client; affected
+integration gaps remain part of this feature.
+
 ## Clarify: decisions (recommended default first)
 
 1. Consensus: etcd majority transactions with three voters, porting Thermidor's
@@ -58,3 +63,5 @@ User stories:
 | Retired node returns | Refused until re-enrolled |
 | Fenced restore | Restored state cannot resurrect old authority |
 | Labels | Each row marked FIXTURE or REAL |
+| VS Code integration | Explicit G12 impact/disposition and evidence: Authority changes and quorum loss appear correctly; stale approvals cannot execute |
+| Mobile integration | Explicit G13 impact/disposition and evidence: Affected approval/result flows preserve fencing across failover, quorum loss and reconnect; reasoned no-impact outcome if unaffected |
