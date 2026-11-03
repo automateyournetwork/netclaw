@@ -80,6 +80,8 @@ async def _route_and_delegate(tmp_path):
         res = member.tasks.result(task_id)
         assert res["state"] == "completed"
         assert "cml-lab-lifecycle" in res["output_text"]   # embedded run saw the skill
+        from bgp.federation.gateway import SKILL_FAILURE_RULE
+        assert SKILL_FAILURE_RULE in res["output_text"]     # spec 171: report, don't substitute
         # Border-side retrieval must work over the iN2N member channel (regression:
         # the operator poll used to go down the eN2N path and stall at 'submitted').
         assert border.is_member_task("risk/cml")

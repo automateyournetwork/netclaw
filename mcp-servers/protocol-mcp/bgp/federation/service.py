@@ -2734,11 +2734,11 @@ class FederationService:
             # A MEMBER executes in OpenClaw EMBEDDED mode with its OWN provider/
             # model (N2N_MEMBER_MODEL) over only its scoped MCPs — no gateway
             # (feature 056). Falls back to the gateway path if not a member.
-            from .gateway import run_agent_turn
+            from .gateway import run_agent_turn, SKILL_FAILURE_RULE
             member_model = os.environ.get("N2N_MEMBER_MODEL")
             if self.risk.role() == "member":
                 prompt = (f"Execute the '{skill}' skill for the following request "
-                          f"and return only the result:\n\n{input_text}")
+                          f"and return only the result. {SKILL_FAILURE_RULE}\n\n{input_text}")
                 from .execution import conversation_id
                 inherited='external' if params.get('origin')=='external' else 'internal'
                 execution=self.execution_context(requester=border,origin=inherited,request=task_id,

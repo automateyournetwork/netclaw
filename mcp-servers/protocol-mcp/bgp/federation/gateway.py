@@ -40,6 +40,14 @@ logger = logging.getLogger("n2n.gateway")
 
 AGENT_ID = os.environ.get("N2N_AGENT_ID", "main")
 
+# Appended to every delegated skill request. A requester can only see the
+# reply, so a stand-in made after a tool failed reads as the skill's result.
+SKILL_FAILURE_RULE = (
+    "If a tool or command the skill needs is missing or fails, reply with that "
+    "error and stop. Do not substitute output produced another way, such as a "
+    "file you wrote yourself."
+)
+
 
 def _openclaw_bin() -> str:
     """Absolute path to the ``openclaw`` CLI (resolved fresh on each call — cheap
