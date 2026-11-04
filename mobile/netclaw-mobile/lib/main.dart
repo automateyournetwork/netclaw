@@ -46,6 +46,7 @@ import 'ncfed/watch_relay.dart';
 import 'screens/approvals_screen.dart';
 import 'screens/capture_screen.dart';
 import 'screens/chat_screen.dart';
+import 'screens/cloud_owner_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/device_scan_screen.dart';
 import 'screens/enrollment_screen.dart';
@@ -384,6 +385,10 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
                 TextButton(
                   onPressed: () => setState(() => _state = _GateState.needsEnrollment),
                   child: const Text('Enter enrollment details instead'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen())),
+                  child: const Text('Connect as cloud Border owner'),
                 ),
               ],
             ),
@@ -954,6 +959,8 @@ class _HomeShellState extends State<HomeShell> {
               ),
             ),
           IconButton(icon: const Icon(Icons.qr_code_scanner), onPressed: _scanDevice),
+          IconButton(tooltip: 'Cloud Border owner', icon: const Icon(Icons.cloud_outlined),
+            onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen()))),
           _buildOverflowMenu(),
         ],
       ),

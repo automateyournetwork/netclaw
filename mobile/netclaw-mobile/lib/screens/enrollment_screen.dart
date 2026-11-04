@@ -6,6 +6,7 @@ import '../ncfed/edge_identity.dart';
 import '../ncfed/enrollment_flow.dart';
 import '../ncfed/enrollment_qr_payload.dart';
 import 'manual_enrollment_screen.dart';
+import 'cloud_owner_screen.dart';
 
 /// "Scan Border QR Code" — feature 066, US1/T014. Explicit error states for
 /// domain-mismatch, expired/already-used tokens, and any other enrollment
@@ -75,7 +76,10 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Border QR Code')),
+      appBar: AppBar(title: const Text('Scan Border QR Code'), actions: [
+        IconButton(tooltip: 'Cloud Border owner', icon: const Icon(Icons.cloud_outlined),
+          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen()))),
+      ]),
       body: Stack(
         children: [
           MobileScanner(onDetect: _onDetect),
