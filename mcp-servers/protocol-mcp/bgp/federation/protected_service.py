@@ -32,6 +32,7 @@ class ProtectedOperations:
         self.store = ProtectedStore(manager.db_path)
         self.audit_writer = audit_writer or self._audit_default
         self.workers = set()
+        self.failure_recovery_lock = asyncio.Lock()
         self.bridge = None
 
     def _audit_default(self, event, record):
@@ -345,6 +346,24 @@ class ProtectedOperations:
     async def member_status(self, channel, params):
         exact(params, 'operation_id')
         row = self._member_lookup(channel, params['operation_id'])
+        if row['state'] == 'outcome_unknown' and not row['effect_finished'] and hasattr(self, 'config'):
+            async with self.failure_recovery_lock:
+                row = self._member_lookup(channel, params['operation_id'])
+                if row['state'] == 'outcome_unknown' and not row['effect_finished'] and not any(not task.done() for task in self.workers):
+                    from .protected_failure_recovery import verify_known_netbox_failure
+                    try:
+                        verified = await verify_known_netbox_failure(row, self.config)
+                    except (ProtectedError, OSError, ValueError, KeyError, TypeError, asyncio.TimeoutError):
+                        # An incomplete, conflicting or unsafe proof is still
+                        # unknown. Never synthesize a refusal from missing data.
+                        verified = None
+                    if verified is not None:
+                        self._channel(channel, row['review']['border'])
+                        recovery_ref = self._audit('protected_failure_recovery', row,
+                            failure_proof_digest=sha256(verified.proof), original_state=row['state'],
+                            original_error_code=row['error_code'], outcome='failed', effect_status='finished',
+                            http_status=verified.proof['http_status'])
+                        row = self.store.complete_known_netbox_failure(verified, recovery_ref)
         if row['state'] == 'outcome_unknown' and row['effect_finished'] and row['executor_result'] is None:
             terminal = {'output': {'tool_evidence': row['tool_evidence']}, 'tool_evidence': row['tool_evidence'],
                         'usage': {'available': False}, 'effective_model_profile': row['review']['model_profile'],
