@@ -13,8 +13,8 @@ declared requirements are missing ("Skill … is not available to this agent"), 
 config disables, and one past its per-source load limit. The Border still routes it there.
 
 On the operator Risk, the pyats member was scoped for 18 skills and could load one: its
-`.env` lacked `PYATS_MCP_SCRIPT`. Across five running members, OpenClaw refused 15 scoped
-skills for four reasons: missing settings, `skills.entries` disabling them, a skill folder
+`.env` lacked `PYATS_MCP_SCRIPT`. Across the running members, OpenClaw refused scoped skills
+for four reasons: missing settings, `skills.entries` disabling them, a skill folder
 absent from the member's workspace, and skills on disk that were never loaded because the
 workspace held more than OpenClaw's default 200 skills per source. Every one was routable.
 A request routed there either fails inside the member after a model turn or, before spec
