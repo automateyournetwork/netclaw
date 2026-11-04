@@ -7,7 +7,7 @@ const readPrivate = file => {
 };
 exports.run = async () => {
   const config = JSON.parse(readPrivate(process.env.NETCLAW_CLOUD_CONFIG));
-  assert.ok(['execute', 'recover'].includes(config.mode));
+  assert.ok(['execute', 'recover', 'reconcile'].includes(config.mode));
   assert.equal(config.expected.tool_call.tool, 'netbox_get_object_by_id');
   assert.deepEqual(config.expected.tool_call.arguments, { object_type: 'dcim.device', object_id: 1, fields: ['id', 'name', 'status', 'site', 'device_type', 'last_updated'], brief: false });
   for (const field of ['principal', 'border', 'member', 'model_profile']) assert.ok(config.expected[field] && Object.keys(config.expected[field]).length > 0, 'Expected full ' + field + ' identity is required.');
@@ -17,7 +17,7 @@ exports.run = async () => {
   const extension = vscode.extensions.getExtension('NetClaw.netclaw'); assert.ok(extension);
   const api = await extension.activate(), before = api.profiles.list();
   const existing = before.find(p => p.mode === 'remote-border' && p.url === config.origin && p.installationId === config.installationId);
-  if (config.mode === 'recover') assert.ok(existing, 'Recovery must reuse its existing saved profile.');
+  if (config.mode !== 'execute') assert.ok(existing, 'Recovery must reuse its existing saved profile.');
   const profile = existing || await api.profiles.save({ label: 'R04a cloud qualification', url: config.origin, installationId: config.installationId, mode: 'remote-border', harness: 'openclaw' });
   await api.connection.connect(profile);
   assert.equal(api.connection.identity.installationId, config.installationId); assert.equal(api.connection.identity.role, 'border');
@@ -29,16 +29,35 @@ exports.run = async () => {
   const page = browser.contexts().flatMap(c => c.pages()).find(p => p.url().includes('workbench')); assert.ok(page); page.setDefaultTimeout(30000);
   const quick = () => page.locator('.quick-input-widget input').first();
   const choose = async index => { const row = page.locator('.quick-input-list .monaco-list-row').nth(index); await row.waitFor({ state: 'visible' }); await row.click(); };
+  const nativeRecover = async (reference, allowReconcile) => {
+    const pending = api.ownerWorkflow.recover();
+    const row = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: reference.operation_id });
+    await row.waitFor({ state: 'visible' }); await row.click();
+    const reconcile = page.getByRole('button', { name: 'Reconcile existing work', exact: true });
+    const next = await Promise.race([pending.then(operation => ({ operation })), reconcile.waitFor({ state: 'visible' }).then(() => ({ reconcile: true }))]);
+    if (!next.reconcile) return next.operation;
+    assert.equal(allowReconcile, true, 'Completed process-restart recovery must remain GET-only');
+    const doc = vscode.workspace.textDocuments.find(d => d.uri.scheme === 'netclaw-owner'); assert.ok(doc);
+    const displayed = JSON.parse(doc.getText()).operation;
+    assert.equal(displayed.operation_id, reference.operation_id); assert.equal(displayed.client_nonce, reference.client_nonce);
+    for (const field of ['principal', 'border', 'member', 'model_profile']) assert.deepEqual(displayed.review[field], config.expected[field]);
+    assert.equal(displayed.review.tool_call.tool, config.expected.tool_call.tool); assert.deepEqual(displayed.review.tool_call.arguments, config.expected.tool_call.arguments);
+    const text = await page.locator('.monaco-dialog-box').textContent(); assert.ok(text.includes(reference.operation_id) && text.includes('does not prepare or approve another execution'));
+    await page.screenshot({ path: path.join(path.dirname(report), 'reconcile-' + Date.now() + '.png') });
+    await reconcile.click(); return pending;
+  };
   try {
+    let nativeLogin = false;
     if (!api.connection.owner.sessionState) {
       assert.ok(config.ticketFile, 'An expired session requires a fresh one-use operator ticket.');
       const pending = api.ownerWorkflow.signIn();
       await quick().waitFor({ state: 'visible' });
       assert.equal(await quick().getAttribute('type'), 'password');
       await quick().fill(readPrivate(config.ticketFile).trim()); await quick().press('Enter'); assert.equal(await pending, true);
+      nativeLogin = true;
     }
     assert.deepEqual(api.connection.owner.sessionState.principal, config.expected.principal);
-    mark('Native password input establishes explicit owner authority; no ticket captured');
+    mark(nativeLogin ? 'Native password input establishes explicit owner authority; no ticket captured' : 'Existing securely stored owner session revalidated against the exact Border and principal');
     let operation;
     if (config.mode === 'execute') {
       const catalog = await api.connection.owner.catalog(), choices = [];
@@ -79,12 +98,14 @@ exports.run = async () => {
       mark('Scrollable complete immutable review matches frozen identities and exact device1 read; visible native decision binds its revision/digest');
       await approve.click(); operation = await pending; assert.ok(operation);
       mark('One native Approve once accepted the exact displayed revision and digest');
+    } else if (config.mode === 'reconcile') {
+      const ref = JSON.parse(readPrivate(config.approvedReferenceFile));
+      assert.ok(ref.operation_id && ref.client_nonce && ref.decision_sent === true);
+      operation = await nativeRecover(ref, true);
+      mark('Native recovery and explicit Reconcile fetched existing member evidence without preparation or approval');
     } else {
       const previous = JSON.parse(readPrivate(config.previousReport)); assert.equal(previous.complete, true);
-      const recovered = api.ownerWorkflow.recover();
-      const row = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: previous.operation.operation_id });
-      await row.waitFor({ state: 'visible' }); await row.click();
-      operation = await recovered;
+      operation = await nativeRecover(previous.operation, false);
       assert.equal(operation.operation_id, previous.operation.operation_id); assert.equal(operation.client_nonce, previous.operation.client_nonce);
       assert.equal(operation.attempt_count, previous.operation.attempt_count); assert.equal(operation.result.digest, previous.operation.result.digest);
       mark('Actual editor process restart recovered the same operation, result digest and attempt count without a prepare or decision');
@@ -92,13 +113,11 @@ exports.run = async () => {
     const reference = { operation_id: operation.operation_id, client_nonce: operation.client_nonce };
     const until = Date.now() + 180000;
     while (!(operation.result?.verified === true && operation.result?.durable_ack === true && operation.result?.ack_delivery_pending === false) && Date.now() < until) {
-      await pause(2000); operation = await api.connection.owner.status(reference);
+      await pause(5000); operation = config.mode === 'recover' ? await api.connection.owner.status(reference) : await nativeRecover(reference, true);
     }
     assert.equal(operation.state, 'completed'); assert.equal(operation.attempt_count, 1); assert.equal(operation.result.verified, true); assert.equal(operation.result.durable_ack, true); assert.equal(operation.result.ack_delivery_pending, false);
     // Show final evidence through the native recovery flow, not only a driver fetch.
-    const recovery = api.ownerWorkflow.recover();
-    const row = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: operation.operation_id }); await row.waitFor({ state: 'visible' }); await row.click();
-    const displayedResult = await recovery; assert.equal(displayedResult.result.digest, operation.result.digest);
+    const displayedResult = await nativeRecover(reference, false); assert.equal(displayedResult.result.digest, operation.result.digest);
     const resultDoc = vscode.workspace.textDocuments.find(d => d.uri.scheme === 'netclaw-owner'); assert.ok(resultDoc.getText().includes('durableAcknowledgement'));
     await page.screenshot({ path: path.join(path.dirname(report), 'result-' + Date.now() + '.png') });
     assert.deepEqual(api.profiles.list().filter(p => p.id !== profile.id), before.filter(p => p.id !== profile.id));
