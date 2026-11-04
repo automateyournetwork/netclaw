@@ -131,12 +131,19 @@ class CloudOwnerStore {
               'client_nonce',
               'operation_id',
               'decision_sent',
+              'not_submitted',
             ].contains(key),
           ) ||
           !_id(value['client_nonce']) ||
           value.containsKey('operation_id') && !_id(value['operation_id']) ||
           value.containsKey('decision_sent') &&
               value['decision_sent'] != true) {
+        throw const CloudOwnerError('storage_invalid');
+      }
+      if (value.containsKey('not_submitted') &&
+          (value['not_submitted'] != true ||
+              value.containsKey('operation_id') ||
+              value.containsKey('decision_sent'))) {
         throw const CloudOwnerError('storage_invalid');
       }
       return value;
@@ -352,7 +359,8 @@ class CloudOwnerClient {
     final savedReference = await store.reference(profile);
     _current(generation);
     reference = savedReference;
-    uncertain = reference != null;
+    notSubmitted = reference?['not_submitted'] == true;
+    uncertain = reference != null && !notSubmitted;
     final runtime = (await _request('/api/runtime', discovery: true)).body;
     final capabilities = runtime['capabilities'];
     if (runtime['installationId'] != profile.installationId ||
@@ -391,6 +399,7 @@ class CloudOwnerClient {
     _cookie = null;
     catalog = null;
     operation = null;
+    notSubmitted = false;
     uncertain = reference != null;
   }
 
@@ -477,7 +486,7 @@ class CloudOwnerClient {
       catalog = null;
       throw const CloudOwnerError('invalid_response');
     }
-    if (reference != null) await _status();
+    if (reference != null && !notSubmitted) await _status();
   }
 
   Future<void> _retainOperation(Json value) async {
@@ -562,6 +571,10 @@ class CloudOwnerClient {
           );
         } on CloudOwnerError catch (error) {
           if (error.notSubmitted) {
+            final proven = <String, dynamic>{...ref, 'not_submitted': true};
+            await store.saveReference(profile, proven);
+            _current(generation);
+            reference = proven;
             notSubmitted = true;
             uncertain = false;
           }
@@ -573,6 +586,9 @@ class CloudOwnerClient {
     _requireSession();
     final ref = reference;
     if (ref == null) throw const CloudOwnerError('reference_required');
+    if (ref['not_submitted'] == true) {
+      throw const CloudOwnerError('not_submitted', notSubmitted: true);
+    }
     uncertain = true;
     final suffix = ref['operation_id'] != null
         ? '/${Uri.encodeComponent(ref['operation_id'])}'
@@ -644,7 +660,11 @@ class CloudOwnerClient {
   bool get canRemove {
     final op = operation;
     if (uncertain || busy) return false;
-    if (notSubmitted && reference?['operation_id'] == null) return true;
+    if (notSubmitted &&
+        reference?['not_submitted'] == true &&
+        reference?['operation_id'] == null) {
+      return true;
+    }
     if (op == null || op['reconciliation_required'] != false) return false;
     if (['refused', 'denied', 'revoked'].contains(op['state']) &&
         op['attempt_count'] == 0 &&

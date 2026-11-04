@@ -13,12 +13,15 @@ class MemoryOwnerStore extends CloudOwnerStore {
   final values = <String, String>{};
   bool failReferences = false;
   String? pauseWritePrefix;
+  bool pauseProofOnly = false;
   Completer<void>? writeStarted, releaseWrite;
   @override
   Future<String?> read(String key) async => values[key];
   @override
   Future<void> write(String key, String? value) async {
-    if (pauseWritePrefix != null && key.startsWith(pauseWritePrefix!)) {
+    if (pauseWritePrefix != null &&
+        key.startsWith(pauseWritePrefix!) &&
+        (!pauseProofOnly || value?.contains('"not_submitted":true') == true)) {
       writeStarted!.complete();
       await releaseWrite!.future;
     }
@@ -44,7 +47,7 @@ class FixtureTransport implements OwnerTransport {
       dropDecision = false,
       revoked = false,
       refusePrepare = false;
-  bool dropBeforeDecision = false;
+  bool dropBeforeDecision = false, dropBeforePrepare = false;
   Completer<void>? pausePrepare;
   Json get session => {
     'authenticated': true,
@@ -117,6 +120,7 @@ class FixtureTransport implements OwnerTransport {
       });
     }
     if (method == 'POST' && uri.path == '/api/hud/operations') {
+      if (dropBeforePrepare) throw const CloudOwnerError('transport_uncertain');
       if (refusePrepare) {
         return OwnerResponse(403, {'admission': 'not_submitted'});
       }
@@ -549,6 +553,117 @@ void main() {
       },
     );
   }
+  test(
+    'definite unsubmitted proof survives restart and requires explicit discard',
+    () async {
+      final store = MemoryOwnerStore(),
+          transport = FixtureTransport()..refusePrepare = true;
+      final client = await connected(store, transport);
+      await expectLater(
+        client.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      final saved = await store.reference(profile);
+      expect(saved!['not_submitted'], true);
+      expect(saved['operation_id'], isNull);
+      final restarted = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await restarted.initialize();
+      expect(restarted.notSubmitted, true);
+      expect(restarted.uncertain, false);
+      expect(restarted.canRemove, true);
+      await expectLater(restarted.status(), throwsA(isA<CloudOwnerError>()));
+      expect(restarted.canRemove, true);
+      expect(
+        transport.calls.where(
+          (c) => c.method == 'GET' && c.uri.path == '/api/hud/operations',
+        ),
+        isEmpty,
+      );
+      await expectLater(
+        restarted.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      await restarted.removeResolvedReference();
+      expect(await store.reference(profile), isNull);
+      transport.refusePrepare = false;
+      await restarted.prepare(0, 0, 0);
+      expect(restarted.operation!['operation_id'], 'operation1');
+      expect(transport.effects, 0);
+    },
+  );
+  test(
+    'background during proof persistence restores only durable proof without a status probe',
+    () async {
+      final store = MemoryOwnerStore(),
+          transport = FixtureTransport()..refusePrepare = true;
+      final client = await connected(store, transport);
+      store.pauseWritePrefix = 'reference.';
+      store.pauseProofOnly = true;
+      store.writeStarted = Completer<void>();
+      store.releaseWrite = Completer<void>();
+      final pending = client.prepare(0, 0, 0);
+      await store.writeStarted!.future;
+      client.suspend();
+      store.releaseWrite!.complete();
+      await expectLater(pending, throwsA(isA<CloudOwnerError>()));
+      expect(client.notSubmitted, false);
+      expect(client.session, isNull);
+      store.pauseWritePrefix = null;
+      await client.resume();
+      expect(client.notSubmitted, true);
+      expect(client.canRemove, true);
+      expect(
+        transport.calls.where(
+          (c) => c.method == 'GET' && c.uri.path == '/api/hud/operations',
+        ),
+        isEmpty,
+      );
+    },
+  );
+  test(
+    '404 after unknown prepare never creates proof or permits reference discard',
+    () async {
+      final store = MemoryOwnerStore(),
+          transport = FixtureTransport()..dropBeforePrepare = true;
+      final client = await connected(store, transport);
+      await expectLater(
+        client.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      final restarted = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await expectLater(
+        restarted.initialize(),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(restarted.uncertain, true);
+      expect(restarted.notSubmitted, false);
+      expect(restarted.canRemove, false);
+      expect(
+        (await store.reference(profile))!.containsKey('not_submitted'),
+        false,
+      );
+      await expectLater(
+        restarted.removeResolvedReference(),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(
+        transport.calls
+            .where(
+              (c) => c.method == 'POST' && c.uri.path == '/api/hud/operations',
+            )
+            .length,
+        1,
+      );
+    },
+  );
   testWidgets(
     'native UI presents complete review and requires explicit checkbox before approve once',
     (tester) async {
