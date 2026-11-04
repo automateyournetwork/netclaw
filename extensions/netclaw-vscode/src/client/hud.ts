@@ -170,7 +170,7 @@ export class HudClient {
       const headers: Record<string, string> = { Accept: "application/json" };
       const identity = this.runtime?.installationId || this.expectedId;
       if (identity) headers[this.transport === "remote-hud" ? "X-NetClaw-Installation" : "x-netclaw-installation"] = identity;
-      if (this.transport === "remote-hud" && method !== "GET") headers.Origin = this.base;
+      if ((this.transport === "remote-hud" || route.startsWith("/api/hud/mobile/enrollment")) && method !== "GET") headers.Origin = this.base;
       if (this.cookie && this.transport === "local") headers.Cookie = this.cookie;
       const multipart = body instanceof FormData;
       if (body !== undefined && !multipart)

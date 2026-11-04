@@ -794,3 +794,5 @@ article,
   font-family: var(--vscode-editor-font-family);
   font-size: 12px;
 }
+
+.mobile-enrollment{border:1px solid var(--vscode-panel-border);padding:20px;border-radius:8px}.mobile-qr{margin:22px auto;text-align:center}.mobile-qr canvas{max-width:100%;height:auto;image-rendering:pixelated;background:#fff}.mobile-qr[hidden]{display:none}#destination{overflow-wrap:anywhere}

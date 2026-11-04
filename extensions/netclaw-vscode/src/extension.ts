@@ -1,3 +1,4 @@
+import { openMobile } from './views/mobile';
 import { Management } from "./state/management";
 import {
   WorkspaceFiles,
@@ -261,6 +262,7 @@ export async function activate(context: vscode.ExtensionContext) {
       throw Error("This view is unavailable on the protected cloud Border.");
     }
     if (key === "network" && connection.profile?.mode !== "remote-border") return openTestbed(context, connection);
+    if (key === "mobile") return openMobile(context, connection);
     const b = connection.bound();
     if (key === "security" || key === "openshell")
       return openSecurity(
