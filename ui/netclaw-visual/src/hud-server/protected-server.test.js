@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import net from 'node:net';
-import { createProtectedServer, readProtectedServerConfig, PROTECTED_CSP } from './protected-server.js';
+import { createProtectedServer, readProtectedServerConfig, openLabAccess, PROTECTED_CSP } from './protected-server.js';
 import { buildProtectedManifest, loadProtectedAssets, sha256 } from './protected-assets.js';
 import { ProtectedError } from './protected-client.js';
 const ID = '00000000-0000-4000-8000-000000000172', ORIGIN = 'https://r03.example.test', COOKIE = 'c'.repeat(43), CSRF = 's'.repeat(43), TICKET = 't'.repeat(43);
@@ -23,12 +23,21 @@ function files(t) {
   const config = { schemaVersion: 1, installationId: ID, kind: 'openclaw', home: path.join(root, 'home'), origin: ORIGIN, host: '127.0.0.1', port: 18000, dist: path.join(root, 'dist'), manifest, manifestSha256: sha256(fs.readFileSync(manifest)) };
   const configFile = write('hud.json', config); return { root, write, config, configFile };
 }
-async function fixture(t) {
+async function fixture(t, { lab = false } = {}) {
   const f = files(t), calls = [], state = { active: true, consumed: false, revokeDuringRead: false };
+  if (lab) {
+    f.config.access = { mode: 'open-lab' }; f.write('hud.json', f.config);
+    f.write('home/netclaw-federation/protected-profile.json', { schemaVersion: 1, role: 'border', identity: { installation_id: ID }, access: { mode: 'open-lab' } });
+  }
   const principal = { issuer: 'local', subject: ID, display_name: 'Fixture owner', roles: ['owner'] };
   const projection = () => ({ installation_id: ID, principal, auth_generation: 1, session_hash: sha256(COOKIE), csrf_token: CSRF, expires_ms: Date.now() + 60000 });
   const client = { async call(method, params) {
     calls.push({ method, params });
+    if (lab) {
+      assert.ok(!method.startsWith('owner.'));
+      assert.deepEqual(params.auth_context, { access_mode: 'open-lab', installation_id: ID });
+      return method === 'catalog' ? { revision: 'fixture', members: [] } : { operation_id: 'fixture-operation', client_nonce: 'fixture-nonce' };
+    }
     if (method === 'owner.login') { if (state.consumed || params.ticket !== TICKET) throw new ProtectedError('ticket_refused', 401); state.consumed = true; return { cookie: COOKIE }; }
     if (method === 'owner.session') { if (!state.active || params.cookie !== COOKIE) throw new ProtectedError('session_refused', 401); return projection(); }
     if (method === 'owner.logout') { state.active = false; return {}; }
@@ -39,6 +48,7 @@ async function fixture(t) {
   const server = createProtectedServer(readProtectedServerConfig(f.configFile), { client }); server.listen(0, '127.0.0.1'); await new Promise(resolve => server.once('listening', resolve));
   t.after(() => { server.closeAllConnections(); return new Promise(resolve => server.close(resolve)); });
   const headers = { Host: 'r03.example.test', Origin: ORIGIN, 'X-NetClaw-Installation': ID, Cookie: `__Host-nc_owner_${ID}=${COOKIE}`, 'Content-Type': 'application/json', 'X-NetClaw-CSRF': CSRF };
+  if (lab) { delete headers.Cookie; delete headers['X-NetClaw-CSRF']; }
   const request = (target, method = 'GET', body, extra = {}) => new Promise((resolve, reject) => {
     const req = http.request({ hostname: '127.0.0.1', port: server.address().port, path: target, method, headers: { ...headers, ...extra } }, res => {
       const chunks = []; res.on('data', chunk => chunks.push(chunk)); res.on('end', () => resolve({ status: res.statusCode, headers: res.headers, body: Buffer.concat(chunks).toString() }));
@@ -104,4 +114,54 @@ test('production connection and framing bounds are fixed, oversized bodies/heade
   const f = await fixture(t); assert.equal(f.server.maxConnections, 64); assert.equal(f.server.headersTimeout, 10000); assert.equal(f.server.requestTimeout, 30000); assert.equal(f.server.keepAliveTimeout, 5000);
   assert.equal((await f.request('/api/hud/owner/session', 'POST', 'x'.repeat(72 * 1024 + 1), { 'X-NetClaw-Owner-Bootstrap': '1' })).status, 413);
   assert.equal((await f.request('/api/runtime', 'GET', undefined, { 'X-Oversized': 'x'.repeat(17000) })).status, 400);
+});
+
+test('explicit lab mode publishes audit attribution and has no owner/session bridge or cookie flow', async t => {
+  const f = await fixture(t, { lab: true });
+  const value = JSON.parse((await f.request('/api/runtime')).body);
+  assert.deepEqual(value.access, openLabAccess(ID));
+  assert.equal(value.access.principal.subject, '660b776f-65b3-5b6f-8bbb-5f6f2c972241');
+  assert.equal(value.access.principal.display_name, 'Unauthenticated lab operator');
+  assert.equal(value.capabilities.protectedProduction, true);
+  for (const [target, method, body] of [
+    ['/api/hud/operations/catalog', 'GET'],
+    ['/api/hud/operations?client_nonce=same-reference', 'GET'],
+    ['/api/hud/operations/old-operation', 'GET'],
+    ['/api/hud/operations/old-operation/reconcile', 'POST', {}],
+    ['/api/hud/operations/new-operation/decision', 'POST', { revision: 1, review_digest: 'd'.repeat(64), decision: 'approve' }],
+    ['/api/hud/operations', 'POST', { client_nonce: 'explicit-new-review', catalog_revision: 'fixture', member_id: 'risk/member', model_profile_id: 'model', tool: 'netbox_get_object_by_id', arguments: { object_id: 1 } }],
+  ]) {
+    const response = await f.request(target, method, body, { Cookie: 'malformed; duplicate=x; duplicate=y' });
+    assert.equal(response.status, 200, response.body); assert.equal(response.headers['set-cookie'], undefined);
+  }
+  const count = f.calls.length;
+  for (const method of ['GET', 'POST', 'DELETE']) {
+    const response = await f.request('/api/hud/owner/session', method, method === 'GET' ? undefined : {});
+    assert.equal(response.status, 404); assert.equal(response.headers['set-cookie'], undefined);
+  }
+  assert.equal(f.calls.length, count); assert.ok(f.calls.every(call => !call.method.startsWith('owner.')));
+});
+
+test('lab mode still requires exact installation, Host, Origin, body and allowlisted routes', async t => {
+  const f = await fixture(t, { lab: true });
+  for (const extra of [{ 'X-NetClaw-Installation': 'changed' }, { Host: 'other.example.test' }, { Origin: 'https://other.example.test' }, { 'Sec-Fetch-Site': 'cross-site' }]) {
+    const response = await f.request('/api/hud/operations/catalog', 'GET', undefined, extra);
+    assert.ok([403, 409].includes(response.status));
+  }
+  for (const route of ['/api/chat', '/api/hud/mobile/enroll', '/api/admin', '/api/hud/operations/x/execute']) assert.equal((await f.request(route)).status, 404);
+  assert.equal((await f.request('/api/hud/operations/x/reconcile', 'POST', { execute: true })).status, 400);
+  assert.equal((await f.request('/api/hud/operations', 'POST', { auth_context: { principal: {} } })).status, 400);
+  assert.equal(f.calls.length, 0);
+});
+
+test('lab opt-in must be exact and bound in both private server and Border profile', t => {
+  const f = files(t);
+  f.write('hud.json', { ...f.config, access: { mode: 'open-lab' } });
+  assert.throws(() => readProtectedServerConfig(f.configFile), /access_mismatch/);
+  f.write('home/netclaw-federation/protected-profile.json', { schemaVersion: 1, role: 'border', identity: { installation_id: ID }, access: { mode: 'open-lab' } });
+  assert.equal(readProtectedServerConfig(f.configFile).access.mode, 'open-lab');
+  for (const access of [null, {}, { mode: 'owner' }, { mode: 'open-lab', principal: {} }]) {
+    f.write('hud.json', { ...f.config, access }); assert.throws(() => readProtectedServerConfig(f.configFile), /invalid_access/);
+  }
+  f.write('hud.json', f.config); assert.throws(() => readProtectedServerConfig(f.configFile), /access_mismatch/);
 });

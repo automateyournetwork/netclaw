@@ -48,6 +48,7 @@ export function selectedEnvironmentFiles(installation, rootEnvironment, protecte
 }
 
 export function mountProtectedOperations(app, { installation, config = protectedHudConfig(), client = createProtectedClient(installation), now = Date.now } = {}) {
+  const openLab = config.access?.mode === 'open-lab';
   const prepareForwarded = Symbol('prepareForwarded');
   const cookieName = `${config.secure ? '__Host-' : ''}nc_owner_${installation.installationId}`;
   const cookiePairs = req => {
@@ -68,6 +69,7 @@ export function mountProtectedOperations(app, { installation, config = protected
   const router = express.Router({ caseSensitive: config.exactRoutes === true, strict: config.exactRoutes === true });
   router.use((req, res, next) => {
     res.set({ 'Cache-Control': 'no-store', 'X-Frame-Options': 'DENY', 'Content-Security-Policy': config.contentSecurityPolicy || "frame-ancestors 'none'", 'X-Content-Type-Options': 'nosniff' });
+    if (openLab && req.path === SESSION) return res.status(404).json({ code: 'protected_route_unavailable' });
     if (!config.enabled) return res.status(404).json({ code: 'protected_operations_disabled', error: 'Protected operations are unavailable.' });
     if (!headerOnce(req, 'X-NetClaw-Installation') || req.headers['x-netclaw-installation'] !== installation.installationId) return res.status(409).json({ code: 'installation_changed', error: 'Reload the selected installation.' });
     const origin = req.headers.origin;
@@ -118,12 +120,12 @@ export function mountProtectedOperations(app, { installation, config = protected
     setCookie(res, '', 0); res.json({ authenticated: false });
   }));
   const operation = (method, parameters) => wrap(async (req, res) => {
-    const params = parameters(req), auth = await authenticate(req);
+    const params = parameters(req), auth = openLab ? { auth_context: { access_mode: 'open-lab', installation_id: installation.installationId } } : await authenticate(req);
     // Once the bridge is called, even an error may follow durable admission.
     // Only this process's refusal before that boundary permits draft discard.
     if (method === 'prepare') req[prepareForwarded] = true;
     const result = await client.call(method, { ...params, auth_context: auth.auth_context });
-    await session(auth.raw); // Revoked/expired sessions cannot receive late private output.
+    if (!openLab) await session(auth.raw); // Revoked/expired sessions cannot receive late private output.
     res.json(result);
   });
   router.get(`${OPERATIONS}/catalog`, operation('catalog', req => { noQuery(req); return {}; }));

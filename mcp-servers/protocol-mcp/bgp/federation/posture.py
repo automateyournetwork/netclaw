@@ -68,9 +68,11 @@ def _protected_controls(service) -> list:
     from .protected_contract import decode
     from .protected_owner import private_file
     from .protected_service import validate_profile
+    from .protected_access import OpenLabAccess, lab_principal
     import ipaddress
     now = time.time()
     boundary, owner_ok, transport_ok, audit_ok = False, False, False, False
+    lab = False
     try:
         op = service.protected_operations
         current = validate_profile(decode(private_file(service.runtime.state / 'protected-profile.json')),
@@ -78,9 +80,15 @@ def _protected_controls(service) -> list:
         boundary = bool(op.role == 'border' and op.executor is None and current == op.config
                         and service.execution_broker is None and service.hermes_runtime is None
                         and not any(m.get('launch_cmd') for m in service.risk.list_members()))
-        with op.owner.locked() as connection:
-            op.owner._meta(connection)
-            owner_ok = bool(op.bridge and op.bridge.server and op.bridge.server.is_serving())
+        lab = current.get('access') == {'mode': 'open-lab'}
+        if lab:
+            owner_ok = (isinstance(op.owner, OpenLabAccess)
+                        and op.owner.principal == lab_principal(op.identity['installation_id']))
+        else:
+            with op.owner.locked() as connection:
+                op.owner._meta(connection)
+                owner_ok = True
+        owner_ok = owner_ok and bool(op.bridge and op.bridge.server and op.bridge.server.is_serving())
         registry = service.transport_registry()
         entries = registry.load()['entries']
         transport_ok = bool(service.cert_enforce and len(entries) == 2
@@ -99,7 +107,8 @@ def _protected_controls(service) -> list:
     rows = [
         ('sandbox', 'containment', boundary, 'not applicable: verified no local executor', 'not-applicable'),
         ('model-guard', 'containment', boundary, 'not applicable: verified no local inference', 'not-applicable'),
-        ('owner-authority', 'containment', owner_ok, 'configured owner and private bridge', 'required'),
+        ('lab-attribution' if lab else 'owner-authority', 'containment', owner_ok,
+         'explicit unauthenticated lab attribution and private bridge' if lab else 'configured owner and private bridge', 'required'),
         ('strict-transport', 'containment', transport_ok, 'strict iN2N and dormant external listener', 'required'),
         ('audit', 'audit', audit_ok, 'selected installation GAIT', 'required'),
     ]
