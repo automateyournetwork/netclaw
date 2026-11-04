@@ -1316,3 +1316,23 @@ account to a numeric path; verify both exact identities and every other key fiel
 before removing only the owned fingerprint. R01 state also contains data, budget,
 secret/IAM and account entries; validate its exact type set instead of assuming
 all resources are Compute. Preserve explicit before-metadata coverage limits.
+
+### R04a client qualification lessons — 2026-11-03
+
+Protected owner GET status reads the Border ledger; use the explicit same-operation
+reconcile action to fetch a ready member receipt and deliver ACK. Once acknowledged,
+actual editor/native process restart recovers the same result with GETs only.
+Never interpret a status wait as permission to prepare or approve again.
+
+VS Code1.109.0 is required by the current extension; the installed1.108.0 was left
+unchanged and a private supported editor was used. Complete immutable reviews need
+a scrollable document followed by a compact native decision; the original large
+modal overflowed the actual editor viewport before approval.
+
+The native Mobile harness imports the production screen/client into a separate
+bundle. `flutter test` removed its Documents report on exit; use the checked-in
+host driver/reportData export and private0600 destination. Inject the one-use
+private configuration after the actual app connects, not before installation.
+The paired physical iPhone remained locked; iOS26.5 simulator execution does not
+qualify physical hardware. Actual successful evidence and source hashes are under
+~/.local/share/netclaw/roadmap-r04a-20261103/; final status is in Spec174 verification.

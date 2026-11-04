@@ -19,8 +19,11 @@ has completed source, actual GCP/on-prem qualification, independent evidence rev
 and cleanup:36/36 tasks, accepted by the owner with the post-handoff source-merge
 instruction on November3. [R04/Spec173](../../../specs/173-gcp-cloud-member/verification.md)
 has completed actual qualification and owned cleanup (33/33), accepted by the
-owner with the source-integration instruction. R04a is next, then R05; both remain
-unstarted. Its evidence and limits remain tracked there.
+owner with the source-integration instruction. [R04a/Spec174](../../../specs/174-cloud-client-integration/verification.md)
+has completed actual Mac VS Code and native iOS simulator cloud-owner reads,
+process-restart recovery, verified export and full owned cleanup:16/17 tasks.
+Human acceptance precedes R05, which remains unstarted. Physical iPhone execution
+remains unqualified. All24 R04a cloud resources, DNS and temporary access are removed.
 R03’s four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable
@@ -32,7 +35,8 @@ execution hold for isolated R03 completion/cleanup; stated GCP credit is unverif
 and not a target. Finite safeguards and exact evidence/cleanup were retained.
 Integration preserves upstream source1.18.4 from #321 and extension1.5.0 without
 a roadmap version bump. The entire-roadmap release/public rollout hold remains.
-R04a and R05 are not started. Earlier assessment sections below are historical.
+R04a uses the fifth bounded pass; no further optional loop is implied. Earlier
+assessment and amendment sections below are historical.
 
 ## VS Code and Mobile integration amendment — 2026-11-03
 

@@ -2,7 +2,8 @@
 
 **Feature Branch**: `174-cloud-client-integration`  
 **Created**: 2026-11-03  
-**Status**: Authorized for implementation by the owner's R04a instruction  
+**Status**: Technical qualification and owned retirement complete; human acceptance pending
+
 **Input**: Drive R04a efficiently; authoritative scope is `docs/roadmap/issue-310/briefs/R04a-cloud-border-client-integration.md`.
 
 ## User Scenarios & Testing

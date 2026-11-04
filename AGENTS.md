@@ -408,3 +408,26 @@ improvement loop. Required verification/fixes are part of this pass. Actual
 editor/native Mobile evidence and human review precede R05; inventory, source
 tests and simulator execution cannot imply physical-device qualification.
 Source1.18.4/extension1.5.0/Mobile1.0.3+6 and the R20 publication hold remain.
+
+### R04a technical qualification and retirement — 2026-11-03
+
+Spec174 technical work is complete:16/17 tasks, with human evidence acceptance
+still required before R05. Actual Mac VS Code1.109.0 and native iOS26.5 simulator
+cloud-owner reads each produced one NetBox MCP call, two guarded Sonnet4.6 calls,
+a signed result and durable ACK. Actual process restarts recovered the same
+references/results with GETs only and no repeated effects. Three unapproved
+original reviews remain owner-denied with no execution. Physical iPhone remains
+unqualified because installation was refused while locked. The final narrow Mobile
+definite-unsubmitted recovery fix has20 focused tests and independent review;
+successful live evidence retains its earlier source binding.
+
+All24 fresh R04a cloud resources, owned DNS and temporary OS Login key are removed;
+12 actual residue categories found none. R01's checked resources/state/DNS/HTTPS
+and shared budgets remain preserved, with its existing costs retained. The315-file
+private frozen export is evidence only, excludes private identity keys and selected
+integration credentials, and must never be replayed as activation state. Never
+reconnect to retired R04a addresses or replay its plans/enrollment/approvals.
+See specs/174-cloud-client-integration/verification.md and resume.md for exact
+platform/source, preservation and failure limits. Pass5 is complete, with no extra
+optional loop. No R05, version change, release, public rollout or existing-runtime
+upgrade was performed. This does not record the owner's acceptance.

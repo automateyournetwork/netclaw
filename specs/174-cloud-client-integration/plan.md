@@ -8,7 +8,7 @@ Add explicit cloud-owner clients to the existing VS Code extension and Flutter a
 
 ## Technical Context
 
-**Language/Version**: existing TypeScript5.9/Node24.19; Dart/Flutter current project toolchain; Python3.12 federation.
+**Language/Version**: existing TypeScript5.9/Node24.19; Dart3.12.2/Flutter3.44.8; Python3.12 federation.
 **Primary Dependencies**: VS Code APIs, Node HTTPS, existing Flutter HTTP and secure storage, existing Express owner service.
 **Storage**: non-secret profile/reference state, native secure sessions, memory-only CSRF/tickets.
 **Testing**: Node/extension host, Flutter unit/widget/native, existing Python/HUD suites and finite live cloud qualification.
