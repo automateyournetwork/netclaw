@@ -13,13 +13,14 @@ export class Management implements vscode.Disposable {
   readonly changed = new vscode.EventEmitter<void>();
   private selectedId?: string;
   private serial = 0;
-  constructor(private local: LocalState) {
+  constructor(private local: LocalState, private remoteSelected: () => boolean = () => false) {
     this.selectedId = local.get<string | undefined>(
       "management-selected",
       undefined,
     );
   }
   get selected() {
+    if (this.remoteSelected()) return undefined;
     return this.local
       .get<ManagementBinding[]>("management-bindings", [])
       .find(
@@ -69,6 +70,7 @@ export class Management implements vscode.Disposable {
     });
   }
   async saveBinding(binding: ManagementBinding) {
+    if (this.remoteSelected() || binding.profile.mode === "remote-border") throw Error("Cloud profiles cannot acquire local workspace or lifecycle authority.");
     validateTarget(binding.target);
     if (
       binding.profile.installationId !== binding.target.installationId ||
@@ -119,6 +121,7 @@ export class Management implements vscode.Disposable {
     if (!binding) throw Error("Connect and enable workspace controls first.");
     const current = () => {
       if (
+        this.remoteSelected() ||
         !vscode.workspace.isTrusted ||
         serial !== this.serial ||
         this.selected?.profile.id !== binding.profile.id

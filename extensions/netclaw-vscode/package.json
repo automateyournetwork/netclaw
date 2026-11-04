@@ -404,6 +404,30 @@
       {
         "command": "netclaw.setupConnect",
         "title": "NetClaw: Save Verified Setup Connection"
+      },
+      {
+        "command": "netclaw.ownerSignIn",
+        "title": "Sign in to Cloud Border",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "netclaw.ownerSignOut",
+        "title": "Sign out of Cloud Border",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "netclaw.ownerPrepare",
+        "title": "Prepare Cloud Read",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "netclaw.ownerRecover",
+        "title": "Recover Cloud Operation",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
       }
     ],
     "mcpServerDefinitionProviders": [
