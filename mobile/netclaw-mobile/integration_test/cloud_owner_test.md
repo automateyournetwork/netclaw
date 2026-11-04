@@ -45,13 +45,17 @@ Second phase config: `phase: "approve"`, same origin/installation,
 `operation_id`, `approved_review_digest`, and complete `approved_review` copied
 from that inspected evidence. Include a fresh ticket only if sign-in expired.
 The test requires exact equality, then taps the native confirmation checkbox and
-Approve once. It reads status without replay and exports
+Approve once. It taps **Reconcile existing operation** for that same reference
+to fetch the member receipt and durable acknowledgement; status GET alone does
+not collect that evidence. Further bounded checks reconcile the same operation
+without another prepare/decision, then export
 `r04a-evidence-approve.json` with the verified result/durable ACK. Never rerun this
 phase after an ambiguous decision; use recovery.
 
 Terminate/relaunch the isolated app and run phase `"recover"` with the same
 operation/review fields. Existing secure session/reference storage must recover
-the original work through GETs only. Export `r04a-evidence-recover.json`; correlate
+the original work through GETs only after approval-phase reconciliation has
+completed. Export `r04a-evidence-recover.json`; correlate
 operation/result/ACK and effect counts with authoritative private Border/member
 records. Native test files contain private review/results by design and are not
 ordinary application persistence. Export, then retire the qualification app and

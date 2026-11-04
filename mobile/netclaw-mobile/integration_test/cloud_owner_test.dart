@@ -239,6 +239,12 @@ void main() {
           );
           await tester.pump();
           await tap('Approve once');
+          // Approval dispatches the member but a status GET does not collect
+          // its receipt. Exercise the native, same-operation reconciliation
+          // control to retrieve verified evidence and durably acknowledge it.
+          if (client.operation?['result']?['durable_ack'] != true) {
+            await tap('Reconcile existing operation');
+          }
         }
         for (
           var tries = 0;
@@ -248,7 +254,15 @@ void main() {
           await tester.runAsync(
             () => Future<void>.delayed(const Duration(seconds: 2)),
           );
-          await tap('Check same operation');
+          if (phase == 'approve' &&
+              (client.operation?['allowed_actions'] as List?)?.contains(
+                    'reconcile',
+                  ) ==
+                  true) {
+            await tap('Reconcile existing operation');
+          } else {
+            await tap('Check same operation');
+          }
         }
         expect(client.operation!['state'], 'completed');
         expect(client.operation!['attempt_count'], 1);
