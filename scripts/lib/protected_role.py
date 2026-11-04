@@ -178,7 +178,7 @@ def validate_registry(registry, installation, source):
 
 # Role values cannot smuggle provider, tool, SSH or shell setup into the process.
 _OPTIONAL = {'NETCLAW_LOCAL_AS', 'NETCLAW_ROUTER_ID', 'N2N_DISPLAY_NAME',
-             'BGP_API_PORT', 'BGP_LISTEN_PORT', 'N2N_INVENTORY_REFRESH_S'}
+             'BGP_API_PORT', 'BGP_LISTEN_PORT', 'N2N_INVENTORY_REFRESH_S', 'N2N_EDGE_WS_PORT'}
 _FIXED = {'N2N_ENABLED': 'true', 'N2N_PROTECTED_OPERATIONS': '1',
           'N2N_CERT_MODE': 'enforce', 'N2N_RISK_MODE': 'production',
           'N2N_STRICT_ALL': '1', 'NETCLAW_MESH_OPEN': 'false',
@@ -264,7 +264,9 @@ def validate(contract_path):
         need(re.fullmatch('[A-Za-z0-9_-]{43}', guard_token), 'member_guard_capability_invalid')
     env = cfg['environment']; need(isinstance(env, dict) and set(env) <= _OPTIONAL, 'environment_refused')
     need(all(isinstance(v, str) and 0 < len(v) <= 200 and not re.search('[\x00-\x1f\x7f]', v) for v in env.values()), 'environment_invalid')
-    for key in ('BGP_API_PORT', 'BGP_LISTEN_PORT'):
+    if 'N2N_EDGE_WS_PORT' in env:
+        need(cfg['role'] == 'border', 'member_listener_refused')
+    for key in ('BGP_API_PORT', 'BGP_LISTEN_PORT', 'N2N_EDGE_WS_PORT'):
         if key in env: need(env[key].isdigit() and 1024 <= int(env[key]) <= 65535, 'port_invalid')
     # Existing launchers read these files. Refuse extra ambient config rather than
     # letting them override this exact role environment at the last moment.
@@ -282,6 +284,8 @@ def validate(contract_path):
                    'N2N_BASE_DIR': str(home / 'n2n'), 'N2N_ROLE': cfg['role'], 'N2N_RISK_NAME': row[1],
                    'N2N_ENABLED_STACKS': 'in2n', 'N2N_ENDPOINT_REGISTRY': str(registry_path),
                    'N2N_GAIT_DIR': str(home / 'n2n/gait'), 'NETCLAW_PROTECTED_ROLE_CONTRACT': str(contract_path)}
+    if cfg['role'] == 'border' and 'N2N_EDGE_WS_PORT' in env:
+        environment['NETCLAW_MOBILE_ORIGIN'] = cfg['origin']
     if cfg['role'] == 'member':
         need(isinstance(row[3], str) and row[3] == binding['member_id'] and row[2] == 'in2n', 'member_identity_required')
         environment['N2N_MEMBER_ID'] = row[3]

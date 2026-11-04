@@ -115,7 +115,9 @@ def validate_principal(value):
     exact(value, 'issuer subject display_name roles')
     require(value['issuer'] == 'local' and value['roles'] == ['owner'] or
             value['issuer'] == 'open-lab' and value['roles'] == ['lab-operator']
-            and value['display_name'] == 'Unauthenticated lab operator')
+            and value['display_name'] == 'Unauthenticated lab operator' or
+            value['issuer'] == 'device-key' and value['roles'] == ['device-operator']
+            and value['display_name'] == 'Enrolled mobile device')
     uuid_field(value['subject'])
     ident(value['display_name'])
 

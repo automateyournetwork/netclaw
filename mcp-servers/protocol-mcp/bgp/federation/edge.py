@@ -77,6 +77,12 @@ EDGE_METHODS = (
     # currently-pending approvals for PendingApprovalsIntent — see
     # FederationService._edge_on_approvals_list.
     "n2n/edge/approvals_list",
+    # Spec175: device-scoped protected operations, never general owner/admin RPC.
+    "n2n/edge/operations/catalog",
+    "n2n/edge/operations/prepare",
+    "n2n/edge/operations/status",
+    "n2n/edge/operations/decision",
+    "n2n/edge/operations/reconcile",
 )
 
 # Methods reachable before the channel has authenticated (the handshake itself).
@@ -84,17 +90,19 @@ _PRE_TRUST_METHODS = ("in2n/enroll", "in2n/hello")
 
 
 class RpcError(Exception):
-    def __init__(self, code: int, message: str):
+    def __init__(self, code: int, message: str, data=None):
         super().__init__(message)
         self.code = code
         self.message = message
+        self.data = data
 
 
 class EdgeChannel:
     """One WebSocket connection to one enrolled NetClaw Mobile device."""
 
-    def __init__(self, ws, *, local_identity: str, handlers: dict = None):
+    def __init__(self, ws, *, local_identity: str, handlers: dict = None, strict_messages=False):
         self.ws = ws
+        self.strict_messages = strict_messages
         self.local_identity = local_identity
         self.member_id: Optional[str] = None
         self.peer_identity = "<unauthenticated-edge>"
@@ -162,7 +170,13 @@ class EdgeChannel:
 
     async def _dispatch(self, raw):
         try:
-            msg = json.loads(raw)
+            if self.strict_messages:
+                from .protected_contract import decode
+                msg = decode(raw, limit=80 * 1024)
+                if not isinstance(msg, dict):
+                    raise ValueError('invalid_message')
+            else:
+                msg = json.loads(raw)
         except Exception as e:
             self.logger.warning("Bad JSON on edge channel: %s", e)
             return
@@ -192,14 +206,15 @@ class EdgeChannel:
                 await self._send({"jsonrpc": "2.0", "id": req_id, "result": result or {}})
         except RpcError as e:
             if req_id is not None:
-                await self._send(self._err(req_id, e.code, e.message))
+                await self._send(self._err(req_id, e.code, e.message, e.data))
         except Exception as e:
             self.logger.error("Edge handler %s failed: %s", method, e)
             if req_id is not None:
                 await self._send(self._err(req_id, -32000, str(e)))
 
-    def _err(self, req_id, code, message):
-        return {"jsonrpc": "2.0", "id": req_id, "error": {"code": code, "message": message}}
+    def _err(self, req_id, code, message, data=None):
+        return {"jsonrpc": "2.0", "id": req_id,
+                "error": {"code": code, "message": message, **({'data': data} if data is not None else {})}}
 
     # ---- outbound requests (Border → phone, mirrors delegate_to_member) --
 

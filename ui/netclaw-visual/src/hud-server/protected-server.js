@@ -5,6 +5,7 @@ import express from 'express';
 import { boundedFile, noSymlink, loadProtectedAssets } from './protected-assets.js';
 import { strictJson, readProtectedDescriptor, createProtectedClient } from './protected-client.js';
 import { mountProtectedOperations } from './protected-operations.js';
+import { mountMobileEnrollment } from './mobile-enrollment.js';
 import { readRemoteHudConfig, remoteHudRoute, createRemoteHud } from './remote-hud.js';
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
@@ -56,8 +57,8 @@ export function createProtectedServer(config, { client = createProtectedClient(c
     if (req.method === 'HEAD' && req.path.startsWith('/api/') || !['GET', 'HEAD', 'POST', 'DELETE'].includes(req.method)) return res.status(405).json({ code: 'method_refused' });
     if (req.path.startsWith('/api/')) {
       const id = '[A-Za-z0-9_.:-]{1,200}', pathname = req.url.split('?')[0];
-      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname))
-        || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname))
+      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
+        || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname))
         || req.method === 'DELETE' && pathname === '/api/hud/owner/session';
       if (config.access?.mode === 'open-lab' && pathname === '/api/hud/owner/session') return res.status(404).json({ code: 'route_unavailable' });
       if (remote && remoteHudRoute(req.method, req.url, config.workspace.features) && req.method !== 'GET' && (!once(req, 'origin') || req.headers.origin !== config.origin)) return res.status(403).json({ code: 'origin_refused' });
@@ -68,9 +69,12 @@ export function createProtectedServer(config, { client = createProtectedClient(c
   app.get('/api/runtime', async (req, res) => {
     if (req.url !== '/api/runtime') return res.status(400).json({ code: 'invalid_argument' });
     if (remote) { try { await remote.verify(); } catch { return res.status(503).json({ code: 'workspace_unavailable' }); } }
-    res.json({ ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: true, ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
+    res.json({ ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { mobileEnrollment: { schema: 1 }, protectedProfile: true, protectedOperations: true, protectedProduction: true, ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
   });
   mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, contentSecurityPolicy: csp, origins: [config.origin] }, client });
+  mountMobileEnrollment(app, { installation: config.installation, client,
+    config: { enabled: config.access?.mode === 'open-lab', origins: [config.origin],
+              access: config.access, reason: 'owner_issuance_unqualified' } });
   if (remote) app.use(async (req, res, next) => { if (!await remote.handle(req, res)) next(); });
   app.use((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method)) return res.status(405).json({ code: 'method_refused' });

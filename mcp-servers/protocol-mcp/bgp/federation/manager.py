@@ -171,6 +171,19 @@ CREATE TABLE IF NOT EXISTS enrollment_token (
     spent_at           TEXT,
     spent_by_member_id TEXT
 );
+-- Spec175: native, device-only offers. Raw tokens and QR matrices are never stored.
+CREATE TABLE IF NOT EXISTS mobile_enrollment_offer (
+    installation_id TEXT NOT NULL,
+    client_nonce TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    endpoint_json TEXT NOT NULL,
+    issued_ms INTEGER NOT NULL,
+    expires_ms INTEGER NOT NULL,
+    replaced_ms INTEGER,
+    consumed_key_fingerprint TEXT,
+    consumed_generation TEXT,
+    PRIMARY KEY (installation_id, client_nonce)
+);
 """
 
 

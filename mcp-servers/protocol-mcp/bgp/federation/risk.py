@@ -428,8 +428,20 @@ class RiskManager:
             raise ValueError("IN2N_ERR_ENROLL_TOKEN_INVALID")
         if row["expires_at"] and _now() > row["expires_at"]:
             raise ValueError("IN2N_ERR_ENROLL_TOKEN_INVALID")
+        # Scoped Mobile offers may never enroll an agent or cross installations.
+        offer = self._conn.execute(
+            "SELECT * FROM mobile_enrollment_offer WHERE token_hash=?", (row['token_hash'],)).fetchone()
+        if offer and (node_type != 'edge' or transport_binding != 'edge-ws'
+                      or installation_id != offer['installation_id']
+                      or offer['replaced_ms'] is not None
+                      or not offer['issued_ms'] <= int(time.time() * 1000) < offer['expires_ms']):
+            raise ValueError('IN2N_ERR_ENROLL_TOKEN_INVALID')
         fp = self.fingerprint_of(cert_pem)
         existing = self.get_member(member_id)
+        # A new offer cannot replace a retained authority under the same name.
+        # Lost enrollment uses hello with the existing key, never another enroll.
+        if offer and existing and existing['state'] != STATE_REMOVED:
+            raise ValueError('IN2N_ERR_MEMBER_ID_TAKEN')
         if (existing and existing["state"] not in (STATE_REMOVED, STATE_QUARANTINED,
                                                     STATE_PROVISIONED)
                 and existing["key_fingerprint"] and existing["key_fingerprint"] != fp):
@@ -464,6 +476,9 @@ class RiskManager:
                 raise ValueError('IN2N_ERR_INVALID_INSTALLATION')
         self._conn.execute("UPDATE member SET enrollment_generation=?, installation_id=? WHERE member_id=?",
                            (generation, installation_id, member_id))
+        if offer:
+            self._conn.execute('UPDATE mobile_enrollment_offer SET consumed_key_fingerprint=?,consumed_generation=? WHERE token_hash=?',
+                               (fp, generation, row['token_hash']))
         # Spend the token atomically.
         self._conn.execute(
             "UPDATE enrollment_token SET spent_at=?, spent_by_member_id=? WHERE token_hash=?",

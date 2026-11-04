@@ -51,6 +51,9 @@ class ProtectedOperations:
 
     def _owner(self, context):
         require(self.role == 'border' and self.owner is not None, 'owner_unavailable', 503)
+        from .protected_device import DeviceAuthority
+        if isinstance(context, DeviceAuthority):
+            return context.authorize(self)
         return self.owner.authorize(context)
 
     @property
@@ -62,12 +65,13 @@ class ProtectedOperations:
         current = row is not None and (row['review']['principal'] == principal if self.open_lab
                                        else row['owner_subject'] == principal['subject'])
         require(row is not None and (current or
-                historical and self.open_lab and row['review']['border'] == self.identity),
+                historical and self.open_lab and principal['issuer'] != 'device-key'
+                and row['review']['border'] == self.identity),
                 'operation_not_found', 404)
         return row
 
     def _by_nonce(self, nonce, principal):
-        if not self.open_lab:
+        if not self.open_lab or principal['issuer'] == 'device-key':
             return self.store.get('border', client_nonce=nonce, owner_subject=principal['subject'])
         # A nonce retained before the explicit lab cutover must not create a
         # second authority under the new audit principal. Ambiguity is refused.
@@ -587,7 +591,14 @@ class OperatorBridge:
             method, params = body['method'], body['params']
             require(isinstance(params, dict))
             require(not self.service.open_lab or not method.startswith('owner.'), 'method_refused', 404)
-            if method == 'owner.login':
+            if method in ('mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status'):
+                require(self.service.open_lab, 'owner_issuance_unqualified', 403)
+                require('auth_context' in params, 'lab_context_refused', 403)
+                with self.service._owner(params['auth_context']):
+                    args = {key: value for key, value in params.items() if key != 'auth_context'}
+                    issuer = self.service.mobile_enrollment
+                    result = getattr(issuer, method.rsplit('.', 1)[1])(args)
+            elif method == 'owner.login':
                 exact(params, 'ticket'); result = self.service.owner.login(params['ticket'])
             elif method == 'owner.session':
                 exact(params, 'cookie'); result = self.service.owner.session(params['cookie'])
@@ -734,6 +745,7 @@ def from_service(service):
         catalog_provider=catalog, owner=owner, executor=executor,
         audit_writer=service.audit.protected, transport=transport, channel_validator=validate_channel)
     operations.config = config
+    operations.mobile_enrollment = getattr(service, 'mobile_enrollment', None)
     if role == 'border':
         # Check authority initialization at startup; never promote legacy cookies.
         if not operations.open_lab:
