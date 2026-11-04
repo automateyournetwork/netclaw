@@ -44,7 +44,34 @@ Review receipt SHA256:
 Release preparation original commitcb5031be was integrated as4b51a350.
 Private source/test/package/publication receipts are under
 `~/.local/share/netclaw/roadmap-r04a-release-20261104/` (not part of any package).
-The package/PR/publication outcome will be recorded below after actual completion.
+The package and submission record is below. Final public-download validation and
+merge/check outcomes are retained in the linked PR and private completion receipts.
+
+## Production artifact and source integration
+
+[PR327](https://github.com/automateyournetwork/netclaw/pull/327) carries this work.
+The clean committed package source is
+`2d7c9deb4188605952b45769da434258fd97979f`. `npm run package` passed its TypeScript,
+build, public asset/license and clean-checkout checks. The archive is
+`netclaw-1.6.0.vsix`, 4,659,544 bytes, SHA256:
+`5aa00cf368031acb22280de767764acf6e0a5859e91f5bc8f33d7f49403acc77`.
+All **39 packaged runtime assets are byte-identical** to the qualified private
+archive `3fa30a37885011b5be3a8a18d2df936276c79a508450d05f478c5e48f1aa4141`.
+All70 archive paths were checked; no private runtime or evidence is packaged.
+
+The exact archive was submitted through `vsce publish --packagePath`; the command
+completed successfully as production **NetClaw.netclaw1.6.0**. No source tag,
+GitHub release or external announcement was created. Marketplace validation and
+anonymous public download are separate from upload success; their final receipt
+is `marketplace-verification.json`, with public/local ZIP and payload comparisons.
+The extension is listed at [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=NetClaw.netclaw).
+
+Hosted extension CI passed check/build, the complete suite, HUD experience tests,
+the high-severity audit and committed-candidate packaging. HUD CI and the complete
+contract suite matrix also passed on the package commit. PR checks retain the
+later documentation commit and final Mobile/platform outcomes. Release metadata
+and all161 spec artifact sets passed local verification. None of these source
+checks imply deployment of the merged server code to the frozen owner pilot.
 
 ## Qualification retained
 
