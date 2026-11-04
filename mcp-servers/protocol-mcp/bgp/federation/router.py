@@ -10,6 +10,7 @@ actual delegation is done by the Invoker over the internal channel.
 
 import logging
 
+from .member_inventory import unavailable_skills
 from .risk import (
     RiskManager, STATE_ACTIVE, STATE_ENROLLED, STATE_UNREACHABLE, STATE_PROVISIONED,
 )
@@ -31,12 +32,16 @@ class RiskRouter:
     def __init__(self, risk_manager: RiskManager):
         self.rm = risk_manager
 
-    def candidates(self, capability: str) -> list:
-        """Routable members whose scope covers `capability`."""
+    def _scoped(self, capability: str) -> list:
         return [
             m for m in self.rm.list_members()
             if m["state"] in _ROUTABLE_STATES and self.rm.covers(m, capability)
         ]
+
+    def candidates(self, capability: str) -> list:
+        """Routable members whose scope covers `capability`, minus any whose own
+        runtime reported it cannot load that skill (spec 174)."""
+        return [m for m in self._scoped(capability) if capability not in unavailable_skills(m)]
 
     def specialty_capabilities(self) -> set:
         """Specialty skill names covered by routable members (base floor excluded)."""
@@ -44,11 +49,16 @@ class RiskRouter:
         for m in self.rm.list_members():
             if m["state"] not in _ROUTABLE_STATES:
                 continue
+            unavailable = unavailable_skills(m)
             for e in self.rm._scope_list(m.get("scope")):
                 if isinstance(e, dict) and e.get("tier") == "specialty" and e.get("name"):
-                    names.add(e["name"])
+                    name = e["name"]
                 elif isinstance(e, str) and e not in self.rm._BASE_NAMES:
-                    names.add(e)
+                    name = e
+                else:
+                    continue
+                if name not in unavailable:
+                    names.add(name)
         return names
 
     def select_member(self, capability: str) -> dict:
@@ -65,8 +75,12 @@ class RiskRouter:
             names = sorted(self.specialty_capabilities())
             hint = (" Routable specialty capabilities: " + ", ".join(names) + "."
                     if names else "")
+            # Member ids and requirement names stay in the Border log and member
+            # inventory; a federated peer can receive this message.
+            why = (" It is in scope, but no member's runtime can load it."
+                   if self._scoped(capability) else "")
             raise NoCapableMember(
-                f"No member in risk '{risk}' can perform '{capability}'.{hint}")
+                f"No member in risk '{risk}' can perform '{capability}'.{why}{hint}")
         # Deterministic tie-break (FR-012):
         #   1) most-specific: fewest SPECIALTY capabilities (base floor excluded, FR-021b)
         #   2) lexicographically smallest member_id

@@ -1556,8 +1556,13 @@ class FederationService:
         scope from enrollment; record freshness and ack (no secrets, reused guard)."""
         if channel.member_id:
             from .member_inventory import project_inventory
+            inventory = project_inventory(params)
             self.risk.update_health(channel.member_id, inventory_at=time.time(),
-                                    inventory=project_inventory(params))
+                                    inventory=inventory)
+            for skill in inventory.get("unavailable_skills") or []:
+                logger.warning("iN2N: member %s cannot load scoped skill %s (%s%s); not routing it there",
+                               channel.member_id, skill["name"], skill["reason"],
+                               "".join(f"; missing {k}: {', '.join(v)}" for k, v in skill["missing"].items()))
         return {"accepted": True}
 
     # ---- feature 066: edge (phone) connections -------------------------
@@ -2812,6 +2817,8 @@ class FederationService:
                 await ch.call("n2n/inventory", local_inventory(), timeout=3.0)
             except Exception:
                 logger.info("iN2N: member configuration inventory unavailable")
+            # Spec 174: the skill check takes seconds, so it follows separately.
+            self._skill_report_task = asyncio.create_task(self._report_skill_status(ch))
             logger.info("iN2N: dialed Border %s:%s as %s (%s)", host, port, member_id,
                         {k: v for k, v in resp.items() if k not in ("risk_ca", "hub_attestation")})
             return resp
@@ -2821,6 +2828,17 @@ class FederationService:
             await ch.close()
             raise
 
+    async def _report_skill_status(self, ch):
+        """Tell the Border which scoped skills this member's runtime will not load,
+        so it stops routing them here. Nothing is sent when that is unknown."""
+        from .member_inventory import check_skills, local_inventory
+        report = await check_skills(self.member_scope)
+        if report is None or self.border_channel is not ch:
+            return
+        try:
+            await ch.call("n2n/inventory", {**local_inventory(), "unavailable_skills": report}, timeout=3.0)
+        except Exception:
+            logger.info("iN2N: member skill status report unavailable")
 
     async def _in2n_self_status(self, channel, params):
         """Content-free local readiness, only for our authenticated Border."""
