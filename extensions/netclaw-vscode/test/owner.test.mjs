@@ -146,6 +146,46 @@ test('lost prepare response recovers original nonce and cannot prepare a replace
   await assert.rejects(resumed.prepare(selection), /unresolved/);
   assert.equal(f.calls.filter(c => c.route === '/api/hud/operations' && c.method === 'POST').length, 1);
 });
+test('verified failed receipt and delivered ACK recover GET-only and permit a separately selected read while retaining the old reference', async t => {
+  const f = fixture(t), store = storage(), ops = new OwnerOperations(f.client, store); await f.client.login(ticket);
+  const prepared = await ops.prepare(selection), done = await ops.decide(prepared, 'approve');
+  // The protected service has verified the signed FAILED receipt and delivered its ACK.
+  f.operations.set(done.operation_id, { ...done, state: 'failed', result: { ...done.result, evidence: { status: 'FAILED' } } });
+  const oldRef = ops.references()[0], beforeRecovery = f.calls.length;
+  const restarted = new OwnerOperations(f.client, store), failed = await restarted.recover(oldRef);
+  assert.equal(failed.state, 'failed'); assert.equal(failed.result.verified, true); assert.equal(failed.result.durable_ack, true);
+  assert.equal(failed.result.ack_delivery_pending, false);
+  assert.ok(f.calls.slice(beforeRecovery).every(c => c.method === 'GET'));
+  assert.equal(f.calls.filter(c => c.route === '/api/hud/operations' && c.method === 'POST').length, 1, 'Recovery must not prepare automatically');
+  const selectedAgain = catalogChoices(await f.client.catalog())[0];
+  const next = await restarted.prepare(selectedAgain);
+  assert.notEqual(next.client_nonce, oldRef.client_nonce); assert.notEqual(next.operation_id, oldRef.operation_id);
+  assert.deepEqual(restarted.references()[0], oldRef); assert.equal(restarted.references().length, 2);
+  assert.equal(oldRef.decision_sent, true);
+  assert.equal(f.calls.filter(c => c.route === '/api/hud/operations' && c.method === 'POST').length, 2);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 1, 'New preparation must not replay approval');
+});
+test('failed or unknown work blocks a new read when any receipt or ACK condition is incomplete', async t => {
+  const f = fixture(t), ops = new OwnerOperations(f.client, storage()); await f.client.login(ticket);
+  const prepared = await ops.prepare(selection), done = await ops.decide(prepared, 'approve'), ref = ops.references()[0];
+  for (const change of [
+    { result: null },
+    { result: { verified: true } },
+    { result: { ...done.result, verified: false } },
+    { result: { ...done.result, durable_ack: false } },
+    { result: { ...done.result, ack_delivery_pending: true } },
+    { reconciliation_required: true },
+    { state: 'outcome_unknown' },
+  ]) {
+    f.operations.set(done.operation_id, { ...done, state: 'failed', ...change });
+    const before = f.calls.length;
+    await assert.rejects(ops.prepare(selection), /unresolved/);
+    assert.ok(f.calls.slice(before).every(c => c.method === 'GET'));
+    assert.deepEqual(ops.references(), [ref]);
+  }
+  assert.equal(f.calls.filter(c => c.route === '/api/hud/operations' && c.method === 'POST').length, 1);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 1);
+});
 test('only proven pre-admission rejection can be explicitly discarded after restart', async t => {
   const f = fixture(t), store = storage(), ops = new OwnerOperations(f.client, store); await f.client.login(ticket);
   f.state.hook = (c, json) => c.route === '/api/hud/operations' && c.method === 'POST' ? json({ admission: 'not_submitted' }, 403) : undefined;

@@ -382,6 +382,135 @@ void main() {
     },
   );
   test(
+    'verified failed receipt with delivered ACK recovers GET-only and requires explicit removal before another read',
+    () async {
+      final store = MemoryOwnerStore(), transport = FixtureTransport();
+      final client = await connected(store, transport);
+      await client.prepare(0, 0, 0);
+      await client.decide('approve', revision: 1, reviewDigest: digest);
+      // The protected service verified this signed FAILED receipt and its ACK.
+      transport.operation = {
+        ...transport.operation!,
+        'state': 'failed',
+        'result': {
+          ...transport.operation!['result'] as Json,
+          'evidence': {'status': 'FAILED'},
+        },
+      };
+      final oldRef = Map<String, dynamic>.from(client.reference!);
+      final beforeRecovery = transport.calls.length;
+      final restarted = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await restarted.initialize();
+      expect(restarted.operation!['state'], 'failed');
+      expect(restarted.canRemove, true);
+      expect(restarted.reference, oldRef);
+      expect(
+        transport.calls.skip(beforeRecovery).every((c) => c.method == 'GET'),
+        true,
+      );
+      await expectLater(
+        restarted.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(await store.reference(profile), oldRef);
+      expect(
+        transport.calls
+            .where(
+              (c) => c.method == 'POST' && c.uri.path == '/api/hud/operations',
+            )
+            .length,
+        1,
+      );
+      await restarted.removeResolvedReference();
+      expect(await store.reference(profile), isNull);
+      await restarted.prepare(0, 0, 0);
+      expect(
+        restarted.reference!['client_nonce'],
+        isNot(oldRef['client_nonce']),
+      );
+      expect(restarted.reference!['decision_sent'], isNull);
+      expect(restarted.operation!['state'], 'review_pending');
+      expect(
+        transport.calls
+            .where(
+              (c) => c.method == 'POST' && c.uri.path == '/api/hud/operations',
+            )
+            .length,
+        2,
+      );
+      expect(
+        transport.calls.where((c) => c.uri.path.endsWith('/decision')).length,
+        1,
+      );
+      expect(transport.effects, 1);
+    },
+  );
+  test(
+    'failed or unknown work cannot be removed or replaced with incomplete receipt or ACK',
+    () async {
+      final store = MemoryOwnerStore(), transport = FixtureTransport();
+      final client = await connected(store, transport);
+      await client.prepare(0, 0, 0);
+      await client.decide('approve', revision: 1, reviewDigest: digest);
+      final done = Map<String, dynamic>.from(transport.operation!);
+      final result = done['result'] as Json;
+      final oldRef = Map<String, dynamic>.from(client.reference!);
+      for (final change in <Json>[
+        {'result': null},
+        {
+          'result': {'verified': true},
+        },
+        {
+          'result': {...result, 'verified': false},
+        },
+        {
+          'result': {...result, 'durable_ack': false},
+        },
+        {
+          'result': {...result, 'ack_delivery_pending': true},
+        },
+        {'reconciliation_required': true},
+        {'state': 'outcome_unknown'},
+      ]) {
+        transport.operation = {...done, 'state': 'failed', ...change};
+        final before = transport.calls.length;
+        await client.status();
+        expect(client.canRemove, false);
+        await expectLater(
+          client.removeResolvedReference(),
+          throwsA(isA<CloudOwnerError>()),
+        );
+        await expectLater(
+          client.prepare(0, 0, 0),
+          throwsA(isA<CloudOwnerError>()),
+        );
+        expect(client.reference, oldRef);
+        expect(await store.reference(profile), oldRef);
+        expect(
+          transport.calls.skip(before).every((c) => c.method == 'GET'),
+          true,
+        );
+      }
+      expect(
+        transport.calls
+            .where(
+              (c) => c.method == 'POST' && c.uri.path == '/api/hud/operations',
+            )
+            .length,
+        1,
+      );
+      expect(
+        transport.calls.where((c) => c.uri.path.endsWith('/decision')).length,
+        1,
+      );
+      expect(transport.effects, 1);
+    },
+  );
+  test(
     'revoked session drops credential but retains operation for later owner recovery',
     () async {
       final store = MemoryOwnerStore(), transport = FixtureTransport();
