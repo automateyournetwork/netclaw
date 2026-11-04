@@ -343,6 +343,7 @@ def test_protected_pinned_key_hello_does_not_reenroll(harness, monkeypatch):
     async def run():
         result = await service.dial_border('192.0.2.1', 19444, registration=h.entry, registry_revision=1)
         assert service.border_channel.trusted and service.border_channel.protected_peer_binding == h.binding
+        assert not hasattr(service, '_skill_report_task')
         await service.border_channel.close()
         return result
     assert asyncio.run(run())['trusted']

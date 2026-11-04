@@ -27,7 +27,7 @@ export async function modelSettings(
 ): Promise<Json | undefined> {
   const b = connection.bound(),
     data = await b.run(() =>
-      b.client.request("GET", "/api/chat/models", undefined, 30000),
+      b.client.request("GET", "/api/chat/models", undefined, connection.profile?.mode === "remote-border" ? 90000 : 30000),
     );
   const choices = [
     { label: "Configured NetClaw default", id: "", efforts: [] },

@@ -123,3 +123,13 @@ test("500 cards filter and paginate with distinct empty states and literal marku
   assert.equal(w.document.getElementById("content").textContent, "");
   dom.window.close();
 });
+
+test("normal remote panels expose only actions supported by their host transport", () => {
+  const dom = new JSDOM('<body data-kind="integrations" data-view-id="remote"><input id="filter"><button id="refresh"></button><div id="status"></div><main><div id="content"></div></main></body>', {runScripts:"outside-only"});
+  const w=dom.window; w.TextEncoder=TextEncoder; w.acquireVsCodeApi=()=>({getState:()=>undefined,setState:()=>{},postMessage:()=>{}});
+  for(const file of ["messaging.js","presenters.js","data.js"])w.eval(fs.readFileSync("resources/"+file,"utf8"));
+  w.dispatchEvent(new w.MessageEvent("message",{data:{viewId:"remote",availableActions:["chat","integrations"],data:{data:{integrations:[{id:"netbox",name:"NetBox",active:true}]}}}}));
+  assert.ok(w.document.getElementById("content").textContent.includes("NetBox"));
+  assert.equal([...w.document.querySelectorAll("#content button")].some(b=>/Configure/i.test(b.textContent)),false);
+  dom.window.close();
+});

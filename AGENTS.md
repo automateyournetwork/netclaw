@@ -175,6 +175,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Selected private homes/SQLite authority and ledger; one-device frozen profiles; external0700 private cloud state/evidence; bounded installation-scoped browser reference storage. (172-gcp-hybrid-border)
 - Python3.12 federation/MCP; Python3.10+ host helpers; existing Node24.19/React18 HUD. + Existing FastMCP/MCP, requests, P256, SQLite, Docker, OpenClaw2026.7.1-2, strict iN2N, OpenTofu1.13.2/Google8.9.0, Caddy2.11.7. Existing NetBox/subnet MCPs; no new server/framework. (173-gcp-cloud-member)
 - Private SQLite/GAIT and immutable profiles; external0700 state/evidence and0600 secrets; bounded browser identifiers only. (173-gcp-cloud-member)
+- existing TypeScript5.9/Node24.19; Dart/Flutter current project toolchain; Python3.12 federation. + VS Code APIs, Node HTTPS, existing Flutter HTTP and secure storage, existing Express owner service. (174-cloud-client-integration)
+- non-secret profile/reference state, native secure sessions, memory-only CSRF/tickets. (174-cloud-client-integration)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -391,3 +393,185 @@ amendment in this integration. R04a is next, then R05; neither starts here.
 Source1.18.4/extension1.5.0 remain unchanged. No version, release, Marketplace,
 blog or public rollout authorization; the entire-roadmap hold through R20 remains.
 See specs/173-gcp-cloud-member/source-integration.md.
+
+### R04a client integration authorization — 2026-11-03
+
+The owner subsequently instructed driving R04a efficiently to completion. This
+starts Spec174 on `174-cloud-client-integration`; R04 is already accepted and
+merged. The coordinator and separate VS Code/Mobile lanes implement explicit
+cloud-owner clients using the existing protected HTTPS authority, exact review
+and no-repeat recovery. Fresh finite qualification and owned cleanup remain
+scoped to the R04a client evidence; never replay retired R04 state, identities,
+enrollment or workloads. Preserve R01 and existing owner clients/runtimes.
+Four optional roadmap passes were used; this is pass5 with no automatic extra
+improvement loop. Required verification/fixes are part of this pass. Actual
+editor/native Mobile evidence and human review precede R05; inventory, source
+tests and simulator execution cannot imply physical-device qualification.
+Source1.18.4/extension1.5.0/Mobile1.0.3+6 and the R20 publication hold remain.
+
+### R04a technical qualification and retirement — 2026-11-03
+
+Spec174 technical work is complete:16/17 tasks, with human evidence acceptance
+still required before R05. Actual Mac VS Code1.109.0 and native iOS26.5 simulator
+cloud-owner reads each produced one NetBox MCP call, two guarded Sonnet4.6 calls,
+a signed result and durable ACK. Actual process restarts recovered the same
+references/results with GETs only and no repeated effects. Three unapproved
+original reviews remain owner-denied with no execution. Physical iPhone remains
+unqualified because installation was refused while locked. The final narrow Mobile
+definite-unsubmitted recovery fix has20 focused tests and independent review;
+successful live evidence retains its earlier source binding.
+
+All24 fresh R04a cloud resources, owned DNS and temporary OS Login key are removed;
+12 actual residue categories found none. R01's checked resources/state/DNS/HTTPS
+and shared budgets remain preserved, with its existing costs retained. The315-file
+private frozen export is evidence only, excludes private identity keys and selected
+integration credentials, and must never be replayed as activation state. Never
+reconnect to retired R04a addresses or replay its plans/enrollment/approvals.
+See specs/174-cloud-client-integration/verification.md and resume.md for exact
+platform/source, preservation and failure limits. Pass5 is complete, with no extra
+optional loop. No R05, version change, release, public rollout or existing-runtime
+upgrade was performed. This does not record the owner's acceptance.
+
+### R04a owner-delivery correction — 2026-11-04
+
+The owner rejected the disposable-only completion as failing the actual objective:
+his installed VS Code must connect to a persistent usable GCP Border. He explicitly
+authorized rebuilding the GCP NetClaw Border image if necessary and designated this
+as non-live development/build-time infrastructure. Reopen R04a. This supersedes
+the earlier no-existing-runtime-upgrade restriction for the scoped GCP pilot and
+necessary private local client installation; it does not authorize public release,
+Marketplace publication, unrelated runtimes, device writes or R05. Retain concrete
+baseline/rollback, review exact resource changes and preserve the existing trial
+expiry/spend bounds. Leave the intended owner deployment and client profile usable;
+retire only disposable test resources. Prior isolated evidence remains historical,
+not owner-delivery acceptance. No new optional improvement loop is started: this
+is required correction of the unfinished R04a objective.
+
+
+### R04a connection-flow and authentication correction — 2026-11-04
+
+The owner explicitly rejected the premature authentication requirement: no login,
+one-use tickets, owner sessions or another auth scheme in this current development
+pilot. Authentication belongs to the later roadmap steps and will use a different
+design. The exact requested VS Code flow is **Add Connection → Local / Cloud →
+Cloud → Name → URL → Connected**. Do not ask for installation ID or an access-mode
+choice; discover and pin installation identity over verified HTTPS. Selecting the
+cloud profile must open a useful view directly and must not flicker/reconnect an
+already-selected profile. This supersedes earlier R04a owner-sign-in assumptions
+and requirements for this pilot. No hidden auto-login/ticket mechanism may be
+substituted. Preserve exact read scope/review, no-repeat recovery, private member
+credentials, TLS/endpoint identity and truthful unauthenticated lab attribution.
+Existing approval/history must not be relabeled or silently cleared. Keep later
+identity/SSO/RBAC and public rollout deferred; no general deployment/release is
+authorized. Owner supplied a replacement NetBox key privately; use it instead of
+the temporary demo credential created during diagnosis, and never put it in source
+or output.
+
+
+### R04a retained runtime checkpoint — 2026-11-04
+
+The explicit no-user-auth Border/member migrations and corrected private extension
+installation are complete. Same Montréal URL/VM, December1stop, original identities
+and failed403 authority are preserved. Cloud public readiness0e1ef7c3 and member
+verification7e24664d pass. Owner replacement key is installed only on the member;
+source1.18.4/extension1.5.0/Mobile1.0.3+6 unchanged, no public release.
+
+Actual native completion is blocked by the Mac lock screen. The owner has been
+asked to unlock normally; never request a password or send blind UI input. After
+unlock, use only extension-host restart (preserve CodePID924/window/terminal), exact
+Name+URL connection and stable profile selection, then same original5004 recovery
+under GAITb21011f2. New distinctprefix1 approval requires full root review; signed
+success/ACK plus GET-only restart/effect comparison remain required before100%.
+Original apply and completion claims are spent; never rerun them or restore oldDB.
+See specs/174-cloud-client-integration/resume.md for exact remaining sequence.
+Existing Mobile QR needs proposedR04b HUD/WSS/protectedoperations; preserve scanner
+and devicekeys, no replacement manualwizard or userauth. Human acceptance/R05 and
+roadmap release holds remain. This checkpoint is not a completion or acceptance claim.
+
+
+### R04a actual operating-interface correction — November 4
+
+The owner explicitly rejected the JSON-only connection landing and narrow
+read-operation client: make the normal NetClaw VS Code interface work against
+the cloud Border after Name + URL, with no user authentication. This supersedes
+R04a's earlier operations-only UI acceptance assumptions. Do not count a connected
+badge, diagnostic document, menu presence or isolated read as completion, and do
+not build another operations-only substitute. Stop redundant verification of that
+rejected target. Reuse normal Overview/Chat/Canvas/RAG/estate/integration views and
+the existing full HUD/runtime handlers through verified HTTPS remote capabilities.
+Local extension-host filesystem/install/lifecycle actions remain local. Preserve
+current b164 installation, protected authority and failed403 history while composing
+any separate conversation/runtime services; do not silently restore old f03c authority
+or legacy device execution. Needed owner-pilot development runtime updates remain
+delegated; no additional user sign-in, release/version/public rollout or R05.
+Native Name+URL/no-login/stableclick checks passed before this correction; initial
+extension activation passed with CodePID924 preserved. Original5004 reconciliation
+was NOT submitted. Actual full operating-interface qualification remains open.
+
+### R04a live workspace checkpoint — November4, final recovery
+
+The normal cloud workspace is now deployed and active in the owner's original
+VS Code window. Private VSIX3fa30a37 (clientcebf8109/root7856e856) preserves profiles,
+settings and other extensions. Actual normal Overview, Chat, RAG retrieval/context
+review and cited Canvas passed; the sole342-byte upload used production HudClient
+after native file-picker automation failed before submission. Five public docs and
+gateway logs were repaired; all advertised read panels and real Sonnet usage passed.
+No user authentication was introduced. Current cloud gateway56278/HUD56057/edge55882
+and protected federation51900/Caddy50879 remain running; sourcee68+7856delta, same
+b164 identity, authority and December1stop. No new cloud resources or publication.
+
+Original5004 is signedFAILED/native_netbox_http_403 with durableACK and unchanged
+1provider/1MCP/1GET403. Authoritative settlement is17:36:49UTC, initiating caller
+unestablished; earlier summaries of an unresolved operation were stale. Current
+native Recover GET repeated no action. Fresh prefix9c380fdc was approved once and
+succeeded with2guardedprovider/inference calls,1nativeNetBoxMCP/1HTTP200GET, signed
+resultbae4366c and durableACK; both member and Border pre-recovery collectors pass.
+
+Final correctly targeted extension-host restart39253/39255→57203/57208 and existing
+profile reconnect succeeded; mainCode924, both references and completed Chat/Canvas
+files are unchanged. macOS locked before final operation selection. The owner has
+been asked to unlock normally and leave the original netclaw window visible. After
+unlock finish ONLY same-prefix GET recovery and normal Overview, then run the
+existing recovered-phase collectors. No more restart, preparation, approval,
+reconciliation, upload, search or provider prompt is needed. Do not claim the final
+native lookup passed until it does. See specs/174-cloud-client-integration/resume.md.
+Human acceptance beforeR05, proposed Mobile QR R04b and R20 release holds remain.
+
+### R04a final owner verification — November4
+
+The owner authorized the last check after unlocking. Actual native post-restart
+status at20:03:24UTC displayed the same prefix9c380fdc completed, signed result
+verified and delivery acknowledged; normal connected GCP Overview is left visible
+(20:04:31UTC). MainCode924/hosts57203/57208 remain unchanged; all five persisted
+NetClaw files, both references/decision markers and completed Chat/Canvas match
+their pre-restart hashes. Native final receipt1e9c306c retains the exact-click
+attribution limit: the picker was selected between snapshots; the source path is
+GET but no raw HTTP trace is claimed. No extra lookup was forced.
+
+Root's member recovered-phase collector verified identical approval/result/ACK,
+unchanged original403 evidence and new-prefix2provider/2inference/1MCP/1HTTP200GET.
+Border comparisonf52c7fc8 verifies every retained field unchanged except observation
+timestamp, including both authorities/results/ACKs, GAIT, counters and source pins.
+All21 technical R04a tasks are complete; T017 remains the separate human acceptance
+gate beforeR05. Do not resume old pending-lookup instructions or run another
+workload/restart to improve evidence. Keep the intended pilot/member running within
+its December1scope. Mobile QR is proposedR04b; no R05, version bump, publication or
+general rollout occurred. Final handoff is specs/174-cloud-client-integration/resume.md.
+
+### R04a acceptance and production extension update — November4
+
+After the completed native verification handoff, the owner requested commit, PR,
+quiet merge, return to main and production VS Code packaging/publication. This
+accepts R04a (22/22 including T017) and supersedes the earlier extension version
+and Marketplace hold for this scoped update. Preserve upstream source1.18.5 from
+PR325 and both distinct Spec174 directories. Extension1.6.0 targets the verified
+Marketplace1.5.0 baseline; publish only the checked archive with recorded source
+and digest. Verify PR checks, merge and public artifact availability.
+
+The broader source release/tag, blog, external announcement and general cloud
+deployment holds throughR20 remain. Do not redeploy the retained pilot or restart
+the owner's editor, repeat provider/device operations, or start R04b/R05 during
+this integration/publication task. R04b cloud HUD Mobile QR enrollment is the
+recommended next scoped feature, followed by R05. No new user-authentication scheme
+belongs in either client correction; users/SSO/RBAC stay R15–R17. See
+specs/174-cloud-client-integration/release-verification.md for actual release evidence.

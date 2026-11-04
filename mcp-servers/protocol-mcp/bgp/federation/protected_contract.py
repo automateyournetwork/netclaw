@@ -113,7 +113,9 @@ def timestamp(value):
 
 def validate_principal(value):
     exact(value, 'issuer subject display_name roles')
-    require(value['issuer'] == 'local' and value['roles'] == ['owner'])
+    require(value['issuer'] == 'local' and value['roles'] == ['owner'] or
+            value['issuer'] == 'open-lab' and value['roles'] == ['lab-operator']
+            and value['display_name'] == 'Unauthenticated lab operator')
     uuid_field(value['subject'])
     ident(value['display_name'])
 
@@ -217,6 +219,8 @@ def validate_review(review):
     exact(review, 'principal border member model_profile tool_call limits change_request_ref')
     validate_principal(review['principal'])
     validate_binding(review['border'], 'border')
+    if review['principal']['issuer'] == 'open-lab':
+        require(review['principal']['subject'] == str(uuid.uuid5(uuid.UUID(review['border']['installation_id']), 'netclaw.open-lab.operator')), 'lab_principal_mismatch')
     validate_binding(review['member'], 'member')
     validate_model(review['model_profile'])
     validate_tool(review['tool_call'])

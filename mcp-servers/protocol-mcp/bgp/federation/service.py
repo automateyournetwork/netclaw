@@ -1876,6 +1876,14 @@ class FederationService:
         return {**res,'border':self._edge_border_capabilities()}
 
     def _edge_border_capabilities(self):
+        if self.protected_enabled:
+            # Edge enrollment never grants the separate HTTPS owner authority.
+            # The protected profile refuses legacy Ask; do not advertise it.
+            return {'harness': self.inventory._harness_card(), 'model': None,
+                    'capabilities': {'text': False, 'voice_text': False,
+                                     'attachments': False, 'task_outcomes_v1': False,
+                                     'request_recovery': False},
+                    'qualified_targets': [], 'minimum_mobile_version': None}
         from .member_inventory import _name
         return {'harness':self.inventory._harness_card(),'model':_name(self.inventory._local_primary_model()),
                 'capabilities':{'text':True,'voice_text':True,'attachments':self.runtime.kind!='hermes',
@@ -2809,8 +2817,11 @@ class FederationService:
                 await ch.call("n2n/inventory", local_inventory(), timeout=3.0)
             except Exception:
                 logger.info("iN2N: member configuration inventory unavailable")
-            # Spec 174: the skill check takes seconds, so it follows separately.
-            self._skill_report_task = asyncio.create_task(self._report_skill_status(ch))
+            # The legacy member runs its skills in the host OpenClaw runtime.
+            # A protected member instead uses its frozen execution profile; an
+            # ambient host CLI cannot describe that runtime or run on its behalf.
+            if not self.protected_enabled:
+                self._skill_report_task = asyncio.create_task(self._report_skill_status(ch))
             logger.info("iN2N: dialed Border %s:%s as %s (%s)", host, port, member_id,
                         {k: v for k, v in resp.items() if k not in ("risk_ca", "hub_attestation")})
             return resp
@@ -2823,6 +2834,8 @@ class FederationService:
     async def _report_skill_status(self, ch):
         """Tell the Border which scoped skills this member's runtime will not load,
         so it stops routing them here. Nothing is sent when that is unknown."""
+        if self.protected_enabled:
+            return
         from .member_inventory import check_skills, local_inventory
         report = await check_skills(self.member_scope)
         if report is None or self.border_channel is not ch:

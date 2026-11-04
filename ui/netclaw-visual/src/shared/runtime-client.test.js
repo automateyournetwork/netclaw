@@ -74,3 +74,13 @@ test('reviewed capacity release is distinct from acknowledgment, cancellable and
  await assert.rejects(api.newConversation('other',{releaseCapacity:true}),/owned unknown/);
  assert.equal(posts.length,3);
 });
+
+
+test('explicit full lab conversation bootstrap and writes never request session or retain credential headers',async t=>{
+ const oldFetch=globalThis.fetch;t.after(()=>globalThis.fetch=oldFetch);const calls=[];
+ globalThis.fetch=async(url,options={})=>{calls.push([url,options]);return {ok:true,json:async()=>url==='/api/runtime'?{kind:'openclaw',installationId:idA,access:{mode:'open-lab'},capabilities:{remoteHud:{schema:1,features:['chat']}}}:{fromGateway:true,response:'fixture'}};};
+ const api=await moduleFor();await api.bootstrapRuntime();await api.ensureConversationContext();await api.sendChat({hudThread:'public',message:'hello'});
+ await api.workspaceFetch('/api/rag/search',{method:'POST',credentials:'include',headers:{Cookie:'old',Authorization:'Bearer old','X-CSRF-Token':'old'}});
+ assert.equal(calls.some(([url])=>url.includes('/session')),false);assert.ok(calls.every(([,o])=>o.credentials==='omit'));
+ const headers=calls.at(-1)[1].headers;for(const name of ['Cookie','Authorization','X-CSRF-Token'])assert.equal(headers.has(name),false);assert.equal(headers.get('X-NetClaw-Installation'),idA);
+});

@@ -1,3 +1,5 @@
+import { ensureConversationContext } from '../shared/runtime-client.js';
+import { workspaceFetch as fetch } from '../shared/runtime-client.js';
 import { runtimeInfo, runtimeStorage, sendChat, observeRequest, pendingRequest, restoreOwnedRequest, newConversation, requestControl } from '../shared/runtime-client.js';
 import { loadChat, saveChat, loadChatArchive, archiveChat } from './chat-storage.js';
 import { recoveryAnchor, mergeRecoveredTurn, recoveredDraft } from './chat-recovery.js';
@@ -75,8 +77,7 @@ export default function StandardChat({ preview = false, active = true, pal = fal
     if (preview || historyBusy) return;
     setHistoryBusy(true); setHistoryError('');
     try {
-      const session = await fetch('/api/hud/session', { method: 'POST', credentials: 'same-origin' });
-      if (!session.ok) throw Error();
+      await ensureConversationContext();
       const response = await fetch('/api/chat/conversations', { cache: 'no-store' });
       if (!response.ok) throw Error();
       const data = await response.json();
@@ -130,8 +131,7 @@ export default function StandardChat({ preview = false, active = true, pal = fal
     persist({ messages: before, draft: prompt, interrupted: true });
     setMessages(context); setDraft('');
     try {
-      const session = await fetch('/api/hud/session', { method: 'POST', credentials: 'same-origin', cache: 'no-store' });
-      if (!session.ok) throw Error('The private HUD session is unavailable. Your draft has been restored.');
+      await ensureConversationContext();
       const anchor=selectedRuntime?.kind==='hermes' ? await recoveryAnchor(before) : undefined;
       const data = await sendChat({ message: prompt, messages: context.slice(-40).map(({role,content}) => ({role,content})), hudThread: thread.current, chatModel, chatEffort }, setRequestState, anchor);
       if (data.fromGateway !== true) throw Error((typeof data.gatewayIssue === 'string' ? data.gatewayIssue : 'The gateway did not return a confirmed reply.') + ' Your draft has been restored.');

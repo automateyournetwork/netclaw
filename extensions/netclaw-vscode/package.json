@@ -2,7 +2,7 @@
   "name": "netclaw",
   "displayName": "NetClaw",
   "description": "Set up and manage independent NetClaw and Risk installations from Visual Studio Code.",
-  "version": "1.5.0",
+  "version": "1.6.0",
   "publisher": "NetClaw",
   "license": "Apache-2.0",
   "engines": {
@@ -404,6 +404,30 @@
       {
         "command": "netclaw.setupConnect",
         "title": "NetClaw: Save Verified Setup Connection"
+      },
+      {
+        "command": "netclaw.ownerSignIn",
+        "title": "Sign in to Cloud Border",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted && !netclaw.cloudOpenLab"
+      },
+      {
+        "command": "netclaw.ownerSignOut",
+        "title": "Sign out of Cloud Border",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted && !netclaw.cloudOpenLab"
+      },
+      {
+        "command": "netclaw.ownerPrepare",
+        "title": "Prepare Cloud Read",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
+      },
+      {
+        "command": "netclaw.ownerRecover",
+        "title": "Recover Cloud Operation",
+        "category": "NetClaw",
+        "enablement": "isWorkspaceTrusted"
       }
     ],
     "mcpServerDefinitionProviders": [
@@ -421,6 +445,14 @@
         {
           "command": "netclaw.openDomain",
           "when": "false"
+        },
+        {
+          "command": "netclaw.ownerSignIn",
+          "when": "!netclaw.cloudOpenLab"
+        },
+        {
+          "command": "netclaw.ownerSignOut",
+          "when": "!netclaw.cloudOpenLab"
         }
       ],
       "editor/context": [

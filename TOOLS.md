@@ -1316,3 +1316,66 @@ account to a numeric path; verify both exact identities and every other key fiel
 before removing only the owned fingerprint. R01 state also contains data, budget,
 secret/IAM and account entries; validate its exact type set instead of assuming
 all resources are Compute. Preserve explicit before-metadata coverage limits.
+
+### R04a client qualification lessons — 2026-11-03
+
+Protected owner GET status reads the Border ledger; use the explicit same-operation
+reconcile action to fetch a ready member receipt and deliver ACK. Once acknowledged,
+actual editor/native process restart recovers the same result with GETs only.
+Never interpret a status wait as permission to prepare or approve again.
+
+VS Code1.109.0 is required by the current extension; the installed1.108.0 was left
+unchanged and a private supported editor was used. Complete immutable reviews need
+a scrollable document followed by a compact native decision; the original large
+modal overflowed the actual editor viewport before approval.
+
+The native Mobile harness imports the production screen/client into a separate
+bundle. `flutter test` removed its Documents report on exit; use the checked-in
+host driver/reportData export and private0600 destination. Inject the one-use
+private configuration after the actual app connects, not before installation.
+The paired physical iPhone remained locked; iOS26.5 simulator execution does not
+qualify physical hardware. Actual successful evidence and source hashes are under
+~/.local/share/netclaw/roadmap-r04a-20261103/; final status is in Spec174 verification.
+
+
+### R04a retained owner pilot — November 4 correction
+
+The owner's regular VS Code is now1.109.0; the old1.108.0 app and user data are
+privately backed up. The corrected private NetClaw1.5.0 VSIX6180d9f8 is installed.
+Use Add Connection → Local / Cloud → Cloud → Name → URL; the current cloud pilot
+needs no login/ticket/session/installation-ID prompt. HTTPS discovery pins the
+installation automatically. Selecting the active profile opens its view without
+clearing/reconnecting. Actual final native verification is recorded in Spec174;
+do not infer it from installation alone. Native AX cannot operate the editor
+behind macOS loginwindow; ask the owner to unlock normally, never for a password.
+
+Retained URL: https://r01-gcp-montreal.lobsternet.automateyournetwork.com
+Border installation:b164621c-a94e-4c28-a087-d9c9dabcce21, dedicated UID10010/native
+systemd source7f7df355 on existing Montréal VM7647370903424740100. Explicit private
+open-lab access, no user sessions; origin/Host/installation/read-scope checks and
+private member mutual TLS remain. Public owner/session404, catalog200withoutcookie.
+Existing Caddy unmatchedHost is200empty; protected backend wrongHost403.
+
+Fresh Mac member:c1b06ef1-bfab-40ed-87b9-3da65870ee0a, dedicated LaunchAgent
+com.netclaw.r04a-owner-member, outbound federation/no TCP listener. Existing
+NetBox skill/MCP and Sonnet4.6 support only device1/prefix1 read profiles. Keep
+Mac awake/loggedin/online and Docker running. No OSreboot/login/Dockerautostart or
+cross-client concurrency qualification. VM/member retain December1stop; disk/IP
+charges can remain. Original R01 home/archive remains; legacyapps disabled.
+Never replay oldpilot IaC or spent enrollment/approvals over retained authority.
+
+Known faileddevice1operation5004c921-82d8-414d-ac70-a13b5b2a340b made1provider,
+1MCP and1NetBoxGET403. Its original artifacts/attempt are retained. Narrow native
+401/403 recovery requires full matching evidence/stoppedworkers and signs FAILED
+without rerunning an effect; genuine unknown stays blocked. Ownerreplacementkey
+is private and supersedes unuseddiagnosticfallback. Never print eithercredential.
+
+Darwin cross-parent rename of0555 source directory can failEACCES even when parent
+is writable. Exact private fixture proved temporary owner-write on that directory
+allows move; restore0555. Use a reviewed completion-only claim after exact partial
+state, never rerun original apply or restore a historical database over authority.
+
+Existing Mobile QR requires cloud HUD issuer, trustedWSS and protectedoperation
+integration, proposedR04b. The existing scanner/devicekey is preserved. No userauth
+belongs in this correction; QR device enrollment is distinct from laterSSO/RBAC.
+See specs/174-cloud-client-integration/owner-delivery.md and verification.md.

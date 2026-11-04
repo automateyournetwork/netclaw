@@ -1,0 +1,42 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
+import http from 'node:http';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
+import {fileURLToPath} from 'node:url';
+import {REMOTE_HUD_FEATURES} from './remote-hud.js';
+const ui=path.resolve(path.dirname(fileURLToPath(import.meta.url)),'../..');
+const listen = server => new Promise(resolve=>server.listen(0,'127.0.0.1',()=>resolve(server.address().port)));
+test('real normal HUD starts sessionless with existing identity, conversation handler and graph/history routes; native writes remain refused', {timeout:20000}, async t=>{
+ const root=fs.mkdtempSync(path.join(fs.realpathSync(os.tmpdir()),'workspace-integration-'));t.after(()=>fs.rmSync(root,{recursive:true,force:true}));
+ const home=path.join(root,'control'),conversationHome=path.join(root,'conversation'),id='b164621c-a94e-4c28-a087-d9c9dabcce21';
+ for(const p of [home,conversationHome,path.join(home,'netclaw-hud'),path.join(home,'netclaw-federation')])fs.mkdirSync(p,{recursive:true,mode:0o700});
+ const write=(file,value)=>fs.writeFileSync(file,JSON.stringify(value),{mode:0o600});
+ write(path.join(home,'netclaw-hud/installation.json'),{schemaVersion:1,installationId:id});
+ write(path.join(home,'netclaw-federation/protected-profile.json'),{role:'border',identity:{installation_id:id},access:{mode:'open-lab'}});
+ write(path.join(home,'openclaw.json'),{netclaw:{controlOnly:true}});fs.writeFileSync(path.join(home,'.env'),'');
+ let gatewayCalls=0;
+ const gateway=http.createServer(async(req,res)=>{let raw='';for await(const chunk of req)raw+=chunk;if(req.url==='/status'){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify({installation_id:'legacy-other',harness_type:'openclaw',federation_ready:true}));}assert.equal(req.url,'/v1/chat/completions');assert.equal(req.headers.authorization,'Bearer fixture-internal-only');gatewayCalls++;res.setHeader('Content-Type','application/json');res.end(JSON.stringify({choices:[{message:{content:'Fixture gateway reply for '+JSON.parse(raw).messages[0].content}}]}));});
+ const gwPort=await listen(gateway);t.after(()=>{gateway.closeAllConnections();gateway.close();});
+ const probe=http.createServer(),port=await listen(probe);await new Promise(resolve=>probe.close(resolve));
+ const conversationConfig=path.join(conversationHome,'openclaw.json');write(conversationConfig,{agents:{defaults:{model:{primary:'fixture/model'}}},gateway:{port:gwPort,auth:{mode:'token',token:'fixture-internal-only'},http:{endpoints:{chatCompletions:{enabled:true}}}}});
+ const config=path.join(root,'workspace.json');write(config,{schemaVersion:1,installationId:id,conversationHome,conversationConfig,upstream:`http://127.0.0.1:${port}`,features:[...REMOTE_HUD_FEATURES]});
+ const child=spawn(process.execPath,['server.js'],{cwd:ui,env:{PATH:process.env.PATH,HOME:root,NETCLAW_RUNTIME:'openclaw',OPENCLAW_STATE_DIR:home,OPENCLAW_CONFIG_PATH:conversationConfig,NETCLAW_OPEN_LAB_WORKSPACE_CONFIG:config,NETCLAW_BGP_API:`http://127.0.0.1:${gwPort}`,HUD_PORT:String(port),HUD_UI_PORT:String(port===65535?65534:port+1)}});
+ let output='';child.stdout.on('data',d=>output+=d);child.stderr.on('data',d=>output+=d);
+ t.after(async()=>{if(child.exitCode===null){child.kill('SIGTERM');await once(child,'exit');}});
+ const url=`http://127.0.0.1:${port}`;let ready;
+ for(let n=0;n<100;n++){if(child.exitCode!==null)throw Error(output);try{ready=await fetch(url+'/api/runtime');if(ready.ok)break;}catch{}await new Promise(r=>setTimeout(r,50));}
+ assert.ok(ready?.ok,output);assert.equal((await ready.json()).installationId,id);
+ for(const route of ['/api/graph','/api/hud/runtime','/api/chat/conversations']){const r=await fetch(url+route);assert.equal(r.status,200,route);assert.equal(r.headers.get('set-cookie'),null);}
+ for(const route of ['/api/hud/session','/api/hud/owner/session','/api/n2n/chat','/api/terminal/terra'])assert.equal((await fetch(url+route,{method:'POST'})).status,404,route);
+ const wrongFederation=await fetch(url+'/api/n2n');assert.equal(wrongFederation.status,503);assert.equal((await wrongFederation.json()).code,'federation_owner_mismatch');
+ const reply=await fetch(url+'/api/chat',{method:'POST',headers:{'Content-Type':'application/json','X-NetClaw-Installation':id},body:JSON.stringify({message:'hello',hudThread:'public-thread'})});
+ assert.equal(reply.status,200,await reply.clone().text());assert.equal((await reply.json()).response,'Fixture gateway reply for hello');assert.equal(reply.headers.get('set-cookie'),null);assert.equal(gatewayCalls,1);
+ const binding=JSON.parse(fs.readFileSync(path.join(conversationHome,'hud-bindings/lab-conversations.json')));assert.equal(binding.installationId,id);assert.equal(Object.values(binding.tasks)[0].publicThread,'public-thread');
+ assert.deepEqual(JSON.parse(fs.readFileSync(path.join(home,'openclaw.json'))),{netclaw:{controlOnly:true}});
+ assert.equal(fs.existsSync(path.join(conversationHome,'netclaw-hud/installation.json')),false);
+ assert.equal(fs.readdirSync(path.join(conversationHome,'hud-bindings')).length,1);
+});

@@ -147,6 +147,42 @@ class ProtectedStore:
             require(cur.rowcount == 1, 'state_conflict', 409)
         return self.get(side, operation_id)
 
+    def complete_known_netbox_failure(self, verified, audit_ref):
+        """One atomic native recovery; no caller-supplied terminal or new claim."""
+        from .protected_failure_recovery import VerifiedFailure, authority_digest
+        require(isinstance(verified, VerifiedFailure) and isinstance(verified.proof, dict), 'failure_proof_required')
+        proof = verified.proof
+        require(proof.get('kind') == 'native_netbox_http_authorization_response'
+                and type(proof.get('http_status')) is int and proof['http_status'] in (401, 403)
+                and proof.get('http_requests') == proof.get('mcp_calls') == 1
+                and isinstance(audit_ref, str) and 0 < len(audit_ref) <= 200, 'failure_proof_required')
+        with self.transaction() as conn:
+            row = self.unpack(conn.execute("SELECT * FROM protected_operation WHERE side='member' AND operation_id=?",
+                                           (proof['operation_id'],)).fetchone())
+            require(row is not None and row['state'] == 'outcome_unknown'
+                    and row['revision'] == proof['original_revision']
+                    and row['attempt_id'] == proof['attempt_id'] and row['approval_digest'] == proof['approval_sha256']
+                    and row['review_digest'] == proof['review_sha256'] and authority_digest(row) == proof['authority_sha256']
+                    and row['error_code'] == proof['original_error_code']
+                    and row['effect_claimed'] == 1 and row['effect_finished'] == 0
+                    and all(row[key] is None for key in ('receipt', 'receipt_digest', 'ack', 'tool_evidence', 'executor_result')),
+                    'failure_state_conflict', 409)
+            verified.recheck()
+            terminal = {'output': {}, 'tool_evidence': None, 'usage': {'available': False},
+                        'effective_model_profile': row['review']['model_profile'],
+                        'outcome': 'failed', 'effect_status': 'finished',
+                        'error_code': 'native_netbox_http_' + str(proof['http_status']),
+                        'failure_recovery': proof}
+            audit_refs = dict(row['audit_refs'], failure_recovery=audit_ref)
+            # Finished means this denied read attempt has a definite terminal
+            # response. It does not fabricate successful MCP/object evidence.
+            changed = conn.execute("UPDATE protected_operation SET state='audit_pending',effect_finished=1,"
+                "executor_result=?,audit_refs=?,revision=revision+1 WHERE side='member' AND operation_id=? "
+                "AND state='outcome_unknown' AND revision=?",
+                (encode(terminal).decode(), encode(audit_refs).decode(), proof['operation_id'], proof['original_revision']))
+            require(changed.rowcount == 1, 'failure_state_conflict', 409)
+        return self.get('member', proof['operation_id'])
+
     def claim_executor(self, operation_id, now_ms, *, attempt_id=None):
         from .protected_contract import uuid_field
         attempt = attempt_id or str(uuid.uuid4())

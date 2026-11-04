@@ -1,10 +1,19 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { createChatRuntime, gatewayEnvironment } from './chat-runtime.js';
+import { createChatRuntime, gatewayEnvironment, gatewayCallTimeout } from './chat-runtime.js';
 import { publicChatModels, resolveChatEffort, resolveChatModel } from './chat-models.js';
 const config = { agents: { entries: { engineer: {} }, defaults: { model: 'p/default@private' } } };
 const models = [{ provider: 'p', id: 'fast', available: true, thinkingDefault: 'low', thinkingLevels: [{ id: 'low' }, { id: 'high' }] },
   { provider: 'p', id: 'denied', available: false }];
+test('slow-host discovery allowance is bounded and does not extend other gateway calls', () => {
+  const env = { NETCLAW_GATEWAY_CATALOG_TIMEOUT_MS: '60000', NETCLAW_GATEWAY_SETTINGS_TIMEOUT_MS: '120000' };
+  assert.equal(gatewayCallTimeout('models.list', env), 60000);
+  assert.equal(gatewayCallTimeout('sessions.patch', env), 120000);
+  assert.equal(gatewayCallTimeout('sessions.delete', env), 20000);
+  assert.equal(gatewayCallTimeout('models.list', {}), 20000);
+  for (const value of ['19999', '60001', 'Infinity', '30000.5', 'bad'])
+    assert.equal(gatewayCallTimeout('models.list', { ...env, NETCLAW_GATEWAY_CATALOG_TIMEOUT_MS: value }), 20000);
+});
 test('available runtime choices and supported efforts are validated without leaking profiles', () => {
   const catalog = publicChatModels(config, models);
   assert.equal(catalog.models.length, 2);

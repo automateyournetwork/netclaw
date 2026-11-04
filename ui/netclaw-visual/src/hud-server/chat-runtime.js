@@ -5,6 +5,13 @@ import { constants } from 'node:fs';
 import path from 'node:path';
 import { gatewayAgentId } from './gateway-agent.js';
 const execute = promisify(execFile);
+export function gatewayCallTimeout(method, env = process.env) {
+  const name = method === 'models.list' ? 'NETCLAW_GATEWAY_CATALOG_TIMEOUT_MS'
+    : method === 'sessions.patch' ? 'NETCLAW_GATEWAY_SETTINGS_TIMEOUT_MS' : null;
+  const requested = name ? Number(env[name]) : NaN;
+  const maximum = method === 'models.list' ? 60000 : 120000;
+  return Number.isInteger(requested) && requested >= 20000 && requested <= maximum ? requested : 20000;
+}
 export function gatewayEnvironment(config, port, configPath, env = process.env, nodePath = process.execPath) {
   if (!Number.isInteger(port) || port < 1 || port > 65535) throw Error('Invalid local gateway port.');
   const resolve = value => {
@@ -35,10 +42,9 @@ export async function gatewayCall(method, params, port, configPath) {
       try{await access(candidate,constants.X_OK);executable=candidate;break locate;}catch{}
     }
   }
-  // Small cloud hosts can spend longer starting the native CLI. Keep the
-  // operator override bounded and limited to confirmed settings mutations.
-  const requestedTimeout = Number(process.env.NETCLAW_GATEWAY_SETTINGS_TIMEOUT_MS);
-  const timeout = method === 'sessions.patch' && Number.isInteger(requestedTimeout) && requestedTimeout >= 20000 && requestedTimeout <= 120000 ? requestedTimeout : 20000;
+  // Small cloud hosts can spend longer starting the native CLI. Discovery has
+  // its own bounded allowance; unrelated calls retain their existing deadline.
+  const timeout = gatewayCallTimeout(method);
   const { stdout } = await execute(executable, ['gateway', 'call', method, '--params', JSON.stringify(params),
     '--timeout', '10000', '--json'],
   { env: gatewayEnvironment(config, port, configPath), timeout, maxBuffer: 4 * 1024 * 1024, windowsHide: true });

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'cloud_owner_screen.dart';
 
 /// 105/US1/FR-001/FR-002: shown before `EnrollmentScreen`'s QR scanner on
 /// every launch where nothing is enrolled yet (an "unenrolled-state" screen,
@@ -88,6 +89,10 @@ class _OnboardingExplainerScreenState extends State<OnboardingExplainerScreen> {
               FilledButton(
                 onPressed: _acknowledged ? widget.onContinue : null,
                 child: const Text('Agree and Continue'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen())),
+                child: const Text('Connect as cloud Border owner'),
               ),
             ],
           ),

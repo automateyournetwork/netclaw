@@ -1,14 +1,25 @@
 /** Session authority remains in memory; browser persistence holds identifiers only. */
-export function createProtectedOperationsApi(installationId, onSessionLost = () => {}) {
+export function isOpenLabAccess(access) {
+  const p = access?.principal;
+  return access?.mode === 'open-lab' && Object.keys(access).sort().join() === 'mode,principal'
+    && p && Object.keys(p).sort().join() === 'display_name,issuer,roles,subject'
+    && p.issuer === 'open-lab' && p.display_name === 'Unauthenticated lab operator'
+    && /^[a-f0-9]{8}-[a-f0-9]{4}-5[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(p.subject)
+    && Array.isArray(p.roles) && p.roles.length === 1 && p.roles[0] === 'lab-operator';
+}
+export function createProtectedOperationsApi(installationId, onSessionLost = () => {}, access) {
+  if (access !== undefined && !isOpenLabAccess(access)) throw Error('Unsupported protected access mode.');
+  const openLab = isOpenLabAccess(access);
   let csrf = null;
   const request = async (path, method = 'GET', body, bootstrap = false) => {
     const headers = { 'X-NetClaw-Installation': installationId };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
+    if (openLab && path === '/api/hud/owner/session') throw Error('Owner sessions are unavailable in this open lab.');
     if (bootstrap) headers['X-NetClaw-Owner-Bootstrap'] = '1';
-    else if (method !== 'GET') headers['X-NetClaw-CSRF'] = csrf || '';
+    else if (!openLab && method !== 'GET') headers['X-NetClaw-CSRF'] = csrf || '';
     let response, value;
     try {
-      response = await fetch(path, { method, headers, credentials: 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(35000), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+      response = await fetch(path, { method, headers, credentials: openLab ? 'omit' : 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(35000), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
       value = await response.json();
     } catch {
       throw Object.assign(Error('The response was not confirmed. Check this operation’s status; nothing was resent.'), { uncertain: true });
@@ -16,7 +27,7 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     if (!response.ok) {
       if (response.status === 401 || response.status === 409 && value.code === 'installation_changed') { csrf = null; onSessionLost(); }
       const prepareNotSubmitted = path === '/api/hud/operations' && method === 'POST' && value.admission === 'not_submitted';
-      const message = prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check your owner session and configured HUD origin.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.';
+      const message = prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 && !openLab ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check the configured HUD origin and access mode.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.';
       throw Object.assign(Error(message), { status: response.status, code: value.code, uncertain: response.status >= 500, prepareNotSubmitted });
     }
     return value;

@@ -213,6 +213,9 @@ def validate(contract_path):
     raw = private_bytes(home / 'netclaw-federation/protected-profile.json'); hashed(raw, cfg['profile_sha256'])
     profile = json.loads(raw, object_pairs_hook=pairs)
     fields = 'schemaVersion role identity' if cfg['role'] == 'border' else 'schemaVersion role identity catalog runtime border'
+    if not member and 'access' in profile:
+        fields += ' access'
+        need(profile['access'] == {'mode': 'open-lab'}, 'profile_access_invalid')
     exact(profile, fields)
     need(type(profile['schemaVersion']) is int and profile['schemaVersion'] == 1
          and profile['role'] == cfg['role'] and profile.get('identity', {}).get('installation_id') == cfg['installation_id'], 'profile_mismatch')

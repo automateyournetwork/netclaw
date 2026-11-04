@@ -1,12 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import OwnerSessionGate from './OwnerSessionGate.jsx';
 import RetainedOperationsView from './RetainedOperationsView.jsx';
-import { operationReference } from '../shared/protected-operations-client.js';
+import { operationReference, createProtectedOperationsApi, isOpenLabAccess } from '../shared/protected-operations-client.js';
 import './protected-operations.css';
 
 const terminal = new Set(['completed', 'refused', 'failed', 'denied', 'cancelled', 'revoked']);
 const json = value => JSON.stringify(value, null, 2);
-function Operations({ api, session, installationId }) {
+function Operations({ api, principal, installationId }) {
   const references = useMemo(() => operationReference(installationId), [installationId]);
   const [catalog, setCatalog] = useState(null), [memberIndex, setMemberIndex] = useState(0), [profileIndex, setProfileIndex] = useState(0), [toolIndex, setToolIndex] = useState(0);
   const [reference, setReference] = useState(() => references.read()), [operation, setOperation] = useState(null), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState('');
@@ -82,7 +82,7 @@ function Operations({ api, session, installationId }) {
       {!rejectedDraft && <div className="protected-actions"><button disabled={busy} onClick={() => run(() => api.status(reference))}>{busy ? 'Checking…' : 'Check status'}</button>
         {reference.operation_id && <button disabled={busy} onClick={() => run(() => api.reconcile(reference.operation_id))}>Reconcile existing operation</button>}
       </div>}
-      {review && <><h3>Immutable approval review</h3><p>Review the complete principal, member identity, model profile, tool arguments and limits before approving once.</p><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Signed-in owner</dt><dd>{session.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{new Date(review.limits.expires_at_ms).toISOString()}</dd></div></dl><pre aria-label="Immutable operation review">{json(review)}</pre>
+      {review && <><h3>Immutable approval review</h3><p>Review the complete principal, member identity, model profile, tool arguments and limits before approving once.</p><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Review operator</dt><dd>{review.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{new Date(review.limits.expires_at_ms).toISOString()}</dd></div></dl><pre aria-label="Immutable operation review">{json(review)}</pre>
         {!reviewCurrent && <p>This review has expired. It cannot authorize execution.</p>}
         <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={!actions.includes(decision) || decision === 'approve' && !reviewCurrent} onClick={() => run(() => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true)}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}
           {actions.includes('revoke') && <button disabled={busy} onClick={() => run(() => api.revoke(reference.operation_id), true)}>Revoke remaining authority</button>}
@@ -96,7 +96,12 @@ function Operations({ api, session, installationId }) {
   </>;
 }
 
-export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false }) {
+function OpenLabOperations({ installationId, access, View }) {
+  const api = useMemo(() => createProtectedOperationsApi(installationId, () => {}, access), [installationId, access]);
+  return <><section className="panel"><h2>Open lab</h2><p>{access.principal.display_name}. No sign-in is used for this development pilot.</p></section><View api={api} principal={access.principal} installationId={installationId}/></>;
+}
+export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false, access }) {
   const View = retainMultiple ? RetainedOperationsView : Operations;
-  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <View key={installationId + session.principal.subject} api={api} session={session} installationId={installationId}/>}</OwnerSessionGate>;
+  if (enabled && access !== undefined) return isOpenLabAccess(access) ? <OpenLabOperations key={installationId} installationId={installationId} access={access} View={View}/> : <p role="alert">Unsupported protected access mode.</p>;
+  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <View key={installationId + session.principal.subject} api={api} principal={session.principal} installationId={installationId}/>}</OwnerSessionGate>;
 }

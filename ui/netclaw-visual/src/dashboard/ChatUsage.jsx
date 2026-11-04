@@ -1,3 +1,4 @@
+import { workspaceFetch as fetch } from '../shared/runtime-client.js';
 import React, { useEffect, useState } from 'react';
 const count = n => typeof n === 'number' ? n.toLocaleString() : 'Not reported';
 const when = n => typeof n === 'number' && n > 0 ? new Date(n).toLocaleString() : 'Not reported';

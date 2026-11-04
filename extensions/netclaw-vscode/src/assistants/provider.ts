@@ -35,7 +35,7 @@ export class AssistantProvider
   }
   provideMcpServerDefinitions() {
     this.labels.clear();
-    if (!this.connection.ready || !vscode.workspace.isTrusted) return [];
+    if (!this.connection.ready || this.connection.profile?.mode === "remote-border" || !vscode.workspace.isTrusted) return [];
     try {
       const file = this.file("copilot"),
         r = readRegistration(file);
@@ -63,7 +63,7 @@ export class AssistantProvider
     );
   }
   resolveMcpServerDefinition(definition: vscode.McpStdioServerDefinition) {
-    if (!this.connection.ready || !vscode.workspace.isTrusted) return undefined;
+    if (!this.connection.ready || this.connection.profile?.mode === "remote-border" || !vscode.workspace.isTrusted) return undefined;
     const file = this.labels.get(definition.label);
     if (!file) return undefined;
     const r = readRegistration(file);
@@ -75,6 +75,7 @@ export class AssistantProvider
     return this.definition(definition.label, file, r);
   }
   async setup() {
+    if (this.connection.profile?.mode === "remote-border") throw Error("Assistant registration requires a local profile.");
     const b = this.connection.bound(),
       profile = this.connection.profile!;
     const selected = await vscode.window.showQuickPick(

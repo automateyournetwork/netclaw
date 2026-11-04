@@ -11,14 +11,14 @@ const args = { device_name: 'fixture-router', command: 'show version', timeout: 
 const catalog = { revision: 'catalog-1', members: [{ member: { member_id: 'onprem-fixture', key_id: 'member-key', installation_id: ID }, model_profiles: [{ profile_id: 'sonnet-fixture', provider: 'anthropic', model: 'fixture-model' }], tools: [{ tool: 'pyats_run_show_command', arguments: args, device_ref: 'fixture-router' }] }] };
 function operation(nonce, changes = {}) { return { operation_id: 'operation-171', client_nonce: nonce, revision: 1, state: 'review_pending', review_digest: 'd'.repeat(64), attempt_count: 0, may_have_executed: false, reconciliation_required: false, review: { principal, border: { identity: 'fixture-border' }, member: catalog.members[0].member, model_profile: catalog.members[0].model_profiles[0], tool_call: { tool: 'pyats_run_show_command', arguments: args, arguments_sha256: 'a'.repeat(64) }, limits: { expires_at_ms: Date.now() + 600000, max_tool_calls: 1, max_inference_calls: 2 } }, allowed_actions: ['approve', 'deny'], ...changes }; }
 async function until(predicate) { const end = Date.now() + 3000; while (!predicate()) { if (Date.now() > end) assert.fail('UI condition did not become ready'); await new Promise(resolve => setTimeout(resolve, 5)); } }
-async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false } = {}) {
+async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false, access } = {}) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost:3000', runScripts: 'outside-only', pretendToBeVisual: true }), w = dom.window, calls = [];
-  const props = { enabled, installationId: ID, retainMultiple }; let signedIn = authenticated;
+  const props = { enabled, installationId: ID, retainMultiple, access }; let signedIn = authenticated;
   if (saved) w.sessionStorage.setItem(`netclaw.protected.${ID}.${Array.isArray(saved) ? 'operations.v2' : 'operation'}`, JSON.stringify(saved));
   const session = () => ({ authenticated: true, principal, csrf_token: 'csrf-private-fixture', expires_ms: Date.now() + 3600000, installation_id: ID });
   w.fetch = async (url, options = {}) => {
     const method = options.method || 'GET', body = options.body ? JSON.parse(options.body) : undefined;
-    calls.push({ url, method, body, headers: options.headers });
+    calls.push({ url, method, body, headers: options.headers, credentials: options.credentials });
     const override = await handler(url, { ...options, method, body });
     let value = override;
     if (value === undefined && url === '/api/hud/owner/session') {
@@ -311,4 +311,42 @@ test('native cloud summaries escape source markup and exclude unverified or mism
   assert.equal(f.w.document.querySelectorAll('img,script').length, 0); assert.doesNotMatch(f.body(), /unverified-native-name/);
   const rows = [...f.w.document.querySelectorAll('tbody tr')];
   assert.match(rows[0].textContent, /<img src=x onerror=alert\(1\)>/); assert.match(rows[1].textContent, /Unavailable/); assert.match(rows[2].textContent, /Unavailable/); assert.doesNotMatch(rows[2].textContent, /203\.0\.113/);
+});
+
+const labAccess = { mode: 'open-lab', principal: { issuer: 'open-lab', subject: '00000000-0000-5000-8000-000000000174', display_name: 'Unauthenticated lab operator', roles: ['lab-operator'] } };
+test('open-lab HUD opens operations directly and never uses owner sessions, cookies or CSRF', async t => {
+  let current;
+  const f = await setup(t, (url, options) => {
+    assert.notEqual(url, '/api/hud/owner/session'); assert.equal(options.credentials, 'omit');
+    assert.equal(options.headers['X-NetClaw-CSRF'], undefined); assert.equal(options.headers['X-NetClaw-Owner-Bootstrap'], undefined);
+    if (url === '/api/hud/operations' && options.method === 'POST') { current = operation(options.body.client_nonce); current.review.principal = labAccess.principal; return current; }
+    if (url.endsWith('/decision')) return current = { ...current, state: 'dispatch_pending', allowed_actions: ['reconcile'], attempt_count: 1 };
+  }, { access: labAccess, authenticated: false, retainMultiple: true });
+  await until(() => f.button('Prepare review'));
+  assert.match(f.body(), /Unauthenticated lab operator/); assert.equal(f.button('Sign in'), undefined);
+  f.button('Prepare review').click();
+  await until(() => f.button('Approve once') && !f.button('Approve once').disabled);
+  assert.match(f.w.document.querySelector('[aria-label="Immutable operation review"]').textContent, /open-lab/);
+  f.button('Approve once').click(); await until(() => f.body().includes('dispatch_pending'));
+  assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 1);
+  assert.equal(f.calls.filter(row => row.url.includes('/owner/')).length, 0);
+  assert.ok(f.calls.every(row => row.credentials === 'omit'));
+});
+
+test('open-lab HUD retains historical owner review on status-only reload without reapproval', async t => {
+  const old = operation('old-reference', { state: 'reconciliation_required', may_have_executed: true, attempt_count: 1, allowed_actions: ['reconcile'] });
+  const f = await setup(t, (url, options) => {
+    assert.notEqual(url, '/api/hud/owner/session'); assert.equal(options.method, 'GET');
+    if (url === '/api/hud/operations/operation-171') return old;
+  }, { access: labAccess, authenticated: false, saved: { operation_id: 'operation-171', client_nonce: 'old-reference' } });
+  await until(() => f.body().includes('reconciliation_required'));
+  assert.match(f.w.document.querySelector('[aria-label="Immutable operation review"]').textContent, /Fixture owner/);
+  assert.ok(f.button('Approve once').disabled); assert.equal(f.button('Sign in'), undefined);
+  assert.equal(f.calls.filter(row => row.method !== 'GET').length, 0);
+});
+
+test('malformed advertised access fails closed without a login fallback', async t => {
+  const f = await setup(t, () => assert.fail('No request allowed'), { access: { mode: 'open-lab', principal } });
+  await until(() => f.body().includes('Unsupported protected access mode'));
+  assert.equal(f.calls.length, 0); assert.equal(f.button('Sign in'), undefined);
 });

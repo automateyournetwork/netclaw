@@ -1,4 +1,6 @@
 import { randomUUID } from "node:crypto";
+import { ownerOrigin, installationIdentifier } from "./owner";
+import { remoteHudFeatures, remoteHudRoute } from "./remote-hud";
 
 export type Json = Record<string, any>;
 export type Runtime = {
@@ -7,6 +9,8 @@ export type Runtime = {
   readiness: Json;
   capabilities: Json;
   label?: string;
+  role?: string;
+  access?: Json;
 };
 export type Conversation = {
   id?: string;
@@ -78,16 +82,19 @@ export class HudClient {
     url: string,
     readonly expectedId?: string,
     private saveCookie?: (cookie: string) => Promise<void>,
+    readonly transport: "local" | "remote-hud" = "local",
   ) {
-    this.base = endpoint(url);
+    this.base = transport === "remote-hud" ? ownerOrigin(url) : endpoint(url);
+    if (transport === "remote-hud" && !installationIdentifier(expectedId)) throw Error("The cloud installation must be pinned before opening its HUD.");
   }
   restoreCookie(cookie: string) {
+    if (this.transport === "remote-hud") throw Error("This cloud HUD does not use a session.");
     if (cookie && !/^nc_hud_[a-fA-F0-9]+=[A-Za-z0-9_-]{16,256}$/.test(cookie))
       throw Error("Saved session is invalid.");
     this.cookie = cookie;
   }
   async connect(): Promise<Runtime> {
-    this.closed = false;
+    if (this.closed) throw Error("Connection closed.");
     const runtime = await this.verifyIdentity();
     return runtime;
   }
@@ -112,10 +119,15 @@ export class HudClient {
         "The installation or harness changed. Review a new connection.",
       );
     }
+    if (this.closed) throw Error("Connection closed.");
+    if (this.transport === "remote-hud") {
+      try { remoteHudFeatures(r); } catch (error) { this.close(); throw error; }
+    }
     this.runtime = r;
     return r;
   }
   async session(): Promise<void> {
+    if (this.transport === "remote-hud") { await this.verifyIdentity(); return; }
     if (!this.sessionPending)
       this.sessionPending = (async () => {
         await this.verifyIdentity();
@@ -130,6 +142,7 @@ export class HudClient {
     }
   }
   async revoke(): Promise<void> {
+    if (this.transport === "remote-hud") return;
     if (this.cookie) {
       await this.request("POST", "/api/hud/session/revoke", {});
       this.cookie = "";
@@ -149,14 +162,16 @@ export class HudClient {
       route.includes("://")
     )
       throw Error("Invalid HUD route.");
+    if (this.transport === "remote-hud") remoteHudRoute(this.runtime, method, route);
     const ctrl = new AbortController();
     this.pending.add(ctrl);
     const timer = setTimeout(() => ctrl.abort(), timeout);
     try {
       const headers: Record<string, string> = { Accept: "application/json" };
       const identity = this.runtime?.installationId || this.expectedId;
-      if (identity) headers["x-netclaw-installation"] = identity;
-      if (this.cookie) headers.Cookie = this.cookie;
+      if (identity) headers[this.transport === "remote-hud" ? "X-NetClaw-Installation" : "x-netclaw-installation"] = identity;
+      if (this.transport === "remote-hud" && method !== "GET") headers.Origin = this.base;
+      if (this.cookie && this.transport === "local") headers.Cookie = this.cookie;
       const multipart = body instanceof FormData;
       if (body !== undefined && !multipart)
         headers["Content-Type"] = "application/json";
@@ -176,7 +191,9 @@ export class HudClient {
         this.close();
         throw new HudError("Installation identity changed.", 409);
       }
+      if (this.closed) throw Error("Connection closed.");
       const cookies = response.headers.getSetCookie();
+      if (this.transport === "remote-hud" && cookies.length) { this.close(); throw new HudError("An open-lab HUD unexpectedly returned a session cookie."); }
       for (const value of cookies) {
         const pair = value.split(";")[0]!;
         if (/^nc_hud_[a-fA-F0-9]+=/.test(pair)) {
@@ -186,6 +203,7 @@ export class HudClient {
             throw Error("The session belongs to a different installation.");
           this.cookie = pair.endsWith("=") ? "" : pair;
           await this.saveCookie?.(this.cookie);
+          if (this.closed) throw Error("Connection closed.");
         }
       }
       if (!response.headers.get("content-type")?.includes("application/json"))
@@ -207,6 +225,7 @@ export class HudClient {
         }
         chunks.push(value);
       }
+      if (this.closed) throw Error("Connection closed.");
       const data = JSON.parse(Buffer.concat(chunks).toString("utf8"));
       if (!response.ok) {
         if (data?.code === "installation_changed") {

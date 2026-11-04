@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import path from "node:path";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
-import { Connection } from "./connection/connect";
+import { Connection, selectConnectionProfile } from "./connection/connect";
 import { Profiles, ConnectionProfile, hostContext } from "./state/profiles";
 import { LocalState } from "./state/local";
 import { NavigationTree, Navigation } from "./views/overview";
@@ -30,6 +30,9 @@ import {SetupAssistant} from './setup/assistant-session';
 import {distributeSetupSkill} from './setup/skills';
 import {createPreset} from './setup/preset';
 import {inspectSetupConnection,SetupConnection} from './setup/connections';
+import { OwnerWorkflow, assertCloudCommand } from './views/owner';
+import { cloudInputOrigin, discoverCloudBorder } from './client/owner';
+import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "./client/remote-hud";
 
 export async function activate(context: vscode.ExtensionContext) {
   const local = new LocalState(
@@ -38,7 +41,9 @@ export async function activate(context: vscode.ExtensionContext) {
     profiles = new Profiles(local),
     connection = new Connection(context.secrets),
     assistants = new AssistantProvider(context, connection);
-  const management = new Management(local);
+  const management = new Management(local, () => connection.profile?.mode === "remote-border");
+  const ownerWorkflow = new OwnerWorkflow(connection, local);
+  context.subscriptions.push(ownerWorkflow);
   const setupWizard = new SetupWizard(context, local);
   const setupAssistant=new SetupAssistant(context,setupWizard);
   context.subscriptions.push(setupWizard,setupAssistant,vscode.lm.registerMcpServerDefinitionProvider('netclaw.setupAssistant',setupAssistant));
@@ -62,9 +67,10 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
   );
   const refresh = () => {
+    void vscode.commands.executeCommand("setContext", "netclaw.cloudOpenLab", connection.owner?.openLab === true);
     for (const t of trees) t.refresh();
     status.text = connection.identity
-      ? `$(remote) ${connection.profile?.label} · ${connection.identity.kind}`
+      ? `$(remote) ${connection.profile?.label} · ${connection.owner ? (connection.owner.openLab ? "Connected" : connection.owner.sessionState ? "Border owner" : "Border · sign in") : connection.identity.kind}`
       : "$(remote) NetClaw: disconnected";
     status.tooltip = connection.identity
       ? `${hostContext()}\n${connection.identity.installationId}`
@@ -81,6 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
         "netclaw." + name,
         async (...args: any[]) => {
           try {
+            assertCloudCommand(name, connection.profile?.mode === "remote-border", args, connection.identity);
             return await fn(...args);
           } catch (error) {
             void vscode.window.showErrorMessage(
@@ -120,9 +127,16 @@ export async function activate(context: vscode.ExtensionContext) {
       });
       await connection.connect(saved);
     }
+    if (connection.owner?.openLab && profile.access !== "open-lab") {
+      connection.profile = await profiles.save({ ...profile, access: "open-lab" });
+    }
     refresh();
   };
   register("setupClaw", () => setupWizard.open());
+  register("ownerSignIn", () => ownerWorkflow.signIn());
+  register("ownerSignOut", () => ownerWorkflow.signOut());
+  register("ownerPrepare", () => ownerWorkflow.prepare());
+  register("ownerRecover", () => ownerWorkflow.recover());
   register('setupAssistant',()=>setupAssistant.enable());
   register('setupSkill',()=>distributeSetupSkill(context));
   register('setupSpec',()=>createPreset(context,local,setupWizard.snapshot().answers));
@@ -154,7 +168,12 @@ export async function activate(context: vscode.ExtensionContext) {
   register("addConnection", async () => {
     if (!vscode.workspace.isTrusted)
       throw Error("Trust this workspace before connecting.");
-    if (process.platform === "win32") {
+    const mode = await vscode.window.showQuickPick([
+      { label: "Local installation", description: "HUD on this extension host", mode: "local" as const },
+      { label: "Cloud Border", description: "HTTPS Border", mode: "remote-border" as const },
+    ], { title: "Connection type" });
+    if (!mode) return;
+    if (process.platform === "win32" && mode.mode === "local") {
       void vscode.window.showInformationMessage(
         "Open this workspace in WSL before connecting to an existing NetClaw installation.",
       );
@@ -173,6 +192,14 @@ export async function activate(context: vscode.ExtensionContext) {
         value.trim() ? undefined : "Enter a friendly name for this connection.",
     });
     if (!label) return;
+    if (mode.mode === "remote-border") {
+      const input = await vscode.window.showInputBox({ title: "Cloud Border URL", placeHolder: "https://border.example.com", validateInput: value => { try { cloudInputOrigin(value); return undefined; } catch { return "Enter an HTTPS Border URL without credentials, a path, query or fragment."; } } });
+      if (!input) return;
+      const url = cloudInputOrigin(input);
+      const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Connecting to " + label }, () => discoverCloudBorder(url));
+      const p = await profiles.saveCloud(label, url, runtime.installationId);
+      refresh(); await connect(p); await vscode.commands.executeCommand("netclaw.openOverview"); return;
+    }
     const url = await vscode.window.showInputBox({
       title: "NetClaw HUD API address",
       value: "http://127.0.0.1:3001",
@@ -194,7 +221,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { title: "Select existing NetClaw" },
           )
         )?.profile;
-    if (p) await connect(p);
+    if (p) await selectConnectionProfile(p, connection, connect, async () => vscode.commands.executeCommand("netclaw.openOverview"));
     else if (!profiles.list().length)
       await vscode.commands.executeCommand("netclaw.addConnection");
   });
@@ -228,7 +255,12 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   const openDomain = (key: Domain) => {
     if (!Object.hasOwn(domains, key)) throw Error("Unknown view.");
-    if (key === "network") return openTestbed(context, connection);
+    if (connection.profile?.mode === "remote-border" && !connection.client) {
+      if (key === "overview") return ownerWorkflow.overview();
+      if (key === "operations") return ownerWorkflow.open();
+      throw Error("This view is unavailable on the protected cloud Border.");
+    }
+    if (key === "network" && connection.profile?.mode !== "remote-border") return openTestbed(context, connection);
     const b = connection.bound();
     if (key === "security" || key === "openshell")
       return openSecurity(
@@ -490,6 +522,26 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   register("refresh", refresh);
   const items = (group: string): Navigation[] => {
+    const remote = connection.profile?.mode === "remote-border";
+    const features = remote && connection.client ? remoteHudFeatures(connection.identity) : undefined;
+    if (remote && group === "connections") return [
+      ...profiles.list().map(p => ({ label: p.label, description: connection.profile?.id === p.id ? "Connected" : p.url, command: "netclaw.selectConnection", args: [p.id], icon: "remote" })),
+      { label: "Add connection", command: "netclaw.addConnection", icon: "add" },
+      { label: "Rename connection", command: "netclaw.renameConnection", icon: "edit" },
+      { label: "Disconnect", command: "netclaw.disconnect", icon: "debug-disconnect" },
+    ];
+    if (remote && !features) {
+      if (group === "estate") return [{ label: "Cloud Border identity", command: "netclaw.openOverview", icon: "globe" }];
+      if (group === "operations") return [
+        { label: "Prepare cloud read", command: "netclaw.ownerPrepare", icon: "checklist" },
+        { label: "Recover cloud operation", command: "netclaw.ownerRecover", icon: "history" },
+        ...(!connection.owner?.openLab ? [
+          { label: "Sign in to cloud Border", command: "netclaw.ownerSignIn", icon: "key" },
+          { label: "Sign out of cloud Border", command: "netclaw.ownerSignOut", icon: "sign-out" },
+        ] : []),
+      ];
+      return [];
+    }
     if (group === "connections")
       return [
         {
@@ -553,7 +605,7 @@ export async function activate(context: vscode.ExtensionContext) {
         },
       ];
     const list: Navigation[] = Object.entries(domains)
-      .filter(([, d]) => d.group === group)
+      .filter(([key, d]) => d.group === group && (!features || features.has(remoteDomainFeature[key]!)))
       .map(([key, d]) => ({
         label: d.title,
         command: "netclaw.openDomain",
@@ -584,7 +636,11 @@ export async function activate(context: vscode.ExtensionContext) {
       ],
     };
     for (const [label, command, icon] of extras[group] || [])
-      list.push({ label, command: "netclaw." + command, icon });
+      if (!features || features.has(remoteCommandFeature[command]!) || command === "help") list.push({ label, command: "netclaw." + command, icon });
+    if (remote && group === "operations") list.push(
+      { label: "Prepare protected read", command: "netclaw.ownerPrepare", icon: "checklist" },
+      { label: "Recover retained operation", command: "netclaw.ownerRecover", icon: "history" },
+    );
     return list;
   };
   for (const group of [
@@ -604,6 +660,6 @@ export async function activate(context: vscode.ExtensionContext) {
     );
   }
   refresh();
-  return { connection, profiles, assistants, management, workspace };
+  return { connection, profiles, assistants, management, workspace, ownerWorkflow };
 }
 export function deactivate() {}

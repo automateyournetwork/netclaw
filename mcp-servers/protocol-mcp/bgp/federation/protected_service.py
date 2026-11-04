@@ -11,6 +11,7 @@ from .protected_contract import (APPROVAL, RESULT, ACK, MAX_OUTPUT, ProtectedErr
     sign, validate_binding, validate_model, validate_review, validate_tool, verify, uuid_field, digest_field,
     validate_catalog_entry)
 from .protected_store import ProtectedStore
+from .protected_access import OpenLabAccess, validate_access
 from .protected_owner import OwnerAuthority, private_file, write_private
 
 
@@ -32,6 +33,7 @@ class ProtectedOperations:
         self.store = ProtectedStore(manager.db_path)
         self.audit_writer = audit_writer or self._audit_default
         self.workers = set()
+        self.failure_recovery_lock = asyncio.Lock()
         self.bridge = None
 
     def _audit_default(self, event, record):
@@ -51,10 +53,38 @@ class ProtectedOperations:
         require(self.role == 'border' and self.owner is not None, 'owner_unavailable', 503)
         return self.owner.authorize(context)
 
-    def _owned(self, operation_id, principal):
+    @property
+    def open_lab(self):
+        return isinstance(self.owner, OpenLabAccess)
+
+    def _owned(self, operation_id, principal, *, historical=False):
         row = self.store.get('border', operation_id)
-        require(row is not None and row['owner_subject'] == principal['subject'], 'operation_not_found', 404)
+        current = row is not None and (row['review']['principal'] == principal if self.open_lab
+                                       else row['owner_subject'] == principal['subject'])
+        require(row is not None and (current or
+                historical and self.open_lab and row['review']['border'] == self.identity),
+                'operation_not_found', 404)
         return row
+
+    def _by_nonce(self, nonce, principal):
+        if not self.open_lab:
+            return self.store.get('border', client_nonce=nonce, owner_subject=principal['subject'])
+        # A nonce retained before the explicit lab cutover must not create a
+        # second authority under the new audit principal. Ambiguity is refused.
+        with self.store.connection() as conn:
+            rows = conn.execute('SELECT * FROM protected_operation WHERE side=? AND client_nonce=?',
+                                ('border', nonce)).fetchall()
+        rows = [self.store.unpack(row) for row in rows]
+        require(len(rows) <= 1, 'client_nonce_conflict', 409)
+        if rows:
+            return self._owned(rows[0]['operation_id'], principal, historical=True)
+        return None
+
+    def _view(self, row, principal):
+        value = self._dto(row)
+        if self.open_lab and row['review']['principal'] != principal:
+            value['allowed_actions'] = ['reconcile']
+        return value
 
     def _trust(self, binding):
         cert = self.trust_resolver(binding, historical=False)
@@ -110,7 +140,7 @@ class ProtectedOperations:
         exact(params, 'auth_context client_nonce catalog_revision member_id model_profile_id tool arguments')
         ident(params['client_nonce'])
         with self._owner(params['auth_context']) as principal:
-            old = self.store.get('border', client_nonce=params['client_nonce'], owner_subject=principal['subject'])
+            old = self._by_nonce(params['client_nonce'], principal)
         candidate = {key: params[key] for key in ('catalog_revision', 'member_id', 'model_profile_id', 'tool', 'arguments')}
         candidate_digest = sha256(candidate)
         if old:
@@ -131,10 +161,10 @@ class ProtectedOperations:
             validate_review(review)
             # Immutable snapshots are trusted locally, never from submitted certificates.
             snapshot = {'border': self._trust(self.identity), 'member': self._trust(member['member'])}
-            old = self.store.get('border', client_nonce=params['client_nonce'], owner_subject=principal['subject'])
+            old = self._by_nonce(params['client_nonce'], principal)
             if old:
                 require(old['candidate_digest'] == candidate_digest, 'client_nonce_conflict', 409)
-                return self._dto(old)
+                return self._view(old, principal)
             row = self.store.create('border', str(uuid.uuid4()), owner_subject=principal['subject'], review=review,
                                     review_digest=sha256(review), trust_snapshot=snapshot,
                                     client_nonce=params['client_nonce'], candidate_digest=candidate_digest)
@@ -198,11 +228,11 @@ class ProtectedOperations:
         require(set(params) in ({'auth_context', 'operation_id'}, {'auth_context', 'client_nonce'}))
         with self._owner(params['auth_context']) as principal:
             if 'operation_id' in params:
-                row = self._owned(params['operation_id'], principal)
+                row = self._owned(params['operation_id'], principal, historical=True)
             else:
-                row = self.store.get('border', client_nonce=params['client_nonce'], owner_subject=principal['subject'])
+                row = self._by_nonce(params['client_nonce'], principal)
                 require(row is not None, 'operation_not_found', 404)
-            return self._dto(row)
+            return self._view(row, principal)
 
     async def revoke(self, params):
         exact(params, 'auth_context operation_id')
@@ -216,7 +246,7 @@ class ProtectedOperations:
     async def reconcile(self, params):
         exact(params, 'auth_context operation_id')
         with self._owner(params['auth_context']) as principal:
-            row = self._owned(params['operation_id'], principal)
+            row = self._owned(params['operation_id'], principal, historical=True)
         if row['approval'] is not None:
             try:
                 member = row['review']['member']['member_id']
@@ -236,7 +266,7 @@ class ProtectedOperations:
             except Exception:
                 pass  # A failed read or ACK delivery creates no new execution authority.
         with self._owner(params['auth_context']) as principal:
-            return self._dto(self._owned(row['operation_id'], principal))
+            return self._view(self._owned(row['operation_id'], principal, historical=True), principal)
 
     def _accept_result(self, row, envelope):
         p = verify(envelope, row['trust_snapshot']['member'], RESULT)
@@ -345,6 +375,24 @@ class ProtectedOperations:
     async def member_status(self, channel, params):
         exact(params, 'operation_id')
         row = self._member_lookup(channel, params['operation_id'])
+        if row['state'] == 'outcome_unknown' and not row['effect_finished'] and hasattr(self, 'config'):
+            async with self.failure_recovery_lock:
+                row = self._member_lookup(channel, params['operation_id'])
+                if row['state'] == 'outcome_unknown' and not row['effect_finished'] and not any(not task.done() for task in self.workers):
+                    from .protected_failure_recovery import verify_known_netbox_failure
+                    try:
+                        verified = await verify_known_netbox_failure(row, self.config)
+                    except (ProtectedError, OSError, ValueError, KeyError, TypeError, asyncio.TimeoutError):
+                        # An incomplete, conflicting or unsafe proof is still
+                        # unknown. Never synthesize a refusal from missing data.
+                        verified = None
+                    if verified is not None:
+                        self._channel(channel, row['review']['border'])
+                        recovery_ref = self._audit('protected_failure_recovery', row,
+                            failure_proof_digest=sha256(verified.proof), original_state=row['state'],
+                            original_error_code=row['error_code'], outcome='failed', effect_status='finished',
+                            http_status=verified.proof['http_status'])
+                        row = self.store.complete_known_netbox_failure(verified, recovery_ref)
         if row['state'] == 'outcome_unknown' and row['effect_finished'] and row['executor_result'] is None:
             terminal = {'output': {'tool_evidence': row['tool_evidence']}, 'tool_evidence': row['tool_evidence'],
                         'usage': {'available': False}, 'effective_model_profile': row['review']['model_profile'],
@@ -538,6 +586,7 @@ class OperatorBridge:
             exact(body, 'method params')
             method, params = body['method'], body['params']
             require(isinstance(params, dict))
+            require(not self.service.open_lab or not method.startswith('owner.'), 'method_refused', 404)
             if method == 'owner.login':
                 exact(params, 'ticket'); result = self.service.owner.login(params['ticket'])
             elif method == 'owner.session':
@@ -563,8 +612,10 @@ def validate_profile(config, *, role=None, identity=None):
     require(isinstance(config, dict), 'protected_profile_invalid')
     selected_role = config.get('role')
     require(selected_role in ('border', 'member'), 'unsupported_role')
-    exact(config, 'schemaVersion role identity' if selected_role == 'border'
+    exact(config, ('schemaVersion role identity' + (' access' if 'access' in config else '')) if selected_role == 'border'
           else 'schemaVersion role identity catalog runtime border')
+    if 'access' in config:
+        validate_access(config['access'])
     require(type(config['schemaVersion']) is int and config['schemaVersion'] == 1, 'protected_profile_invalid')
     validate_binding(config['identity'], selected_role)
     if role is not None:
@@ -664,7 +715,8 @@ def from_service(service):
                 continue
         return entries
 
-    owner = OwnerAuthority(runtime.state, runtime.installation) if role == 'border' else None
+    owner = (OpenLabAccess(runtime.installation) if 'access' in config else
+             OwnerAuthority(runtime.state, runtime.installation)) if role == 'border' else None
     executor = None
     if role == 'member':
         from .protected_runtime import build_executor
@@ -684,6 +736,7 @@ def from_service(service):
     operations.config = config
     if role == 'border':
         # Check authority initialization at startup; never promote legacy cookies.
-        with owner.locked() as connection: owner._meta(connection)
+        if not operations.open_lab:
+            with owner.locked() as connection: owner._meta(connection)
         operations.bridge = OperatorBridge(operations, runtime.state, runtime.installation)
     return operations
