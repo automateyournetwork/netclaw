@@ -47,7 +47,13 @@ exports.run = async () => {
         try { assert.deepEqual(c.entry.member, config.expected.member); assert.deepEqual(c.model, config.expected.model_profile); assert.equal(c.tool.tool, config.expected.tool_call.tool); assert.deepEqual(c.tool.arguments, config.expected.tool_call.arguments); return true; } catch { return false; }
       });
       assert.equal(matching.length, 1, 'Exact reviewed catalog selection must be unique.');
-      const pending = api.ownerWorkflow.prepare(); await choose(matching[0].index);
+      let pending;
+      if (config.preparedReferenceFile) {
+        const ref = JSON.parse(readPrivate(config.preparedReferenceFile)); assert.ok(ref.operation_id && ref.client_nonce && !ref.decision_sent);
+        pending = api.ownerWorkflow.recover();
+        const retained = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: ref.operation_id });
+        await retained.waitFor({ state: 'visible' }); await retained.click();
+      } else { pending = api.ownerWorkflow.prepare(); await choose(matching[0].index); }
       const approve = page.getByRole('button', { name: 'Approve once', exact: true }); await approve.waitFor({ state: 'visible' });
       const doc = vscode.workspace.textDocuments.find(d => d.uri.scheme === 'netclaw-owner' && d.getText().includes('review_digest')); assert.ok(doc);
       const displayed = JSON.parse(doc.getText());
@@ -57,7 +63,12 @@ exports.run = async () => {
       assert.equal(displayed.review.limits.max_tool_calls, 1); assert.equal(displayed.review.limits.max_inference_calls, 2); assert.equal(displayed.review.change_request_ref, null);
       assert.ok(displayed.review.limits.expires_at_ms > Date.now());
       const dialog = page.locator('.monaco-dialog-box');
-      assert.ok((await dialog.textContent()).includes(doc.getText()), 'Native modal must contain the complete immutable review');
+      const rendered = await dialog.textContent();
+      fs.writeFileSync(path.join(path.dirname(report), 'native-review-' + Date.now() + '.json'), JSON.stringify({ virtualReview: displayed, nativeText: rendered }, null, 2), { mode: 0o600 });
+      // Native paragraph nodes normalize whitespace; compare the complete JSON
+      // value, not formatting. Missing/truncated fields still refuse approval.
+      const nativeReview = JSON.parse(rendered.slice(rendered.indexOf('{'), rendered.lastIndexOf('}') + 1));
+      assert.deepEqual(nativeReview, displayed, 'Native modal must contain the complete immutable review');
       await page.screenshot({ path: path.join(path.dirname(report), 'review-' + Date.now() + '.png') });
       mark('Complete immutable review matches frozen owner, Border, member, model and exact device1 read');
       await approve.click(); operation = await pending; assert.ok(operation);
