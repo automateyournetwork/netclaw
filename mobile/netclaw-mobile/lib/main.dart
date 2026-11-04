@@ -50,6 +50,7 @@ import 'screens/cloud_owner_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/device_scan_screen.dart';
 import 'screens/enrollment_screen.dart';
+import 'screens/protected_device_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/onboarding_explainer_screen.dart';
 import 'screens/settings_screen.dart';
@@ -275,6 +276,7 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
   static const _identity = EdgeIdentity();
   final String _newMemberId = 'risk/${DateTime.now().millisecondsSinceEpoch}';
   EnrollmentStore? _store;
+  StoredEnrollment? _retained;
   _GateState _state = _GateState.loading;
   // 105/US1: NOT persisted -- deliberately an "unenrolled-state" screen, not
   // a "seen once, never again" one (spec.md's own edge case). Resets to
@@ -295,11 +297,13 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
     final stored = await store.load();
     if (!mounted) return;
     _store = store;
+    _retained = stored;
     if (stored == null) {
       setState(() => _state = _GateState.needsEnrollment);
       return;
     }
     setState(() => _state = _GateState.reconnecting);
+    EdgeClient? connectedClient;
     try {
       final client = await widget.reconnect(
         stored.toPayload(),
@@ -307,15 +311,32 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         keyFingerprint: stored.keyFingerprint,
         identity: _identity,
       );
+      connectedClient = client;
+      if (!mounted) {
+        await client.close();
+        return;
+      }
+      final confirmed = StoredEnrollment(
+        memberId: stored.memberId,
+        keyFingerprint: stored.keyFingerprint,
+        borderHost: stored.borderHost,
+        borderPort: stored.borderPort,
+        clawDomain: stored.clawDomain,
+        wsPath: stored.wsPath,
+        installationId: stored.installationId,
+        deviceSubject: client.protectedDevice?.principal['subject'] as String?,
+      );
+      await store.save(confirmed);
       if (!mounted) {
         await client.close();
         return;
       }
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => HomeShell(client: client, stored: stored)),
+        MaterialPageRoute(builder: (_) => _enrolledHome(client, confirmed)),
       );
     } catch (e) {
-      if (isRevokedByBorder(e)) {
+      await connectedClient?.close();
+      if (isRevokedByBorder(e) && !stored.pending && !stored.protected) {
         await store.clear();
         if (mounted) setState(() => _state = _GateState.needsEnrollment);
       } else if (mounted) {
@@ -325,6 +346,16 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         setState(() => _state = _GateState.reconnectFailed);
       }
     }
+  }
+
+  Widget _enrolledHome(EdgeClient client, StoredEnrollment? stored) {
+    if (client.protectedDevice != null) {
+      if (stored == null) {
+        throw StateError('Protected enrollment was not retained');
+      }
+      return ProtectedDeviceScreen(edge: client, enrollment: stored);
+    }
+    return HomeShell(client: client, stored: stored);
   }
 
   @override
@@ -338,24 +369,17 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
       return EnrollmentScreen(
         memberId: _newMemberId,
         identity: _identity,
+        store: _store,
+        onRecoverPending: _init,
         onEnrolled: (client, payload) async {
-          final navigator = Navigator.of(context); // captured before the async gap below
-          final fingerprint = client.enrollFingerprint;
-          StoredEnrollment? stored;
-          if (fingerprint != null) {
-            stored = StoredEnrollment(
-              memberId: _newMemberId,
-              keyFingerprint: fingerprint,
-              borderHost: payload.borderHost,
-              borderPort: payload.borderPort,
-              clawDomain: payload.clawDomain,
-            );
-            await _store!.save(stored);
-          }
-          if (!mounted) return;
+          final navigator = Navigator.of(
+            context,
+          ); // captured before the async gap below
+          final stored = await _store!.load();
+          if (!mounted) { await client.close(); return; }
           widget.haptics.enrollmentSucceeded();
           navigator.pushReplacement(
-            MaterialPageRoute(builder: (_) => HomeShell(client: client, stored: stored)),
+            MaterialPageRoute(builder: (_) => _enrolledHome(client, stored)),
           );
         },
       );
@@ -382,14 +406,21 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
                   child: const Text('Retry'),
                 ),
                 const SizedBox(height: 8),
-                TextButton(
-                  onPressed: () => setState(() => _state = _GateState.needsEnrollment),
-                  child: const Text('Enter enrollment details instead'),
-                ),
-                TextButton(
-                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen())),
-                  child: const Text('Connect as cloud Border owner'),
-                ),
+                if (_retained == null)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _state = _GateState.needsEnrollment),
+                    child: const Text('Enter enrollment details instead'),
+                  ),
+                if (_retained?.protected != true && _retained?.pending != true)
+                  TextButton(
+                    onPressed: () => Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const CloudOwnerScreen(),
+                      ),
+                    ),
+                    child: const Text('Connect as cloud Border owner'),
+                  ),
               ],
             ),
           ),

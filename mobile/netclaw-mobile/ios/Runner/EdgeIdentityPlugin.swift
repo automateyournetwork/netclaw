@@ -1,14 +1,15 @@
 import Flutter
 import Foundation
 import Security
+import CryptoKit
 
 private let edgeIdentityChannel = "ca.automateyournetwork.netclaw/edge_identity"
 private let keyTag = "ca.automateyournetwork.netclaw.ncfed_edge_identity".data(using: .utf8)!
 
 /// NCFED edge-node identity (feature 066, FR-004): the enrollment key is
-/// generated inside the Secure Enclave and never leaves it. Only two
-/// operations are exposed to Dart — get a self-signed certificate for the
-/// public key (X509SelfSigned.swift), and sign a challenge — there is no
+/// generated inside the Secure Enclave and never leaves it. Only public
+/// cryptographic operations are exposed to Dart — obtain a self-signed public
+/// certificate, read its public-key fingerprint, and sign a challenge. There is no
 /// private-key-export method anywhere in this plugin.
 ///
 /// UNVERIFIED as of this commit — written on a Linux dev container with no
@@ -26,6 +27,16 @@ public class EdgeIdentityPlugin: NSObject, FlutterPlugin {
         case "ensureKeyPair":
             do { result(try ensureKeyPairPem()) }
             catch { result(FlutterError(code: "EDGE_IDENTITY_ERROR", message: "\(error)", details: nil)) }
+        case "publicKeyFingerprint":
+            do {
+                let key = try ensurePrivateKey()
+                guard let pub = SecKeyCopyPublicKey(key),
+                      let point = SecKeyCopyExternalRepresentation(pub, nil) as Data? else {
+                    throw NSError(domain: "EdgeIdentity", code: -1)
+                }
+                let der = Data(X509SelfSigned.subjectPublicKeyInfo(publicKeyPoint: point))
+                result(SHA256.hash(data: der).map { String(format: "%02x", $0) }.joined())
+            } catch { result(FlutterError(code: "EDGE_IDENTITY_ERROR", message: "Unable to read public fingerprint", details: nil)) }
         case "sign":
             guard let args = call.arguments as? [String: Any],
                   let typed = args["data"] as? FlutterStandardTypedData else {

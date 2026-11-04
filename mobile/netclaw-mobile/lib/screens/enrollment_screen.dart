@@ -5,6 +5,7 @@ import '../ncfed/edge_client.dart';
 import '../ncfed/edge_identity.dart';
 import '../ncfed/enrollment_flow.dart';
 import '../ncfed/enrollment_qr_payload.dart';
+import '../ncfed/enrollment_store.dart';
 import 'manual_enrollment_screen.dart';
 import 'cloud_owner_screen.dart';
 
@@ -21,13 +22,22 @@ import 'cloud_owner_screen.dart';
 class EnrollmentScreen extends StatefulWidget {
   final String memberId;
   final EdgeIdentity identity;
-  final void Function(EdgeClient client, EnrollmentQrPayload payload) onEnrolled;
+  final EnrollmentStore? store;
+  final VoidCallback? onRecoverPending;
+  // Native simulator harness can feed decoded images through this SAME callback.
+  // Production always uses MobileScanner's camera widget below.
+  final Widget Function(Future<void> Function(BarcodeCapture))? scannerBuilder;
+  final void Function(EdgeClient client, EnrollmentQrPayload payload)
+  onEnrolled;
 
   const EnrollmentScreen({
     super.key,
     required this.memberId,
     required this.onEnrolled,
     this.identity = const EdgeIdentity(),
+    this.store,
+    this.onRecoverPending,
+    this.scannerBuilder,
   });
 
   @override
@@ -36,10 +46,11 @@ class EnrollmentScreen extends StatefulWidget {
 
 class _EnrollmentScreenState extends State<EnrollmentScreen> {
   bool _busy = false;
+  bool _pending = false;
   String? _errorText;
 
   Future<void> _onDetect(BarcodeCapture capture) async {
-    if (_busy) return;
+    if (_busy || _pending) return;
     if (capture.barcodes.isEmpty) return;
     final raw = capture.barcodes.first.rawValue;
     if (raw == null) return;
@@ -51,48 +62,65 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
       raw,
       memberId: widget.memberId,
       identity: widget.identity,
+      store: widget.store,
     );
+    if (!mounted) return;
     switch (outcome) {
       case EnrollmentSuccess(client: final client, payload: final payload):
         widget.onEnrolled(client, payload);
-      case EnrollmentFailure(message: final message):
+      case EnrollmentFailure(message: final message, pending: final pending):
         setState(() {
           _errorText = message;
           _busy = false;
+          _pending = pending;
         });
     }
   }
 
   Future<void> _enterManually() async {
-    await Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ManualEnrollmentScreen(
-        memberId: widget.memberId,
-        identity: widget.identity,
-        onEnrolled: widget.onEnrolled,
+    await Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ManualEnrollmentScreen(
+          memberId: widget.memberId,
+          identity: widget.identity,
+          store: widget.store,
+          onEnrolled: widget.onEnrolled,
+        ),
       ),
-    ));
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Scan Border QR Code'), actions: [
-        IconButton(tooltip: 'Cloud Border owner', icon: const Icon(Icons.cloud_outlined),
-          onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen()))),
-      ]),
+      appBar: AppBar(
+        title: const Text('Scan Border QR Code'),
+        actions: [
+          IconButton(
+            tooltip: 'Cloud Border owner',
+            icon: const Icon(Icons.cloud_outlined),
+            onPressed: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const CloudOwnerScreen())),
+          ),
+        ],
+      ),
       body: Stack(
         children: [
-          MobileScanner(onDetect: _onDetect),
+          widget.scannerBuilder?.call(_onDetect) ??
+              MobileScanner(onDetect: _onDetect),
           Positioned(
             left: 16,
             right: 16,
             top: 16,
             child: Center(
               child: TextButton(
-                onPressed: _busy ? null : _enterManually,
+                onPressed: _busy || _pending ? null : _enterManually,
                 style: TextButton.styleFrom(backgroundColor: Colors.black54),
-                child: const Text("Can't scan? Enter manually",
-                    style: TextStyle(color: Colors.white)),
+                child: const Text(
+                  "Can't scan? Enter manually",
+                  style: TextStyle(color: Colors.white),
+                ),
               ),
             ),
           ),
@@ -106,7 +134,20 @@ class _EnrollmentScreenState extends State<EnrollmentScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(_errorText!, style: const TextStyle(color: Colors.white)),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        _errorText!,
+                        style: const TextStyle(color: Colors.white),
+                      ),
+                      if (_pending && widget.onRecoverPending != null)
+                        TextButton(
+                          onPressed: widget.onRecoverPending,
+                          child: const Text('Check retained enrollment'),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -14,6 +14,11 @@ class StoredEnrollment {
   final String borderHost;
   final int borderPort;
   final String clawDomain;
+  final String wsPath;
+  final String? installationId;
+  final String? deviceSubject;
+  final bool pending;
+  bool get protected => deviceSubject != null || wsPath == '/mobile/ws';
 
   const StoredEnrollment({
     required this.memberId,
@@ -21,29 +26,46 @@ class StoredEnrollment {
     required this.borderHost,
     required this.borderPort,
     required this.clawDomain,
+    this.wsPath = '/',
+    this.installationId,
+    this.deviceSubject,
+    this.pending = false,
   });
 
-  EnrollmentQrPayload toPayload({String enrollmentToken = ''}) => EnrollmentQrPayload(
+  EnrollmentQrPayload toPayload({String enrollmentToken = ''}) =>
+      EnrollmentQrPayload(
         borderHost: borderHost,
         borderPort: borderPort,
         clawDomain: clawDomain,
         enrollmentToken: enrollmentToken,
+        wsPath: wsPath,
+        installationId: installationId,
+        expectedDeviceSubject: deviceSubject,
       );
 
   Map<String, dynamic> toJson() => {
-        'member_id': memberId,
-        'key_fingerprint': keyFingerprint,
-        'border_host': borderHost,
-        'border_port': borderPort,
-        'claw_domain': clawDomain,
-      };
+    'member_id': memberId,
+    'key_fingerprint': keyFingerprint,
+    'border_host': borderHost,
+    'border_port': borderPort,
+    'claw_domain': clawDomain,
+    if (wsPath != '/') 'ws_path': wsPath,
+    if (installationId != null) 'installation_id': installationId,
+    if (deviceSubject != null) 'device_subject': deviceSubject,
+    if (pending) 'pending': true,
+  };
 
-  factory StoredEnrollment.fromJson(Map<String, dynamic> json) => StoredEnrollment(
+  factory StoredEnrollment.fromJson(Map<String, dynamic> json) =>
+      StoredEnrollment(
         memberId: json['member_id'] as String,
         keyFingerprint: json['key_fingerprint'] as String,
         borderHost: json['border_host'] as String,
         borderPort: json['border_port'] as int,
         clawDomain: json['claw_domain'] as String,
+        wsPath: json['ws_path'] as String? ?? '/',
+        installationId: json['installation_id'] as String?,
+        deviceSubject: json['device_subject'] as String?,
+        pending: json['pending'] == true,
       );
 }
 
@@ -70,7 +92,9 @@ class EnrollmentStore {
   }
 
   Future<void> save(StoredEnrollment enrollment) async {
-    await _file().writeAsString(jsonEncode(enrollment.toJson()), flush: true);
+    final temporary = File('${_file().path}.pending');
+    await temporary.writeAsString(jsonEncode(enrollment.toJson()), flush: true);
+    await temporary.rename(_file().path);
   }
 
   Future<void> clear() async {
