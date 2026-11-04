@@ -10,7 +10,7 @@ async function waitFor(find, label) {
   while(Date.now()<deadline) { const value=find(); if(value)return value; await settle(); }
   assert.fail(`Timed out waiting for ${label}`);
 }
-async function app(t, preview=true, fetcher){const errors=[];const virtualConsole=new VirtualConsole();virtualConsole.on('jsdomError',e=>errors.push(e.message));const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole});dom.window.NETCLAW_PREVIEW=preview;if(fetcher)dom.window.fetch=(url,options)=>url==='/api/runtime'?Promise.resolve({ok:true,json:async()=>({kind:'openclaw',installationId:'11111111-1111-4111-8111-111111111111',label:'OpenClaw',readiness:{ready:true},capabilities:{}})}):fetcher(url,options);dom.window.AbortSignal=AbortSignal;dom.window.AbortController=AbortController;dom.window.eval(js);t.after(()=>dom.window.close());await settle();return {document:dom.window.document,window:dom.window,errors};}
+async function app(t, preview=true, fetcher, runtime){const errors=[];const virtualConsole=new VirtualConsole();virtualConsole.on('jsdomError',e=>errors.push(e.message));const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost:3000',runScripts:'outside-only',pretendToBeVisual:true,virtualConsole});dom.window.NETCLAW_PREVIEW=preview;if(fetcher)dom.window.fetch=(url,options)=>url==='/api/runtime'?Promise.resolve({ok:true,json:async()=>(runtime || {kind:'openclaw',installationId:'11111111-1111-4111-8111-111111111111',label:'OpenClaw',readiness:{ready:true},capabilities:{}})}):fetcher(url,options);dom.window.Headers=Headers;dom.window.AbortSignal=AbortSignal;dom.window.AbortController=AbortController;dom.window.eval(js);t.after(()=>dom.window.close());await settle();return {document:dom.window.document,window:dom.window,errors};}
 function click(document,label){const button=[...document.querySelectorAll('button')].find(b=>b.textContent.trim()===label || b.textContent.trim().startsWith(label));assert.ok(button,`button ${label}`);button.click();}
 test('sending from Avatar unlocks voice before the request and speaks only a safe notice',async t=>{
   const calls=[],order=[];let finish;
@@ -209,4 +209,22 @@ test('Avatar quiet preference survives switching views and never starts automati
   click(document,'00Chat');await settle();click(document,'Avatar');await settle();
   assert.ok([...document.querySelectorAll('button')].find(button=>button.textContent==='Read latest reply'));
   assert.equal(speech.length,0);assert.deepEqual(errors,[]);
+});
+
+
+test('full open lab workspace offers normal Chat Canvas RAG members and protected operations without sessions',async t=>{
+ const calls=[],id='11111111-1111-4111-8111-111111111111';
+ const runtime={kind:'openclaw',installationId:id,label:'NetClaw Border',readiness:{ready:true,executionVerified:false},access:{mode:'open-lab',principal:{issuer:'open-lab',subject:'8a15663b-80ba-572a-a355-2fa6ddf1267c',display_name:'Unauthenticated lab operator',roles:['lab-operator']}},capabilities:{protectedProfile:true,protectedOperations:true,protectedProduction:true,remoteHud:{schema:1,features:['overview','chat','canvas','rag','members','peers','skills','runtime','tokenomics','documentation','reference','logs','operations']}}};
+ const {document,window,errors}=await app(t,false,async(url,options={})=>{
+  calls.push([url,options]);assert.ok(!url.includes('/session'),url);
+  return {ok:true,json:async()=>url==='/api/chat/models'?{models:[],selectionSupported:false}:url==='/api/chat/conversations'?{conversations:[],sourceAvailable:true}:url==='/api/chat'?{fromGateway:true,response:'A fixture conversation reply'}:url==='/api/rag/stats'?{document_count:1,total_chunks:1,collections:['documents']}:url==='/api/rag/documents'?{documents:[{id:'doc',title:'Actual fixture document',ingest_status:'ready'}]}:url==='/api/hud/operations/catalog'?{revision:'fixture',members:[]}: {}};
+ },runtime);
+ await waitFor(()=>document.querySelector('#standard-chat-message'),'normal Chat composer: '+JSON.stringify({errors,body:document.body.textContent}));assert.match(document.querySelector('h1').textContent,/Chat/);
+ typeChat(window,document,'Hello shared lab');await settle();submitChat(window,document);await waitFor(()=>document.body.textContent.includes('A fixture conversation reply'),'conversation response');
+ const chat=calls.find(([url])=>url==='/api/chat');assert.equal(chat[1].credentials,'omit');assert.equal(chat[1].headers.get('X-NetClaw-Installation'),id);
+ click(document,'02Canvas');await settle();assert.equal(document.querySelector('iframe').getAttribute('src'),'/canvas.html?embedded=1');
+ click(document,'12RAG');await waitFor(()=>document.body.textContent.includes('Actual fixture document'),'RAG inventory');
+ click(document,'20Approved operations');await waitFor(()=>document.body.textContent.includes('No eligible protected member profiles'),'protected catalog');
+ assert.equal([...document.querySelectorAll('nav button')].some(b=>b.textContent.includes('Configuration')),false);
+ assert.equal(calls.some(([url])=>url.includes('/session')),false);assert.ok(calls.every(([,o])=>o.credentials==='omit'));assert.deepEqual(errors,[]);
 });

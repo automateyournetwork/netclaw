@@ -1,3 +1,5 @@
+import { ensureConversationContext } from '../shared/runtime-client.js';
+import { workspaceFetch as fetch } from '../shared/runtime-client.js';
 import { branchSeed } from './branch-context.js';
 import { runtimeKey, runtimeStorage, runtimeInfo, sendChat, pendingRequest, observeRequest, requestControl, newConversation } from '../shared/runtime-client.js';
 import { C, COLLAPSED_H, DARK, LIGHT } from "./canvas-theme.js";
@@ -220,11 +222,7 @@ function deriveSessionTitle(nodes) {
 
 
 // --- per-provider call shims; each returns assistant text or throws ---
-let hudSessionReady;
-async function ensureHudSession() {
-  if (!hudSessionReady) hudSessionReady = fetch("/api/hud/session", { method: "POST" }).then(res => { if (!res.ok) throw new Error("HUD session unavailable"); }).catch(error => { hudSessionReady = null; throw error; });
-  return hudSessionReady;
-}
+const ensureHudSession = ensureConversationContext;
 async function callNetClaw({ messages, hudThread, onProgress }) {
   await ensureHudSession();
   const context = messages.map((m) => ({ role: m.role, content: openaiContent(m) }));
@@ -1755,7 +1753,7 @@ export default function App() {
             { type: "item", label: "Fit all", shortcut: "F", action: () => fitView() },
           ]} />
           <Menu label="Tools" items={[
-            { type: "item", label: "New SSH terminal", action: newTerminalWindow },
+            ...(!runtimeInfo()?.capabilities?.remoteHud ? [{ type: "item", label: "New SSH terminal", action: newTerminalWindow }] : []),
             { type: "item", label: "New configuration review", action: () => newConfigReviewWindow() },
             { type: "separator" },
             { type: "item", label: synthSelection.length >= 2 ? `Synthesize ${synthSelection.length} selected` : "Synthesize (shift+click 2+ chats)", shortcut: "⌘J", action: () => createSynthesis(synthSelection), disabled: synthSelection.length < 2 },

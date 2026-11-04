@@ -1,3 +1,5 @@
+import { resolveRemoteHudBackend, remoteHudBackendBoundary } from './src/hud-server/remote-hud.js';
+import { OpenLabBindings } from './src/hud-server/open-lab-bindings.js';
 import { convergenceEnabled, createConvergenceReader, mountConvergence } from './src/hud-server/convergence.js';
 import { mountProtectedOperations, protectedHudConfig, protectedLegacyBoundary, selectedEnvironmentFiles } from './src/hud-server/protected-operations.js';
 import { managementDiscovery } from './src/hud-server/management.js';
@@ -77,7 +79,11 @@ import {
   normalizeTerminalEnrichmentObjects,
 } from './terminal-enrichment.js';
 
-const installation = Object.freeze(resolveRuntime({ initialize: true }));
+const workspaceBinding = process.env.NETCLAW_OPEN_LAB_WORKSPACE_CONFIG ? resolveRemoteHudBackend(process.env.NETCLAW_OPEN_LAB_WORKSPACE_CONFIG) : null;
+const installation = workspaceBinding?.installation || Object.freeze(resolveRuntime({ initialize: true }));
+const openLabWorkspace = workspaceBinding?.workspace || null;
+const conversationHome = openLabWorkspace?.conversationHome || installation.home;
+if (openLabWorkspace && installation.configPath !== openLabWorkspace.conversationConfig) throw Error('conversation_config_mismatch');
 // Bind subprocess defaults before any selected-runtime helper executes.
 process.env.NETCLAW_RUNTIME=installation.kind;
 process.env.NETCLAW_RUNTIME_ROOT=path.join(installation.home,'python-runtimes');
@@ -107,9 +113,10 @@ const ports = hudPorts();
 const chatDeadlines = chatTimeouts();
 const allowedLocalRequest = createLocalAccess(ports);
 app.use(localAccessMiddleware(allowedLocalRequest));
+if (openLabWorkspace) app.use(remoteHudBackendBoundary(openLabWorkspace, installation));
 const protectedEnvironment = { ...parseEnvData(readText(installation.envPath) || ''), ...process.env };
-const protectedProfile = protectedEnvironment.N2N_PROTECTED_OPERATIONS === '1';
-const protectedOperations = mountProtectedOperations(app, { installation, config: protectedHudConfig(protectedEnvironment) });
+const protectedProfile = !openLabWorkspace && protectedEnvironment.N2N_PROTECTED_OPERATIONS === '1';
+const protectedOperations = mountProtectedOperations(app, { installation, config: openLabWorkspace ? { enabled: false } : protectedHudConfig(protectedEnvironment) });
 app.use(protectedLegacyBoundary(protectedProfile));
 const TERMINAL_ENRICHMENT_FILE = path.join(installation.home, 'netclaw-terminal-enrichment.json');
 function loadTerminalAliases() {
@@ -128,9 +135,10 @@ app.use((req,res,next)=>{
   next();
 });
 mountDocumentation(app, ROOT);
-if (installation.kind === 'openclaw') mountLogs(app, os.homedir(), { runtimeHome: installation.home });
-const hudBindings = new Bindings(path.join(installation.home, 'hud-bindings'), Date.now, installation);
+if (installation.kind === 'openclaw') mountLogs(app, os.homedir(), { runtimeHome: conversationHome });
+const hudBindings = new (openLabWorkspace ? OpenLabBindings : Bindings)(path.join(installation.home, 'hud-bindings'), Date.now, installation);
 app.use((req,_res,next) => {
+  if (openLabWorkspace) return next();
   const cookies=(req.headers.cookie || '').split(';').map(v=>v.trim());
   const selected=cookies.find(v=>v.startsWith(hudBindings.cookieName+'='));
   const legacy=installation.kind==='openclaw'?cookies.find(v=>v.startsWith('nc_hud=')):null;
@@ -139,6 +147,7 @@ app.use((req,_res,next) => {
 });
 const hermesRuntime = installation.kind === 'hermes' ? createHermesRuntime(installation, ROOT) : null;
 app.get('/api/runtime', async (_req, res) => {
+  if (openLabWorkspace) return res.set('Cache-Control', 'no-store').json({ installationId: installation.installationId, kind: installation.kind, remoteHudBackend: { schema: 1, features: openLabWorkspace.features } });
   if (protectedProfile) {
     let role = 'unknown';
     try {
@@ -162,6 +171,10 @@ app.get('/api/hud/management', async (req, res) => {
   try { hudBindings.read(cookieFrom(req)); } catch { return res.status(401).json({error:'An owned HUD session is required.'}); }
   try { return res.set('Cache-Control','no-store').json(await managementDiscovery(installation,ROOT,process.env.HUD_AGENT_ID)); }
   catch { return res.status(409).json({error:'Native management discovery is unavailable. Verify this installation’s source checkout and native runtime executable.'}); }
+});
+if (openLabWorkspace) app.use(['/api/n2n', '/api/bgp'], async (_req, res, next) => {
+  const state = await federationReadiness(installation, BGP_API);
+  return state.ready ? next() : res.status(503).json({ available: false, ...state, error: 'The current Border federation is unavailable or its installation binding changed.' });
 });
 if (hermesRuntime) {
   mountHermesChat(app, { runtime: hermesRuntime, bindings: hudBindings });
@@ -193,7 +206,7 @@ registerIntentExecutionRoutes(app, { getGatewayConfig, listDevices: listTerminal
 const server = http.createServer(app);
 const wss = new WebSocketServer({
   server, path: '/ws', maxPayload: 64 * 1024,
-  verifyClient: ({ req }, done) => done(!protectedProfile && allowedLocalRequest(req), 403, 'Forbidden'),
+  verifyClient: ({ req }, done) => done(!openLabWorkspace && !protectedProfile && allowedLocalRequest(req), 403, 'Forbidden'),
 });
 
 const SKILLS_DIR = installation.kind === 'hermes' || fs.existsSync(installation.skillsPath) ? installation.skillsPath : path.join(ROOT, 'workspace/skills');
@@ -300,7 +313,7 @@ const INTEGRATION_CATALOG = [
 
 
 // ── Env file locations (OpenClaw .env is the real source of truth) ──
-const OPENCLAW_HOME = installation.home;
+const OPENCLAW_HOME = conversationHome;
 const OPENCLAW_ENV = path.join(OPENCLAW_HOME, '.env');
 const OPENCLAW_CONFIG = installation.configPath;
 const ROOT_ENV = path.join(ROOT, '.env');
@@ -309,7 +322,7 @@ if (!hermesRuntime) mountPal(app, { root: ROOT, home: OPENCLAW_HOME, bindings: h
   getEnv: () => ({ ...parseEnvFile(), ...process.env }) });
 
 // Ordered list — first file wins per key, but we merge all
-const ENV_FILES = selectedEnvironmentFiles(installation, ROOT_ENV, protectedProfile);
+const ENV_FILES = selectedEnvironmentFiles(installation, ROOT_ENV, protectedProfile || Boolean(openLabWorkspace));
 
 function parseOneEnvFile(filePath) {
   return parseEnvData(readText(filePath) || '');
@@ -724,7 +737,7 @@ let usageCache = null, usageReadAt = 0;
 app.get('/api/hud/tokenomics', (_req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (!usageCache || Date.now() - usageReadAt > 30000) {
-    usageCache = readUsage(path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions'));
+    usageCache = readUsage(path.join(conversationHome, 'agents', getGatewayConfig().agentId, 'sessions'));
     usageReadAt = Date.now();
   }
   res.json(usageCache);
@@ -1346,7 +1359,7 @@ app.put('/api/budget/config', (req, res) => {
  */
 function estimateActiveSessionCost() {
   try {
-    const sessionsDir = path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions');
+    const sessionsDir = path.join(conversationHome, 'agents', getGatewayConfig().agentId, 'sessions');
     const sessionsJson = path.join(sessionsDir, 'sessions.json');
     if (!fs.existsSync(sessionsJson)) return 0;
 
@@ -1625,7 +1638,7 @@ app.post('/api/chat/usage', async (req, res) => {
     const selectedModel = resolveChatModel(config, req.body?.chatModel ?? '', await chatRuntime.catalog(config, OPENCLAW_CONFIG));
     let key = null;
     const cookie = cookieFrom(req);
-    if (cookie && req.body?.hudThread) {
+    if ((cookie || openLabWorkspace) && req.body?.hudThread) {
       try { key = hudBindings.lookupTask(cookie, req.body.hudThread, agentId)?.gatewayKey || null; }
       catch { return res.status(403).json({ error: 'Chat session unavailable.' }); }
     }
@@ -1781,7 +1794,7 @@ app.get('/api/chat/history', (req, res) => {
 });
 
 // ── Session transcript tool call extraction (Section H) ─────────
-const SESSIONS_DIR = path.join(installation.home, 'agents', getGatewayConfig().agentId, 'sessions');
+const SESSIONS_DIR = path.join(conversationHome, 'agents', getGatewayConfig().agentId, 'sessions');
 
 function resolveActivations(message, graph) {
   const lower = message.toLowerCase();

@@ -1,3 +1,4 @@
+import { workspaceFetch as fetch } from '../shared/runtime-client.js';
 import { runtimeInfo } from '../shared/runtime-client.js';
 import React, { useEffect, useState } from 'react';
 import { age, clawInventory, securitySummary, list, money, text } from './model.js';

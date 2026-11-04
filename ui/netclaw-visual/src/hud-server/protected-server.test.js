@@ -165,3 +165,27 @@ test('lab opt-in must be exact and bound in both private server and Border profi
   }
   f.write('hud.json', f.config); assert.throws(() => readProtectedServerConfig(f.configFile), /access_mismatch/);
 });
+test('full lab workspace preserves identity and protected catalog while normal writes require exact Origin and installation', async t => {
+  const f=files(t), forwarded=[], features=['chat','canvas','operations'];
+  const backend=http.createServer(async(req,res)=>{let body='';for await(const c of req)body+=c;forwarded.push({url:req.url,headers:req.headers,body});res.setHeader('Content-Type','application/json');res.end(JSON.stringify(req.url==='/api/runtime'?{installationId:ID,kind:'openclaw',remoteHudBackend:{schema:1,features}}:{response:'fixture chat',fromGateway:true}));});
+  backend.listen(0,'127.0.0.1');await new Promise(r=>backend.once('listening',r));t.after(()=>{backend.closeAllConnections();return new Promise(r=>backend.close(r));});
+  const conversationConfig=f.write('conversation/openclaw.json',{gateway:{port:18789}});f.config.access={mode:'open-lab'};
+  f.write('home/netclaw-federation/protected-profile.json',{schemaVersion:1,role:'border',identity:{installation_id:ID},access:{mode:'open-lab'}});
+  const workspace=f.write('workspace.json',{schemaVersion:1,installationId:ID,upstream:`http://127.0.0.1:${backend.address().port}`,conversationHome:path.dirname(conversationConfig),conversationConfig,features});
+  f.config.workspace={path:workspace,sha256:sha256(fs.readFileSync(workspace))};
+  f.write('dist/canvas.html','<!doctype html><script type="module" src="/assets/canvas.js"></script>');f.write('dist/assets/canvas.js','/* canvas fixture */');
+  f.write('dist/.vite/manifest.json',{'index.html':{file:'assets/hud.js',isEntry:true,css:['assets/hud.css']},'canvas.html':{file:'assets/canvas.js',isEntry:true}});
+  f.write('assets.json',buildProtectedManifest(f.config.dist,{workspace:true}));f.config.manifestSha256=sha256(fs.readFileSync(f.config.manifest));f.write('hud.json',f.config);
+  const calls=[],server=createProtectedServer(readProtectedServerConfig(f.configFile),{client:{call:async(method,params)=>{calls.push(method);assert.equal(params.auth_context.access_mode,'open-lab');return {members:[]};}}});
+  server.listen(0,'127.0.0.1');await new Promise(r=>server.once('listening',r));t.after(()=>{server.closeAllConnections();return new Promise(r=>server.close(r));});
+  const request=(route,method='GET',headers={})=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server.address().port,path:route,method,headers:{Host:'r03.example.test',...headers}},res=>{let body='';res.on('data',d=>body+=d);res.on('end',()=>resolve({status:res.statusCode,headers:res.headers,body}));});req.on('error',reject);req.end(method==='POST'?'{}':undefined);});
+  const runtime=await request('/api/runtime');assert.equal(runtime.status,200);assert.equal(JSON.parse(runtime.body).installationId,ID);assert.deepEqual(JSON.parse(runtime.body).capabilities.remoteHud,{schema:1,features});
+  assert.equal((await request('/canvas.html?embedded=1')).status,200);assert.equal((await request('/classic.html')).status,404);
+  const headers={Origin:ORIGIN,'X-NetClaw-Installation':ID,'Content-Type':'application/json'};
+  assert.equal((await request('/api/chat','POST',{'X-NetClaw-Installation':ID})).status,403);assert.equal((await request('/api/chat','POST',{Origin:ORIGIN})).status,409);
+  assert.equal((await request('/api/chat','POST',{...headers,Origin:'https://wrong.test'})).status,403);
+  assert.equal((await request('/api/chat','POST',{...headers,Cookie:'legacy=never-forward',Authorization:'Bearer never-forward'})).status,200);
+  assert.equal(forwarded.filter(r=>r.url==='/api/chat').length,1);assert.equal(forwarded.at(-1).headers.cookie,undefined);assert.equal(forwarded.at(-1).headers.authorization,undefined);
+  assert.equal((await request('/api/hud/operations/catalog','GET',headers)).status,200);assert.deepEqual(calls,['catalog']);
+  for(const route of ['/api/hud/session','/api/hud/owner/session','/api/n2n/chat','/api/terminal/terra'])assert.equal((await request(route,'POST',headers)).status,404);
+});
