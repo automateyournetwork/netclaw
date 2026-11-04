@@ -10,7 +10,7 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 import { pathToFileURL } from 'node:url';
 import { load } from './load.mjs';
-const { OwnerClient, OwnerOperations, ownerOrigin, catalogChoices, ownerCanonical, reviewText } = await load('src/client/owner.ts');
+const { OwnerClient, OwnerOperations, ownerOrigin, catalogChoices, ownerCanonical, reviewText, unexpiredReview } = await load('src/client/owner.ts');
 const ID = '22222222-2222-4222-8222-222222222222', ORIGIN = 'https://border.example.test';
 const principal = { issuer: 'local', subject: '33333333-3333-4333-8333-333333333333', display_name: 'Owner', roles: ['owner'] };
 const cookie = '__Host-nc_owner_' + ID + '=' + 'c'.repeat(43), ticket = 't'.repeat(43), csrf = 's'.repeat(43);
@@ -145,6 +145,38 @@ test('lost prepare response recovers original nonce and cannot prepare a replace
   const resumed = new OwnerOperations(f.client, store); const op = await resumed.recover(resumed.references()[0]); assert.equal(op.state, 'review_pending');
   await assert.rejects(resumed.prepare(selection), /unresolved/);
   assert.equal(f.calls.filter(c => c.route === '/api/hud/operations' && c.method === 'POST').length, 1);
+});
+test('only proven pre-admission rejection can be explicitly discarded after restart', async t => {
+  const f = fixture(t), store = storage(), ops = new OwnerOperations(f.client, store); await f.client.login(ticket);
+  f.state.hook = (c, json) => c.route === '/api/hud/operations' && c.method === 'POST' ? json({ admission: 'not_submitted' }, 403) : undefined;
+  await assert.rejects(ops.prepare(selection), /before submission/);
+  const ref = ops.references()[0]; assert.equal(ref.not_submitted, true);
+  const resumed = new OwnerOperations(f.client, store);
+  await assert.rejects(resumed.prepare(selection), /explicitly discard/);
+  await resumed.discardUnsubmitted(ref); assert.deepEqual(resumed.references(), []);
+  f.state.hook = undefined;
+  const op = await resumed.prepare(selection); assert.notEqual(op.client_nonce, ref.client_nonce);
+  await assert.rejects(resumed.discardUnsubmitted(resumed.references()[0]), /Unknown work/);
+});
+test('a later404 never supplies evidence to discard an ambiguous preparation', async t => {
+  const f = fixture(t), ops = new OwnerOperations(f.client, storage()); await f.client.login(ticket);
+  f.state.hook = (c, json) => c.route === '/api/hud/operations' && c.method === 'POST' ? json({ code: 'unavailable' }, 503) : undefined;
+  await assert.rejects(ops.prepare(selection)); const ref = ops.references()[0]; assert.equal(ref.not_submitted, undefined);
+  await assert.rejects(ops.recover(ref), /HTTP 404/);
+  await assert.rejects(ops.discardUnsubmitted(ref), /Unknown work/); assert.equal(ops.references().length, 1);
+});
+test('expired review has no approval action and cannot spend a decision marker or reach decision transport', async t => {
+  const f = fixture(t), ops = new OwnerOperations(f.client, storage()); await f.client.login(ticket);
+  const prepared = await ops.prepare(selection), expired = clone(prepared);
+  expired.review.limits.expires_at_ms = Date.now() - 1;
+  expired.review_digest = createHash('sha256').update(ownerCanonical(expired.review)).digest('hex');
+  f.operations.set(expired.operation_id, expired);
+  assert.equal(unexpiredReview(expired), false);
+  await assert.rejects(ops.decide(expired, 'approve'), /expired/);
+  assert.equal(ops.references()[0].decision_sent, undefined);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 0);
+  await assert.rejects(f.client.decision(expired.operation_id, expired.revision, expired.review_digest, 'approve', expired.review.limits.expires_at_ms), /expired/);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 0);
 });
 test('lost decision persists sent marker before transport and cannot replay after restart', async t => {
   const f = fixture(t), store = storage(), ops = new OwnerOperations(f.client, store); await f.client.login(ticket);

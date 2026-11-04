@@ -100,9 +100,10 @@ export class OwnerClient {
     validReference(ref); await this.inspectSession();
     return this.request(ref.operation_id ? "/api/hud/operations/" + ref.operation_id : "/api/hud/operations?client_nonce=" + encodeURIComponent(ref.client_nonce));
   }
-  async decision(id: string, revision: number, digest: string, decision: "approve" | "deny"): Promise<Json> {
+  async decision(id: string, revision: number, digest: string, decision: "approve" | "deny", expiresAt: number): Promise<Json> {
     if (!ownerIdentifier(id) || !Number.isSafeInteger(revision) || revision < 0 || !/^[a-f0-9]{64}$/.test(digest) || !["approve", "deny"].includes(decision)) throw Error("The exact operation review is unavailable.");
     await this.inspectSession();
+    if (decision === "approve" && (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now())) throw Error("This review expired before submission. No approval was sent; recover the same operation.");
     return this.request("/api/hud/operations/" + id + "/decision", "POST", { revision, review_digest: digest, decision });
   }
   async reconcile(id: string): Promise<Json> {
@@ -167,11 +168,13 @@ export class OwnerClient {
   close() { this.closed = true; this.csrf = ""; this.cookie = ""; this.runtime = undefined; this.sessionState = undefined; for (const c of this.pending) c.abort(); this.pending.clear(); this.sessionLost(); }
 }
 
-export type OperationReference = { client_nonce: string; operation_id?: string; decision_sent?: true };
+export type OperationReference = { client_nonce: string; operation_id?: string; decision_sent?: true; not_submitted?: true };
 export type OwnerStorage = { get<T>(key: string, fallback: T): T; update<T>(key: string, value: T): Promise<void> };
 const validReference = (r: OperationReference) => {
   if (!object(r) || !ownerIdentifier(r.client_nonce) || r.operation_id !== undefined && !ownerIdentifier(r.operation_id) ||
-    r.decision_sent !== undefined && (r.decision_sent !== true || !r.operation_id) || Object.keys(r).some(k => !["client_nonce", "operation_id", "decision_sent"].includes(k))) throw Error("Retained operation identity is invalid. Preserve it for recovery.");
+    r.decision_sent !== undefined && (r.decision_sent !== true || !r.operation_id) ||
+    r.not_submitted !== undefined && (r.not_submitted !== true || r.operation_id !== undefined || r.decision_sent !== undefined) ||
+    Object.keys(r).some(k => !["client_nonce", "operation_id", "decision_sent", "not_submitted"].includes(k))) throw Error("Retained operation identity is invalid. Preserve it for recovery.");
 };
 export function catalogChoices(catalog: Json): Json[] {
   if (!ownerIdentifier(catalog.revision) && !Number.isSafeInteger(catalog.revision) || !Array.isArray(catalog.members) || catalog.members.length > 100) throw Error("The protected catalog is unavailable.");
@@ -192,6 +195,7 @@ export function reviewText(op: Json): string {
     createHash("sha256").update(ownerCanonical(op.review)).digest("hex") !== op.review_digest) throw Error("The complete immutable review is unavailable or its digest changed.");
   return JSON.stringify({ operation_id: op.operation_id, revision: op.revision, review_digest: op.review_digest, review: op.review }, null, 2);
 }
+export const unexpiredReview = (op: Json) => Number.isSafeInteger(op.review?.limits?.expires_at_ms) && op.review.limits.expires_at_ms > Date.now();
 
 /** Durable identifiers only. A sent-decision bit prevents replay after a lost reply/restart. */
 export class OwnerOperations {
@@ -230,6 +234,7 @@ export class OwnerOperations {
   async prepare(selection: Json): Promise<Json> {
     return this.exclusive(async () => {
       for (const ref of this.references()) {
+        if (ref.not_submitted) throw Error("A rejected preparation is retained. Recover it and explicitly discard that unsubmitted reference before preparing another read.");
         const previous = await this.accept(ref, await this.client.status(ref));
         const unexecuted = ["refused", "revoked", "denied"].includes(previous.state) && previous.attempt_count === 0 && previous.may_have_executed === false && !previous.result;
         const received = ["completed", "refused", "failed"].includes(previous.state) && previous.result?.verified === true && previous.result?.durable_ack === true && previous.result?.ack_delivery_pending === false;
@@ -240,13 +245,20 @@ export class OwnerOperations {
       if (!selected) throw Error("Catalog selection changed. Select the read again.");
       const ref = { client_nonce: randomUUID() };
       await this.put(ref); // Must succeed before the first prepare request.
-      return this.accept(ref, await this.client.prepare({ client_nonce: ref.client_nonce, ...selected }));
+      try { return await this.accept(ref, await this.client.prepare({ client_nonce: ref.client_nonce, ...selected })); }
+      catch (error) {
+        // Only the exact prepare response may prove pre-admission refusal. A
+        // timeout, later 404 or missing result never supplies this evidence.
+        if (error instanceof OwnerError && error.notSubmitted) await this.put({ ...ref, not_submitted: true });
+        throw error;
+      }
     });
   }
   async recover(reference: OperationReference): Promise<Json> {
     return this.exclusive(async () => {
       const ref = this.references().find(r => r.client_nonce === reference.client_nonce);
       if (!ref) throw Error("Select a retained operation reference.");
+      if (ref.not_submitted) throw Error("This exact preparation was rejected before submission. Explicitly discard its reference to prepare another read.");
       return this.accept(ref, await this.client.status(ref));
     });
   }
@@ -256,8 +268,9 @@ export class OwnerOperations {
       if (!ref || ref.decision_sent) throw Error("This decision was already submitted or is unavailable. Recover the same operation; nothing was resent.");
       const current = await this.accept(ref, await this.client.status(ref));
       if (reviewText(current) !== reviewText(reviewed) || current.state !== "review_pending" || !current.allowed_actions?.includes(decision)) throw Error("The operation review changed or is no longer available. Recover and review it again.");
+      if (decision === "approve" && !unexpiredReview(current)) throw Error("This review expired. Recover and deny it; no approval was sent.");
       await this.put({ ...ref, decision_sent: true });
-      return this.accept({ ...ref, decision_sent: true }, await this.client.decision(current.operation_id, current.revision, current.review_digest, decision));
+      return this.accept({ ...ref, decision_sent: true }, await this.client.decision(current.operation_id, current.revision, current.review_digest, decision, current.review.limits.expires_at_ms));
     });
   }
   async reconcile(reference: OperationReference): Promise<Json> {
@@ -267,6 +280,15 @@ export class OwnerOperations {
       const current = await this.accept(ref, await this.client.status(ref));
       if (!current.allowed_actions?.includes("reconcile")) throw Error("Reconciliation is unavailable for this operation.");
       return this.accept(ref, await this.client.reconcile(ref.operation_id));
+    });
+  }
+  async discardUnsubmitted(reference: OperationReference) {
+    return this.exclusive(async () => {
+      this.client.assertOpen();
+      const rows = this.references(), ref = rows.find(r => r.client_nonce === reference.client_nonce);
+      if (!ref?.not_submitted || ref.operation_id || ref.decision_sent) throw Error("Only a preparation explicitly rejected before submission can be discarded. Unknown work must be retained.");
+      await this.storage.update(this.key, rows.filter(r => r.client_nonce !== ref.client_nonce));
+      this.client.assertOpen();
     });
   }
 }

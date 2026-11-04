@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
 import { Connection } from "../connection/connect";
 import { LocalState } from "../state/local";
-import { OwnerOperations, catalogChoices, reviewText } from "../client/owner";
+import { OwnerOperations, catalogChoices, reviewText, unexpiredReview } from "../client/owner";
 import type { Json } from "../client/hud";
 
 const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "removeConnection", "openOverview", "openOperations", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help", "openDocumentation"]);
@@ -93,8 +93,9 @@ export class OwnerWorkflow implements vscode.Disposable {
     await this.document(fullReview, "Complete immutable cloud operation review", b.current);
     const reference = b.operations.references().find(r => r.operation_id === operation.operation_id);
     if (operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve")) { await this.showResult(b, operation); return operation; }
-    const choice = await vscode.window.showInformationMessage("Review this exact cloud read", { modal: true,
-      detail: `${b.client.base}\nInstallation: ${b.client.expectedId}\n\n${fullReview}\n\nApprove submits this exact revision and digest once. Cancel keeps the review for recovery.` }, "Approve once", "Deny");
+    const expired = !unexpiredReview(operation);
+    const choice = await vscode.window.showInformationMessage(expired ? "This cloud review has expired" : "Review this exact cloud read", { modal: true,
+      detail: `${b.client.base}\nInstallation: ${b.client.expectedId}\n\n${fullReview}\n\n${expired ? "Approval is unavailable. Deny this expired review to resolve it without execution." : "Approve submits this exact revision and digest once."} Cancel keeps the review for recovery.` }, ...(expired ? ["Deny"] : ["Approve once", "Deny"]));
     b.current();
     if (choice !== "Approve once" && choice !== "Deny") return operation;
     const result = await b.run(() => b.operations.decide(operation, choice === "Approve once" ? "approve" : "deny"));
@@ -114,6 +115,11 @@ export class OwnerWorkflow implements vscode.Disposable {
       const selected = await vscode.window.showQuickPick(refs.map(ref => ({ label: ref.operation_id || "Unconfirmed preparation", description: ref.client_nonce, ref })), { title: "Recover the same cloud operation", ignoreFocusOut: true });
       if (!selected) return;
       b.current();
+      if (selected.ref.not_submitted) {
+        const action = await vscode.window.showInformationMessage("Discard this rejected preparation?", { modal: true, detail: `${b.client.base}\nInstallation: ${b.client.expectedId}\nNonce: ${selected.ref.client_nonce}\nThe exact prepare response proved rejection before admission. No operation or execution was submitted. Only this local reference will be removed.` }, "Discard rejected preparation");
+        if (action === "Discard rejected preparation") { b.current(); await b.run(() => b.operations.discardUnsubmitted(selected.ref)); }
+        return;
+      }
       let operation = await b.run(() => b.operations.recover(selected.ref));
       if (operation.state === "review_pending" && !selected.ref.decision_sent) return this.review(b, operation);
       await this.showResult(b, operation);
