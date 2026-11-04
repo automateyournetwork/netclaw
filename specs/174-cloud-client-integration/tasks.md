@@ -7,7 +7,7 @@
 
 ## Phase 2 — Foundation
 
-- [ ] T003 Reproduce current rejection in actual isolated VS Code; record private evidence and specs/174-cloud-client-integration/verification.md.
+- [x] T003 Reproduce current rejection in actual isolated VS Code; record private evidence and specs/174-cloud-client-integration/verification.md.
 - [ ] T004 Review fresh finite cloud resource/identity/cost scope and native platform availability in specs/174-cloud-client-integration/qualification-plan.md.
 
 ## Phase 3 — US1: VS Code (P1)
@@ -32,7 +32,7 @@ Independent test: affected native platform completes and recovers an approved cl
 
 Independent test: local and edge regressions pass; cloud owner does not open legacy authority.
 
-- [ ] T013 [P] [US3] Correct protected edge capability advertisement with regression in mcp-servers/protocol-mcp/bgp/federation/service.py and tests/.
+- [x] T013 [P] [US3] Correct protected edge capability advertisement with regression in mcp-servers/protocol-mcp/bgp/federation/service.py and tests/.
 - [ ] T014 [US3] Verify server ingress/auth and client local/edge isolation using existing HUD/federation and client test suites; record in specs/174-cloud-client-integration/verification.md.
 
 ## Phase 6 — Closure

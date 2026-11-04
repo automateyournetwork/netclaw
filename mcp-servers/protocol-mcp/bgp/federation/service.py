@@ -1871,6 +1871,14 @@ class FederationService:
         return {**res,'border':self._edge_border_capabilities()}
 
     def _edge_border_capabilities(self):
+        if self.protected_enabled:
+            # Edge enrollment never grants the separate HTTPS owner authority.
+            # The protected profile refuses legacy Ask; do not advertise it.
+            return {'harness': self.inventory._harness_card(), 'model': None,
+                    'capabilities': {'text': False, 'voice_text': False,
+                                     'attachments': False, 'task_outcomes_v1': False,
+                                     'request_recovery': False},
+                    'qualified_targets': [], 'minimum_mobile_version': None}
         from .member_inventory import _name
         return {'harness':self.inventory._harness_card(),'model':_name(self.inventory._local_primary_model()),
                 'capabilities':{'text':True,'voice_text':True,'attachments':self.runtime.kind!='hermes',
