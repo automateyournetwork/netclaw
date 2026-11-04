@@ -323,6 +323,20 @@ print('specialty:', [x['name'] for x in json.loads(r[1]) if x.get('tier')=='spec
 
 State must read `active` and the specialty list must contain your skills.
 
+Scope is not enough: the member's own OpenClaw must also load the skill. Since spec 174, a member checks
+its scoped skills with `openclaw skills check` after connecting and reports the ones it cannot load. The
+Border stops routing those to it and logs each one:
+
+```bash
+journalctl --user -u netclaw-mesh.service | grep "cannot load scoped skill"
+# member <risk>/<member> cannot load scoped skill <skill> (missing_requirements; missing env: X_MCP_SCRIPT); not routing it there
+```
+
+The reason says what to fix: `missing_requirements` (step 2, the member's `.env`), `disabled` (the
+member config's `skills.entries`), `not_installed` (step 3), or `not_loaded` (the skill is in the
+workspace but past OpenClaw's `skills.limits.maxSkillsLoadedPerSource`, 200 by default). Restart the
+member after fixing it; it reports again when it reconnects.
+
 ### Why this is not in the checklist above
 
 None of it is caught by `reconcile-mcp.py`. That gate verifies a *fresh installer* can obtain the

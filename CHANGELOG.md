@@ -2,6 +2,14 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.5] - 2026-11-04
+
+The Border stops routing skills a member cannot load (spec 174):
+
+- After connecting, each member asks its own OpenClaw which scoped skills it will not load (missing settings, disabled, not installed, or past OpenClaw's skill limit) and reports them. The Border routes those skills only to members that can load them, leaves them out of the risk's advertised skills, and logs the reason. On an operator Risk, the pyats member could load 1 of its 18 scoped skills, all of them routable.
+
+Spec [174-member-skill-status](specs/174-member-skill-status/spec.md). See [release notes](docs/releases/1.18.5.md).
+
 ## [1.18.4] - 2026-11-03
 
 Delegated skills report tool failures (spec 171):

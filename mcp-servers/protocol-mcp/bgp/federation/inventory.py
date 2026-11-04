@@ -147,7 +147,7 @@ class InventoryBuilder:
             if not r or r["role"] != "border":
                 return []
             rows = conn.execute(
-                "SELECT scope FROM member WHERE state NOT IN ('removed','quarantined')"
+                "SELECT scope, health FROM member WHERE state NOT IN ('removed','quarantined')"
             ).fetchall()
         except Exception:
             return []   # risk table absent (pre-056) or unreadable — no aggregate
@@ -160,8 +160,11 @@ class InventoryBuilder:
             base_names = {b["name"] for b in BASE_FLOOR}
         except Exception:
             base_names = set()
+        # Spec 174: leave out a skill the member's own runtime cannot load.
+        from .member_inventory import unavailable_skills
         names = set()
         for row in rows:
+            unavailable = unavailable_skills(row)
             try:
                 for e in json.loads(row["scope"] or "[]"):
                     if isinstance(e, dict):
@@ -170,7 +173,7 @@ class InventoryBuilder:
                         name, tier = e, ("base" if e in base_names else "specialty")
                     else:
                         continue
-                    if tier == "specialty" and name and name not in existing_names:
+                    if tier == "specialty" and name and name not in existing_names and name not in unavailable:
                         names.add(name)
             except (ValueError, TypeError):
                 continue
