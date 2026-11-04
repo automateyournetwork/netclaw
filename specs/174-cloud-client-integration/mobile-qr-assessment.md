@@ -34,7 +34,7 @@ or expose the daemon admin API to make QR scanning appear successful.
 ## Actual deployment evidence and limits
 
 Private receipts under `~/.local/share/netclaw/roadmap-r04a-owner-20261104/` bind the
-deployed `c7b70edd` source and dedicated protected HTTPS service:
+initial `c7b70edd` deployment and dedicated protected HTTPS service:
 
 | Receipt | SHA-256 |
 | --- | --- |
@@ -43,8 +43,10 @@ deployed `c7b70edd` source and dedicated protected HTTPS service:
 | `post-cutover-host.json` | `2d3cb9a1d51905a58494aba3616165d99103f69b60be3b2f405778d96546bca2` |
 | `actual-cutover.json` | `e4854bc3d614d6c8ceb516f25db8091e8162a8979cfe68b361397a71955152ff` |
 
-Caddy forwards to this protected service, not a legacy edge listener. The prepared
-open-lab access change adds no QR/WSS routes. This assessment performed no new
+Caddy forwards to this protected service, not a legacy edge listener. The subsequently deployed `7f7df355` open-lab access change adds no QR/WSS routes.
+Its actual public readiness receipt is
+`open-lab-cloud-migration/public-readiness-v2/verification.json`, SHA256
+`0e1ef7c34d186925b9297b19976a87d9ddda3863aad90ec682a0c4a24b762e74`. This assessment performed no new
 enrollment, native installation or workload. November 3 simulator evidence remains
 evidence for the separate cloud operations path; physical Mobile and cloud QR
 enrollment are unqualified.

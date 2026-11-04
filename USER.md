@@ -223,3 +223,44 @@ amendment in this integration. R04a is next, then R05; neither starts here.
 Source1.18.4/extension1.5.0 remain unchanged. No version, release, Marketplace,
 blog or public rollout authorization; the entire-roadmap hold through R20 remains.
 See specs/173-gcp-cloud-member/source-integration.md.
+
+
+### R04a connection-flow and authentication correction — 2026-11-04
+
+The owner explicitly rejected the premature authentication requirement: no login,
+one-use tickets, owner sessions or another auth scheme in this current development
+pilot. Authentication belongs to the later roadmap steps and will use a different
+design. The exact requested VS Code flow is **Add Connection → Local / Cloud →
+Cloud → Name → URL → Connected**. Do not ask for installation ID or an access-mode
+choice; discover and pin installation identity over verified HTTPS. Selecting the
+cloud profile must open a useful view directly and must not flicker/reconnect an
+already-selected profile. This supersedes earlier R04a owner-sign-in assumptions
+and requirements for this pilot. No hidden auto-login/ticket mechanism may be
+substituted. Preserve exact read scope/review, no-repeat recovery, private member
+credentials, TLS/endpoint identity and truthful unauthenticated lab attribution.
+Existing approval/history must not be relabeled or silently cleared. Keep later
+identity/SSO/RBAC and public rollout deferred; no general deployment/release is
+authorized. Owner supplied a replacement NetBox key privately; use it instead of
+the temporary demo credential created during diagnosis, and never put it in source
+or output.
+
+
+### R04a retained runtime checkpoint — 2026-11-04
+
+The explicit no-user-auth Border/member migrations and corrected private extension
+installation are complete. Same Montréal URL/VM, December1stop, original identities
+and failed403 authority are preserved. Cloud public readiness0e1ef7c3 and member
+verification7e24664d pass. Owner replacement key is installed only on the member;
+source1.18.4/extension1.5.0/Mobile1.0.3+6 unchanged, no public release.
+
+Actual native completion is blocked by the Mac lock screen. The owner has been
+asked to unlock normally; never request a password or send blind UI input. After
+unlock, use only extension-host restart (preserve CodePID924/window/terminal), exact
+Name+URL connection and stable profile selection, then same original5004 recovery
+under GAITb21011f2. New distinctprefix1 approval requires full root review; signed
+success/ACK plus GET-only restart/effect comparison remain required before100%.
+Original apply and completion claims are spent; never rerun them or restore oldDB.
+See specs/174-cloud-client-integration/resume.md for exact remaining sequence.
+Existing Mobile QR needs proposedR04b HUD/WSS/protectedoperations; preserve scanner
+and devicekeys, no replacement manualwizard or userauth. Human acceptance/R05 and
+roadmap release holds remain. This checkpoint is not a completion or acceptance claim.

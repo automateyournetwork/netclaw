@@ -14,7 +14,7 @@
 
 Independent test: actual editor completes exact approved read and recovers it without replay.
 
-- [x] T005 [P] [US1] Implement explicit cloud profile, HTTPS owner session and capability/identity checks in extensions/netclaw-vscode/src/.
+- [x] T005 [P] [US1] Implement explicit cloud profile and HTTPS capability/identity checks; honor the November4 no-login correction in extensions/netclaw-vscode/src/.
 - [x] T006 [US1] Implement native catalog/review/decision/results and persistent reference recovery in extensions/netclaw-vscode/src/.
 - [x] T007 [US1] Add meaningful negative/recovery/local-compatibility tests and actual editor harness in extensions/netclaw-vscode/test/.
 - [x] T008 [US1] Record actual editor/cloud success, attributable result/ACK and no-repeat reconnect evidence in specs/174-cloud-client-integration/verification.md.
@@ -40,8 +40,8 @@ Independent test: local and edge regressions pass; cloud owner does not open leg
 - [x] T015 Export actual evidence and remove fresh owned qualification resources; record actual zero-residue inventories in specs/174-cloud-client-integration/verification.md.
 - [ ] T016 Reconcile reopened owner-delivery scope, actual handoff, memory/GAIT and release/platform limits in specs/174-cloud-client-integration/resume.md and current daily memory.
 - [ ] T017 Obtain human evidence acceptance before R05; record in specs/174-cloud-client-integration/verification.md.
-- [ ] T018 Correct the persistent GCP development deployment after current-state/rollback review, rebuilding the Border image if needed; leave a compatible trusted HTTPS owner endpoint and supported member workload running within the scoped pilot lifetime.
-- [ ] T019 Install/configure the compatible extension in the owner's actual VS Code, preserve existing profiles, prove live protected read/restart recovery and hand off the usable URL/identity/secure sign-in. Do not retire this intended deployment/profile as test cleanup.
+- [x] T018 Correct the persistent GCP development deployment after current-state/rollback review, rebuilding the Border image if needed; leave a compatible trusted HTTPS owner endpoint and supported member workload running within the scoped pilot lifetime.
+- [ ] T019 Install/configure the compatible extension in the owner's actual VS Code, preserve existing profiles, prove live protected read/restart recovery and hand off the usable Name + URL connection with automatically pinned identity and no user sign-in. Do not retire this intended deployment/profile as test cleanup.
 
 ## Dependencies and parallel work
 

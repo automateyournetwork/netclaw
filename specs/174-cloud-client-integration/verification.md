@@ -1,6 +1,87 @@
 # R04a verification
 
-**Reopened November4:** the owner correctly rejected disposable-only qualification as completion of the actual VS Code connection objective. Prior evidence below remains valid for the isolated tested scope. Persistent GCP deployment and installation/configuration in the owner's actual editor remain unfinished (T018/T019); handoff reconciliation is reopened. The owner explicitly authorizes a necessary GCP Border image rebuild as development infrastructure. R05 and publication remain held.
+**November4 owner delivery:** the owner correctly rejected disposable-only
+qualification and the premature user-sign-in requirement. The current pilot uses
+Name + URL only, verified HTTPS and automatic installation pinning, with no login,
+tickets, sessions or mode/UUID prompts. See [the retained owner delivery](owner-delivery.md).
+The source/private client package and actual cloud/member migrations below are verified;
+final native editor/read/restart acceptance is still in progress. The Mac lock
+screen currently prevents native UI input; the owner has been asked only to
+unlock it normally. Historical November3 evidence below does not substitute for
+this actual installed-editor delivery. R05 and public release remain held.
+
+## November4 source and deployed service
+
+Root integrated source70240ab2 combines the known native HTTP401/403 failure
+recovery, explicit no-user-auth Border/HUD, exact VS Code connection/menu fix and
+bounded Mobile compatibility. Failure recovery passed139 focused/regression tests
+and read-only validation against the retained actual403 evidence before deployment.
+It settles only the same proved failed attempt; unknown/conflicting evidence stays
+blocked and no provider/MCP/HTTP effect is issued.
+
+Backend7f7df355 passed133 Python and47 Node24 HTTP/HUD tests plus the Vite build.
+Independent review found and corrected a historical-principal collision; new work
+requires the complete exact lab principal and an old nonce retains its authority.
+Client db1654e9 passed check/build and182 tests (179 passed,3 existing optional
+skips), including29 focused cloud tests. Mobile5596a38d passed70 affected tests
+and analysis of touched files. Root verified all integrated lane files byte-for-byte.
+Versions remain source1.18.4, extension1.5.0 and Mobile1.0.3+6.
+
+The final private VSIX6180d9f8 is installed in regular signed/notarized VS Code1.109.0.
+Its manifest and67 other payload files match; settings, keybindings,14 other
+extensions, existing cloud profile and original operation reference are preserved.
+The1.108.0 app and user data are backed up. Activation is an extension-host restart,
+not a full app restart or isolated test editor.
+
+The existing VM7647370903424740100 now runs the reviewed dedicated protected
+Border at the retained Montréal hostname. Exact cloud packet249f55e2 completed
+one apply and one start; complete original operation-row hash0338cff7 is unchanged.
+Cloud completion receiptc06f96ab binds frozen source7f7df355, private configurations,
+rollback and actual services. Federation51900/HUD51903 run; Caddy50879 and guard,
+legacy-home archive, disabled legacy services and original authority are preserved.
+
+Actual public readiness receipt
+`open-lab-cloud-migration/public-readiness-v2/verification.json`, SHA256
+`0e1ef7c34d186925b9297b19976a87d9ddda3863aad90ec682a0c4a24b762e74`, verifies:
+
+- System-trusted HTTPS runtime with installationb164621c-a94e-4c28-a087-d9c9dabcce21
+  and explicit unauthenticated lab principal8a15663b-80ba-572a-a355-2fa6ddf1267c.
+- Anonymous catalog200, no sent/set cookies; owner session404; wrong Origin403,
+  wrong installation409 and excluded legacy API404. No sign-in setup request.
+- Wrong Host returns403 at the protected backend. Existing Caddy answers unmatched
+  Host with200 and empty body/no content type; the original overly narrow verifier
+  refusal is retained, not relabeled as a server defect or403.
+- Same instance, machine, disks, networks, service account, IAM, labels, metadata
+  and December1 stop after the separately reviewed startup-script correction.
+  No new paid resource, DNS/firewall/resize change, workload or reconciliation.
+
+Private evidence root is `~/.local/share/netclaw/roadmap-r04a-owner-20261104/`.
+The fresh Mac member migration retains its original identity, profile, four pinned
+adapters and unknown operation. A Darwin0555 directory-rename refusal stopped the
+original apply before source/credential replacement. A disposable fixture proved
+the owner-write requirement; a reviewed completion-only helper temporarily adds
+owner-write to the two exact roots, restores0555, and continues remaining phases.
+Original claim and database backup remain evidence; no apply retry or DB restore.
+Actual completion passed. Final member verification
+`local-member/open-lab-migration/migration-verification.json`, SHA256
+`7e24664d012a2580afb0c284e3764a1971a6a36a78ae0594927715b07d874aec`, confirms daemon70352
+and supervisor70333, authenticated federation, exact four replacement hashes,
+owner key installed, original profile and23 preserved identity/authority/HTTP files,
+source modes0555, unchanged Docker inventory and identical provider/inference rows
+(1/1). No MCP result/tool success evidence was created and no reconciliation ran.
+T018 is complete; T019's actual native connection/read/restart proof remains pending
+unlock. The original failed operation still has its unknown fence until the
+explicitly delegated native recovery consumes its strict retained failure proof.
+
+The existing Mobile QR assessment is [separate and explicit](mobile-qr-assessment.md):
+HUD QR issuance, WSS device enrollment and protected-operation integration need
+proposed R04b. No scanner/device-key changes or new physical/native QR proof are
+claimed by the bounded no-login cloud-screen tests.
+
+## Historical November3 isolated qualification
+
+The following records retain their original tested source, deployment and owner-session
+contract. Their retired resources must not be recreated or replayed.
 
 ## Actual pre-fix reproduction (T003)
 

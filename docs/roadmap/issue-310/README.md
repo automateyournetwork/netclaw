@@ -1,7 +1,7 @@
 # NetClaw roadmap: cloud mesh → multi-cloud → multi-user (closes #310)
 
 This folder turns the cloud-first roadmap and issue #310 into 21 ordered feature
-briefs for Spec Kit (R01–R20 plus R04a). VS Code and Mobile integration are
+briefs for Spec Kit (R01–R20 plus R04a), with a proposed R04b follow-up. VS Code and Mobile integration are
 continuing delivery objectives alongside the cloud, federation and user features.
 Each brief is the *input* to one feature's
 specify → clarify → plan → tasks → analyze → implement cycle; it is not itself a
@@ -11,7 +11,7 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
-## Current execution status — 2026-11-03
+## Current execution status — 2026-11-04
 
 R01 and [R02/Spec171](../../../specs/171-execution-parity/verification.md) are
 complete and accepted. [R03/Spec172](../../../specs/172-gcp-hybrid-border/verification.md)
@@ -24,12 +24,18 @@ passed isolated Mac VS Code/native iOS simulator reads and recovery, then retire
 its24 temporary cloud resources. On November4 the owner reopened R04a: that proof
 did not deliver a working connection in his installed VS Code. Persistent GCP
 deployment and installed-client delivery are now in progress, with necessary
-development Border image rebuild authorized. Human acceptance still precedes R05;
-physical iPhone execution remains unqualified.
+development Border runtime update authorized. The current flow is Name + URL with
+no user sign-in; authentication remains later roadmap work. The existing Mobile
+scanner needs HUD QR issuance, trusted WSS and protected-operation integration,
+documented as proposed [R04b](briefs/R04b-cloud-hud-mobile-enrollment.md). Bounded
+Mobile no-login compatibility is source-tested; cloud QR and physical iPhone
+execution remain unqualified. Human acceptance still precedes the next stage.
 R03’s four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable
-residues remain. R01's existing running pilot remains preserved.
+residues remain. R01's resources and historical evidence are preserved; its retained VM now hosts
+the owner-authorized R04a protected runtime, with the old home archived and legacy
+applications stopped. Its December1 stop remains unchanged.
 
 The owner authorized the coordinator/three-agent team and at most five bounded
 implementation passes. November3 delegation superseded the earlier CAD100/billing
@@ -316,6 +322,7 @@ personal memory and shared knowledge work in R15–R20.
 | R03 | GCP Border with on-prem members (pyATS/SSH, CML) | 1 | R01, R02 |
 | R04 | GCP cloud member: NetBox and subnet, hosted model | 2 | R03 |
 | R04a | [Cloud Border client integration: VS Code and affected Mobile flows](briefs/R04a-cloud-border-client-integration.md) | client integration gate | R04 |
+| R04b (proposed) | [Cloud HUD and existing Mobile QR enrollment](briefs/R04b-cloud-hud-mobile-enrollment.md) | client follow-up | R04a acceptance and scoped plan |
 | R05 | Ollama members: cloud IPv6 and on-prem IPv4 | 3 | R04a |
 | R06 | External Border over direct eN2N/NCFED | eN2N | R03, R04a |
 | R07 | Single-region recovery and tunnel lifecycle gate | gate | R03–R06, including R04a |
