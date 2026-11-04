@@ -393,3 +393,18 @@ amendment in this integration. R04a is next, then R05; neither starts here.
 Source1.18.4/extension1.5.0 remain unchanged. No version, release, Marketplace,
 blog or public rollout authorization; the entire-roadmap hold through R20 remains.
 See specs/173-gcp-cloud-member/source-integration.md.
+
+### R04a client integration authorization — 2026-11-03
+
+The owner subsequently instructed driving R04a efficiently to completion. This
+starts Spec174 on `174-cloud-client-integration`; R04 is already accepted and
+merged. The coordinator and separate VS Code/Mobile lanes implement explicit
+cloud-owner clients using the existing protected HTTPS authority, exact review
+and no-repeat recovery. Fresh finite qualification and owned cleanup remain
+scoped to the R04a client evidence; never replay retired R04 state, identities,
+enrollment or workloads. Preserve R01 and existing owner clients/runtimes.
+Four optional roadmap passes were used; this is pass5 with no automatic extra
+improvement loop. Required verification/fixes are part of this pass. Actual
+editor/native Mobile evidence and human review precede R05; inventory, source
+tests and simulator execution cannot imply physical-device qualification.
+Source1.18.4/extension1.5.0/Mobile1.0.3+6 and the R20 publication hold remain.

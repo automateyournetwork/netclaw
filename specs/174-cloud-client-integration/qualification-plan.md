@@ -1,0 +1,27 @@
+# R04a finite cloud qualification
+
+Preparation uses the proven R04 role, enrollment, owner API and MCP contracts with fresh R04a state and identities. On 2026-11-03 the coordinator reviewed the concrete resource/workload proposal as within the owner's delegated R04a completion and cleanup; actual saved plans remain subject to coordinator inspection before apply. R01 remains preserved.
+
+## Resource and execution bounds
+
+Use Montréal `northamerica-northeast1-b`: one e2-small Border with a 20 GiB standard boot disk, one e2-standard-2 member with a 40 GiB standard boot disk, one VPC, separate `10.174.0.0/28` and `10.174.1.0/28` subnets, two reserved IPv4 addresses, two service accounts, three empty secrets with three secret-scoped accessor bindings, and nine firewall rules. This is 18 foundation resources followed by six activation rules, with auto-deleted boot disks. Add one owned DNS record and one finite OS Login key.
+
+Fresh run `20261103-a174c5` uses labels `roadmap=r04a`, `spec=174` and the proposed endpoint `r04a-gcp-montreal.lobsternet.automateyournetwork.com`. The resource prefix remains `netclaw-r04-` and dedicated host paths remain `/opt/netclaw-r04` and `/var/lib/netclaw-r04` to preserve existing exact validators. These names do not reuse a retired VM, home, identity or plan. Private candidate IaC changes only labels, descriptions and subnet addresses; the host renderer changes only the exact hostname.
+
+Start one fixed 12-hour window immediately before foundation review; extensions require a new necessity and resource review. Retain the one-use host/Docker egress guard, metadata/private-destination denial, 1 Mbit/s shaping and a 2 GiB allowance per host. No restart resets the allowance. Tear down immediately after evidence export. Same-day authenticated R04 prices estimate CAD1.79 base for 12 hours, including both VMs, disks and attached addresses; retain that price observation transparently and refresh gross project-wide budget coverage before apply. R01, traffic, secrets, provider calls and tax are additional. Neither credit nor budget alerts are a hard cap.
+
+## Qualification sequence
+
+1. Preserve the actual pre-fix VS Code reproduction. Freeze the reviewed server source, build/pin current source and verify reusable public dependencies/images. Capture fresh image/package, price/budget and ownership observations. Generate new foundation/activation plans in a new backend; never copy old state or initial homes.
+2. Create new Border/member installation IDs, signing/transport keys, owner authority, operator/guard tokens, numerical secret versions and enrollment authority. Existing NetBox/provider credential custody is read only when projecting the new member scope; clients and Border receive neither credential. Rebind fresh profiles to actual image/source hashes. Retain the corrected readable relay image, UDS authority and native discovery checks.
+3. Install/prove host guards before opening application traffic. Verify trusted HTTPS, fresh installation identity/capabilities, secret IAM/file/process boundaries, actual metadata denial and private-port refusal. Keep member execution directory and resolver permissions correct before service startup.
+4. Actual Mac VS Code completes one explicit immutable approval for the existing NetBox device read. The selected native Mobile app completes one independent approval for the existing NetBox prefix read. Record physical iPhone and simulator evidence distinctly. The expected total is two native MCP calls and at most four guarded Sonnet4.6 provider calls; the existing subnet catalog entry requires no additional qualification call.
+5. For each client, retain the nonce before prepare, verify signed result/durable ACK and recover the same operation after disconnect/restart/backgrounding. Inject a lost response only within that operation; never replay prepare or approval. Compare before/after authority rows, provider/MCP counters and results. Exercise wrong identity/TLS, stale approval, expired/revoked session and unsupported local/legacy controls without effects.
+6. Export private current state and independent evidence before retirement. Scan selected integration values, including decoded SQLite WAL and GAIT; retain unknown attempts and original failures. Use copied DB/WAL/SHM for integrity checks and explicitly omit exact reusable guard credential projections. Archives remain evidence-only.
+7. Inspect a fresh exact destroy plan, then remove owned resources, DNS and temporary OS Login access. Verify all 12 cloud residue categories, exact local trials/processes, R01 state/known-host/DNS/HTTPS and shared budgets. Separate exact SA/secret presence from unavailable historical metadata/IAM comparisons. Record client/platform limits and human acceptance before R05.
+
+## Private preparation and evidence
+
+The private plan is `~/.local/share/netclaw/roadmap-r04a-20261103/cloud-plan/`: `proposal.json`, candidate `module/`, `render-host-r04a.py`, `prepare-inputs.py`, `reuse-map.json` and preparation receipts. `reuse-map.json` pins proven helper **code**, identifies fresh bindings and records prior failure fixes. It grants no authority to run a retired installer packet, enrollment, plan or workload.
+
+The coordinator owns final source/evidence acceptance and exact phase delegation. No source version, extension version, release, Marketplace build, external announcement or general cloud rollout is included.
