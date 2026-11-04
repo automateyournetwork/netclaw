@@ -16,11 +16,13 @@ durable acknowledgement. The sole synthetic document upload used production
 HudClient after native file-picker automation failed before submission; native
 search, context review and Canvas selection/send were exercised.
 
-The final extension-host restart and reconnect passed, preserving CodePID924,
-both operation references and completed Chat/Canvas byte-for-byte. **Only the
-post-restart native status lookup and final Overview remain pending:** macOS
-locked before the operation was selected. No extra restart, read execution or
-reconciliation is needed. See [current resume](resume.md).
+The final extension-host restart and recovery passed, preserving CodePID924,
+both operation references and completed Chat/Canvas byte-for-byte. After the Mac
+was unlocked, the native result showed the same completed operation, verified
+signature and acknowledged delivery. Independent member and Border comparisons
+confirm unchanged authority, results and execution counts. The connected normal
+Overview is left visible. **R04a technical implementation and verification are
+complete.** Human acceptance remains the separate gate before R05.
 
 ## Retained deployment
 
@@ -116,8 +118,12 @@ successful NetBox GET. Signed approval/result/ACK verification passed on both
 member and Border. Result digest`bae4366cfa7d923e795a270dfe022eb970ddbafd0b53915cf2478ad256457a07`
 belongs to its sole attempt`e6fdb77f-16d7-41b8-a525-ac62c5f3b8ff`.
 One same-operation reconciliation fetched the existing result/ACK; no approval
-or execution was repeated. Final post-restart GET-only comparison is pending the
-Mac unlock, as stated above.
+or execution was repeated. Post-restart member verification passed the same signed
+result and unchanged effect counts. Border comparisonf52c7fc8 found every retained
+field identical except its observation timestamp. Native status was captured at
+20:03:24UTC and connected Overview at20:04:31UTC. The exact initiating picker click
+was not captured; source maps that recovery path to GET, but this is not raw HTTP
+tracing. No extra lookup was forced to manufacture clearer attribution.
 
 Initial installation also retained a known internal Python `lib64 → lib` archive
 refusal and a readiness probe missing its required Host header. Completion-only

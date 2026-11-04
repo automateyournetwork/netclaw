@@ -536,3 +536,24 @@ existing recovered-phase collectors. No more restart, preparation, approval,
 reconciliation, upload, search or provider prompt is needed. Do not claim the final
 native lookup passed until it does. See specs/174-cloud-client-integration/resume.md.
 Human acceptance beforeR05, proposed Mobile QR R04b and R20 release holds remain.
+
+### R04a final owner verification — November4
+
+The owner authorized the last check after unlocking. Actual native post-restart
+status at20:03:24UTC displayed the same prefix9c380fdc completed, signed result
+verified and delivery acknowledged; normal connected GCP Overview is left visible
+(20:04:31UTC). MainCode924/hosts57203/57208 remain unchanged; all five persisted
+NetClaw files, both references/decision markers and completed Chat/Canvas match
+their pre-restart hashes. Native final receipt1e9c306c retains the exact-click
+attribution limit: the picker was selected between snapshots; the source path is
+GET but no raw HTTP trace is claimed. No extra lookup was forced.
+
+Root's member recovered-phase collector verified identical approval/result/ACK,
+unchanged original403 evidence and new-prefix2provider/2inference/1MCP/1HTTP200GET.
+Border comparisonf52c7fc8 verifies every retained field unchanged except observation
+timestamp, including both authorities/results/ACKs, GAIT, counters and source pins.
+All21 technical R04a tasks are complete; T017 remains the separate human acceptance
+gate beforeR05. Do not resume old pending-lookup instructions or run another
+workload/restart to improve evidence. Keep the intended pilot/member running within
+its December1scope. Mobile QR is proposedR04b; no R05, version bump, publication or
+general rollout occurred. Final handoff is specs/174-cloud-client-integration/resume.md.

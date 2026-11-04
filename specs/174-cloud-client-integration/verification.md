@@ -42,10 +42,31 @@ payload-verified and activated. No user sign-in/session was added.
 
 The final correctly targeted extension-host restart passed (39253/39255→57203/57208)
 with mainCode924, both exact operation references and completed Chat/Canvas files
-unchanged. Existing-profile reconnect passed. macOS locked before the final native
-operation selection; **post-restart GET-only lookup and final Overview are still
-pending unlock**, and no extra restart is required. Receipt:
-`native-final-recovery-host-only.json`. R05/human acceptance and release holds remain.
+unchanged. Existing-profile reconnect passed. macOS briefly locked before operation
+selection. After the owner's resume, native capture`native-final-current.json` at
+20:03:24UTC showed the same prefix completed, signed result verified and delivery
+acknowledged; `native-final-cloud-overview.json` at20:04:31UTC showed the connected
+normal Overview. No further host restart occurred.
+Final native receipt`native-final-recovery-receipt.json`, SHA256
+`1e9c306c7fc003e760516df1a1670a468ea2b3ca7da36bf1014e3a149d02d2ba`, confirms
+all five persisted NetClaw files and both references/decision markers are unchanged.
+
+Root's existing member collector --phase recovered passed the exact approval,
+result and ACK signatures/digests, unchanged original403 evidence and unchanged
+new-prefix2provider/2inference/1MCP/1HTTP200GET counts. Border after-capture199abb44
+matches pre-capturef0f93b21 in every retained field except observation timestamp:
+full authority/result/ACK, both operation summaries, two approvals/attempts/results,
+GAIT, source/role pins and counters. Comparison receipt
+`border-captures/prefix-completed-after-native-recovery/recovery-comparison.json`,
+SHA256`f52c7fc88cfce206a4479324beb6695d09a72202080396bc603313bf5c2a180b`.
+
+The retained picker was selected between snapshots; the exact initiating click is
+not attributed. Source maps this native recovery path to GET, but the evidence is
+not raw HTTP tracing and database equality alone does not prove an HTTP method.
+No extra lookup was forced. Actual native post-restart result display plus both
+unchanged execution/authority comparisons establish the qualified recovery result.
+All technical tasks are complete; the separate human acceptance gate before R05
+and the roadmap release hold remain.
 
 ## Earlier November4 checkpoints
 

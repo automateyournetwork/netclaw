@@ -38,10 +38,10 @@ Independent test: local and edge regressions pass; cloud owner does not open leg
 ## Phase 6 — Closure
 
 - [x] T015 Export actual evidence and remove fresh owned qualification resources; record actual zero-residue inventories in specs/174-cloud-client-integration/verification.md.
-- [ ] T016 Reconcile reopened owner-delivery scope, actual handoff, memory/GAIT and release/platform limits in specs/174-cloud-client-integration/resume.md and current daily memory.
+- [x] T016 Reconcile reopened owner-delivery scope, actual handoff, memory/GAIT and release/platform limits in specs/174-cloud-client-integration/resume.md and current daily memory.
 - [ ] T017 Obtain human evidence acceptance before R05; record in specs/174-cloud-client-integration/verification.md.
 - [x] T018 Correct the persistent GCP development deployment after current-state/rollback review, rebuilding the Border image if needed; leave a compatible trusted HTTPS owner endpoint and supported member workload running within the scoped pilot lifetime.
-- [ ] T019 Install/configure the compatible extension in the owner's actual VS Code, preserve existing profiles, prove live protected read/restart recovery and hand off the usable Name + URL connection with automatically pinned identity and no user sign-in. Do not retire this intended deployment/profile as test cleanup.
+- [x] T019 Install/configure the compatible extension in the owner's actual VS Code, preserve existing profiles, prove live protected read/restart recovery and hand off the usable Name + URL connection with automatically pinned identity and no user sign-in. Do not retire this intended deployment/profile as test cleanup. Native result display and independent member/Border comparisons passed after the real extension-host restart; exact initiating picker-click attribution is not claimed.
 
 ## Dependencies and parallel work
 
