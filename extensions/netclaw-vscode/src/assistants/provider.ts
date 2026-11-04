@@ -75,6 +75,7 @@ export class AssistantProvider
     return this.definition(definition.label, file, r);
   }
   async setup() {
+    if (this.connection.profile?.mode === "remote-border") throw Error("Assistant registration requires a local profile.");
     const b = this.connection.bound(),
       profile = this.connection.profile!;
     const selected = await vscode.window.showQuickPick(

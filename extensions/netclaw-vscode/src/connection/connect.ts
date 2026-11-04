@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { HudClient, Runtime, Json } from "../client/hud";
 import { ConnectionProfile, hostContext } from "../state/profiles";
 import { OwnerClient, OwnerError } from "../client/owner";
+import { remoteHudFeatures } from "../client/remote-hud";
 export type Identity = Runtime & { harness: { type: "openclaw" | "hermes" } };
 
 /** Selecting an active cloud row opens its view without replacing its authority. */
@@ -55,17 +56,23 @@ export class Connection implements vscode.Disposable {
       const client = new OwnerClient(profile.url, profile.installationId, async cookie => {
         if (cookie) await this.secrets.store(key, cookie); else await this.secrets.delete(key);
       }, () => this.changed.fire(), profile.access);
+      let hud: HudClient | undefined;
       try {
         const runtime = await client.connect();
+        if (client.openLab && runtime.capabilities.remoteHud) {
+          remoteHudFeatures(runtime);
+          hud = new HudClient(profile.url, profile.installationId, undefined, "remote-hud");
+          await hud.connect();
+        }
         if (!client.openLab) {
           const cookie = await this.secrets.get(key);
           if (cookie) { client.restoreCookie(cookie); try { await client.inspectSession(); } catch (error) { if (!(error instanceof OwnerError && error.status === 401)) throw error; } }
         }
         if (this.serial !== generation || !vscode.workspace.isTrusted) throw Error("Connection cancelled.");
-        this.owner = client; this.profile = profile;
-        this.identity = { ...runtime, harness: { type: runtime.kind } };
+        this.owner = client; this.client = hud; this.profile = profile;
+        this.identity = { ...(hud?.runtime || runtime), harness: { type: runtime.kind } };
         this.changed.fire(); return this.identity;
-      } catch (error) { client.close(); throw error; }
+      } catch (error) { hud?.close(); client.close(); throw error; }
     }
     if (profile.mode !== undefined && profile.mode !== "local") throw Error("Unsupported connection mode.");
     const key =
@@ -104,7 +111,7 @@ export class Connection implements vscode.Disposable {
     }
   }
   bound() {
-    if (this.profile?.mode === "remote-border") throw Error("This cloud Border supports protected owner operations only. Select a local profile for these controls.");
+    if (this.profile?.mode === "remote-border" && !this.client) throw Error("This cloud Border supports protected owner operations only. Select a local profile for these controls.");
     const generation = this.serial,
       client = this.client;
     if (!client || !this.ready)

@@ -23,7 +23,7 @@ export function ownerOrigin(value: string): string {
 export function cloudInputOrigin(value: string): string { return ownerOrigin(value.endsWith("/") ? value.slice(0, -1) : value); }
 export type OwnerSession = { authenticated: true; installation_id: string; principal: Json; expires_ms: number };
 export type LabAccess = { mode: "open-lab"; principal: Json };
-function labAccess(value: unknown): LabAccess {
+export function labAccess(value: unknown): LabAccess {
   const a = value as Json, p = a?.principal;
   if (!object(a) || a.mode !== "open-lab" || !object(p) || p.issuer !== "open-lab" ||
     !installationIdentifier(p.subject) || p.display_name !== "Unauthenticated lab operator" ||

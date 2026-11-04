@@ -13,6 +13,7 @@
     observation,
     invalidated = false,
     revision = 0,
+    availableActions,
     timer;
   const text = (tag, value, parent, cls) => {
     const e = document.createElement(tag);
@@ -25,6 +26,7 @@
     if (!items?.length) return;
     const row = text("div", "", parent, "toolbar");
     for (const a of items) {
+      if (availableActions && !availableActions.includes(a.id)) continue;
       const b = text("button", a.label, row);
       b.type = "button";
       b.addEventListener(
@@ -219,6 +221,7 @@
         "Observation exceeds the display limit. Narrow the source selection.";
       return;
     }
+    availableActions = Array.isArray(m.availableActions) ? m.availableActions.filter(a => typeof a === "string") : undefined;
     observation = m.data;
     model = window.netclawPresenters.present(kind, observation);
     for (const group of model.sections)

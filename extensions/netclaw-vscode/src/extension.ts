@@ -32,6 +32,7 @@ import {createPreset} from './setup/preset';
 import {inspectSetupConnection,SetupConnection} from './setup/connections';
 import { OwnerWorkflow, assertCloudCommand } from './views/owner';
 import { cloudInputOrigin, discoverCloudBorder } from './client/owner';
+import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "./client/remote-hud";
 
 export async function activate(context: vscode.ExtensionContext) {
   const local = new LocalState(
@@ -86,7 +87,7 @@ export async function activate(context: vscode.ExtensionContext) {
         "netclaw." + name,
         async (...args: any[]) => {
           try {
-            assertCloudCommand(name, connection.profile?.mode === "remote-border", args);
+            assertCloudCommand(name, connection.profile?.mode === "remote-border", args, connection.identity);
             return await fn(...args);
           } catch (error) {
             void vscode.window.showErrorMessage(
@@ -197,7 +198,7 @@ export async function activate(context: vscode.ExtensionContext) {
       const url = cloudInputOrigin(input);
       const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Connecting to " + label }, () => discoverCloudBorder(url));
       const p = await profiles.saveCloud(label, url, runtime.installationId);
-      refresh(); await connect(p); await ownerWorkflow.overview(); return;
+      refresh(); await connect(p); await vscode.commands.executeCommand("netclaw.openOverview"); return;
     }
     const url = await vscode.window.showInputBox({
       title: "NetClaw HUD API address",
@@ -220,7 +221,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { title: "Select existing NetClaw" },
           )
         )?.profile;
-    if (p) await selectConnectionProfile(p, connection, connect, () => ownerWorkflow.overview());
+    if (p) await selectConnectionProfile(p, connection, connect, async () => vscode.commands.executeCommand("netclaw.openOverview"));
     else if (!profiles.list().length)
       await vscode.commands.executeCommand("netclaw.addConnection");
   });
@@ -254,12 +255,12 @@ export async function activate(context: vscode.ExtensionContext) {
   });
   const openDomain = (key: Domain) => {
     if (!Object.hasOwn(domains, key)) throw Error("Unknown view.");
-    if (connection.profile?.mode === "remote-border") {
+    if (connection.profile?.mode === "remote-border" && !connection.client) {
       if (key === "overview") return ownerWorkflow.overview();
       if (key === "operations") return ownerWorkflow.open();
       throw Error("This view is unavailable on the protected cloud Border.");
     }
-    if (key === "network") return openTestbed(context, connection);
+    if (key === "network" && connection.profile?.mode !== "remote-border") return openTestbed(context, connection);
     const b = connection.bound();
     if (key === "security" || key === "openshell")
       return openSecurity(
@@ -521,12 +522,15 @@ export async function activate(context: vscode.ExtensionContext) {
   );
   register("refresh", refresh);
   const items = (group: string): Navigation[] => {
-    if (connection.profile?.mode === "remote-border") {
-      if (group === "connections") return [
-        ...profiles.list().map(p => ({ label: p.label, description: connection.profile?.id === p.id ? "Selected" : p.url, command: "netclaw.selectConnection", args: [p.id], icon: "remote" })),
-        { label: "Add connection", command: "netclaw.addConnection", icon: "add" },
-        { label: "Disconnect", command: "netclaw.disconnect", icon: "debug-disconnect" },
-      ];
+    const remote = connection.profile?.mode === "remote-border";
+    const features = remote && connection.client ? remoteHudFeatures(connection.identity) : undefined;
+    if (remote && group === "connections") return [
+      ...profiles.list().map(p => ({ label: p.label, description: connection.profile?.id === p.id ? "Connected" : p.url, command: "netclaw.selectConnection", args: [p.id], icon: "remote" })),
+      { label: "Add connection", command: "netclaw.addConnection", icon: "add" },
+      { label: "Rename connection", command: "netclaw.renameConnection", icon: "edit" },
+      { label: "Disconnect", command: "netclaw.disconnect", icon: "debug-disconnect" },
+    ];
+    if (remote && !features) {
       if (group === "estate") return [{ label: "Cloud Border identity", command: "netclaw.openOverview", icon: "globe" }];
       if (group === "operations") return [
         { label: "Prepare cloud read", command: "netclaw.ownerPrepare", icon: "checklist" },
@@ -536,7 +540,6 @@ export async function activate(context: vscode.ExtensionContext) {
           { label: "Sign out of cloud Border", command: "netclaw.ownerSignOut", icon: "sign-out" },
         ] : []),
       ];
-      if (group === "help") return [{ label: "Local controls require a local profile", command: "netclaw.selectConnection", icon: "info" }];
       return [];
     }
     if (group === "connections")
@@ -602,7 +605,7 @@ export async function activate(context: vscode.ExtensionContext) {
         },
       ];
     const list: Navigation[] = Object.entries(domains)
-      .filter(([, d]) => d.group === group)
+      .filter(([key, d]) => d.group === group && (!features || features.has(remoteDomainFeature[key]!)))
       .map(([key, d]) => ({
         label: d.title,
         command: "netclaw.openDomain",
@@ -633,7 +636,11 @@ export async function activate(context: vscode.ExtensionContext) {
       ],
     };
     for (const [label, command, icon] of extras[group] || [])
-      list.push({ label, command: "netclaw." + command, icon });
+      if (!features || features.has(remoteCommandFeature[command]!) || command === "help") list.push({ label, command: "netclaw." + command, icon });
+    if (remote && group === "operations") list.push(
+      { label: "Prepare protected read", command: "netclaw.ownerPrepare", icon: "checklist" },
+      { label: "Recover retained operation", command: "netclaw.ownerRecover", icon: "history" },
+    );
     return list;
   };
   for (const group of [

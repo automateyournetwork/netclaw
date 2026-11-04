@@ -3,12 +3,19 @@ import { randomUUID } from "node:crypto";
 import { Connection } from "../connection/connect";
 import { LocalState } from "../state/local";
 import { OwnerOperations, catalogChoices, reviewText, unexpiredReview } from "../client/owner";
-import type { Json } from "../client/hud";
+import type { Json, Runtime } from "../client/hud";
+import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "../client/remote-hud";
 
-const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "removeConnection", "openOverview", "openOperations", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help", "openDocumentation"]);
-export function assertCloudCommand(name: string, remote: boolean, args: unknown[] = []) {
-  if (remote && !allowed.has(name) && !(name === "openDomain" && ["overview", "operations"].includes(String(args[0]))))
-    throw Error("This cloud Border supports protected owner operations. Select a local profile for workspace, lifecycle, Chat, MCP and setup controls.");
+const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "removeConnection", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help"]);
+export function assertCloudCommand(name: string, remote: boolean, args: unknown[] = [], runtime?: Runtime) {
+  if (!remote || allowed.has(name)) return;
+  if (runtime?.capabilities?.remoteHud) {
+    const feature = name === "openDomain" ? remoteDomainFeature[String(args[0])] : remoteCommandFeature[name];
+    if (feature && remoteHudFeatures(runtime).has(feature)) return;
+    throw Error("This action is unavailable on the selected cloud Border. Host filesystem, lifecycle and setup controls require a local profile.");
+  }
+  if (["openOverview", "openOperations"].includes(name) || name === "openDomain" && ["overview", "operations"].includes(String(args[0]))) return;
+  throw Error("This cloud Border supports protected owner operations. Select a local profile for workspace, lifecycle, Chat, MCP and setup controls.");
 }
 export function ownerDecisionDetail(origin: string, installation: string, operation: Json) {
   reviewText(operation);
@@ -117,9 +124,15 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   private async showResult(b: ReturnType<OwnerWorkflow["scope"]>, operation: Json) {
     b.current();
-    await this.document({ origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
+    const evidence = { origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
       state: operation.state, verification: { signedResultVerified: operation.result?.verified === true, durableAcknowledgement: operation.result?.durable_ack === true, acknowledgementDeliveryPending: operation.result?.ack_delivery_pending },
-      operation, next: "Recover this same operation to check status or reconcile. No preparation or approval is retried." }, "Cloud operation status and audit evidence", b.current);
+      operation, next: "Recover this same operation to check status or reconcile. No preparation or approval is retried." };
+    const verified = operation.result?.verified === true, acknowledged = operation.result?.durable_ack === true && operation.result?.ack_delivery_pending === false;
+    const message = `Cloud operation ${operation.operation_id}: ${String(operation.state).replaceAll("_", " ")}. ${verified ? "Signed result verified." : "No verified result yet."} ${acknowledged ? "Delivery acknowledged." : "Delivery is not yet acknowledged."}`;
+    void vscode.window.showInformationMessage(message, "View evidence").then(async selected => {
+      if (selected !== "View evidence") return;
+      try { b.current(); await this.document(evidence, "Cloud operation evidence", b.current); } catch { /* The selected connection may have changed while the message was open. */ }
+    });
   }
   async recover() {
     return this.exclusive(async () => {

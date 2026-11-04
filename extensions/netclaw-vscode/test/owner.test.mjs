@@ -340,6 +340,8 @@ test('invalid TLS is rejected by the native transport without reaching HTTP', as
   t.after(() => { server.closeAllConnections(); server.close(); fs.rmSync(directory, { recursive: true }); });
   await assert.rejects(new OwnerClient('https://127.0.0.1:' + server.address().port, ID).connect(), /not confirmed/);
   await assert.rejects(discoverCloudBorder('https://127.0.0.1:' + server.address().port), /did not advertise/);
+  const { HudClient } = await load('src/client/hud.ts');
+  await assert.rejects(new HudClient('https://127.0.0.1:' + server.address().port, ID, undefined, 'remote-hud').connect());
   assert.equal(calls, 0);
 });
 
@@ -422,4 +424,25 @@ test('profile, direct handler and local lifecycle boundaries retain existing loc
   await assert.rejects(management.saveBinding({ profile: cloud }), /cannot acquire/);
   connection.disconnect(); assert.throws(() => b.current(), /changed/);
   assert.equal(profiles.list()[0].id, local.id); assert.equal(profiles.list()[0].context, hostContext());
+});
+
+test('advertised remote workspace binds the existing HUD panels while retaining separate protected authority', async t => {
+  const { Connection, Profiles, assertCloudCommand } = await nativeModules();
+  const f = fixture(t); f.state.openLab = true;
+  const features = ['overview', 'chat', 'canvas', 'rag', 'members', 'peers', 'skills', 'runtime', 'tokenomics', 'documentation', 'reference', 'logs', 'operations'];
+  f.state.hook = (call, json) => {
+    if (call.route === '/api/runtime') return json({ installationId: ID, kind: 'openclaw', role: 'border', access: { mode: 'open-lab', principal: labPrincipal }, readiness: { ready: true }, capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: true, remoteHud: { schema: 1, features } } });
+    if (call.route === '/api/n2n') return json({ members: [{ id: 'actual-fixture-member' }] });
+  };
+  const store = storage(), profiles = new Profiles(store), profile = await profiles.saveCloud('Cloud', ORIGIN, ID);
+  const connection = new Connection({ get: async () => assert.fail('No session read'), store: async () => assert.fail('No session write'), delete: async () => assert.fail('No session delete') });
+  t.after(() => connection.dispose()); await connection.connect(profile);
+  const bound = connection.bound(), owner = connection.ownerBound();
+  assert.equal(bound.client.transport, 'remote-hud'); assert.notEqual(bound.client, owner.client);
+  assert.deepEqual((await bound.client.request('GET', '/api/n2n')).members, [{ id: 'actual-fixture-member' }]);
+  for (const name of ['openChat','openCanvas','openRag','openPeers','openSkills']) assert.doesNotThrow(() => assertCloudCommand(name, true, [], connection.identity));
+  for (const name of ['startClaw','bindWorkspace','configureMcp','prepareChange','manageAssistants','openNativeRuntime','openPeerChat']) assert.throws(() => assertCloudCommand(name, true, [], connection.identity), /local profile/);
+  assert.doesNotThrow(() => assertCloudCommand('openDomain', true, ['overview'], connection.identity));
+  assert.throws(() => assertCloudCommand('openDomain', true, ['configuration'], connection.identity));
+  connection.disconnect(); assert.throws(() => bound.current(), /changed/); assert.throws(() => owner.current(), /changed/);
 });
