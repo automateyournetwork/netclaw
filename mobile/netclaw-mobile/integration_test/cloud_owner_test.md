@@ -6,6 +6,17 @@ OwnerTransport? transport, CloudOwnerClient? initialClient})` and
 native harness can depend on `netclaw_mobile` by local path and copy/import this
 test. Do not replace the owner's installed app or reuse its app groups.
 
+Run `flutter drive --driver=test_driver/cloud_owner_driver.dart
+--target=integration_test/cloud_owner_test.dart -d <selected-device>` with
+`NETCLAW_NATIVE_REPORT` set to a fresh absolute report filename in an existing
+0700 host directory. Copy the source driver into the isolated native harness's
+`test_driver/` directory. The driver exports `binding.reportData` to a 0600 JSON
+file through Flutter's test protocol before app teardown, without printing it.
+Do not use `flutter test` and rely solely on later Documents extraction: the
+actual first iOS simulator prepare passed, but Flutter uninstalled the app at
+completion before Documents evidence could be exported. That original prepared
+operation must be recovered from authoritative state, never prepared again.
+
 Launch the integration test, then inject `Documents/r04a-qualification.json` into
 that app's private data container within five minutes. The test reads at most
 64 KiB and deletes the file before any network call. Never supply tickets through

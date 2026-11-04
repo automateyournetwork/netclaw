@@ -36,7 +36,7 @@ dynamic canonical(dynamic value) => value is Map
     : value;
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
     'native cloud-owner exact review and same-operation recovery',
     (tester) async {
@@ -247,22 +247,25 @@ void main() {
           );
         }
       }
+      final evidence = <String, dynamic>{
+        'phase': phase,
+        'platform': Platform.operatingSystem,
+        'origin': profile.origin,
+        'installation_id': profile.installationId,
+        'reference': client.reference,
+        'operation': client.operation,
+        'requests': transport.calls,
+        'native_screen_rendered': true,
+        'scope':
+            'Production cloud screen/client in isolated native qualification app; physical versus simulator supplied by host evidence',
+      };
+      // Deliver over Flutter's test protocol before the host uninstalls the
+      // qualification app. Documents alone can disappear at test completion.
+      binding.reportData = {'r04a_evidence': evidence};
       await tester.runAsync(() async {
-        await File('${directory.path}/r04a-evidence-$phase.json').writeAsString(
-          jsonEncode({
-            'phase': phase,
-            'platform': Platform.operatingSystem,
-            'origin': profile.origin,
-            'installation_id': profile.installationId,
-            'reference': client.reference,
-            'operation': client.operation,
-            'requests': transport.calls,
-            'native_screen_rendered': true,
-            'scope':
-                'Production cloud screen/client in isolated native qualification app; physical versus simulator supplied by host evidence',
-          }),
-          flush: true,
-        );
+        await File(
+          '${directory.path}/r04a-evidence-$phase.json',
+        ).writeAsString(jsonEncode(evidence), flush: true);
       });
       await tester.pumpWidget(const SizedBox());
     },
