@@ -54,7 +54,7 @@ exports.run = async () => {
         const retained = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: ref.operation_id });
         await retained.waitFor({ state: 'visible' }); await retained.click();
       } else { pending = api.ownerWorkflow.prepare(); await choose(matching[0].index); }
-      const approve = page.getByRole('button', { name: 'Approve once', exact: true }); await approve.waitFor({ state: 'visible' });
+      const reviewDecision = page.getByRole('button', { name: 'Review decision', exact: true }); await reviewDecision.waitFor({ state: 'visible' });
       const doc = vscode.workspace.textDocuments.find(d => d.uri.scheme === 'netclaw-owner' && d.getText().includes('review_digest')); assert.ok(doc);
       const displayed = JSON.parse(doc.getText());
       for (const field of ['principal', 'border', 'member', 'model_profile']) assert.deepEqual(displayed.review[field], config.expected[field], 'Full ' + field + ' must match frozen authority');
@@ -62,15 +62,21 @@ exports.run = async () => {
       for (const [key, value] of Object.entries(config.expected.tool_call)) assert.deepEqual(displayed.review.tool_call[key], value);
       assert.equal(displayed.review.limits.max_tool_calls, 1); assert.equal(displayed.review.limits.max_inference_calls, 2); assert.equal(displayed.review.change_request_ref, null);
       assert.ok(displayed.review.limits.expires_at_ms > Date.now());
+      assert.equal(doc.isUntitled, false);
+      await vscode.window.showTextDocument(doc);
+      await vscode.commands.executeCommand('revealLine', { lineNumber: doc.lineCount - 1, at: 'bottom' });
+      await page.screenshot({ path: path.join(path.dirname(report), 'review-end-' + Date.now() + '.png') });
+      await vscode.commands.executeCommand('revealLine', { lineNumber: 0, at: 'top' });
+      await reviewDecision.click();
+      const approve = page.getByRole('button', { name: 'Approve once', exact: true }); await approve.waitFor({ state: 'visible' });
       const dialog = page.locator('.monaco-dialog-box');
       const rendered = await dialog.textContent();
       fs.writeFileSync(path.join(path.dirname(report), 'native-review-' + Date.now() + '.json'), JSON.stringify({ virtualReview: displayed, nativeText: rendered }, null, 2), { mode: 0o600 });
-      // Native paragraph nodes normalize whitespace; compare the complete JSON
-      // value, not formatting. Missing/truncated fields still refuse approval.
-      const nativeReview = JSON.parse(rendered.slice(rendered.indexOf('{'), rendered.lastIndexOf('}') + 1));
-      assert.deepEqual(nativeReview, displayed, 'Native modal must contain the complete immutable review');
+      assert.ok(rendered.includes(displayed.operation_id) && rendered.includes(displayed.review_digest) && rendered.includes('Revision: ' + displayed.revision), 'Visible native decision must bind the full displayed review');
+      const bounds = await approve.boundingBox(), viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+      assert.ok(bounds && bounds.x >= 0 && bounds.y >= 0 && bounds.x + bounds.width <= viewport.width && bounds.y + bounds.height <= viewport.height, 'Native approval must be inside the actual viewport');
       await page.screenshot({ path: path.join(path.dirname(report), 'review-' + Date.now() + '.png') });
-      mark('Complete immutable review matches frozen owner, Border, member, model and exact device1 read');
+      mark('Scrollable complete immutable review matches frozen identities and exact device1 read; visible native decision binds its revision/digest');
       await approve.click(); operation = await pending; assert.ok(operation);
       mark('One native Approve once accepted the exact displayed revision and digest');
     } else {

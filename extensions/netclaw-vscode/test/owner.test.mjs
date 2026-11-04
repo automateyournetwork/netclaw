@@ -223,12 +223,20 @@ test('invalid TLS is rejected by the native transport without reaching HTTP', as
 async function nativeModules() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'netclaw-owner-native-'));
   const file = path.join(directory, 'native.mjs');
-  await build({ stdin: { contents: "export {Profiles,hostContext} from './src/state/profiles'; export {Connection} from './src/connection/connect'; export {Management} from './src/state/management'; export {assertCloudCommand} from './src/views/owner';", resolveDir: process.cwd() }, outfile: file, bundle: true, platform: 'node', format: 'esm', target: 'node22', logLevel: 'silent', plugins: [{ name: 'vscode-fixture', setup(b) {
+  await build({ stdin: { contents: "export {Profiles,hostContext} from './src/state/profiles'; export {Connection} from './src/connection/connect'; export {Management} from './src/state/management'; export {assertCloudCommand,ownerDecisionDetail} from './src/views/owner';", resolveDir: process.cwd() }, outfile: file, bundle: true, platform: 'node', format: 'esm', target: 'node22', logLevel: 'silent', plugins: [{ name: 'vscode-fixture', setup(b) {
     b.onResolve({ filter: /^vscode$/ }, () => ({ path: 'vscode', namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: "export const env={remoteName:undefined}; export const workspace={isTrusted:true}; export class EventEmitter {event=()=>({dispose(){}});fire(){}dispose(){}};", loader: 'js' }));
   } }] });
   return import(pathToFileURL(file).href);
 }
+test('native confirmation stays compact while binding the complete immutable review document', async () => {
+  const { ownerDecisionDetail } = await nativeModules(), op = operation('view-test');
+  const detail = ownerDecisionDetail(ORIGIN, ID, op);
+  assert.ok(detail.includes(op.operation_id) && detail.includes(op.review_digest) && detail.includes('Revision: ' + op.revision));
+  assert.ok(detail.length < 1000 && detail.split('\n').length < 12);
+  assert.deepEqual(JSON.parse(reviewText(op)).review, op.review);
+  op.review.limits.max_tool_calls = 2; assert.throws(() => ownerDecisionDetail(ORIGIN, ID, op), /digest/);
+});
 test('profile, direct handler and local lifecycle boundaries retain existing local state', async t => {
   const { Profiles, hostContext, Connection, Management, assertCloudCommand } = await nativeModules();
   const store = storage(), profiles = new Profiles(store);

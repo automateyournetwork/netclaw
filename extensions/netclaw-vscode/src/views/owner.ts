@@ -10,6 +10,11 @@ export function assertCloudCommand(name: string, remote: boolean, args: unknown[
   if (remote && !allowed.has(name) && !(name === "openDomain" && ["overview", "operations"].includes(String(args[0]))))
     throw Error("This cloud Border supports protected owner operations. Select a local profile for workspace, lifecycle, Chat, MCP and setup controls.");
 }
+export function ownerDecisionDetail(origin: string, installation: string, operation: Json) {
+  reviewText(operation);
+  const args = JSON.stringify(operation.review.tool_call.arguments);
+  return `${origin}\nInstallation: ${installation}\nOperation: ${operation.operation_id}\nRevision: ${operation.revision}\nReview SHA-256: ${operation.review_digest}\nMember: ${operation.review.member.member_id}\nCall: ${operation.review.tool_call.tool}\nArguments: ${args.length <= 500 ? args : "See complete immutable review"}\n\nThe complete owner, Border, member, model, call arguments and limits are in the read-only Cloud-Border.json review. This decision uses exactly that revision and digest.`;
+}
 
 /** Native input/review; virtual documents contain private output in memory only. */
 export class OwnerWorkflow implements vscode.Disposable {
@@ -93,9 +98,12 @@ export class OwnerWorkflow implements vscode.Disposable {
     await this.document(fullReview, "Complete immutable cloud operation review", b.current);
     const reference = b.operations.references().find(r => r.operation_id === operation.operation_id);
     if (operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve")) { await this.showResult(b, operation); return operation; }
+    const ready = await vscode.window.showInformationMessage("The complete immutable review is open in Cloud-Border.json. Read it before reviewing a decision.", "Review decision");
+    b.current();
+    if (ready !== "Review decision") return operation;
     const expired = !unexpiredReview(operation);
     const choice = await vscode.window.showInformationMessage(expired ? "This cloud review has expired" : "Review this exact cloud read", { modal: true,
-      detail: `${b.client.base}\nInstallation: ${b.client.expectedId}\n\n${fullReview}\n\n${expired ? "Approval is unavailable. Deny this expired review to resolve it without execution." : "Approve submits this exact revision and digest once."} Cancel keeps the review for recovery.` }, ...(expired ? ["Deny"] : ["Approve once", "Deny"]));
+      detail: `${ownerDecisionDetail(b.client.base, b.client.expectedId, operation)}\n\n${expired ? "Approval is unavailable. Deny this expired review to resolve it without execution." : "Approve submits this exact revision and digest once."} Cancel keeps the review for recovery.` }, ...(expired ? ["Deny"] : ["Approve once", "Deny"]));
     b.current();
     if (choice !== "Approve once" && choice !== "Deny") return operation;
     const result = await b.run(() => b.operations.decide(operation, choice === "Approve once" ? "approve" : "deny"));
