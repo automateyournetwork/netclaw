@@ -10,22 +10,23 @@ import { createHash } from 'node:crypto';
 import { build } from 'esbuild';
 import { pathToFileURL } from 'node:url';
 import { load } from './load.mjs';
-const { OwnerClient, OwnerOperations, ownerOrigin, catalogChoices, ownerCanonical, reviewText, unexpiredReview } = await load('src/client/owner.ts');
+const { OwnerClient, OwnerOperations, discoverCloudBorder, ownerOrigin, cloudInputOrigin, catalogChoices, ownerCanonical, reviewText, unexpiredReview } = await load('src/client/owner.ts');
 const ID = '22222222-2222-4222-8222-222222222222', ORIGIN = 'https://border.example.test';
 const principal = { issuer: 'local', subject: '33333333-3333-4333-8333-333333333333', display_name: 'Owner', roles: ['owner'] };
+const labPrincipal = { issuer: 'open-lab', subject: '55555555-5555-4555-8555-555555555555', display_name: 'Unauthenticated lab operator', roles: ['lab-operator'] };
 const cookie = '__Host-nc_owner_' + ID + '=' + 'c'.repeat(43), ticket = 't'.repeat(43), csrf = 's'.repeat(43);
 const clone = v => structuredClone(v);
 const catalog = { revision: 'catalog-1', members: [{ member: { member_id: 'risk/member' }, model_profiles: [{ profile_id: 'sonnet-4-6' }], tools: [{ tool: 'subnet_calculator', arguments: { cidr: '192.0.2.0/26' } }] }] };
 const selection = catalogChoices(catalog)[0];
 const storage = () => { const state = new Map(); return { state, get: (k, d) => state.has(k) ? clone(state.get(k)) : d, update: async (k, v) => { state.set(k, clone(v)); } }; };
-function operation(nonce) {
-  const review = { principal, border: { installation_id: ID, identity: 'fixture-border' }, member: { member_id: 'risk/member' }, model_profile: { profile_id: 'sonnet-4-6' }, tool_call: { tool: selection.tool, arguments: selection.arguments }, limits: { expires_at_ms: Date.now() + 300000, max_tool_calls: 1 }, change_request_ref: null };
+function operation(nonce, operator = principal) {
+  const review = { principal: operator, border: { installation_id: ID, identity: 'fixture-border' }, member: { member_id: 'risk/member' }, model_profile: { profile_id: 'sonnet-4-6' }, tool_call: { tool: selection.tool, arguments: selection.arguments }, limits: { expires_at_ms: Date.now() + 300000, max_tool_calls: 1 }, change_request_ref: null };
   return { operation_id: 'operation-' + nonce, client_nonce: nonce, revision: 1, state: 'review_pending', review,
     review_digest: createHash('sha256').update(ownerCanonical(review)).digest('hex'), allowed_actions: ['approve', 'deny'], reconciliation_required: false, may_have_executed: false, attempt_count: 0, result: null };
 }
 function fixture(t) {
   const calls = [], saved = [], operations = new Map();
-  const state = { authenticated: true, runtimeId: ID, role: 'border', runtimeCapabilities: true, hook: undefined, lost: false };
+  const state = { authenticated: true, runtimeId: ID, role: 'border', runtimeCapabilities: true, openLab: false, hook: undefined, lost: false };
   const session = () => ({ authenticated: true, installation_id: ID, principal, csrf_token: csrf, expires_ms: Date.now() + 60000 });
   const json = (value, status = 200, headers = {}) => new Response(JSON.stringify(value), { status, headers: { 'Content-Type': 'application/json', ...headers } });
   const original = globalThis.fetch;
@@ -34,28 +35,33 @@ function fixture(t) {
     const route = new URL(url).pathname, query = new URL(url).searchParams;
     const call = { route, method: init.method, headers: init.headers, body: init.body && JSON.parse(init.body) }; calls.push(call);
     if (state.hook) { const override = await state.hook(call, json); if (override) return override; }
-    assert.equal(init.headers['X-NetClaw-Installation'], ID);
     if (route === '/api/runtime') {
+      if (init.headers['X-NetClaw-Installation'] !== undefined) assert.equal(init.headers['X-NetClaw-Installation'], ID);
       assert.equal(init.headers.Cookie, undefined, 'public identity probe must not disclose a saved session');
-      return json({ installationId: state.runtimeId, kind: 'openclaw', role: state.role, readiness: { ready: true }, capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: state.runtimeCapabilities } });
+      return json({ ...(state.openLab ? { access: { mode: 'open-lab', principal: labPrincipal } } : {}), installationId: state.runtimeId, kind: 'openclaw', role: state.role, readiness: { ready: true }, capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: state.runtimeCapabilities } });
+    }
+    assert.equal(init.headers['X-NetClaw-Installation'], ID);
+    if (state.openLab) {
+      assert.equal(init.headers.Cookie, undefined); assert.equal(init.headers['X-NetClaw-CSRF'], undefined); assert.equal(init.headers['X-NetClaw-Owner-Bootstrap'], undefined);
+      assert.ok(!route.startsWith('/api/hud/owner/'), 'Open lab must not call owner authentication');
     }
     if (init.method !== 'GET') {
       assert.equal(init.headers.Origin, ORIGIN); assert.equal(init.headers['Content-Type'], 'application/json');
-      if (!init.headers['X-NetClaw-Owner-Bootstrap']) assert.equal(init.headers['X-NetClaw-CSRF'], csrf);
+      if (!state.openLab && !init.headers['X-NetClaw-Owner-Bootstrap']) assert.equal(init.headers['X-NetClaw-CSRF'], csrf);
     }
     if (route === '/api/hud/owner/session' && init.method === 'POST') {
       assert.equal(call.body.ticket, ticket); assert.equal(init.headers['X-NetClaw-Owner-Bootstrap'], '1');
       return json(session(), 200, { 'Set-Cookie': cookie + '; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=60' });
     }
-    if (!state.authenticated) return json({ code: 'owner_session_required' }, 401);
-    assert.equal(init.headers.Cookie, cookie);
+    if (!state.openLab && !state.authenticated) return json({ code: 'owner_session_required' }, 401);
+    if (!state.openLab) assert.equal(init.headers.Cookie, cookie);
     if (route === '/api/hud/owner/session') {
       if (init.method === 'DELETE') return json({ authenticated: false }, 200, { 'Set-Cookie': cookie.split('=')[0] + '=; Path=/; HttpOnly; SameSite=Strict; Secure; Max-Age=0' });
       return json(session());
     }
     if (route === '/api/hud/operations/catalog') return json(catalog);
     if (route === '/api/hud/operations' && init.method === 'POST') {
-      const op = operation(call.body.client_nonce); operations.set(op.operation_id, op); return json(op);
+      const op = operation(call.body.client_nonce, state.openLab ? labPrincipal : principal); operations.set(op.operation_id, op); return json(op);
     }
     const id = route.split('/')[4];
     let op = id ? operations.get(id) : [...operations.values()].find(v => v.client_nonce === query.get('client_nonce'));
@@ -74,6 +80,8 @@ function fixture(t) {
 }
 test('cloud origin is explicit HTTPS and local endpoint policy remains unchanged', async () => {
   assert.equal(ownerOrigin(ORIGIN), ORIGIN);
+  assert.equal(cloudInputOrigin(ORIGIN + '/'), ORIGIN); assert.equal(cloudInputOrigin(ORIGIN), ORIGIN);
+  for (const bad of ['http://border.example.test/', ORIGIN + '/api/', ORIGIN + '/?x', ORIGIN + '/#x', 'https://user:secret@border.example.test/', ORIGIN + '//']) assert.throws(() => cloudInputOrigin(bad));
   for (const bad of ['http://border.example.test', ORIGIN + '/', ORIGIN + '/api', ORIGIN + '?x', ORIGIN + '#x', 'https://user:secret@border.example.test', 'https://BORDER.example.test', ' https://border.example.test', 'https:\\border.example.test']) assert.throws(() => ownerOrigin(bad));
   assert.throws(() => new OwnerClient(ORIGIN, 'missing'));
   const { endpoint } = await load('src/client/hud.ts');
@@ -86,9 +94,83 @@ test('verified identity precedes owner login; strict cookie is securely stored, 
   assert.equal((await f.client.catalog()).revision, catalog.revision);
   await f.client.logout(); assert.equal(f.saved.at(-1), ''); assert.equal(f.client.sessionState, undefined);
 });
+test('Name and HTTPS URL discover an explicit open lab, pin identity and execute exact review without authentication traffic or secrets', async t => {
+  const f = fixture(t); f.state.openLab = true;
+  const runtime = await discoverCloudBorder(ORIGIN); assert.equal(runtime.installationId, ID);
+  assert.equal(f.calls[0].headers['X-NetClaw-Installation'], undefined);
+  const writes = [], client = new OwnerClient(ORIGIN, runtime.installationId, async value => writes.push(value), () => {}, 'open-lab');
+  t.after(() => client.close());
+  await client.connect(); assert.equal(client.operationsReady, true); assert.equal(client.sessionState, undefined); assert.deepEqual(client.principal, labPrincipal);
+  const ops = new OwnerOperations(client, storage()), op = await ops.prepare(catalogChoices(await client.catalog())[0]);
+  assert.deepEqual(op.review.principal, labPrincipal);
+  const done = await ops.decide(op, 'approve'); assert.equal(done.result.durable_ack, true);
+  await assert.rejects(client.login(ticket), /does not use sign-in/);
+  assert.deepEqual(writes, []);
+  assert.ok(f.calls.every(c => !c.route.startsWith('/api/hud/owner/') && !c.headers.Cookie && !c.headers['X-NetClaw-CSRF'] && !c.headers['X-NetClaw-Owner-Bootstrap']));
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 1);
+});
+test('open-lab discovery and pinned connections refuse absent access, changed identity and auth fallback', async t => {
+  const f = fixture(t); await assert.rejects(discoverCloudBorder(ORIGIN), /did not advertise/);
+  f.state.openLab = true;
+  const client = new OwnerClient(ORIGIN, ID, async () => { throw Error('No secret writes permitted'); }, () => {}, 'open-lab');
+  t.after(() => client.close()); await client.connect();
+  f.state.openLab = false;
+  await assert.rejects(client.catalog(), /open-lab access changed/);
+  assert.ok(f.calls.every(c => c.method === 'GET' && !c.route.startsWith('/api/hud/owner/')));
+  f.state.openLab = true; f.state.runtimeId = '44444444-4444-4444-8444-444444444444';
+  const pinned = new OwnerClient(ORIGIN, ID, undefined, undefined, 'open-lab'); t.after(() => pinned.close());
+  await assert.rejects(pinned.connect(), /expected cloud Border/);
+});
+test('discovery refuses malformed lab access and redirects without sending credentials', async t => {
+  const f = fixture(t);
+  const runtime = { installationId: ID, kind: 'openclaw', role: 'border', capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: true } };
+  for (const access of [{ mode: 'open-lab', principal }, { mode: 'open-lab', principal: { ...labPrincipal, roles: ['owner'] } }, { mode: 'protected', principal: labPrincipal }]) {
+    f.state.hook = (c, json) => c.route === '/api/runtime' ? json({ ...runtime, access }) : undefined;
+    await assert.rejects(discoverCloudBorder(ORIGIN), /did not advertise/);
+  }
+  f.state.hook = (_c, json) => json({}, 302, { Location: 'https://another.example.test' });
+  await assert.rejects(discoverCloudBorder(ORIGIN), /did not advertise/);
+  assert.ok(f.calls.every(c => c.method === 'GET' && c.headers.Cookie === undefined && c.headers['X-NetClaw-CSRF'] === undefined));
+});
+test('open lab recovers historical owner failure without reattribution or replay, then separately prepares a lab read after ACK', async t => {
+  const f = fixture(t), store = storage(), old = new OwnerOperations(f.client, store); await f.client.login(ticket);
+  const reviewed = await old.prepare(selection);
+  f.state.hook = c => { if (c.route.endsWith('/decision')) throw Error('lost'); };
+  await assert.rejects(old.decide(reviewed, 'approve'));
+  f.operations.set(reviewed.operation_id, { ...reviewed, state: 'outcome_unknown', revision: 2, attempt_count: 1, may_have_executed: true, reconciliation_required: true, allowed_actions: ['reconcile'] });
+  f.state.hook = undefined; f.state.openLab = true;
+  const client = new OwnerClient(ORIGIN, ID, async () => { throw Error('No secret writes permitted'); }, () => {}, 'open-lab'); t.after(() => client.close());
+  const resumed = new OwnerOperations(client, store), ref = resumed.references()[0], before = f.calls.length;
+  const unknown = await resumed.recover(ref); assert.deepEqual(unknown.review.principal, principal);
+  assert.ok(f.calls.slice(before).every(c => c.method === 'GET'));
+  await assert.rejects(resumed.prepare(selection), /unresolved/);
+  await assert.rejects(resumed.decide(reviewed, 'approve'), /already submitted/);
+  f.state.hook = (c, json) => {
+    if (!c.route.endsWith('/reconcile')) return;
+    const failed = { ...unknown, state: 'failed', revision: 3, reconciliation_required: false, result: { verified: true, durable_ack: true, ack_delivery_pending: false, evidence: { status: 'FAILED' } } };
+    f.operations.set(failed.operation_id, failed); return json(failed);
+  };
+  const failed = await resumed.reconcile(ref); assert.deepEqual(failed.review.principal, principal); assert.equal(failed.result.durable_ack, true);
+  const next = await resumed.prepare(selection); assert.deepEqual(next.review.principal, labPrincipal);
+  assert.deepEqual(resumed.references()[0], ref); assert.notEqual(next.client_nonce, ref.client_nonce);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 1);
+  assert.ok(f.calls.slice(before).every(c => !c.route.startsWith('/api/hud/owner/') && !c.headers.Cookie && !c.headers['X-NetClaw-CSRF']));
+});
+test('historical unapproved reviews cannot gain a new decision and a fresh lab prepare must match the advertised principal', async t => {
+  const f = fixture(t), store = storage(), old = new OwnerOperations(f.client, store); await f.client.login(ticket);
+  const historical = await old.prepare(selection); f.state.openLab = true;
+  const client = new OwnerClient(ORIGIN, ID, undefined, undefined, 'open-lab'); t.after(() => client.close());
+  const resumed = new OwnerOperations(client, store); await resumed.recover(resumed.references()[0]);
+  await assert.rejects(resumed.decide(historical, 'approve'), /recovery-only/);
+  assert.equal(resumed.references()[0].decision_sent, undefined);
+  const fresh = new OwnerOperations(client, storage());
+  f.state.hook = (c, json) => c.route === '/api/hud/operations' && c.method === 'POST' ? json(operation(c.body.client_nonce, principal)) : undefined;
+  await assert.rejects(fresh.prepare(selection), /does not belong/);
+  assert.equal(f.calls.filter(c => c.route.endsWith('/decision')).length, 0);
+});
 for (const change of [{ runtimeId: '44444444-4444-4444-8444-444444444444' }, { role: 'member' }, { runtimeCapabilities: false }]) test('wrong identity/role/capability refuses before ticket disclosure ' + JSON.stringify(change), async t => {
   const f = fixture(t); Object.assign(f.state, change);
-  await assert.rejects(f.client.login(ticket), /expected protected/);
+  await assert.rejects(f.client.login(ticket), /expected cloud/);
   assert.equal(f.calls.filter(c => c.method !== 'GET').length, 0); assert.ok(!JSON.stringify(f.calls).includes(ticket));
 });
 test('wrong cookie scope and invalid/expired owner claims fail closed without response disclosure', async t => {
@@ -257,13 +339,14 @@ test('invalid TLS is rejected by the native transport without reaching HTTP', as
   server.listen(0, '127.0.0.1'); await once(server, 'listening');
   t.after(() => { server.closeAllConnections(); server.close(); fs.rmSync(directory, { recursive: true }); });
   await assert.rejects(new OwnerClient('https://127.0.0.1:' + server.address().port, ID).connect(), /not confirmed/);
+  await assert.rejects(discoverCloudBorder('https://127.0.0.1:' + server.address().port), /did not advertise/);
   assert.equal(calls, 0);
 });
 
 async function nativeModules() {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'netclaw-owner-native-'));
   const file = path.join(directory, 'native.mjs');
-  await build({ stdin: { contents: "export {Profiles,hostContext} from './src/state/profiles'; export {Connection} from './src/connection/connect'; export {Management} from './src/state/management'; export {assertCloudCommand,ownerDecisionDetail} from './src/views/owner';", resolveDir: process.cwd() }, outfile: file, bundle: true, platform: 'node', format: 'esm', target: 'node22', logLevel: 'silent', plugins: [{ name: 'vscode-fixture', setup(b) {
+  await build({ stdin: { contents: "export {Profiles,hostContext} from './src/state/profiles'; export {Connection,selectConnectionProfile} from './src/connection/connect'; export {Management} from './src/state/management'; export {assertCloudCommand,ownerDecisionDetail} from './src/views/owner';", resolveDir: process.cwd() }, outfile: file, bundle: true, platform: 'node', format: 'esm', target: 'node22', logLevel: 'silent', plugins: [{ name: 'vscode-fixture', setup(b) {
     b.onResolve({ filter: /^vscode$/ }, () => ({ path: 'vscode', namespace: 'fixture' }));
     b.onLoad({ filter: /.*/, namespace: 'fixture' }, () => ({ contents: "export const env={remoteName:undefined}; export const workspace={isTrusted:true}; export class EventEmitter {event=()=>({dispose(){}});fire(){}dispose(){}};", loader: 'js' }));
   } }] });
@@ -276,6 +359,47 @@ test('native confirmation stays compact while binding the complete immutable rev
   assert.ok(detail.length < 1000 && detail.split('\n').length < 12);
   assert.deepEqual(JSON.parse(reviewText(op)).review, op.review);
   op.review.limits.max_tool_calls = 2; assert.throws(() => ownerDecisionDetail(ORIGIN, ID, op), /digest/);
+});
+test('selected open-lab row opens its overview without disconnecting or touching secrets; a different pinned identity switches authority', async t => {
+  const { Profiles, Connection, selectConnectionProfile } = await nativeModules();
+  const f = fixture(t); f.state.openLab = true;
+  const store = storage(), profiles = new Profiles(store);
+  const cloud = await profiles.save({ label: 'Cloud', url: ORIGIN, mode: 'remote-border', access: 'open-lab', installationId: ID, harness: 'openclaw' });
+  const forbidden = async () => { throw Error('Open-lab connection must not access SecretStorage'); };
+  const connection = new Connection({ get: forbidden, store: forbidden, delete: forbidden }); t.after(() => connection.dispose());
+  await connection.connect(cloud);
+  const bound = connection.ownerBound(), client = connection.owner, generation = connection.generation;
+  const operations = new OwnerOperations(client, store); await operations.prepare(selection);
+  const retained = JSON.stringify([...store.state]), before = f.calls.length;
+  let switches = 0, views = 0;
+  const connect = async p => { switches++; await connection.connect(p); };
+  const overview = async () => { views++; await connection.owner.connect(); };
+  await selectConnectionProfile({ ...cloud }, connection, connect, overview);
+  await selectConnectionProfile({ ...cloud }, connection, connect, overview);
+  assert.equal(switches, 0); assert.equal(views, 2); assert.equal(connection.generation, generation); assert.equal(connection.owner, client);
+  bound.current(); assert.equal(JSON.stringify([...store.state]), retained);
+  assert.ok(f.calls.slice(before).every(c => c.route === '/api/runtime' && c.method === 'GET'));
+  const other = { ...cloud, id: 'different-profile', installationId: '44444444-4444-4444-8444-444444444444' };
+  f.state.hook = (c, json) => c.route === '/api/runtime' ? json({ installationId: other.installationId, kind: 'openclaw', role: 'border', access: { mode: 'open-lab', principal: labPrincipal }, capabilities: { protectedProfile: true, protectedOperations: true, protectedProduction: true } }) : undefined;
+  await selectConnectionProfile(other, connection, connect, overview);
+  assert.equal(switches, 1); assert.equal(views, 3); assert.equal(connection.profile.installationId, other.installationId);
+  assert.notEqual(connection.owner, client); assert.throws(() => bound.current(), /changed/);
+  assert.equal(JSON.stringify([...store.state]), retained);
+  assert.ok(f.calls.slice(before).every(c => c.method === 'GET' && !c.route.startsWith('/api/hud/owner/')));
+});
+test('Name and URL reconnect reuse the exact cloud profile and retained reference while preserving local profiles', async () => {
+  const { Profiles } = await nativeModules(), store = storage(), profiles = new Profiles(store);
+  const local = await profiles.save({ label: 'Existing local', url: 'http://localhost:3001' });
+  const old = await profiles.save({ label: 'Prior cloud label', url: ORIGIN, mode: 'remote-border', installationId: ID, harness: 'openclaw' });
+  const key = 'owner-operations.' + createHash('sha256').update(ORIGIN + '|' + ID).digest('hex');
+  const reference = [{ client_nonce: 'retained-nonce', operation_id: 'retained-operation', decision_sent: true }]; await store.update(key, reference);
+  const connected = await profiles.saveCloud('GCP Border', ORIGIN + '/', ID);
+  assert.equal(connected.id, old.id); assert.equal(connected.access, 'open-lab'); assert.equal(connected.installationId, ID);
+  assert.equal(profiles.list().length, 2); assert.deepEqual(profiles.list().find(p => p.id === local.id), local);
+  assert.deepEqual(store.get(key), reference);
+  const beforeChangedIdentity = JSON.stringify([...store.state]);
+  await assert.rejects(profiles.saveCloud('Same address, changed identity', ORIGIN + '/', '44444444-4444-4444-8444-444444444444'), /identity changed/);
+  assert.equal(JSON.stringify([...store.state]), beforeChangedIdentity);
 });
 test('profile, direct handler and local lifecycle boundaries retain existing local state', async t => {
   const { Profiles, hostContext, Connection, Management, assertCloudCommand } = await nativeModules();

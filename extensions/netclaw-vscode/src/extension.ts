@@ -9,7 +9,7 @@ import * as vscode from "vscode";
 import path from "node:path";
 import fs from "node:fs";
 import { randomUUID } from "node:crypto";
-import { Connection } from "./connection/connect";
+import { Connection, selectConnectionProfile } from "./connection/connect";
 import { Profiles, ConnectionProfile, hostContext } from "./state/profiles";
 import { LocalState } from "./state/local";
 import { NavigationTree, Navigation } from "./views/overview";
@@ -31,7 +31,7 @@ import {distributeSetupSkill} from './setup/skills';
 import {createPreset} from './setup/preset';
 import {inspectSetupConnection,SetupConnection} from './setup/connections';
 import { OwnerWorkflow, assertCloudCommand } from './views/owner';
-import { ownerOrigin, installationIdentifier } from './client/owner';
+import { cloudInputOrigin, discoverCloudBorder } from './client/owner';
 
 export async function activate(context: vscode.ExtensionContext) {
   const local = new LocalState(
@@ -66,9 +66,10 @@ export async function activate(context: vscode.ExtensionContext) {
     ),
   );
   const refresh = () => {
+    void vscode.commands.executeCommand("setContext", "netclaw.cloudOpenLab", connection.owner?.openLab === true);
     for (const t of trees) t.refresh();
     status.text = connection.identity
-      ? `$(remote) ${connection.profile?.label} · ${connection.owner ? (connection.owner.sessionState ? "Border owner" : "Border · sign in") : connection.identity.kind}`
+      ? `$(remote) ${connection.profile?.label} · ${connection.owner ? (connection.owner.openLab ? "Connected" : connection.owner.sessionState ? "Border owner" : "Border · sign in") : connection.identity.kind}`
       : "$(remote) NetClaw: disconnected";
     status.tooltip = connection.identity
       ? `${hostContext()}\n${connection.identity.installationId}`
@@ -125,6 +126,9 @@ export async function activate(context: vscode.ExtensionContext) {
       });
       await connection.connect(saved);
     }
+    if (connection.owner?.openLab && profile.access !== "open-lab") {
+      connection.profile = await profiles.save({ ...profile, access: "open-lab" });
+    }
     refresh();
   };
   register("setupClaw", () => setupWizard.open());
@@ -165,7 +169,7 @@ export async function activate(context: vscode.ExtensionContext) {
       throw Error("Trust this workspace before connecting.");
     const mode = await vscode.window.showQuickPick([
       { label: "Local installation", description: "HUD on this extension host", mode: "local" as const },
-      { label: "Cloud Border", description: "Verified HTTPS · protected owner operations", mode: "remote-border" as const },
+      { label: "Cloud Border", description: "HTTPS Border", mode: "remote-border" as const },
     ], { title: "Connection type" });
     if (!mode) return;
     if (process.platform === "win32" && mode.mode === "local") {
@@ -188,12 +192,12 @@ export async function activate(context: vscode.ExtensionContext) {
     });
     if (!label) return;
     if (mode.mode === "remote-border") {
-      const url = await vscode.window.showInputBox({ title: "Cloud Border HTTPS origin", placeHolder: "https://border.example.com", prompt: "Use the exact HTTPS origin supplied by the operator.", validateInput: value => { try { ownerOrigin(value); return undefined; } catch { return "Enter a canonical HTTPS origin without a trailing slash or path."; } } });
-      if (!url) return;
-      const installationId = await vscode.window.showInputBox({ title: "Expected Border installation UUID", prompt: "Use the expected identity from the operator. The address alone grants no owner authority.", validateInput: value => installationIdentifier(value) ? undefined : "Enter the expected lowercase installation UUID." });
-      if (!installationId) return;
-      const p = await profiles.save({ label, url, installationId, mode: "remote-border", harness: "openclaw" });
-      refresh(); await connect(p); await ownerWorkflow.signIn(); return;
+      const input = await vscode.window.showInputBox({ title: "Cloud Border URL", placeHolder: "https://border.example.com", validateInput: value => { try { cloudInputOrigin(value); return undefined; } catch { return "Enter an HTTPS Border URL without credentials, a path, query or fragment."; } } });
+      if (!input) return;
+      const url = cloudInputOrigin(input);
+      const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Connecting to " + label }, () => discoverCloudBorder(url));
+      const p = await profiles.saveCloud(label, url, runtime.installationId);
+      refresh(); await connect(p); await ownerWorkflow.overview(); return;
     }
     const url = await vscode.window.showInputBox({
       title: "NetClaw HUD API address",
@@ -216,7 +220,7 @@ export async function activate(context: vscode.ExtensionContext) {
             { title: "Select existing NetClaw" },
           )
         )?.profile;
-    if (p) await connect(p);
+    if (p) await selectConnectionProfile(p, connection, connect, () => ownerWorkflow.overview());
     else if (!profiles.list().length)
       await vscode.commands.executeCommand("netclaw.addConnection");
   });
@@ -527,8 +531,10 @@ export async function activate(context: vscode.ExtensionContext) {
       if (group === "operations") return [
         { label: "Prepare cloud read", command: "netclaw.ownerPrepare", icon: "checklist" },
         { label: "Recover cloud operation", command: "netclaw.ownerRecover", icon: "history" },
-        { label: "Sign in to cloud Border", command: "netclaw.ownerSignIn", icon: "key" },
-        { label: "Sign out of cloud Border", command: "netclaw.ownerSignOut", icon: "sign-out" },
+        ...(!connection.owner?.openLab ? [
+          { label: "Sign in to cloud Border", command: "netclaw.ownerSignIn", icon: "key" },
+          { label: "Sign out of cloud Border", command: "netclaw.ownerSignOut", icon: "sign-out" },
+        ] : []),
       ];
       if (group === "help") return [{ label: "Local controls require a local profile", command: "netclaw.selectConnection", icon: "info" }];
       return [];

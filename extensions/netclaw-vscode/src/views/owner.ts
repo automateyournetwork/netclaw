@@ -30,7 +30,7 @@ export class OwnerWorkflow implements vscode.Disposable {
       onDidChange: this.events.event,
       provideTextDocumentContent: uri => uri.toString() === this.uri?.toString() ? this.text : "This owner view is no longer available.",
     }), connection.changed.event(() => {
-      if (this.generation !== connection.generation || !connection.owner?.sessionState) this.clear();
+      if (this.generation !== connection.generation || !connection.owner?.operationsReady) this.clear();
     })];
   }
   private clear() { this.text = "Owner view cleared. Reconnect and recover the same operation."; if (this.uri) this.events.fire(this.uri); }
@@ -46,14 +46,16 @@ export class OwnerWorkflow implements vscode.Disposable {
     this.busy = true; try { return await work(); } finally { this.busy = false; }
   }
   private async signInBound(bound: ReturnType<OwnerWorkflow["scope"]>) {
+    if (bound.client.openLab) throw Error("This lab Border connects without sign-in.");
     const ticket = await vscode.window.showInputBox({ title: "Sign in to cloud Border", prompt: `One-use owner ticket for ${bound.client.base}. Installation ${bound.client.expectedId}.`, password: true, ignoreFocusOut: true });
     if (!ticket) return false;
     bound.current(); await bound.run(() => bound.client.login(ticket));
     this.connection.changed.fire(); return true;
   }
   async signIn() { return this.exclusive(() => this.signInBound(this.scope())); }
-  async signOut() { return this.exclusive(async () => { const b = this.scope(); await b.run(() => b.client.logout()); this.clear(); this.connection.changed.fire(); }); }
-  private async authenticated(b: ReturnType<OwnerWorkflow["scope"]>) {
+  async signOut() { return this.exclusive(async () => { const b = this.scope(); if (b.client.openLab) throw Error("This lab Border does not use sign-in."); await b.run(() => b.client.logout()); this.clear(); this.connection.changed.fire(); }); }
+  private async ensureReady(b: ReturnType<OwnerWorkflow["scope"]>) {
+    if (b.client.openLab) { await b.run(() => b.client.inspectAccess()); return true; }
     if (!b.client.sessionState && !await this.signInBound(b)) return false;
     await b.run(() => b.client.inspectSession()); return true;
   }
@@ -70,21 +72,24 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   async overview() {
     const b = this.scope(); await b.run(() => b.client.connect());
-    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", owner: b.client.sessionState || "Sign in with an owner ticket", capabilities: b.client.runtime?.capabilities,
+    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", ...(b.client.openLab ? { access: b.client.access } : { owner: b.client.sessionState || "Sign in with an owner ticket" }), capabilities: b.client.runtime?.capabilities,
       workflow: "Use Prepare cloud read or Recover cloud operation. Local lifecycle, legacy Chat, MCP and model controls are unavailable." }, "Cloud Border identity", b.current);
   }
   async open() {
+    const lab = this.connection.owner?.openLab;
     const selected = await vscode.window.showQuickPick([
       { label: "Prepare cloud read", action: () => this.prepare() },
       { label: "Recover cloud operation", action: () => this.recover() },
-      { label: "Sign in to cloud Border", action: () => this.signIn() },
-      { label: "Sign out of cloud Border", action: () => this.signOut() },
-    ], { title: "Protected cloud operations" });
+      ...(!lab ? [
+        { label: "Sign in to cloud Border", action: () => this.signIn() },
+        { label: "Sign out of cloud Border", action: () => this.signOut() },
+      ] : []),
+    ], { title: lab ? "Cloud operations" : "Protected cloud operations" });
     return selected?.action();
   }
   async prepare() {
     return this.exclusive(async () => {
-      const b = this.scope(); if (!await this.authenticated(b)) return;
+      const b = this.scope(); if (!await this.ensureReady(b)) return;
       const choices = catalogChoices(await b.run(() => b.client.catalog()));
       const selected = await vscode.window.showQuickPick(choices.map(selection => ({ label: selection.tool as string, description: `${selection.member_id} · ${selection.model_profile_id}`, detail: JSON.stringify(selection.arguments), selection })), { title: "Select an exact catalog read", matchOnDescription: true, matchOnDetail: true, ignoreFocusOut: true });
       if (!selected) return;
@@ -97,7 +102,8 @@ export class OwnerWorkflow implements vscode.Disposable {
     const fullReview = reviewText(operation);
     await this.document(fullReview, "Complete immutable cloud operation review", b.current);
     const reference = b.operations.references().find(r => r.operation_id === operation.operation_id);
-    if (operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve")) { await this.showResult(b, operation); return operation; }
+    if (operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve") ||
+      b.client.openLab && !b.client.reviewPrincipalMatches(operation.review?.principal)) { await this.showResult(b, operation); return operation; }
     const ready = await vscode.window.showInformationMessage("The complete immutable review is open in Cloud-Border.json. Read it before reviewing a decision.", "Review decision");
     b.current();
     if (ready !== "Review decision") return operation;
@@ -111,13 +117,13 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   private async showResult(b: ReturnType<OwnerWorkflow["scope"]>, operation: Json) {
     b.current();
-    await this.document({ origin: b.client.base, installationId: b.client.expectedId, principal: b.client.sessionState?.principal,
+    await this.document({ origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
       state: operation.state, verification: { signedResultVerified: operation.result?.verified === true, durableAcknowledgement: operation.result?.durable_ack === true, acknowledgementDeliveryPending: operation.result?.ack_delivery_pending },
       operation, next: "Recover this same operation to check status or reconcile. No preparation or approval is retried." }, "Cloud operation status and audit evidence", b.current);
   }
   async recover() {
     return this.exclusive(async () => {
-      const b = this.scope(); if (!await this.authenticated(b)) return;
+      const b = this.scope(); if (!await this.ensureReady(b)) return;
       const refs = b.operations.references();
       if (!refs.length) { void vscode.window.showInformationMessage("No retained operations for this Border."); return; }
       const selected = await vscode.window.showQuickPick(refs.map(ref => ({ label: ref.operation_id || "Unconfirmed preparation", description: ref.client_nonce, ref })), { title: "Recover the same cloud operation", ignoreFocusOut: true });

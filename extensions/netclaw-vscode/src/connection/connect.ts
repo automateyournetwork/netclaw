@@ -4,6 +4,22 @@ import { HudClient, Runtime, Json } from "../client/hud";
 import { ConnectionProfile, hostContext } from "../state/profiles";
 import { OwnerClient, OwnerError } from "../client/owner";
 export type Identity = Runtime & { harness: { type: "openclaw" | "hermes" } };
+
+/** Selecting an active cloud row opens its view without replacing its authority. */
+export async function selectConnectionProfile(
+  profile: ConnectionProfile,
+  connection: Connection,
+  connect: (profile: ConnectionProfile) => Promise<unknown>,
+  openCloud: () => Promise<unknown>,
+) {
+  const active = connection.profile;
+  const sameCloud = profile.mode === "remote-border" && connection.ready && connection.owner &&
+    active?.mode === "remote-border" && active.id === profile.id && active.context === profile.context &&
+    active.url === profile.url && active.installationId === profile.installationId && active.harness === profile.harness && active.access === profile.access;
+  if (!sameCloud) await connect(profile);
+  if (profile.mode === "remote-border") await openCloud();
+}
+
 export class Connection implements vscode.Disposable {
   client?: HudClient;
   owner?: OwnerClient;
@@ -38,12 +54,13 @@ export class Connection implements vscode.Disposable {
       const key = "owner-session." + createHash("sha256").update(`${profile.context}|${profile.url}|${profile.installationId}`).digest("hex");
       const client = new OwnerClient(profile.url, profile.installationId, async cookie => {
         if (cookie) await this.secrets.store(key, cookie); else await this.secrets.delete(key);
-      }, () => this.changed.fire());
+      }, () => this.changed.fire(), profile.access);
       try {
-        const cookie = await this.secrets.get(key);
-        if (cookie) client.restoreCookie(cookie);
         const runtime = await client.connect();
-        if (cookie) { try { await client.inspectSession(); } catch (error) { if (!(error instanceof OwnerError && error.status === 401)) throw error; } }
+        if (!client.openLab) {
+          const cookie = await this.secrets.get(key);
+          if (cookie) { client.restoreCookie(cookie); try { await client.inspectSession(); } catch (error) { if (!(error instanceof OwnerError && error.status === 401)) throw error; } }
+        }
         if (this.serial !== generation || !vscode.workspace.isTrusted) throw Error("Connection cancelled.");
         this.owner = client; this.profile = profile;
         this.identity = { ...runtime, harness: { type: runtime.kind } };

@@ -19,7 +19,39 @@ export function ownerOrigin(value: string): string {
     throw Error("Use a canonical HTTPS origin without a path, credentials, query or fragment.");
   return u.origin;
 }
+/** The URL input may include the ordinary root slash; stored origins stay exact. */
+export function cloudInputOrigin(value: string): string { return ownerOrigin(value.endsWith("/") ? value.slice(0, -1) : value); }
 export type OwnerSession = { authenticated: true; installation_id: string; principal: Json; expires_ms: number };
+export type LabAccess = { mode: "open-lab"; principal: Json };
+function labAccess(value: unknown): LabAccess {
+  const a = value as Json, p = a?.principal;
+  if (!object(a) || a.mode !== "open-lab" || !object(p) || p.issuer !== "open-lab" ||
+    !installationIdentifier(p.subject) || p.display_name !== "Unauthenticated lab operator" ||
+    ownerCanonical(p.roles) !== '["lab-operator"]' || Object.keys(p).sort().join(",") !== "display_name,issuer,roles,subject")
+    throw Error("The Border did not advertise valid open-lab access.");
+  return { mode: "open-lab", principal: p };
+}
+function cloudRuntime(r: Json, expectedId: string) {
+  if (r.installationId !== expectedId || r.kind !== "openclaw" || r.role !== "border" ||
+    !["protectedProfile", "protectedOperations", "protectedProduction"].every(k => r.capabilities?.[k] === true))
+    throw Error("The endpoint is not the expected cloud Border. Review its identity and capabilities.");
+}
+/** First connection pins the identity advertised by this exact trusted HTTPS origin. */
+export async function discoverCloudBorder(origin: string): Promise<Runtime> {
+  const base = ownerOrigin(origin), controller = new AbortController(), timer = setTimeout(() => controller.abort(), 35000);
+  try {
+    const response = await fetch(base + "/api/runtime", { method: "GET", headers: { Accept: "application/json" }, redirect: "error", cache: "no-store", signal: controller.signal });
+    if (!response.ok || !response.headers.get("content-type")?.includes("application/json") || response.headers.getSetCookie().length) throw Error();
+    const reader = response.body?.getReader(); if (!reader) throw Error();
+    const chunks: Uint8Array[] = []; let bytes = 0;
+    while (true) { const { done, value } = await reader.read(); if (done) break; bytes += value.length; if (bytes > 4 * 1024 * 1024) { await reader.cancel(); throw Error(); } chunks.push(value); }
+    const r = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+    if (!object(r) || !installationIdentifier(r.installationId)) throw Error();
+    cloudRuntime(r, r.installationId); labAccess(r.access);
+    return r as Runtime;
+  } catch { throw new OwnerError("This HTTPS address did not advertise an available open-lab cloud Border. Check the address and server mode."); }
+  finally { clearTimeout(timer); }
+}
 export class OwnerError extends Error {
   constructor(message: string, readonly status = 0, readonly notSubmitted = false) { super(message); }
 }
@@ -30,34 +62,44 @@ export class OwnerClient {
   readonly cookieName: string;
   runtime?: Runtime;
   sessionState?: OwnerSession;
+  access?: LabAccess;
+  get openLab() { return this.access?.mode === "open-lab"; }
+  get principal(): Json | undefined { return this.access?.principal || this.sessionState?.principal; }
+  get operationsReady() { return Boolean(this.access || this.sessionState); }
+  reviewPrincipalMatches(principal: unknown) { return Boolean(this.principal) && ownerCanonical(principal) === ownerCanonical(this.principal); }
   private cookie = "";
   private csrf = "";
   private closed = false;
   private pending = new Set<AbortController>();
   private current() { if (this.closed) throw new OwnerError("Cloud connection closed. Recover the same operation after reconnecting."); }
   assertOpen() { this.current(); }
-  constructor(origin: string, readonly expectedId: string, private saveCookie: (value: string) => Promise<void> = async () => {}, private sessionLost: () => void = () => {}) {
+  constructor(origin: string, readonly expectedId: string, private saveCookie: (value: string) => Promise<void> = async () => {}, private sessionLost: () => void = () => {}, private requiredAccess?: "open-lab") {
     this.base = ownerOrigin(origin);
     if (!installationIdentifier(expectedId)) throw Error("Supply the expected Border installation UUID from its operator.");
     this.cookieName = "__Host-nc_owner_" + expectedId;
   }
   restoreCookie(value: string) {
     this.current();
+    if (this.openLab || this.requiredAccess === "open-lab") throw Error("Open-lab connections do not use a saved session.");
     if (value && (value.split("=").length !== 2 || value.split("=")[0] !== this.cookieName || !token(value.split("=")[1])))
       throw Error("The saved owner session does not match this Border.");
     this.cookie = value;
   }
   private async forget() {
+    const hadSession = Boolean(this.cookie || this.sessionState);
     this.cookie = ""; this.csrf = ""; this.sessionState = undefined;
-    this.sessionLost(); await this.saveCookie("");
+    this.sessionLost(); if (hadSession) await this.saveCookie("");
   }
   async connect(): Promise<Runtime> {
     const r = await this.request("/api/runtime");
     this.current();
-    if (r.installationId !== this.expectedId || r.kind !== "openclaw" || r.role !== "border" ||
-      !["protectedProfile", "protectedOperations", "protectedProduction"].every(k => r.capabilities?.[k] === true)) {
-      await this.forget(); this.close(); throw Error("The endpoint is not the expected protected cloud Border. Review its identity and capabilities.");
-    }
+    try {
+      cloudRuntime(r, this.expectedId);
+      if (r.access !== undefined) {
+        this.access = labAccess(r.access);
+        this.cookie = ""; this.csrf = ""; this.sessionState = undefined;
+      } else if (this.openLab || this.requiredAccess === "open-lab") throw Error("The Border's open-lab access changed. Reconnect only after checking its server mode.");
+    } catch (error) { await this.forget(); this.close(); throw error; }
     this.runtime = r as Runtime;
     return this.runtime;
   }
@@ -77,6 +119,7 @@ export class OwnerClient {
   async inspectSession(): Promise<OwnerSession> {
     await this.connect();
     this.current();
+    if (this.openLab) throw Error("This lab Border does not use sign-in.");
     try { return this.acceptSession(await this.request("/api/hud/owner/session")); }
     catch (error) { await this.forget(); throw error; }
   }
@@ -84,6 +127,7 @@ export class OwnerClient {
     if (!token(ticket)) throw Error("Enter the one-use owner ticket supplied by the Border operator.");
     await this.connect();
     this.current();
+    if (this.openLab) throw Error("This lab Border does not use sign-in.");
     try {
       const value = await this.request("/api/hud/owner/session", "POST", { ticket }, true);
       if (!this.cookie) throw Error("No owner session was established.");
@@ -94,21 +138,22 @@ export class OwnerClient {
     try { await this.inspectSession(); await this.request("/api/hud/owner/session", "DELETE", {}); }
     finally { await this.forget(); }
   }
-  async catalog(): Promise<Json> { await this.inspectSession(); return this.request("/api/hud/operations/catalog"); }
-  async prepare(body: Json): Promise<Json> { await this.inspectSession(); return this.request("/api/hud/operations", "POST", body); }
+  async inspectAccess() { if (this.openLab || this.requiredAccess === "open-lab") await this.connect(); else { await this.connect(); if (!this.openLab) await this.inspectSession(); } }
+  async catalog(): Promise<Json> { await this.inspectAccess(); return this.request("/api/hud/operations/catalog"); }
+  async prepare(body: Json): Promise<Json> { await this.inspectAccess(); return this.request("/api/hud/operations", "POST", body); }
   async status(ref: OperationReference): Promise<Json> {
-    validReference(ref); await this.inspectSession();
+    validReference(ref); await this.inspectAccess();
     return this.request(ref.operation_id ? "/api/hud/operations/" + ref.operation_id : "/api/hud/operations?client_nonce=" + encodeURIComponent(ref.client_nonce));
   }
   async decision(id: string, revision: number, digest: string, decision: "approve" | "deny", expiresAt: number): Promise<Json> {
     if (!ownerIdentifier(id) || !Number.isSafeInteger(revision) || revision < 0 || !/^[a-f0-9]{64}$/.test(digest) || !["approve", "deny"].includes(decision)) throw Error("The exact operation review is unavailable.");
-    await this.inspectSession();
+    await this.inspectAccess();
     if (decision === "approve" && (!Number.isSafeInteger(expiresAt) || expiresAt <= Date.now())) throw Error("This review expired before submission. No approval was sent; recover the same operation.");
     return this.request("/api/hud/operations/" + id + "/decision", "POST", { revision, review_digest: digest, decision });
   }
   async reconcile(id: string): Promise<Json> {
     if (!ownerIdentifier(id)) throw Error("Operation identity is unavailable.");
-    await this.inspectSession(); return this.request("/api/hud/operations/" + id + "/reconcile", "POST", {});
+    await this.inspectAccess(); return this.request("/api/hud/operations/" + id + "/reconcile", "POST", {});
   }
   private async request(route: string, method = "GET", body?: Json, bootstrap = false): Promise<Json> {
     this.current();
@@ -116,11 +161,11 @@ export class OwnerClient {
     const timer = setTimeout(() => controller.abort(), 35000);
     try {
       const headers: Record<string, string> = { Accept: "application/json", "X-NetClaw-Installation": this.expectedId };
-      if (this.cookie && route !== "/api/runtime") headers.Cookie = this.cookie;
+      if (!this.openLab && this.cookie && route !== "/api/runtime") headers.Cookie = this.cookie;
       if (method !== "GET") {
         headers.Origin = this.base; headers["Content-Type"] = "application/json";
         if (bootstrap) headers["X-NetClaw-Owner-Bootstrap"] = "1";
-        else headers["X-NetClaw-CSRF"] = this.csrf;
+        else if (!this.openLab) headers["X-NetClaw-CSRF"] = this.csrf;
       }
       const response = await fetch(this.base + route, { method, headers, redirect: "error", cache: "no-store", signal: controller.signal,
         ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
@@ -141,13 +186,14 @@ export class OwnerClient {
       if (!response.ok) {
         if (response.status === 401 || response.status === 409 && data.code === "installation_changed") await this.forget();
         const notSubmitted = route === "/api/hud/operations" && method === "POST" && data.admission === "not_submitted";
-        throw new OwnerError(response.status === 401 ? "Owner session expired or was revoked. Sign in again to recover existing work." :
+        throw new OwnerError(response.status === 401 ? (this.openLab ? "The lab Border refused this request. Check its server mode and recover the same operation." : "Owner session expired or was revoked. Sign in again to recover existing work.") :
           response.status === 409 && data.code === "installation_changed" ? "Border identity changed. Disconnect and review the destination." :
           notSubmitted ? "The review was rejected before submission. Nothing executed." :
           `The Border refused this request (HTTP ${response.status}). Check the same operation before continuing; nothing was resent.`, response.status, notSubmitted);
       }
       const cookies = response.headers.getSetCookie();
       if (cookies.length) {
+        if (this.openLab) throw Error("Unexpected open-lab cookie");
         if (route !== "/api/hud/owner/session" || !["POST", "DELETE"].includes(method) || cookies.length !== 1) throw Error("Unexpected cookie");
         const pair = cookies[0]!.split(";")[0]!;
         const attrs = cookies[0]!.split(";").slice(1).map(v => v.trim().toLowerCase());
@@ -165,7 +211,7 @@ export class OwnerClient {
       throw new OwnerError("The Border response was not confirmed. Check its HTTPS identity and the same operation's status; nothing was resent.");
     } finally { clearTimeout(timer); this.pending.delete(controller); }
   }
-  close() { this.closed = true; this.csrf = ""; this.cookie = ""; this.runtime = undefined; this.sessionState = undefined; for (const c of this.pending) c.abort(); this.pending.clear(); this.sessionLost(); }
+  close() { this.closed = true; this.csrf = ""; this.cookie = ""; this.runtime = undefined; this.sessionState = undefined; this.access = undefined; for (const c of this.pending) c.abort(); this.pending.clear(); this.sessionLost(); }
 }
 
 export type OperationReference = { client_nonce: string; operation_id?: string; decision_sent?: true; not_submitted?: true };
@@ -219,9 +265,10 @@ export class OwnerOperations {
     else rows[i] = { ...rows[i], ...ref };
     await this.storage.update(this.key, rows);
   }
-  private async accept(ref: OperationReference, op: Json) {
+  private async accept(ref: OperationReference, op: Json, historical = false) {
     if (!ownerIdentifier(op.operation_id) || op.client_nonce !== ref.client_nonce || ref.operation_id && op.operation_id !== ref.operation_id ||
-      op.review?.border?.installation_id !== this.client.expectedId || !this.client.sessionState || ownerCanonical(op.review?.principal) !== ownerCanonical(this.client.sessionState.principal)) throw Error("Returned operation does not belong to this owner and Border. Nothing was resent.");
+      op.review?.border?.installation_id !== this.client.expectedId || !this.client.operationsReady ||
+      !(historical && this.client.openLab) && !this.client.reviewPrincipalMatches(op.review?.principal)) throw Error("Returned operation does not belong to this operator and Border. Nothing was resent.");
     reviewText(op);
     await this.put({ ...ref, operation_id: op.operation_id });
     this.client.assertOpen();
@@ -235,7 +282,7 @@ export class OwnerOperations {
     return this.exclusive(async () => {
       for (const ref of this.references()) {
         if (ref.not_submitted) throw Error("A rejected preparation is retained. Recover it and explicitly discard that unsubmitted reference before preparing another read.");
-        const previous = await this.accept(ref, await this.client.status(ref));
+        const previous = await this.accept(ref, await this.client.status(ref), true);
         const unexecuted = ["refused", "revoked", "denied"].includes(previous.state) && previous.attempt_count === 0 && previous.may_have_executed === false && !previous.result;
         const received = ["completed", "refused", "failed"].includes(previous.state) && previous.result?.verified === true && previous.result?.durable_ack === true && previous.result?.ack_delivery_pending === false;
         if (previous.reconciliation_required !== false || !unexecuted && !received) throw Error("Existing cloud work is unresolved. Recover that operation before preparing another read.");
@@ -259,14 +306,15 @@ export class OwnerOperations {
       const ref = this.references().find(r => r.client_nonce === reference.client_nonce);
       if (!ref) throw Error("Select a retained operation reference.");
       if (ref.not_submitted) throw Error("This exact preparation was rejected before submission. Explicitly discard its reference to prepare another read.");
-      return this.accept(ref, await this.client.status(ref));
+      return this.accept(ref, await this.client.status(ref), true);
     });
   }
   async decide(reviewed: Json, decision: "approve" | "deny"): Promise<Json> {
     return this.exclusive(async () => {
       const ref = this.references().find(r => r.client_nonce === reviewed.client_nonce && r.operation_id === reviewed.operation_id);
       if (!ref || ref.decision_sent) throw Error("This decision was already submitted or is unavailable. Recover the same operation; nothing was resent.");
-      const current = await this.accept(ref, await this.client.status(ref));
+      const current = await this.accept(ref, await this.client.status(ref), true);
+      if (this.client.openLab && !this.client.reviewPrincipalMatches(current.review?.principal)) throw Error("Historical operation reviews are recovery-only. No new decision was sent.");
       if (reviewText(current) !== reviewText(reviewed) || current.state !== "review_pending" || !current.allowed_actions?.includes(decision)) throw Error("The operation review changed or is no longer available. Recover and review it again.");
       if (decision === "approve" && !unexpiredReview(current)) throw Error("This review expired. Recover and deny it; no approval was sent.");
       await this.put({ ...ref, decision_sent: true });
@@ -277,9 +325,9 @@ export class OwnerOperations {
     return this.exclusive(async () => {
       const ref = this.references().find(r => r.client_nonce === reference.client_nonce);
       if (!ref?.operation_id) throw Error("Recover the operation ID first.");
-      const current = await this.accept(ref, await this.client.status(ref));
+      const current = await this.accept(ref, await this.client.status(ref), true);
       if (!current.allowed_actions?.includes("reconcile")) throw Error("Reconciliation is unavailable for this operation.");
-      return this.accept(ref, await this.client.reconcile(ref.operation_id));
+      return this.accept(ref, await this.client.reconcile(ref.operation_id), true);
     });
   }
   async discardUnsubmitted(reference: OperationReference) {
