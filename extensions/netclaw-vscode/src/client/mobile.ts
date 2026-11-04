@@ -10,7 +10,7 @@ export function mobileInfo(value: Json, id: string): Json {
     return value;
   }
   const e=value.endpoint;
-  if(!exact(e,['border_host','border_port','claw_domain','ws_path']) || typeof e.claw_domain!=='string' || !/^(?=.{1,253}$)[a-z0-9]+(?:[.-][a-z0-9]+)*$/.test(e.claw_domain) || e.border_host!==e.claw_domain || !Number.isInteger(e.border_port) || e.border_port<1 || e.border_port>65535 || !['/','/mobile/ws'].includes(e.ws_path) || !['protected','legacy'].includes(value.mode) || value.enrollment_ttl_seconds!==120)throw Error('Enrollment destination is invalid.');
+  if(!exact(e,['border_host','border_port','claw_domain','ws_path']) || typeof e.claw_domain!=='string' || !/^(?=.{1,253}$)[a-z0-9](?:[a-z0-9.-]*[a-z0-9])?$/.test(e.claw_domain) || e.claw_domain.includes('..') || e.border_host!==e.claw_domain || !Number.isInteger(e.border_port) || e.border_port<1 || e.border_port>65535 || !['/','/mobile/ws'].includes(e.ws_path) || !['protected','legacy'].includes(value.mode) || value.enrollment_ttl_seconds!==120)throw Error('Enrollment destination is invalid.');
   return value;
 }
 export function mobileRecord(value: Json,id: string,nonce: string,allowMatrix=false): Json {
