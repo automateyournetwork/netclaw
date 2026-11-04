@@ -179,7 +179,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
   @override
   Widget build(BuildContext context) {
     final client = _client, op = client?.operation, ref = client?.reference;
-    final signedIn = client?.authenticated == true;
+    final ready = client?.operationsReady == true;
     final members = (client?.catalog?['members'] as List?) ?? [];
     final member = members.isEmpty ? null : members[_member] as Json;
     final models = (member?['model_profiles'] as List?) ?? [],
@@ -266,7 +266,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                         key: const ValueKey('cloud-identity'),
                       ),
                       const SizedBox(height: 12),
-                      if (!signedIn && client.identityVerified) ...[
+                      if (!ready && client.identityVerified) ...[
                         TextField(
                           controller: _ticket,
                           key: const ValueKey('cloud-ticket'),
@@ -284,9 +284,11 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                           _run(() => client.login(ticket));
                         }),
                       ],
-                      if (signedIn) ...[
+                      if (ready) ...[
                         Text(
-                          'Signed in: ${client.session!['principal']['display_name']}',
+                          client.openLab
+                              ? 'Connected: ${client.principal!['display_name']}'
+                              : 'Signed in: ${client.principal!['display_name']}',
                           key: const ValueKey('cloud-owner'),
                         ),
                         const SizedBox(height: 12),
@@ -477,7 +479,8 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                               () => _run(client.removeResolvedReference),
                             ),
                         ],
-                        _button('Sign out', () => _run(client.logout)),
+                        if (!client.openLab)
+                          _button('Sign out', () => _run(client.logout)),
                       ],
                       TextButton(
                         onPressed: _busy

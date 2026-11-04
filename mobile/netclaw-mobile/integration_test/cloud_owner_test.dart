@@ -98,7 +98,7 @@ void main() {
       }
 
       String? ticket = config.remove('ticket') as String?;
-      if (!client.authenticated) {
+      if (!client.operationsReady) {
         if (ticket == null) {
           throw StateError('A fresh owner ticket is required');
         }
@@ -109,7 +109,18 @@ void main() {
         await tap('Sign in as owner');
       }
       ticket = null;
-      expect(client.authenticated, true);
+      expect(client.operationsReady, true);
+      if (client.openLab) {
+        expect(client.authenticated, false);
+        expect(client.session, isNull);
+        expect(find.byKey(const ValueKey('cloud-ticket')), findsNothing);
+        expect(
+          transport.calls.where(
+            (call) => call['path'] == '/api/hud/owner/session',
+          ),
+          isEmpty,
+        );
+      }
 
       String? discardedResolvedOperationId;
       if (phase == 'prepare') {

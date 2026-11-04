@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,12 +12,17 @@ final token = 'a' * 43, digest = 'b' * 64;
 
 class MemoryOwnerStore extends CloudOwnerStore {
   final values = <String, String>{};
+  final reads = <String>[];
   bool failReferences = false;
   String? pauseWritePrefix;
   bool pauseProofOnly = false;
   Completer<void>? writeStarted, releaseWrite;
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    reads.add(key);
+    return values[key];
+  }
+
   @override
   Future<void> write(String key, String? value) async {
     if (pauseWritePrefix != null &&
@@ -48,6 +54,16 @@ class FixtureTransport implements OwnerTransport {
       revoked = false,
       refusePrepare = false;
   bool dropBeforeDecision = false, dropBeforePrepare = false;
+  bool openLab = false, wrongReviewPrincipal = false;
+  Json? accessOverride;
+  bool refuseLab = false;
+  Completer<void>? pauseRuntime;
+  Json get labPrincipal => {
+    'issuer': 'open-lab',
+    'subject': installation,
+    'display_name': 'Unauthenticated lab operator',
+    'roles': ['lab-operator'],
+  };
   Completer<void>? pausePrepare;
   Json get session => {
     'authenticated': true,
@@ -70,15 +86,22 @@ class FixtureTransport implements OwnerTransport {
   ) async {
     calls.add((method: method, uri: uri, headers: {...headers}, body: body));
     if (uri.path == '/api/runtime') {
+      if (pauseRuntime != null) await pauseRuntime!.future;
       return OwnerResponse(200, {
         'installationId': wrongIdentity ? 'wrong' : installation,
         'role': 'border',
+        if (openLab || accessOverride != null)
+          'access':
+              accessOverride ?? {'mode': 'open-lab', 'principal': labPrincipal},
         'capabilities': {
           'protectedProfile': true,
           'protectedOperations': true,
           'protectedProduction': true,
         },
       });
+    }
+    if (openLab && refuseLab) {
+      return OwnerResponse(401, {'code': 'access_refused'});
     }
     if (uri.path == '/api/hud/owner/session') {
       if (revoked) return OwnerResponse(401, {'code': 'invalid_session'});
@@ -131,7 +154,9 @@ class FixtureTransport implements OwnerTransport {
         'state': 'review_pending',
         'review_digest': digest,
         'review': {
-          'principal': session['principal'],
+          'principal': openLab && !wrongReviewPrincipal
+              ? labPrincipal
+              : session['principal'],
           'border': {'installation_id': installation},
           'member': {'member_id': 'risk/member'},
           'model_profile': {'provider': 'anthropic', 'model': 'sonnet-4.6'},
@@ -820,6 +845,333 @@ void main() {
       expect(find.byKey(const ValueKey('cloud-receipt')), findsOneWidget);
       expect((client.transport as FixtureTransport).effects, 1);
       expect(find.text('Chat'), findsNothing);
+      await tester.pumpWidget(const SizedBox());
+    },
+  );
+
+  test(
+    'explicit open lab performs exact operations without sessions or credentials',
+    () async {
+      final store = MemoryOwnerStore(),
+          transport = FixtureTransport()..openLab = true;
+      store.values['session.${profile.key}'] =
+          token; // Older profile session is not even read.
+      final client = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await client.initialize();
+      expect(client.openLab, true);
+      expect(client.operationsReady, true);
+      expect(client.authenticated, false);
+      expect(client.session, isNull);
+      await expectLater(client.login(token), throwsA(isA<CloudOwnerError>()));
+      await client.prepare(0, 0, 0);
+      expect(client.operation!['review']['principal'], transport.labPrincipal);
+      await client.decide('approve', revision: 1, reviewDigest: digest);
+      await client.reconcile();
+      expect(client.canRemove, true);
+      final beforeResume = transport.calls.length;
+      client.suspend();
+      await client.resume();
+      expect(
+        transport.calls
+            .skip(beforeResume)
+            .every((call) => call.method == 'GET'),
+        true,
+      );
+      expect(client.reference!['decision_sent'], true);
+      expect(transport.effects, 1);
+      expect(
+        transport.calls.any(
+          (call) => call.uri.path == '/api/hud/owner/session',
+        ),
+        false,
+      );
+      expect(store.reads.any((key) => key.startsWith('session.')), false);
+      expect(store.values['session.${profile.key}'], token);
+      for (final call in transport.calls) {
+        expect(
+          call.headers.keys.toSet().intersection({
+            'Cookie',
+            'X-NetClaw-CSRF',
+            'X-NetClaw-Owner-Bootstrap',
+            'Authorization',
+          }),
+          isEmpty,
+        );
+        expect(call.headers['X-NetClaw-Installation'], installation);
+        if (call.method != 'GET') {
+          expect(call.headers['Origin'], profile.origin);
+        }
+      }
+    },
+  );
+
+  test(
+    'open lab accepts only the explicit supported mode and principal',
+    () async {
+      final good = FixtureTransport().labPrincipal;
+      for (final access in <Json>[
+        {'mode': 'none', 'principal': good},
+        {'mode': 'open-lab'},
+        {
+          'mode': 'open-lab',
+          'principal': {...good, 'issuer': 'local'},
+        },
+        {
+          'mode': 'open-lab',
+          'principal': {...good, 'subject': 'not-a-uuid'},
+        },
+        {
+          'mode': 'open-lab',
+          'principal': {
+            ...good,
+            'roles': ['owner'],
+          },
+        },
+        {
+          'mode': 'open-lab',
+          'principal': {...good, 'display_name': 'Owner'},
+        },
+      ]) {
+        final transport = FixtureTransport()..accessOverride = access;
+        final client = CloudOwnerClient(
+          profile,
+          store: MemoryOwnerStore(),
+          transport: transport,
+        );
+        await expectLater(client.initialize(), throwsA(isA<CloudOwnerError>()));
+        expect(client.operationsReady, false);
+        expect(transport.calls.map((call) => call.uri.path), ['/api/runtime']);
+      }
+    },
+  );
+
+  test(
+    'open lab does not fall back to login on 401 or accept a changed identity',
+    () async {
+      for (final changedIdentity in [false, true]) {
+        final transport = FixtureTransport()..openLab = true;
+        final store = MemoryOwnerStore();
+        final client = CloudOwnerClient(
+          profile,
+          store: store,
+          transport: transport,
+        );
+        await client.initialize();
+        await client.prepare(0, 0, 0);
+        final retained = jsonEncode(await store.reference(profile));
+        if (changedIdentity) {
+          transport.wrongIdentity = true;
+          client.suspend();
+          await expectLater(client.resume(), throwsA(isA<CloudOwnerError>()));
+        } else {
+          transport.refuseLab = true;
+          await expectLater(client.status(), throwsA(isA<CloudOwnerError>()));
+        }
+        expect(client.operationsReady, false);
+        expect(jsonEncode(await store.reference(profile)), retained);
+        expect(
+          transport.calls.any(
+            (call) => call.uri.path == '/api/hud/owner/session',
+          ),
+          false,
+        );
+        expect(transport.effects, 0);
+      }
+    },
+  );
+
+  test(
+    'new anonymous prepare refuses an owner-principal review and retains its nonce',
+    () async {
+      final transport = FixtureTransport()
+        ..openLab = true
+        ..wrongReviewPrincipal = true;
+      final store = MemoryOwnerStore();
+      final client = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await client.initialize();
+      await expectLater(
+        client.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(client.uncertain, true);
+      expect(client.reference!['client_nonce'], isNotEmpty);
+      expect(client.canDecide('approve'), false);
+      await expectLater(
+        client.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(transport.calls.where((call) => call.method == 'POST').length, 1);
+    },
+  );
+
+  test(
+    'historical owner reference retains principal and cannot be reapproved in open lab',
+    () async {
+      final store = MemoryOwnerStore(), transport = FixtureTransport();
+      final old = await connected(store, transport);
+      await old.prepare(0, 0, 0);
+      final historicalReview = jsonEncode(old.operation!['review']);
+      old.suspend();
+      transport.openLab = true;
+      transport.calls.clear();
+      store.reads.clear();
+      final client = CloudOwnerClient(
+        profile,
+        store: store,
+        transport: transport,
+      );
+      await client.initialize();
+      expect(jsonEncode(client.operation!['review']), historicalReview);
+      expect(client.canDecide('approve'), false);
+      expect(client.canDecide('deny'), false);
+      await expectLater(
+        client.decide('approve', revision: 1, reviewDigest: digest),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      transport.operation = {
+        ...transport.operation!,
+        'state': 'member_outcome_unknown',
+        'attempt_count': 1,
+        'may_have_executed': true,
+        'reconciliation_required': true,
+        'allowed_actions': ['reconcile'],
+        'approval': {'original': true},
+      };
+      await client.status();
+      expect(client.canRemove, false);
+      await expectLater(
+        client.prepare(0, 0, 0),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      transport.operation = {
+        ...transport.operation!,
+        'state': 'failed',
+        'reconciliation_required': false,
+        'result': {
+          'verified': true,
+          'durable_ack': true,
+          'ack_delivery_pending': false,
+          'digest': digest,
+          'evidence': {'outcome': 'failed', 'output': {}},
+        },
+      };
+      await client.reconcile();
+      expect(client.canRemove, true);
+      expect(jsonEncode(client.operation!['review']), historicalReview);
+      expect(client.operation!['approval'], {'original': true});
+      expect(client.operation!['attempt_count'], 1);
+      expect(transport.effects, 0);
+      expect(
+        transport.calls
+            .where((call) => call.method != 'GET')
+            .map((call) => call.uri.path),
+        ['/api/hud/operations/operation1/reconcile'],
+      );
+      expect(store.reads.any((key) => key.startsWith('session.')), false);
+    },
+  );
+
+  test(
+    'open lab restart retains lost decisions and definite unsubmitted proof',
+    () async {
+      for (final refused in [false, true]) {
+        final store = MemoryOwnerStore(),
+            transport = FixtureTransport()..openLab = true;
+        final client = CloudOwnerClient(
+          profile,
+          store: store,
+          transport: transport,
+        );
+        await client.initialize();
+        if (refused) {
+          transport.refusePrepare = true;
+          await expectLater(
+            client.prepare(0, 0, 0),
+            throwsA(isA<CloudOwnerError>()),
+          );
+        } else {
+          await client.prepare(0, 0, 0);
+          transport.dropBeforeDecision = true;
+          await expectLater(
+            client.decide('approve', revision: 1, reviewDigest: digest),
+            throwsA(isA<CloudOwnerError>()),
+          );
+        }
+        client.suspend();
+        final count = transport.calls.length;
+        final restart = CloudOwnerClient(
+          profile,
+          store: store,
+          transport: transport,
+        );
+        await restart.initialize();
+        expect(restart.canDecide('approve'), false);
+        expect(restart.canRemove, refused);
+        expect(
+          transport.calls.skip(count).every((call) => call.method == 'GET'),
+          true,
+        );
+        expect(transport.effects, 0);
+        await expectLater(
+          restart.prepare(0, 0, 0),
+          throwsA(isA<CloudOwnerError>()),
+        );
+      }
+    },
+  );
+
+  test(
+    'backgrounding open lab discovery cannot expose late private state',
+    () async {
+      final transport = FixtureTransport()
+        ..openLab = true
+        ..pauseRuntime = Completer<void>();
+      final client = CloudOwnerClient(
+        profile,
+        store: MemoryOwnerStore(),
+        transport: transport,
+      );
+      final pending = client.initialize();
+      await Future<void>.delayed(Duration.zero);
+      client.suspend();
+      transport.pauseRuntime!.complete();
+      await expectLater(pending, throwsA(isA<CloudOwnerError>()));
+      expect(client.operationsReady, false);
+      expect(client.catalog, isNull);
+      expect(client.operation, isNull);
+    },
+  );
+
+  testWidgets(
+    'existing cloud screen shows explicit lab access without sign-in UI',
+    (tester) async {
+      final transport = FixtureTransport()..openLab = true;
+      final client = CloudOwnerClient(
+        profile,
+        store: MemoryOwnerStore(),
+        transport: transport,
+      );
+      await client.initialize();
+      await tester.pumpWidget(
+        MaterialApp(home: CloudOwnerScreen(initialClient: client)),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        find.text('Connected: Unauthenticated lab operator'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('cloud-ticket')), findsNothing);
+      expect(find.text('Sign in as owner'), findsNothing);
+      expect(find.text('Sign out'), findsNothing);
+      expect(find.textContaining('Select one catalogued read'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
     },
   );

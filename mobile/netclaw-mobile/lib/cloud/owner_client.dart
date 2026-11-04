@@ -12,6 +12,29 @@ bool _token(dynamic value) =>
     value is String && RegExp(r'^[A-Za-z0-9_-]{43}$').hasMatch(value);
 bool _digest(dynamic value) =>
     value is String && RegExp(r'^[a-f0-9]{64}$').hasMatch(value);
+bool _uuid(dynamic value) =>
+    value is String &&
+    RegExp(
+      r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+    ).hasMatch(value);
+bool _principal(dynamic value, {required bool lab}) =>
+    value is Json &&
+    value.length == 4 &&
+    value['issuer'] == (lab ? 'open-lab' : 'local') &&
+    (lab ? _uuid(value['subject']) : _id(value['subject'])) &&
+    value['display_name'] is String &&
+    (!lab || value['display_name'] == 'Unauthenticated lab operator') &&
+    jsonEncode(value['roles']) == (lab ? '["lab-operator"]' : '["owner"]');
+bool _samePrincipal(dynamic left, dynamic right) =>
+    left is Json &&
+    right is Json &&
+    left.length == right.length &&
+    [
+      'issuer',
+      'subject',
+      'display_name',
+      'roles',
+    ].every((key) => jsonEncode(left[key]) == jsonEncode(right[key]));
 Json _map(dynamic value) {
   if (value is! Json) throw const CloudOwnerError('invalid_response');
   return value;
@@ -27,6 +50,8 @@ class CloudOwnerError implements Exception {
       'Sign in to this cloud Border to recover existing work.',
     'invalid_profile' =>
       'Enter an exact HTTPS origin and expected installation UUID.',
+    'access_refused' =>
+      'The cloud Border refused access. Check the same operation; nothing was resent.',
     'identity_changed' =>
       'The selected Border identity or protected capabilities do not match. Nothing was resent.',
     'invalid_cookie' =>
@@ -230,6 +255,7 @@ class CloudOwnerClient {
   final OwnerTransport transport;
   final DateTime Function() now;
   Json? session, catalog, operation, reference;
+  Json? _labPrincipal;
   bool uncertain = false;
   bool notSubmitted = false;
   bool _verified = false, _busy = false;
@@ -246,6 +272,34 @@ class CloudOwnerClient {
        now = now ?? DateTime.now;
   bool get busy => _busy;
   bool get identityVerified => _verified;
+  bool get openLab => _verified && _labPrincipal != null;
+  bool get operationsReady => openLab || authenticated;
+  Json? get principal => openLab ? _labPrincipal : session?['principal'];
+
+  static Json? _runtimePrincipal(Json runtime, {String? installationId}) {
+    final capabilities = runtime['capabilities'], access = runtime['access'];
+    if (!_uuid(runtime['installationId']) ||
+        installationId != null && runtime['installationId'] != installationId ||
+        runtime['role'] != 'border' ||
+        capabilities is! Json ||
+        [
+          'protectedProfile',
+          'protectedOperations',
+          'protectedProduction',
+        ].any((key) => capabilities[key] != true)) {
+      throw const CloudOwnerError('identity_changed');
+    }
+    // Absent access is the existing protected owner-session contract. Never
+    // infer lab access from a failed authentication response or unknown mode.
+    if (!runtime.containsKey('access')) return null;
+    if (access is! Json ||
+        access['mode'] != 'open-lab' ||
+        !_principal(access['principal'], lab: true)) {
+      throw const CloudOwnerError('identity_changed');
+    }
+    return Map<String, dynamic>.from(access['principal']);
+  }
+
   void _current(int generation) {
     if (generation != _generation) throw const CloudOwnerError('suspended');
   }
@@ -270,8 +324,8 @@ class CloudOwnerClient {
     }
   }
 
-  void _requireSession() {
-    if (!authenticated) throw const CloudOwnerError('session_required');
+  void _requireAccess() {
+    if (!operationsReady) throw const CloudOwnerError('session_required');
   }
 
   Future<OwnerResponse> _request(
@@ -295,11 +349,11 @@ class CloudOwnerClient {
       if (bootstrap) {
         headers['X-NetClaw-Owner-Bootstrap'] = '1';
       } else {
-        _requireSession();
-        headers['X-NetClaw-CSRF'] = _csrf!;
+        _requireAccess();
+        if (!openLab) headers['X-NetClaw-CSRF'] = _csrf!;
       }
     }
-    if (!discovery && !bootstrap && _cookie != null) {
+    if (!openLab && !discovery && !bootstrap && _cookie != null) {
       headers['Cookie'] = '$_cookieName=$_cookie';
     }
     final result = await transport.send(
@@ -312,6 +366,18 @@ class CloudOwnerClient {
     if (result.status < 200 || result.status >= 300) {
       if (result.status == 401 ||
           result.body['code'] == 'installation_changed') {
+        if (openLab) {
+          _verified = false;
+          _labPrincipal = null;
+          catalog = null;
+          operation = null;
+          uncertain = reference != null;
+          throw CloudOwnerError(
+            result.body['code'] == 'installation_changed'
+                ? 'identity_changed'
+                : 'access_refused',
+          );
+        }
         session = null;
         _csrf = null;
         _cookie = null;
@@ -352,8 +418,10 @@ class CloudOwnerClient {
   Future<void> _initialize() async {
     final generation = _generation;
     _verified = false;
+    _labPrincipal = null;
     session = null;
     _csrf = null;
+    _cookie = null;
     catalog = null;
     operation = null;
     final savedReference = await store.reference(profile);
@@ -362,20 +430,17 @@ class CloudOwnerClient {
     notSubmitted = reference?['not_submitted'] == true;
     uncertain = reference != null && !notSubmitted;
     final runtime = (await _request('/api/runtime', discovery: true)).body;
-    final capabilities = runtime['capabilities'];
-    if (runtime['installationId'] != profile.installationId ||
-        runtime['role'] != 'border' ||
-        capabilities is! Json ||
-        [
-          'protectedProfile',
-          'protectedOperations',
-          'protectedProduction',
-        ].any((key) => capabilities[key] != true)) {
-      throw const CloudOwnerError('identity_changed');
-    }
+    _labPrincipal = _runtimePrincipal(
+      runtime,
+      installationId: profile.installationId,
+    );
     _verified = true;
     await store.saveProfile(profile);
     _current(generation);
+    if (openLab) {
+      await _loadOwned();
+      return;
+    }
     final savedCookie = await store.read('session.${profile.key}');
     _current(generation);
     _cookie = savedCookie;
@@ -394,6 +459,7 @@ class CloudOwnerClient {
   void suspend() {
     _generation++;
     _verified = false;
+    _labPrincipal = null;
     session = null;
     _csrf = null;
     _cookie = null;
@@ -405,7 +471,7 @@ class CloudOwnerClient {
 
   Future<void> login(String ticket) => _exclusive(() async {
     final generation = _generation;
-    if (!_verified || !_token(ticket)) {
+    if (!_verified || openLab || !_token(ticket)) {
       throw const CloudOwnerError('session_required');
     }
     final response = await _request(
@@ -435,6 +501,10 @@ class CloudOwnerClient {
   });
 
   Future<void> logout() => _exclusive(() async {
+    if (openLab) {
+      suspend();
+      return;
+    }
     try {
       if (authenticated) {
         await _request('/api/hud/owner/session', method: 'DELETE', body: {});
@@ -446,7 +516,7 @@ class CloudOwnerClient {
   });
 
   Future<void> _loadOwned() async {
-    _requireSession();
+    _requireAccess();
     catalog = (await _request('/api/hud/operations/catalog')).body;
     if (!_id(catalog!['revision']) || catalog!['members'] is! List) {
       catalog = null;
@@ -489,9 +559,12 @@ class CloudOwnerClient {
     if (reference != null && !notSubmitted) await _status();
   }
 
-  Future<void> _retainOperation(Json value) async {
+  Future<void> _retainOperation(
+    Json value, {
+    bool allowHistorical = false,
+  }) async {
     final generation = _generation;
-    _requireSession();
+    _requireAccess();
     final ref = reference;
     final review = value['review'];
     if (ref == null ||
@@ -506,7 +579,10 @@ class CloudOwnerClient {
         review['border'] is! Json ||
         review['border']['installation_id'] != profile.installationId ||
         review['principal'] is! Json ||
-        review['principal']['subject'] != session?['principal']?['subject'] ||
+        !(_samePrincipal(review['principal'], principal) ||
+            openLab &&
+                allowHistorical &&
+                _principal(review['principal'], lab: false)) ||
         [
           'member',
           'model_profile',
@@ -523,7 +599,7 @@ class CloudOwnerClient {
     };
     await store.saveReference(profile, next);
     _current(generation);
-    _requireSession();
+    _requireAccess();
     reference = next;
     operation = value;
     uncertain = false;
@@ -533,7 +609,7 @@ class CloudOwnerClient {
   Future<void> prepare(int memberIndex, int modelIndex, int toolIndex) =>
       _exclusive(() async {
         final generation = _generation;
-        _requireSession();
+        _requireAccess();
         if (reference != null || await store.reference(profile) != null) {
           throw const CloudOwnerError('reference_required');
         }
@@ -583,7 +659,7 @@ class CloudOwnerClient {
       });
 
   Future<void> _status() async {
-    _requireSession();
+    _requireAccess();
     final ref = reference;
     if (ref == null) throw const CloudOwnerError('reference_required');
     if (ref['not_submitted'] == true) {
@@ -593,18 +669,22 @@ class CloudOwnerClient {
     final suffix = ref['operation_id'] != null
         ? '/${Uri.encodeComponent(ref['operation_id'])}'
         : '?client_nonce=${Uri.encodeQueryComponent(ref['client_nonce'])}';
-    await _retainOperation((await _request('/api/hud/operations$suffix')).body);
+    await _retainOperation(
+      (await _request('/api/hud/operations$suffix')).body,
+      allowHistorical: true,
+    );
   }
 
   Future<void> status() => _exclusive(_status);
   bool canDecide(String decision) {
     final op = operation,
         expiry = operation?['review']?['limits']?['expires_at_ms'];
-    return authenticated &&
+    return operationsReady &&
         !busy &&
         !uncertain &&
         reference?['decision_sent'] != true &&
         op != null &&
+        _samePrincipal(op['review']?['principal'], principal) &&
         ['approve', 'deny'].contains(decision) &&
         (op['allowed_actions'] as List).contains(decision) &&
         (decision != 'approve' ||
@@ -643,7 +723,7 @@ class CloudOwnerClient {
   }
 
   Future<void> reconcile() => _exclusive(() async {
-    _requireSession();
+    _requireAccess();
     if (reference?['operation_id'] == null) {
       throw const CloudOwnerError('reference_required');
     }
@@ -654,6 +734,7 @@ class CloudOwnerClient {
         method: 'POST',
         body: {},
       )).body,
+      allowHistorical: true,
     );
   });
 
