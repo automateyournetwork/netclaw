@@ -1,16 +1,117 @@
 # R04a verification
 
-**November4 owner delivery:** the owner correctly rejected disposable-only
-qualification and the premature user-sign-in requirement. The current pilot uses
-Name + URL only, verified HTTPS and automatic installation pinning, with no login,
-tickets, sessions or mode/UUID prompts. See [the retained owner delivery](owner-delivery.md).
-The source/private client package and actual cloud/member migrations below are verified;
-final native editor/read/restart acceptance is still in progress. The Mac lock
-screen currently prevents native UI input; the owner has been asked only to
-unlock it normally. Historical November3 evidence below does not substitute for
-this actual installed-editor delivery. R05 and public release remain held.
+## Current November4 owner delivery
+
+Normal cloud-backed Overview and menus are active in the owner's actual VS Code,
+with the original GCP profile and CodePID924 preserved. Final private extension
+VSIX3fa30a37885011b5be3a8a18d2df936276c79a508450d05f478c5e48f1aa4141 is installed,
+payload-verified and activated. No user sign-in/session was added.
+
+- Native Chat completed one Send with the expected real reply, thread
+  `chat-e06508b7-2341-4668-952c-9ef76d60c854`. Tokenomics independently recorded
+  one Sonnet4.6 call. A reported cost of0 is not billing evidence.
+- One approved342-byte synthetic file was uploaded through production HudClient
+  after native picker automation failed before file selection or submission.
+  Exactly one upload202 was followed by ready document`doc_55de46cdb5bf`, one
+  chunk and the original SHA37c35e81. Actual native search returned the marker and
+  filename/date citation; native result selection, context-review confirmation and
+  Canvas context checkbox were exercised. Canvas thread
+  `chat-a944197d-d648-4b4e-b4cc-29ffb47e62e8` completed from one Send with the correct
+  cited marker. No upload/search/provider retry was used. Cloud receipt85a86912
+  independently verifies both two-message threads, Sonnet usage, zero tool messages
+  and the single indexed document. Client receipt:
+  `native-full-workspace-functional-verification.json`.
+- All advertised read panels passed after five missing public documentation files
+  and the gateway log path were repaired. Actual docs equal frozen source; logs
+  return current redacted records. Independent reviewb4deeb70 and post-Chat usage
+  receipt6df49bdf retain the original failures and corrections.
+- Original5004 is signedFAILED/`native_netbox_http_403`, verified and durably
+  acknowledged with unchanged original authority and1provider/1MCP/1GET403.
+  Memberbff81dbd and Border5d1cfbac passed. Signed/audit timestamps establish
+  settlement at17:36:49UTC, before the latest native Recover GET; the initiating
+  caller is not identified. Earlier unresolved-state summaries were stale. The
+  latest native recovery sent no reconciliation POST and repeated no effect.
+- Fresh prefix operation`9c380fdc-713f-4f43-b97d-2d6dd91105c8` was prepared and
+  approved once in the actual editor under root-reviewed digest40425222. It made
+  exactly2 guarded inference/provider calls,1 native NetBox MCP call and1 HTTP200
+  GET using the owner replacement key. Native status and independent member/Border
+  verification passed signed approval/result/ACK with receipt digestbae4366c and
+  sole attempte6fdb77f. One reconciliation fetched the existing result and ACK;
+  no preparation, approval or execution was repeated. Pre-recovery Border receipt
+  is09963c98; member evidence is`read-qualification/prefix-completed.json`.
+
+The final correctly targeted extension-host restart passed (39253/39255→57203/57208)
+with mainCode924, both exact operation references and completed Chat/Canvas files
+unchanged. Existing-profile reconnect passed. macOS locked before the final native
+operation selection; **post-restart GET-only lookup and final Overview are still
+pending unlock**, and no extra restart is required. Receipt:
+`native-final-recovery-host-only.json`. R05/human acceptance and release holds remain.
+
+## Earlier November4 checkpoints
+
+These retain the original failure history; the current delivery state is above.
+
+**November4 owner correction:** actual native Name + URL connection, zero auth
+prompts and stable repeated selection passed at17:36UTC, preserving CodePID924,
+profile13d71cca and original operation reference. Receipt:
+`native-openlab-connection-verification.json`. This opened diagnostic JSON and
+suppressed normal panels; the owner explicitly rejected it as the wrong acceptance
+target. Earlier driver records did not establish reconciliation submission;
+later signed evidence places original settlement at17:36:49UTC, with its initiating
+caller unestablished. Normal cloud-backed operating
+interface work is now in progress; see [resume](resume.md). Lock/focus problems are
+historical, not the current blocker. Source/private package success does not count
+as installed full-workspace qualification. No R05/publication authorization.
 
 ## November4 source and deployed service
+
+The normal-workspace correction integrates client2d5c4e81, bindings2c3699d0
+and backend e68b4951 in root425cc7dc. Root checked all31 changed lane files
+byte-for-byte. Client check/build and190 tests passed (187 passed,3 existing
+optional skips); backend61 affected tests and167-module build passed; bindings31
+tests passed. These are source results, not live UI acceptance.
+
+Full-workspace VSIX SHA256
+`4c9f6d1b67cf79dc0ee39af451a03e70905969fd0eb3d2dceb0f4ff2232913c6`
+is installed and all payload files verified in the regular editor, with its
+profile, original operation reference, settings and14 other extensions preserved.
+Activation awaits matching cloud readiness. Receipt:
+`full-workspace-install-receipt.json`.
+
+The frozen deployment received root and independent review. Its first pre-install
+check safely stopped on existing npm hardlinks, before any install claim or service
+change. A narrow correction verifies all four complete public hardlink pairs
+inside the selected dependency closure and copies independent destination files;
+outside links remain refused. Three focused checks passed. Corrected packet
+`49a7588d8a329c4b13829b3b06edc3b68a889285b3871fbd24cfa29c3fd15d36`
+and helper`d75e3d4e2a8fd96f4c811d4ed2234b5bcd2158d09ba1d62bf81c83b4096f54f1`
+passed actual preflight; installation387e1d03, startup293de9fc and cutoverd157e1c5
+completed. Original checks, packets and failure evidence are retained. No provider
+prompt was sent by setup.
+
+Startup also exposed an installer umask error: the public application parent
+was root0700, preventing UID10011 from reading its verified entrypoints. Restoring
+the intended0755 parent completed that phase without replaying installation.
+The native model query then exposed an intermittent20-second CLI deadline on the
+small VM. Commit7856e856 adds a separate bounded20–60-second discovery allowance;
+the existing settings-mutation allowance and all other call deadlines are unchanged.
+Six focused tests passed. The configured60000ms allowance passed actual discovery
+in20.855seconds (receipt62296511). The remote client chooser allows90seconds;
+local chooser behavior remains30seconds. The normal HUD alone restarted for that
+patch; protected federation, gateway, edge and Caddy were preserved.
+
+Trusted public readiness passed14 checks in
+`full-workspace-activation/public-readiness-v2/report.json`, SHA256
+`edadb8114a38b295192faf600218253d19072adb7c2aaaf60d61e3a26646c666`:
+current b164/open-lab identity and13 normal-workspace features; actual model,
+current Mac member, graph and RAG APIs; index/Canvas assets; no cookies or visitor
+session; excluded session/admin routes404, wrong Origin403 and installation409.
+The owner observed the normal interface and acknowledged the improvement. Actual
+installed-client workflow acceptance remains in progress. A broader GET-only
+panel check found five missing indexed public documents and a gateway log-path
+mismatch; those repairs and post-Chat usage verification remain outstanding.
+
+The following paragraphs retain the preceding no-login migration evidence.
 
 Root integrated source70240ab2 combines the known native HTTP401/403 failure
 recovery, explicit no-user-auth Border/HUD, exact VS Code connection/menu fix and
@@ -27,7 +128,7 @@ skips), including29 focused cloud tests. Mobile5596a38d passed70 affected tests
 and analysis of touched files. Root verified all integrated lane files byte-for-byte.
 Versions remain source1.18.4, extension1.5.0 and Mobile1.0.3+6.
 
-The final private VSIX6180d9f8 is installed in regular signed/notarized VS Code1.109.0.
+The earlier private VSIX6180d9f8 was installed in regular signed/notarized VS Code1.109.0.
 Its manifest and67 other payload files match; settings, keybindings,14 other
 extensions, existing cloud profile and original operation reference are preserved.
 The1.108.0 app and user data are backed up. Activation is an extension-host restart,
@@ -69,8 +170,9 @@ and supervisor70333, authenticated federation, exact four replacement hashes,
 owner key installed, original profile and23 preserved identity/authority/HTTP files,
 source modes0555, unchanged Docker inventory and identical provider/inference rows
 (1/1). No MCP result/tool success evidence was created and no reconciliation ran.
-T018 is complete; T019's actual native connection/read/restart proof remains pending
-unlock. The original failed operation still has its unknown fence until the
+That narrow service milestone did not complete the corrected T018/T019 scope;
+normal full-workspace delivery remains in progress. The original failed operation
+still has its unknown fence until the
 explicitly delegated native recovery consumes its strict retained failure proof.
 
 The existing Mobile QR assessment is [separate and explicit](mobile-qr-assessment.md):

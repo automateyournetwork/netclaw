@@ -264,3 +264,23 @@ See specs/174-cloud-client-integration/resume.md for exact remaining sequence.
 Existing Mobile QR needs proposedR04b HUD/WSS/protectedoperations; preserve scanner
 and devicekeys, no replacement manualwizard or userauth. Human acceptance/R05 and
 roadmap release holds remain. This checkpoint is not a completion or acceptance claim.
+
+
+### R04a actual operating-interface correction — November 4
+
+The owner explicitly rejected the JSON-only connection landing and narrow
+read-operation client: make the normal NetClaw VS Code interface work against
+the cloud Border after Name + URL, with no user authentication. This supersedes
+R04a's earlier operations-only UI acceptance assumptions. Do not count a connected
+badge, diagnostic document, menu presence or isolated read as completion, and do
+not build another operations-only substitute. Stop redundant verification of that
+rejected target. Reuse normal Overview/Chat/Canvas/RAG/estate/integration views and
+the existing full HUD/runtime handlers through verified HTTPS remote capabilities.
+Local extension-host filesystem/install/lifecycle actions remain local. Preserve
+current b164 installation, protected authority and failed403 history while composing
+any separate conversation/runtime services; do not silently restore old f03c authority
+or legacy device execution. Needed owner-pilot development runtime updates remain
+delegated; no additional user sign-in, release/version/public rollout or R05.
+Native Name+URL/no-login/stableclick checks passed before this correction; initial
+extension activation passed with CodePID924 preserved. Original5004 reconciliation
+was NOT submitted. Actual full operating-interface qualification remains open.

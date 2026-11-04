@@ -2,9 +2,23 @@
 
 **Feature Branch**: `174-cloud-client-integration`  
 **Created**: 2026-11-03  
-**Status**: Reopened for persistent owner deployment and installed-client delivery
+**Status**: Reopened for the normal NetClaw operating interface against the cloud Border
 
 **Input**: Drive R04a efficiently; authoritative scope is `docs/roadmap/issue-310/briefs/R04a-cloud-border-client-integration.md`.
+
+## November4 acceptance correction
+
+The owner explicitly rejected the diagnostic `Cloud-Border.json` landing and the
+operations-only client as failure to deliver R04a. Connecting by Name + URL must
+open the existing NetClaw operating interface backed by the selected cloud Border:
+normal Overview, Chat, Canvas, RAG, member/federation and other implemented panels.
+A connection badge, JSON document or narrowly tested read is not completion.
+Both client restrictions and the stripped cloud API must be corrected together.
+Reuse the existing normal UI/routes/runtime; do not build another operations-only
+substitute or expose menus whose backend is absent. Local extension-host filesystem,
+installation and service actions remain local; cloud panels use explicit remote
+capabilities and the selected cloud identity. No user authentication is added.
+Preserve current authority/history and original failure evidence during integration.
 
 ## User Scenarios & Testing
 
@@ -32,7 +46,7 @@ The native app offers an explicit cloud-owner profile separate from enrolled edg
 **Independent Test**: Existing local profile and lifecycle regressions pass while negative cloud requests fail closed.
 
 1. **Given** a local profile, **when** existing controls are used, **then** existing installation bindings remain authoritative.
-2. **Given** a remote profile, **when** local lifecycle, legacy Chat, model, MCP or admin controls are attempted, **then** unsupported actions are unavailable and handler enforcement prevents them.
+2. **Given** a remote profile, **when** local host lifecycle, raw daemon/admin or unadvertised write controls are attempted, **then** handlers prevent them; normal advertised cloud Chat/Canvas/RAG and operating panels remain usable.
 
 ### Edge Cases
 
@@ -50,6 +64,7 @@ Wrong origin/installation/role, invalid TLS, redirects, changed access mode, sta
 - **FR-008**: Existing server confinement MUST remain unchanged; inaccurate protected edge capabilities MUST be corrected without opening legacy routes.
 - **FR-009**: Verification MUST include meaningful security/regression tests, actual editor execution, affected native Mobile execution, fresh finite cloud evidence and owned cleanup; record physical-device limitations honestly.
 - **FR-010**: Preserve R01 and retired R03/R04 evidence. Never replay spent plans/enrollment/approvals. No version, release, Marketplace, blog or public rollout; human evidence review precedes R05.
+- **FR-012**: Name + URL connection MUST open the normal operating workspace, with working cloud-backed Chat/Canvas/RAG and advertised estate/operations/integration panels. Raw JSON is optional evidence only. Reuse existing views and handlers through an explicit verified HTTPS remote HUD contract; both client and server must satisfy this before completion.
 - **FR-011**: Deliver a usable persistent GCP Border and connection in the owner's installed VS Code, with a verified HTTPS URL and automatically discovered installation identity. The exact flow is Add Connection → Local / Cloud → Cloud → Name → URL → Connected; no ID/auth/access-mode prompt. Disposable editor/cloud qualification alone does not complete this requirement. Keep the owner deployment available within the scoped pilot lifetime; cleanup applies to disposable test resources. The November4 owner instruction authorizes necessary GCP image rebuild and scoped development-runtime/client updates with baseline and rollback.
 
 ### Key Entities
@@ -65,6 +80,7 @@ Wrong origin/installation/role, invalid TLS, redirects, changed access mode, sta
 - **SC-002**: One affected native Mobile protected read completes and recovers on the selected qualified platform; physical/simulator evidence is distinguished.
 - **SC-003**: Lost responses and restart produce zero repeated effects; wrong identities, invalid TLS and stale approvals are refused.
 - **SC-004**: Existing local/client/server regressions pass, fresh owned qualification resources are removed, and the human receives evidence and remaining platform limits before R05.
+- **SC-006**: The actual owner editor renders the normal cloud workspace and completes representative Chat, Canvas/RAG and estate operations through the selected cloud endpoint with no login or accidental local actions; installation alone or menu presence is not proof.
 - **SC-005**: The owner's installed VS Code connects to the retained GCP endpoint, performs a supported protected read and recovers the same result after restart. The profile, supported extension and service remain usable at handoff; rollback and trial expiry are documented. Do not count an isolated test editor or retired hostname as this delivery.
 
 ## Assumptions

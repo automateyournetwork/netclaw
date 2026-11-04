@@ -7,12 +7,20 @@ The extension discovers and pins the installation over trusted HTTPS. No user
 sign-in, ticket, installation-ID prompt or access-mode setup is required.
 Authentication/SSO/RBAC remain later roadmap work.
 
-Current verification: the no-login Border and member migrations passed, the
-owner-supplied replacement key is installed, and authenticated internal federation
-is ready. The corrected private extension is installed in regular VS Code.
-**Native connection, operation settlement and successful read/restart verification
-remain pending because the Mac is locked.** The owner has been asked to unlock
-normally; no password is requested. No completion claim substitutes for these checks.
+The saved connection now opens the normal **Overview**, with Chat, Canvas, RAG,
+members, peers, skills, runtime, usage, documentation, reference, logs and operations
+backed by the cloud. The owner has observed and acknowledged the corrected menus.
+Actual installed-editor checks passed a real Chat reply, RAG retrieval/staging,
+a cited Canvas reply and an approved NetBox prefix read with signed result and
+durable acknowledgement. The sole synthetic document upload used production
+HudClient after native file-picker automation failed before submission; native
+search, context review and Canvas selection/send were exercised.
+
+The final extension-host restart and reconnect passed, preserving CodePID924,
+both operation references and completed Chat/Canvas byte-for-byte. **Only the
+post-restart native status lookup and final Overview remain pending:** macOS
+locked before the operation was selected. No extra restart, read execution or
+reconciliation is needed. See [current resume](resume.md).
 
 ## Retained deployment
 
@@ -20,8 +28,11 @@ The existing Montréal VM `netclaw-r01-20261101` (instance7647370903424740100)
 serves the same HTTPS hostname. No new paid resources, resize, DNS, firewall,
 service-account or IAM change was made. The actual Border is a native systemd
 installation; its source/runtime bundle was updated without building a VM image.
-Its private installation is `b164621c-a94e-4c28-a087-d9c9dabcce21`, running as
-separate UID10010 with loopback HUD/API and strict federation transport. Actual
+Its private installation is `b164621c-a94e-4c28-a087-d9c9dabcce21`, running its
+protected edge/federation as UID10010 with loopback HUD/API and strict federation
+transport. The normal HUD and conversation gateway share separate UID10011 and
+private conversation state; they are not isolated from each other by UID. Only
+the gateway receives the authorized Anthropic provider environment. Actual
 metadata and legacy-secret access denial remain verified. The old R01 home and
 quiesced305,053,837-byte archive are retained, with four legacy applications
 stopped/disabled. Caddy serves the new protected service.
@@ -53,19 +64,23 @@ old pilot IaC/state over this owner deployment. No reboot was performed.
 Regular `/Applications/Visual Studio Code.app` is Microsoft-signed/notarized
 version1.109.0, upgraded from1.108.0 with the app/user data backed up. The private
 NetClaw extension remains version1.5.0. Its corrected VSIX SHA256 is
-`6180d9f8ff15b62f3136587bfd78f6933f9865133fa2ed03f0d57251ac96449b`, built from
-`db1654e9290cb36dbfc093aa0b2bb0de77c623e7`. The installed manifest and all67 other
+`3fa30a37885011b5be3a8a18d2df936276c79a508450d05f478c5e48f1aa4141`, built from
+client`cebf8109` (normal panels plus root7856e856 timeout correction). The installed manifest and all67 other
 payload files match. Existing settings, keybindings and14 other extensions are
 preserved. This is the regular owner editor, not a development-profile substitute.
 
 Selecting the active cloud profile now opens its view without disconnecting and
-clearing the menus. Re-adding the same origin/installation updates the same
-profile; a changed installation is refused. Use **NetClaw: Prepare Cloud Read**
+clearing the menus. The full-workspace correction reuses normal Overview, Chat,
+Canvas, RAG and advertised member/peer/skills/runtime/documentation/log panels;
+live activation and representative workflows have passed. Re-adding the same
+origin/installation updates the same profile; a changed installation is refused.
+Use **NetClaw: Prepare Cloud Read**
 for a new catalog read and **NetClaw: Recover Cloud Operation** for existing work.
 Read the exact review before approving. Unknown work retains its reference;
-never clear it or approve a replacement to bypass uncertainty. Local setup,
-legacy Chat, arbitrary MCP/shell and device-write controls remain unavailable on
-this protected cloud connection.
+never clear it or approve a replacement to bypass uncertainty. Local installation
+and service controls act only on local profiles. The cloud conversation gateway
+handles normal Chat/Canvas context, with no arbitrary MCP/shell or device-write
+route; reviewed member operations use the protected operation interface.
 
 The explicit lab mode uses truthful `Unauthenticated lab operator` attribution,
 not a user account or hidden session. Internal member mutual TLS remains service
@@ -85,8 +100,24 @@ The recovery correction validates exact native401/403 failure evidence, original
 signed approval/attempt, source/policy, timestamps and stopped containers before
 settling that same attempt through the existing signed FAILED/GAIT/ACK path.
 It makes no provider, MCP or NetBox call. Missing, conflicting or genuinely
-uncertain evidence stays blocked. The replacement credential was checked only
-against authenticated API-root metadata before the separately approved new read.
+uncertain evidence stays blocked. The replacement credential was initially checked
+against API-root metadata, then used by the separately approved native member read.
+
+Independent member and Border verification established that original5004 settled
+at17:36:49UTC as signedFAILED/`native_netbox_http_403` with durable ACK. Its original
+approval, attempt, principal and1provider/1MCP/1GET403 remain unchanged. The earlier
+initiating caller is not identified by the retained audit records. The later actual
+native Recover GET observed that existing result and sent no reconciliation POST.
+
+Fresh prefix operation`9c380fdc-713f-4f43-b97d-2d6dd91105c8` was prepared and approved
+once through the actual editor after root verified its complete immutable review.
+It used exactly2 guarded Sonnet inference calls,1 native NetBox MCP call and1
+successful NetBox GET. Signed approval/result/ACK verification passed on both
+member and Border. Result digest`bae4366cfa7d923e795a270dfe022eb970ddbafd0b53915cf2478ad256457a07`
+belongs to its sole attempt`e6fdb77f-16d7-41b8-a525-ac62c5f3b8ff`.
+One same-operation reconciliation fetched the existing result/ACK; no approval
+or execution was repeated. Final post-restart GET-only comparison is pending the
+Mac unlock, as stated above.
 
 Initial installation also retained a known internal Python `lib64 → lib` archive
 refusal and a readiness probe missing its required Host header. Completion-only
@@ -121,9 +152,13 @@ claimed. See [the QR assessment](mobile-qr-assessment.md).
 Private receipts, backups and authority stay under
 `~/.local/share/netclaw/roadmap-r04a-owner-20261104/`, with GAIT branch
 `r04a-owner-working-connection-20261104`. Never replay spent enrollment, plans,
-approvals or current-state archives. Cloud runtime source is frozen at7f7df355;
-the member keeps its c7b70edd closure with seven reviewed7f7 runtime patches and
-unchanged profile-pinned adapters. Root integrated source is70240ab2 before this
+approvals or current-state archives. The protected federation source is7f7df355;
+the full-workspace backend is e68b4951 plus the narrow7856e856 discovery-timeout
+patch and five exact frozen public documentation files. Current live receipt28429553
+binds source, configuration, services and retained failures. Public readinessedadb811,
+docs/logs repair8a65670c and final conversation evidence85a86912 passed.
+The member keeps its c7b70edd closure with seven reviewed7f7 runtime patches and
+unchanged profile-pinned adapters. Root integrated source is7856e856 before this
 handoff documentation. [Verification](verification.md) records exact evidence.
 
 Source1.18.4, extension1.5.0 and Mobile1.0.3+6 are unchanged. No public release,

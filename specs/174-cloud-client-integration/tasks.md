@@ -46,3 +46,14 @@ Independent test: local and edge regressions pass; cloud owner does not open leg
 ## Dependencies and parallel work
 
 T001–T002 precede implementation. T003 establishes actual pre-fix reproduction before client replacement. T005–T007 and T009–T011 run in separate VS Code/Mobile worktrees; root owns T004/T013 and common contracts. T004 gates fresh deployment; source work may proceed independently. T008/T012 depend on client tests and fresh cloud; T014 joins both; T015–T017 close in order. MVP is US1, but closure includes US2 and US3. This is one bounded pass5, not separate passes per lane.
+
+
+## Owner correction: actual operating interface
+
+The source/live connection checks above did not meet the owner's intended UI scope.
+T018/T019 were reopened for the full cloud-backed workspace; no further optional
+proof loop on the rejected JSON/read-only client. Preserve completed evidence.
+
+- [x] T020 Reuse normal VS Code panels/navigation with an installation-pinned HTTPS remote HUD transport; cloud connection opens the operating workspace, with JSON only as optional evidence.
+- [x] T021 Restore/integrate the existing full cloud HUD/runtime APIs required by Chat, Canvas, RAG and advertised estate/operations/integration views, preserving current identity and protected history and adding no user authentication.
+- [x] T022 Verify the actual installed editor's normal cloud workspace and representative real workflows; preserve local controls and report exact feature/platform limits without claiming success from connectivity alone. Native Chat, RAG search/staging and cited Canvas passed; the approved one-file upload used production HudClient after native picker automation failed before submission. All advertised read panels and usage passed after documented docs/log repairs.

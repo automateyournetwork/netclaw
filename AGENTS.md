@@ -487,3 +487,52 @@ See specs/174-cloud-client-integration/resume.md for exact remaining sequence.
 Existing Mobile QR needs proposedR04b HUD/WSS/protectedoperations; preserve scanner
 and devicekeys, no replacement manualwizard or userauth. Human acceptance/R05 and
 roadmap release holds remain. This checkpoint is not a completion or acceptance claim.
+
+
+### R04a actual operating-interface correction — November 4
+
+The owner explicitly rejected the JSON-only connection landing and narrow
+read-operation client: make the normal NetClaw VS Code interface work against
+the cloud Border after Name + URL, with no user authentication. This supersedes
+R04a's earlier operations-only UI acceptance assumptions. Do not count a connected
+badge, diagnostic document, menu presence or isolated read as completion, and do
+not build another operations-only substitute. Stop redundant verification of that
+rejected target. Reuse normal Overview/Chat/Canvas/RAG/estate/integration views and
+the existing full HUD/runtime handlers through verified HTTPS remote capabilities.
+Local extension-host filesystem/install/lifecycle actions remain local. Preserve
+current b164 installation, protected authority and failed403 history while composing
+any separate conversation/runtime services; do not silently restore old f03c authority
+or legacy device execution. Needed owner-pilot development runtime updates remain
+delegated; no additional user sign-in, release/version/public rollout or R05.
+Native Name+URL/no-login/stableclick checks passed before this correction; initial
+extension activation passed with CodePID924 preserved. Original5004 reconciliation
+was NOT submitted. Actual full operating-interface qualification remains open.
+
+### R04a live workspace checkpoint — November4, final recovery
+
+The normal cloud workspace is now deployed and active in the owner's original
+VS Code window. Private VSIX3fa30a37 (clientcebf8109/root7856e856) preserves profiles,
+settings and other extensions. Actual normal Overview, Chat, RAG retrieval/context
+review and cited Canvas passed; the sole342-byte upload used production HudClient
+after native file-picker automation failed before submission. Five public docs and
+gateway logs were repaired; all advertised read panels and real Sonnet usage passed.
+No user authentication was introduced. Current cloud gateway56278/HUD56057/edge55882
+and protected federation51900/Caddy50879 remain running; sourcee68+7856delta, same
+b164 identity, authority and December1stop. No new cloud resources or publication.
+
+Original5004 is signedFAILED/native_netbox_http_403 with durableACK and unchanged
+1provider/1MCP/1GET403. Authoritative settlement is17:36:49UTC, initiating caller
+unestablished; earlier summaries of an unresolved operation were stale. Current
+native Recover GET repeated no action. Fresh prefix9c380fdc was approved once and
+succeeded with2guardedprovider/inference calls,1nativeNetBoxMCP/1HTTP200GET, signed
+resultbae4366c and durableACK; both member and Border pre-recovery collectors pass.
+
+Final correctly targeted extension-host restart39253/39255→57203/57208 and existing
+profile reconnect succeeded; mainCode924, both references and completed Chat/Canvas
+files are unchanged. macOS locked before final operation selection. The owner has
+been asked to unlock normally and leave the original netclaw window visible. After
+unlock finish ONLY same-prefix GET recovery and normal Overview, then run the
+existing recovered-phase collectors. No more restart, preparation, approval,
+reconciliation, upload, search or provider prompt is needed. Do not claim the final
+native lookup passed until it does. See specs/174-cloud-client-integration/resume.md.
+Human acceptance beforeR05, proposed Mobile QR R04b and R20 release holds remain.
