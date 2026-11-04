@@ -65,8 +65,11 @@ not attributed. Source maps this native recovery path to GET, but the evidence i
 not raw HTTP tracing and database equality alone does not prove an HTTP method.
 No extra lookup was forced. Actual native post-restart result display plus both
 unchanged execution/authority comparisons establish the qualified recovery result.
-All technical tasks are complete; the separate human acceptance gate before R05
-and the roadmap release hold remain.
+All22 tasks are now complete. The owner's subsequent commit/PR/quiet merge and
+production extension publication request accepts this evidence and closes T017.
+See [release verification](release-verification.md) for the scoped publication
+exception and actual source/package checks. No later roadmap stage is started;
+the broader source release and general cloud rollout hold remains.
 
 ## Earlier November4 checkpoints
 

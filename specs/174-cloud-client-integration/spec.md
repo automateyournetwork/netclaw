@@ -2,7 +2,7 @@
 
 **Feature Branch**: `174-cloud-client-integration`  
 **Created**: 2026-11-03  
-**Status**: Reopened for the normal NetClaw operating interface against the cloud Border
+**Status**: Complete and owner accepted; source integration and scoped production VS Code publication authorized November4
 
 **Input**: Drive R04a efficiently; authoritative scope is `docs/roadmap/issue-310/briefs/R04a-cloud-border-client-integration.md`.
 
@@ -63,7 +63,7 @@ Wrong origin/installation/role, invalid TLS, redirects, changed access mode, sta
 - **FR-007**: Local profiles/lifecycle and enrolled Mobile flows MUST retain their original authority; unsupported cloud controls MUST fail in both UI and handlers.
 - **FR-008**: Existing server confinement MUST remain unchanged; inaccurate protected edge capabilities MUST be corrected without opening legacy routes.
 - **FR-009**: Verification MUST include meaningful security/regression tests, actual editor execution, affected native Mobile execution, fresh finite cloud evidence and owned cleanup; record physical-device limitations honestly.
-- **FR-010**: Preserve R01 and retired R03/R04 evidence. Never replay spent plans/enrollment/approvals. No version, release, Marketplace, blog or public rollout; human evidence review precedes R05.
+- **FR-010**: Preserve R01 and retired R03/R04 evidence. Never replay spent plans/enrollment/approvals. The owner's November4 acceptance authorizes source integration and the production VS Code extension update. Preserve upstream source1.18.5; no source release/tag, blog, general cloud rollout or later-stage execution is authorized. See release-verification.md for this narrow exception to the roadmap publication hold.
 - **FR-012**: Name + URL connection MUST open the normal operating workspace, with working cloud-backed Chat/Canvas/RAG and advertised estate/operations/integration panels. Raw JSON is optional evidence only. Reuse existing views and handlers through an explicit verified HTTPS remote HUD contract; both client and server must satisfy this before completion.
 - **FR-011**: Deliver a usable persistent GCP Border and connection in the owner's installed VS Code, with a verified HTTPS URL and automatically discovered installation identity. The exact flow is Add Connection → Local / Cloud → Cloud → Name → URL → Connected; no ID/auth/access-mode prompt. Disposable editor/cloud qualification alone does not complete this requirement. Keep the owner deployment available within the scoped pilot lifetime; cleanup applies to disposable test resources. The November4 owner instruction authorizes necessary GCP image rebuild and scoped development-runtime/client updates with baseline and rollback.
 

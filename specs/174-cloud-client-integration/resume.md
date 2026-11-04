@@ -1,7 +1,8 @@
 # R04a handoff — November 4
 
-**All21 technical implementation/verification tasks are complete.** T017 is the
-separate human evidence-acceptance gate before R05; it is not self-recorded here.
+**All22 tasks are complete and owner accepted.** After the final verification
+handoff, the owner requested commit, PR, quiet merge, return to main and production
+VS Code publication. This closes T017; it does not start R04b or R05.
 The owner's actual VS Code is left on the connected normal GCP Border Overview.
 
 Use the existing **GCP Border · Montréal** connection at
@@ -88,8 +89,13 @@ scanner/device keys. R04a's separate Mobile cloud screen has bounded no-login
 compatibility (70 tests); historical native iOS simulator evidence retains its
 original source. No new QR/physical-device qualification is claimed.
 
-R04 is accepted/merged asPR324. R04a remains on174-cloud-client-integration.
-R05 is guarded Ollama cloud IPv6/on-prem IPv4 subnet children with separate
-VS Code/Mobile impact and verification; it has not started. Source1.18.4,
-extension1.5.0 and Mobile1.0.3+6 are unchanged. No release/tag/Marketplace/blog or
-general cloud rollout is authorized before the complete roadmap throughR20.
+R04 is accepted/merged asPR324. R04a source integration and production extension
+publication are authorized; see [release verification](release-verification.md)
+for actual outcomes. Integration retains upstream source1.18.5 from PR325 and
+Mobile1.0.3+6; extension1.6.0 is the scoped publication exception. The retained
+pilot has not been redeployed to the merged source. Broader source release/tag,
+blog and general cloud rollout remain held throughR20.
+
+Recommended next is the separately scoped R04b Mobile QR continuation, followed
+by R05's guarded Ollama cloud IPv6/on-prem IPv4 subnet children. Each needs
+separate VS Code/Mobile impact and verification; neither is started here.

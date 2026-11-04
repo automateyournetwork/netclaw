@@ -23,13 +23,18 @@ owner with the source-integration instruction. [R04a/Spec174](../../../specs/174
 passed isolated Mac VS Code/native iOS simulator reads and recovery, then retired
 its24 temporary cloud resources. On November4 the owner reopened R04a: that proof
 did not deliver a working connection in his installed VS Code. Persistent GCP
-deployment and installed-client delivery are now in progress, with necessary
-development Border runtime update authorized. The current flow is Name + URL with
+deployment and installed-client delivery are now complete and accepted (22/22).
+The normal Overview, Chat, cited RAG/Canvas, advertised panels and protected
+NetBox read/result recovery passed on the owner's Mac. The current flow is Name + URL with
 no user sign-in; authentication remains later roadmap work. The existing Mobile
 scanner needs HUD QR issuance, trusted WSS and protected-operation integration,
 documented as proposed [R04b](briefs/R04b-cloud-hud-mobile-enrollment.md). Bounded
 Mobile no-login compatibility is source-tested; cloud QR and physical iPhone
-execution remain unqualified. Human acceptance still precedes the next stage.
+execution remain unqualified. After the final check, the owner accepted R04a and
+requested source integration plus production VS Code publication; see
+[release verification](../../../specs/174-cloud-client-integration/release-verification.md).
+Recommended next is the separately scoped R04b QR continuation, then R05. Neither
+is started by this integration/publication request.
 R03’s four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable
@@ -41,8 +46,11 @@ The owner authorized the coordinator/three-agent team and at most five bounded
 implementation passes. November3 delegation superseded the earlier CAD100/billing
 execution hold for isolated R03 completion/cleanup; stated GCP credit is unverified
 and not a target. Finite safeguards and exact evidence/cleanup were retained.
-Integration preserves upstream source1.18.4 from #321 and extension1.5.0 without
-a roadmap version bump. The entire-roadmap release/public rollout hold remains.
+Integration preserves upstream source1.18.5 from #325 and both distinct Spec174
+directories. The owner-authorized extension1.6.0 production update is a narrow
+exception to the earlier Marketplace/version hold. Source release/tag, external
+announcements and general cloud rollout remain held throughR20. This release
+does not upgrade the retained pilot or other existing runtimes.
 R04a uses the fifth bounded pass; no further optional loop is implied. Earlier
 assessment and amendment sections below are historical.
 

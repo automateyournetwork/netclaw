@@ -42,6 +42,8 @@ accepted. The extension discovers and pins the installation identity; no
 installation-ID or access-mode prompt is needed. A changed identity at a saved
 origin is refused, preserving the original profile and operation references.
 
+The backend must advertise the R04a `remoteHud` schema-1 workspace capability;
+the source version number alone does not establish compatibility.
 An explicitly configured `open-lab` Border connects without sign-in, tickets or
 user sessions. Its advertised capabilities determine the available panels. A full
 workspace Border opens the normal Overview and supports Chat, Canvas, RAG,

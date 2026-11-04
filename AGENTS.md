@@ -557,3 +557,21 @@ gate beforeR05. Do not resume old pending-lookup instructions or run another
 workload/restart to improve evidence. Keep the intended pilot/member running within
 its December1scope. Mobile QR is proposedR04b; no R05, version bump, publication or
 general rollout occurred. Final handoff is specs/174-cloud-client-integration/resume.md.
+
+### R04a acceptance and production extension update — November4
+
+After the completed native verification handoff, the owner requested commit, PR,
+quiet merge, return to main and production VS Code packaging/publication. This
+accepts R04a (22/22 including T017) and supersedes the earlier extension version
+and Marketplace hold for this scoped update. Preserve upstream source1.18.5 from
+PR325 and both distinct Spec174 directories. Extension1.6.0 targets the verified
+Marketplace1.5.0 baseline; publish only the checked archive with recorded source
+and digest. Verify PR checks, merge and public artifact availability.
+
+The broader source release/tag, blog, external announcement and general cloud
+deployment holds throughR20 remain. Do not redeploy the retained pilot or restart
+the owner's editor, repeat provider/device operations, or start R04b/R05 during
+this integration/publication task. R04b cloud HUD Mobile QR enrollment is the
+recommended next scoped feature, followed by R05. No new user-authentication scheme
+belongs in either client correction; users/SSO/RBAC stay R15–R17. See
+specs/174-cloud-client-integration/release-verification.md for actual release evidence.

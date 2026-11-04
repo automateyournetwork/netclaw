@@ -22,7 +22,9 @@ was unlocked, the native result showed the same completed operation, verified
 signature and acknowledged delivery. Independent member and Border comparisons
 confirm unchanged authority, results and execution counts. The connected normal
 Overview is left visible. **R04a technical implementation and verification are
-complete.** Human acceptance remains the separate gate before R05.
+complete and owner accepted.** The subsequent source/production extension release
+request closes T017; [release verification](release-verification.md) records that
+separate integration/publication scope.
 
 ## Retained deployment
 
@@ -167,6 +169,8 @@ The member keeps its c7b70edd closure with seven reviewed7f7 runtime patches and
 unchanged profile-pinned adapters. Root integrated source is7856e856 before this
 handoff documentation. [Verification](verification.md) records exact evidence.
 
-Source1.18.4, extension1.5.0 and Mobile1.0.3+6 are unchanged. No public release,
-Marketplace publication, tag, blog, general cloud rollout or R05 work occurred.
-Human evidence acceptance remains separate before the next roadmap stage.
+At live qualification, source1.18.4, private extension1.5.0 and Mobile1.0.3+6 were
+unchanged; no publication or R05 work occurred during that qualification. The
+owner subsequently accepted the handoff and authorized source integration and
+production extension publication. See [release verification](release-verification.md).
+That release does not redeploy this frozen live runtime or qualify general rollout.
