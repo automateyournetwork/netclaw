@@ -30,6 +30,16 @@ The native UI selects precisely that catalog entry and prepares without approval
 Export `Documents/r04a-evidence-prepare.json`; inspect its complete immutable review
 (principal, Border/member identities, provider/model, arguments, limits and expiry).
 
+Only after explicit host-side retirement and new-preparation delegation, prepare
+configuration may include `discard_resolved_operation_id` for that exact earlier
+operation. If its reference remains on the device, the harness requires the same
+ID, `state: denied`, no approval/result, zero attempts, no possible execution and
+no reconciliation, then taps the existing native **Remove resolved reference**
+button. The exported report records the removed ID. Any unknown state or ID
+mismatch fails before preparation. If uninstall already removed the reference,
+the host's authoritative denial evidence remains required; the harness does not
+claim that it observed or discarded a missing reference.
+
 Second phase config: `phase: "approve"`, same origin/installation,
 `operation_id`, `approved_review_digest`, and complete `approved_review` copied
 from that inspected evidence. Include a fresh ticket only if sign-in expired.

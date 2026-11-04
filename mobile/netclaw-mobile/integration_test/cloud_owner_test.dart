@@ -111,7 +111,27 @@ void main() {
       ticket = null;
       expect(client.authenticated, true);
 
+      String? discardedResolvedOperationId;
       if (phase == 'prepare') {
+        final discardId = config['discard_resolved_operation_id'];
+        if (client.reference != null && discardId != null) {
+          expect(discardId, isA<String>());
+          expect(client.reference!['operation_id'], discardId);
+          final retired = client.operation!;
+          expect(retired['operation_id'], discardId);
+          expect(retired['state'], 'denied');
+          expect(retired.containsKey('approval'), true);
+          expect(retired['approval'], isNull);
+          expect(retired['attempt_count'], 0);
+          expect(retired['may_have_executed'], false);
+          expect(retired.containsKey('result'), true);
+          expect(retired['result'], isNull);
+          expect(retired['reconciliation_required'], false);
+          expect(client.canRemove, true);
+          await tap('Remove resolved reference');
+          expect(client.reference, isNull);
+          discardedResolvedOperationId = discardId as String;
+        }
         expect(
           client.reference,
           isNull,
@@ -256,6 +276,7 @@ void main() {
         'operation': client.operation,
         'requests': transport.calls,
         'native_screen_rendered': true,
+        'discarded_resolved_operation_id': ?discardedResolvedOperationId,
         'scope':
             'Production cloud screen/client in isolated native qualification app; physical versus simulator supplied by host evidence',
       };
