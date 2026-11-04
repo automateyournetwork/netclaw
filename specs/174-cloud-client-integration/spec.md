@@ -2,7 +2,7 @@
 
 **Feature Branch**: `174-cloud-client-integration`  
 **Created**: 2026-11-03  
-**Status**: Technical qualification and owned retirement complete; human acceptance pending
+**Status**: Reopened for persistent owner deployment and installed-client delivery
 
 **Input**: Drive R04a efficiently; authoritative scope is `docs/roadmap/issue-310/briefs/R04a-cloud-border-client-integration.md`.
 
@@ -50,6 +50,7 @@ Wrong origin/installation/role, invalid TLS, redirects, expired/revoked sessions
 - **FR-008**: Existing server confinement MUST remain unchanged; inaccurate protected edge capabilities MUST be corrected without opening legacy routes.
 - **FR-009**: Verification MUST include meaningful security/regression tests, actual editor execution, affected native Mobile execution, fresh finite cloud evidence and owned cleanup; record physical-device limitations honestly.
 - **FR-010**: Preserve R01 and retired R03/R04 evidence. Never replay spent plans/enrollment/approvals. No version, release, Marketplace, blog or public rollout; human evidence review precedes R05.
+- **FR-011**: Deliver a usable persistent GCP Border and connection in the owner's installed VS Code, with a verified HTTPS URL, installation identity and secure owner sign-in. Disposable editor/cloud qualification alone does not complete this requirement. Keep the owner deployment available within the scoped pilot lifetime; cleanup applies to disposable test resources. The November4 owner instruction authorizes necessary GCP image rebuild and scoped development-runtime/client updates with baseline and rollback.
 
 ### Key Entities
 
@@ -64,6 +65,7 @@ Wrong origin/installation/role, invalid TLS, redirects, expired/revoked sessions
 - **SC-002**: One affected native Mobile protected read completes and recovers on the selected qualified platform; physical/simulator evidence is distinguished.
 - **SC-003**: Lost responses and restart produce zero repeated effects; wrong identities, invalid TLS and stale approvals are refused.
 - **SC-004**: Existing local/client/server regressions pass, fresh owned qualification resources are removed, and the human receives evidence and remaining platform limits before R05.
+- **SC-005**: The owner's installed VS Code connects to the retained GCP endpoint, performs a supported protected read and recovers the same result after restart. The profile, supported extension and service remain usable at handoff; rollback and trial expiry are documented. Do not count an isolated test editor or retired hostname as this delivery.
 
 ## Assumptions
 

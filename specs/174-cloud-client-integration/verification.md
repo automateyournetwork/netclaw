@@ -1,6 +1,6 @@
 # R04a verification
 
-R04a technical implementation, actual Mac VS Code/native iOS simulator qualification and owned retirement are complete:16/17 tasks. Human evidence acceptance (T017) remains required before R05. R04 remains accepted/merged/retired.
+**Reopened November4:** the owner correctly rejected disposable-only qualification as completion of the actual VS Code connection objective. Prior evidence below remains valid for the isolated tested scope. Persistent GCP deployment and installation/configuration in the owner's actual editor remain unfinished (T018/T019); handoff reconciliation is reopened. The owner explicitly authorizes a necessary GCP Border image rebuild as development infrastructure. R05 and publication remain held.
 
 ## Actual pre-fix reproduction (T003)
 
@@ -81,4 +81,4 @@ R01's eight checked Compute resources, private state, known-host file, DNS, trus
 
 ## Handoff
 
-All required technical work is complete for the recorded Mac/editor and iOS simulator scope. The only unchecked task is human evidence acceptance before R05; no acceptance is inferred from technical completion. Final daily memory is local in `memory/2026-11-03.md`; session audit uses GAIT branch `roadmap-r04a-client-integration-20261103`, with the complete final log saved privately as `final-gait-log.json`. No MemPalace tool was available; no long-term-memory write is claimed. Source commits and lane provenance are additionally preserved in the verified private Git bundle. No release, publication, existing-runtime upgrade or R05 work occurred.
+The November3 handoff covered the isolated Mac/editor and iOS simulator scope. Its claim that only human acceptance remained was too narrow: it omitted a usable persistent endpoint and the owner's installed editor. That omission is being corrected under T018/T019. Historical daily memory is local in `memory/2026-11-03.md`; that session used GAIT branch `roadmap-r04a-client-integration-20261103`, with the complete log saved privately as `final-gait-log.json`. No MemPalace tool was available; no long-term-memory write is claimed. Source commits and lane provenance are preserved in the private Git bundle. No release, publication or R05 work occurred.

@@ -3,7 +3,7 @@
 - **Roadmap item:** client integration catch-up between R04 and R05
 - **Depends on:** accepted R04 and its verified owner/Border/member contracts
 - **Gate:** human review of VS Code and Mobile evidence before R05
-- **Status:** Spec174 technical qualification and owned retirement complete (16/17); human acceptance pending. See [verification](../../../../specs/174-cloud-client-integration/verification.md). Physical iPhone unqualified; no publication authorized.
+- **Status:** Reopened November4 for persistent owner GCP deployment and actual installed VS Code delivery; necessary development Border image rebuild authorized. Prior isolated qualification/cleanup remains evidence. See [verification](../../../../specs/174-cloud-client-integration/verification.md). Physical iPhone unqualified; no public publication authorized.
 
 ## Specify input
 

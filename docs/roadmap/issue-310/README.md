@@ -20,10 +20,12 @@ and cleanup:36/36 tasks, accepted by the owner with the post-handoff source-merg
 instruction on November3. [R04/Spec173](../../../specs/173-gcp-cloud-member/verification.md)
 has completed actual qualification and owned cleanup (33/33), accepted by the
 owner with the source-integration instruction. [R04a/Spec174](../../../specs/174-cloud-client-integration/verification.md)
-has completed actual Mac VS Code and native iOS simulator cloud-owner reads,
-process-restart recovery, verified export and full owned cleanup:16/17 tasks.
-Human acceptance precedes R05, which remains unstarted. Physical iPhone execution
-remains unqualified. All24 R04a cloud resources, DNS and temporary access are removed.
+passed isolated Mac VS Code/native iOS simulator reads and recovery, then retired
+its24 temporary cloud resources. On November4 the owner reopened R04a: that proof
+did not deliver a working connection in his installed VS Code. Persistent GCP
+deployment and installed-client delivery are now in progress, with necessary
+development Border image rebuild authorized. Human acceptance still precedes R05;
+physical iPhone execution remains unqualified.
 R03’s four browser-approved reads returned parsed versions with signed results/ACKs;
 actual loss/restart recovery caused no repeated device/model execution. All13 R03
 cloud resources, DNS and the temporary SSH key are removed; zero owned billable

@@ -431,3 +431,18 @@ See specs/174-cloud-client-integration/verification.md and resume.md for exact
 platform/source, preservation and failure limits. Pass5 is complete, with no extra
 optional loop. No R05, version change, release, public rollout or existing-runtime
 upgrade was performed. This does not record the owner's acceptance.
+
+### R04a owner-delivery correction — 2026-11-04
+
+The owner rejected the disposable-only completion as failing the actual objective:
+his installed VS Code must connect to a persistent usable GCP Border. He explicitly
+authorized rebuilding the GCP NetClaw Border image if necessary and designated this
+as non-live development/build-time infrastructure. Reopen R04a. This supersedes
+the earlier no-existing-runtime-upgrade restriction for the scoped GCP pilot and
+necessary private local client installation; it does not authorize public release,
+Marketplace publication, unrelated runtimes, device writes or R05. Retain concrete
+baseline/rollback, review exact resource changes and preserve the existing trial
+expiry/spend bounds. Leave the intended owner deployment and client profile usable;
+retire only disposable test resources. Prior isolated evidence remains historical,
+not owner-delivery acceptance. No new optional improvement loop is started: this
+is required correction of the unfinished R04a objective.

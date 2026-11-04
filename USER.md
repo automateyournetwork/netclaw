@@ -8,6 +8,15 @@
 
 ## Preferences
 
+- R04a correction (2026-11-04): a disposable qualification deployment is not a
+  completed client integration. John needs his installed VS Code connected to a
+  persistent usable GCP Border, with the URL and sign-in ready for him. He
+  explicitly authorized rebuilding the GCP NetClaw Border image if necessary and
+  clarified this is non-live development infrastructure. Preserve rollback and
+  existing evidence; do not repeat delegated permission requests. Clean up test
+  resources without removing the deployment he is meant to use. Public roadmap
+  release/publication and R05 remain separate.
+
 - Roadmap client integration direction (2026-11-03): insert R04a after R04 and
   before R05 to fix VS Code cloud Border connectivity and catch up Mobile if
   affected. Every later roadmap step must explicitly consider both VS Code and
