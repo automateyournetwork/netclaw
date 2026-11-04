@@ -177,6 +177,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Private SQLite/GAIT and immutable profiles; external0700 state/evidence and0600 secrets; bounded browser identifiers only. (173-gcp-cloud-member)
 - existing TypeScript5.9/Node24.19; Dart/Flutter current project toolchain; Python3.12 federation. + VS Code APIs, Node HTTPS, existing Flutter HTTP and secure storage, existing Express owner service. (174-cloud-client-integration)
 - non-secret profile/reference state, native secure sessions, memory-only CSRF/tickets. (174-cloud-client-integration)
+- Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 and Swift under installed Xcode27.2. + existing SQLite, qrcode, WebSocket/TLS/P256, Express, VS Code APIs, Flutter secure storage/mobile_scanner. No new server/framework or hosted QR service. (175-cloud-mobile-enrollment)
+- additive private enrollment issuance records and existing private federation authority; device secure storage for keys/pending identity/references; QR matrix only in transient UI memory. (175-cloud-mobile-enrollment)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -575,3 +577,15 @@ this integration/publication task. R04b cloud HUD Mobile QR enrollment is the
 recommended next scoped feature, followed by R05. No new user-authentication scheme
 belongs in either client correction; users/SSO/RBAC stay R15–R17. See
 specs/174-cloud-client-integration/release-verification.md for actual release evidence.
+
+### R04b kickoff and client scope — 2026-11-04
+
+Owner said “04b time”, then explicitly required easy QR generation directly in
+local and GCP/cloud HUD, the same enrollment generation in VS Code Mobile, and
+actual simulated/virtual iPhone verification. Spec175 covers the existing scanner,
+device keys, scoped one-use QR, trusted WSS, protected operations and recovery.
+Use coordinator and separate backend/surfaces/Mobile worktrees. Keep the owner's
+usable pilot, existing authorities and December1 lifetime; clean only disposable
+test resources. No new user login/SSO, later roadmap stage or publication is implied.
+Native simulator image decode/key fixtures must stay distinct from physical camera
+and SecureEnclave qualification. See specs/175-cloud-mobile-enrollment/.

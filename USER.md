@@ -284,3 +284,8 @@ delegated; no additional user sign-in, release/version/public rollout or R05.
 Native Name+URL/no-login/stableclick checks passed before this correction; initial
 extension activation passed with CodePID924 preserved. Original5004 reconciliation
 was NOT submitted. Actual full operating-interface qualification remains open.
+
+- R04b direction (2026-11-04): QR enrollment must be easy directly from both local
+  and GCP/cloud HUDs and from VS Code's Mobile section. Preserve the existing app
+  scanner; use an actual simulated/virtual iPhone to verify the full flow. A
+  generated code or unit test alone does not establish working enrollment.
