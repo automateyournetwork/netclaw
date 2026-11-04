@@ -33,7 +33,8 @@ Export `Documents/r04a-evidence-prepare.json`; inspect its complete immutable re
 Only after explicit host-side retirement and new-preparation delegation, prepare
 configuration may include `discard_resolved_operation_id` for that exact earlier
 operation. If its reference remains on the device, the harness requires the same
-ID, `state: denied`, no approval/result, zero attempts, no possible execution and
+ID, `state: refused` with `error_code: owner_denied` (the actual backend denial
+spelling), no approval/result, zero attempts, no possible execution and
 no reconciliation, then taps the existing native **Remove resolved reference**
 button. The exported report records the removed ID. Any unknown state or ID
 mismatch fails before preparation. If uninstall already removed the reference,

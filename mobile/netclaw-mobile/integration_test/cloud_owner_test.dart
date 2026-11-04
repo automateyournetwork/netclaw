@@ -119,7 +119,8 @@ void main() {
           expect(client.reference!['operation_id'], discardId);
           final retired = client.operation!;
           expect(retired['operation_id'], discardId);
-          expect(retired['state'], 'denied');
+          expect(retired['state'], 'refused');
+          expect(retired['error_code'], 'owner_denied');
           expect(retired.containsKey('approval'), true);
           expect(retired['approval'], isNull);
           expect(retired['attempt_count'], 0);
