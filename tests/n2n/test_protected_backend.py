@@ -20,7 +20,7 @@ async def test_real_fixed_bridge_consumes_ticket_and_refuses_unknown_method(tmp_
     owner.init('Local owner')
     token = secrets.token_urlsafe(32)
     write_private(state / 'protected-operator.env', ('NETCLAW_PROTECTED_OPERATOR_TOKEN=' + token + '\n').encode())
-    bridge = OperatorBridge(SimpleNamespace(owner=owner), state, installation)
+    bridge = OperatorBridge(SimpleNamespace(owner=owner, open_lab=False), state, installation)
     port = await bridge.start()
     async def post(method, params, bearer=token):
         reader, writer = await asyncio.open_connection('127.0.0.1', port)

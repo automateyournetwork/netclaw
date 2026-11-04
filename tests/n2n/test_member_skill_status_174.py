@@ -166,3 +166,21 @@ def test_member_sends_the_report_only_on_its_current_border_channel(manager, mon
     assert sent == []
     asyncio.run(svc._report_skill_status(current))
     assert sent[0][0] == "n2n/inventory" and sent[0][1]["unavailable_skills"] == report
+
+
+def test_protected_member_never_checks_an_ambient_host_runtime(manager, monkeypatch):
+    monkeypatch.setenv("N2N_PROTECTED_OPERATIONS", "1")
+    svc = FederationService(local_as=65001, router_id="1.1.1.1", manager=manager)
+    assert svc.protected_enabled
+    svc.member_scope = {"netbox-reconcile"}
+
+    async def forbidden_check(*args, **kwargs):
+        pytest.fail("protected member must not invoke the host OpenClaw skill check")
+
+    class Channel:
+        async def call(self, *args, **kwargs):
+            pytest.fail("protected member must not advertise host skill eligibility")
+
+    monkeypatch.setattr(mi, "check_skills", forbidden_check)
+    svc.border_channel = Channel()
+    asyncio.run(svc._report_skill_status(svc.border_channel))
