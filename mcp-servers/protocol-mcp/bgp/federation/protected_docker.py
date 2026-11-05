@@ -326,7 +326,7 @@ def inspect_guard(container, *, image, home, env_file, payload, config_sha256, p
         raise RuntimeRefused("guard_environment_changed")
     bindings = host.get("PortBindings") or {}
     if ollama is not None:
-        if bindings or any(container['NetworkSettings'].get('Ports', {}).values()):
+        if bindings or any((container['NetworkSettings'].get('Ports') or {}).values()):
             raise RuntimeRefused('ollama_guard_extra_binding_refused')
         return None
     if set(bindings) != {"4000/tcp"} or len(bindings["4000/tcp"]) != 1 or bindings["4000/tcp"][0].get("HostIp") != "127.0.0.1":
@@ -513,7 +513,7 @@ class DockerExecutor:
         provider_args = ['--provider', 'ollama'] if self.ollama else []
         await self.command("create", "--name", name, "--network", guard_network, "--read-only",
              "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=171",
+             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
              "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
              "--mount", f"type=bind,src={home},dst=/guard",
              "--mount", f"type=bind,src={config['env_file']},dst=/guard/guard.env,readonly",
@@ -666,7 +666,7 @@ class DockerExecutor:
         agent_files = private_directory(operation_root / "agent")
         token = secrets.token_urlsafe(32)
         suffix = hashlib.sha256(operation_id.encode()).hexdigest()[:20]
-        prefix = "netclaw-r02-" + suffix
+        prefix = ("netclaw-r05-" if self.ollama else "netclaw-r02-") + suffix
         network, relay, agent = prefix + "-net", prefix + "-relay", prefix + "-agent"
         harness = payload["model_profile"]["runtime_kind"]
         if harness == "openclaw":
@@ -814,11 +814,11 @@ class DockerExecutor:
                 subnet = str(ipaddress.IPv4Network((int(self.pool.network_address) + offset * 16, 28)))
                 await self.command("network", "create", "--internal", "--opt",
                      "com.docker.network.bridge.gateway_mode_ipv4=isolated", "--subnet", subnet,
-                     "--label", "netclaw.spec=171", network)
+                     "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171", network)
                 # Relay alone has a second network to the fixed host endpoint.
                 await self.command("create", "--name", relay, "--network", relay_network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=171",
+                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      *relay_args, self.config["relay_image"])
                 if not unix_relay:
                     await self.command("network", "connect", "--alias", relay, network, relay)
@@ -837,7 +837,7 @@ class DockerExecutor:
                 await self.command("create", "--name", agent, "--network", network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
                      "--pids-limit", "256", "--memory", "1536m" if self.ollama else "4g",
-                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=171",
+                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      "--tmpfs", f"/home/agent:rw,noexec,nosuid,size=128m,uid={os.getuid()},gid={os.getgid()},mode=700",
                      "--tmpfs", "/tmp:rw,noexec,nosuid,size=128m", "--mount",
                      f"type=bind,src={agent_files},dst=/run/netclaw,readonly",
