@@ -67,6 +67,7 @@ void main() {
           'recover',
           'combined-prepare',
           'combined-decision',
+          'combined-decisions',
           'combined-recover',
         ].contains(phase),
         'Invalid phase',
@@ -193,6 +194,7 @@ void main() {
       bool? combinedUncertain;
       var visualFrames = 0;
       final nativeLifecycle = <String>[];
+      final nativeDecisions = <Json>[];
       if (client.protectedDevice != null) {
         await waitFor(
           () => find.byType(CloudOwnerScreen).evaluate().isNotEmpty,
@@ -354,10 +356,10 @@ void main() {
               retainedPair is Map &&
                   old != null &&
                   operations.canRemoveCombined &&
-                  old['state'] == 'complete' &&
+                  ['complete', 'partial'].contains(old['state']) &&
                   old['parent_id'] == retainedPair['parent_id'] &&
                   old['client_nonce'] == retainedPair['client_nonce'],
-              'Only the exact inspected completed pair may be archived',
+              'Only the exact inspected resolved pair may be archived',
             );
             for (final index in [0, 1]) {
               final child = old!['children'][index],
@@ -437,6 +439,7 @@ void main() {
             );
           }
         } else if (phase == 'combined-decision' ||
+            phase == 'combined-decisions' ||
             phase == 'combined-recover') {
           final actual = operations.combined, expected = config['combined'];
           require(
@@ -458,29 +461,71 @@ void main() {
               'Exact independently inspected child review mismatch',
             );
           }
-          if (phase == 'combined-decision') {
-            final index = config['child_index'], decision = config['decision'];
+          if (phase == 'combined-decision' || phase == 'combined-decisions') {
+            final decisions = phase == 'combined-decisions'
+                ? config['decisions']
+                : [
+                    {
+                      'child_index': config['child_index'],
+                      'decision': config['decision'],
+                    },
+                  ];
             require(
-              [0, 1].contains(index) && ['approve', 'deny'].contains(decision),
-              'One explicit child decision required',
+              decisions is List &&
+                  (phase == 'combined-decisions'
+                      ? decisions.length == 2 &&
+                            decisions[0]['child_index'] == 0 &&
+                            decisions[1]['child_index'] == 1 &&
+                            decisions.every((d) => d['decision'] == 'approve')
+                      : decisions.length == 1),
+              'Explicit separate native child decisions required',
             );
-            final child = actual!['children'][index];
-            require(
-              child['revision'] == expected['children'][index]['revision'] &&
-                  operations.canDecideCombined(index, decision),
-              'Reviewed revision unavailable; nothing repeated',
-            );
-            if (decision == 'approve') {
-              final checkbox = find.byKey(ValueKey('combined-review-$index'));
-              await tester.ensureVisible(checkbox);
-              await tester.tap(checkbox);
-              await tester.pumpAndSettle();
+            for (final selected in decisions) {
+              final index = selected['child_index'],
+                  decision = selected['decision'];
+              require(
+                [0, 1].contains(index) &&
+                    ['approve', 'deny'].contains(decision),
+                'One explicit child decision required',
+              );
+              final child = operations.combined!['children'][index];
+              require(
+                child['revision'] == expected['children'][index]['revision'] &&
+                    child['review_digest'] ==
+                        expected['children'][index]['review_digest'] &&
+                    jsonEncode(ordered(child['review'])) ==
+                        jsonEncode(
+                          ordered(expected['children'][index]['review']),
+                        ) &&
+                    operations.canDecideCombined(index, decision),
+                'Reviewed revision unavailable; nothing repeated',
+              );
+              if (decision == 'approve') {
+                final checkbox = find.byKey(ValueKey('combined-review-$index'));
+                await tester.ensureVisible(checkbox);
+                await tester.tap(checkbox);
+                await tester.pumpAndSettle();
+              }
+              final submittedAt = DateTime.now().millisecondsSinceEpoch;
+              await tap(
+                decision == 'approve'
+                    ? 'Approve IPv${child['family']} once'
+                    : 'Deny IPv${child['family']}',
+              );
+              require(
+                !operations.combinedUncertain,
+                'Decision outcome uncertain; preserve it and stop before another decision',
+              );
+              nativeDecisions.add({
+                'child_index': index,
+                'decision': decision,
+                'operation_id': child['operation_id'],
+                'review_digest': child['review_digest'],
+                'submitted_at_ms': submittedAt,
+                'review_expires_at_ms':
+                    child['review']['limits']['expires_at_ms'],
+              });
             }
-            await tap(
-              decision == 'approve'
-                  ? 'Approve IPv${child['family']} once'
-                  : 'Deny IPv${child['family']}',
-            );
           } else {
             await tap('Check combined status');
             if (config['cancel_unapproved'] == true) {
@@ -777,6 +822,7 @@ void main() {
           'production_enrollment_gate': true,
           'native_visual_frames': visualFrames,
           'native_lifecycle_events': nativeLifecycle,
+          'native_child_decisions': nativeDecisions,
           'landing': protected ? 'ProtectedDeviceScreen' : 'HomeShell',
           'simulator': true,
           'camera_hardware': false,

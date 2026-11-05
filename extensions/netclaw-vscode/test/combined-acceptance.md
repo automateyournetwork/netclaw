@@ -102,8 +102,16 @@ resolved reference UI before preparing a pair if one occupies this profile.
   its report; pending or changed work is never removed.
 - `combined-decision`: inspected `combined` DTO, one `child_index`, one `decision`.
   Native checkbox and child button are distinct for each approval.
+- `combined-decisions`: inspected `combined` DTO and two ordered `decisions`
+  (`child_index`0 then1, each `decision: approve`). One native process separately
+  validates each review, taps its checkbox and its existing child approval button.
+  An uncertain first response stops before the second decision. Result polling
+  and screenshots follow both submissions, avoiding rebuild/capture delays in
+  the unchanged180-second review window. This adds no product batch approval.
 - `combined-recover`: exact saved `combined` DTO; status-only, including after
   real app termination/relaunch. `preserve_effects:true` checks attempts/receipts.
+  Existing `lifecycle_evidence:true` also supports this phase and records actual
+  native paused/resumed events and unchanged child receipts after foreground GET.
 - `expected_states` optionally waits up to3minutes using status reads only. Include
   `partial`/`unknown` for an independently controlled failure scenario; this driver
   does not induce failures or alter backend/model processes.
