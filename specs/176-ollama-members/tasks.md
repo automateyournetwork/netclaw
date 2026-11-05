@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md),
 [data-model.md](data-model.md), [contracts/](contracts/).  
-**Status**: 25/33 implementation/acceptance tasks complete. SDD preparation is separate.
+**Status**: 26/33 implementation/acceptance tasks complete. SDD preparation is separate.
 
 Tests are required by this feature's acceptance criteria. Port Thermidor's named
 behavioral cases first; use actual native runtime evidence for live claims.
@@ -62,7 +62,7 @@ recovery with its existing installation/device identity. Actual evidence follows
 - [x] T023 Run focused new and existing protected contract/provider/MCP/recovery and HUD/extension/Mobile checks; record exact commands/source/counts/limits in `specs/176-ollama-members/verification.md` (FR-012, FR-014).
 - [x] T024 After T015 execution review, run one real local ARM64 two-turn native subnet summary using `labs/ollama/qualify.py`; verify arithmetic, actual limits, native receipts and no paid calls in `specs/176-ollama-members/verification.md` (FR-001, FR-004, FR-006, FR-009).
 - [x] T025 Run real cloud AMD64 and combined browser summaries under separate approvals using `labs/ollama/qualify.py`; record both results, original IDs, durations and signed ACKs in `specs/176-ollama-members/verification.md` (FR-001, FR-002, FR-004, FR-009, FR-010).
-- [ ] T026 Run both-host admitted-positive and agent/broker/Border/sibling/public-negative isolation probes, real swap/cgroup/OOM checks and eventual model unload via `labs/ollama/qualify.py`; retain evidence in `specs/176-ollama-members/verification.md` (FR-005, FR-006, FR-009).
+- [x] T026 Run both-host admitted-positive and agent/broker/Border/sibling/public-negative isolation probes, real swap/cgroup/OOM checks and eventual model unload via `labs/ollama/qualify.py`; retain evidence in `specs/176-ollama-members/verification.md` (FR-005, FR-006, FR-009).
 - [ ] T027 Inject bounded one-child failure, lost response/ACK and actual owned-process restart; compare authorities/claims/effect counts and retained success using `labs/ollama/qualify.py`, with evidence in `specs/176-ollama-members/verification.md` (FR-007, FR-008).
 - [ ] T028 [US4] Qualify actual Mac VS Code combined approvals/results and one-child failure/restart through the selected cloud profile; retain G12 receipts in `specs/176-ollama-members/verification.md` (FR-010).
 - [ ] T029 [US4] Qualify the native iPhone simulator's two child approvals/results, failure and cold/background reconnect with its existing device key; extend `mobile/netclaw-mobile/integration_test/` and retain G13 receipts in `specs/176-ollama-members/verification.md` (FR-011).

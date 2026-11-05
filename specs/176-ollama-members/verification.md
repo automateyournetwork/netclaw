@@ -2,7 +2,7 @@
 
 ## Current state — 2026-11-05
 
-Source implementation integrated on `176-ollama-members`: **25/33 tasks complete**.
+Source implementation integrated on `176-ollama-members`: **26/33 tasks complete**.
 Actual temporary local ARM64 qualification completed with two Ollama calls, one
 native MCP calculation, signed result and durable ACK. Intended local/cloud members
 are enrolled and online under the approved48-hour window. The cloud foundation,
@@ -22,10 +22,10 @@ its exact inspected source hashes and limitations are retained separately.
 | Local ARM64 | Real guarded IPv4 native MCP, verified arithmetic,2 turns/1 call | PASSED on temporary and intended members |
 | GCP AMD64 | Real guarded IPv6 native MCP, verified arithmetic,2 turns/1 call | PASSED |
 | Combined browser | One durable parent,two distinct approvals,both results | PASSED; actual reload recovered same results |
-| Isolation | Guard positive control and agent/broker/sibling/Border/public denials | NOT RUN |
-| Resource/accounting | Actual swap/cgroup/OOM, CPU/memory,tokens,time,zero provider charges,unload | NOT RUN |
+| Isolation | Guard positive control and agent/broker/sibling/Border/public denials | PASSED for owned models and recorded vantages; limits below |
+| Resource/accounting | Actual swap/cgroup/OOM, CPU/memory,tokens,time,zero provider charges,unload | PASSED; exact idle-unload interval not measured |
 | Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | NOT RUN |
-| G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | SOURCE TESTED / LIVE NOT RUN |
+| G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | LIVE SUCCESS/REOPEN PASSED; sibling-failure case pending |
 | G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | SOURCE TESTED / LIVE NOT RUN |
 | Regression/portfolio | Existing protected pyATS/NetBox/subnet/hosted models, Chat/Canvas,clients | SOURCE TESTED; live portfolio pending |
 | Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | Activation preservation passed; final export/residue inventory pending |
@@ -330,3 +330,96 @@ agent containers with their real UID/network namespace. Each reached its own
 relay8090 positive control and was denied direct model/service ports and model
 loopback11434. Probes sent zero application bytes and generated no inference.
 Further host broker, Border, sibling and external vantages remain separate.
+
+
+### Actual isolation, resource limits and unload
+
+T026 aggregate `fault-recovery-v1/T026-scoped-aggregate.json`, SHA256
+`dfde2eb6fa206a2672cece70dc19238f7452e960a290cf4fe3a3f09be267c326`,
+correlates both real operation agents with the actual broker, Border and sibling
+service UIDs/network contexts. The agent probes ran inside their exact live
+containers; the host probes were additional processes in the measured service
+contexts. Both owned model targets were denied. The Mac provided one external
+vantage to the cloud member; it is also the local host, not an independent
+Internet provider or proof of universal network inaccessibility. Trusted host
+Docker administration is outside this TCP-denial claim. No probe sent inference
+requests; TCP probes sent zero application bytes.
+
+A broad Mac loopback negative expectation reached an unrelated existing Homebrew
+Ollama process, PID1460, started November4. The original failed expectation is
+retained. A bounded diagnostic confirmed the owned R05 model address was denied
+and identified the unrelated socket owner. No existing host service changed.
+
+Both actual model cgroups reported `memory.max=2147483648`, `memory.swap.max=0`,
+zero `oom`/`oom_kill`, and Docker `OOMKilled=false`. Admitted guard-UID reads of
+`/api/version` and `/api/ps` succeeded; each model was observed unloaded with
+`models=[]`. This establishes eventual unload at the recorded times, not an exact
+measurement of the configured30s/local or120s/cloud idle interval. Per-request
+agent/model CPU and memory samples and positive token accounting remain in the
+signed combined results. Detailed receipts are under `actual-role-probes/`.
+
+
+### Actual Mac VS Code success and reopen
+
+Native Code1.145.0 used the retained qualification profile and source extension,
+without replacing the normal installed extension or owner profile. Parent
+`92c64dd7-a257-4159-9f57-a9c2fa80113a` completed after separate native review/approval
+dialogs. Local child `d8f2c942-412d-4b13-b68e-ab8b03039bc9` recorded40.346s; cloud
+child `6a7ba9d9-2cde-4c87-a474-8f322b014579` recorded83.308s. Each used two model
+calls/one native MCP, zero provider API charge, one attempt, verified result and
+durable ACK with no pending delivery. Actual dedicated Code restart and native
+GET-only recovery preserved the same children, result digests and counts. The
+complete native screenshot displays authoritative facts and unverified model
+commentary. Private receipts: `native-acceptance/editor/success-completed-pair.json`
+and `success-recover-evidence/result-1793913222222.json`.
+
+Test-driver assumptions required corrections: the full remote HUD legitimately
+allows an owner binding while local-management commands remain refused; virtual
+review/result documents render asynchronously. Original pre-decision failures
+created no approval or effect. The expired first parent
+`82376155-d510-4f77-b5d5-31c90aae57b9` was cancelled, archived and removed from the
+native reference UI with both attempts0 before preparing the fresh pair. A later
+stale result screenshot was corrected by waiting for actual terminal rendering;
+the successful operations were recovered, never reapproved. Test-only changes
+are `eb92add9`, `9e23208e`, `38560ecc` and `ce1f5f6a`. The required live sibling
+failure case remains separate from this success/reopen proof.
+
+
+### Disposable retirement and installed48-hour cleanup schedule
+
+After verified Docker inspect/log export and1270 original artifact hashes,17
+stopped prior qualification/fixture/proof/inspection containers and6 empty owned
+networks were removed by exact IDs. Each had a fresh identity/stopped/empty check
+and its own claim/receipt. No force, pruning, image/volume/private-home deletion
+or active-workload change occurred. All12 other existing local containers at that
+snapshot, including intended model/peer and current delivery operations, remained.
+Receipt `disposable-retirement-preparation-v1/retirement/retirement-receipt.json`
+SHA256 `e150665cd8037f35ba8f4f9f3096070d3d3cf969d3ca4a8ec729ec95e11fbaba`;
+actual post-inventories and original failed-attempt artifacts remain private.
+
+The coordinator reviewed and installed the existing-authorized48-hour cleanup
+job at21:18:49Z. Actual launchd inspection confirmed the new label
+`com.netclaw.r05-retire-48h` installed and not running; cleanup has not begun.
+Execution manifest SHA256
+`c682bea6a853ddb5d63faa58eecf94e4f6c8e0526e6913ac62983d8ed5baafba` binds the
+helpers, exact saved destroy plan, unchanged original state lineage/serial3,
+SSH commands, frozen Python and module/configuration. No cloud scheduler, IAM,
+credential or other cloud resource was added.
+
+The job starts quiescence/export on **November7 at19:36:25UTC /14:36:25 Toronto**,
+stopping only the two intended R05 member services and their exact owned
+operation/model containers. It preserves private homes and unknown records and
+requires verified consistent SQLite/artifact exports before deletion. At or after
+**19:41:25UTC /14:41:25 Toronto**, it applies saved destroy plan
+`6b0d31a82f705bfcd0a2426f1757338d6782e73790522d76351d072d0bdc0716` once:
+10 owned resources, including reserved IP and both connectivity rules; the
+40GiB boot disk has verified autoDelete and separate post-delete inventory checks.
+R01 configuration/IDs must remain unchanged. The exact installed packet and
+future receipts live under `retained-teardown/`.
+
+This is a scheduled action, **not completed cloud cleanup**. The Mac must be
+awake, logged in and online, with Docker and existing gcloud/IAP access working.
+A missed start, failed export or unknown apply is retained and never automatically
+replayed. Independent GCE STOP still bounds VM runtime at19:41:25UTC, but leaves
+disk/IP charges if cleanup cannot finish. The CAD5.472448 figure is the reviewed
+48-hour estimate excluding existing R01, tax and transfer, not observed billing.

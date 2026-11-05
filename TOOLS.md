@@ -1467,3 +1467,23 @@ publish requested host ports; use the qualified private guard path. Official
 Ollama0.40.11 CPU extraction needs glibc2.38; the final reference's pinned Trixie
 base starts successfully, while Bookworm failed before inference. Actual model
 operations/client/cloud acceptance remain open in Spec176 verification.
+
+
+### R05 actual member findings (2026-11-05)
+
+Intended ARM64 IPv4 and AMD64 IPv6 NetClaw/Ollama members completed a combined
+browser request over existing strict iN2N, with two model calls and one native
+MCP each, signed results and durable ACKs. Exact native calculator facts are
+authoritative:192.0.2.0/26 has64total/62usable; the small model's64usable prose
+is retained explicitly unverified. Both actual model cgroups enforce2GiB/no swap;
+noOOM and eventual unload observed. The Mac's existing host loopback Ollama
+PID1460 is unrelated to the isolated R05 Docker model and remains untouched.
+
+The private R05 host guard's connection-state allowance must run after conntrack:
+output priority-150, forward-300 unchanged. The initial private-300output hook
+blocked IAP replies after baseline activation; a reviewed native reproduction
+and exact repair restored it. Historical R04 source uses a different quota
+policy without that allowance; do not blindly change or replay retired payloads.
+R05 cloud member maximum retention ends2026-11-07T19:41:25Z; full disk/IP cleanup
+is separate from the independent VM STOP. Current evidence and remaining client/
+recovery qualification are in specs/176-ollama-members/verification.md.
