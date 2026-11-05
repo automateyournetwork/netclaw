@@ -1,8 +1,11 @@
 # Feature Specification: R04b Mobile QR enrollment from HUD and VS Code
 
-**Feature Branch**: `175-cloud-mobile-enrollment`  
-**Created**: 2026-11-04  
-**Status**: Ratified by owner kickoff and explicit client/verification steering  
+**Feature Branch**: `175-cloud-mobile-enrollment`
+
+**Created**: 2026-11-04
+
+**Status**: Ratified by owner kickoff and explicit client/verification steering
+
 **Input**: “04b time”; “make sure its easy right from the HUD to get the QR code; scan; enroll with local or GCP / cloud HUD; make sure the mobile section in VS Code allows for QR code / enrollment generation too use a simulated device or virtual iPhone xCode or whatever to really ensure this all works”.
 
 ## User Scenarios & Testing *(mandatory)*

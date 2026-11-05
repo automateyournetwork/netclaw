@@ -48,3 +48,16 @@ old code and passes with the fix; authoritative expiry behavior is unchanged.
 Final archive digests, source commits, PR/CI/release URLs and App Store processing
 state will be recorded here as observed. Website content is a local draft in the
 separate modern_website repository; no website deployment is authorized.
+
+
+The actual HUD screenshot is [docs/images/mobile-qr-enrollment.png](../../docs/images/mobile-qr-enrollment.png),
+SHA256 `9f68a61e6196d4af290cf90de19625f3adefadaf61393663954057e521e2d6f6`.
+It came from the disposable local fixture. Authority reported expired at
+2026-11-05T15:34:08Z; no device enrolled. Private safety receipt
+`surfaces/public-copy-final/expired-safety.json` has SHA256
+`a1331b27886258b40127ab439d59b42ff228e5e75fb080e651a983e7a6075ae4`.
+Only the owned screenshot services were stopped; ports13179/13305/13306/13443
+were verified closed. The article is seeded with `draft:true` at
+`../modern_website/content/articles/2026-11-05-netclaw-mobile-qr-enrollment.md`,
+with its matching `public/images/netclaw-mobile-qr/hud-mobile-enrollment.png`.
+Existing unrelated website changes are preserved. No website deployment occurred.

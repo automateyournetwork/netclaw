@@ -8,14 +8,22 @@ Extend the existing device enrollment authority and scanner, expose one narrow e
 
 ## Technical Context
 
-**Language/Version**: Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 and Swift under installed Xcode27.2.  
-**Primary Dependencies**: existing SQLite, qrcode, WebSocket/TLS/P256, Express, VS Code APIs, Flutter secure storage/mobile_scanner. No new server/framework or hosted QR service.  
-**Storage**: additive private enrollment issuance records and existing private federation authority; device secure storage for keys/pending identity/references; QR matrix only in transient UI memory.  
-**Testing**: focused Python refusal/authority tests, Node route/UI tests, extension tests, Dart lifecycle/widget tests, native iOS26.5 simulator with actual QR image decode.  
-**Target Platform**: actual Mac browser/VS Code, local isolated Border, retained GCP Montréal Border, iPhone17 Pro simulator.  
-**Project Type**: extension of existing federation, HUD and clients.  
-**Performance Goals**: finite120second offers, maximum one outstanding offer, bounded message/matrix sizes and operation deadlines.  
-**Constraints**: trusted TLS; installation/device binding; no user authentication scheme; no effect replay; preserve existing retained cloud state and December1 lifetime.  
+**Language/Version**: Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 and Swift under installed Xcode27.2.
+
+**Primary Dependencies**: existing SQLite, qrcode, WebSocket/TLS/P256, Express, VS Code APIs, Flutter secure storage/mobile_scanner. No new server/framework or hosted QR service.
+
+**Storage**: additive private enrollment issuance records and existing private federation authority; device secure storage for keys/pending identity/references; QR matrix only in transient UI memory.
+
+**Testing**: focused Python refusal/authority tests, Node route/UI tests, extension tests, Dart lifecycle/widget tests, native iOS26.5 simulator with actual QR image decode.
+
+**Target Platform**: actual Mac browser/VS Code, local isolated Border, retained GCP Montréal Border, iPhone17 Pro simulator.
+
+**Project Type**: extension of existing federation, HUD and clients.
+
+**Performance Goals**: finite120second offers, maximum one outstanding offer, bounded message/matrix sizes and operation deadlines.
+
+**Constraints**: trusted TLS; installation/device binding; no user authentication scheme; no effect replay; preserve existing retained cloud state and December1 lifetime.
+
 **Scale/Scope**: one owner development pilot, one isolated local test Border, bounded device enrollments and one separately reviewed protected read. Physical camera/SecureEnclave not qualified by simulator.
 
 ## Constitution Check
