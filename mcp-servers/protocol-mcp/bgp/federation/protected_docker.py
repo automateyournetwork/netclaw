@@ -40,6 +40,25 @@ _PYATS_FIELDS = {"python", "upstream", "upstream_sha256", "source_sha256", "adap
 
 _MCP_RUNTIME_FIELDS = (_RUNTIME_FIELDS - {'pyats'}) | {'mcp', 'relay_transport'}
 
+_INFERENCE_REFUSAL_CODES = frozenset('''inference_route_refused inference_capability_refused approval_expired
+inference_request_bound inference_model_changed inference_fields_refused ambiguous_inference_token_limit
+inference_token_limit_refused caller_guard_routing_header_refused inference_profile_refused
+ollama_history_without_inference ollama_real_tool_result_required ollama_invented_assistant_history
+ollama_tool_history_changed ollama_invented_tool_output ollama_unverified_tool_output
+ollama_tool_arguments_invalid ollama_duplicate_tool_argument ollama_nonfinite_tool_argument
+ollama_tool_family_changed ollama_approval_profile_changed ollama_caller_reasoning_refused
+ollama_tool_schema_changed ollama_messages_invalid ollama_conversation_changed ollama_request_context_bound
+ollama_runner_recovery_required runner_recovery_required'''.split())
+
+
+def record_inference_refusal(operation_root, code):
+    """Private first-refusal diagnostic: fixed vocabulary, never request/exception text."""
+    receipt = Path(operation_root) / 'inference-refusal.json'
+    if receipt.exists():
+        return
+    private_write(receipt, canonical({'schema_version': 1,
+        'code': code if isinstance(code, str) and code in _INFERENCE_REFUSAL_CODES else 'inference_refused'}))
+
 
 def validate_runtime_fields(config):
     fields = set(config)
@@ -705,7 +724,7 @@ class DockerExecutor:
 
         broker = ExactToolBroker(payload, gate, invoke)
         def local_request(request):
-            _ollama.validate_history(request, self.fence.first_response(operation_id), broker.evidence)
+            request = _ollama.validate_history(request, self.fence.first_response(operation_id), broker.evidence)
             return _ollama.calculator_request(request, payload, self.ollama)
         facade = ScopedInference(payload, token, self.fence,
                                   lambda request: self.forward(payload, request),
@@ -779,7 +798,8 @@ class DockerExecutor:
                     reply = Response(completion_sse(response), media_type="text/event-stream")
                 else:
                     reply = JSONResponse(response)
-            except RuntimeRefused:
+            except RuntimeRefused as exc:
+                record_inference_refusal(operation_root, exc.code)
                 reply = JSONResponse({"error": "inference_refused"}, status_code=403)
             except Exception:
                 reply = JSONResponse({"error": "inference_outcome_unknown"}, status_code=502)

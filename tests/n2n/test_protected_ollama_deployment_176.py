@@ -174,6 +174,62 @@ def test_native_history_never_normalizes_changed_call_identity(field,value):
     with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
 
 
+@pytest.mark.parametrize('actual',['call_m9aee3p2','call_'+'a'*80])
+def test_pinned_openclaw_strict_alias_restores_retained_provider_id(tmp_path,actual):
+    # Actual pinned OpenClaw 2026.7.1-2 offline wire fixture exposed strict IDs;
+    # the generated alias is derived from the admitted response, not user input.
+    first,body,evidence=native_history();first['choices'][0]['message']['tool_calls'][0]['id']=actual
+    native=actual.replace('_','')[:40]
+    body['messages'][-2]['tool_calls'][0]['id']=native
+    body['messages'][-1]['tool_call_id']=native
+    original=copy.deepcopy(body)
+    restored=ollama.validate_history(body,first,evidence)
+    adapted=ollama.calculator_request(restored,payload(),profile(tmp_path))
+    assert adapted['messages'][-2]['tool_calls'][0]['id']==actual
+    assert adapted['messages'][-1]['tool_call_id']==actual
+    assert body==original and first['choices'][0]['message']['tool_calls'][0]['id']==actual
+
+
+@pytest.mark.parametrize('assistant_id,tool_id',[
+    ('callm9aee3p2','call_m9aee3p2'),('call_m9aee3p2','callm9aee3p2'),
+    ('callmadeup','callmadeup'),('callM9aee3p2','callM9aee3p2'),
+    ('callm9aee3p2x2','callm9aee3p2x2'),('m9aee3p2','m9aee3p2')])
+def test_native_alias_never_allows_invented_or_mismatched_ids(assistant_id,tool_id):
+    first,body,evidence=native_history();first['choices'][0]['message']['tool_calls'][0]['id']='call_m9aee3p2'
+    body['messages'][-2]['tool_calls'][0]['id']=assistant_id;body['messages'][-1]['tool_call_id']=tool_id
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
+
+
+@pytest.mark.parametrize('extra',['assistant','tool','text'])
+def test_native_history_has_no_extra_content_fields(extra):
+    first,body,evidence=native_history()
+    if extra=='assistant':body['messages'][-2]['invented']='extra'
+    elif extra=='tool':body['messages'][-1]['invented']='extra'
+    else:body['messages'][-1]['content']=[{'type':'text','text':body['messages'][-1]['content'],'invented':'extra'}]
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
+
+
+def test_native_tool_output_can_only_use_one_exact_text_content():
+    first,body,evidence=native_history();text=body['messages'][-1]['content']
+    body['messages'][-1]['content']=[{'type':'text','text':text}]
+    ollama.validate_history(body,first,evidence)
+    body['messages'][-1]['content'].append({'type':'text','text':'extra'})
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
+
+
+@pytest.mark.parametrize('code,expected',[
+    ('ollama_invented_assistant_history','ollama_invented_assistant_history'),
+    ('SECRET arbitrary exception/body','inference_refused'),
+    ('secret_looking_valid_code','inference_refused')])
+def test_private_refusal_diagnostic_is_fixed_bounded_and_preserves_first(tmp_path,code,expected):
+    module=docker_module();module.record_inference_refusal(tmp_path,code)
+    receipt=tmp_path/'inference-refusal.json';before=receipt.read_bytes()
+    assert json.loads(before)=={'schema_version':1,'code':expected}
+    assert receipt.stat().st_mode&0o777==0o600
+    module.record_inference_refusal(tmp_path,'ollama_tool_history_changed')
+    assert receipt.read_bytes()==before
+
+
 @pytest.mark.parametrize('local,port',[(True,18970),(False,4001)])
 def test_native_guard_readiness_uses_the_frozen_profile_management_port(tmp_path,monkeypatch,local,port,capsys):
     import io

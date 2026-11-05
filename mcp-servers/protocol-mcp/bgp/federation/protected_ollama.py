@@ -293,29 +293,50 @@ def model_tool_output(evidence):
 
 
 def validate_history(body, previous_response, tool_evidence):
-    """Second turn carries the actual admitted call and authoritative MCP output."""
+    """Validate native replay, returning history with the actual provider ID."""
     messages = [m for m in body.get('messages', []) if isinstance(m, dict) and m.get('role') not in ('system', 'developer')]
     if previous_response is None:
         need(len(messages) == 1 and tool_evidence is None, 'ollama_history_without_inference')
-        return
+        return body
     need(tool_evidence is not None and len(messages) == 3, 'ollama_real_tool_result_required')
     actual = previous_response['choices'][0]['message']; assistant, tool = messages[1:]
-    need(assistant.get('role') == 'assistant' and (assistant.get('content') or '') == (actual.get('content') or ''), 'ollama_invented_assistant_history')
+    need(set(assistant) <= {'role', 'content', 'tool_calls'} and assistant.get('role') == 'assistant'
+         and (assistant.get('content') or '') == (actual.get('content') or ''), 'ollama_invented_assistant_history')
     calls = assistant.get('tool_calls'); real_calls = actual.get('tool_calls')
     need(isinstance(calls, list) and len(calls) == 1 and isinstance(real_calls, list) and len(real_calls) == 1,
          'ollama_invented_assistant_history')
     call, real = calls[0], real_calls[0]
+    actual_id = real.get('id')
+    permitted_ids = {actual_id}
+    # OpenClaw 2026.7.1-2 openai-completions replay uses strict IDs:
+    # sanitizeToolCallId removes punctuation, makeUniqueToolId caps at 40.
+    # This profile admits one actual call only, so collision/occurrence aliases
+    # cannot arise. Limit adaptation to Ollama's call_<alphanumeric> IDs.
+    # Pinned tool-call-id-CtDzcfGi.js SHA256:
+    # c2a199262b9d844363adaf5c86644c8bfbcabe1821d1e7fdf406403e281fee85
+    if isinstance(actual_id, str) and re.fullmatch(r'call_[A-Za-z0-9]+', actual_id):
+        permitted_ids.add(actual_id.replace('_', '')[:40])
     need(isinstance(call, dict) and set(call) == {'id', 'type', 'function'} and
-         call.get('id') == real.get('id') and call.get('type') == real.get('type') and
+         isinstance(call.get('id'), str) and call['id'] in permitted_ids and call.get('type') == real.get('type') and
          isinstance(call.get('function'), dict) and set(call['function']) == {'name', 'arguments'} and
          call['function']['name'] == real['function']['name'] and
          tool_arguments(call['function']['arguments']) == tool_arguments(real['function']['arguments']),
          'ollama_invented_assistant_history')
+    need(set(tool) == {'role', 'tool_call_id', 'content'} and tool.get('role') == 'tool'
+         and tool.get('tool_call_id') == call['id'], 'ollama_tool_history_changed')
     content = tool.get('content')
     if isinstance(content, list):
-        need(len(content) == 1 and content[0].get('type') == 'text', 'ollama_invented_tool_output')
+        need(len(content) == 1 and isinstance(content[0], dict) and set(content[0]) == {'type', 'text'}
+             and content[0].get('type') == 'text', 'ollama_invented_tool_output')
         content = content[0].get('text')
     need(isinstance(content, str) and content == canonical(model_tool_output(tool_evidence)).decode(), 'ollama_invented_tool_output')
+    # Restore only from the retained admitted response; never manufacture a call
+    # from the harness's spelling. Leave the observed native request untouched.
+    restored = json.loads(canonical(body))
+    restored_messages = [m for m in restored['messages'] if isinstance(m, dict) and m.get('role') not in ('system', 'developer')]
+    restored_messages[1]['tool_calls'][0]['id'] = actual_id
+    restored_messages[2]['tool_call_id'] = actual_id
+    return restored
 
 
 def validate_response(response, ordinal, payload):

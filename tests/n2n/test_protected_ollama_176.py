@@ -134,9 +134,12 @@ def test_two_admitted_turns_preserve_actual_native_result_and_measured_tokens(tm
     runtime=runtime_module();fence=runtime.InferenceFence(tmp_path/'inference.sqlite');latch=ollama.RunnerLatch(tmp_path/'runner.sqlite','a'*64)
     approved=payload();evidence=None;requests=[]
     def adapt(body):
-        ollama.validate_history(body,fence.first_response(approved['operation_id']),evidence)
+        body=ollama.validate_history(body,fence.first_response(approved['operation_id']),evidence)
         return ollama.calculator_request(body,approved,profile(tmp_path))
-    async def forward(body):requests.append(copy.deepcopy(body));return reply(approved,len(requests))
+    async def forward(body):
+        requests.append(copy.deepcopy(body));response=reply(approved,len(requests))
+        if len(requests)==1:response['choices'][0]['message']['tool_calls'][0]['id']='call_m9aee3p2'
+        return response
     scoped=runtime.ScopedInference(approved,'token',fence,forward,request_adapter=adapt,
         response_validator=lambda result,ordinal:ollama.validate_response(result,ordinal,approved),
         runner_latch=latch,tool_finished=lambda:evidence is not None)
@@ -144,11 +147,14 @@ def test_two_admitted_turns_preserve_actual_native_result_and_measured_tokens(tm
         nonlocal evidence
         body=request(approved);first=await scoped.invoke('POST','/v1/chat/completions',{'authorization':'Bearer token'},body)
         evidence={'output':{'num_addresses':'64'},'independent_verification':True,'mcp_calls':1,'native_result_sha256':'d'*64}
-        body['messages'] += [first['choices'][0]['message'],{'role':'tool','tool_call_id':'call-1','content':ollama.canonical(evidence['output']).decode()}]
+        assistant=copy.deepcopy(first['choices'][0]['message']);assistant['tool_calls'][0]['id']='callm9aee3p2'
+        body['messages'] += [assistant,{'role':'tool','tool_call_id':'callm9aee3p2','content':ollama.canonical(evidence['output']).decode()}]
         await scoped.invoke('POST','/v1/chat/completions',{'authorization':'Bearer token'},body)
         with pytest.raises(runtime.RuntimeRefused):await scoped.invoke('POST','/v1/chat/completions',{'authorization':'Bearer token'},body)
     asyncio.run(scenario())
     assert len(requests)==2 and latch.snapshot()['state']=='idle'
+    assert requests[1]['messages'][-2]['tool_calls'][0]['id']=='call_m9aee3p2'
+    assert requests[1]['messages'][-1]['tool_call_id']=='call_m9aee3p2'
     assert fence.usage(approved['operation_id'])=={'prompt_tokens':200,'completion_tokens':40,'total_tokens':240}
     assert fence.final_answer(approved['operation_id'])=='The returned network has 64 addresses.'
     fence.close();latch.close()
