@@ -1,6 +1,7 @@
 import 'dart:convert';
 import '../cloud/owner_client.dart';
 import 'edge_client.dart';
+import 'heartbeat.dart';
 import 'protected_device_descriptor.dart';
 
 /// Device operations never share owner sessions or references, including when
@@ -137,6 +138,7 @@ CloudOwnerClient protectedDeviceClient(
 }) {
   final descriptor = edge.protectedDevice;
   if (descriptor == null) throw const CloudOwnerError('identity_changed');
+  wireHeartbeat(edge);
   return CloudOwnerClient(
     CloudProfile(descriptor.origin, descriptor.installationId),
     expectedDevicePrincipal: descriptor.principal,

@@ -19,6 +19,9 @@ import 'cloud_owner_screen.dart';
 /// scoped to exclude inventory/member-list methods by design (FR-012), so a
 /// phone genuinely cannot query that from the Border. The success state here
 /// is a plain confirmation instead.
+typedef EnrollmentScannerBuilder =
+    Widget Function(Future<void> Function(BarcodeCapture));
+
 class EnrollmentScreen extends StatefulWidget {
   final String memberId;
   final EdgeIdentity identity;
@@ -26,7 +29,7 @@ class EnrollmentScreen extends StatefulWidget {
   final VoidCallback? onRecoverPending;
   // Native simulator harness can feed decoded images through this SAME callback.
   // Production always uses MobileScanner's camera widget below.
-  final Widget Function(Future<void> Function(BarcodeCapture))? scannerBuilder;
+  final EnrollmentScannerBuilder? scannerBuilder;
   final void Function(EdgeClient client, EnrollmentQrPayload payload)
   onEnrolled;
 

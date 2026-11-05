@@ -259,10 +259,15 @@ class EnrollmentGate extends StatefulWidget {
   /// (109/research.md R4).
   final Haptics haptics;
 
+  /// Native qualification feeds a decoded QR through the production callback.
+  /// An ordinary app launch always uses the camera scanner.
+  final EnrollmentScannerBuilder? scannerBuilder;
+
   EnrollmentGate({
     super.key,
     this.documentsDirectory = getApplicationDocumentsDirectory,
     this.reconnect = EdgeClient.reconnect,
+    this.scannerBuilder,
     Haptics? haptics,
   }) : haptics = haptics ?? Haptics();
 
@@ -371,6 +376,7 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         identity: _identity,
         store: _store,
         onRecoverPending: _init,
+        scannerBuilder: widget.scannerBuilder,
         onEnrolled: (client, payload) async {
           final navigator = Navigator.of(
             context,

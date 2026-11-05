@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -9,11 +8,11 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:netclaw_mobile/cloud/owner_client.dart';
 import 'package:netclaw_mobile/ncfed/edge_client.dart';
-import 'package:netclaw_mobile/ncfed/edge_identity.dart';
+import 'package:netclaw_mobile/main.dart' as production;
+import 'package:netclaw_mobile/screens/protected_device_screen.dart';
+import 'package:netclaw_mobile/ncfed/heartbeat.dart';
 import 'package:netclaw_mobile/ncfed/enrollment_store.dart';
-import 'package:netclaw_mobile/ncfed/protected_device_client.dart';
 import 'package:netclaw_mobile/screens/cloud_owner_screen.dart';
-import 'package:netclaw_mobile/screens/enrollment_screen.dart';
 
 dynamic ordered(dynamic x) => x is Map
     ? {
@@ -52,7 +51,13 @@ void main() {
       });
       final phase = config['phase'];
       require(
-        ['enroll', 'prepare', 'approve', 'recover'].contains(phase),
+        [
+          'enroll',
+          'recover-enrollment',
+          'prepare',
+          'approve',
+          'recover',
+        ].contains(phase),
         'Invalid phase',
       );
       final profileName = config['profile'];
@@ -66,75 +71,95 @@ void main() {
       final store = EnrollmentStore(profileDir);
       EdgeClient? edge;
       Json? decoder;
-      if (phase == 'enroll') {
-        await tester.runAsync(() async {
-          require(
-            await store.load() == null,
-            'Existing enrollment must be preserved',
+      await tester.runAsync(() async {
+        final retained = await store.load();
+        require(
+          phase == 'enroll' ? retained == null : retained != null,
+          phase == 'enroll'
+              ? 'Existing enrollment must be preserved'
+              : 'Enrollment missing; never reenroll during recovery',
+        );
+      });
+      Future<void> waitFor(bool Function() ready, String reason) async {
+        final deadline = DateTime.now().add(const Duration(seconds: 60));
+        while (!ready()) {
+          require(DateTime.now().isBefore(deadline), reason);
+          await tester.runAsync(
+            () => Future<void>.delayed(const Duration(milliseconds: 100)),
           );
-        });
-        final complete = Completer<EdgeClient>();
-        await tester.pumpWidget(
-          MaterialApp(
-            home: EnrollmentScreen(
-              memberId: config['member_id'] as String,
-              store: store,
-              onEnrolled: (client, payload) {
-                complete.complete(client);
-              },
-              scannerBuilder: (onDetected) => Center(
-                child: FilledButton(
-                  onPressed: () async {
-                    final decoded =
-                        await const MethodChannel(
-                          'netclaw.r04b/qr_image',
-                        ).invokeMapMethod<String, dynamic>('decodeQrImage', {
-                          'path': '${directory.path}/${config['image_file']}',
-                        });
-                    require(
-                      decoded != null && decoded['raw'] is String,
-                      'Actual image did not decode',
-                    );
-                    decoder = {...decoded!}..remove('raw');
-                    await onDetected(
-                      BarcodeCapture(
-                        barcodes: [
-                          Barcode(
-                            rawValue: decoded['raw'],
-                            format: BarcodeFormat.qrCode,
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                  child: const Text('Scan QR image'),
-                ),
+          await tester.pump(const Duration(milliseconds: 100));
+        }
+      }
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: production.EnrollmentGate(
+            documentsDirectory: () async => profileDir,
+            scannerBuilder: (onDetected) => Center(
+              child: FilledButton(
+                onPressed: () async {
+                  final decoded =
+                      await const MethodChannel(
+                        'netclaw.r04b/qr_image',
+                      ).invokeMapMethod<String, dynamic>('decodeQrImage', {
+                        'path': '${directory.path}/${config['image_file']}',
+                      });
+                  require(
+                    decoded != null && decoded['raw'] is String,
+                    'Actual image did not decode',
+                  );
+                  decoder = {...decoded!}..remove('raw');
+                  await onDetected(
+                    BarcodeCapture(
+                      barcodes: [
+                        Barcode(
+                          rawValue: decoded['raw'],
+                          format: BarcodeFormat.qrCode,
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('Scan QR image'),
               ),
             ),
           ),
+        ),
+      );
+      if (phase == 'enroll') {
+        await waitFor(
+          () => find.byType(CheckboxListTile).evaluate().isNotEmpty,
+          'Onboarding did not appear',
         );
-        await tester.pumpAndSettle();
+        await tester.ensureVisible(find.byType(CheckboxListTile));
+        await tester.tap(find.byType(CheckboxListTile));
+        await tester.pump();
+        await tester.ensureVisible(find.text('Agree and Continue'));
+        await tester.tap(find.text('Agree and Continue'));
+        await tester.pump();
         await tester.tap(find.text('Scan QR image'));
-        await tester.runAsync(() async {
-          edge = await complete.future.timeout(const Duration(seconds: 45));
-        });
-        await tester.pumpAndSettle();
-      } else {
-        await tester.runAsync(() async {
-          final saved = await store.load();
-          require(
-            saved != null,
-            'Enrollment missing; never reenroll during recovery',
-          );
-          edge = await EdgeClient.reconnect(
-            saved!.toPayload(),
-            memberId: saved.memberId,
-            keyFingerprint: saved.keyFingerprint,
-            identity: const EdgeIdentity(),
-          );
-        });
       }
-      final client = edge!;
+      await waitFor(
+        () =>
+            find.byType(production.HomeShell).evaluate().isNotEmpty ||
+            find.byType(ProtectedDeviceScreen).evaluate().isNotEmpty,
+        'Enrollment gate did not navigate to the enrolled home',
+      );
+      final protected = find
+          .byType(ProtectedDeviceScreen)
+          .evaluate()
+          .isNotEmpty;
+      edge = protected
+          ? tester
+                .widget<ProtectedDeviceScreen>(
+                  find.byType(ProtectedDeviceScreen),
+                )
+                .edge
+          : tester
+                .widget<production.HomeShell>(find.byType(production.HomeShell))
+                .client;
+      final client = edge;
+      wireHeartbeat(client);
       StoredEnrollment? saved;
       await tester.runAsync(() async {
         saved = await store.load();
@@ -151,14 +176,13 @@ void main() {
       }
       Json? operation;
       if (client.protectedDevice != null) {
-        final operations = protectedDeviceClient(client);
-        await tester.runAsync(operations.initialize);
-        await tester.pumpWidget(
-          MaterialApp(
-            home: CloudOwnerScreen(initialClient: operations, deviceMode: true),
-          ),
+        await waitFor(
+          () => find.byType(CloudOwnerScreen).evaluate().isNotEmpty,
+          'Protected enrolled home did not load operations',
         );
-        await tester.pumpAndSettle();
+        final operations = tester
+            .widget<CloudOwnerScreen>(find.byType(CloudOwnerScreen))
+            .initialClient!;
         Future<void> tap(String label) async {
           final finder = find.text(label);
           require(
@@ -299,6 +323,8 @@ void main() {
           'decoder': decoder,
           'operation': operation,
           'same_key_reconnect': true,
+          'production_enrollment_gate': true,
+          'landing': protected ? 'ProtectedDeviceScreen' : 'HomeShell',
           'simulator': true,
           'camera_hardware': false,
           'secure_enclave': false,

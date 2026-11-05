@@ -282,6 +282,21 @@ void main() {
       expect(await store.load(), matching ? isNull : isNotNull);
     }
   });
+  test('protected home answers the Border heartbeat without legacy registration', () async {
+    final channel = TestChannel();
+    final edge = EdgeClient.forTesting(channel);
+    edge.protectedDevice = ProtectedDeviceDescriptor.fromBorder(border(), payload);
+    addTearDown(() async { await edge.close(); await channel.input.close(); });
+    protectedDeviceClient(edge, store: MemoryOwnerStore());
+    channel.input.add(jsonEncode({
+      'id': 'border:heartbeat', 'method': 'n2n/edge/heartbeat', 'params': {},
+    }));
+    await channel.sink.firstSend.future.timeout(const Duration(seconds: 2));
+    expect(channel.sink.sent.single, {
+      'jsonrpc': '2.0', 'id': 'border:heartbeat', 'result': <String, dynamic>{},
+    });
+    expect(edge.isClosed, isFalse);
+  });
   test('device runtime is rejected by ordinary owner client', () async {
     final transport = DeviceFixture();
     await expectLater(
