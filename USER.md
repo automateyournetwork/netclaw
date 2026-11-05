@@ -289,3 +289,7 @@ was NOT submitted. Actual full operating-interface qualification remains open.
   and GCP/cloud HUDs and from VS Code's Mobile section. Preserve the existing app
   scanner; use an actual simulated/virtual iPhone to verify the full flow. A
   generated code or unit test alone does not establish working enrollment.
+
+- R04b completion direction (2026-11-05): take the current stage to 100%, then
+  make a full stop before R05. Finish its native acceptance and closeout; do not
+  automatically begin the next spec or publish the unreleased work.

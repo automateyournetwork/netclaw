@@ -589,3 +589,11 @@ usable pilot, existing authorities and December1 lifetime; clean only disposable
 test resources. No new user login/SSO, later roadmap stage or publication is implied.
 Native simulator image decode/key fixtures must stay distinct from physical camera
 and SecureEnclave qualification. See specs/175-cloud-mobile-enrollment/.
+
+### R04b completion boundary — 2026-11-05
+
+The owner explicitly requested: “get this to 100% and full stop before proceeding
+to R05.” Complete Spec175 implementation, actual local/cloud HUD and VS Code QR
+enrollment, native simulator operation/recovery verification, evidence and cleanup.
+Then stop. Do not start R05 or another spec. This is execution direction for the
+current stage; it does not pre-certify unobserved tests or authorize publication.

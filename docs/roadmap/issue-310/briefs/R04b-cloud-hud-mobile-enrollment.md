@@ -1,9 +1,11 @@
 # R04b — Cloud HUD and existing Mobile QR enrollment
 
-Status: proposed bounded follow-up from the owner's November 4 steering; not
-implemented or qualified by R04a. Keep R04a's VS Code delivery and historical
-Mobile evidence distinct. This brief does not authorize a new cloud activation,
-workload, version or public rollout.
+Status: started as [Spec175](../../../../specs/175-cloud-mobile-enrollment/spec.md)
+after the owner's November 4 “04b time” instruction. The owner then explicitly
+required easy QR generation in both local/cloud HUD and VS Code Mobile, with
+actual virtual iPhone verification. Implementation and acceptance are in progress;
+R04a's delivery and historical Mobile evidence remain distinct. Version/public
+rollout and later roadmap stages remain held.
 
 ## Outcome
 

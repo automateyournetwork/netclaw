@@ -5,48 +5,48 @@
 - [x] T001 Record owner scope and quality checklist in specs/175-cloud-mobile-enrollment/spec.md and checklists/requirements.md.
 - [x] T002 Create separate backend, surfaces and Mobile worktrees; record architecture in specs/175-cloud-mobile-enrollment/plan.md.
 - [x] T003 Freeze enrollment and protected-device contracts in specs/175-cloud-mobile-enrollment/contracts/ and research.md.
-- [ ] T004 Capture current pilot/authority and tooling baseline in specs/175-cloud-mobile-enrollment/verification.md with private receipts.
+- [x] T004 Capture current pilot/authority and tooling baseline in specs/175-cloud-mobile-enrollment/verification.md with private receipts.
 
 ## Phase 2 — Foundational authority
 
-- [ ] T005 Add bounded durable issuance and mobile-only token purpose in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
-- [ ] T006 Add device-derived protected authority, scoped access and unchanged historical principal verification in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
-- [ ] T007 Add explicit protected loopback WSS role/listener and ingress validation in scripts/lib/protected_role.py and mcp-servers/protocol-mcp/bgp-daemon-v2.py.
+- [x] T005 Add bounded durable issuance and mobile-only token purpose in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
+- [x] T006 Add device-derived protected authority, scoped access and unchanged historical principal verification in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
+- [x] T007 Add explicit protected loopback WSS role/listener and ingress validation in scripts/lib/protected_role.py and mcp-servers/protocol-mcp/bgp-daemon-v2.py.
 
 ## Phase 3 — US1: HUD to phone enrollment
 
 Goal: one visible action generates a genuine bounded QR in local/cloud HUD; existing scanner and retained key enroll/reconnect. Independent test: actual image decode on native simulator, one registration, same-key hello.
 
-- [ ] T008 [US1] Test issuance/replay/purpose/expiry/wrong binding in tests/n2n/ and HUD route tests.
-- [ ] T009 [P] [US1] Implement narrow shared enrollment HTTP handler/local adapter and protected mount in ui/netclaw-visual/src/hud-server/ and server.js.
-- [ ] T010 [P] [US1] Implement Mobile enrollment card, visible entry and transient QR lifecycle in ui/netclaw-visual/src/.
-- [ ] T011 [P] [US1] Add additive QR installation/path and pending same-key enrollment recovery in mobile/netclaw-mobile/lib/ncfed/ and existing native identity plugins.
-- [ ] T012 [US1] Test production enrollment lost reply, wrong key/domain/installation, token absence in storage and legacy compatibility in mobile/netclaw-mobile/test/.
-- [ ] T013 [US1] Add separate simulator-native actual QR decoding/key harness importing production enrollment UI in mobile/netclaw-mobile/integration_test/ and ios/.
+- [x] T008 [US1] Test issuance/replay/purpose/expiry/wrong binding in tests/n2n/ and HUD route tests.
+- [x] T009 [P] [US1] Implement narrow shared enrollment HTTP handler/local adapter and protected mount in ui/netclaw-visual/src/hud-server/ and server.js.
+- [x] T010 [P] [US1] Implement Mobile enrollment card, visible entry and transient QR lifecycle in ui/netclaw-visual/src/.
+- [x] T011 [P] [US1] Add additive QR installation/path and pending same-key enrollment recovery in mobile/netclaw-mobile/lib/ncfed/ and existing native identity plugins.
+- [x] T012 [US1] Test production enrollment lost reply, wrong key/domain/installation, token absence in storage and legacy compatibility in mobile/netclaw-mobile/test/.
+- [x] T013 [US1] Add separate simulator-native actual QR decoding/key harness importing production enrollment UI in mobile/netclaw-mobile/integration_test/ and ios/.
 
 ## Phase 4 — US2: VS Code Mobile generation
 
 Goal: local/cloud selected Mobile view displays real QR and status. Independent test: actual native editor generates QR consumed by simulator, with selection/expiry handling.
 
-- [ ] T014 [P] [US2] Add exact selected-connection enrollment client methods and capability gating in extensions/netclaw-vscode/src/.
-- [ ] T015 [US2] Add dedicated Mobile view with QR, expiry, retained nonsecret nonce and explicit replacement in extensions/netclaw-vscode/src/.
-- [ ] T016 [US2] Verify no shell routing/token persistence, unknown issuance recovery and local/cloud selection in extensions/netclaw-vscode/test/.
+- [x] T014 [P] [US2] Add exact selected-connection enrollment client methods and capability gating in extensions/netclaw-vscode/src/.
+- [x] T015 [US2] Add dedicated Mobile view with QR, expiry, retained nonsecret nonce and explicit replacement in extensions/netclaw-vscode/src/.
+- [x] T016 [US2] Verify no shell routing/token persistence, unknown issuance recovery and local/cloud selection in extensions/netclaw-vscode/test/.
 
 ## Phase 5 — US3: protected operation and recovery
 
 Goal: enrolled device sees exact protected catalog/review/decision/result/ACK; recovery adds no effects. Independent test: one bounded native read then actual process/background restart.
 
-- [ ] T017 [US3] Dispatch five scoped authenticated WSS protected RPCs with refusal tests in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
-- [ ] T018 [P] [US3] Implement strict device descriptor, WSS adapter and separate device retention in mobile/netclaw-mobile/lib/.
-- [ ] T019 [US3] Reuse complete review/decision/result UI in device mode and gate legacy HomeShell/headless paths in mobile/netclaw-mobile/lib/.
-- [ ] T020 [US3] Test exact review, lost prepare/decision, cross-device reference refusal and no-repeat recovery in mobile/netclaw-mobile/test/ and tests/n2n/.
+- [x] T017 [US3] Dispatch five scoped authenticated WSS protected RPCs with refusal tests in mcp-servers/protocol-mcp/bgp/federation/ and tests/n2n/.
+- [x] T018 [P] [US3] Implement strict device descriptor, WSS adapter and separate device retention in mobile/netclaw-mobile/lib/.
+- [x] T019 [US3] Reuse complete review/decision/result UI in device mode and gate legacy HomeShell/headless paths in mobile/netclaw-mobile/lib/.
+- [x] T020 [US3] Test exact review, lost prepare/decision, cross-device reference refusal and no-repeat recovery in mobile/netclaw-mobile/test/ and tests/n2n/.
 
 ## Phase 6 — Native acceptance and preservation
 
-- [ ] T021 Integrate local commits and run targeted combined checks/builds; record in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T022 Prepare and independently review exact pilot update/rollback/ingress and owned local test setup in specs/175-cloud-mobile-enrollment/deployment.md with private packet hashes.
-- [ ] T023 Apply reviewed bounded development-pilot changes and verify confinement/preservation in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T024 Verify actual local HUD and native VS Code Mobile QR generation to simulator with real decode/enroll/reconnect in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T021 Integrate local commits and run targeted combined checks/builds; record in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T022 Prepare and independently review exact pilot update/rollback/ingress and owned local test setup in specs/175-cloud-mobile-enrollment/deployment.md with private packet hashes.
+- [x] T023 Apply reviewed bounded development-pilot changes and verify confinement/preservation in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T024 Verify actual local HUD and native VS Code Mobile QR generation to simulator with real decode/enroll/reconnect in specs/175-cloud-mobile-enrollment/verification.md.
 - [ ] T025 Verify actual cloud HUD and native VS Code Mobile QR generation to simulator with trusted TLS and refusal cases in specs/175-cloud-mobile-enrollment/verification.md.
 - [ ] T026 Review and approve one bounded read on enrolled simulator, verify signed result/durable ACK/effect counts in specs/175-cloud-mobile-enrollment/verification.md.
 - [ ] T027 Verify native background/process restart and same-reference recovery with unchanged effects/history in specs/175-cloud-mobile-enrollment/verification.md.
