@@ -1408,3 +1408,29 @@ bounded403 receipt alone. The failed native operation and signed result/ACK are
 retained; never replay it. A current authorized read-only token is needed for a
 separate successful data-read check. Do not create or widen an external token
 under the existing read-only workload scope. R05 remains stopped.
+
+
+### R04b acceptance and scoped release authorization — 2026-11-05
+
+The owner supplied a replacement private read-only credential and then explicitly
+requested packaging, commit/PR/merge, a source patch release, VS Code publication,
+changed Mobile app release, release notes, a safe QR screenshot, a short maintainer
+note, a draft in sibling modern_website, and return to main. This accepts the
+completed R04b scope and supersedes prior publication/version holds for Mobile QR
+enrollment only. Source1.18.6, extension1.6.1 and Mobile1.0.4+7 are selected; actual
+publication outcomes belong in Spec175 release-verification.md. Website deployment
+and external announcements are not requested. Broader cloud rollout remains held.
+
+The separately reviewed new native operation9902abf3 succeeded with a signed
+NetBox prefix10.112.0.0/15 result and durable ACK. Cold launch and actual background/
+resume preserved the same key/reference/result with no repeated effects: exactly
+2 provider calls,2 inferences,1 native MCP call,1 HTTP request and1 attempt. The
+three historical operations, including the earlier403, remain unchanged. Private
+success-verification-20261105 evidence is separate from the failed-operation trail.
+
+Root independently reviewed cleanup packet2bb60849 after a verified411-file
+export; only the new operation's3stopped containers and1empty internal network
+were removed. Baseline101containers/50networks, all4operation rows and source
+evidence are preserved. The owned simulator is shut down with profiles retained.
+The usable pilot/member keep their existing December1scope. Full stop before R05
+remains explicit; neither release nor acceptance starts another spec.

@@ -10,7 +10,9 @@ Work from chat, the visual HUD, your phone, or a Zoom meeting. Start with one Ne
 
 **Start here:** [Choose a runtime](#hermes-or-openclaw) · [Install](#quick-install) · [Capabilities](#what-it-does) · [RAG](#rag--answers-grounded-in-your-documents) · [GCF](#gcf--compact-network-evidence) · [Mobile](#netclaw-mobile--your-network-in-your-pocket) · [Zoom](#zoom--network-investigations-in-the-meeting) · [VS Code](#vs-code-extension) · [HUD](#visual-hud) · [Jev](#optional-jev-science-officer)
 
-**Project:** [Source version 1.18.0](VERSION) · [Release notes](docs/releases/1.18.0.md) · [Contributing — numbered specs + Spec Kit](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+**Project:** [Source version 1.18.6](VERSION) · [Release notes](docs/releases/1.18.6.md) · [Contributing — numbered specs + Spec Kit](CONTRIBUTING.md) · [Changelog](CHANGELOG.md)
+
+**New in 1.18.6 — Mobile enrollment where you work:** open **Mobile → Generate QR code** in the HUD or **Mobile & edge → Generate QR code** in VS Code, then scan with NetClaw Mobile. The shared enrollment service brings the formerly CLI-only token step into both interfaces. [Enrollment guide and example](docs/MOBILE-ENROLLMENT.md) · [Verified scope](specs/175-cloud-mobile-enrollment/verification.md).
 
 **New in 1.18.0 — NetConverter migration qualification:** [Spec162 NetConverter](docs/NETCONVERTER.md) completed approved synthetic IOS-XE → Junos SET → IOS-XE conversions and a real IOS-XE virtual-target trial with OSPF FULL, bidirectional traffic and negative controls. Live testing also fixed native HUD loading/authentication, multi-turn pyATS session lifetime and baseline-file substitution checks. The clean protected repeat and a fresh Border-plus-one-member installation passed, including real native delegation and authenticated discovery. All 44 scoped tasks are complete; the latest installer review inputs were explicitly simulated at the owner’s request. [Qualification evidence](specs/162-netconverterai/verification.md) · [Maintainer/user announcement draft](docs/communications/2026-11-01-netconverter-maintainers-users.md).
 
@@ -85,6 +87,8 @@ Optional: `NETCLAW_TABULAR_FORMAT=bpp` encodes flat, non-graph results (the payl
 The Flutter client brings the Border to **iOS and Android**. Enroll with a single-use QR token, ask by text or voice, scan a device QR/deep link, and receive answers with the responding claw identified. A dashboard, conversation history, feed and approvals view keep the operator connected away from the desk.
 
 Resolve approval requests with device biometrics and attach camera/microphone captures to an investigation. The phone is an NCFED edge member with device-native capabilities; the Border handles agent reasoning. Explicit notifications can reach a connected phone, with platform push fallback when configured. Existing authorization and audit rules still apply.
+
+Generate your enrollment code in the **HUD Mobile** panel or the **VS Code Mobile & edge** view. The QR is single-use, expires automatically, and disappears when consumed. Your phone retains its identity for reconnects. [Step-by-step enrollment](docs/MOBILE-ENROLLMENT.md).
 
 [Build, enroll and use Mobile](mobile/netclaw-mobile/README.md) · [iOS release checklist](mobile/netclaw-mobile/APP-STORE-ROADMAP.md) · [Android release checklist](mobile/netclaw-mobile/PLAY-STORE-ROADMAP.md)
 

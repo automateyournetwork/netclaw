@@ -4,7 +4,7 @@ Set up a **new NetClaw or mixed Risk**, or manage your **existing NetClaw or Ris
 inspect operations, converse with its configured runtime, search RAG knowledge and
 review supported settings without leaving your editor.
 
-**Version 1.6.0:** Connect to an existing compatible **Cloud Border** by name and HTTPS URL, then use the normal Overview, Chat, Canvas, RAG and advertised observation panels. Cloud workspace support requires the matching R04a backend in source **1.18.5**. No-login access applies only to an explicitly configured development lab Border; users, SSO and RBAC remain later roadmap work. See [R04a verification](../../specs/174-cloud-client-integration/verification.md) for actual Mac qualification and platform limits.
+**Version 1.6.1:** Generate a single-use enrollment QR from **Mobile & edge** for your selected compatible installation, then scan it in NetClaw Mobile. The ordinary enrollment flow no longer needs a CLI token command. Requires the enrollment backend in source **1.18.6**; see the [Mobile enrollment guide](../../docs/MOBILE-ENROLLMENT.md) and [actual qualification](../../specs/175-cloud-mobile-enrollment/verification.md).
 
 **New in 1.5.0:** Optional NetConverter setup selects hosted-readonly or local-Terminal mode with independent private settings and cancellation preservation. Requires source **1.18.0**; account capability and exact-file approval remain separate. See the [NetConverter guide](../../docs/NETCONVERTER.md) and [qualification evidence](../../specs/162-netconverterai/verification.md).
 
@@ -270,7 +270,7 @@ Backend integration tests require the HUD dependencies
 `npm run test:editor` launches an isolated desktop extension test. RAG and named
 assistant live checks are explicit opt-ins documented in Spec150 evidence.
 
-`npm run package` requires a clean committed checkout, checks that every runtime bundle and license notice is included, and records source and VSIX digest in `out/package.json`. Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=NetClaw.netclaw). Version 1.6.0 adds the Cloud Border workspace and retains optional NetConverter setup, dynamic testbeds, guided Comms, reviewed new-claw setup and existing local controls. After updating, activate the installed code through **Developer: Restart Extension Host** when it is safe to interrupt extension work; an installed version label does not establish which code the current host is running.
+`npm run package` requires a clean committed checkout, checks that every runtime bundle and license notice is included, and records source and VSIX digest in `out/package.json`. Install from the [Visual Studio Marketplace](https://marketplace.visualstudio.com/items?itemName=NetClaw.netclaw). Version 1.6.1 adds Mobile QR enrollment and retains the Cloud Border workspace, optional NetConverter setup, dynamic testbeds, guided Comms, reviewed new-claw setup and existing local controls. After updating, activate the installed code through **Developer: Restart Extension Host** when it is safe to interrupt extension work; an installed version label does not establish which code the current host is running.
 
 R04a live qualification used frozen private 1.5.0 builds in the owner's macOS
 VS Code 1.109 with OpenClaw/Sonnet 4.6. It exercised Name + URL connection, stable
@@ -284,8 +284,8 @@ not a packet trace. The release artifact receives source/build/package checks;
 the evidence does not claim another live rollout of the final merged source.
 
 Windows/Linux cloud editors, other cloud providers/harnesses and general deployment
-are not qualified by this Mac result. Mobile QR enrollment is the separate R04b
-continuation; no new physical-device or QR qualification is claimed. See
+are not qualified by this Mac result. That R04a evidence does not qualify Mobile QR enrollment; separate actual QR and
+native simulator evidence is in [Spec175](../../specs/175-cloud-mobile-enrollment/verification.md). Physical-device qualification remains open. See
 [R04a verification](../../specs/174-cloud-client-integration/verification.md).
 Earlier local feature limits remain in [Spec151 production readiness](../../specs/151-extension-experience/production-readiness.md)
 and the linked setup and lifecycle verification records above.
