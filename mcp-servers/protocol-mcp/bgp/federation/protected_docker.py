@@ -252,6 +252,29 @@ def validate_raw_mcp_call(body, approved, tool="pyats_run_show_command"):
             raise RuntimeRefused("raw_mcp_arguments_changed")
 
 
+# The host never needs a published model/guard port. This fixed trusted helper
+# enters the owned network namespace as guard UID, passing the capability only
+# over stdin. A lost Docker exec reply remains an uncertain provider dispatch.
+_OLLAMA_GUARD_REQUEST = """import json,sys,urllib.request
+class NoRedirect(urllib.request.HTTPRedirectHandler):
+ def redirect_request(self,*args,**kwargs):return None
+raw=sys.stdin.buffer.read(1048577)
+if len(raw)>1048576:raise ValueError('request_bound')
+body=json.loads(raw)
+if set(body)!={'request','guard_token','timeout_seconds'}:raise ValueError('request_fields')
+request=urllib.request.Request('http://127.0.0.1:4000/v1/chat/completions',
+ data=json.dumps(body['request'],separators=(',',':'),ensure_ascii=False).encode(),method='POST',
+ headers={'Content-Type':'application/json','X-DC-Auth':body['guard_token'],'X-DC-Target-URL':'http://127.0.0.1:11434'})
+opener=urllib.request.build_opener(urllib.request.ProxyHandler({}),NoRedirect())
+with opener.open(request,timeout=body['timeout_seconds']) as response:
+ if response.status!=200:raise ValueError('guard_status')
+ raw=response.read(1048577)
+ if len(raw)>1048576:raise ValueError('response_bound')
+ json.loads(raw)
+ sys.stdout.buffer.write(raw)
+"""
+
+
 def compact_summary_tool(broker, tool):
     """One native MCP text item; avoid SDK structuredContent duplication."""
     from mcp.types import TextContent
@@ -548,13 +571,14 @@ class DockerExecutor:
         except _ollama.OllamaRefused as exc:
             raise RuntimeRefused(exc.code) from None
 
-    async def command(self, *args, timeout=60):
+    async def command(self, *args, timeout=60, input_data=None):
         if _public_bytes(self.docker_config / "config.json") != b"{}":
             raise RuntimeRefused("native_docker_configuration_changed")
         if _docker_host(self.config["docker_host"]) != self.docker_host:
             raise RuntimeRefused("native_docker_host_changed")
         process = await asyncio.create_subprocess_exec(self.docker, "--host", self.docker_host,
                    "--config", str(self.docker_config), *args,
+                   stdin=asyncio.subprocess.PIPE if input_data is not None else asyncio.subprocess.DEVNULL,
                    stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE,
                    env={"PATH": os.defpath, "HOME": str(self.docker_config)})
         tasks = []
@@ -567,6 +591,12 @@ class DockerExecutor:
                         raise RuntimeUnknown("docker_output_bound")
                 return bytes(output)
             async with asyncio.timeout(timeout):
+                if input_data is not None:
+                    if not isinstance(input_data, bytes) or len(input_data) > 1048576:
+                        raise RuntimeRefused('docker_input_bound')
+                    process.stdin.write(input_data)
+                    await process.stdin.drain()
+                    process.stdin.close()
                 tasks = [asyncio.create_task(bounded_read(process.stdout, 4 * 1024 * 1024)),
                          asyncio.create_task(bounded_read(process.stderr, 1024 * 1024)),
                          asyncio.create_task(process.wait())]
@@ -599,8 +629,14 @@ class DockerExecutor:
         if self.ollama is not None:
             current = await self.inspect_model()
             if current['guard_url'] != guard_url: raise RuntimeRefused('ollama_guard_binding_changed')
+            remaining = (payload['limits']['expires_at_ms']-int(time.time()*1000))/1000
+            deadline = min(remaining, payload['limits']['inference_timeout_ms']/1000)
+            if deadline <= 0: raise RuntimeRefused('approval_expired')
+            raw = await self.command('exec', '--interactive', '--user', str(self.ollama['guard_uid']),
+                self.ollama['model_container_id'], 'python3', '-c', _OLLAMA_GUARD_REQUEST,
+                input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline)
+            return strict_inference_json(raw)
         guard_headers = {"X-DC-Auth": self.guard_token, "Content-Type": "application/json"}
-        if self.ollama is not None: guard_headers['X-DC-Target-URL'] = _ollama.ENDPOINT
         async with httpx.AsyncClient(trust_env=False, follow_redirects=False,
                                      timeout=payload["limits"]["inference_timeout_ms"] / 1000) as client:
             async with client.stream("POST", guard_url + "/v1/chat/completions",

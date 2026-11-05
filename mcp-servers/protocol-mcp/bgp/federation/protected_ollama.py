@@ -219,11 +219,8 @@ def verify_confinement(value, inspected, namespace_inode, *, image_environment=(
     need(all(env.get(key) == base_env.get(key) for key in set(env)-set(model_environment(value))), 'ollama_model_environment_changed')
     bindings = host.get('PortBindings') or {}
     ports = {key: val for key, val in inspected['NetworkSettings']['Ports'].items() if val}
-    need(set(bindings) == {'4000/tcp'} and set(ports) == {'4000/tcp'} and
-         len(bindings['4000/tcp']) == len(ports['4000/tcp']) == 1 and
-         bindings['4000/tcp'][0].get('HostIp') == ports['4000/tcp'][0].get('HostIp') == '127.0.0.1', 'ollama_port_exposed')
-    port = ports['4000/tcp'][0]['HostPort']; need(str(port).isdigit() and 0 < int(port) < 65536, 'ollama_guard_port_invalid')
-    return {'guard_url': 'http://127.0.0.1:'+str(port), 'confinement_sha256': value['confinement_sha256'],
+    need(not bindings and not ports, 'ollama_port_exposed')
+    return {'guard_url': 'docker-exec://'+value['model_container_id']+'/127.0.0.1:4000', 'confinement_sha256': value['confinement_sha256'],
             'model_container_id': value['model_container_id'], 'profile_sha256': digest(profile_binding(value))}
 
 

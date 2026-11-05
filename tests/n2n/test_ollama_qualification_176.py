@@ -24,7 +24,7 @@ def test_create_plan_has_exact_resources_no_model_port_and_no_credentials(tmp_pa
     args=q.create_model_args(profile,'netclaw-r05-owned-net')
     assert args[args.index('--memory')+1]==args[args.index('--memory-swap')+1]=='2048m'
     assert args[args.index('--cpus')+1]==('2' if family==4 else '1')
-    assert args[args.index('--publish')+1]=='127.0.0.1::4000' and args.count('--publish')==1
+    assert '--publish' not in args and '--publish-all' not in args
     assert args[args.index('--entrypoint')+1]=='/usr/local/bin/ollama' and args[-1]=='serve'
     env=[args[index+1] for index,value in enumerate(args) if value=='--env']
     assert set(env)=={key+'='+value for key,value in q.model.model_environment(profile).items()}

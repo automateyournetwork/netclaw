@@ -86,7 +86,7 @@ def create_model_args(profile, network):
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', str(profile['model_uid']),
         '--pids-limit', '256', '--memory', '2048m', '--memory-swap', '2048m',
         '--cpus', str(bound['model_cpu_millicores']//1000), '--label', LABEL,
-        '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m', '--publish', '127.0.0.1::4000',
+        '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
         '--mount', 'type=bind,src='+profile['model_store']+',dst=/models,readonly',
         *[item for key,value in model.model_environment(profile).items() for item in ('--env', key+'='+value)],
         '--entrypoint', '/usr/local/bin/ollama', profile['model_image'], 'serve']
@@ -207,19 +207,16 @@ def prepare(args):
         own_denied=docker.python(container_id,args.model_uid,DENIED_PROBE)
         need(own_denied=={'denied':True},'model_uid_api_bypass')
         inspected=docker.inspect(container_id);owned_container(inspected,args.image,args.name,container_id)
-        ports=inspected['NetworkSettings']['Ports']['4000/tcp']
-        need(len(ports)==1 and ports[0]['HostIp']=='127.0.0.1','guard_public_binding_refused')
-        host_port=int(ports[0]['HostPort']);address=inspected['NetworkSettings']['Networks'][network]['IPAddress']
-        ipaddress.IPv4Address(address)
+        need(not inspected['HostConfig'].get('PortBindings') and not any(inspected['NetworkSettings'].get('Ports',{}).values()),'model_or_guard_port_published')
+        address=inspected['NetworkSettings']['Networks'][network]['IPAddress'];ipaddress.IPv4Address(address)
         nonce=secrets.token_hex(16)
         docker.call('exec','--detach','--user',str(args.guard_uid),container_id,'python3','-c',LISTENER,nonce)
-        control=False;opener=urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        control=False
+        local_probe = "import json,sys,urllib.request; print(json.dumps({'positive_control':urllib.request.urlopen('http://127.0.0.1:4000/',timeout=1).read(256).decode()==sys.argv[1]}))"
         for _ in range(20):
-            try:
-                with opener.open('http://127.0.0.1:'+str(host_port)+'/',timeout=1) as response:control=response.read(256).decode()==nonce
-                break
-            except OSError:time.sleep(.1)
-        need(control,'published_guard_positive_control_failed')
+            try:control=docker.python(container_id,args.guard_uid,local_probe,nonce)=={'positive_control':True};break
+            except QualificationRefused:time.sleep(.1)
+        need(control,'guard_namespace_positive_control_failed')
         peer_id=docker.call('create','--name',manifest['probe_name'],'--network',network,'--read-only',
             '--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(candidate),
             '--pids-limit','32','--memory','64m','--memory-swap','64m','--cpus','0.5','--label',LABEL,
@@ -245,7 +242,7 @@ def prepare(args):
             image_environment=image_config['Config'].get('Env',[]),policy_sha256=policy_sha256)
         evidence={'schema_version':1,'scope':'local owned namespace and role stand-ins; no inference or actual client qualification',
             'guard_api_positive_before':positive,'guard_api_positive_after':positive_after,'role_uid_negatives':same_namespace,
-            'model_uid_api_negative':own_denied,'host_guard_port_positive':control,'peer_probe':peer,
+            'model_uid_api_negative':own_denied,'guard_uid_namespace_port_positive':control,'published_ports':[],'peer_probe':peer,
             'external_scope':'fresh peer container on the owned internal Docker bridge; not public Internet or deployed Border',
             'actual_external_vantage_qualified':False,'model_requests':0,'policy_sha256':policy_sha256}
         write(state/'qualification-evidence.json',evidence);write(state/'profile.json',profile)

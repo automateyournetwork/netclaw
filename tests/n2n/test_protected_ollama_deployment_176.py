@@ -15,7 +15,7 @@ def model_fixture(tmp_path):
         'worker_range':[32768,65535],'excluded_ports':[4000,4001,11434,49171],
         'policy_sha256':'d'*64,'positive_control':True,'denied_callers':['agent','broker','border','sibling','external']}
     write_receipt(selected,receipt)
-    ports={'4000/tcp':[{'HostIp':'127.0.0.1','HostPort':'40099'}]}
+    ports={}
     container={'Id':selected['model_container_id'],'Name':'/'+selected['model_container'],'Image':selected['model_image'],
         'State':{'Running':True,'OOMKilled':False},'Config':{'User':'10002','Entrypoint':['/usr/local/bin/ollama'],'Cmd':['serve'],
             'Env':[k+'='+v for k,v in ollama.model_environment(selected).items()]},
@@ -34,9 +34,9 @@ def write_receipt(selected,receipt):
     selected['confinement_sha256']=hashlib.sha256(raw).hexdigest()
 
 
-def test_only_guard_loopback_port_is_published(tmp_path):
+def test_neither_model_nor_guard_has_published_port(tmp_path):
     selected,container,namespace,_=model_fixture(tmp_path)
-    assert ollama.verify_confinement(selected,container,namespace,policy_sha256='d'*64)['guard_url']=='http://127.0.0.1:40099'
+    assert ollama.verify_confinement(selected,container,namespace,policy_sha256='d'*64)['guard_url']=='docker-exec://'+'b'*64+'/127.0.0.1:4000'
 
 
 @pytest.mark.parametrize('mutate',[
@@ -46,7 +46,7 @@ def test_only_guard_loopback_port_is_published(tmp_path):
     lambda c:c['HostConfig'].update(ReadonlyRootfs=False),lambda c:c['HostConfig'].update(MemorySwap=-1),
     lambda c:c['HostConfig'].update(NetworkMode='host'),lambda c:c['HostConfig'].update(CapAdd=['NET_ADMIN']),
     lambda c:c['HostConfig']['PortBindings'].update({'11434/tcp':[{'HostIp':'127.0.0.1','HostPort':'11434'}]}),
-    lambda c:c['NetworkSettings']['Ports']['4000/tcp'][0].update(HostIp='0.0.0.0'),
+    lambda c:c['NetworkSettings']['Ports'].update({'4000/tcp':[{'HostIp':'127.0.0.1','HostPort':'40099'}]}),
     lambda c:c['NetworkSettings']['Networks'].update(other={}),lambda c:c['Mounts'][0].update(RW=True),
     lambda c:c['Mounts'].append({'Type':'bind','Source':'/var/run/docker.sock','Destination':'/var/run/docker.sock','RW':False}),
     lambda c:c['State'].update(OOMKilled=True),lambda c:c.update(Id='e'*64),
@@ -109,3 +109,38 @@ def test_base_image_environment_is_not_a_routing_override_allowlist(tmp_path):
     selected,container,namespace,_=model_fixture(tmp_path);container['Config']['Env'].append('LD_LIBRARY_PATH=/tmp/injected')
     with pytest.raises(ollama.OllamaRefused):
         ollama.verify_confinement(selected,container,namespace,policy_sha256='d'*64,image_environment=['LD_LIBRARY_PATH=/usr/local/lib/ollama'])
+
+
+def test_local_forward_uses_fixed_namespace_helper_and_stdin_only_capability(tmp_path,monkeypatch):
+    import time
+    docker=docker_module();selected=profile(tmp_path);approved=payload();approved['limits']['expires_at_ms']=int(time.time()*1000)+30000
+    executor=object.__new__(docker.DockerExecutor);executor.config={};executor.ollama=selected
+    marker='docker-exec://'+selected['model_container_id']+'/127.0.0.1:4000'
+    executor.guards={approved['operation_id']:marker};executor.guard_token='fixture-private-guard-token';calls=[]
+    async def inspect():return {'guard_url':marker}
+    async def command(*args,**kwargs):calls.append((args,kwargs));return ollama.canonical(reply(approved))
+    executor.inspect_model=inspect;executor.command=command;monkeypatch.setattr(docker,'validate_execution_bindings',lambda *_:None)
+    result=asyncio.run(executor.forward(approved,request(approved)))
+    assert result==reply(approved) and len(calls)==1
+    args,kwargs=calls[0]
+    assert args[:5]==('exec','--interactive','--user','501',selected['model_container_id'])
+    assert executor.guard_token not in str(args) and 'input_data' in kwargs
+    sent=json.loads(kwargs['input_data']);assert sent['guard_token']==executor.guard_token and sent['request']==request(approved)
+    assert "http://127.0.0.1:4000/v1/chat/completions" in args[-1] and 'NoRedirect' in args[-1]
+    assert 'X-DC-Target-URL' in args[-1] and 'http://127.0.0.1:11434' in args[-1]
+
+
+from test_protected_revision_bindings import bound
+
+def test_real_subprocess_pipe_carries_request_without_capability_in_argv_or_env(bound):
+    import sys
+    from pathlib import Path
+    from types import SimpleNamespace
+    docker=docker_module();config,_,_=bound
+    Path(config['docker']).write_text('#!'+sys.executable+'\nimport hashlib,json,os,sys\nraw=sys.stdin.buffer.read()\nprint(json.dumps({"argv":sys.argv[1:],"env":dict(os.environ),"stdin_sha256":hashlib.sha256(raw).hexdigest()}))\n')
+    executor=docker.DockerExecutor(config,manager=SimpleNamespace());secret='fixture-pipe-only-capability';body=ollama.canonical({'guard_token':secret,'request':{'model':ollama.MODEL}})
+    try:
+        observed=json.loads(asyncio.run(executor.command('exec','--interactive','fixture-container',input_data=body)))
+        assert observed['stdin_sha256']==hashlib.sha256(body).hexdigest()
+        assert secret not in str(observed['argv'])+str(observed['env'])
+    finally:executor.fence.close()
