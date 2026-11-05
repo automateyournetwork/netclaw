@@ -65,6 +65,9 @@ void main() {
           'prepare',
           'approve',
           'recover',
+          'combined-prepare',
+          'combined-decision',
+          'combined-recover',
         ].contains(phase),
         'Invalid phase',
       );
@@ -182,7 +185,8 @@ void main() {
           'Wrong installation',
         );
       }
-      Json? operation;
+      Json? operation, combined, combinedReference;
+      bool? combinedUncertain;
       var visualFrames = 0;
       final nativeLifecycle = <String>[];
       if (client.protectedDevice != null) {
@@ -309,6 +313,158 @@ void main() {
             );
           }
         }
+        if (phase == 'combined-prepare') {
+          require(
+            operations.combinedReference == null &&
+                operations.reference == null,
+            'Retained work must be preserved and resolved before preparing',
+          );
+          final children = config['children'];
+          require(
+            children is List && children.length == 2,
+            'Two exact catalog selections required',
+          );
+          final choices = operations.combinedChoices();
+          for (final index in [0, 1]) {
+            final family = [4, 6][index], expected = children[index];
+            final matches = choices[family]!
+                .where(
+                  (choice) =>
+                      jsonEncode(ordered(choice)) ==
+                      jsonEncode(ordered(expected)),
+                )
+                .toList();
+            require(
+              matches.length == 1,
+              'Exact calculator profile is unavailable',
+            );
+            final selector = find.byKey(ValueKey('combined-ipv$family'));
+            await tester.ensureVisible(selector);
+            await tester.tap(selector);
+            await tester.pumpAndSettle();
+            await tester.tap(
+              find.text('${expected['member_id']} · ${expected['cidr']}').last,
+            );
+            await tester.pumpAndSettle();
+          }
+          await tap('Prepare both reviews');
+          require(
+            operations.combined != null,
+            'Pair admission unconfirmed; recover same nonce',
+          );
+          for (final family in [4, 6]) {
+            require(
+              find
+                      .byKey(ValueKey('IPv$family immutable review'))
+                      .evaluate()
+                      .length ==
+                  1,
+              'Both immutable native reviews must be displayed',
+            );
+          }
+        } else if (phase == 'combined-decision' ||
+            phase == 'combined-recover') {
+          final actual = operations.combined, expected = config['combined'];
+          require(
+            actual != null &&
+                expected is Map &&
+                actual['parent_id'] == expected['parent_id'] &&
+                actual['client_nonce'] == expected['client_nonce'],
+            'Exact retained parent mismatch',
+          );
+          for (final index in [0, 1]) {
+            final child = actual!['children'][index],
+                old = expected['children'][index];
+            require(
+              child['operation_id'] == old['operation_id'] &&
+                  child['family'] == [4, 6][index] &&
+                  child['review_digest'] == old['review_digest'] &&
+                  jsonEncode(ordered(child['review'])) ==
+                      jsonEncode(ordered(old['review'])),
+              'Exact independently inspected child review mismatch',
+            );
+          }
+          if (phase == 'combined-decision') {
+            final index = config['child_index'], decision = config['decision'];
+            require(
+              [0, 1].contains(index) && ['approve', 'deny'].contains(decision),
+              'One explicit child decision required',
+            );
+            final child = actual!['children'][index];
+            require(
+              child['revision'] == expected['children'][index]['revision'] &&
+                  operations.canDecideCombined(index, decision),
+              'Reviewed revision unavailable; nothing repeated',
+            );
+            if (decision == 'approve') {
+              final checkbox = find.byKey(ValueKey('combined-review-$index'));
+              await tester.ensureVisible(checkbox);
+              await tester.tap(checkbox);
+              await tester.pumpAndSettle();
+            }
+            await tap(
+              decision == 'approve'
+                  ? 'Approve IPv${child['family']} once'
+                  : 'Deny IPv${child['family']}',
+            );
+          } else {
+            await tap('Check combined status');
+          }
+          final wantedStates = config['expected_states'];
+          if (wantedStates != null) {
+            require(
+              wantedStates is List &&
+                  wantedStates.isNotEmpty &&
+                  wantedStates.every(
+                    (state) => [
+                      'awaiting_decisions',
+                      'running',
+                      'complete',
+                      'partial',
+                      'failed',
+                      'cancelled',
+                      'unknown',
+                    ].contains(state),
+                  ),
+              'Invalid bounded state expectation',
+            );
+            final deadline = DateTime.now().add(const Duration(minutes: 3));
+            while (!wantedStates.contains(operations.combined?['state'])) {
+              require(
+                DateTime.now().isBefore(deadline),
+                'Parent still pending; recover same parent without another decision',
+              );
+              await tester.runAsync(
+                () => Future<void>.delayed(const Duration(seconds: 2)),
+              );
+              await tap('Check combined status');
+            }
+          }
+        }
+        if (phase == 'combined-recover' && config['preserve_effects'] == true) {
+          for (final index in [0, 1]) {
+            final actual = operations.combined!['children'][index],
+                expected = config['combined']['children'][index];
+            require(
+              actual['attempt_count'] == expected['attempt_count'],
+              'Recovery changed child attempts',
+            );
+            for (final key in [
+              'digest',
+              'verified',
+              'durable_ack',
+              'ack_delivery_pending',
+            ]) {
+              require(
+                actual['result']?[key] == expected['result']?[key],
+                'Recovery changed retained receipt',
+              );
+            }
+          }
+        }
+        combined = operations.combined;
+        combinedReference = operations.combinedReference;
+        combinedUncertain = operations.combinedUncertain;
         if (config['lifecycle_evidence'] == true) {
           require(
             phase == 'recover',
@@ -453,6 +609,13 @@ void main() {
           'border': client.border,
           'decoder': decoder,
           'operation': operation,
+          'combined': combined,
+          'combined_reference': combinedReference,
+          'combined_uncertain': combinedUncertain,
+          'decision_child': phase == 'combined-decision'
+              ? config['child_index']
+              : null,
+          'decision': phase == 'combined-decision' ? config['decision'] : null,
           'same_key_reconnect': true,
           'production_enrollment_gate': true,
           'native_visual_frames': visualFrames,
