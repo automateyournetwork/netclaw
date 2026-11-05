@@ -185,7 +185,11 @@ void main() {
           'Wrong installation',
         );
       }
-      Json? operation, combined, combinedReference, archivedOperation;
+      Json? operation,
+          combined,
+          combinedReference,
+          archivedOperation,
+          archivedCombined;
       bool? combinedUncertain;
       var visualFrames = 0;
       final nativeLifecycle = <String>[];
@@ -342,6 +346,47 @@ void main() {
               await archive.writeAsString(jsonEncode(old), flush: true);
             });
             await tap('Remove resolved reference');
+          }
+          final retainedPair = config['archive_combined'];
+          if (retainedPair != null) {
+            final old = operations.combined;
+            require(
+              retainedPair is Map &&
+                  old != null &&
+                  operations.canRemoveCombined &&
+                  old['state'] == 'complete' &&
+                  old['parent_id'] == retainedPair['parent_id'] &&
+                  old['client_nonce'] == retainedPair['client_nonce'],
+              'Only the exact inspected completed pair may be archived',
+            );
+            for (final index in [0, 1]) {
+              final child = old!['children'][index],
+                  expected = retainedPair['children'][index];
+              require(
+                child['operation_id'] == expected['operation_id'] &&
+                    child['review_digest'] == expected['review_digest'] &&
+                    jsonEncode(ordered(child['review'])) ==
+                        jsonEncode(ordered(expected['review'])) &&
+                    child['result']?['digest'] ==
+                        expected['result']?['digest'] &&
+                    child['result']?['verified'] == true &&
+                    child['result']?['durable_ack'] == true &&
+                    child['result']?['ack_delivery_pending'] == false,
+                'Completed child evidence changed; retain reference',
+              );
+            }
+            archivedCombined = old;
+            await tester.runAsync(() async {
+              final archive = File(
+                '${profileDir.path}/r05-combined-${old!['parent_id']}.json',
+              );
+              require(
+                !await archive.exists(),
+                'Pair archive already exists; inspect outcome',
+              );
+              await archive.writeAsString(jsonEncode(old), flush: true);
+            });
+            await tap('Remove resolved combined reference');
           }
           require(
             operations.combinedReference == null &&
@@ -639,6 +684,7 @@ void main() {
           'decoder': decoder,
           'operation': operation,
           'archived_operation': archivedOperation,
+          'archived_combined': archivedCombined,
           'combined': combined,
           'combined_reference': combinedReference,
           'combined_uncertain': combinedUncertain,

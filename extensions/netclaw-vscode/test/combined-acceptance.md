@@ -58,6 +58,11 @@ Common config: `mode`, `origin`, `installationId`, exact `principal`, optionally
 Capture backend provider/MCP/effect counters independently before/after every
 phase. Screenshots and JSON are private0600 evidence. A failure to export evidence
 is not proof that a decision was unsubmitted; retain its claim and references.
+Before a separately coordinated failure pair, either native prepare driver may
+receive `archive_combined` containing its exact completed pair. It verifies both
+child receipt digests and durable ACKs, flushes a fresh archive, and invokes the
+existing remove-reference UI before preparing the new pair. This never removes
+server authority, incomplete work, or a changed receipt.
 
 ## Mobile
 

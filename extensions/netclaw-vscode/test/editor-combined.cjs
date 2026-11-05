@@ -28,7 +28,8 @@ exports.run = async () => {
   assert.equal(api.connection.identity.installationId, config.installationId);
   assert.equal(api.connection.owner.openLab, true, 'This pilot uses Name + URL, without owner login.');
   assert.deepEqual(api.connection.owner.principal, config.principal);
-  assert.throws(() => api.connection.bound());
+  assert.equal(api.connection.ownerBound().client, api.connection.owner);
+  assert.throws(() => api.management.bound(), 'Cloud profiles never acquire local host management.');
   const { chromium } = require(process.env.NETCLAW_TEST_PLAYWRIGHT);
   const browser = await chromium.connectOverCDP('http://127.0.0.1:' + process.env.NETCLAW_TEST_CDP_PORT);
   const page = browser.contexts().flatMap(c => c.pages()).find(p => p.url().includes('workbench')); assert.ok(page); page.setDefaultTimeout(30000);
@@ -47,6 +48,22 @@ exports.run = async () => {
     if (config.mode === 'prepare') {
       assert.equal(config.children.length, 2);
       claim();
+      if (config.archive_combined) {
+        const recovery = api.ownerWorkflow.recoverCombined();
+        await row('Remove resolved reference').waitFor({ state: 'visible' });
+        const old = document(); samePair(old, config.archive_combined);
+        assert.equal(old.state, 'complete');
+        for (const i of [0, 1]) {
+          assert.equal(old.children[i].result?.verified, true);
+          assert.equal(old.children[i].result?.durable_ack, true);
+          assert.equal(old.children[i].result?.ack_delivery_pending, false);
+          assert.equal(old.children[i].result?.digest, config.archive_combined.children[i].result?.digest);
+        }
+        const archive = path.join(path.dirname(report), 'archived-combined.json');
+        const fd = fs.openSync(archive, 'wx', 0o600);
+        try { fs.writeFileSync(fd, JSON.stringify(old, null, 2)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
+        await choose('Remove resolved reference'); await recovery;
+      }
       const pending = api.ownerWorkflow.prepareCombined();
       for (const i of [0, 1]) {
         assert.equal(config.children[i].family, [4, 6][i]);
