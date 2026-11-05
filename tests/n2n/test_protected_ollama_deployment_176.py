@@ -172,3 +172,18 @@ def test_native_history_refuses_duplicate_nonfinite_or_changed_argument(raw):
 def test_native_history_never_normalizes_changed_call_identity(field,value):
     first,body,evidence=native_history();body['messages'][-2]['tool_calls'][0][field]=value
     with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
+
+
+@pytest.mark.parametrize('local,port',[(True,18970),(False,4001)])
+def test_native_guard_readiness_uses_the_frozen_profile_management_port(tmp_path,monkeypatch,local,port,capsys):
+    import io
+    import urllib.request
+    seen=[]
+    def urlopen(url,*,timeout):
+        seen.append((url,timeout))
+        return io.BytesIO(json.dumps({'guardrail':{'state':'running','details':{'mode':'action'}},
+            'provenance':{'binary_version':'1.0.4'}}).encode())
+    monkeypatch.setattr(urllib.request,'urlopen',urlopen)
+    exec(docker_module().guard_health_probe(profile(tmp_path) if local else None),{})
+    assert seen==[('http://127.0.0.1:'+str(port)+'/health',2)]
+    assert json.loads(capsys.readouterr().out)['version']=='1.0.4'

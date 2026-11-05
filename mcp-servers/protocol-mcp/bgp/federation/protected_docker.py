@@ -275,6 +275,14 @@ with opener.open(request,timeout=body['timeout_seconds']) as response:
 """
 
 
+def guard_health_probe(ollama=None):
+    # The frozen keyless configuration uses the native management API on18970;
+    # historical hosted configurations retain their qualified API on4001.
+    port = 18970 if ollama is not None else 4001
+    return ("import json,urllib.request;h=json.load(urllib.request.urlopen('http://127.0.0.1:"+str(port)+"/health',timeout=2));"
+            "print(json.dumps({'guardrail':h.get('guardrail'),'version':h.get('provenance',{}).get('binary_version')}))")
+
+
 def compact_summary_tool(broker, tool):
     """One native MCP text item; avoid SDK structuredContent duplication."""
     from mcp.types import TextContent
@@ -536,8 +544,7 @@ class DockerExecutor:
             self.guards[payload['operation_id']] = (await self.inspect_model())['guard_url']
         # Native foreground startup has no daemon PID receipt. Inspect actual
         # health inside the guard namespace, where its admin listener is loopback.
-        probe = ("import json,urllib.request;h=json.load(urllib.request.urlopen('http://127.0.0.1:4001/health',timeout=2));"
-                 "print(json.dumps({'guardrail':h.get('guardrail'),'version':h.get('provenance',{}).get('binary_version')}))")
+        probe = guard_health_probe(self.ollama)
         for _ in range(40):
             if int(time.time() * 1000) >= payload["limits"]["expires_at_ms"]:
                 raise RuntimeRefused("operation_expired")
