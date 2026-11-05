@@ -26,6 +26,14 @@ void require(bool ok, String reason) {
   if (!ok) throw StateError(reason);
 }
 
+class NativeLifecycleWitness extends WidgetsBindingObserver {
+  final states = <String>[];
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    states.add(state.name);
+  }
+}
+
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
@@ -176,6 +184,7 @@ void main() {
       }
       Json? operation;
       var visualFrames = 0;
+      final nativeLifecycle = <String>[];
       if (client.protectedDevice != null) {
         await waitFor(
           () => find.byType(CloudOwnerScreen).evaluate().isNotEmpty,
@@ -300,10 +309,82 @@ void main() {
             );
           }
         }
+        if (config['lifecycle_evidence'] == true) {
+          require(
+            phase == 'recover',
+            'Lifecycle proof only recovers a terminal operation',
+          );
+          final before = operations.operation!;
+          final witness = NativeLifecycleWitness();
+          WidgetsBinding.instance.addObserver(witness);
+          try {
+            final ready = File('${directory.path}/r04b-lifecycle-ready.json');
+            final resumed = File('${directory.path}/r04b-lifecycle-continue');
+            final lifecycleFinished = await tester.runAsync<bool>(() async {
+              require(
+                !await ready.exists() && !await resumed.exists(),
+                'Stale lifecycle handshake',
+              );
+              await ready.writeAsString(
+                jsonEncode({'profile': profileName}),
+                flush: true,
+              );
+              final deadline = DateTime.now().add(const Duration(seconds: 180));
+              while (!await resumed.exists()) {
+                require(
+                  DateTime.now().isBefore(deadline),
+                  'Native lifecycle driver did not return',
+                );
+                await Future<void>.delayed(const Duration(milliseconds: 100));
+              }
+              await ready.delete();
+              await resumed.delete();
+              return true;
+            });
+            require(
+              lifecycleFinished == true,
+              'Native lifecycle qualification failed',
+            );
+            await waitFor(
+              () =>
+                  !operations.busy &&
+                  operations.operationsReady &&
+                  !client.isClosed,
+              'Same-device foreground recovery did not finish',
+            );
+            require(
+              witness.states.contains('paused') &&
+                  witness.states.contains('resumed'),
+              'Actual native background/resume events missing',
+            );
+            require(
+              operations.operation?['operation_id'] == before['operation_id'] &&
+                  operations.operation?['result']?['digest'] ==
+                      before['result']['digest'] &&
+                  operations.operation?['attempt_count'] ==
+                      before['attempt_count'],
+              'Lifecycle recovery changed the retained operation',
+            );
+            nativeLifecycle.addAll(witness.states);
+          } finally {
+            WidgetsBinding.instance.removeObserver(witness);
+          }
+        }
         operation = operations.operation;
       }
       if (config['visual_evidence'] == true) {
-        final scroll = tester.state<ScrollableState>(
+        final visualLabel =
+            config['visual_label'] as String? ?? '$profileName-$phase';
+        require(
+          RegExp(r'^[a-z0-9-]{1,100}$').hasMatch(visualLabel),
+          'Invalid visual label',
+        );
+        await tester.pump(const Duration(milliseconds: 200));
+        require(
+          find.byType(Scrollable).evaluate().isNotEmpty,
+          'Native screen is no longer mounted',
+        );
+        var scroll = tester.state<ScrollableState>(
           find.byType(Scrollable).first,
         );
         scroll.position.jumpTo(0);
@@ -312,16 +393,13 @@ void main() {
           require(visualFrames < 40, 'Visual evidence bound exceeded');
           final ready = File('${directory.path}/r04b-visual-ready.json');
           final resume = File('${directory.path}/r04b-visual-continue');
-          await tester.runAsync(() async {
+          final captured = await tester.runAsync<bool>(() async {
             require(
               !await ready.exists() && !await resume.exists(),
               'Stale visual handshake; inspect before continuing',
             );
             await ready.writeAsString(
-              jsonEncode({
-                'label': '$profileName-$phase',
-                'frame': visualFrames,
-              }),
+              jsonEncode({'label': visualLabel, 'frame': visualFrames}),
               flush: true,
             );
             final deadline = DateTime.now().add(const Duration(seconds: 45));
@@ -334,7 +412,15 @@ void main() {
             }
             await ready.delete();
             await resume.delete();
+            return true;
           });
+          require(captured == true, 'Native visual qualification failed');
+          await tester.pump(const Duration(milliseconds: 100));
+          require(
+            find.byType(Scrollable).evaluate().isNotEmpty,
+            'Native screen disposed during capture',
+          );
+          scroll = tester.state<ScrollableState>(find.byType(Scrollable).first);
           visualFrames++;
           if (scroll.position.pixels >= scroll.position.maxScrollExtent - 1) {
             break;
@@ -370,6 +456,7 @@ void main() {
           'same_key_reconnect': true,
           'production_enrollment_gate': true,
           'native_visual_frames': visualFrames,
+          'native_lifecycle_events': nativeLifecycle,
           'landing': protected ? 'ProtectedDeviceScreen' : 'HomeShell',
           'simulator': true,
           'camera_hardware': false,
