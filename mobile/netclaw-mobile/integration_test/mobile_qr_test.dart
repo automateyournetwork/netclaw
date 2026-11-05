@@ -185,7 +185,7 @@ void main() {
           'Wrong installation',
         );
       }
-      Json? operation, combined, combinedReference;
+      Json? operation, combined, combinedReference, archivedOperation;
       bool? combinedUncertain;
       var visualFrames = 0;
       final nativeLifecycle = <String>[];
@@ -314,6 +314,35 @@ void main() {
           }
         }
         if (phase == 'combined-prepare') {
+          final retained = config['archive_resolved_reference'];
+          if (retained != null) {
+            final old = operations.operation;
+            require(
+              retained is Map &&
+                  old != null &&
+                  operations.canRemove &&
+                  old['state'] == 'completed' &&
+                  old['operation_id'] == retained['operation_id'] &&
+                  old['review_digest'] == retained['review_digest'] &&
+                  old['result']?['digest'] == retained['result_digest'] &&
+                  old['result']?['verified'] == true &&
+                  old['result']?['durable_ack'] == true &&
+                  old['result']?['ack_delivery_pending'] == false,
+              'Only the exact inspected completed receipt may be archived',
+            );
+            archivedOperation = old;
+            await tester.runAsync(() async {
+              final archive = File(
+                '${profileDir.path}/r05-resolved-${old!['operation_id']}.json',
+              );
+              require(
+                !await archive.exists(),
+                'Archive already exists; inspect outcome',
+              );
+              await archive.writeAsString(jsonEncode(old), flush: true);
+            });
+            await tap('Remove resolved reference');
+          }
           require(
             operations.combinedReference == null &&
                 operations.reference == null,
@@ -609,6 +638,7 @@ void main() {
           'border': client.border,
           'decoder': decoder,
           'operation': operation,
+          'archived_operation': archivedOperation,
           'combined': combined,
           'combined_reference': combinedReference,
           'combined_uncertain': combinedUncertain,

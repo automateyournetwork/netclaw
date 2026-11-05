@@ -90,6 +90,11 @@ resolved reference UI before preparing a pair if one occupies this profile.
 
 - `combined-prepare`: exact catalog `children`, same shape as Editor. It only
   prepares, displays both reviews and exports their IDs/review digests.
+  Optional `archive_resolved_reference` pins the existing completed single
+  operation's `operation_id`, `review_digest`, and `result_digest`. The driver
+  requires its verified durable ACK, flushes a fresh private archive, then uses
+  the existing Remove resolved reference button. It preserves the archive in
+  its report; pending or changed work is never removed.
 - `combined-decision`: inspected `combined` DTO, one `child_index`, one `decision`.
   Native checkbox and child button are distinct for each approval.
 - `combined-recover`: exact saved `combined` DTO; status-only, including after
