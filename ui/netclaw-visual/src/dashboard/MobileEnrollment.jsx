@@ -13,7 +13,7 @@ export default function MobileEnrollment({preview=false}) {
     if (!response.ok) throw Error(response.status === 409 ? 'Another code may still be active, or the selected Border changed. Check status before continuing.' : 'Enrollment is unavailable. Check the original request; nothing was retried.');
     const value=await response.json(); if(!live.current)throw Error('View closed.'); return value;
   };
-  const applyRecord=value => {const {qr_matrix,...metadata}=value;retained.current=metadata;setRecord(metadata);if(value.status!=='issued')setMatrix(null);setMessage(enrollmentMessage(value));};
+  const applyRecord=value => {const {qr_matrix,...metadata}=value;retained.current=metadata;setRecord(metadata);setNow(Date.now());if(value.status!=='issued')setMatrix(null);setMessage(enrollmentMessage(value));};
   const recover=async () => {
     const nonce=retained.current?.client_nonce;
     if(!nonce)return;
