@@ -483,6 +483,37 @@ void main() {
             );
           } else {
             await tap('Check combined status');
+            if (config['cancel_unapproved'] == true) {
+              require(
+                (operations.combined!['children'] as List).every(
+                  (child) =>
+                      child['approval'] == null && child['attempt_count'] == 0,
+                ),
+                'Only a proven unapproved zero-attempt pair may be cancelled',
+              );
+              await tap('Cancel remaining children');
+              final cancelled = operations.combined!;
+              require(
+                cancelled['cancelled'] == true &&
+                    operations.canRemoveCombined &&
+                    (cancelled['children'] as List).every(
+                      (child) => child['attempt_count'] == 0,
+                    ),
+                'Cancellation not confirmed; retain the same reference',
+              );
+              archivedCombined = cancelled;
+              await tester.runAsync(() async {
+                final archive = File(
+                  '${profileDir.path}/r05-cancelled-${cancelled['parent_id']}.json',
+                );
+                require(
+                  !await archive.exists(),
+                  'Cancelled archive exists; inspect outcome',
+                );
+                await archive.writeAsString(jsonEncode(cancelled), flush: true);
+              });
+              await tap('Remove resolved combined reference');
+            }
           }
           final wantedStates = config['expected_states'];
           if (wantedStates != null) {
@@ -539,6 +570,30 @@ void main() {
         combined = operations.combined;
         combinedReference = operations.combinedReference;
         combinedUncertain = operations.combinedUncertain;
+        if (phase.toString().startsWith('combined-')) {
+          final label = config['visual_label'];
+          require(
+            label is String && RegExp(r'^[a-z0-9-]{1,100}$').hasMatch(label),
+            'Combined evidence requires a fresh bounded label',
+          );
+          await tester.runAsync(() async {
+            final checkpoint = File(
+              '${directory.path}/r05-checkpoint-$label.json',
+            );
+            await checkpoint.create(exclusive: true);
+            await checkpoint.writeAsString(
+              jsonEncode({
+                'phase': phase,
+                'profile': profileName,
+                'combined': combined,
+                'combined_reference': combinedReference,
+                'combined_uncertain': combinedUncertain,
+                'archived_combined': archivedCombined,
+              }),
+              flush: true,
+            );
+          });
+        }
         if (config['lifecycle_evidence'] == true) {
           require(
             phase == 'recover',
