@@ -103,8 +103,18 @@ exports.run = async () => {
       samePair(value, config.combined);
     } else {
       value = await api.connection.owner.combinedStatus(config.combined); samePair(value, config.combined);
-      if (config.cancel_unapproved === true) {
-        assert.ok(value.children.every(child => child.approval == null && child.attempt_count === 0));
+      if (config.cancel_unapproved === true || config.cancel_expired_remaining === true) {
+        if (config.cancel_expired_remaining === true) {
+          const [completed, pending] = value.children;
+          assert.equal(completed.family, 4); assert.equal(completed.state, 'completed');
+          assert.equal(completed.result?.verified, true); assert.equal(completed.result?.durable_ack, true);
+          assert.equal(completed.result?.ack_delivery_pending, false);
+          assert.equal(completed.result?.digest, config.combined.children[0].result?.digest);
+          assert.equal(completed.attempt_count, config.combined.children[0].attempt_count);
+          assert.equal(pending.family, 6); assert.equal(pending.state, 'review_pending');
+          assert.equal(pending.approval, null); assert.equal(pending.attempt_count, 0);
+          assert.ok(pending.review.limits.expires_at_ms < Date.now());
+        } else assert.ok(value.children.every(child => child.approval == null && child.attempt_count === 0));
         claim();
         const cancellation = api.ownerWorkflow.recoverCombined();
         await row('Cancel remaining children').waitFor({ state: 'visible' });
@@ -112,7 +122,12 @@ exports.run = async () => {
         images.push(await capture('cancel-unapproved'));
         await choose('Cancel remaining children'); await cancellation;
         value = await api.connection.owner.combinedStatus(config.combined); samePair(value, config.combined);
-        assert.ok(value.children.every(child => child.attempt_count === 0));
+        if (config.cancel_expired_remaining === true) {
+          assert.equal(value.children[0].state, 'completed');
+          assert.equal(value.children[0].attempt_count, config.combined.children[0].attempt_count);
+          assert.deepEqual(value.children[0].result, config.combined.children[0].result);
+          assert.equal(value.children[1].approval, null); assert.equal(value.children[1].attempt_count, 0);
+        } else assert.ok(value.children.every(child => child.attempt_count === 0));
         assert.equal(value.cancelled, true);
         const fd = fs.openSync(path.join(path.dirname(report), 'cancelled-pair.json'), 'wx', 0o600);
         try { fs.writeFileSync(fd, JSON.stringify(value, null, 2)); fs.fsyncSync(fd); } finally { fs.closeSync(fd); }
@@ -132,7 +147,7 @@ exports.run = async () => {
     }
     // Display even partial/unknown evidence in the production native recovery view.
     const view = api.ownerWorkflow.recoverCombined(); await row('Keep reference').waitFor({ state: 'visible' });
-    const shown = await currentDocument(v => v.parent_id === value.parent_id && (!config.expected_states || config.expected_states.includes(v.state))); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose(config.cancel_unapproved === true ? 'Remove resolved reference' : 'Keep reference'); await view;
+    const shown = await currentDocument(v => v.parent_id === value.parent_id && (!config.expected_states || config.expected_states.includes(v.state))); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose(config.cancel_unapproved === true || config.cancel_expired_remaining === true ? 'Remove resolved reference' : 'Keep reference'); await view;
     assert.deepEqual(api.profiles.list(), before);
     fs.writeFileSync(report, JSON.stringify({ complete: true, mode: config.mode, editor: vscode.version, profileId: selected[0].id, combined: shown, images, native_decisions: config.mode === 'decision' ? 1 : 0, observed_at: new Date().toISOString() }, null, 2), { flag: 'wx', mode: 0o600 });
   } finally { await browser.close(); }
