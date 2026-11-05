@@ -47,3 +47,24 @@ variable "border_port" {
     error_message = "Use the reviewed existing direct iN2N port."
   }
 }
+
+variable "border_network" {
+  type    = string
+  default = ""
+  validation {
+    condition = (!var.network_activated && var.border_network == "") || can(regex(
+      "^https://www[.]googleapis[.]com/compute/v1/projects/${var.project_id}/global/networks/[a-z]([a-z0-9-]{0,61}[a-z0-9])?$",
+    var.border_network))
+    error_message = "Activation requires the explicit observed Border network in this project."
+  }
+}
+variable "border_service_account" {
+  type    = string
+  default = ""
+  validation {
+    condition = (!var.network_activated && var.border_service_account == "") || can(regex(
+      "^[a-z][a-z0-9-]{4,28}[a-z0-9]@${var.project_id}[.]iam[.]gserviceaccount[.]com$",
+    var.border_service_account))
+    error_message = "Activation requires the explicit observed Border service account in this project."
+  }
+}

@@ -86,6 +86,21 @@ resource "google_compute_firewall" "border_dial" {
     ports    = [tostring(var.border_port)]
   }
 }
+# This rule belongs to the R05 state; it never edits the existing Border rule.
+resource "google_compute_firewall" "border_member" {
+  count                   = var.network_activated ? 1 : 0
+  name                    = "${local.name}-border-member"
+  description             = local.note
+  network                 = var.border_network
+  direction               = "INGRESS"
+  priority                = 1000
+  source_ranges           = ["${google_compute_address.member.address}/32"]
+  target_service_accounts = [var.border_service_account]
+  allow {
+    protocol = "tcp"
+    ports    = [tostring(var.border_port)]
+  }
+}
 resource "google_compute_instance" "member" {
   name           = "${local.name}-member"
   description    = local.note

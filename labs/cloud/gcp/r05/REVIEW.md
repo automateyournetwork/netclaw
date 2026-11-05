@@ -5,8 +5,12 @@ resources: VPC, subnet, service account without project IAM/scopes, reserved IPv
 IAP22 firewall, private-egress deny, default-egress deny and one Shielded
 `e2-standard-2` (2vCPU/8GiB) with40GiB auto-delete standard boot disk. It creates
 no Border, DNS, provider secret, public application/model ingress or startup script.
-`network_activated=true` adds only exact IPv4/port egress to the existing Border.
-The separately reviewed Border ingress amendment must permit this member /32.
+`network_activated=true` adds exactly two rules: member egress to the selected
+Border IPv4/port, and a separate R05-owned ingress rule on the explicitly selected
+Border network, targeted only to its service account and sourced only from this
+member's reserved /32. Both rules use the same port. Existing Border rules remain
+unchanged. Activation requires the observed Border network/service-account bindings
+in the selected project; empty values are accepted only while inactive.
 
 The retained Border was observed with2GiB RAM/~1GiB available and no Docker; it
 cannot accommodate the qualified CPU profile's4,416MiB member headroom. Keep that usable deployment
@@ -41,3 +45,10 @@ iN2N42101, established from the November5 socket observation; historical R04
 OpenTofu1.13.2 and the checked-in Google8.9.0 dependency lock produced exactly
 eight creates, zero updates and zero destroys. Apply-time expiry remains an
 unresolved plan-time check and must pass at execution. This is plan evidence only.
+
+The owner selected the48-hour option after the initial December1 proposal. The
+authoritative R05 state and selected expiry remain in the private`cloud-plan-48h/`
+packet. Network activation uses that same backend/lineage and adds only the two
+firewall rules; state copies are evidence only. Full cleanup of this R05 state
+also removes its narrow ingress rule from the existing Border network, without
+removing or modifying that network or its original transport rule.
