@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../ncfed/protected_device_descriptor.dart';
 
 typedef Json = Map<String, dynamic>;
 bool _id(dynamic value) =>
@@ -256,6 +257,8 @@ class CloudOwnerClient {
   final DateTime Function() now;
   Json? session, catalog, operation, reference;
   Json? _labPrincipal;
+  Json? _devicePrincipal;
+  final Json? expectedDevicePrincipal;
   bool uncertain = false;
   bool notSubmitted = false;
   bool _verified = false, _busy = false;
@@ -267,16 +270,27 @@ class CloudOwnerClient {
     CloudOwnerStore? store,
     OwnerTransport? transport,
     DateTime Function()? now,
+    this.expectedDevicePrincipal,
   }) : store = store ?? CloudOwnerStore(),
        transport = transport ?? HttpsOwnerTransport(),
        now = now ?? DateTime.now;
   bool get busy => _busy;
   bool get identityVerified => _verified;
   bool get openLab => _verified && _labPrincipal != null;
-  bool get operationsReady => openLab || authenticated;
-  Json? get principal => openLab ? _labPrincipal : session?['principal'];
+  bool get deviceKey => _verified && _devicePrincipal != null;
+  bool get _tokenless => openLab || deviceKey;
+  bool get operationsReady => _tokenless || authenticated;
+  Json? get principal => deviceKey
+      ? _devicePrincipal
+      : openLab
+      ? _labPrincipal
+      : session?['principal'];
 
-  static Json? _runtimePrincipal(Json runtime, {String? installationId}) {
+  static Json? _runtimePrincipal(
+    Json runtime, {
+    String? installationId,
+    Json? expectedDevicePrincipal,
+  }) {
     final capabilities = runtime['capabilities'], access = runtime['access'];
     if (!_uuid(runtime['installationId']) ||
         installationId != null && runtime['installationId'] != installationId ||
@@ -288,6 +302,16 @@ class CloudOwnerClient {
           'protectedProduction',
         ].any((key) => capabilities[key] != true)) {
       throw const CloudOwnerError('identity_changed');
+    }
+    if (expectedDevicePrincipal != null) {
+      if (!validDevicePrincipal(expectedDevicePrincipal) ||
+          access is! Json ||
+          access['mode'] != 'device-key' ||
+          !validDevicePrincipal(access['principal']) ||
+          !_samePrincipal(access['principal'], expectedDevicePrincipal)) {
+        throw const CloudOwnerError('identity_changed');
+      }
+      return Map<String, dynamic>.from(access['principal']);
     }
     // Absent access is the existing protected owner-session contract. Never
     // infer lab access from a failed authentication response or unknown mode.
@@ -350,10 +374,10 @@ class CloudOwnerClient {
         headers['X-NetClaw-Owner-Bootstrap'] = '1';
       } else {
         _requireAccess();
-        if (!openLab) headers['X-NetClaw-CSRF'] = _csrf!;
+        if (!_tokenless) headers['X-NetClaw-CSRF'] = _csrf!;
       }
     }
-    if (!openLab && !discovery && !bootstrap && _cookie != null) {
+    if (!_tokenless && !discovery && !bootstrap && _cookie != null) {
       headers['Cookie'] = '$_cookieName=$_cookie';
     }
     final result = await transport.send(
@@ -366,9 +390,10 @@ class CloudOwnerClient {
     if (result.status < 200 || result.status >= 300) {
       if (result.status == 401 ||
           result.body['code'] == 'installation_changed') {
-        if (openLab) {
+        if (_tokenless) {
           _verified = false;
           _labPrincipal = null;
+          _devicePrincipal = null;
           catalog = null;
           operation = null;
           uncertain = reference != null;
@@ -419,6 +444,7 @@ class CloudOwnerClient {
     final generation = _generation;
     _verified = false;
     _labPrincipal = null;
+    _devicePrincipal = null;
     session = null;
     _csrf = null;
     _cookie = null;
@@ -430,14 +456,20 @@ class CloudOwnerClient {
     notSubmitted = reference?['not_submitted'] == true;
     uncertain = reference != null && !notSubmitted;
     final runtime = (await _request('/api/runtime', discovery: true)).body;
-    _labPrincipal = _runtimePrincipal(
+    final accessPrincipal = _runtimePrincipal(
       runtime,
       installationId: profile.installationId,
+      expectedDevicePrincipal: expectedDevicePrincipal,
     );
+    if (expectedDevicePrincipal == null) {
+      _labPrincipal = accessPrincipal;
+    } else {
+      _devicePrincipal = accessPrincipal;
+    }
     _verified = true;
     await store.saveProfile(profile);
     _current(generation);
-    if (openLab) {
+    if (_tokenless) {
       await _loadOwned();
       return;
     }
@@ -460,6 +492,7 @@ class CloudOwnerClient {
     _generation++;
     _verified = false;
     _labPrincipal = null;
+    _devicePrincipal = null;
     session = null;
     _csrf = null;
     _cookie = null;
@@ -471,7 +504,10 @@ class CloudOwnerClient {
 
   Future<void> login(String ticket) => _exclusive(() async {
     final generation = _generation;
-    if (!_verified || openLab || !_token(ticket)) {
+    if (!_verified ||
+        _tokenless ||
+        expectedDevicePrincipal != null ||
+        !_token(ticket)) {
       throw const CloudOwnerError('session_required');
     }
     final response = await _request(
@@ -501,7 +537,7 @@ class CloudOwnerClient {
   });
 
   Future<void> logout() => _exclusive(() async {
-    if (openLab) {
+    if (_tokenless) {
       suspend();
       return;
     }

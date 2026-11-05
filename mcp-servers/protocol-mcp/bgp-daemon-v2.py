@@ -233,6 +233,22 @@ async def handle_n2n(method, path, body):
     parts = path.strip("/").split("/")  # e.g. ["n2n","peers","as65007-7.7.7.7","inventory"]
 
     try:
+        # A narrow native Mobile issuer, never a public general daemon proxy.
+        if path == '/n2n/mobile/enrollment' or path.startswith('/n2n/mobile/enrollment/'):
+            from bgp.federation.protected_contract import ProtectedError
+            try:
+                if path == '/n2n/mobile/enrollment' and method == 'GET':
+                    return 200, fed.mobile_enrollment.info(body)
+                if path == '/n2n/mobile/enrollment' and method == 'POST':
+                    if fed.protected_enabled:
+                        return 403, {'code': 'protected_bridge_required'}
+                    return 200, fed.mobile_enrollment.issue(body)
+                nonce = path.removeprefix('/n2n/mobile/enrollment/')
+                if method == 'GET' and '/' not in nonce:
+                    return 200, fed.mobile_enrollment.status(dict(body, client_nonce=nonce))
+                return 404, {'code': 'mobile_route_unavailable'}
+            except ProtectedError as exc:
+                return exc.status, {'code': exc.code}
         if method == "GET" and path == "/n2n/status":
             peers = []
             for p in mgr.list_peers():
@@ -1111,11 +1127,30 @@ async def _start_edge(fed):
             return
         import websockets
         from bgp.federation import tls as _tls
-        cert_pem, key_pem = fed.host_credential()
-        ctx = _tls.server_context(cert_pem, key_pem)
+        protected = fed.protected_enabled
+        public_origin = os.environ.get('NETCLAW_MOBILE_ORIGIN', '')
+        if protected:
+            from urllib.parse import urlsplit
+            origin = urlsplit(public_origin)
+            if origin.scheme != 'https' or public_origin != 'https://' + origin.netloc or not origin.hostname or origin.username or origin.password:
+                raise ValueError('protected Mobile origin is required')
+            # TLS terminates at the reviewed exact-path proxy. This socket is
+            # never public and carries no daemon/admin handler.
+            ctx, bind_host = None, '127.0.0.1'
+        else:
+            cert_pem, key_pem = fed.host_credential()
+            bind_host = os.environ.get('N2N_EDGE_WS_HOST', '0.0.0.0')
+            if bind_host not in ('0.0.0.0', '127.0.0.1', '::1'):
+                raise ValueError('unsupported Mobile listener host')
+            ctx = _tls.server_context(cert_pem, key_pem)
 
         async def _on_ws(ws):
             try:
+                if protected:
+                    from bgp.federation.mobile_enrollment import protected_ws_request_allowed
+                    if not protected_ws_request_allowed(ws, public_origin):
+                        await ws.close(code=1008, reason='Mobile ingress refused')
+                        return
                 await fed.accept_edge_ws(ws)
             except Exception as e:
                 logger.warning("Edge WS accept failed: %s", e)
@@ -1143,16 +1178,17 @@ async def _start_edge(fed):
         # Aligned to the protocol constant so transport and protocol agree.
         from bgp.constants import NCFED_MAX_MESSAGE
         server = await websockets.serve(
-            _on_ws, "0.0.0.0", port, ssl=ctx,
+            _on_ws, bind_host, port, ssl=ctx,
             ping_interval=EDGE_WS_PING_INTERVAL,
             ping_timeout=EDGE_WS_PING_TIMEOUT,
-            max_size=NCFED_MAX_MESSAGE,
+            max_size=80 * 1024 if protected else NCFED_MAX_MESSAGE,
         )
         fed._edge_server = server  # keep a ref
-        _status("listening", port=port,
-                domain=os.environ.get("N2N_CLAW_DOMAIN") or None)
-        logger.info("Edge (NetClaw Mobile) WS listener on 0.0.0.0:%d (risk=%s)",
-                   port, fed.risk.get_risk().get("risk_name"))
+        _status("listening", port=port, host=bind_host,
+                domain=origin.hostname if protected else os.environ.get("N2N_CLAW_DOMAIN") or None,
+                **({'path': '/mobile/ws', 'public_origin': public_origin} if protected else {}))
+        logger.info("Edge (NetClaw Mobile) WS listener on %s:%d (risk=%s)",
+                   bind_host, port, fed.risk.get_risk().get("risk_name"))
     except ModuleNotFoundError as e:
         # The single most likely first-install failure, and the one whose
         # surface error is most misleading. `websockets` is declared in

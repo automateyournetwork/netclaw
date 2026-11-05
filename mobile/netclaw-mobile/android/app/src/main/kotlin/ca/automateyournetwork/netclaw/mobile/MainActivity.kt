@@ -38,6 +38,14 @@ class MainActivity : FlutterFragmentActivity() {
                     val alias = call.argument<String>("alias") ?: "ncfed_edge_identity"
                     when (call.method) {
                         "ensureKeyPair" -> result.success(ensureKeyPair(alias))
+                        "publicKeyFingerprint" -> {
+                            ensureKeyPair(alias)
+                            val ks = KeyStore.getInstance(KEYSTORE_PROVIDER)
+                            ks.load(null)
+                            val digest = java.security.MessageDigest.getInstance("SHA-256")
+                                .digest(ks.getCertificate(alias).publicKey.encoded)
+                            result.success(digest.joinToString("") { "%02x".format(it.toInt() and 0xff) })
+                        }
                         "sign" -> {
                             val data = call.argument<ByteArray>("data")
                             if (data == null) {

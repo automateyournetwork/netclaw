@@ -177,6 +177,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Private SQLite/GAIT and immutable profiles; external0700 state/evidence and0600 secrets; bounded browser identifiers only. (173-gcp-cloud-member)
 - existing TypeScript5.9/Node24.19; Dart/Flutter current project toolchain; Python3.12 federation. + VS Code APIs, Node HTTPS, existing Flutter HTTP and secure storage, existing Express owner service. (174-cloud-client-integration)
 - non-secret profile/reference state, native secure sessions, memory-only CSRF/tickets. (174-cloud-client-integration)
+- Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 and Swift under installed Xcode27.2. + existing SQLite, qrcode, WebSocket/TLS/P256, Express, VS Code APIs, Flutter secure storage/mobile_scanner. No new server/framework or hosted QR service. (175-cloud-mobile-enrollment)
+- additive private enrollment issuance records and existing private federation authority; device secure storage for keys/pending identity/references; QR matrix only in transient UI memory. (175-cloud-mobile-enrollment)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -575,3 +577,76 @@ this integration/publication task. R04b cloud HUD Mobile QR enrollment is the
 recommended next scoped feature, followed by R05. No new user-authentication scheme
 belongs in either client correction; users/SSO/RBAC stay R15–R17. See
 specs/174-cloud-client-integration/release-verification.md for actual release evidence.
+
+### R04b kickoff and client scope — 2026-11-04
+
+Owner said “04b time”, then explicitly required easy QR generation directly in
+local and GCP/cloud HUD, the same enrollment generation in VS Code Mobile, and
+actual simulated/virtual iPhone verification. Spec175 covers the existing scanner,
+device keys, scoped one-use QR, trusted WSS, protected operations and recovery.
+Use coordinator and separate backend/surfaces/Mobile worktrees. Keep the owner's
+usable pilot, existing authorities and December1 lifetime; clean only disposable
+test resources. No new user login/SSO, later roadmap stage or publication is implied.
+Native simulator image decode/key fixtures must stay distinct from physical camera
+and SecureEnclave qualification. See specs/175-cloud-mobile-enrollment/.
+
+### R04b completion boundary — 2026-11-05
+
+The owner explicitly requested: “get this to 100% and full stop before proceeding
+to R05.” Complete Spec175 implementation, actual local/cloud HUD and VS Code QR
+enrollment, native simulator operation/recovery verification, evidence and cleanup.
+Then stop. Do not start R05 or another spec. This is execution direction for the
+current stage; it does not pre-certify unobserved tests or authorize publication.
+
+
+### R04b native qualification checkpoint — 2026-11-05
+
+All four actual local/cloud HUD and VS Code QR paths passed on the owned iPhone
+simulator, including retained-key reconnect and production navigation. Native
+binding/scope refusals and cold/background recovery passed. The private1.6.0
+extension is installed, with settings/profiles/other extensions preserved; no
+Marketplace publication. The exact installed artifact passed actual Overview and
+Mobile checks with a cloned existing cloud profile. Original editor/terminal
+remained untouched; macOS accessibility was unavailable.
+
+The reviewed pilot/member update is settled and preserved authority/history.
+One native approved prefix1 read returned signedFAILED native_netbox_http_403,
+with durable ACK and exactly1 provider/1 MCP/1 HTTP request. Recovery repeated no
+effect. The unchanged Nov4 demo token likely expired across the nightly reset;
+exact403 cause is unproven. A current authorized read-only token is required for
+successful-read acceptance. An async request for its private local file path is
+pending. Do not create external tokens or replay the failed operation. Use a
+separate reviewed reference and new evidence directory after a valid credential
+is supplied. Spec175 is not100% or human accepted; see its resume.md.
+
+Owned disposable services/editors/simulator are stopped. The failed attempt's3
+containers and1 network were removed after verified export; original101 containers,
+50 networks, all operation records and source evidence remain. The usable pilot
+and member retain December1scope. All deployment/cleanup claims are spent; no DB
+restore or replay. Full stop beforeR05 remains in force.
+
+
+### R04b acceptance and scoped release authorization — 2026-11-05
+
+The owner supplied a replacement private read-only credential and then explicitly
+requested packaging, commit/PR/merge, a source patch release, VS Code publication,
+changed Mobile app release, release notes, a safe QR screenshot, a short maintainer
+note, a draft in sibling modern_website, and return to main. This accepts the
+completed R04b scope and supersedes prior publication/version holds for Mobile QR
+enrollment only. Source1.18.6, extension1.6.1 and Mobile1.0.4+7 are selected; actual
+publication outcomes belong in Spec175 release-verification.md. Website deployment
+and external announcements are not requested. Broader cloud rollout remains held.
+
+The separately reviewed new native operation9902abf3 succeeded with a signed
+NetBox prefix10.112.0.0/15 result and durable ACK. Cold launch and actual background/
+resume preserved the same key/reference/result with no repeated effects: exactly
+2 provider calls,2 inferences,1 native MCP call,1 HTTP request and1 attempt. The
+three historical operations, including the earlier403, remain unchanged. Private
+success-verification-20261105 evidence is separate from the failed-operation trail.
+
+Root independently reviewed cleanup packet2bb60849 after a verified411-file
+export; only the new operation's3stopped containers and1empty internal network
+were removed. Baseline101containers/50networks, all4operation rows and source
+evidence are preserved. The owned simulator is shut down with profiles retained.
+The usable pilot/member keep their existing December1scope. Full stop before R05
+remains explicit; neither release nor acceptance starts another spec.

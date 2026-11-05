@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import http from 'node:http';
 
-const METHODS = new Set(['owner.login', 'owner.session', 'owner.logout', 'catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke']);
+const METHODS = new Set(['owner.login', 'owner.session', 'owner.logout', 'catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke', 'mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status']);
 export class ProtectedError extends Error {
   constructor(code = 'unavailable', status = 503) { super(code); this.code = code; this.status = status; }
 }

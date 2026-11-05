@@ -14,6 +14,21 @@ top of both: Border-triggered approvals resolved on the phone with device
 biometrics (Face ID/fingerprint), and camera/mic capture in either direction
 (attach a photo to your own request, or let the Border request one from you).
 
+## QR enrollment — 1.0.4 (build 7)
+
+Generate a single-use QR from **HUD → Mobile → Generate QR code** or
+**VS Code → Mobile & edge → Generate QR code**, then use **Scan Border QR Code**
+on the phone. The code carries the connection binding; no CLI token command is
+needed for this flow. Keep the same pending device identity if the reply is lost,
+and reconnect with the retained key after enrollment.
+
+Requires a compatible source 1.18.6 enrollment backend; VS Code uses extension
+1.6.1. App Store distribution has its own processing/review lifecycle. See the
+[enrollment guide](../../docs/MOBILE-ENROLLMENT.md) and
+[release status and evidence](../../specs/175-cloud-mobile-enrollment/release-verification.md).
+Native iPhone simulator qualification exercises real generated QR images and
+production UI/protocol; physical camera and Secure Enclave remain unqualified.
+
 ## Hermes Border — 1.0.3 (build 6)
 
 This is the minimum app version for durable Hermes admission recovery and explicit
@@ -77,7 +92,7 @@ ios/Runner/X509SelfSigned.swift                    # manual self-signed cert bui
 
 1. On the Border, set `N2N_CLAW_DOMAIN` and `N2N_EDGE_WS_PORT` in `.env` and restart
    the daemon (`mcp-servers/protocol-mcp/bgp-daemon-v2.py`).
-2. Issue a QR: `netclaw risk token --edge [label]`.
+2. Open **Mobile → Generate QR code** in the compatible HUD, or **Mobile & edge → Generate QR code** in VS Code. The advanced CLI alternative remains `netclaw risk token --edge [label]`.
 3. `flutter pub get`, then `flutter run` (Android) to launch the app and scan it.
    No usable camera (emulator, Simulator)? Tap **"Can't scan? Enter manually"** on
    the enrollment screen and type the domain, port, and token instead — it

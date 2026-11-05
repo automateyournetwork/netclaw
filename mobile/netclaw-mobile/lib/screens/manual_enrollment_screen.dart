@@ -6,6 +6,7 @@ import '../ncfed/edge_client.dart';
 import '../ncfed/edge_identity.dart';
 import '../ncfed/enrollment_flow.dart';
 import '../ncfed/enrollment_qr_payload.dart';
+import '../ncfed/enrollment_store.dart';
 
 /// Builds the exact same JSON shape a scanned QR would decode to — pulled
 /// out so the form's actual behavior is testable without a real network
@@ -36,6 +37,7 @@ String buildManualEnrollmentQr({
 class ManualEnrollmentScreen extends StatefulWidget {
   final String memberId;
   final EdgeIdentity identity;
+  final EnrollmentStore? store;
   final void Function(EdgeClient client, EnrollmentQrPayload payload) onEnrolled;
 
   const ManualEnrollmentScreen({
@@ -43,6 +45,7 @@ class ManualEnrollmentScreen extends StatefulWidget {
     required this.memberId,
     required this.onEnrolled,
     this.identity = const EdgeIdentity(),
+    this.store,
   });
 
   @override
@@ -90,7 +93,9 @@ class _ManualEnrollmentScreenState extends State<ManualEnrollmentScreen> {
       memberId: widget.memberId,
       identity: widget.identity,
       displayName: _nameController.text,
+      store: widget.store,
     );
+    if (!mounted) return;
     switch (outcome) {
       case EnrollmentSuccess(client: final client, payload: final payload):
         widget.onEnrolled(client, payload);

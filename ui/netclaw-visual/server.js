@@ -1,3 +1,4 @@
+import { mountMobileEnrollment, createLocalEnrollmentClient } from './src/hud-server/mobile-enrollment.js';
 import { resolveRemoteHudBackend, remoteHudBackendBoundary } from './src/hud-server/remote-hud.js';
 import { OpenLabBindings } from './src/hud-server/open-lab-bindings.js';
 import { convergenceEnabled, createConvergenceReader, mountConvergence } from './src/hud-server/convergence.js';
@@ -117,6 +118,10 @@ if (openLabWorkspace) app.use(remoteHudBackendBoundary(openLabWorkspace, install
 const protectedEnvironment = { ...parseEnvData(readText(installation.envPath) || ''), ...process.env };
 const protectedProfile = !openLabWorkspace && protectedEnvironment.N2N_PROTECTED_OPERATIONS === '1';
 const protectedOperations = mountProtectedOperations(app, { installation, config: openLabWorkspace ? { enabled: false } : protectedHudConfig(protectedEnvironment) });
+const mobileEnrollment = mountMobileEnrollment(app, { installation,
+  client: createLocalEnrollmentClient(installation, () => federationEndpoint({...parseEnvFile(),...process.env})),
+  config: { enabled: !openLabWorkspace && !protectedProfile, reason: protectedProfile ? 'owner_issuance_unqualified' : 'enrollment_unavailable',
+    origins: [ports.api, ports.ui].flatMap(port => ['127.0.0.1','localhost','[::1]'].flatMap(host => ['http:','https:'].map(scheme => `${scheme}//${host}:${port}`))) } });
 app.use(protectedLegacyBoundary(protectedProfile));
 const TERMINAL_ENRICHMENT_FILE = path.join(installation.home, 'netclaw-terminal-enrichment.json');
 function loadTerminalAliases() {
@@ -165,7 +170,7 @@ app.get('/api/runtime', async (_req, res) => {
   let readiness = { ready: false, code: 'runtime_stopped' };
   if (hermesRuntime) { try { readiness = await hermesRuntime.call('status'); } catch(error) {readiness.code=error.code || 'runtime_unavailable';} }
   else readiness = { ready: fs.existsSync(installation.configPath), executionVerified: false };
-  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { protectedOperations: protectedOperations.enabled, convergence: convergenceEnabled({ ...parseEnvFile(), ...process.env }), attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
+  res.set('Cache-Control', 'no-store').json({ kind: installation.kind, installationId: installation.installationId, label: installation.kind === 'hermes' ? 'Hermes' : 'OpenClaw', readiness, capabilities: { mobileEnrollment: {schema:1}, protectedOperations: protectedOperations.enabled, convergence: convergenceEnabled({ ...parseEnvFile(), ...process.env }), attachments: !hermesRuntime, modelSelection: !hermesRuntime, effort: !hermesRuntime, federation: !hermesRuntime || (await federationReadiness(installation,BGP_API)).ready, hostedAvatar: !hermesRuntime, writes: !hermesRuntime } });
 });
 app.get('/api/hud/management', async (req, res) => {
   try { hudBindings.read(cookieFrom(req)); } catch { return res.status(401).json({error:'An owned HUD session is required.'}); }

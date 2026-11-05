@@ -109,3 +109,5 @@
 .convergence-coverage { border-left:3px solid currentColor; padding:.5rem 1rem; margin:1rem 0; }
 .convergence-evidence { border-top:1px solid currentColor; margin-top:1.5rem; padding-top:1rem; }
 .convergence-view td { overflow-wrap:anywhere; }
+
+.mobile-enrollment{margin-bottom:24px}.mobile-enrollment>p{margin:12px 0}.mobile-destination{overflow-wrap:anywhere}.mobile-qr{display:flex;flex-direction:column;align-items:center;gap:12px;margin:22px 0}.mobile-qr canvas{max-width:100%;height:auto;image-rendering:pixelated;background:#fff;border:1px solid #fff}.mobile-enrollment .section-heading{flex-wrap:wrap;gap:16px}

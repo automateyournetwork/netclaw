@@ -176,6 +176,8 @@ class FederationService:
         from .risk import RiskManager
         from .router import RiskRouter
         self.risk = RiskManager(self.manager)
+        from .mobile_enrollment import MobileEnrollment
+        self.mobile_enrollment = MobileEnrollment(self)
         self.router = RiskRouter(self.risk)
         self.member_channels: Dict[str, object] = {}   # border side: member_id -> InternalChannel
         # feature 066: border side, node_type='edge' members (phones) — a
@@ -261,7 +263,14 @@ class FederationService:
             "n2n/edge/approvals_list": self._edge_on_approvals_list,
         }
         if self.protected_enabled:
-            self._edge_border_handlers['n2n/edge/ask'] = self._protected_legacy_refusal
+            # No legacy tasks, approval, capture, push or background capability
+            # becomes reachable just because an enrolled device has a socket.
+            self._edge_border_handlers = {name: handler if name in ('in2n/enroll', 'in2n/hello')
+                                         else self._protected_legacy_refusal
+                                         for name, handler in self._edge_border_handlers.items()}
+            from .mobile_enrollment import MOBILE_METHODS
+            for method in MOBILE_METHODS:
+                self._edge_border_handlers[method] = self._edge_protected_handler(method.rsplit('/', 1)[1])
             for name in ('handle_tools_call', 'handle_task_submit', 'handle_knowledge_query',
                          'handle_replicate_manifest', 'handle_replicate_batch'):
                 setattr(self.invoker, name, self._protected_legacy_refusal)
@@ -1662,7 +1671,9 @@ class FederationService:
         health-monitoring guarantee for a member that never runs a skill
         (D5/T010)."""
         member=self.risk.get_member(member_id)
-        if member:ch.owner_generation=member['key_fingerprint']
+        if member:
+            ch.owner_generation = member['key_fingerprint']
+            ch.enrollment_generation = member['enrollment_generation']
         def _deregister(closed_ch):
             if self.edge_channels.get(member_id) is closed_ch:
                 self.edge_channels.pop(member_id, None)
@@ -1671,7 +1682,8 @@ class FederationService:
         ch.on_close = _deregister
         self.edge_channels[member_id] = ch
         asyncio.create_task(self._edge_heartbeat_loop(member_id, ch))
-        asyncio.create_task(self._flush_edge_queue(member_id, ch))
+        if not self.protected_enabled:
+            asyncio.create_task(self._flush_edge_queue(member_id, ch))
 
     async def _flush_edge_queue(self, member_id: str, ch):
         """Replay anything that piled up while this device was unreachable.
@@ -1822,7 +1834,7 @@ class FederationService:
         from .edge import EdgeChannel
         nonce = secrets.token_bytes(IN2N_NONCE_SIZE)
         ch = EdgeChannel(ws, local_identity=self.local_identity,
-                         handlers=self._edge_border_handlers)
+                         handlers=self._edge_border_handlers, strict_messages=self.protected_enabled)
         ch.nonce = nonce
         await ch.notify("n2n/edge/challenge", {"nonce": nonce.hex()})
         await ch.start()
@@ -1839,7 +1851,27 @@ class FederationService:
         from .edge import RpcError
         if not self.risk.is_border():
             raise RpcError(_ERR_NOT_A_BORDER, "this claw is not a Border")
+        if channel.trusted:
+            raise RpcError(_ERR_NOT_TRUSTED, "edge channel already authenticated")
+        expected_installation = params.get('installation_id')
+        if ((self.protected_enabled or expected_installation is not None)
+                and expected_installation != self.runtime.installation):
+            raise RpcError(_ERR_NOT_TRUSTED, 'installation changed')
         token = params.get("token", "")
+        import hashlib
+        from .mobile_enrollment import endpoint
+        from .protected_contract import ProtectedError
+        offer = self.manager._conn.execute(
+            'SELECT * FROM mobile_enrollment_offer WHERE token_hash=?',
+            (hashlib.sha256(token.encode()).hexdigest(),)).fetchone() if isinstance(token, str) else None
+        if self.protected_enabled and offer is None:
+            raise RpcError(_ERR_NOT_TRUSTED, 'scoped device offer required')
+        if offer is not None:
+            try:
+                if json.loads(offer['endpoint_json']) != endpoint(self):
+                    raise RpcError(_ERR_NOT_TRUSTED, 'device endpoint changed')
+            except ProtectedError:
+                raise RpcError(_ERR_NOT_TRUSTED, 'device endpoint unavailable') from None
         member_id = params.get("member_id", "")
         cert_pem = params.get("cert_pem", "")
         signature = bytes.fromhex(params.get("signature", "") or "")
@@ -1852,7 +1884,7 @@ class FederationService:
                 runtime_kind=params.get("runtime_kind", "mobile"),
                 display_name=params.get("display_name"),
                 transport_binding="edge-ws",
-                node_type="edge")
+                node_type="edge", installation_id=expected_installation)
         except ValueError as e:
             from ..constants import IN2N_ERR_ENROLL_TOKEN_INVALID, IN2N_ERR_MEMBER_ID_TAKEN
             msg = str(e)
@@ -1862,7 +1894,13 @@ class FederationService:
                 code = IN2N_ERR_MEMBER_ID_TAKEN
             else:
                 code = IN2N_ERR_ENROLL_TOKEN_INVALID
-            raise RpcError(code, msg)
+            # consume_token has rolled back. Only absence of this exact member
+            # proves no enrollment; a retained row (even removed) remains unknown.
+            data = None
+            if self.risk.get_member(member_id) is None:
+                data = {'admission': 'not_enrolled', 'code': 'enrollment_refused', 'status': 400,
+                        'member_id': member_id, 'key_fingerprint': self.risk.fingerprint_of(cert_pem)}
+            raise RpcError(code, msg, data)
         channel.member_id = member_id
         channel.peer_identity = member_id
         channel.trusted = True
@@ -1873,19 +1911,27 @@ class FederationService:
                           decision="enrolled", outcome="success", channel_kind="in2n")
         logger.info("Edge node %s enrolled + active — confirm fingerprint out of band: %s",
                    member_id, res.get("enroll_fingerprint"))
-        return {**res,'border':self._edge_border_capabilities()}
+        return {**res,'border':self._edge_border_capabilities(channel)}
 
-    def _edge_border_capabilities(self):
+    def _edge_border_capabilities(self, channel=None):
         if self.protected_enabled:
             # Edge enrollment never grants the separate HTTPS owner authority.
             # The protected profile refuses legacy Ask; do not advertise it.
-            return {'harness': self.inventory._harness_card(), 'model': None,
-                    'capabilities': {'text': False, 'voice_text': False,
-                                     'attachments': False, 'task_outcomes_v1': False,
-                                     'request_recovery': False},
+            capabilities = {'text': False, 'voice_text': False, 'attachments': False,
+                            'task_outcomes_v1': False, 'request_recovery': False}
+            if channel is not None:
+                from .protected_device import DeviceAuthority
+                from .mobile_enrollment import endpoint, https_origin, MOBILE_METHODS
+                capabilities['protected_operations'] = {
+                    'schema': 1, 'installation_id': self.runtime.installation,
+                    'origin': https_origin(endpoint(self)), 'methods': list(MOBILE_METHODS),
+                    'principal': DeviceAuthority(self, channel).principal()}
+            return {'installation_id': self.runtime.installation,
+                    'harness': self.inventory._harness_card(), 'model': None,
+                    'capabilities': capabilities,
                     'qualified_targets': [], 'minimum_mobile_version': None}
         from .member_inventory import _name
-        return {'harness':self.inventory._harness_card(),'model':_name(self.inventory._local_primary_model()),
+        return {'installation_id': self.runtime.installation, 'harness':self.inventory._harness_card(),'model':_name(self.inventory._local_primary_model()),
                 'capabilities':{'text':True,'voice_text':True,'attachments':self.runtime.kind!='hermes',
                     'task_outcomes_v1':True,'request_recovery':True},
                 'qualified_targets':['subnet-calculator'] if self.runtime.kind=='hermes' else None,
@@ -1900,10 +1946,18 @@ class FederationService:
         otherwise reach, FR-012)."""
         from .internal_channel import _ERR_NOT_TRUSTED
         from .edge import RpcError
+        if channel.trusted:
+            raise RpcError(_ERR_NOT_TRUSTED, "edge channel already authenticated")
+        expected_installation = params.get('installation_id')
+        if ((self.protected_enabled or expected_installation is not None)
+                and expected_installation != self.runtime.installation):
+            raise RpcError(_ERR_NOT_TRUSTED, 'installation changed')
         member_id = params.get("member_id", "")
         fingerprint = params.get("key_fingerprint", "")
         signature = bytes.fromhex(params.get("signature", "") or "")
         mem = self.risk.get_member(member_id)
+        if self.protected_enabled and mem and mem.get('installation_id') != self.runtime.installation:
+            raise RpcError(_ERR_NOT_TRUSTED, 'device installation changed')
         if not mem or not mem.get("pinned_key") or mem.get("node_type") != "edge":
             raise RpcError(_ERR_NOT_TRUSTED, "unknown or unpinned edge node")
         ok = (mem["key_fingerprint"] == fingerprint
@@ -1934,7 +1988,35 @@ class FederationService:
                     member_id, self._edge_channel_source(channel),
                     self.edge_queue.depth(member_id))
         return {"risk": self.risk.get_risk().get("risk_name"), "trusted": True,
-               "member_state": "active",'border':self._edge_border_capabilities()}
+               "member_state": "active",'border':self._edge_border_capabilities(channel)}
+
+    def _edge_protected_handler(self, action):
+        async def handle(channel, params):
+            from .protected_contract import ProtectedError, exact, require
+            from .protected_device import DeviceAuthority
+            from .edge import RpcError as EdgeRpcError
+            forwarded = False
+            try:
+                fields = {'catalog': '', 'prepare': 'client_nonce catalog_revision member_id model_profile_id tool arguments',
+                          'decision': 'operation_id revision review_digest decision', 'reconcile': 'operation_id',
+                          'status': 'operation_id' if isinstance(params, dict) and 'operation_id' in params else 'client_nonce'}
+                exact(params, 'installation_id' + (' ' + fields[action] if fields[action] else ''))
+                require(params['installation_id'] == self.runtime.installation, 'installation_changed', 409)
+                authority = DeviceAuthority(self, channel)
+                args = {key: value for key, value in params.items() if key != 'installation_id'}
+                # A caller cannot forge the native authority through JSON. The
+                # existing service rechecks this same channel after every await.
+                forwarded = True
+                result = await getattr(self.protected_operations, action)(dict(args, auth_context=authority))
+                if isinstance(result, dict) and 'allowed_actions' in result:
+                    result = dict(result, allowed_actions=[a for a in result['allowed_actions'] if a != 'revoke'])
+                return result
+            except ProtectedError as exc:
+                data = {'code': exc.code, 'status': exc.status}
+                if action == 'prepare' and not forwarded:
+                    data['admission'] = 'not_submitted'
+                raise EdgeRpcError(-32000, 'Protected device request refused', data) from None
+        return handle
 
     @staticmethod
     def _edge_channel_source(channel) -> Optional[str]:

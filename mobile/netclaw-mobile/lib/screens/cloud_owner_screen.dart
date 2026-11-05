@@ -9,11 +9,17 @@ class CloudOwnerScreen extends StatefulWidget {
   final CloudOwnerStore? store;
   final OwnerTransport? transport;
   final CloudOwnerClient? initialClient;
+  final bool deviceMode;
+  final Future<void> Function()? beforeResume;
+  final VoidCallback? onSuspend;
   const CloudOwnerScreen({
     super.key,
     this.store,
     this.transport,
     this.initialClient,
+    this.deviceMode = false,
+    this.beforeResume,
+    this.onSuspend,
   });
   @override
   State<CloudOwnerScreen> createState() => _CloudOwnerScreenState();
@@ -57,6 +63,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state != AppLifecycleState.resumed) {
       _client?.suspend();
+      widget.onSuspend?.call();
       _ticket.clear();
       if (mounted) {
         setState(() {
@@ -75,6 +82,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
     // Wait for an interrupted native request to release its lock. No mutation is
     // replayed; resume only verifies identity/session and reads the same reference.
     try {
+      await widget.beforeResume?.call();
       await client.resume();
       if (mounted && identical(client, _client)) {
         setState(() {
@@ -185,17 +193,29 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
     final models = (member?['model_profiles'] as List?) ?? [],
         tools = (member?['tools'] as List?) ?? [];
     return Scaffold(
-      appBar: AppBar(title: const Text('Cloud Border owner')),
+      appBar: AppBar(
+        title: Text(
+          widget.deviceMode ? 'Mobile operations' : 'Cloud Border owner',
+        ),
+      ),
       body: _covered
-          ? const Center(child: Text('Cloud session covered'))
+          ? Center(
+              child: Text(
+                widget.deviceMode
+                    ? 'Device operations covered'
+                    : 'Cloud session covered',
+              ),
+            )
           : SafeArea(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    const Text(
-                      'Protected read-only operations. Enrolled Chat, voice, camera, watch and local service controls belong to your separate edge profile.',
+                    Text(
+                      widget.deviceMode
+                          ? 'Enrolled with your device key. This Border supports reviewed read-only operations. Chat, voice, capture, watch and background tasks are unavailable on this connection.'
+                          : 'Protected read-only operations. Enrolled Chat, voice, camera, watch and local service controls belong to your separate edge profile.',
                     ),
                     const SizedBox(height: 16),
                     if (_busy) const LinearProgressIndicator(),
@@ -210,7 +230,12 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                           ),
                         ),
                       ),
-                    if (client == null || !client.identityVerified) ...[
+                    if (widget.deviceMode &&
+                        client != null &&
+                        !client.identityVerified)
+                      _button('Reconnect device', () => _resume(client)),
+                    if (!widget.deviceMode &&
+                        (client == null || !client.identityVerified)) ...[
                       if (_profiles.isNotEmpty)
                         DropdownButtonFormField<String>(
                           decoration: const InputDecoration(
@@ -266,7 +291,9 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                         key: const ValueKey('cloud-identity'),
                       ),
                       const SizedBox(height: 12),
-                      if (!ready && client.identityVerified) ...[
+                      if (!widget.deviceMode &&
+                          !ready &&
+                          client.identityVerified) ...[
                         TextField(
                           controller: _ticket,
                           key: const ValueKey('cloud-ticket'),
@@ -286,7 +313,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                       ],
                       if (ready) ...[
                         Text(
-                          client.openLab
+                          client.openLab || client.deviceKey
                               ? 'Connected: ${client.principal!['display_name']}'
                               : 'Signed in: ${client.principal!['display_name']}',
                           key: const ValueKey('cloud-owner'),
@@ -480,22 +507,24 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                             ),
                         ],
                         if (!client.openLab)
-                          _button('Sign out', () => _run(client.logout)),
+                          if (!widget.deviceMode)
+                            _button('Sign out', () => _run(client.logout)),
                       ],
-                      TextButton(
-                        onPressed: _busy
-                            ? null
-                            : () {
-                                client.suspend();
-                                _ticket.clear();
-                                setState(() {
-                                  _client = null;
-                                  _reviewed = false;
-                                });
-                                _loadProfiles();
-                              },
-                        child: const Text('Choose cloud profile'),
-                      ),
+                      if (!widget.deviceMode)
+                        TextButton(
+                          onPressed: _busy
+                              ? null
+                              : () {
+                                  client.suspend();
+                                  _ticket.clear();
+                                  setState(() {
+                                    _client = null;
+                                    _reviewed = false;
+                                  });
+                                  _loadProfiles();
+                                },
+                          child: const Text('Choose cloud profile'),
+                        ),
                     ],
                   ],
                 ),

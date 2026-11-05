@@ -175,3 +175,17 @@ def test_duplicate_venv_site_policy_refused_even_with_fresh_manifest(selected):
     data['files']['pyvenv.cfg'] = hashlib.sha256(policy.read_bytes()).hexdigest()
     cfg['python_env_manifest_sha256'] = write(manifest, data); write(file, cfg)
     with pytest.raises(role.RoleRefused, match='system_site_packages_refused'): role.validate(file)
+
+
+def test_mobile_listener_uses_only_reviewed_port_and_derived_origin(selected, monkeypatch):
+    file, cfg = selected
+    cfg['environment']['N2N_EDGE_WS_PORT'] = '13007'; write(file, cfg)
+    monkeypatch.setenv('NETCLAW_MOBILE_ORIGIN', 'https://foreign.example')
+    monkeypatch.setenv('N2N_EDGE_WS_HOST', '0.0.0.0')
+    _, environment = role.validate(file)
+    assert environment['N2N_EDGE_WS_PORT'] == '13007'
+    assert environment['NETCLAW_MOBILE_ORIGIN'] == cfg['origin']
+    assert 'N2N_EDGE_WS_HOST' not in environment
+    cfg['environment']['N2N_EDGE_WS_HOST'] = '0.0.0.0'; write(file, cfg)
+    with pytest.raises(role.RoleRefused, match='environment_refused'):
+        role.validate(file)

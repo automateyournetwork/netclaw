@@ -10,7 +10,7 @@ const purposes: Record<string, string> = {
   overview: "Your network workbench. One connection, a clear place to begin.",
   estate: "Members, roles and risk posture reported by this federation.",
   peers: "External peers and their reported federation state.",
-  mobile: "Edge nodes and recent delivery activity.",
+  mobile: "Enroll your phone with a QR code and view connected mobile devices.",
   science: "Configured advisors and their reported roles.",
   network: "Manage configured devices in your pyATS testbed.",
   testbed: "Build your inventory. Review every change before saving.",

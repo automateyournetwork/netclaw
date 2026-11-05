@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.6.1 — Mobile QR enrollment
+
+- Open **Mobile & edge → Generate QR code** for the selected compatible installation, then scan in NetClaw Mobile. The editor uses the shared enrollment service without opening a terminal.
+- Show QR expiry, consumed state and explicit replacement; clear transient QR material on connection changes. Retain only non-secret recovery references.
+- Requires the matching enrollment backend in source 1.18.6 and Mobile 1.0.4 for the new binding/recovery flow. Existing installations are not upgraded by installing the extension.
+- Actual macOS VS Code and iPhone simulator qualification covers local and retained pilot enrollment, same-key reconnect and no-repeat signed-read recovery. Physical camera/Secure Enclave, Windows/Linux editors and Android hardware are not qualified by this evidence. [Spec175 evidence](../../specs/175-cloud-mobile-enrollment/verification.md).
+
 ## 1.6.0 — Cloud Border workspace
 
 - Connect to an existing compatible Cloud Border through **Add Connection → Cloud Border → Name → URL**. Discover and pin its installation identity over verified HTTPS; selecting the active profile keeps the connection and menus stable.

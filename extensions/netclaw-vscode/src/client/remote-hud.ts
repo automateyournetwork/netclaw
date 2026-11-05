@@ -41,6 +41,7 @@ export function remoteHudRoute(runtime: Runtime | undefined, method: string, rou
         (query.get("q") || "").length > 200 || query.has("severity") && !["all", "error", "warning", "info", "debug", "unknown"].includes(query.get("severity")!))
       throw Error("This remote HUD query is unavailable.");
   }
+  if (runtime?.capabilities?.mobileEnrollment?.schema === 1 && !route.includes('?') && ((method === 'GET' || method === 'POST') && pathname === '/api/hud/mobile/enrollment' || method === 'GET' && /^\/api\/hud\/mobile\/enrollment\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(pathname))) return;
   if (!routes.some(([feature, verb, path]) => features.has(feature) && method === verb && path.test(pathname)))
     throw Error("This cloud Border does not expose that action through its remote workspace.");
 }

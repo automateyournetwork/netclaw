@@ -2,6 +2,15 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.6] - 2026-11-05
+
+- Generate a single-use Mobile enrollment QR directly from the HUD Mobile panel or the VS Code Mobile & edge view. The ordinary onboarding path no longer requires discovering and running the CLI token command.
+- Preserve device identity through interrupted enrollment and reconnect; show expiry, consumption and explicit replacement in the issuing interface.
+- Verified actual HUD/editor QR images on an iPhone simulator, including a signed successful read and restart recovery without repeated execution.
+- Coordinated component versions: VS Code 1.6.1 and Mobile 1.0.4 (7), with independent distribution status recorded in the release evidence. Owner-requested patch release for this scoped usability update.
+
+Spec [175-cloud-mobile-enrollment](specs/175-cloud-mobile-enrollment/spec.md). See [release notes](docs/releases/1.18.6.md).
+
 ## [1.18.5] - 2026-11-04
 
 The Border stops routing skills a member cannot load (spec 174):

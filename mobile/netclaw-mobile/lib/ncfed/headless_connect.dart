@@ -15,6 +15,13 @@ class NotEnrolledError implements Exception {
   String toString() => 'NotEnrolledError: this device has no stored enrollment';
 }
 
+class ProtectedHeadlessUnavailable implements Exception {
+  const ProtectedHeadlessUnavailable();
+  @override
+  String toString() =>
+      'This enrolled Border supports foreground reviewed operations only';
+}
+
 /// The cold-connect step did not complete within [connectHeadless]'s timeout
 /// (spec 111 FR-008) — the Border is unreachable, or unresponsive.
 class ConnectTimeoutError implements Exception {
@@ -51,6 +58,9 @@ Future<EdgeClient> connectHeadless({
   final dir = directory ?? await getApplicationDocumentsDirectory();
   final stored = await EnrollmentStore(dir).load();
   if (stored == null) throw const NotEnrolledError();
+  if (stored.pending || stored.protected) {
+    throw const ProtectedHeadlessUnavailable();
+  }
   var timedOut = false;
   try {
     return await reconnect(
