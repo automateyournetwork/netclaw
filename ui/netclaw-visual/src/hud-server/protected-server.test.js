@@ -189,3 +189,28 @@ test('full lab workspace preserves identity and protected catalog while normal w
   assert.equal((await request('/api/hud/operations/catalog','GET',headers)).status,200);assert.deepEqual(calls,['catalog']);
   for(const route of ['/api/hud/session','/api/hud/owner/session','/api/n2n/chat','/api/terminal/terra'])assert.equal((await request(route,'POST',headers)).status,404);
 });
+
+for (const lab of [false, true]) test(`actual protected server admits only exact combined routes (${lab ? 'open lab' : 'owner'})`, async t => {
+  const f = await fixture(t, { lab }), route = '/api/hud/operations/combined';
+  const body = { client_nonce: 'combined-nonce', children: [4, 6].map(family => ({ family, member_id: `risk/member${family}`, profile_revision: `profile${family}`, cidr: family === 4 ? '192.0.2.0/26' : '2001:db8::/64' })) };
+  for (const [target, method, payload, expected] of [
+    [route, 'POST', body, 'combined_prepare'],
+    [route + '?client_nonce=combined-nonce', 'GET', undefined, 'combined_status'],
+    [route + '/parent1', 'GET', undefined, 'combined_status'],
+    [route + '/parent1/cancel', 'POST', {}, 'combined_cancel'],
+  ]) {
+    const before = f.calls.filter(call => !call.method.startsWith('owner.')).length;
+    const response = await f.request(target, method, payload);
+    assert.equal(response.status, 200, response.body);
+    const calls = f.calls.filter(call => !call.method.startsWith('owner.'));
+    assert.equal(calls.length, before + 1); assert.equal(calls.at(-1).method, expected);
+  }
+  const forwarded = () => f.calls.filter(call => !call.method.startsWith('owner.')).length, before = forwarded();
+  for (const target of [route + '/', route + '/parent1/', route + '/parent1/cancel/', route + '/parent1/approve', route + '/parent1/decision', route + '/%70arent1/cancel']) assert.equal((await f.request(target, 'POST', {})).status, 404, target);
+  assert.equal((await f.request(route + '/parent1', 'HEAD')).status, 405);
+  assert.equal((await f.request(route, 'POST', body, { Origin: 'https://foreign.test' })).status, 403);
+  assert.equal((await f.request(route, 'POST', body, { 'X-NetClaw-Installation': 'foreign' })).status, 409);
+  assert.equal((await f.request(route, 'POST', { ...body, auth_context: {} })).status, 400);
+  assert.equal((await f.request(route + '/parent1/cancel', 'POST', { decision: 'approve' })).status, 400);
+  assert.equal(forwarded(), before);
+});

@@ -57,8 +57,8 @@ export function createProtectedServer(config, { client = createProtectedClient(c
     if (req.method === 'HEAD' && req.path.startsWith('/api/') || !['GET', 'HEAD', 'POST', 'DELETE'].includes(req.method)) return res.status(405).json({ code: 'method_refused' });
     if (req.path.startsWith('/api/')) {
       const id = '[A-Za-z0-9_.:-]{1,200}', pathname = req.url.split('?')[0];
-      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
-        || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname))
+      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
+        || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}/cancel$`).test(pathname))
         || req.method === 'DELETE' && pathname === '/api/hud/owner/session';
       if (config.access?.mode === 'open-lab' && pathname === '/api/hud/owner/session') return res.status(404).json({ code: 'route_unavailable' });
       if (remote && remoteHudRoute(req.method, req.url, config.workspace.features) && req.method !== 'GET' && (!once(req, 'origin') || req.headers.origin !== config.origin)) return res.status(403).json({ code: 'origin_refused' });
