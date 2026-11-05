@@ -295,3 +295,20 @@ def test_signed_success_survives_sibling_unknown_lost_ack_cancel_and_restart(tmp
         assert claims_before==(pair.executor_calls,len(pair.effects),sum(m=='execution/submit' for _,m,_ in calls))==(1,1,2)
         await close(pair)
     asyncio.run(run())
+
+
+def test_single_ollama_review_uses_qualified_180s_without_changing_hosted_review(tmp_path):
+    async def run():
+        pair,entries,req,calls=setup(tmp_path)
+        catalog=await pair.border.catalog({'auth_context':pair.auth})
+        for index,entry in enumerate(entries):
+            review=await pair.border.prepare({'auth_context':pair.auth,'client_nonce':'single-'+str(index),
+                'catalog_revision':catalog['revision'],'member_id':entry['member']['member_id'],
+                'model_profile_id':entry['model_profiles'][0]['profile_id'],'tool':entry['tools'][0]['tool'],
+                'arguments':entry['tools'][0]['arguments']})
+            assert review['review']['limits']['expires_at_ms']==pair.now+180000
+        old=OperationPair(tmp_path/'historical')
+        assert (await old.prepare())['review']['limits']['expires_at_ms']==old.now+300000
+        assert not calls
+        await close(old);await close(pair)
+    asyncio.run(run())

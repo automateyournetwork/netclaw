@@ -168,7 +168,8 @@ class ProtectedOperations:
         model = next((item for item in member['model_profiles'] if item['profile_id'] == params['model_profile_id']), None)
         tool = next((item for item in member['tools'] if item['tool'] == params['tool'] and item['arguments'] == params['arguments']), None)
         require(model is not None and tool is not None, 'selection_not_supported', 403)
-        limits = dict(tool['limits'], expires_at_ms=self.now() + 300000)
+        review_ttl = 180000 if model['provider'] == 'ollama' else 300000
+        limits = dict(tool['limits'], expires_at_ms=self.now() + review_ttl)
         tool_call = {key: value for key, value in tool.items() if key != 'limits'}
         with self._owner(params['auth_context']) as principal:
             review = {'principal': principal, 'border': self.identity, 'member': member['member'],
