@@ -102,3 +102,14 @@ Wrong domain, installation or device key; expired/reused token; concurrent claim
 - Existing cloud pilot, protected member and bounded read catalog are reused after fresh observation. No new cloud resource is needed by default.
 - Local testing uses an isolated owned Border or explicitly scoped fixture, preserving existing installations. Local legacy compatibility and protected cloud behavior have separate assertions.
 - The current open-lab access policy remains explicit; enrollment is device registration, not a user-identity boundary.
+
+
+## November 5 scoped publication amendment
+
+After requesting completion and supplying the replacement private credential,
+the owner explicitly requested packaging, commit/PR/merge, a source patch release,
+VS Code publication, changed Mobile app release, release notes, a safe screenshot,
+a maintainer note and a draft in modern_website. This supersedes earlier
+publication exclusions for this Mobile enrollment update only. Acceptance and
+release outcomes are recorded in verification.md and release-verification.md.
+The general cloud rollout hold and explicit full stop before R05 remain.

@@ -29,6 +29,22 @@ qualification remain open. No final merged-source redeployment is implied.
 
 ## Release artifacts and checks
 
+Local release checks passed: release metadata1.18.6, all6release-helper tests,
+162spec artifact checks (4legacy exceptions), fullHUD499/499 and extension194passed
+with3explicit platform/opt-in skips and zero failures. TypeScript check passed.
+
+The root environment's declaration reconciliation found an existing ignored
+`mcp-servers/humanrail-mcp-server` checkout with an unbounded MCP dependency. That
+checkout is absent from tracked source and was left untouched. All six required
+surfaces passed from clean tracked6a8a0a2f source in the isolated app-release
+worktree: catalog, dependencies, docs, meraki-ids, packages and portability. This
+records the local installation warning separately from the release-source result.
+
+A final HUD display regression was fixed before release: a response arriving
+between timer ticks could initially display121seconds for a120second offer. The
+issuance response now refreshes the display clock. The focused test fails on the
+old code and passes with the fix; authoritative expiry behavior is unchanged.
+
 Final archive digests, source commits, PR/CI/release URLs and App Store processing
 state will be recorded here as observed. Website content is a local draft in the
 separate modern_website repository; no website deployment is authorized.
