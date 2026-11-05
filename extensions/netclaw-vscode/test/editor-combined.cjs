@@ -132,7 +132,7 @@ exports.run = async () => {
     }
     // Display even partial/unknown evidence in the production native recovery view.
     const view = api.ownerWorkflow.recoverCombined(); await row('Keep reference').waitFor({ state: 'visible' });
-    const shown = await currentDocument(v => v.parent_id === value.parent_id); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose(config.cancel_unapproved === true ? 'Remove resolved reference' : 'Keep reference'); await view;
+    const shown = await currentDocument(v => v.parent_id === value.parent_id && (!config.expected_states || config.expected_states.includes(v.state))); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose(config.cancel_unapproved === true ? 'Remove resolved reference' : 'Keep reference'); await view;
     assert.deepEqual(api.profiles.list(), before);
     fs.writeFileSync(report, JSON.stringify({ complete: true, mode: config.mode, editor: vscode.version, profileId: selected[0].id, combined: shown, images, native_decisions: config.mode === 'decision' ? 1 : 0, observed_at: new Date().toISOString() }, null, 2), { flag: 'wx', mode: 0o600 });
   } finally { await browser.close(); }
