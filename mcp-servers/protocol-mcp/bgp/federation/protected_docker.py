@@ -219,19 +219,14 @@ def revision_bindings(config):
             "tool_schema_sha256": (mcp_contract_digest(config["mcp"]) if "mcp" in config else tool_contract_digest(config["pyats"]))}
 
 
-def validate_execution_bindings(config, payload):
+def validate_catalog_bindings(config, payload):
+    """Validate immutable model/tool bindings before an operation exists."""
     bindings = revision_bindings(config)
     if (payload["model_profile"] != config["model_profile"]
             or payload["model_profile"]["guard_policy_sha256"] != bindings["guard_policy_sha256"]
             or payload["model_profile"]["profile_revision"] != bindings["profile_revision"]
             or payload["tool_call"]["tool_schema_sha256"] != bindings["tool_schema_sha256"]):
         raise RuntimeRefused("signed_execution_revision_changed")
-    if 'ollama' in config:
-        cap = _ollama.limits(config['ollama']); approved = payload['limits']
-        if (not 0 < approved['expires_at_ms'] - payload['issued_at_ms'] <= cap['task_timeout_seconds']*1000
-                or not 0 < approved['inference_timeout_ms'] <= cap['call_timeout_seconds']*1000
-                or approved['max_inference_calls'] != 2 or approved['max_tool_calls'] != 1):
-            raise RuntimeRefused('ollama_operation_limits_changed')
     guard = config["guard"]
     if "mcp" in config:
         validate_mcp_binding(config["mcp"], arguments=payload["tool_call"]["arguments"])
@@ -258,6 +253,27 @@ def validate_execution_bindings(config, payload):
     if (payload["tool_call"]["inventory_revision"] != pyats["testbed_sha256"]
             or payload["tool_call"]["endpoint_sha256"] != pyats["endpoint_sha256"]):
         raise RuntimeRefused("approved_inventory_or_endpoint_changed")
+    return bindings
+
+
+def validate_execution_bindings(config, payload):
+    """Validate bindings and mandatory signed operation limits at execution."""
+    bindings = validate_catalog_bindings(config, payload)
+    if 'ollama' in config:
+        cap = _ollama.limits(config['ollama'])
+        try:
+            approved = payload['limits']
+            issued = payload['issued_at_ms']
+            values = [issued, *(approved[key] for key in ('expires_at_ms',
+                'inference_timeout_ms', 'max_inference_calls', 'max_tool_calls'))]
+            valid = (all(type(value) is int for value in values)
+                and 0 < approved['expires_at_ms'] - issued <= cap['task_timeout_seconds']*1000
+                and 0 < approved['inference_timeout_ms'] <= cap['call_timeout_seconds']*1000
+                and approved['max_inference_calls'] == 2 and approved['max_tool_calls'] == 1)
+        except (KeyError, TypeError):
+            valid = False
+        if not valid:
+            raise RuntimeRefused('ollama_operation_limits_changed')
     return bindings
 
 

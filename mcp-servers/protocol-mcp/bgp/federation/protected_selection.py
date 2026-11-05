@@ -43,7 +43,7 @@ class ProfiledExecutor:
     """Select a full approved model/tool pair from bounded private snapshots."""
 
     def __init__(self, config, *, manager):
-        from .protected_docker import DockerExecutor, validate_execution_bindings
+        from .protected_docker import DockerExecutor, validate_catalog_bindings
 
         self._configuration = _snapshot(config)
         copied = decode(self._configuration)
@@ -59,11 +59,11 @@ class ProfiledExecutor:
             exact(item, 'model_profile_id tool_call runtime')
             ident(item['model_profile_id'])
             tool, runtime = item['tool_call'], item['runtime']
-            validate_tool(tool)
             require(isinstance(runtime, dict) and isinstance(runtime.get('model_profile'), dict),
                     'invalid_execution_profile', 503)
             model = runtime['model_profile']
             validate_model(model)
+            validate_tool(tool, model=model)
             require(item['model_profile_id'] == model['profile_id'], 'model_profile_id_mismatch', 503)
             model_bytes, tool_bytes = encode(model), encode(tool)
             call = (tool['tool'], encode(tool['arguments']))
@@ -75,7 +75,7 @@ class ProfiledExecutor:
             require(key not in selections, 'duplicate_execution_profile', 503)
             selections.add(key)
             try:
-                validate_execution_bindings(runtime, {'model_profile': model, 'tool_call': tool})
+                validate_catalog_bindings(runtime, {'model_profile': model, 'tool_call': tool})
                 _private_path(runtime['state_dir'], directory=True, may_be_absent=True)
                 states.add(runtime['state_dir'])
                 pool = ipaddress.IPv4Network(runtime['sandbox_address_pool'])
@@ -142,7 +142,7 @@ class ProfiledExecutor:
         require(isinstance(copied, dict) and 'model_profile' in copied and 'tool_call' in copied,
                 'execution_profile_not_supported', 403)
         validate_model(copied['model_profile'])
-        validate_tool(copied['tool_call'])
+        validate_tool(copied['tool_call'], model=copied['model_profile'])
         key = _selection(copied['model_profile'], copied['tool_call'])
         child = self._children.get(key)
         require(child is not None, 'execution_profile_not_supported', 403)
