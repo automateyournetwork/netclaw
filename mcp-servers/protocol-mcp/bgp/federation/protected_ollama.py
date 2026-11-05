@@ -382,7 +382,11 @@ class RunnerLatch:
             id INTEGER PRIMARY KEY CHECK(id=1), profile_sha256 TEXT NOT NULL, state TEXT NOT NULL,
             operation_id TEXT, reservation_id TEXT, updated_ms INTEGER NOT NULL, recovery_sha256 TEXT);
             CREATE TABLE IF NOT EXISTS runner_recovery (receipt_sha256 TEXT PRIMARY KEY, receipt_json TEXT NOT NULL,
-            operation_id TEXT NOT NULL, reservation_id TEXT NOT NULL, recorded_ms INTEGER NOT NULL);''')
+            operation_id TEXT NOT NULL, reservation_id TEXT NOT NULL, recorded_ms INTEGER NOT NULL);
+            CREATE TABLE IF NOT EXISTS runner_profile_transition (
+            receipt_sha256 TEXT PRIMARY KEY, receipt_json TEXT NOT NULL,
+            old_profile_sha256 TEXT NOT NULL, new_profile_sha256 TEXT NOT NULL,
+            prior_state_json TEXT NOT NULL, recorded_ms INTEGER NOT NULL);''')
         self.db.execute("INSERT OR IGNORE INTO runner_latch VALUES (1,?,'idle',NULL,NULL,?,NULL)", (profile_sha256, int(time.time()*1000)))
         self.snapshot()
 
@@ -425,6 +429,42 @@ class RunnerLatch:
             self.db.execute('INSERT INTO runner_recovery VALUES (?,?,?,?,?)',
                 (checksum, canonical(receipt).decode(), row['operation_id'], row['reservation_id'], int(time.time()*1000)))
             self.db.execute("UPDATE runner_latch SET state='idle',updated_ms=?,recovery_sha256=? WHERE id=1", (int(time.time()*1000), checksum))
+        return checksum
+
+    def rebind(self, new_profile_sha256, receipt, *, verify):
+        """Host-maintenance profile transition after verified owned-process reset.
+
+        Adapted from Thermidor Spec004 ProviderLatch.rebind, using this existing
+        SQLite latch's transaction for both the prior-state archive and binding.
+        Recovery must already have made the old latch idle. The host verifier
+        checks stopped execution, old/new immutable profiles and actual runner
+        confinement. Preserve the previous claim and recovery, and atomically
+        append its complete snapshot with the transition receipt. This never
+        changes an operation outcome or an inference claim.
+        """
+        sha(new_profile_sha256)
+        with self.transaction():
+            row = self.snapshot()
+            need(row['state'] == 'idle' and new_profile_sha256 != self.profile_sha256
+                 and isinstance(receipt, dict)
+                 and receipt.get('old_profile_sha256') == row['profile_sha256']
+                 and receipt.get('new_profile_sha256') == new_profile_sha256
+                 and receipt.get('prior_state') == row,
+                 'ollama_verified_profile_transition_required')
+            encoded = canonical(receipt).decode()
+            selected, prior = json.loads(encoded), dict(row)
+            need(verify(selected, prior, new_profile_sha256) is True
+                 and canonical(selected).decode() == encoded and prior == row,
+                 'ollama_verified_profile_transition_required')
+            checksum = hashlib.sha256(encoded.encode()).hexdigest()
+            recorded = int(time.time()*1000)
+            self.db.execute('INSERT INTO runner_profile_transition VALUES (?,?,?,?,?,?)',
+                (checksum, encoded, row['profile_sha256'], new_profile_sha256,
+                 canonical(row).decode(), recorded))
+            self.db.execute('UPDATE runner_latch SET profile_sha256=?,updated_ms=? WHERE id=1',
+                (new_profile_sha256, recorded))
+        # A failed write/commit must leave this object's expected binding intact.
+        self.profile_sha256 = new_profile_sha256
         return checksum
 
     def close(self): self.db.close()
