@@ -36,6 +36,11 @@ exports.run = async () => {
   const row = text => page.locator('.quick-input-list .monaco-list-row').filter({ hasText: text });
   const choose = async text => { const target = row(text); await target.waitFor({ state: 'visible' }); assert.equal(await target.count(), 1); await target.click(); };
   const document = () => { const doc = vscode.window.activeTextEditor?.document; assert.ok(doc && doc.uri.scheme === 'netclaw-owner' && !doc.isUntitled); return JSON.parse(doc.getText()); };
+  const currentDocument = async predicate => {
+    const deadline = Date.now() + 15000;
+    while (Date.now() < deadline) { const value = document(); if (predicate(value)) return value; await pause(50); }
+    throw Error('The native immutable review document has not rendered; no decision submitted.');
+  };
   const capture = async label => { const file = path.join(path.dirname(report), 'combined-' + label + '-' + Date.now() + '.png'); await page.screenshot({ path: file }); fs.chmodSync(file, 0o600); return file; };
   const claim = () => {
     assert.ok(path.isAbsolute(config.claim_file)); const directory = fs.lstatSync(path.dirname(config.claim_file));
@@ -51,7 +56,7 @@ exports.run = async () => {
       if (config.archive_combined) {
         const recovery = api.ownerWorkflow.recoverCombined();
         await row('Remove resolved reference').waitFor({ state: 'visible' });
-        const old = document(); samePair(old, config.archive_combined);
+        const old = await currentDocument(v => v.parent_id === config.archive_combined.parent_id); samePair(old, config.archive_combined);
         assert.equal(old.state, 'complete');
         for (const i of [0, 1]) {
           assert.equal(old.children[i].result?.verified, true);
@@ -70,7 +75,7 @@ exports.run = async () => {
         const candidate = page.locator('.quick-input-list .monaco-list-row').filter({ hasText: config.children[i].cidr }).filter({ hasText: config.children[i].member_id }).filter({ hasText: config.children[i].profile_revision });
         await candidate.waitFor({ state: 'visible' }); assert.equal(await candidate.count(), 1); await candidate.click();
       }
-      await row('Keep for recovery').waitFor({ state: 'visible' }); value = document();
+      await row('Keep for recovery').waitFor({ state: 'visible' }); value = await currentDocument(v => v.state === 'awaiting_decisions' && v.children?.length === 2);
       assert.equal(value.children.length, 2); assert.deepEqual(value.children.map(c => c.family), [4, 6]);
       for (const i of [0, 1]) {
         const child = value.children[i], expected = config.children[i];
@@ -85,7 +90,8 @@ exports.run = async () => {
       const pending = api.ownerWorkflow.recoverCombined();
       await choose('Review one pending child'); await choose('Review IPv' + [4, 6][config.child_index]);
       const read = page.getByRole('button', { name: 'Review decision', exact: true }); await read.waitFor({ state: 'visible' });
-      const displayed = document(), expected = config.combined.children[config.child_index];
+      const expected = config.combined.children[config.child_index];
+      const displayed = await currentDocument(v => v.operation_id === expected.operation_id);
       for (const field of ['operation_id', 'revision', 'review_digest', 'review']) assert.deepEqual(displayed[field], expected[field]);
       images.push(await capture('child-review')); await read.click();
       const label = config.decision === 'approve' ? 'Approve once' : 'Deny';
@@ -112,7 +118,7 @@ exports.run = async () => {
     }
     // Display even partial/unknown evidence in the production native recovery view.
     const view = api.ownerWorkflow.recoverCombined(); await row('Keep reference').waitFor({ state: 'visible' });
-    const shown = document(); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose('Keep reference'); await view;
+    const shown = await currentDocument(v => v.parent_id === value.parent_id); samePair(shown, value); images.push(await capture('state-' + shown.state)); await choose('Keep reference'); await view;
     assert.deepEqual(api.profiles.list(), before);
     fs.writeFileSync(report, JSON.stringify({ complete: true, mode: config.mode, editor: vscode.version, profileId: selected[0].id, combined: shown, images, native_decisions: config.mode === 'decision' ? 1 : 0, observed_at: new Date().toISOString() }, null, 2), { flag: 'wx', mode: 0o600 });
   } finally { await browser.close(); }
