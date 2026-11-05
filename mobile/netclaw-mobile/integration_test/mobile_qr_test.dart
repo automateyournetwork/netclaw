@@ -596,10 +596,12 @@ void main() {
         }
         if (config['lifecycle_evidence'] == true) {
           require(
-            phase == 'recover',
+            phase == 'recover' || phase == 'combined-recover',
             'Lifecycle proof only recovers a terminal operation',
           );
-          final before = operations.operation!;
+          final before = phase == 'combined-recover'
+              ? operations.combined!
+              : operations.operation!;
           final witness = NativeLifecycleWitness();
           WidgetsBinding.instance.addObserver(witness);
           try {
@@ -642,14 +644,38 @@ void main() {
                   witness.states.contains('resumed'),
               'Actual native background/resume events missing',
             );
-            require(
-              operations.operation?['operation_id'] == before['operation_id'] &&
-                  operations.operation?['result']?['digest'] ==
-                      before['result']['digest'] &&
-                  operations.operation?['attempt_count'] ==
-                      before['attempt_count'],
-              'Lifecycle recovery changed the retained operation',
-            );
+            if (phase == 'combined-recover') {
+              await tap('Check combined status');
+              final after = operations.combined!;
+              require(
+                after['parent_id'] == before['parent_id'] &&
+                    after['client_nonce'] == before['client_nonce'],
+                'Lifecycle recovery changed the retained pair',
+              );
+              for (final index in [0, 1]) {
+                final child = after['children'][index],
+                    old = before['children'][index];
+                require(
+                  child['operation_id'] == old['operation_id'] &&
+                      child['attempt_count'] == old['attempt_count'] &&
+                      child['result']?['digest'] == old['result']?['digest'] &&
+                      child['result']?['durable_ack'] ==
+                          old['result']?['durable_ack'],
+                  'Lifecycle recovery changed retained child evidence',
+                );
+              }
+              combined = after;
+            } else {
+              require(
+                operations.operation?['operation_id'] ==
+                        before['operation_id'] &&
+                    operations.operation?['result']?['digest'] ==
+                        before['result']['digest'] &&
+                    operations.operation?['attempt_count'] ==
+                        before['attempt_count'],
+                'Lifecycle recovery changed the retained operation',
+              );
+            }
             nativeLifecycle.addAll(witness.states);
           } finally {
             WidgetsBinding.instance.removeObserver(witness);
