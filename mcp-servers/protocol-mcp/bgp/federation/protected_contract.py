@@ -135,9 +135,12 @@ def validate_model(value):
     for item in value.values():
         ident(item)
     digest_field(value['guard_policy_sha256'])
+    if value['provider'] == 'ollama':
+        from .protected_calculator import ollama_family
+        ollama_family(value)
 
 
-def validate_tool(value):
+def validate_tool(value, *, model=None):
     exact(value, 'tool tool_schema_sha256 arguments arguments_sha256 device_ref inventory_revision endpoint_sha256')
     for key in ('tool', 'device_ref', 'inventory_revision'):
         ident(value[key])
@@ -145,7 +148,12 @@ def validate_tool(value):
         digest_field(value[key])
     require(len(encode(value['arguments'])) <= MAX_ARGUMENTS, 'arguments_too_large')
     require(sha256(value['arguments']) == value['arguments_sha256'], 'arguments_digest_mismatch')
-    validate_tool_arguments(value['tool'], value['arguments'])
+    summary = False
+    if model is not None and model.get('provider') == 'ollama':
+        from .protected_calculator import ollama_family, TOOLS
+        require(value['tool'] == TOOLS[ollama_family(model)], 'calculator_family_mismatch')
+        summary = True
+    validate_tool_arguments(value['tool'], value['arguments'], summary=summary)
 
 
 NETBOX_FIELDS = {
@@ -154,7 +162,11 @@ NETBOX_FIELDS = {
 }
 
 
-def validate_tool_arguments(tool, args):
+def validate_tool_arguments(tool, args, *, summary=False):
+    if summary:
+        from .protected_calculator import summary_network
+        summary_network(tool, args)
+        return
     if tool == 'pyats_run_show_command':
         exact(args, 'device_name command timeout retries')
         ident(args['device_name'])
@@ -205,7 +217,11 @@ def validate_catalog_entry(entry):
         models.add(model['profile_id'])
     for tool in entry['tools']:
         exact(tool, 'tool tool_schema_sha256 arguments arguments_sha256 device_ref inventory_revision endpoint_sha256 limits')
-        validate_tool({key: value for key, value in tool.items() if key != 'limits'})
+        candidates = [m for m in entry['model_profiles'] if m.get('provider') == 'ollama']
+        model = candidates[0] if candidates else None
+        # A calculator member has one exact local profile; do not admit cross-family models.
+        require(not candidates or len(entry['model_profiles']) == 1, 'ambiguous_calculator_profile')
+        validate_tool({key: value for key, value in tool.items() if key != 'limits'}, model=model)
         identity = (tool['tool'], encode(tool['arguments']))
         require(identity not in calls, 'duplicate_tool_profile', 409)
         calls.add(identity)
@@ -225,7 +241,7 @@ def validate_review(review):
         require(review['principal']['subject'] == str(uuid.uuid5(uuid.UUID(review['border']['installation_id']), 'netclaw.open-lab.operator')), 'lab_principal_mismatch')
     validate_binding(review['member'], 'member')
     validate_model(review['model_profile'])
-    validate_tool(review['tool_call'])
+    validate_tool(review['tool_call'], model=review['model_profile'])
     validate_limits(review['limits'])
     require(review['change_request_ref'] is None, 'writes_not_supported')
 

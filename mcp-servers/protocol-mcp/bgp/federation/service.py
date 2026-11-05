@@ -1997,7 +1997,9 @@ class FederationService:
             from .edge import RpcError as EdgeRpcError
             forwarded = False
             try:
-                fields = {'catalog': '', 'prepare': 'client_nonce catalog_revision member_id model_profile_id tool arguments',
+                fields = {'combined_prepare': 'client_nonce children', 'combined_cancel': 'parent_id',
+                          'combined_status': 'parent_id' if isinstance(params, dict) and 'parent_id' in params else 'client_nonce',
+                          'catalog': '', 'prepare': 'client_nonce catalog_revision member_id model_profile_id tool arguments',
                           'decision': 'operation_id revision review_digest decision', 'reconcile': 'operation_id',
                           'status': 'operation_id' if isinstance(params, dict) and 'operation_id' in params else 'client_nonce'}
                 exact(params, 'installation_id' + (' ' + fields[action] if fields[action] else ''))
@@ -2010,10 +2012,13 @@ class FederationService:
                 result = await getattr(self.protected_operations, action)(dict(args, auth_context=authority))
                 if isinstance(result, dict) and 'allowed_actions' in result:
                     result = dict(result, allowed_actions=[a for a in result['allowed_actions'] if a != 'revoke'])
+                if action.startswith('combined_') and isinstance(result, dict) and isinstance(result.get('children'), list):
+                    result = dict(result, children=[dict(child, allowed_actions=[a for a in child['allowed_actions'] if a != 'revoke'])
+                        for child in result['children']])
                 return result
             except ProtectedError as exc:
                 data = {'code': exc.code, 'status': exc.status}
-                if action == 'prepare' and not forwarded:
+                if action in ('prepare', 'combined_prepare') and not forwarded:
                     data['admission'] = 'not_submitted'
                 raise EdgeRpcError(-32000, 'Protected device request refused', data) from None
         return handle

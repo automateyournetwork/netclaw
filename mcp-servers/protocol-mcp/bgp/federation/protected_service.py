@@ -35,6 +35,8 @@ class ProtectedOperations:
         self.workers = set()
         self.failure_recovery_lock = asyncio.Lock()
         self.bridge = None
+        from .protected_calculator import CombinedCoordinator
+        self.combined = CombinedCoordinator(self)
 
     def _audit_default(self, event, record):
         from .gait import emit_protected
@@ -137,8 +139,17 @@ class ProtectedOperations:
             self._trust(entry['member'])
         require(len({entry['member']['member_id'] for entry in members}) == len(members), 'ambiguous_catalog')
         members.sort(key=lambda entry: entry['member']['member_id'])
-        result = {'revision': sha256(members), 'members': members}
+        result = {'revision': sha256(members), 'members': members, 'capabilities': ['calculator_combined_v1']}
         with self._owner(params['auth_context']): return result
+
+    async def combined_prepare(self, params):
+        return await self.combined.prepare(params)
+
+    async def combined_status(self, params):
+        return await self.combined.status(params)
+
+    async def combined_cancel(self, params):
+        return await self.combined.cancel(params)
 
     async def prepare(self, params):
         exact(params, 'auth_context client_nonce catalog_revision member_id model_profile_id tool arguments')
@@ -184,6 +195,14 @@ class ProtectedOperations:
                 require((params['decision'] == 'deny' and row['state'] == 'refused') or (params['decision'] == 'approve' and row['approval'] is not None), 'decision_conflict', 409)
                 return self._dto(row)
             require(type(params['revision']) is int and row['revision'] == params['revision'], 'revision_conflict', 409)
+        if params['decision'] == 'approve':
+            require(self.now() < row['review']['limits']['expires_at_ms'], 'approval_expired', 403)
+        if params['decision'] == 'approve' and self.store.combined_for_child(row['operation_id']):
+            current = await self.catalog({'auth_context': params['auth_context']})
+            member = next((m for m in current['members'] if m['member'] == row['review']['member']), None)
+            expected = dict(row['review']['tool_call'], limits={k:v for k,v in row['review']['limits'].items() if k != 'expires_at_ms'})
+            require(member is not None and row['review']['model_profile'] in member['model_profiles']
+                    and expected in member['tools'], 'profile_changed', 403)
         draft = None
         audit_row = row
         if params['decision'] == 'approve':
@@ -605,7 +624,7 @@ class OperatorBridge:
             elif method == 'owner.logout':
                 exact(params, 'cookie csrf_token'); result = self.service.owner.logout(params['cookie'], params['csrf_token'])
             else:
-                require(method in ('catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke'), 'method_refused', 403)
+                require(method in ('catalog', 'prepare', 'decision', 'status', 'reconcile', 'revoke', 'combined_prepare', 'combined_status', 'combined_cancel'), 'method_refused', 403)
                 result = await getattr(self.service, method)(params)
             response = {'ok': True, 'result': result}
         except ProtectedError as exc:
