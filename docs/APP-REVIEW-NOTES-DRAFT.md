@@ -1,51 +1,19 @@
-# App Review Notes — Draft for "Please provide instructions to use your app"
+# App Review notes — Mobile 1.0.4
 
-Paste into App Store Connect → App Review Information → Notes.
+Submitted on November 5, 2026 with build 7. The version is waiting for Apple review.
+Contact information remains private in App Store Connect.
 
-```
-NetClaw Mobile is a companion app for NetClaw Border — a network-automation assistant that an
-operator installs and runs on their own infrastructure (there is no NetClaw-operated cloud
-service). The app requires a Border to be enrolled before any of its screens beyond onboarding
-become usable. This is by design, described on the app's own first screen.
+NetClaw Mobile is a companion for NetClaw software that an operator runs on their own infrastructure. It does not provide a hosted service or username/password sign-in.
 
-How the app is used, end to end:
+Enrollment in version 1.0.4:
+1. Open the operator's NetClaw HUD, or the Mobile section of the NetClaw VS Code extension.
+2. Select the intended Border and generate a fresh mobile enrollment QR code.
+3. Open NetClaw Mobile and scan that code. Review the Border identity and complete enrollment.
+4. Available features depend on the selected Border and its advertised capabilities; supported views include Chat, approval review, activity/history, settings and the existing Apple Watch companion.
 
-1. FIRST LAUNCH: the app shows an explanatory screen ("NetClaw Mobile is a companion app") and
-   then a QR-code scanner. The operator points their phone's camera at a QR code their own Border
-   displays during its own setup process. This QR code contains a one-time enrollment token,
-   scoped to that specific Border and that specific phone.
+QR codes expire and are single use. A screenshot of an old enrollment QR code cannot provide reviewer access. The operator generates a fresh code from their own installation; scanning it creates a device identity scoped to that Border.
 
-2. AFTER ENROLLMENT: the app unlocks its main tabs:
-   - Chat: type or speak a question; the Border's own AI agent answers, with access to whatever
-     network tools/devices the operator has configured on their Border.
-   - Approvals: the Border can ask the operator to approve a pending automated action before it
-     executes; the operator reviews and approves/denies with Face ID/Touch ID.
-   - Feed/History: a log of messages and past conversations pushed from the Border.
-   - Settings: notification status, app-lock, and enrollment management (including removing the
-     device's enrollment).
+The app's onboarding explains the companion requirement. Existing App Store screenshots show the actual enrolled app. There is no public reviewer endpoint supplied with this submission, and the app may remain at onboarding without an operator-managed Border. This release makes enrollment available directly in the HUD and VS Code and improves identity checks, enrollment errors, and reconnect recovery.
 
-3. VOICE: the operator can also ask a question via Siri/Shortcuts ("Ask NetClaw...") without
-   opening the app; the answer is spoken back or delivered as a notification.
-
-4. APPLE WATCH: a paired Watch companion mirrors Border health status and lets the operator
-   approve/deny pending approvals from their wrist, relayed through the phone.
-
-WHY REVIEW ENVIRONMENT MAY SHOW ONLY THE ONBOARDING SCREEN: because there is no publicly hosted
-NetClaw Border for App Review to enroll against (each operator runs their own, the same way a
-home-automation or VPN app requires the user's own hardware/server), the reviewer's device may not
-be able to progress past the QR-scan screen without a Border of their own. Screenshots in this
-submission show the app's actual in-use screens (Chat, Approvals, Feed) captured from a real,
-enrolled device against a live Border, to demonstrate the functionality described above.
-
-If a live demo enrollment is required to complete review, please let us know via this message
-thread and we can arrange temporary access to a demo Border.
-```
-
-## Notes on this draft
-
-- The last paragraph offers a live demo as a fallback — only include it if you're actually willing
-  and able to stand up a reachable demo Border on short notice if Apple takes you up on it. If not,
-  cut that paragraph and lean harder on the screenshots + instructions being sufficient on their
-  own (many self-hosted/enterprise apps are approved this way without a live demo).
-- This complements, not replaces, the screenshot fix (2.3.3) — Apple's own message ties "app in
-  use" screenshots directly to understanding functionality, so both fixes reinforce each other.
+See [release evidence](../specs/175-cloud-mobile-enrollment/release-verification.md)
+for the exact archive, submission state and qualification limits.

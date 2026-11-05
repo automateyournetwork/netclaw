@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-11-05T16:08:08.725991+00:00",
+  "officialApi": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery",
+  "publisher": "NetClaw",
+  "name": "netclaw",
+  "versions": [
+    "1.6.1"
+  ],
+  "downloadContentEncoding": "gzip",
+  "downloadTransferBytes": 4558489,
+  "anonymousItemPageStatus": 200,
+  "validatedVersionAvailable": true,
+  "downloadUrl": "https://marketplace.visualstudio.com/_apis/public/gallery/publishers/NetClaw/vsextensions/netclaw/1.6.1/vspackage",
+  "publishedSha256": "08097193b666e574a2e739152b103dc272c35a2062d6f9ade274c37522c71338",
+  "localSha256": "08097193b666e574a2e739152b103dc272c35a2062d6f9ade274c37522c71338",
+  "wholeArchiveIdentical": true,
+  "matchingFiles": 71,
+  "addedFiles": [],
+  "source": "04f9ec4237fadd2d834db50881797b86f4752ec9"
+}
