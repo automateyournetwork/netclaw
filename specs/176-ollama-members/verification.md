@@ -129,3 +129,106 @@ existing owner key worked, with no OS Login key mutation. Initial egress remains
 denied; no model deployment or cloud inference has occurred. Baselines, current
 state, plan claim and apply log are private under `cloud-plan-48h/` and
 `cloud-current/`. The oldDec1plan remains unapplied evidence-only.
+
+### Border/source and native execution progress
+
+The fresh one-use Border packet `7432df297c7f025e7883311a6e66e806b2bd2521aa16d3458ba0863f511cd00d`
+staged, checked and applied successfully.1009closed source files,15Python changes,
+3HUD server changes and26assets were installed; only owner federation/HUD restarted.
+All4old operations/12signatures,3members,23static identity/key/profile files, Caddy,
+nft and the existing NetBox member were preserved. Independent post-apply
+inspection passed and trusted HTTPS catalog/enrollment both return200; catalog
+advertises `calculator_combined_v1`. No operation was sent by that update.
+
+The approved member's exact network activation plan
+`abd1f765b0fd66e6b440de8f33f3bbc1ca4a2d74bf481fd9a21f9c8b7711e327`
+added only2R05-owned firewall rules: new memberSA→Border/32TCP42101 and new
+member/32→BorderSA TCP42101. Eight foundation resources were unchanged. Original
+Mac transport rule remains byte-equivalent. The same authoritative backend is
+`cloud-plan-48h/state/terraform.tfstate`; no forked/old state may be applied.
+The two firewall rules add no VM/disk/IP resource and keep the approved48h expiry.
+
+Original local operation`e52593de-f0f7-46f3-8a03-eeee5f7b8c0e` remains unknown
+with zero inference/tool/effect claims: the real guard had started on18970 but
+readiness used the hosted4001port. Local-only readiness selection is fixed; the
+hosted path remains4001. Its guard exited0 and cleanup was complete.
+
+A separate explicitly reviewed operation`531e514a-75e9-4574-a35a-9d27cf5eea88`
+completed1actual Ollama inference (310prompt+35completion tokens) and1actual native
+MCP192.0.2.0/26 calculation:64addresses,62usable. Independent native verification
+passed. Its second request was refused before dispatch; the failure is signed
+and durably acknowledged, with all owned operation containers stopped/noOOM and
+an idle runner latch. The retained first response and real pinned OpenClaw image
+reproduced the mismatch offline without another provider/tool effect: OpenClaw
+normalizes provider call ID`call_m9aee3p2` to`callm9aee3p2`. The exact compact tool
+output was already correct. The narrow serializer-bound correction is integrated at959b2174;
+no retry/replay of either spent operation is allowed. Actual model unload and
+2GiB memory limit/zero swap/zero OOM were independently observed afterward.
+
+
+### Final native wire correction and fresh member assembly
+
+Integrated959b2174 validates only the actual retained Ollama call ID or the exact
+pinned OpenClaw strict-ID alias, requires the assistant/tool pair to match, and
+restores the original provider ID before the second forward. Exact arguments,
+tool name and authoritative tool output remain enforced. A private allowlisted
+refusal code aids diagnosis without exporting request content. The actual retained
+second request passes offline; inference/MCP counts and latch rows were unchanged.
+Protected Python/lifecycle suite: **712passed**,15.06s;141focused checks passed.
+
+The new cloud VM received exactly six new offline OS packages, no upgrade/removal.
+Docker/containerd remained masked/inactive with no socket; no enrollment or model
+was started by that installation. Native read-only runtime checks verified303
+closed source files and94hashed offline wheels against final source959b2174.
+The final installation and activation receipts are separate private artifacts.
+
+Fresh intended local member source is frozen at959b2174,5088files, manifest
+`ab728737675962220cacc2dc2a0415d47451335d7998250c34420012fbbe401d`.
+Review caught a stale initial Bookworm image/UID in the prepared setup packet
+before activation. The original packet is retained; the corrected dedicated pin
+uses the qualified Trixie image and UID21006. Fresh model namespace
+`netclaw-r05-owner-arm64` now passes preparation/actual confinement with no
+published ports and no inference. Profile SHA
+`77ef8205e4c228a90731dd174150c50830fa0e970b4900893e93206c5f79a285`;
+runtime template SHA`5697db629edaeecc5da31460653e7cdc6d70b252a54ed9c12abe572673527006`.
+This namespace is independent of temporary native qualification and its retained
+unknown/failure history. Enrollment and intended-member live success remain open.
+
+
+### Actual local two-turn receipt and retained limitations
+
+New reviewed operation`0f63fbd6-0595-4e21-b4f9-e09ec13ac872` completed exactly
+2Ollama calls and1native MCP effect,966tokens,19.437s and zero provider API charge.
+Signed result digest`5770f7021b93aab8211d5fed9b0df07b4cc0a56a155c8d026183106a5ed40479`
+has a durable ACK. Sampled model memory1.516GiB/2GiB and agent448MiB/1.5GiB;
+noOOM. Exact native facts independently verify64total/62usable addresses.
+The actual model explanation incorrectly says64usable; it is retained verbatim
+and is **not verified arithmetic**. FR004 requires authoritative tool facts to
+remain separate from model explanation. Client labels/normalized summary rendering
+are being corrected; no prompt tuning or repeated model call is used to hide this.
+
+After actual worker restart, a new strict TLS exporter/binding and unchanged
+authorities/receipt/ACK/effect counts are retained. The original final in-memory
+report failed while serializing SQLite tuple rows; a read-only reconstruction
+`terminal-v3/reconstructed-evidence.json` records exact evidence and that limit.
+The first prelaunch witness had the same serialization error before any new
+operation; both failures are retained. Old operations/keys/artifacts remain exact.
+Guard/agent exited0; relay was stopped137; noOOM; owned workers are gone.
+
+The intended local member enrolled once as`owner-20261104/mac-ollama-ipv4`,
+installation`68ec42d4-a4bc-4ad1-ad60-234c052f4ce1`, generation
+`02cd2f56-4b7b-49a5-9229-519cb59b221e`. First daemon startup then refused
+`invalid_execution_profile`: static catalog validation called a new Ollama
+validator requiring signed-operation limits. Root stopped the launchd job;
+no operation was submitted by this member. Required static/execution interface
+correction preserves mandatory execution limits and this enrolled identity.
+
+The new cloud runtime installed successfully from303closedfiles/94offlinewheels.
+A subsequent guest network restart automatically activated its required baseline
+service at20:21:12Z; DHCP recovered, but IAP22became unreachable. The output
+hook at-300 checked connection state before conntrack(-200); a narrow output
+priority correction is being prepared. Forward policy, application isolation,
+quota, identity, fixed expiry and existing Border remain unchanged. No cloud
+model, enrollment or protected operation exists. Serial and failed read-only
+IAP probes remain in private evidence. The hook ordering is documented by the
+[nftables project](https://wiki.nftables.org/wiki-nftables/index.php/Netfilter_hooks).
