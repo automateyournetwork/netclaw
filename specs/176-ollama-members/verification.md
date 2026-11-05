@@ -2,10 +2,13 @@
 
 ## Current state — 2026-11-05
 
-Source implementation integrated on `176-ollama-members`: **21/33 tasks complete**.
-Fresh NetClaw model/guard images and private native bindings are prepared.
-Actual native MCP boundary tests ran; no model inference, cloud apply, existing
-runtime upgrade, client installation, release or R06/R07 work has occurred yet.
+Source implementation integrated on `176-ollama-members`: **25/33 tasks complete**.
+Actual temporary local ARM64 qualification completed with two Ollama calls, one
+native MCP calculation, signed result and durable ACK. Intended local/cloud members
+are enrolled and online under the approved48-hour window. The cloud foundation,
+scoped Border backend/HUD update and native client builds are complete. The combined browser run passed. Actual editor/Mobile, isolation/recovery and
+closeout evidence remain open.
+No release or R06/R07 work has occurred.
 
 NetClaw baseline `db0c9682d4997d51a15f75cbf2df83b97d3c3f45`, source1.18.6,
 extension1.6.1, Mobile1.0.4+7. Existing usable pilot/member and December1 lifetime
@@ -16,16 +19,16 @@ its exact inspected source hashes and limitations are retained separately.
 
 | Group | Required current NetClaw evidence | Status |
 |---|---|---|
-| Local ARM64 | Real guarded IPv4 native MCP, verified arithmetic,2 turns/1 call | NOT RUN |
-| GCP AMD64 | Real guarded IPv6 native MCP, verified arithmetic,2 turns/1 call | NOT RUN |
-| Combined browser | One durable parent,two distinct approvals,both results | NOT RUN |
+| Local ARM64 | Real guarded IPv4 native MCP, verified arithmetic,2 turns/1 call | PASSED on temporary and intended members |
+| GCP AMD64 | Real guarded IPv6 native MCP, verified arithmetic,2 turns/1 call | PASSED |
+| Combined browser | One durable parent,two distinct approvals,both results | PASSED; actual reload recovered same results |
 | Isolation | Guard positive control and agent/broker/sibling/Border/public denials | NOT RUN |
 | Resource/accounting | Actual swap/cgroup/OOM, CPU/memory,tokens,time,zero provider charges,unload | NOT RUN |
 | Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | NOT RUN |
 | G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | SOURCE TESTED / LIVE NOT RUN |
 | G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | SOURCE TESTED / LIVE NOT RUN |
 | Regression/portfolio | Existing protected pyATS/NetBox/subnet/hosted models, Chat/Canvas,clients | SOURCE TESTED; live portfolio pending |
-| Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | NOT RUN |
+| Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | Activation preservation passed; final export/residue inventory pending |
 | Human acceptance | Owner reviews current R05 evidence before R06/R07 | PENDING |
 
 Existing capabilities have source regression coverage, not new live qualification. Hermes Ollama, Windows/WSL, physical iPhone camera/SecureEnclave, GPU,
@@ -232,3 +235,98 @@ quota, identity, fixed expiry and existing Border remain unchanged. No cloud
 model, enrollment or protected operation exists. Serial and failed read-only
 IAP probes remain in private evidence. The hook ordering is documented by the
 [nftables project](https://wiki.nftables.org/wiki-nftables/index.php/Netfilter_hooks).
+
+
+### Intended member activation and client presentation
+
+The static catalog/operation validator correction is integrated at `d87efaea`.
+It separates catalog binding checks from mandatory execution-limit checks and
+passes the selected model into IPv4/IPv6 tool validation. Real selector constructor
+tests cover both families. Root protected/lifecycle suite: **746 passed**, 21
+existing warnings, 15.50 seconds. A first command used a nonexistent lifecycle
+test filename and ran zero tests; its log is retained separately.
+
+Presentation fix `a9c026fa` shows authoritative native facts separately from
+unverified model commentary in HUD, VS Code and Mobile. The original signed
+receipt and model text remain unchanged. The actual 62-versus-64 mismatch and
+large IPv6 decimal counts are covered by 122 focused checks, successful builds
+and a clean Mobile analyzer. The test-only historical-reference archive step
+is integrated at `6a91b392`. Native builds preserve existing client identities.
+
+Cloud repair was applied once through a temporary startup script and one VM
+stop/start. Actual native Linux reproduction demonstrated the connection-tracking
+ordering fault. The guest receipt verifies only output priority changed from
+-300 to -150; forward remains -300. IAP returned successfully, original metadata
+was restored, and the original VM ID/STOP deadline remain unchanged. The fresh
+host activation receipt confirms the 10 GiB allowance, 1 Mbit/s limit and exact
+expiry timer. Existing allocation evidence is never reset.
+
+The cloud source/private-parent correction changed exactly two Python files,
+the source manifest and service paths, and created an owned 0700 member parent.
+Root-owned host controls remain outside it. The initial unit verification refused
+while Docker was intentionally masked; all applied changes were settled read-only
+without replay, and unit verification passed after the reviewed Docker start.
+Four pinned AMD64 images loaded offline; Docker 29.1.3 and actual Ollama model
+namespace qualification passed with no published ports. Cloud profile SHA:
+`668bfda1e08a0b48f800e47dcb10a67e4a33bbd76d49fe44507333cd227b80e5`.
+Operator-Mac probes to owned VM ports 11434/4000/4001/18970/49171 timed out with
+zero request bytes; IAP identity and internal model positive controls passed.
+This is one external vantage; further actual-role evidence is separate.
+
+Both intended members enrolled once and appear in trusted HTTPS catalog:
+
+- Local: installation `68ec42d4-a4bc-4ad1-ad60-234c052f4ce1`, enrollment
+  `02cd2f56-4b7b-49a5-9229-519cb59b221e`, profile revision
+  `823f98e1ec32b03c78c5af2a06292a1b72b692dfeacf74428a678495a12ce506`.
+- Cloud: installation `0c4964f1-7e99-47fe-bc7e-b9e4df3c75fd`, enrollment
+  `dd37ba64-db47-4333-bfca-ac53be09f8de`, profile revision
+  `cad4741ef66eb9b6f0775dec958b7889ebba260437680e706cf25d4aa3ebf3a8`.
+
+All four prior registered members, four historical operations and prior keys
+were preserved. An assets-only HUD update then preserved federation PID and all
+unrelated services, changed only its distribution/manifest hash binding, and
+served the new labels over trusted HTTPS. Private before/after snapshots retained
+118 files and consistent database backups. No workload was created by deployment.
+
+The first actual combined browser preparation returned `calculator_limits_refused`
+before producing operation IDs: private catalogs advertised a 262144-byte output
+limit while the combined policy correctly requires at most 32768. The catalogs
+were tightened to32768; source policy is unchanged. Rejected client nonce
+`60f886bd-5332-458f-bc16-5c4d63a0c888`, browser error and original profiles remain
+retained. No model or native tool call occurred in this attempt.
+
+
+### Intended combined browser success — 2026-11-05 21:02 UTC
+
+Output-bound correction settled the rejected nonce read-only: zero parent/child
+rows, all four historical operation rows and all five member bindings unchanged.
+Only the two catalog output bounds changed; profiles, model processes, keys,
+enrollments and latches remained unchanged. Each member federation daemon was
+restarted once. Private receipt: `calculator-output-bound-correction/settlement.json`.
+
+A fresh actual Chrome UI request prepared two immutable reviews with no work,
+then approved each child separately. Parent `3e2caeef-58bc-42c3-bd8b-0448e33ce109`
+completed; both results were verified, durably acknowledged with delivery complete,
+and each retained one attempt. Actual browser reload recovered identical IDs,
+results and attempt counts through GET only. No page errors occurred. Private
+artifacts: `browser/success-2/` (reviews, decisions, results, reload, network and
+screenshots); the earlier refused preparation remains under `success-1/`.
+
+| Member | Operation | Actual usage | Verified native result |
+|---|---|---|---|
+| Local ARM64 | `f7370611-b8a6-494b-b711-a2422dcf3213` | 38.201s,966 tokens,2 inference calls,1 native MCP | 192.0.2.0/26:64 total,62 usable |
+| Cloud AMD64 | `28828be1-e627-4e78-81a1-f183001ff37f` | 91.301s,965 tokens,2 inference calls,1 native MCP | 2001:db8:1234::/48:1208925819614629174706176 addresses,65536 /64 subnets |
+
+Both records report zero provider API charges; cloud compute/transfer remain
+separate. Observed model memory was approximately1.52GiB of2GiB on each host;
+agent observations remained below their1.5GiB limits. Exact cgroup/OOM/unload
+checks are recorded separately from these signed samples. The local model again
+incorrectly said64usable addresses. Its original commentary remains explicitly
+unverified; the browser displays independently verified62usable tool facts.
+No prompt retuning or repeated call was used to mask the discrepancy.
+
+During these exact live operation windows, TCP probes executed in both actual
+agent containers with their real UID/network namespace. Each reached its own
+relay8090 positive control and was denied direct model/service ports and model
+loopback11434. Probes sent zero application bytes and generated no inference.
+Further host broker, Border, sibling and external vantages remain separate.
