@@ -175,6 +175,7 @@ void main() {
         );
       }
       Json? operation;
+      var visualFrames = 0;
       if (client.protectedDevice != null) {
         await waitFor(
           () => find.byType(CloudOwnerScreen).evaluate().isNotEmpty,
@@ -301,6 +302,50 @@ void main() {
         }
         operation = operations.operation;
       }
+      if (config['visual_evidence'] == true) {
+        final scroll = tester.state<ScrollableState>(
+          find.byType(Scrollable).first,
+        );
+        scroll.position.jumpTo(0);
+        await tester.pump(const Duration(milliseconds: 200));
+        while (true) {
+          require(visualFrames < 40, 'Visual evidence bound exceeded');
+          final ready = File('${directory.path}/r04b-visual-ready.json');
+          final resume = File('${directory.path}/r04b-visual-continue');
+          await tester.runAsync(() async {
+            require(
+              !await ready.exists() && !await resume.exists(),
+              'Stale visual handshake; inspect before continuing',
+            );
+            await ready.writeAsString(
+              jsonEncode({
+                'label': '$profileName-$phase',
+                'frame': visualFrames,
+              }),
+              flush: true,
+            );
+            final deadline = DateTime.now().add(const Duration(seconds: 45));
+            while (!await resume.exists()) {
+              require(
+                DateTime.now().isBefore(deadline),
+                'Native screenshot not acknowledged',
+              );
+              await Future<void>.delayed(const Duration(milliseconds: 100));
+            }
+            await ready.delete();
+            await resume.delete();
+          });
+          visualFrames++;
+          if (scroll.position.pixels >= scroll.position.maxScrollExtent - 1) {
+            break;
+          }
+          final next =
+              (scroll.position.pixels + scroll.position.viewportDimension * .75)
+                  .clamp(0.0, scroll.position.maxScrollExtent);
+          scroll.position.jumpTo(next);
+          await tester.pump(const Duration(milliseconds: 200));
+        }
+      }
       // A real reconnect on the same socket owner/key, never another enrollment.
       await tester.runAsync(() async {
         await client.close();
@@ -324,6 +369,7 @@ void main() {
           'operation': operation,
           'same_key_reconnect': true,
           'production_enrollment_gate': true,
+          'native_visual_frames': visualFrames,
           'landing': protected ? 'ProtectedDeviceScreen' : 'HomeShell',
           'simulator': true,
           'camera_hardware': false,
