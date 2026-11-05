@@ -1487,3 +1487,14 @@ policy without that allowance; do not blindly change or replay retired payloads.
 R05 cloud member maximum retention ends2026-11-07T19:41:25Z; full disk/IP cleanup
 is separate from the independent VM STOP. Current evidence and remaining client/
 recovery qualification are in specs/176-ollama-members/verification.md.
+
+Actual Mobile approval expiry can leave a signed failed operation alongside an
+uncertain provider reservation. Preserve both: a failed result does not release
+the runner fence. Recovery must verify the original owned processes stopped,
+reattest the restarted model and durably rebind its changed profile using the
+existing latch/history. Docker may regenerate internal DNS NAT ports on restart;
+retain the full before/after rulesets and verify the unchanged NetClaw table.
+The private recovery writer also showed that os.open's requested file mode is
+masked by umask077: restoring source readability requires the exact original
+mode, while member-private metadata remains0600. Do not replay completed recovery
+steps after a later helper failure. Spec176 verification retains each outcome.

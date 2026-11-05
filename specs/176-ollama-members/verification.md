@@ -5,9 +5,11 @@
 Source implementation integrated on `176-ollama-members`: **26/33 tasks complete**.
 Actual temporary local ARM64 qualification completed with two Ollama calls, one
 native MCP calculation, signed result and durable ACK. Intended local/cloud members
-are enrolled and online under the approved48-hour window. The cloud foundation,
-scoped Border backend/HUD update and native client builds are complete. The combined browser run passed. Actual editor/Mobile, isolation/recovery and
-closeout evidence remain open.
+are enrolled under the approved48-hour window; verified cloud runner recovery
+has completed with original operation/claim history preserved. The cloud foundation,
+scoped Border backend/HUD update and native client builds are complete. The combined browser and editor success/reopen runs passed. Mobile exposed a real
+review-expiry/provider-uncertainty case; the proven profile-rebind recovery step
+is now implemented and actually verified. Native completion/recovery and closeout remain open.
 No release or R06/R07 work has occurred.
 
 NetClaw baseline `db0c9682d4997d51a15f75cbf2df83b97d3c3f45`, source1.18.6,
@@ -24,9 +26,9 @@ its exact inspected source hashes and limitations are retained separately.
 | Combined browser | One durable parent,two distinct approvals,both results | PASSED; actual reload recovered same results |
 | Isolation | Guard positive control and agent/broker/sibling/Border/public denials | PASSED for owned models and recorded vantages; limits below |
 | Resource/accounting | Actual swap/cgroup/OOM, CPU/memory,tokens,time,zero provider charges,unload | PASSED; exact idle-unload interval not measured |
-| Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | NOT RUN |
+| Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | Actual browser lost reply/unknown, Mobile failed-sibling and owned runner recovery passed; final native/shared restart pending; ACK-loss protocol-tested |
 | G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | LIVE SUCCESS/REOPEN PASSED; sibling-failure case pending |
-| G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | SOURCE TESTED / LIVE NOT RUN |
+| G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | Actual signed partial and cold/background recovery passed; complete pair pending |
 | Regression/portfolio | Existing protected pyATS/NetBox/subnet/hosted models, Chat/Canvas,clients | SOURCE TESTED; live portfolio pending |
 | Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | Activation preservation passed; final export/residue inventory pending |
 | Human acceptance | Owner reviews current R05 evidence before R06/R07 | PENDING |
@@ -423,3 +425,174 @@ A missed start, failed export or unknown apply is retained and never automatical
 replayed. Independent GCE STOP still bounds VM runtime at19:41:25UTC, but leaves
 disk/IP charges if cleanup cannot finish. The CAD5.472448 figure is the reviewed
 48-hour estimate excluding existing R01, tax and transfer, not observed billing.
+
+
+### Browser lost-response and unknown-sibling drill
+
+Actual Chrome preparation reached the Border once; the test deliberately dropped
+that HTTP response after retaining it privately. The browser had saved its nonce
+before submission and recovered the same parent/children by GET. Parent
+`fdbad6d6-19f7-4934-98c5-a1e0cf4d7938` then approved local IPv4 separately and
+retained its verified result (`55d6bf8a-a511-47fe-adfc-90364c3f16d6`, one attempt).
+
+Only after that success, the exact idle cloud model was paused briefly and its
+existing IPv6 review approved once. The actual outcome was **unknown**, not the
+anticipated signed refusal: child `6dfe48bb-2a46-4cba-92ba-a7c8eef95f5b`, attempt
+`bc2faf51-f5eb-4be1-887f-d4a4a47716e6`, retained `effect_outcome_unknown` with no
+receipt or ACK. The original driver's partial-state assertion failed and remains
+recorded. No success, failure receipt or acknowledgement was fabricated.
+
+The reviewed helper unpaused the same model in its finalization path after14.474s.
+Read-only settlement confirmed effect_claimed/effect_finished0, no provider DB,
+inference row, native-tool artifact or operation container for that child, and
+empty owned cleanup. Original model PID/start/namespace/nft/profile and idle
+runner latch were unchanged. The cloud's four inference rows still belonged
+only to the prior browser/editor successful calls. The exact unknown row and
+artifacts remained unchanged under an additional live preflight.
+
+A separate actual browser recovery used the captured pre-submit nonce, displayed
+the retained successful IPv4 facts and unresolved IPv6 outcome, then reloaded.
+All observed operation requests were GET; IDs, results, states and attempt counts
+were unchanged. Evidence: `browser/fault-1/`,
+`browser/fault-1-unknown-recovery/passed.json`, and
+`fault-recovery-v1/browser-fault/`. The native ACK-loss case remains protocol-tested;
+this live drill loses a client HTTP response and does not claim lost native ACK.
+Actual shared worker restart and native fault cases remain to be recorded.
+
+Private fault evidence helpers were corrected before their first timed mutation
+to serialize actual SQLite BLOBs as length/SHA256, and full snapshot serialization
+was added to read-only preflight. Following the real unknown outcome, later fault
+preconditions permit only its exact allowlisted case with original passed
+zero-dispatch witness, unchanged full row/artifacts, no effect/provider/inference/
+receipt/ACK and continued absence of operation containers. Other unacknowledged
+or active states still refuse. This changes qualification-helper preconditions,
+not NetClaw authority, runtime policy, unknown state or runner latch.
+
+
+The first actual read-only handoff baseline exposed a verifier-only defect in the
+installed cleanup packet: serialized consistent SQLite backups retained WAL header
+bytes, so deserialize-to-memory verification incorrectly requested a missing file.
+The original archives/error remain. A narrow correction verifies the exact bytes
+through a private0600 immutable read-only SQLite file. All23 actual SQLite backups
+and2,896 archive entries verified; an actual WAL fixture preserved an unknown row
+and rejected corrupt bytes, and the original10 cleanup guards passed.
+
+The coordinator reviewed and applied only this verifier amendment while the job
+was confirmed not running and had no workflow/destroy claim. Current armed
+execution-manifest SHA256 is
+`f76657c05575f5041ce5ab139af7921336e7a52feeb3b69601bd4cd6be9642ff`.
+The original `c682bea6...` manifest/helpers/arming receipt are archived under
+`retained-teardown-correction-v2/before/`; the correction receipt and successful
+read-only readiness check are retained. Saved destroy plan, state, plist,
+deadlines and all runtime resources remain unchanged. Actual future cleanup
+still requires its own successful export/deletion/residue receipts.
+
+
+### Actual Mobile partial result and provider fence
+
+Mobile used its retained simulator/bundle/device key. An initial native screenshot
+helper followed the old data-container path after an app update; actual WSS
+preparation succeeded but visual/report export failed. Read-only Border and both
+member checks proved the original parent `f87515ee-1ebd-4abf-9bcc-b678f46224bb`
+had no approvals, attempts or member/model effects. Its expired reviews were
+cancelled, archived and removed through the native UI; no admission was replayed.
+The helper now resolves the current simulator container and writes a durable
+private DTO checkpoint before visual export.
+
+Fresh parent `c8fd367b-df61-474f-84e5-1ad91facb608` produced actual signed partial
+results: local child `26af6973-0f41-4148-be12-674c351e9485` completed; cloud child
+`edba0280-ad5e-48af-8216-cd440595d614` returned verified `executor_failed/finished`
+with durable ACK and the correct independently verified IPv6 native tool result.
+It is not a complete paired success. The native report and9 result screenshots
+are retained, with unchanged device identity.
+
+Separate native test launches/screenshots consumed the review window: cloud start
+1793914141537 left82.767s before expiry1793914224304. The first model call completed
+with363 tokens, and the native tool ran once. The second call began before expiry
+but returned502 at the absolute deadline; its ordinal2 claim has no retained
+response. An OpenClaw HTTP retry received403 `approval_expired` without a third
+inference claim or provider dispatch. The runner correctly remained **uncertain**
+(reservation `d0246951...`), blocking fresh inference. Three operation containers
+were stopped, cleanup had no unresolved objects, and original claims/results
+remained. Provider uncertainty must not be inferred away from the signed failed
+operation or observed stopped agent.
+
+This exposed a missing lifecycle step: NetClaw had verified `RunnerLatch.recover`
+but lacked Thermidor's durable idle-only profile rebind after owned model restart
+changes the namespace/confinement hash. T017 is reopened for that narrow proven
+step and actual recovery. No raw SQLite clearing, substitute latch/database,
+replay, deadline relaxation, prompt tuning or paid fallback is authorized. A
+native test-driver correction performs the two separately reviewed UI decisions
+promptly in one run and defers screenshots; the product still has separate
+checkboxes/buttons and no batch-approval endpoint. A fresh success remains gated
+on verified owned-model recovery and the new current profile.
+
+
+The required rebind correction is integrated at `ab475890`, adapting the exact
+already-pinned Thermidor ProviderLatch method. It requires idle state after real
+recovery, distinct valid old/new profile hashes, exact prior-row/receipt binding
+and a host verifier returning literalTrue. The existing SQLite transaction
+archives the full prior row and transition receipt atomically; operation,
+reservation and recovery fields remain retained. The object's expected profile
+changes only after commit. No exposed model/tool API can invoke maintenance.
+Thirty new real-SQLite/refusal/rollback cases plus28 existing focused checks passed;
+the full root protected/lifecycle suite passed **776 tests**,21 existing warnings,
+16.31s (`rebind-integrated-python-tests.log`). Actual owned-model recovery remains
+separately gated on the reviewed two-phase packet and observed confinement.
+
+The existing Mobile partial result also passed actual cold/background recovery:
+oldPID59818 was terminated and its absence verified; freshPID68842 retained the
+same device enrollment/key, then survived XCTest Home/Springboard/foreground with
+the same PID and lifecycle events inactive→hidden→paused→hidden→inactive→resumed.
+GET-only recovery preserved both attempt1 rows and exact signed/ACKed result
+digests. Nine native screenshots and the `.xcresult` are retained under
+`native-acceptance/mobile/failure-lifecycle/`. This real signed failed-sibling case
+replaces the planned artificial Mobile pause case. It does not close Mobile's
+still-required fully successful paired run.
+
+The actual recovery stopped the owned federation worker and model, verified their
+original processes were gone, and restarted the same model container. A strict
+full nftables comparison refused Docker's changed internal DNS NAT source ports
+(TCP32865→40947, UDP60293→50825); the NetClaw table was byte-equivalent. The
+original refusal and full before/after witness remain. A separately reviewed
+continuation pinned both complete rulesets and the identical NetClaw table,
+without repeating stop/start or firewall installation. Real guard-positive,
+five-role UID-negative and fresh internal-peer isolation probes passed.
+
+Candidate derivation then exposed a private maintenance-writer defect: its077
+umask masked the source file's requested original read mode. Correct source bytes
+were installed, but the real member UID could not read the module. This failure
+occurred before recovery/rebind or member restart. The exact original mode is
+being restored under hash/owner/baseline checks; completed probes are retained,
+not repeated. Both failures preserve the original uncertain latch, inference
+claims, operation artifacts and keys, with no new model request. Evidence is in
+`cloud-runner-recovery-v1/`; neither refusal is counted as successful recovery.
+
+The subsequent actual recovery completed using the original reviewed commit
+helper and candidate `07da30506fb257c6a7a8acd58fb53bd7ac8b1fd70e8c4e443c5ac46afa5ddadf`.
+Only the original source0444 mode was restored before candidate derivation;
+completed stop/start/firewall/probe steps were not repeated. The same cloud model
+container has a fresh namespace and verified full policy. New protected-profile
+SHA256 is `5129e410a4b41845a9451c4c7cb2a019228f586d5db00977bda05a1edecd5f16`,
+runtime revision `8b3723c6d0df9397d84004c40f3086c1711f543832949ea1a9db1721a16f7798`.
+An independent real-member-UID review recomputed the revision and verified all303
+source files, unchanged identity, tools and limits.
+
+The existing latch recorded recovery `8276d95c3b5f21b522942b937c2aadc0f4543fee4cbe8b64d749d0986bb7d352`
+and profile transition `539a3edd1f6a730393e2565b603044aff3f0393df2acf887c9e40213c59ea804`.
+It is idle under the new model profile; original ordinal2 remains CLAIMED and its
+failed signed result remains unchanged. The complete operations/inference/
+artifacts/provider/keys digest was identical before and after:
+`e8927cfe35d89f0e51a5181d976d60c6c4b58e4a61d54a9b48bc306ffd65180f`.
+The same federation service restarted PID4025→12367 and passed actual factory/
+catalog validation. Recovery dispatched zero model requests. Original receipts,
+failures, consistent SQLite backups and new durable history are retained in
+`cloud-runner-recovery-v1/commit-actual-evidence.tar.gz`; T017 is closed.
+
+The exact scheduler amendment then passed at21:59:36UTC. Its active execution
+manifest is `8751f1ff877f0ecf245098550eb28d36f3d6736e29ea29de160cc02788b19437`.
+Only the cloud profile pin and export of its newly bound confinement/recovery
+proofs changed; the original `f76657c0...` inputs are archived. The installed job
+was not running, had no cleanup/destroy claim, and its read-only readiness check
+passed. Plan, authoritative state, plist and November7 deadlines are unchanged.
+This records an armed future cleanup, not completed deletion or a hard spend cap.
