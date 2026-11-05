@@ -11,6 +11,24 @@ metadata:
 
 Installer note: native registration and the documented MCP_CALL invocation share the installed component launcher. Check `readiness.json` before first use; failed discovery is not device state. Existing write approvals still apply.
 
+## Qualified bounded summaries
+
+The explicit Spec176 `subnet_summary` binding uses the existing MCP with the
+hash-pinned `scripts/patches/subnet-calculator-bounded.patch`. Its discovered tools
+are `subnet_calculator` and `subnet_calculator_v6`; discover installed capabilities
+before using the broader historical examples below. Unpatched installations may
+provide only IPv4 and do not inherit this qualification.
+
+This binding accepts canonical network CIDRs only: host bits, zones and mapped
+IPv6 are refused. It computes boundaries without enumerating an address space;
+IPv4 /31 and /32 retain all addresses, edge neighbors are null, and counts are
+exact decimal strings (including IPv6 /0). IPv4 previews contain at most ten
+addresses. IPv6 results contain network, prefix, first/last, neighbors, count and
+/64 count; classification, auto-detection and allocation annotations are not
+part of this qualified binding. The protected member independently verifies the
+native result before returning it. An uncertain protected operation is recovered
+by its existing reference, never by automatically repeating the tool request.
+
 ## Available Tools
 
 ### 1. `subnet_calculator` — IPv4 Subnet Details

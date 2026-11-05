@@ -1,0 +1,156 @@
+{
+  "architecture": "arm64",
+  "files": {
+    "bin/ollama": {
+      "sha256": "d269f6701d0b366eb6d477c29102fb33e14ef75288fed72f0ffe9741954657e5",
+      "size": 37722776
+    },
+    "cpu-files.sha256": {
+      "sha256": "a9ba8447a6137cdc05bbfd444d3b71313e46dbc38e56e1d287c534448cd6c0e5",
+      "size": 2524
+    },
+    "deps/libgcc_s.so.1": {
+      "sha256": "f2d3ad2bf0b61f6bc944cc37d7b6ab7f88d2582b41ff989ca164803f56cc5f20",
+      "size": 133696
+    },
+    "deps/libstdc++.so.6": {
+      "sha256": "6e3112d35cfc86db7ee85b27e1746f67408e2837ff8628b46386c3eabd5682a4",
+      "size": 2633224
+    },
+    "lib/CPP_HTTPLIB_LICENSE": {
+      "sha256": "4b45cbe16d7b71b89ae6127e26e0d90a029198ca5e958ad8e3d0b8bbed364d8b",
+      "size": 1075
+    },
+    "lib/GO_LICENSE": {
+      "sha256": "b917b04a030b52c9f7dd2c46fbf2b60743c39c16aeefa114f7df89aeb2ce2617",
+      "size": 137370
+    },
+    "lib/LLAMA_CPP_LICENSE": {
+      "sha256": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d",
+      "size": 1078
+    },
+    "lib/LLAMA_CPP_VENDORS_LICENSE": {
+      "sha256": "eb17b411e39c75c4ac40916d66e39287ee9723b8bbe54daf020fc27acf670c11",
+      "size": 7257
+    },
+    "lib/libggml-base.so": {
+      "link": "libggml-base.so.0"
+    },
+    "lib/libggml-base.so.0": {
+      "link": "libggml-base.so.0.27.0"
+    },
+    "lib/libggml-base.so.0.27.0": {
+      "sha256": "9384f18894d31d4764634bc6804f39fc33ee4301db8aa1b2c346c81e6a65d666",
+      "size": 857352
+    },
+    "lib/libggml-cpu-armv8.0_1.so": {
+      "sha256": "f9e509e3ec653f44f5b8997fdb64c408bee21e4deb7f117ff9951823c216e731",
+      "size": 858432
+    },
+    "lib/libggml-cpu-armv8.2_1.so": {
+      "sha256": "892e9d62eb11a76a6c55a550e7d8e21ff05e8d91164bf741a2e987f4eb99a9dc",
+      "size": 923640
+    },
+    "lib/libggml-cpu-armv8.2_2.so": {
+      "sha256": "95047bed0de677379820625a7cdbc641f9f42545fb7adbfe460feabc6759d11e",
+      "size": 923640
+    },
+    "lib/libggml-cpu-armv8.2_3.so": {
+      "sha256": "b9aafa3406e12e62aa5dbcbe2aace9ca3ab04eadbbd3a2afa56eaa065ca550b8",
+      "size": 923632
+    },
+    "lib/libggml-cpu-armv8.6_1.so": {
+      "sha256": "ba9962d572ae308555aade326fb2a91ddcfa21be4becd7ca4919f6334dc7b7d0",
+      "size": 923584
+    },
+    "lib/libggml-cpu-armv8.6_2.so": {
+      "sha256": "895ca6568cb55129ded6be77bbd9d1d3de75785aa70c46b4f223f1282e133809",
+      "size": 923584
+    },
+    "lib/libggml-cpu-armv9.2_1.so": {
+      "sha256": "46fe6cae080b23e8ed04be40a639eac01f6e1c1f95ff99d67ccac82ced3f6094",
+      "size": 923584
+    },
+    "lib/libggml-cpu-armv9.2_2.so": {
+      "sha256": "3be197225196d2c3a811d070d0a9d54b39d8ffce7a3745d17ef4de9431893079",
+      "size": 923584
+    },
+    "lib/libggml.so": {
+      "link": "libggml.so.0"
+    },
+    "lib/libggml.so.0": {
+      "link": "libggml.so.0.27.0"
+    },
+    "lib/libggml.so.0.27.0": {
+      "sha256": "89f714bdb20e7a327ce4e801e41242728b826a7cab3f01151c072b904312d0b1",
+      "size": 266152
+    },
+    "lib/libgomp.so.1": {
+      "link": "libgomp.so.1.0.0"
+    },
+    "lib/libgomp.so.1.0.0": {
+      "sha256": "dcaa4144d27ab688136c07e76af932b35bd71ee57a2f51e377ca003650c1589e",
+      "size": 271576
+    },
+    "lib/libllama-common.so": {
+      "link": "libllama-common.so.0"
+    },
+    "lib/libllama-common.so.0": {
+      "link": "libllama-common.so.0.7.0"
+    },
+    "lib/libllama-common.so.0.7.0": {
+      "sha256": "09ed673cb3b1aff713d8cf6bd7403acc00b071419bbc11d21b7236b882cfc748",
+      "size": 4811368
+    },
+    "lib/libllama-quantize-impl.so": {
+      "sha256": "8dab17c924b55ec3976ee2faeb365796d155422945dea933dd17261908168edd",
+      "size": 68568
+    },
+    "lib/libllama-server-impl.so": {
+      "sha256": "6feb1f944d9a196caff780ef9a0969a98e44c06e06c8e7db113e7d76441b932e",
+      "size": 3498024
+    },
+    "lib/libllama.so": {
+      "link": "libllama.so.0"
+    },
+    "lib/libllama.so.0": {
+      "link": "libllama.so.0.7.0"
+    },
+    "lib/libllama.so.0.7.0": {
+      "sha256": "a5733ab5553ec4a4be97c98bce1ddb2ee4e26b7e9abac20b4bcfa13be38c0b3d",
+      "size": 4026592
+    },
+    "lib/libmtmd.so": {
+      "link": "libmtmd.so.0"
+    },
+    "lib/libmtmd.so.0": {
+      "link": "libmtmd.so.0.7.0"
+    },
+    "lib/libmtmd.so.0.7.0": {
+      "sha256": "0370048c1f436043076d161ff77d9d9548901c59d4f54036de390984c815d7df",
+      "size": 1516696
+    },
+    "lib/libomp.so": {
+      "sha256": "e72f4eb0b96691939dffe113df0c7016dfb560de28500171bf1bbfdc7ab0c819",
+      "size": 1231728
+    },
+    "lib/llama-quantize": {
+      "sha256": "613be255b4ce9e05a3c27d42f100a867a2a26059994c2681ffa294347bb243d2",
+      "size": 68384
+    },
+    "lib/llama-server": {
+      "sha256": "f6e05586c5e7dd2110b2d8efadf23ff3b081dcdd53be67cfd32884af7b476163",
+      "size": 68384
+    },
+    "notices/libgcc-copyright": {
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "size": 69004
+    },
+    "notices/libstdc++-copyright": {
+      "sha256": "20390f8a6f3b1e4d7cb45dd8652dabb259bbef688cbad839bcdb0b9ba7252f79",
+      "size": 69004
+    }
+  },
+  "official_image": "ollama/ollama@sha256:47da9fc7b3d4582d8ecc772faf1b5dc5df6bf425d9af0285a298c537519567e5",
+  "schema_version": 1
+}

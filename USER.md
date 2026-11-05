@@ -324,3 +324,10 @@ were removed. Baseline101containers/50networks, all4operation rows and source
 evidence are preserved. The owned simulator is shut down with profiles retained.
 The usable pilot/member keep their existing December1scope. Full stop before R05
 remains explicit; neither release nor acceptance starts another spec.
+
+
+R05 owner clarification (2026-11-05): this is NetClaw with NetClaw members using
+Ollama over existing NetClaw iN2N, no Tailscale. Thermidor provides proven patterns,
+tests and lessons only; do not deploy/import the Thermidor product/runtime or
+introduce its transport, identities, authority or lifecycle. Final model/guard
+images and source are NetClaw-owned, with official pinned public Ollama/model bytes.

@@ -677,3 +677,23 @@ Thermidor reuse. Implementation is started; use the existing coordinator and
 separate-worktree delegation for R02–R05. No extra optional loop or release is
 authorized. Exact runtime/resource review, preservation and final human gate
 remain; do not repeat source-implementation permission requests.
+
+
+R05 owner clarification (2026-11-05): this is NetClaw with NetClaw members using
+Ollama over existing NetClaw iN2N, no Tailscale. Thermidor provides proven patterns,
+tests and lessons only; do not deploy/import the Thermidor product/runtime or
+introduce its transport, identities, authority or lifecycle. Final model/guard
+images and source are NetClaw-owned, with official pinned public Ollama/model bytes.
+
+### R05 exact 48-hour cloud approval — 2026-11-05
+
+The owner selected the48-hour window (~CAD5.47) for the reviewed separate
+2vCPU/8GiB Ollama member,40GiB disk and isolated network. This supersedes the
+proposed December1 retention for the new R05 member only. Revised saved plan
+`ca32d0d28314d3f90cd5aa0cf0ef5d923524d46e69b5cc3a141c54b2e14dba30`
+applied once:8creates,0changes,0destroys, stop2026-11-07T19:41:25Z. Preserve
+existing Border/R01 identities/history/DNS/state. Full owned cleanup after
+qualification must remove disk/IP residues; STOP alone is not cleanup. No
+publication/version/R06/R07 authorization is implied. Use fresh R05 state under
+`~/.local/share/netclaw/roadmap-r05-20261105/cloud-plan-48h/`; oldDec1plan is
+evidence-only and must not be applied. NetClaw Ollama members, noTailscale.

@@ -1,0 +1,11 @@
+# Fresh NetClaw guard image from its reviewed official DefenseClaw 1.0.4 image.
+# Context has only public scripts and a separately hash-recorded PyYAML wheel.
+ARG BASE_IMAGE
+FROM ${BASE_IMAGE}
+USER root
+COPY wheels/ /opt/netclaw/wheels/
+RUN python3 -m pip install --no-index --no-deps /opt/netclaw/wheels/*.whl
+COPY scripts/protected-guard.py /opt/netclaw/scripts/protected-guard.py
+COPY scripts/lib/protected_provider.py /opt/netclaw/scripts/lib/protected_provider.py
+COPY scripts/lib/protected_ollama.py /opt/netclaw/scripts/lib/protected_ollama.py
+ENTRYPOINT ["python3", "/opt/netclaw/scripts/protected-guard.py"]

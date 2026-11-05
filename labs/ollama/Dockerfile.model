@@ -1,0 +1,16 @@
+# NetClaw R05 model image. Context contains verified official Ollama CPU bytes only.
+# BASE_IMAGE is the reviewed upstream Python runtime image, immutable digest.
+ARG BASE_IMAGE=python:3.13.16-slim-trixie@sha256:cf50a4f6ac4f026458b08d5222023d700ac806410dff5e9ca8728fa44f2b850f
+FROM ${BASE_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends nftables && apt-get clean
+COPY cpu/bin/ /usr/local/bin/
+COPY cpu/lib/ /usr/local/lib/ollama/
+COPY cpu/deps/ /usr/local/lib/ollama-deps/
+COPY cpu/notices/ /usr/share/doc/netclaw-ollama/notices/
+COPY cpu/cpu-files.sha256 /usr/share/doc/netclaw-ollama/cpu-files.sha256
+COPY Ollama-LICENSE /usr/share/doc/netclaw-ollama/LICENSE
+COPY model-lock.json /usr/share/doc/netclaw-ollama/model-lock.json
+ENV PATH=/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin HOME=/tmp LD_LIBRARY_PATH=/usr/local/lib/ollama:/usr/local/lib/ollama-deps
+ENTRYPOINT ["/usr/local/bin/ollama"]
+CMD ["serve"]

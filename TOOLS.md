@@ -1458,3 +1458,12 @@ GAIT works through `/Users/john.capobianco/gait_mcp/venv/bin/python` with
 `scripts/gait-stdio.py`; the default Python missing gait does not prove GAIT is
 unavailable. Create then explicitly checkout the session branch. Startup pyATS
 HTTP runtime and MemPalace source remained unavailable in this source-only session.
+
+### R05 local qualification preparation (2026-11-05)
+
+NetClaw Spec176 uses existing iN2N and fresh Ollama members, no Tailscale or
+Thermidor runtime. Host UID observed503. Docker29.9.2 internal bridges do not
+publish requested host ports; use the qualified private guard path. Official
+Ollama0.40.11 CPU extraction needs glibc2.38; the final reference's pinned Trixie
+base starts successfully, while Bookworm failed before inference. Actual model
+operations/client/cloud acceptance remain open in Spec176 verification.

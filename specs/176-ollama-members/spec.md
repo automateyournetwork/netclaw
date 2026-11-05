@@ -5,6 +5,10 @@
 **Status**: Implementation authorized and in progress  
 **Input**: Owner: R5 / next Spec176 using SDD, heavily referring to Thermidor's working solution, tests, outcomes, approach and lessons; then “proceed” and “make the branch and specs etc”.
 
+**Owner clarification during implementation**: This is NetClaw and a NetClaw
+member using Ollama, with no Tailscale. Thermidor is reference evidence/patterns
+only; no Thermidor product/runtime dependency or transport is introduced.
+
 ## User Scenarios & Testing *(mandatory)*
 
 ### User Story 1 - One request, two approved local-model calculations (Priority: P1)

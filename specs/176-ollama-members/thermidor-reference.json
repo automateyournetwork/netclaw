@@ -143,6 +143,18 @@
       "sha256": "d4c2708e6acce21a8cc1b10b6fe2cbb19a8dc70fbbec63d45c997aa4524bc5eb",
       "bytes": 11676,
       "tracked_modified": false
+    },
+    {
+      "path": "labs/cloud/Dockerfile",
+      "sha256": "4dfcc1dc1dcc1e7a07fb9a8bb3a621c5a2c96f2ce7f58766209f494ba68a37d3"
+    },
+    {
+      "path": "labs/ollama/Dockerfile",
+      "sha256": "f675c90264367cdd04e1dbe3995bc1e34f9fc160e18b38f99b9eb45c111acb5c"
+    },
+    {
+      "path": "NOTICE.md",
+      "sha256": "67df3b4d4b3a6df23466ecc41947fa1353588b5389018dbdf57e1e4d4660af9a"
     }
   ],
   "native_subnet_inspection": {
