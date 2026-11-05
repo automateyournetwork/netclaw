@@ -144,3 +144,31 @@ def test_real_subprocess_pipe_carries_request_without_capability_in_argv_or_env(
         assert observed['stdin_sha256']==hashlib.sha256(body).hexdigest()
         assert secret not in str(observed['argv'])+str(observed['env'])
     finally:executor.fence.close()
+
+
+def native_history():
+    approved=payload();first=reply(approved);body=request(approved)
+    evidence={'output':{'address_count':'64'},'independent_verification':True,'mcp_calls':1,'native_result_sha256':'f'*64}
+    body['messages'] += [copy.deepcopy(first['choices'][0]['message']),{'role':'tool','tool_call_id':'call-1','content':ollama.canonical(evidence['output']).decode()}]
+    return first,body,evidence
+
+
+def test_native_argument_json_reserialization_preserves_actual_call():
+    first,body,evidence=native_history();body['messages'][-2]['tool_calls'][0]['function']['arguments']='{\n "cidr"  : "192.0.2.0/26"\n}'
+    ollama.validate_history(body,first,evidence)
+    assert body['messages'][-2]['tool_calls'][0]['function']['arguments'].startswith('{\n')
+
+
+@pytest.mark.parametrize('raw',['{"cidr":"wrong","cidr":"192.0.2.0/26"}','{"cidr":NaN}','{"cidr":Infinity}',
+    '{"cidr":-Infinity}','{"cidr":1e9999}','{"cidr":"192.0.2.64/26"}','{"cidr":"192.0.2.0/26","extra":false}'])
+def test_native_history_refuses_duplicate_nonfinite_or_changed_argument(raw):
+    first,body,evidence=native_history();body['messages'][-2]['tool_calls'][0]['function']['arguments']=raw
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)
+    response=reply(payload());response['choices'][0]['message']['tool_calls'][0]['function']['arguments']=raw
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_response(response,1,payload())
+
+
+@pytest.mark.parametrize('field,value',[('id','made-up'),('type','other')])
+def test_native_history_never_normalizes_changed_call_identity(field,value):
+    first,body,evidence=native_history();body['messages'][-2]['tool_calls'][0][field]=value
+    with pytest.raises(ollama.OllamaRefused):ollama.validate_history(body,first,evidence)

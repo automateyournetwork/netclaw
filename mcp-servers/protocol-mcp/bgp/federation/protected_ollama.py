@@ -6,6 +6,7 @@ The existing native MCP remains the tool implementation. No model-facing recover
 from contextlib import contextmanager
 import hashlib
 import json
+import math
 import os
 from pathlib import Path
 import re
@@ -224,6 +225,24 @@ def verify_confinement(value, inspected, namespace_inode, *, image_environment=(
             'model_container_id': value['model_container_id'], 'profile_sha256': digest(profile_binding(value))}
 
 
+def tool_arguments(raw):
+    """Strict model-native JSON; SDK whitespace changes do not change a call."""
+    need(isinstance(raw, str) and len(raw.encode()) <= 32768, 'ollama_tool_arguments_invalid')
+    def pairs(items):
+        result = {}
+        for key, value in items:
+            need(key not in result, 'ollama_duplicate_tool_argument')
+            result[key] = value
+        return result
+    def finite(raw):
+        value = float(raw); need(math.isfinite(value), 'ollama_nonfinite_tool_argument'); return value
+    def constant(_): raise OllamaRefused('ollama_nonfinite_tool_argument')
+    try: result = json.loads(raw, object_pairs_hook=pairs, parse_float=finite, parse_constant=constant)
+    except (ValueError, TypeError, RecursionError): raise OllamaRefused('ollama_tool_arguments_invalid') from None
+    need(isinstance(result, dict), 'ollama_tool_arguments_invalid')
+    return result
+
+
 def calculator_request(body, payload, profile):
     """Thermidor calculator-v4, adapted to signed NetClaw native tool/schema."""
     validate_profile(profile)
@@ -253,7 +272,7 @@ def calculator_request(body, payload, profile):
         need(len(messages) == 3 and messages[1].get('role') == 'assistant' and messages[2].get('role') == 'tool', 'ollama_conversation_changed')
         calls = messages[1].get('tool_calls', [])
         need(len(calls) == 1 and calls[0].get('function', {}).get('name') == name and
-             json.loads(calls[0]['function']['arguments']) == args and messages[2].get('tool_call_id') == calls[0].get('id'), 'ollama_tool_history_changed')
+             tool_arguments(calls[0]['function']['arguments']) == args and messages[2].get('tool_call_id') == calls[0].get('id'), 'ollama_tool_history_changed')
     else:
         need(len(messages) == 1, 'ollama_conversation_changed')
     request = {**body, 'messages': [
@@ -281,8 +300,17 @@ def validate_history(body, previous_response, tool_evidence):
         return
     need(tool_evidence is not None and len(messages) == 3, 'ollama_real_tool_result_required')
     actual = previous_response['choices'][0]['message']; assistant, tool = messages[1:]
-    need(assistant.get('role') == 'assistant' and assistant.get('tool_calls') == actual.get('tool_calls')
-         and (assistant.get('content') or '') == (actual.get('content') or ''), 'ollama_invented_assistant_history')
+    need(assistant.get('role') == 'assistant' and (assistant.get('content') or '') == (actual.get('content') or ''), 'ollama_invented_assistant_history')
+    calls = assistant.get('tool_calls'); real_calls = actual.get('tool_calls')
+    need(isinstance(calls, list) and len(calls) == 1 and isinstance(real_calls, list) and len(real_calls) == 1,
+         'ollama_invented_assistant_history')
+    call, real = calls[0], real_calls[0]
+    need(isinstance(call, dict) and set(call) == {'id', 'type', 'function'} and
+         call.get('id') == real.get('id') and call.get('type') == real.get('type') and
+         isinstance(call.get('function'), dict) and set(call['function']) == {'name', 'arguments'} and
+         call['function']['name'] == real['function']['name'] and
+         tool_arguments(call['function']['arguments']) == tool_arguments(real['function']['arguments']),
+         'ollama_invented_assistant_history')
     content = tool.get('content')
     if isinstance(content, list):
         need(len(content) == 1 and content[0].get('type') == 'text', 'ollama_invented_tool_output')
@@ -302,7 +330,7 @@ def validate_response(response, ordinal, payload):
         call = calls[0]
         need(call.get('type') == 'function' and isinstance(call.get('id'), str) and 0 < len(call['id']) <= 160
              and call.get('function', {}).get('name') == 'approved__'+payload['tool_call']['tool'], 'ollama_tool_call_changed')
-        try: args = json.loads(call['function']['arguments'])
+        try: args = tool_arguments(call['function']['arguments'])
         except (ValueError, TypeError, KeyError): raise OllamaRefused('ollama_tool_call_changed') from None
         need(args == payload['tool_call']['arguments'], 'ollama_tool_call_changed')
         if 'index' in call:
