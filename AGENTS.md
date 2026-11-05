@@ -597,3 +597,30 @@ to R05.” Complete Spec175 implementation, actual local/cloud HUD and VS Code Q
 enrollment, native simulator operation/recovery verification, evidence and cleanup.
 Then stop. Do not start R05 or another spec. This is execution direction for the
 current stage; it does not pre-certify unobserved tests or authorize publication.
+
+
+### R04b native qualification checkpoint — 2026-11-05
+
+All four actual local/cloud HUD and VS Code QR paths passed on the owned iPhone
+simulator, including retained-key reconnect and production navigation. Native
+binding/scope refusals and cold/background recovery passed. The private1.6.0
+extension is installed, with settings/profiles/other extensions preserved; no
+Marketplace publication. The exact installed artifact passed actual Overview and
+Mobile checks with a cloned existing cloud profile. Original editor/terminal
+remained untouched; macOS accessibility was unavailable.
+
+The reviewed pilot/member update is settled and preserved authority/history.
+One native approved prefix1 read returned signedFAILED native_netbox_http_403,
+with durable ACK and exactly1 provider/1 MCP/1 HTTP request. Recovery repeated no
+effect. The unchanged Nov4 demo token likely expired across the nightly reset;
+exact403 cause is unproven. A current authorized read-only token is required for
+successful-read acceptance. An async request for its private local file path is
+pending. Do not create external tokens or replay the failed operation. Use a
+separate reviewed reference and new evidence directory after a valid credential
+is supplied. Spec175 is not100% or human accepted; see its resume.md.
+
+Owned disposable services/editors/simulator are stopped. The failed attempt's3
+containers and1 network were removed after verified export; original101 containers,
+50 networks, all operation records and source evidence remain. The usable pilot
+and member retain December1scope. All deployment/cleanup claims are spent; no DB
+restore or replay. Full stop beforeR05 remains in force.

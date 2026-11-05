@@ -47,11 +47,11 @@ Goal: enrolled device sees exact protected catalog/review/decision/result/ACK; r
 - [x] T022 Prepare and independently review exact pilot update/rollback/ingress and owned local test setup in specs/175-cloud-mobile-enrollment/deployment.md with private packet hashes.
 - [x] T023 Apply reviewed bounded development-pilot changes and verify confinement/preservation in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T024 Verify actual local HUD and native VS Code Mobile QR generation to simulator with real decode/enroll/reconnect in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T025 Verify actual cloud HUD and native VS Code Mobile QR generation to simulator with trusted TLS and refusal cases in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T025 Verify actual cloud HUD and native VS Code Mobile QR generation to simulator with trusted TLS and refusal cases in specs/175-cloud-mobile-enrollment/verification.md.
 - [ ] T026 Review and approve one bounded read on enrolled simulator, verify signed result/durable ACK/effect counts in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T027 Verify native background/process restart and same-reference recovery with unchanged effects/history in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T028 Export evidence, retire only disposable owned fixtures, preserve usable owner pilot and inventory leftovers in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T029 Record coverage limits, maintainer handoff and product entry steps in specs/175-cloud-mobile-enrollment/resume.md; update TOOLS.md, USER.md, AGENTS.md and memory/2026-11-04.md; final GAIT log.
+- [x] T027 Verify native background/process restart and same-reference recovery with unchanged effects/history in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T028 Export evidence, retire only disposable owned fixtures, preserve usable owner pilot and inventory leftovers in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T029 Record coverage limits, maintainer handoff and product entry steps in specs/175-cloud-mobile-enrollment/resume.md; update TOOLS.md, USER.md, AGENTS.md and memory/2026-11-04.md; final GAIT log.
 - [ ] T030 Obtain separate human stage acceptance before R05 in specs/175-cloud-mobile-enrollment/resume.md.
 
 ## Dependencies and parallel execution
@@ -63,3 +63,14 @@ Backend owns Python/federation/protected-server mount, surfaces owns shared HTTP
 ## Implementation strategy
 
 Deliver the common issuer and genuine QR path first, then editor parity and protected operations, integrate once and qualify the actual product. Tests target meaningful authorization/replay/state transitions. Stop dependent mutation on unknown outcome and inspect retained state. Native acceptance remains unchecked until observed; publication/later-stage work is excluded.
+
+
+## November 5 acceptance checkpoint
+
+All four actual QR/enrollment paths, native refusals and no-repeat recovery passed.
+T026 remains open for a successful data read: the one approved native attempt
+returned a signed, acknowledged HTTP403 failure using the unchanged Nov4 demo
+credential. A current owner-provided read-only token is required; preserve that
+failed operation and use a separately reviewed new reference. T030 remains the
+separate human acceptance gate. The owner explicitly requires a full stop before
+R05; neither technical progress nor a supplied credential starts the next stage.

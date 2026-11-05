@@ -3,9 +3,11 @@
 Status: started as [Spec175](../../../../specs/175-cloud-mobile-enrollment/spec.md)
 after the owner's November 4 “04b time” instruction. The owner then explicitly
 required easy QR generation in both local/cloud HUD and VS Code Mobile, with
-actual virtual iPhone verification. Implementation and acceptance are in progress;
-R04a's delivery and historical Mobile evidence remain distinct. Version/public
-rollout and later roadmap stages remain held.
+actual virtual iPhone verification. Implementation, all four native QR paths and
+no-repeat recovery passed. Successful data-read acceptance remains open because
+the unchanged demo credential returned403; see Spec175 resume.md. R04a's evidence
+remains distinct. Version/public rollout and later roadmap stages remain held.
+The owner explicitly requires a full stop beforeR05.
 
 ## Outcome
 

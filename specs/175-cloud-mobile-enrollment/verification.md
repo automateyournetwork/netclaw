@@ -1,6 +1,10 @@
-# R04b verification — in progress
+# R04b verification — successful data-read gate open
 
-Implementation is integrated at9aa2b673. Actual native acceptance is in progress; source tests do not close the remaining end-to-end checks.
+Implementation is integrated through `b38753ad`. All four actual native QR paths,
+refusals and cold/background recovery passed. The private extension is installed
+and disposable fixtures are retired. The one approved data read returned a
+verified, acknowledged HTTP403; a current read-only NetBox token is required for
+a separate successful read. This is not100% or human acceptance. R05 remains stopped.
 
 ## Startup and baseline
 
@@ -30,8 +34,8 @@ planned, with production enrollment UI and protocol shared.
 | Native VS Code Mobile QR generation | Pass: native Code Mobile view | Pass: native Code Mobile view |
 | Native simulator actual QR decode/enroll | Pass: both generated images | Pass: both generated images |
 | Same-key reconnect/uncertain enrollment | Same-key reconnect pass; uncertainty source tests | Same-key reconnect pass; uncertainty source tests |
-| Protected exact review/result/ACK | Scoped fixture pending | Actual read pending |
-| Background/process recovery/no effects | Pending | Pending |
+| Protected exact review/result/ACK | Source fixtures pass | Actual signed403 failure/ACK pass; successful read open |
+| Background/process recovery/no effects | Same-key cold reconnect pass | Actual cold launch and Home/resume pass; unchanged effects |
 
 Physical iPhone/camera/SecureEnclave and other platforms are unqualified. Existing
 R04a evidence retains its original source and scope; it does not qualify R04b.
@@ -123,3 +127,87 @@ authenticated catalog and same-key hello reconnect. The HUD polled consumed and
 cleared the QR. No operation was prepared or approved in this enrollment test.
 Private receipts: `cloud-hud-issued.json`, `cloud-hud-after.json`,
 `native-cloud-hud.json` and correlated logs.
+
+Actual cloud VS Code generation passed at12:47:19Z, with native enrollment at
+12:47:26Z. Its actual canvas PNG hash matches the native decode receipt. The app
+reached ProtectedDeviceScreen and authenticated catalog, then reconnected with the
+same key. Native VS Code Check status displayed Device enrolled and cleared the QR.
+This completes all four positive local/cloud × HUD/editor paths. Receipt:
+`surfaces/native-editor/cloud-vscode-acceptance.json` and `native-cloud-vscode.json`.
+
+Native cloud binding/scope probes passed: wrong installation and wrong declared
+key fingerprint each returned -32023; unavailable revoke and an unknown method
+returned -32601. The successful enrollment file remained byte-identical and valid
+same-key hello recovered afterward. No operation request was made. Receipt:
+`native-cloud-binding-refusals.json`. Earlier local HomeShell startup left an iOS
+notification permission alert on the shared qualification simulator; the Flutter
+integration assertions passed beneath it. Visible screen capture is being completed
+after dismissing that native alert; the original alert screenshot is retained and
+is not counted as a visible protected-screen result.
+
+Private extension package was built from clean committed source `fba7f6fe` using
+qualified Node24.19. Root independently verified its SHA256
+`c6dfb221109f2079e5f028cff408b997b46db924c283605dc506028089b0b208` and all64
+packaged runtime/resource files against the source build, including Mobile. The
+existing installed1.5.0 archive is preserved. Normal installation/activation and
+profile preservation verification are in progress. No Marketplace publication or
+version change is authorized by this private package.
+
+The native alert was dismissed through one isolated XCTest UI test, with the
+original alert capture retained. Four actual simulator screenshots then showed
+production Mobile operations and its complete immutable review with unchecked
+confirmation/disabled approval. Root independently recomputed the review digest
+and matched the frozen Border/member, device principal, exact prefix1 read and
+Sonnet4.6 limits (GAIT6439693c).
+
+Native approval was submitted once at12:56:26Z for operation
+`c36dc48c-a9c1-4fc9-b5a3-8b16029af8cb`, revision1, review digest
+`a6229e769f3bebeea70bd9355df3cbaf5509d8d60ec6e270e3550ccd1d999817`.
+The actual NetBox read returned HTTP403. The phone displayed the signed verified
+failure, one attempt and durable ACK, with delivery no longer pending. Receipt
+`native-cloud-approved.json` and seven actual result screenshots retain this
+failure. Result digest: `7a6aa420422dbe49f0d9f90d2a617e1cc2f28e8e77bcbc885aea09187dcb162e`.
+This qualifies truthful failure delivery, not a successful data read. Investigation
+and same-reference recovery are in progress; no failed operation is replayed or
+silently replaced.
+
+### Final recovery and scoped retirement
+
+Final native recovery passed the Flutter framework and isolated XCTest checks at
+13:13:55Z. It cold-loaded the same retained enrollment/reference, then recorded
+actual inactive → hidden → paused → hidden → inactive → resumed lifecycle events.
+The process remained PID43198 across Home/background and foreground. Seven fresh
+actual simulator screenshots show the retained failed result. Root compared the
+entire operation and enrollment objects against the pre-recovery native receipt:
+identical. `native-cloud-recovered-verified.json` explicitly records
+`framework_passed:true`; `native-lifecycle-process-verified.json` binds the process.
+Earlier XCTest accessibility/teardown and duplicate screenshot filename failures
+are retained. A receipt emitted during a failed harness run was renamed
+`native-cloud-recovered-harness-failed.json` and excluded. The driver now exports
+success evidence only after the framework passes; no failed run is counted.
+
+Independent member and Border recovered collectors passed. Approval/result/ACK,
+GAIT references and actor, exact review, old2 operation rows and current effect
+counts are unchanged:1 provider dispatch,1 inference,1 native MCP call,1 HTTP403.
+No recovery preparation, decision or reconcile request was made by the final
+native recovery flow. The successful-data-read gate remains open; the failed
+result is not relabeled.
+
+Root reviewed cleanup packet
+`1f0116afcf4c535269d51adc308f678bd0d3a3904bf86cfc7f8a256c507303db`, exported409
+operation files plus consistent database snapshots and correlated receipts, then
+removed only the exact3 newly owned stopped containers and1 internal network.
+Post-checks restored the original101 container IDs and50 network IDs, preserved
+their states, all3 operation rows, guard credential and all409 original evidence
+files. Private receipt: `operation-verification/failure-cleanup-result.json`.
+The local fixture's3 processes and both owned test editors were retired. The
+owned simulator was shut down with its keys/profiles retained for the remaining
+credential-dependent check; other simulator states were preserved. No cloud
+resource was created, and no cloud teardown was needed. The intended pilot/member,
+private installed extension, original editor and December1 lifetime remain.
+
+Retained non-running qualification data is deliberate: private evidence exports,
+source/config backups, owned editor profiles, local fixture home and simulator
+state. Cloud qualification device registration/operation records remain as audit
+history and for the explicitly pending successful-read check. No active QR or
+background workload remains. No publication, R05 or next-spec work occurred.
