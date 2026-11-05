@@ -1,0 +1,96 @@
+[
+  {
+    "operation_id": "op-4",
+    "review": {
+      "member": {
+        "member_id": "member-4"
+      },
+      "tool_call": {
+        "tool": "subnet_calculator",
+        "arguments": {
+          "cidr": "192.0.2.0/26"
+        },
+        "endpoint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    },
+    "result": {
+      "verified": true,
+      "durable_ack": true,
+      "evidence": {
+        "output": {
+          "model_answer": "The subnet has 64 usable addresses.",
+          "tool": {
+            "schemaVersion": 1,
+            "tool": "subnet_calculator",
+            "arguments": {
+              "cidr": "192.0.2.0/26"
+            },
+            "output": {
+              "schema_version": 1,
+              "family": 4,
+              "network": "192.0.2.0/26",
+              "prefix_length": 26,
+              "address_count": "64",
+              "usable_count": "62",
+              "usable_first": "192.0.2.1",
+              "usable_last": "192.0.2.62"
+            },
+            "mcp_calls": 1,
+            "independent_verification": true,
+            "endpoint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "skill_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "mcp_schema_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "native_result_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        }
+      }
+    }
+  },
+  {
+    "operation_id": "op-6",
+    "review": {
+      "member": {
+        "member_id": "member-6"
+      },
+      "tool_call": {
+        "tool": "subnet_calculator_v6",
+        "arguments": {
+          "cidr": "2001:db8::/48"
+        },
+        "endpoint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee"
+      }
+    },
+    "result": {
+      "verified": true,
+      "durable_ack": true,
+      "evidence": {
+        "output": {
+          "model_answer": "Unverified IPv6 model prose.",
+          "tool": {
+            "schemaVersion": 1,
+            "tool": "subnet_calculator_v6",
+            "arguments": {
+              "cidr": "2001:db8::/48"
+            },
+            "output": {
+              "schema_version": 1,
+              "family": 6,
+              "network": "2001:db8::/48",
+              "prefix_length": 48,
+              "address_count": "1208925819614629174706176",
+              "subnets_64": "65536"
+            },
+            "mcp_calls": 1,
+            "independent_verification": true,
+            "endpoint_sha256": "eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee",
+            "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "skill_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "mcp_schema_sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+            "native_result_sha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd"
+          }
+        }
+      }
+    }
+  }
+]

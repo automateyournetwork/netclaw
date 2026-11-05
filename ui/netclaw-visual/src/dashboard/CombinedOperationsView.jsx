@@ -1,3 +1,4 @@
+import OperationResultEvidence from './OperationResultEvidence.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { CombinedOperations, combinedChoices, combinedReference } from '../shared/protected-combined.js';
 
@@ -29,7 +30,7 @@ export default function CombinedOperationsView({ api, installationId, principal 
       {value?.children.map((child, index) => <article key={child.operation_id} aria-label={`IPv${child.family} child`}><h3>IPv{child.family} · {child.state}</h3><p>{child.review.member.member_id} · {child.review.tool_call.arguments.cidr} · {child.review.model_profile.provider} / {child.review.model_profile.model}</p>
         <p>Operation: {child.operation_id} · Review: {child.review_digest}</p><pre aria-label={`IPv${child.family} immutable review`}>{JSON.stringify(child.review, null, 2)}</pre>
         <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={busy || controller.uncertain || reference.cancel_sent || reference.children[index].decision_sent || !child.allowed_actions.includes(decision) || decision === 'approve' && child.review.limits.expires_at_ms <= Date.now()} onClick={() => run(() => controller.decide(index, decision))}>{decision === 'approve' ? `Approve IPv${child.family} once` : `Deny IPv${child.family}`}</button>)}</div>
-        {child.result && <><p>Signed result verified: {child.result.verified === true ? 'Yes' : 'Not confirmed'} · Durable ACK: {child.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</p>{child.result.verified === true && <pre aria-label={`IPv${child.family} verified result`}>{JSON.stringify(child.result.evidence, null, 2)}</pre>}</>}
+        {child.result && <><p>Signed result verified: {child.result.verified === true ? 'Yes' : 'Not confirmed'} · Durable ACK: {child.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</p><OperationResultEvidence operation={child}/></>}
         {child.error_code && <p>Recorded outcome: {child.error_code}</p>}
       </article>)}
       {reference.parent_id && <button disabled={busy || reference.cancel_sent} onClick={() => run(() => controller.cancel())}>Cancel remaining children</button>}

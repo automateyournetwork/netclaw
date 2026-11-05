@@ -147,7 +147,7 @@ test('receipt verification and durable ACK remain distinct and evidence is escap
   const f = await setup(t, url => url === '/api/hud/operations/operation-171' ? result : undefined, { saved: { client_nonce: 'saved-nonce', operation_id: 'operation-171' } });
   await until(() => f.body().includes('Execution evidence'));
   assert.match(f.body(), /Signature and bindings verifiedYes/); assert.match(f.body(), /acknowledgement durably storedYes/); assert.match(f.body(), /Pending reconciliation/);
-  assert.equal(f.w.document.querySelectorAll('img').length, 0); assert.match(f.w.document.querySelector('[aria-label="Verified execution evidence"]').textContent, /<img/);
+  assert.equal(f.w.document.querySelectorAll('img').length, 0); assert.match(f.w.document.querySelector('[aria-label="Signed receipt and audit references"]').textContent, /<img/);
 });
 
 test('session expiry during status read removes private review and retains only recovery IDs', async t => {

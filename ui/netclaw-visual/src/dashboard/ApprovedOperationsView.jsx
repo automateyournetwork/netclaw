@@ -1,3 +1,4 @@
+import OperationResultEvidence from './OperationResultEvidence.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import OwnerSessionGate from './OwnerSessionGate.jsx';
 import CombinedOperationsView from './CombinedOperationsView.jsx';
@@ -90,7 +91,7 @@ function Operations({ api, principal, installationId }) {
         </div>
       </>}
       {operation?.approval && <><h3>Recorded approval</h3><pre>{json(operation.approval)}</pre></>}
-      {operation?.result && <><h3>Execution evidence</h3><dl className="facts"><div><dt>Receipt received</dt><dd>Yes</dd></div><div><dt>Signature and bindings verified</dt><dd>{operation.result.verified === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>Border acknowledgement durably stored</dt><dd>{operation.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>ACK delivery</dt><dd>{operation.result.ack_delivery_pending ? 'Pending reconciliation' : 'No pending delivery reported'}</dd></div><div><dt>Result digest</dt><dd>{operation.result.digest || 'Not reported'}</dd></div></dl>{operation.result.verified === true && <pre aria-label="Verified execution evidence">{json(operation.result.evidence)}</pre>}</>}
+      {operation?.result && <><h3>Execution evidence</h3><dl className="facts"><div><dt>Receipt received</dt><dd>Yes</dd></div><div><dt>Signature and bindings verified</dt><dd>{operation.result.verified === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>Border acknowledgement durably stored</dt><dd>{operation.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>ACK delivery</dt><dd>{operation.result.ack_delivery_pending ? 'Pending reconciliation' : 'No pending delivery reported'}</dd></div><div><dt>Result digest</dt><dd>{operation.result.digest || 'Not reported'}</dd></div></dl><OperationResultEvidence operation={operation}/></>}
       {operation?.error_code && <p>Recorded outcome: {operation.error_code}</p>}
       {canNew && <button disabled={busy} onClick={() => { references.clear(); referenceRef.current = null; setReference(null); setOperation(null); setError(''); }}>Prepare a new review</button>}
     </section>}

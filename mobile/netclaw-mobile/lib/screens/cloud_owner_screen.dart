@@ -1,3 +1,4 @@
+import 'operation_evidence.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -492,11 +493,7 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                             SelectableText(
                               'Result digest: ${op['result']['digest'] ?? 'Not reported'}',
                             ),
-                            if (op['result']['verified'] == true)
-                              _json(
-                                'Verified execution evidence and audit references',
-                                op['result']['evidence'],
-                              ),
+                            OperationEvidence(operation: op),
                           ],
                           if (op?['error_code'] != null)
                             Text('Recorded outcome: ${op!['error_code']}'),

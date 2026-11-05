@@ -1,3 +1,4 @@
+import { operationEvidence, presentOperationDocument } from "../client/evidence";
 import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
 import { Connection } from "../connection/connect";
@@ -72,7 +73,7 @@ export class OwnerWorkflow implements vscode.Disposable {
     current();
     // One virtual, read-only document; never an untitled backup or saved workspace file.
     if (!this.uri) this.uri = vscode.Uri.parse(`netclaw-owner:/${randomUUID()}/Cloud-Border.json`);
-    this.text = typeof value === "string" ? value : JSON.stringify(value, null, 2);
+    this.text = typeof value === "string" ? value : JSON.stringify(presentOperationDocument(value), null, 2);
     this.events.fire(this.uri);
     const doc = await vscode.workspace.openTextDocument(this.uri);
     current();
@@ -128,11 +129,11 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   private async showResult(b: ReturnType<OwnerWorkflow["scope"]>, operation: Json) {
     b.current();
-    const evidence = { origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
+    const evidence = { result_interpretation: operationEvidence(operation), origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
       state: operation.state, verification: { signedResultVerified: operation.result?.verified === true, durableAcknowledgement: operation.result?.durable_ack === true, acknowledgementDeliveryPending: operation.result?.ack_delivery_pending },
       operation, next: "Recover this same operation to check status or reconcile. No preparation or approval is retried." };
     const verified = operation.result?.verified === true, acknowledged = operation.result?.durable_ack === true && operation.result?.ack_delivery_pending === false;
-    const message = `Cloud operation ${operation.operation_id}: ${String(operation.state).replaceAll("_", " ")}. ${verified ? "Signed result verified." : "No verified result yet."} ${acknowledged ? "Delivery acknowledged." : "Delivery is not yet acknowledged."}`;
+    const message = `Cloud operation ${operation.operation_id}: ${String(operation.state).replaceAll("_", " ")}. ${verified ? "Receipt signature and bindings verified. Model commentary remains unverified." : "No verified result yet."} ${acknowledged ? "Delivery acknowledged." : "Delivery is not yet acknowledged."}`;
     void vscode.window.showInformationMessage(message, "View evidence").then(async selected => {
       if (selected !== "View evidence") return;
       try { b.current(); await this.document(evidence, "Cloud operation evidence", b.current); } catch { /* The selected connection may have changed while the message was open. */ }

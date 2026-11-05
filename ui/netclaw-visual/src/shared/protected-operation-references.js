@@ -44,6 +44,16 @@ function sourcePrefix(value) {
   if (length > 128 || !/^[0-9a-fA-F:]+$/.test(parts[0]) || !parts[0].includes(':')) return false;
   try { return new URL('http://[' + parts[0] + ']/').hostname.startsWith('['); } catch { return false; }
 }
+function verifiedNativeTool(operation) {
+  const call = operation?.review?.tool_call;
+  const tool = operation?.result?.evidence?.output?.tool, member = operation?.review?.member?.member_id;
+  const selection = operationSelection(member, call);
+  if (operation?.result?.verified !== true || !plain(tool) || tool.schemaVersion !== 1 || tool.mcp_calls !== 1 ||
+      !selection || operationSelection(member, tool) !== selection || !plain(tool.output) ||
+      !['endpoint_sha256', 'source_sha256', 'skill_sha256', 'mcp_schema_sha256'].every(key => digest(tool[key])) ||
+      tool.endpoint_sha256 !== call.endpoint_sha256) return null;
+  return tool;
+}
 /** A compact projection of verified native evidence; model prose is never used. */
 export function verifiedResultSummary(operation) {
   const call = operation?.review?.tool_call;
@@ -51,13 +61,24 @@ export function verifiedResultSummary(operation) {
     const value = parsedVersion(operation);
     return `${value.os || 'Unavailable'} / ${value.version || 'Unavailable'}`;
   }
-  const tool = operation?.result?.evidence?.output?.tool, member = operation?.review?.member?.member_id;
-  const selection = operationSelection(member, call);
-  if (operation?.result?.verified !== true || !plain(tool) || tool.schemaVersion !== 1 || tool.mcp_calls !== 1 ||
-      !selection || operationSelection(member, tool) !== selection || !plain(tool.output) ||
-      !['endpoint_sha256', 'source_sha256', 'skill_sha256', 'mcp_schema_sha256'].every(key => digest(tool[key])) ||
-      tool.endpoint_sha256 !== call.endpoint_sha256) return 'Unavailable';
+  const tool = verifiedNativeTool(operation);
+  if (!tool) return 'Unavailable';
   const output = tool.output, args = call.arguments;
+  if (['subnet_calculator', 'subnet_calculator_v6'].includes(call.tool) && output.schema_version === 1) {
+    const family = call.tool === 'subnet_calculator' ? 4 : 6, bits = family === 4 ? 32 : 128;
+    const prefix = output.prefix_length;
+    if (tool.independent_verification !== true || !digest(tool.native_result_sha256) || output.family !== family ||
+        Object.keys(args).length !== 1 || output.network !== args.cidr || !sourcePrefix(args.cidr) ||
+        !Number.isSafeInteger(prefix) || prefix < 0 || prefix > bits || Number(args.cidr.split('/')[1]) !== prefix ||
+        typeof output.address_count !== 'string' || !/^[1-9]\d{0,38}$/.test(output.address_count) ||
+        BigInt(output.address_count) !== 1n << BigInt(bits - prefix)) return 'Unavailable';
+    if (family === 4) {
+      if (ipv4(args.cidr.split('/')[0]) === null || output.usable_count !== String(BigInt(output.address_count) - (prefix < 31 ? 2n : 0n))) return 'Unavailable';
+      return `${output.network} · ${output.usable_count} usable hosts`;
+    }
+    if (!args.cidr.includes(':') || output.subnets_64 !== String(prefix <= 64 ? 1n << BigInt(64 - prefix) : 0n)) return 'Unavailable';
+    return `${output.network} · ${output.address_count} addresses`;
+  }
   if (call.tool === 'netbox_get_object_by_id') {
     if (!Number.isSafeInteger(args.object_id) || args.object_id < 1 || output.id !== args.object_id || args.brief !== false || !Array.isArray(args.fields)) return 'Unavailable';
     const expected = args.object_type === 'dcim.device' ? ['id', 'name', 'status', 'site', 'device_type', 'last_updated'] : args.object_type === 'ipam.prefix' ? ['id', 'prefix', 'status', 'vrf', 'last_updated'] : null;
@@ -75,6 +96,19 @@ export function verifiedResultSummary(operation) {
     return `${args.cidr} · ${output.usable_hosts_count} usable hosts`;
   }
   return 'Unavailable';
+}
+/** Signature verification covers provenance, not the truth of model commentary. */
+export function authoritativeToolFacts(operation) {
+  const tool = operation?.result?.evidence?.output?.tool;
+  if (operation?.result?.verified !== true) return null;
+  if (operation?.review?.tool_call?.tool === 'pyats_run_show_command') return tool?.parsed === true && plain(tool.output) ? tool.output : null;
+  if (!verifiedNativeTool(operation)) return null;
+  if (tool.output.schema_version === 1 && ['subnet_calculator', 'subnet_calculator_v6'].includes(tool.tool) && verifiedResultSummary(operation) === 'Unavailable') return null;
+  return tool.output;
+}
+export function unverifiedModelCommentary(operation) {
+  const value = operation?.result?.evidence?.output?.model_answer;
+  return operation?.result?.verified === true && typeof value === 'string' ? value : null;
 }
 export function operationReferences(installationId, storage = globalThis.sessionStorage) {
   if (!operationIdentifier(installationId)) throw Error('Installation identity unavailable.');

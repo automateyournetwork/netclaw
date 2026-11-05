@@ -1,3 +1,4 @@
+import 'operation_evidence.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -191,11 +192,7 @@ class _CombinedOperationsPanelState extends State<CombinedOperationsPanel> {
               Text(
                 'Signed result verified: ${c['result']['verified'] == true ? 'Yes' : 'Not confirmed'} · Durable ACK: ${c['result']['durable_ack'] == true ? 'Yes' : 'Not confirmed'}',
               ),
-              if (c['result']['verified'] == true)
-                json(
-                  'IPv${c['family']} verified evidence',
-                  c['result']['evidence'],
-                ),
+              OperationEvidence(operation: Map<String, dynamic>.from(c)),
             ],
             if (c['error_code'] != null)
               Text('Recorded outcome: ${c['error_code']}'),
