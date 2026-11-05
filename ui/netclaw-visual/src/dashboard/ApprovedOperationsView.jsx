@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import OwnerSessionGate from './OwnerSessionGate.jsx';
+import CombinedOperationsView from './CombinedOperationsView.jsx';
 import RetainedOperationsView from './RetainedOperationsView.jsx';
 import { operationReference, createProtectedOperationsApi, isOpenLabAccess } from '../shared/protected-operations-client.js';
 import './protected-operations.css';
@@ -98,10 +99,10 @@ function Operations({ api, principal, installationId }) {
 
 function OpenLabOperations({ installationId, access, View }) {
   const api = useMemo(() => createProtectedOperationsApi(installationId, () => {}, access), [installationId, access]);
-  return <><section className="panel"><h2>Open lab</h2><p>{access.principal.display_name}. No sign-in is used for this development pilot.</p></section><View api={api} principal={access.principal} installationId={installationId}/></>;
+  return <><section className="panel"><h2>Open lab</h2><p>{access.principal.display_name}. No sign-in is used for this development pilot.</p></section><CombinedOperationsView api={api} principal={access.principal} installationId={installationId}/><View api={api} principal={access.principal} installationId={installationId}/></>;
 }
 export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false, access }) {
   const View = retainMultiple ? RetainedOperationsView : Operations;
   if (enabled && access !== undefined) return isOpenLabAccess(access) ? <OpenLabOperations key={installationId} installationId={installationId} access={access} View={View}/> : <p role="alert">Unsupported protected access mode.</p>;
-  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <View key={installationId + session.principal.subject} api={api} principal={session.principal} installationId={installationId}/>}</OwnerSessionGate>;
+  return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <React.Fragment key={installationId + session.principal.subject}><CombinedOperationsView api={api} principal={session.principal} installationId={installationId}/><View api={api} principal={session.principal} installationId={installationId}/></React.Fragment>}</OwnerSessionGate>;
 }

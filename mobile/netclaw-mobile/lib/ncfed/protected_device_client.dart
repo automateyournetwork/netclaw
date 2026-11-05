@@ -76,6 +76,36 @@ class ProtectedDeviceTransport implements OwnerTransport {
         method == 'GET' &&
         !uri.hasQuery) {
       operation = 'catalog';
+    } else if (uri.path == '/api/hud/operations/combined' &&
+        method == 'POST' &&
+        !uri.hasQuery &&
+        body != null) {
+      operation = 'combined_prepare';
+      params.addAll(body);
+    } else if (uri.path == '/api/hud/operations/combined' &&
+        method == 'GET' &&
+        uri.queryParameters.length == 1 &&
+        uri.queryParameters.containsKey('client_nonce')) {
+      operation = 'combined_status';
+      params['client_nonce'] = uri.queryParameters['client_nonce'];
+    } else if (uri.pathSegments.length >= 5 &&
+        uri.pathSegments.take(4).join('/') == 'api/hud/operations/combined') {
+      final path = uri.pathSegments;
+      if (uri.hasQuery ||
+          !RegExp(r'^[A-Za-z0-9_.:-]{1,200}$').hasMatch(path[4])) {
+        throw const CloudOwnerError('request_refused');
+      }
+      params['parent_id'] = path[4];
+      if (path.length == 5 && method == 'GET') {
+        operation = 'combined_status';
+      } else if (path.length == 6 &&
+          path[5] == 'cancel' &&
+          method == 'POST' &&
+          (body == null || body.isEmpty)) {
+        operation = 'combined_cancel';
+      } else {
+        throw const CloudOwnerError('request_refused');
+      }
     } else if (uri.path == '/api/hud/operations' &&
         method == 'POST' &&
         !uri.hasQuery &&
@@ -123,7 +153,8 @@ class ProtectedDeviceTransport implements OwnerTransport {
       if (data != null && data['status'] is int && data['code'] is String) {
         return OwnerResponse(data['status'], {
           'code': data['code'],
-          if (operation == 'prepare' && data['admission'] == 'not_submitted')
+          if (['prepare', 'combined_prepare'].contains(operation) &&
+              data['admission'] == 'not_submitted')
             'admission': 'not_submitted',
         });
       }

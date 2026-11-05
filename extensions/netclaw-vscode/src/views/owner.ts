@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Connection } from "../connection/connect";
 import { LocalState } from "../state/local";
 import { OwnerOperations, catalogChoices, reviewText, unexpiredReview } from "../client/owner";
+import { CombinedOwnerOperations, combinedCatalogChoices } from "../client/combined";
 import type { Json, Runtime } from "../client/hud";
 import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "../client/remote-hud";
 
@@ -31,6 +32,7 @@ export class OwnerWorkflow implements vscode.Disposable {
   private events = new vscode.EventEmitter<vscode.Uri>();
   private subscriptions: vscode.Disposable[];
   private operations?: OwnerOperations;
+  private combined?: CombinedOwnerOperations;
   private generation = -1;
   constructor(private connection: Connection, private local: LocalState) {
     this.subscriptions = [this.events, vscode.workspace.registerTextDocumentContentProvider("netclaw-owner", {
@@ -44,9 +46,9 @@ export class OwnerWorkflow implements vscode.Disposable {
   private scope() {
     const bound = this.connection.ownerBound();
     if (!this.operations || this.generation !== this.connection.generation) {
-      this.operations = new OwnerOperations(bound.client, this.local); this.generation = this.connection.generation;
+      this.operations = new OwnerOperations(bound.client, this.local); this.combined = new CombinedOwnerOperations(bound.client, this.local); this.generation = this.connection.generation;
     }
-    return { ...bound, operations: this.operations };
+    return { ...bound, operations: this.operations, combined: this.combined! };
   }
   private async exclusive<T>(work: () => Promise<T>): Promise<T> {
     if (this.busy) throw Error("An owner workflow is already open. Finish or cancel it first.");
@@ -87,6 +89,8 @@ export class OwnerWorkflow implements vscode.Disposable {
     const selected = await vscode.window.showQuickPick([
       { label: "Prepare cloud read", action: () => this.prepare() },
       { label: "Recover cloud operation", action: () => this.recover() },
+      { label: "Prepare local IPv4 + cloud IPv6", action: () => this.prepareCombined() },
+      { label: "Recover combined subnet request", action: () => this.recoverCombined() },
       ...(!lab ? [
         { label: "Sign in to cloud Border", action: () => this.signIn() },
         { label: "Sign out of cloud Border", action: () => this.signOut() },
@@ -155,6 +159,53 @@ export class OwnerWorkflow implements vscode.Disposable {
         if (action === "Reconcile existing work") { b.current(); operation = await b.run(() => b.operations.reconcile(selected.ref)); await this.showResult(b, operation); }
       }
       return operation;
+    });
+  }
+  async prepareCombined() {
+    return this.exclusive(async () => {
+      const b = this.scope(); if (!await this.ensureReady(b)) return;
+      const choices = combinedCatalogChoices(await b.run(() => b.client.catalog())), children: Json[] = [];
+      if (!choices[4]!.length || !choices[6]!.length) throw Error("This Border does not advertise two qualified Ollama calculator members.");
+      for (const family of [4, 6]) {
+        const selected = await vscode.window.showQuickPick(choices[family]!.map(selection => ({ label: selection.cidr, description: selection.member_id, detail: `IPv${family} · local Ollama inference · ${selection.profile_revision}`, selection })), { title: `Select exact IPv${family} calculation`, ignoreFocusOut: true });
+        if (!selected) return; b.current(); children.push(selected.selection);
+      }
+      return this.reviewCombined(b, await b.run(() => b.combined.prepare(children)));
+    });
+  }
+  private async reviewCombined(b: ReturnType<OwnerWorkflow["scope"]>, value: Json): Promise<Json> {
+    await this.document(value, "Combined subnet request — two separate approvals", b.current);
+    const ref = b.combined.reference()!;
+    const options = value.children.filter((child: Json) => child.state === "review_pending" && !ref.children?.[child.index]?.decision_sent && child.allowed_actions?.some((a: string) => ["approve", "deny"].includes(a))).map((child: Json) => ({ label: `Review IPv${child.family}`, description: child.review.member.member_id, detail: child.review.tool_call.arguments.cidr, child }));
+    const selected = await vscode.window.showQuickPick([...options, { label: "Keep for recovery", child: null }], { title: `Combined request: ${value.state}`, ignoreFocusOut: true });
+    if (!selected?.child) return value;
+    const child = selected.child; b.current(); await this.document(reviewText(child), `Complete IPv${child.family} review`, b.current);
+    const ready = await vscode.window.showInformationMessage(`The complete immutable IPv${child.family} review is open in Cloud-Border.json. Read it before deciding.`, "Review decision");
+    b.current(); if (ready !== "Review decision") return value;
+    const expired = !unexpiredReview(child);
+    const decision = await vscode.window.showInformationMessage(`Review IPv${child.family} only`, { modal: true, detail: `${ownerDecisionDetail(b.client.base, b.client.expectedId, child)}\nProvider/model: ${child.review.model_profile.provider} / ${child.review.model_profile.model}\n\nThe other child requires its own separate approval. Provider API charge is zero; compute costs remain.` }, ...(expired ? ["Deny"] : ["Approve once", "Deny"]));
+    b.current(); if (!["Approve once", "Deny"].includes(decision || "")) return value;
+    const updated = await b.run(() => b.combined.decide(value, child.index, decision === "Approve once" ? "approve" : "deny"));
+    await this.document(updated, "Combined result and retained child evidence", b.current);
+    // The next child always requires a new native review and distinct decision.
+    return this.reviewCombined(b, updated);
+  }
+  async recoverCombined() {
+    return this.exclusive(async () => {
+      const b = this.scope(); if (!await this.ensureReady(b)) return;
+      const ref = b.combined.reference(); if (!ref) { void vscode.window.showInformationMessage("No retained combined request for this Border/operator."); return; }
+      if (ref.not_submitted) {
+        const chosen = await vscode.window.showInformationMessage("Discard the confirmed unsubmitted combined reference?", { modal: true, detail: "No work was admitted. Only the local reference will be removed." }, "Discard");
+        if (chosen === "Discard") await b.run(() => b.combined.discard()); return;
+      }
+      const value = await b.run(() => b.combined.recover());
+      await this.document(value, "Combined status recovered without replay", b.current);
+      const chosen = await vscode.window.showQuickPick(["Review one pending child", "Keep reference", "Cancel remaining children", "Remove resolved reference"], { title: `Combined request: ${value.state}` });
+      b.current();
+      if (chosen === "Review one pending child") return this.reviewCombined(b, value);
+      if (chosen === "Cancel remaining children") return this.document(await b.run(() => b.combined.cancel()), "Combined cancellation", b.current);
+      if (chosen === "Remove resolved reference") await b.run(() => b.combined.discard());
+      return value;
     });
   }
   dispose() { this.clear(); this.subscriptions.forEach(d => d.dispose()); }

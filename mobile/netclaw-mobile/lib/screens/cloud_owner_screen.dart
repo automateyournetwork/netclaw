@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../cloud/owner_client.dart';
+import 'combined_operations_panel.dart';
 
 /// Native cloud-owner workflow. It does not access EdgeClient, enrollment keys,
 /// headless Chat, local services or a gateway. Back returns to the existing profile.
@@ -319,7 +320,8 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                           key: const ValueKey('cloud-owner'),
                         ),
                         const SizedBox(height: 12),
-                        if (ref == null) ...[
+                        if (ref == null &&
+                            client.combinedReference == null) ...[
                           const Text(
                             'Select one catalogued read. Preparing the complete review does not execute it. The review identifies the member, model/provider and exact input sent for execution.',
                           ),
@@ -506,6 +508,11 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                               () => _run(client.removeResolvedReference),
                             ),
                         ],
+                        CombinedOperationsPanel(
+                          client: client,
+                          busy: _busy,
+                          run: _run,
+                        ),
                         if (!client.openLab)
                           if (!widget.deviceMode)
                             _button('Sign out', () => _run(client.logout)),

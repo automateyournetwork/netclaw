@@ -350,3 +350,30 @@ test('malformed advertised access fails closed without a login fallback', async 
   await until(() => f.body().includes('Unsupported protected access mode'));
   assert.equal(f.calls.length, 0); assert.equal(f.button('Sign in'), undefined);
 });
+
+const combinedCatalog = { revision:'combined-catalog',capabilities:['calculator_combined_v1'],members:[4,6].map(family=>({member:{member_id:`risk/ipv${family}`},model_profiles:[{profile_id:`ollama-cpu-ipv${family}`,profile_revision:`profile${family}`,provider:'ollama',model:'qwen3:0.6b'}],tools:[{tool:family===4?'subnet_calculator':'subnet_calculator_v6',arguments:{cidr:family===4?'192.0.2.0/26':'2001:db8::/64'}}]})) };
+function combinedParent(nonce) { return {schemaVersion:1,parent_id:'parent1',client_nonce:nonce,state:'awaiting_decisions',expires_at_ms:Date.now()+300000,children:[4,6].map((family,index)=>operation(`nonce${index}`,{index,family,operation_id:`child${index}`,allowed_actions:index===0?['approve','deny']:[],review:{principal,border:{installation_id:ID},member:combinedCatalog.members[index].member,model_profile:combinedCatalog.members[index].model_profiles[0],tool_call:combinedCatalog.members[index].tools[0],limits:{expires_at_ms:Date.now()+300000,max_tool_calls:1,max_inference_calls:2}}}))}; }
+test('combined browser reviews are separate and retained per child through lost approval and remount',async t=>{
+  let parent,drop=true;
+  const f=await setup(t,(url,options)=>{
+    if(url==='/api/hud/operations/catalog')return combinedCatalog;
+    if(url==='/api/hud/operations/combined' && options.method==='POST') return parent=combinedParent(options.body.client_nonce);
+    if(url==='/api/hud/operations/combined/parent1')return structuredClone(parent);
+    if(url.endsWith('/decision')){
+      const index=url.includes('child0')?0:1;
+      parent.children[index]={...parent.children[index],revision:2,state:'completed',allowed_actions:[],result:receipt()};
+      if(index===0)parent.children[1].allowed_actions=['approve','deny'];else parent.state='complete';
+      if(drop){drop=false;throw Error('lost reply');}return parent.children[index];
+    }
+  });
+  await until(()=>f.button('Prepare both reviews') && !f.button('Prepare both reviews').disabled); f.button('Prepare both reviews').click();
+  await until(()=>f.button('Approve IPv4 once') && !f.button('Approve IPv4 once').disabled);
+  assert.equal(f.w.document.querySelectorAll('[aria-label$="immutable review"]').length,2);assert.equal(f.button('Approve IPv6 once').disabled,true);
+  f.button('Approve IPv4 once').click();await until(()=>f.body().includes('nothing was resent'));
+  assert.equal(f.button('Approve IPv4 once').disabled,true);assert.equal(f.button('Approve IPv6 once').disabled,true);
+  const boundary=f.calls.length;f.w.remount(f.props);await until(()=>f.button('Approve IPv6 once') && !f.button('Approve IPv6 once').disabled);
+  assert.ok(f.calls.slice(boundary).every(c=>c.method==='GET'));assert.equal(f.button('Approve IPv4 once').disabled,true);
+  f.button('Approve IPv6 once').click();await until(()=>f.body().includes('Request: parent1 · complete') && !f.button('Check combined status').disabled);
+  assert.equal(f.calls.filter(c=>c.url.endsWith('/decision')).length,2);assert.equal(f.calls.filter(c=>c.url==='/api/hud/operations/combined' && c.method==='POST').length,1);
+  const saved=f.w.sessionStorage.getItem(`netclaw.protected.${ID}.local.${ID}.combined.v1`);assert.doesNotMatch(saved,/cidr|qwen|principal|review/);assert.match(saved,/child0/);assert.match(saved,/child1/);
+});

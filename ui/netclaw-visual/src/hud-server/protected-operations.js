@@ -123,12 +123,26 @@ export function mountProtectedOperations(app, { installation, config = protected
     const params = parameters(req), auth = openLab ? { auth_context: { access_mode: 'open-lab', installation_id: installation.installationId } } : await authenticate(req);
     // Once the bridge is called, even an error may follow durable admission.
     // Only this process's refusal before that boundary permits draft discard.
-    if (method === 'prepare') req[prepareForwarded] = true;
+    if (['prepare', 'combined_prepare'].includes(method)) req[prepareForwarded] = true;
     const result = await client.call(method, { ...params, auth_context: auth.auth_context });
     if (!openLab) await session(auth.raw); // Revoked/expired sessions cannot receive late private output.
     res.json(result);
   });
   router.get(`${OPERATIONS}/catalog`, operation('catalog', req => { noQuery(req); return {}; }));
+  router.post(`${OPERATIONS}/combined`, operation('combined_prepare', req => {
+    noQuery(req); const body = req.body;
+    if (!exact(body, ['client_nonce', 'children']) || !identifier(body.client_nonce) || !Array.isArray(body.children) || body.children.length !== 2 || body.children.some((child, index) => !exact(child, ['family', 'member_id', 'profile_revision', 'cidr']) || child.family !== [4, 6][index] || !memberIdentifier(child.member_id) || !identifier(child.profile_revision) || typeof child.cidr !== 'string' || child.cidr.length > 100)) throw new ProtectedError('invalid_argument', 400);
+    return body;
+  }));
+  router.get(`${OPERATIONS}/combined`, operation('combined_status', req => {
+    if (!exact(req.query, ['client_nonce']) || !identifier(req.query.client_nonce)) throw new ProtectedError('invalid_argument', 400);
+    return { client_nonce: req.query.client_nonce };
+  }));
+  const parentId = req => { noQuery(req); if (!identifier(req.params.parent)) throw new ProtectedError('invalid_argument', 400); return { parent_id: req.params.parent }; };
+  router.get(`${OPERATIONS}/combined/:parent`, operation('combined_status', parentId));
+  router.post(`${OPERATIONS}/combined/:parent/cancel`, operation('combined_cancel', req => {
+    const params = parentId(req); if (!exact(req.body, [])) throw new ProtectedError('invalid_argument', 400); return params;
+  }));
   router.post(OPERATIONS, operation('prepare', req => {
     noQuery(req);
     const body = req.body;
@@ -153,7 +167,7 @@ export function mountProtectedOperations(app, { installation, config = protected
   router.use((error, req, res, _next) => {
     const status = error?.type === 'entity.too.large' ? 413 : error instanceof ProtectedError ? error.status : 503;
     const code = error?.type === 'entity.too.large' ? 'payload_too_large' : error instanceof ProtectedError ? error.code : 'protected_operations_unavailable';
-    const notSubmitted = req.method === 'POST' && req.path === OPERATIONS && !req[prepareForwarded];
+    const notSubmitted = req.method === 'POST' && [OPERATIONS, `${OPERATIONS}/combined`].includes(req.path) && !req[prepareForwarded];
     res.status(status).json({ code, ...(notSubmitted ? { admission: 'not_submitted' } : {}), error: status === 401 ? 'Owner session expired or is unavailable. Sign in again.' : status === 503 ? 'Status is unavailable. The operation may have been accepted; check the same operation before continuing.' : 'The protected request was refused.' });
   });
   // Must precede express.json and the legacy conversation cookie rewrite.
