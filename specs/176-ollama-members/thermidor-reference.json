@@ -1,0 +1,155 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-11-05",
+  "source": "sibling thermidor checkout",
+  "head": "ebc91b3621bc874541a115e6d544f3a1fb267f6f",
+  "working_tree_note": "Unrelated Spec005 HA changes exist, including operation_broker.py; no bulk copy or runtime-state reuse. Per-file hashes are authoritative for these inspected bytes.",
+  "qualification": "Historical Thermidor Spec004 only; no NetClaw R05 live qualification",
+  "files": [
+    {
+      "path": "docs/thermidor-ollama-members.md",
+      "sha256": "efbdcbcb2888db588f0ec180266f64b382183c2b88d6896b229fa3f0365126aa",
+      "bytes": 5842,
+      "tracked_modified": false
+    },
+    {
+      "path": "specs/004-ollama-open-weight/evidence.md",
+      "sha256": "bfd808bc2d0ea775e54d029ecd0ba1cdeadee1927c330751f2ee350e6a73d486",
+      "bytes": 47388,
+      "tracked_modified": false
+    },
+    {
+      "path": "specs/004-ollama-open-weight/research.md",
+      "sha256": "c17d9866f229743d316c6f5ee5a5f64dde34ffd7524a17c28b1550baf9a06193",
+      "bytes": 14301,
+      "tracked_modified": false
+    },
+    {
+      "path": "specs/004-ollama-open-weight/contracts/calculator.md",
+      "sha256": "bb6ae99924f2d6a57bdcef5fb9bef00dcff99c2e02caa92357e08c02dc21fc40",
+      "bytes": 3400,
+      "tracked_modified": false
+    },
+    {
+      "path": "labs/ollama/README.md",
+      "sha256": "942f5f297c63fa13885b502e4210c8d7000428dc380a3af52790d19cd47e1f7c",
+      "bytes": 16857,
+      "tracked_modified": false
+    },
+    {
+      "path": "labs/ollama/model-lock.json",
+      "sha256": "be928cbbccb7c2eff83c390403b97e71bab85540725a7f4ed8a1386c10310e5d",
+      "bytes": 2006,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/ollama_profile.py",
+      "sha256": "0bbdc4c6575b46ec46eaeee370868bf0d05175220647e7c1339d54a9ca52d0ff",
+      "bytes": 11251,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/ollama_runtime.py",
+      "sha256": "7b7ef152adad895e3204d24ac124ce1d4ad37fdaf4b45372489213478b09509f",
+      "bytes": 3856,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/guard_adapter.py",
+      "sha256": "9f5b55c56d73f3a80b4bede18f3a5688d1c48bf283245904e15cef6bf12a2d1e",
+      "bytes": 19089,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/model_admission.py",
+      "sha256": "f5b2d5a80558feb16608b65afc303a4f15a644e0a5437288a879204cf6c77884",
+      "bytes": 40501,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/calculator_execution.py",
+      "sha256": "6213582be7e846d484417cc3f3e404ea6e73e1bf393f3f984c34c9bce781bb35",
+      "bytes": 21345,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/calculator_routing.py",
+      "sha256": "1dd004b6dbf4d3610cf601c37e0e58e21bae46d752114e7832195a0d66434998",
+      "bytes": 3216,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/subnet_calculator.py",
+      "sha256": "8d91192ea7ff70814f6b2e9dff8165df50b96062bddb6f9c7ab6a340cec857b1",
+      "bytes": 3720,
+      "tracked_modified": false
+    },
+    {
+      "path": "labs/cloud/member_broker.py",
+      "sha256": "df7d558f265a774522d2aac90e1dd39e9a8576b2766af12c6ecd51b0f556e019",
+      "bytes": 40185,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_subnet_calculator.py",
+      "sha256": "081dfd1a5e2162ebcf09af120e80a66131f69de8216b80f7e7c5ea2e15f43f02",
+      "bytes": 4360,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_calculator_routing.py",
+      "sha256": "9d19e8d992047f083c9dfa68b41455d355c5775f452513ef4cdcb449b56d1521",
+      "bytes": 2878,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_calculator_execution.py",
+      "sha256": "976b8c0d6ac6b55479393d2eca4cb57c91eda9c3f33b9d9d11702ebe03e76d3e",
+      "bytes": 22742,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_ollama_profile.py",
+      "sha256": "d51b2921137df924d454547ff8ee20f108710a4f251c6b768a82da047c245454",
+      "bytes": 8541,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_model_admission.py",
+      "sha256": "659e99708d8bcc4961cd9ece5fdf307bdbc2eaa9b8d2d8b71011d27f04d939e1",
+      "bytes": 43570,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_guard_adapter.py",
+      "sha256": "1e9fb6ff4fd85794eb3ff479825bb5202cb0910cf95f282177688fcb41e7bf8f",
+      "bytes": 18229,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_cloud_broker.py",
+      "sha256": "23d7571a5655803bd073484c4e018271067ce20ee4c6167d609b1f54045df5ec",
+      "bytes": 32197,
+      "tracked_modified": false
+    },
+    {
+      "path": "tests/test_ollama_deployment.py",
+      "sha256": "fa02f6477c8033195d5c5aa0ce20eec9d1433039178ba948da0f72a5cf7cf102",
+      "bytes": 15467,
+      "tracked_modified": false
+    },
+    {
+      "path": "src/thermidor/assets/ui/thermidor-visual/src/cloud/client.test.js",
+      "sha256": "d4c2708e6acce21a8cc1b10b6fe2cbb19a8dc70fbbec63d45c997aa4524bc5eb",
+      "bytes": 11676,
+      "tracked_modified": false
+    }
+  ],
+  "native_subnet_inspection": {
+    "path": "mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py",
+    "repository_head": "5178da6f83ebd894fa7331a62e1087ec9550751b",
+    "sha256": "bfb8bb548aa7096c0b2324a3798c581ce917a26388aa6193ae66eb0708e7dd45",
+    "git_ignored": true,
+    "finding": "IPv4 only; unbounded iteration/list(network), neighbor overflow, incorrect /31-/32 host rules. Skill IPv6 text is not current code evidence. T006 addresses existing component source and reproducibility."
+  }
+}

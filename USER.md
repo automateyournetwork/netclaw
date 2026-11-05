@@ -8,6 +8,11 @@
 
 ## Preferences
 
+- R05 direction (2026-11-05): use SDD for Spec176 and heavily reuse sibling
+  Thermidor's actual working solution, tests, final outcomes and lessons. Confirm
+  the approach first, then create the branch/spec artifacts. Keep the work focused;
+  avoid redesigning proven behavior or repeating solved investigations.
+
 - R04a correction (2026-11-04): a disposable qualification deployment is not a
   completed client integration. John needs his installed VS Code connected to a
   persistent usable GCP Border, with the URL and sign-in ready for him. He

@@ -11,7 +11,19 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
-## Current execution status — 2026-11-04
+## R05 SDD kickoff — 2026-11-05
+
+R04b/Spec175 is accepted30/30; its scoped release is recorded in
+[release verification](../../../specs/175-cloud-mobile-enrollment/release-verification.md).
+The owner has now started [R05/Spec176](../../../specs/176-ollama-members/spec.md)
+on `176-ollama-members`, explicitly requiring reuse of Thermidor's final working
+solution, tests and lessons. The branch/spec/plan/contracts/tasks are prepared;
+implementation and live acceptance remain open (0/33 tasks). Both VS Code and
+Mobile require combined-request integration. No R05 runtime changes or R06/R07
+work occurred; existing pilot/lifetime and broader rollout holds remain.
+The November4 status below is historical and superseded by this update.
+
+## Historical execution status — 2026-11-04
 
 R01 and [R02/Spec171](../../../specs/171-execution-parity/verification.md) are
 complete and accepted. [R03/Spec172](../../../specs/172-gcp-hybrid-border/verification.md)

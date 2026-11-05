@@ -1434,3 +1434,27 @@ were removed. Baseline101containers/50networks, all4operation rows and source
 evidence are preserved. The owned simulator is shut down with profiles retained.
 The usable pilot/member keep their existing December1scope. Full stop before R05
 remains explicit; neither release nor acceptance starts another spec.
+
+
+### R05 source inspection lessons — 2026-11-05
+
+The local ignored `mcp-servers/subnet-calculator-mcp` clone at
+`5178da6f83ebd894fa7331a62e1087ec9550751b` exposes only IPv4, despite the skill
+listing IPv6. Its preview comprehension scans the whole network, `list(network)`
+materializes it repeatedly, neighbor arithmetic can overflow, and `/31,/32`
+host accounting uses N−2. Do not broaden protected inputs or infer IPv6 readiness
+from skill prose. Spec176 T006 requires corrected source/patch provenance and
+actual native MCP tests. Existing narrow R04 history is preserved; no source or
+runtime in that ignored clone was changed during planning.
+
+Thermidor's final working Spec004 solution lives in sibling `thermidor/`:
+Ollama0.40.11/Qwen3:0.6b Q4_K_M, calculator-v4, trusted reasoning_effort=none,
+compact single-text MCP output, swap-disabled1536MiB agent/2048MiB model,
+local2CPU60s/30s-retention and cloud1CPU120s/120s-retention,180s tasks. Its durable
+provider latch is runner-wide: new operation IDs cannot evade unknown state.
+Reference bytes/tests and historical limits are in Spec176 research/manifest.
+
+GAIT works through `/Users/john.capobianco/gait_mcp/venv/bin/python` with
+`scripts/gait-stdio.py`; the default Python missing gait does not prove GAIT is
+unavailable. Create then explicitly checkout the session branch. Startup pyATS
+HTTP runtime and MemPalace source remained unavailable in this source-only session.

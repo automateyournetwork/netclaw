@@ -179,6 +179,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - non-secret profile/reference state, native secure sessions, memory-only CSRF/tickets. (174-cloud-client-integration)
 - Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 and Swift under installed Xcode27.2. + existing SQLite, qrcode, WebSocket/TLS/P256, Express, VS Code APIs, Flutter secure storage/mobile_scanner. No new server/framework or hosted QR service. (175-cloud-mobile-enrollment)
 - additive private enrollment issuance records and existing private federation authority; device secure storage for keys/pending identity/references; QR matrix only in transient UI memory. (175-cloud-mobile-enrollment)
+- Spec176 planned: Python3.12 federation/runtime; existing Node/React/TypeScript/Flutter clients; existing MCP, SQLite, Docker, OpenClaw and DefenseClaw with pinned Ollama0.40.11/Qwen3:0.6b CPU profiles. (176-ollama-members)
+- Spec176 planned: additive private parent/profile records, existing child authority, per-request claims and member/runner-wide unknown-provider latch; bounded client references. (176-ollama-members)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -650,3 +652,28 @@ were removed. Baseline101containers/50networks, all4operation rows and source
 evidence are preserved. The owned simulator is shut down with profiles retained.
 The usable pilot/member keep their existing December1scope. Full stop before R05
 remains explicit; neither release nor acceptance starts another spec.
+
+
+### R05 / Spec176 SDD kickoff — 2026-11-05
+
+The owner explicitly started R05 after accepted R04a/R04b, requesting Spec176,
+heavy reuse of Thermidor and then the branch/spec artifacts. This supersedes the
+prior stop-before-R05 for this stage. Branch `176-ollama-members` contains the
+specification, evidence-derived plan/contracts and33 unchecked implementation/
+acceptance tasks. No R05 runtime/cloud/model/client execution occurred in preparation.
+Use the final Thermidor004 profile and tests, pinned in thermidor-reference.json;
+never import dirty HA work, Tailscale or expired trial/runtime state. Native subnet
+source needs bounded IPv4/IPv6 qualification; provider uncertainty requires a
+member/runner-wide latch as well as per-request claims. Preserve existing pilot,
+December1 lifetime, source1.18.6/extension1.6.1/Mobile1.0.4+7 and publication holds.
+Actual runtime changes retain exact scoped review; human R05 acceptance precedes
+R06/R07. No new optional loop. See specs/176-ollama-members/.
+
+
+### R05 implementation authorization — 2026-11-05
+
+Owner said to go ahead with the prepared Spec176, emphasizing proven/tested
+Thermidor reuse. Implementation is started; use the existing coordinator and
+separate-worktree delegation for R02–R05. No extra optional loop or release is
+authorized. Exact runtime/resource review, preservation and final human gate
+remain; do not repeat source-implementation permission requests.
