@@ -48,11 +48,11 @@ Goal: enrolled device sees exact protected catalog/review/decision/result/ACK; r
 - [x] T023 Apply reviewed bounded development-pilot changes and verify confinement/preservation in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T024 Verify actual local HUD and native VS Code Mobile QR generation to simulator with real decode/enroll/reconnect in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T025 Verify actual cloud HUD and native VS Code Mobile QR generation to simulator with trusted TLS and refusal cases in specs/175-cloud-mobile-enrollment/verification.md.
-- [ ] T026 Review and approve one bounded read on enrolled simulator, verify signed result/durable ACK/effect counts in specs/175-cloud-mobile-enrollment/verification.md.
+- [x] T026 Review and approve one bounded read on enrolled simulator, verify signed result/durable ACK/effect counts in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T027 Verify native background/process restart and same-reference recovery with unchanged effects/history in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T028 Export evidence, retire only disposable owned fixtures, preserve usable owner pilot and inventory leftovers in specs/175-cloud-mobile-enrollment/verification.md.
 - [x] T029 Record coverage limits, maintainer handoff and product entry steps in specs/175-cloud-mobile-enrollment/resume.md; update TOOLS.md, USER.md, AGENTS.md and memory/2026-11-04.md; final GAIT log.
-- [ ] T030 Obtain separate human stage acceptance before R05 in specs/175-cloud-mobile-enrollment/resume.md.
+- [x] T030 Obtain separate human stage acceptance before R05 in specs/175-cloud-mobile-enrollment/resume.md.
 
 ## Dependencies and parallel execution
 
@@ -62,15 +62,28 @@ Backend owns Python/federation/protected-server mount, surfaces owns shared HTTP
 
 ## Implementation strategy
 
-Deliver the common issuer and genuine QR path first, then editor parity and protected operations, integrate once and qualify the actual product. Tests target meaningful authorization/replay/state transitions. Stop dependent mutation on unknown outcome and inspect retained state. Native acceptance remains unchecked until observed; publication/later-stage work is excluded.
+Deliver the common issuer and genuine QR path first, then editor parity and protected operations, integrate once and qualify the actual product. Tests target meaningful authorization/replay/state transitions. Stop dependent mutation on unknown outcome and inspect retained state. Native acceptance is checked only after observed evidence. The November 5 owner
+authorization permits scoped release work tracked separately; later-stage work
+remains excluded.
 
 
-## November 5 acceptance checkpoint
+## November 5 closeout — 30/30
 
-All four actual QR/enrollment paths, native refusals and no-repeat recovery passed.
-T026 remains open for a successful data read: the one approved native attempt
-returned a signed, acknowledged HTTP403 failure using the unchanged Nov4 demo
-credential. A current owner-provided read-only token is required; preserve that
-failed operation and use a separately reviewed new reference. T030 remains the
-separate human acceptance gate. The owner explicitly requires a full stop before
-R05; neither technical progress nor a supplied credential starts the next stage.
+All four actual QR/enrollment paths, native refusals, a successful protected
+NetBox prefix 1 read and cold/background recovery passed. T026 closes with the
+separately reviewed `9902abf3-5a4f-46a6-9db1-ca613970551b` operation: one attempt,
+verified signed result/durable ACK,2 provider/2 inference/1 native MCP/1 HTTP200,
+and unchanged counts after recovery. The earlier signed HTTP403 operation remains
+preserved as failure evidence; it was not replayed or relabeled.
+
+Reviewed cleanup exported411 files and retired only the new 3 stopped containers
+and 1 empty internal network, restoring101 containers/50 networks and preserving
+all four operation rows. The simulator is shut down with keys/profiles retained.
+
+T030 closes through the owner's explicit November 5 acceptance and instruction to
+package, commit/PR/merge and publish this completed scoped stage, plus prepare a
+website draft (GAIT c25645d0). Approved release targets are source 1.18.6,
+extension 1.6.1 and Mobile 1.0.4+7; actual publication status is tracked separately
+in [release-verification.md](release-verification.md). No publication is claimed
+by these task checkboxes. The owner requires a full stop before R05; no next-stage
+work or general cloud promotion is authorized by this closeout.
