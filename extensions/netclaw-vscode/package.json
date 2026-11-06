@@ -139,6 +139,10 @@
         "category": "NetClaw"
       },
       {
+        "command": "netclaw.replaceCloudEndpoint",
+        "title": "NetClaw: Replace Cloud Border Endpoint"
+      },
+      {
         "command": "netclaw.renameConnection",
         "title": "Rename Connection",
         "category": "NetClaw"

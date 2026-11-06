@@ -2,7 +2,7 @@ import * as vscode from "vscode";
 import { createHash } from "node:crypto";
 import { HudClient, Runtime, Json } from "../client/hud";
 import { ConnectionProfile, hostContext } from "../state/profiles";
-import { OwnerClient, OwnerError } from "../client/owner";
+import { OwnerClient, OwnerError, cloudExecutionMode, ownerCanonical } from "../client/owner";
 import { remoteHudFeatures } from "../client/remote-hud";
 export type Identity = Runtime & { harness: { type: "openclaw" | "hermes" } };
 
@@ -59,6 +59,7 @@ export class Connection implements vscode.Disposable {
       let hud: HudClient | undefined;
       try {
         const runtime = await client.connect();
+        if (profile.cloudExecution && profile.cloudExecution !== cloudExecutionMode(runtime) || profile.cloudPrincipal && ownerCanonical(profile.cloudPrincipal) !== ownerCanonical(client.principal)) throw Error("The saved Border execution mode or operator changed. Review this connection; retained work is unchanged.");
         if (client.openLab && runtime.capabilities.remoteHud) {
           remoteHudFeatures(runtime);
           hud = new HudClient(profile.url, profile.installationId, undefined, "remote-hud");

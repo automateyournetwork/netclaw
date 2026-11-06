@@ -1,3 +1,4 @@
+import { validOperationReference, cleanOperationReference, mergeOperationReference } from './protected-operation-references.js';
 /** Session authority remains in memory; browser persistence holds identifiers only. */
 export function isOpenLabAccess(access) {
   const p = access?.principal;
@@ -19,7 +20,7 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     else if (!openLab && method !== 'GET') headers['X-NetClaw-CSRF'] = csrf || '';
     let response, value;
     try {
-      response = await fetch(path, { method, headers, credentials: openLab ? 'omit' : 'same-origin', cache: 'no-store', signal: AbortSignal.timeout(35000), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
+      response = await fetch(path, { method, headers, credentials: openLab ? 'omit' : 'same-origin', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(35000), ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
       value = await response.json();
     } catch {
       throw Object.assign(Error('The response was not confirmed. Check this operation’s status; nothing was resent.'), { uncertain: true });
@@ -57,18 +58,21 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
 
 export function operationReference(installationId, storage = globalThis.sessionStorage) {
   const key = `netclaw.protected.${installationId}.operation`;
-  const valid = value => typeof value === 'string' && /^[A-Za-z0-9_.:-]{1,200}$/.test(value);
   return {
     read() {
-      try {
-        const value = JSON.parse(storage.getItem(key));
-        if (!value || Object.keys(value).some(key => !['client_nonce', 'operation_id'].includes(key)) || !valid(value.client_nonce) || value.operation_id !== undefined && !valid(value.operation_id)) return null;
-        return value;
-      } catch { return null; }
+      const raw = storage.getItem(key); if (raw === null) return null;
+      const value = JSON.parse(raw);
+      if (!validOperationReference(value)) throw Error('Retained operation identity is invalid. Preserve it for recovery.');
+      return value;
     },
     write(value) {
-      if (!valid(value.client_nonce) || value.operation_id !== undefined && !valid(value.operation_id)) throw Error('Operation identity is unavailable.');
-      storage.setItem(key, JSON.stringify({ client_nonce: value.client_nonce, ...(value.operation_id ? { operation_id: value.operation_id } : {}) }));
+      const next = mergeOperationReference(this.read(), value);
+      storage.setItem(key, JSON.stringify(cleanOperationReference(next)));
+    },
+    markSent(ref, action) {
+      const row = this.read();
+      if (!['decision', 'revoke'].includes(action) || !row?.operation_id || row.operation_id !== ref.operation_id || row.client_nonce !== ref.client_nonce || row[action + '_sent']) throw Error('This action was already sent or is unavailable. Recover the same operation.');
+      this.write({ ...row, [action + '_sent']: true }); return this.read();
     },
     clear() { storage.removeItem(key); },
   };

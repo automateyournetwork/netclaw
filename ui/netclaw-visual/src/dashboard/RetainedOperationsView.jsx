@@ -7,7 +7,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
   const store = useMemo(() => operationReferences(installationId), [installationId]);
   const [references, setReferences] = useState([]), [records, setRecords] = useState({}), [selectedNonce, setSelectedNonce] = useState(null);
   const [catalog, setCatalog] = useState(null), [memberIndex, setMemberIndex] = useState(0), [profileIndex, setProfileIndex] = useState(0), [toolIndex, setToolIndex] = useState(0);
-  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [storageError, setStorageError] = useState(false), [recoverId, setRecoverId] = useState(''), [clock, setClock] = useState(Date.now);
+  const [error, setError] = useState(''), [busy, setBusy] = useState(false), [storageError, setStorageError] = useState(false), [recoverId, setRecoverId] = useState(''), [recoverKind, setRecoverKind] = useState('operation_id'), [clock, setClock] = useState(Date.now);
   const alive = useRef(true), locked = useRef(false), refs = useRef([]), recordRef = useRef({});
   const retainRefs = rows => { refs.current = rows; setReferences(rows); };
   const update = (nonce, patch) => { recordRef.current = { ...recordRef.current, [nonce]: { ...recordRef.current[nonce], ...patch } }; setRecords(recordRef.current); };
@@ -31,10 +31,10 @@ export default function RetainedOperationsView({ api, principal, installationId 
   const current = records[selectedNonce], operation = current?.operation, reference = references.find(row => row.client_nonce === selectedNonce);
   const expires = operation?.review?.limits?.expires_at_ms;
   useEffect(() => { setClock(Date.now()); if (!Number.isSafeInteger(expires)) return; const timer = setTimeout(() => setClock(Date.now()), Math.max(0, expires - Date.now() + 10)); return () => clearTimeout(timer); }, [expires]);
-  const run = async (ref, action, mutating = false, preparing = false) => {
+  const run = async (ref, action, mutating = false, preparing = false, sentAction) => {
     if (locked.current) return; locked.current = true; setBusy(true); setError('');
     if (mutating) update(ref.client_nonce, { uncertain: true, error: '' });
-    try { const value = await action(); if (alive.current) retain(value, ref); }
+    try { if (sentAction) retainRefs(store.markSent(ref, sentAction)); const value = await action(); if (alive.current) retain(value, ref); }
     catch (failure) {
       if (alive.current) {
         if (preparing && failure.prepareNotSubmitted === true && !ref.operation_id) {
@@ -65,7 +65,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
     const id = recoverId;
     if (refs.current.length >= REFERENCE_CAPACITY && !refs.current.some(ref => ref.operation_id === id)) { setError('Retained operation capacity reached. Remove a resolved reference first.'); return; }
     locked.current = true; setBusy(true); setError('');
-    try { const value = await api.status({ operation_id: id }); if (alive.current) { setSelectedNonce(retain(value, { operation_id: id })); setRecoverId(''); } }
+    try { const expected = { [recoverKind]: id }; const value = await api.status(expected); if (value?.review?.border?.installation_id !== installationId || value?.review?.principal?.issuer !== principal.issuer || value?.review?.principal?.subject !== principal.subject) throw Error('The recovered operation belongs to a different Border or operator.'); if (alive.current) { setSelectedNonce(retain({ ...value, decision_sent: true, revoke_sent: true }, expected)); setRecoverId(''); } }
     catch (failure) { if (alive.current) setError(failure.message); }
     finally { locked.current = false; if (alive.current) setBusy(false); }
   };
@@ -89,7 +89,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
         const row = records[ref.client_nonce], op = row?.operation;
         return <tr key={ref.client_nonce} aria-selected={selectedNonce === ref.client_nonce}><td>{op?.review?.tool_call?.device_ref || op?.review?.tool_call?.arguments?.device_name || 'Awaiting owned status'}<small>{ref.operation_id || ref.client_nonce}</small></td><td>{op?.review?.member?.member_id || 'Unavailable'}<small>{op?.review?.model_profile?.runtime_kind || 'Unavailable'}</small></td><td>{row?.uncertain ? 'Awaiting confirmation' : op?.state || 'Unavailable'}</td><td>{verifiedResultSummary(op)}</td><td>{op?.result?.verified === true ? 'Verified receipt' : 'Not verified'}<small>{op?.result?.durable_ack === true ? op.result.ack_delivery_pending ? 'ACK delivery pending' : 'Durable ACK' : 'ACK not confirmed'}</small></td><td><button onClick={() => setSelectedNonce(ref.client_nonce)} aria-label={`Inspect operation ${ref.operation_id || ref.client_nonce}`}>Inspect</button></td></tr>;
       })}</tbody></table></div>
-      <form onSubmit={recover}><label>Recover retained operation ID<input value={recoverId} onChange={event => setRecoverId(event.target.value)} autoComplete="off" spellCheck="false" maxLength={200}/></label><button disabled={busy || storageError || !operationIdentifier(recoverId)}>Recover existing operation</button></form>
+      <form onSubmit={recover}><label>Reference type<select aria-label="Recovery reference type" value={recoverKind} onChange={e => setRecoverKind(e.target.value)}><option value="operation_id">Operation ID</option><option value="client_nonce">Client nonce</option></select></label><label>Recover retained reference<input value={recoverId} onChange={event => setRecoverId(event.target.value)} autoComplete="off" spellCheck="false" maxLength={200}/></label><button disabled={busy || storageError || !operationIdentifier(recoverId)}>Recover existing operation</button></form><p>Imported references recover status only. They cannot resend a decision or revocation.</p>
     </section>
     {reference && <section className="panel" aria-label="Selected operation"><h2>Operation {operation?.state || 'awaiting confirmation'}</h2><dl className="facts"><div><dt>Operation</dt><dd>{reference.operation_id || 'Recovering from client nonce'}</dd></div><div><dt>Client nonce</dt><dd>{reference.client_nonce}</dd></div><div><dt>Recorded attempts</dt><dd>{operation?.attempt_count ?? 'Not confirmed'}</dd></div></dl>
       {current?.error && <p role="alert">{current.error}</p>}
@@ -97,7 +97,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
       <div className="protected-actions"><button disabled={busy} onClick={() => run(reference, () => api.status(reference))}>Check status</button>{reference.operation_id && <button disabled={busy} onClick={() => run(reference, () => api.reconcile(reference.operation_id))}>Reconcile existing operation</button>}</div>
       {operation?.review && <><h3>Immutable approval review</h3><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Review operator</dt><dd>{operation.review.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{Number.isSafeInteger(expires) ? new Date(expires).toISOString() : 'Unavailable'}</dd></div></dl><pre aria-label="Immutable operation review">{json(operation.review)}</pre>
         {!(expires > clock) && <p>This review has expired. It cannot authorize execution.</p>}
-        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={!actions.includes(decision) || decision === 'approve' && !(expires > clock)} onClick={() => run(reference, () => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true)}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}{actions.includes('revoke') && <button onClick={() => run(reference, () => api.revoke(reference.operation_id), true)}>Revoke remaining authority</button>}</div>
+        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={reference.decision_sent || !actions.includes(decision) || decision === 'approve' && !(expires > clock)} onClick={() => run(reference, () => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true, false, 'decision')}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}{actions.includes('revoke') && <button disabled={busy || reference.revoke_sent} onClick={() => run(reference, () => api.revoke(reference.operation_id), true, false, 'revoke')}>Revoke remaining authority</button>}</div>
       </>}
       {operation?.approval && <><h3>Recorded approval</h3><pre>{json(operation.approval)}</pre></>}
       {operation?.result && <><h3>Execution evidence</h3><dl className="facts"><div><dt>Signature and bindings verified</dt><dd>{operation.result.verified === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>Border acknowledgement durably stored</dt><dd>{operation.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>ACK delivery</dt><dd>{operation.result.ack_delivery_pending ? 'Pending reconciliation' : 'No pending delivery reported'}</dd></div><div><dt>Result digest</dt><dd>{operation.result.digest || 'Not reported'}</dd></div></dl><OperationResultEvidence operation={operation}/></>}

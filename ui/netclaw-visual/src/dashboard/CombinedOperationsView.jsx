@@ -6,6 +6,7 @@ export default function CombinedOperationsView({ api, installationId, principal 
   const controller = useMemo(() => new CombinedOperations(api, combinedReference(installationId, principal), installationId, principal), [api, installationId, principal]);
   const [choices, setChoices] = useState(null), [selection, setSelection] = useState({ 4: 0, 6: 0 });
   const [reference, setReference] = useState(null), [value, setValue] = useState(null), [error, setError] = useState(''), [busy, setBusy] = useState(false);
+  const [recoverKind, setRecoverKind] = useState('parent_id'), [recoverId, setRecoverId] = useState('');
   const alive = useRef(true), lock = useRef(false);
   const sync = () => { setReference(controller.references.read()); setValue(controller.value); };
   const run = async action => {
@@ -18,12 +19,13 @@ export default function CombinedOperationsView({ api, installationId, principal 
     run(async () => { const catalog = await api.catalog(); if (!alive.current) return; setChoices(combinedChoices(catalog)); const saved = controller.references.read(); if (saved && !saved.not_submitted) await controller.recover(); });
     return () => { alive.current = false; };
   }, [controller]);
-  if (!reference && !error && (!choices || !choices[4].length || !choices[6].length)) return null;
+  const canPrepare = choices?.[4]?.length && choices?.[6]?.length;
   return <section className="panel" aria-label="Combined subnet request"><h2>Local IPv4 + cloud IPv6</h2>
     <p>One request, two separate approvals. Each member runs its own local model. Provider API charge is zero; compute and transfer costs remain separate.</p>
     {error && <p role="alert">{error}</p>}
-    {!reference && choices && <><div className="protected-selectors">{[4, 6].map(family => <label key={family}>IPv{family} member<select aria-label={`IPv${family} calculator`} value={selection[family]} disabled={busy} onChange={e => setSelection({ ...selection, [family]: Number(e.target.value) })}>{choices[family].map((choice, i) => <option key={i} value={i}>{choice.member_id} · {choice.cidr}</option>)}</select></label>)}</div>
+    {!reference && canPrepare && <><div className="protected-selectors">{[4, 6].map(family => <label key={family}>IPv{family} member<select aria-label={`IPv${family} calculator`} value={selection[family]} disabled={busy} onChange={e => setSelection({ ...selection, [family]: Number(e.target.value) })}>{choices[family].map((choice, i) => <option key={i} value={i}>{choice.member_id} · {choice.cidr}</option>)}</select></label>)}</div>
       <button className="primary" disabled={busy || !choices[4].length || !choices[6].length} onClick={() => run(() => controller.prepare([choices[4][selection[4]], choices[6][selection[6]]]))}>Prepare both reviews</button></>}
+    {!reference && <details><summary>Recover combined reference</summary><p>Use the original parent ID or client nonce. Recovery sends no new approval or cancellation.</p><form onSubmit={event => { event.preventDefault(); run(() => controller.recoverOriginal(recoverKind, recoverId)); }}><label>Reference type<select aria-label="Combined recovery reference type" value={recoverKind} onChange={event => setRecoverKind(event.target.value)}><option value="parent_id">Parent ID</option><option value="client_nonce">Client nonce</option></select></label><label>Original combined reference<input value={recoverId} onChange={event => setRecoverId(event.target.value)} maxLength={200} autoComplete="off"/></label><button disabled={busy || !/^[A-Za-z0-9_.:-]{1,200}$/.test(recoverId)}>Recover existing combined request</button></form></details>}
     {reference && <><p>Request: {reference.parent_id || 'Awaiting confirmation'} · {value?.state || (reference.not_submitted ? 'Not submitted' : 'Unknown')}</p>
       {controller.uncertain && <p role="status">Check this same request. No preparation, approval or model call is repeated automatically.</p>}
       {!reference.not_submitted && <button disabled={busy} onClick={() => run(() => controller.recover())}>Check combined status</button>}

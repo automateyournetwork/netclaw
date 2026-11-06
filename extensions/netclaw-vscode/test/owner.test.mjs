@@ -446,3 +446,44 @@ test('advertised remote workspace binds the existing HUD panels while retaining 
   assert.throws(() => assertCloudCommand('openDomain', true, ['configuration'], connection.identity));
   connection.disconnect(); assert.throws(() => bound.current(), /changed/); assert.throws(() => owner.current(), /changed/);
 });
+
+
+test('R07 explicit same-identity endpoint replacement preserves profile and sent references', async () => {
+ const {Profiles}=await nativeModules(), store=storage(), profiles=new Profiles(store), next='https://replacement.example.test';
+ const runtime={installationId:ID,kind:'openclaw',role:'border',capabilities:{protectedProfile:true,protectedOperations:true,protectedProduction:true},access:{mode:'open-lab',principal:labPrincipal}};
+ const old=await profiles.saveCloud('Cloud',ORIGIN,ID,runtime);
+ const oldKey='owner-operations.'+createHash('sha256').update(ORIGIN+'|'+ID).digest('hex');
+ const newKey='owner-operations.'+createHash('sha256').update(next+'|'+ID).digest('hex');
+ const refs=[{client_nonce:'retained',operation_id:'original',decision_sent:true}];await store.update(oldKey,refs);
+ const moved=await profiles.replaceCloudEndpoint(old,next,runtime);
+ assert.equal(moved.id,old.id);assert.equal(moved.url,next);assert.deepEqual(store.get(newKey,[]),refs);assert.deepEqual(store.get(oldKey,[]),refs);
+ const before=JSON.stringify([...store.state]);
+ await assert.rejects(profiles.replaceCloudEndpoint(moved,ORIGIN,{...runtime,installationId:'44444444-4444-4444-8444-444444444444'}),/identity/);
+ assert.equal(JSON.stringify([...store.state]),before);
+ await assert.rejects(profiles.replaceCloudEndpoint(old,next,runtime),/changed/);
+});
+
+
+test('R07 reference mutation during endpoint-copy await preserves original profile and latest sent marker', async () => {
+ const {Profiles}=await nativeModules(), store=storage(), profiles=new Profiles(store), next='https://new-endpoint.example.test';
+ const runtime={installationId:ID,kind:'openclaw',role:'border',capabilities:{protectedProfile:true,protectedOperations:true,protectedProduction:true},access:{mode:'open-lab',principal:labPrincipal}};
+ const old=await profiles.saveCloud('Cloud',ORIGIN,ID,runtime), key=origin=>'owner-operations.'+createHash('sha256').update(origin+'|'+ID).digest('hex');
+ await store.update(key(ORIGIN),[{client_nonce:'nonce',operation_id:'operation'}]);
+ const write=store.update;let injected=false;
+ store.update=async(k,v)=>{await write(k,v);if(k===key(next)&&!injected){injected=true;await write(key(ORIGIN),[{client_nonce:'nonce',operation_id:'operation',decision_sent:true}]);}};
+ await assert.rejects(profiles.replaceCloudEndpoint(old,next,runtime),/references changed/);assert.equal(profiles.list()[0].url,ORIGIN);assert.equal(store.get(key(ORIGIN))[0].decision_sent,true);
+ await profiles.replaceCloudEndpoint(old,next,runtime);assert.equal(store.get(key(next))[0].decision_sent,true);
+});
+test('R07 endpoint copying refuses combined conflict, mode/principal mismatch and storage failure without switching profile', async () => {
+ const {Profiles}=await nativeModules(), store=storage(), profiles=new Profiles(store), next='https://new-endpoint.example.test';
+ const runtime={installationId:ID,kind:'openclaw',role:'border',capabilities:{protectedProfile:true,protectedOperations:true,protectedProduction:true},access:{mode:'open-lab',principal:labPrincipal}};
+ const old=await profiles.saveCloud('Cloud',ORIGIN,ID,runtime);
+ const key=origin=>'owner-combined.'+createHash('sha256').update(origin+'|'+ID+'|'+ownerCanonical(labPrincipal)).digest('hex');
+ const original={client_nonce:'parent-nonce',parent_id:'parent',children:[{operation_id:'one',decision_sent:true},{operation_id:'two'}],cancel_sent:true};await store.update(key(ORIGIN),original);
+ await store.update(key(next),{...original,parent_id:'conflict'});const before=JSON.stringify([...store.state]);await assert.rejects(profiles.replaceCloudEndpoint(old,next,runtime),/conflict/);assert.equal(JSON.stringify([...store.state]),before);
+ await store.update(key(next),undefined);
+ await assert.rejects(profiles.replaceCloudEndpoint(old,next,{...runtime,access:{mode:'open-lab',principal:{...labPrincipal,subject:ID}}}),/operator/);
+ await assert.rejects(profiles.replaceCloudEndpoint(old,next,{...runtime,capabilities:{externalFederation:{schema:1,execution:'ordinary',peerChat:true},remoteHud:{schema:1}}}),/execution/);
+ const write=store.update;store.update=async(k,v)=>{if(k===key(next))throw Error('storage unavailable');await write(k,v);};await assert.rejects(profiles.replaceCloudEndpoint(old,next,runtime),/storage/);assert.equal(profiles.list()[0].url,ORIGIN);
+ store.update=write;await profiles.replaceCloudEndpoint(old,next,runtime);assert.deepEqual(store.get(key(next)),original);assert.deepEqual(store.get(key(ORIGIN)),original);
+});

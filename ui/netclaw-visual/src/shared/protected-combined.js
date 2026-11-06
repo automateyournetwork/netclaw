@@ -54,6 +54,16 @@ export class CombinedOperations {
   }
   async status() { const ref = this.references.read(); if (!ref || ref.not_submitted) return fail(); this.uncertain = true; return this.accept(await this.api.combinedStatus(ref)); }
   recover() { return this.exclusive(() => this.status()); }
+  recoverOriginal(kind, identifier) { return this.exclusive(async () => {
+    if (!['parent_id', 'client_nonce'].includes(kind) || !id(identifier) || this.references.read()) return fail();
+    const value = await this.api.combinedStatus({ [kind]: identifier });
+    const expected = { client_nonce: kind === 'client_nonce' ? identifier : value?.client_nonce, ...(kind === 'parent_id' ? { parent_id: identifier } : {}) };
+    validateCombined(value, expected, this.installation, this.principal);
+    // An imported identifier cannot prove that an earlier decision/cancel was
+    // never sent. Import is deliberately status-only; no new authority follows.
+    this.references.write({ client_nonce: value.client_nonce, parent_id: value.parent_id, cancel_sent: true, children: value.children.map(c => ({ operation_id: c.operation_id, decision_sent: true })) });
+    this.value = value; this.uncertain = false; return value;
+  }); }
   prepare(children) { return this.exclusive(async () => {
     if (this.references.read()) throw Error('Recover the retained combined request first.');
     const choices = combinedChoices(await this.api.catalog());

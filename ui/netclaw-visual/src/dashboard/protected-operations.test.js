@@ -9,7 +9,7 @@ const ID = '00000000-0000-4000-8000-000000000171';
 const principal = { issuer: 'local', subject: ID, display_name: 'Fixture owner', roles: ['owner'] };
 const args = { device_name: 'fixture-router', command: 'show version', timeout: 30, retries: 1 };
 const catalog = { revision: 'catalog-1', members: [{ member: { member_id: 'onprem-fixture', key_id: 'member-key', installation_id: ID }, model_profiles: [{ profile_id: 'sonnet-fixture', provider: 'anthropic', model: 'fixture-model' }], tools: [{ tool: 'pyats_run_show_command', arguments: args, device_ref: 'fixture-router' }] }] };
-function operation(nonce, changes = {}) { return { operation_id: 'operation-171', client_nonce: nonce, revision: 1, state: 'review_pending', review_digest: 'd'.repeat(64), attempt_count: 0, may_have_executed: false, reconciliation_required: false, review: { principal, border: { identity: 'fixture-border' }, member: catalog.members[0].member, model_profile: catalog.members[0].model_profiles[0], tool_call: { tool: 'pyats_run_show_command', arguments: args, arguments_sha256: 'a'.repeat(64) }, limits: { expires_at_ms: Date.now() + 600000, max_tool_calls: 1, max_inference_calls: 2 } }, allowed_actions: ['approve', 'deny'], ...changes }; }
+function operation(nonce, changes = {}) { return { operation_id: 'operation-171', client_nonce: nonce, revision: 1, state: 'review_pending', review_digest: 'd'.repeat(64), attempt_count: 0, may_have_executed: false, reconciliation_required: false, review: { principal, border: { identity: 'fixture-border', installation_id: ID }, member: catalog.members[0].member, model_profile: catalog.members[0].model_profiles[0], tool_call: { tool: 'pyats_run_show_command', arguments: args, arguments_sha256: 'a'.repeat(64) }, limits: { expires_at_ms: Date.now() + 600000, max_tool_calls: 1, max_inference_calls: 2 } }, allowed_actions: ['approve', 'deny'], ...changes }; }
 async function until(predicate) { const end = Date.now() + 3000; while (!predicate()) { if (Date.now() > end) assert.fail('UI condition did not become ready'); await new Promise(resolve => setTimeout(resolve, 5)); } }
 async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false, access } = {}) {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost:3000', runScripts: 'outside-only', pretendToBeVisual: true }), w = dom.window, calls = [];
@@ -68,7 +68,7 @@ test('complete immutable review precedes approval, derives exact arguments and k
   f.button('Approve once').click(); f.button('Approve once').click();
   await until(() => f.body().includes('dispatch_pending'));
   const decisions = f.calls.filter(call => call.url.endsWith('/decision')); assert.equal(decisions.length, 1); assert.deepEqual(decisions[0].body, { revision: 1, review_digest: 'd'.repeat(64), decision: 'approve' }); assert.equal(decisions[0].headers['X-NetClaw-CSRF'], 'csrf-private-fixture');
-  const stored = JSON.parse(f.w.sessionStorage.getItem(f.w.sessionStorage.key(0))); assert.deepEqual(Object.keys(stored).sort(), ['client_nonce', 'operation_id']); assert.doesNotMatch(JSON.stringify(stored), /csrf|ticket|arguments|principal|model/);
+  const stored = JSON.parse(f.w.sessionStorage.getItem(f.w.sessionStorage.key(0))); assert.deepEqual(Object.keys(stored).sort(), ['client_nonce', 'decision_sent', 'operation_id']); assert.equal(stored.decision_sent, true); assert.doesNotMatch(JSON.stringify(stored), /csrf|ticket|arguments|principal|model/);
 });
 
 test('lost decision response disables approval and refresh recovers same operation without resubmitting', async t => {
@@ -197,7 +197,7 @@ test('production four-device reviews remain independent and reload restores all 
   }
   assert.equal(f.calls.filter(row => row.url.endsWith('/decision')).length, 4);
   assert.equal(f.w.document.querySelectorAll('tbody tr').length, 4); assert.match(f.body(), /IOS \/ 17.18.2/);
-  const saved = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`)); assert.equal(saved.length, 4); assert.equal(new Set(saved.map(row => row.client_nonce)).size, 4); assert.ok(saved.every(row => Object.keys(row).sort().join(',') === 'client_nonce,operation_id'));
+  const saved = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`)); assert.equal(saved.length, 4); assert.equal(new Set(saved.map(row => row.client_nonce)).size, 4); assert.ok(saved.every(row => Object.keys(row).sort().join(',') === 'client_nonce,decision_sent,operation_id' && row.decision_sent === true));
   const boundary = f.calls.length; f.w.remount(f.props); await until(() => f.w.document.querySelectorAll('tbody tr').length === 4 && !f.body().includes('Awaiting confirmation'));
   assert.ok(f.calls.slice(boundary).every(row => row.method === 'GET')); assert.equal(count, 4);
 });
@@ -218,9 +218,9 @@ test('production unknown row stays retained, does not retry, and preserves anoth
 test('production typed-ID recovery is an authenticated status read and rejects a substituted operation', async t => {
   const f = await setup(t, url => url === '/api/hud/operations/retained-id' ? deviceOperation('retained-nonce', 'R1', 1, { operation_id: 'retained-id', state: 'completed', allowed_actions: [], result: receipt() }) : url === '/api/hud/operations/foreign-id' ? deviceOperation('foreign-nonce', 'R2', 2) : undefined, { retainMultiple: true });
   await until(() => f.button('Recover existing operation'));
-  input(f, 'input', 'retained-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('retained-id') && f.body().includes('Execution evidence'));
+  input(f, 'form input[spellcheck="false"]', 'retained-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('retained-id') && f.body().includes('Execution evidence'));
   assert.equal(f.w.document.querySelectorAll('tbody tr').length, 1); assert.ok(f.calls.every(row => row.method === 'GET'));
-  input(f, 'input', 'foreign-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('identity changed'));
+  input(f, 'form input[spellcheck="false"]', 'foreign-id'); await until(() => !f.button('Recover existing operation').disabled); f.button('Recover existing operation').click(); await until(() => f.body().includes('identity changed'));
   assert.equal(f.w.document.querySelectorAll('tbody tr').length, 1); assert.doesNotMatch(f.body(), /foreign-nonce/);
 });
 test('production pending ACK cannot be removed and unverified or malformed parsed fields stay unavailable', async t => {
@@ -274,7 +274,7 @@ test('production mixed NetBox and subnet approvals retain exact identities and r
   const rows = [...f.w.document.querySelectorAll('tbody tr')].map(row => row.textContent);
   assert.match(rows[0], /NetBox device demo-router · ID 7/); assert.match(rows[1], /NetBox prefix 198.51.100.0\/24 · ID 7/); assert.match(rows[2], /198.51.100.0\/24 · 254 usable hosts/);
   const stored = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`));
-  assert.equal(stored.length, 3); assert.ok(stored.every(row => Object.keys(row).sort().join(',') === 'client_nonce,operation_id'));
+  assert.equal(stored.length, 3); assert.ok(stored.every(row => Object.keys(row).sort().join(',') === 'client_nonce,decision_sent,operation_id' && row.decision_sent === true));
   assert.doesNotMatch(JSON.stringify([...Object.keys(f.w.sessionStorage).map(key => f.w.sessionStorage.getItem(key))]), /demo-router|private-response|object_type|cidr|csrf/);
   const boundary = f.calls.length; f.w.remount(f.props); await until(() => f.w.document.querySelectorAll('tbody tr').length === 3 && !f.body().includes('Awaiting confirmation'));
   assert.ok(f.calls.slice(boundary).every(row => row.method === 'GET')); assert.equal(count, 3);
@@ -376,4 +376,51 @@ test('combined browser reviews are separate and retained per child through lost 
   f.button('Approve IPv6 once').click();await until(()=>f.body().includes('Request: parent1 · complete') && !f.button('Check combined status').disabled);
   assert.equal(f.calls.filter(c=>c.url.endsWith('/decision')).length,2);assert.equal(f.calls.filter(c=>c.url==='/api/hud/operations/combined' && c.method==='POST').length,1);
   const saved=f.w.sessionStorage.getItem(`netclaw.protected.${ID}.local.${ID}.combined.v1`);assert.doesNotMatch(saved,/cidr|qwen|principal|review/);assert.match(saved,/child0/);assert.match(saved,/child1/);
+});
+
+for (const retainMultiple of [false, true]) test(`R07 lost decision stays sent after stale pending recovery (multiple=${retainMultiple})`, async t => {
+  let current;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations' && options.method === 'POST') return current = operation(options.body.client_nonce);
+    if (url.endsWith('/decision')) throw Error('lost before confirmation');
+    if (url === '/api/hud/operations/operation-171') return current;
+  }, { retainMultiple });
+  await until(() => f.button('Prepare review')); f.button('Prepare review').click();
+  await until(() => f.button('Approve once') && !f.button('Approve once').disabled);
+  f.button('Approve once').click(); await until(() => f.body().includes('nothing was resent'));
+  f.w.remount(f.props); await until(() => f.body().includes('Immutable approval review'));
+  assert.equal(f.button('Approve once').disabled, true);
+  f.button('Approve once').click(); assert.equal(f.calls.filter(c => c.url.endsWith('/decision')).length, 1);
+});
+
+for (const retainMultiple of [false, true]) test(`R07 lost revoke remains sent after reload (multiple=${retainMultiple})`, async t => {
+ const current=operation('revoked-original',{state:'dispatch_pending',allowed_actions:['revoke'],may_have_executed:true});
+ const f=await setup(t,(url)=>{if(url.endsWith('/revoke'))throw Error('lost');if(url==='/api/hud/operations/operation-171')return current;},{retainMultiple,saved:retainMultiple?[{client_nonce:current.client_nonce,operation_id:current.operation_id}]:{client_nonce:current.client_nonce,operation_id:current.operation_id}});
+ await until(()=>f.button('Revoke remaining authority'));f.button('Revoke remaining authority').click();await until(()=>f.body().includes('nothing was resent'));
+ f.w.remount(f.props);await until(()=>f.button('Revoke remaining authority'));assert.equal(f.button('Revoke remaining authority').disabled,true);assert.equal(f.calls.filter(c=>c.url.endsWith('/revoke')).length,1);
+});
+test('R07 original nonce import uses GET, validates owner and becomes recovery-only', async t => {
+ const current=operation('lost-original');
+ const f=await setup(t,url=>url==='/api/hud/operations?client_nonce=lost-original'?current:undefined,{retainMultiple:true});
+ await until(()=>f.button('Recover existing operation'));
+ const select=f.w.document.querySelector('[aria-label="Recovery reference type"]');select.value='client_nonce';select.dispatchEvent(new f.w.Event('change',{bubbles:true}));
+ input(f,'form input[spellcheck="false"]','lost-original');await until(()=>!f.button('Recover existing operation').disabled);f.button('Recover existing operation').click();
+ await until(()=>f.button('Approve once'));assert.equal(f.button('Approve once').disabled,true);assert.ok(f.calls.every(c=>c.method==='GET'));
+ const saved=JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operations.v2`));assert.equal(saved[0].decision_sent,true);assert.equal(saved[0].revoke_sent,true);
+});
+
+
+test('legacy resolved review explicitly clears sent marker before preparing a new identity', async t => {
+  let current, sequence = 0;
+  const f = await setup(t, (url, options) => {
+    if (url === '/api/hud/operations' && options.method === 'POST') return current = operation(options.body.client_nonce, { operation_id: `resolved-${++sequence}` });
+    if (url.endsWith('/decision')) return current = { ...current, state: 'denied', allowed_actions: [] };
+  });
+  await until(() => f.button('Prepare review')); f.button('Prepare review').click(); await until(() => f.button('Deny') && !f.button('Deny').disabled);
+  f.button('Deny').click(); await until(() => f.button('Prepare a new review'));
+  const previous = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operation`)); assert.equal(previous.decision_sent, true);
+  f.button('Prepare a new review').click(); await until(() => f.button('Prepare review')); assert.equal(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operation`), null);
+  f.button('Prepare review').click(); await until(() => f.body().includes('resolved-2'));
+  const next = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operation`)); assert.notEqual(next.client_nonce, previous.client_nonce); assert.equal(next.decision_sent, undefined); assert.equal(f.button('Approve once').disabled, false);
+  assert.equal(f.calls.filter(call => call.url.endsWith('/decision')).length, 1); assert.equal(sequence, 2);
 });
