@@ -10,6 +10,8 @@ import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "..
 
 const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "removeConnection", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help"]);
 export function assertCloudCommand(name: string, remote: boolean, args: unknown[] = [], runtime?: Runtime) {
+  if (remote && runtime?.capabilities.externalFederation && ["ownerSignIn","ownerSignOut","ownerPrepare","ownerRecover"].includes(name)) throw Error("Protected operations are unavailable on this ordinary federation Border.");
+  if (remote && name === 'openPeerChat' && runtime?.capabilities.externalFederation?.peerChat !== true) throw Error("Peer chat requires an ordinary federation cloud Border or a local profile.");
   if (!remote || allowed.has(name)) return;
   if (runtime?.capabilities?.remoteHud) {
     const feature = name === "openDomain" ? remoteDomainFeature[String(args[0])] : remoteCommandFeature[name];

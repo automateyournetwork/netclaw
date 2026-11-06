@@ -232,6 +232,7 @@ class WatchRelay {
         update.taskId,
         update.state.wireName,
         answerText: update.outputText ?? update.state.explanation,
+        externalSources: update.externalSources,
       );
     }
     return {

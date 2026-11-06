@@ -88,6 +88,16 @@ class InventoryBuilder:
         for name, spec in servers.items():
             tools = spec.get("tools") if isinstance(spec, dict) else None
             if isinstance(tools,dict):tools=tools.get('include',[])
+            # Current OpenClaw uses toolFilter.include. Advertise its explicit
+            # names without interpreting wildcard/discovery filters as tools.
+            if self.runtime.kind == 'openclaw' and isinstance(spec, dict):
+                native = spec.get('toolFilter')
+                if isinstance(native, dict) and 'include' in native:
+                    included = native['include']
+                    valid = (isinstance(included, list) and all(
+                        isinstance(item, str) and re.fullmatch(r'[A-Za-z0-9_.-]+', item)
+                        for item in included))
+                    tools = included if valid and (not tools or tools == included) else []
             approved=(qualified.get(name,{}).get('tools') or {}).get('include',[])
             out.append({"name": name, "tools": tools or approved or [],'invocable_tools':approved if self.runtime.kind=='hermes' else tools or [],
                         'qualification':'source-reviewed' if name in qualified else 'configured'})

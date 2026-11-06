@@ -40,7 +40,6 @@ _ENV_TOKEN = "OPENCLAW_GATEWAY_TOKEN"
 _DEFAULT_OPENCLAW_CONFIG_PATH = os.path.expanduser("~/.openclaw/openclaw.json")
 
 _CONNECT_TIMEOUT_S = 10.0
-_RECONNECT_BACKOFF_S = 1.0
 
 
 class GatewayWsError(RuntimeError):
@@ -118,13 +117,31 @@ class GatewayWsClient:
         self._lock = asyncio.Lock()
         self._pending = {}  # request id -> asyncio.Future
         self._reader_task = None
+        self._run_observers = {}
+
+    def watch_run(self, run_id, observer):
+        if run_id in self._run_observers or len(self._run_observers) >= 64:
+            raise GatewayWsError('gateway observation capacity unavailable')
+        self._run_observers[run_id] = observer
+        return lambda: self._run_observers.pop(run_id, None)
 
     async def _ensure_connected(self):
         async with self._lock:
             if self._ws is not None and self._ws.state == _WsState.OPEN:
                 return
+            # Retire the previous reader before replacing shared pending state.
+            # Its finally block must never fail calls on the new connection.
+            if self._reader_task is not None:
+                self._reader_task.cancel()
+                await asyncio.gather(self._reader_task, return_exceptions=True)
+                self._reader_task = None
             self._ws = await websockets.connect(self.url, open_timeout=_CONNECT_TIMEOUT_S)
-            await self._handshake()
+            try:
+                await self._handshake()
+            except BaseException:
+                await self._ws.close()
+                self._ws = None
+                raise
             self._pending = {}
             self._reader_task = asyncio.ensure_future(self._read_loop())
 
@@ -154,6 +171,7 @@ class GatewayWsClient:
                 },
                 "role": "operator",
                 "scopes": ["operator.read", "operator.write"],
+                "caps": ["tool-events"],
                 "auth": {"token": self.token},
             },
         }
@@ -165,7 +183,7 @@ class GatewayWsClient:
 
     async def _read_loop(self):
         """Dispatch incoming frames: match `res` frames to pending calls by id,
-        ignore `event` frames (this client does not subscribe to any).
+        observe only locally bound native agent events for active runs.
 
         The gateway's `agent` method (and other long-running methods) reply
         with an intermediate `{ok: true, payload: {status: "accepted", ...}}`
@@ -182,6 +200,19 @@ class GatewayWsClient:
                     frame = json.loads(raw)
                 except (ValueError, TypeError):
                     continue
+                if not isinstance(frame, dict):
+                    continue
+                if frame.get('type') == 'event' and frame.get('event') == 'agent':
+                    payload = frame.get('payload')
+                    observer = self._run_observers.get(payload.get('runId')) if isinstance(payload, dict) and isinstance(payload.get('runId'), str) else None
+                    if observer:
+                        try:
+                            observer(payload)
+                        except Exception:
+                            # Missing or malformed evidence never becomes a
+                            # source claim, and never retries the agent call.
+                            logger.warning('native external attribution unavailable')
+                    continue
                 if frame.get("type") != "res":
                     continue
                 pending = self._pending.get(frame.get("id"))
@@ -194,13 +225,16 @@ class GatewayWsClient:
                     continue  # not the real answer yet -- keep waiting
                 self._pending.pop(frame.get("id"), None)
                 fut.set_result(frame)
-        except Exception as e:
-            # Connection dropped mid-read. Fail every outstanding call so a
-            # caller blocked in call() doesn't hang forever; call() itself
-            # handles reconnect-and-retry.
+        except Exception:
+            # Bounded failure below: do not retain peer frame/token diagnostics.
+            pass
+        finally:
+            # A clean WebSocket close also leaves outstanding calls uncertain.
+            # Wake every waiter; a missing response is never execution failure
+            # evidence and must not silently resubmit an agent turn.
             for fut, _ in self._pending.values():
                 if not fut.done():
-                    fut.set_exception(e)
+                    fut.set_exception(GatewayWsError('gateway connection closed before final response'))
             self._pending = {}
 
     async def call(self, method: str, params: dict, timeout_s: float | None,
@@ -214,17 +248,10 @@ class GatewayWsClient:
         `agent`): skip an intermediate "accepted" acknowledgement frame and
         wait for the real final result frame with the same request id.
 
-        On a dropped connection mid-call, reconnects once and retries the call
-        once before giving up (spec 116 Edge Case: a connection hiccup must not
-        corrupt in-flight turn bookkeeping or silently hang).
+        No call is retried after dispatch. A later explicit request reconnects
+        independently; agent work with a lost response remains outcome unknown.
         """
-        try:
-            return await self._call_once(method, params, timeout_s, expect_final)
-        except (websockets.exceptions.ConnectionClosed, OSError):
-            logger.warning("gateway_ws: connection dropped during %s call; reconnecting", method)
-            self._ws = None
-            await asyncio.sleep(_RECONNECT_BACKOFF_S)
-            return await self._call_once(method, params, timeout_s, expect_final)
+        return await self._call_once(method, params, timeout_s, expect_final)
 
     async def _call_once(self, method: str, params: dict, timeout_s: float | None,
                           expect_final: bool) -> dict:
@@ -246,11 +273,14 @@ class GatewayWsClient:
         return frame.get("payload", {})
 
     async def close(self):
-        if self._reader_task is not None:
-            self._reader_task.cancel()
-        if self._ws is not None:
-            await self._ws.close()
-            self._ws = None
+        async with self._lock:
+            if self._reader_task is not None:
+                self._reader_task.cancel()
+                await asyncio.gather(self._reader_task, return_exceptions=True)
+                self._reader_task = None
+            if self._ws is not None:
+                await self._ws.close()
+                self._ws = None
 
 
 _singleton = None

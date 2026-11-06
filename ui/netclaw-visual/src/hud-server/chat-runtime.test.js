@@ -26,6 +26,17 @@ test('available runtime choices and supported efforts are validated without leak
   assert.throws(() => resolveChatEffort(config, id, {}, models));
   assert.throws(() => resolveChatModel(config, id, null));
 });
+test('cloud history allowance covers only read-only list and transcript calls', () => {
+  const env = { NETCLAW_GATEWAY_HISTORY_TIMEOUT_MS: '60000' };
+  for (const method of ['sessions.list', 'chat.history']) {
+    assert.equal(gatewayCallTimeout(method, env), 60000);
+    assert.equal(gatewayCallTimeout(method, {}), 20000);
+    for (const value of ['19999', '60001', 'Infinity', '30000.5', 'bad'])
+      assert.equal(gatewayCallTimeout(method, { NETCLAW_GATEWAY_HISTORY_TIMEOUT_MS: value }), 20000);
+  }
+  for (const method of ['models.list', 'sessions.patch', 'sessions.delete', 'chat.send'])
+    assert.equal(gatewayCallTimeout(method, env), 20000);
+});
 test('runtime catalog coalesces calls and falls back safely on discovery failure', async () => {
   let calls = 0;
   const runtime = createChatRuntime(async (method, params) => { calls++; assert.deepEqual(params, {view:'configured'}); return { models }; });

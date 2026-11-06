@@ -13,6 +13,9 @@ import 'package:netclaw_mobile/screens/protected_device_screen.dart';
 import 'package:netclaw_mobile/ncfed/heartbeat.dart';
 import 'package:netclaw_mobile/ncfed/enrollment_store.dart';
 import 'package:netclaw_mobile/screens/cloud_owner_screen.dart';
+import 'package:netclaw_mobile/screens/chat_screen.dart';
+import 'package:netclaw_mobile/ncfed/conversation_store.dart';
+import 'package:netclaw_mobile/ncfed/edge_ask_client.dart';
 
 dynamic ordered(dynamic x) => x is Map
     ? {
@@ -69,6 +72,8 @@ void main() {
           'combined-decision',
           'combined-decisions',
           'combined-recover',
+          'external-ask',
+          'external-recover',
         ].contains(phase),
         'Invalid phase',
       );
@@ -191,6 +196,7 @@ void main() {
           combinedReference,
           archivedOperation,
           archivedCombined;
+      Json? externalTurn;
       bool? combinedUncertain;
       var visualFrames = 0;
       final nativeLifecycle = <String>[];
@@ -728,6 +734,127 @@ void main() {
         }
         operation = operations.operation;
       }
+      if (phase == 'external-ask' || phase == 'external-recover') {
+        require(!protected, 'Ordinary federation requires the ordinary home');
+        await waitFor(
+          () => find.byType(NavigationBar).evaluate().length == 1,
+          'Ordinary home is still initializing; inspect native permission prompts',
+        );
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text('Chat'),
+          ),
+        );
+        await tester.pump();
+        await waitFor(
+          () => find.byType(ChatScreen).evaluate().length == 1,
+          'Ordinary Chat screen did not initialize after native navigation',
+        );
+        final chat = tester.widget<ChatScreen>(find.byType(ChatScreen));
+        await tester.runAsync(chat.store.load);
+        final before = chat.store.turns.length;
+        final peer = config['expected_peer'];
+        require(
+          peer is String && peer.isNotEmpty,
+          'Expected source is required',
+        );
+        ConversationTurn? turn;
+        if (phase == 'external-ask') {
+          final prompt = config['prompt'];
+          require(
+            prompt is String && prompt.isNotEmpty && prompt.length <= 4096,
+            'Exact bounded request is required',
+          );
+          require(
+            !chat.store.turns.any((t) => t.requestText == prompt),
+            'Request already exists; recover it instead of submitting again',
+          );
+          final field = find.byWidgetPredicate(
+            (w) => w is TextField && w.decoration?.hintText == 'Ask something…',
+          );
+          await tester.enterText(field, prompt as String);
+          await tester.tap(find.byIcon(Icons.send));
+          await waitFor(
+            () => chat.store.turns.length > before,
+            'Native send produced no durable request; inspect original state',
+          );
+          require(
+            chat.store.turns.length == before + 1,
+            'Unexpected extra turn',
+          );
+          turn = chat.store.turns.last;
+          require(
+            turn.requestId != null,
+            'Durable original request ID is missing',
+          );
+          final deadline = DateTime.now().add(const Duration(minutes: 3));
+          while (turn!.state != 'completed') {
+            require(
+              ['pending', 'working'].contains(turn.state) &&
+                  DateTime.now().isBefore(deadline),
+              'Original request did not complete; never submit it again',
+            );
+            await tester.runAsync(
+              () => Future<void>.delayed(const Duration(milliseconds: 250)),
+            );
+            await tester.pump(const Duration(milliseconds: 100));
+            turn = chat.store.turns.singleWhere(
+              (t) => t.requestId == turn!.requestId,
+            );
+          }
+        } else {
+          final expected = config['expected_turn'];
+          require(
+            expected is Map &&
+                expected['request_id'] is String &&
+                expected['task_id'] is String,
+            'Original request evidence required',
+          );
+          turn = chat.store.turns.singleWhere(
+            (t) => t.requestId == expected['request_id'],
+          );
+          require(
+            jsonEncode(ordered(turn.toJson())) == jsonEncode(ordered(expected)),
+            'Cold recovery changed original turn or attribution',
+          );
+          TaskUpdate? recovered;
+          await tester.runAsync(() async {
+            recovered = await chat.askClient.result(turn!.taskId);
+          });
+          require(
+            recovered!.state == TaskState.completed &&
+                recovered!.outputText == turn.answerText &&
+                jsonEncode(
+                      ordered(
+                        recovered!.externalSources
+                            .map((s) => s.toJson())
+                            .toList(),
+                      ),
+                    ) ==
+                    jsonEncode(
+                      ordered(
+                        turn.externalSources.map((s) => s.toJson()).toList(),
+                      ),
+                    ),
+            'Original cloud result differs from retained evidence',
+          );
+          require(
+            chat.store.turns.length == before,
+            'Recovery created another turn',
+          );
+        }
+        require(
+          turn.requestId != null &&
+              turn.externalSources.any((s) => s.peer == peer),
+          'Native outbound receipt attribution is missing',
+        );
+        require(
+          find.textContaining('External sources · untrusted peer responses').evaluate().isNotEmpty,
+          'Production Chat did not display external source',
+        );
+        externalTurn = turn.toJson();
+      }
       if (config['visual_evidence'] == true) {
         final visualLabel =
             config['visual_label'] as String? ?? '$profileName-$phase';
@@ -809,6 +936,7 @@ void main() {
           'border': client.border,
           'decoder': decoder,
           'operation': operation,
+          'external_turn': externalTurn,
           'archived_operation': archivedOperation,
           'archived_combined': archivedCombined,
           'combined': combined,

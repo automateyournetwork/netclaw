@@ -13,3 +13,15 @@ test('uncertain mint is never retried or labelled unsubmitted and never reflects
 test('status cannot expose a QR or token and changed identity is refused',async t=>{const f=await fixture(t);for(const result of [{...record(),qr_matrix:matrix()},{...record(),token:'secret'},{...record(),installation_id:nonce}]){f.state.result=result;const r=await f.request('/'+nonce);assert.equal(r.status,503);assert.ok(!JSON.stringify(await r.json()).includes('secret'));}f.state.result={...record(),qr_matrix:[[true]]};assert.equal((await f.request('','POST',{client_nonce:nonce,replace_client_nonce:null})).status,503);});
 test('unqualified owner mode reports unavailable and cannot issue',async t=>{const f=await fixture(t,{enabled:false,reason:'owner_issuance_unqualified'});assert.equal((await (await f.request()).json()).available,false);assert.equal((await f.request('','POST',{client_nonce:nonce,replace_client_nonce:null})).status,404);assert.equal(f.calls.length,0);});
 test('ordinary local bridge uses fixed installation-bound read routes and refuses redirect/arbitrary targets',async()=>{const calls=[],client=createLocalEnrollmentClient({installationId:id},'http://127.0.0.1:18179',async(url,opts)=>{calls.push({url,opts});return new Response(JSON.stringify(opts.method==='GET'?info:{...record(),qr_matrix:matrix()}),{headers:{'Content-Type':'application/json'}});});await client.call('mobile.enrollment.info',{installation_id:id});assert.equal(calls[0].url,`http://127.0.0.1:18179/n2n/mobile/enrollment?installation_id=${id}`);assert.equal(calls[0].opts.redirect,'error');await client.call('mobile.enrollment.issue',{installation_id:id,client_nonce:nonce,replace_client_nonce:null});assert.equal(calls.length,2);await assert.rejects(client.call('admin',{installation_id:id}));await assert.rejects(createLocalEnrollmentClient({installationId:id},'https://elsewhere.example').call('mobile.enrollment.info',{installation_id:id}));});
+
+test('ordinary cloud issuance uses exact HTTPS origin without protected auth_context',async t=>{
+ const f=await fixture(t,{access:undefined});
+ f.state.result={...info,mode:'legacy',endpoint:{border_host:'border.example',claw_domain:'border.example',border_port:8443,ws_path:'/'}};
+ const value=await (await f.request()).json();assert.equal(value.mode,'legacy');assert.equal(value.endpoint.border_port,8443);
+ f.state.result={...record(),qr_matrix:matrix()};
+ assert.equal((await f.request('','POST',{client_nonce:nonce,replace_client_nonce:null})).status,200);
+ assert.equal(f.calls.at(-1).params.auth_context,undefined);
+ assert.equal(f.calls.at(-1).params.installation_id,id);
+ assert.equal((await f.request('','POST',{client_nonce:nonce,replace_client_nonce:null},{Origin:'https://another-border.example'})).status,403);
+ assert.equal(f.calls.length,2);
+});

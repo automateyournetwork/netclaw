@@ -31,10 +31,16 @@ export function labAccess(value: unknown): LabAccess {
     throw Error("The Border did not advertise valid open-lab access.");
   return { mode: "open-lab", principal: p };
 }
+export function cloudExecutionMode(r: Json): "ordinary" | "protected" {
+  const keys = ["protectedProfile", "protectedOperations", "protectedProduction"], capabilities = r.capabilities || {}, external = capabilities.externalFederation;
+  if (external === undefined && keys.every(k => capabilities[k] === true)) return "protected";
+  if (object(external) && Object.keys(external).sort().join(",") === "execution,peerChat,schema" && external.schema === 1 && external.execution === "ordinary" && external.peerChat === true && keys.every(k => !Object.hasOwn(capabilities, k)) && capabilities.remoteHud?.schema === 1) return "ordinary";
+  throw Error("The expected cloud Border execution mode is unavailable or inconsistent.");
+}
 function cloudRuntime(r: Json, expectedId: string) {
-  if (r.installationId !== expectedId || r.kind !== "openclaw" || r.role !== "border" ||
-    !["protectedProfile", "protectedOperations", "protectedProduction"].every(k => r.capabilities?.[k] === true))
+  if (r.installationId !== expectedId || r.kind !== "openclaw" || r.role !== "border")
     throw Error("The endpoint is not the expected cloud Border. Review its identity and capabilities.");
+  cloudExecutionMode(r);
 }
 /** First connection pins the identity advertised by this exact trusted HTTPS origin. */
 export async function discoverCloudBorder(origin: string): Promise<Runtime> {
@@ -65,7 +71,7 @@ export class OwnerClient {
   access?: LabAccess;
   get openLab() { return this.access?.mode === "open-lab"; }
   get principal(): Json | undefined { return this.access?.principal || this.sessionState?.principal; }
-  get operationsReady() { return Boolean(this.access || this.sessionState); }
+  get operationsReady() { return this.runtime?.capabilities?.protectedOperations === true && Boolean(this.access || this.sessionState); }
   reviewPrincipalMatches(principal: unknown) { return Boolean(this.principal) && ownerCanonical(principal) === ownerCanonical(this.principal); }
   private cookie = "";
   private csrf = "";
@@ -95,6 +101,7 @@ export class OwnerClient {
     this.current();
     try {
       cloudRuntime(r, this.expectedId);
+      if (this.runtime && cloudExecutionMode(this.runtime) !== cloudExecutionMode(r)) throw Error("The cloud Border execution mode changed. Review a new connection.");
       if (r.access !== undefined) {
         this.access = labAccess(r.access);
         this.cookie = ""; this.csrf = ""; this.sessionState = undefined;

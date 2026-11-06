@@ -1,5 +1,6 @@
 import { mountMobileEnrollment, createLocalEnrollmentClient } from './src/hud-server/mobile-enrollment.js';
 import { resolveRemoteHudBackend, remoteHudBackendBoundary } from './src/hud-server/remote-hud.js';
+import { peerChatBody } from './src/hud-server/cloud-federation.js';
 import { OpenLabBindings } from './src/hud-server/open-lab-bindings.js';
 import { convergenceEnabled, createConvergenceReader, mountConvergence } from './src/hud-server/convergence.js';
 import { mountProtectedOperations, protectedHudConfig, protectedLegacyBoundary, selectedEnvironmentFiles } from './src/hud-server/protected-operations.js';
@@ -152,7 +153,7 @@ app.use((req,_res,next) => {
 });
 const hermesRuntime = installation.kind === 'hermes' ? createHermesRuntime(installation, ROOT) : null;
 app.get('/api/runtime', async (_req, res) => {
-  if (openLabWorkspace) return res.set('Cache-Control', 'no-store').json({ installationId: installation.installationId, kind: installation.kind, remoteHudBackend: { schema: 1, features: openLabWorkspace.features } });
+  if (openLabWorkspace) return res.set('Cache-Control', 'no-store').json({ installationId: installation.installationId, kind: installation.kind, remoteHudBackend: { schema: 1, features: openLabWorkspace.features, ...(openLabWorkspace.mode ? { mode: openLabWorkspace.mode } : {}) } });
   if (protectedProfile) {
     let role = 'unknown';
     try {
@@ -965,17 +966,18 @@ app.get('/api/n2n', async (req, res) => {
 
 // Proxy a claw-to-claw chat message from the HUD to the daemon (FR-025)
 app.post('/api/n2n/chat', async (req, res) => {
-  const { peer, text, session_id } = req.body || {};
-  if (!peer || !text) return res.status(400).json({ error: 'expected { peer, text }' });
+  let body;
+  try { body = peerChatBody(req.body); }
+  catch { return res.status(400).json({ error: 'Expected a peer identity, bounded text and optional session_id.' }); }
   try {
     const r = await fetch(`${BGP_API}/n2n/chat/send`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ peer, text, session_id }),
-      signal: AbortSignal.timeout(300000),
+      body: JSON.stringify(body),
+      signal: AbortSignal.timeout(310000),
     });
-    res.json(await r.json());
+    res.status(r.status).json(await r.json());
   } catch (e) {
-    res.status(502).json({ error: `daemon unreachable: ${e.message}` });
+    res.status(502).json({ error: 'Peer reply unavailable. Work may have run; no automatic retry was made.' });
   }
 });
 

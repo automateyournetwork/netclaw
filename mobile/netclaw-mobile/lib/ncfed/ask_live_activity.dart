@@ -37,6 +37,6 @@ void wireAskLiveActivity({
       return;
     }
     final stateName = update.state.wireName;
-    await store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
+    await store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null), externalSources: update.externalSources);
   });
 }

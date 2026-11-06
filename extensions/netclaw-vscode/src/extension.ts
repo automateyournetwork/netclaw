@@ -639,7 +639,7 @@ export async function activate(context: vscode.ExtensionContext) {
     };
     for (const [label, command, icon] of extras[group] || [])
       if (!features || features.has(remoteCommandFeature[command]!) || command === "help") list.push({ label, command: "netclaw." + command, icon });
-    if (remote && group === "operations") list.push(
+    if (remote && connection.identity?.capabilities?.protectedOperations === true && group === "operations") list.push(
       { label: "Prepare protected read", command: "netclaw.ownerPrepare", icon: "checklist" },
       { label: "Recover retained operation", command: "netclaw.ownerRecover", icon: "history" },
     );

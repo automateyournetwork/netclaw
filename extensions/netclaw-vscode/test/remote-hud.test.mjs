@@ -66,3 +66,37 @@ test('open-lab HUD rejects unexpected cookies without persisting them',async t=>
   const f=fixture(t);f.state.hook=(_call,json)=>json(runtime(),200,{'Set-Cookie':'nc_hud_bad=secret'});
   await assert.rejects(f.client.connect(),/session cookie/);assert.equal(f.client.runtime,undefined);await assert.rejects(f.client.request('GET','/api/runtime'),/closed/);
 });
+
+test('ordinary federation explicitly enables peer chat and refuses mode changes without retry', async t => {
+  const f = fixture(t);
+  f.state.runtime.capabilities.externalFederation = {schema:1,execution:'ordinary',peerChat:true};
+  await f.client.connect();
+  await f.client.request('POST','/api/n2n/chat',{peer:'as65002-192.0.2.2',text:'once'});
+  assert.equal(f.calls.filter(c=>c.route==='/api/n2n/chat').length,1);
+  f.state.runtime = runtime();
+  Object.assign(f.state.runtime.capabilities,{protectedProfile:true,protectedOperations:true,protectedProduction:true});
+  await assert.rejects(f.client.verifyIdentity(),/mode changed/);
+  await assert.rejects(f.client.request('POST','/api/n2n/chat',{}),/closed/);
+  assert.equal(f.calls.filter(c=>c.route==='/api/n2n/chat').length,1);
+});
+
+test('ordinary federation cannot mix protected claims or add unrecognized capability fields', () => {
+  for (const change of [{protectedProfile:true},{protectedOperations:false}]) {
+    const r=runtime();r.capabilities.externalFederation={schema:1,execution:'ordinary',peerChat:true};Object.assign(r.capabilities,change);
+    assert.throws(()=>remoteHudFeatures(r),/inconsistent/);
+  }
+  const r=runtime();r.capabilities.externalFederation={schema:1,execution:'ordinary',peerChat:true,admin:true};
+  assert.throws(()=>remoteHudFeatures(r),/inconsistent/);
+});
+
+test('Name and URL discovery accepts ordinary capability without claiming protected authority', async t => {
+  const {discoverCloudBorder,OwnerClient} = await load('src/client/owner.ts');
+  const original=globalThis.fetch, r=runtime();
+  r.capabilities.externalFederation={schema:1,execution:'ordinary',peerChat:true};
+  globalThis.fetch=async()=>new Response(JSON.stringify(r),{headers:{'Content-Type':'application/json'}});
+  t.after(()=>globalThis.fetch=original);
+  assert.equal((await discoverCloudBorder(origin)).capabilities.externalFederation.execution,'ordinary');
+  const client=new OwnerClient(origin,id,()=>assert.fail('No session writes'));
+  await client.connect();assert.equal(client.openLab,true);assert.equal(client.operationsReady,false);
+  client.close();
+});

@@ -183,7 +183,7 @@ class _ChatScreenState extends State<ChatScreen>
     _progress.remove(update.taskId); // terminal update supersedes any hint
     final stateName = update.state.wireName;
     final follow = _isNearBottom;
-    await widget.store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
+    await widget.store.updateState(update.taskId, stateName, answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null), externalSources: update.externalSources);
     if (stateName == 'completed') widget.haptics.chatAnswerCompleted();
     if (mounted) setState(() {});
     if (follow) _jumpToNewest(animate: true);
@@ -792,6 +792,13 @@ class _TurnTile extends StatelessWidget {
                 buildActions: _answerContextMenuItems,
                 highlightQuery: highlightQuery,
               ),
+            if (turn.externalSources.isNotEmpty) ...[
+              const SizedBox(height: 8),
+              Text('External sources · untrusted peer responses', style: Theme.of(context).textTheme.labelMedium),
+              for (final source in turn.externalSources)
+                Tooltip(message: 'Request ${source.requestId}${source.taskId == null ? "" : " · task ${source.taskId}"}',
+                  child: Text('${source.peer} · ${source.kind}', style: Theme.of(context).textTheme.bodySmall)),
+            ],
           ],
         ),
       ),

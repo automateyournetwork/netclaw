@@ -7,9 +7,10 @@ import { gatewayAgentId } from './gateway-agent.js';
 const execute = promisify(execFile);
 export function gatewayCallTimeout(method, env = process.env) {
   const name = method === 'models.list' ? 'NETCLAW_GATEWAY_CATALOG_TIMEOUT_MS'
+    : ['sessions.list', 'chat.history'].includes(method) ? 'NETCLAW_GATEWAY_HISTORY_TIMEOUT_MS'
     : method === 'sessions.patch' ? 'NETCLAW_GATEWAY_SETTINGS_TIMEOUT_MS' : null;
   const requested = name ? Number(env[name]) : NaN;
-  const maximum = method === 'models.list' ? 60000 : 120000;
+  const maximum = method === 'sessions.patch' ? 120000 : 60000;
   return Number.isInteger(requested) && requested >= 20000 && requested <= maximum ? requested : 20000;
 }
 export function gatewayEnvironment(config, port, configPath, env = process.env, nodePath = process.execPath) {
@@ -43,7 +44,7 @@ export async function gatewayCall(method, params, port, configPath) {
     }
   }
   // Small cloud hosts can spend longer starting the native CLI. Discovery has
-  // its own bounded allowance; unrelated calls retain their existing deadline.
+  // and history have bounded allowances; unrelated calls keep their deadline.
   const timeout = gatewayCallTimeout(method);
   const { stdout } = await execute(executable, ['gateway', 'call', method, '--params', JSON.stringify(params),
     '--timeout', '10000', '--json'],

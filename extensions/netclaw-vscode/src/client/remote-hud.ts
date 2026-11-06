@@ -1,5 +1,5 @@
 import type { Runtime } from "./hud";
-import { labAccess } from "./owner";
+import { labAccess, cloudExecutionMode } from "./owner";
 
 export const remoteHudFeatureNames = ["overview", "chat", "canvas", "rag", "members", "peers", "skills", "runtime", "tokenomics", "documentation", "reference", "logs", "operations"] as const;
 export type RemoteHudFeature = typeof remoteHudFeatureNames[number];
@@ -12,6 +12,7 @@ export function remoteHudFeatures(runtime?: Runtime): Set<RemoteHudFeature> {
     throw Error("This Border does not advertise a compatible remote NetClaw workspace.");
   if (capability.features.includes("canvas") && !capability.features.includes("chat")) throw Error("The remote Canvas feature requires Chat support.");
   labAccess(runtime.access);
+  if (runtime.capabilities.externalFederation !== undefined) cloudExecutionMode(runtime);
   return new Set(capability.features.filter((f: string) => (remoteHudFeatureNames as readonly string[]).includes(f)));
 }
 const routes: [RemoteHudFeature, string, RegExp][] = [
@@ -42,6 +43,7 @@ export function remoteHudRoute(runtime: Runtime | undefined, method: string, rou
       throw Error("This remote HUD query is unavailable.");
   }
   if (runtime?.capabilities?.mobileEnrollment?.schema === 1 && !route.includes('?') && ((method === 'GET' || method === 'POST') && pathname === '/api/hud/mobile/enrollment' || method === 'GET' && /^\/api\/hud\/mobile\/enrollment\/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(pathname))) return;
+  if (method === 'POST' && route === '/api/n2n/chat' && features.has('peers') && runtime?.capabilities.externalFederation !== undefined && cloudExecutionMode(runtime) === 'ordinary') return;
   if (!routes.some(([feature, verb, path]) => features.has(feature) && method === verb && path.test(pathname)))
     throw Error("This cloud Border does not expose that action through its remote workspace.");
 }
@@ -50,7 +52,7 @@ export const remoteDomainFeature: Record<string, RemoteHudFeature> = {
   integrations: "skills", skills: "skills", settings: "runtime", tokenomics: "tokenomics", knowledge: "rag", documentation: "documentation", reference: "reference", logs: "logs",
 };
 export const remoteCommandFeature: Record<string, RemoteHudFeature> = {
-  openChat: "chat", openAvatar: "chat", openCanvas: "canvas", addSelectedContext: "chat", searchMemory: "chat", analyzeContext: "chat", openMeetings: "chat",
+  openChat: "chat", openPeerChat: "peers", openAvatar: "chat", openCanvas: "canvas", addSelectedContext: "chat", searchMemory: "chat", analyzeContext: "chat", openMeetings: "chat",
   openRag: "rag", exportGait: "operations", exportDiagnostics: "overview", openLogs: "logs", openDocumentation: "documentation",
   openOverview: "overview", openOperations: "operations", openSettings: "runtime", openTokenomics: "tokenomics", openGait: "operations", openIntegrations: "skills", openSkills: "skills", openPeers: "peers", openScience: "members", openMobile: "members",
 };

@@ -8,6 +8,19 @@
 
 ## Preferences
 
+- R06 acceptance and source integration (2026-11-06): completed Spec177 is accepted.
+  Commit all scoped R06 changes, create and merge its PR, delete the completed
+  feature branch and return to main. Include a short maintainer completion
+  write-up and an R07–R10 next-steps brief. This authorizes source integration;
+  existing roadmap version/publication holds and runtime expiry schedules remain.
+  R07–R10 are planning briefs only until separately started.
+
+- R06 direction (2026-11-06): new Spec177 branch and full SDD through100%.
+  Existing non-cloud eN2N already works; qualify and fix cloud parity rather than
+  redesigning federation. Use three independent NetClaw organizations in a full
+  triangle, all pairs both directions: two cloud Borders with separate resources
+  in the existing GCP project, plus a local Border as the third organization.
+
 - R05 closeout (2026-11-06): finish the accepted Spec176, commit/push/PR/merge,
   return to clean main and state when /clear is safe. Preserve roadmap order:
   R06 external federation, R07 recovery gate, R08 Border HA, R09 three-region
@@ -336,3 +349,20 @@ Ollama over existing NetClaw iN2N, no Tailscale. Thermidor provides proven patte
 tests and lessons only; do not deploy/import the Thermidor product/runtime or
 introduce its transport, identities, authority or lifecycle. Final model/guard
 images and source are NetClaw-owned, with official pinned public Ollama/model bytes.
+
+
+R06 full activation delegation —2026-11-06: the owner approved the complete
+Spec177 deployment-review.md packet with “yes go go go go go” and “get it to100%
+yes ?”. Foundation/runtime/DNS/TLS/Sonnet/all-six-direction/native clients and
+bounded retirement are delegated. Do not repeat the same permission requests.
+Preserve exact state/plans, unknown outcomes, R01/R04a/R05 and existing retirement
+schedules. Fixed R06 expiryNov8 15:19:35Z and release/R07 hold remain. GAIT7a196046.
+
+R06/Spec177 technical completion —2026-11-06: full SDD and35/35tasks complete for
+three independent organizations, cloud A/B plus local C, with actual six-direction
+inventory/contextual chat/native tool/skill, browser/editor/Mobile and recovery.
+The bounded owner setup remains only until Nov8:15:09:35Z quiesce/export,
+15:14:35Z exact cleanup,15:19:35Z independent STOP. Mac must be awake/online for
+cleanup; disk/IP absence is not claimed early. R05 schedules/owner pilot remain
+unchanged. No commit/push/merge/release/client publication or R07 is implied.
+See specs/177-external-en2n-federation/resume.md and final verification.

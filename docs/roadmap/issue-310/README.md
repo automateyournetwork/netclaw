@@ -11,7 +11,24 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
-## R05 accepted; source integration authorized — 2026-11-06
+## R06 accepted; source integration authorized — 2026-11-06
+
+[R06/Spec177](../../../specs/177-external-en2n-federation/verification.md) is
+complete and accepted35/35. Two independent cloud organizations plus local C
+passed all six external federation directions, actual browser/VS Code/iPhone
+simulator journeys, scoped refusals and original-result recovery without replay.
+See the [short completion write-up](../../../specs/177-external-en2n-federation/completion-summary.md)
+and [source-integration record](../../../specs/177-external-en2n-federation/source-integration.md).
+
+The owner authorized commit, PR, merge, completed-branch deletion and return to
+main. Existing runtime retention and the roadmap version/publication hold remain.
+R06 cleanup is scheduled November8; it has not already happened. See the exact
+retirement obligations in the evidence. The next sequence is
+[R07 recovery → R08 HA authority → R09 GCP multi-region → R10 Azure](R07-R10-next-steps.md).
+This brief does not start those stages; each retains separate VS Code/Mobile
+assessment and actual acceptance under G12/G13.
+
+## Historical R05 acceptance and source integration — 2026-11-06
 
 [R05/Spec176](../../../specs/176-ollama-members/verification.md) is complete and
 accepted33/33. Fresh NetClaw local ARM64/cloud AMD64 Ollama members, combined
@@ -400,7 +417,9 @@ without authorization and audit (byrn-baker's phase-one point).
 
 | Stage | Borders | Border pairs | Member attachments |
 |---|---|---|---|
-| R03–R07 | 1 | 0 (+1 external eN2N peer) | M |
+| R03–R05 | 1 | 0 internal cluster links | M |
+| R06 qualification | 3 independent organizations | 3 external eN2N pairs; no HA cluster | Separate organization scope |
+| R07 | Single-region recovery topology, chosen in its spec | Preserve qualified relationship types | Requalify affected members |
 | R09, R11, R13 | 3 per provider | 3 | M × 3 |
 | R14 | 9 | 36 | M × 9 |
 

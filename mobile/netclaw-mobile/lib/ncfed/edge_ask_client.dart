@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 
 import 'conversation_store.dart';
+import 'external_source.dart';
 
 import 'edge_client.dart';
 
@@ -43,6 +44,7 @@ class TaskUpdate {
   final int? tokensUsed;
   final bool cancellationRequested;
   final bool cancellationConfirmed;
+  final List<ExternalSource> externalSources;
 
   /// Set only by an `n2n/edge/task_progress` notification — a still-alive turn
   /// reporting in. Never persisted; purely a live hint for the UI.
@@ -55,6 +57,7 @@ class TaskUpdate {
     this.tokensUsed,
     this.cancellationRequested = false,
     this.cancellationConfirmed = false,
+    this.externalSources = const [],
     this.progressDetail,
   });
 
@@ -70,6 +73,7 @@ class TaskUpdate {
         // timeout showed as a bare "Failed" with no text at all.
         outputText: (params['output_text'] ?? params['error']) as String?,
         tokensUsed: params['tokens_used'] as int?,
+        externalSources: ExternalSource.parse(params['external_sources']),
       );
 
   factory TaskUpdate.fromProgress(Map<String, dynamic> params) => TaskUpdate(

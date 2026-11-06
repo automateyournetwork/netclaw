@@ -6,8 +6,17 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import express from 'express';
-import { readRemoteHudConfig, remoteHudFeatures, remoteHudRoute, createRemoteHud, remoteHudBackendBoundary, projectRemoteHud, REMOTE_HUD_FEATURES } from './remote-hud.js';
+import { readRemoteHudConfig, remoteHudFeatures, remoteHudRoute, remoteHudTimeout, createRemoteHud, remoteHudBackendBoundary, projectRemoteHud, REMOTE_HUD_FEATURES } from './remote-hud.js';
+import { gatewayCallTimeout } from './chat-runtime.js';
 const installation = {kind:'openclaw',installationId:'b164621c-a94e-4c28-a087-d9c9dabcce21'};
+test('saved-history proxy outlasts both bounded native reads without extending unrelated routes', () => {
+  const env = { NETCLAW_GATEWAY_HISTORY_TIMEOUT_MS: '60000', NETCLAW_GATEWAY_CATALOG_TIMEOUT_MS: '60000' };
+  assert.ok(remoteHudTimeout('/api/chat/conversations/owned/open') > gatewayCallTimeout('chat.history', env) + gatewayCallTimeout('models.list', env));
+  assert.equal(remoteHudTimeout('/api/chat/conversations'), 90000);
+  assert.equal(remoteHudTimeout('/api/chat/conversations/owned/open?url=other'), 90000);
+  assert.equal(remoteHudTimeout('/api/chat'), 590000);
+  assert.equal(remoteHudTimeout('/api/n2n/chat'), 320000);
+});
 const listen = server => new Promise(resolve => server.listen(0,'127.0.0.1',()=>resolve(`http://127.0.0.1:${server.address().port}`)));
 const close = server => { server.closeAllConnections(); return new Promise(resolve=>server.close(resolve)); };
 function fixture(t) {

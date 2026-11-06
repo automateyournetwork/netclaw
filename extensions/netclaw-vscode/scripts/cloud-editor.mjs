@@ -12,7 +12,7 @@ if (!config || !executable || !process.env.NETCLAW_TEST_PLAYWRIGHT) throw Error(
 const stat = fs.lstatSync(config);
 if (!stat.isFile() || stat.isSymbolicLink() || stat.uid !== process.getuid() || stat.mode & 0o077) throw Error('Cloud test config must be an owned private file.');
 const scenario = process.env.NETCLAW_CLOUD_SCENARIO || 'single';
-if (!['single', 'combined'].includes(scenario)) throw Error('Unknown native cloud scenario.');
+if (!['single', 'combined', 'federation'].includes(scenario)) throw Error('Unknown native cloud scenario.');
 const extension = fileURLToPath(new URL('../', import.meta.url));
 const root = process.env.NETCLAW_CLOUD_EDITOR_PROFILE || fs.mkdtempSync(path.join(os.tmpdir(), 'netclaw-cloud-editor-'));
 fs.mkdirSync(root, { recursive: true, mode: 0o700 });
@@ -23,7 +23,8 @@ if (process.env.NETCLAW_CLOUD_EDITOR_USER) { const state = fs.lstatSync(user); i
 fs.mkdirSync(driver, { recursive: true }); fs.mkdirSync(path.join(user, 'User'), { recursive: true });
 if (!fs.existsSync(path.join(user, 'User/settings.json'))) fs.writeFileSync(path.join(user, 'User/settings.json'), JSON.stringify({ 'telemetry.telemetryLevel': 'off', 'update.mode': 'none', 'extensions.autoUpdate': false, 'workbench.startupEditor': 'none', 'window.dialogStyle': 'custom', 'security.workspace.trust.enabled': true, 'security.workspace.trust.startupPrompt': 'never' }));
 fs.writeFileSync(path.join(driver, 'package.json'), JSON.stringify({ name: 'netclaw-cloud-owner-observer', publisher: 'fixture', version: '0.0.0', engines: { vscode: '^1.109.0' }, activationEvents: ['onStartupFinished'], main: 'index.cjs' }));
-fs.writeFileSync(path.join(driver, 'index.cjs'), `const vscode=require('vscode'), fs=require('node:fs'); exports.activate=()=>setImmediate(async()=>{try{await require(${JSON.stringify(path.join(extension, scenario === 'combined' ? 'test/editor-combined.cjs' : 'test/editor-cloud.cjs'))}).run();}catch(e){fs.writeFileSync(${JSON.stringify(report)},JSON.stringify({complete:false,error:String(e.message||'Cloud qualification failed')}),{mode:0o600});}finally{await vscode.commands.executeCommand('workbench.action.quit');}});`);
+const testFile = scenario === 'federation' ? 'test/editor-federation.cjs' : scenario === 'combined' ? 'test/editor-combined.cjs' : 'test/editor-cloud.cjs';
+fs.writeFileSync(path.join(driver, 'index.cjs'), `const vscode=require('vscode'), fs=require('node:fs'); exports.activate=()=>setImmediate(async()=>{try{await require(${JSON.stringify(path.join(extension, testFile))}).run();}catch(e){let prior={};try{prior=JSON.parse(fs.readFileSync(${JSON.stringify(report)},'utf8'));}catch{}fs.writeFileSync(${JSON.stringify(report)},JSON.stringify({...prior,complete:false,error:String(e.message||'Cloud qualification failed'),stack:String(e.stack||'')}),{mode:0o600});}finally{await vscode.commands.executeCommand('workbench.action.quit');}});`);
 const listener = net.createServer(); listener.listen(0, '127.0.0.1'); await once(listener, 'listening');
 const port = listener.address().port; await new Promise(resolve => listener.close(resolve));
 const child = spawn(executable, ['--user-data-dir', user, '--extensions-dir', path.join(root, 'extensions'), '--extensionDevelopmentPath=' + extension, '--extensionDevelopmentPath=' + driver,
