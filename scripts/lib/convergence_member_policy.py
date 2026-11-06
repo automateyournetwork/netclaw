@@ -8,7 +8,8 @@ confinement or grant the Border's other investigation capabilities to the member
 def native_tool_policy():
     return {
         'allow': ['read', 'convergence-read-mcp__convergence_flow_summary',
-                  'convergence-read-mcp__convergence_flow_evidence'],
+                  'convergence-read-mcp__convergence_flow_evidence',
+                  'convergence-read-mcp__convergence_vm_security'],
         'deny': ['exec', 'write', 'edit', 'apply_patch', 'browser'],
         'fs': {'workspaceOnly': True},
         'elevated': {'enabled': False},

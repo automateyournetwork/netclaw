@@ -28,8 +28,8 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/checkout@v4
         with:
-          repository: byrn-baker/netclaw-convergence
-          ref: f54bafca82f339d8573c55c53795fa05bd9dd843
+          repository: byrn-baker/convergence-platform
+          ref: 40c179ad943624838d1b2e8f63b483bcd6ac342f
           path: external-service
       - uses: actions/setup-python@v5
         with:

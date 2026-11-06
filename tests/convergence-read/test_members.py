@@ -107,7 +107,7 @@ class MemberTests(unittest.TestCase):
         config = json.loads((home/'openclaw.json').read_text())
         self.assertEqual(set(config['mcp']['servers']), {'convergence-read-mcp'})
         self.assertEqual(set(config['models']['providers']), {'ollama'})
-        self.assertEqual(config['tools']['allow'], ['read', 'convergence-read-mcp__convergence_flow_summary', 'convergence-read-mcp__convergence_flow_evidence'])
+        self.assertEqual(config['tools']['allow'], ['read', 'convergence-read-mcp__convergence_flow_summary', 'convergence-read-mcp__convergence_flow_evidence', 'convergence-read-mcp__convergence_vm_security'])
         self.assertTrue(config['tools']['fs']['workspaceOnly'])
         self.assertFalse(config['tools']['elevated']['enabled'])
         self.assertEqual(config['agents']['defaults']['model']['primary'], 'ollama/fixture-model')

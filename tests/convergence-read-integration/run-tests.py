@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVICE_REVISION = 'f54bafca82f339d8573c55c53795fa05bd9dd843'
+SERVICE_REVISION = '40c179ad943624838d1b2e8f63b483bcd6ac342f'  # byrn-baker/convergence-platform
 
 
 def execute(args, **kwargs):
@@ -42,7 +42,7 @@ def main():
     if actual != SERVICE_REVISION:
         raise ValueError('Use the exact documented external service revision')
     execute(['git','diff','--quiet',SERVICE_REVISION,'--','tests/convergence-home',
-             'workspace/skills/convergence-setup','deploy/convergence','ui/convergence-api'],cwd=external)
+             'setup','deploy/convergence','ui/convergence-api'],cwd=external)
     output = Path(args.evidence_dir).resolve();output.mkdir(parents=True,mode=0o700,exist_ok=True)
     fixture = load(external/'tests/convergence-home/run-tests.py','external_home_fixture')
     writer = fixture.setup.env_writer(external)
@@ -52,6 +52,9 @@ def main():
     # Each fixture bundle receives a separate site-scoped VIEWER key, never the
     # default operator key. The producer/collector credentials remain unchanged.
     def prepare_viewer(repo, bundle, options):
+        # The demo bundle also serves the labelled synthetic VM Security assessment.
+        if options.get('site') == 'demo':
+            options = {**options, 'vm_security_demo': True}
         result = prepare(repo,bundle,options)
         if result['status'] != 'preserved':
             values = writer.values((bundle/'compose.env').read_text())
@@ -123,7 +126,13 @@ def main():
 
             async with Client(config()) as mcp:
                 tools=await mcp.list_tools()
-                assert {t.name for t in tools}=={'convergence_flow_summary','convergence_flow_evidence'}
+                assert {t.name for t in tools}=={'convergence_flow_summary','convergence_flow_evidence','convergence_vm_security'}
+                vm=(await mcp.call_tool('convergence_vm_security',{})).data
+                assert vm['ok'] and vm['data']['site']==mode,vm
+                if mode=='demo':
+                    assert vm['data']['synthetic'] is True and vm['data']['sources'][0]['kind']=='synthetic',vm
+                else:
+                    assert vm['data']['status']=='not_configured',vm
                 result=await mcp.call_tool('convergence_flow_summary',{'range':'15m'})
                 assert result.data['ok'],result.data
                 summary=result.data['data'];assert summary['coverage']['mode']==mode

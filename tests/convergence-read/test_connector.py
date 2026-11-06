@@ -221,6 +221,68 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['error']['code'],'unavailable');self.assertNotIn(TOKEN,json.dumps(result))
 
 
+FIXTURE = Path(__file__).with_name('fixtures') / 'vm-security-demo.json'
+
+
+def vm_security():
+    # Recorded from the convergence-platform API in VM_SECURITY_DEMO mode.
+    return json.loads(FIXTURE.read_text())
+
+
+class VmSecurityTests(unittest.IsolatedAsyncioTestCase):
+    def client(self,payload,status=200):
+        self.requests=[]
+        def serve(request):
+            self.requests.append(request)
+            return httpx.Response(status,json=payload)
+        return connector.ConvergenceClient(connector.Settings.from_env(ENV),httpx.MockTransport(serve))
+
+    async def test_fixed_get_path_site_and_projection_without_heartbeats(self):
+        c=self.client(vm_security()); result=await c.vm_security()
+        self.assertTrue(result['ok'],result); request=self.requests[-1]
+        self.assertEqual((request.method,request.url.path,dict(request.url.params)),('GET','/api/security/vms',{'site':'lab'}))
+        data=result['data']
+        self.assertEqual((data['site'],data['status'],data['synthetic']),('lab','configured',True))
+        self.assertNotIn('hostTelemetry',data)
+        live,stale=data['sources']
+        self.assertEqual([f['kind'] for f in live['findings']],['port_scan','network_sweep','protected_network_contact'])
+        self.assertEqual({s['kind'] for s in data['sources']},{'synthetic'})
+        self.assertEqual(stale['summary']['assessment'],'insufficient_evidence')
+        self.assertNotIn(TOKEN,json.dumps(result))
+
+    async def test_not_configured_and_unavailable_stay_distinct(self):
+        result=await self.client({'status':'not_configured','sources':[]}).vm_security()
+        self.assertEqual(result['data'],{'site':'lab','status':'not_configured','sources':[]})
+        unavailable={'status':'unavailable','unavailable':True,'sources':[],'reason':'x'}
+        self.assertEqual((await self.client(unavailable).vm_security())['error']['code'],'unavailable')
+        self.assertEqual((await self.client({},status=403).vm_security())['error']['code'],'unauthorized')
+
+    async def test_out_of_contract_responses_are_incompatible(self):
+        def mutate(change):
+            value=vm_security(); change(value); return value
+        source=lambda v: v['sources'][0]
+        cases=[
+            lambda v: v.update(site='other'),
+            lambda v: v.pop('synthetic'),                                   # pre-0.1.0 service
+            lambda v: source(v).update(kind='proxmox'),                     # synthetic data labelled live
+            lambda v: source(v).update(site='other'),
+            lambda v: source(v)['findings'][0].update(kind='exfiltration'),
+            lambda v: source(v)['findings'][0].update(severity='critical'),
+            lambda v: source(v)['findings'][0]['evidence'].update(unique_destination_ports=5),
+            lambda v: source(v)['findings'][0]['evidence']['examples'][0].update(tap='tap999i0'),
+            lambda v: source(v)['findings'][0]['evidence']['examples'][0].update(observed_at=1),
+            lambda v: source(v)['findings'][0].update(vm_id=999),
+            lambda v: source(v)['summary'].update(finding_count=7),
+            lambda v: source(v)['coverage'].update(sampled=False),
+            lambda v: source(v)['vms'][0]['nics'][0].update(tap='tap1i0'),
+            lambda v: v['sources'].append(json.loads(json.dumps(source(v)))),
+        ]
+        for i,change in enumerate(cases):
+            with self.subTest(i):
+                result=await self.client(mutate(change)).vm_security()
+                self.assertEqual(result['error']['code'],'compatibility')
+
+
 class StdioTests(unittest.IsolatedAsyncioTestCase):
     async def test_actual_exporter_protocol_names_and_numeric_identifiers(self):
         settings = connector.Settings.from_env(ENV)
@@ -270,7 +332,7 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
         try:
             async with Client(configuration(env)) as mcp:
                 tools=await mcp.list_tools()
-                self.assertEqual({tool.name for tool in tools},{'convergence_flow_summary','convergence_flow_evidence'})
+                self.assertEqual({tool.name for tool in tools},{'convergence_flow_summary','convergence_flow_evidence','convergence_vm_security'})
                 self.assertTrue(all(tool.annotations.read_only_hint for tool in tools))
                 result=await mcp.call_tool('convergence_flow_summary',{'range':'1h'})
                 data=result.data

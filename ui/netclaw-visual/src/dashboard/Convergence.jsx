@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { convergenceContext } from './convergence-context.js';
+import ConvergenceVmSecurity from './ConvergenceVmSecurity.jsx';
 
 const endpoint = '/api/hud/convergence/flows';
 const array = value => Array.isArray(value) ? value : [];
@@ -93,5 +94,6 @@ export default function Convergence({ enabled = false, installationId, investiga
       <div className="table-scroll"><table><thead><tr><th>Direction</th><th>Source</th><th>Destination</th><th>Exporter</th><th>Received</th><th>Bytes</th><th>Packets</th></tr></thead><tbody>{array(detail.data.records).map((record, i) => <tr key={i}><td>{record.src_addr === detail.address ? record.dst_addr === detail.address ? 'Both endpoints' : 'From selected address' : 'To selected address'}</td><td>{record.src_addr}:{record.src_port ?? '—'}</td><td>{record.dst_addr}:{record.dst_port ?? '—'}</td><td>{record.sampler_address}</td><td>{record._time}</td><td>{shown(record.bytes)}</td><td>{shown(record.packets)}</td></tr>)}</tbody></table></div>
       {!detail.data.records.length && <p>No matching retained records were returned.</p>}<p>{detail.data.basis}</p>
     </>}</section>}
+    <ConvergenceVmSecurity ready={ready} installationId={installationId} request={request} errorMessages={errorMessages}/>
   </section>;
 }
