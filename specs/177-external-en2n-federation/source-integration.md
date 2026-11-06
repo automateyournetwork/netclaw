@@ -60,6 +60,26 @@ No unchanged live workload was replayed for source integration. Startup pyATS
 inventory remained unavailable because its selected HTTP runtime is missing;
 MemPalace source is absent. GAIT and file memory retain this source-only session.
 
+## CI fixture correction
+
+The first federation CI run on68177a3c found7failures: the R06 workflow/refusal
+fixture assumed an ignored installed subnet MCP clone existed in a fresh checkout.
+The remaining1734tests passed, with5existing skips. The corrected fixture includes
+only the exact reviewed4,896-byte upstream source and its Apache-2.0 license under
+`tests/fixtures/subnet-calculator-177/`, pinned to the existing installer manifest.
+Tests apply the same hash-checked migration in a temporary tree and execute the
+real native MCP; no test is skipped and no operator installation is changed.
+Focused workflow/refusal tests pass10/10. The full federation suite in the clean
+checkout with this exact fixture delta passes1741tests,5existing skips and94
+existing warnings (101.55s), with no installed subnet checkout present.
+Chat/skill model behavior remains a
+labeled deterministic fixture, separate from actual cloud/provider evidence.
+
+The upstream text fixture preserves one original whitespace-only line because
+changing it would invalidate its reviewed hash. Source whitespace checks exclude
+only `tests/fixtures/subnet-calculator-177/upstream.py.txt`; all other source is
+checked normally. Final PR checks remain authoritative for the integrated head.
+
 ## Retained runtime and release boundary
 
 Source1.18.6, extension1.6.1 and Mobile1.0.4+7 remain unchanged. The owner's

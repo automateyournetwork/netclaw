@@ -477,3 +477,15 @@ statement describes technical closure before that instruction. Publication and
 R07 execution remain held. See source-integration.md for the tracked candidate,
 CI outcomes and release boundary. The new cloud-r06 test family is registered
 in tests/contract-suites.json as part of T033 source coherence.
+
+The first source-integration CI run exposed an installed-clone assumption in the
+R06 offline test helper (7failures,1734passes,5existing skips). Tests now include
+the exact hash-verified upstream subnet source/license fixture and apply the same
+installer migration in a private temporary tree. Focused10tests pass without
+network/installed clones or skipped acceptance. See source-integration.md for
+clean-checkout and final CI evidence; deployed source/identity/effects are unchanged.
+
+The exact fixture correction passed the full clean-checkout federation suite:
+1741passed,5existing skips,94existing warnings in101.55s. No installed subnet
+checkout was present. The final PR head retains all seven originally failing
+cases; none is skipped or replaced with a fake calculator.

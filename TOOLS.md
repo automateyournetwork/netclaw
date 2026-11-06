@@ -1573,3 +1573,9 @@ Original browser result recovered with zero provider replay; transcript hashes
 remain unchanged (38responses). Four-request proxy admission can return429 during
 initial dashboard polling; existing Refresh chats recovers the read. Preserve
 these witnesses and exact v4 amendments in Spec177/history-recovery.
+
+R06 source CI must not depend on an ignored installed subnet MCP clone. The
+reviewed upstream source/license fixture in tests/fixtures/subnet-calculator-177
+is hash-checked by the existing installer migration in a temporary tree before
+actual native MCP execution. This preserves offline reproducibility and keeps
+owner installations untouched; source fixtures remain separate from live proof.

@@ -14,15 +14,20 @@ from test_cloud_triangle_177 import triangle, connect_triangle
 
 def prepare_runtime(svc):
     home = svc.manager.base_dir
-    # Apply the installer's hash-checked external MCP migration to a private
-    # test copy, preserving the repository's vendor checkout and owner homes.
+    # Use the exact reviewed upstream fixture, not an ignored installed clone.
+    # Apply the existing installer's hash checks and migration in a private tree.
     spec = importlib.util.spec_from_file_location('patch177', ROOT / 'scripts/apply-fastmcp-patches.py')
     patcher = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(patcher)
     manifest = json.loads((ROOT / 'config/fastmcp-external-patches.json').read_text())
-    changes = patcher.prepare(ROOT, 'subnet-calc', manifest)
+    entry = manifest['components']['subnet-calc']
+    fixture_root = home / 'subnet-fixture'
+    upstream = fixture_root / 'mcp-servers' / entry['directory'] / entry['patches'][0]['path']
+    upstream.parent.mkdir(parents=True)
+    upstream.write_bytes((ROOT / 'tests/fixtures/subnet-calculator-177/upstream.py.txt').read_bytes())
+    changes = patcher.prepare(fixture_root, 'subnet-calc', manifest)
     script = home / 'subnetcalculator_mcp.py'
-    script.write_text(changes[0][2] if changes else (ROOT / 'mcp-servers/subnet-calculator-mcp/servers/subnetcalculator_mcp.py').read_text())
+    script.write_text(changes[0][2] if changes else upstream.read_text())
     config = home / 'openclaw.json'
     config.write_text(json.dumps({'mcp': {'servers': {'subnet-calc-mcp': {
         'command': 'python3', 'args': ['-u', 'scripts/component-launch.py', 'subnet-calc', '--server', 'subnet-calc-mcp'],
