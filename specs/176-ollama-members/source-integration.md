@@ -1,5 +1,7 @@
 # R05 source integration and clear-session handoff
 
+Source PR: [#331](https://github.com/automateyournetwork/netclaw/pull/331).
+
 The owner accepted R05 on2026-11-06 after the technical/cleanup handoff and
 explicitly requested commit, PR, merge and return to main. All33 tasks are closed;
 [verification.md](verification.md) retains actual evidence, failed/unknown outcomes
@@ -52,6 +54,22 @@ check reports “2 reviewed files ready.” Tracked migration/pins/checker/workf
 match upstream. No unrelated runtime is patched, no failure is waived and clean
 source success does not imply installed-runtime compatibility. Exact commands,
 exit codes and output are retained privately under `source-integration/`.
+
+The initial PR checks caught two missed declaration refreshes: the modified
+subnet skill's catalog digest and the reviewed installer-effect digest for its
+explicit summary opt-in. Canonical Node/Python catalog generation changed only
+the skill hash and generated catalog checksum. The effect audit changed only the
+whole-source hash, subnet-function hash and explanatory reason; all112 previous
+function hashes matched upstream and only the subnet function changed. The
+default remains off, with the same isolated adapter/postcondition and exact
+before/after source-byte refusal. No audit check was bypassed.
+
+All catalog workflow checks and28 tests passed after regeneration. The canonical
+`python3 scripts/run-contract-tests.py --suite setup-installer --prepare` passed
+(39.89s), and the affected NetConverter installation tests passed7/7. Initial
+GitHub failures and corrected local logs are preserved privately. GitHub's final
+head checks determine merge readiness. The advisory Tessl workflow reported a
+missing service login; its green workflow status is not a successful skill review.
 
 ## Retained deployment and evidence
 
