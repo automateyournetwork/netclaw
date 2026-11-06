@@ -2,6 +2,12 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.7] - 2026-11-06
+
+Spec [177-defenseclaw-sidecar-identity](specs/177-defenseclaw-sidecar-identity/spec.md). See [release notes](docs/releases/1.18.7.md).
+
+- `defenseclaw-sidecar.service` starts the gateway with `defenseclaw-gateway start`, so the DefenseClaw CLI (`skill enable`/`disable`, audit recording of scans, `defenseclaw-gateway status`) reaches the gateway NetClaw supervises. systemd still restarts it after a crash. Regenerate and restart the unit to update an existing Risk host.
+
 ## [1.18.6] - 2026-11-05
 
 - Generate a single-use Mobile enrollment QR directly from the HUD Mobile panel or the VS Code Mobile & edge view. The ordinary onboarding path no longer requires discovering and running the CLI token command.

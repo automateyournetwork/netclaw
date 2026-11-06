@@ -179,6 +179,18 @@ ss -ltn 'sport = :4000'
 
 # Sidecar as a durable service (Risk hosts)
 systemctl --user status defenseclaw-sidecar.service
+defenseclaw-gateway status    # must show the same PID; "NOT THIS ACCOUNT'S GATEWAY" means an old unit
+```
+
+The unit runs `defenseclaw-gateway start` (spec 177), so DefenseClaw writes its own PID
+record and its CLI can reach the gateway. Units generated before 1.18.7 ran the gateway in
+the foreground, where no record is written: `defenseclaw skill enable`, `disable` and
+audit recording of CLI scans then fail with "the gateway is not running". To update one:
+
+```bash
+python3 scripts/in2n-services.py generate
+systemctl --user daemon-reload
+systemctl --user restart defenseclaw-sidecar.service
 ```
 
 ---
@@ -250,7 +262,8 @@ model traffic.
 # 1. Start the guardrail sidecar durably. On a Risk host:
 python3 scripts/in2n-services.py generate   # writes defenseclaw-sidecar.service
 python3 scripts/in2n-services.py enable     # when defenseclaw-gateway is on PATH
-#    Elsewhere, run defenseclaw-gateway under your service manager.
+#    Elsewhere, have your service manager run `defenseclaw-gateway start`, not the
+#    bare foreground command: only `start` writes the PID record the CLI needs.
 
 # 2. Load the DefenseClaw plugin
 openclaw gateway restart
