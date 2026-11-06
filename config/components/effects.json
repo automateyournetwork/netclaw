@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "sourceSha256": "f27bf517cadd4b3622b851c023678863f4d6ba31a9b2f7471653bde112c22669",
+  "sourceSha256": "eb37ac60970a2e75c90a098ff1f844dc00de4344437d3120b1f8fbc531720896",
   "components": [
     {
       "id": "hermes-hud",
@@ -797,9 +797,9 @@
     {
       "id": "subnet-calc",
       "function": "component_install_subnet_calc",
-      "sha256": "d0b1bd64c04ff6652b30815e4c37ed4a4742c8980d6edb8fee8fea5ac2faf998",
+      "sha256": "4636938f5e9402c2dabe4617ae89f2a4e992043757217db7567199b6e2d67c96",
       "adapter": "isolated-shell",
-      "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; no credentials during dependency installation.",
+      "reason": "Owned source copy, isolated OS home, prefix/cache and component Python; explicit NETCLAW_SUBNET_SUMMARY_PROFILE=1 applies only the hash-verified bounded summary patch; no credentials during dependency installation.",
       "postcondition": "selected-registration-artifacts-and-discovery",
       "source": "scripts/lib/install-steps.sh#component_install_subnet_calc"
     },
