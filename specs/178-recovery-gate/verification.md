@@ -49,3 +49,45 @@ quiesceNov7 19:36:25Z, cleanupnotbefore19:41:25Z. R06 saved teardown plan remain
 quiesceNov8 15:09:35Z,cleanup15:14:35Z,fallback15:19:35Z. Future cleanup unobserved.
 Original BorderDecember1unchanged. Private baseline/retirement-status.json records
 hashes/observations. No plan/receipt replay or existing runtime mutation.
+
+## Runtime lane evidence — before final integration
+
+Runtime agent reports final broad n2n1756passed/5existing skips/103warnings in108.07s,
+using the existing qualified R04a Python environment read-only. The separately
+passed native-delivery drill was excluded from that second broad run to avoid
+repeating native effects. Initial broad1738pass/19fail/5skip retained:17missing
+ChromaDB in R05testvenv and2legacy fake-channel fixtures lacking strict flag.
+Strict-only compatibility corrected; no owner environment modification.
+
+New actual local child-process/strictTLS/production-handler tests cover Border
+same-port restart, registry port replacement, same enrolled keys/generation,
+current authority and certificate expiry, original-task duplicate/cancel/recovery.
+Six concurrent same-ID submissions yield one native effect; before-dispatch cancel
+zero; after-dispatch and process-death cases retain outcome_unknown. Controlled
+model adapter calls real installer-patched native subnet MCP; no hosted provider.
+There were9native subnet executions across3fresh homes/runs (failed harness,
+corrected primary, initial broad), not3sessiontotal. No device calls.
+
+Root independently verified both91-file private delivery manifests and immutable
+worker/federation.db quick_check. Each contains completed/dispatch1,
+cancelled/cancelrequested1/dispatch0, unknown/cancelrequested1/dispatch1 and
+unknown/cancelrequested0/dispatch1. Primary manifest41a42ddec728bf13d6a7b6588bfd1fe5908930379e6d4571379d2edce9add735;
+second31994a2009262e8bc0a52846ccbee92980691ed8567591bd138f3e255962d25e.
+Initial root read selected the empty member scaffold; additive corrected review
+identifies worker/federation.db as actual child authority. No DB was restored.
+
+First failed native harness's raw pytest temporary tree was pruned before export;
+its original XML/traceback and reached three-effect assertions remain. This is
+an explicit missing-raw-evidence limitation, not reconstructed data. Both later
+successful raw exports are intact. Export test evidence before subsequent pytest
+runs, whose default retention prunes older trees.
+
+## Native browser retry observation — acceptance ongoing
+
+When the test proxy dropped a decision connection before headers, Chrome retried
+the same POST three times despite one application dispatch. All three were dropped
+before RPC, with zero effects in that scenario. Original witness retained; no
+claim of universally one wirePOST. The safety contract is at-most-one original
+backend effect plus durable app send markers. A separate truncated-after-headers
+case tests reload recovery without concealing the initial behavior. Native client
+acceptance remains pending; controlled RPC evidence is not live provider proof.

@@ -1579,3 +1579,27 @@ reviewed upstream source/license fixture in tests/fixtures/subnet-calculator-177
 is hash-checked by the existing installer migration in a temporary tree before
 actual native MCP execution. This preserves offline reproducibility and keeps
 owner installations untouched; source fixtures remain separate from live proof.
+
+### R07 recovery investigation — 2026-11-06
+
+Actual isolated strict-TLS reproductions on mergedR06 found authorization checked
+before awaited handler/call but not before returned result; EdgeChannel had no
+shared current-authority predicate. Removal API closed channels before durable
+revocation, allowing a reconnect race. Spec178 repairs are in progress; do not
+claim these are deployed to retained homes. Client endpoint-origin reference
+namespaces and memory-only HUD single-operation send markers also need explicit
+recovery handling. Read specs/178-recovery-gate/verification.md for final scope.
+
+R07 read-only startup inspected4runningGCPVMs/4readydisks/5addresses/5networks;
+R05/R06retirementcheck modes pass and jobsloaded/runs0. No R07cloudresources.
+Root n2n test environment lackedOpenSSL; agent used existing qualifiedR05testvenv
+read-only instead of altering owner runtime. Private evidence/worktrees live in
+~/.local/share/netclaw/roadmap-r07-20261106/.
+
+R07 evidence hygiene lesson: pytest default temporary-directory retention pruned
+the first failed native-drill raw tree before export. Its originalXML remains;
+do not reconstruct or imply rawSQLite exists. Export each important failed or
+successful native drill before starting later pytest runs. Two later91-file
+successful archives are independently hash/SQLite verified. Browser Chrome may
+retry a POST before response headers even when the app calls fetch once; keep
+app-dispatch, wire-request and native-effect counts separate.

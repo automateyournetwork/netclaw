@@ -46,7 +46,9 @@ local/in maintainer specs. No waiver or optional Ralph loop.
 2. Runtime: retain failing real TLS races; recheck authority after awaited inbound
    handler/outbound call; persist removal before async channel close; enforce
    applicable certificate validity, bounded dial failure cause. Qualify same-ID
-   async/protected duplicate/cancel and registry/restart behavior.
+   async/protected duplicate/cancel and registry/restart behavior. Apply the same
+   current-authority boundary to existing edge/Mobile WebSocket channels; no new
+   protocol or identity scheme.
 3. Surfaces: durable single-operation decision/revoke sent markers before I/O;
    no redirect; explicit same-installation endpoint update preserving profile ID
    and safely copied bounded references, never session cookies. Existing exact

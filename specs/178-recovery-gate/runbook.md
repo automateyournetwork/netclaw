@@ -117,13 +117,20 @@ fresh read/review; never force an overwrite. If rollback is needed, review the
 current revision and use the existing registry recovery operation explicitly;
 do not copy an old registry file over newer state.
 
-**Clients:** VS Code uses explicit endpoint replacement and keeps the profile and
+**Clients:** VS Code uses **NetClaw: Replace Cloud Border Endpoint** (tree:
+**Replace cloud endpoint**, final native action **Replace endpoint**) and keeps the profile and
 original references after same-installation validation. Sessions remain bound to
 their original origin. Mobile's qualified change is the same trusted WSS hostname
 and path at a new port, verified with the retained device key and installation;
-its owner HTTPS origin stays unchanged. A new trust identity requires separate
+its owner HTTPS origin stays unchanged. Use **Change connection port** from the
+protected/reconnect view, or Settings → **Recover connection** for ordinary mode;
+enter **Secure connection port**, then **Verify and update port**.
+A new trust identity requires separate
 enrollment and is not this procedure. HUD uses original ID/nonce/parent recovery
 at the validated installation; transferred references contain no credentials.
+The HUD **Reference type** offers Operation ID or Client nonce; **Recover combined
+reference** offers Parent ID or Client nonce. Imported references are status-only
+and do not authorize a new approval or cancellation.
 
 **Verify:** unchanged identity/key/authority, current revision, original references
 and results, no preparation/approval replay. Wrong identity/TLS or storage failure
