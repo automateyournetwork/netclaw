@@ -697,3 +697,51 @@ qualification must remove disk/IP residues; STOP alone is not cleanup. No
 publication/version/R06/R07 authorization is implied. Use fresh R05 state under
 `~/.local/share/netclaw/roadmap-r05-20261105/cloud-plan-48h/`; oldDec1plan is
 evidence-only and must not be applied. NetClaw Ollama members, noTailscale.
+
+### R05 technical qualification and retained delivery — 2026-11-06
+
+Spec176 implements fresh NetClaw Ollama members over existing strict iN2N, with
+Thermidor004 patterns/tests as the foundation and no Tailscale or Thermidor runtime.
+Actual local ARM64 IPv4/cloud AMD64 IPv6, combined browser, Mac VS Code and native
+iPhone simulator flows passed: separate exact approvals, native verified facts,
+signed results/durable ACKs, positive usage, confinement and finite resources.
+The integrated protected suite passed776 tests; client suites/builds and actual
+recovery evidence are recorded in specs/176-ollama-members/verification.md.
+
+Preserve the real unknown outcomes and original Mobile ordinal2 CLAIMED inference.
+Its actual model stop/reattest/recover/profile-rebind is durable; never clear the
+latch/database or replay old IDs. Two deliberate cloud pause outcomes remain
+unknown with zero inference/tool dispatch. Actual shared worker restart and all
+three clients' GET-only recovery preserved authority/results/claims/call counts.
+Small-model commentary can be inaccurate; native independently verified facts
+are authoritative and displayed separately. Physical iPhone, other OS/runtime/
+model/GPU/HA/eN2N and live injected native-ACK-loss qualification are not implied.
+
+The existing owner Border, original protected history/bindings/keys and unrelated
+runtimes remain preserved. Final disposable cleanup removed34 stopped containers
+and11 empty networks after verified export, in addition to the earlier17/6.
+Original failed helper attempts and one-use continuation receipts remain retained.
+The intended two models, canonical qualification peers, member homes and owned
+networks remain for the approved48-hour delivery. Primary private archive:
+`~/.local/share/netclaw/roadmap-r05-20261105/handoff-export/final-20261105T222010Z/`,
+manifest `d80bc85f4c2603002231b9ce29cbc4d2d848086da156d99d9b076f4774fea4e6`;
+later cleanup/current-state evidence is separately sealed, never rewritten into
+that primary archive. Use current handoff pointers, not historical startup payloads.
+
+Full owned cloud cleanup is armed for November7: quiesce/export19:36:25UTC,
+exact ten-resource destruction no earlier19:41:25UTC. Current execution manifest
+`5b6a39412c4d02f8ab9ad3923af9768eef34eddc62cd281820a13f41b7d201ec` binds the
+recovered cloud profile and verified Docker absence handling. It requires this Mac awake/logged-in/online, Docker and
+gcloud/IAP authorization. Independent VM STOP remains the fallback; disk/IP costs
+remain if full deletion does not succeed. Future teardown is not yet completed
+and is not a hard spending cap. Never replay spent activation/recovery/cleanup
+claims; inspect actual state after interruption. Existing Border lifetime is
+unchanged. After this technical handoff, the owner explicitly requested completion,
+commit/PR/merge and return to main on November6, accepting R05 and closing33/33
+tasks. Source integration is authorized; do not repeat permission requests.
+Source1.18.6, extension1.6.1 and Mobile1.0.4+7 remain unchanged; no release/version/
+public rollout or R06 implementation is authorized. Preserve both independent
+Spec176 directories (ollama-members and upstream convergence-vm-security). Next
+is R06 external federation, then R07 recovery, R08 Border HA, R09 three-region
+GCP and R10 Azure single region. Recheck the next free spec number at kickoff.
+See specs/176-ollama-members/source-integration.md for the clear-session handoff.

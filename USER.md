@@ -8,6 +8,11 @@
 
 ## Preferences
 
+- R05 closeout (2026-11-06): finish the accepted Spec176, commit/push/PR/merge,
+  return to clean main and state when /clear is safe. Preserve roadmap order:
+  R06 external federation, R07 recovery gate, R08 Border HA, R09 three-region
+  GCP mesh, R10 Azure single region. Lookahead does not start the next stage.
+
 - R05 direction (2026-11-05): use SDD for Spec176 and heavily reuse sibling
   Thermidor's actual working solution, tests, final outcomes and lessons. Confirm
   the approach first, then create the branch/spec artifacts. Keep the work focused;

@@ -11,7 +11,38 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
-## R05 SDD kickoff — 2026-11-05
+## R05 accepted; source integration authorized — 2026-11-06
+
+[R05/Spec176](../../../specs/176-ollama-members/verification.md) is complete and
+accepted33/33. Fresh NetClaw local ARM64/cloud AMD64 Ollama members, combined
+browser, Mac VS Code and native iPhone simulator flows passed, with separate
+approvals, native verified facts, signed results/ACKs, confinement and no-repeat
+recovery. Thermidor supplied proven patterns/tests; no Thermidor runtime or
+Tailscale was deployed. Final disposable cleanup and sealed export are complete;
+the intended48-hour delivery remains until November7. Full scheduled cloud
+cleanup requires the owner's Mac awake/online with Docker and gcloud/IAP access;
+VM STOP alone leaves disk/IP costs. See the evidence and
+[clear-session handoff](../../../specs/176-ollama-members/source-integration.md).
+
+The owner authorized commit/PR/merge and return to main. Preserve source1.18.6,
+extension1.6.1 and Mobile1.0.4+7; the roadmap publication hold remains. Upstream's
+separate `176-convergence-vm-security` and R05's `176-ollama-members` retain their
+full paths. Next free spec is expected177, to be rechecked at kickoff.
+
+The next milestones remain unchanged:
+
+| Stage | Scope |
+|---|---|
+| [R06](briefs/R06-external-en2n-border.md) | Independent external Border, one explicitly exported capability over eN2N/NCFED, bilateral consent and no internal member access |
+| [R07](briefs/R07-recovery-gate.md) | Safe restart/outage/revocation/lost-reply/duplicate recovery without replay; required before multi-region work |
+| [R08](briefs/R08-border-ha-authority.md) | Exactly one execution authority, stale-leader refusal and no new protected execution without quorum; fixture and real-runtime evidence |
+| [R09](briefs/R09-gcp-multi-region.md) | Three-region GCP mesh across Americas/Europe/Asia-Pacific; four members attach to all three; single-region loss preserves service without replay |
+| [R10](briefs/R10-azure-single-region.md) | Azure Border, hosted-model NetBox and Ollama workloads with on-prem attachments, isolation, recovery, cost and teardown evidence |
+
+No next-stage implementation or cloud operation is started by this closeout.
+Each stage separately assesses and verifies VS Code/Mobile under G12/G13.
+
+## Historical R05 SDD kickoff — 2026-11-05
 
 R04b/Spec175 is accepted30/30; its scoped release is recorded in
 [release verification](../../../specs/175-cloud-mobile-enrollment/release-verification.md).

@@ -57,6 +57,25 @@ sibling and external-vantage checks remain separate acceptance evidence.
 Never replace an uncertain member/runner latch merely by choosing a new operation
 ID. Retain the original claims and verify owned-process recovery first.
 
+An owned model restart changes its namespace and can change Docker's generated
+DNS NAT ports. Preserve the old profile, full firewall ruleset and consistent
+runner/inference databases. Verify the original worker/model processes stopped,
+then reattest the same owned model with fresh positive and negative probes. Bind
+the new confinement receipt into a newly derived profile. The existing
+`RunnerLatch.recover` records the verified stop; its idle-only `rebind` then
+archives the prior row and exact profile-transition receipt atomically. Keep
+original operation outcomes and unfinished inference claims unchanged. Recovery
+does not invent a response or authorize replay.
+
+Only resume the same member after real-UID source/profile validation and durable
+history checks. Preserve original file ownership/modes when replacing source;
+an077 umask masks requested read permissions during file creation. A later helper
+failure requires inspection and continuation of remaining steps, not replay of
+completed stop/start/probes. Update any owned cleanup profile pin and export paths
+to the verified current profile. Spec176 verification records the actual scoped
+recovery and its retained failed helper attempts; those spent packets are evidence,
+not reusable activation or maintenance commands.
+
 ## Execution review and preservation
 
 The owner authorized source implementation and isolated local qualification on

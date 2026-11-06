@@ -1,15 +1,19 @@
 # Verification: R05 / Spec176
 
-## Current state — 2026-11-05
+## Current state — accepted 2026-11-06
 
-Source implementation integrated on `176-ollama-members`: **26/33 tasks complete**.
+Source implementation integrated on `176-ollama-members`: **33/33 tasks complete**.
 Actual temporary local ARM64 qualification completed with two Ollama calls, one
 native MCP calculation, signed result and durable ACK. Intended local/cloud members
 are enrolled under the approved48-hour window; verified cloud runner recovery
 has completed with original operation/claim history preserved. The cloud foundation,
 scoped Border backend/HUD update and native client builds are complete. The combined browser and editor success/reopen runs passed. Mobile exposed a real
 review-expiry/provider-uncertainty case; the proven profile-rebind recovery step
-is now implemented and actually verified. Native completion/recovery and closeout remain open.
+is now implemented and actually verified. Mobile paired success and cold/background
+recovery passed. Final VS Code failure/restart, sealed evidence export, preservation
+and disposable-resource closeout passed. The owner accepted the completed scope
+and authorized commit/PR/merge/return to main on November6. The intended delivery
+remains until its approved48-hour expiry; future scheduled teardown is not yet complete.
 No release or R06/R07 work has occurred.
 
 NetClaw baseline `db0c9682d4997d51a15f75cbf2df83b97d3c3f45`, source1.18.6,
@@ -26,12 +30,12 @@ its exact inspected source hashes and limitations are retained separately.
 | Combined browser | One durable parent,two distinct approvals,both results | PASSED; actual reload recovered same results |
 | Isolation | Guard positive control and agent/broker/sibling/Border/public denials | PASSED for owned models and recorded vantages; limits below |
 | Resource/accounting | Actual swap/cgroup/OOM, CPU/memory,tokens,time,zero provider charges,unload | PASSED; exact idle-unload interval not measured |
-| Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | Actual browser lost reply/unknown, Mobile failed-sibling and owned runner recovery passed; final native/shared restart pending; ACK-loss protocol-tested |
-| G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | LIVE SUCCESS/REOPEN PASSED; sibling-failure case pending |
-| G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | Actual signed partial and cold/background recovery passed; complete pair pending |
-| Regression/portfolio | Existing protected pyATS/NetBox/subnet/hosted models, Chat/Canvas,clients | SOURCE TESTED; live portfolio pending |
-| Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | Activation preservation passed; final export/residue inventory pending |
-| Human acceptance | Owner reviews current R05 evidence before R06/R07 | PENDING |
+| Recovery | One-child failure,lost reply/ACK,process/client restart,no repeat | PASSED: actual lost client reply, two unknown siblings, Mobile failed sibling, runner/worker restart and no repeat; ACK-loss protocol-tested |
+| G12 VS Code | AFFECTED: combined references/reviews/results/recovery; actual Mac editor | PASSED: actual paired success, unknown sibling and reopen after worker restart |
+| G13 Mobile | AFFECTED: combined WSS contract/UI; native simulator/device-key recovery | PASSED: actual paired success, failed sibling, cold/background recovery and retained device key |
+| Regression/portfolio | Existing protected pyATS/NetBox/subnet/hosted models, Chat/Canvas,clients | PASSED source regressions and owner-state preservation; current Chat/Canvas/history reads passed; no new legacy provider execution claimed |
+| Preservation/lifecycle | Baseline/rollback/export,usable intended delivery,disposable residue inventory | PASSED: sealed export, final disposable inventory and intended retained scope verified |
+| Human acceptance | Owner reviews current R05 evidence before R06/R07 | ACCEPTED November6 with explicit source-integration instruction |
 
 Existing capabilities have source regression coverage, not new live qualification. Hermes Ollama, Windows/WSL, physical iPhone camera/SecureEnclave, GPU,
 other models, HA and external delegation are unqualified. No new transport claim.
@@ -596,3 +600,229 @@ proofs changed; the original `f76657c0...` inputs are archived. The installed jo
 was not running, had no cleanup/destroy claim, and its read-only readiness check
 passed. Plan, authoritative state, plist and November7 deadlines are unchanged.
 This records an armed future cleanup, not completed deletion or a hard spend cap.
+
+### Native Mobile complete pair after verified recovery
+
+Fresh parent `2866065f-d3cb-4772-9259-92959bce9c3d` completed through the retained
+native simulator app/device key. The two separate UI decisions were recorded at
+1793916123050 and1793916129164, with the existing review expiry1793916275376.
+No deadline changed and no previous operation was replayed. Both children have
+attempt1, verified signed results, durable ACK and no delivery pending:
+
+| Child | Operation | Result digest | Reported runtime elapsed / tokens |
+|---|---|---|---|
+| Local IPv4 | `4284ff80-3a10-4741-b14f-4d8e575d7fc8` | `f0c055f3d8a18b61fefcaf211d4b815babae173c2373d3f035281b444b1ac488` | 38.623s /966 |
+| Cloud IPv6 | `af83b203-9241-4435-99cf-e5d1b3442f01` | `513a3d768669b7e50d359fa68402de879e3a856bd4f7b9bf1251d9d4f584f9f7` | 70.875s /965 |
+
+Each reports2 inference calls,1 actual native MCP call and zero provider API
+charge, with observed CPU/memory and independently verified facts. Signed start
+to finish, including preparation overhead, was60.320s local and85.628s cloud.
+Ten native screenshots and the full DTO are retained in
+`native-acceptance/mobile/recovered-success-decisions-report.json`; the coordinator
+visually inspected the complete state and verified IPv6 facts/ACK display.
+The IPv4 model again says64usable while the authoritative tool correctly says62;
+its commentary remains verbatim and visibly unverified.
+
+During this new cloud operation, actual agent UID/network-namespace probes passed:
+own relay8090 positive; owned model11434/4000/4001/18970/49171 and agent-loopback
+11434 denied, with no model/application bytes sent. Exact observed containers and
+namespace are in `cloud-runner-recovery-v1/mobile-agent-observation/`. This verifies
+the real agent vantage after recovery in addition to its fresh UID/peer probes.
+
+Explicit native process termination/relaunch then recovered the complete pair
+through GET-only requests with no new decisions. Parent, child IDs, signed digests,
+attempt1 and ACK state were unchanged; the device enrollment/key survived.
+`recovered-success-cold-before.json` and `recovered-success-cold-report.json` retain
+the actual process witness and ten screenshots. Combined with the earlier real
+failed-sibling cold/background proof, this closes T029 for the native simulator.
+Physical iPhone/camera/SecureEnclave qualification is not implied.
+
+### Retained first Editor fault attempt: late marker, no cloud admission
+
+Parent `7f2b25a7-5659-4942-a48b-3138753b6b11` completed local child
+`b075e3e0-0585-494b-859a-e39a849013a2`, signed/ACKed digest
+`c536566757a9e31431b56e1344e39e68ea804350594e9e67f80e6f48994c65d1`.
+The native observer/export and subsequent pause setup left insufficient time
+before the original22:08:24UTC cloud review deadline. The native watcher refused
+to launch a late approval; cloud child `5c27f245-aaed-46a5-b9ad-65b717e65f31`
+remained unapproved, attempt0 and absent from the cloud member database.
+
+The actual model pause ran22:08:10.152→22:09:10.953UTC, including bounded stop/
+unpause overhead. Because no target admission arrived, the reviewed finally path
+stopped only the federation worker and unpaused the same model. It retained a
+failure and did not claim a successful fault drill. Read-only settlement proved
+the exact full snapshot unchanged (`5d32b4b727e5e8245ede32879518767ad918183dcab0a1b481b4485144499b74`),
+idle recovered latch, original claims/history and unchanged model/start/namespace/
+confinement. Evidence: `fault-recovery-v1/editor-fault/abort-settlement.json`.
+
+The existing native UI then cancelled only the expired, unsent cloud sibling and
+archived/removed the resolved parent reference. Full local result/attempt/ACK
+remained identical; cloud approval remained null/attempt0. This actual
+cancellation/refusal evidence is retained but does not substitute for the required
+dispatched sibling failure. Test-only commit `c64f3f18` adds exact identity/result/
+expiry assertions for this path; Node24.19 syntax passed. The next fresh test
+submits each separate approval promptly, before waiting for local completion;
+product deadlines, approval policy and previous authority remain unchanged.
+
+### Final Editor fault and shared no-repeat restart
+
+The restored worker retained the identical prior snapshot and model/latch profile.
+Fresh native Editor parent `54da78db-6559-4079-972e-900a05e6b2e7` then used two
+separate approvals within its original22:15:59UTC review window. Local approval
+was submitted first; cloud approval followed the actual pause marker without
+waiting for local completion. The final native result retains:
+
+- Local `cfba3a91-e056-4f3e-9799-352bda7e8ee2`: completed, attempt1, signed/verified
+  and durably ACKed, digest `a69b3bb9438944f01339800d54df888c0bfa65053e4c9c508f5c5463c426bda7`.
+- Cloud `7d7925c0-499e-42c9-8ed3-78e5b104915e`: attempt1, no result/ACK,
+  `reconciliation_required/member_outcome_unknown` in the client DTO and
+  `outcome_unknown/effect_outcome_unknown` in the member ledger. It remains unknown.
+
+The reviewed bounded pause helper passed and unpaused the same model; this cloud
+child had zero inference/tool dispatch, no operation containers and unchanged
+idle runner state. Exact v6 packet was
+`4827d4b0be66757e3af0e1e441194bb5907951ff60a8a4c83a0292a9427f2a12`.
+The fresh case preserves the earlier unsent/expired case as a separate failure.
+
+After both outcomes settled, the same cloud federation worker actually restarted
+PID15438→16988. Full before/after snapshot was identical:
+`947b41195a1ec6eb9ce72b1bcd7730916f1ff186227b451e6986bbab1c655804`.
+Authorities, results, ACKs, original unfinished inference, keys and artifacts
+remained unchanged; no model restart, latch reset or new inference/tool call
+occurred. Receipt: `fault-recovery-v1/editor-fault-2/shared-restart.stdout`.
+
+Actual Editor reopen then preserved the local result and cloud unknown with zero
+decisions. Mobile GET-only recovery retained its complete pair, attempts/digests/
+ACKs and device key. Actual browser GET-only recovery/reload preserved its earlier
+successful local child and original unknown cloud sibling; all page non-GETs were
+blocked. Normal CodePID1352, original profiles and both Mobile enrollment hashes
+were unchanged. The coordinator independently checked these DTOs and receipt
+hashes in `final-case-settlement.json`
+(`ff08f5b51b779d7da97968d127a6be6b12e9d8c5a5f96f93af975969238b731b`).
+Final client summary is `native-acceptance/client-acceptance-summary.json`
+(`89747bd3476797bd91b49973e93c6cd42afbc497dc09cd7b84c40a7be91e3984`).
+T027/T028 close; native ACK loss is protocol-tested, not claimed as a live injected
+fault. No unknown outcome is relabelled as failed, completed or safely replayable.
+
+### Sealed evidence, independent accounting and owner preservation
+
+The final read-only capture is
+`handoff-export/final-20261105T222010Z/manifest.json`, SHA256
+`d80bc85f4c2603002231b9ce29cbc4d2d848086da156d99d9b076f4774fea4e6`.
+All834 outer file hashes were independently rechecked by the coordinator. The
+three archives contain5,481 files and44 verified consistent SQLite backups:
+Border251files/2DBs, cloud2,105/18, local3,125/24. Sources were captured separately
+while services remained available; this is not a global atomic or quiesced
+snapshot. The primary seal remains immutable; later cleanup/resume evidence is
+retained in a separate supplemental bundle.
+
+Independent signature/hash/native-MCP/model-log reconciliation passed for the
+actual intended members (`disposable-retirement-final-v1/independent-counters.json`):
+
+| Member | Operations | Actual model POSTs / retained responses | Native MCP calls | Known tokens |
+|---|---:|---:|---:|---:|
+| Local | 7 | 14 /14 | 7 | 6,748 |
+| Cloud | 6 | 8 /7 | 4 | 3,258 |
+
+Known usage totals10,006 tokens. The cloud's original one CLAIMED inference has
+no retained response; its tokens remain unknown, not zero. Both unknown pause
+cases have zero inference/tool dispatch. The keyless native path uses its
+inference ledger; absence of a separate `provider.sqlite` does not mean zero
+model calls. Temporary qualification homes remain separate historical evidence.
+
+Original owner preservation passed: all4 original full protected-operation rows
+(28columns),3 existing member bindings,23 static authority files and40 workspace
+backend files matched their baselines;5 untouched service states/PIDs/start times
+were unchanged. The final archive comparison independently checked4 operations,
+3bindings,21 ordinary files and the owner-authority database's schema/all rows.
+No new legacy hosted-provider/device read was executed to make this claim.
+
+Actual read-only Chrome views and HTTPS requests reached Chat and Canvas; Canvas
+showed the live gateway. Initial history refresh returned `sourceAvailable=false`,
+retained as a real transient failure. The unchanged existing session-list helper
+under the actual HUD UID/environment subsequently returned2 sessions, and the
+public history GET returned `sourceAvailable=true` with both retained entries.
+No service/config/provider action occurred; this does not establish the cause of
+the initial failure or a full transcript baseline. The original browser driver
+also incorrectly expected a textarea where Canvas uses an input; its false
+aggregate was retained alongside actual screenshots/GET evidence. See
+`acceptance-preservation/acceptance-preservation-report.md`.
+
+Work was interrupted before final disposable deletion by workspace-credit
+exhaustion and resumed on November6. Fresh read-only checks found no retirement
+claim or partial removal, all34 candidate containers stopped/PID0,11 candidate
+networks empty, all133 export/correlation hashes valid, and unchanged operation,
+inference, latch/recovery/transition rows. Intended models retained their original
+start/config/image; authenticated local/cloud member PIDs were41361/16988.
+Cloud guard/baseline remained active and expiry stayed November7 19:41:25UTC.
+The installed cleanup job retained manifest8751f1ff…, runs0/no workflow or destroy
+claim, original state lineage/serial3/10resources and unchanged deadlines. No new
+model requests or qualification loop occurred on resume.
+
+Final disposable retirement began only after the sealed export and fresh resume
+checks. Local removal passed for21 stopped containers and7 empty networks,
+receipt `6dc4b2ee574aad0a002c8805ffc0fe3130ee00660a2ea9856ecbf58c78091ee3`.
+The cloud helper recorded6 successful exact removals, then refused a strict
+Config/HostConfig/Mounts comparison before claiming the next object. Read-only
+settlement confirmed those6 absent with matching receipts and the remaining7
+stopped containers/4 empty networks still unclaimed. Five diagnostic inspections
+matched the full original config and mount entries; no cause or order variation
+was established. The failure remains, and no comparison was relaxed. A separately
+reviewed continuation targets only those untouched IDs, checks prior receipts and
+actual absence, and persists each raw inspection before comparison. Original
+deletion claims are never replayed.
+
+### Final closeout and owner acceptance — 2026-11-06
+
+The remaining-only cloud continuation succeeded:7 stopped containers and4 empty
+networks, receipt `60fe2a44ca46a78a0629a0fe6efb762a7cd39bd23050606202d07126a736cb11`.
+Final totals are34 containers/11 networks, in addition to the earlier17/6.
+Actual post-inventory retains one intended running model, one stopped canonical
+qualification peer and one internal model network per host. No images, volumes,
+homes, keys, original operation artifacts or unrelated resources were removed.
+Confinement, authenticated services, authority/history and independent counters
+remained unchanged; cleanup/resume made zero model or native MCP calls.
+
+The supplemental363-file seal is
+`handoff-export/supplemental-20261106/manifest.json`, SHA256
+`fdcec16d1711d9373c782c4ef5072adb6a776800e1dc8e22fe15bacd75168888`.
+The separate27-file scheduler/acceptance addendum is
+`handoff-export/scheduler-absence-addendum-v4/manifest.json`, SHA256
+`31613d612d3f39868d3a27e84624c70958342ec72fa4d9c72f4905de4ada68c2`.
+The coordinator independently verified all three seal files. Current retained
+state is `current-state-20261106/CURRENT-STATE.json`, SHA256
+`db7c08585fa9bed0781132759ba6a87133c9035532963939daf0722c50f379f1`.
+Local/cloud handoff pointers reference that record. Its earlier acceptance=false
+field is a historical observation; subsequent owner acceptance is separately
+recorded in the addendum and here. These artifacts are evidence, never activation
+or replay payloads.
+
+Full retained-delivery cleanup remains armed for November7: export/quiesce at
+19:36:25UTC (14:36:25Toronto), ten-resource destruction no earlier19:41:25UTC
+(14:41:25Toronto). Current execution manifest is
+`5b6a39412c4d02f8ab9ad3923af9768eef34eddc62cd281820a13f41b7d201ec`.
+It supersedes8751f1ff… without changing the saved ten-delete/zero-create/zero-update
+plan, deadlines or launchd plist. Two actual missing-container inspections emitted
+lowercase `no such object`; the reviewed one-line helper correction compares
+lowercased stderr. Authorization, daemon and timeout negative fixtures still
+refuse. Apply receipt and readiness passed; launchd remained runs0/not-running
+with no workflow/destroy claim. No cleanup was started early.
+
+The job requires the Mac awake/logged-in/online, Docker and gcloud/IAP access.
+Independent GCE STOP is a fallback, not full cleanup; disk/IP costs remain if the
+job fails. Neither future deletion nor a hard spending cap is claimed. The
+original Border and its December1 lifetime remain unchanged.
+
+After reviewing the technical/cleanup handoff, the owner instructed:
+“get this to100% commit pr merge back to main” and requested a clear-session and
+roadmap handoff. This explicitly accepts R05 and authorizes source integration;
+T030–T033 close, **33/33**. Source/extension/Mobile versions and the roadmap release
+hold remain unchanged. R06 is a separate next stage, not started by acceptance.
+
+Daily notes are retained in `memory/2026-11-05.md` and `memory/2026-11-06.md`.
+GAIT resume branch is `r05-spec176-closeout-resume-20261106`; technical closure and
+owner acceptance were recorded as `03d34ffa`, with final integration/log appended
+after GitHub completion. MemPalace is unavailable; no successful write is claimed.
+Startup pyATS listing was attempted but its configured HTTP runtime is missing;
+no device operation occurred. Final source integration/checks and next-stage
+boundaries are recorded in [source-integration.md](source-integration.md).

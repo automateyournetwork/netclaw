@@ -2,7 +2,7 @@
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md),
 [data-model.md](data-model.md), [contracts/](contracts/).  
-**Status**: 26/33 implementation/acceptance tasks complete. SDD preparation is separate.
+**Status**: 33/33 implementation/acceptance tasks complete; owner accepted 2026-11-06. SDD preparation is separate. The approved retained deployment expires November7; scheduled full teardown remains a future obligation, not a completed deletion.
 
 Tests are required by this feature's acceptance criteria. Port Thermidor's named
 behavioral cases first; use actual native runtime evidence for live claims.
@@ -63,13 +63,13 @@ recovery with its existing installation/device identity. Actual evidence follows
 - [x] T024 After T015 execution review, run one real local ARM64 two-turn native subnet summary using `labs/ollama/qualify.py`; verify arithmetic, actual limits, native receipts and no paid calls in `specs/176-ollama-members/verification.md` (FR-001, FR-004, FR-006, FR-009).
 - [x] T025 Run real cloud AMD64 and combined browser summaries under separate approvals using `labs/ollama/qualify.py`; record both results, original IDs, durations and signed ACKs in `specs/176-ollama-members/verification.md` (FR-001, FR-002, FR-004, FR-009, FR-010).
 - [x] T026 Run both-host admitted-positive and agent/broker/Border/sibling/public-negative isolation probes, real swap/cgroup/OOM checks and eventual model unload via `labs/ollama/qualify.py`; retain evidence in `specs/176-ollama-members/verification.md` (FR-005, FR-006, FR-009).
-- [ ] T027 Inject bounded one-child failure, lost response/ACK and actual owned-process restart; compare authorities/claims/effect counts and retained success using `labs/ollama/qualify.py`, with evidence in `specs/176-ollama-members/verification.md` (FR-007, FR-008).
-- [ ] T028 [US4] Qualify actual Mac VS Code combined approvals/results and one-child failure/restart through the selected cloud profile; retain G12 receipts in `specs/176-ollama-members/verification.md` (FR-010).
-- [ ] T029 [US4] Qualify the native iPhone simulator's two child approvals/results, failure and cold/background reconnect with its existing device key; extend `mobile/netclaw-mobile/integration_test/` and retain G13 receipts in `specs/176-ollama-members/verification.md` (FR-011).
-- [ ] T030 Export and verify all private evidence, retire disposable owned resources and compare preserved pilot/identities/history/clients; record actual residue inventory and retained-delivery ownership/expiry in `specs/176-ollama-members/verification.md` (FR-012, FR-013).
-- [ ] T031 Review every acceptance row against actual evidence, retain unsuccessful attempts and platform/transport limits, and write a precise handoff in `specs/176-ollama-members/verification.md` (FR-014, FR-015).
-- [ ] T032 Append implementation/session lessons to `memory/YYYY-MM-DD.md`, update applicable `TOOLS.md` facts, and record final GAIT/MemPalace outcomes with references in `specs/176-ollama-members/verification.md` (FR-009, FR-014).
-- [ ] T033 Record the owner's R05 evidence acceptance in `specs/176-ollama-members/verification.md` before R06/R07; do not infer acceptance or publication from technical completion (FR-015).
+- [x] T027 Inject bounded one-child failure, lost response/ACK and actual owned-process restart; compare authorities/claims/effect counts and retained success using `labs/ollama/qualify.py`, with evidence in `specs/176-ollama-members/verification.md` (FR-007, FR-008).
+- [x] T028 [US4] Qualify actual Mac VS Code combined approvals/results and one-child failure/restart through the selected cloud profile; retain G12 receipts in `specs/176-ollama-members/verification.md` (FR-010).
+- [x] T029 [US4] Qualify the native iPhone simulator's two child approvals/results, failure and cold/background reconnect with its existing device key; extend `mobile/netclaw-mobile/integration_test/` and retain G13 receipts in `specs/176-ollama-members/verification.md` (FR-011).
+- [x] T030 Export and verify all private evidence, retire disposable owned resources and compare preserved pilot/identities/history/clients; record actual residue inventory and retained-delivery ownership/expiry in `specs/176-ollama-members/verification.md` (FR-012, FR-013).
+- [x] T031 Review every acceptance row against actual evidence, retain unsuccessful attempts and platform/transport limits, and write a precise handoff in `specs/176-ollama-members/verification.md` (FR-014, FR-015).
+- [x] T032 Append implementation/session lessons to `memory/YYYY-MM-DD.md`, update applicable `TOOLS.md` facts, and record final GAIT/MemPalace outcomes with references in `specs/176-ollama-members/verification.md` (FR-009, FR-014).
+- [x] T033 Record the owner's R05 evidence acceptance in `specs/176-ollama-members/verification.md` before R06/R07; do not infer acceptance or publication from technical completion (FR-015).
 
 ## Dependencies and parallel opportunities
 
