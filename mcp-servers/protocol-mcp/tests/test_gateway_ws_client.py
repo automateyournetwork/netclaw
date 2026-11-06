@@ -103,10 +103,11 @@ async def test_reconnect_after_drop():
     async with websockets.serve(handler, "127.0.0.1", 0) as server:
         port = server.sockets[0].getsockname()[1]
         client = GatewayWsClient(f"ws://127.0.0.1:{port}", "test-token")
-        # First agent call: server closes without responding -> client must
-        # reconnect and retry once, transparently, per gateway-ws-rpc.md's
-        # Failure modes table.
-        payload = await client.call("agent", {"message": "hi"}, timeout_s=5)
+        # Spec177 supersedes transparent retry: the first request may already
+        # have executed. A distinct later request may reconnect normally.
+        with pytest.raises(GatewayWsError, match='before final response'):
+            await client.call("agent", {"message": "hi"}, timeout_s=5)
+        payload = await client.call("agent", {"message": "distinct request"}, timeout_s=5)
         assert payload["result"]["payloads"][0]["text"] == "OK"
         await client.close()
 

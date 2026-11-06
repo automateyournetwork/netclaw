@@ -130,11 +130,12 @@ class ChatManager:
                               timeout=int(os.environ.get("N2N_CHAT_IDLE_TIMEOUT_S", "300")))
         self._append(session_id, f"[{ident}] {reply.get('text','')}")
         self._touch(session_id)
+        request_id = str(uuid.uuid4())
         self.audit.record(direction="outbound", peer_identity=ident, target_type="chat",
-                          target_name=session_id, request_id=session_id, decision="requested",
+                          target_name=session_id, request_id=request_id, decision="requested",
                           outcome="success")
         return {"session_id": session_id, "source": ident, "trust": "remote-untrusted",
-                "text": reply.get("text", "")}
+                "request_id": request_id, "text": reply.get("text", "")}
 
     # ---- transcript helpers -------------------------------------------
 

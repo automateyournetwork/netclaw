@@ -56,6 +56,19 @@ void main() {
     if (await dir.exists()) await dir.delete(recursive: true);
   });
 
+  test('recovery retrieves original task and persists its native peer attribution', () async {
+    final store=ConversationStore(dir);
+    await store.addPending('original','query peer');
+    final rpc=_FakeRpc({'original':{'task_id':'original','state':'completed','output_text':'answer',
+      'external_sources':[{'peer':'peer-a','kind':'skill','request_id':'request-a','task_id':'remote-a','trust':'remote-untrusted'}]}});
+    await reconcileStaleTurns(EdgeAskClient(rpc),store);
+    expect(rpc.resultCalls,['original']);
+    final cold=ConversationStore(dir);await cold.load();
+    expect(cold.turns.single.externalSources.single.taskId,'remote-a');
+    await reconcileStaleTurns(EdgeAskClient(rpc),cold);
+    expect(rpc.resultCalls,['original']);
+  });
+
   Future<ConversationStore> storeWith(List<(String, String)> turns) async {
     final store = ConversationStore(dir);
     for (final (taskId, text) in turns) {

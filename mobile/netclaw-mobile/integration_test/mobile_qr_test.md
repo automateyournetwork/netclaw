@@ -56,3 +56,26 @@ correlated receipts. A widget lifecycle callback alone is not OS evidence.
 Trusted WSS is mandatory. A local test CA may be trusted only in the owned simulator;
 never disable certificate verification or change host/production trust. Local
 legacy and cloud protected behavior retain distinct evidence.
+
+R06 adds `external-ask` and `external-recover` for an independently enrolled
+ordinary cloud Border. Use a fresh R06 simulator bundle, the same PNG decoder and
+production enrollment flow, then keep that profile and key. `external-ask` requires
+an exact bounded `prompt` and `expected_peer`; it taps the production Chat Send
+button once and exports `external_turn` only after completion, server-derived
+source attribution and the visible External sources section. An existing identical
+prompt or an uncertain result refuses; inspect and recover the original request.
+
+After a real host-driven app termination/relaunch, `external-recover` requires
+`expected_turn` copied from the private first report and the same `expected_peer`.
+It checks the retained request/task IDs, answer and attribution, and fetches only
+the original task result. It never submits again. Correlate both reports with the
+Border's original task and outbound/provider records; simulator image decoding and
+Keychain use retain the physical camera/Secure Enclave qualification limits above.
+
+The separate harness must also bundle the production `assets/illustrations/`
+and `assets/icon/` directories under the same asset names. Ordinary Home renders
+these before Chat. Resolve the owned simulator's native notification permission
+prompt before waiting for Home navigation; do not suppress a production permission
+dialog in application code. If a display assertion fails after completion, export
+the existing private conversation record and use it as `expected_turn` for recovery.
+Never send the original prompt a second time to repair a test harness failure.

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'external_source.dart';
 
 /// One request/answer turn in the phone's conversation with its Border
 /// (feature 067, FR-006/FR-007).
@@ -9,6 +10,7 @@ class ConversationTurn {
   final String? ownerGeneration;
   final String requestText;
   String? answerText;
+  List<ExternalSource> externalSources;
   String state; // 'pending' | 'working' | 'completed' | 'failed' | 'cancelled'
   final DateTime submittedAt;
   // Absolute path to a locally-saved copy of a photo this turn sent, if any
@@ -30,6 +32,7 @@ class ConversationTurn {
     this.ownerGeneration,
     required this.requestText,
     this.answerText,
+    this.externalSources = const [],
     this.state = 'pending',
     required this.submittedAt,
     this.photoPath,
@@ -43,6 +46,7 @@ class ConversationTurn {
         'owner_generation': ownerGeneration,
         'request_text': requestText,
         'answer_text': answerText,
+        'external_sources': externalSources.map((source) => source.toJson()).toList(),
         'state': state,
         'submitted_at': submittedAt.toIso8601String(),
         'photo_path': photoPath,
@@ -63,6 +67,7 @@ class ConversationTurn {
         ownerGeneration: json['owner_generation'] as String?,
         requestText: json['request_text'] as String,
         answerText: json['answer_text'] as String?,
+        externalSources: ExternalSource.parse(json['external_sources']),
         state: json['state'] as String,
         submittedAt: DateTime.parse(json['submitted_at'] as String),
         photoPath: json['photo_path'] as String?,
@@ -81,6 +86,7 @@ class ConversationStore {
   final Directory directory;
   final List<ConversationTurn> _turns = [];
   bool _loaded = false;
+  Future<void>? _loading;
 
   /// Fires the moment a turn transitions INTO `completed` -- from either
   /// `updateState()` call site (`chat_screen.dart`'s foreground poll or
@@ -114,17 +120,26 @@ class ConversationStore {
 
   File _file() => File('${directory.path}/ncfed_conversation.json');
 
-  Future<void> load() async {
-    if (_loaded) return;
-    _loaded = true;
+  Future<void> load() {
+    if (_loaded) return Future.value();
+    // Home, Chat and reconnect can request history concurrently on cold start.
+    // All callers must await the same disk read before observing or saving turns.
+    return _loading ??= _load().whenComplete(() => _loading = null);
+  }
+
+  Future<void> _load() async {
     final file = _file();
-    if (!await file.exists()) return;
-    final raw = await file.readAsString();
-    if (raw.trim().isEmpty) return;
-    final list = jsonDecode(raw) as List<dynamic>;
-    _turns
-      ..clear()
-      ..addAll(list.map((e) => ConversationTurn.fromJson(e as Map<String, dynamic>)));
+    if (await file.exists()) {
+      final raw = await file.readAsString();
+      if (raw.trim().isNotEmpty) {
+        final list = jsonDecode(raw) as List<dynamic>;
+        final loaded = list.map((e) => ConversationTurn.fromJson(e as Map<String, dynamic>)).toList();
+        _turns
+          ..clear()
+          ..addAll(loaded);
+      }
+    }
+    _loaded = true;
   }
 
   Future<void> _saving = Future.value();
@@ -216,7 +231,7 @@ class ConversationStore {
     await _save();
   }
 
-  Future<void> updateState(String taskId, String state, {String? answerText}) async {
+  Future<void> updateState(String taskId, String state, {String? answerText, List<ExternalSource>? externalSources}) async {
     await load();
     for (final t in _turns) {
       if (t.taskId == taskId) {
@@ -226,6 +241,7 @@ class ConversationStore {
         if ((t.state == 'cancellation_requested' || t.state == 'outcome_unknown') && (state == 'pending' || state == 'working')) return;
         t.state = state;
         if (answerText != null) t.answerText = answerText;
+        if (externalSources != null && externalSources.isNotEmpty) t.externalSources = List.unmodifiable(externalSources.take(16));
         await _save();
         if (state == 'completed') onCompleted?.call(t);
         if (_needsAttention(state)) onTerminal?.call(t);

@@ -51,6 +51,22 @@ def status(fed, nonce):
     return fed.mobile_enrollment.status({'installation_id': fed.runtime.installation, 'client_nonce': nonce})
 
 
+def test_ordinary_cloud_offer_keeps_native_wss_and_ordinary_mode(tmp_path, monkeypatch):
+    fed, payloads = service(tmp_path, monkeypatch)
+    try:
+        fed.edge_status.update(domain='r06-a.example.test', port=8443, host='0.0.0.0')
+        info = fed.mobile_enrollment.info({'installation_id': INSTALLATION})
+        assert info['mode'] == 'legacy' and info['available']
+        assert info['endpoint'] == {'border_host': 'r06-a.example.test', 'border_port': 8443,
+                                    'claw_domain': 'r06-a.example.test', 'ws_path': '/'}
+        issue(fed)
+        assert payloads[0]['border_host'] == 'r06-a.example.test'
+        assert payloads[0]['border_port'] == 8443 and payloads[0]['ws_path'] == '/'
+        assert not fed.protected_enabled
+    finally:
+        fed.manager.close()
+
+
 def test_issue_is_finite_single_outstanding_hash_only_and_never_rediscloses(tmp_path, monkeypatch):
     fed, payloads = service(tmp_path, monkeypatch)
     first = issue(fed)

@@ -304,8 +304,28 @@ def _normalize_origin(origin: str | None) -> str | None:
     return origin if origin in _RECOGNIZED_ORIGINS else None
 
 
+def _external_agent_id(untrusted: bool) -> str:
+    """An optional local profile choice; peer input never selects an agent."""
+    if not untrusted or 'N2N_EXTERNAL_AGENT_ID' not in os.environ:
+        return AGENT_ID
+    agent = os.environ['N2N_EXTERNAL_AGENT_ID']
+    try:
+        from .runtime import selected
+        if not re.fullmatch(r'[a-z0-9][a-z0-9_-]{0,63}', agent) or agent == AGENT_ID.lower():
+            raise ValueError()
+        raw = selected().config.read_bytes()
+        if len(raw) > 4 * 1024 * 1024:
+            raise ValueError()
+        agents = json.loads(raw).get('agents', {}).get('list', [])
+        if not isinstance(agents, list) or sum(isinstance(a, dict) and str(a.get('id', '')).strip().lower() == agent for a in agents) != 1 or not any(isinstance(a, dict) and a.get('id') == agent for a in agents):
+            raise ValueError()
+    except (OSError, ValueError, TypeError, AttributeError):
+        raise EnforcementRefused('selected external gateway agent unavailable or invalid') from None
+    return agent
+
+
 def _build_agent_rpc_params(prompt: str, session_key: str, timeout_s: int,
-                             origin: str | None = None) -> dict:
+                             origin: str | None = None, agent_id: str | None = None) -> dict:
     """Build the gateway `agent` RPC params per
     specs/116-border-turn-latency/contracts/gateway-ws-rpc.md.
 
@@ -327,7 +347,7 @@ def _build_agent_rpc_params(prompt: str, session_key: str, timeout_s: int,
     """
     params = {
         "message": prompt,
-        "agentId": AGENT_ID,
+        "agentId": agent_id or AGENT_ID,
         "sessionKey": session_key,
         "deliver": False,
         "timeout": timeout_s,
@@ -472,8 +492,15 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         with open(message_file, "r", encoding="utf-8") as f:
             effective_prompt = f.read()
 
+    agent_id = _external_agent_id(untrusted)
+    if untrusted and 'N2N_EXTERNAL_AGENT_ID' in os.environ:
+        # OpenClaw routes bare session keys to its default agent, regardless of
+        # agentId. Bind the locally selected profile and preserve context with
+        # an opaque suffix; supplied key syntax cannot select another agent.
+        import hashlib
+        session_key = f'agent:{agent_id}:n2n-{hashlib.sha256(session_key.encode()).hexdigest()}'
     client = await gateway_ws.get_gateway_ws_client()
-    params = _build_agent_rpc_params(effective_prompt, session_key, timeout_s, origin=origin)
+    params = _build_agent_rpc_params(effective_prompt, session_key, timeout_s, origin=origin, agent_id=agent_id)
     normalized_origin = _normalize_origin(origin)
     if normalized_origin:
         # FR-013: retain origin for after-the-fact inspection. gateway.py has
@@ -482,6 +509,10 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         # itself controls, so an operator can grep for how a given session_key
         # reached NetClaw.
         logger.info("agent turn origin=%s session_key=%s", normalized_origin, session_key)
+    from .tasks import mark_gateway_dispatch, gateway_provenance
+    provenance = gateway_provenance(params['idempotencyKey'])
+    unwatch = client.watch_run(params['idempotencyKey'], provenance.event) if provenance and hasattr(client, 'watch_run') else lambda: None
+    mark_gateway_dispatch()
     call_future = asyncio.ensure_future(client.call("agent", params, None))
     try:
         remaining = float(timeout_s)
@@ -501,11 +532,12 @@ async def run_agent_turn(prompt: str, session_key: str = "n2n", timeout_s: int =
         if not call_future.done():
             call_future.cancel()
             raise asyncio.TimeoutError(
-                f"agent turn for session '{session_key}' timed out — if the gateway "
-                f"is holding a scope-upgrade approval, approve it and retry")
+                f"agent turn for session '{session_key}' timed out; execution may have occurred. "
+                f"Check the original request status; no automatic retry was made")
         payload = await call_future
         return _extract_reply_from_ws_payload(payload)
     finally:
+        unwatch()
         if not call_future.done():
             call_future.cancel()
         # Consume cancellation/result so no pending RPC survives caller timeout

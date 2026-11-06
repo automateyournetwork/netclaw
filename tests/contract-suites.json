@@ -917,6 +917,24 @@
         "prepend_path": true
       },
       "timeout_seconds": 300
+    },
+    "cloud-r06": {
+      "kind": "pytest",
+      "paths": [
+        "tests/cloud-r06"
+      ],
+      "environment": {
+        "path": ".contract-test-envs/cloud-r06",
+        "requirements": [],
+        "packages": [
+          "pytest>=8,<9"
+        ],
+        "required_imports": [
+          "pytest"
+        ],
+        "prepend_path": true
+      },
+      "timeout_seconds": 180
     }
   }
 }

@@ -1514,3 +1514,62 @@ simulator recovery sent no new decisions and preserved original unknown outcomes
 Final34-container/11-network removal preserved both models and canonical peers;
 initial cloud strict-inspection refusal remains without an established cause,
 and only7 untouched IDs/4 networks were continued after6 confirmed removals.
+
+
+### R06 source preparation — 2026-11-06
+
+Fresh ordinary cloud Border support is explicit and separate from protected
+execution profiles. eN2N uses three independent organizations, with local C
+initiating both cloud links and A initiating B; bidirectional RPC covers all six
+pairs/directions without a public local listener. Actual GCP qualification is
+pending the concrete Spec177 packet review; no R06 resources/DNS/providers started.
+Native external agent IDs must be lowercase and session keys use
+`agent:external:n2n-<digest>`; bare keys resolve to main. Native MCP IDs retain
+hyphens (`n2n-mcp__n2n_invoke`). Tool attribution requires authenticated native
+run/toolCallId events joined to local outbound receipts, never model text.
+Existing budget variable is `N2N_RATE_PER_MIN`, not `N2N_RATE_PER_MINUTE`.
+Linux host guard output priority -150 is required when matching conntrack;
+R05's earlier -300 issue must not recur. Current R06 source and private package
+hashes,24/35tasks and exact review are in specs/177-external-en2n-federation/.
+
+### R06 actual qualification lessons — 2026-11-06
+
+Ordinary cloud eN2N is qualified on fresh OpenClaw2026.7.1-2/Sonnet4.6 LinuxAMD64
+Borders and local Mac C, all six directions. Actual identities, endpoints, strict
+pins, source closures and private evidence are in Spec177 verification/resume.
+R06 retention endsNov8, with exact cleanup scheduled before independentSTOP.
+Do not treat these temporary addresses or old activation payloads as reusable.
+
+Cloud HUD uses the native CLI for settings/catalog/history even when gatewayHTTP
+works. R06 needs its pinned openclaw launcher and1024MiBworkspace cgroup with
+256MiBNodeheap for overlapping CLI probes. A384MiB cap actuallyOOMed. Root-only
+metadata/DNS/NTP access is needed for OSLogin/networkd under the host guard;
+application UIDs remain denied. The recovery preserved all original key authority.
+
+Hiding a skill advertisement does not revoke its independent execution grant.
+Test revocation through the grant API; never call a still-authorized skill a
+security bypass. Native monetary usage was0with nonzero tokens; conservatively
+account actual token fields and never infer free use. R06 all-token bound was
+USD3.47652for38provider responses, below the delegatedUSD10dispatch stop.
+
+Mobile cold loads can overlap Home/Chat/reconnect. Marking loaded before diskI/O
+finishes lets another awaited caller observe empty history; share the in-flight
+Future and retry a failed load. The original file/turn stayed intact in the actual
+reproduction. Native test app containers can move on installation: resolve the
+current simulator Documents path when capturing visual handshakes. Bundle the
+same production assets; dismiss only the owned app's notification prompt normally.
+Never repair a display assertion by resending a completed/uncertain request.
+
+Private export should archive authoritative homes/configuration and consistent
+SQLite backups; immutable installation staging packages already have separate
+verified closures. Including staging tarballs exceeded the bounded export time.
+The final R06 snapshot verified765home files plus current state and evidence;
+future teardown still requires a new quiescent export and actual residue checks.
+
+R06 final history qualification: actual cold native CLI listing hit20.25s while
+model discovery took24.20s. Cloud host renderer opts into bounded60s history reads;
+composed saved-history proxy deadline130s. Final HUD520passes, cloud22passes.
+Original browser result recovered with zero provider replay; transcript hashes
+remain unchanged (38responses). Four-request proxy admission can return429 during
+initial dashboard polling; existing Refresh chats recovers the read. Preserve
+these witnesses and exact v4 amendments in Spec177/history-recovery.

@@ -175,7 +175,7 @@
       "Peer response",
       "The selected peer’s reply and reported outcome.",
       [],
-      ["peer", "status", "response", "message", "elapsedMs"],
+      ["source", "trust", "text", "request_id", "session_id", "peer", "status", "response", "message", "elapsedMs"],
     ],
   };
   const label = (key) =>
@@ -217,6 +217,11 @@
               .join(" · ") || "See source details"
         : String(v);
   const fields = [
+    "identity",
+    "channel_state",
+    "chat_enabled",
+    "inventory_version",
+    "stale",
     "alias",
     "description",
     "summary",
@@ -269,10 +274,12 @@
   ];
   const names = [
     "name",
+    "display_name",
     "title",
     "label",
     "hostname",
     "id",
+    "identity",
     "peer",
     "neighbor",
     "model",

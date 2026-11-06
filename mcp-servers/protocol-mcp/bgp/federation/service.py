@@ -2302,6 +2302,7 @@ class FederationService:
                     # instead of showing a bare "failed" with no text.
                     "error": result.get("error"),
                     "tokens_used": result.get("tokens_used"),
+                    "external_sources": result.get("external_sources", []),
                     'outcome_state':result.get('outcome_state'),'cancel_requested':result.get('cancel_requested'),
                     'cancellation_confirmed':result.get('cancellation_confirmed'),'may_have_executed':result.get('may_have_executed'),
                 })

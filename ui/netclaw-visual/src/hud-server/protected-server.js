@@ -5,7 +5,8 @@ import express from 'express';
 import { boundedFile, noSymlink, loadProtectedAssets } from './protected-assets.js';
 import { strictJson, readProtectedDescriptor, createProtectedClient } from './protected-client.js';
 import { mountProtectedOperations } from './protected-operations.js';
-import { mountMobileEnrollment } from './mobile-enrollment.js';
+import { mountMobileEnrollment, createLocalEnrollmentClient } from './mobile-enrollment.js';
+import { readCloudFederationConfig, ordinaryFederationCapability } from './cloud-federation.js';
 import { readRemoteHudConfig, remoteHudRoute, createRemoteHud } from './remote-hud.js';
 
 const LOOPBACK = new Set(['127.0.0.1', '::1', '::ffff:127.0.0.1']);
@@ -23,6 +24,10 @@ export function openLabAccess(installationId) {
 const privateJson = target => strictJson(boundedFile(target, 65536, true).toString('utf8'));
 export function readProtectedServerConfig(file) {
   const config = privateJson(file);
+  if (config.mode === 'ordinary-federation') {
+    const ordinary = readCloudFederationConfig(config);
+    return { ...ordinary, access: openLabAccess(config.installationId) };
+  }
   if (!exact(config, ['schemaVersion', 'installationId', 'home', 'kind', 'origin', 'host', 'port', 'dist', 'manifest', 'manifestSha256', ...('access' in config ? ['access'] : []), ...('workspace' in config ? ['workspace'] : [])]) || config.schemaVersion !== 1 || config.kind !== 'openclaw' || config.host !== '127.0.0.1' || !Number.isSafeInteger(config.port) || config.port < 1 || config.port > 65535 || !/^[a-f0-9-]{36}$/.test(config.installationId)) throw Error('invalid_configuration');
   if ('access' in config && (!exact(config.access, ['mode']) || config.access.mode !== 'open-lab')) throw Error('invalid_access');
   const origin = new URL(config.origin);
@@ -45,7 +50,9 @@ export function readProtectedServerConfig(file) {
   return { ...config, ...('access' in config ? { access: openLabAccess(config.installationId) } : {}), authority: origin.host, installation, workspace, files: loadProtectedAssets({ ...config, workspace }) };
 }
 
-export function createProtectedServer(config, { client = createProtectedClient(config.installation) } = {}) {
+export function createProtectedServer(config, { client = config.mode === 'ordinary-federation' ? createLocalEnrollmentClient(config.installation, config.daemonUrl) : createProtectedClient(config.installation) } = {}) {
+  const ordinary = config.mode === 'ordinary-federation';
+  const workspaceRoute = req => remoteHudRoute(req.method, req.url, config.workspace?.features || [], ordinary);
   const remote = config.workspace ? createRemoteHud(config.workspace, config.installation) : null;
   const csp = remote ? PROTECTED_CSP.replace("style-src 'self'", "style-src 'self' 'unsafe-inline'").replace("img-src 'self' data:", "img-src 'self' data: blob:").replace("frame-src 'none'", "frame-src 'self'").replace("frame-ancestors 'none'", "frame-ancestors 'self'") : PROTECTED_CSP;
   const app = express(); app.disable('x-powered-by'); app.disable('etag'); app.set('strict routing', true); app.set('case sensitive routing', true);
@@ -53,28 +60,29 @@ export function createProtectedServer(config, { client = createProtectedClient(c
   app.use((req, res, next) => {
     res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'no-referrer', 'X-Frame-Options': remote ? 'SAMEORIGIN' : 'DENY', 'Content-Security-Policy': csp });
     if (!LOOPBACK.has(req.socket.remoteAddress) || !once(req, 'host') || req.headers.host !== config.authority || req.headers.origin !== undefined && (!once(req, 'origin') || req.headers.origin !== config.origin) || req.headers['sec-fetch-site'] === 'cross-site') return res.status(403).json({ code: 'ingress_refused' });
-    if (typeof req.url !== 'string' || !req.url.startsWith('/') || req.url.startsWith('//') || /[\\#\u0000-\u0020\u007f]/.test(req.url) || req.url.split('?')[0].includes('%') && !(remote && remoteHudRoute(req.method, req.url, config.workspace.features))) return res.status(404).json({ code: 'route_unavailable' });
+    if (typeof req.url !== 'string' || !req.url.startsWith('/') || req.url.startsWith('//') || /[\\#\u0000-\u0020\u007f]/.test(req.url) || req.url.split('?')[0].includes('%') && !(remote && workspaceRoute(req))) return res.status(404).json({ code: 'route_unavailable' });
     if (req.method === 'HEAD' && req.path.startsWith('/api/') || !['GET', 'HEAD', 'POST', 'DELETE'].includes(req.method)) return res.status(405).json({ code: 'method_refused' });
     if (req.path.startsWith('/api/')) {
       const id = '[A-Za-z0-9_.:-]{1,200}', pathname = req.url.split('?')[0];
+      if (ordinary && (pathname.startsWith('/api/hud/operations') || pathname.startsWith('/api/hud/owner/'))) return res.status(404).json({ code: 'route_unavailable' });
       const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
         || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}/cancel$`).test(pathname))
         || req.method === 'DELETE' && pathname === '/api/hud/owner/session';
       if (config.access?.mode === 'open-lab' && pathname === '/api/hud/owner/session') return res.status(404).json({ code: 'route_unavailable' });
-      if (remote && remoteHudRoute(req.method, req.url, config.workspace.features) && req.method !== 'GET' && (!once(req, 'origin') || req.headers.origin !== config.origin)) return res.status(403).json({ code: 'origin_refused' });
-      if (!allowed && !(remote && remoteHudRoute(req.method, req.url, config.workspace.features))) return res.status(404).json({ code: 'route_unavailable' });
+      if (remote && workspaceRoute(req) && req.method !== 'GET' && (!once(req, 'origin') || req.headers.origin !== config.origin)) return res.status(403).json({ code: 'origin_refused' });
+      if (!allowed && !(remote && workspaceRoute(req))) return res.status(404).json({ code: 'route_unavailable' });
     }
     next();
   });
   app.get('/api/runtime', async (req, res) => {
     if (req.url !== '/api/runtime') return res.status(400).json({ code: 'invalid_argument' });
     if (remote) { try { await remote.verify(); } catch { return res.status(503).json({ code: 'workspace_unavailable' }); } }
-    res.json({ ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { mobileEnrollment: { schema: 1 }, protectedProfile: true, protectedOperations: true, protectedProduction: true, ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
+    res.json({ ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { mobileEnrollment: { schema: 1 }, ...(ordinary ? { externalFederation: ordinaryFederationCapability } : { protectedProfile: true, protectedOperations: true, protectedProduction: true }), ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
   });
-  mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, contentSecurityPolicy: csp, origins: [config.origin] }, client });
+  if (!ordinary) mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, contentSecurityPolicy: csp, origins: [config.origin] }, client });
   mountMobileEnrollment(app, { installation: config.installation, client,
     config: { enabled: config.access?.mode === 'open-lab', origins: [config.origin],
-              access: config.access, reason: 'owner_issuance_unqualified' } });
+              access: ordinary ? undefined : config.access, reason: 'owner_issuance_unqualified' } });
   if (remote) app.use(async (req, res, next) => { if (!await remote.handle(req, res)) next(); });
   app.use((req, res) => {
     if (!['GET', 'HEAD'].includes(req.method)) return res.status(405).json({ code: 'method_refused' });

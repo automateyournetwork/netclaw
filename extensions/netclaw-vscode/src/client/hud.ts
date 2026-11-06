@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { ownerOrigin, installationIdentifier } from "./owner";
+import { ownerOrigin, installationIdentifier, cloudExecutionMode } from "./owner";
 import { remoteHudFeatures, remoteHudRoute } from "./remote-hud";
 
 export type Json = Record<string, any>;
@@ -121,7 +121,10 @@ export class HudClient {
     }
     if (this.closed) throw Error("Connection closed.");
     if (this.transport === "remote-hud") {
-      try { remoteHudFeatures(r); } catch (error) { this.close(); throw error; }
+      try {
+        remoteHudFeatures(r);
+        if (this.runtime && (this.runtime.capabilities.externalFederation !== undefined || r.capabilities.externalFederation !== undefined) && cloudExecutionMode(this.runtime) !== cloudExecutionMode(r)) throw Error("The cloud Border execution mode changed. Review a new connection.");
+      } catch (error) { this.close(); throw error; }
     }
     this.runtime = r;
     return r;

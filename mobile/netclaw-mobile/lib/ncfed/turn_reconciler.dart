@@ -36,7 +36,7 @@ Future<int> reconcileStaleTurns(
       final update = await askClient.recover(turn);
       if (update.state == TaskState.pending) continue;
       await store.updateState(turn.taskId, update.state.wireName,
-          answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null));
+          answerText: update.outputText ?? (update.state.needsAttention ? update.state.explanation : null), externalSources: update.externalSources);
       recovered++;
     } catch (_) {
       // Read-only reconciliation may fail on an old Border or after another

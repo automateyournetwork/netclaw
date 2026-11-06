@@ -31,7 +31,7 @@ mcp = FastMCP("n2n-mcp")
 
 def _gcf_dumps(data) -> str:
     """Serialize response (JSON fallback; GCF/TOON when available)."""
-    if os.environ.get('NETCLAW_FEDERATION_SCOPED')=='1':return json.dumps(data)
+    if os.environ.get('NETCLAW_FEDERATION_SCOPED')=='1' or os.environ.get('NETCLAW_FEDERATION_JSON')=='1':return json.dumps(data)
     try:
         import sys
         sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "..", "src"))

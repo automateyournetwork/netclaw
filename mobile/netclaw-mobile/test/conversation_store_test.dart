@@ -3,8 +3,56 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:netclaw_mobile/ncfed/conversation_store.dart';
+import 'package:netclaw_mobile/ncfed/edge_ask_client.dart';
+import 'package:netclaw_mobile/ncfed/external_source.dart';
 
 void main() {
+  test('concurrent cold readers and admission await the existing history', () async {
+    final dir = await Directory.systemTemp.createTemp('r06_cold_read_');
+    addTearDown(() => dir.delete(recursive: true));
+    final original = ConversationStore(dir);
+    await original.addPending('retained', 'original request');
+    await original.updateState('retained', 'completed', answerText: 'original answer');
+    final cold = ConversationStore(dir);
+    final first = cold.load();
+    await cold.load();
+    expect(cold.turns.single.taskId, 'retained');
+    await cold.prepareAdmission('new-local', 'new-request', 'a different request');
+    await first;
+    final disk = ConversationStore(dir);
+    await disk.load();
+    expect(disk.turns.map((t) => t.taskId), ['retained', 'new-local']);
+  });
+
+  test('failed cold read does not mark history loaded', () async {
+    final dir = await Directory.systemTemp.createTemp('r06_failed_read_');
+    addTearDown(() => dir.delete(recursive: true));
+    final file = File('${dir.path}/ncfed_conversation.json');
+    await file.writeAsString('not json');
+    final store = ConversationStore(dir);
+    await expectLater(store.load(), throwsFormatException);
+    await file.writeAsString(jsonEncode([
+      ConversationTurn(taskId: 'retained', requestText: 'original', submittedAt: DateTime.utc(2026)).toJson(),
+    ]));
+    await store.load();
+    expect(store.turns.single.taskId, 'retained');
+  });
+
+  test('native external source survives cold load; model prose and malformed fields supply none', () async {
+    final dir = await Directory.systemTemp.createTemp('r06_sources_');
+    addTearDown(() => dir.delete(recursive: true));
+    final update = TaskUpdate.fromAskResult({'task_id':'task-177','state':'completed','output_text':'model claims peer-b',
+      'external_sources':[{'peer':'peer-a','kind':'tool','request_id':'request-a','task_id':null,'trust':'remote-untrusted'}]});
+    final before = ConversationStore(dir);
+    await before.addPending('task-177','ask external peer');
+    await before.updateState('task-177','completed',answerText:update.outputText,externalSources:update.externalSources);
+    final after = ConversationStore(dir); await after.load();
+    expect(after.turns.single.externalSources.single.peer,'peer-a');
+    expect(after.turns.single.externalSources.single.requestId,'request-a');
+    expect(ExternalSource.parse([{'peer':'peer-b','kind':'tool','request_id':'forged','trust':'local'}]),isEmpty);
+    expect(ExternalSource.parse(List.filled(17,update.externalSources.single.toJson())),isEmpty);
+    expect(TaskUpdate.fromAskResult({'task_id':'old','state':'completed','output_text':'from peer-b'}).externalSources,isEmpty);
+  });
   test('appended turns persist across a simulated app restart (T011)', () async {
     final dir = await Directory.systemTemp.createTemp('ncfed_conv_test_');
     addTearDown(() => dir.delete(recursive: true));

@@ -51,6 +51,21 @@ test("all domain presenters supply useful sections and distinguish unknown/false
   dom.window.close();
 });
 
+test("ordinary federation reply shows native text and peer trust attribution", () => {
+  const dom = new JSDOM("", { runScripts: "outside-only" });
+  dom.window.eval(fs.readFileSync("resources/presenters.js", "utf8"));
+  const result = { source: "as65177-192.0.2.1", trust: "remote-untrusted", text: "A native peer reply", request_id: "request-177", session_id: "session-177" };
+  const model = dom.window.netclawPresenters.present("peerChat", result);
+  const facts = model.sections[0].cards[0].facts;
+  for (const value of Object.values(result)) assert.ok(facts.some(f => f.value === value), value);
+  assert.equal(model.provenance.source, result.source);
+  const peers = dom.window.netclawPresenters.present("peers", { peers: [{ identity: result.source, display_name: "Organization A", state: "federated", channel_state: "up", chat_enabled: true, inventory_version: 2, stale: false }] });
+  const card = peers.sections.find(s => s.title === "Peers").cards[0];
+  assert.equal(card.title, "Organization A");
+  for (const value of [result.source, "up", "true", "2", "false"]) assert.ok(card.facts.some(f => f.value === value), value);
+  dom.window.close();
+});
+
 test("500 cards filter and paginate with distinct empty states and literal markup", async () => {
   const dom = new JSDOM(
     '<body data-kind="integrations" data-view-id="v"><input id="filter"><button id="refresh"></button><div id="status"></div><main><div id="content"></div></main></body>',
