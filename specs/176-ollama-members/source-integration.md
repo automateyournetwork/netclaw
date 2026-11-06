@@ -25,7 +25,26 @@ models, HA and external federation remain unqualified. Native ACK loss was
 protocol-tested; the actual lost client HTTP response is a separate case.
 
 Required source artifact, six-surface reconciliation, catalog coverage and
-contract-suite list/matrix checks use a clean tracked checkout, matching CI.
+contract-suite list/matrix checks passed in a clean tracked checkout at
+`507b3ec4`, matching CI:164 specs/4 historical exceptions, all six reconciliation
+surfaces,112 catalog entries/126 registered/52 external,35 suites/32 CI suites.
+FastMCP compatibility and MCP task adoption checks also passed. Commands:
+
+```sh
+python3 scripts/verify-spec-artifacts.py
+python3 scripts/check-fastmcp-compat.py
+python3 scripts/check-mcp-tasks.py
+python3 scripts/reconcile-mcp.py --surface catalog --surface dependencies --surface docs --surface meraki-ids --surface packages --surface portability
+python3 scripts/verify-catalog-coverage.py
+python3 scripts/run-contract-tests.py --list
+python3 scripts/run-contract-tests.py --matrix
+```
+
+The full-range whitespace check identified Markdown hard breaks (removed) and
+literal context/removal whitespace inside the hash-checked native MCP patch.
+That patch format is preserved; the source whitespace check excludes only that
+patch file. No production code changed after the recorded qualification.
+
 The installed working checkout separately reports an unchanged, ignored HumanRail
 clone with unbounded `mcp>=1.0.0` and legacy `mcp.server.fastmcp`. Its clean pinned
 clone matches both existing Spec141 migration before-hashes; the read-only patch

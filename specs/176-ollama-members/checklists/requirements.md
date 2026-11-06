@@ -1,7 +1,7 @@
 # Specification Quality Checklist: R05 guarded Ollama members
 
-**Purpose**: Validate specification readiness for planning.  
-**Created**: 2026-11-05  
+**Purpose**: Validate specification readiness for planning.
+**Created**: 2026-11-05
 **Feature**: [spec.md](../spec.md)
 
 - [x] User outcomes and boundaries are explicit; implementation mechanisms belong in plan/contracts.

@@ -1,8 +1,8 @@
 # Feature Specification: R05 guarded Ollama members
 
-**Feature Branch**: `176-ollama-members`  
-**Created**: 2026-11-05  
-**Status**: Implementation authorized and in progress  
+**Feature Branch**: `176-ollama-members`
+**Created**: 2026-11-05
+**Status**: Complete and owner accepted 2026-11-06 (33/33 tasks)
 **Input**: Owner: R5 / next Spec176 using SDD, heavily referring to Thermidor's working solution, tests, outcomes, approach and lessons; then “proceed” and “make the branch and specs etc”.
 
 **Owner clarification during implementation**: This is NetClaw and a NetClaw

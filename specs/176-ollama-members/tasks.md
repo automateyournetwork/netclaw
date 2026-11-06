@@ -1,7 +1,7 @@
 # Tasks: R05 guarded Ollama members
 
 **Input**: [spec.md](spec.md), [plan.md](plan.md), [research.md](research.md),
-[data-model.md](data-model.md), [contracts/](contracts/).  
+[data-model.md](data-model.md), [contracts/](contracts/).
 **Status**: 33/33 implementation/acceptance tasks complete; owner accepted 2026-11-06. SDD preparation is separate. The approved retained deployment expires November7; scheduled full teardown remains a future obligation, not a completed deletion.
 
 Tests are required by this feature's acceptance criteria. Port Thermidor's named
