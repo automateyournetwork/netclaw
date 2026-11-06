@@ -26,6 +26,7 @@ class ReconnectSupervisor<T> {
 
   final Future<T> Function() dial;
   final void Function(T connection) onConnected;
+  final FutureOr<void> Function(T connection)? onDiscardedConnection;
   final Future<void> Function(Duration duration) _sleep;
 
   Duration _backoff = initialBackoff;
@@ -46,13 +47,14 @@ class ReconnectSupervisor<T> {
   ReconnectSupervisor({
     required this.dial,
     required this.onConnected,
+    this.onDiscardedConnection,
     this.onUnrecoverable,
     Future<void> Function(Duration duration)? sleep,
     bool initiallyConnected = false,
     Haptics? haptics,
-  })  : _sleep = sleep ?? Future.delayed,
-        _connected = initiallyConnected,
-        _haptics = haptics ?? Haptics();
+  }) : _sleep = sleep ?? Future.delayed,
+       _connected = initiallyConnected,
+       _haptics = haptics ?? Haptics();
 
   /// The backoff duration the next failed dial would wait before retrying
   /// (T034 asserts this stays within [initialBackoff, maxBackoff]).
@@ -66,13 +68,18 @@ class ReconnectSupervisor<T> {
       if (!_connected) {
         try {
           final client = await dial();
+          if (_stopped) {
+            await onDiscardedConnection?.call(client);
+            return;
+          }
           _connected = true;
           _backoff = initialBackoff; // reset on success (T034)
           onConnected(client);
         } catch (e) {
+          if (_stopped) return;
           if (isRevokedByBorder(e)) {
-            // Terminal: this identity is gone. Stop the loop and hand control
-            // back so the app can return to enrollment.
+            // Terminal refusal: stop retrying and let the app show the retained
+            // enrollment and references without automatically enrolling again.
             _stopped = true;
             onUnrecoverable?.call();
             return;
@@ -81,6 +88,7 @@ class ReconnectSupervisor<T> {
           _backoff = doubled > maxBackoff ? maxBackoff : doubled;
         }
       }
+      if (_stopped) return;
       await _sleep(_connected ? healthyCheckInterval : _backoff);
     }
   }

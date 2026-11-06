@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -18,6 +19,8 @@ class StoredEnrollment {
   final String? installationId;
   final String? deviceSubject;
   final bool pending;
+  final int endpointRevision;
+  final String? protectedOrigin;
   bool get protected => deviceSubject != null || wsPath == '/mobile/ws';
 
   const StoredEnrollment({
@@ -30,6 +33,8 @@ class StoredEnrollment {
     this.installationId,
     this.deviceSubject,
     this.pending = false,
+    this.endpointRevision = 0,
+    this.protectedOrigin,
   });
 
   EnrollmentQrPayload toPayload({String enrollmentToken = ''}) =>
@@ -53,6 +58,8 @@ class StoredEnrollment {
     if (installationId != null) 'installation_id': installationId,
     if (deviceSubject != null) 'device_subject': deviceSubject,
     if (pending) 'pending': true,
+    if (endpointRevision != 0) 'endpoint_revision': endpointRevision,
+    if (protectedOrigin != null) 'protected_origin': protectedOrigin,
   };
 
   factory StoredEnrollment.fromJson(Map<String, dynamic> json) =>
@@ -66,6 +73,8 @@ class StoredEnrollment {
         installationId: json['installation_id'] as String?,
         deviceSubject: json['device_subject'] as String?,
         pending: json['pending'] == true,
+        endpointRevision: json['endpoint_revision'] as int? ?? 0,
+        protectedOrigin: json['protected_origin'] as String?,
       );
 }
 
@@ -77,6 +86,7 @@ class StoredEnrollment {
 /// tests pass a temp directory directly (mirrors `ConversationStore`/
 /// `MessageFeedStore`'s existing pattern).
 class EnrollmentStore {
+  static final _writers = <String, Future<void>>{};
   final Directory directory;
 
   EnrollmentStore(this.directory);
@@ -91,14 +101,55 @@ class EnrollmentStore {
     return StoredEnrollment.fromJson(jsonDecode(text) as Map<String, dynamic>);
   }
 
-  Future<void> save(StoredEnrollment enrollment) async {
-    final temporary = File('${_file().path}.pending');
-    await temporary.writeAsString(jsonEncode(enrollment.toJson()), flush: true);
-    await temporary.rename(_file().path);
+  Future<T> _write<T>(Future<T> Function() action) async {
+    final path = _file().absolute.path;
+    final previous = _writers[path] ?? Future<void>.value();
+    final complete = Completer<void>();
+    _writers[path] = complete.future;
+    await previous;
+    try {
+      return await action();
+    } finally {
+      complete.complete();
+      if (identical(_writers[path], complete.future)) _writers.remove(path);
+    }
   }
 
-  Future<void> clear() async {
+  Future<void> _save(
+    StoredEnrollment enrollment, {
+    bool Function()? isCurrent,
+  }) async {
+    final temporary = File('${_file().path}.pending');
+    await temporary.writeAsString(jsonEncode(enrollment.toJson()), flush: true);
+    if (isCurrent?.call() == false) {
+      await temporary.delete();
+      throw StateError('Recovery was suspended before endpoint commit');
+    }
+    // No await between the lifecycle check and the atomic commit: suspension
+    // in this isolate either precedes this rename or observes a committed update.
+    temporary.renameSync(_file().path);
+  }
+
+  Future<void> save(StoredEnrollment enrollment) =>
+      _write(() => _save(enrollment));
+
+  /// Commit only the exact enrollment that the operator reviewed and probed.
+  Future<void> replaceEndpoint(
+    StoredEnrollment expected,
+    StoredEnrollment next, {
+    bool Function()? isCurrent,
+  }) => _write(() async {
+    if (isCurrent?.call() == false) throw StateError('Recovery was suspended');
+    final current = await load();
+    if (current == null ||
+        jsonEncode(current.toJson()) != jsonEncode(expected.toJson())) {
+      throw StateError('Enrollment changed during endpoint verification');
+    }
+    await _save(next, isCurrent: isCurrent);
+  });
+
+  Future<void> clear() => _write(() async {
     final file = _file();
     if (await file.exists()) await file.delete();
-  }
+  });
 }

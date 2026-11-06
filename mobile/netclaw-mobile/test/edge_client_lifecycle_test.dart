@@ -27,6 +27,8 @@ class TestSink implements WebSocketSink {
 class TestChannel implements WebSocketChannel {
   final input = StreamController<dynamic>();
   @override
+  Future<void> get ready => Future<void>.value();
+  @override
   final TestSink sink = TestSink();
   @override
   Stream<dynamic> get stream => input.stream;

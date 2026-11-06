@@ -1,8 +1,42 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:netclaw_mobile/ncfed/edge_client.dart';
 import 'package:netclaw_mobile/ncfed/haptics.dart';
 import 'package:netclaw_mobile/ncfed/reconnect_supervisor.dart';
 
 void main() {
+  test('stopping during a dial never publishes a late success', () async {
+    final pending = Completer<String>();
+    var connected = 0;
+    final supervisor = ReconnectSupervisor<String>(
+      dial: () => pending.future,
+      onConnected: (_) => connected++,
+      sleep: (_) async {},
+    );
+    final running = supervisor.run();
+    supervisor.stop();
+    pending.complete('late');
+    await running;
+    expect(connected, 0);
+    expect(supervisor.isConnected, isFalse);
+  });
+
+  test('stopping during a dial never publishes late revocation', () async {
+    final pending = Completer<String>();
+    var revoked = 0;
+    final supervisor = ReconnectSupervisor<String>(
+      dial: () => pending.future,
+      onConnected: (_) {},
+      onUnrecoverable: () => revoked++,
+      sleep: (_) async {},
+    );
+    final running = supervisor.run();
+    supervisor.stop();
+    pending.completeError(EdgeClientException('-32023', 'revoked'));
+    await running;
+    expect(revoked, 0);
+  });
+
   test('backoff doubles on repeated failure, capped at 60s (T034)', () async {
     var attempt = 0;
     final sleeps = <Duration>[];

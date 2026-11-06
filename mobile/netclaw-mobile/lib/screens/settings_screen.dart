@@ -12,7 +12,9 @@ import '../ncfed/theme_preference.dart';
 /// choice set.
 String describeGracePeriod(Duration d) {
   if (d == Duration.zero) return 'Immediately';
-  if (d.inMinutes >= 1) return '${d.inMinutes} minute${d.inMinutes == 1 ? '' : 's'}';
+  if (d.inMinutes >= 1) {
+    return '${d.inMinutes} minute${d.inMinutes == 1 ? '' : 's'}';
+  }
   return '${d.inSeconds} seconds';
 }
 
@@ -71,6 +73,7 @@ class SettingsScreen extends StatefulWidget {
   /// no `EdgeClient`/Border access at all, so the removal it performs
   /// structurally cannot depend on a live connection.
   final Future<void> Function() onRemoveDevice;
+  final Future<void> Function()? onRecoverConnection;
 
   /// Injectable so tests never touch the real biometric platform channel —
   /// mirrors `approval_confirmation.dart`'s own `authenticate` parameter and
@@ -90,6 +93,7 @@ class SettingsScreen extends StatefulWidget {
     super.key,
     required this.capabilities,
     required this.onRemoveDevice,
+    this.onRecoverConnection,
     this.pushStatus = PushStatus.unknown,
     this.localNotificationsPermissionDenied = false,
     this.authenticate,
@@ -139,6 +143,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget build(BuildContext context) {
     return ListView(
       children: [
+        if (widget.onRecoverConnection != null)
+          ListTile(
+            leading: const Icon(Icons.sync),
+            title: const Text('Recover connection'),
+            subtitle: const Text(
+              'Verify a replacement port for this enrolled Border',
+            ),
+            onTap: widget.onRecoverConnection,
+          ),
         if (_error != null)
           Container(
             width: double.infinity,

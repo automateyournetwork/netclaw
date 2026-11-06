@@ -123,6 +123,7 @@ Future<EnrollmentOutcome> attemptEnrollmentFromQr(
             installationId: payload.installationId,
             deviceSubject:
                 client.protectedDevice?.principal['subject'] as String?,
+            protectedOrigin: client.protectedDevice?.origin,
           ),
         );
       }
@@ -146,7 +147,8 @@ Future<EnrollmentOutcome> attemptEnrollmentFromQr(
         if (retained?.pending == true && retained?.memberId == memberId &&
             retained?.keyFingerprint == preparedFingerprint) {
           await store.clear();
-          return EnrollmentFailure('This enrollment code expired or was already used. Generate a new QR code and scan it.');
+          return EnrollmentFailure('This enrollment code expired or was already used. Generate a new QR code and scan it.',
+          );
         }
       }
       return EnrollmentFailure(
