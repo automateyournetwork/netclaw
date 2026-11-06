@@ -110,6 +110,7 @@ class EdgeChannel:
         self.member_id: Optional[str] = None
         self.peer_identity = "<unauthenticated-edge>"
         self.trusted = False
+        self.authority_current = None
         self.nonce = b""
         self.display_name: Optional[str] = None
         self.logger = logging.getLogger("n2n.edge[unauthenticated]")
@@ -167,7 +168,21 @@ class EdgeChannel:
             await self.close()
 
     async def _send(self, message: dict):
+        await self._check_current_authority()
+        if self._closed:
+            raise ConnectionError('Channel closed; operation outcome may be unknown')
         await self.ws.send(json.dumps(message, separators=(",", ":")))
+
+    async def _check_current_authority(self):
+        valid = True
+        if self.trusted and self.authority_current:
+            try:
+                valid = bool(self.authority_current())
+            except Exception:
+                valid = False
+        if not valid:
+            await self.close()
+            raise RpcError(ERR_NOT_TRUSTED, 'current authority refused; earlier work may have executed')
 
     # ---- dispatch ---------------------------------------------------------
 
@@ -194,6 +209,10 @@ class EdgeChannel:
         method = msg.get("method")
         req_id = msg.get("id")
         params = msg.get("params") or {}
+        try:
+            await self._check_current_authority()
+        except RpcError:
+            return
         if not self.trusted and method not in _PRE_TRUST_METHODS:
             if req_id is not None:
                 await self._send(self._err(req_id, ERR_NOT_TRUSTED, "edge node not authenticated"))
@@ -205,14 +224,15 @@ class EdgeChannel:
             return
         try:
             result = await handler(self, params)
+            await self._check_current_authority()
             if req_id is not None:
                 await self._send({"jsonrpc": "2.0", "id": req_id, "result": result or {}})
         except RpcError as e:
-            if req_id is not None:
+            if req_id is not None and not self._closed:
                 await self._send(self._err(req_id, e.code, e.message, e.data))
         except Exception as e:
             self.logger.error("Edge handler %s failed: %s", method, e)
-            if req_id is not None:
+            if req_id is not None and not self._closed:
                 await self._send(self._err(req_id, -32000, str(e)))
 
     def _err(self, req_id, code, message, data=None):
@@ -222,6 +242,7 @@ class EdgeChannel:
     # ---- outbound requests (Border → phone, mirrors delegate_to_member) --
 
     async def call(self, method: str, params: dict, timeout: float = 30.0) -> dict:
+        await self._check_current_authority()
         if self._closed:
             raise ConnectionError("Channel is closed")
         self._next_id += 1
@@ -235,6 +256,7 @@ class EdgeChannel:
 
         try:
             resp = await asyncio.wait_for(exchange(), timeout=timeout)
+            await self._check_current_authority()
             if "error" in resp:
                 raise RpcError(resp["error"]["code"], resp["error"]["message"])
             return resp.get("result", {})
@@ -248,4 +270,5 @@ class EdgeChannel:
                 fut.exception()  # consume a close error if send failed concurrently
 
     async def notify(self, method: str, params: dict):
+        await self._check_current_authority()
         await self._send({"jsonrpc": "2.0", "method": method, "params": params})

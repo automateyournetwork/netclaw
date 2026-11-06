@@ -819,6 +819,9 @@ async def handle_n2n(method, path, body):
             member_id = body.get("member_id")
             if not member_id:
                 return 400, {"error": "member_id required"}
+            # Persist removal before the first await. Otherwise a reconnect can
+            # authenticate during close() and leave a new live channel behind.
+            ok = fed.risk.remove_member(member_id)
             # Close whichever channel registry holds it. An edge node's channel
             # lives in edge_channels, NOT member_channels (feature 066) — only
             # popping member_channels meant retiring a *connected* phone left its
@@ -834,7 +837,6 @@ async def handle_n2n(method, path, body):
             # behind: queue rows are keyed by member_id and a re-enrolled device
             # gets a new one, so nothing would ever claim them (FR-017).
             purged = fed.edge_queue.purge_member(member_id)
-            ok = fed.risk.remove_member(member_id)
             return (200 if ok else 404), {"removed": ok, "member_id": member_id,
                                           "queued_purged": purged}
 

@@ -1323,15 +1323,20 @@ class FederationService:
                 for ch in channels)
         return status
 
-    def observe_transport(self, entry_id, revision, stage):
+    def observe_transport(self, entry_id, revision, stage, *, failure_reason=None):
         if stage not in ('connecting', 'tcp_connected', 'tls_verified', 'admitted', 'refused', 'closed'):
             raise ValueError('invalid transport observation')
+        if failure_reason not in (None, 'connection_unavailable', 'tls_identity_refused',
+                                  'admission_refused', 'connection_cancelled'):
+            raise ValueError('invalid transport failure reason')
         previous = self.transport_observations.get(entry_id, {})
         if previous.get('revision') != revision or stage == 'connecting':
             previous = {'tcp_reachable': None, 'tls_verified': False}
         value = dict(previous, revision=revision, observation=stage, observed_at=time.time())
         if stage != 'refused':
             value.pop('failure_reason', None)
+        elif failure_reason:
+            value['failure_reason'] = failure_reason
         if stage in ('tcp_connected', 'tls_verified', 'admitted'):
             value['tcp_reachable'] = True
         if stage in ('tls_verified', 'admitted'):
@@ -1441,6 +1446,7 @@ class FederationService:
                 logger.info("iN2N member %s channel closed — deregistered", member_id)
         ch.on_close = _deregister
         if ch.strict:
+            from .certs import time_valid
             initial = self.risk.get_member(member_id) or {}
             fingerprint = initial.get('key_fingerprint')
             generation = initial.get('enrollment_generation')
@@ -1450,7 +1456,8 @@ class FederationService:
                 member = self.risk.get_member(member_id) or {}
                 return (member.get('state') in ('enrolled','active','unreachable')
                         and member.get('key_fingerprint') == fingerprint and bool(fingerprint)
-                        and member.get('enrollment_generation') == generation)
+                        and member.get('enrollment_generation') == generation
+                        and time_valid(member.get('pinned_key')))
             ch.authority_current = current
             self.observe_transport(ch.registry_id, ch.registry_revision, 'admitted')
         self.member_channels[member_id] = ch
@@ -1464,6 +1471,10 @@ class FederationService:
         token = params.get("token", "")
         member_id = params.get("member_id", "")
         cert_pem = params.get("cert_pem", "")
+        if getattr(channel, 'strict', False):
+            from .certs import time_valid
+            if not time_valid(cert_pem):
+                raise RpcError(_ERR_NOT_TRUSTED, 'member certificate not time-valid')
         signature = bytes.fromhex(params.get("signature", "") or "")
         # Proof the dialer holds the private key for the cert it presents (FR-013).
         if not self.risk.verify_possession(cert_pem, channel.nonce, signature, getattr(channel, "auth_binding", b"")):
@@ -1521,6 +1532,10 @@ class FederationService:
         mem = self.risk.get_member(member_id)
         if not mem or not mem.get("pinned_key"):
             raise RpcError(_ERR_NOT_TRUSTED, "unknown or unpinned member")
+        if getattr(channel, 'strict', False):
+            from .certs import time_valid
+            if not time_valid(mem['pinned_key']):
+                raise RpcError(_ERR_NOT_TRUSTED, 'member certificate not time-valid')
         ok = (mem["key_fingerprint"] == fingerprint
               and self.risk.verify_possession(mem["pinned_key"], channel.nonce, signature, getattr(channel, "auth_binding", b""))
               and self.risk.verify_member(member_id, fingerprint))
@@ -1674,6 +1689,16 @@ class FederationService:
         if member:
             ch.owner_generation = member['key_fingerprint']
             ch.enrollment_generation = member['enrollment_generation']
+            from .certs import time_valid
+            fingerprint, generation = member['key_fingerprint'], member['enrollment_generation']
+            def current():
+                active = self.risk.get_member(member_id) or {}
+                return (active.get('state') in ('enrolled', 'active', 'unreachable')
+                        and active.get('node_type') == 'edge' and bool(fingerprint)
+                        and active.get('key_fingerprint') == fingerprint
+                        and active.get('enrollment_generation') == generation
+                        and time_valid(active.get('pinned_key')))
+            ch.authority_current = current
         def _deregister(closed_ch):
             if self.edge_channels.get(member_id) is closed_ch:
                 self.edge_channels.pop(member_id, None)
@@ -1875,7 +1900,8 @@ class FederationService:
         member_id = params.get("member_id", "")
         cert_pem = params.get("cert_pem", "")
         signature = bytes.fromhex(params.get("signature", "") or "")
-        if not self.risk.verify_possession(cert_pem, channel.nonce, signature):
+        from .certs import time_valid
+        if not time_valid(cert_pem) or not self.risk.verify_possession(cert_pem, channel.nonce, signature):
             raise RpcError(_ERR_NOT_TRUSTED, "key possession proof failed")
         try:
             res = self.risk.consume_token(
@@ -1960,7 +1986,8 @@ class FederationService:
             raise RpcError(_ERR_NOT_TRUSTED, 'device installation changed')
         if not mem or not mem.get("pinned_key") or mem.get("node_type") != "edge":
             raise RpcError(_ERR_NOT_TRUSTED, "unknown or unpinned edge node")
-        ok = (mem["key_fingerprint"] == fingerprint
+        from .certs import time_valid
+        ok = (time_valid(mem['pinned_key']) and mem["key_fingerprint"] == fingerprint
               and self.risk.verify_possession(mem["pinned_key"], channel.nonce, signature)
               and self.risk.verify_member(member_id, fingerprint))
         if not ok:
@@ -2770,8 +2797,12 @@ class FederationService:
                 reader, writer = await open_connection(host, port, ca_file=registration['ca_file'],
                                                        server_hostname=registration['tls_server_name'])
                 self.observe_transport(registration['id'], registry_revision, 'tls_verified')
-            except BaseException:
-                self.observe_transport(registration['id'], registry_revision, 'refused')
+            except BaseException as error:
+                import ssl
+                reason = ('connection_cancelled' if isinstance(error, asyncio.CancelledError) else
+                          'tls_identity_refused' if isinstance(error, (ssl.SSLError, ValueError)) else
+                          'connection_unavailable')
+                self.observe_transport(registration['id'], registry_revision, 'refused', failure_reason=reason)
                 raise
         else:
             options = {'ssl': ssl_context}
@@ -2785,6 +2816,8 @@ class FederationService:
             if nonce is None:
                 raise RuntimeError("bad iN2N preamble from Border")
         except BaseException:
+            if strict:
+                self.observe_transport(registration['id'], registry_revision, 'refused', failure_reason='admission_refused')
             writer.close()
             raise
         ch = InternalChannel(reader, writer, local_identity=self.local_identity,
@@ -2798,6 +2831,10 @@ class FederationService:
         try:
             await ch.start()
             cert_pem = self.risk.self_cert_pem()
+            if strict:
+                from .certs import time_valid
+                if not time_valid(cert_pem):
+                    raise ValueError('member certificate not time-valid')
             signature = self.risk.self_sign(nonce, binding).hex()
             member_id = self.risk.self_member_id()
             # US2: challenge the Border to attest it is our legitimate hub.
@@ -2867,6 +2904,13 @@ class FederationService:
                 await ch.close()
                 self.observe_transport(registration['id'], registry_revision, 'closed')
                 return resp
+            if strict:
+                from .certs import time_valid
+                hub_certificate = (resp.get('hub_attestation') or {}).get('hub_cert')
+                def current_transport_authority():
+                    return (time_valid(cert_pem) and time_valid(hub_certificate)
+                            and time_valid(anchor) and self.risk.risk_anchor() == anchor)
+                ch.authority_current = current_transport_authority
             if self.protected_enabled:
                 from .protected_contract import require, key_id
                 from .protected_owner import private_file
@@ -2881,7 +2925,7 @@ class FederationService:
                 def current_border_authority():
                     try:
                         current_config = decode(private_file(self.runtime.state / 'protected-profile.json'))
-                        return (current_config.get('border') == border_binding and
+                        return (current_transport_authority() and current_config.get('border') == border_binding and
                                 self.risk.protected_enrollment() == own_enrollment)
                     except Exception:
                         return False
@@ -2915,7 +2959,7 @@ class FederationService:
             return resp
         except BaseException:
             if strict:
-                self.observe_transport(registration['id'], registry_revision, 'refused')
+                self.observe_transport(registration['id'], registry_revision, 'refused', failure_reason='admission_refused')
             await ch.close()
             raise
 
