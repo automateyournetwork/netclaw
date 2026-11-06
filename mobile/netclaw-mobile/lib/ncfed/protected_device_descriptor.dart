@@ -9,6 +9,13 @@ const protectedDeviceMethods = [
   'n2n/edge/operations/reconcile',
 ];
 
+const combinedDeviceMethods = [
+  ...protectedDeviceMethods,
+  'n2n/edge/operations/combined_prepare',
+  'n2n/edge/operations/combined_status',
+  'n2n/edge/operations/combined_cancel',
+];
+
 /// Only accepted from a completed device-key handshake on trusted WSS.
 class ProtectedDeviceDescriptor {
   final String installationId;
@@ -57,8 +64,10 @@ class ProtectedDeviceDescriptor {
         uri.hasFragment ||
         uri.path.isNotEmpty ||
         uri.origin != origin ||
-        jsonEncode(descriptor['methods']) !=
-            jsonEncode(protectedDeviceMethods) ||
+        (jsonEncode(descriptor['methods']) !=
+                jsonEncode(protectedDeviceMethods) &&
+            jsonEncode(descriptor['methods']) !=
+                jsonEncode(combinedDeviceMethods)) ||
         principal is! Map<String, dynamic> ||
         !validDevicePrincipal(principal) ||
         (payload.expectedDeviceSubject != null &&

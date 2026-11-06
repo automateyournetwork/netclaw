@@ -2,7 +2,8 @@
 """Run one official DefenseClaw process behind a durable operation provider fence.
 
 The runner loads guard.env and passes a non-secret upstream sentinel to the
-official child. The provider key is absent from the child environment; these
+official child for hosted inference; the Ollama branch is keyless and sends no
+sentinel. The provider key is absent from the child environment; these
 trusted guard processes share a UID and the private filesystem. The unauthenticated
 loopback proxy requires the dedicated guard-container network namespace.
 """
@@ -23,7 +24,7 @@ from protected_provider import (MODEL,ProviderFence,ProviderProxy,ProviderRefuse
     canonical,private_directory,private_read,private_write,require)
 
 
-def load_guard_env(home):
+def load_guard_env(home, *, local=False):
     raw=private_read(home/'guard.env',16384)
     try:lines=raw.decode('utf-8','strict').splitlines()
     except UnicodeError:raise ProviderRefused('guard_env_invalid',503) from None
@@ -33,13 +34,13 @@ def load_guard_env(home):
         if not line or line.startswith('#'):continue
         require('=' in line,'guard_env_invalid',503)
         key,value=line.split('=',1)
-        require(key in ('ANTHROPIC_API_KEY','DEFENSECLAW_GATEWAY_TOKEN') and key not in values,'guard_env_invalid',503)
+        require(key in (('DEFENSECLAW_GATEWAY_TOKEN',) if local else ('ANTHROPIC_API_KEY','DEFENSECLAW_GATEWAY_TOKEN')) and key not in values,'guard_env_invalid',503)
         if value.startswith(('"',"'")):
             require(len(value)>=2 and value[-1]==value[0],'guard_env_invalid',503);value=value[1:-1]
         require(value and value.isascii() and '\n' not in value and '\r' not in value and len(value)<=4096,'guard_env_invalid',503)
         values[key]=value
-    require(set(values)=={'ANTHROPIC_API_KEY','DEFENSECLAW_GATEWAY_TOKEN'},'guard_credentials_missing',503)
-    require(values['ANTHROPIC_API_KEY']!=values['DEFENSECLAW_GATEWAY_TOKEN'],'distinct_guard_credentials_required',503)
+    require(set(values)==({'DEFENSECLAW_GATEWAY_TOKEN'} if local else {'ANTHROPIC_API_KEY','DEFENSECLAW_GATEWAY_TOKEN'}),'guard_credentials_missing',503)
+    if not local: require(values['ANTHROPIC_API_KEY']!=values['DEFENSECLAW_GATEWAY_TOKEN'],'distinct_guard_credentials_required',503)
     return values
 
 
@@ -124,7 +125,7 @@ def bootstrap_policies(home,expected,source):
 def child_environment(home,secrets):
     user=private_directory(home/'official-user')
     return {'PATH':'/usr/local/bin:/usr/bin:/bin','HOME':str(user),'DEFENSECLAW_HOME':str(home),
-            'DEFENSECLAW_LLM_KEY':'netclaw-operation-proxy',
+            **({'DEFENSECLAW_LLM_KEY':'netclaw-operation-proxy'} if 'ANTHROPIC_API_KEY' in secrets else {}),
             'DEFENSECLAW_GATEWAY_TOKEN':secrets['DEFENSECLAW_GATEWAY_TOKEN']}
 
 
@@ -161,18 +162,25 @@ async def run(args):
         if key.lower() in ('http_proxy','https_proxy','all_proxy','no_proxy') or key in ('SSL_CERT_FILE','SSL_CERT_DIR','REQUESTS_CA_BUNDLE','CURL_CA_BUNDLE','ANTHROPIC_BASE_URL','OPENAI_BASE_URL'):
             os.environ.pop(key,None)
     home=private_directory(args.home)
-    secret_values=load_guard_env(home)
-    config_pin=verify_config(home,args.config_sha256,secret_values['ANTHROPIC_API_KEY'])
+    local = getattr(args, 'provider', 'anthropic') == 'ollama'
+    secret_values=load_guard_env(home, local=local)
+    if local:
+        from protected_ollama import verify_config as verify_local_config
+        config_pin=verify_local_config(home,args.config_sha256)
+    else:
+        config_pin=verify_config(home,args.config_sha256,secret_values['ANTHROPIC_API_KEY'])
     policy_pin=bootstrap_policies(home,args.policy_manifest_sha256,args.policy_source)
-    require(args.model==MODEL and args.maximum_calls==2,'unqualified_provider_profile',503)
+    require(args.model==('qwen3:0.6b' if local else MODEL) and args.maximum_calls==2,'unqualified_provider_profile',503)
     require(args.expires_at_ms>int(time.time()*1000),'operation_expired',403)
     binary=Path(args.binary).absolute();info=binary.lstat()
     require(binary==binary.resolve() and stat.S_ISREG(info.st_mode) and not info.st_mode&0o022 and os.access(binary,os.X_OK),'unsafe_guard_binary',503)
     # Guard image/binary provenance is frozen by the coordinator's image pin.
     binary_pin=hashlib.sha256(binary.read_bytes()).hexdigest()
-    fence=ProviderFence(home/'provider.sqlite',operation_id=args.operation_id,expires_at_ms=args.expires_at_ms,model=args.model,maximum_calls=args.maximum_calls)
-    proxy=ProviderProxy(fence,secret_values['ANTHROPIC_API_KEY'])
-    await proxy.start('127.0.0.1',18888)
+    fence=None;proxy=None
+    if not local:
+        fence=ProviderFence(home/'provider.sqlite',operation_id=args.operation_id,expires_at_ms=args.expires_at_ms,model=args.model,maximum_calls=args.maximum_calls)
+        proxy=ProviderProxy(fence,secret_values['ANTHROPIC_API_KEY'])
+        await proxy.start('127.0.0.1',18888)
     stop=asyncio.Event();loop=asyncio.get_running_loop()
     for sig in (signal.SIGTERM,signal.SIGINT):loop.add_signal_handler(sig,stop.set)
     process=None;returncode=1;waiters=[];log_task=None
@@ -183,27 +191,27 @@ async def run(args):
         require(stat.S_ISREG(info.st_mode) and info.st_uid==os.getuid() and not info.st_mode&0o077,'unsafe_guard_log',503)
         process=await asyncio.create_subprocess_exec(str(binary),env=child_environment(home,secret_values),stdout=asyncio.subprocess.PIPE,stderr=asyncio.subprocess.STDOUT)
         log_task=asyncio.create_task(drain_guard_log(process.stdout,log,secret_values))
-        private_write(home/'provider-runner.json',{'schemaVersion':1,'operation_id':args.operation_id,'proxy_host':'127.0.0.1','proxy_port':18888,
+        private_write(home/'provider-runner.json',{'schemaVersion':1,'operation_id':args.operation_id,'proxy_host':None if local else '127.0.0.1','proxy_port':None if local else 18888,
             'runner_pid':os.getpid(),'guard_pid':process.pid,'config_sha256':config_pin,'policy_manifest_sha256':policy_pin,
-            'binary_sha256':binary_pin,'model':MODEL,'maximum_provider_calls':2,'expires_at_ms':args.expires_at_ms})
+            'binary_sha256':binary_pin,'model':args.model,'provider':'ollama' if local else 'anthropic','maximum_provider_calls':2,'expires_at_ms':args.expires_at_ms})
         process_wait=asyncio.create_task(process.wait());stop_wait=asyncio.create_task(stop.wait())
         expiry_wait=asyncio.create_task(asyncio.sleep(max(0,(args.expires_at_ms-int(time.time()*1000))/1000)))
         waiters=[process_wait,stop_wait,expiry_wait]
         await asyncio.wait(waiters,return_when=asyncio.FIRST_COMPLETED)
         returncode=process.returncode if process.returncode is not None else 0
     finally:
-        if proxy.server:proxy.server.close();await proxy.server.wait_closed()
+        if proxy and proxy.server:proxy.server.close();await proxy.server.wait_closed()
         if process and process.returncode is None:
             process.terminate()
             try:await asyncio.wait_for(process.wait(),5)
             except asyncio.TimeoutError:process.kill();await process.wait()
-        await proxy.close()
+        if proxy: await proxy.close()
         if log_task:
             try:await asyncio.wait_for(log_task,5)
             except asyncio.TimeoutError:log_task.cancel();await asyncio.gather(log_task,return_exceptions=True)
         for waiter in waiters:waiter.cancel()
         if waiters:await asyncio.gather(*waiters,return_exceptions=True)
-        private_write(home/'provider-receipt.json',fence.snapshot())
+        private_write(home/'provider-receipt.json',fence.snapshot() if fence else {'provider':'ollama','operation_id':args.operation_id,'guard_binary_sha256':binary_pin,'guard_config_sha256':config_pin,'authority':'member-runner-latch-and-inference-ledger','provider_api_charges_microusd':0})
         log.close()
     return returncode
 
@@ -217,6 +225,7 @@ def main():
     parser.add_argument('--policy-manifest-sha256',required=True)
     parser.add_argument('--operation-id',default=os.environ.get('NETCLAW_OPERATION_ID'))
     parser.add_argument('--expires-at-ms',type=int,default=os.environ.get('NETCLAW_OPERATION_EXPIRES_MS'))
+    parser.add_argument('--provider', choices=('anthropic','ollama'), default='anthropic')
     parser.add_argument('--model',default=os.environ.get('NETCLAW_OPERATION_MODEL',MODEL))
     parser.add_argument('--maximum-calls',type=int,default=os.environ.get('NETCLAW_OPERATION_MAX_PROVIDER_CALLS','2'))
     args=parser.parse_args()

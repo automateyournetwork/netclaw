@@ -83,6 +83,9 @@ EDGE_METHODS = (
     "n2n/edge/operations/status",
     "n2n/edge/operations/decision",
     "n2n/edge/operations/reconcile",
+    "n2n/edge/operations/combined_prepare",
+    "n2n/edge/operations/combined_status",
+    "n2n/edge/operations/combined_cancel",
 )
 
 # Methods reachable before the channel has authenticated (the handshake itself).

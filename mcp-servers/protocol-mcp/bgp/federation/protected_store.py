@@ -22,6 +22,17 @@ CREATE TABLE IF NOT EXISTS protected_operation (
  PRIMARY KEY(side, operation_id), UNIQUE(side, client_nonce, owner_subject),
  UNIQUE(side, approval_nonce), UNIQUE(side, approval_id), UNIQUE(side, attempt_id)
 );
+CREATE TABLE IF NOT EXISTS protected_combined (
+ parent_id TEXT PRIMARY KEY,client_nonce TEXT NOT NULL,owner_subject TEXT NOT NULL,
+ principal TEXT NOT NULL,border TEXT NOT NULL,request_digest TEXT NOT NULL,
+ created_at_ms INTEGER NOT NULL,expires_at_ms INTEGER NOT NULL,cancelled INTEGER NOT NULL DEFAULT 0,
+ UNIQUE(owner_subject,client_nonce)
+);
+CREATE TABLE IF NOT EXISTS protected_combined_child (
+ parent_id TEXT NOT NULL,child_index INTEGER NOT NULL CHECK(child_index IN (0,1)),
+ family INTEGER NOT NULL CHECK(family IN (4,6)),operation_id TEXT NOT NULL UNIQUE,
+ PRIMARY KEY(parent_id,child_index),UNIQUE(parent_id,family)
+);
 CREATE TABLE IF NOT EXISTS protected_model_call (
  operation_id TEXT NOT NULL, ordinal INTEGER NOT NULL, claimed_ms INTEGER NOT NULL,
  PRIMARY KEY(operation_id, ordinal)
@@ -110,6 +121,78 @@ class ProtectedStore:
             raise ProtectedError('operation_conflict', 409) from None
         return self.get(side, operation_id)
 
+    @staticmethod
+    def _combined(conn, *, parent_id=None, client_nonce=None, owner_subject=None):
+        if parent_id:
+            row = conn.execute('SELECT * FROM protected_combined WHERE parent_id=?', (parent_id,)).fetchone()
+        else:
+            row = conn.execute('SELECT * FROM protected_combined WHERE client_nonce=? AND owner_subject=?',
+                               (client_nonce, owner_subject)).fetchone()
+        if row is None:
+            return None
+        value = dict(row)
+        value['principal'], value['border'] = json.loads(value['principal']), json.loads(value['border'])
+        value['children'] = [dict(r) for r in conn.execute(
+            'SELECT operation_id,family FROM protected_combined_child WHERE parent_id=? ORDER BY child_index',
+            (value['parent_id'],))]
+        require(len(value['children']) == 2, 'combined_store_corrupt', 503)
+        return value
+
+    def get_combined(self, **selector):
+        with self.connection() as conn:
+            return self._combined(conn, **selector)
+
+    def combined_for_child(self, operation_id):
+        with self.connection() as conn:
+            row = conn.execute('SELECT parent_id FROM protected_combined_child WHERE operation_id=?',
+                               (operation_id,)).fetchone()
+            return self._combined(conn, parent_id=row['parent_id']) if row else None
+
+    def create_combined(self, parent, rows):
+        require(len(rows) == len(parent['children']) == 2, 'combined_children_required')
+        with self.transaction() as conn:
+            old = self._combined(conn, client_nonce=parent['client_nonce'], owner_subject=parent['principal']['subject'])
+            if old:
+                require(old['principal'] == parent['principal'] and old['border'] == parent['border']
+                        and old['request_digest'] == parent['request_digest'], 'client_nonce_conflict', 409)
+                return old
+            conn.execute('INSERT INTO protected_combined VALUES(?,?,?,?,?,?,?,?,?)',
+                         (parent['parent_id'], parent['client_nonce'], parent['principal']['subject'],
+                          encode(parent['principal']).decode(), encode(parent['border']).decode(),
+                          parent['request_digest'], parent['created_at_ms'], parent['expires_at_ms'], 0))
+            for index, row in enumerate(rows):
+                serialized = {k: encode(v).decode() if k in JSON_FIELDS else v for k, v in row.items()}
+                conn.execute('INSERT INTO protected_operation (' + ','.join(serialized) + ') VALUES ('
+                             + ','.join('?' for _ in serialized) + ')', tuple(serialized.values()))
+                conn.execute('INSERT INTO protected_combined_child VALUES(?,?,?,?)',
+                             (parent['parent_id'], index, parent['children'][index]['family'], row['operation_id']))
+            return self._combined(conn, parent_id=parent['parent_id'])
+
+    @staticmethod
+    def _combined_transition(conn, operation_id, state, now_ms=None):
+        row = conn.execute('SELECT p.*,c.child_index FROM protected_combined p JOIN protected_combined_child c '
+                           'ON p.parent_id=c.parent_id WHERE c.operation_id=?', (operation_id,)).fetchone()
+        if row is None:
+            return
+        require(not row['cancelled'], 'combined_cancelled', 409)
+        if now_ms is not None:
+            require(row['created_at_ms'] <= now_ms < row['expires_at_ms'], 'combined_expired', 403)
+        if state in ('approved', 'refused') and row['child_index']:
+            previous = conn.execute("SELECT o.state FROM protected_combined_child c JOIN protected_operation o "
+                                    "ON o.operation_id=c.operation_id AND o.side='border' "
+                                    "WHERE c.parent_id=? AND c.child_index=0", (row['parent_id'],)).fetchone()
+            require(previous is not None and previous['state'] != 'review_pending', 'combined_previous_decision_pending', 409)
+
+    def cancel_combined(self, parent_id, principal):
+        with self.transaction() as conn:
+            parent = self._combined(conn, parent_id=parent_id)
+            require(parent is not None and parent['principal'] == principal, 'combined_not_found', 404)
+            conn.execute('UPDATE protected_combined SET cancelled=1 WHERE parent_id=?', (parent_id,))
+            for child in parent['children']:
+                conn.execute("UPDATE protected_operation SET revoked=1,revision=revision+1 WHERE side='border' "
+                             "AND operation_id=? AND revoked=0", (child['operation_id'],))
+            return self._combined(conn, parent_id=parent_id)
+
     def transition(self, side, operation_id, expected, **changes):
         require(set(changes) <= FIELDS, 'invalid_transition')
         states = [expected] if isinstance(expected, str) else list(expected)
@@ -130,6 +213,11 @@ class ProtectedStore:
                            'effect_claimed': {'audit_pending','outcome_unknown'}, 'audit_pending': {'result_ready'},
                            'result_ready': {'acknowledged'}, 'acknowledged': set(), 'outcome_unknown': set(), 'refused': set()}}
             next_state = changes.get('state', prior['state'])
+            if side == 'border' and ((prior['state'] == 'review_pending' and next_state in ('approved','refused'))
+                    or (prior['state'] == 'approved' and next_state == 'dispatch_pending')):
+                now = (changes.get('approval') or {}).get('payload', {}).get('issued_at_ms')
+                self._combined_transition(conn, operation_id, next_state, now)
+
             proven_recovery = side == 'member' and prior['state'] == 'outcome_unknown' and prior['effect_finished'] == 1 and next_state == 'audit_pending'
             require(proven_recovery or next_state == prior['state'] or next_state in allowed[side].get(prior['state'], set()), 'irreversible_state', 409)
             for field in ('attempt_id','approval','approval_digest','approval_nonce','approval_id','receipt','receipt_digest','ack',

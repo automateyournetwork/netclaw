@@ -365,7 +365,7 @@ void main() {
     );
   }
   test(
-    'WSS adapter sends only five scoped methods and preserves admission proof',
+    'legacy WSS adapter preserves fixed methods and admission proof',
     () async {
       final channel = TestChannel();
       final edge = EdgeClient.forTesting(channel);
@@ -412,6 +412,97 @@ void main() {
         throwsA(isA<CloudOwnerError>()),
       );
       expect(channel.sink.sent.length, 1);
+    },
+  );
+  test(
+    'additive combined WSS routes preserve device identity and reject generic actions',
+    () async {
+      final advertised = border();
+      advertised['capabilities']['protected_operations']['methods'] = [
+        ...combinedDeviceMethods,
+      ];
+      final binding = ProtectedDeviceDescriptor.fromBorder(
+        advertised,
+        payload,
+      )!;
+      final channel = TestChannel();
+      final active = EdgeClient.forTesting(channel)..protectedDevice = binding;
+      addTearDown(() async {
+        await active.close();
+        await channel.input.close();
+      });
+      final transport = ProtectedDeviceTransport(active, binding),
+          headers = {'X-NetClaw-Installation': installation};
+      final routes = [
+        (
+          '/api/hud/operations/combined',
+          'POST',
+          <String, dynamic>{'client_nonce': 'nonce', 'children': []},
+          'combined_prepare',
+        ),
+        (
+          '/api/hud/operations/combined?client_nonce=nonce',
+          'GET',
+          null,
+          'combined_status',
+        ),
+        (
+          '/api/hud/operations/combined/parent1',
+          'GET',
+          null,
+          'combined_status',
+        ),
+        (
+          '/api/hud/operations/combined/parent1/cancel',
+          'POST',
+          <String, dynamic>{},
+          'combined_cancel',
+        ),
+      ];
+      for (final route in routes) {
+        final count = channel.sink.sent.length;
+        final pending = transport.send(
+          Uri.parse('${profile.origin}${route.$1}'),
+          route.$2,
+          headers,
+          route.$3,
+        );
+        while (channel.sink.sent.length == count) {
+          await Future<void>.delayed(Duration.zero);
+        }
+        final sent = channel.sink.sent.last;
+        expect(sent['method'], 'n2n/edge/operations/${route.$4}');
+        expect(sent['params']['installation_id'], installation);
+        if (route.$1.contains('/parent1')) {
+          expect(sent['params']['parent_id'], 'parent1');
+        }
+        channel.input.add(
+          jsonEncode({
+            'id': sent['id'],
+            'result': {'parent_id': 'parent1'},
+          }),
+        );
+        expect((await pending).body['parent_id'], 'parent1');
+      }
+      await expectLater(
+        transport.send(
+          Uri.parse(
+            '${profile.origin}/api/hud/operations/combined/parent1/approve',
+          ),
+          'POST',
+          headers,
+          {},
+        ),
+        throwsA(isA<CloudOwnerError>()),
+      );
+      expect(channel.sink.sent.length, 4);
+      advertised['capabilities']['protected_operations']['methods'].add(
+        'n2n/edge/execute',
+      );
+      expect(
+        () => ProtectedDeviceDescriptor.fromBorder(advertised, payload),
+        throwsFormatException,
+      );
     },
   );
   testWidgets(

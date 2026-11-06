@@ -141,6 +141,13 @@ export class OwnerClient {
   async inspectAccess() { if (this.openLab || this.requiredAccess === "open-lab") await this.connect(); else { await this.connect(); if (!this.openLab) await this.inspectSession(); } }
   async catalog(): Promise<Json> { await this.inspectAccess(); return this.request("/api/hud/operations/catalog"); }
   async prepare(body: Json): Promise<Json> { await this.inspectAccess(); return this.request("/api/hud/operations", "POST", body); }
+  async prepareCombined(body: Json): Promise<Json> { await this.inspectAccess(); return this.request("/api/hud/operations/combined", "POST", body); }
+  async combinedStatus(ref: {client_nonce: string; parent_id?: string}): Promise<Json> {
+    if (!ownerIdentifier(ref.client_nonce) || ref.parent_id !== undefined && !ownerIdentifier(ref.parent_id)) throw Error("Combined reference is invalid.");
+    await this.inspectAccess();
+    return this.request(ref.parent_id ? "/api/hud/operations/combined/" + ref.parent_id : "/api/hud/operations/combined?client_nonce=" + encodeURIComponent(ref.client_nonce));
+  }
+  async cancelCombined(id: string): Promise<Json> { if (!ownerIdentifier(id)) throw Error("Combined reference is invalid."); await this.inspectAccess(); return this.request("/api/hud/operations/combined/" + id + "/cancel", "POST", {}); }
   async status(ref: OperationReference): Promise<Json> {
     validReference(ref); await this.inspectAccess();
     return this.request(ref.operation_id ? "/api/hud/operations/" + ref.operation_id : "/api/hud/operations?client_nonce=" + encodeURIComponent(ref.client_nonce));
@@ -185,7 +192,7 @@ export class OwnerClient {
       if (!object(data)) throw Error("Invalid response");
       if (!response.ok) {
         if (response.status === 401 || response.status === 409 && data.code === "installation_changed") await this.forget();
-        const notSubmitted = route === "/api/hud/operations" && method === "POST" && data.admission === "not_submitted";
+        const notSubmitted = ["/api/hud/operations", "/api/hud/operations/combined"].includes(route) && method === "POST" && data.admission === "not_submitted";
         throw new OwnerError(response.status === 401 ? (this.openLab ? "The lab Border refused this request. Check its server mode and recover the same operation." : "Owner session expired or was revoked. Sign in again to recover existing work.") :
           response.status === 409 && data.code === "installation_changed" ? "Border identity changed. Disconnect and review the destination." :
           notSubmitted ? "The review was rejected before submission. Nothing executed." :

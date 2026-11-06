@@ -174,6 +174,14 @@ class OwnerAuthority:
             conn.execute('UPDATE owner_session SET revoked_ms=? WHERE session_hash=?', (self.now(), current['session_hash']))
         return {'revoked': True}
 
+    def authority_expiry(self, context):
+        """Read the server-owned hard session deadline for clipped child plans."""
+        exact(context, 'principal auth_generation session_hash')
+        with self.locked() as conn:
+            active = self._active(conn, context['session_hash'])
+            require(active['principal'] == context['principal'] and active['auth_generation'] == context['auth_generation'], 'foreign_owner_context', 403)
+            return active['expires_ms']
+
     @contextmanager
     def authorize(self, context):
         exact(context, 'principal auth_generation session_hash')

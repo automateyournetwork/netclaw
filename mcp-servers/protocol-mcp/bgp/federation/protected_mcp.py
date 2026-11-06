@@ -20,7 +20,7 @@ COMMON = {'kind', 'tool', 'python', 'python_manifest', 'python_manifest_sha256',
           'selection_sha256', 'skill'}
 NETBOX = {'origin', 'credential_file'}
 SCRIPT = {'netbox': 'src/netbox_mcp_server/server.py',
-          'subnet': 'servers/subnetcalculator_mcp.py'}
+          'subnet': 'servers/subnetcalculator_mcp.py', 'subnet_summary': 'servers/subnetcalculator_mcp.py'}
 
 
 def need(value, code='mcp_binding_refused'):
@@ -106,7 +106,7 @@ def validate_binding(config, *, arguments=None, check_files=True):
     need(isinstance(config, dict) and config.get('kind') in SCRIPT, 'mcp_kind_refused')
     kind = config['kind']
     need(set(config) == COMMON | (NETBOX if kind == 'netbox' else set()), 'mcp_configuration_fields_refused')
-    need(config['tool'] == ('netbox_get_object_by_id' if kind == 'netbox' else 'subnet_calculator'), 'mcp_tool_refused')
+    need(config['tool'] in (('netbox_get_object_by_id',) if kind == 'netbox' else ('subnet_calculator','subnet_calculator_v6') if kind == 'subnet_summary' else ('subnet_calculator',)), 'mcp_tool_refused')
     for name in ('input_schema_sha256','endpoint_sha256','selection_sha256','python_manifest_sha256'): digest(config[name])
     skill = config['skill']
     need(isinstance(skill, dict) and set(skill) == {'path','sha256'}, 'mcp_skill_refused'); digest(skill['sha256'])
@@ -114,6 +114,9 @@ def validate_binding(config, *, arguments=None, check_files=True):
     sources = config['source_sha256']; root = Path(config['source_root'])
     need(root.is_absolute() and root.resolve() == root and isinstance(sources, dict) and 1 <= len(sources) <= 100, 'mcp_source_closure_required')
     need(SCRIPT[kind] in sources, 'mcp_source_closure_required')
+    if kind == 'subnet_summary':
+        from .protected_calculator import SUMMARY_SOURCE_SHA256
+        need(sources == {SCRIPT[kind]: SUMMARY_SOURCE_SHA256}, 'mcp_summary_source_unqualified')
     if kind == 'netbox':
         need({'src/netbox_mcp_server/netbox_client.py','src/netbox_mcp_server/netclaw_http.py','src/netbox_mcp_server/netbox_types.py','src/netbox_mcp_server/config.py'} <= set(sources), 'mcp_source_closure_required')
         origin(config['origin'])
@@ -124,7 +127,7 @@ def validate_binding(config, *, arguments=None, check_files=True):
         relative(name); digest(expected)
         need(name.endswith('.py') and (name.startswith('src/netbox_mcp_server/') if kind == 'netbox' else name.startswith('servers/')), 'mcp_source_path_refused')
     if arguments is not None:
-        validate_tool_arguments(config['tool'], arguments)
+        validate_tool_arguments(config['tool'], arguments, summary=kind == 'subnet_summary')
         need(config['selection_sha256'] == sha({'tool':config['tool'],'arguments':arguments}), 'mcp_selection_changed')
     if check_files:
         validate_python(config)
@@ -215,10 +218,17 @@ async def invoke_mcp(config, arguments, operation_root):
                         if type(output.get('id')) is not int or output.get('id') != arguments['object_id']: raise RuntimeUnknown('mcp_object_identity_changed')
                         if not set(arguments['fields']) <= set(output): raise RuntimeUnknown('mcp_result_fields_missing')
                         output = {name:output[name] for name in arguments['fields']}
+                    native_sha256 = sha(output)
+                    if config['kind'] == 'subnet_summary':
+                        from .protected_calculator import verify_summary
+                        private_write(operation_root/'native-mcp-result.json',canonical(output))
+                        output = verify_summary(config['tool'], arguments, output)
                     private_write(operation_root/'mcp-result.json',canonical(output))
                     result = {'schemaVersion':1,'captured_at_ms':captured_at_ms,'tool':config['tool'],'arguments':arguments,'output':output,
                         'endpoint_sha256':config['endpoint_sha256'],'source_sha256':sha(config['source_sha256']),
                         'skill_sha256':config['skill']['sha256'],'mcp_schema_sha256':config['input_schema_sha256'],'mcp_calls':1}
+                    if config['kind'] == 'subnet_summary':
+                        result.update(native_result_sha256=native_sha256, independent_verification=True)
                     private_write(operation_root/'tool-evidence.json',canonical(result))
                     return result
     except (RuntimeRefused,RuntimeUnknown): raise

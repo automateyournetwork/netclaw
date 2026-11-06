@@ -773,6 +773,12 @@ echo "  Source: https://github.com/automateyournetwork/GeminiCLI_SubnetCalculato
 SUBNET_MCP_DIR="$MCP_DIR/subnet-calculator-mcp"
 clone_or_pull "$SUBNET_MCP_DIR" "https://github.com/automateyournetwork/GeminiCLI_SubnetCalculator_Extension.git"
 
+# R05 summary preparation is explicit. Existing installed/runtime source is never
+# silently rewritten; the helper refuses any unreviewed before/after bytes.
+if [ "${NETCLAW_SUBNET_SUMMARY_PROFILE:-0}" = "1" ]; then
+    python3 "$SCRIPT_DIR/apply-subnet-summary.py" "$SUBNET_MCP_DIR" || return 1
+fi
+
 log_info "Installing Subnet Calculator dependencies..."
 netclaw_pip_install pydantic python-dotenv "fastmcp==4.0.11" "mcp==2.3.0" 2>/dev/null || \
     log_warn "Some Subnet Calculator deps failed"

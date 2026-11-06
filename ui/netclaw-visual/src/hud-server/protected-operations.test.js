@@ -179,7 +179,7 @@ test('private descriptor validates file ownership/mode/symlinks and contains no 
 test('bridge allows fixed methods only, bounds responses and rejects descriptor rotation', async t => {
   let behavior = 'good';
   const app = express(); app.use(express.json()); app.post('/operator', (req, res) => {
-    assert.equal(req.headers.authorization, 'Bearer private-fixture'); assert.equal(req.body.method, 'catalog');
+    assert.equal(req.headers.authorization, 'Bearer private-fixture'); assert.ok(['catalog', 'combined_prepare', 'combined_status', 'combined_cancel'].includes(req.body.method));
     if (behavior === 'large') return res.send('x'.repeat(1024 * 1024 + 1));
     if (behavior === 'error') return res.status(503).json({ ok: false, error: { code: 'unavailable', message: 'private-exception' } });
     if (behavior === 'rotate') binding = { ...binding, generation: 2 };
@@ -190,5 +190,25 @@ test('bridge allows fixed methods only, bounds responses and rejects descriptor 
   const client = createProtectedClient({ installationId: ID }, { readDescriptor: () => binding });
   await assert.rejects(client.call('arbitrary', {}), error => error.code === 'invalid_method');
   assert.deepEqual(await client.call('catalog', {}), { revision: 'r1', members: [] });
+  for (const method of ['combined_prepare', 'combined_status', 'combined_cancel']) assert.deepEqual(await client.call(method, {}), { revision: 'r1', members: [] });
   for (behavior of ['error', 'large', 'rotate']) await assert.rejects(client.call('catalog', {}), error => error.status === 503 && !error.message.includes('private-exception'));
+});
+
+test('combined endpoints are fixed authenticated routes with exactly two ordered children', async t => {
+  const f = await fixture(t), body = { client_nonce: 'combined-nonce', children: [4,6].map(family => ({ family, member_id: `risk/member${family}`, profile_revision: `profile${family}`, cidr: family === 4 ? '192.0.2.0/26' : '2001:db8::/64' })) };
+  const route = '/api/hud/operations/combined';
+  for (const bad of [{...body, decision:'approve'}, {...body, children:body.children.slice(0,1)}, {...body,children:[...body.children].reverse()}, {...body,children:body.children.map(c=>({...c,arguments:{}}))}]) {
+    const response=await f.request(route,'POST',bad); assert.equal(response.status,400);assert.equal((await response.json()).admission,'not_submitted');
+  }
+  assert.equal(f.calls.some(c=>c.method==='combined_prepare'),false);
+  assert.equal((await f.request(route,'POST',body,{'X-NetClaw-CSRF':'wrong'})).status,403);
+  assert.equal((await f.request(route,'POST',body)).status,200);
+  assert.equal((await f.request(route+'?client_nonce=combined-nonce')).status,200);
+  assert.equal((await f.request(route+'/parent1')).status,200);
+  assert.equal((await f.request(route+'/parent1/cancel','POST',{})).status,200);
+  assert.equal((await f.request(route+'/parent1/cancel','POST',{decision:'approve'})).status,400);
+  assert.equal((await f.request(route+'/parent1/approve','POST',{})).status,404);
+  assert.deepEqual(f.calls.filter(c=>!c.method.startsWith('owner.')).map(c=>c.method),['combined_prepare','combined_status','combined_status','combined_cancel']);
+  f.state.hook=()=>{throw new ProtectedError('invalid_argument',400);};
+  const response=await f.request(route,'POST',body);assert.equal((await response.json()).admission,undefined);
 });

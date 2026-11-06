@@ -118,6 +118,12 @@ class InferenceFence:
         return self.db.execute("SELECT COUNT(*) FROM protected_inference WHERE operation_id=?",
                                (operation_id,)).fetchone()[0]
 
+    def first_response(self, operation_id):
+        row = self.db.execute("SELECT state,response_json FROM protected_inference WHERE operation_id=? AND ordinal=1", (operation_id,)).fetchone()
+        if row is None: return None
+        if row[0] != 'finished' or row[1] is None: raise RuntimeUnknown('inference_outcome_unknown')
+        return json.loads(row[1])
+
     def final_answer(self, operation_id):
         rows = self.db.execute("SELECT state,response_json FROM protected_inference WHERE operation_id=? ORDER BY ordinal",
                                (operation_id,)).fetchall()
@@ -137,6 +143,17 @@ class InferenceFence:
             raise RuntimeRefused("guarded_summary_invalid")
         return message["content"]
 
+    def usage(self, operation_id):
+        rows = self.db.execute("SELECT state,response_json FROM protected_inference WHERE operation_id=? ORDER BY ordinal", (operation_id,)).fetchall()
+        if len(rows) != 2 or any(state != 'finished' or response is None for state, response in rows):
+            raise RuntimeUnknown('inference_usage_unavailable')
+        receipts = [json.loads(response).get('usage', {}) for _, response in rows]
+        for receipt in receipts:
+            if (any(type(receipt.get(key)) is not int or receipt[key] < 0 for key in ('prompt_tokens', 'completion_tokens', 'total_tokens'))
+                    or receipt['total_tokens'] <= 0 or receipt['prompt_tokens'] + receipt['completion_tokens'] != receipt['total_tokens']):
+                raise RuntimeUnknown('inference_usage_unavailable')
+        return {key: sum(row[key] for row in receipts) for key in ('prompt_tokens', 'completion_tokens', 'total_tokens')}
+
     def close(self):
         self.db.close()
 
@@ -144,9 +161,10 @@ class InferenceFence:
 class ScopedInference:
     """No routing/authentication header from the agent reaches DefenseClaw."""
     def __init__(self, payload, token, fence, forward, *, tool_finished=lambda: False,
-                 clock_ms=lambda: int(time.time() * 1000)):
+                 clock_ms=lambda: int(time.time() * 1000), request_adapter=None, response_validator=None, runner_latch=None):
         self.payload, self.token, self.fence, self.forward = payload, token, fence, forward
         self.tool_finished, self.clock_ms = tool_finished, clock_ms
+        self.request_adapter, self.response_validator, self.runner_latch = request_adapter, response_validator, runner_latch
 
     async def invoke(self, method, path, headers, body):
         if method != "POST" or path != "/v1/chat/completions":
@@ -181,8 +199,17 @@ class ScopedInference:
         if type(maximum) is not int or not 1 <= maximum <= 4096:
             raise RuntimeRefused("inference_token_limit_refused")
         request["max_tokens"] = maximum
+        if self.request_adapter is not None:
+            if any(key.lower().startswith('x-dc-') for key in headers):
+                raise RuntimeRefused('caller_guard_routing_header_refused')
+            try: request = self.request_adapter(request)
+            except ValueError as exc: raise RuntimeRefused(getattr(exc, 'code', 'inference_profile_refused')) from None
         ordinal = self.fence.claim(self.payload["operation_id"], request,
                                    tool_finished=self.tool_finished())
+        reservation = None
+        if self.runner_latch is not None:
+            try: reservation = self.runner_latch.begin(self.payload['operation_id'], sha(request))
+            except ValueError as exc: raise RuntimeRefused(getattr(exc, 'code', 'runner_recovery_required')) from None
         try:
             # Only the fixed trusted callback supplies guard URL and credential.
             remaining = (self.payload["limits"]["expires_at_ms"] - self.clock_ms()) / 1000
@@ -190,9 +217,15 @@ class ScopedInference:
                 response = await self.forward(request)
             if not isinstance(response, dict) or len(canonical(response)) > 1024 * 1024:
                 raise RuntimeUnknown("inference_response_bound")
+            if self.response_validator is not None:
+                response = self.response_validator(response, ordinal)
             self.fence.finish(self.payload["operation_id"], ordinal, response)
+            if reservation is not None: self.runner_latch.complete(reservation)
             return response
         except BaseException as exc:
+            if reservation is not None:
+                try: self.runner_latch.uncertain(reservation)
+                except Exception: pass  # A failed durable transition stays non-idle; never release it.
             raise RuntimeUnknown("inference_outcome_unknown") from exc
 
 

@@ -12,7 +12,8 @@ from .protected_contract import exact, require, uuid_field, ProtectedError
 TTL_SECONDS = 120
 WS_PATH = '/mobile/ws'
 MOBILE_METHODS = tuple('n2n/edge/operations/' + action for action in
-                       ('catalog', 'prepare', 'status', 'decision', 'reconcile'))
+                       ('catalog', 'prepare', 'status', 'decision', 'reconcile',
+                        'combined_prepare', 'combined_status', 'combined_cancel'))
 
 
 def endpoint(service):

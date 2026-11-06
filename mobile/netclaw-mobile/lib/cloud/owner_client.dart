@@ -256,6 +256,8 @@ class CloudOwnerClient {
   final OwnerTransport transport;
   final DateTime Function() now;
   Json? session, catalog, operation, reference;
+  Json? combined, combinedReference;
+  bool combinedUncertain = false;
   Json? _labPrincipal;
   Json? _devicePrincipal;
   final Json? expectedDevicePrincipal;
@@ -396,6 +398,8 @@ class CloudOwnerClient {
           _devicePrincipal = null;
           catalog = null;
           operation = null;
+          combined = null;
+          combinedUncertain = combinedReference != null;
           uncertain = reference != null;
           throw CloudOwnerError(
             result.body['code'] == 'installation_changed'
@@ -412,7 +416,10 @@ class CloudOwnerClient {
         );
       }
       if (method == 'POST' &&
-          path == '/api/hud/operations' &&
+          [
+            '/api/hud/operations',
+            '/api/hud/operations/combined',
+          ].contains(path) &&
           result.body['admission'] == 'not_submitted') {
         throw const CloudOwnerError('not_submitted', notSubmitted: true);
       }
@@ -450,6 +457,8 @@ class CloudOwnerClient {
     _cookie = null;
     catalog = null;
     operation = null;
+    combined = null;
+    combinedUncertain = combinedReference != null;
     final savedReference = await store.reference(profile);
     _current(generation);
     reference = savedReference;
@@ -498,6 +507,8 @@ class CloudOwnerClient {
     _cookie = null;
     catalog = null;
     operation = null;
+    combined = null;
+    combinedUncertain = combinedReference != null;
     notSubmitted = false;
     uncertain = reference != null;
   }
@@ -582,6 +593,7 @@ class CloudOwnerClient {
                 'pyats_run_show_command',
                 'netbox_get_object_by_id',
                 'subnet_calculator',
+                'subnet_calculator_v6',
               ].contains(tool['tool']) ||
               tool['arguments'] is! Json) {
             throw const CloudOwnerError('invalid_response');
@@ -593,6 +605,18 @@ class CloudOwnerClient {
       throw const CloudOwnerError('invalid_response');
     }
     if (reference != null && !notSubmitted) await _status();
+    final generation = _generation;
+    final savedCombined = await _readCombinedReference();
+    _current(generation);
+    _requireAccess();
+    combinedReference = savedCombined;
+    combinedUncertain =
+        combinedReference != null &&
+        combinedReference!['not_submitted'] != true;
+    if (combinedReference != null &&
+        combinedReference!['not_submitted'] != true) {
+      await _combinedStatus();
+    }
   }
 
   Future<void> _retainOperation(
@@ -646,7 +670,9 @@ class CloudOwnerClient {
       _exclusive(() async {
         final generation = _generation;
         _requireAccess();
-        if (reference != null || await store.reference(profile) != null) {
+        if (combinedReference != null ||
+            reference != null ||
+            await store.reference(profile) != null) {
           throw const CloudOwnerError('reference_required');
         }
         _current(generation);
@@ -664,6 +690,8 @@ class CloudOwnerClient {
         _current(generation);
         reference = ref;
         operation = null;
+        combined = null;
+        combinedUncertain = combinedReference != null;
         uncertain = true;
         notSubmitted = false;
         try {
@@ -801,8 +829,369 @@ class CloudOwnerClient {
       await store.saveReference(profile, null);
       reference = null;
       operation = null;
+      combined = null;
+      combinedUncertain = combinedReference != null;
       uncertain = false;
       notSubmitted = false;
+    });
+  }
+
+  String get _combinedKey {
+    _requireAccess();
+    return 'combined.${profile.key}.${principal!['issuer']}.${principal!['subject']}';
+  }
+
+  Json _validCombinedReference(dynamic value) {
+    final ref = _map(value);
+    if (!_id(ref['client_nonce']) ||
+        ref.keys.any(
+          (k) => ![
+            'client_nonce',
+            'parent_id',
+            'children',
+            'cancel_sent',
+            'not_submitted',
+          ].contains(k),
+        ) ||
+        ref.containsKey('parent_id') && !_id(ref['parent_id']) ||
+        ref.containsKey('cancel_sent') &&
+            (ref['cancel_sent'] != true || ref['parent_id'] == null) ||
+        ref.containsKey('not_submitted') &&
+            (ref['not_submitted'] != true ||
+                ref['parent_id'] != null ||
+                ref['children'] != null ||
+                ref['cancel_sent'] != null)) {
+      throw const CloudOwnerError('storage_invalid');
+    }
+    final children = ref['children'];
+    if (ref['parent_id'] != null && children == null ||
+        children != null &&
+            (ref['parent_id'] == null ||
+                children is! List ||
+                children.length != 2 ||
+                children.any(
+                  (c) =>
+                      c is! Json ||
+                      !_id(c['operation_id']) ||
+                      c.keys.any(
+                        (k) => !['operation_id', 'decision_sent'].contains(k),
+                      ) ||
+                      c.containsKey('decision_sent') &&
+                          c['decision_sent'] != true,
+                ) ||
+                children[0]['operation_id'] == children[1]['operation_id'])) {
+      throw const CloudOwnerError('storage_invalid');
+    }
+    return ref;
+  }
+
+  Future<Json?> _readCombinedReference() async {
+    final raw = await store.read(_combinedKey);
+    if (raw == null) return null;
+    if (raw.length > 2048) throw const CloudOwnerError('storage_invalid');
+    try {
+      return _validCombinedReference(jsonDecode(raw));
+    } catch (_) {
+      throw const CloudOwnerError('storage_invalid');
+    }
+  }
+
+  Future<void> _saveCombinedReference(Json value) async {
+    final generation = _generation,
+        ref = _validCombinedReference(value),
+        old = combinedReference;
+    if (old != null &&
+        (old['client_nonce'] != ref['client_nonce'] ||
+            old['parent_id'] != null && old['parent_id'] != ref['parent_id'] ||
+            old['cancel_sent'] == true && ref['cancel_sent'] != true ||
+            old['children'] is List &&
+                [0, 1].any(
+                  (i) =>
+                      old['children'][i]['operation_id'] !=
+                          ref['children']?[i]['operation_id'] ||
+                      old['children'][i]['decision_sent'] == true &&
+                          ref['children'][i]['decision_sent'] != true,
+                ))) {
+      throw const CloudOwnerError('identity_changed');
+    }
+    await store.write(_combinedKey, jsonEncode(ref));
+    _current(generation);
+    _requireAccess();
+    combinedReference = ref;
+  }
+
+  Map<int, List<Json>> combinedChoices() {
+    final choices = <int, List<Json>>{4: [], 6: []};
+    if (catalog?['capabilities'] is! List ||
+        !(catalog!['capabilities'] as List).contains(
+          'calculator_combined_v1',
+        )) {
+      return choices;
+    }
+    for (final member in catalog!['members']) {
+      for (final family in [4, 6]) {
+        for (final model in member['model_profiles']) {
+          if (model['profile_id'] != 'ollama-cpu-ipv$family' ||
+              model['provider'] != 'ollama' ||
+              !_id(model['profile_revision'])) {
+            continue;
+          }
+          for (final tool in member['tools']) {
+            if (tool['tool'] !=
+                    (family == 4
+                        ? 'subnet_calculator'
+                        : 'subnet_calculator_v6') ||
+                tool['arguments'] is! Json ||
+                tool['arguments'].length != 1 ||
+                tool['arguments']['cidr'] is! String ||
+                (tool['arguments']['cidr'] as String).length > 100) {
+              continue;
+            }
+            choices[family]!.add({
+              'family': family,
+              'member_id': member['member']['member_id'],
+              'profile_revision': model['profile_revision'],
+              'cidr': tool['arguments']['cidr'],
+            });
+            if (choices[family]!.length > 100) {
+              throw const CloudOwnerError('invalid_response');
+            }
+          }
+        }
+      }
+    }
+    return choices;
+  }
+
+  Future<void> _retainCombined(Json value) async {
+    _requireAccess();
+    final ref = combinedReference, children = value['children'];
+    if (ref == null ||
+        value['schemaVersion'] != 1 ||
+        !_id(value['parent_id']) ||
+        value['client_nonce'] != ref['client_nonce'] ||
+        ref['parent_id'] != null && ref['parent_id'] != value['parent_id'] ||
+        value['expires_at_ms'] is! int ||
+        ![
+          'awaiting_decisions',
+          'running',
+          'complete',
+          'partial',
+          'failed',
+          'cancelled',
+          'unknown',
+        ].contains(value['state']) ||
+        children is! List ||
+        children.length != 2) {
+      throw const CloudOwnerError('invalid_response');
+    }
+    for (final i in [0, 1]) {
+      final c = _map(children[i]), r = c['review'];
+      if (c['index'] != i ||
+          c['family'] != [4, 6][i] ||
+          !_id(c['operation_id']) ||
+          !_id(c['client_nonce']) ||
+          ref['children'] != null &&
+              ref['children'][i]['operation_id'] != c['operation_id'] ||
+          c['revision'] is! int ||
+          !_digest(c['review_digest']) ||
+          r is! Json ||
+          r['border']?['installation_id'] != profile.installationId ||
+          !_samePrincipal(r['principal'], principal) ||
+          [
+            'member',
+            'model_profile',
+            'tool_call',
+            'limits',
+          ].any((k) => r[k] is! Json) ||
+          c['allowed_actions'] is! List) {
+        throw const CloudOwnerError('identity_changed');
+      }
+    }
+    if (children[0]['operation_id'] == children[1]['operation_id']) {
+      throw const CloudOwnerError('invalid_response');
+    }
+    await _saveCombinedReference({
+      ...ref,
+      'parent_id': value['parent_id'],
+      'children': [
+        for (final i in [0, 1])
+          {
+            'operation_id': children[i]['operation_id'],
+            if (ref['children']?[i]['decision_sent'] == true)
+              'decision_sent': true,
+          },
+      ],
+    });
+    combined = value;
+    combinedUncertain = false;
+  }
+
+  Future<void> prepareCombined(List<Json> children) => _exclusive(() async {
+    _requireAccess();
+    final generation = _generation;
+    if (reference != null ||
+        combinedReference != null ||
+        await _readCombinedReference() != null) {
+      throw const CloudOwnerError('reference_required');
+    }
+    _current(generation);
+    final choices = combinedChoices();
+    if (children.length != 2 ||
+        [0, 1].any(
+          (i) =>
+              children[i]['family'] != [4, 6][i] ||
+              !choices[[4, 6][i]]!.any(
+                (v) =>
+                    v.length == children[i].length &&
+                    v.keys.every((k) => v[k] == children[i][k]),
+              ),
+        )) {
+      throw const CloudOwnerError('review_unavailable');
+    }
+    final nonce = base64Url
+        .encode(List.generate(32, (_) => Random.secure().nextInt(256)))
+        .replaceAll('=', '');
+    final ref = <String, dynamic>{'client_nonce': nonce};
+    await _saveCombinedReference(ref);
+    combinedUncertain = true;
+    try {
+      await _retainCombined(
+        (await _request(
+          '/api/hud/operations/combined',
+          method: 'POST',
+          body: {'client_nonce': nonce, 'children': children},
+        )).body,
+      );
+    } on CloudOwnerError catch (error) {
+      if (error.notSubmitted) {
+        await _saveCombinedReference({...ref, 'not_submitted': true});
+        combinedUncertain = false;
+      }
+      rethrow;
+    }
+  });
+
+  Future<void> _combinedStatus() async {
+    _requireAccess();
+    final ref = combinedReference;
+    if (ref == null || ref['not_submitted'] == true) {
+      throw const CloudOwnerError('reference_required');
+    }
+    combinedUncertain = true;
+    final suffix = ref['parent_id'] != null
+        ? '/${Uri.encodeComponent(ref['parent_id'])}'
+        : '?client_nonce=${Uri.encodeQueryComponent(ref['client_nonce'])}';
+    await _retainCombined(
+      (await _request('/api/hud/operations/combined$suffix')).body,
+    );
+  }
+
+  Future<void> combinedStatus() => _exclusive(_combinedStatus);
+
+  bool canDecideCombined(int index, String decision) {
+    if (![0, 1].contains(index) ||
+        !operationsReady ||
+        busy ||
+        combinedUncertain ||
+        combined == null ||
+        combinedReference?['cancel_sent'] == true ||
+        combinedReference?['children']?[index]['decision_sent'] == true) {
+      return false;
+    }
+    final c = combined!['children'][index],
+        expiry = c['review']['limits']['expires_at_ms'];
+    return c['state'] == 'review_pending' &&
+        ['approve', 'deny'].contains(decision) &&
+        (c['allowed_actions'] as List).contains(decision) &&
+        (decision != 'approve' ||
+            expiry is int &&
+                expiry > now().millisecondsSinceEpoch &&
+                combined!['expires_at_ms'] > now().millisecondsSinceEpoch);
+  }
+
+  Future<void> decideCombined(
+    int index,
+    String decision, {
+    required int revision,
+    required String reviewDigest,
+  }) async {
+    if (!canDecideCombined(index, decision)) {
+      throw const CloudOwnerError('review_unavailable');
+    }
+    await _exclusive(() async {
+      await _combinedStatus();
+      final c = combined!['children'][index];
+      if (c['revision'] != revision ||
+          c['review_digest'] != reviewDigest ||
+          !(c['allowed_actions'] as List).contains(decision) ||
+          combinedReference!['children'][index]['decision_sent'] == true ||
+          combinedReference!['cancel_sent'] == true ||
+          c['state'] != 'review_pending' ||
+          decision == 'approve' &&
+              (c['review']['limits']['expires_at_ms'] <=
+                      now().millisecondsSinceEpoch ||
+                  combined!['expires_at_ms'] <= now().millisecondsSinceEpoch)) {
+        throw const CloudOwnerError('review_unavailable');
+      }
+      final marked = _map(jsonDecode(jsonEncode(combinedReference)));
+      marked['children'][index]['decision_sent'] = true;
+      await _saveCombinedReference(marked);
+      combinedUncertain = true;
+      await _request(
+        '/api/hud/operations/${Uri.encodeComponent(c['operation_id'])}/decision',
+        method: 'POST',
+        body: {
+          'revision': revision,
+          'review_digest': reviewDigest,
+          'decision': decision,
+        },
+      );
+      await _combinedStatus();
+    });
+  }
+
+  Future<void> cancelCombined() => _exclusive(() async {
+    final ref = combinedReference;
+    if (ref?['parent_id'] == null || ref?['cancel_sent'] == true) {
+      throw const CloudOwnerError('reference_required');
+    }
+    await _saveCombinedReference({...ref!, 'cancel_sent': true});
+    combinedUncertain = true;
+    await _request(
+      '/api/hud/operations/combined/${Uri.encodeComponent(ref['parent_id'])}/cancel',
+      method: 'POST',
+      body: {},
+    );
+    await _combinedStatus();
+  });
+  bool get canRemoveCombined =>
+      !busy &&
+      !combinedUncertain &&
+      combinedReference != null &&
+      (combinedReference!['not_submitted'] == true ||
+          combined != null &&
+              [
+                'complete',
+                'partial',
+                'failed',
+                'cancelled',
+              ].contains(combined!['state']) &&
+              (combined!['children'] as List).every(
+                (c) =>
+                    c['reconciliation_required'] == false &&
+                    (c['may_have_executed'] != true ||
+                        c['result']?['verified'] == true &&
+                            c['result']?['durable_ack'] == true &&
+                            c['result']?['ack_delivery_pending'] == false),
+              ));
+  Future<void> removeCombinedReference() async {
+    if (!canRemoveCombined) throw const CloudOwnerError('reference_required');
+    await _exclusive(() async {
+      await store.write(_combinedKey, null);
+      combinedReference = null;
+      combined = null;
+      combinedUncertain = false;
     });
   }
 }

@@ -26,7 +26,7 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     }
     if (!response.ok) {
       if (response.status === 401 || response.status === 409 && value.code === 'installation_changed') { csrf = null; onSessionLost(); }
-      const prepareNotSubmitted = path === '/api/hud/operations' && method === 'POST' && value.admission === 'not_submitted';
+      const prepareNotSubmitted = ['/api/hud/operations', '/api/hud/operations/combined'].includes(path) && method === 'POST' && value.admission === 'not_submitted';
       const message = prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 && !openLab ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check the configured HUD origin and access mode.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.';
       throw Object.assign(Error(message), { status: response.status, code: value.code, uncertain: response.status >= 500, prepareNotSubmitted });
     }
@@ -44,6 +44,9 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     logout: async () => { try { return await request('/api/hud/owner/session', 'DELETE', {}); } finally { csrf = null; onSessionLost(); } },
     forget: () => { csrf = null; },
     catalog: () => request('/api/hud/operations/catalog'),
+    prepareCombined: body => request('/api/hud/operations/combined', 'POST', body),
+    combinedStatus: ref => request(ref.parent_id ? '/api/hud/operations/combined/' + encodeURIComponent(ref.parent_id) : '/api/hud/operations/combined?client_nonce=' + encodeURIComponent(ref.client_nonce)),
+    cancelCombined: id => request('/api/hud/operations/combined/' + encodeURIComponent(id) + '/cancel', 'POST', {}),
     prepare: body => request('/api/hud/operations', 'POST', body),
     status: record => request(record.operation_id ? '/api/hud/operations/' + encodeURIComponent(record.operation_id) : '/api/hud/operations?client_nonce=' + encodeURIComponent(record.client_nonce)),
     decision: (id, body) => request('/api/hud/operations/' + encodeURIComponent(id) + '/decision', 'POST', body),

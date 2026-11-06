@@ -37,7 +37,7 @@ def materialize(*, kind, python, source, skill, arguments, input_schema, output,
     source=Path(source).absolute();skill=Path(skill).absolute()
     source_files={str(p.relative_to(source)):hashlib.sha256(source_bytes(str(p))).hexdigest()
                   for p in source.rglob('*') if p.is_file() or p.is_symlink()}
-    tool='netbox_get_object_by_id' if kind=='netbox' else 'subnet_calculator'
+    tool='netbox_get_object_by_id' if kind=='netbox' else ('subnet_calculator_v6' if kind=='subnet_summary' and ':' in str(arguments.get('cidr','')) else 'subnet_calculator')
     result={'kind':kind,'tool':tool,'python':str(python),'python_manifest':str(manifest_path),
         'python_manifest_sha256':sha(manifest),'source_root':str(source),'source_sha256':source_files,
         'input_schema_sha256':sha(input_schema),'selection_sha256':sha({'tool':tool,'arguments':arguments}),

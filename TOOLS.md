@@ -1434,3 +1434,83 @@ were removed. Baseline101containers/50networks, all4operation rows and source
 evidence are preserved. The owned simulator is shut down with profiles retained.
 The usable pilot/member keep their existing December1scope. Full stop before R05
 remains explicit; neither release nor acceptance starts another spec.
+
+
+### R05 source inspection lessons — 2026-11-05
+
+The local ignored `mcp-servers/subnet-calculator-mcp` clone at
+`5178da6f83ebd894fa7331a62e1087ec9550751b` exposes only IPv4, despite the skill
+listing IPv6. Its preview comprehension scans the whole network, `list(network)`
+materializes it repeatedly, neighbor arithmetic can overflow, and `/31,/32`
+host accounting uses N−2. Do not broaden protected inputs or infer IPv6 readiness
+from skill prose. Spec176 T006 requires corrected source/patch provenance and
+actual native MCP tests. Existing narrow R04 history is preserved; no source or
+runtime in that ignored clone was changed during planning.
+
+Thermidor's final working Spec004 solution lives in sibling `thermidor/`:
+Ollama0.40.11/Qwen3:0.6b Q4_K_M, calculator-v4, trusted reasoning_effort=none,
+compact single-text MCP output, swap-disabled1536MiB agent/2048MiB model,
+local2CPU60s/30s-retention and cloud1CPU120s/120s-retention,180s tasks. Its durable
+provider latch is runner-wide: new operation IDs cannot evade unknown state.
+Reference bytes/tests and historical limits are in Spec176 research/manifest.
+
+GAIT works through `/Users/john.capobianco/gait_mcp/venv/bin/python` with
+`scripts/gait-stdio.py`; the default Python missing gait does not prove GAIT is
+unavailable. Create then explicitly checkout the session branch. Startup pyATS
+HTTP runtime and MemPalace source remained unavailable in this source-only session.
+
+### R05 local qualification preparation (2026-11-05)
+
+NetClaw Spec176 uses existing iN2N and fresh Ollama members, no Tailscale or
+Thermidor runtime. Host UID observed503. Docker29.9.2 internal bridges do not
+publish requested host ports; use the qualified private guard path. Official
+Ollama0.40.11 CPU extraction needs glibc2.38; the final reference's pinned Trixie
+base starts successfully, while Bookworm failed before inference. Actual model
+operations/client/cloud acceptance remain open in Spec176 verification.
+
+
+### R05 actual member findings (2026-11-05)
+
+Intended ARM64 IPv4 and AMD64 IPv6 NetClaw/Ollama members completed a combined
+browser request over existing strict iN2N, with two model calls and one native
+MCP each, signed results and durable ACKs. Exact native calculator facts are
+authoritative:192.0.2.0/26 has64total/62usable; the small model's64usable prose
+is retained explicitly unverified. Both actual model cgroups enforce2GiB/no swap;
+noOOM and eventual unload observed. The Mac's existing host loopback Ollama
+PID1460 is unrelated to the isolated R05 Docker model and remains untouched.
+
+The private R05 host guard's connection-state allowance must run after conntrack:
+output priority-150, forward-300 unchanged. The initial private-300output hook
+blocked IAP replies after baseline activation; a reviewed native reproduction
+and exact repair restored it. Historical R04 source uses a different quota
+policy without that allowance; do not blindly change or replay retired payloads.
+R05 cloud member maximum retention ends2026-11-07T19:41:25Z; full disk/IP cleanup
+is separate from the independent VM STOP. Current evidence and remaining client/
+recovery qualification are in specs/176-ollama-members/verification.md.
+
+Actual Mobile approval expiry can leave a signed failed operation alongside an
+uncertain provider reservation. Preserve both: a failed result does not release
+the runner fence. Recovery must verify the original owned processes stopped,
+reattest the restarted model and durably rebind its changed profile using the
+existing latch/history. Docker may regenerate internal DNS NAT ports on restart;
+retain the full before/after rulesets and verify the unchanged NetClaw table.
+The private recovery writer also showed that os.open's requested file mode is
+masked by umask077: restoring source readability requires the exact original
+mode, while member-private metadata remains0600. Do not replay completed recovery
+steps after a later helper failure. Spec176 verification retains each outcome.
+
+R05 actual qualification and final disposable cleanup are complete as of
+2026-11-06; the owner accepted the scope and authorized source integration. Both intended NetClaw/Ollama members
+retain their approved window. The cloud protected profile after verified recovery
+is5129e410a4b41845a9451c4c7cb2a019228f586d5db00977bda05a1edecd5f16,
+with runtime revision8b3723c6d0df9397d84004c40f3086c1711f543832949ea1a9db1721a16f7798.
+The current cleanup execution manifest is5b6a39412c4d02f8ab9ad3923af9768eef34eddc62cd281820a13f41b7d201ec.
+Actual Docker missing-name inspection emits lowercase `no such object`; absence
+matching must normalize case while still refusing daemon, authorization and timeout
+errors. The exact one-line correction and negative fixtures are privately sealed.
+Earlier profile/source/PID/current-handoff snapshots are historical; use the final
+private current-state pointers and Spec176 verification. Native browser/editor/
+simulator recovery sent no new decisions and preserved original unknown outcomes.
+Final34-container/11-network removal preserved both models and canonical peers;
+initial cloud strict-inspection refusal remains without an established cause,
+and only7 untouched IDs/4 networks were continued after6 confirmed removals.

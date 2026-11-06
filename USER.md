@@ -8,6 +8,16 @@
 
 ## Preferences
 
+- R05 closeout (2026-11-06): finish the accepted Spec176, commit/push/PR/merge,
+  return to clean main and state when /clear is safe. Preserve roadmap order:
+  R06 external federation, R07 recovery gate, R08 Border HA, R09 three-region
+  GCP mesh, R10 Azure single region. Lookahead does not start the next stage.
+
+- R05 direction (2026-11-05): use SDD for Spec176 and heavily reuse sibling
+  Thermidor's actual working solution, tests, final outcomes and lessons. Confirm
+  the approach first, then create the branch/spec artifacts. Keep the work focused;
+  avoid redesigning proven behavior or repeating solved investigations.
+
 - R04a correction (2026-11-04): a disposable qualification deployment is not a
   completed client integration. John needs his installed VS Code connected to a
   persistent usable GCP Border, with the URL and sign-in ready for him. He
@@ -319,3 +329,10 @@ were removed. Baseline101containers/50networks, all4operation rows and source
 evidence are preserved. The owned simulator is shut down with profiles retained.
 The usable pilot/member keep their existing December1scope. Full stop before R05
 remains explicit; neither release nor acceptance starts another spec.
+
+
+R05 owner clarification (2026-11-05): this is NetClaw with NetClaw members using
+Ollama over existing NetClaw iN2N, no Tailscale. Thermidor provides proven patterns,
+tests and lessons only; do not deploy/import the Thermidor product/runtime or
+introduce its transport, identities, authority or lifecycle. Final model/guard
+images and source are NetClaw-owned, with official pinned public Ollama/model bytes.
