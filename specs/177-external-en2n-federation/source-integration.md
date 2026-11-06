@@ -33,10 +33,30 @@ provider/cloud/native-client evidence is separate from these source tests.
 
 Integration adds `cloud-r06` to the contract-suite manifest so its22offline
 plan/host/retirement tests run in CI. This closes the declaration gap for the new
-test family; no live cloud execution runs in CI. The complete tracked candidate
-will run the SDD artifact, FastMCP/task adoption, six-surface reconciliation,
-catalog coverage and suite-inventory gates. PR checks must pass before merge;
-results will be recorded here as they complete.
+test family; no live cloud execution runs in CI. Clean tracked candidate `51e156fc` passed the SDD artifact gate (165 specs,
+4 historical exceptions), FastMCP/task adoption, all six reconciliation surfaces,
+catalog coverage and suite inventory (36 total suites,33 CI suites). The new
+cloud-r06 suite also passed through the canonical runner with isolated dependencies.
+New maintainer-document links and the complete staged whitespace check passed.
+PR checks must pass before merge; GitHub retains the final check outcomes.
+
+Commands run on the clean tracked candidate:
+
+```sh
+python3 scripts/verify-spec-artifacts.py
+python3 scripts/check-fastmcp-compat.py
+python3 scripts/check-mcp-tasks.py
+python3 scripts/reconcile-mcp.py --surface catalog --surface dependencies --surface docs --surface meraki-ids --surface packages --surface portability
+python3 scripts/verify-catalog-coverage.py
+python3 scripts/run-contract-tests.py --list
+python3 scripts/run-contract-tests.py --matrix
+```
+
+Canonical isolated suite execution in the working checkout:
+`python3 scripts/run-contract-tests.py --suite cloud-r06 --prepare`.
+No unchanged live workload was replayed for source integration. Startup pyATS
+inventory remained unavailable because its selected HTTP runtime is missing;
+MemPalace source is absent. GAIT and file memory retain this source-only session.
 
 ## Retained runtime and release boundary
 
