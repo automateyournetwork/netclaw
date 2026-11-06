@@ -1,5 +1,7 @@
 # R06 acceptance and source integration
 
+Source PR: [#333](https://github.com/automateyournetwork/netclaw/pull/333).
+
 The owner accepted completed R06/Spec177 on2026-11-06 and explicitly requested
 commit, PR, merge, completed-branch deletion and return to main. All35technical
 SDD tasks are complete. This supersedes the earlier R06 source-integration hold;
