@@ -2,7 +2,7 @@
 
 **Feature Branch**: `178-recovery-gate`  
 **Created**: 2026-11-06  
-**Status**: Specified; implementation and actual acceptance pending  
+**Status**: Technical qualification complete; human timing/roadmap acceptance pending
 **Input**: “Start Spec 178 / R07 using the saved handoff.” / “drive to 100%”
 
 Complete the recovery gate before R08 authority or R09 regional failure work.
@@ -121,8 +121,11 @@ simulator flows, including Mobile foreground/background and cold recovery.
   with revision checks; reject changed identity and preserve the prior binding.
 - **FR-004**: Fail closed on network/address loss with an observable cause and
   no automatic weaker-transport fallback.
-- **FR-005**: Refuse revoked members, keys and certificates on reconnect and
-  prohibit new admission immediately after revocation on existing channels.
+- **FR-005**: Refuse revoked member enrollment, pinned application keys and
+  application certificates on reconnect and prohibit new admission immediately
+  after revocation on existing channels. Transport TLS certificates retain handshake
+  validation; external CRL/OCSP and continuous TLS-leaf expiry monitoring are not
+  introduced by this recovery gate.
 - **FR-006**: Refuse provider outage at the existing guard; retain uncertain
   provider outcomes and prevent new references from bypassing that uncertainty.
 - **FR-007**: Reconcile lost replies/acknowledgements by original reference with

@@ -32,3 +32,18 @@ command succeeded. Separate authorized refinements resolved these findings:
 findings or constitution waivers. Dependencies and parallel file ownership are
 explicit. Human acceptance and future cleanup are not assumed complete. Proceed
 within authorized source and isolated local scope after the T007 record.
+
+## Final integration review
+
+All four source commits were compared file-by-file with the integrated tree:
+8 runtime,1 pending-Border test,19 HUD/editor and15 Mobile files match exactly.
+Root verified native evidence manifests and SQLite consistency, client screenshots
+and original references, Mobile native-kernel source differences, clean-source
+coherence, stopped disposable services and retained retirement jobs.
+
+Independent runtime review found a missing actual pending-Border restart proof;
+T010 was reopened and closed only after the new production-role/process/SQLite
+drill. Certificate and duplicate contracts were narrowed to what their mechanisms
+actually guarantee. Native fixture and historical cloud claims stay distinct.
+There are no unresolved implementation safety findings in this scoped review.
+FR013/SC005 human objective agreement and finalT030 acceptance remain open.

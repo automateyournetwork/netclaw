@@ -148,7 +148,9 @@ members, clear databases or re-enroll automatically to make the test green.
 **Verify:** new action on the original open channel and reconnect both refuse;
 an awaited result is not delivered or accepted as currently authorized after
 revocation. Preserve already admitted effects and original audit. Expired/not-yet-
-valid credentials refuse at strict admission/use. Idle socket closure timing is
+valid member application certificates refuse at strict admission/use. Transport
+TLS certificate validation remains at handshake/reconnect, with no external
+CRL/OCSP or continuous TLS-leaf expiry monitoring claim. Idle socket closure timing is
 not the authority guarantee: no post-revocation action may be admitted.
 
 **Restore:** revocation is intentional. If future access is authorized, use a new

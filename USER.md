@@ -371,3 +371,8 @@ The bounded owner setup remains only until Nov8:15:09:35Z quiesce/export,
 cleanup; disk/IP absence is not claimed early. R05 schedules/owner pilot remain
 unchanged. No commit/push/merge/release/client publication or R07 is implied.
 See specs/177-external-en2n-federation/resume.md and final verification.
+
+R07/Spec178 technical work is complete at the owner's “drive to100%” instruction;
+final human agreement on measured recovery targets and roadmap acceptance remains
+explicit. Do not repeat source/local verification permissions, redeploy retained
+runtimes or start R08. See specs/178-recovery-gate/verification.md and resume.md.

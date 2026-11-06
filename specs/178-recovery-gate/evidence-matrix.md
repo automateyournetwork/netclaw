@@ -1,30 +1,46 @@
 # R07 evidence matrix
 
-Prior credits retain frozen tested source, exact provider/platform and original
-failures. They are not a claim that the current candidate was cloud-deployed.
+All mandatory technical rows are reviewed for the stated scope. Final human
+agreement on timing objectives and roadmap acceptance remains T030. New native
+client evidence uses controlled workloads; prior actual cloud/provider/device
+credit keeps its frozen source, original failures and platform limits.
 
-| R07 scenario | Accepted prior evidence | Remaining R07 proof |
+| Scenario | Reviewed evidence and disposition | Procedure |
 |---|---|---|
-| Direct Border service restart | R06/Spec177 verification: actual cloud workspace/federation restarts, stable public address and original-result recovery | Changed internal/client paths on fresh isolated source |
-| Border restart/pending work | R03/Spec172 recovery; R05/Spec176 shared worker restart; R06 original task retrieval | New regression and original-ID no-replay correlation |
-| Member restart | R04/Spec173 actual same-identity restart; R05 actual shared worker recovery | Affected strict-channel checks after restart |
-| Endpoint replacement | R01/Spec168 same-key relocation covers earlier transport; no new client endpoint move credit | Actual registry movement and native clients preserve identity/refs |
-| Network/address unavailable | Prior strict wrong-pin/refusal tests are partial | Real strict connection loss, bounded cause, no fallback |
-| Member key/certificate revocation | Existing handshake/admission checks; post-await repro fails | Fix and actual open-channel/reconnect/expiry evidence |
-| Model provider outage | R05/Spec176 actual stopped/unknown model outcomes, durable runner latch and reattestation; no replay | Focused guard/latch compatibility; precise historical credit |
-| Lost reply/ACK | R03 actual R2 ACK reply loss and original signed/ACK recovery; R05 HTTP reply loss; R06 original task lost reply | Source delivery tests and changed client send-marker paths |
-| Duplicate submission/cancellation | Existing protected/async admission contracts; R05 actual cancellation of unsent expired sibling | Concurrent/restart same-ID submit and before/after-dispatch cancellation |
-| HUD | R05 actual reload GET-only; R06 original history after cloud restart | Durable uncertain markers/redirect refusal/reference recovery |
-| VS Code G12 | R04a/Spec174 native restart exact result/ACK; R05 combined and R06 ordinary external recovery | Explicit same-identity endpoint update and wrong-identity refusal |
-| Mobile G13 | R04b/Spec175 cold/background, R05 protected combined and R06 ordinary original-result recovery | WSS-port migration, late-dial stop race, native recovery |
-| Optional ngrok restart/service loss/authtoken revoke | Not selected | Unselected/unqualified; separate runbook branch, no new claim |
-| Runbooks/timings | Prior timing and failure artifacts retained | One procedure each, measured clocks and human objective review |
+| Direct Border restart | New actual strict-TLS child restart at same port/key; prior R06 actual stable public address/workspace recovery | Direct Border service restart |
+| Border restart with pending work | New production Border/SQLite/WSS dispatch claim interrupted by actual process death; restart retains original unknown; four duplicates add zero effects | Border restart with pending work |
+| Member restart | New actual member/native subnet task process loss and same-home result/unknown preservation; prior R04/R05 actual cloud worker recovery | Member restart |
+| Endpoint replacement | New actual registry port replacement and same keys; native Code and Mobile explicit identity-checked movement preserve references. Prior R01 relocation remains historical | Endpoint replacement with unchanged identity |
+| Network/address unavailable | Real TLS connection loss, bounded cause/refusal and no fallback; native client loss/restoration | Provider network or address unavailable |
+| Member key/application certificate revocation | Actual open-channel, reconnect, post-await success/error refusal and real application X.509 expiry; native Mobile durable removal refuses retained key | Member key or certificate revocation |
+| Model provider outage | Frozen R05 actual stopped/unknown model outcomes and runner latch/reattest; affected broad guard/latch regressions pass. No new hosted-provider outage claim | Model provider outage |
+| Lost reply/ACK | New ordinary async native result recovery; protected SQLite/signature/lost-submit/ACK regressions; frozen R03 actual native ACK-loss and R05/R06 reply-loss credit | Lost reply or acknowledgement |
+| Duplicate/cancellation | Six concurrent same-ID ordinary tasks produce one native effect; pre-dispatch cancel zero, post-dispatch unknown. Protected original-ID claim/recovery regressions separately pass | Duplicate submission and cancellation |
+| HUD | Actual Chromium production UI, controlled RPC ledger: durable sent markers, reload/reference/nonce recovery, redirect refusal and zero recovery POSTs | HUD, VS Code and Mobile recovery |
+| VS Code G12 | Actual Code1.109 production extension, controlled ledger: loss/restart, same-identity endpoint move, wrong-identity refusal, unchanged references/digest and zero recovery POSTs | Endpoint replacement; client recovery |
+| Mobile G13 | Eight actual iOS simulator cases with production TLS/enrollment/hello and controlled original record: migration, trust/identity refusal, cold/loss/lifecycle and revocation. Late-dial/store races covered by source tests | Endpoint replacement; client recovery |
+| Optional ngrok agent restart | Unselected/unqualified; direct transport is the selected scope | Optional ngrok agent restart |
+| Optional ngrok service/account loss | Unselected/unqualified; no implicit direct fallback | Optional ngrok service/account outage |
+| Optional ngrok authtoken revocation | Unselected/unqualified; tunnel credentials distinct from NetClaw authority | Optional ngrok authtoken revocation |
+| Runbooks and timing | One procedure for every row; measured clocks and limitations in recovery-objectives.md. Human objective agreement remains open | All procedures and closeout |
 
-Source evidence references: [R03](../172-gcp-hybrid-border/verification.md),
+See [verification](verification.md) for source commits, counters, raw manifest
+hashes, failures, cleanup and incidental editor shared-storage limits. The
+[runbook](runbook.md) uses the procedure titles above.
+
+Prior sources: [R03](../172-gcp-hybrid-border/verification.md),
 [R04](../173-gcp-cloud-member/verification.md),
 [R04a](../174-cloud-client-integration/verification.md),
 [R04b](../175-cloud-mobile-enrollment/verification.md),
 [R05](../176-ollama-members/verification.md),
 [R06](../177-external-en2n-federation/verification.md).
 
-No row is newly marked qualified until its concrete R07 evidence is recorded.
+## Final review
+
+All18 functional requirements and6 success criteria remain mapped in analysis.md.
+No unresolved production safety failure was found within the qualified scope.
+SC005/FR013 human review and FR018 final acceptance remain explicitly open.
+Browser automatic wire retries do not enlarge the backend effect guarantee;
+revocation does not undo already admitted effects; unknown synchronous calls do
+not gain deduplication. No physical-device, public-CA, multi-region, optional-ngrok,
+external-CRL/OCSP or continuous TLS-leaf-expiry qualification is inferred.

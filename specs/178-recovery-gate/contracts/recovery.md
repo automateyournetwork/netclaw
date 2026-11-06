@@ -4,8 +4,11 @@
    identity remains the verifier. Wrong identity, untrusted TLS, redirects and
    stale revisions refuse without erasing prior binding or evidence.
 2. Durable revocation precedes asynchronous close. Check current enrollment
-   generation/key/state and certificate validity before admission and after
+   generation/key/state and application-certificate validity before admission and after
    await before result delivery/acceptance. Earlier effects are not undone.
+   Member removal revokes local pinned key/application-certificate authority, not
+   external CRL/OCSP. TLS certificates remain validated at handshake/reconnect;
+   continuous transport TLS-leaf expiry monitoring is not claimed.
 3. Task/protected operation submissions deduplicate original request identities
    across races/restart. Unknown synchronous calls are never automatically replayed.
    Cancellation distinguishes no-dispatch from uncertain or completed effects.

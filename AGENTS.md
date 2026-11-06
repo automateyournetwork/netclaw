@@ -841,3 +841,22 @@ Credit exact R03–R06 evidence and close uncovered gaps. Source/isolated native
 local verification active; no fresh cloud resource/retention extension implied.
 Preserve R05Nov7/R06Nov8retirement and original BorderDecember1. No version,
 publication or R08. See specs/178-recovery-gate/verification.md and tasks.md.
+
+### R07 technical qualification — 2026-11-06
+
+Spec178 source, local runtime and native browser/Code1.109/iOS simulator recovery
+qualification are complete; final human timing and roadmap acceptance remain
+T030. Source branch178-recovery-gate, integrated code32f87526. Federation1756pass
+/5existing skips, HUD529pass serial, editor209pass/3existing skips, Mobile518pass,
+builds/analyzer and clean-source coherence pass. New actual pending-Border restart
+retains original unknown without replay. The new native subnet delivery drill made9 calls across
+three fresh runs; broader native fixtures are separate. Hosted-provider/device
+calls0. Native client workloads are
+controlled; prior R03–R06 cloud credit remains tied to frozen sources.
+
+All owned test services stopped; private simulator shut down and evidence exported.
+R05/R06 retirement checks/jobs/hashes unchanged; future cleanup unobserved. An early
+Code1.145 isolated launch touched existing sharedStorage/state.vscdb mtime; no
+prehash means content impact unknown. Successful native editor proof is1.109;
+do not claim all owner files untouched. See Spec178 verification.md for limits.
+No R08, source push/PR/merge, version bump or publication.

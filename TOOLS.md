@@ -1603,3 +1603,23 @@ successful native drill before starting later pytest runs. Two later91-file
 successful archives are independently hash/SQLite verified. Browser Chrome may
 retry a POST before response headers even when the app calls fetch once; keep
 app-dispatch, wire-request and native-effect counts separate.
+
+R07 final source qualification: integrated32f87526 repairs current authority
+before/after await and outbound frames, durable revoke-before-close, client sent
+markers, identity-checked endpoint recovery and Mobile late-dial/CAS/TLS readiness
+errors. These source fixes are not deployed to retained cloud homes. Final broad
+Python uses the complete R04a local-member/venv read-only (R05testvenv lacks
+ChromaDB). Clean source passes all6reconciliation surfaces; root ignored installed
+HumanRail unbounded MCP pin remains an owner-installation limitation.
+
+R07 evidence review: manifests can be relative to an export subdirectory, distinct
+from the original live home. Resolve their declared root explicitly; do not guess
+by first-existing path. Compare exported consistent SQLite snapshots using
+mode=ro&immutable=1; do not restore them or inspect an empty scaffold as authority.
+
+Native Code1.145 can open ~/.vscode-shared/sharedStorage/state.vscdb even with
+separate user/extensions directories. R07 observed a matching mtime without a
+prehash, so content change is unknown. Preserve it; do not restore/delete based
+on assumptions. Code1.109 passed with exact isolated fixture CA and private profile.
+Mobile rejected TLS can fail both web_socket_channel.ready and stream; observe
+the ready Future immediately while preserving stream failure ownership.
