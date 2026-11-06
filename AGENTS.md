@@ -183,6 +183,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Spec176 planned: additive private parent/profile records, existing child authority, per-request claims and member/runner-wide unknown-provider latch; bounded client references. (176-ollama-members)
 - Python3.12 federation; Python3.10+ host helpers; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; existing Flutter/Dart. + Existing asyncio/SQLite/cryptography/pyOpenSSL, FastMCP/MCP, pinned OpenClaw gateway and subnet MCP, Express/React, VS Code APIs, Flutter secure storage/scanner, OpenTofu1.13.2/Google8.9.0 and Caddy2.11.7. Reuse verified public artifact closures. (177-external-en2n-federation)
 - Separate private homes, federation DBs, keys, gateway state, existing grants/tasks/chat/GAIT. Bounded non-secret client provenance. Plans/evidence outside source in0700/0600 storage. (177-external-en2n-federation)
+- Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 Mobile. + Existing asyncio/SQLite, cryptography/pyOpenSSL, FastMCP/MCP, Express/React, VS Code APIs, Flutter secure storage/WebSocket. (178-recovery-gate)
+- Existing private identity/ledger/reference stores; additive bounded identifiers and monotone send markers; private evidence0700/0600. (178-recovery-gate)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -830,3 +832,12 @@ qualified runtimes. Existing R05/R06 expiry and cleanup authority are preserved.
 The roadmap version/release/public rollout hold remains; R07–R10 briefing does
 not start implementation or authorize new cloud resources. See Spec177
 source-integration.md and docs/roadmap/issue-310/R07-R10-next-steps.md.
+
+### R07 / Spec178 execution — 2026-11-06
+
+Owner started R07 using saved handoff and directed100%. Full SDD and three agents
+in separate worktrees authorized; coordinator serializes shared runtime work.
+Credit exact R03–R06 evidence and close uncovered gaps. Source/isolated native
+local verification active; no fresh cloud resource/retention extension implied.
+Preserve R05Nov7/R06Nov8retirement and original BorderDecember1. No version,
+publication or R08. See specs/178-recovery-gate/verification.md and tasks.md.

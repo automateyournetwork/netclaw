@@ -8,6 +8,11 @@
 
 ## Preferences
 
+- R07 direction (2026-11-06): start Spec178 using the saved handoff and drive to
+  100%. Use full SDD and the saved coordinator/three-agent separate-worktree
+  delegation; credit applicable prior recovery evidence and close actual gaps.
+  Preserve retained runtime deadlines and roadmap publication/next-stage gates.
+
 - R06 acceptance and source integration (2026-11-06): completed Spec177 is accepted.
   Commit all scoped R06 changes, create and merge its PR, delete the completed
   feature branch and return to main. Include a short maintainer completion
