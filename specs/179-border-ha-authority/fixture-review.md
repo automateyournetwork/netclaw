@@ -1,3 +1,4 @@
+# R08 independent fixture review — gate open
 
 2026-11-07 T034 follow-up source: independently audited core/Raft/recovery/process
 fixtures and actual fenced-restore-fixture-01. Its65 exported hashes match;
