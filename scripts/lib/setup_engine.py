@@ -12,6 +12,7 @@ from setup_observation import HostObservation
 from setup_plan import PlanValidator
 from setup_schema import Invalid, canonical, loads
 from setup_state import Conflict, ResourceLocks, StateStore, directory, guarded_read, revision
+from ha_setup_guard import require_standalone_home
 
 
 class ReviewRefused(Invalid):
@@ -89,6 +90,7 @@ class Engine:
     def _targets(self, plan, run=None):
         for claw in plan['claws']:
             path = Path(claw['runtimeHome'])
+            require_standalone_home(path)
             if self.validator.overlaps(str(path), str(self.state_root)) or self.validator.overlaps(plan['source']['path'], str(self.state_root)):
                 raise Conflict('state_target_overlap')
             try:

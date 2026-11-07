@@ -8,6 +8,16 @@ Core modules:
 - `bgp/federation/` — channel management, TLS (060), endpoint persistence (063)
 - `server.py` — MCP tool surface (`n2n_health`, `n2n_status`, `n2n_connect`, etc.)
 
+Maintainer R08/Spec179 source adds the private `bgp/federation/ha/` authority and
+execution adapters. Signed manifests bind cluster generation, node keys and
+endpoints; etcd holds the single execution authority and shared decisions.
+Members use three strict iN2N attachments and fresh model/native handoff admission.
+This adds no MCP server, public admin API or advertised installer option. A durable
+HA marker forbids standalone fallback. The private operator CLI is
+`scripts/ha-cluster.py`; source rehearsal and evidence are in `labs/ha/` and
+`specs/179-border-ha-authority/`. Fixture, REAL and native client qualification
+are separate gates; R09 region-loss qualification and roadmap release remain held.
+
 ---
 
 ## Agent Turn Dispatch: WS RPC, not CLI-per-turn (Feature 116)

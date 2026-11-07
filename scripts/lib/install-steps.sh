@@ -1824,6 +1824,7 @@ echo ""
 
 # ── N2N Federation (feature 052) ────────────────────────────────
 component_install_n2n() {
+require_standalone_setup_home || return 1
 log_step "Installing N2N Federation..."
 echo "  Peer NetClaws: exchange capability inventories, invoke each other's"
 echo "  allowlisted tools/skills, and chat claw-to-claw over NCFED."

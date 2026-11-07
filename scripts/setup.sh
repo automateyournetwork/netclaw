@@ -33,6 +33,7 @@ source "$SCRIPT_DIR/lib/tui.sh"
 # Credentials land in the selected runtime's .env (~/.openclaw or ~/.hermes).
 OPENCLAW_DIR="$RUNTIME_HOME"
 OPENCLAW_ENV="$RUNTIME_ENV"
+require_standalone_setup_home || exit 1
 
 # ───────────────────────────────────────────
 # Helpers

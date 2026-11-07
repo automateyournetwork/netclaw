@@ -9,6 +9,15 @@ metadata:
 
 # Protocol Participation — BGP + OSPF + GRE
 
+Maintainer R08/Spec179 distinction: BGP routing and NCFED transport reachability
+are not protected execution authority. A cluster-required home has separate
+signed node identities and quorum fencing; no routing action, alternate endpoint
+or ordinary setup command can make a stale leader authoritative. Preserve its
+HA marker, original operation references and uncertain send state. Private
+cluster lifecycle belongs to the exact operator workflow; this skill acquires
+no etcd credentials or additional write permission. Source and actual REAL/native
+evidence remain separate; see `specs/179-border-ha-authority/coherence.md`.
+
 ## MCP Server
 
 | Property | Value |

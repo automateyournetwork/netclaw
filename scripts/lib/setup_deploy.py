@@ -14,6 +14,7 @@ from setup_observation import git
 from setup_plan import PlanValidator
 from setup_schema import canonical, loads
 from setup_state import Conflict, directory, guarded_read, guarded_write, revision
+from ha_setup_guard import require_standalone_home
 
 
 def helper(repository, name):
@@ -52,6 +53,7 @@ class Deployment:
                 'before': before, 'referencedBy': [self.claw['id']]}
 
     def write(self, effect, path, data, *, kind='file', expected=None):
+        require_standalone_home(self.root)
         path = Path(path)
         if not path.is_relative_to(self.root):
             raise Conflict('write_outside_installation')
@@ -71,10 +73,12 @@ class Deployment:
         # before this attempt. The atomic writer also rechecks for races.
         if revision(path)!=expected:raise Conflict('revision_conflict')
         self.context['artifactIntent'](effect['id'], [artifact])
+        require_standalone_home(self.root)
         guarded_write(path, data, expected=expected)
         return artifact
 
     def home(self, effect):
+        require_standalone_home(self.root)
         with directory(self.root, create=True, private=True):
             pass
         outputs=self.file_outputs('home')
@@ -87,6 +91,7 @@ class Deployment:
 
     def copy_source(self, effect):
         """Copy reviewed, nonignored source; never borrow a mutable checkout."""
+        require_standalone_home(self.root)
         outputs=self.source_outputs()
         prior={a['path']:a for a in effect.get('artifacts',[]) if a.get('class')=='source'}
         artifacts=[]
@@ -99,6 +104,7 @@ class Deployment:
         if set(prior)-{str(target) for target,_,_ in outputs}:raise Conflict('source_recovery_changed')
         if artifacts:self.context['artifactIntent'](effect['id'],artifacts)
         for target,data,executable in outputs:
+            require_standalone_home(self.root)
             try:current=guarded_read(target,64*1024*1024,private=True)
             except FileNotFoundError:current=None
             if current is None:guarded_write(target,data,expected=None)

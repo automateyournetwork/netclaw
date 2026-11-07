@@ -12,6 +12,7 @@ import sys
 from setup_schema import canonical, loads
 from setup_state import Conflict, directory, guarded_read, guarded_write, revision, artifact_revision
 from setup_secrets import read_owned_environment, _dotenv
+from ha_setup_guard import require_standalone_home
 
 ROLES=('gateway','hud','federation')
 
@@ -28,6 +29,8 @@ def latest_environment(context,home,*,effect=None):
 
 def configure_risk(effect,context,deploy,harness):
     claw=deploy.claw;border=next(c for c in context['plan']['claws'] if c['role']=='border')
+    require_standalone_home(deploy.root)
+    require_standalone_home(border['runtimeHome'])
     values,before=latest_environment(context,deploy.root)
     values.update(N2N_ENABLED='true',N2N_ROLE=claw['role'],N2N_RISK_NAME=border['id'],
         N2N_RISK_DESCRIPTION=border['displayName'],N2N_RISK_MODE=context['plan']['posture']['mode'],

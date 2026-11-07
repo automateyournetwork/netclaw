@@ -24,6 +24,7 @@ sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mcp-servers/protocol-
 from bgp.federation.runtime import selected, private_dir
 sys.path.insert(0, str(Path(__file__).resolve().parent/'lib'))
 from convergence_member_policy import native_tool_policy
+from ha_setup_guard import require_standalone_home
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 HOME = os.path.expanduser("~")
@@ -48,11 +49,13 @@ def _anthropic_key(env_path):
 
 
 def provision_hermes(runtime, risk, member, destination=None, model=None):
+    require_standalone_home(runtime.home)
     if not all(re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', x) for x in (risk,member)):
         raise ValueError('risk/member must be safe local names')
     if member != 'subnet':raise ValueError('Hermes currently qualifies only the subnet member profile')
     import yaml
     home=Path(destination or runtime.home/'members'/risk/member/'home').resolve()
+    require_standalone_home(home)
     private_dir(home)
     if (home/'config.yaml').exists():raise ValueError('member already provisioned; existing config is preserved')
     source=yaml.safe_load(runtime.config.read_text()) if runtime.kind=='hermes' else json.loads(runtime.config.read_text())
@@ -194,6 +197,7 @@ def provision_convergence(runtime, risk, destination=None, model=None, key_file=
     Source/interpreter executables are shared; mutable env, records and workspace
     belong to the member. This is configuration isolation, not OS confinement.
     """
+    require_standalone_home(runtime.home)
     if runtime.kind != 'openclaw':
         raise ValueError('Convergence member execution requires OpenClaw; Hermes is not qualified')
     if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.-]{0,63}', risk):
@@ -222,6 +226,7 @@ def provision_convergence(runtime, risk, destination=None, model=None, key_file=
     if risk_mode not in ('production', 'testing'):
         raise ValueError('select production or explicitly opted-in testing risk mode')
     home = Path(destination or Path(HOME)/('.openclaw-'+risk+'-convergence')).expanduser().absolute()
+    require_standalone_home(home)
     if home == runtime.home or (home.exists() and any(home.iterdir())):
         raise ValueError('member already provisioned; existing home is preserved')
     if home.is_symlink():
@@ -288,6 +293,7 @@ def main():
     args = ap.parse_args()
 
     runtime=selected()
+    require_standalone_home(runtime.home)
     if (args.runtime or runtime.kind)=='hermes':
         home=provision_hermes(runtime,args.risk,args.member,args.home,args.model)
         print('Scoped Hermes member home:',home)
@@ -342,6 +348,7 @@ def main():
 
     # 4. write the scoped home + share the workspace (identity/skills) via symlink
     mh = str(Path(args.home or f"{HOME}/.openclaw-{args.risk}-{name}").expanduser().absolute())
+    require_standalone_home(mh)
     private_dir(mh)
     if (Path(mh)/'openclaw.json').exists():raise ValueError('member already provisioned; existing config is preserved')
     json.dump(m, open(f"{mh}/openclaw.json", "w"), indent=2)

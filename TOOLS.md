@@ -1623,3 +1623,20 @@ prehash, so content change is unknown. Preserve it; do not restore/delete based
 on assumptions. Code1.109 passed with exact isolated fixture CA and private profile.
 Mobile rejected TLS can fail both web_socket_channel.ready and stream; observe
 the ready Future immediately while preserving stream failure ownership.
+
+### R08 private HA source workflow — 2026-11-07
+
+Spec179 uses signed cluster manifests, separate node identities and an explicit
+private profile2/launch-schema3. The `ha-required.json` marker is durable downgrade
+protection. Ordinary installer/setup, plan resume, Risk enrollment and transport
+import refuse marked or ambiguous protected homes before changing their state.
+Private `scripts/ha-cluster.py` status/export/lifecycle/recovery are distinct from
+standalone `risk` setup; reachability does not establish quorum authority.
+
+The source rehearsal helper is `labs/ha/real_runtime.py`; it requires the matching
+fixture gate and immutable source packet. Its one cumulative budget includes HUD,
+Code and Mobile:10 approvals/20 inferences/10 native effects, serial180s/60s limits.
+Original signed result, successor ACK, native artifacts and actual referenced
+GAIT commits are exported before successful settlement. Unknowns stay held.
+This note records source behavior, not completed REAL or native acceptance.
+See specs/179-border-ha-authority/coherence.md and qualification-matrix.md.
