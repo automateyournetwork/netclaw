@@ -176,7 +176,7 @@ class Worker:
                 writer.close()
         endpoint = self.manifest.node(self.node.node_id)['endpoints']['in2n']
         self.listener = await exporter_tls.start_server(incoming, endpoint['host'], endpoint['port'],
-            cert_file=self.config['transport_certificate'], key_file=self.config['transport_key'])
+            cert_file=self.config['transport_certificate'], key_file=self.config['transport_key'], close_clients=True)
 
     def journal_summary(self):
         with self.journal._connection() as conn:
@@ -275,7 +275,7 @@ class Worker:
         finally: writer.close(); await writer.wait_closed()
 
     async def close(self):
-        if self.listener: self.listener.close(); await self.listener.wait_closed()
+        if self.listener: self.listener.close()
         for task in list(self.control_tasks):task.cancel()
         if self.control_tasks:await asyncio.gather(*self.control_tasks,return_exceptions=True)
         for task in list(self.tasks): task.cancel()
@@ -283,6 +283,7 @@ class Worker:
         if self.attachments: await self.attachments.close()
         for channel in list(self.channels.values()): await channel.close()
         if self.node: await self.node.close()
+        if self.listener: await self.listener.wait_closed()
         if self.store: self.store.close()
 
 
@@ -307,8 +308,9 @@ async def worker_main(config_file):
         await worker.stop.wait()
     finally:
         watch.cancel();await asyncio.gather(watch,return_exceptions=True)
-        if server: server.close(); await server.wait_closed()
+        if server: server.close()
         await asyncio.wait_for(worker.close(), 10)
+        if server: await server.wait_closed()
 
 
 class ControlError(RuntimeError):
@@ -367,6 +369,7 @@ class ProcessFixture:
             'anchor_file':str(self.path/'anchor.crt'),'anchor_key_id':c.key_id(anchor),
             'member_file':str(self.path/'member.json'),'transport_ca':str(transport/'transport-ca.crt')}
         self.children, self.configs, self.records, self.boots, self.rows = {}, {}, {}, {}, []
+        self.intentional_kills=set()
         credentials=decode(read_private(lab.root/'credentials.json'))
         for name in ('border0','border1','border2','member'):
             home=self.path/name; home.mkdir(mode=0o700)
@@ -468,6 +471,7 @@ class ProcessFixture:
         private(self.path/(label+'.claim.json'),{'fault':'SIGKILL','name':name,**record,'observed_command_line':observed})
         os.kill(process.pid,signal.SIGKILL)
         code=await asyncio.wait_for(process.wait(),5);need(code==-signal.SIGKILL,'owned_kill_not_observed')
+        self.intentional_kills.add(process.pid)
         private(self.path/(label+'.verified.json'),{'name':name,'pid':process.pid,'returncode':code,'boot_id':record['boot_id']})
         return record
 
@@ -485,9 +489,13 @@ class ProcessFixture:
                 need(stat.S_ISSOCK(info.st_mode) and info.st_uid==os.getuid()
                      and (info.st_dev,info.st_ino)==tuple(self.records[name]['socket_identity']), 'cleanup_socket_identity_changed')
                 socket_path.unlink(); removed=True
-            results.append({'name':name,'pid':process.pid,'returncode':process.returncode,'owned_socket_removed':removed})
-        private(self.path/'owned-process-cleanup.json',{'processes':results,'voters_untouched_by_cleanup':True})
+            expected=-signal.SIGKILL if process.pid in self.intentional_kills else 0
+            results.append({'name':name,'pid':process.pid,'returncode':process.returncode,'expected_returncode':expected,
+                            'passed':process.returncode==expected,'owned_socket_removed':removed})
+        passed=all(row['passed'] for row in results)
+        private(self.path/'owned-process-cleanup.json',{'passed':passed,'processes':results,'voters_untouched_by_cleanup':True})
         if not list(self.control_root.iterdir()):self.control_root.rmdir()
+        need(passed,'owned_process_cleanup_failed')
 
 
 async def _run(lab,evidence,*,restart_voters=False):

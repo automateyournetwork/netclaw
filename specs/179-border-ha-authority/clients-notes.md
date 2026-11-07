@@ -181,3 +181,13 @@ Fifteen protocol/source tests pass and isolated CLI help succeeds. Neither the
 worker nor coordinator fixture, Docker, actual NCFED process workload or REAL
 native execution ran in this lane. T025/T034 still require coordinator execution
 and review of the resulting process and voter evidence.
+
+The coordinator's first actual process run passed crash/restart/replay safety
+checks, but all three final Border workers exited1 after fixture shutdown timed
+out. That failure remains retained. The fixture waited for its iN2N listener
+before closing accepted channels. The corrected fixture opts into owned-client
+closure, closes channels before waiting for listeners and closes UDS handlers
+before their listener wait. Unexpected worker exit or forced cleanup now writes
+passed:false and raises, preventing complete.json. Two targeted source tests
+verify shutdown ordering and failure propagation; actual graceful cleanup is a
+separate required coordinator check, not inferred from these source tests.

@@ -115,3 +115,32 @@ def test_source_identity_includes_production_admission_and_actual_driver():
     assert 'labs/ha/process_fixture.py' in identity['files']
     assert 'mcp-servers/protocol-mcp/bgp/federation/ha/admission.py' in identity['files']
     assert 'mcp-servers/protocol-mcp/bgp/federation/ha/internal.py' in identity['files']
+
+
+@pytest.mark.asyncio
+async def test_worker_closes_active_member_channels_before_waiting_for_listener():
+    order=[];worker=fixture.Worker.__new__(fixture.Worker)
+    class Listener:
+        def close(self):order.append('listener-close')
+        async def wait_closed(self):
+            assert 'channel-close' in order;order.append('listener-closed')
+    class Channel:
+        async def close(self):order.append('channel-close')
+    worker.listener=Listener();worker.channels={'controlled':Channel()}
+    worker.control_tasks=set();worker.tasks=set();worker.attachments=worker.node=worker.store=None
+    await asyncio.wait_for(worker.close(),.2)
+    assert order==['listener-close','channel-close','listener-closed']
+
+
+@pytest.mark.asyncio
+async def test_unexpected_worker_exit_is_a_cleanup_failure_not_complete(tmp_path):
+    harness=fixture.ProcessFixture.__new__(fixture.ProcessFixture)
+    harness.path=tmp_path.resolve();harness.path.chmod(0o700)
+    harness.control_root=harness.path/'sockets';harness.control_root.mkdir(mode=0o700)
+    harness.children={'border0':SimpleNamespace(pid=12345,returncode=1)}
+    harness.configs={'border0':{'control_socket':str(harness.control_root/'border0.sock')}}
+    harness.records={};harness.intentional_kills=set()
+    with pytest.raises(ValueError,match='owned_process_cleanup_failed'):await harness.close()
+    result=fixture.decode(fixture.read_private(harness.path/'owned-process-cleanup.json'))
+    assert result['passed'] is False and result['processes'][0]['expected_returncode']==0
+    assert not (harness.path/'complete.json').exists()
