@@ -2,7 +2,7 @@
 
 **Feature Branch**: `178-recovery-gate`  
 **Created**: 2026-11-06  
-**Status**: Technical qualification complete; human timing/roadmap acceptance pending
+**Status**: Complete and accepted 2026-11-07 (31/31 tasks)
 **Input**: “Start Spec 178 / R07 using the saved handoff.” / “drive to 100%”
 
 Complete the recovery gate before R08 authority or R09 regional failure work.

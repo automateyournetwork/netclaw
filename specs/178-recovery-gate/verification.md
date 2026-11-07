@@ -3,15 +3,19 @@
 ## Result and acceptance status
 
 All source, runtime, native-client, evidence-export, audit and disposable-cleanup
-work is complete for the scope below: **30/31 tasks closed**. Final human agreement on the measured recovery
-objectives and roadmap acceptance remains open (T030). This is not yet a claim
-that all 31 tasks or the roadmap gate are accepted.
+work is complete for the scope below: **31/31 tasks closed and accepted**.
+On 2026-11-07, in response to the completed evidence and recovery-target review,
+the owner said: “alright get it all into main commit pr merge del etc then lets
+evaluate the next R step together and let me know when to clear”. This accepts
+the bounded R07 evidence and operator targets, closes T030 and authorizes source
+integration/cleanup. R08 evaluation is planning only; implementation is not started.
 
 The owner requested “Start Spec 178 / R07 using the saved handoff” and “drive to
 100%.” Full SDD used a coordinator and three separate worktrees. Source is on
 `178-recovery-gate`, based on clean main/origin `6b986426`. Unrelated PR332 and
-its separate Spec177 remain preserved. No push, PR, merge, release, version bump,
-public rollout or R08 work was performed. Versions remain source 1.18.6,
+its separate Spec177 remain preserved. At technical closeout, no push, PR, merge, release, version bump, public rollout
+or R08 work had been performed. Source integration is now authorized and tracked
+in [source-integration.md](source-integration.md). Versions remain source 1.18.6,
 VS Code 1.6.1 and Mobile 1.0.4+7.
 
 Private evidence root: `~/.local/share/netclaw/roadmap-r07-20261106/`.
@@ -237,7 +241,7 @@ resource exists. R05/R06 check modes pass again at closeout without execution:
 No spent plans, old enrollment or unknown effects were replayed. Retained evidence
 homes/worktrees remain private; disposable active services are stopped.
 
-## Audit and final gate
+## Audit and accepted final gate
 
 GAIT session `r07-spec178-recovery-20261106` was created, checked out and verified;
 kickoff `4ef9b452`, progress `020893e0`, technical closeout `5e0d9493`.
@@ -247,6 +251,9 @@ because its selected HTTP runtime was absent; no device or installation was
 changed. MemPalace was unavailable; file memory and GAIT preserve the record.
 
 The [R07 brief](../../docs/roadmap/issue-310/briefs/R07-recovery-gate.md) explicitly
-requires “measure first, then set. [HUMAN]” for recovery objectives. Human agreement
-and final acceptance are the remaining gate; they will be recorded verbatim in a
-subsequent acceptance entry. Acceptance does not authorize R08 or publication.
+requires “measure first, then set. [HUMAN]” for recovery objectives. The owner accepted the completed review on 2026-11-07 with the source-integration
+instruction quoted above. The 120s visibility, 180s automatic reattachment,
+30s explicit recovery and 130s cold-history targets remain investigation thresholds,
+not qualified worst-case guarantees. Acceptance authorizes R07 source integration
+and planning discussion of R08; it does not start R08 or permit publication.
+Integration GAIT session: `r07-source-integration-20261107`, kickoff `e526d2ba`.

@@ -1,7 +1,7 @@
 # R07 evidence matrix
 
-All mandatory technical rows are reviewed for the stated scope. Final human
-agreement on timing objectives and roadmap acceptance remains T030. New native
+All mandatory technical rows are reviewed for the stated scope. Human agreement on timing objectives and roadmap acceptance closed T030 on
+2026-11-07. New native
 client evidence uses controlled workloads; prior actual cloud/provider/device
 credit keeps its frozen source, original failures and platform limits.
 
@@ -22,7 +22,7 @@ credit keeps its frozen source, original failures and platform limits.
 | Optional ngrok agent restart | Unselected/unqualified; direct transport is the selected scope | Optional ngrok agent restart |
 | Optional ngrok service/account loss | Unselected/unqualified; no implicit direct fallback | Optional ngrok service/account outage |
 | Optional ngrok authtoken revocation | Unselected/unqualified; tunnel credentials distinct from NetClaw authority | Optional ngrok authtoken revocation |
-| Runbooks and timing | One procedure for every row; measured clocks and limitations in recovery-objectives.md. Human objective agreement remains open | All procedures and closeout |
+| Runbooks and timing | One procedure for every row; measured clocks and limitations in recovery-objectives.md. Human objective agreement accepted2026-11-07 | All procedures and closeout |
 
 See [verification](verification.md) for source commits, counters, raw manifest
 hashes, failures, cleanup and incidental editor shared-storage limits. The
@@ -39,7 +39,8 @@ Prior sources: [R03](../172-gcp-hybrid-border/verification.md),
 
 All18 functional requirements and6 success criteria remain mapped in analysis.md.
 No unresolved production safety failure was found within the qualified scope.
-SC005/FR013 human review and FR018 final acceptance remain explicitly open.
+SC005/FR013 human review and FR018 final acceptance closed on2026-11-07;
+source integration is authorized, with version/publication and next-stage holds.
 Browser automatic wire retries do not enlarge the backend effect guarantee;
 revocation does not undo already admitted effects; unknown synchronous calls do
 not gain deduplication. No physical-device, public-CA, multi-region, optional-ngrok,

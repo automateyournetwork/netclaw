@@ -49,7 +49,7 @@
 - [x] T027 Record observed detection/recovery times and proposed objectives for human agreement in specs/178-recovery-gate/recovery-objectives.md. (FR013)
 - [x] T028 Verify private evidence export, owned disposable cleanup and unchanged retained schedules in specs/178-recovery-gate/verification.md. (FR014–FR016)
 - [x] T029 Complete evidence/requirements review with no unresolved safety failure in specs/178-recovery-gate/evidence-matrix.md and verification.md. (FR001–FR018)
-- [ ] T030 Record human timing/roadmap acceptance in specs/178-recovery-gate/verification.md; do not start R08. (FR013,FR018)
+- [x] T030 Record human timing/roadmap acceptance in specs/178-recovery-gate/verification.md; do not start R08. (FR013,FR018)
 - [x] T031 Update memory/2026-11-06.md, relevant infrastructure notes and final GAIT log; prepare specs/178-recovery-gate/resume.md. (FR014,FR015,FR018)
 
 ## Dependencies and parallel execution

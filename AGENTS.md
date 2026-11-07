@@ -860,3 +860,13 @@ Code1.145 isolated launch touched existing sharedStorage/state.vscdb mtime; no
 prehash means content impact unknown. Successful native editor proof is1.109;
 do not claim all owner files untouched. See Spec178 verification.md for limits.
 No R08, source push/PR/merge, version bump or publication.
+
+### R07 acceptance and source integration — 2026-11-07
+
+After the completed evidence/objective review, the owner requested allR07work
+committed, PRmerged into main, completed-branch cleanup and return to main. This
+accepts31/31includingT030 and supersedesR07source-integration hold. Keep source
+1.18.6/editor1.6.1/Mobile1.0.4+7 and whole-roadmap publicationhold. Preserve unrelated
+PR332 and frozen runtime qualification. Evaluate R08 together afterward; this
+authorizes planning discussion only, no R08implementation/cloud activation.
+R05/R06retirement and originalBorderDec1 unchanged. See Spec178source-integration.

@@ -1,6 +1,6 @@
-# Recovery measurements and proposed objectives
+# Recovery measurements and accepted objectives
 
-**Status: measured and proposed; human agreement pending.** These are operator
+**Status: accepted by the owner on 2026-11-07 after the completed evidence review.** These are operator
 recovery targets and investigation thresholds for the qualified single-region
 scope. They are not statistical availability SLOs, hard implementation deadlines,
 or demonstrated worst-case guarantees. A threshold miss never authorizes replay,
@@ -32,7 +32,7 @@ responses. They do not measure cloud/provider latency, physical radio recovery,
 background execution, silent network blackholes or worst-case automatic backoff.
 Signal-to-close times are not periodic failure-detector guarantees.
 
-## Proposed targets for owner agreement
+## Accepted operator targets
 
 | Scenario | Target after its stated start | Action when missed |
 |---|---|---|
@@ -46,7 +46,7 @@ Signal-to-close times are not periodic failure-detector guarantees.
 | Optional ngrok scenarios | No target selected or qualified | Requires separate scoped selection and evidence |
 
 The120s/180s investigation thresholds leave room for existing liveness behavior
-and Mobile's60s maximum retry backoff. They are proposals, not newly configured
+and Mobile's60s maximum retry backoff. They are accepted investigation targets, not newly configured
 timers or a proof of recovery under every network condition. The30s manual target
 is deliberately distinct from automatic retry and cold cloud history. Human
 repair time, DNS propagation, unavailable upstreams and OS suspension are excluded
@@ -55,4 +55,4 @@ from restoration-to-recovery clocks and must be recorded separately.
 Categorical requirements do not relax with time: zero weaker fallbacks, zero new
 post-revocation admissions and zero repeated native/provider effects from original
 reference recovery. Already admitted effects remain recorded. Human acceptance
-of these targets and the bounded evidence belongs in verification.md/T030.
+of these targets and the bounded evidence is recorded in verification.md/T030.

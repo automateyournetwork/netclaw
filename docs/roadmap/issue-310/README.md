@@ -11,6 +11,17 @@ Baseline: upstream `automateyournetwork/netclaw` at `9ba12ffc` (2026-11-01). The
 highest existing spec is `167-production-mode-qualification`, so the first brief
 takes the next free number at specify time (168 unless something lands first).
 
+## R07 accepted; source integration authorized — 2026-11-07
+
+[R07/Spec178](../../../specs/178-recovery-gate/verification.md) is accepted31/31,
+including the measured operator recovery targets. See its
+[completion summary](../../../specs/178-recovery-gate/completion-summary.md),
+[runbook](../../../specs/178-recovery-gate/runbook.md) and
+[source-integration record](../../../specs/178-recovery-gate/source-integration.md).
+The owner requested commit/PR/merge, completed-branch cleanup, return to main and
+joint evaluation of R08. R08 implementation is not started. Versions, publication
+hold and retained R05/R06/original Border deadlines remain unchanged.
+
 ## R06 accepted; source integration authorized — 2026-11-06
 
 [R06/Spec177](../../../specs/177-external-en2n-federation/verification.md) is

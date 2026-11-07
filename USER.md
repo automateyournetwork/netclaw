@@ -376,3 +376,8 @@ R07/Spec178 technical work is complete at the owner's “drive to100%” instruc
 final human agreement on measured recovery targets and roadmap acceptance remains
 explicit. Do not repeat source/local verification permissions, redeploy retained
 runtimes or start R08. See specs/178-recovery-gate/verification.md and resume.md.
+
+R07 accepted2026-11-07: owner requested commit/push/PR/merge/completed-branch
+cleanup/return to main, then evaluate R08 together and provide a clear-safe
+handoff. T030closes31/31. No repeated source-integration permission request;
+R08discussion is not implementation authorization. Version/publication hold stays.
