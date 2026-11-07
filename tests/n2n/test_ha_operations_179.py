@@ -177,3 +177,35 @@ def test_pending_review_cannot_be_denied_by_a_different_authority():
     with pytest.raises(HAError, match='stale_review'):
         successor.deny(row['operation_id'], revision=row['revision'], review_digest=row['review_digest'])
     assert successor.lookup(operation_id=row['operation_id'])['state'] == 'review_pending'
+
+
+@pytest.mark.asyncio
+async def test_open_member_attachment_cannot_admit_after_certificate_expiry(monkeypatch):
+    from types import SimpleNamespace
+    from bgp.federation import certs
+    from bgp.federation.ha.node import ClusterNode
+    from bgp.federation.ha.config import sign_manifest, verify_manifest
+    store, nodes, ledger, row, member = prepared()
+    row = dispatch_fixture(store, nodes, ledger, row)
+    original = request(ledger, row)
+    claim, _ = ledger.admit(original, row['review']['member'])
+    anchor, key = certs.create_self_signed('expiry-fixture-anchor')
+    nodes[0].manifest = verify_manifest(sign_manifest(nodes[0].manifest.value, key), anchor,
+                                        expected_key_id=c.key_id(anchor))
+    node = ClusterNode(nodes[0], private_key='unused', ca_file='unused', cert_file='unused', key_file='unused')
+    node.ledger = ledger
+    channel = SimpleNamespace(trusted=True, strict=True, is_border_side=True,
+                              protected_peer_binding=row['review']['member'])
+    await node.member_current(channel.protected_peer_binding)
+    # The certificate expires after this attachment authenticated. Border trust
+    # remains valid, and the same open attachment must still recover old evidence.
+    valid = certs.time_valid
+    monkeypatch.setattr(certs, 'time_valid', lambda certificate: certificate != member['cert_pem'] and valid(certificate))
+    before = copy.deepcopy(store.rows)
+    for kind, ordinal in [('model', 2), ('tool', 1)]:
+        fresh = dict(original, kind=kind, ordinal=ordinal, nonce=secrets.token_hex(32))
+        with pytest.raises(HAError, match='member_certificate_expired'):
+            await node.admit_member(channel, fresh)
+    assert store.rows == before
+    await node.member_current(channel.protected_peer_binding)
+    assert ledger.admission_status(original, channel.protected_peer_binding)[0] == claim

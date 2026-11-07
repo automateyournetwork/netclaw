@@ -86,10 +86,16 @@ class OperationLedger:
             return [('control', control, None), (key, entry, None)], entry
         return self.authority.mutate('enroll_member', [key], transition)[0]
 
-    def _member(self, rows, binding):
+    def _member(self, rows, binding, *, fresh=False):
         entry = rows[member_key(binding)][0]
         check(entry is not None and entry['state'] == 'active' and entry['binding'] == binding,
               'member_not_enrolled', 403)
+        if fresh:
+            # A once-authenticated attachment does not extend certificate life.
+            # Historical claim/result recovery intentionally keeps its original
+            # trust snapshot and does not require new execution authority.
+            from ..certs import time_valid
+            check(time_valid(entry['certificate']), 'member_certificate_expired', 403)
         return entry
 
     def lookup(self, *, operation_id=None, client_nonce=None, principal=None):
@@ -127,7 +133,7 @@ class OperationLedger:
             check(rows[nonce_key][0] is None and rows[key][0] is None, 'client_nonce_conflict', 409)
             self._execution_capacity(rows)
             self._principal_current(rows, review['principal'])
-            enrolled = self._member(rows, review['member'])
+            enrolled = self._member(rows, review['member'], fresh=True)
             row['trust_snapshot'] = {'member': enrolled['certificate'], 'border': node['certificate']}
             control = rows['control'][0]
             check(control['operation_count'] < self.authority.manifest.limits['max_operations'], 'state_capacity', 503)
@@ -214,7 +220,7 @@ class OperationLedger:
             self._principal_current(rows, row['review']['principal'])
             check(row['state'] == 'approved' and not row['revoked'], 'operation_not_approved', 409)
             check(self.now() < row['review']['limits']['expires_at_ms'], 'approval_expired', 403)
-            self._member(rows, row['review']['member'])
+            self._member(rows, row['review']['member'], fresh=True)
             for resource in resources:
                 held = rows[resource][0]
                 check(held is None or held['state'] == 'released', 'resource_recovery_required', 409)
@@ -243,7 +249,7 @@ class OperationLedger:
             self._execution_capacity(rows)
             self._principal_current(rows, row['review']['principal'])
             self._admission_binding(row, request, binding)
-            self._member(rows, binding)
+            self._member(rows, binding, fresh=True)
             check(row['state'] in ('dispatch_claimed', 'member_admitted') and not row['revoked'], 'operation_revoked', 403)
             check(self.now() < row['review']['limits']['expires_at_ms'], 'approval_expired', 403)
             check(rows[claim_key][0] is None, 'admission_spent', 409)
