@@ -54,11 +54,11 @@ class ClusterDeviceAuthority(DeviceAuthority):
         registry = getattr(service, 'ha_edge', None)
         require(registry is not None, 'cluster_device_authority_unavailable', 503)
         current = getattr(channel, 'ha_binding', None)
-        expected = getattr(channel, 'ha_binding', None)
         fields = ('cluster_id', 'generation', 'member_id', 'key_fingerprint',
                   'enrollment_generation', 'principal')
-        require(isinstance(current, dict) and isinstance(expected, dict)
-                and all(current[k] == expected.get(k) for k in fields),
+        require(isinstance(current, dict) and all(k in current for k in fields)
+                and current.get('state') == 'active' and current['member_id'] == channel.member_id
+                and {k: current[k] for k in ('cluster_id', 'generation')} == registry.manifest.audience,
                 'device_authority_changed', 403)
         return tuple(json.dumps(current[k], sort_keys=True, separators=(',', ':')) for k in fields)
 

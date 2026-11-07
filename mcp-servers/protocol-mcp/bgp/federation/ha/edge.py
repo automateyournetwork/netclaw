@@ -152,6 +152,11 @@ class ClusterEdgeRegistry:
         ident(member_id)
         check(isinstance(certificate, str) and len(certificate) <= 8192 and time_valid(certificate),
               'device_certificate_invalid', 403)
+        from cryptography import x509
+        from cryptography.hazmat.primitives.asymmetric import ec
+        public_key = x509.load_pem_x509_certificate(certificate.encode()).public_key()
+        check(isinstance(public_key, ec.EllipticCurvePublicKey) and isinstance(public_key.curve, ec.SECP256R1),
+              'device_certificate_invalid', 403)
         check(isinstance(signature, str) and re.fullmatch('[a-f0-9]{16,400}', signature), 'device_proof_invalid', 403)
         check(RiskManager.verify_possession(certificate, proof_bytes(challenge, member_id, purpose, token),
                                             bytes.fromhex(signature)), 'device_proof_invalid', 403)
@@ -215,6 +220,11 @@ class ClusterEdgeRegistry:
         check(isinstance(params, dict) and 'device_proof' not in params and len(encode(params)) <= 64 * 1024
               and proof['params_sha256'] == hashlib.sha256(encode(params)).hexdigest(), 'device_proof_invalid', 403)
         binding = self.binding(proof['member_id'])
+        from cryptography import x509
+        from cryptography.hazmat.primitives.asymmetric import ec
+        public_key = x509.load_pem_x509_certificate(binding['certificate'].encode()).public_key()
+        check(isinstance(public_key, ec.EllipticCurvePublicKey) and isinstance(public_key.curve, ec.SECP256R1),
+              'device_certificate_invalid', 403)
         check(binding['enrollment_generation'] == proof['enrollment_generation'], 'device_authority_changed', 403)
         signature = proof['signature']
         check(isinstance(signature, str) and re.fullmatch('[a-f0-9]{16,400}', signature), 'device_proof_invalid', 403)

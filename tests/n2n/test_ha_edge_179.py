@@ -114,3 +114,21 @@ def test_signed_operation_proof_binds_exact_parameters_and_revocation_index():
     regs[0].revoke(binding['member_id'])
     with pytest.raises(HAError, match='device_authority_changed'):
         regs[2].verify_request(proof, method, params)
+
+
+def test_non_p256_possession_is_not_cluster_device_authority():
+    import datetime
+    from cryptography import x509
+    from cryptography.hazmat.primitives import hashes, serialization
+    from cryptography.hazmat.primitives.asymmetric import ec
+    key = ec.generate_private_key(ec.SECP384R1())
+    name = x509.Name([x509.NameAttribute(x509.NameOID.COMMON_NAME, 'wrong-curve')])
+    now = datetime.datetime.now(datetime.timezone.utc)
+    cert = (x509.CertificateBuilder().subject_name(name).issuer_name(name).public_key(key.public_key())
+            .serial_number(1).not_valid_before(now - datetime.timedelta(minutes=1))
+            .not_valid_after(now + datetime.timedelta(hours=1)).sign(key, hashes.SHA256())
+            .public_bytes(serialization.Encoding.PEM).decode())
+    challenge = {'nonce': 'a' * 64}
+    signature = key.sign(proof_bytes(challenge, 'device', 'hello'), ec.ECDSA(hashes.SHA256())).hex()
+    with pytest.raises(HAError, match='device_certificate_invalid'):
+        ClusterEdgeRegistry._proof(cert, challenge, 'device', 'hello', signature)
