@@ -5,6 +5,7 @@ import 'dart:math';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import '../ncfed/protected_device_descriptor.dart';
+import '../ncfed/cluster_trust.dart';
 
 typedef Json = Map<String, dynamic>;
 bool _id(dynamic value) =>
@@ -76,8 +77,13 @@ class CloudOwnerError implements Exception {
 class CloudProfile {
   final String origin;
   final String installationId;
-  const CloudProfile._(this.origin, this.installationId);
-  factory CloudProfile(String origin, String installationId) {
+  final ClusterBinding? cluster;
+  const CloudProfile._(this.origin, this.installationId, this.cluster);
+  factory CloudProfile(
+    String origin,
+    String installationId, {
+    ClusterBinding? cluster,
+  }) {
     final uri = Uri.tryParse(origin);
     if (uri == null ||
         uri.scheme != 'https' ||
@@ -92,10 +98,21 @@ class CloudProfile {
         ).hasMatch(installationId)) {
       throw const CloudOwnerError('invalid_profile');
     }
-    return CloudProfile._(origin, installationId);
+    if (cluster != null &&
+        (cluster.origin != origin ||
+            cluster.installationId != installationId)) {
+      throw const CloudOwnerError('invalid_profile');
+    }
+    return CloudProfile._(origin, installationId, cluster);
   }
   String get key => base64Url
-      .encode(utf8.encode('$origin|$installationId'))
+      .encode(
+        utf8.encode(
+          cluster == null
+              ? '$origin|$installationId'
+              : 'cluster|${cluster!.pin.clusterId}|${cluster!.pin.generation}',
+        ),
+      )
       .replaceAll('=', '');
   Json toJson() => {'origin': origin, 'installation_id': installationId};
 }
@@ -250,6 +267,12 @@ class HttpsOwnerTransport implements OwnerTransport {
   }
 }
 
+/// Transports implement this only after native verification of the current
+/// signed manifest. Same-node reconnect may advance its monotone revision.
+abstract interface class VerifiedClusterTransport {
+  ClusterBinding get verifiedCluster;
+}
+
 class CloudOwnerClient {
   final CloudProfile profile;
   final CloudOwnerStore store;
@@ -282,6 +305,84 @@ class CloudOwnerClient {
   bool get deviceKey => _verified && _devicePrincipal != null;
   bool get _tokenless => openLab || deviceKey;
   bool get operationsReady => _tokenless || authenticated;
+  int? _authorityEpoch;
+  bool _authorityAvailable = true;
+  bool get clusterMode => profile.cluster != null;
+  ClusterBinding? get clusterBinding => !clusterMode
+      ? null
+      : transport is VerifiedClusterTransport
+      ? (transport as VerifiedClusterTransport).verifiedCluster
+      : profile.cluster;
+  bool get canPrepare =>
+      operationsReady &&
+      !busy &&
+      (!clusterMode || _authorityAvailable) &&
+      reference == null &&
+      combinedReference == null;
+  String? get authorityMessage => !clusterMode
+      ? null
+      : !_authorityAvailable
+      ? 'Cluster authority is unavailable. Saved operations are preserved.'
+      : operation != null && !_currentReviewEpoch(operation!['review'])
+      ? 'The leader changed. This review is stale; check the same operation.'
+      : 'Cluster authority epoch ${_authorityEpoch ?? profile.cluster!.epoch ?? "unknown"}. Status observations do not grant execution.';
+  bool _currentReviewEpoch(dynamic review) =>
+      !clusterMode ||
+      review is Json &&
+          review['cluster'] is Json &&
+          review['cluster']['authority_epoch'] ==
+              (_authorityEpoch ?? profile.cluster!.epoch);
+
+  void _retainAuthority(Json value) {
+    if (!clusterMode) return;
+    final authority = value['authority'], cluster = clusterBinding!;
+    if (authority is! Json ||
+        authority.length != 6 ||
+        authority['mode'] != 'cluster' ||
+        authority['cluster_id'] != cluster.pin.clusterId ||
+        authority['generation'] != cluster.pin.generation ||
+        authority['served_by'] != cluster.nodeId ||
+        authority['observation_only'] != true ||
+        authority['epoch'] != null &&
+            (authority['epoch'] is! int || authority['epoch'] < 1)) {
+      throw const CloudOwnerError('identity_changed');
+    }
+    if (_authorityEpoch != null &&
+        authority['epoch'] != null &&
+        authority['epoch'] < _authorityEpoch) {
+      throw const CloudOwnerError('identity_changed');
+    }
+    _authorityEpoch = authority['epoch'];
+    _authorityAvailable = _authorityEpoch != null;
+  }
+
+  bool _reviewIdentity(dynamic review) {
+    if (review is! Json || review['border'] is! Json) return false;
+    if (!clusterMode) {
+      return review['border']['installation_id'] == profile.installationId &&
+          !review.containsKey('cluster');
+    }
+    final c = review['cluster'], binding = clusterBinding!;
+    if (c is! Json ||
+        c.length != 5 ||
+        c['cluster_id'] != binding.pin.clusterId ||
+        c['generation'] != binding.pin.generation ||
+        c['manifest_revision'] is! int ||
+        c['manifest_revision'] < 1 ||
+        c['manifest_revision'] > binding.pin.revision ||
+        c['authority_epoch'] is! int ||
+        c['authority_epoch'] < 1) {
+      return false;
+    }
+    return binding.nodes.any(
+      (n) =>
+          n['node_id'] == c['issuer_node_id'] &&
+          n['installation_id'] == review['border']['installation_id'] &&
+          n['key_id'] == review['border']['key_id'] &&
+          n['identity'] == review['border']['identity'],
+    );
+  }
+
   Json? get principal => deviceKey
       ? _devicePrincipal
       : openLab
@@ -368,6 +469,9 @@ class CloudOwnerClient {
     final headers = <String, String>{
       'Accept': 'application/json',
       'X-NetClaw-Installation': profile.installationId,
+      if (clusterMode) 'X-NetClaw-Cluster-ID': clusterBinding!.pin.clusterId,
+      if (clusterMode)
+        'X-NetClaw-Cluster-Generation': clusterBinding!.pin.generation,
     };
     if (method != 'GET') {
       headers['Origin'] = profile.origin;
@@ -390,6 +494,17 @@ class CloudOwnerClient {
     );
     if (generation != _generation) throw const CloudOwnerError('suspended');
     if (result.status < 200 || result.status >= 300) {
+      if (clusterMode &&
+          [
+            'no_quorum',
+            'authority_unavailable',
+            'stale_authority',
+            'recovery_fenced',
+            'node_retired',
+          ].contains(result.body['code'])) {
+        _authorityAvailable = false;
+        throw CloudOwnerError(result.body['code']);
+      }
       if (result.status == 401 ||
           result.body['code'] == 'installation_changed') {
         if (_tokenless) {
@@ -476,6 +591,10 @@ class CloudOwnerClient {
       _devicePrincipal = accessPrincipal;
     }
     _verified = true;
+    if (clusterMode) {
+      _authorityEpoch = clusterBinding!.epoch;
+      _authorityAvailable = clusterBinding!.available;
+    }
     await store.saveProfile(profile);
     _current(generation);
     if (_tokenless) {
@@ -565,6 +684,12 @@ class CloudOwnerClient {
   Future<void> _loadOwned() async {
     _requireAccess();
     catalog = (await _request('/api/hud/operations/catalog')).body;
+    if (clusterMode) {
+      _retainAuthority(catalog!);
+      if (jsonEncode(catalog!['capabilities']) != '["cluster_execution_v2"]') {
+        throw const CloudOwnerError('invalid_response');
+      }
+    }
     if (!_id(catalog!['revision']) || catalog!['members'] is! List) {
       catalog = null;
       throw const CloudOwnerError('invalid_response');
@@ -627,6 +752,25 @@ class CloudOwnerClient {
     _requireAccess();
     final ref = reference;
     final review = value['review'];
+    _retainAuthority(value);
+    if (clusterMode && value['result_reference'] != null) {
+      final result = value['result_reference'];
+      if (result is! Json ||
+          result.length != 6 ||
+          !_digest(result['digest']) ||
+          !_uuid(result['receipt_id']) ||
+          !_uuid(result['artifact_id']) ||
+          result['artifact_id'] != value['operation_id'] ||
+          result['member'] is! Json ||
+          utf8.decode(clusterCanonical(result['member'])) !=
+              utf8.decode(clusterCanonical(review?['member'])) ||
+          !['succeeded', 'failed', 'refused'].contains(result['outcome']) ||
+          !['not_started', 'finished'].contains(result['effect_status']) ||
+          result['outcome'] == 'succeeded' &&
+              result['effect_status'] != 'finished') {
+        throw const CloudOwnerError('invalid_response');
+      }
+    }
     if (ref == null ||
         !_id(value['operation_id']) ||
         value['client_nonce'] != ref['client_nonce'] ||
@@ -637,7 +781,7 @@ class CloudOwnerClient {
         !_digest(value['review_digest']) ||
         review is! Json ||
         review['border'] is! Json ||
-        review['border']['installation_id'] != profile.installationId ||
+        !_reviewIdentity(review) ||
         review['principal'] is! Json ||
         !(_samePrincipal(review['principal'], principal) ||
             openLab &&
@@ -670,6 +814,9 @@ class CloudOwnerClient {
       _exclusive(() async {
         final generation = _generation;
         _requireAccess();
+        if (clusterMode && !_authorityAvailable) {
+          throw const CloudOwnerError('authority_unavailable');
+        }
         if (combinedReference != null ||
             reference != null ||
             await store.reference(profile) != null) {
@@ -744,6 +891,8 @@ class CloudOwnerClient {
     final op = operation,
         expiry = operation?['review']?['limits']?['expires_at_ms'];
     return operationsReady &&
+        (!clusterMode ||
+            _authorityAvailable && _currentReviewEpoch(op?['review'])) &&
         !busy &&
         !uncertain &&
         reference?['decision_sent'] != true &&

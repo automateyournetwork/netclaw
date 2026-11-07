@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		179000000000000000000001 /* ClusterPublicCrypto.swift in Sources */ = {isa = PBXBuildFile; fileRef = 179000000000000000000002 /* ClusterPublicCrypto.swift */; };
 		01A006D824F9BE6E4E1618CD /* PendingApprovalActivityAttributes.swift in Sources */ = {isa = PBXBuildFile; fileRef = 293A1D304532ECFF692D458B /* PendingApprovalActivityAttributes.swift */; };
 		052FBCC9A5C97BCB062856D0 /* EdgeIdentityPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FFCB201673536578933EC0E /* EdgeIdentityPlugin.swift */; };
 		0B16EF33CF8CB0CCE1E8F646 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 418FF2E0F619FF82B97E8A5E /* Foundation.framework */; };
@@ -152,6 +153,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		179000000000000000000002 /* ClusterPublicCrypto.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClusterPublicCrypto.swift; sourceTree = "<group>"; };
 		0A1A88681C289C2A4993574F /* HeartbeatComplication.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = HeartbeatComplication.swift; sourceTree = "<group>"; };
 		0D5BF838B9249487BC350187 /* ApprovalActionIntent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ApprovalActionIntent.swift; sourceTree = "<group>"; };
 		11ECA5A4B25A9137F9746B1C /* WatchAppApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchAppApp.swift; sourceTree = "<group>"; };
@@ -389,6 +391,7 @@
 				7884E8672EC3CC0400C636F2 /* SceneDelegate.swift */,
 				74858FAD1ED2DC5600515810 /* Runner-Bridging-Header.h */,
 				5FFCB201673536578933EC0E /* EdgeIdentityPlugin.swift */,
+				179000000000000000000002 /* ClusterPublicCrypto.swift */,
 				7892DD000E2EF1D894D34525 /* X509SelfSigned.swift */,
 				5F670FCA531F3F4E9726ABFE /* WatchRelayPlugin.swift */,
 				13C1D53033EE4A7F78E8AA0E /* LiveActivityBridge.swift */,
@@ -731,6 +734,7 @@
 				1498D2341E8E89220040F4C2 /* GeneratedPluginRegistrant.m in Sources */,
 				7884E8682EC3CC0700C636F2 /* SceneDelegate.swift in Sources */,
 				052FBCC9A5C97BCB062856D0 /* EdgeIdentityPlugin.swift in Sources */,
+				179000000000000000000001 /* ClusterPublicCrypto.swift in Sources */,
 				BBF0FAD7CE203CDC4719099D /* X509SelfSigned.swift in Sources */,
 				AB6665C540181052E633EB50 /* WatchRelayPlugin.swift in Sources */,
 				49BEAAEF69DD4D8F46C31214 /* LiveActivityBridge.swift in Sources */,

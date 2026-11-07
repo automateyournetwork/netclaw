@@ -1,4 +1,4 @@
-import 'dart:convert';
+import 'cluster_trust.dart';
 
 /// The QR payload rendered by `netclaw risk token --edge`
 /// (contracts/edge-enrollment-and-push.md §1).
@@ -11,6 +11,10 @@ class EnrollmentQrPayload {
   final String? installationId;
   // Only populated from retained enrollment, never trusted from a scanned QR.
   final String? expectedDeviceSubject;
+  final ClusterPin? clusterPin;
+  final String? clusterNodeId;
+  final String? clientNonce;
+  final String? expectedEnrollmentGeneration;
 
   Uri get websocketUri =>
       Uri(scheme: 'wss', host: clawDomain, port: borderPort, path: wsPath);
@@ -23,9 +27,23 @@ class EnrollmentQrPayload {
     this.wsPath = '/',
     this.installationId,
     this.expectedDeviceSubject,
+    this.clusterPin,
+    this.clusterNodeId,
+    this.clientNonce,
+    this.expectedEnrollmentGeneration,
   });
 
   factory EnrollmentQrPayload.fromJson(Map<String, dynamic> json) {
+    ClusterPin? pin;
+    String? nodeId;
+    if (json.containsKey('cluster')) {
+      final cluster = Map<String, dynamic>.from(json['cluster'] as Map);
+      nodeId = cluster.remove('node_id') as String?;
+      pin = ClusterPin.fromJson(cluster);
+      if (!clusterUuid(nodeId) || !clusterUuid(json['client_nonce'])) {
+        throw const FormatException('Invalid cluster enrollment pins');
+      }
+    }
     return EnrollmentQrPayload(
       borderHost: json['border_host'] as String,
       borderPort: json['border_port'] as int,
@@ -33,13 +51,16 @@ class EnrollmentQrPayload {
       enrollmentToken: json['enrollment_token'] as String,
       wsPath: json['ws_path'] as String? ?? '/',
       installationId: json['installation_id'] as String?,
+      clusterPin: pin,
+      clusterNodeId: nodeId,
+      clientNonce: json['client_nonce'] as String?,
     );
   }
 
   static EnrollmentQrPayload parse(String raw) {
     if (raw.length > 8192) throw const FormatException('QR is too large');
     final payload = EnrollmentQrPayload.fromJson(
-      jsonDecode(raw) as Map<String, dynamic>,
+      clusterDecode(raw) as Map<String, dynamic>,
     );
     verifyClawDomainBeforeDial(payload);
     if (payload.enrollmentToken.isEmpty ||
@@ -84,6 +105,9 @@ void verifyClawDomainBeforeDial(EnrollmentQrPayload payload) {
       payload.borderPort > 65535 ||
       !['/', '/mobile/ws'].contains(payload.wsPath) ||
       (payload.wsPath != '/' && payload.installationId == null) ||
+      (payload.clusterPin != null &&
+          (payload.wsPath != '/mobile/ws' ||
+              !clusterUuid(payload.clusterNodeId))) ||
       (payload.installationId != null &&
           !RegExp(
             r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',

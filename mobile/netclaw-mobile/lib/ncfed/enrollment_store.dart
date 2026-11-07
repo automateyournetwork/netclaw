@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'enrollment_qr_payload.dart';
+import 'cluster_trust.dart';
 
 /// What's needed to reconnect without re-scanning a QR: the fixed identity
 /// this device enrolled under, the Border-issued key fingerprint
@@ -21,6 +22,11 @@ class StoredEnrollment {
   final bool pending;
   final int endpointRevision;
   final String? protectedOrigin;
+  final ClusterPin? clusterPin;
+  final String? clusterNodeId;
+  final Map<String, dynamic>? clusterDescriptor;
+  final String? enrollmentGeneration;
+  final String? clientNonce;
   bool get protected => deviceSubject != null || wsPath == '/mobile/ws';
 
   const StoredEnrollment({
@@ -35,6 +41,11 @@ class StoredEnrollment {
     this.pending = false,
     this.endpointRevision = 0,
     this.protectedOrigin,
+    this.clusterPin,
+    this.clusterNodeId,
+    this.clusterDescriptor,
+    this.enrollmentGeneration,
+    this.clientNonce,
   });
 
   EnrollmentQrPayload toPayload({String enrollmentToken = ''}) =>
@@ -46,6 +57,10 @@ class StoredEnrollment {
         wsPath: wsPath,
         installationId: installationId,
         expectedDeviceSubject: deviceSubject,
+        clusterPin: clusterPin,
+        clusterNodeId: clusterNodeId,
+        expectedEnrollmentGeneration: enrollmentGeneration,
+        clientNonce: clientNonce,
       );
 
   Map<String, dynamic> toJson() => {
@@ -60,6 +75,12 @@ class StoredEnrollment {
     if (pending) 'pending': true,
     if (endpointRevision != 0) 'endpoint_revision': endpointRevision,
     if (protectedOrigin != null) 'protected_origin': protectedOrigin,
+    if (clusterPin != null) 'cluster_pin': clusterPin!.toJson(),
+    if (clusterNodeId != null) 'cluster_node_id': clusterNodeId,
+    if (clusterDescriptor != null) 'cluster_descriptor': clusterDescriptor,
+    if (enrollmentGeneration != null)
+      'enrollment_generation': enrollmentGeneration,
+    if (clientNonce != null) 'client_nonce': clientNonce,
   };
 
   factory StoredEnrollment.fromJson(Map<String, dynamic> json) =>
@@ -75,6 +96,13 @@ class StoredEnrollment {
         pending: json['pending'] == true,
         endpointRevision: json['endpoint_revision'] as int? ?? 0,
         protectedOrigin: json['protected_origin'] as String?,
+        clusterPin: json['cluster_pin'] == null
+            ? null
+            : ClusterPin.fromJson(json['cluster_pin']),
+        clusterNodeId: json['cluster_node_id'] as String?,
+        clusterDescriptor: json['cluster_descriptor'] as Map<String, dynamic>?,
+        enrollmentGeneration: json['enrollment_generation'] as String?,
+        clientNonce: json['client_nonce'] as String?,
       );
 }
 
@@ -96,6 +124,9 @@ class EnrollmentStore {
   Future<StoredEnrollment?> load() async {
     final file = _file();
     if (!await file.exists()) return null;
+    if (await file.length() > 160 * 1024) {
+      throw const FormatException('Enrollment record is too large');
+    }
     final text = await file.readAsString();
     if (text.trim().isEmpty) return null;
     return StoredEnrollment.fromJson(jsonDecode(text) as Map<String, dynamic>);

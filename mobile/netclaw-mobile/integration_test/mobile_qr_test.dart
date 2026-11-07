@@ -185,6 +185,21 @@ void main() {
         saved != null && client.enrollFingerprint == saved!.keyFingerprint,
         'Retained identity mismatch',
       );
+      if (config['cluster_id'] != null) {
+        require(
+          client.clusterBinding != null &&
+              saved!.clusterPin != null &&
+              saved!.clusterPin!.clusterId == config['cluster_id'] &&
+              saved!.clusterPin!.generation == config['generation'] &&
+              saved!.clusterPin!.anchorKeyId == config['anchor_key_id'] &&
+              saved!.clusterNodeId == client.clusterBinding!.nodeId &&
+              saved!.deviceSubject ==
+                  client.protectedDevice?.principal['subject'] &&
+              saved!.enrollmentGeneration ==
+                  client.protectedDevice?.enrollmentGeneration,
+          'Reviewed cluster enrollment changed',
+        );
+      }
       if (config['installation_id'] != null) {
         require(
           client.border['installation_id'] == config['installation_id'],
@@ -850,7 +865,10 @@ void main() {
           'Native outbound receipt attribution is missing',
         );
         require(
-          find.textContaining('External sources · untrusted peer responses').evaluate().isNotEmpty,
+          find
+              .textContaining('External sources · untrusted peer responses')
+              .evaluate()
+              .isNotEmpty,
           'Production Chat did not display external source',
         );
         externalTurn = turn.toJson();
@@ -928,10 +946,27 @@ void main() {
         client.enrollFingerprint == saved!.keyFingerprint,
         'Reconnect changed identity',
       );
+      if (saved!.clusterPin != null) {
+        require(
+          client.clusterBinding!.pin.sameAudience(saved!.clusterPin!) &&
+              client.clusterBinding!.pin.revision >=
+                  saved!.clusterPin!.revision &&
+              client.protectedDevice!.principal['subject'] ==
+                  saved!.deviceSubject &&
+              client.protectedDevice!.enrollmentGeneration ==
+                  saved!.enrollmentGeneration,
+          'Cluster reconnect changed device authority',
+        );
+      }
       binding.reportData = {
         'r04b_evidence': {
           'phase': phase,
           'profile': profileName,
+          if (saved!.clusterPin != null)
+            'cluster_classification':
+                'NATIVE_REQUIRES_REAL_BACKEND_CORRELATION',
+          if (saved!.clusterPin != null)
+            'backend_record': config['backend_record'],
           'enrollment': saved!.toJson(),
           'border': client.border,
           'decoder': decoder,

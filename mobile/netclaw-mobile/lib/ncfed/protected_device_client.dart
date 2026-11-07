@@ -3,13 +3,16 @@ import '../cloud/owner_client.dart';
 import 'edge_client.dart';
 import 'heartbeat.dart';
 import 'protected_device_descriptor.dart';
+import 'cluster_trust.dart';
 
 /// Device operations never share owner sessions or references, including when
 /// the same installation is also connected in the historical owner screen.
 class ProtectedDeviceStore extends CloudOwnerStore {
   final String scope;
   ProtectedDeviceStore(ProtectedDeviceDescriptor descriptor)
-    : scope = '${descriptor.installationId}.${descriptor.principal['subject']}';
+    : scope = descriptor.cluster == null
+          ? '${descriptor.installationId}.${descriptor.principal['subject']}'
+          : '${descriptor.cluster!.pin.clusterId}.${descriptor.cluster!.pin.generation}.${descriptor.principal['subject']}';
   @override
   Future<String?> read(String key) =>
       storage.read(key: 'netclaw.device.v1.$scope.$key');
@@ -25,10 +28,18 @@ class ProtectedDeviceStore extends CloudOwnerStore {
 
 /// Narrow adaptation of the reviewed operation state machine to the enrolled,
 /// key-proven WSS connection. No HTTP session, token, generic proxy or fallback.
-class ProtectedDeviceTransport implements OwnerTransport {
+class ProtectedDeviceTransport
+    implements OwnerTransport, VerifiedClusterTransport {
   final EdgeClient edge;
   final ProtectedDeviceDescriptor binding;
   ProtectedDeviceTransport(this.edge, this.binding);
+  @override
+  ClusterBinding get verifiedCluster {
+    _validate();
+    final cluster = edge.protectedDevice?.cluster;
+    if (cluster == null) throw const CloudOwnerError('identity_changed');
+    return cluster;
+  }
 
   void _validate() {
     final current = edge.protectedDevice;
@@ -36,6 +47,12 @@ class ProtectedDeviceTransport implements OwnerTransport {
         current == null ||
         current.origin != binding.origin ||
         current.installationId != binding.installationId ||
+        current.cluster?.pin.clusterId != binding.cluster?.pin.clusterId ||
+        current.cluster?.pin.generation != binding.cluster?.pin.generation ||
+        current.cluster?.pin.anchorKeyId != binding.cluster?.pin.anchorKeyId ||
+        current.cluster != null &&
+            current.cluster!.pin.revision < binding.cluster!.pin.revision ||
+        current.enrollmentGeneration != binding.enrollmentGeneration ||
         jsonEncode(current.principal) != jsonEncode(binding.principal)) {
       throw const CloudOwnerError('identity_changed');
     }
@@ -57,11 +74,18 @@ class ProtectedDeviceTransport implements OwnerTransport {
         headers.containsKey('X-NetClaw-CSRF')) {
       throw const CloudOwnerError('identity_changed');
     }
+    if (binding.cluster != null &&
+        (headers['X-NetClaw-Cluster-ID'] != binding.cluster!.pin.clusterId ||
+            headers['X-NetClaw-Cluster-Generation'] !=
+                binding.cluster!.pin.generation)) {
+      throw const CloudOwnerError('identity_changed');
+    }
     if (method == 'GET' && uri.path == '/api/runtime' && !uri.hasQuery) {
       // This descriptor arrived through the real authenticated hello/enroll.
       return OwnerResponse(200, {
         'installationId': binding.installationId,
         'role': 'border',
+        if (binding.cluster != null) 'cluster': verifiedCluster.descriptor,
         'access': {'mode': 'device-key', 'principal': binding.principal},
         'capabilities': {
           'protectedProfile': true,
@@ -145,6 +169,16 @@ class ProtectedDeviceTransport implements OwnerTransport {
       throw const CloudOwnerError('request_refused');
     }
     try {
+      if (binding.cluster != null) {
+        if (operation.startsWith('combined_')) {
+          throw const CloudOwnerError('request_refused');
+        }
+        params['device_proof'] = await edge.signedDeviceRequest(
+          'n2n/edge/operations/$operation',
+          params,
+        );
+        _validate();
+      }
       final result = await edge.call('n2n/edge/operations/$operation', params);
       _validate();
       return OwnerResponse(200, result);
@@ -171,7 +205,11 @@ CloudOwnerClient protectedDeviceClient(
   if (descriptor == null) throw const CloudOwnerError('identity_changed');
   wireHeartbeat(edge);
   return CloudOwnerClient(
-    CloudProfile(descriptor.origin, descriptor.installationId),
+    CloudProfile(
+      descriptor.origin,
+      descriptor.installationId,
+      cluster: descriptor.cluster,
+    ),
     expectedDevicePrincipal: descriptor.principal,
     store: store ?? ProtectedDeviceStore(descriptor),
     transport: ProtectedDeviceTransport(edge, descriptor),
