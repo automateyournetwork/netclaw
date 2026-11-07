@@ -159,7 +159,8 @@ blocks on *any* gap (including audit). Per-control policy: a **containment** gap
 
 > **Operational note:** the DefenseClaw guardrail sidecar (the model-guard proxy)
 > runs as a **durable `systemd --user` service** (`defenseclaw-sidecar.service`,
-> `Restart=always`), generated + enabled by `scripts/in2n-services.py` alongside the
+> `Restart=always`, started with `defenseclaw-gateway start` so the DefenseClaw CLI can
+> reach it), generated + enabled by `scripts/in2n-services.py` alongside the
 > mesh daemon and members — so model-guard survives a reboot with no manual step.
 > One-time prerequisite: `./scripts/defenseclaw-enable.sh` (pinned, checksum-verified
 > DefenseClaw release; `defenseclaw init` and `setup guardrail --connector openclaw`,

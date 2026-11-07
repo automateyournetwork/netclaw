@@ -210,7 +210,10 @@ def _defenseclaw_unit_text() -> str:
     if not dg:
         return None
     with open(DEFENSECLAW_TEMPLATE) as fh:
-        return fh.read().replace("@DGDIR@", os.path.dirname(dg)).replace("@DG@", dg)
+        text = fh.read()
+    helper = os.path.join(REPO, "scripts", "systemd", "defenseclaw-sidecar-start.py")
+    return (text.replace("@DGDIR@", os.path.dirname(dg)).replace("@DG@", dg)
+            .replace("@PY@", sys.executable).replace("@HELPER@", helper))
 
 
 def _hardening_block(harden: bool, system: bool = False) -> str:
