@@ -164,3 +164,20 @@ hard trickle-response deadline and cancellation cleanup. Related tests pass110/1
 Only temporary controlled stdio/HTTP fixtures ran: no Docker command, actual guard,
 provider/model or client qualification was launched. Production integration and
 actual fixture/REAL gates remain the coordinator's responsibility.
+
+## Separate OS-process fixture source
+
+`labs/ha/process_fixture.py` and its maintainer runbook prepare the missing actual
+process-death qualification. The coordinator can launch three production
+ClusterNode workers and a separate production multiattachment/MemberAdmission
+worker, then kill each elected Border PID, interrupt a consumed member callback,
+optionally invoke the existing OwnedVoterRestart helper and restart the exact
+homes/IDs. Original journal/effect digests, replay refusal and new-ID resource
+fences are checked. Private bounded UDS commands cannot execute arbitrary work;
+mutations/faults have exclusive claims, owned PIDs/commands/source hashes are
+recorded, and worker/coordinator lifetimes and cleanup are bounded.
+
+Fifteen protocol/source tests pass and isolated CLI help succeeds. Neither the
+worker nor coordinator fixture, Docker, actual NCFED process workload or REAL
+native execution ran in this lane. T025/T034 still require coordinator execution
+and review of the resulting process and voter evidence.
