@@ -24,12 +24,12 @@ Tests are mandatory under FR-020/021. Checkboxes close only with recorded eviden
 Independent test: any of3Borders accepts a new exact operation through current
 quorum authority;leader loss permits distinct fresh work while old work is retained.
 
-- [ ] T011 [US1] Write actual NCFED cluster handshake/forwarding and multiattachment tests in tests/n2n/test_ha_channels_179.py (FR-003/004/011/026).
+- [x] T011 [US1] Write actual NCFED cluster handshake/forwarding and multiattachment tests in tests/n2n/test_ha_channels_179.py (FR-003/004/011/026).
 - [x] T012 [US1] Implement separately enrolled NCFED ClusterChannel with exact transcript/role/method checks in mcp-servers/protocol-mcp/bgp/federation/ha/channel.py (FR-011/012/026).
 - [ ] T013 [US1] Integrate cluster lifecycle and node-keyed outbound iN2N attachments in federation/service.py,internal_security.py and bgp-daemon-v2.py (FR-003/004/023).
 - [x] T014 [US1] Add explicit protectedv2 cluster review/approval/result/ACK and stable principal audience in federation/protected_contract.py with tests/n2n/test_ha_execution_contract_179.py (FR-001/003/008/010).
-- [ ] T015 [US1] Implement quorum-wide review/nonce/approval/revocation and exact dispatch ownership plus narrow follower forwarding in federation/ha/operations.py,protected_service.py (FR-003/008/009/010).
-- [ ] T016 [US1] Recover original signed member result/ACK through surviving nodes without redispatch in federation/protected_service.py,protected_store.py and tests/n2n/test_ha_results_179.py (FR-008/009/010).
+- [x] T015 [US1] Implement quorum-wide review/nonce/approval/revocation and exact dispatch ownership plus narrow follower forwarding in federation/ha/operations.py,protected_service.py (FR-003/008/009/010).
+- [x] T016 [US1] Recover original signed member result/ACK through surviving nodes without redispatch in federation/protected_service.py,protected_store.py and tests/n2n/test_ha_results_179.py (FR-008/009/010).
 
 ## Phase 4 — US2: Member and guard enforcement
 
@@ -47,9 +47,9 @@ unknowns and resource fences remain across IDs and leader changes.
 Independent test: full restart/retirement/restore cannot resurrect consumed authority
 or unfreeze work missing from a stale snapshot.
 
-- [ ] T022 [US3] Write restart/retirement/restore-evidence-gap tests in tests/n2n/test_ha_recovery_179.py (FR-008/009/014/015).
-- [ ] T023 [US3] Implement majority-gated drain/retire/re-enroll and safe voter changes in federation/ha/lifecycle.py (FR-014).
-- [ ] T024 [US3] Implement trusted owned-process isolation receipts,export/fenced restore and one-use activation in scripts/lib/ha_cluster.py and federation/ha/recovery.py (FR-015/022).
+- [x] T022 [US3] Write restart/retirement/restore-evidence-gap tests in tests/n2n/test_ha_recovery_179.py (FR-008/009/014/015).
+- [x] T023 [US3] Implement majority-gated drain/retire/re-enroll and safe voter changes in federation/ha/lifecycle.py (FR-014).
+- [x] T024 [US3] Implement trusted owned-process isolation receipts,export/fenced restore and one-use activation in scripts/lib/ha_cluster.py and federation/ha/recovery.py (FR-015/022).
 - [ ] T025 [US3] Run actual fullrestart/retiredreturn/fencedrestore/storagegap fixtures in labs/ha/recovery_lab.py and record specs/179-border-ha-authority/verification.md (FR-015/020/021;SC-001/002).
 
 ## Phase 6 — US4: Operating clients
@@ -57,12 +57,12 @@ or unfreeze work missing from a stale snapshot.
 Independent test: actual browser/editor/Mobile retain cluster identity,exact pending
 review/sent markers and original result while node or authority changes.
 
-- [ ] T026 [US4] Add cross-language standalone/cluster/negative golden descriptors in tests/fixtures/ha-179 and client contract tests (FR-016/017/018/019).
+- [x] T026 [US4] Add cross-language standalone/cluster/negative golden descriptors in tests/fixtures/ha-179 and client contract tests (FR-016/017/018/019).
 - [ ] T027 [US4] Implement shared cluster device enrollment/revocation and retained-key hello in federation/mobile_enrollment.py,edge.py and tests/n2n/test_ha_edge_179.py (FR-018/019).
-- [ ] T028 [US4] Implement cluster descriptor/typed status/forwarding in ui/netclaw-visual/src/hud-server/protected-{server,client,operations}.js (FR-003/016/019).
-- [ ] T029 [US4] Implement HUD cluster audiences,status and stale-review/original-result recovery in src/shared/protected-* and dashboard operation views with tests (FR-016/019).
-- [ ] T030 [US4] Implement VSCode cluster profile/endpoint manifest and CAS selection in extensions/netclaw-vscode/src/state/profiles.ts,connection/connect.ts,client/owner.ts (FR-017/019).
-- [ ] T031 [US4] Implement VSCode authority display,native exact review and original-reference recovery in extensions/netclaw-vscode/src/views/owner.ts,client/combined.ts with tests (FR-017/019).
+- [x] T028 [US4] Implement cluster descriptor/typed status/forwarding in ui/netclaw-visual/src/hud-server/protected-{server,client,operations}.js (FR-003/016/019).
+- [x] T029 [US4] Implement HUD cluster audiences,status and stale-review/original-result recovery in src/shared/protected-* and dashboard operation views with tests (FR-016/019).
+- [x] T030 [US4] Implement VSCode cluster profile/endpoint manifest and CAS selection in extensions/netclaw-vscode/src/state/profiles.ts,connection/connect.ts,client/owner.ts (FR-017/019).
+- [x] T031 [US4] Implement VSCode authority display,native exact review and original-reference recovery in extensions/netclaw-vscode/src/views/owner.ts,client/combined.ts with tests (FR-017/019).
 - [ ] T032 [US4] Implement Mobile cluster enrollment,retained-key alternate endpoint and secure reference scope in mobile/netclaw-mobile/lib/ncfed/ and cloud/owner_client.dart with tests (FR-018/019).
 - [ ] T033 [US4] Implement Mobile authority/quorum/stale-review flows in mobile/netclaw-mobile/lib/screens/ and reconnect wiring with tests (FR-018/019).
 
@@ -96,8 +96,8 @@ Client source work can run in independent HUD/editor/Mobile lanes after backend
 contract freeze;it cannot qualify until actual backend/REAL records exist.
 T034 requires all fixture/runtime/client contract tests;T035–041 follow gate review.
 T042–048 finish coherence/acceptance. Runtime mutations are serialized by coordinator.
-Read-only research agents are authorized by planning skill;additional implementation
-agents require the pending owner choice. No optional Ralph loop.
+The owner authorized three implementation agents in separate worktrees. The coordinator
+serializes actual runtime changes and qualification. No optional Ralph loop.
 
 ## Implementation strategy
 
@@ -121,3 +121,15 @@ request substitution and unknown reservations. The guarded Docker/inference
 boundaries now require HA callbacks for cluster payloads; production construction
 and end-to-end validation remain open under T019/T020. No REAL execution or client
 HA acceptance has occurred. All remaining unchecked tasks remain required.
+
+## Integrated source checkpoint — 2026-11-07
+
+T011 now covers actual authenticated cluster sockets and three outbound iN2N
+attachments. T015/T016 preserve exact dispatch, unknown member/runner reservations
+and original issuer/result with successor ACK. T022–024 implement lifecycle and
+host-proven fenced restore; actual recovery fixtures remain T025. T026/T028–031
+include shared signed descriptors and HUD/editor implementation/regressions;
+actual browser/editor acceptance remains T038/T039. Shared Mobile enrollment
+and service wiring are under integrated verification; native Mobile remains open.
+The combined targeted Python batch passes235tests. These are source/controlled
+verification results, not REAL model/native execution or completed R08.

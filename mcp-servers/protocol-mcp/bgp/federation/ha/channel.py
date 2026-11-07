@@ -14,7 +14,7 @@ from .signatures import sign, verify
 
 HELLO = 'n2n/cluster/hello'
 METHODS = frozenset({'n2n/cluster/status', 'n2n/cluster/forward',
-                     'n2n/cluster/admission', 'n2n/cluster/admission-status'})
+                     'n2n/cluster/admission', 'n2n/cluster/admission-status', 'n2n/cluster/edge'})
 PREAMBLE = build_handshake(0, '0.0.0.0')
 MAX_MESSAGE = 1024 * 1024 + 65536
 

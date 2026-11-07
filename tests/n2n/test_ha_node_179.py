@@ -38,7 +38,8 @@ async def test_forwarding_lost_reply_does_not_select_another_channel():
 async def test_forward_does_not_grant_authority_from_serialized_principal():
     store, cluster = nodes()
     seen = []
-    async def authenticate(action, params):
+    async def authenticate(action, params, *, ingress_node_id):
+        assert ingress_node_id == cluster[0].node_id
         seen.append((action, params))
         raise HAError('lab_context_refused', 403)
     cluster[0].dispatch = authenticate

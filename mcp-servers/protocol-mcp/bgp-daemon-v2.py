@@ -1014,6 +1014,10 @@ def _sync_risk_from_env(fed):
 async def _start_in2n(fed):
     """iN2N (feature 056): start per role. A Border listens for member dial-ins;
     a Member dials the Border outbound (no inbound port). Standalone does nothing."""
+    if getattr(fed, 'ha_runtime', None) is not None:
+        # The explicit HA factory already owns the manifest-bound listener or
+        # all node-keyed outbound member attachments. Never add a legacy route.
+        return
     try:
         _sync_risk_from_env(fed)
         risk = fed.risk.get_risk()

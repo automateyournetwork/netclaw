@@ -12,10 +12,11 @@ from .config import check, HAError, read_private
 from .internal import border_binding
 from .node import FORWARDED
 from .signatures import sign
+from .edge import VerifiedClusterDevice
 
 
 class ClusterBorderOperations:
-    """Explicit open-lab cluster scope; device authorization is added separately.
+    """Explicit open-lab cluster scope and signed enrolled-device requests.
 
     The bridge remains private. Routing cannot import cookies or turn a supplied
     principal into authenticated owner/device authority.
@@ -28,6 +29,7 @@ class ClusterBorderOperations:
         self.member_channels, self.audit_writer, self.current = member_channels, audit_writer, current
         self.state = private_directory(state_dir)
         self.results = private_directory(self.state / 'ha-results')
+        self.observations = private_directory(self.state / 'ha-observations')
         self.principal = lab_principal(self.manifest.cluster_id)
         self.bridge, self.mobile_enrollment = None, None
         node.dispatch = self._local
@@ -35,6 +37,9 @@ class ClusterBorderOperations:
     @contextmanager
     def _owner(self, context):
         if self.current: self.current()
+        if isinstance(context, VerifiedClusterDevice):
+            yield context.principal()
+            return
         c.exact(context, 'access_mode installation_id cluster_id generation')
         check(context['access_mode'] == 'open-lab' and
               {key: context[key] for key in ('cluster_id', 'generation')} == self.manifest.audience
@@ -53,14 +58,72 @@ class ClusterBorderOperations:
 
     async def _route(self, action, params):
         check(isinstance(params, dict) and 'auth_context' in params, 'cluster_context_refused', 403)
-        with self._owner(params['auth_context']): pass
-        return await self.node.route('n2n/cluster/forward', {'action': action, 'params': params})
+        await self._authenticate(action, params, self.node.node_id)
+        try:
+            result = await self.node.route('n2n/cluster/forward', {'action': action, 'params': params})
+            if isinstance(result, dict) and 'operation_id' in result:
+                self._retain(result)
+            return result
+        except HAError as exc:
+            if action != 'status' or exc.code not in ('no_quorum', 'authority_unavailable', 'leader_transport_unavailable'):
+                raise
+            return self._retained_status(params, exc.code)
 
-    async def _local(self, action, params):
+    def _retain(self, dto):
+        # A private immutable-at-observation DTO is useful during quorum loss.
+        # It is never supplied to the ledger or used as execution authority.
+        c.uuid_field(dto['operation_id'])
+        cached = {'dto': dto, 'observed_at_ms': int(time.time()*1000)}
+        private_write(self.observations / (dto['operation_id'] + '.json'), c.encode(cached))
+        index = c.sha256({'principal': dto['review']['principal'], 'nonce': dto['client_nonce']})
+        private_write(self.observations / ('nonce-' + index + '.json'), c.encode({'operation_id': dto['operation_id']}))
+
+    def _retained_status(self, params, reason):
+        c.exact(params, 'auth_context operation_id' if 'operation_id' in params else 'auth_context client_nonce')
+        # This historical fallback is scoped to the explicit open-lab audience.
+        # Devices continue to require current quorum revocation checks.
+        with self._owner(params['auth_context']) as principal: pass
+        check(principal['issuer'] == 'open-lab', 'device_authority_unavailable', 503)
+        identifier = params.get('operation_id')
+        if identifier is None:
+            index = c.sha256({'principal': principal, 'nonce': params['client_nonce']})
+            path = self.observations / ('nonce-' + index + '.json')
+            check(path.exists(), 'no_retained_observation', 503)
+            identifier = c.decode(read_private(path))['operation_id']
+        c.uuid_field(identifier)
+        path = self.observations / (identifier + '.json')
+        check(path.exists(), 'no_retained_observation', 503)
+        cached = c.decode(read_private(path, c.MAX_ENVELOPE + 65536))
+        dto = cached['dto']
+        check(dto['operation_id'] == identifier and dto['review']['principal'] == principal
+              and {k:dto['review']['cluster'][k] for k in self.manifest.audience} == self.manifest.audience,
+              'retained_observation_mismatch', 403)
+        return dict(dto, allowed_actions=[], observation={'kind': 'retained',
+            'observed_at_ms': cached['observed_at_ms'], 'reason': reason})
+
+    async def _authenticate(self, action, params, ingress_node_id):
+        context = params.get('auth_context')
+        if isinstance(context, dict) and context.get('access_mode') == 'cluster-device-proof':
+            c.exact(context, 'access_mode proof params')
+            original = context['params']
+            check(isinstance(original, dict) and original.get('installation_id') ==
+                  self.manifest.node(ingress_node_id)['installation_id'], 'device_ingress_mismatch', 403)
+            check({k:v for k,v in original.items() if k != 'installation_id'} ==
+                  {k:v for k,v in params.items() if k != 'auth_context'}, 'device_proof_invalid', 403)
+            registry = getattr(self, 'edge_registry', None)
+            check(registry is not None, 'cluster_device_authority_unavailable', 503)
+            return await asyncio.to_thread(registry.verify_request, context['proof'],
+                'n2n/edge/operations/' + action, original)
+        with self._owner(context): pass
+        return context
+
+    async def _local(self, action, params, *, ingress_node_id=None):
         check(action in FORWARDED, 'cluster_method_refused', 403)
-        with self._owner(params.get('auth_context')): pass
-        result = await getattr(self, '_local_' + action)(params)
-        with self._owner(params['auth_context']): return result
+        ingress_node_id = ingress_node_id or self.node.node_id
+        context = await self._authenticate(action, params, ingress_node_id)
+        result = await getattr(self, '_local_' + action)(dict(params, auth_context=context))
+        await self._authenticate(action, params, ingress_node_id)
+        return result
 
     async def catalog(self, params): return await self._route('catalog', params)
     async def prepare(self, params): return await self._route('prepare', params)
@@ -132,7 +195,8 @@ class ClusterBorderOperations:
     async def _local_prepare(self, params):
         c.exact(params, 'auth_context client_nonce catalog_revision member_id model_profile_id tool arguments')
         candidate = {key: params[key] for key in ('catalog_revision','member_id','model_profile_id','tool','arguments')}
-        old = await asyncio.to_thread(self.ledger.lookup, client_nonce=params['client_nonce'], principal=self.principal)
+        with self._owner(params['auth_context']) as principal: pass
+        old = await asyncio.to_thread(self.ledger.lookup, client_nonce=params['client_nonce'], principal=principal)
         if old:
             check(old['candidate_digest'] == c.sha256(candidate), 'client_nonce_conflict', 409)
             return self._dto(old)
@@ -143,7 +207,7 @@ class ClusterBorderOperations:
         model = next((m for m in entry['model_profiles'] if m['profile_id'] == params['model_profile_id']), None)
         tool = next((t for t in entry['tools'] if t['tool'] == params['tool'] and t['arguments'] == params['arguments']), None)
         check(model is not None and tool is not None, 'selection_not_supported', 403)
-        review = {'principal': self.principal, 'border': self.identity, 'member': entry['member'],
+        review = {'principal': principal, 'border': self.identity, 'member': entry['member'],
             'model_profile': model, 'tool_call': {k:v for k,v in tool.items() if k != 'limits'},
             'limits': dict(tool['limits'], expires_at_ms=int(time.time()*1000) + 180000), 'change_request_ref': None,
             'cluster': {**self.manifest.audience, 'manifest_revision': self.manifest.revision,
@@ -187,8 +251,9 @@ class ClusterBorderOperations:
 
     async def _local_status(self, params):
         check(set(params) in ({'auth_context','operation_id'}, {'auth_context','client_nonce'}))
+        with self._owner(params['auth_context']) as principal: pass
         row = await self._row(params['operation_id'], params['auth_context']) if 'operation_id' in params else (
-            await asyncio.to_thread(self.ledger.lookup, client_nonce=params['client_nonce'], principal=self.principal))
+            await asyncio.to_thread(self.ledger.lookup, client_nonce=params['client_nonce'], principal=principal))
         check(row is not None, 'operation_not_found', 404)
         return self._dto(row)
 
@@ -225,6 +290,7 @@ class ClusterBorderOperations:
 
     async def start(self):
         await self.node.start()
+        if self.bridge: await self.bridge.start()
 
     async def close(self):
         if self.bridge: await self.bridge.close()

@@ -177,7 +177,9 @@ class EdgeChannel:
         valid = True
         if self.trusted and self.authority_current:
             try:
-                valid = bool(self.authority_current())
+                import inspect
+                observed = self.authority_current()
+                valid = bool(await observed if inspect.isawaitable(observed) else observed)
             except Exception:
                 valid = False
         if not valid:

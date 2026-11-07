@@ -52,3 +52,10 @@ async def test_exact_review_survives_lost_submit_without_second_dispatch(tmp_pat
     foreign = dict(context, cluster_id=str(uuid.uuid4()))
     with pytest.raises(HAError, match='cluster_context_refused'):
         await operations.status({'auth_context': foreign, 'operation_id': unknown['operation_id']})
+    store.available = False
+    retained = await operations.status({'auth_context': context, 'operation_id': unknown['operation_id']})
+    assert retained['operation_id'] == unknown['operation_id'] and retained['allowed_actions'] == []
+    assert retained['observation']['kind'] == 'retained' and retained['observation']['reason'] == 'no_quorum'
+    assert len(submissions) == 1
+    with pytest.raises(HAError, match='no_quorum'):
+        await operations.decision(decision)

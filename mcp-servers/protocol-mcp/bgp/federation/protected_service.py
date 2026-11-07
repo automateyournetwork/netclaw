@@ -628,13 +628,16 @@ class OperatorBridge:
             method, params = body['method'], body['params']
             require(isinstance(params, dict))
             require(not self.service.open_lab or not method.startswith('owner.'), 'method_refused', 404)
-            if method in ('mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status'):
+            if method == 'cluster.info':
+                require(hasattr(self.service, 'cluster_info'), 'cluster_unavailable', 404)
+                result = await self.service.cluster_info(params)
+            elif method in ('mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status'):
                 require(self.service.open_lab, 'owner_issuance_unqualified', 403)
                 require('auth_context' in params, 'lab_context_refused', 403)
                 with self.service._owner(params['auth_context']):
                     args = {key: value for key, value in params.items() if key != 'auth_context'}
                     issuer = self.service.mobile_enrollment
-                    result = getattr(issuer, method.rsplit('.', 1)[1])(args)
+                    result = await maybe_await(getattr(issuer, method.rsplit('.', 1)[1])(args))
             elif method == 'owner.login':
                 exact(params, 'ticket'); result = self.service.owner.login(params['ticket'])
             elif method == 'owner.session':
@@ -660,11 +663,21 @@ def validate_profile(config, *, role=None, identity=None):
     require(isinstance(config, dict), 'protected_profile_invalid')
     selected_role = config.get('role')
     require(selected_role in ('border', 'member'), 'unsupported_role')
-    exact(config, ('schemaVersion role identity' + (' access' if 'access' in config else '')) if selected_role == 'border'
-          else 'schemaVersion role identity catalog runtime border')
+    ha = type(config.get('schemaVersion')) is int and config['schemaVersion'] == 2
+    if ha:
+        exact(config, 'schemaVersion role identity access ha' if selected_role == 'border'
+              else 'schemaVersion role identity catalog runtime ha')
+        exact(config['ha'], 'config_file config_sha256')
+        path = config['ha']['config_file']
+        require(isinstance(path, str) and 0 < len(path) <= 4096 and '\x00' not in path
+                and Path(path).is_absolute(), 'protected_profile_invalid')
+        digest_field(config['ha']['config_sha256'])
+    else:
+        exact(config, ('schemaVersion role identity' + (' access' if 'access' in config else '')) if selected_role == 'border'
+              else 'schemaVersion role identity catalog runtime border')
     if 'access' in config:
         validate_access(config['access'])
-    require(type(config['schemaVersion']) is int and config['schemaVersion'] == 1, 'protected_profile_invalid')
+    require(type(config['schemaVersion']) is int and config['schemaVersion'] in (1, 2), 'protected_profile_invalid')
     validate_binding(config['identity'], selected_role)
     if role is not None:
         require(selected_role == role and config['identity'] == identity, 'local_authority_changed', 403)
@@ -676,6 +689,11 @@ def from_service(service):
     runtime, risk = service.runtime, service.risk
     require(runtime.installation is not None, 'installation_uninitialized', 503)
     config = validate_profile(decode(private_file(runtime.state / 'protected-profile.json')))
+    if config['schemaVersion'] == 2:
+        from .ha.factory import from_service as from_ha_service
+        return from_ha_service(service, config)
+    from .ha.config import require_ha
+    require_ha(runtime.state, None)
     original_profile = encode(config)
     role = config.get('role'); require(role in ('border', 'member'), 'unsupported_role')
     require((role == 'border') == risk.is_border(), 'role_mismatch', 503)

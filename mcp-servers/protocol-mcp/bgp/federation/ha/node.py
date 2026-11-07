@@ -20,23 +20,27 @@ class ClusterNode:
         self.authority, self.manifest = authority, authority.manifest
         self.node_id, self.private_key = authority.node_id, private_key
         self.ca_file, self.cert_file, self.key_file = ca_file, cert_file, key_file
-        self.dispatch = dispatch
+        self.dispatch, self.edge_dispatch = dispatch, None
+        self.local_current = None
         self.ledger = OperationLedger(authority)
         self.channels, self.tasks, self.server = {}, set(), None
         self.closing = False
         self.handlers = {'n2n/cluster/status': self._status, 'n2n/cluster/forward': self._forward,
                          'n2n/cluster/admission': self._admission,
-                         'n2n/cluster/admission-status': self._admission_status}
+                         'n2n/cluster/admission-status': self._admission_status,
+                         'n2n/cluster/edge': self._edge}
 
     async def current(self, peer_id):
+        if self.local_current: self.local_current()
         rows = await asyncio.to_thread(self.authority.snapshot)
         for identifier in (peer_id, self.node_id):
             enrolled = rows['control'][0]['nodes'].get(identifier)
-            check(enrolled is not None and enrolled['state'] in ('active', 'drained')
+            check(enrolled is not None and enrolled['state'] == 'active'
                   and enrolled['key_id'] == self.manifest.node(identifier)['key_id'], 'node_retired', 403)
         check(rows['control'][0]['active'], 'recovery_fenced', 503)
 
     async def member_current(self, binding):
+        if self.local_current: self.local_current()
         key = member_key(binding)
         rows = await asyncio.to_thread(self.authority.snapshot, [key])
         self.ledger._member(rows, binding)
@@ -123,6 +127,7 @@ class ClusterNode:
 
     async def route(self, method, params):
         """Resolve once, send once. Lost replies never select a second leader."""
+        await self.current(self.node_id)
         leader, _ = await asyncio.to_thread(self.authority.current)
         if leader['node_id'] == self.node_id:
             return await self.handlers[method](None, params)
@@ -137,7 +142,16 @@ class ClusterNode:
         check(leader['node_id'] == self.node_id, 'stale_authority', 409)
         # dispatch independently authenticates original context/device proof;
         # a serialized principal alone is never accepted as authorization.
-        return await self.dispatch(params['action'], params['params'])
+        ingress = channel.peer['node_id'] if channel is not None else self.node_id
+        return await self.dispatch(params['action'], params['params'], ingress_node_id=ingress)
+
+    async def _edge(self, channel, params):
+        exact(params, 'action params')
+        check(callable(self.edge_dispatch), 'cluster_method_refused', 403)
+        leader, _ = await asyncio.to_thread(self.authority.current)
+        check(leader['node_id'] == self.node_id, 'stale_authority', 409)
+        ingress = channel.peer['node_id'] if channel is not None else self.node_id
+        return await self.edge_dispatch(params['action'], params['params'], ingress_node_id=ingress)
 
     async def _admission(self, channel, params):
         exact(params, 'request member')

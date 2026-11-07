@@ -78,10 +78,13 @@ class FederationService:
         self.runtime = selected()
         self.execution_broker = None
         self.protected_operations = None
+        self.ha_runtime = None
+        self.cluster_channels = {}  # separately enrolled Border peers only
+        self.border_channels = {}   # HA members: node_id -> outbound iN2N attachment
         self.protected_enabled = os.environ.get('N2N_PROTECTED_OPERATIONS', '') == '1'
         self._protected_from_construction = self.protected_enabled
         protected_markers = ('protected-profile.json', 'enrollment-packet.json',
-                             'protected-enrollment-attempt.json')
+                             'protected-enrollment-attempt.json', 'ha-required.json')
         if any((self.runtime.state / name).exists() or (self.runtime.state / name).is_symlink()
                for name in protected_markers) and not self.protected_enabled:
             # An owned protected installation cannot fall back to legacy execution
@@ -1370,6 +1373,8 @@ class FederationService:
         """Border side: a member dialed our iN2N listener. Send the challenge
         preamble, then run an InternalChannel; the member authenticates via
         in2n/enroll (first time) or in2n/hello (pinned-key proof)."""
+        if self.ha_runtime is not None:
+            return await self.ha_runtime.accept_internal(reader, writer)
         from .internal_channel import InternalChannel, send_border_preamble
         from .internal_security import channel_binding
         try:
@@ -1789,7 +1794,8 @@ class FederationService:
         it's directly callable/testable without waiting on real timers."""
         try:
             await ch.call("n2n/edge/heartbeat", {})
-            self.risk.update_health(member_id, last_heartbeat=time.time())
+            if not getattr(self, 'ha_runtime', None):
+                self.risk.update_health(member_id, last_heartbeat=time.time())
             return True
         except Exception as e:
             logger.warning("Edge node %s: heartbeat failed (%s)", member_id, e)
@@ -1861,7 +1867,12 @@ class FederationService:
         ch = EdgeChannel(ws, local_identity=self.local_identity,
                          handlers=self._edge_border_handlers, strict_messages=self.protected_enabled)
         ch.nonce = nonce
-        await ch.notify("n2n/edge/challenge", {"nonce": nonce.hex()})
+        if getattr(self, 'ha_runtime', None):
+            from .ha.edge_service import challenge
+            challenge_value = await challenge(self, ch)
+        else:
+            challenge_value = {"nonce": nonce.hex()}
+        await ch.notify("n2n/edge/challenge", challenge_value)
         await ch.start()
         logger.info("Accepted edge WS dial-in (awaiting device auth)")
         if ch._read_task:
@@ -1872,6 +1883,9 @@ class FederationService:
         with node_type='edge' (T006/D9) so the resulting member row carries no
         BASE_FLOOR skill names (D5/T010) — the edge node satisfies that
         guarantee via n2n/edge/heartbeat + n2n/edge/self_status instead."""
+        if getattr(self, 'ha_runtime', None):
+            from .ha.edge_service import authenticate
+            return await authenticate(self, channel, params, enroll=True)
         from .internal_channel import _ERR_NOT_TRUSTED, _ERR_NOT_A_BORDER
         from .edge import RpcError
         if not self.risk.is_border():
@@ -1940,6 +1954,9 @@ class FederationService:
         return {**res,'border':self._edge_border_capabilities(channel)}
 
     def _edge_border_capabilities(self, channel=None):
+        if getattr(self, 'ha_runtime', None):
+            from .ha.edge_service import capabilities
+            return capabilities(self, channel)
         if self.protected_enabled:
             # Edge enrollment never grants the separate HTTPS owner authority.
             # The protected profile refuses legacy Ask; do not advertise it.
@@ -1970,6 +1987,9 @@ class FederationService:
         access to the phone-facing listener, even though EdgeChannel's own
         handler map already excludes every method an agent identity could
         otherwise reach, FR-012)."""
+        if getattr(self, 'ha_runtime', None):
+            from .ha.edge_service import authenticate
+            return await authenticate(self, channel, params, enroll=False)
         from .internal_channel import _ERR_NOT_TRUSTED
         from .edge import RpcError
         if channel.trusted:
@@ -2024,6 +2044,10 @@ class FederationService:
             from .edge import RpcError as EdgeRpcError
             forwarded = False
             try:
+                if getattr(self, 'ha_runtime', None):
+                    from .ha.edge_service import protected_request
+                    forwarded = True
+                    return await protected_request(self, action, channel, params)
                 fields = {'combined_prepare': 'client_nonce children', 'combined_cancel': 'parent_id',
                           'combined_status': 'parent_id' if isinstance(params, dict) and 'parent_id' in params else 'client_nonce',
                           'catalog': '', 'prepare': 'client_nonce catalog_revision member_id model_profile_id tool arguments',
@@ -2769,6 +2793,8 @@ class FederationService:
         """Member side: connect outbound to the Border, complete the handshake
         (enroll if we have a token, else hello with pinned-key proof), and stay
         available for delegated tasks. No inbound port is opened (FR-006/SC-011)."""
+        if self.ha_runtime is not None:
+            raise ValueError('HA members use their enrolled node-keyed attachment supervisor')
         from .internal_channel import InternalChannel, read_border_preamble
         strict = registration is not None
         if self.protected_enabled and enrollment_token and _enrollment_only is None:
@@ -3018,7 +3044,10 @@ class FederationService:
         if self.protected_enabled:
             from .protected_service import from_service
             self.protected_operations = from_service(self)
-            await self.protected_operations.start()
+            if self.ha_runtime is not None:
+                await self.ha_runtime.start()
+            else:
+                await self.protected_operations.start()
             if self.protected_operations.bridge:
                 await self.protected_operations.bridge.start()
             return
@@ -3035,7 +3064,9 @@ class FederationService:
             await self.execution_broker.close();raise
 
     async def stop_runtime(self):
-        if self.protected_operations:
+        if self.ha_runtime is not None:
+            await self.ha_runtime.close()
+        elif self.protected_operations:
             await self.protected_operations.close()
         from .hermes_runtime import ACTIVE
         if self.hermes_runtime:

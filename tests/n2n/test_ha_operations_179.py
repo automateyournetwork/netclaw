@@ -106,3 +106,54 @@ def test_capacity_fails_without_purging_nonce_or_claims():
     with pytest.raises(HAError, match='state_capacity'):
         ledger.prepare('nonce-two', 'a'*64, row['review'])
     assert ledger.lookup(operation_id=row['operation_id']) == row
+
+
+def device_operation():
+    store, nodes, ledger, old, member = prepared()
+    review = copy.deepcopy(old['review'])
+    principal = {'issuer': 'device-key', 'subject': str(uuid.uuid4()),
+                 'display_name': 'Enrolled mobile device', 'roles': ['device-operator']}
+    review['principal'] = principal
+    key = 'edge-principals/' + principal['subject']
+    record = {'principal': principal, 'state': 'active'}
+    with pytest.raises(HAError, match='device_authority_changed'):
+        ledger.prepare('device-nonce', 'a'*64, review)
+    store.txn([(key, 'revision', 0)], [(key, record, None)])
+    row = ledger.prepare('device-nonce', 'a'*64, review)
+    return store, nodes, ledger, row, key
+
+
+@pytest.mark.parametrize('boundary', ['dispatch', 'admit', 'admit_race'])
+def test_device_revocation_is_in_the_execution_transaction(boundary):
+    store, nodes, ledger, row, key = device_operation()
+    if boundary != 'dispatch': row = dispatch_fixture(store, nodes, ledger, row)
+    def revoke():
+        record, revision = store.read(key)
+        record['state'] = 'revoked'
+        original_txn([(key, 'revision', revision)], [(key, record, None)])
+    original_txn = store.txn
+    if boundary == 'admit_race':
+        fired = []
+        def racing_txn(comparisons, writes):
+            if not fired and any(k.startswith('claims/') for k, _, _ in writes):
+                fired.append(True); revoke()
+            return original_txn(comparisons, writes)
+        store.txn = racing_txn
+    else: revoke()
+    with pytest.raises(HAError, match='device_authority_changed'):
+        if boundary == 'dispatch': dispatch_fixture(store, nodes, ledger, row)
+        else: ledger.admit(request(ledger, row), row['review']['member'])
+    assert not any(k.startswith('claims/') for k in store.rows)
+    if boundary == 'dispatch':
+        assert ledger.lookup(operation_id=row['operation_id'])['attempt_id'] is None
+
+
+def test_restore_capacity_fence_blocks_new_device_and_owner_execution():
+    store, nodes, ledger, row, _ = prepared()
+    row = dispatch_fixture(store, nodes, ledger, row)
+    control, revision = store.read('control')
+    control['recovery'] = {'capacity_frozen': True}
+    store.txn([('control', 'revision', revision)], [('control', control, None)])
+    with pytest.raises(HAError, match='recovery_fenced'):
+        ledger.admit(request(ledger, row), row['review']['member'])
+    assert not any(k.startswith('claims/') for k in store.rows)

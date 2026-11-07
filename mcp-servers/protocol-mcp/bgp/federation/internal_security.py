@@ -37,6 +37,8 @@ def client_context(host):
 
 def dial_options(service, host, port):
     """Shared by both launchers; reload the approved registry on every attempt."""
+    if getattr(service, 'ha_runtime', None) is not None:
+        raise ValueError('HA attachment endpoints come from the pinned cluster manifest')
     from .endpoint_registry import configured
     registry = configured(runtime=getattr(service, 'runtime', None))
     if registry is None:

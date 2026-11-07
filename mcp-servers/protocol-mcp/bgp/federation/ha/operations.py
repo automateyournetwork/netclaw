@@ -44,6 +44,24 @@ class OperationLedger:
         self.authority = authority
         self.now = clock_ms or (lambda: int(time.time() * 1000))
 
+    @staticmethod
+    def _execution_capacity(rows):
+        check(not rows['control'][0].get('recovery', {}).get('capacity_frozen', False),
+              'recovery_fenced', 503)
+
+    @staticmethod
+    def _principal_keys(principal):
+        return ['edge-principals/' + principal['subject']] if principal['issuer'] == 'device-key' else []
+
+    def _principal_current(self, rows, principal):
+        # The enrollment revision participates in the SAME quorum transaction
+        # as the effect claim. A previously verified signature is not a grant
+        # that survives device revocation between request and execution.
+        for key in self._principal_keys(principal):
+            record = rows[key][0]
+            check(record is not None and record['state'] == 'active'
+                  and record['principal'] == principal, 'device_authority_changed', 403)
+
     def _nonce(self, principal, nonce):
         c.validate_principal(principal); c.ident(nonce)
         return 'nonces/' + c.sha256({'principal': principal, 'nonce': nonce})
@@ -104,6 +122,8 @@ class OperationLedger:
                'ack': None, 'member_incarnation': None}
         def transition(rows):
             check(rows[nonce_key][0] is None and rows[key][0] is None, 'client_nonce_conflict', 409)
+            self._execution_capacity(rows)
+            self._principal_current(rows, review['principal'])
             enrolled = self._member(rows, review['member'])
             row['trust_snapshot'] = {'member': enrolled['certificate'], 'border': node['certificate']}
             control = rows['control'][0]
@@ -113,7 +133,7 @@ class OperationLedger:
             check(len(c.encode(row)) <= 65536, 'state_capacity', 503)
             return [(key, row, None), (nonce_key, {'operation_id': op, 'candidate_digest': candidate_digest}, None),
                     ('control', control, None)], row
-        return self.authority.mutate('prepare', [key, nonce_key, enrollment], transition)[0]
+        return self.authority.mutate('prepare', [key, nonce_key, enrollment, *self._principal_keys(review['principal'])], transition)[0]
 
     def approve(self, operation_id, envelope, *, revision, review_digest):
         key = operation_key(operation_id)
@@ -122,6 +142,8 @@ class OperationLedger:
         def transition(rows):
             row = rows[key][0]
             check(row is not None, 'operation_not_found', 404)
+            self._execution_capacity(rows)
+            self._principal_current(rows, row['review']['principal'])
             check(row['state'] == 'review_pending' and row['revision'] == revision and not row['revoked'], 'revision_conflict', 409)
             check(row['review_digest'] == review_digest and c.review_from_payload(payload) == row['review']
                   and payload['operation_id'] == operation_id, 'review_changed', 409)
@@ -132,7 +154,7 @@ class OperationLedger:
                        approval_id=payload['approval_id'], approval_digest=c.digest(c.HA_APPROVAL, payload))
             check(len(c.encode(row)) <= 65536, 'state_capacity', 503)
             return [(key, row, None)], row
-        return self.authority.mutate('approve', [key], transition)[0]
+        return self.authority.mutate('approve', [key, *self._principal_keys(payload['principal'])], transition)[0]
 
     def revoke(self, operation_id):
         key = operation_key(operation_id)
@@ -180,6 +202,8 @@ class OperationLedger:
         def transition(rows):
             row = rows[key][0]
             check(row['attempt_id'] is None, 'dispatch_already_claimed', 409)
+            self._execution_capacity(rows)
+            self._principal_current(rows, row['review']['principal'])
             check(row['state'] == 'approved' and not row['revoked'], 'operation_not_approved', 409)
             check(self.now() < row['review']['limits']['expires_at_ms'], 'approval_expired', 403)
             self._member(rows, row['review']['member'])
@@ -190,7 +214,8 @@ class OperationLedger:
                        dispatch_leader={'value': rows['leader'][0], 'epoch': rows['leader'][1]})
             reservation = {'operation_id': operation_id, 'attempt_id': attempt, 'state': 'reserved'}
             return [(key, row, None)] + [(k, reservation, None) for k in resources], row
-        return self.authority.mutate('dispatch', [key, enrollment, *resources], transition)[0]
+        return self.authority.mutate('dispatch', [key, enrollment, *resources,
+            *self._principal_keys(original['review']['principal'])], transition)[0]
 
     def _admission_binding(self, row, request, binding):
         check(row is not None and row['review']['member'] == binding, 'foreign_member', 403)
@@ -207,6 +232,8 @@ class OperationLedger:
         resources = reservation_keys(original['review'])
         def transition(rows):
             row = rows[key][0]
+            self._execution_capacity(rows)
+            self._principal_current(rows, row['review']['principal'])
             self._admission_binding(row, request, binding)
             self._member(rows, binding)
             check(row['state'] in ('dispatch_claimed', 'member_admitted') and not row['revoked'], 'operation_revoked', 403)
@@ -222,7 +249,8 @@ class OperationLedger:
             check(len(c.encode(claim)) <= 4096, 'state_capacity', 503)
             row.update(state='member_admitted', member_incarnation=request['member_incarnation'], revision=row['revision'] + 1)
             return [(claim_key, claim, None), (key, row, None)], claim
-        return self.authority.mutate('admit_' + request['kind'], [key, enrollment, claim_key, *resources], transition)
+        return self.authority.mutate('admit_' + request['kind'], [key, enrollment, claim_key, *resources,
+            *self._principal_keys(original['review']['principal'])], transition)
 
     def admission_status(self, request, binding):
         claim_key = validate_admission(request)
