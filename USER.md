@@ -8,6 +8,11 @@
 
 ## Preferences
 
+- R07 direction (2026-11-06): start Spec178 using the saved handoff and drive to
+  100%. Use full SDD and the saved coordinator/three-agent separate-worktree
+  delegation; credit applicable prior recovery evidence and close actual gaps.
+  Preserve retained runtime deadlines and roadmap publication/next-stage gates.
+
 - R06 acceptance and source integration (2026-11-06): completed Spec177 is accepted.
   Commit all scoped R06 changes, create and merge its PR, delete the completed
   feature branch and return to main. Include a short maintainer completion
@@ -366,3 +371,13 @@ The bounded owner setup remains only until Nov8:15:09:35Z quiesce/export,
 cleanup; disk/IP absence is not claimed early. R05 schedules/owner pilot remain
 unchanged. No commit/push/merge/release/client publication or R07 is implied.
 See specs/177-external-en2n-federation/resume.md and final verification.
+
+R07/Spec178 technical work is complete at the owner's “drive to100%” instruction;
+final human agreement on measured recovery targets and roadmap acceptance remains
+explicit. Do not repeat source/local verification permissions, redeploy retained
+runtimes or start R08. See specs/178-recovery-gate/verification.md and resume.md.
+
+R07 accepted2026-11-07: owner requested commit/push/PR/merge/completed-branch
+cleanup/return to main, then evaluate R08 together and provide a clear-safe
+handoff. T030closes31/31. No repeated source-integration permission request;
+R08discussion is not implementation authorization. Version/publication hold stays.

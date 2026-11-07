@@ -1579,3 +1579,47 @@ reviewed upstream source/license fixture in tests/fixtures/subnet-calculator-177
 is hash-checked by the existing installer migration in a temporary tree before
 actual native MCP execution. This preserves offline reproducibility and keeps
 owner installations untouched; source fixtures remain separate from live proof.
+
+### R07 recovery investigation — 2026-11-06
+
+Actual isolated strict-TLS reproductions on mergedR06 found authorization checked
+before awaited handler/call but not before returned result; EdgeChannel had no
+shared current-authority predicate. Removal API closed channels before durable
+revocation, allowing a reconnect race. Spec178 repairs are in progress; do not
+claim these are deployed to retained homes. Client endpoint-origin reference
+namespaces and memory-only HUD single-operation send markers also need explicit
+recovery handling. Read specs/178-recovery-gate/verification.md for final scope.
+
+R07 read-only startup inspected4runningGCPVMs/4readydisks/5addresses/5networks;
+R05/R06retirementcheck modes pass and jobsloaded/runs0. No R07cloudresources.
+Root n2n test environment lackedOpenSSL; agent used existing qualifiedR05testvenv
+read-only instead of altering owner runtime. Private evidence/worktrees live in
+~/.local/share/netclaw/roadmap-r07-20261106/.
+
+R07 evidence hygiene lesson: pytest default temporary-directory retention pruned
+the first failed native-drill raw tree before export. Its originalXML remains;
+do not reconstruct or imply rawSQLite exists. Export each important failed or
+successful native drill before starting later pytest runs. Two later91-file
+successful archives are independently hash/SQLite verified. Browser Chrome may
+retry a POST before response headers even when the app calls fetch once; keep
+app-dispatch, wire-request and native-effect counts separate.
+
+R07 final source qualification: integrated32f87526 repairs current authority
+before/after await and outbound frames, durable revoke-before-close, client sent
+markers, identity-checked endpoint recovery and Mobile late-dial/CAS/TLS readiness
+errors. These source fixes are not deployed to retained cloud homes. Final broad
+Python uses the complete R04a local-member/venv read-only (R05testvenv lacks
+ChromaDB). Clean source passes all6reconciliation surfaces; root ignored installed
+HumanRail unbounded MCP pin remains an owner-installation limitation.
+
+R07 evidence review: manifests can be relative to an export subdirectory, distinct
+from the original live home. Resolve their declared root explicitly; do not guess
+by first-existing path. Compare exported consistent SQLite snapshots using
+mode=ro&immutable=1; do not restore them or inspect an empty scaffold as authority.
+
+Native Code1.145 can open ~/.vscode-shared/sharedStorage/state.vscdb even with
+separate user/extensions directories. R07 observed a matching mtime without a
+prehash, so content change is unknown. Preserve it; do not restore/delete based
+on assumptions. Code1.109 passed with exact isolated fixture CA and private profile.
+Mobile rejected TLS can fail both web_socket_channel.ready and stream; observe
+the ready Future immediately while preserving stream failure ownership.

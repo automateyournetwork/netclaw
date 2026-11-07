@@ -24,6 +24,7 @@ import 'ncfed/device_heartbeat.dart';
 import 'ncfed/edge_ask_client.dart';
 import 'ncfed/edge_client.dart';
 import 'ncfed/edge_identity.dart';
+import 'ncfed/endpoint_recovery.dart';
 import 'ncfed/enrollment_qr_payload.dart';
 import 'ncfed/enrollment_store.dart';
 import 'ncfed/haptics.dart';
@@ -50,6 +51,7 @@ import 'screens/cloud_owner_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/device_scan_screen.dart';
 import 'screens/enrollment_screen.dart';
+import 'screens/endpoint_recovery_screen.dart';
 import 'screens/protected_device_screen.dart';
 import 'screens/feed_screen.dart';
 import 'screens/onboarding_explainer_screen.dart';
@@ -262,12 +264,14 @@ class EnrollmentGate extends StatefulWidget {
   /// Native qualification feeds a decoded QR through the production callback.
   /// An ordinary app launch always uses the camera scanner.
   final EnrollmentScannerBuilder? scannerBuilder;
+  final bool recoverConnection;
 
   EnrollmentGate({
     super.key,
     this.documentsDirectory = getApplicationDocumentsDirectory,
     this.reconnect = EdgeClient.reconnect,
     this.scannerBuilder,
+    this.recoverConnection = false,
     Haptics? haptics,
   }) : haptics = haptics ?? Haptics();
 
@@ -289,6 +293,9 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
   // this same running session so re-showing it after e.g. cancelling out of
   // the QR scanner doesn't happen without a full relaunch.
   bool _explainerDismissed = false;
+  late bool _showEndpointRecovery = widget.recoverConnection;
+  String? _reconnectError;
+  int _loadGeneration = 0;
 
   @override
   void initState() {
@@ -297,14 +304,20 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
   }
 
   Future<void> _init() async {
+    final generation = ++_loadGeneration;
+    bool current() => mounted && generation == _loadGeneration;
     final dir = await widget.documentsDirectory();
     final store = EnrollmentStore(dir);
     final stored = await store.load();
-    if (!mounted) return;
+    if (!current()) return;
     _store = store;
     _retained = stored;
     if (stored == null) {
       setState(() => _state = _GateState.needsEnrollment);
+      return;
+    }
+    if (_showEndpointRecovery) {
+      setState(() => _state = _GateState.reconnectFailed);
       return;
     }
     setState(() => _state = _GateState.reconnecting);
@@ -317,9 +330,13 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         identity: _identity,
       );
       connectedClient = client;
-      if (!mounted) {
+      if (!current()) {
         await client.close();
         return;
+      }
+      if (stored.protectedOrigin != null &&
+          client.protectedDevice?.origin != stored.protectedOrigin) {
+        throw const FormatException('Protected Border origin changed');
       }
       final confirmed = StoredEnrollment(
         memberId: stored.memberId,
@@ -330,9 +347,11 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         wsPath: stored.wsPath,
         installationId: stored.installationId,
         deviceSubject: client.protectedDevice?.principal['subject'] as String?,
+        endpointRevision: stored.endpointRevision,
+        protectedOrigin: client.protectedDevice?.origin,
       );
-      await store.save(confirmed);
-      if (!mounted) {
+      await store.replaceEndpoint(stored, confirmed, isCurrent: current);
+      if (!mounted || generation != _loadGeneration) {
         await client.close();
         return;
       }
@@ -341,14 +360,14 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
       );
     } catch (e) {
       await connectedClient?.close();
-      if (isRevokedByBorder(e) && !stored.pending && !stored.protected) {
-        await store.clear();
-        if (mounted) setState(() => _state = _GateState.needsEnrollment);
-      } else if (mounted) {
+      if (current()) {
         // Plausibly transient (timeout, connection_error, a dropped TLS
         // handshake, DNS failure) -- keep the persisted enrollment intact
         // so a later launch can still reconnect as the same device.
-        setState(() => _state = _GateState.reconnectFailed);
+        setState(() {
+          _reconnectError = recoveryFailureMessage(e);
+          _state = _GateState.reconnectFailed;
+        });
       }
     }
   }
@@ -358,13 +377,29 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
       if (stored == null) {
         throw StateError('Protected enrollment was not retained');
       }
-      return ProtectedDeviceScreen(edge: client, enrollment: stored);
+      return ProtectedDeviceScreen(
+        edge: client,
+        enrollment: stored,
+        enrollmentStore: _store,
+      );
     }
-    return HomeShell(client: client, stored: stored);
+    return HomeShell(client: client, stored: stored, enrollmentStore: _store);
   }
 
   @override
   Widget build(BuildContext context) {
+    if (_showEndpointRecovery && _retained != null && _store != null) {
+      return EndpointRecoveryScreen(
+        store: _store!,
+        enrollment: _retained!,
+        reconnect: widget.reconnect,
+        onReconnect: () {
+          _showEndpointRecovery = false;
+          setState(() => _state = _GateState.reconnecting);
+          _init();
+        },
+      );
+    }
     if (_state == _GateState.needsEnrollment) {
       if (!_explainerDismissed) {
         return OnboardingExplainerScreen(
@@ -398,9 +433,9 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text(
-                  "Couldn't reconnect — this may just be a momentary "
-                  'network blip. Your enrollment is still saved.',
+                Text(
+                  _reconnectError ??
+                      'Your enrollment and operation references are still saved.',
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
@@ -412,6 +447,12 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
                   child: const Text('Retry'),
                 ),
                 const SizedBox(height: 8),
+                if (_retained != null && !_retained!.pending)
+                  TextButton(
+                    onPressed: () =>
+                        setState(() => _showEndpointRecovery = true),
+                    child: const Text('Change connection port'),
+                  ),
                 if (_retained == null)
                   TextButton(
                     onPressed: () =>
@@ -445,8 +486,14 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
 class HomeShell extends StatefulWidget {
   final EdgeClient client;
   final StoredEnrollment? stored;
+  final EnrollmentStore? enrollmentStore;
 
-  const HomeShell({super.key, required this.client, this.stored});
+  const HomeShell({
+    super.key,
+    required this.client,
+    this.stored,
+    this.enrollmentStore,
+  });
 
   @override
   State<HomeShell> createState() => _HomeShellState();
@@ -785,10 +832,10 @@ class _HomeShellState extends State<HomeShell> {
         _reconcileAfterReconnect();
       },
       // Revoked mid-session: the pinned identity is gone and no amount of
-      // retrying brings it back. Drop the persisted enrollment and return to
-      // the enrollment gate, matching what a cold start already does — rather
-      // than spinning on a dead identity forever.
+      // retrying brings it back. Retain the enrollment and operation references
+      // and show the refusal; recovery never enrolls another identity.
       onUnrecoverable: _handleRevoked,
+      onDiscardedConnection: (_) => widget.client.close(),
       initiallyConnected: true,
     );
     widget.client.onDisconnected = () {
@@ -978,6 +1025,7 @@ class _HomeShellState extends State<HomeShell> {
         pushStatus: _pushStatus,
         localNotificationsPermissionDenied: _localNotificationsPermissionDenied,
         onRemoveDevice: _handleRemoveDevice,
+        onRecoverConnection: widget.stored == null ? null : _recoverConnection,
       ),
     ];
     return Scaffold(
@@ -1044,28 +1092,58 @@ class _HomeShellState extends State<HomeShell> {
         onChanged: () { if (mounted) setState(() {}); });
   }
 
-  /// The Border revoked this device while it was running. Clear the persisted
-  /// enrollment and send the operator back to the enrollment gate with an
-  /// explanation, so the state on screen matches reality.
+  /// Preserve the refused identity and its operation references. Returning to
+  /// the gate displays the authenticated refusal without another enrollment.
   Future<void> _handleRevoked() async {
-    final dir = await getApplicationDocumentsDirectory();
-    await EnrollmentStore(dir).clear();
+    _reconnectSupervisor?.stop();
+    await widget.client.close();
     if (!mounted) return;
     Navigator.of(context).pushReplacement(
       // 109/FR-009: re-wrapped in AppLockGate, not a bare EnrollmentGate --
       // otherwise a device with app-lock enabled would be left unprotected
       // for the rest of the session after a Border-initiated revocation.
-      MaterialPageRoute(builder: (_) => AppLockGate(child: EnrollmentGate())),
+      MaterialPageRoute(
+        builder: (_) => AppLockGate(
+          child: EnrollmentGate(
+            documentsDirectory: widget.enrollmentStore == null
+                ? getApplicationDocumentsDirectory
+                : () async => widget.enrollmentStore!.directory,
+          ),
+        ),
+      ),
     );
-    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-      content: Text('This device was removed by your Border. Enroll again to reconnect.'),
-      duration: Duration(seconds: 6),
-    ));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'This Border refused the device key. Saved enrollment and operations are preserved.',
+        ),
+        duration: Duration(seconds: 6),
+      ),
+    );
+  }
+
+  Future<void> _recoverConnection() async {
+    _reconnectSupervisor?.stop();
+    widget.client.onDisconnected = null;
+    await widget.client.close();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => AppLockGate(
+          child: EnrollmentGate(
+            recoverConnection: true,
+            documentsDirectory: widget.enrollmentStore == null
+                ? getApplicationDocumentsDirectory
+                : () async => widget.enrollmentStore!.directory,
+          ),
+        ),
+      ),
+    );
   }
 
   /// 105/US2/FR-005/FR-006: the operator-initiated counterpart to
-  /// `_handleRevoked` above — same clear-and-return-to-gate effect, but
-  /// triggered from Settings rather than by the Border, and entirely local
+  /// retained-revocation path above: explicit removal clears enrollment,
+  /// triggered from Settings and entirely local
   /// (no Border round trip of any kind, so it works even if the Border is
   /// unreachable).
   Future<void> _handleRemoveDevice() async {

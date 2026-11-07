@@ -57,6 +57,22 @@ void main() {
     await tester.pump(const Duration(milliseconds: 50));
   }
 
+  Future<void> awaitSavedRetry(WidgetTester tester) async {
+    // The widget callback persists asynchronously. Do not remove its temporary
+    // directory in tearDown before that durable write has completed.
+    final file = File('${dir.path}/ncfed_conversation.json');
+    for (var attempt = 0; attempt < 100; attempt++) {
+      await tester.pump();
+      final saved = await tester.runAsync(() => file.readAsString());
+      if (saved?.contains('retry-task-') == true) {
+        await tester.pump();
+        return;
+      }
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 10)));
+    }
+    throw StateError('Retry was not durably saved');
+  }
+
   testWidgets('a failed turn offers a Retry action', (tester) async {
     final store = await storeWithFailedTurn(tester);
     await pumpChat(tester, store, _FakeRpc());
@@ -86,6 +102,7 @@ void main() {
     expect(store.turns, hasLength(2),
         reason: 'the failed turn stays as a record; retry is a new turn');
     expect(store.turns.last.state, 'pending');
+    await awaitSavedRetry(tester);
   });
 
   testWidgets('tapping the failed turn itself asks to retry', (tester) async {
@@ -116,6 +133,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 20));
     }
     expect(rpc.calls.where((c) => c.$1 == 'n2n/edge/ask'), hasLength(1));
+    await awaitSavedRetry(tester);
   });
 
   testWidgets('dismissing the retry dialog sends nothing', (tester) async {

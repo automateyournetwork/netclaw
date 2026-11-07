@@ -2,7 +2,9 @@ import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
 import { LocalState } from "./local";
 import { endpoint } from "../client/hud";
-import { ownerOrigin, cloudInputOrigin, installationIdentifier } from "../client/owner";
+import { ownerOrigin, cloudInputOrigin, installationIdentifier, cloudExecutionMode, labAccess, ownerCanonical, ownerReferencesKey, mergedOwnerReferences, withOwnerState } from "../client/owner";
+import { combinedReferencesKey, mergedCombinedReference } from "../client/combined";
+import type { Json } from "../client/hud";
 export type ConnectionProfile = {
   id: string;
   label: string;
@@ -11,6 +13,8 @@ export type ConnectionProfile = {
   access?: "open-lab";
   context: string;
   installationId?: string;
+  cloudExecution?: "ordinary" | "protected";
+  cloudPrincipal?: Json;
   harness?: "openclaw" | "hermes";
   assistantEnabled?: boolean;
   delegationEnabled?: boolean;
@@ -25,12 +29,41 @@ export class Profiles {
       .get<ConnectionProfile[]>("profiles", [])
       .filter((p) => p.context === hostContext());
   }
-  async saveCloud(label: string, url: string, installationId: string) {
+  async saveCloud(label: string, url: string, installationId: string, runtime?: Json) {
     const origin = cloudInputOrigin(url);
+    if (runtime && (runtime.installationId !== installationId || runtime.kind !== "openclaw" || runtime.role !== "border")) throw Error("Cloud installation identity changed.");
     const known = this.list().filter(p => p.mode === "remote-border" && p.url === origin);
     if (known.some(p => p.installationId !== installationId)) throw Error("This Border's installation identity changed. The saved connection and retained operations are unchanged.");
     const existing = known[0];
-    return this.save({ id: existing?.id, label, url: origin, installationId, mode: "remote-border", access: "open-lab", harness: "openclaw" });
+    if (runtime && existing?.cloudExecution && (existing.cloudExecution !== cloudExecutionMode(runtime) || ownerCanonical(existing.cloudPrincipal) !== ownerCanonical(labAccess(runtime.access).principal))) throw Error("This Border's execution mode or operator changed. Saved references are unchanged.");
+    return this.save({ id: existing?.id, label, url: origin, installationId, mode: "remote-border", access: "open-lab", harness: "openclaw", ...(runtime ? { cloudExecution: cloudExecutionMode(runtime), cloudPrincipal: labAccess(runtime.access).principal } : existing?.cloudExecution ? { cloudExecution: existing.cloudExecution, cloudPrincipal: existing.cloudPrincipal } : {}) });
+  }
+  async replaceCloudEndpoint(previous: ConnectionProfile, url: string, runtime: Json) {
+    return withOwnerState(this.local, async () => {
+    const current = () => {
+      const row = this.list().find(p => p.id === previous.id);
+      if (!row || ownerCanonical(row) !== ownerCanonical(previous)) throw Error("The saved connection changed. Review its endpoint again.");
+    };
+    current(); const origin = cloudInputOrigin(url);
+    if (previous.mode !== "remote-border" || previous.access !== "open-lab" || !previous.installationId || !previous.cloudExecution || !previous.cloudPrincipal) throw Error("Connect this cloud profile once to record its identity and execution mode before replacing its endpoint.");
+    if (runtime.installationId !== previous.installationId || runtime.kind !== "openclaw" || runtime.role !== "border") throw Error("Destination installation identity changed. Saved references are unchanged.");
+    if (cloudExecutionMode(runtime) !== previous.cloudExecution || ownerCanonical(labAccess(runtime.access).principal) !== ownerCanonical(previous.cloudPrincipal)) throw Error("Destination execution mode or operator changed. Saved references are unchanged.");
+    if (origin === previous.url) return previous;
+    if (this.list().some(p => p.id !== previous.id && p.mode === "remote-border" && p.url === origin)) throw Error("The destination already has a saved profile. Preserve both connections and recover their references first.");
+    const oldKey = ownerReferencesKey(previous.url, previous.installationId), newKey = ownerReferencesKey(origin, previous.installationId);
+    const oldCombined = combinedReferencesKey(previous.url, previous.installationId, previous.cloudPrincipal), newCombined = combinedReferencesKey(origin, previous.installationId, previous.cloudPrincipal);
+    const sourceRefs = this.local.get(oldKey, []), sourceCombined = this.local.get(oldCombined, undefined);
+    const refs = mergedOwnerReferences(this.local.get(newKey, []), sourceRefs);
+    const combined = mergedCombinedReference(this.local.get(newCombined, undefined), sourceCombined);
+    // Copy identifiers before switching the profile; failures keep the old usable
+    // binding. Source references remain as evidence, and no cookie is transferred.
+    if (refs.length) await this.local.update(newKey, refs);
+    current();
+    if (combined) await this.local.update(newCombined, combined);
+    current();
+    if (JSON.stringify(this.local.get(oldKey, [])) !== JSON.stringify(sourceRefs) || JSON.stringify(this.local.get(oldCombined, undefined)) !== JSON.stringify(sourceCombined) || JSON.stringify(this.local.get(newKey, [])) !== JSON.stringify(refs) || JSON.stringify(this.local.get(newCombined, undefined)) !== JSON.stringify(combined)) throw Error("Operation references changed during endpoint replacement. The original profile is retained; recover before trying again.");
+    return this.save({ ...previous, url: origin });
+    });
   }
   async save(
     p: Omit<ConnectionProfile, "id" | "context"> &
@@ -42,6 +75,8 @@ export class Profiles {
     if (p.access !== undefined && (p.access !== "open-lab" || p.mode !== "remote-border")) throw Error("Unsupported cloud access mode.");
     if (p.mode === "remote-border" && (!installationIdentifier(p.installationId) || p.harness !== "openclaw" || p.assistantEnabled || p.delegationEnabled))
       throw Error("A cloud Border profile requires its expected installation UUID and protected OpenClaw owner mode.");
+    if (p.cloudExecution !== undefined && (p.mode !== "remote-border" || !["ordinary", "protected"].includes(p.cloudExecution))) throw Error("Unsupported saved cloud execution mode.");
+    if (p.cloudPrincipal !== undefined) labAccess({ mode: "open-lab", principal: p.cloudPrincipal });
     const result = {
       ...p,
       id: p.id || randomUUID(),

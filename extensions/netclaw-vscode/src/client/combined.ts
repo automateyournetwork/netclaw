@@ -1,10 +1,10 @@
 import { createHash, randomUUID } from "node:crypto";
-import { OwnerClient, OwnerError, ownerIdentifier, ownerCanonical, reviewText, unexpiredReview } from "./owner";
+import { OwnerClient, OwnerError, ownerIdentifier, ownerCanonical, reviewText, unexpiredReview, withOwnerState } from "./owner";
 import type { OwnerStorage } from "./owner";
 import type { Json } from "./hud";
 export type CombinedReference = { client_nonce: string; parent_id?: string; children?: { operation_id: string; decision_sent?: true }[]; cancel_sent?: true; not_submitted?: true };
 const plain = (v: any): v is Json => v !== null && typeof v === "object" && !Array.isArray(v);
-function validateReference(value: any): asserts value is CombinedReference {
+export function validateReference(value: any): asserts value is CombinedReference {
   if (!plain(value) || !ownerIdentifier(value.client_nonce) || Object.keys(value).some(k => !["client_nonce", "parent_id", "children", "cancel_sent", "not_submitted"].includes(k)) || value.parent_id !== undefined && !ownerIdentifier(value.parent_id) || value.cancel_sent !== undefined && (value.cancel_sent !== true || !value.parent_id) || value.not_submitted !== undefined && (value.not_submitted !== true || value.parent_id || value.children || value.cancel_sent)) throw Error("Combined reference is invalid. Preserve it for recovery.");
   if (value.parent_id && !value.children || value.children !== undefined && (!value.parent_id || !Array.isArray(value.children) || value.children.length !== 2 || value.children.some((c: any) => !plain(c) || !ownerIdentifier(c.operation_id) || Object.keys(c).some(k => !["operation_id", "decision_sent"].includes(k)) || c.decision_sent !== undefined && c.decision_sent !== true) || value.children[0].operation_id === value.children[1].operation_id)) throw Error("Combined child references are invalid.");
 }
@@ -23,6 +23,16 @@ export function combinedCatalogChoices(catalog: Json): Record<number, Json[]> {
   }
   return choices;
 }
+export const combinedReferencesKey = (origin: string, installation: string, principal: Json) => "owner-combined." + createHash("sha256").update(origin + "|" + installation + "|" + ownerCanonical(principal)).digest("hex");
+export function mergedCombinedReference(old: CombinedReference | undefined, incoming: CombinedReference | undefined): CombinedReference | undefined {
+  if (old) validateReference(old); if (incoming) validateReference(incoming);
+  if (!old || !incoming) return structuredClone(old || incoming);
+  if (old.client_nonce !== incoming.client_nonce || old.parent_id && incoming.parent_id && old.parent_id !== incoming.parent_id || old.not_submitted && incoming.parent_id || incoming.not_submitted && old.parent_id || old.children && incoming.children && old.children.some((c, i) => c.operation_id !== incoming.children![i]!.operation_id)) throw Error("Combined references conflict. Preserve both endpoints.");
+  const children = incoming.children || old.children;
+  const next = { ...old, ...incoming, ...(old.parent_id ? { parent_id: old.parent_id } : {}), ...(old.cancel_sent || incoming.cancel_sent ? { cancel_sent: true as const } : {}), ...(children ? { children: children.map((c, i) => ({ ...c, ...(old.children?.[i]?.decision_sent || incoming.children?.[i]?.decision_sent ? { decision_sent: true as const } : {}) })) } : {}) };
+  validateReference(next); return next;
+}
+
 /** Exactly one retained parent per operator/installation. Only identifiers persist. */
 export class CombinedOwnerOperations {
   private busy = false;
@@ -31,7 +41,7 @@ export class CombinedOwnerOperations {
   constructor(readonly client: OwnerClient, private storage: OwnerStorage) {}
   private key() {
     if (!this.client.operationsReady || !this.client.principal) throw Error("Connect the selected Border before recovering combined work.");
-    return "owner-combined." + createHash("sha256").update(this.client.base + "|" + this.client.expectedId + "|" + ownerCanonical(this.client.principal)).digest("hex");
+    return combinedReferencesKey(this.client.base, this.client.expectedId, this.client.principal);
   }
   reference(): CombinedReference | undefined {
     const row = this.storage.get<CombinedReference | undefined>(this.key(), undefined);
@@ -54,7 +64,7 @@ export class CombinedOwnerOperations {
     await this.put({ ...ref, parent_id: value.parent_id, children: value.children.map((c: Json, i: number) => ({ operation_id: c.operation_id, ...(ref.children?.[i]?.decision_sent ? { decision_sent: true } : {}) })) });
     this.value = value; this.uncertain = false; return value;
   }
-  private async exclusive<T>(action: () => Promise<T>): Promise<T> { if (this.busy) throw Error("A combined action is already in progress."); this.busy = true; try { return await action(); } finally { this.busy = false; } }
+  private async exclusive<T>(action: () => Promise<T>): Promise<T> { if (this.busy) throw Error("A combined action is already in progress."); this.busy = true; try { return await withOwnerState(this.storage, action); } finally { this.busy = false; } }
   private async status() { const ref = this.reference(); if (!ref || ref.not_submitted) throw Error("Recover an existing submitted combined reference."); this.uncertain = true; return this.accept(await this.client.combinedStatus(ref)); }
   recover() { return this.exclusive(() => this.status()); }
   prepare(children: Json[]) { return this.exclusive(async () => {

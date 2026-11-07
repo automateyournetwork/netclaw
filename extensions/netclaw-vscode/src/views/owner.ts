@@ -8,7 +8,7 @@ import { CombinedOwnerOperations, combinedCatalogChoices } from "../client/combi
 import type { Json, Runtime } from "../client/hud";
 import { remoteHudFeatures, remoteDomainFeature, remoteCommandFeature } from "../client/remote-hud";
 
-const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "removeConnection", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help"]);
+const allowed = new Set(["addConnection", "selectConnection", "disconnect", "renameConnection", "replaceCloudEndpoint", "removeConnection", "ownerSignIn", "ownerSignOut", "ownerPrepare", "ownerRecover", "refresh", "help"]);
 export function assertCloudCommand(name: string, remote: boolean, args: unknown[] = [], runtime?: Runtime) {
   if (remote && runtime?.capabilities.externalFederation && ["ownerSignIn","ownerSignOut","ownerPrepare","ownerRecover"].includes(name)) throw Error("Protected operations are unavailable on this ordinary federation Border.");
   if (remote && name === 'openPeerChat' && runtime?.capabilities.externalFederation?.peerChat !== true) throw Error("Peer chat requires an ordinary federation cloud Border or a local profile.");

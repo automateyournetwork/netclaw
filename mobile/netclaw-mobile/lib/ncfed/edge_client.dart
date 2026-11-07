@@ -24,7 +24,8 @@ class EdgeClientException implements Exception {
 /// -32023 is `_ERR_NOT_TRUSTED` (`internal_channel.py`) — the ONLY reply
 /// that means the Border itself rejected this exact pinned key (e.g. an
 /// operator explicitly removed the device), so the persisted enrollment
-/// really is dead and safe to discard. Every other failure a reconnect
+/// cannot currently authenticate. Retain its identity and operation references
+/// for operator review; this never authorizes automatic reenrollment. Every other failure a reconnect
 /// attempt can produce (`timeout`, `connection_error`, a raw socket/TLS
 /// exception that never reached the Border at all) is plausibly transient
 /// — a crash, a network blip, the Border restarting — and must NOT be
@@ -83,6 +84,8 @@ class EdgeClient implements EdgeRpcSource {
   final _connectionWaiters = <Completer>{};
   StreamSubscription? _sub;
   bool _closed = false;
+  int _connectionGeneration = 0;
+  final WebSocketChannel Function(Uri)? _testDial;
 
   /// True once the connection has failed/closed (including a call that
   /// timed out or errored) — the reconnect supervisor uses this, via
@@ -115,18 +118,34 @@ class EdgeClient implements EdgeRpcSource {
     border = next;
   }
 
-  EdgeClient._(this._channel, this.identity) {
+  EdgeClient._(
+    this._channel,
+    this.identity, {
+    this._testDial,
+  }) {
     _listen();
   }
 
   @visibleForTesting
-  EdgeClient.forTesting(WebSocketChannel channel)
-    : this._(channel, const EdgeIdentity());
+  EdgeClient.forTesting(
+    WebSocketChannel channel, {
+    EdgeIdentity identity = const EdgeIdentity(),
+    WebSocketChannel Function(Uri)? dial,
+  }) : this._(channel, identity, testDial: dial);
 
   void _listen() {
+    final origin = _channel;
+    final generation = _connectionGeneration;
+    // The channel reports dial/TLS failure through BOTH ready and its stream.
+    // The stream below owns failure state; still observe ready so certificate
+    // refusal does not escape as an unrelated unhandled asynchronous error.
+    unawaited(origin.ready.catchError((Object _) {}));
+    bool current() =>
+        identical(origin, _channel) && generation == _connectionGeneration;
     debugPrint('[edge-diag] dial ${DateTime.now().toIso8601String()}');
     _sub = _channel.stream.listen(
       (raw) {
+        if (!current()) return;
         try {
           _onMessage(raw);
         } catch (_) {
@@ -136,12 +155,17 @@ class EdgeClient implements EdgeRpcSource {
               .catchError((Object _) {});
         }
       },
-      onError: (Object error) =>
-          _failAll('error: $error (${DateTime.now().toIso8601String()})'),
-      onDone: () => _failAll(
-        'onDone closeCode=${_channel.closeCode} closeReason=${_channel.closeReason} '
-        '(${DateTime.now().toIso8601String()})',
-      ),
+      onError: (Object error) {
+        if (current()) {
+          _failAll('error: $error (${DateTime.now().toIso8601String()})');
+        }
+      },
+      onDone: () {
+        if (current()) {
+          _failAll('onDone closeCode=${origin.closeCode} closeReason=${origin.closeReason} '
+              '(${DateTime.now().toIso8601String()})');
+        }
+      },
     );
   }
 
@@ -182,21 +206,28 @@ class EdgeClient implements EdgeRpcSource {
     required String keyFingerprint,
   }) async {
     verifyClawDomainBeforeDial(payload);
+    final generation = ++_connectionGeneration;
     final uri = payload.websocketUri;
     debugPrint(
       '[edge-diag] socket connect requested (reconnectInPlace) ${DateTime.now().toIso8601String()}',
     );
-    final channel = IOWebSocketChannel.connect(
-      uri,
-      pingInterval: _clientPingInterval,
-    );
+    final channel =
+        _testDial?.call(uri) ??
+        IOWebSocketChannel.connect(uri, pingInterval: _clientPingInterval);
+    // Observe immediately, even if cancelling the prior listener is delayed.
+    unawaited(channel.ready.catchError((Object _) {}));
     // Cancelling the subscription stops us READING the old socket but does not
     // close it: without the sink close below, the previous WebSocket stayed
     // open with nobody listening until the OS or the network tore it down,
     // which the Border logs as `no close frame received or sent`. Confirmed on
     // the live Border: 8 abandoned sockets in one day, each one a redial.
     final previous = _channel;
+    _failAll('Connection replaced', notify: false);
     await _sub?.cancel();
+    if (generation != _connectionGeneration) {
+      await channel.sink.close();
+      throw EdgeClientException('connection_error', 'Reconnect was superseded');
+    }
     _channel = channel;
     _closed = false;
     _listen();
@@ -218,6 +249,12 @@ class EdgeClient implements EdgeRpcSource {
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
       final signature = await identity.sign(nonce);
+      if (generation != _connectionGeneration || _closed) {
+        throw EdgeClientException(
+          'connection_error',
+          'Reconnect was superseded',
+        );
+      }
       final result = await call('in2n/hello', {
         'member_id': memberId,
         if (payload.installationId != null)
@@ -225,13 +262,21 @@ class EdgeClient implements EdgeRpcSource {
         'key_fingerprint': keyFingerprint,
         'signature': hexEncode(signature),
       });
+      if (generation != _connectionGeneration || _closed) {
+        throw EdgeClientException(
+          'connection_error',
+          'Reconnect was superseded',
+        );
+      }
       _rememberBorder(result, payload);
       enrollFingerprint = keyFingerprint;
     } catch (e) {
-      _failAll(
-        e,
-      ); // the redial itself failed -- let the caller's retry loop handle it
-      await close();
+      if (generation == _connectionGeneration && identical(channel, _channel)) {
+        _failAll(e);
+        await close();
+      } else {
+        await channel.sink.close();
+      }
       rethrow;
     } finally {
       _connectionWaiters.remove(challenge);
@@ -348,6 +393,7 @@ class EdgeClient implements EdgeRpcSource {
   }
 
   Future<void> close() async {
+    _connectionGeneration++;
     _failAll('Client closed', notify: false);
     await _sub?.cancel();
     await _channel.sink.close();

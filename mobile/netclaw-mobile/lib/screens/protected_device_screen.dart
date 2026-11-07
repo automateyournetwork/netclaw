@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import '../cloud/owner_client.dart';
 import '../ncfed/edge_client.dart';
 import '../ncfed/enrollment_store.dart';
+import '../ncfed/endpoint_recovery.dart';
+import '../main.dart' show EnrollmentGate, AppLockGate;
+import 'package:path_provider/path_provider.dart';
 import '../ncfed/protected_device_client.dart';
 import 'cloud_owner_screen.dart';
 
@@ -12,11 +15,13 @@ class ProtectedDeviceScreen extends StatefulWidget {
   final EdgeClient edge;
   final StoredEnrollment enrollment;
   final CloudOwnerStore? store;
+  final EnrollmentStore? enrollmentStore;
   const ProtectedDeviceScreen({
     super.key,
     required this.edge,
     required this.enrollment,
     this.store,
+    this.enrollmentStore,
   });
   @override
   State<ProtectedDeviceScreen> createState() => _ProtectedDeviceScreenState();
@@ -67,15 +72,33 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
           _error = null;
         });
       }
-    } catch (_) {
+    } catch (error) {
       if (mounted) {
         setState(() {
           _starting = false;
-          _error =
-              'Could not load this enrolled Border. Your enrollment and operation remain saved.';
+          _error = recoveryFailureMessage(error);
         });
       }
     }
+  }
+
+  Future<void> _recoverConnection() async {
+    _client.suspend();
+    widget.edge.onDisconnected = null;
+    await widget.edge.close();
+    if (!mounted) return;
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => AppLockGate(
+          child: EnrollmentGate(
+            recoverConnection: true,
+            documentsDirectory: widget.enrollmentStore == null
+                ? getApplicationDocumentsDirectory
+                : () async => widget.enrollmentStore!.directory,
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -103,6 +126,10 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
                 onPressed: _start,
                 child: const Text('Reconnect device'),
               ),
+              TextButton(
+                onPressed: _recoverConnection,
+                child: const Text('Change connection port'),
+              ),
             ],
           ),
         ),
@@ -113,6 +140,7 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
       deviceMode: true,
       beforeResume: _ensureConnected,
       onSuspend: () => unawaited(widget.edge.close()),
+      onRecoverConnection: _recoverConnection,
     );
   }
 }

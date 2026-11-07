@@ -76,14 +76,35 @@ class InternalChannel(FederationChannel):
         finally:
             await self.close()
 
+    def _authority_valid(self):
+        if not (self.strict and self.trusted and self.authority_current):
+            return True
+        try:
+            return bool(self.authority_current())
+        except Exception:
+            return False
+
     async def _check_current_authority(self):
-        if self.strict and self.trusted and self.authority_current and not self.authority_current():
+        if not self._authority_valid():
             await self.refuse('current_authority_refused')
             raise RpcError(_ERR_NOT_TRUSTED, 'current authority refused')
 
+    async def _send_frames(self, message):
+        # Errors can contain private data too. Gate every outbound response, not
+        # only the successful handler path, after any awaited work.
+        await self._check_current_authority()
+        if self._closed:
+            raise ConnectionError('Channel closed; operation outcome may be unknown')
+        await super()._send_frames(message)
+
     async def call(self, method: str, params: dict, timeout: float = 30.0) -> dict:
         await self._check_current_authority()
-        return await super().call(method, params, timeout=timeout)
+        try:
+            return await super().call(method, params, timeout=timeout)
+        finally:
+            # Revocation may commit while the remote handler is running. Its
+            # earlier effect is not undone, but its response grants no authority.
+            await self._check_current_authority()
 
     async def notify(self, method: str, params: dict):
         await self._check_current_authority()
@@ -99,7 +120,7 @@ class InternalChannel(FederationChannel):
         if self.strict:
             denied = (self.trusted and method in _PRE_TRUST_METHODS)
             reason = 'authentication_refused'
-            if self.trusted and self.authority_current and not self.authority_current():
+            if not self._authority_valid():
                 denied = True
                 reason = 'current_authority_refused'
             if method == 'in2n/attest':
@@ -131,13 +152,15 @@ class InternalChannel(FederationChannel):
             return
         try:
             result = await handler(self, params)
+            # A successful entry check does not survive an awaited handler.
+            await self._check_current_authority()
             if self.trusted and self.admission_deadline:
                 self.admission_deadline.cancel()
             if req_id is not None:
                 await self._send_frames({"jsonrpc": "2.0", "id": req_id, "result": result or {}})
         except RpcError as e:
             try:
-                if req_id is not None:
+                if req_id is not None and not self._closed:
                     await self._send_frames(self._err(req_id, e.code, e.message))
             finally:
                 if self.strict and method in _PRE_TRUST_METHODS:
@@ -148,7 +171,7 @@ class InternalChannel(FederationChannel):
             else:
                 self.logger.error("iN2N handler %s failed: %s", method, e)
             try:
-                if req_id is not None:
+                if req_id is not None and not self._closed:
                     await self._send_frames(self._err(req_id, -32000, 'strict admission failed' if self.strict else str(e)))
             finally:
                 if self.strict and method in _PRE_TRUST_METHODS:

@@ -246,6 +246,20 @@ def cert_not_after(cert_pem: str) -> datetime.datetime:
     return cert.not_valid_after_utc
 
 
+def time_valid(cert_pem: str, at: Optional[datetime.datetime] = None) -> bool:
+    """Current validity for a previously pinned credential; never grants trust.
+
+    Strict channels call this at admission and use, since a successful TLS or
+    possession handshake cannot authorize a certificate beyond its lifetime.
+    """
+    try:
+        cert = x509.load_pem_x509_certificate(cert_pem.encode())
+        now = _as_aware(at) if at is not None else _now_utc()
+        return cert.not_valid_before_utc <= now < cert.not_valid_after_utc
+    except (ValueError, TypeError, AttributeError):
+        return False
+
+
 def verify_chain(leaf_pem: str, anchor_pem: str, expected_san: Optional[str] = None,
                  at: Optional[datetime.datetime] = None) -> Tuple[bool, str]:
     """Verify a leaf is signed by `anchor` (the risk CA), is time-valid, and —

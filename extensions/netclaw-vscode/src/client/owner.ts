@@ -230,6 +230,16 @@ export class OwnerClient {
 
 export type OperationReference = { client_nonce: string; operation_id?: string; decision_sent?: true; not_submitted?: true };
 export type OwnerStorage = { get<T>(key: string, fallback: T): T; update<T>(key: string, value: T): Promise<void> };
+// Shared host-local mutation queue: endpoint movement and both operation clients
+// use the same store. A pending decision finishes/aborts before references move.
+const stateQueues = new WeakMap<object, Promise<unknown>>();
+export async function withOwnerState<T>(storage: OwnerStorage, work: () => Promise<T>): Promise<T> {
+  const previous = stateQueues.get(storage) || Promise.resolve();
+  const next = previous.catch(() => {}).then(work);
+  stateQueues.set(storage, next);
+  try { return await next; } finally { if (stateQueues.get(storage) === next) stateQueues.delete(storage); }
+}
+
 const validReference = (r: OperationReference) => {
   if (!object(r) || !ownerIdentifier(r.client_nonce) || r.operation_id !== undefined && !ownerIdentifier(r.operation_id) ||
     r.decision_sent !== undefined && (r.decision_sent !== true || !r.operation_id) ||
@@ -257,12 +267,29 @@ export function reviewText(op: Json): string {
 }
 export const unexpiredReview = (op: Json) => Number.isSafeInteger(op.review?.limits?.expires_at_ms) && op.review.limits.expires_at_ms > Date.now();
 
+export const ownerReferencesKey = (origin: string, installation: string) => "owner-operations." + createHash("sha256").update(origin + "|" + installation).digest("hex");
+export function mergedOwnerReferences(previous: OperationReference[], incoming: OperationReference[]): OperationReference[] {
+  const validate = (rows: OperationReference[]) => {
+    if (!Array.isArray(rows) || rows.length > 32) throw Error("Retained operation references are invalid.");
+    rows.forEach(validReference);
+    if (new Set(rows.map(r => r.client_nonce)).size !== rows.length || new Set(rows.filter(r => r.operation_id).map(r => r.operation_id)).size !== rows.filter(r => r.operation_id).length) throw Error("Retained operation references conflict.");
+  };
+  validate(previous); validate(incoming); const result = structuredClone(previous);
+  for (const ref of incoming) {
+    const old = result.find(r => r.client_nonce === ref.client_nonce);
+    if (old && (old.operation_id && ref.operation_id && old.operation_id !== ref.operation_id || old.not_submitted && ref.operation_id || ref.not_submitted && old.operation_id)) throw Error("Retained operation references conflict.");
+    if (old) Object.assign(old, ref, { ...(old.operation_id ? { operation_id: old.operation_id } : {}), ...(old.decision_sent || ref.decision_sent ? { decision_sent: true } : {}) });
+    else result.push(structuredClone(ref));
+  }
+  validate(result); return result;
+}
+
 /** Durable identifiers only. A sent-decision bit prevents replay after a lost reply/restart. */
 export class OwnerOperations {
   private busy = false;
   private readonly key: string;
   constructor(readonly client: OwnerClient, private storage: OwnerStorage) {
-    this.key = "owner-operations." + createHash("sha256").update(client.base + "|" + client.expectedId).digest("hex");
+    this.key = ownerReferencesKey(client.base, client.expectedId);
   }
   references(): OperationReference[] {
     const rows = this.storage.get<OperationReference[]>(this.key, []);
@@ -290,7 +317,7 @@ export class OwnerOperations {
   }
   private async exclusive<T>(work: () => Promise<T>): Promise<T> {
     if (this.busy) throw Error("An owner action is already in progress. Check its status before continuing.");
-    this.busy = true; try { return await work(); } finally { this.busy = false; }
+    this.busy = true; try { return await withOwnerState(this.storage, work); } finally { this.busy = false; }
   }
   async prepare(selection: Json): Promise<Json> {
     return this.exclusive(async () => {

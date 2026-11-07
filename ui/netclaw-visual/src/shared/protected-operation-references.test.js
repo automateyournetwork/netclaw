@@ -111,3 +111,12 @@ test('native summaries refuse malformed, mismatched or excessive typed source fi
     ['198.51.100.0/24', { network_address: '198.51.100.0', prefix_length: 24, num_addresses: 256, usable_hosts_count: 255 }],
   ]) assert.equal(verifiedResultSummary(nativeOperation('subnet_calculator', { cidr }, output)), 'Unavailable');
 });
+
+test('R07 send markers advance before I/O and survive old status projections', () => {
+  const s = storage(), refs = operationReferences('install', s), value = { client_nonce: 'nonce', operation_id: 'operation' };
+  refs.put(value); refs.markSent(value, 'decision'); refs.put(value);
+  assert.equal(refs.read()[0].decision_sent, true);
+  assert.throws(() => refs.markSent(value, 'decision'), /already/);
+  refs.markSent(value, 'revoke'); refs.put(value);
+  assert.equal(refs.read()[0].revoke_sent, true);
+});

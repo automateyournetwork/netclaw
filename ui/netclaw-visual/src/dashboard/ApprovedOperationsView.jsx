@@ -24,7 +24,7 @@ function Operations({ api, principal, installationId }) {
   const retain = value => {
     const expected = referenceRef.current;
     if (!value || typeof value.operation_id !== 'string' || typeof value.client_nonce !== 'string' || expected?.operation_id && expected.operation_id !== value.operation_id || expected?.client_nonce && expected.client_nonce !== value.client_nonce) throw Error('Operation identity changed. Nothing was resent.');
-    references.write(value); referenceRef.current = { operation_id: value.operation_id, client_nonce: value.client_nonce }; setReference(referenceRef.current); setOperation(value); setUncertain(false); setRejectedDraft(false);
+    references.write(value); referenceRef.current = references.read(); setReference(referenceRef.current); setOperation(value); setUncertain(false); setRejectedDraft(false);
   };
   useEffect(() => {
     alive.current = true;
@@ -33,10 +33,10 @@ function Operations({ api, principal, installationId }) {
     if (saved) { setBusy(true); setUncertain(true); api.status(saved).then(value => { if (alive.current) retain(value); }).catch(failure => { if (alive.current) setError(failure.message); }).finally(() => { if (alive.current) setBusy(false); }); }
     return () => { alive.current = false; };
   }, [api, references]);
-  const run = async (action, mutating = false, preparing = false) => {
+  const run = async (action, mutating = false, preparing = false, sentAction) => {
     if (lock.current) return; lock.current = true; setBusy(true); setError('');
     if (mutating) setUncertain(true);
-    try { const value = await action(); if (alive.current) retain(value); }
+    try { if (sentAction) { referenceRef.current = references.markSent(referenceRef.current, sentAction); setReference(referenceRef.current); } const value = await action(); if (alive.current) retain(value); }
     catch (failure) {
       const notSubmitted = preparing && failure.prepareNotSubmitted === true && !referenceRef.current?.operation_id;
       // A confirmed local refusal never reached admission. Do not strand its
@@ -86,8 +86,8 @@ function Operations({ api, principal, installationId }) {
       </div>}
       {review && <><h3>Immutable approval review</h3><p>Review the complete principal, member identity, model profile, tool arguments and limits before approving once.</p><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Review operator</dt><dd>{review.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{new Date(review.limits.expires_at_ms).toISOString()}</dd></div></dl><pre aria-label="Immutable operation review">{json(review)}</pre>
         {!reviewCurrent && <p>This review has expired. It cannot authorize execution.</p>}
-        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={!actions.includes(decision) || decision === 'approve' && !reviewCurrent} onClick={() => run(() => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true)}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}
-          {actions.includes('revoke') && <button disabled={busy} onClick={() => run(() => api.revoke(reference.operation_id), true)}>Revoke remaining authority</button>}
+        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={reference.decision_sent || !actions.includes(decision) || decision === 'approve' && !reviewCurrent} onClick={() => run(() => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true, false, 'decision')}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}
+          {actions.includes('revoke') && <button disabled={busy || reference.revoke_sent} onClick={() => run(() => api.revoke(reference.operation_id), true, false, 'revoke')}>Revoke remaining authority</button>}
         </div>
       </>}
       {operation?.approval && <><h3>Recorded approval</h3><pre>{json(operation.approval)}</pre></>}

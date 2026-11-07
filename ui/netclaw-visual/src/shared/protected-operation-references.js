@@ -18,8 +18,15 @@ export function operationSelection(memberId, toolCall) {
     return value.length <= 65536 ? value : null;
   } catch { return null; }
 }
-const validReference = value => plain(value) && Object.keys(value).every(key => ['client_nonce', 'operation_id'].includes(key)) && operationIdentifier(value.client_nonce) && (value.operation_id === undefined || operationIdentifier(value.operation_id));
-const clean = value => ({ client_nonce: value.client_nonce, ...(value.operation_id ? { operation_id: value.operation_id } : {}) });
+export const validOperationReference = value => plain(value) && Object.keys(value).every(key => ['client_nonce', 'operation_id', 'decision_sent', 'revoke_sent'].includes(key)) && operationIdentifier(value.client_nonce) && (value.operation_id === undefined || operationIdentifier(value.operation_id)) && ['decision_sent', 'revoke_sent'].every(key => value[key] === undefined || value[key] === true && operationIdentifier(value.operation_id));
+const validReference = validOperationReference;
+export const cleanOperationReference = value => ({ client_nonce: value.client_nonce, ...(value.operation_id ? { operation_id: value.operation_id } : {}), ...(value.decision_sent ? { decision_sent: value.decision_sent } : {}), ...(value.revoke_sent ? { revoke_sent: value.revoke_sent } : {}) });
+const clean = cleanOperationReference;
+export function mergeOperationReference(previous, value) {
+  const next = clean(value);
+  if (!validReference(next) || previous && (previous.client_nonce !== next.client_nonce || previous.operation_id && previous.operation_id !== next.operation_id)) throw Error('Operation identity changed. Nothing was resent.');
+  return { ...next, ...(previous?.decision_sent ? { decision_sent: true } : {}), ...(previous?.revoke_sent ? { revoke_sent: true } : {}) };
+}
 export function removableOperation(value) {
   if (!value || value.reconciliation_required !== false || ['outcome_unknown', 'reconciliation_required', 'audit_pending', 'dispatch_pending', 'member_admitted', 'result_pending'].includes(value.state)) return false;
   if (['refused', 'revoked', 'denied'].includes(value.state) && value.attempt_count === 0 && value.may_have_executed === false && !value.result) return true;
@@ -125,6 +132,7 @@ export function operationReferences(installationId, storage = globalThis.session
       const previous = JSON.parse(old); if (!validReference(previous)) throw Error('Legacy operation identity is invalid.');
       const same = current.find(row => row.client_nonce === previous.client_nonce);
       if (same && same.operation_id !== previous.operation_id || current.some(row => row.operation_id && row.operation_id === previous.operation_id && row.client_nonce !== previous.client_nonce)) throw Error('Retained operation identity conflict.');
+      if (same) Object.assign(same, mergeOperationReference(same, previous));
       if (!same) { if (current.length >= REFERENCE_CAPACITY) throw Error('Retained operation capacity reached. Legacy identity was preserved.'); current.push(clean(previous)); }
       save(current); storage.removeItem(legacy);
     }
@@ -137,8 +145,14 @@ export function operationReferences(installationId, storage = globalThis.session
       const current = read(), index = current.findIndex(row => row.client_nonce === value.client_nonce);
       if (current.some((row, i) => i !== index && row.operation_id && row.operation_id === value.operation_id) || index >= 0 && current[index].operation_id && current[index].operation_id !== value.operation_id) throw Error('Operation identity changed. Nothing was resent.');
       if (index < 0) { if (current.length >= REFERENCE_CAPACITY) throw Error('Retained operation capacity reached. Remove a resolved reference before preparing another.'); current.push(clean(value)); }
-      else current[index] = clean(value);
+      else current[index] = mergeOperationReference(current[index], value);
       save(current); return current;
+    },
+    markSent(ref, action) {
+      if (!['decision', 'revoke'].includes(action)) throw Error('Unsupported operation action.');
+      const row = read().find(value => value.client_nonce === ref.client_nonce);
+      if (!row?.operation_id || row.operation_id !== ref.operation_id || row[action + '_sent']) throw Error('This action was already sent or is unavailable. Recover the same operation.');
+      return this.put({ ...row, [action + '_sent']: true });
     },
     remove(operation) {
       if (!removableOperation(operation)) throw Error('Unresolved operation references must be retained.');

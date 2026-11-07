@@ -3,6 +3,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../cloud/owner_client.dart';
+import '../ncfed/edge_client.dart';
+import '../ncfed/endpoint_recovery.dart';
 import 'combined_operations_panel.dart';
 
 /// Native cloud-owner workflow. It does not access EdgeClient, enrollment keys,
@@ -14,6 +16,7 @@ class CloudOwnerScreen extends StatefulWidget {
   final bool deviceMode;
   final Future<void> Function()? beforeResume;
   final VoidCallback? onSuspend;
+  final Future<void> Function()? onRecoverConnection;
   const CloudOwnerScreen({
     super.key,
     this.store,
@@ -22,6 +25,7 @@ class CloudOwnerScreen extends StatefulWidget {
     this.deviceMode = false,
     this.beforeResume,
     this.onSuspend,
+    this.onRecoverConnection,
   });
   @override
   State<CloudOwnerScreen> createState() => _CloudOwnerScreenState();
@@ -102,6 +106,8 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
 
   String _message(Object error) => error is CloudOwnerError
       ? error.toString()
+      : error is EdgeClientException || error is FormatException
+      ? recoveryFailureMessage(error)
       : const CloudOwnerError('request_refused').toString();
   Future<void> _run(Future<void> Function() action) async {
     if (_busy) return;
@@ -220,6 +226,11 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                           : 'Protected read-only operations. Enrolled Chat, voice, camera, watch and local service controls belong to your separate edge profile.',
                     ),
                     const SizedBox(height: 16),
+                    if (widget.onRecoverConnection != null)
+                      _button(
+                        'Change connection port',
+                        widget.onRecoverConnection!,
+                      ),
                     if (_busy) const LinearProgressIndicator(),
                     if (_error != null)
                       Padding(
