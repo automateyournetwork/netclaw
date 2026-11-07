@@ -68,3 +68,27 @@ successor. Record same profile ID/cluster reference namespace, different node
 installation, preserved sent marker, old review refusal and original result
 reference. The existing cloud-editor driver is the launch entry; native modal
 review and real signed record correlation are required separately from DTO tests.
+
+## Native qualification source follow-up
+
+Added `labs/ha/client_qualification.mjs`, public evidence helpers and
+`extensions/netclaw-vscode/test/editor-ha.cjs`, selected by
+`NETCLAW_CLOUD_SCENARIO=ha`. The coordinator supplies actual private URLs, Code
+binary/profile, SHA-pinned REAL records and cumulative runtime counters later.
+Drivers retain screenshots and append-only before-send artifacts. Original-once
+and prepare-only phases use exclusive durable one-shot locks; recovery phases
+refuse every mutation. Both read the same P256-signed original result/ACK and
+record explicit acceptance limits. No native phase was launched in this lane.
+See `labs/ha/CLIENT-QUALIFICATION.md` for the exact input and phase contract.
+
+Read-only integration review found unknown follower discovery and quorum-dependent
+status reads; root's fb075bb4 addresses those with no_quorum discovery, fresh WSS
+authority observation and bounded private open-lab status-only fallback. HUD/editor
+now visibly label retained status with last-observed time/reason, and HUD disables
+reconciliation of retained observations. A separate stale-deny epoch check issue
+was reported to root; this lane did not edit Python service files.
+
+Source helper tests6/6 passed (including no native launch on import, signed
+artifact tamper rejection and one-shot retry refusal); HUD affected view tests32/32
+passed; TypeScript and driver syntax checks passed. Actual Code/Chromium DOM,
+operating HTTPS, screenshots and REAL acceptance remain coordinator-run T038/T039.

@@ -442,8 +442,8 @@ test('R08 browser requires explicit anchor before operations and old issuer stat
  await until(()=>f.button('Trust cluster')&&!f.button('Trust cluster').disabled);assert.equal(f.calls.length,0);
  f.button('Trust cluster').click();await until(()=>f.button('Prepare review')&&!f.button('Prepare review').disabled);f.button('Prepare review').click();await until(()=>f.button('Approve once')&&!f.button('Approve once').disabled);
  const post=f.calls.find(c=>c.method==='POST');assert.equal(post.headers['X-NetClaw-Installation'],b.installation_id);assert.equal(post.headers['X-NetClaw-Cluster-ID'],a.cluster_id);assert.equal(post.headers['X-NetClaw-Cluster-Generation'],a.generation);
- const newer=structuredClone(b);newer.authority.epoch=8;current.result_reference={result_digest:'a'.repeat(64),accepting_node_id:a.node_id};
- f.w.remount({...f.props,cluster:newer});await until(()=>f.body().includes('Original result retained'));assert.equal(f.button('Approve once').disabled,true);assert.match(f.body(),/cannot authorize new work/);
+ const newer=structuredClone(b);newer.authority.epoch=8;current.result_reference={result_digest:'a'.repeat(64),accepting_node_id:a.node_id};current.observation={kind:'retained',observed_at_ms:Date.now()-1000,reason:'no_quorum'};
+ f.w.remount({...f.props,cluster:newer});await until(()=>f.body().includes('Original result retained'));assert.equal(f.button('Approve once').disabled,true);assert.match(f.body(),/cannot authorize new work/);assert.match(f.body(),/Retained status last observed/);assert.equal(f.button('Reconcile existing operation').disabled,true);
  assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert.equal(f.w.localStorage.length,0);assert.ok([...Array(f.w.sessionStorage.length)].some((_,i)=>f.w.sessionStorage.key(i).includes('cluster.')));
 });
 test('R08 browser verified no-quorum observation stops new prepare but retains explicit endpoint and status recovery',async t=>{
