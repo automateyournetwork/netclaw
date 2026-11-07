@@ -215,3 +215,58 @@ def test_cancelled_owned_fault_waits_for_bounded_thread_before_inspection():
         with pytest.raises(asyncio.CancelledError): await task
         assert finished.is_set(), 'inspection must not race an escaped mutation thread'
     asyncio.run(run())
+
+
+def test_successor_wait_excludes_old_leader_as_candidate_not_only_read_endpoint():
+    from labs.ha.matrix import MatrixHarness
+    import types
+    async def run():
+        old_value, new_value = {'node_id': 'old'}, {'node_id': 'new'}
+        reads = []
+        def observed():
+            reads.append(True)
+            return (old_value, 1) if len(reads) == 1 else (new_value, 2)
+        old = types.SimpleNamespace(node_id='old', closing=False,
+            authority=types.SimpleNamespace(leader=old_value, epoch=1, current=lambda: (old_value, 1)))
+        new = types.SimpleNamespace(node_id='new', closing=False,
+            authority=types.SimpleNamespace(leader=new_value, epoch=2, current=observed))
+        harness = object.__new__(MatrixHarness); harness.nodes = [old, new]
+        assert await harness.leader(excluded=(0,)) is new
+        assert len(reads) == 2
+    asyncio.run(run())
+
+
+def test_proxy_close_finishes_with_live_keepalive_connection():
+    async def run():
+        async def echo(reader, writer):
+            try:
+                while data := await reader.read(1024):
+                    writer.write(data); await writer.drain()
+            finally:
+                writer.close(); await writer.wait_closed()
+        server = await asyncio.start_server(echo, '127.0.0.1', 0)
+        proxy = await ByteProxy('open-connection-close', '127.0.0.1', server.sockets[0].getsockname()[1]).start()
+        reader, writer = await asyncio.open_connection('127.0.0.1', proxy.port)
+        try:
+            writer.write(b'active'); await writer.drain(); assert await reader.readexactly(6) == b'active'
+            await asyncio.wait_for(proxy.close(), .3)
+            assert not proxy.tasks and not proxy.writers
+        finally:
+            writer.close(); await writer.wait_closed()
+            await proxy.reset()
+            server.close(); await server.wait_closed()
+    asyncio.run(run())
+
+
+def test_failure_evidence_keeps_fixed_assertion_and_frames_but_redacts_private_exception(tmp_path):
+    from labs.ha.faults import failure_details
+    try:
+        raise AssertionError('isolated_old_authority_survived')
+    except AssertionError as exc:
+        result = failure_details(exc)
+    assert result['message'] == 'isolated_old_authority_survived'
+    assert result['frames'][-1]['file'] == 'tests/n2n/test_ha_integration_179.py'
+    assert set(result['frames'][-1]) == {'file', 'function', 'line'}
+    hidden = failure_details(RuntimeError('credential: secret-value /private/secret.json'))
+    assert hidden['message'] == 'private_error_redacted'
+    assert 'secret-value' not in json.dumps(hidden)

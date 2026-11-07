@@ -9,6 +9,7 @@ import hashlib
 import json
 from pathlib import Path
 import time
+import traceback
 
 from .etcd_lab import private
 
@@ -43,6 +44,7 @@ class ByteProxy:
         self.name, self.target_host, self.target_port = name, target_host, target_port
         self.bind_host, self.bind_port = bind_host, bind_port
         self.server, self.tasks, self.writers = None, set(), set()
+        self.closing = False
         self.generation = 0
         self.directions = {direction: {'mode': 'pass', 'delay_ms': 0, 'received_bytes': 0,
             'forwarded_bytes': 0, 'dropped_bytes': 0} for direction in ('request', 'response')}
@@ -57,6 +59,7 @@ class ByteProxy:
     async def start(self):
         if self.server is not None:
             raise ValueError('proxy_already_started')
+        self.closing = False
         self.server = await asyncio.start_server(self._accept, self.bind_host, self.bind_port)
         return self
 
@@ -85,8 +88,8 @@ class ByteProxy:
 
     async def _accept(self, reader, writer):
         task = asyncio.current_task()
-        if len(self.tasks) >= 32:
-            writer.close(); await writer.wait_closed(); return
+        if self.closing or len(self.tasks) >= 32:
+            writer.transport.abort(); await writer.wait_closed(); return
         self.tasks.add(task); self.writers.add(writer); self.connections += 1
         upstream = None
         copies = []
@@ -121,15 +124,19 @@ class ByteProxy:
         self.policy()
         # Discarded TLS bytes cannot be repaired by reusing that TCP session.
         # Close only the proxy's own connections; normal clients may reconnect.
-        for writer in list(self.writers): writer.close()
+        for writer in list(self.writers): writer.transport.abort()
         for task in list(self.tasks): task.cancel()
-        if self.tasks: await asyncio.gather(*list(self.tasks), return_exceptions=True)
+        if self.tasks:
+            await asyncio.wait_for(asyncio.gather(*list(self.tasks), return_exceptions=True), 5)
 
     async def close(self):
-        if self.server:
-            self.server.close(); await self.server.wait_closed()
-            self.server = None
+        self.closing = True
+        server, self.server = self.server, None
+        if server: server.close()
+        # Python3.12 waits for active client transports, not only the listener.
+        # Drop owned connections before waiting, including idle HTTP keepalives.
         await self.reset()
+        if server: await asyncio.wait_for(server.wait_closed(), 5)
 
 
 class Evidence:
@@ -156,7 +163,7 @@ class Evidence:
 
     def fail(self, case, exc):
         private(self.path / 'failure.json', {'class': 'FIXTURE', 'case': case,
-            'error_type': type(exc).__name__, 'code': getattr(exc, 'code', None), 'completed_rows': len(self.rows)})
+            **failure_details(exc), 'completed_rows': len(self.rows)})
 
     def finish(self):
         completed = {r['case'] for r in self.rows if r['passed']}
@@ -192,3 +199,35 @@ async def owned_call(function, *args, **kwargs):
         except Exception:
             pass
         raise
+
+
+_FIXTURE_FAILURES = frozenset({
+    'refused_gate_invoked_callback', 'fault_admitted_callback', 'isolated_old_authority_survived',
+    'fault_not_observed', 'stale_or_uncertain_claim_consumed', 'unknown_claim_forwarded',
+    'expired_reconciled_claim_forwarded', 'unknown_claim_changed', 'retired_node_restarted',
+    'capacity_fault_not_committed', 'capacity_fault_not_observed_at_gate', 'capacity_restore_state_changed',
+    'capacity_restore_unknown', 'preexisting_etcd_alarm', 'nospace_not_observed', 'nospace_cleanup_failed',
+    'original_result_changed', 'original_ack_changed', 'target_leader_not_established',
+    'epoch_not_increased', 'old_epoch_admitted', 'restart_durable_state_changed', 'member_incarnation_reused',
+    'new_id_bypassed_unknown_reservation', 'restart_ack_changed', 'fixture_effect_bound',
+    'restart_export_required', 'restart_baseline_not_running', 'restart_identity_changed',
+    'restart_stop_not_verified', 'restart_start_not_verified', 'fixture_cleanup_incomplete',
+})
+
+
+def failure_details(exc):
+    """Keep useful fixed fixture assertions; never dump locals or private errors."""
+    message = str(exc)
+    root = Path(__file__).resolve().parents[2]
+    frames = []
+    for frame in traceback.extract_tb(exc.__traceback__)[-12:]:
+        path = Path(frame.filename)
+        try: filename = str(path.resolve().relative_to(root))
+        except ValueError: filename = path.name
+        frames.append({'file': filename, 'function': frame.name, 'line': frame.lineno})
+    code = getattr(exc, 'code', None)
+    if not isinstance(code, (str, int)): code = None
+    if isinstance(code, str) and (len(code) > 100 or not all(ch.isalnum() or ch in '_.-' for ch in code)): code = None
+    return {'error_type': type(exc).__name__, 'code': code,
+            'message': message if message in _FIXTURE_FAILURES else (code if code is not None else 'private_error_redacted'),
+            'frames': frames}

@@ -26,7 +26,7 @@ from bgp.federation.ha.node import ClusterNode
 from bgp.federation.ha.recovery import export_snapshot
 from bgp.federation.ha.store import EtcdStore
 from .etcd_lab import EtcdLab, private, command
-from .faults import ByteProxy, Evidence, source_digest, owned_call
+from .faults import ByteProxy, Evidence, source_digest, owned_call, failure_details
 from .qualify import eventually
 
 SOURCE = contextvars.ContextVar('r08_fixture_source', default=None)
@@ -114,7 +114,8 @@ class MatrixHarness:
                 if index in excluded or node.closing: continue
                 try:
                     value, epoch = await asyncio.to_thread(node.authority.current)
-                    for candidate in self.nodes:
+                    for candidate_index, candidate in enumerate(self.nodes):
+                        if candidate_index in excluded: continue
                         if (candidate.node_id == value['node_id'] and not candidate.closing
                                 and candidate.authority.leader == value and candidate.authority.epoch == epoch):
                             return candidate
@@ -552,12 +553,43 @@ class MatrixHarness:
             completed_operation_id=completed['row']['operation_id'], unknown_operation_id=unknown['row']['operation_id'])
 
     async def close(self):
-        await asyncio.gather(*(n.close() for n in self.nodes), return_exceptions=True)
+        private(self.evidence.path / 'cleanup-started.json', {'class': 'FIXTURE',
+            'case': self.case, 'nodes': [node.node_id for node in self.nodes],
+            'proxy_connections': {proxy.name: len(proxy.tasks) for proxy in self.proxies}})
+        # Begin Node shutdown, then abort only this fixture's proxy transports.
+        # Never wait for servers to lose clients while holding those clients open.
+        closers = [asyncio.create_task(node.close()) for node in self.nodes]
+        await asyncio.sleep(0)
         exporter_tls.open_connection = self.original_open
-        await asyncio.gather(*(p.close() for p in self.proxies), return_exceptions=True)
-        # Thread-backed bounded requests finish before their clients close.
-        await asyncio.sleep(7)
+        proxy_results = await asyncio.gather(*(proxy.close() for proxy in self.proxies), return_exceptions=True)
+        private(self.evidence.path / 'cleanup-proxies.json', {'class': 'FIXTURE',
+            'results': [failure_details(result) if isinstance(result, BaseException) else {'closed': True}
+                        for result in proxy_results]})
+        done, pending = await asyncio.wait(closers, timeout=15) if closers else (set(), set())
+        diagnostics = []
+        for task in pending:
+            diagnostics.append({'frames': [{'function': frame.f_code.co_name,
+                'file': Path(frame.f_code.co_filename).name, 'line': frame.f_lineno} for frame in task.get_stack(limit=8)]})
+            task.cancel()
+        if pending:
+            await asyncio.wait(pending, timeout=3)
+        results = []
+        for task in closers:
+            if task.cancelled(): results.append({'cancelled': True})
+            elif task.done() and task.exception(): results.append(failure_details(task.exception()))
+            elif task.done(): results.append({'closed': True})
+            else: results.append({'pending': True})
+        private(self.evidence.path / 'cleanup-nodes.json', {'class': 'FIXTURE', 'results': results,
+                                                          'pending_diagnostics': diagnostics})
+        # The bounded etcd authentication+read sequence can span two6s attempts.
+        await asyncio.sleep(13)
         for store in self.stores: store.close()
+        summary = {'class': 'FIXTURE', 'passed': not pending
+            and all(result == {'closed': True} for result in results)
+            and not any(isinstance(result, BaseException) for result in proxy_results),
+            'thread_settle_seconds': 13}
+        private(self.evidence.path / 'cleanup-complete.json', summary)
+        return summary
 
     async def run_row(self, row):
         self.case = row
@@ -580,12 +612,16 @@ async def run(lab, evidence, rows):
         await harness.start()
         for row in rows:
             await asyncio.wait_for(harness.run_row(row), 180 if row in ('leader-loss-each-node', 'full-restart') else 90)
-        return harness.evidence.finish()
     except BaseException as exc:
         harness.evidence.fail(harness.case, exc)
         raise
     finally:
-        await harness.close()
+        cleanup = await harness.close()
+    if not cleanup['passed']:
+        exc = RuntimeError('fixture_cleanup_incomplete')
+        harness.evidence.fail('cleanup', exc)
+        raise exc
+    return harness.evidence.finish()
 
 
 def main():
