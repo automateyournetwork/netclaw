@@ -248,6 +248,75 @@ class EtcdLab:
         if updated['State']['Paused'] != (action == 'pause'):
             raise RuntimeError('owned_fault_verification_failed')
 
+    def prepare_cluster_identity(self, *, organization='r08-fixture', revision=1):
+        """Fresh offline NCFED enrollment plus separate loopback transport PKI.
+
+        File/key preparation only: no voter/client request, container or runtime
+        mutation. Existing identity/transport directories are never overwritten.
+        The enrollment root.key stays with the offline coordinator; do not mount
+        this directory wholesale into any Border, member or proxy container.
+        """
+        from bgp.federation import protected_contract as c
+        from bgp.federation.certs import create_self_signed
+        from bgp.federation.ha.config import sign_manifest, verify_manifest
+        if self.document is None:
+            self.load()
+        identity = self.root / 'cluster-identity'
+        identity.mkdir(mode=0o700, exist_ok=False)
+        private(identity / 'prepare.claim.json', {'schema_version': 1,
+            'cluster_id': self.document['cluster_id'], 'generation': self.document['generation'],
+            'revision': revision})
+        held, used = [], set(self.document['ports'])
+        def available_port():
+            # Keep every selection bound until the whole manifest is written,
+            # so cluster/in2n/HTTPS choices cannot reuse the same ephemeral port.
+            for _ in range(32):
+                listener = socket.socket()
+                listener.bind(('127.0.0.1', 0))
+                port = listener.getsockname()[1]
+                if port in used:
+                    listener.close(); continue
+                held.append(listener); used.add(port)
+                return port
+            raise RuntimeError('fresh_endpoint_capacity')
+        try:
+            anchor, anchor_key = create_self_signed('r08/offline-enrollment', days=3)
+            private(identity / 'root.crt', anchor.encode())
+            private(identity / 'root.key', anchor_key.encode())
+            nodes = []
+            for index in range(3):
+                name = f'r08/border-{index}'
+                application_certificate, application_key = create_self_signed(name, days=3)
+                private(identity / f'node{index}.crt', application_certificate.encode())
+                private(identity / f'node{index}.key', application_key.encode())
+                cluster_port, in2n_port, https_port = available_port(), available_port(), available_port()
+                server_name = f'border-{index}.r08.test'
+                nodes.append({'node_id': str(uuid.uuid4()), 'installation_id': str(uuid.uuid4()),
+                    'identity': name, 'key_id': c.key_id(application_certificate),
+                    'certificate': application_certificate, 'role': 'border',
+                    'endpoints': {'cluster': {'host': '127.0.0.1', 'port': cluster_port, 'server_name': server_name},
+                        'in2n': {'host': '127.0.0.1', 'port': in2n_port, 'server_name': server_name},
+                        'https': f'https://{server_name}:{https_port}',
+                        'wss': f'wss://{server_name}:{https_port}/mobile/ws'}})
+            manifest = {'schema_version': 1, 'cluster_id': self.document['cluster_id'],
+                'generation': self.document['generation'], 'organization': organization, 'revision': revision,
+                'nodes': nodes, 'limits': {'leader_lease_s': 12, 'renewal_s': 3, 'admission_ms': 3000,
+                    'clock_uncertainty_ms': 250, 'max_operations': 1024, 'max_members': 32}}
+            envelope = sign_manifest(manifest, anchor_key)
+            verified = verify_manifest(envelope, anchor, expected_key_id=c.key_id(anchor))
+            private(identity / 'manifest.json', envelope)
+            # Separate CA and DNS transport certificates retain only each node's
+            # own application key; none uses the offline enrollment signer key.
+            self.prepare_cluster_transport()
+            private(identity / 'complete.json', {'schema_version': 1, **verified.audience,
+                'manifest_sha256': c.sha256(verified.value), 'anchor_key_id': c.key_id(anchor),
+                'node_ids': [node['node_id'] for node in nodes],
+                'endpoint_reservation': 'released-before-return;actual-bind-required'})
+        finally:
+            for listener in held:
+                listener.close()
+        return self
+
     def prepare_cluster_transport(self):
         """Separate transport CA; retain the enrolled application keys/manifest.
 

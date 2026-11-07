@@ -69,13 +69,21 @@ not start containers until `start`):
 ```python
 from labs.ha.raft_topology import RaftProxyLab
 lab = RaftProxyLab('/private/fresh-raft-fixture', 'reviewed/python@sha256:EXACT_DIGEST').prepare()
+lab.prepare_cluster_identity()  # Fresh offline anchor/node keys + separate transport CA; no runtime calls.
 # Review /private/fresh-raft-fixture/raft-start-plan.json first.
 # It lists exactly six new containers, one new network, image pins and limits.
 lab.start()  # Coordinator only, one attempt; preserve partial or unknown starts.
 ```
 
-Prepare the normal fresh signed NCFED cluster identity/transport artifacts for this
-lab before starting the matrix. The existing direct fixture is not converted.
+`prepare_cluster_identity()` prepares the signed manifest from this exact lab's
+cluster/generation and automatically calls `prepare_cluster_transport()`. It holds
+nine distinct loopback ports during preparation, then releases them before return;
+the actual listener must still bind successfully. Existing identity directories
+are refused. The offline root key stays outside all runtime/proxy mounts. After
+starting fresh voters, explicitly initialize `Authority(store, manifest, first_node_id).bootstrap(create=True)`
+once using the verified signed manifest and scoped lab store. This creates no
+member or effect. The independent fresh cluster gets a fresh anchor; disaster
+re-enrollment under an old cluster requires the separately retained old anchor. The existing direct fixture is not converted.
 Run the same matrix command with `--raft-proxy-image` set to the exact prepared
 image pin. The driver applies both the matching Border/quorum cut and the real
 Raft peer cut, verifies the proxy policy digest/generation and newly dropped peer

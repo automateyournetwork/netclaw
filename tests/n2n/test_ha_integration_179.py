@@ -270,3 +270,34 @@ def test_failure_evidence_keeps_fixed_assertion_and_frames_but_redacts_private_e
     hidden = failure_details(RuntimeError('credential: secret-value /private/secret.json'))
     assert hidden['message'] == 'private_error_redacted'
     assert 'secret-value' not in json.dumps(hidden)
+
+
+def test_fresh_cluster_identity_has_distinct_keys_pinned_audience_and_loopback_endpoints(tmp_path):
+    from urllib.parse import urlsplit
+    from bgp.federation import protected_contract as c
+    from bgp.federation.ha.config import verify_manifest
+    from labs.ha.etcd_lab import EtcdLab
+    lab = EtcdLab(tmp_path/'fresh').prepare()
+    lab.prepare_cluster_identity(revision=2)
+    identity, transport = lab.root/'cluster-identity', lab.root/'cluster-transport'
+    anchor = (identity/'root.crt').read_text()
+    envelope = (identity/'manifest.json').read_bytes()
+    manifest = verify_manifest(envelope, anchor, expected_key_id=c.key_id(anchor))
+    assert manifest.audience == {name: lab.document[name] for name in ('cluster_id', 'generation')}
+    assert manifest.revision == 2 and len(manifest.nodes) == 3
+    assert len({n['node_id'] for n in manifest.nodes} | {n['installation_id'] for n in manifest.nodes}) == 6
+    assert len({n['key_id'] for n in manifest.nodes} | {c.key_id(anchor)}) == 4
+    ports = []
+    for index, node in enumerate(manifest.nodes):
+        for channel in ('cluster', 'in2n'):
+            assert node['endpoints'][channel]['host'] == '127.0.0.1'
+            ports.append(node['endpoints'][channel]['port'])
+        ports.append(urlsplit(node['endpoints']['https']).port)
+        assert urlsplit(node['endpoints']['https']).port == urlsplit(node['endpoints']['wss']).port
+        assert c.key_id((transport/f'node{index}.crt').read_text()) == node['key_id']
+        assert (identity/f'node{index}.key').read_bytes() == (transport/f'node{index}.key').read_bytes()
+    assert len(set(ports)) == 9 and not set(ports) & set(lab.document['ports'])
+    assert c.key_id((transport/'transport-ca.crt').read_text()) not in {c.key_id(anchor), *[n['key_id'] for n in manifest.nodes]}
+    with pytest.raises(FileExistsError): lab.prepare_cluster_identity()
+    assert (identity/'manifest.json').read_bytes() == envelope
+    assert all(path.stat().st_mode & 0o077 == 0 for directory in (identity, transport) for path in directory.iterdir())
