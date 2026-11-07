@@ -22546,7 +22546,7 @@
           "note": "Approved focused integration and explicit platform boundary."
         },
         {
-          "source": "specs/178-convergence-setup/spec.md",
+          "source": "specs/179-convergence-setup/spec.md",
           "checkedAt": "2026-11-06",
           "note": "VM Security tool from accepted proposal 176."
         }

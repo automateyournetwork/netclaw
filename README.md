@@ -26,7 +26,7 @@ appear with their eligible owners and separate prerequisites. See the
 [setup guide](docs/COMMS-SETUP.md) and [current installer evidence](specs/155-border-channel-setup/verification.md).
 Discovery, saved configuration, authentication, connection and delivery are separate results.
 
-**Reference:** [Architecture](#architecture) · [MCP servers](#mcp-servers-178) · [Skills](#skills-239) · [Workflows](#standard-workflows) · [Safety](#safety)
+**Reference:** [Architecture](#architecture) · [MCP servers](#mcp-servers-178) · [Skills](#skills-240) · [Workflows](#standard-workflows) · [Safety](#safety)
 
 ## Hermes or OpenClaw?
 

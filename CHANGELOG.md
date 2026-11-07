@@ -4,7 +4,7 @@ NetClaw source releases use `1.x.y`. Feature specs increment the minor version a
 
 ## [1.19.0] - 2026-11-06
 
-Spec [178-convergence-setup](specs/178-convergence-setup/spec.md). See [release notes](docs/releases/1.19.0.md).
+Spec [179-convergence-setup](specs/179-convergence-setup/spec.md). See [release notes](docs/releases/1.19.0.md).
 
 - New `convergence-setup` skill: installs Convergence from a pinned convergence-platform release as a Docker trial, on an existing K3s cluster (Helm or Argo CD), or on a new K3s cluster on Proxmox VE, after showing the plan and getting approval.
 - `convergence_vm_security` and a HUD VM Security section: advisory VM findings with coverage, from the scope accepted in proposal 176; a labelled synthetic source lets you try it without a hypervisor.

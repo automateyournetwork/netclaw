@@ -1,6 +1,6 @@
-# Spec 178: Set up Convergence from NetClaw, and show its VM Security findings
+# Spec 179: Set up Convergence from NetClaw, and show its VM Security findings
 
-Created 2026-11-06; branch `178-convergence-setup`, on 1.18.6; status: implementation and
+Created 2026-11-06; branch `179-convergence-setup`, on 1.18.7; status: implementation and
 verification. Implements the scope accepted in proposal 176 (PR #330), and adds a setup
 skill for the separately operated service.
 
