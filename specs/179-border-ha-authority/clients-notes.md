@@ -92,3 +92,33 @@ Source helper tests6/6 passed (including no native launch on import, signed
 artifact tamper rejection and one-shot retry refusal); HUD affected view tests32/32
 passed; TypeScript and driver syntax checks passed. Actual Code/Chromium DOM,
 operating HTTPS, screenshots and REAL acceptance remain coordinator-run T038/T039.
+
+## Native effect boundary review and adapter
+
+Independent source review found that admission freshness preceded awaited Docker
+preflight and native MCP startup. Root moved model checks to the synchronous
+stdin handoff and delegated the MCP transport fix to this lane. The first SDK
+memory-stream wrapper still had a scheduling gap before its background writer.
+`ha/mcp_transport.py` now implements the official ClientSession stream seam with
+an owned asyncio subprocess, bounded official JSON-RPC parsing, and synchronous
+tool-byte handoff in the caller's task. It has no background write queue or SDK
+patch. Admission is resolved after serialization and immediately before the pipe
+write; initialized/list-tools preflight needs no effect permission.
+
+One tools/call attempt is permitted per transport. The frame must fit the actual
+POSIX atomic pipe limit (also capped at4096bytes;512bytes on this Mac). A full
+pipe aborts its queued atomic frame synchronously, preserving the spent claim.
+Expired/inactive/duplicate scopes, backpressure and oversize frames fail closed.
+Owned process groups have bounded EOF/TERM/KILL cleanup. Other OS transports are
+explicitly unqualified; standalone keeps its existing SDK transport.
+
+20 controlled transport tests pass, including an actual official MCP2.3.0 session,
+an actual saturated OS pipe with no delayed tool bytes, late admission, expiry
+during serialization, malformed/partial/bounded input and cancellation cleanup.
+Related admission/runtime/native-MCP tests plus these tests pass95/95. Initial
+tests exposed the SDK2.3 JSONRPCMessage union (fixed using public TypeAdapter);
+one mistyped test path selected no tests and was corrected before the95-test run.
+These are controlled temporary stdio fixtures, not actual native workload, REAL
+or T034 fixture acceptance. Root owns protected_mcp/Docker/admission integration
+and the production-callback regression checks. No model/provider/device call or
+native browser/editor qualification ran in this lane.
