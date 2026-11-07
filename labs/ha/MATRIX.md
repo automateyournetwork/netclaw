@@ -59,7 +59,13 @@ success never substitutes for this file's actual recorded execution.
 It accepts only an already installed immutable Python image digest selected and
 reviewed by the coordinator. It does not pull an image, enable NET_ADMIN, publish
 an administrative API, load TLS keys into proxies or alter a retained network.
-Every voter has its own proxy peer URL and private peer TLS certificate. Actual
+Every voter has its own proxy peer URL, distinct private peer key and peer TLS
+certificate. Each peer certificate includes exactly the three owned proxy DNS
+names plus that voter's own name: etcd validates incoming peer SANs against the
+remote TCP address, which an opaque proxy changes. Certificate hashes and exact
+SAN sets are pinned at preparation/load; older narrow-SAN prepared plans are
+refused. TLS verification is never disabled. See the
+[official etcd transport-security notes](https://etcd.io/docs/v3.6/op-guide/security/). Actual
 Docker source IPs are obtained from exact ID/label/image-verified inventory.
 Unknown source IPs are refused. Per-peer request and response cuts are independent.
 

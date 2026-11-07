@@ -352,3 +352,22 @@ def test_full_restart_reconstructs_all_etcd_clients_and_preserves_proxy_routes()
     assert all(client._token is None and not client.closed for client in harness.stores)
     assert all(client not in old for client in harness.stores)
     assert harness.stores[1].endpoints == ('https://127.0.0.1:20003', 'https://127.0.0.1:20004', 'https://127.0.0.1:20005')
+
+
+def test_raft_peer_certificates_cover_only_exact_owned_proxy_sources(tmp_path):
+    from cryptography import x509
+    from bgp.federation import protected_contract as c
+    from labs.ha.raft_topology import RaftProxyLab
+    lab = RaftProxyLab(tmp_path/'fresh-proxy', 'python@sha256:' + 'a'*64).prepare()
+    ids = set()
+    for index in range(3):
+        path = lab.root/f'voter{index}-proxy-pki/peer.crt'
+        certificate = x509.load_pem_x509_certificate(path.read_bytes())
+        names = set(certificate.extensions.get_extension_for_class(x509.SubjectAlternativeName).value.get_values_for_type(x509.DNSName))
+        assert names == {'p0', 'p1', 'p2', f'v{index}'}
+        ids.add(c.key_id(path.read_text()))
+    assert len(ids) == 3
+    lab.load()
+    path = lab.root/'voter0-proxy-pki/peer.crt'
+    path.write_bytes((lab.root/'voter1-proxy-pki/peer.crt').read_bytes())
+    with pytest.raises(RuntimeError, match='owned_proxy_mismatch'): lab.load()

@@ -37,7 +37,10 @@ class RaftProxyLab(EtcdLab):
         names = []
         for i in range(3):
             names.append(self.document['name'] + f'-proxy{i}')
-            certificate(pki, f'proxy-peer{i}', issuer=issuer, issuer_key=issuer_key, names=(f'p{i}', f'v{i}'))
+            # Etcd checks incoming peer DNS SANs against the remote TCP IP.
+            # Opaque forwarding makes that IP one of the three owned target
+            # proxies; keep exact names and distinct voter keys, never skip TLS.
+            certificate(pki, f'proxy-peer{i}', issuer=issuer, issuer_key=issuer_key, names=('p0', 'p1', 'p2', f'v{i}'))
             target = root / f'voter{i}-proxy-pki'; target.mkdir(mode=0o700)
             for source, destination in [('client-ca.crt', 'client-ca.crt'), ('peer-ca.crt', 'peer-ca.crt'),
                 (f'server{i}.crt', 'server.crt'), (f'server{i}.key', 'server.key'),
@@ -48,6 +51,7 @@ class RaftProxyLab(EtcdLab):
                 'target': f'v{i}', 'peers': {}, 'rules': {}})
         private(root / 'proxy-owned.json', {'schema_version': 1, 'containers': names,
             'image': self.proxy_image, 'source_sha256': hashlib.sha256(self.proxy_source.read_bytes()).hexdigest(),
+            'peer_transport_sha256': {str(i): hashlib.sha256((root / f'voter{i}-proxy-pki/peer.crt').read_bytes()).hexdigest() for i in range(3)},
             'purpose': 'fresh-raft-peer-byte-paths', 'memory_mib_each': 64, 'cpus_each': .1})
         private(root / 'raft-start-plan.json', self.start_plan())
         return self
@@ -58,6 +62,17 @@ class RaftProxyLab(EtcdLab):
         if (owned['image'] != self.proxy_image or owned['source_sha256'] != hashlib.sha256(self.proxy_source.read_bytes()).hexdigest()
                 or owned['containers'] != [self.document['name'] + f'-proxy{i}' for i in range(3)]):
             raise RuntimeError('owned_proxy_mismatch')
+        expected_hashes = owned.get('peer_transport_sha256')
+        if not isinstance(expected_hashes, dict) or set(expected_hashes) != {'0', '1', '2'}:
+            raise RuntimeError('owned_proxy_mismatch')
+        for index in range(3):
+            raw = (self.root / f'voter{index}-proxy-pki/peer.crt').read_bytes()
+            certificate_value = x509.load_pem_x509_certificate(raw)
+            sans = certificate_value.extensions.get_extension_for_class(x509.SubjectAlternativeName).value
+            names = set(sans.get_values_for_type(x509.DNSName))
+            if (hashlib.sha256(raw).hexdigest() != expected_hashes[str(index)]
+                    or names != {'p0', 'p1', 'p2', f'v{index}'} or len(sans) != 4):
+                raise RuntimeError('owned_proxy_mismatch')
         return self
 
     def start_plan(self):
