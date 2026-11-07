@@ -20,7 +20,7 @@ The private plan has exactly these fields:
 | `fixture_gate_file`, `fixture_gate_sha256` | Private gate with `schema_version:1`, `class:FIXTURE`, `passed:true`, matching `source_sha256` |
 | `template_file`, `template_sha256` | Exact reviewed public runtime/tool template; never the retained guard environment |
 | `python` | `executable`, `sha256`, `environment`, `manifest_file`, `manifest_sha256`; production launcher checks the whole immutable environment |
-| `ports` | Distinct explicit loopback ports: 3 each `cluster`, `in2n`, `https`, `edge`, and 4 `api` |
+| `ports` | Distinct explicit loopback ports: 3 each `cluster`, `in2n`, `https`, `edge`, `bgp`, and 4 `api` |
 | `guard_token_variable` | Exactly `DEFENSECLAW_GATEWAY_TOKEN`, matching the pinned public guard wrapper |
 
 The source map must include the entire required production import closure,

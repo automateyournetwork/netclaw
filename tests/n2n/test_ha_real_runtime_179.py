@@ -119,7 +119,7 @@ def fixture_plan(tmp_path):
         'template_sha256': 'a' * 64, 'python': {'executable': '/absolute/python', 'sha256': 'b' * 64,
             'environment': '/absolute', 'manifest_file': '/manifest.json', 'manifest_sha256': 'c' * 64},
         'ports': {'cluster': [31000,31001,31002], 'in2n': [31003,31004,31005], 'https': [31006,31007,31008],
-                  'edge': [31009,31010,31011], 'api': [31012,31013,31014,31015]},
+                  'edge': [31009,31010,31011], 'api': [31012,31013,31014,31015], 'bgp': [31016,31017,31018]},
         'guard_token_variable': 'DEFENSECLAW_GATEWAY_TOKEN'}
 
 

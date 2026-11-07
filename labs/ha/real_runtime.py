@@ -90,7 +90,7 @@ def validate_plan(plan):
     sha_value(python['sha256']); sha_value(python['manifest_sha256'])
     need(plan['guard_token_variable'] == 'DEFENSECLAW_GATEWAY_TOKEN', 'invalid_guard_variable')
     ports = plan['ports']
-    need(isinstance(ports, dict) and set(ports) == {'cluster', 'in2n', 'https', 'edge', 'api'}, 'invalid_ports')
+    need(isinstance(ports, dict) and set(ports) == {'cluster', 'in2n', 'https', 'edge', 'bgp', 'api'}, 'invalid_ports')
     flat = []
     for key, values in ports.items():
         need(isinstance(values, list) and len(values) == (4 if key == 'api' else 3)
@@ -203,6 +203,8 @@ def prepare(plan_file):
     write_new(root / 'tool-template.json', template['tool'])
     from .etcd_lab import EtcdLab
     lab = EtcdLab(root / 'voters').prepare()
+    need(not set(lab.document['ports']) & {port for ports in plan['ports'].values() for port in ports},
+         'voter_runtime_port_collision')
     prepare_identity(plan, root, lab)
     write_new(root / 'prepared.json', {'schema_version': 1, 'run_id': plan['run_id'],
               'source_sha256': plan['source_sha256'], 'class': 'PREPARATION', 'model_calls': 0, 'native_effects': 0})
@@ -339,7 +341,9 @@ class Rehearsal:
             env = {'NETCLAW_LOCAL_AS': str(65179 + i), 'NETCLAW_ROUTER_ID': f'127.0.0.{i + 1}',
                    'N2N_DISPLAY_NAME': self.plan['name'] + '-' + name, 'BGP_API_PORT': str(self.plan['ports']['api'][i]),
                    'N2N_INVENTORY_REFRESH_S': '0'}
-            if i < 3: env['N2N_EDGE_WS_PORT'] = str(self.plan['ports']['edge'][i])
+            if i < 3:
+                env['N2N_EDGE_WS_PORT'] = str(self.plan['ports']['edge'][i])
+                env['BGP_LISTEN_PORT'] = str(self.plan['ports']['bgp'][i])
             contract = {'schemaVersion': 3, 'installation_id': binding['installation_id'], 'role': role,
                 'runtime_kind': 'openclaw', 'control_only': i < 3, 'home': str(home), 'source_root': str(self.source),
                 'python': python['executable'], 'python_sha256': python['sha256'], 'python_env': python['environment'],
