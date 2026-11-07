@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "etcd": {
+    "version": "3.6.16",
+    "platform": "linux/arm64",
+    "image": "gcr.io/etcd-development/etcd@sha256:a763c581b5d8cdf5247c5b22f2e0dba1f19f0c45031e8c324b06c5ed4f60a14f",
+    "source": "https://etcd.io/blog/2026/oct-22-patch-release/"
+  },
+  "qualification": {
+    "voter_memory_mib": 512,
+    "voter_go_memory_mib": 384,
+    "voter_cpus": 0.6,
+    "backend_quota_bytes": 134217728,
+    "heartbeat_ms": 300,
+    "election_ms": 3000,
+    "mvcc_retention": "1m"
+  }
+}

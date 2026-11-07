@@ -9,6 +9,10 @@ import uuid
 APPROVAL = 'netclaw.execution.approval.v1'
 RESULT = 'netclaw.execution.result.v1'
 ACK = 'netclaw.execution.ack.v1'
+HA_APPROVAL = 'netclaw.execution.approval.v2'
+HA_RESULT = 'netclaw.execution.result.v2'
+HA_ACK = 'netclaw.execution.ack.v2'
+HA_SCHEMAS = {HA_APPROVAL: APPROVAL, HA_RESULT: RESULT, HA_ACK: ACK}
 MAX_ENVELOPE = 1024 * 1024
 MAX_OUTPUT = 512 * 1024
 MAX_ARGUMENTS = 64 * 1024
@@ -230,15 +234,27 @@ def validate_catalog_entry(entry):
 
 
 def review_from_payload(payload):
-    return {key: payload[key] for key in ('principal', 'border', 'member', 'model_profile', 'tool_call', 'limits', 'change_request_ref')}
+    fields = ('principal', 'border', 'member', 'model_profile', 'tool_call', 'limits', 'change_request_ref')
+    return {key: payload[key] for key in fields + (('cluster',) if 'cluster' in payload else ())}
 
 
-def validate_review(review):
-    exact(review, 'principal border member model_profile tool_call limits change_request_ref')
+def validate_cluster_binding(value):
+    exact(value, 'cluster_id generation manifest_revision issuer_node_id authority_epoch')
+    for key in ('cluster_id', 'generation', 'issuer_node_id'):
+        uuid_field(value[key])
+    for key in ('manifest_revision', 'authority_epoch'):
+        require(type(value[key]) is int and 0 < value[key] <= 2**53 - 1)
+
+
+def validate_review(review, *, cluster=False):
+    exact(review, 'principal border member model_profile tool_call limits change_request_ref' + (' cluster' if cluster else ''))
+    if cluster:
+        validate_cluster_binding(review['cluster'])
     validate_principal(review['principal'])
     validate_binding(review['border'], 'border')
     if review['principal']['issuer'] == 'open-lab':
-        require(review['principal']['subject'] == str(uuid.uuid5(uuid.UUID(review['border']['installation_id']), 'netclaw.open-lab.operator')), 'lab_principal_mismatch')
+        namespace = review['cluster']['cluster_id'] if cluster else review['border']['installation_id']
+        require(review['principal']['subject'] == str(uuid.uuid5(uuid.UUID(namespace), 'netclaw.open-lab.operator')), 'lab_principal_mismatch')
     validate_binding(review['member'], 'member')
     validate_model(review['model_profile'])
     validate_tool(review['tool_call'], model=review['model_profile'])
@@ -247,17 +263,23 @@ def validate_review(review):
 
 
 def validate_payload(schema, p):
+    cluster = schema in HA_SCHEMAS
+    schema = HA_SCHEMAS.get(schema, schema)
+    extra = ' cluster' if cluster else ''
+    if cluster:
+        require(isinstance(p, dict) and 'cluster' in p)
+        validate_cluster_binding(p['cluster'])
     if schema == APPROVAL:
-        exact(p, 'approval_id operation_id nonce issued_at_ms principal border member model_profile tool_call limits change_request_ref review_sha256')
+        exact(p, 'approval_id operation_id nonce issued_at_ms principal border member model_profile tool_call limits change_request_ref review_sha256' + extra)
         uuid_field(p['approval_id']); uuid_field(p['operation_id'])
         require(isinstance(p['nonce'], str) and re.fullmatch(r'[A-Za-z0-9_-]{43}', p['nonce']) is not None)
         timestamp(p['issued_at_ms'])
-        validate_review(review_from_payload(p))
+        validate_review(review_from_payload(p), cluster=cluster)
         digest_field(p['review_sha256'])
         require(sha256(review_from_payload(p)) == p['review_sha256'], 'review_digest_mismatch')
         require(p['issued_at_ms'] < p['limits']['expires_at_ms'])
     elif schema == RESULT:
-        exact(p, 'receipt_id operation_id approval_id approval_sha256 attempt_id principal border member model_profile tool_call_sha256 started_at_ms finished_at_ms outcome effect_status output output_sha256 tool_evidence_sha256 usage audit_refs error_code')
+        exact(p, 'receipt_id operation_id approval_id approval_sha256 attempt_id principal border member model_profile tool_call_sha256 started_at_ms finished_at_ms outcome effect_status output output_sha256 tool_evidence_sha256 usage audit_refs error_code' + extra)
         for key in ('receipt_id', 'operation_id', 'approval_id', 'attempt_id'):
             uuid_field(p[key])
         for key in ('approval_sha256', 'tool_call_sha256', 'output_sha256', 'tool_evidence_sha256'):
@@ -273,7 +295,13 @@ def validate_payload(schema, p):
         if p['error_code'] is not None:
             require(isinstance(p['error_code'], str) and re.fullmatch('[a-z0-9_]{1,80}', p['error_code']) is not None)
     elif schema == ACK:
-        exact(p, 'ack_id operation_id approval_id attempt_id receipt_id receipt_sha256 border member accepted_at_ms audit_ref')
+        exact(p, 'ack_id operation_id approval_id attempt_id receipt_id receipt_sha256 border member accepted_at_ms audit_ref' + extra + (' acceptance' if cluster else ''))
+        if cluster:
+            acceptance = p['acceptance']
+            exact(acceptance, 'node_id border authority_epoch')
+            uuid_field(acceptance['node_id'])
+            validate_binding(acceptance['border'], 'border')
+            require(type(acceptance['authority_epoch']) is int and 0 < acceptance['authority_epoch'] <= 2**53 - 1)
         for key in ('ack_id', 'operation_id', 'approval_id', 'attempt_id', 'receipt_id'):
             uuid_field(p[key])
         digest_field(p['receipt_sha256'])

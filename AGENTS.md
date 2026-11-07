@@ -185,6 +185,8 @@ When unsure about severity or approach: escalate. Say "I'd recommend verifying t
 - Separate private homes, federation DBs, keys, gateway state, existing grants/tasks/chat/GAIT. Bounded non-secret client provenance. Plans/evidence outside source in0700/0600 storage. (177-external-en2n-federation)
 - Python3.12 federation; existing Node24.19/React18 HUD; TypeScript5.9 VS Code; Dart3.12.2/Flutter3.44.8 Mobile. + Existing asyncio/SQLite, cryptography/pyOpenSSL, FastMCP/MCP, Express/React, VS Code APIs, Flutter secure storage/WebSocket. (178-recovery-gate)
 - Existing private identity/ledger/reference stores; additive bounded identifiers and monotone send markers; private evidence0700/0600. (178-recovery-gate)
+- Python3.12 federation/runtime;Python3.10+host helpers;existing Node24.19/React18,TypeScript5.9,Flutter/Dart. + Existing NCFED/FastMCP/MCP,asyncio,httpx,cryptography/pyOpenSSL,SQLite,Docker;external pinned etcd3.6.16. Existing OpenClaw/DefenseClaw/Ollama qualification closures. (179-border-ha-authority)
+- Private etcd bounded metadata plus member SQLite claims and immutable signed artifacts;0700directories/0600private files. No credentials in frontend state. (179-border-ha-authority)
 
 - Spec 148 implementation: JavaScript ESM/Express/React HUD; HUD Node >=24.19 <25 or >=26.1; isolated bridge/tool Python 3.12 and companion Python 3.14; official MCP Node client 2.3.1 and isolated FastMCP 4.0.11/MCP Python SDK 2.3.0. General OpenClaw installer Node policy remains >=24.16 <25 or >=26.1.
 - Qualified Hermes baseline: v0.21.6, source 818c13be1dc4fd28987e1e881a9408224afd4535. Private MCP bridge/protected companion, schema-2 owned HUD bindings, SQLite admission/evidence records and installation-scoped browser storage. Mac and Ubuntu 26.04 WSL live/browser qualification is recorded in specs/148-hermes-hud-integration/closure.md; broader tool and platform qualification is not implied.
@@ -870,3 +872,22 @@ accepts31/31includingT030 and supersedesR07source-integration hold. Keep source
 PR332 and frozen runtime qualification. Evaluate R08 together afterward; this
 authorizes planning discussion only, no R08implementation/cloud activation.
 R05/R06retirement and originalBorderDec1 unchanged. See Spec178source-integration.
+
+### R08 / Spec179 execution — 2026-11-07
+
+Owner directed R08 to100% using full SDD after joint strategy review and explicitly
+reaffirmed NCFED grounding. This supersedes prior R08 discussion-only hold for
+source/isolated local qualification. Use NCFED cluster profile and existing iN2N/
+eN2N trust boundaries;private etcd only coordinates authority. Three voters,
+member/guard fresh claims,fixture then actual guarded model/nativeMCP and real
+HUD/Code/Mobile evidence are required. No R09/cloud activation,existing-runtime
+upgrade or publication implied. Preserve source1.18.7/editor1.6.1/Mobile1.0.4+7,
+R05/R06retirement and originalBorderDec1. See specs/179-border-ha-authority/.
+
+### R08 implementation team — 2026-11-07
+
+The owner explicitly chose a coordinator and three implementation agents in
+separate worktrees for R08/Spec179. Root coordinates core service/NCFED authority
+and serializes all runtime qualification mutations. Parallel source lanes cover
+lifecycle/recovery, HUD/VS Code and Mobile/enrollment. This does not authorize R09,
+cloud deployment, publication, version changes or mutation of retained runtimes.

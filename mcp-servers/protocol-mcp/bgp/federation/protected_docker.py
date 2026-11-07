@@ -21,7 +21,7 @@ from .protected_mcp import (invoke_mcp, validate_binding as validate_mcp_binding
 
 from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
                                 RuntimeUnknown, ScopedInference, canonical,
-                                invoke_pyats, private_directory, private_write)
+                                invoke_pyats, private_directory, private_write, sha)
 
 
 
@@ -693,7 +693,11 @@ class DockerExecutor:
                         raise RuntimeUnknown("guard_response_bound")
                 return json.loads(output)
 
-    async def run(self, payload, gate):
+    async def run(self, payload, gate, *, ha_admission=None):
+        from .protected_runtime import validate_ha_gate
+        validate_ha_gate(payload, ha_admission)
+        if ha_admission is not None and not self.ollama:
+            raise RuntimeRefused('ha_runtime_unqualified')
         from mcp.server.mcpserver import MCPServer
         from starlette.responses import JSONResponse, Response
         import uvicorn
@@ -732,9 +736,13 @@ class DockerExecutor:
             remaining = (payload["limits"]["expires_at_ms"] - int(time.time() * 1000)) / 1000
             try:
                 async with asyncio.timeout(min(remaining, payload["limits"]["tool_timeout_ms"] / 1000)):
-                    if "mcp" in self.config:
-                        return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool")
-                    return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                    async def native():
+                        if "mcp" in self.config:
+                            return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool")
+                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                    if ha_admission is not None:
+                        return await ha_admission('tool', 1, sha(payload['tool_call']), native)
+                    return await native()
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc
 
@@ -747,7 +755,7 @@ class DockerExecutor:
                                   tool_finished=lambda: broker.evidence is not None,
                                   request_adapter=local_request if self.ollama else None,
                                   response_validator=(lambda response, ordinal: _ollama.validate_response(response, ordinal, payload)) if self.ollama else None,
-                                  runner_latch=self.runner_latch)
+                                  runner_latch=self.runner_latch, ha_admission=ha_admission)
         mcp = MCPServer("Approved NetClaw operation", version="171")
 
         async def pyats_run_show_command(device_name: str, command: str, timeout: int, retries: int) -> dict:
