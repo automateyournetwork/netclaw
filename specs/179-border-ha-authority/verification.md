@@ -53,8 +53,38 @@ drivers must rerun this row in a new evidence directory. This failure is retaine
 not converted into a passing row by diagnosis.
 
 Review also found delayed model/helper and MCP handoff risks. MCP now uses the
-official SDK stream seam with a bounded synchronous atomic pipe handoff. A fresh
-guard-helper check remains under implementation;REAL qualification stays gated.
+official SDK stream seam with a bounded synchronous atomic pipe handoff. The
+trusted Docker helper now independently checks its READY-relative monotonic/wall
+budget immediately before its single nonblocking HTTP send to the unchanged
+DefenseClaw gateway. It subtracts250ms and refuses partial/blocked sends without
+retry. Integrated model/MCP/role/Ollama regression138passed;these controlled
+helper tests do not establish REAL model execution. HA mcp-call.json explicitly
+records prepared intent;its presence is not an actual native-call counter.
+
+matrix-network-02 passed all4partition rows and cleaned up normally. Its strict
+combined300ms delay row failed with admission_expired and zero added callbacks.
+Ten sequential quorum round trips plus cluster transit exceed the3s window.
+Keep this failure and safety window;separate latency-safety measurements must
+state admitted versus bounded-refusal outcomes. No300ms service-availability or
+R09 WAN-readiness claim is made.
+
+matrix-recovery-01 exercised9passing safety rows:stale receipt,three clock cases,
+unknown consensus reply,lost result,lost ACK,record capacity and actualNOSPACE.
+Its NOSPACE cleanup failed on a zero-valued memberID omitted by protobufJSON.
+The coordinator observed exactly the injected alarm,deactivated memberID0 once
+and verified GET returned no alarms. All receipts remain beside the failure.
+
+matrix-restart-retire-01 actually stopped/restarted all3owned voters and retained
+the quorum snapshot and old/new OS PIDs. Recreating node objects while retaining
+EtcdStore authentication tokens caused etcd_access_refused;the row remains failed.
+Corrected fixture source reconstructs clients as a real process restart would.
+matrix-retire-01 then passed durable retirement and old-key return refusal.
+
+Isolated Chrome156 profile preparation passes ordinary certificate validation:
+the fresh public testCA is visible in that profile's Trusted Certificates;
+matching DNS succeeds,wrong hostname returns ERR_CERT_COMMON_NAME_INVALID and
+unknownCA returns ERR_CERT_AUTHORITY_INVALID. No certificate-error flags or host
+trust-store changes. This validates client test setup,not HUD HA acceptance.
 
 The current fixture has not yet established the full partition/restart/storage/
 retirement/restore matrix. Unit tests are not substituted for those rows. REAL
@@ -63,8 +93,11 @@ No region,physical phone,other model/runtime or additional platform is qualified
 
 ## State and preservation
 
-Three owned R08 voters remain running and unpaused; no qualification Border/member
-process remains from core-03. Export before reviewed exact-owned cleanup. No
+The first3owned voters are stopped after a consistent353record export;their data,
+container identities and private network remain preserved pending final cleanup.
+No qualification Border/member process remains from those completed runs. A new
+proxy-fronted Raft fixture is being prepared with fresh keys/IDs;do not start an
+older prepared packet after its pinned source or certificate contract changes. No
 global prune,retained runtime upgrade,cloud change or device operation occurred.
 R01 pilot and R05/R06 retirement evidence remain preserved. Never rerun spent
 core directories or reuse an old activation/enrollment payload.
