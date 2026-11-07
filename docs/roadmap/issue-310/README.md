@@ -19,7 +19,8 @@ including the measured operator recovery targets. See its
 [runbook](../../../specs/178-recovery-gate/runbook.md) and
 [source-integration record](../../../specs/178-recovery-gate/source-integration.md).
 The owner requested commit/PR/merge, completed-branch cleanup, return to main and
-joint evaluation of R08. R08 implementation is not started. Versions, publication
+joint evaluation of R08. The [R08 discussion packet](R08-review.md) records the
+recommended scope and decisions to review. R08 implementation is not started. Versions, publication
 hold and retained R05/R06/original Border deadlines remain unchanged.
 
 ## R06 accepted; source integration authorized — 2026-11-06

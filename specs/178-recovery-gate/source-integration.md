@@ -27,9 +27,10 @@ actual pending-Border restart1passed, HUD529serial plus30focused, editor209passe
 for acceptance and next-stage discussion are documentation only. No native/provider
 workload is replayed merely for source integration.
 
-The clean tracked candidate must pass166specs/4historical exceptions, FastMCP/task
-adoption, all6registration reconciliation surfaces, catalog coverage and contract
-suite list/matrix. GitHub checks must pass on the final PR head before merge;
+Clean tracked candidate `de89513d` passed166specs/4historical exceptions, FastMCP/task
+adoption, all6registration reconciliation surfaces, catalog coverage and the
+36-suite/33-CI contract list/matrix. The subsequent R08 discussion packet changes
+maintainer documentation only. GitHub checks must pass on the final PR head before merge;
 private receipts and the PR retain exact outcomes. Root's ignored installed
 HumanRail pin failure remains separate from clean source verification.
 
@@ -41,7 +42,8 @@ cleanup15:14:35Z and fallback15:19:35Z; R05quiesce19:36:25Z and cleanup19:41:25Z
 Original BorderDecember1 remains. Keep the Mac awake/online for scheduled cleanup;
 never replay spent claims or equate VM stop with disk/IP removal.
 
-The owner requested evaluating R08 together after merge. The existing brief
+The owner requested evaluating R08 together after merge. See the
+[R08 discussion packet](../../docs/roadmap/issue-310/R08-review.md). The existing brief
 proposes three etcd voters, bounded control state, protected quorum transport and
 new internal cluster links, distinct from eN2N. This is review/planning only.
 Expected next free spec is179, subject to kickoff recheck; no R08 spec/branch,
