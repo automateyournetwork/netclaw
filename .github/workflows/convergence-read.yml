@@ -29,7 +29,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: byrn-baker/convergence-platform
-          ref: 40c179ad943624838d1b2e8f63b483bcd6ac342f
+          ref: b468b4de06a2179156da247ffcb71eb5ce9acf62  # v0.1.1
           path: external-service
       - uses: actions/setup-python@v5
         with:

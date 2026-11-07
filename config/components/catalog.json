@@ -22369,8 +22369,8 @@
     {
       "id": "convergence-read",
       "category": "Observability & Telemetry",
-      "title": "Convergence flow evidence",
-      "description": "Optional retained flow rankings and same-window evidence (2 read-only tools)",
+      "title": "Convergence evidence",
+      "description": "Optional retained flow rankings, same-window evidence and advisory VM Security findings (3 read-only tools)",
       "whenToChoose": "Inspect a separately operated Convergence archive; no collector or storage deployment.",
       "order": 111,
       "platforms": [],
@@ -22514,7 +22514,7 @@
       "links": [
         {
           "role": "upstream",
-          "target": "https://github.com/byrn-baker/netclaw-convergence/tree/f54bafca82f339d8573c55c53795fa05bd9dd843",
+          "target": "https://github.com/byrn-baker/convergence-platform/tree/v0.1.1",
           "unavailableReason": ""
         },
         {
@@ -22534,22 +22534,27 @@
         "reason": "Verify this component through its selected-harness registration; artifact presence alone is insufficient."
       },
       "estimate": {
-        "schemas": 2,
+        "schemas": 3,
         "method": "documented",
         "source": "mcp-servers/convergence-read-mcp/README.md",
-        "reason": "Exactly two declared read-only tools."
+        "reason": "Exactly three declared read-only tools."
       },
       "provenance": [
         {
           "source": "specs/162-convergence-read/spec.md",
           "checkedAt": "2026-10-31",
           "note": "Approved focused integration and explicit platform boundary."
+        },
+        {
+          "source": "specs/178-convergence-setup/spec.md",
+          "checkedAt": "2026-11-06",
+          "note": "VM Security tool from accepted proposal 176."
         }
       ],
       "kind": "mcp-integration",
       "access": {
         "mode": "read-only",
-        "note": "Only two fixed GET endpoints; no mutations or arbitrary queries.",
+        "note": "Only three fixed GET endpoints; no mutations or arbitrary queries.",
         "source": "mcp-servers/convergence-read-mcp/client.py"
       }
     }
@@ -29189,9 +29194,9 @@
     {
       "id": "convergence-observations",
       "title": "convergence-observations",
-      "description": "Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.",
+      "description": "Inspect retained Convergence traffic rankings, same-window flow evidence and advisory VM Security findings for a configured site. Use for top talkers, supporting flow records or VMs flagged for review; not packet capture, IDS verdicts, service deployment or case mutation.",
       "path": "workspace/skills/convergence-observations/SKILL.md",
-      "sha256": "857b17a0ae75dc2b40cc5b211ff196e0673f754eb7e5effe978e36140d75d5d5",
+      "sha256": "c6990d8796e2d24d6613fcca3ea271134a712f54298e4a058392223ffa870806",
       "components": [
         "convergence-read"
       ],
@@ -29212,6 +29217,30 @@
         "mode": "unknown",
         "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
         "source": "workspace/skills/convergence-observations/SKILL.md"
+      }
+    },
+    {
+      "id": "convergence-setup",
+      "title": "convergence-setup",
+      "description": "Set up Convergence, the separately operated network observability service, on the user's own infrastructure. Asks only for what it cannot discover, shows the plan before changing anything, then builds a local Docker trial, installs into an existing K3s cluster (Helm or Argo CD), or builds a new K3s cluster on Proxmox VE first. Verifies each layer and connects NetClaw's read-only Convergence view. Use for installing or extending Convergence; use convergence-observations to read its data.",
+      "path": "workspace/skills/convergence-setup/SKILL.md",
+      "sha256": "8f778b970d79f43853f920e3c237e71d22b7d9f3ca0893cbb6b90ed80782c99f",
+      "components": [],
+      "servers": [],
+      "availability": "supported",
+      "reason": "Installs a pinned convergence-platform release with its own procedures; changes infrastructure only after the user approves the stated plan.",
+      "links": [
+        {
+          "role": "skill",
+          "target": "workspace/skills/convergence-setup/SKILL.md",
+          "unavailableReason": ""
+        }
+      ],
+      "kind": "skill",
+      "access": {
+        "mode": "unknown",
+        "note": "A skill describes procedures. It does not enforce tool permissions or approve configuration changes. Review its linked instructions and available tools.",
+        "source": "workspace/skills/convergence-setup/SKILL.md"
       }
     }
   ],

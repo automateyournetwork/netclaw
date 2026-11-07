@@ -1,9 +1,13 @@
 # Inspect retained traffic with Convergence
 
-This optional integration connects NetClaw to a separately operated Convergence
-service. It adds two read-only tools and a traffic view: choose a ranking, select
-an address, and inspect retained records from the **same observation window**.
-NetClaw does not install a collector, storage stack, IDS or case-management API.
+This optional integration connects NetClaw to a separately operated
+[Convergence](https://github.com/byrn-baker/convergence-platform) service. It adds
+three read-only tools and a HUD view: choose a traffic ranking, select an address,
+and inspect retained records from the **same observation window**; or review
+advisory [VM Security](#vm-security) findings. The connector itself installs no
+collector, storage stack, IDS or case-management API.
+
+Don't have Convergence yet? Ask NetClaw to [set it up](#set-up-convergence-with-netclaw).
 
 Starting from a fresh Linux machine? Follow the [Ubuntu walkthrough](CONVERGENCE-LINUX.md)
 for prerequisites, an isolated synthetic demo, reader installation and a real
@@ -24,15 +28,16 @@ Proxmox and Kubernetes are not prerequisites for the demo or host path.
 
 ## Compatible service and installation
 
-The tested service contract is pinned to
-[`byrn-baker/netclaw-convergence` at `f54bafca82f339d8573c55c53795fa05bd9dd843`](https://github.com/byrn-baker/netclaw-convergence/tree/f54bafca82f339d8573c55c53795fa05bd9dd843).
-That fork contains the API; the older standalone Convergence repository does not.
-There is no assumed stable versioned API: an incompatible response is reported as
-a compatibility error instead of being rendered as evidence.
+The tested service is
+[`byrn-baker/convergence-platform` release `v0.1.1`](https://github.com/byrn-baker/convergence-platform/tree/v0.1.1).
+VM Security needs that release or later. There is no assumed stable versioned API:
+an incompatible response is reported as a compatibility error instead of being
+rendered as evidence.
 
-For a new service, follow its [Linux home-lab guide](https://github.com/byrn-baker/netclaw-convergence/blob/f54bafca82f339d8573c55c53795fa05bd9dd843/docs/convergence/home-lab.md).
+For a new service, follow its [Linux home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/home-lab.md),
+or let the [`convergence-setup` skill](#set-up-convergence-with-netclaw) do it.
 Use a separate checkout and private bundle. It shows an equipment-free Docker demo,
-then an explicit host exporter. The service's [K3s guide](https://github.com/byrn-baker/netclaw-convergence/blob/f54bafca82f339d8573c55c53795fa05bd9dd843/docs/convergence/k3s.md)
+then an explicit host exporter. The service's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/k3s.md)
 is the persistent deployment option. Deployment, retention, upgrades and backups
 remain service responsibilities. Keep demo and real observations in separate sites
 and bundles. The core service trial collects no flows unless a source is selected.
@@ -159,6 +164,48 @@ sampling/duplicate-counting limitations remain visible.
 
 Receipt age is shown separately: quiet traffic alone does not prove a broken
 collector. Observed strings are data, never instructions to change the service.
+
+## VM Security
+
+`convergence_vm_security` (no arguments) and the **VM Security** section of the HUD
+view show advisory findings for the last five minutes from a hypervisor-side
+observer: possible port scanning, possible network sweep, and contact with a
+configured protected range. Every finding is for review, never a verdict. Each
+source shows its coverage (sampling, capture drops, snapshot gaps, unobserved VMs);
+`no_patterns_observed` is not an all-clear and `insufficient_evidence` means current
+activity is unknown.
+
+The section loads only when opened. To try it without a hypervisor, prepare the
+service's Docker bundle with `--vm-security-demo` (or set `api.env.VM_SECURITY_DEMO: "1"`
+in Helm values): the view then shows a labelled **Synthetic demonstration**. A live
+source needs the service's Proxmox VE observer; see its
+[VM Security guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/vm-security.md).
+The same viewer key and site are used; there is no new setting. Guest heartbeats,
+firewall and IDS summaries stay in the service.
+
+```bash
+python3 scripts/mcp-call.py \
+  "python3 scripts/component-launch.py convergence-read" \
+  convergence_vm_security '{}'
+```
+
+## Set up Convergence with NetClaw
+
+The `convergence-setup` skill installs the service itself, from the pinned release,
+on your own infrastructure. Ask, for example:
+
+> Set up Convergence as a Docker trial on this machine, with the flow demo.
+
+> Build a three-node K3s cluster on my Proxmox server for Convergence and manage it
+> with Argo CD.
+
+NetClaw discovers what it can, asks for the rest (secrets go in private files, never
+in chat), shows the plan, and changes nothing until you approve it. It follows the
+release's own procedures (`docs/convergence/setup/` in that repository): a Docker
+trial, an existing K3s cluster with Helm or Argo CD, or a new K3s cluster on Proxmox
+VE built with the release's provisioning and Ansible tooling. Proxmox changes are
+limited to the VMID range and name prefix you approve. Without shell access it
+writes the specs and commands for you to run instead.
 
 ## Ask NetClaw to investigate
 

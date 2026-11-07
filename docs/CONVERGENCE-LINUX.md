@@ -8,7 +8,7 @@ credentials or a capture interface. The demo generates its own labeled traffic.
 There are two installations: Docker runs the external Convergence service; Node
 and Python run NetClaw/OpenClaw. They use separate checkouts and private state.
 A model account is needed only for the final chat. For a persistent service,
-use the external project's [K3s guide](https://github.com/byrn-baker/netclaw-convergence/blob/f54bafca82f339d8573c55c53795fa05bd9dd843/docs/convergence/k3s.md).
+use the external project's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/k3s.md).
 
 This is a procedure, not a declaration that every step or platform has passed.
 Read the [fresh Linux qualification record](../specs/163-convergence-linux-qualification/qualification.md)
@@ -64,28 +64,26 @@ directory on PATH in future shells if the OpenClaw installer uses it.
 
 ## 2. Prepare the separate demo service
 
-The reader's tested service contract is pinned to the maintained fork revision
-below. Its older standalone Convergence repository does not contain this API.
+The reader's tested service is the convergence-platform release below.
 Choose new checkout and bundle directories; do not reuse a production bundle.
 
 ```bash
-git clone https://github.com/byrn-baker/netclaw-convergence.git "$HOME/convergence-service"
+git clone --branch v0.1.1 https://github.com/byrn-baker/convergence-platform.git "$HOME/convergence-service"
 cd "$HOME/convergence-service"
-git checkout --detach f54bafca82f339d8573c55c53795fa05bd9dd843
 
 bundle="$HOME/.local/share/convergence/flow-demo"
-helper="workspace/skills/convergence-setup/scripts/setup.py"
-flows="workspace/skills/convergence-setup/scripts/flows.py"
+helper="setup/setup.py"
+flows="setup/flows.py"
 python3 "$helper" preflight
 python3 "$helper" prepare --output "$bundle" \
   --site demo --project convergence-demo --grafana \
-  --api-port 3080 --flows demo --flow-port 2055
+  --api-port 3080 --flows demo --flow-port 2055 --vm-security-demo
 ```
 
 The helper generates private configuration and credentials in the bundle. Choose
 unused ports if these conflict. Flow port 2055 must be free for both UDP and TCP;
 the generated trial endpoints stay on loopback. The external
-[Docker guide](https://github.com/byrn-baker/netclaw-convergence/blob/f54bafca82f339d8573c55c53795fa05bd9dd843/docs/convergence/docker.md)
+[Docker guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/docker.md)
 describes all port options and service prerequisites.
 
 Before starting, create a random API key in your password manager. Open the
@@ -103,7 +101,7 @@ configuration below. Do not use the broader operator credential from the generat
 ```bash
 python3 "$helper" run --bundle "$bundle" --action validate
 python3 "$helper" run --bundle "$bundle" --action start
-python3 workspace/skills/convergence-setup/scripts/verify.py --bundle "$bundle"
+python3 setup/verify.py --bundle "$bundle"
 python3 "$flows" demo --bundle "$bundle"
 python3 "$flows" check --bundle "$bundle"
 ```
@@ -268,12 +266,12 @@ for unauthorized, unavailable and compatibility failures; failures are not zero 
 When finished, from the service checkout run:
 
 ```bash
-python3 workspace/skills/convergence-setup/scripts/setup.py run \
+python3 setup/setup.py run \
   --bundle "$HOME/.local/share/convergence/flow-demo" --action stop
 ```
 
 This retains the bundle and data volumes. Back them up privately if keeping the
-trial. The [home-lab guide](https://github.com/byrn-baker/netclaw-convergence/blob/f54bafca82f339d8573c55c53795fa05bd9dd843/docs/convergence/home-lab.md)
+trial. The [home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/home-lab.md)
 explains the separate, explicit host-interface capture path. This synthetic
 walkthrough does not qualify physical capture, IDS, K3s, Hermes, macOS or Windows.
 The optional HUD has its own installation and access requirements; follow

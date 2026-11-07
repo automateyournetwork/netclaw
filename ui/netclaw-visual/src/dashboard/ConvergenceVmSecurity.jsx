@@ -16,6 +16,7 @@ const assessments = {
   insufficient_evidence: 'Insufficient evidence: current activity is unknown.',
 };
 const sourceKinds = { proxmox: 'Proxmox VE observer', synthetic: 'Synthetic demonstration' };
+const plural = (n, one, many = one + 's') => `${n} ${n === 1 ? one : many}`;
 
 function Source({ source }) {
   const c = source.coverage || {}, s = source.summary || {};
@@ -28,7 +29,7 @@ function Source({ source }) {
       <div><dt>Assessment</dt><dd>{assessments[s.assessment] || s.assessment}</dd></div>
     </dl>
     <ul className="convergence-vm-coverage">
-      <li>Packet metadata is sampled; counts describe the retained sample, not all traffic.</li>
+      {!array(c.limitations).some(line => /sampled/i.test(line)) && <li>Packet metadata is sampled; counts describe the retained sample, not all traffic.</li>}
       <li>Capture drops in the last interval: {unknown(c.capture_drops_recent_delta)}; events discarded: {unknown(c.events_discarded_recent_delta)}.</li>
       <li>Largest gap between snapshots: {c.max_snapshot_gap_seconds === null || c.max_snapshot_gap_seconds === undefined ? 'unknown' : `${c.max_snapshot_gap_seconds} s`}; VMs without a UUID (not analysed): {unknown(c.missing_uuid_vm_count)}.</li>
       {s.findings_truncated && <li>Only the first {array(source.findings).length} of {s.finding_count} findings are listed.</li>}
@@ -37,9 +38,9 @@ function Source({ source }) {
     {array(source.findings).length > 0 && <div className="table-scroll"><table><thead><tr><th>Pattern</th><th>VM</th><th>First / last seen</th><th>Evidence</th><th>Caveat</th></tr></thead><tbody>
       {source.findings.map(f => <tr key={f.id}>
         <td>{patterns[f.kind] || f.kind}</td>
-        <td>{f.vm_id}</td>
+        <td style={{ whiteSpace: 'nowrap' }}>{f.vm_id}</td>
         <td>{when(f.first_seen)} → {when(f.last_seen)}</td>
-        <td>{f.evidence.unique_destination_ports} ports, {f.evidence.unique_destination_ips} addresses, {f.evidence.unique_tcp_five_tuples} TCP five-tuples
+        <td>{plural(f.evidence.unique_destination_ports, 'port')}, {plural(f.evidence.unique_destination_ips, 'address', 'addresses')}, {plural(f.evidence.unique_tcp_five_tuples, 'TCP five-tuple')}
           {f.evidence.destination_ip ? `; to ${f.evidence.destination_ip}` : ''}{f.evidence.destination_port !== null ? ` port ${f.evidence.destination_port}` : ''}
           <ul>{array(f.evidence.examples).map((e, i) => <li key={i}>{e.protocol} {e.src_ip}:{e.src_port ?? '—'} → {e.dst_ip}:{e.dst_port ?? '—'} at {when(e.observed_at)}</li>)}</ul></td>
         <td>{f.caveat}</td>
