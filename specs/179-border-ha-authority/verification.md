@@ -179,3 +179,11 @@ pass. Mobile525tests and analyzer pass. Native binaries and real app journeys
 remain separate. Fresh R08 model/guard logging now pins complete non-rotating
 Docker logs; private guard ingress logs still require stopped-runner completeness
 checks. A reserved inference row is never an actual send counter.
+
+## Wire recovery follow-up (T021/T034)
+
+wire-recovery-02 on ed94560b passes topology/trust, lost result reply, lost ACK
+delivery and paused-leader/unaware-member on fresh voters (4 processes, 7 controlled
+callbacks, 0 model/native calls, worker cleanup passed). Voters exported (43 records)
+and stopped exit 0. wire-recovery-01's failure stays retained. See fixture-gate.md.
+Remaining open: T035-T041, T044-T048 (REAL, client journeys, measurements, closeout).

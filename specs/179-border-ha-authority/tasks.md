@@ -40,7 +40,7 @@ unknowns and resource fences remain across IDs and leader changes.
 - [x] T018 [US2] Implement member nonce/incarnation/monotonic receipt consumption and durable journal in federation/ha/admission.py (FR-005/006/007/009).
 - [x] T019 [US2] Bind quorum admission into actual ScopedInference and Docker/executor construction in federation/protected_runtime.py,protected_docker.py,protected_ollama.py (FR-005/006/009/023).
 - [x] T020 [US2] Bind fresh tool admission at the native effect boundary and block legacy/unqualified paths in federation/protected_service.py,service.py and scripts/lib/protected_role.py (FR-005/006/009/023).
-- [ ] T021 [US2] Run actual3voter/NCFED minority/asymmetric/threeway/delay/stale/clock/quota fault suite from labs/ha/qualify.py and tests/n2n/test_ha_integration_179.py (FR-002/005/006/007/009/013/020;SC-001/002).
+- [X] T021 [US2] Run actual3voter/NCFED minority/asymmetric/threeway/delay/stale/clock/quota fault suite from labs/ha/qualify.py and tests/n2n/test_ha_integration_179.py (FR-002/005/006/007/009/013/020;SC-001/002).
 
 ## Phase 5 — US3: Lifecycle and recovery
 
@@ -68,7 +68,7 @@ review/sent markers and original result while node or authority changes.
 
 ## Phase 7 — Fixture gate and real-runtime qualification
 
-- [ ] T034 Independently review complete fixture matrix and source gates before REAL work;record specs/179-border-ha-authority/fixture-gate.md (FR-020/021;SC-001/002).
+- [X] T034 Independently review complete fixture matrix and source gates before REAL work;record specs/179-border-ha-authority/fixture-gate.md (FR-020/021;SC-001/002).
 - [ ] T035 Freeze fresh NetClaw/OpenClaw/DefenseClaw/Ollama/nativeMCP source/image/profile/resource packet in labs/ha and private qualification manifest (FR-020/022).
 - [ ] T036 Run actual bounded guarded native workload via each Border and leader-loss recovery in labs/ha/real_runtime.py;record signed evidence/counters (FR-005/010/020/021;SC-001/002/003).
 - [ ] T037 Run all REAL model/tool admission negatives,unknown/restart/resultACK/restore cases from qualification-matrix.md;record cumulative counters and every failure in private evidence (FR-005–015/020/021;SC-001/002/003).

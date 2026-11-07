@@ -53,17 +53,23 @@ export function validateBindings(rows, plan, nodes) {
   });
 }
 
-export function verifyTls(certRaw,keyRaw,caRaw,now=Date.now()) {
-  const cert=new crypto.X509Certificate(certRaw),ca=new crypto.X509Certificate(caRaw),key=crypto.createPrivateKey(keyRaw);
-  need(ca.ca&&cert.checkIssued(ca)&&cert.verify(ca.publicKey)&&cert.checkPrivateKey(key),'tls_identity_changed');
+function verifyCertificate(certRaw,caRaw,now=Date.now()) {
+  const cert=new crypto.X509Certificate(certRaw),ca=new crypto.X509Certificate(caRaw);
+  need(ca.ca&&cert.checkIssued(ca)&&cert.verify(ca.publicKey),'tls_identity_changed');
   need(cert.checkHost('localhost')==='localhost'&&cert.checkIP('127.0.0.1')==='127.0.0.1','tls_name_changed');
   for(const item of [cert,ca])need(now>=Date.parse(item.validFrom)&&now<=Date.parse(item.validTo),'tls_expired');
+  return cert;
+}
+export function verifyTls(certRaw,keyRaw,caRaw,now=Date.now()) {
+  const cert=verifyCertificate(certRaw,caRaw,now),key=crypto.createPrivateKey(keyRaw);
+  need(cert.checkPrivateKey(key),'tls_identity_changed');
   need(key.asymmetricKeyType==='ec'&&key.asymmetricKeyDetails?.namedCurve==='prime256v1','tls_key_algorithm');
   return cert.fingerprint256;
 }
 
 async function production(context) {return import(pathToFileURL(path.join(context.source,'ui/netclaw-visual/src/hud-server/protected-server.js')).href);}
-async function loadOwned(context,prepared) {
+export function nodeIndex(name) {need(typeof name==='string'&&/^border[012]$/.test(name),'one_border_required');return Number(name.slice(-1));}
+async function loadOwned(context,prepared,selected=null) {
   const {root,plan,source}=context,directory=path.join(root,'hud-ingress');privateDirectory(directory);
   const cfg=json(path.join(directory,'ingress.json'));
   need(exact(cfg,'schema_version run_id source_sha256 node_sha256 assets_sha256 ca_sha256 endpoints')&&cfg.schema_version===1&&cfg.run_id===plan.run_id&&cfg.source_sha256===plan.source_sha256,'ingress_changed');
@@ -74,16 +80,20 @@ async function loadOwned(context,prepared) {
   for(let i=0;i<3;i++) {
     const record=cfg.endpoints[i];need(exact(record,'hud_sha256 contract_sha256 certificate_sha256 key_sha256'),'endpoint_config_changed');
     const configFile=path.join(directory,'border'+i+'.json');pinned(configFile,record.hud_sha256);
-    const config=readProtectedServerConfig(configFile),contract=strictJson(pinned(path.join(root,'contracts','border'+i+'.json'),record.contract_sha256).toString('utf8'));
+    // The coordinator's prepare/check validates every private binding. A serving
+    // process loads only its own private runtime descriptor and HTTPS key.
+    const active=selected===null||selected===i;
+    const config=active?readProtectedServerConfig(configFile):json(configFile),contract=strictJson(pinned(path.join(root,'contracts','border'+i+'.json'),record.contract_sha256).toString('utf8'));
     need(config.dist===path.join(source,'ui/netclaw-visual/dist')&&config.manifest===path.join(directory,'assets.json')&&config.manifestSha256===cfg.assets_sha256&&!config.workspace,'production_assets_changed');
-    const certificate=pinned(path.join(root,'https-pki','border'+i+'.crt'),record.certificate_sha256),key=pinned(path.join(root,'https-pki','border'+i+'.key'),record.key_sha256);
-    const ca=pinned(path.join(root,'https-pki/https-ca.crt'),cfg.ca_sha256);verifyTls(certificate,key,ca);
+    const certificate=pinned(path.join(root,'https-pki','border'+i+'.crt'),record.certificate_sha256),key=active?pinned(path.join(root,'https-pki','border'+i+'.key'),record.key_sha256):undefined;
+    const ca=pinned(path.join(root,'https-pki/https-ca.crt'),cfg.ca_sha256);
+    if(active)verifyTls(certificate,key,ca);else verifyCertificate(certificate,ca);
     const cert=hash(new crypto.X509Certificate(certificate).publicKey.export({format:'der',type:'spki'}));
     rows.push({config,contract,certificate,key,cert});
   }
   const identity=path.join(root,'voters/cluster-identity'),manifest=json(path.join(identity,'manifest.json'));
   const {verifyClusterDescriptor}=await import(pathToFileURL(path.join(source,'ui/netclaw-visual/src/shared/cluster-binding.js')).href);
-  for(const row of rows) {
+  for(const row of selected===null?rows:[rows[selected]]) {
     const node=manifest.manifest.nodes.find(n=>n.installation_id===row.config.installationId),cluster=row.config.cluster;
     need(node&&cluster,'cluster_profile_required');
     await verifyClusterDescriptor({schema_version:1,mode:'cluster',...cluster,manifest_revision:manifest.manifest.revision,node_id:node.node_id,installation_id:node.installation_id,manifest,anchor_certificate:boundedFile(path.join(identity,'root.crt'),16384,true).toString('utf8'),anchor_key_id:cluster.anchor_key_id,authority:{state:'no_quorum',leader_node_id:null,epoch:null,observed_at_ms:Date.now()}},{acceptedAnchor:cluster.anchor_key_id,origin:row.config.origin});
@@ -139,32 +149,33 @@ function bridgeUpgrade(request,socket,head,row,sockets) {
   });outbound.end();
 }
 
-export async function serve(root) {
-  const context=readContext(root),{rows,cfg,directory}=await loadOwned(context),{createProtectedServer}=await production(context);
-  writeNew(path.join(directory,'serve.claim.json'),{schema_version:1,run_id:cfg.run_id,pid:process.pid,at_ms:Date.now()});
+export async function serve(root,name) {
+  const selected=nodeIndex(name),context=readContext(root),{rows,cfg,directory}=await loadOwned(context,undefined,selected),{createProtectedServer}=await production(context);
+  const row=rows[selected],identity={schema_version:1,run_id:cfg.run_id,border:name,pid:process.pid,origin:row.config.origin,installation_id:row.config.installationId};
+  writeNew(path.join(directory,'serve-'+name+'.claim.json'),{...identity,at_ms:Date.now()});
   const listeners=[],sockets=new Set();let stopped=false;
   const stop=()=>{if(stopped)return;stopped=true;for(const server of listeners){server.close();server.closeAllConnections();}for(const socket of sockets)socket.destroy();};
   try {
-    for(const row of rows) {
+    {
       const productionServer=createProtectedServer(row.config);
       const server=https.createServer({cert:row.certificate,key:row.key,minVersion:'TLSv1.3',maxHeaderSize:16384,headersTimeout:10000,requestTimeout:30000,keepAliveTimeout:5000},(req,res)=>productionServer.emit('request',req,res));
       server.maxConnections=32;server.on('clientError',(_e,s)=>s.destroy());server.on('tlsClientError',(_e,s)=>s.destroy());server.on('upgrade',(req,socket,head)=>bridgeUpgrade(req,socket,head,row,sockets));
       listeners.push(server);server.listen(row.config.port,'127.0.0.1');await once(server,'listening');
     }
-    writeNew(path.join(directory,'listening.json'),{schema_version:1,run_id:cfg.run_id,pid:process.pid,origins:rows.map(r=>r.config.origin),at_ms:Date.now(),execution_ready:false});
+    writeNew(path.join(directory,'listening-'+name+'.json'),{...identity,at_ms:Date.now(),execution_ready:false});
     process.once('SIGTERM',stop);process.once('SIGINT',stop);
     const timer=setTimeout(stop,30*60*1000);timer.unref();
     await Promise.all(listeners.map(server=>once(server,'close')));clearTimeout(timer);
-    writeNew(path.join(directory,'stopped.json'),{schema_version:1,run_id:cfg.run_id,pid:process.pid,at_ms:Date.now()});
+    writeNew(path.join(directory,'stopped-'+name+'.json'),{...identity,at_ms:Date.now()});
   } catch(error){stop();throw error;}
 }
 
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href) {
   try {
-    need(process.argv.length===4&&['prepare','check','serve'].includes(process.argv[2]),'usage: hud_ingress.mjs prepare|check|serve ROOT');
+    need(process.argv[2]==='serve'?process.argv.length===5:process.argv.length===4&&['prepare','check'].includes(process.argv[2]),'usage: hud_ingress.mjs prepare|check ROOT; hud_ingress.mjs serve ROOT border0|border1|border2');
     const action=process.argv[2],root=process.argv[3];
     if(action==='prepare')console.log(JSON.stringify(await prepare(root)));
     else if(action==='check'){const {rows}=await loadOwned(readContext(root));console.log(JSON.stringify({configuration_valid:true,endpoints:rows.length,listener_started:false}));}
-    else await serve(root);
+    else await serve(root,process.argv[4]);
   } catch {console.error('R08 private HUD ingress refused; preserve owned configuration and inspect readiness.');process.exitCode=1;}
 }

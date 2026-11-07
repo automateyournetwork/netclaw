@@ -4,7 +4,12 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {validateBindings,validateUpgrade,verifyTls,readContext} from './hud_ingress.mjs';
+import {validateBindings,validateUpgrade,verifyTls,readContext,nodeIndex} from './hud_ingress.mjs';
+
+test('a serving process requires one explicit reviewed Border',()=>{
+  for(const [name,index] of [['border0',0],['border1',1],['border2',2]])assert.equal(nodeIndex(name),index);
+  for(const name of [undefined,null,'','all','border3','border0,border1','../border0',0])assert.throws(()=>nodeIndex(name),/one_border_required/);
+});
 
 function bindings() {
   const plan={root:'/private/owned/netclaw-r08-test',ports:{https:[41001,41002,41003],edge:[42001,42002,42003]}};

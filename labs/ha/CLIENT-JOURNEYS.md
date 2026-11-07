@@ -59,7 +59,8 @@ Before approving an operation, retain all of the following actual observations:
    operation. The first inference belongs to an original approved operation.
 
 The new `hud_ingress.mjs` serves the **production** `createProtectedServer`
-request handler and pinned Vite assets directly on three TLS listeners. There is
+request handler and pinned Vite assets in three separately owned processes, each
+with one TLS listener. There is
 no intermediate public HTTP port, synthetic page, mocked operator bridge or
 alternate authorization path. Only the exact `/mobile/ws` upgrade is bridged to
 the corresponding private edge port, preserving the original Host/Origin. All
@@ -73,18 +74,29 @@ From the frozen source, with the qualified, hash-recorded Node executable:
 ```text
 node ROOT/source/labs/ha/hud_ingress.mjs prepare ROOT
 node ROOT/source/labs/ha/hud_ingress.mjs check ROOT
-node ROOT/source/labs/ha/hud_ingress.mjs serve ROOT
+node ROOT/source/labs/ha/hud_ingress.mjs serve ROOT border0
+node ROOT/source/labs/ha/hud_ingress.mjs serve ROOT border1
+node ROOT/source/labs/ha/hud_ingress.mjs serve ROOT border2
 ```
 
 `prepare` creates fresh0700/0600 `ROOT/hud-ingress` configuration and pins;
-`check` opens no listener. `serve` exclusively claims one process, binds only the
-three reviewed loopback HTTPS ports, and records its PID/origins. It does not
+`check` opens no listener. Launch the three `serve` commands as independently
+owned processes with separate logs and PID/start-time records. Each exclusively
+claims its selected Border, reads only that Border's private runtime descriptor
+and HTTPS key, binds its one reviewed loopback HTTPS port, and records its
+PID/origin/installation. It does not
 launch Python, Docker, a provider, browser, Code or simulator. It stops its own
 listeners after30minutes or SIGTERM/SIGINT; each listener has32connections,
 16KiBheaders,30sHTTP requests,5sWSS handshakes and16MiB total per WSS connection.
 The120sWSS idle bound permits ordinary protocol heartbeats. Never remove a serve
 claim to repair uncertain startup; preserve it and inspect exact owned sockets.
-The `listening.json` receipt deliberately says `execution_ready:false`.
+The per-node `serve-borderN.claim.json`, `listening-borderN.json` and
+`stopped-borderN.json` receipts preserve independent ownership. Each listening
+receipt deliberately says `execution_ready:false`. All processes run under the
+same qualification OS account; this is process-failure isolation, not a claim
+that filesystem permissions isolate mutually hostile hosts. A selected Border
+front-door fault stops only its exact ingress PID. Observe the other two HTTPS
+listeners before and after that fault.
 
 Retain the actual process command/source hash and all three strict-TLS
 `/api/runtime` results. Match cluster/generation/manifest, separate installation
