@@ -40,3 +40,35 @@ class DeviceAuthority:
     def authorize(self, operations):
         require(operations is self.service.protected_operations, 'foreign_device_authority', 403)
         yield self.principal()
+
+
+class ClusterDeviceAuthority(DeviceAuthority):
+    """Native capability tied to a live channel and quorum-owned device key."""
+    def _current(self):
+        service, channel = self.service, self.channel
+        require(service.protected_enabled and service.protected_operations is not None,
+                'protected_operations_unavailable', 503)
+        require(channel.trusted and not channel._closed
+                and service.edge_channels.get(channel.member_id) is channel,
+                'device_channel_revoked', 403)
+        registry = getattr(service, 'ha_edge', None)
+        require(registry is not None, 'cluster_device_authority_unavailable', 503)
+        current = getattr(channel, 'ha_binding', None)
+        expected = getattr(channel, 'ha_binding', None)
+        fields = ('cluster_id', 'generation', 'member_id', 'key_fingerprint',
+                  'enrollment_generation', 'principal')
+        require(isinstance(current, dict) and isinstance(expected, dict)
+                and all(current[k] == expected.get(k) for k in fields),
+                'device_authority_changed', 403)
+        return tuple(json.dumps(current[k], sort_keys=True, separators=(',', ':')) for k in fields)
+
+    async def refresh(self):
+        import asyncio
+        current = await asyncio.to_thread(self.service.ha_edge.binding, self.channel.member_id)
+        require(current == self.channel.ha_binding, 'device_authority_changed', 403)
+        require(self._current() == self._binding, 'device_authority_changed', 403)
+        return self.principal()
+
+    def principal(self):
+        require(self._current() == self._binding, 'device_authority_changed', 403)
+        return json.loads(self._binding[-1])

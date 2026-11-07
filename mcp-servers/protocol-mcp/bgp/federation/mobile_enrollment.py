@@ -175,3 +175,56 @@ def protected_ws_request_allowed(ws, origin):
         return headers.get_all('Origin') in ([], [origin])
     except Exception:
         return False
+
+
+class ClusterMobileEnrollment(MobileEnrollment):
+    """Cluster adapter. route is an async, exactly-once leader RPC dispatcher.
+
+    descriptor() supplies the local verified discovery envelope. The QR carries
+    explicit pins and the chosen HTTPS endpoint, never an unverified trust root.
+    """
+    def __init__(self, service, *, route, descriptor, **kwargs):
+        super().__init__(service, **kwargs)
+        self.route, self.descriptor = route, descriptor
+
+    def info(self, params):
+        result = super().info(params)
+        if result['available']:
+            cluster = self.descriptor()
+            require(cluster['installation_id'] == self.installation, 'installation_changed', 409)
+            node = next(n for n in cluster['manifest']['manifest']['nodes'] if n['node_id'] == cluster['node_id'])
+            require(https_origin(result['endpoint']) == node['endpoints']['https']
+                    and node['endpoints']['wss'] == https_origin(result['endpoint']).replace('https:', 'wss:', 1) + WS_PATH,
+                    'mobile_endpoint_changed', 409)
+            result['cluster'] = cluster
+            result['mode'] = 'cluster'
+        return result
+
+    def _cluster_status(self, row):
+        return {'schema': 1, 'installation_id': self.installation,
+                'client_nonce': row['client_nonce'], 'status': row['state'],
+                'expires_ms': row.get('expires_at_ms'),
+                **({'member_id': row['member_id']} if row.get('member_id') else {})}
+
+    async def status(self, params):
+        self._binding(params, 'installation_id client_nonce')
+        uuid_field(params['client_nonce'])
+        return self._cluster_status(await self.route('edge/status', {'client_nonce': params['client_nonce']}))
+
+    async def issue(self, params):
+        self._binding(params, 'installation_id client_nonce replace_client_nonce')
+        uuid_field(params['client_nonce'])
+        readiness = self.info({'installation_id': self.installation})
+        require(readiness['available'], readiness.get('reason', 'mobile_listener_unavailable'), 503)
+        previous = await self.route('edge/status', {'client_nonce': params['client_nonce']})
+        if previous['state'] != 'absent':
+            return self._cluster_status(previous)
+        cluster = readiness['cluster']
+        issued = await self.route('edge/issue', {'node_id': cluster['node_id'],
+            'client_nonce': params['client_nonce'], 'replace_client_nonce': params['replace_client_nonce']})
+        from .protected_contract import sha256
+        pins = {k: cluster[k] for k in ('cluster_id', 'generation', 'node_id', 'anchor_key_id', 'manifest_revision')}
+        pins['manifest_sha256'] = sha256(cluster['manifest']['manifest'])
+        matrix = self.matrix_factory({**readiness['endpoint'], 'installation_id': self.installation,
+            'client_nonce': params['client_nonce'], 'cluster': pins, 'enrollment_token': issued['enrollment_token']})
+        return {**self._cluster_status(issued), 'qr_matrix': matrix}
