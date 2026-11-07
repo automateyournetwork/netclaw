@@ -11,6 +11,7 @@ from pathlib import Path
 import sys
 
 REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO))
 sys.path.insert(0, str(REPO / 'mcp-servers/protocol-mcp'))
 sys.path.insert(0, str(REPO / 'scripts/lib'))
 
@@ -36,18 +37,39 @@ def plan():
 
 def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument('command', choices=['plan', 'process-identity', 'capture', 'issue'])
+    p.add_argument('command', choices=['plan', 'process-identity', 'capture', 'issue', 'verify-restored'])
     p.add_argument('--root'); p.add_argument('--manifest-file'); p.add_argument('--new-manifest-file')
     p.add_argument('--anchor-certificate-file'); p.add_argument('--anchor-key-id')
     p.add_argument('--host-certificate-file'); p.add_argument('--host-private-key-file')
     p.add_argument('--owner'); p.add_argument('--subjects-file'); p.add_argument('--pid', type=int)
     p.add_argument('--snapshot-file'); p.add_argument('--exports-file')
+    p.add_argument('--config-file'); p.add_argument('--config-sha256'); p.add_argument('--out')
     args = p.parse_args(argv)
     try:
         if args.command == 'plan':
             result = plan()
         elif args.command == 'process-identity':
             result = process_observation(args.pid)
+        elif args.command == 'verify-restored':
+            from bgp.federation.ha.factory import load_configuration
+            from bgp.federation.ha.store import EtcdStore
+            from labs.ha.restore_verify import verify_restore
+            from ha_cluster import write_new
+            check(args.config_file and args.config_sha256 and args.manifest_file and args.snapshot_file and args.out, 'restore_inputs_required')
+            config = load_configuration({'config_file': args.config_file, 'config_sha256': args.config_sha256}, role='border')
+            anchor = read_private(config['anchor_certificate_file']).decode()
+            old = verify_manifest(c.decode(read_private(args.manifest_file)), anchor, expected_key_id=config['anchor_key_id'])
+            new = verify_manifest(c.decode(read_private(config['manifest_file'])), anchor,
+                                  expected_key_id=config['anchor_key_id'], minimum_revision=old.revision+1)
+            etcd = config['etcd']
+            store = EtcdStore(etcd['endpoints'], prefix=f'/netclaw/ha/{new.cluster_id}/{new.generation}/',
+                ca=etcd['ca_file'], certificate=etcd['certificate_file'], private_key=etcd['private_key_file'],
+                username=etcd['username'], password=read_private(etcd['password_file'], 256).decode().strip())
+            try:
+                result = verify_restore(store, c.decode(read_private(args.snapshot_file, 4*1024*1024), 4*1024*1024),
+                                        old, new, config['node_id'])
+                write_new(args.out, c.encode(result))
+            finally: store.close()
         else:
             required = ('root', 'manifest_file', 'anchor_certificate_file', 'anchor_key_id',
                         'host_certificate_file', 'host_private_key_file')

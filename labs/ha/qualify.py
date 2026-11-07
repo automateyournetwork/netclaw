@@ -163,5 +163,25 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     parser.add_argument('--fixture', type=Path, required=True)
     parser.add_argument('--evidence', type=Path, required=True)
+    parser.add_argument('--suite', choices=['core', 'matrix'], default='core')
+    parser.add_argument('--row', action='append')
+    parser.add_argument('--allow-owned-voter-restart', action='store_true')
+    parser.add_argument('--raft-proxy-image')
     args = parser.parse_args()
-    asyncio.run(core(EtcdLab(args.fixture).load(), args.evidence))
+    if args.suite == 'core':
+        if args.row or args.allow_owned_voter_restart or args.raft_proxy_image:
+            parser.error('matrix options require --suite matrix')
+        asyncio.run(core(EtcdLab(args.fixture).load(), args.evidence))
+    else:
+        from .matrix import ALL_ROWS, run
+        if not args.row or any(row not in ALL_ROWS for row in args.row) or len(set(args.row)) != len(args.row):
+            parser.error('select distinct supported matrix rows')
+        if 'retired-return' in args.row and args.row[-1] != 'retired-return':
+            parser.error('retirement must be last')
+        if 'full-restart' in args.row and not args.allow_owned_voter_restart:
+            parser.error('full-restart requires explicit --allow-owned-voter-restart')
+        if args.raft_proxy_image:
+            from .raft_topology import RaftProxyLab
+            lab = RaftProxyLab(args.fixture, args.raft_proxy_image).load()
+        else: lab = EtcdLab(args.fixture).load()
+        print(json.dumps(asyncio.run(run(lab, args.evidence, args.row)), sort_keys=True))
