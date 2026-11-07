@@ -36,7 +36,9 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
   the CI workflow) on the VM against the pinned release: isolated install, repeat install,
   viewer scope; demo and host flow evidence through the real API, store, MCP and HUD in
   Chromium; VM Security through MCP and the browser (synthetic findings in demo mode,
-  `not_configured` in host mode). Result: see below.
+  `not_configured` in host mode). Result: PASS against `v0.1.1` (`b468b4d`), demo and
+  host; earlier PASS against `v0.1.0`. The first VM run only lacked Chromium's system
+  libraries, which CI installs with `--with-deps`.
 - Catalog: `build-catalog.py --check`, `check-catalog-metadata.py`, new links
   (`check-catalog-links.py --base-ref`) PASS. `reconcile-mcp.py`: catalog, dependencies,
   docs, packages and portability PASS; `startup` lists only servers whose Python modules
