@@ -86,8 +86,8 @@ matching DNS succeeds,wrong hostname returns ERR_CERT_COMMON_NAME_INVALID and
 unknownCA returns ERR_CERT_AUTHORITY_INVALID. No certificate-error flags or host
 trust-store changes. This validates client test setup,not HUD HA acceptance.
 
-The current fixture has not yet established the full partition/restart/storage/
-retirement/restore matrix. Unit tests are not substituted for those rows. REAL
+The complete fixture gate remains open, particularly actual process and fenced
+restore evidence. Unit tests are not substituted for those rows. REAL
 OpenClaw/DefenseClaw/Ollama/nativeMCP and browser/Code/iOS qualification remain open.
 No region,physical phone,other model/runtime or additional platform is qualified.
 
@@ -95,9 +95,48 @@ No region,physical phone,other model/runtime or additional platform is qualified
 
 The first3owned voters are stopped after a consistent353record export;their data,
 container identities and private network remain preserved pending final cleanup.
-No qualification Border/member process remains from those completed runs. A new
-proxy-fronted Raft fixture is being prepared with fresh keys/IDs;do not start an
-older prepared packet after its pinned source or certificate contract changes. No
+No qualification Border/member process remains from those completed runs. The
+fresh proxy-fronted Raft fixture03 and its3proxies are now stopped after a
+consistent254record export; all process-drill workers exited and their owned
+sockets were removed. Never start the prepared fixture02 packet:
+its peer SAN contract was superseded before first start. No
 global prune,retained runtime upgrade,cloud change or device operation occurred.
 R01 pilot and R05/R06 retirement evidence remain preserved. Never rerun spent
 core directories or reuse an old activation/enrollment payload.
+
+## Actual Raft and restart follow-up
+
+matrix-raft-network-01 passes all five rows on fixture03: minority, both directed
+asymmetric cuts, three-way separation and latency safety. The first four include
+independently observed opaque Raft peer cuts as well as quorum-client/NCFED cuts.
+Measured row durations are19.985s,20.132s,12.233s and36.248s; these are whole-row
+durations, not election-only measurements. The300ms row separately records admitted
+and expired probes. It explicitly does not qualify300ms availability or R09.
+All owned connections were closed; bounded thread settlement completed.
+
+matrix-raft-recovery-02 passes two-voter loss, actualNOSPACE refusal/healing and
+full voter restart with recreated authentication clients. Original completed ACK
+and unknown reservations survive; fresh-ID bypass refuses. The restarted node
+and member objects in this matrix are not OS-process restart proof; the dedicated
+process fixture supplies that separate gate. The preceding recovery-01 invocation
+failed at import before initializing any fixture because PYTHONPATH was missing.
+Its stderr and corrected explicit import path are retained.
+
+Independent source review reproduced an expired-member-certificate admission on
+an already-open attachment. The authoritative fresh prepare/dispatch/admit gates
+now recheck validity; historical result and claim recovery remain accessible.
+The regression failed before the fix and22 related tests pass. Separate REAL
+evidence review is correcting claimed-versus-executed counters and non-settling
+unknown exports before any real profile is started.
+
+process-fixture-01 passes actual NCFED cluster mesh, three outbound iN2N member
+attachments, follower admission, SIGKILL of each elected Border and the member,
+full voter restart, changed process/incarnation identities, unchanged consumed
+journals/effect records, spent replay refusal and new-ID reservation refusal.
+It produced three controlled callbacks and zero real model/native calls. However,
+each restarted Border worker exited1 with TimeoutError during fixture shutdown:
+its listener waited before closing accepted channels. The coordinator initially
+reported overall success despite those cleanup exit codes. Keep that evidence
+qualification limit; corrected source must propagate cleanup failure and prove
+graceful shutdown separately. All exact owned worker exits/sockets and the final
+six-container stop are independently recorded. No signed REAL result is implied.

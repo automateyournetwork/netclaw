@@ -12,6 +12,12 @@ matrix-network-02 passes4partition rows;combined300ms safely exceeds3sadmission.
 matrix-recovery-01 has9safety rows and a healedNOSPACEcleanupfailure;full voter
 restart occurred but fixtureclienttoken reuse failed;retiredreturn laterpasses.
 browser-trust-prep proves profile-onlyCAtrust withhostname/unknownCAnegatives.
+FreshRaft03 passes directedpeer networkfaults and latency safety; recovery-02
+passes two-voterloss,NOSPACE/fullrestart. process-fixture-01 passes actual4process
+crash/restart/replay safety but reports three fixture shutdownTimeoutErrors;
+do not claim fullyclean until correctedshutdown is observed. Raft03's3voters and
+3proxies are stopped after254record export; current R08 runningvoters0. Dedicated
+freshold1member/newgeneration restore fixture is next, max3runningvoters atonce.
 No REALmodel/nativecall or actualHUD/Code/MobileHAacceptance has occurred. Do not replay
 spent runs. Read verification.md and qualification-matrix.md before qualification.
 
@@ -30,6 +36,6 @@ coherence/audit and present owner acceptance packet before R09. No automatic
 unknown replay or capacity-unfreeze after restore.
 
 Existing source and component versions stay unchanged. Active GAIT session:
-r08-sdd-implementation-20261107; latest progress record7ecd812b. End session
+r08-sdd-implementation-20261107; latest progress record9ccf98f8. End session
 with daily memory and gait_log. Startup pyATS/MemPalace unavailability is recorded;
 do not infer network state or repair unrelated environments.
