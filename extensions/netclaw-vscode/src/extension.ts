@@ -40,7 +40,7 @@ export async function activate(context: vscode.ExtensionContext) {
       path.join(context.globalStorageUri.fsPath, "state"),
     ),
     profiles = new Profiles(local),
-    connection = new Connection(context.secrets),
+    connection = new Connection(context.secrets, (p, c) => profiles.updateCluster(p, c)),
     assistants = new AssistantProvider(context, connection);
   const management = new Management(local, () => connection.profile?.mode === "remote-border");
   const ownerWorkflow = new OwnerWorkflow(connection, local);
@@ -129,7 +129,7 @@ export async function activate(context: vscode.ExtensionContext) {
       await connection.connect(saved);
     }
     if (connection.owner?.openLab) {
-      connection.profile = await profiles.save({ ...profile, access: "open-lab", cloudExecution: cloudExecutionMode(identity), cloudPrincipal: connection.owner.principal });
+      connection.profile = await profiles.save({ ...(connection.profile || profile), access: "open-lab", cloudExecution: cloudExecutionMode(identity), cloudPrincipal: connection.owner.principal });
     }
     refresh();
   };
@@ -198,7 +198,12 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!input) return;
       const url = cloudInputOrigin(input);
       const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Connecting to " + label }, () => discoverCloudBorder(url));
-      const p = await profiles.saveCloud(label, url, runtime.installationId, runtime);
+      let acceptedAnchor: string | undefined;
+      if (runtime.cluster) {
+        const answer = await vscode.window.showInformationMessage("Trust this cluster enrollment anchor?", {modal:true,detail:`${url}\nCluster: ${runtime.cluster.cluster_id}\nGeneration: ${runtime.cluster.generation}\nAnchor SHA-256: ${runtime.cluster.anchor_key_id}\n\nCompare this fingerprint with the operator enrollment record. This pins the signed manifest and its permitted endpoints.`}, "Trust cluster");
+        if (answer !== "Trust cluster") return; acceptedAnchor = runtime.cluster.anchor_key_id;
+      }
+      const p = await profiles.saveCloud(label, url, runtime.installationId, runtime, acceptedAnchor);
       refresh(); await connect(p); await vscode.commands.executeCommand("netclaw.openOverview"); return;
     }
     const url = await vscode.window.showInputBox({
@@ -254,9 +259,9 @@ export async function activate(context: vscode.ExtensionContext) {
       if (!previous.cloudExecution || !previous.cloudPrincipal) throw Error("Connect this profile once to record its identity and execution mode before replacing its endpoint.");
       const input = await vscode.window.showInputBox({ title: "Replacement cloud Border URL", value: previous.url, validateInput: value => { try { cloudInputOrigin(value); return undefined; } catch { return "Enter a canonical HTTPS Border origin."; } } });
       if (!input) return; const origin = cloudInputOrigin(input);
-      const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Verifying replacement Border identity" }, () => discoverCloudBorder(origin));
-      if (runtime.installationId !== previous.installationId || cloudExecutionMode(runtime) !== previous.cloudExecution || ownerCanonical(runtime.access?.principal) !== ownerCanonical(previous.cloudPrincipal)) throw Error("Replacement Border identity, execution mode or operator differs. Saved connection and references are unchanged.");
-      const answer = await vscode.window.showInformationMessage("Replace this Border's endpoint?", { modal: true, detail: `${previous.label}\nFrom: ${previous.url}\nTo: ${origin}\nInstallation: ${previous.installationId}\nExecution: ${previous.cloudExecution}\n\nKeeps this profile, original operation references and sent decisions. No operation is submitted and no session cookie is transferred.` }, "Replace endpoint");
+      const runtime = await vscode.window.withProgress({ location: vscode.ProgressLocation.Notification, title: "Verifying replacement Border identity" }, () => discoverCloudBorder(origin, previous.cluster?.pin));
+      if ((!previous.cluster && runtime.installationId !== previous.installationId) || cloudExecutionMode(runtime) !== previous.cloudExecution || ownerCanonical(runtime.access?.principal) !== ownerCanonical(previous.cloudPrincipal)) throw Error("Replacement Border identity, execution mode or operator differs. Saved connection and references are unchanged.");
+      const answer = await vscode.window.showInformationMessage("Replace this Border's endpoint?", { modal: true, detail: `${previous.label}\nFrom: ${previous.url}\nTo: ${origin}\nInstallation: ${previous.installationId} → ${runtime.installationId}\n${previous.cluster ? `Cluster: ${previous.cluster.pin.cluster_id}\nGeneration: ${previous.cluster.pin.generation}\nManifest revision: ${runtime.cluster?.manifest_revision}\n` : ""}Execution: ${previous.cloudExecution}\n\nKeeps this profile, original operation references and sent decisions. No operation is submitted and no session cookie is transferred.` }, "Replace endpoint");
       if (answer !== "Replace endpoint") return;
       if (connection.profile?.id === previous.id) connection.disconnect();
       const saved = await profiles.replaceCloudEndpoint(previous, origin, runtime);

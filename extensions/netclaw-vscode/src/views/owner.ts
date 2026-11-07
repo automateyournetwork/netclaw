@@ -1,3 +1,4 @@
+import { clusterStatus } from "../client/cluster";
 import { operationEvidence, presentOperationDocument } from "../client/evidence";
 import * as vscode from "vscode";
 import { randomUUID } from "node:crypto";
@@ -84,7 +85,7 @@ export class OwnerWorkflow implements vscode.Disposable {
   }
   async overview() {
     const b = this.scope(); await b.run(() => b.client.connect());
-    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", ...(b.client.openLab ? { access: b.client.access } : { owner: b.client.sessionState || "Sign in with an owner ticket" }), capabilities: b.client.runtime?.capabilities,
+    await this.document({ origin: b.client.base, installationId: b.client.expectedId, role: "border", ...(b.client.openLab ? { access: b.client.access } : { owner: b.client.sessionState || "Sign in with an owner ticket" }), capabilities: b.client.runtime?.capabilities, cluster: b.client.cluster?.descriptor, authority_status: clusterStatus(b.client.cluster?.descriptor),
       workflow: "Use Prepare cloud read or Recover cloud operation. Local lifecycle, legacy Chat, MCP and model controls are unavailable." }, "Cloud Border identity", b.current);
   }
   async open() {
@@ -92,8 +93,7 @@ export class OwnerWorkflow implements vscode.Disposable {
     const selected = await vscode.window.showQuickPick([
       { label: "Prepare cloud read", action: () => this.prepare() },
       { label: "Recover cloud operation", action: () => this.recover() },
-      { label: "Prepare local IPv4 + cloud IPv6", action: () => this.prepareCombined() },
-      { label: "Recover combined subnet request", action: () => this.recoverCombined() },
+      ...(!this.connection.owner?.cluster ? [{ label: "Prepare local IPv4 + cloud IPv6", action: () => this.prepareCombined() }, { label: "Recover combined subnet request", action: () => this.recoverCombined() }] : []),
       ...(!lab ? [
         { label: "Sign in to cloud Border", action: () => this.signIn() },
         { label: "Sign out of cloud Border", action: () => this.signOut() },
@@ -116,7 +116,7 @@ export class OwnerWorkflow implements vscode.Disposable {
     const fullReview = reviewText(operation);
     await this.document(fullReview, "Complete immutable cloud operation review", b.current);
     const reference = b.operations.references().find(r => r.operation_id === operation.operation_id);
-    if (operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve") ||
+    if (!b.client.canDecide(operation) || operation.state !== "review_pending" || reference?.decision_sent || !operation.allowed_actions?.includes("approve") ||
       b.client.openLab && !b.client.reviewPrincipalMatches(operation.review?.principal)) { await this.showResult(b, operation); return operation; }
     const ready = await vscode.window.showInformationMessage("The complete immutable review is open in Cloud-Border.json. Read it before reviewing a decision.", "Review decision");
     b.current();
@@ -133,9 +133,10 @@ export class OwnerWorkflow implements vscode.Disposable {
     b.current();
     const evidence = { result_interpretation: operationEvidence(operation), origin: b.client.base, installationId: b.client.expectedId, principal: operation.review?.principal,
       state: operation.state, verification: { signedResultVerified: operation.result?.verified === true, durableAcknowledgement: operation.result?.durable_ack === true, acknowledgementDeliveryPending: operation.result?.ack_delivery_pending },
+      cluster: b.client.cluster?.descriptor, authority_status: clusterStatus(b.client.cluster?.descriptor), original_result_reference: operation.result_reference, stale_review: !b.client.canDecide(operation),
       operation, next: "Recover this same operation to check status or reconcile. No preparation or approval is retried." };
     const verified = operation.result?.verified === true, acknowledged = operation.result?.durable_ack === true && operation.result?.ack_delivery_pending === false;
-    const message = `Cloud operation ${operation.operation_id}: ${String(operation.state).replaceAll("_", " ")}. ${verified ? "Receipt signature and bindings verified. Model commentary remains unverified." : "No verified result yet."} ${acknowledged ? "Delivery acknowledged." : "Delivery is not yet acknowledged."}`;
+    const message = `${operation.result_reference && !operation.result ? "Original result retained; artifact currently unavailable. " : ""}${!b.client.canDecide(operation) ? "This authority observation cannot authorize a new decision. " : ""}Cloud operation ${operation.operation_id}: ${String(operation.state).replaceAll("_", " ")}. ${verified ? "Receipt signature and bindings verified. Model commentary remains unverified." : "No verified result yet."} ${acknowledged ? "Delivery acknowledged." : "Delivery is not yet acknowledged."}`;
     void vscode.window.showInformationMessage(message, "View evidence").then(async selected => {
       if (selected !== "View evidence") return;
       try { b.current(); await this.document(evidence, "Cloud operation evidence", b.current); } catch { /* The selected connection may have changed while the message was open. */ }

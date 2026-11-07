@@ -214,3 +214,19 @@ for (const lab of [false, true]) test(`actual protected server admits only exact
   assert.equal((await f.request(route + '/parent1/cancel', 'POST', { decision: 'approve' })).status, 400);
   assert.equal(forwarded(), before);
 });
+
+test('R08 verified cluster bootstrap and exact private context survive no quorum without accepting missing audience', async t => {
+  const golden = JSON.parse(fs.readFileSync(new URL('../../../../tests/fixtures/ha-179/cluster-golden.json',import.meta.url),'utf8'));
+  const descriptor=golden.descriptors[0], origin=descriptor.manifest.manifest.nodes[0].endpoints.https, installation={installationId:descriptor.installation_id};
+  const calls=[], state={descriptor};
+  const cluster={cluster_id:descriptor.cluster_id,generation:descriptor.generation,anchor_key_id:descriptor.anchor_key_id,manifest_revision:1};
+  const server=createProtectedServer({origin,authority:new URL(origin).host,installation,cluster,access:openLabAccess(cluster.cluster_id),files:new Map()}, {client:{async call(method,params){calls.push({method,params});assert.deepEqual(params.auth_context,{access_mode:'open-lab',installation_id:installation.installationId,cluster_id:cluster.cluster_id,generation:cluster.generation});return method==='cluster.info'?state.descriptor:{revision:'fixture',members:[],capabilities:['cluster_execution_v2']};}}});
+  server.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));t.after(()=>{server.closeAllConnections();return new Promise(resolve=>server.close(resolve));});
+  const headers={Host:new URL(origin).host,Origin:origin,'X-NetClaw-Installation':installation.installationId,'X-NetClaw-Cluster-ID':cluster.cluster_id,'X-NetClaw-Cluster-Generation':cluster.generation};
+  const request=(route,extra={})=>new Promise((resolve,reject)=>{const req=http.request({hostname:'127.0.0.1',port:server.address().port,path:route,headers:{...headers,...extra}},res=>{const chunks=[];res.on('data',c=>chunks.push(c));res.on('end',()=>resolve({status:res.statusCode,value:JSON.parse(Buffer.concat(chunks))}));});req.on('error',reject);req.end();});
+  const runtime=await request('/api/runtime');assert.equal(runtime.status,200);assert.equal(runtime.value.cluster.node_id,descriptor.node_id);assert.deepEqual(runtime.value.access.principal,golden.principal);
+  assert.equal((await request('/api/hud/cluster')).status,200);
+  const before=calls.length;assert.equal((await request('/api/hud/cluster',{'X-NetClaw-Cluster-Generation':'wrong'})).status,409);assert.equal(calls.length,before);
+  state.descriptor=golden.no_quorum;assert.equal((await request('/api/runtime')).value.cluster.authority.state,'no_quorum');
+  state.descriptor=structuredClone(descriptor);state.descriptor.anchor_key_id='0'.repeat(64);assert.equal((await request('/api/runtime')).status,503);
+});

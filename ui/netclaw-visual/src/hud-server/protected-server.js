@@ -2,6 +2,7 @@ import path from 'node:path';
 import http from 'node:http';
 import crypto from 'node:crypto';
 import express from 'express';
+import { verifyClusterDescriptor } from '../shared/cluster-binding.js';
 import { boundedFile, noSymlink, loadProtectedAssets } from './protected-assets.js';
 import { strictJson, readProtectedDescriptor, createProtectedClient } from './protected-client.js';
 import { mountProtectedOperations } from './protected-operations.js';
@@ -37,8 +38,19 @@ export function readProtectedServerConfig(file) {
   if (!home.isDirectory() || home.uid !== process.getuid() || (home.mode & 0o777) !== 0o700) throw Error('invalid_home');
   const identity = privateJson(path.join(config.home, 'netclaw-hud/installation.json'));
   const profile = privateJson(path.join(config.home, 'netclaw-federation/protected-profile.json'));
-  if (!exact(identity, ['schemaVersion', 'installationId']) || identity.schemaVersion !== 1 || identity.installationId !== config.installationId || !exact(profile, ['schemaVersion', 'role', 'identity', ...('access' in profile ? ['access'] : [])]) || profile.schemaVersion !== 1 || profile.role !== 'border' || profile.identity?.installation_id !== config.installationId) throw Error('invalid_installation');
+  if (!exact(identity, ['schemaVersion', 'installationId']) || identity.schemaVersion !== 1 || identity.installationId !== config.installationId || !exact(profile, ['schemaVersion', 'role', 'identity', ...('access' in profile ? ['access'] : []), ...(profile.schemaVersion === 2 ? ['ha'] : [])]) || ![1, 2].includes(profile.schemaVersion) || profile.role !== 'border' || profile.identity?.installation_id !== config.installationId) throw Error('invalid_installation');
   if (JSON.stringify(profile.access) !== JSON.stringify(config.access)) throw Error('access_mismatch');
+  let cluster;
+  if (profile.schemaVersion === 2) {
+    if (config.access?.mode !== 'open-lab' || !exact(profile.ha, ['config_file', 'config_sha256'])) throw Error('invalid_cluster_configuration');
+    const raw = boundedFile(profile.ha.config_file, 128 * 1024, true);
+    if (crypto.createHash('sha256').update(raw).digest('hex') !== profile.ha.config_sha256) throw Error('cluster_configuration_changed');
+    const configured = strictJson(raw.toString('utf8')), marker = privateJson(path.join(config.home, 'netclaw-federation/ha-required.json'));
+    if (!exact(marker, ['schema_version', 'cluster_id', 'generation']) || marker.schema_version !== 1 || !/^[a-f0-9-]{36}$/.test(marker.cluster_id) || !/^[a-f0-9-]{36}$/.test(marker.generation) || !/^[a-f0-9]{64}$/.test(configured.anchor_key_id)) throw Error('invalid_cluster_marker');
+    const envelope = strictJson(boundedFile(configured.manifest_file, 128 * 1024, true).toString('utf8'));
+    if (envelope.manifest?.cluster_id !== marker.cluster_id || envelope.manifest?.generation !== marker.generation) throw Error('cluster_changed');
+    cluster = { cluster_id: marker.cluster_id, generation: marker.generation, anchor_key_id: configured.anchor_key_id, manifest_revision: envelope.manifest.revision };
+  }
   const installation = Object.freeze({ home: config.home, kind: config.kind, installationId: config.installationId });
   let workspace;
   if ('workspace' in config) {
@@ -47,11 +59,20 @@ export function readProtectedServerConfig(file) {
     if (new URL(workspace.upstream).port === String(config.port)) throw Error('workspace_loop');
   }
   readProtectedDescriptor(installation); // Existing private binding is required, never initialized.
-  return { ...config, ...('access' in config ? { access: openLabAccess(config.installationId) } : {}), authority: origin.host, installation, workspace, files: loadProtectedAssets({ ...config, workspace }) };
+  return { ...config, ...('access' in config ? { access: openLabAccess(cluster?.cluster_id || config.installationId) } : {}), ...(cluster ? { cluster } : {}), authority: origin.host, installation, workspace, files: loadProtectedAssets({ ...config, workspace }) };
 }
 
 export function createProtectedServer(config, { client = config.mode === 'ordinary-federation' ? createLocalEnrollmentClient(config.installation, config.daemonUrl) : createProtectedClient(config.installation) } = {}) {
   const ordinary = config.mode === 'ordinary-federation';
+  let clusterPin;
+  const clusterInfo = async () => {
+    const c = config.cluster; if (!c) return undefined;
+    const descriptor = await client.call('cluster.info', { auth_context: { access_mode: 'open-lab', installation_id: config.installation.installationId, cluster_id: c.cluster_id, generation: c.generation } });
+    const verified = await verifyClusterDescriptor(descriptor, { pin: clusterPin, acceptedAnchor: c.anchor_key_id, origin: config.origin, installationId: config.installation.installationId });
+    if (descriptor.cluster_id !== c.cluster_id || descriptor.generation !== c.generation || descriptor.manifest_revision < c.manifest_revision) throw Error('cluster_changed');
+    if (clusterPin && (verified.pin.manifest_revision < clusterPin.manifest_revision || verified.pin.manifest_revision === clusterPin.manifest_revision && verified.pin.manifest_sha256 !== clusterPin.manifest_sha256)) throw Error('stale_manifest');
+    clusterPin = verified.pin; return verified.descriptor;
+  };
   const workspaceRoute = req => remoteHudRoute(req.method, req.url, config.workspace?.features || [], ordinary);
   const remote = config.workspace ? createRemoteHud(config.workspace, config.installation) : null;
   const csp = remote ? PROTECTED_CSP.replace("style-src 'self'", "style-src 'self' 'unsafe-inline'").replace("img-src 'self' data:", "img-src 'self' data: blob:").replace("frame-src 'none'", "frame-src 'self'").replace("frame-ancestors 'none'", "frame-ancestors 'self'") : PROTECTED_CSP;
@@ -65,7 +86,7 @@ export function createProtectedServer(config, { client = config.mode === 'ordina
     if (req.path.startsWith('/api/')) {
       const id = '[A-Za-z0-9_.:-]{1,200}', pathname = req.url.split('?')[0];
       if (ordinary && (pathname.startsWith('/api/hud/operations') || pathname.startsWith('/api/hud/owner/'))) return res.status(404).json({ code: 'route_unavailable' });
-      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
+      const allowed = req.method === 'GET' && (['/api/runtime', '/api/hud/cluster', '/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/catalog', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}$`).test(pathname) || /^\/api\/hud\/mobile\/enrollment\/[a-f0-9-]{36}$/.test(pathname))
         || req.method === 'POST' && (['/api/hud/owner/session', '/api/hud/operations', '/api/hud/operations/combined', '/api/hud/mobile/enrollment'].includes(pathname) || new RegExp(`^/api/hud/operations/${id}/(?:decision|reconcile|revoke)$`).test(pathname) || new RegExp(`^/api/hud/operations/combined/${id}/cancel$`).test(pathname))
         || req.method === 'DELETE' && pathname === '/api/hud/owner/session';
       if (config.access?.mode === 'open-lab' && pathname === '/api/hud/owner/session') return res.status(404).json({ code: 'route_unavailable' });
@@ -77,9 +98,10 @@ export function createProtectedServer(config, { client = config.mode === 'ordina
   app.get('/api/runtime', async (req, res) => {
     if (req.url !== '/api/runtime') return res.status(400).json({ code: 'invalid_argument' });
     if (remote) { try { await remote.verify(); } catch { return res.status(503).json({ code: 'workspace_unavailable' }); } }
-    res.json({ ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { mobileEnrollment: { schema: 1 }, ...(ordinary ? { externalFederation: ordinaryFederationCapability } : { protectedProfile: true, protectedOperations: true, protectedProduction: true }), ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
+    let cluster; try { cluster = await clusterInfo(); } catch { return res.status(503).json({ code: 'cluster_unavailable' }); }
+    res.json({ ...(cluster ? { cluster } : {}), ...(config.access ? { access: config.access } : {}), installationId: config.installation.installationId, kind: 'openclaw', role: 'border', label: remote ? 'NetClaw Border' : 'Control-only Border', readiness: { ready: true, executionVerified: false }, capabilities: { mobileEnrollment: { schema: 1 }, ...(ordinary ? { externalFederation: ordinaryFederationCapability } : { protectedProfile: true, protectedOperations: true, protectedProduction: true }), ...(remote ? { remoteHud: { schema: 1, features: config.workspace.features } } : {}), convergence: false, attachments: Boolean(remote), modelSelection: Boolean(remote), effort: Boolean(remote), federation: true, hostedAvatar: false, writes: false } });
   });
-  if (!ordinary) mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, contentSecurityPolicy: csp, origins: [config.origin] }, client });
+  if (!ordinary) mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, cluster: config.cluster, contentSecurityPolicy: csp, origins: [config.origin] }, client });
   mountMobileEnrollment(app, { installation: config.installation, client,
     config: { enabled: config.access?.mode === 'open-lab', origins: [config.origin],
               access: ordinary ? undefined : config.access, reason: 'owner_issuance_unqualified' } });

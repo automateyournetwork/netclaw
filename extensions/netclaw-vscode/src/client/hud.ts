@@ -11,6 +11,7 @@ export type Runtime = {
   label?: string;
   role?: string;
   access?: Json;
+  cluster?: Json;
 };
 export type Conversation = {
   id?: string;

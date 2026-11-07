@@ -1,0 +1,1210 @@
+{
+  "schema_version": 1,
+  "classification": "FIXTURE",
+  "now_ms": 1794038400000,
+  "canonical_manifest_body": "{\"manifest\":{\"cluster_id\":\"27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9\",\"generation\":\"74d55755-92d4-58c3-9759-cd201f88eb25\",\"limits\":{\"admission_ms\":3000,\"clock_uncertainty_ms\":250,\"leader_lease_s\":12,\"max_members\":32,\"max_operations\":1024,\"renewal_s\":3},\"nodes\":[{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14000,\"server_name\":\"border-0.example.test\"},\"https\":\"https://border-0.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15000,\"server_name\":\"border-0.example.test\"},\"wss\":\"wss://border-0.example.test/mobile/ws\"},\"identity\":\"fixture-border-0\",\"installation_id\":\"3d7a005d-3f7a-5059-bb76-5a0dd1a15337\",\"key_id\":\"0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b\",\"node_id\":\"c9807e9a-f8a2-53df-aac7-94a77f448f27\",\"role\":\"border\"},{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\\ngynl8400Bt5J6Towsf0ythd5V2biNg==\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14001,\"server_name\":\"border-1.example.test\"},\"https\":\"https://border-1.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15001,\"server_name\":\"border-1.example.test\"},\"wss\":\"wss://border-1.example.test/mobile/ws\"},\"identity\":\"fixture-border-1\",\"installation_id\":\"b5c3d503-d693-51a1-ac2b-05e51c2f2e9b\",\"key_id\":\"c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c\",\"node_id\":\"7f4a4410-5f71-5894-b4fa-326e83fead9b\",\"role\":\"border\"},{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14002,\"server_name\":\"border-2.example.test\"},\"https\":\"https://border-2.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15002,\"server_name\":\"border-2.example.test\"},\"wss\":\"wss://border-2.example.test/mobile/ws\"},\"identity\":\"fixture-border-2\",\"installation_id\":\"dc9b41b6-d112-5053-827b-6833444d8671\",\"key_id\":\"e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8\",\"node_id\":\"d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4\",\"role\":\"border\"}],\"organization\":\"fixture-only\",\"revision\":1,\"schema_version\":1},\"schema\":\"netclaw.ncfed.cluster-manifest.v1\"}",
+  "canonical_manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6",
+  "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+  "pin": {
+    "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+    "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+    "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+    "manifest_revision": 1,
+    "manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6"
+  },
+  "principal": {
+    "issuer": "open-lab",
+    "subject": "a2c94065-3d34-5b86-9d32-79c5ee1f077b",
+    "display_name": "Unauthenticated lab operator",
+    "roles": [
+      "lab-operator"
+    ]
+  },
+  "descriptors": [
+    {
+      "schema_version": 1,
+      "mode": "cluster",
+      "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+      "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+      "manifest_revision": 1,
+      "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+      "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+      "manifest": {
+        "schema": "netclaw.ncfed.cluster-manifest.v1",
+        "manifest": {
+          "schema_version": 1,
+          "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+          "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+          "organization": "fixture-only",
+          "revision": 1,
+          "nodes": [
+            {
+              "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+              "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+              "identity": "fixture-border-0",
+              "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14000,
+                  "server_name": "border-0.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15000,
+                  "server_name": "border-0.example.test"
+                },
+                "https": "https://border-0.example.test",
+                "wss": "wss://border-0.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+              "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+              "identity": "fixture-border-1",
+              "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14001,
+                  "server_name": "border-1.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15001,
+                  "server_name": "border-1.example.test"
+                },
+                "https": "https://border-1.example.test",
+                "wss": "wss://border-1.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+              "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+              "identity": "fixture-border-2",
+              "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14002,
+                  "server_name": "border-2.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15002,
+                  "server_name": "border-2.example.test"
+                },
+                "https": "https://border-2.example.test",
+                "wss": "wss://border-2.example.test/mobile/ws"
+              }
+            }
+          ],
+          "limits": {
+            "leader_lease_s": 12,
+            "renewal_s": 3,
+            "admission_ms": 3000,
+            "clock_uncertainty_ms": 250,
+            "max_operations": 1024,
+            "max_members": 32
+          }
+        },
+        "signature": {
+          "algorithm": "ecdsa-p256-sha256",
+          "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+          "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+        }
+      },
+      "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+      "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+      "authority": {
+        "state": "leader",
+        "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "epoch": 7,
+        "observed_at_ms": 1794038400000
+      }
+    },
+    {
+      "schema_version": 1,
+      "mode": "cluster",
+      "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+      "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+      "manifest_revision": 1,
+      "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+      "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+      "manifest": {
+        "schema": "netclaw.ncfed.cluster-manifest.v1",
+        "manifest": {
+          "schema_version": 1,
+          "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+          "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+          "organization": "fixture-only",
+          "revision": 1,
+          "nodes": [
+            {
+              "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+              "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+              "identity": "fixture-border-0",
+              "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14000,
+                  "server_name": "border-0.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15000,
+                  "server_name": "border-0.example.test"
+                },
+                "https": "https://border-0.example.test",
+                "wss": "wss://border-0.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+              "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+              "identity": "fixture-border-1",
+              "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14001,
+                  "server_name": "border-1.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15001,
+                  "server_name": "border-1.example.test"
+                },
+                "https": "https://border-1.example.test",
+                "wss": "wss://border-1.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+              "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+              "identity": "fixture-border-2",
+              "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14002,
+                  "server_name": "border-2.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15002,
+                  "server_name": "border-2.example.test"
+                },
+                "https": "https://border-2.example.test",
+                "wss": "wss://border-2.example.test/mobile/ws"
+              }
+            }
+          ],
+          "limits": {
+            "leader_lease_s": 12,
+            "renewal_s": 3,
+            "admission_ms": 3000,
+            "clock_uncertainty_ms": 250,
+            "max_operations": 1024,
+            "max_members": 32
+          }
+        },
+        "signature": {
+          "algorithm": "ecdsa-p256-sha256",
+          "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+          "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+        }
+      },
+      "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+      "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+      "authority": {
+        "state": "follower",
+        "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "epoch": 7,
+        "observed_at_ms": 1794038400000
+      }
+    },
+    {
+      "schema_version": 1,
+      "mode": "cluster",
+      "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+      "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+      "manifest_revision": 1,
+      "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+      "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+      "manifest": {
+        "schema": "netclaw.ncfed.cluster-manifest.v1",
+        "manifest": {
+          "schema_version": 1,
+          "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+          "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+          "organization": "fixture-only",
+          "revision": 1,
+          "nodes": [
+            {
+              "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+              "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+              "identity": "fixture-border-0",
+              "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14000,
+                  "server_name": "border-0.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15000,
+                  "server_name": "border-0.example.test"
+                },
+                "https": "https://border-0.example.test",
+                "wss": "wss://border-0.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+              "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+              "identity": "fixture-border-1",
+              "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14001,
+                  "server_name": "border-1.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15001,
+                  "server_name": "border-1.example.test"
+                },
+                "https": "https://border-1.example.test",
+                "wss": "wss://border-1.example.test/mobile/ws"
+              }
+            },
+            {
+              "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+              "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+              "identity": "fixture-border-2",
+              "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+              "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+              "role": "border",
+              "endpoints": {
+                "cluster": {
+                  "host": "127.0.0.1",
+                  "port": 14002,
+                  "server_name": "border-2.example.test"
+                },
+                "in2n": {
+                  "host": "127.0.0.1",
+                  "port": 15002,
+                  "server_name": "border-2.example.test"
+                },
+                "https": "https://border-2.example.test",
+                "wss": "wss://border-2.example.test/mobile/ws"
+              }
+            }
+          ],
+          "limits": {
+            "leader_lease_s": 12,
+            "renewal_s": 3,
+            "admission_ms": 3000,
+            "clock_uncertainty_ms": 250,
+            "max_operations": 1024,
+            "max_members": 32
+          }
+        },
+        "signature": {
+          "algorithm": "ecdsa-p256-sha256",
+          "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+          "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+        }
+      },
+      "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+      "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+      "authority": {
+        "state": "follower",
+        "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "epoch": 7,
+        "observed_at_ms": 1794038400000
+      }
+    }
+  ],
+  "updated_descriptor": {
+    "schema_version": 1,
+    "mode": "cluster",
+    "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+    "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+    "manifest_revision": 2,
+    "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+    "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+    "manifest": {
+      "schema": "netclaw.ncfed.cluster-manifest.v1",
+      "manifest": {
+        "schema_version": 1,
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "organization": "fixture-only",
+        "revision": 2,
+        "nodes": [
+          {
+            "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+            "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+            "identity": "fixture-border-0",
+            "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14000,
+                "server_name": "border-0.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15000,
+                "server_name": "border-0.example.test"
+              },
+              "https": "https://border-0.example.test",
+              "wss": "wss://border-0.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+            "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+            "identity": "fixture-border-1",
+            "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14001,
+                "server_name": "border-1.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15001,
+                "server_name": "border-1.example.test"
+              },
+              "https": "https://border-1.example.test",
+              "wss": "wss://border-1.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+            "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+            "identity": "fixture-border-2",
+            "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14002,
+                "server_name": "border-2.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15002,
+                "server_name": "border-2.example.test"
+              },
+              "https": "https://border-2.example.test",
+              "wss": "wss://border-2.example.test/mobile/ws"
+            }
+          }
+        ],
+        "limits": {
+          "leader_lease_s": 12,
+          "renewal_s": 3,
+          "admission_ms": 3000,
+          "clock_uncertainty_ms": 250,
+          "max_operations": 1024,
+          "max_members": 32
+        }
+      },
+      "signature": {
+        "algorithm": "ecdsa-p256-sha256",
+        "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "value": "MEUCIQDeHVoa3ARF78S-Di9amOSDckgCs-34DOQKEDOzYi3ktQIgQFrjsOpkGCkp35p0AzacNeM65kTlUUsgmrrACHqouVI"
+      }
+    },
+    "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+    "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+    "authority": {
+      "state": "follower",
+      "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+      "epoch": 7,
+      "observed_at_ms": 1794038400000
+    }
+  },
+  "no_quorum": {
+    "schema_version": 1,
+    "mode": "cluster",
+    "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+    "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+    "manifest_revision": 1,
+    "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+    "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+    "manifest": {
+      "schema": "netclaw.ncfed.cluster-manifest.v1",
+      "manifest": {
+        "schema_version": 1,
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "organization": "fixture-only",
+        "revision": 1,
+        "nodes": [
+          {
+            "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+            "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+            "identity": "fixture-border-0",
+            "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14000,
+                "server_name": "border-0.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15000,
+                "server_name": "border-0.example.test"
+              },
+              "https": "https://border-0.example.test",
+              "wss": "wss://border-0.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+            "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+            "identity": "fixture-border-1",
+            "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14001,
+                "server_name": "border-1.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15001,
+                "server_name": "border-1.example.test"
+              },
+              "https": "https://border-1.example.test",
+              "wss": "wss://border-1.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+            "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+            "identity": "fixture-border-2",
+            "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14002,
+                "server_name": "border-2.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15002,
+                "server_name": "border-2.example.test"
+              },
+              "https": "https://border-2.example.test",
+              "wss": "wss://border-2.example.test/mobile/ws"
+            }
+          }
+        ],
+        "limits": {
+          "leader_lease_s": 12,
+          "renewal_s": 3,
+          "admission_ms": 3000,
+          "clock_uncertainty_ms": 250,
+          "max_operations": 1024,
+          "max_members": 32
+        }
+      },
+      "signature": {
+        "algorithm": "ecdsa-p256-sha256",
+        "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+      }
+    },
+    "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+    "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+    "authority": {
+      "state": "no_quorum",
+      "leader_node_id": null,
+      "epoch": null,
+      "observed_at_ms": 1794038400000
+    }
+  },
+  "retired": {
+    "schema_version": 1,
+    "mode": "cluster",
+    "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+    "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+    "manifest_revision": 1,
+    "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+    "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+    "manifest": {
+      "schema": "netclaw.ncfed.cluster-manifest.v1",
+      "manifest": {
+        "schema_version": 1,
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "organization": "fixture-only",
+        "revision": 1,
+        "nodes": [
+          {
+            "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+            "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+            "identity": "fixture-border-0",
+            "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14000,
+                "server_name": "border-0.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15000,
+                "server_name": "border-0.example.test"
+              },
+              "https": "https://border-0.example.test",
+              "wss": "wss://border-0.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+            "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+            "identity": "fixture-border-1",
+            "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14001,
+                "server_name": "border-1.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15001,
+                "server_name": "border-1.example.test"
+              },
+              "https": "https://border-1.example.test",
+              "wss": "wss://border-1.example.test/mobile/ws"
+            }
+          },
+          {
+            "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+            "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+            "identity": "fixture-border-2",
+            "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+            "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+            "role": "border",
+            "endpoints": {
+              "cluster": {
+                "host": "127.0.0.1",
+                "port": 14002,
+                "server_name": "border-2.example.test"
+              },
+              "in2n": {
+                "host": "127.0.0.1",
+                "port": 15002,
+                "server_name": "border-2.example.test"
+              },
+              "https": "https://border-2.example.test",
+              "wss": "wss://border-2.example.test/mobile/ws"
+            }
+          }
+        ],
+        "limits": {
+          "leader_lease_s": 12,
+          "renewal_s": 3,
+          "admission_ms": 3000,
+          "clock_uncertainty_ms": 250,
+          "max_operations": 1024,
+          "max_members": 32
+        }
+      },
+      "signature": {
+        "algorithm": "ecdsa-p256-sha256",
+        "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+      }
+    },
+    "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+    "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+    "authority": {
+      "state": "retired",
+      "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+      "epoch": 7,
+      "observed_at_ms": 1794038400000
+    }
+  },
+  "standalone": {
+    "installationId": "ef6f157e-df63-53d5-bb79-53421528bde9",
+    "kind": "openclaw",
+    "role": "border"
+  },
+  "negative_descriptors": [
+    {
+      "case": "wrong_generation",
+      "pin": {
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "manifest_revision": 1,
+        "manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6"
+      },
+      "descriptor": {
+        "schema_version": 1,
+        "mode": "cluster",
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "manifest_revision": 1,
+        "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+        "manifest": {
+          "schema": "netclaw.ncfed.cluster-manifest.v1",
+          "manifest": {
+            "schema_version": 1,
+            "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+            "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+            "organization": "fixture-only",
+            "revision": 1,
+            "nodes": [
+              {
+                "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+                "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+                "identity": "fixture-border-0",
+                "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "https": "https://border-0.example.test",
+                  "wss": "wss://border-0.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+                "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+                "identity": "fixture-border-1",
+                "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "https": "https://border-1.example.test",
+                  "wss": "wss://border-1.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+                "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+                "identity": "fixture-border-2",
+                "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "https": "https://border-2.example.test",
+                  "wss": "wss://border-2.example.test/mobile/ws"
+                }
+              }
+            ],
+            "limits": {
+              "leader_lease_s": 12,
+              "renewal_s": 3,
+              "admission_ms": 3000,
+              "clock_uncertainty_ms": 250,
+              "max_operations": 1024,
+              "max_members": 32
+            }
+          },
+          "signature": {
+            "algorithm": "ecdsa-p256-sha256",
+            "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+            "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+          }
+        },
+        "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "authority": {
+          "state": "leader",
+          "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+          "epoch": 7,
+          "observed_at_ms": 1794038400000
+        }
+      },
+      "error": "cluster_changed"
+    },
+    {
+      "case": "wrong_node",
+      "pin": {
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "manifest_revision": 1,
+        "manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6"
+      },
+      "descriptor": {
+        "schema_version": 1,
+        "mode": "cluster",
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "manifest_revision": 1,
+        "node_id": "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+        "manifest": {
+          "schema": "netclaw.ncfed.cluster-manifest.v1",
+          "manifest": {
+            "schema_version": 1,
+            "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+            "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+            "organization": "fixture-only",
+            "revision": 1,
+            "nodes": [
+              {
+                "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+                "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+                "identity": "fixture-border-0",
+                "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "https": "https://border-0.example.test",
+                  "wss": "wss://border-0.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+                "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+                "identity": "fixture-border-1",
+                "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "https": "https://border-1.example.test",
+                  "wss": "wss://border-1.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+                "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+                "identity": "fixture-border-2",
+                "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "https": "https://border-2.example.test",
+                  "wss": "wss://border-2.example.test/mobile/ws"
+                }
+              }
+            ],
+            "limits": {
+              "leader_lease_s": 12,
+              "renewal_s": 3,
+              "admission_ms": 3000,
+              "clock_uncertainty_ms": 250,
+              "max_operations": 1024,
+              "max_members": 32
+            }
+          },
+          "signature": {
+            "algorithm": "ecdsa-p256-sha256",
+            "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+            "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+          }
+        },
+        "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "authority": {
+          "state": "leader",
+          "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+          "epoch": 7,
+          "observed_at_ms": 1794038400000
+        }
+      },
+      "error": "cluster_node_changed"
+    },
+    {
+      "case": "untrusted_anchor",
+      "pin": {
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "manifest_revision": 1,
+        "manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6"
+      },
+      "descriptor": {
+        "schema_version": 1,
+        "mode": "cluster",
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "manifest_revision": 1,
+        "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+        "manifest": {
+          "schema": "netclaw.ncfed.cluster-manifest.v1",
+          "manifest": {
+            "schema_version": 1,
+            "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+            "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+            "organization": "fixture-only",
+            "revision": 1,
+            "nodes": [
+              {
+                "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+                "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+                "identity": "fixture-border-0",
+                "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "https": "https://border-0.example.test",
+                  "wss": "wss://border-0.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+                "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+                "identity": "fixture-border-1",
+                "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "https": "https://border-1.example.test",
+                  "wss": "wss://border-1.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+                "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+                "identity": "fixture-border-2",
+                "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "https": "https://border-2.example.test",
+                  "wss": "wss://border-2.example.test/mobile/ws"
+                }
+              }
+            ],
+            "limits": {
+              "leader_lease_s": 12,
+              "renewal_s": 3,
+              "admission_ms": 3000,
+              "clock_uncertainty_ms": 250,
+              "max_operations": 1024,
+              "max_members": 32
+            }
+          },
+          "signature": {
+            "algorithm": "ecdsa-p256-sha256",
+            "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+            "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+          }
+        },
+        "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+        "anchor_key_id": "0000000000000000000000000000000000000000000000000000000000000000",
+        "authority": {
+          "state": "leader",
+          "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+          "epoch": 7,
+          "observed_at_ms": 1794038400000
+        }
+      },
+      "error": "cluster_changed"
+    },
+    {
+      "case": "stale_manifest",
+      "pin": {
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "manifest_revision": 2,
+        "manifest_sha256": "4b42cf9a6c4268d2db7d05a0839f446a06aacee6654792056dde43989f95f2a6"
+      },
+      "descriptor": {
+        "schema_version": 1,
+        "mode": "cluster",
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "manifest_revision": 1,
+        "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+        "manifest": {
+          "schema": "netclaw.ncfed.cluster-manifest.v1",
+          "manifest": {
+            "schema_version": 1,
+            "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+            "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+            "organization": "fixture-only",
+            "revision": 1,
+            "nodes": [
+              {
+                "node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+                "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+                "identity": "fixture-border-0",
+                "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15000,
+                    "server_name": "border-0.example.test"
+                  },
+                  "https": "https://border-0.example.test",
+                  "wss": "wss://border-0.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "7f4a4410-5f71-5894-b4fa-326e83fead9b",
+                "installation_id": "b5c3d503-d693-51a1-ac2b-05e51c2f2e9b",
+                "identity": "fixture-border-1",
+                "key_id": "c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\ngynl8400Bt5J6Towsf0ythd5V2biNg==\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15001,
+                    "server_name": "border-1.example.test"
+                  },
+                  "https": "https://border-1.example.test",
+                  "wss": "wss://border-1.example.test/mobile/ws"
+                }
+              },
+              {
+                "node_id": "d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4",
+                "installation_id": "dc9b41b6-d112-5053-827b-6833444d8671",
+                "identity": "fixture-border-2",
+                "key_id": "e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8",
+                "certificate": "-----BEGIN CERTIFICATE-----\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\n-----END CERTIFICATE-----\n",
+                "role": "border",
+                "endpoints": {
+                  "cluster": {
+                    "host": "127.0.0.1",
+                    "port": 14002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "in2n": {
+                    "host": "127.0.0.1",
+                    "port": 15002,
+                    "server_name": "border-2.example.test"
+                  },
+                  "https": "https://border-2.example.test",
+                  "wss": "wss://border-2.example.test/mobile/ws"
+                }
+              }
+            ],
+            "limits": {
+              "leader_lease_s": 12,
+              "renewal_s": 3,
+              "admission_ms": 3000,
+              "clock_uncertainty_ms": 250,
+              "max_operations": 1024,
+              "max_members": 32
+            }
+          },
+          "signature": {
+            "algorithm": "ecdsa-p256-sha256",
+            "key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+            "value": "MEYCIQCIzQImRBFe40RV8EEmdF5O4W2SS0dhaBY31E_0ZwP98AIhAOX13dOoCw76BMTkBvE-P7EwAqv4210ev7IGar1C5vhp"
+          }
+        },
+        "anchor_certificate": "-----BEGIN CERTIFICATE-----\nMIIBQTCB6KADAgECAhQfNVDTj8YuWKD+oeQJJ+55iF9PmTAKBggqhkjOPQQDAjAh\nMR8wHQYDVQQDDBZmaXh0dXJlLWNsdXN0ZXItYW5jaG9yMB4XDTI2MDEwMTAwMDAw\nMFoXDTQwMDEwMTAwMDAwMFowITEfMB0GA1UEAwwWZml4dHVyZS1jbHVzdGVyLWFu\nY2hvcjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABO6e3as3LW/eoTMjpU+s3jsh\n/88DnBmk03XTINU6MpQT4WtO3rbQfuPQPtMU69H4HXwH+VlrHAG8rV+KPAQmWj4w\nCgYIKoZIzj0EAwIDSAAwRQIhAP4J4HvJIOPlMJC0YCkevuqyjJHTkmnl9LtzHWo+\nkqbdAiBEMpDf9KPFHTs3QTem5GGfn68h8at67OyTZGvvQpCzTQ==\n-----END CERTIFICATE-----\n",
+        "anchor_key_id": "a71efa7a3952d6342f260b643b58adb1ca7495a3b2db73c5675b264d3c5e275f",
+        "authority": {
+          "state": "leader",
+          "leader_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+          "epoch": 7,
+          "observed_at_ms": 1794038400000
+        }
+      },
+      "error": "stale_manifest"
+    }
+  ],
+  "stale_review": {
+    "principal": {
+      "issuer": "open-lab",
+      "subject": "a2c94065-3d34-5b86-9d32-79c5ee1f077b",
+      "display_name": "Unauthenticated lab operator",
+      "roles": [
+        "lab-operator"
+      ]
+    },
+    "border": {
+      "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+      "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b"
+    },
+    "cluster": {
+      "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+      "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+      "manifest_revision": 1,
+      "issuer_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+      "authority_epoch": 6
+    }
+  },
+  "unknown_operation": {
+    "operation_id": "fixture-unknown-operation",
+    "client_nonce": "fixture-original-nonce",
+    "state": "outcome_unknown",
+    "attempt_count": 1,
+    "may_have_executed": true,
+    "reconciliation_required": true,
+    "result": null,
+    "result_reference": null,
+    "review": {
+      "principal": {
+        "issuer": "open-lab",
+        "subject": "a2c94065-3d34-5b86-9d32-79c5ee1f077b",
+        "display_name": "Unauthenticated lab operator",
+        "roles": [
+          "lab-operator"
+        ]
+      },
+      "border": {
+        "installation_id": "3d7a005d-3f7a-5059-bb76-5a0dd1a15337",
+        "key_id": "0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b"
+      },
+      "cluster": {
+        "cluster_id": "27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9",
+        "generation": "74d55755-92d4-58c3-9759-cd201f88eb25",
+        "manifest_revision": 1,
+        "issuer_node_id": "c9807e9a-f8a2-53df-aac7-94a77f448f27",
+        "authority_epoch": 6
+      }
+    }
+  },
+  "canonical_manifest_value": "{\"cluster_id\":\"27afb9ea-0b6c-5b7c-bd60-bbf2ba52b8a9\",\"generation\":\"74d55755-92d4-58c3-9759-cd201f88eb25\",\"limits\":{\"admission_ms\":3000,\"clock_uncertainty_ms\":250,\"leader_lease_s\":12,\"max_members\":32,\"max_operations\":1024,\"renewal_s\":3},\"nodes\":[{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMTCB2KADAgECAhQ74Wcx6f72p34juuvaTsID93DnIjAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMDAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0wMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAE6iJ8rSEffHC5zgSwnWtd80d0KqtM+TP/D7dKH9e8vWPZ\\n5RpZhtAqtUS0gXcUkuRQtlKmpGPaFIMjQt9oC7qr5zAKBggqhkjOPQQDAgNIADBF\\nAiEAz4UX0J3VWPwwTK7TCY3zbLvIT5cHyideEcOnrceg0uUCICvFrzQTqIxSK5m3\\n1XRFrmNbWiWE/J7A6qu9BaNcYd5H\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14000,\"server_name\":\"border-0.example.test\"},\"https\":\"https://border-0.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15000,\"server_name\":\"border-0.example.test\"},\"wss\":\"wss://border-0.example.test/mobile/ws\"},\"identity\":\"fixture-border-0\",\"installation_id\":\"3d7a005d-3f7a-5059-bb76-5a0dd1a15337\",\"key_id\":\"0963f8d973c2a460cba81d7cb98011277c4db819664079cf32ab3067be40696b\",\"node_id\":\"c9807e9a-f8a2-53df-aac7-94a77f448f27\",\"role\":\"border\"},{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMjCB2KADAgECAhQJVlBvax9S2SIxwhexaS/xDUnYlzAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMTAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0xMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAEeg8KxCUA/SqFfyQQyBlS8xH91r8PAa421rMltwFB4HDY\\ngFJk7V0DDTJpPrcOXVMW8MZumT3F6NWJLToMgWuLmDAKBggqhkjOPQQDAgNJADBG\\nAiEA5mMvIbUVjYjQ+qT6W0OCNJ8kd0AcuaIQDWbB/dShV8kCIQCJto0uvGbFuJx0\\ngynl8400Bt5J6Towsf0ythd5V2biNg==\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14001,\"server_name\":\"border-1.example.test\"},\"https\":\"https://border-1.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15001,\"server_name\":\"border-1.example.test\"},\"wss\":\"wss://border-1.example.test/mobile/ws\"},\"identity\":\"fixture-border-1\",\"installation_id\":\"b5c3d503-d693-51a1-ac2b-05e51c2f2e9b\",\"key_id\":\"c6c5004b5656ff50a833ed7f1f14fc6e75b6f951119b0849a2b66e73ad65c69c\",\"node_id\":\"7f4a4410-5f71-5894-b4fa-326e83fead9b\",\"role\":\"border\"},{\"certificate\":\"-----BEGIN CERTIFICATE-----\\nMIIBMTCB2KADAgECAhRVMeq4eJ4dHa5KYy3sP0tvq4b7UjAKBggqhkjOPQQDAjAZ\\nMRcwFQYDVQQDDA5maXh0dXJlLW5vZGUtMjAeFw0yNjAxMDEwMDAwMDBaFw00MDAx\\nMDEwMDAwMDBaMBkxFzAVBgNVBAMMDmZpeHR1cmUtbm9kZS0yMFkwEwYHKoZIzj0C\\nAQYIKoZIzj0DAQcDQgAECXK6utHxNxUsSKBeEfUXq1IPl1UTe5jRnoE+z+BINCF9\\num2sYBnGomdgBtjtV9Ghlg9LsLODqWZHTv2gthLS4zAKBggqhkjOPQQDAgNIADBF\\nAiB7Hn88rWRvillBAILk72cmn65LCt3SISe0kjSZTMGgTAIhAOCg3RHyyjNxiWDZ\\n9bwmiyCCo0OzI503NVsSSwqf4ZrW\\n-----END CERTIFICATE-----\\n\",\"endpoints\":{\"cluster\":{\"host\":\"127.0.0.1\",\"port\":14002,\"server_name\":\"border-2.example.test\"},\"https\":\"https://border-2.example.test\",\"in2n\":{\"host\":\"127.0.0.1\",\"port\":15002,\"server_name\":\"border-2.example.test\"},\"wss\":\"wss://border-2.example.test/mobile/ws\"},\"identity\":\"fixture-border-2\",\"installation_id\":\"dc9b41b6-d112-5053-827b-6833444d8671\",\"key_id\":\"e8c144f1e237f169d78449a3c252e396150815166c83a556ebcafc7acbf2aae8\",\"node_id\":\"d6e4f86c-b430-5972-ac12-4e1c0bfc7ff4\",\"role\":\"border\"}],\"organization\":\"fixture-only\",\"revision\":1,\"schema_version\":1}",
+  "canonical_body_sha256": "1f2adaaf01bd5656fc023004b8bee16bb85503996eea26987ec0cfe7638e86de"
+}
