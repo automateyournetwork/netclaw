@@ -63,3 +63,14 @@ codes and monotonic timestamps are written privately. Every negative correlates
 a new receiver event with that attempt; old events cannot qualify a later test.
 Observer/storage failures latch a fixture failure. The production TLS module is
 not edited, and the observer is restored when the worker closes.
+
+The first actual wire fixture (`wire-recovery-01`) stopped during topology checks,
+before any operation/effect: production iN2N sent a refusal and closed before the
+client could receive its JSON-RPC error. All four workers exited0 and the failure
+is retained. The follow-up observer wraps only the unchanged Border hello handler,
+records its exact exception code with the attempted proof and parameter hashes,
+and rethrows it. A client close can qualify only with a new matching receiver
+`member_not_enrolled` or `attachment_proof_mismatch` event for that exact case;
+`no_quorum`, stale evidence, other errors and observer failures cannot qualify.
+Production authenticated member catalog reads provide before/after iN2N health.
+The observer is qualification instrumentation and adds no product trust path.

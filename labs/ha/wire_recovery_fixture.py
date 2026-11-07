@@ -32,7 +32,7 @@ EXTRA = {
     'owner-prepare': {'client_nonce'}, 'owner-decide': {'operation_id','revision','review_digest'},
     'owner-reconcile': {'operation_id'}, 'member-row': {'operation_id'},
     'arm-loss': {'operation_id','fault'}, 'capture': {'context','via_node_id'},
-    'consume-held': set(), 'tls-rejections':set(), 'wire-role': {'via_node_id','method'},
+    'consume-held': set(), 'tls-rejections':set(), 'in2n-rejections':set(), 'member-health':set(), 'wire-role': {'via_node_id','method'},
 }
 MEMBER = {'member-row','arm-loss','capture','consume-held','wire-role'}
 MUTATIONS = base.MUTATIONS | {'owner-prepare','owner-decide','owner-reconcile','arm-loss','capture','consume-held','wire-role'}
@@ -83,8 +83,8 @@ async def control(config,method,params=None):
 class Worker(base.Worker):
     def __init__(self,config):
         super().__init__(config)
-        self.operations=None;self.loss=None;self.held=[];self.proof_observations=[];self.tls_context_original=None;self.tls_audit_failed=False
-        for name in ('audit','wire-loss','tls-rejections'):
+        self.operations=None;self.loss=None;self.held=[];self.proof_observations=[];self.tls_context_original=None;self.tls_audit_failed=False;self.in2n_init_original=None;self.in2n_audit_failed=False
+        for name in ('audit','wire-loss','tls-rejections','in2n-rejections'):
             (self.home/name).mkdir(mode=0o700,exist_ok=True);owned_directory(self.home/name)
 
     def audit(self,event,record):
@@ -107,6 +107,10 @@ class Worker(base.Worker):
             self.tls_context_original=exporter_tls._context
             exporter_tls._context=audited_tls_context(self.tls_context_original,self.home/'tls-rejections',
                 lambda:setattr(self,'tls_audit_failed',True))
+            from bgp.federation.ha.internal import AttachmentChannel
+            self.in2n_init_original=AttachmentChannel.__init__
+            AttachmentChannel.__init__=audited_attachment_init(self.in2n_init_original,self.home/'in2n-rejections',
+                lambda:setattr(self,'in2n_audit_failed',True))
         await super().start()
         if self.config['role']=='border':
             from bgp.federation.ha.border import ClusterBorderOperations
@@ -185,6 +189,14 @@ class Worker(base.Worker):
         if method=='tls-rejections':
             need(not self.tls_audit_failed,'tls_observer_failed')
             return [decode(read_private(p)) for p in sorted((self.home/'tls-rejections').glob('*.json'))]
+        if method=='in2n-rejections':
+            need(not self.in2n_audit_failed,'in2n_observer_failed')
+            return [decode(read_private(p)) for p in sorted((self.home/'in2n-rejections').glob('*.json'))]
+        if method=='member-health':
+            value=await self.operations._send(self.member['binding'],'execution/catalog',{})
+            need(value['member']==self.member['binding'],'member_health_binding_changed')
+            return {'member':value['member'],'catalog_sha256':digest(value),'node_id':self.node.node_id,
+                    'observed_monotonic_ns':time.monotonic_ns(),'authenticated_catalog_response':True}
         if method.startswith('owner-'):
             context={'access_mode':'open-lab','installation_id':self.operations.identity['installation_id'],**self.manifest.audience}
             if method=='owner-prepare':
@@ -275,6 +287,9 @@ class Worker(base.Worker):
         if self.tls_context_original is not None:
             from bgp.federation import exporter_tls
             exporter_tls._context=self.tls_context_original
+        if self.in2n_init_original is not None:
+            from bgp.federation.ha.internal import AttachmentChannel
+            AttachmentChannel.__init__=self.in2n_init_original
 
 
 async def worker_main(config_file):
@@ -513,12 +528,55 @@ async def bad_hello(manifest,endpoint,ca,binding,key,*,fault,old_proof=None):
         try:
             await channel.call('in2n/hello',dict(params,member=binding,proof=sent),timeout=4)
             raise AssertionError('untrusted_hello_accepted')
-        except RpcError as exc:
-            return {'fault':fault,'receiver_refused':True,'code':exc.code,'message':exc.message,
-                'proof_sha256':digest(sent),'tls_bound_transcript_sha256':digest(expected)}
+        except (RpcError,ConnectionError) as exc:
+            # The production receiver can close after sending its refusal. Its
+            # exact observed auth error below is authoritative, not this closure.
+            if isinstance(exc,ConnectionRefusedError):raise
+            return {'fault':fault,'client_observation':type(exc).__name__,
+                'client_code':getattr(exc,'code',None),'proof_sha256':digest(sent),
+                'params_sha256':digest(dict(params,member=binding,proof=sent)),
+                'tls_bound_transcript_sha256':digest(expected)}
     finally:
         if channel:await channel.close()
         else:writer.close();await writer.wait_closed()
+
+
+HELLO_REFUSALS={'not-enrolled':'member_not_enrolled','wrong-role':'attachment_proof_mismatch',
+                'replay':'attachment_proof_mismatch'}
+
+
+def audited_attachment_init(original,directory,on_error):
+    """Observe the exact production hello exception; always rethrow unchanged."""
+    def initialize(channel,*args,**options):
+        handlers=options.get('handlers',{})
+        if options.get('is_border_side') and 'in2n/hello' in handlers:
+            hello=handlers['in2n/hello']
+            async def observed(ch,params):
+                try:return await hello(ch,params)
+                except Exception as exc:
+                    try:
+                        rows=list(directory.iterdir());need(len(rows)<64,'in2n_observation_capacity')
+                        private(directory/f'{len(rows):03d}.json',{'class':'FIXTURE','method':'in2n/hello',
+                            'params_sha256':digest(params),'proof_sha256':digest(params.get('proof')),
+                            'error_code':getattr(exc,'code',None),'error_type':type(exc).__name__,
+                            'trusted':ch.trusted,'tls_profile':ch.writer.get_extra_info('tls_profile'),
+                            'observed_monotonic_ns':time.monotonic_ns()})
+                    except BaseException:on_error();raise
+                    raise
+            options=dict(options,handlers=dict(handlers,**{'in2n/hello':observed}))
+        original(channel,*args,**options)
+    return initialize
+
+
+def verify_hello_rejection(before,after,attempt):
+    need(after[:len(before)]==before,'receiver_in2n_observation_changed')
+    expected=HELLO_REFUSALS[attempt['fault']]
+    matched=[row for row in after[len(before):] if row['method']=='in2n/hello'
+        and row['params_sha256']==attempt['params_sha256'] and row['proof_sha256']==attempt['proof_sha256']
+        and row['error_code']==expected and row['trusted'] is False
+        and row['tls_profile']=='in2n-tls-exporter-v1']
+    need(matched,'receiver_hello_rejection_not_observed')
+    return matched
 
 
 AUTH_TLS_ALERTS=frozenset({'TLSV1_ALERT_UNKNOWN_CA','TLSV1_ALERT_ACCESS_DENIED',
@@ -665,6 +723,7 @@ async def topology_row(fixture):
     for node in fixture.manifest.nodes:
         controls.append(dict(await positive_cluster(fixture,node),phase='before'))
         target=next(name for name,record in fixture.records.items() if record.get('node_id')==node['node_id'])
+        controls.append(dict(await fixture.call(target,'member-health'),surface='in2n-member',phase='before'))
         for role,binding,certificate,key,certificate_file,key_file in identities:
             before=await fixture.call(target,'tls-rejections')
             rejected=await rejected_cluster_tls(node['endpoints']['cluster'],config['transport_ca'],certificate_file,key_file)
@@ -673,17 +732,27 @@ async def topology_row(fixture):
             rows.append({'surface':'cluster-mtls','role':role,'node_id':node['node_id'],
                 'receiver_refused':True,'receiver_verification':proofs,**rejected})
             if role!='member':
+                before=await fixture.call(target,'in2n-rejections')
                 result=await bad_hello(fixture.manifest,node['endpoints']['in2n'],config['transport_ca'],binding,key,fault='not-enrolled')
-                rows.append({'surface':'in2n-membership','role':role,'node_id':node['node_id'],**result})
+                after=await fixture.call(target,'in2n-rejections')
+                proofs=verify_hello_rejection(before,after,result)
+                rows.append({'surface':'in2n-membership','role':role,'node_id':node['node_id'],
+                    'receiver_refused':True,'receiver_verification':proofs,**result})
         for method in ('n2n/cluster/status','n2n/tools/call','execution/admin'):
             result=await fixture.call('member','wire-role',{'via_node_id':node['node_id'],'method':method})
             rows.append({'surface':'in2n-method-role',**result})
         controls.append(dict(await positive_cluster(fixture,node),phase='after'))
+        controls.append(dict(await fixture.call(target,'member-health'),surface='in2n-member',phase='after'))
     selected=fixture.manifest.nodes[0]['endpoints']['in2n'];role,binding,certificate,key,certificate_file,key_file=identities[0]
+    target=next(name for name,record in fixture.records.items() if record.get('node_id')==fixture.manifest.nodes[0]['node_id'])
     for fault in ('wrong-role','replay'):
+        before=await fixture.call(target,'in2n-rejections')
         prior=await bad_hello(fixture.manifest,selected,config['transport_ca'],binding,key,fault='capture') if fault=='replay' else None
         result=await bad_hello(fixture.manifest,selected,config['transport_ca'],binding,key,fault=fault,old_proof=prior)
-        rows.append({'surface':'in2n-transcript',**result})
+        after=await fixture.call(target,'in2n-rejections')
+        proofs=verify_hello_rejection(before,after,result)
+        rows.append({'surface':'in2n-transcript','receiver_refused':True,'receiver_verification':proofs,**result})
+    controls.append(dict(await fixture.call(target,'member-health'),surface='in2n-transcript',phase='after'))
     for index,port in enumerate(fixture.lab.document['ports']):
         controls.append(dict(await positive_etcd(fixture,index,port),phase='before'))
         for role,_,_,_,certificate_file,key_file in identities:

@@ -235,3 +235,67 @@ def test_tls_observer_storage_failure_is_latched_and_never_qualifies(tmp_path,mo
     monkeypatch.setattr(fixture,'private',failed)
     with pytest.raises(OSError):ctx.callback(None,leaf,18,0,False)
     assert errors==[True] and not list(tmp_path.iterdir())
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('fault,code',[('not-enrolled','member_not_enrolled'),('wrong-role','attachment_proof_mismatch'),('replay','attachment_proof_mismatch')])
+async def test_hello_observer_preserves_exact_production_refusal_and_proof(fault,code,tmp_path):
+    from bgp.federation.ha.config import HAError
+    tmp_path.chmod(0o700);errors=[];failure=HAError(code)
+    async def hello(channel,params):raise failure
+    def initialize(channel,*args,**options):channel.handlers=options['handlers']
+    channel=SimpleNamespace(trusted=False,writer=SimpleNamespace(get_extra_info=lambda key:'in2n-tls-exporter-v1'))
+    observed=fixture.audited_attachment_init(initialize,tmp_path,lambda:errors.append(True))
+    observed(channel,is_border_side=True,handlers={'in2n/hello':hello})
+    params={'proof':{'original':'proof'},'member':{'original':'binding'}}
+    with pytest.raises(HAError) as raised:await channel.handlers['in2n/hello'](channel,params)
+    assert raised.value is failure and errors==[]
+    rows=[fixture.decode(fixture.read_private(path)) for path in sorted(tmp_path.iterdir())]
+    attempt={'fault':fault,'params_sha256':fixture.digest(params),'proof_sha256':fixture.digest(params['proof'])}
+    assert fixture.verify_hello_rejection([],rows,attempt)==rows
+    with pytest.raises(ValueError,match='receiver_hello_rejection_not_observed'):
+        fixture.verify_hello_rejection(rows,rows,attempt)
+    with pytest.raises(ValueError,match='receiver_hello_rejection_not_observed'):
+        fixture.verify_hello_rejection([],rows,dict(attempt,proof_sha256='f'*64))
+
+
+@pytest.mark.asyncio
+async def test_hello_unavailability_is_not_authentication_refusal(tmp_path):
+    from bgp.federation.ha.config import HAError
+    tmp_path.chmod(0o700)
+    async def hello(channel,params):raise HAError('no_quorum')
+    def initialize(channel,*args,**options):channel.handlers=options['handlers']
+    channel=SimpleNamespace(trusted=False,writer=SimpleNamespace(get_extra_info=lambda key:'in2n-tls-exporter-v1'))
+    fixture.audited_attachment_init(initialize,tmp_path,lambda:None)(channel,is_border_side=True,handlers={'in2n/hello':hello})
+    params={'proof':{'one':'proof'}}
+    with pytest.raises(HAError):await channel.handlers['in2n/hello'](channel,params)
+    rows=[fixture.decode(fixture.read_private(path)) for path in sorted(tmp_path.iterdir())]
+    with pytest.raises(ValueError,match='receiver_hello_rejection_not_observed'):
+        fixture.verify_hello_rejection([],rows,{'fault':'not-enrolled','params_sha256':fixture.digest(params),
+                                              'proof_sha256':fixture.digest(params['proof'])})
+
+
+@pytest.mark.asyncio
+async def test_successful_hello_and_non_border_constructor_are_unchanged(tmp_path):
+    tmp_path.chmod(0o700);errors=[]
+    async def hello(channel,params):return params
+    def initialize(channel,*args,**options):channel.handlers=options['handlers']
+    observed=fixture.audited_attachment_init(initialize,tmp_path,lambda:errors.append(True))
+    border=SimpleNamespace();observed(border,is_border_side=True,handlers={'in2n/hello':hello})
+    assert await border.handlers['in2n/hello'](border,{'accepted':True})=={'accepted':True}
+    member=SimpleNamespace();observed(member,is_border_side=False,handlers={'in2n/hello':hello})
+    assert member.handlers['in2n/hello'] is hello and errors==[] and not list(tmp_path.iterdir())
+
+
+@pytest.mark.asyncio
+async def test_hello_observer_storage_failure_latches_fixture_failure(tmp_path,monkeypatch):
+    from bgp.federation.ha.config import HAError
+    tmp_path.chmod(0o700);errors=[]
+    async def hello(channel,params):raise HAError('member_not_enrolled')
+    def initialize(channel,*args,**options):channel.handlers=options['handlers']
+    channel=SimpleNamespace(trusted=False,writer=SimpleNamespace(get_extra_info=lambda key:'in2n-tls-exporter-v1'))
+    fixture.audited_attachment_init(initialize,tmp_path,lambda:errors.append(True))(channel,is_border_side=True,handlers={'in2n/hello':hello})
+    def failed(*args):raise OSError('controlled disk failure')
+    monkeypatch.setattr(fixture,'private',failed)
+    with pytest.raises(OSError):await channel.handlers['in2n/hello'](channel,{'proof':{}})
+    assert errors==[True]
