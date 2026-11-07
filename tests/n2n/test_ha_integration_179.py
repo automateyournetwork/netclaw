@@ -326,3 +326,29 @@ def test_request_timing_instrumentation_preserves_results_without_recording_secr
     assert result['token'] == 'never-record-token'
     assert timings[0]['revision'] == '9' and timings[0]['elapsed_ms'] >= 0
     assert 'never-record' not in json.dumps(timings)
+
+
+def test_full_restart_reconstructs_all_etcd_clients_and_preserves_proxy_routes():
+    from labs.ha.matrix import MatrixHarness
+    import types
+    class Client:
+        def __init__(self, token):
+            self._token, self.closed, self.endpoints = token, False, ()
+        def close(self): self.closed = True
+        def _request(self, *args, **kwargs): return {}
+    old = [Client('stale-token-' + str(i)) for i in range(3)]
+    created = []
+    class Lab:
+        def store(self, index):
+            assert all(client.closed for client in old)
+            result = Client(None); created.append((index, result)); return result
+    harness = object.__new__(MatrixHarness)
+    harness.stores, harness.lab, harness.http_timings = old, Lab(), []
+    harness.manifest = types.SimpleNamespace(nodes=[{'node_id': str(i)} for i in range(3)])
+    harness.quorum = {(source, target): types.SimpleNamespace(port=20000 + source*3 + target)
+                      for source in range(3) for target in range(3)}
+    harness.reopen_stores()
+    assert [index for index, _ in created] == [0, 1, 2]
+    assert all(client._token is None and not client.closed for client in harness.stores)
+    assert all(client not in old for client in harness.stores)
+    assert harness.stores[1].endpoints == ('https://127.0.0.1:20003', 'https://127.0.0.1:20004', 'https://127.0.0.1:20005')

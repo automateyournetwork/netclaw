@@ -69,6 +69,22 @@ class MatrixHarness:
             ca_file=str(self.transport / 'transport-ca.crt'),
             cert_file=str(self.transport / f'node{index}.crt'), key_file=str(self.transport / f'node{index}.key'))
 
+    def reopen_stores(self):
+        """A full process restart cannot retain old etcd authentication tokens.
+
+        Call only after renewal/dial tasks and bounded old requests have settled.
+        New TLS clients authenticate afresh and keep exactly the same reviewed
+        proxy endpoints. No request or mutation from an old client is replayed.
+        """
+        old, self.stores = self.stores, []
+        for store in old:
+            store.close()
+        for source in range(3):
+            store = self.lab.store(source)
+            store.endpoints = tuple(f'https://127.0.0.1:{self.quorum[source, target].port}' for target in range(3))
+            trace_store_requests(store, self.manifest.nodes[source]['node_id'], self.http_timings)
+            self.stores.append(store)
+
     async def start_node(self, index):
         token = SOURCE.set(self.manifest.nodes[index]['node_id'])
         try: await self.nodes[index].start()
@@ -585,9 +601,12 @@ class MatrixHarness:
         private(snapshot_file, c.encode(snapshot))
         incarnations = [n.authority.incarnation for n in self.nodes]
         await asyncio.gather(*(n.close() for n in self.nodes))
-        # Pending bounded store calls finish before actual voter shutdown.
-        await asyncio.sleep(7)
+        # Pending bounded authentication+read calls settle before client teardown.
+        await asyncio.sleep(13)
         observed = await owned_call(OwnedVoterRestart(self.lab, self.evidence.path, snapshot_file).execute)
+        self.reopen_stores()
+        observed['etcd_clients_recreated'] = 3
+        observed['prior_authentication_tokens_reused'] = False
         async def quorum_back():
             return (await asyncio.to_thread(self.stores[0].read, 'control'))[0] is not None
         await eventually(quorum_back, 40)

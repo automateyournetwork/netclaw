@@ -100,7 +100,10 @@ relays. Never use global prune. Export before cleanup and preserve unknown start
 The fixture restart path exports a linearizable snapshot before the first stop,
 checks exact owned voters and image labels, stops all three, observes their stopped
 state, starts those same IDs once, and checks their running state. It reconstructs
-actual NCFED services and reopens durable member journals, comparing completed,
+all three private etcd clients after bounded old requests settle, requiring fresh
+authentication without replaying an old request; previous tokens are not retained.
+It preserves the exact reviewed proxy bindings, reconstructs actual NCFED services
+and reopens durable member journals, comparing completed,
 unknown, claim, reservation and ACK data. It rejects a new operation ID against
 unknown member capacity. This is actual voter process restart plus actual service
 and journal recreation. The output explicitly sets Border/member **OS-process**
