@@ -556,7 +556,7 @@ class DockerExecutor:
         provider_args = ['--provider', 'ollama'] if self.ollama else []
         await self.command("create", "--name", name, "--network", guard_network, "--read-only",
              "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
              "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
              "--mount", f"type=bind,src={home},dst=/guard",
              "--mount", f"type=bind,src={config['env_file']},dst=/guard/guard.env,readonly",
@@ -613,7 +613,7 @@ class DockerExecutor:
         except _ollama.OllamaRefused as exc:
             raise RuntimeRefused(exc.code) from None
 
-    async def command(self, *args, timeout=60, input_data=None):
+    async def command(self, *args, timeout=60, input_data=None, before_input=None):
         if _public_bytes(self.docker_config / "config.json") != b"{}":
             raise RuntimeRefused("native_docker_configuration_changed")
         if _docker_host(self.config["docker_host"]) != self.docker_host:
@@ -636,6 +636,7 @@ class DockerExecutor:
                 if input_data is not None:
                     if not isinstance(input_data, bytes) or len(input_data) > 1048576:
                         raise RuntimeRefused('docker_input_bound')
+                    if before_input is not None: before_input()
                     process.stdin.write(input_data)
                     await process.stdin.drain()
                     process.stdin.close()
@@ -674,9 +675,15 @@ class DockerExecutor:
             remaining = (payload['limits']['expires_at_ms']-int(time.time()*1000))/1000
             deadline = min(remaining, payload['limits']['inference_timeout_ms']/1000)
             if deadline <= 0: raise RuntimeRefused('approval_expired')
+            handoff = None
+            if 'cluster' in payload:
+                from .ha.effect import scope
+                permit = scope('model')
+                handoff = lambda: permit.handoff('model')
             raw = await self.command('exec', '--interactive', '--user', str(self.ollama['guard_uid']),
                 self.ollama['model_container_id'], 'python3', '-c', _OLLAMA_GUARD_REQUEST,
-                input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline)
+                input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline,
+                **({'before_input': handoff} if handoff is not None else {}))
             return strict_inference_json(raw)
         guard_headers = {"X-DC-Auth": self.guard_token, "Content-Type": "application/json"}
         async with httpx.AsyncClient(trust_env=False, follow_redirects=False,
@@ -712,7 +719,7 @@ class DockerExecutor:
         agent_files = private_directory(operation_root / "agent")
         token = secrets.token_urlsafe(32)
         suffix = hashlib.sha256(operation_id.encode()).hexdigest()[:20]
-        prefix = ("netclaw-r05-" if self.ollama else "netclaw-r02-") + suffix
+        prefix = ("netclaw-r08-" if 'cluster' in payload else "netclaw-r05-" if self.ollama else "netclaw-r02-") + suffix
         network, relay, agent = prefix + "-net", prefix + "-relay", prefix + "-agent"
         harness = payload["model_profile"]["runtime_kind"]
         if harness == "openclaw":
@@ -738,10 +745,10 @@ class DockerExecutor:
                 async with asyncio.timeout(min(remaining, payload["limits"]["tool_timeout_ms"] / 1000)):
                     async def native():
                         if "mcp" in self.config:
-                            return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool")
+                            return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool",
+                                **({'ha_required': True, 'ha_admission': lambda call:
+                                    ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
                         return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
-                    if ha_admission is not None:
-                        return await ha_admission('tool', 1, sha(payload['tool_call']), native)
                     return await native()
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc
@@ -865,11 +872,11 @@ class DockerExecutor:
                 subnet = str(ipaddress.IPv4Network((int(self.pool.network_address) + offset * 16, 28)))
                 await self.command("network", "create", "--internal", "--opt",
                      "com.docker.network.bridge.gateway_mode_ipv4=isolated", "--subnet", subnet,
-                     "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171", network)
+                     "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171", network)
                 # Relay alone has a second network to the fixed host endpoint.
                 await self.command("create", "--name", relay, "--network", relay_network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      *relay_args, self.config["relay_image"])
                 if not unix_relay:
                     await self.command("network", "connect", "--alias", relay, network, relay)
@@ -888,7 +895,7 @@ class DockerExecutor:
                 await self.command("create", "--name", agent, "--network", network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
                      "--pids-limit", "256", "--memory", "1536m" if self.ollama else "4g",
-                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      "--tmpfs", f"/home/agent:rw,noexec,nosuid,size=128m,uid={os.getuid()},gid={os.getgid()},mode=700",
                      "--tmpfs", "/tmp:rw,noexec,nosuid,size=128m", "--mount",
                      f"type=bind,src={agent_files},dst=/run/netclaw,readonly",

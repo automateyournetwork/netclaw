@@ -61,6 +61,10 @@ class ClusterBorderOperations:
         await self._authenticate(action, params, self.node.node_id)
         try:
             result = await self.node.route('n2n/cluster/forward', {'action': action, 'params': params})
+            if isinstance(result, dict) and isinstance(result.get('authority'), dict):
+                # The observation names the client-facing ingress. Original
+                # review/result issuer remains immutable inside its envelope.
+                result = dict(result, authority=dict(result['authority'], served_by=self.node.node_id))
             if isinstance(result, dict) and 'operation_id' in result:
                 self._retain(result)
             return result
@@ -153,6 +157,8 @@ class ClusterBorderOperations:
     def _dto(self, row):
         uncertain = row['state'] in ('dispatch_claimed', 'outcome_unknown')
         approval = row['approval']
+        review_current = (row['review']['cluster']['issuer_node_id'] == self.node.node_id
+                          and row['review']['cluster']['authority_epoch'] == self.node.authority.epoch)
         return {'operation_id': row['operation_id'], 'client_nonce': row['client_nonce'],
             'revision': row['revision'], 'state': row['state'], 'review_digest': row['review_digest'], 'review': row['review'],
             'approval': None if approval is None else {'approval_id': row['approval_id'], 'digest': row['approval_digest'],
@@ -160,7 +166,7 @@ class ClusterBorderOperations:
             'attempt_count': int(row['attempt_id'] is not None), 'reconciliation_required': uncertain,
             'may_have_executed': row['attempt_id'] is not None, 'result': self._result(row),
             'result_reference': row['result_ref'], 'error_code': row.get('error_code'),
-            'allowed_actions': (['approve','deny'] if row['state'] == 'review_pending' and not row['revoked'] else ['reconcile'])
+            'allowed_actions': (['approve','deny'] if row['state'] == 'review_pending' and not row['revoked'] and review_current else ['reconcile'])
                                + ([] if row['revoked'] else ['revoke']),
             'authority': {'mode': 'cluster', **self.manifest.audience, 'served_by': self.node.node_id,
                           'epoch': self.node.authority.epoch, 'observation_only': True}}
@@ -190,7 +196,9 @@ class ClusterBorderOperations:
         entries.sort(key=lambda e: e['member']['member_id'])
         check(len({e['member']['member_id'] for e in entries}) == len(entries), 'ambiguous_catalog', 409)
         return {'revision': c.sha256(entries), 'members': entries, 'capabilities': ['cluster_execution_v2'],
-                'cluster': self.manifest.audience}
+                'cluster': self.manifest.audience,
+                'authority': {'mode': 'cluster', **self.manifest.audience, 'served_by': self.node.node_id,
+                              'epoch': self.node.authority.epoch, 'observation_only': True}}
 
     async def _local_prepare(self, params):
         c.exact(params, 'auth_context client_nonce catalog_revision member_id model_profile_id tool arguments')
@@ -224,6 +232,8 @@ class ClusterBorderOperations:
             check((params['decision'] == 'approve' and row['approval'] is not None) or
                   (params['decision'] == 'deny' and row.get('error_code') == 'owner_denied'), 'decision_conflict', 409)
             return self._dto(row)
+        check(row['review']['cluster']['authority_epoch'] == self.node.authority.epoch
+              and row['review']['cluster']['issuer_node_id'] == self.node.node_id, 'stale_review', 409)
         self._audit('protected_approval' if params['decision'] == 'approve' else 'protected_denial', row)
         if params['decision'] == 'deny':
             return self._dto(await asyncio.to_thread(self.ledger.deny, row['operation_id'],

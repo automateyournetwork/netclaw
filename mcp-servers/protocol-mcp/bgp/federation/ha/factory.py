@@ -81,7 +81,8 @@ class HAServiceRuntime:
             if self.node:
                 address = self.manifest.node(self.node.node_id)['endpoints']['in2n']
                 self.server = await exporter_tls.start_server(self.accept_internal, address['host'], address['port'],
-                    cert_file=self.config['transport_certificate_file'], key_file=self.config['private_key_file'])
+                    cert_file=self.config['transport_certificate_file'], key_file=self.config['private_key_file'],
+                    close_clients=True)
             else:
                 await self.attachments.start()
         except BaseException:
@@ -90,13 +91,14 @@ class HAServiceRuntime:
 
     async def close(self):
         if self.server:
-            self.server.close(); await self.server.wait_closed()
+            self.server.close()
         if self.attachments: await self.attachments.close()
         for channel in list(self.service.member_channels.values()): await channel.close()
         for channel in list(getattr(self.service, 'edge_channels', {}).values()): await channel.close()
         for task in list(self.tasks): task.cancel()
         if self.tasks: await asyncio.gather(*list(self.tasks), return_exceptions=True)
         if self.operations: await self.operations.close()
+        if self.server: await self.server.wait_closed()
 
     async def descriptor(self, params):
         c.exact(params, 'auth_context')
@@ -176,6 +178,9 @@ def from_service(service, profile):
         operations.bridge = OperatorBridge(operations, state, service.runtime.installation)
         service.cluster_channels = adapter.node.channels
     else:
+        check(all(identity['installation_id'] != node['installation_id']
+                  and identity['key_id'] != node['key_id'] for node in manifest.nodes),
+              'member_border_identity_collision', 403)
         certificate = read_private(config['certificate_file']).decode()
         check(c.key_id(certificate) == identity['key_id'] == sign('attachment-member', {'startup': True}, private_key)['key_id'],
               'member_key_mismatch', 403)

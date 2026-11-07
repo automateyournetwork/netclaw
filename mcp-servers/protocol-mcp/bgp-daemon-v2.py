@@ -80,6 +80,10 @@ def federation_ready(runtime):
         return False
     if runtime.kind == 'hermes' and not getattr(getattr(_federation, 'hermes_runtime', None), 'ready', False):
         return False
+    ha = getattr(_federation, 'ha_runtime', None)
+    if ha is not None:
+        return bool(ha.node and ha.node.server and ha.node.server.is_serving()
+                    and ha.server and ha.server.is_serving())
     if os.environ.get('N2N_ENDPOINT_REGISTRY'):
         # Strict members have their own outbound-only status path. A strict
         # Border's HTTP readiness must describe actual current listeners, not
@@ -1634,10 +1638,13 @@ async def _endpoint_watcher():
 async def main():
     global _speaker
     global _federation
+    from bgp.federation.runtime import selected
+    ha_required = (selected().state / 'ha-required.json').exists()
+    selected_transport = bool(os.environ.get('N2N_ENDPOINT_REGISTRY') or ha_required)
 
     # R01 strict members use the same daemon entry point without ANY listeners.
     # Private readiness replaces the local HTTP API; no BGP/edge/Zoom bind occurs.
-    if os.environ.get('N2N_ENDPOINT_REGISTRY') and os.environ.get('N2N_ROLE') == 'member':
+    if selected_transport and os.environ.get('N2N_ROLE') == 'member':
         from bgp.federation.service import FederationService
         from bgp.federation.runtime import write_private
         _federation = FederationService(local_as=LOCAL_AS, router_id=ROUTER_ID,
@@ -1647,10 +1654,14 @@ async def main():
             await _start_in2n(_federation)
             while True:
                 channel = _federation.border_channel
+                attachments = list(_federation.border_channels.values()) if _federation.ha_runtime else []
                 write_private(_federation.runtime.state/'member-daemon-status.json', {
                     'installation_id':_federation.runtime.installation, 'harness_type':_federation.runtime.kind,
                     'pid':os.getpid(), 'running':True, 'role':'member', 'federation_ready':True,
-                    'authenticated':bool(channel and channel.trusted and not channel._closed), 'observed_at':time.time()})
+                    'authenticated':bool(len(attachments) == len(_federation.ha_runtime.manifest.nodes)
+                                         and all(ch.trusted and not ch._closed for ch in attachments))
+                        if _federation.ha_runtime else bool(channel and channel.trusted and not channel._closed),
+                    'attachments': len(attachments), 'observed_at':time.time()})
                 await asyncio.sleep(2)
         finally:
             dialer = getattr(_federation, '_member_dialer', None)
@@ -1665,7 +1676,9 @@ async def main():
 
     # Auto-detect ngrok endpoint if not set
     mesh_endpoint = MESH_ENDPOINT
-    if os.environ.get('N2N_ENDPOINT_REGISTRY'):
+    if ha_required:
+        mesh_endpoint = None
+    elif os.environ.get('N2N_ENDPOINT_REGISTRY'):
         mesh_endpoint = await _current_ngrok_endpoint()
     elif not mesh_endpoint:
         try:
@@ -1687,7 +1700,7 @@ async def main():
     _speaker = BGPSpeaker(
         local_as=LOCAL_AS,
         router_id=ROUTER_ID,
-        listen_ip='127.0.0.1' if os.environ.get('N2N_ENDPOINT_REGISTRY') else BGP_LISTEN_HOST,
+        listen_ip='127.0.0.1' if selected_transport else BGP_LISTEN_HOST,
         listen_port=BGP_LISTEN_PORT,
         kernel_route_manager=krm,
         mesh_open=MESH_OPEN,
@@ -1742,7 +1755,7 @@ async def main():
             logger.info("N2N federation ENABLED — identity %s", _federation.local_identity)
         except Exception as e:
             from bgp.federation.runtime import selected
-            if selected().kind=='hermes' or os.environ.get('N2N_ENDPOINT_REGISTRY'):raise
+            if selected().kind=='hermes' or selected_transport or os.environ.get('N2N_PROTECTED_OPERATIONS') == '1':raise
             logger.error("N2N federation failed to init (continuing without it): %s", e)
     else:
         logger.info("N2N federation disabled (set N2N_ENABLED=true to enable)")
@@ -1756,10 +1769,10 @@ async def main():
         _federation.start_supervisor()
         # US3: watch the ngrok endpoint and re-announce it to federated peers on
         # change so nobody swaps host:port by hand (FR-010).
-        asyncio.create_task(_endpoint_watcher())
+        if not ha_required: asyncio.create_task(_endpoint_watcher())
         # iN2N (feature 056): start the internal-federation listener (Border) or
         # dialer (Member) per this claw's role. Members dial outbound only.
-        if os.environ.get('N2N_ENDPOINT_REGISTRY'):
+        if selected_transport:
             await _start_in2n(_federation)
         else:
             asyncio.create_task(_start_in2n(_federation))

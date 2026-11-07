@@ -323,11 +323,39 @@ async def open_connection(host, port, *, ca_file, server_hostname, handshake_tim
         raise
 
 
+class _OwnedServer:
+    """Opt-in listener ownership includes authenticated and pending connections."""
+    def __init__(self, server, streams):
+        self.server, self.streams, self.tasks = server, streams, set()
+
+    def __getattr__(self, name):
+        return getattr(self.server, name)
+
+    def close(self):
+        self.server.close()
+        for stream in list(self.streams):
+            task = stream.admission_task
+            if task is not None and not task.done():
+                self.tasks.add(task); task.cancel()
+            stream.abort()
+
+    async def wait_closed(self):
+        await self.server.wait_closed()
+        if self.tasks:
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+
+
 async def start_server(callback, host, port, *, cert_file, key_file, handshake_timeout=10,
-                       peer_ca_file=None):
+                       peer_ca_file=None, close_clients=False):
     context = _context(cert_file=cert_file, key_file=key_file, ca_file=peer_ca_file,
                        require_peer=peer_ca_file is not None)
-    return await asyncio.get_running_loop().create_server(
-        lambda: _TLSStream(context, callback=callback, handshake_timeout=handshake_timeout,
-                           profile='ncfed-cluster-mtls-v1' if peer_ca_file else 'in2n-tls-exporter-v1'),
-        host, port)
+    streams = set()
+    def protocol():
+        stream = _TLSStream(context, callback=callback, handshake_timeout=handshake_timeout,
+                           profile='ncfed-cluster-mtls-v1' if peer_ca_file else 'in2n-tls-exporter-v1')
+        if close_clients:
+            streams.add(stream)
+            stream.closed.add_done_callback(lambda _: streams.discard(stream))
+        return stream
+    server = await asyncio.get_running_loop().create_server(protocol, host, port)
+    return _OwnedServer(server, streams) if close_clients else server

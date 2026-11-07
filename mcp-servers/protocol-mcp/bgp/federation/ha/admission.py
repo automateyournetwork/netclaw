@@ -12,6 +12,7 @@ from ..protected_runtime import private_directory, private_write
 from .config import check, HAError
 from .operations import validate_admission
 from .signatures import verify
+from .effect import CURRENT, EffectScope
 
 
 class MemberAdmission:
@@ -82,6 +83,7 @@ class MemberAdmission:
         check(0 <= elapsed * 1000 <= self.manifest.limits['admission_ms'], 'admission_expired', 409)
         check(abs(wall_elapsed - elapsed) * 1000 <= self.manifest.limits['clock_uncertainty_ms'],
               'clock_uncertain', 409)
+        return int(self.manifest.limits['admission_ms'] - elapsed * 1000)
 
     def consume(self, request, proof, started):
         self.fresh(started)
@@ -130,7 +132,13 @@ class MemberAdmission:
             # No intervening await between this check and entering the exact
             # trusted effect callback. A process pause is measured at this gate.
             self.fresh(started)
-            result = await invoke()
+            scope = EffectScope(kind, lambda: self.fresh(started))
+            token = CURRENT.set(scope)
+            try:
+                result = await invoke()
+            finally:
+                scope.active = False
+                CURRENT.reset(token)
             self._terminal(request, 'finished')
             return result
         except BaseException:

@@ -102,7 +102,7 @@ class ClusterNode:
         await asyncio.to_thread(self.authority.bootstrap)
         address = self.manifest.node(self.node_id)['endpoints']['cluster']
         self.server = await exporter_tls.start_server(self._accept, address['host'], address['port'],
-            cert_file=self.cert_file, key_file=self.key_file, peer_ca_file=self.ca_file)
+            cert_file=self.cert_file, key_file=self.key_file, peer_ca_file=self.ca_file, close_clients=True)
         await self.authority.start_renewal()
         for peer in self.manifest.nodes:
             if self.node_id < peer['node_id']:
@@ -112,12 +112,13 @@ class ClusterNode:
     async def close(self):
         self.closing = True
         if self.server:
-            self.server.close(); await self.server.wait_closed()
+            self.server.close()
         tasks = list(self.tasks)
         for task in tasks: task.cancel()
         if tasks: await asyncio.gather(*tasks, return_exceptions=True)
         for channel in list(self.channels.values()): await channel.close()
         await self.authority.stop_renewal()
+        if self.server: await self.server.wait_closed()
 
     async def _status(self, channel, params):
         exact(params, '')

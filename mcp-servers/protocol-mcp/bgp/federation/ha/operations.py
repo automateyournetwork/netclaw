@@ -68,6 +68,9 @@ class OperationLedger:
 
     def enroll_member(self, binding, certificate):
         key = member_key(binding)
+        check(all(binding['installation_id'] != node['installation_id']
+                  and binding['key_id'] != node['key_id']
+                  for node in self.authority.manifest.nodes), 'member_border_identity_collision', 403)
         check(c.key_id(certificate) == binding['key_id'], 'member_key_mismatch', 403)
         from ..certs import time_valid
         check(time_valid(certificate), 'member_certificate_expired', 403)
@@ -166,13 +169,18 @@ class OperationLedger:
 
     def deny(self, operation_id, *, revision, review_digest):
         key = operation_key(operation_id)
+        original = self.lookup(operation_id=operation_id)
+        check(original is not None, 'operation_not_found', 404)
         def transition(rows):
             row = rows[key][0]; check(row is not None, 'operation_not_found', 404)
+            self._principal_current(rows, row['review']['principal'])
+            check(row['review']['cluster']['authority_epoch'] == self.authority.epoch
+                  and row['review']['cluster']['issuer_node_id'] == self.authority.node_id, 'stale_review', 409)
             check(row['state'] == 'review_pending' and row['revision'] == revision
                   and row['review_digest'] == review_digest, 'revision_conflict', 409)
             row.update(state='refused', revoked=True, revision=row['revision'] + 1, error_code='owner_denied')
             return [(key, row, None)], row
-        return self.authority.mutate('deny', [key], transition)[0]
+        return self.authority.mutate('deny', [key, *self._principal_keys(original['review']['principal'])], transition)[0]
 
     def mark_unknown(self, operation_id):
         key = operation_key(operation_id)

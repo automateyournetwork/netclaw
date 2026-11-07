@@ -40,7 +40,7 @@ def api_url(runtime):
 
 def status(runtime):
     env=environment(runtime)
-    if env.get('N2N_ENDPOINT_REGISTRY') and env.get('N2N_ROLE')=='member':
+    if (env.get('N2N_ENDPOINT_REGISTRY') or (runtime.state/'ha-required.json').exists()) and env.get('N2N_ROLE')=='member':
         result=read_private(runtime.state/'member-daemon-status.json')
         owner=read_private(runtime.state/'daemon.json')
         if (result.get('pid')!=owner.get('pid') or owner.get('installationId')!=runtime.installation

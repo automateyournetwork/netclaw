@@ -59,6 +59,17 @@ def test_nonce_is_cluster_wide_and_exact():
     assert follower.lookup(client_nonce='nonce-one', principal=row['review']['principal']) == row
 
 
+@pytest.mark.parametrize('field', ['installation_id', 'key_id'])
+def test_member_cannot_enroll_using_border_identity(field):
+    store, nodes, ledger, row, member = prepared()
+    binding = dict(row['review']['member'])
+    binding[field] = nodes[0].manifest.nodes[0][field]
+    before = copy.deepcopy(store.rows)
+    with pytest.raises(HAError, match='member_border_identity_collision'):
+        ledger.enroll_member(binding, member['cert_pem'])
+    assert store.rows == before
+
+
 def test_dispatch_and_admission_never_repeat_after_leader_change():
     store, nodes, ledger, row, member = prepared()
     row = dispatch_fixture(store, nodes, ledger, row)
@@ -157,3 +168,12 @@ def test_restore_capacity_fence_blocks_new_device_and_owner_execution():
     with pytest.raises(HAError, match='recovery_fenced'):
         ledger.admit(request(ledger, row), row['review']['member'])
     assert not any(k.startswith('claims/') for k in store.rows)
+
+
+def test_pending_review_cannot_be_denied_by_a_different_authority():
+    store, nodes, ledger, row, _ = prepared()
+    store.revoke_lease('123'); nodes[1].campaign()
+    successor = OperationLedger(nodes[1], clock_ms=ledger.now)
+    with pytest.raises(HAError, match='stale_review'):
+        successor.deny(row['operation_id'], revision=row['revision'], review_digest=row['review_digest'])
+    assert successor.lookup(operation_id=row['operation_id'])['state'] == 'review_pending'

@@ -72,7 +72,10 @@ async def test_follower_enrollment_and_signed_request_reverified_by_leader(tmp_p
         'method': 'n2n/edge/operations/catalog', 'params_sha256': c.sha256(params)}
     proof['signature'] = RiskManager.sign_challenge(key, REQUEST_PREFIX + c.encode(proof)).hex()
     handler = FederationService._edge_protected_handler(follower, 'catalog')
-    assert (await handler(ch, dict(params, device_proof=proof)))['capabilities'] == ['cluster_execution_v2']
+    catalog = await handler(ch, dict(params, device_proof=proof))
+    assert catalog['capabilities'] == ['cluster_execution_v2']
+    assert catalog['authority']['served_by'] == manifest.nodes[1]['node_id']
+    assert catalog['authority']['epoch'] == nodes[0].ha_runtime.node.authority.epoch
     context = {'access_mode': 'cluster-device-proof', 'proof': proof, 'params': params}
     with pytest.raises(c.ProtectedError, match='device_ingress_mismatch'):
         await nodes[0].protected_operations._local('catalog', {'auth_context': context},

@@ -24,6 +24,16 @@ Source1.18.7/editor1.6.1/Mobile1.0.4+7 and the roadmap release hold are unchange
   HUD/editor lane:538HUD tests passed;211editor tests passed,3existing skips;
   focused owner35passed,TypeScript and builds pass. See clients-notes.md for
   commands,initial pre-build harness failures and exact qualification limits.
+- Full federation suite before the final transport changes:1904passed,5skipped,
+  104warnings in114.39s using the existing R04a Python3.12 environment read-only.
+  The first environment lacked chromadb:1775passed,5skipped and5RAG failures before
+  maxfail stopped that run. No dependency or retained environment was modified.
+- Integrated late-admission/ownedTLS/role/MCP regression batch:134passed. Native
+  MCP admission now occurs after startup/schema discovery and is rechecked at
+  the synchronous bounded pipe write; actual OS-pipe saturation is covered.
+- Mobile source:524tests pass,analyzer clean and the production verifier compiles
+  for both iOS simulator architectures. Whole-app compilation requires the absent
+  ignored GoogleService-Info.plist. No native simulator acceptance is claimed.
 
 ## Retained failures and limits
 
@@ -31,6 +41,20 @@ core-01 refused a manifest path mismatch before execution. core-02 failed cluste
 transport because the application URI-SAN certificate did not establish TLS DNS
 identity. The corrected fixture has a separate transport CA/DNS-SAN certificate
 with each enrolled application key preserved. Both failed packets remain private.
+
+matrix-network-01 passed minority and asymmetric-request rows,then recorded an
+asymmetric-response assertion. Both denied admission probes remained unknown with
+zero callbacks. Investigation reproduced a fixture election-wait defect:the
+helper excluded an isolated observer but could still return that old leader from
+a healthy observer before lease expiry. Its shutdown also waited for open proxy
+connections before closing them. The exact owned process was terminated after
+the failure remained stuck;termination.json preserves that action. Corrected
+drivers must rerun this row in a new evidence directory. This failure is retained,
+not converted into a passing row by diagnosis.
+
+Review also found delayed model/helper and MCP handoff risks. MCP now uses the
+official SDK stream seam with a bounded synchronous atomic pipe handoff. A fresh
+guard-helper check remains under implementation;REAL qualification stays gated.
 
 The current fixture has not yet established the full partition/restart/storage/
 retirement/restore matrix. Unit tests are not substituted for those rows. REAL

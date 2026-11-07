@@ -83,3 +83,30 @@ def test_cluster_endpoint_has_explicit_separate_profile_and_no_tunnel(material):
             validate_cluster_endpoint({**endpoint, key: value})
     with pytest.raises(ValueError):
         validate_cluster_endpoint({**endpoint, 'proxy': 'ambient'})
+
+
+@pytest.mark.asyncio
+async def test_owned_tls_listener_closes_live_and_pending_connections(material):
+    accepted = asyncio.Event()
+    cancelled = asyncio.Event()
+    async def handle(reader, writer):
+        accepted.set()
+        try: await asyncio.Event().wait()
+        finally: cancelled.set()
+    server = await tls.start_server(handle, '127.0.0.1', 0,
+        cert_file=material['server'], key_file=material['server_key'],
+        peer_ca_file=material['ca'], close_clients=True)
+    port = server.sockets[0].getsockname()[1]
+    _, client = await tls.open_connection('127.0.0.1', port,
+        ca_file=material['ca'], server_hostname='border.test',
+        cert_file=material['client'], key_file=material['client_key'])
+    _, pending = await asyncio.open_connection('127.0.0.1', port)
+    await asyncio.wait_for(accepted.wait(), 2)
+    try:
+        server.close()
+        await asyncio.wait_for(server.wait_closed(), 2)
+        assert cancelled.is_set()
+        await asyncio.wait_for(client.wait_closed(), 2)
+    finally:
+        client.close(); pending.close()
+        await pending.wait_closed()
