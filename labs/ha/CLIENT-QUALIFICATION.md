@@ -64,6 +64,26 @@ private directory. The driver claims it with exclusive creation before preparing
 any second invocation refuses. Never remove that lock to retry an unknown result.
 Use recovery phases with the original profile/IDs instead.
 
+Original approval also requires `budget_run_id` and an absent absolute private
+`budget_claim_file`; optional `budget_wait_ms` defaults to60000 and cannot exceed
+120000. After the actual UI prepares, the driver saves the complete
+`<run>-original-review.json` artifact and waits for that claim file. The coordinator
+reserves its exact operation ID, client nonce and review digest in the shared
+REAL budget, calls its `claim_send` for `hud` or `vscode`, then atomically publishes
+the0600 claim file. The clients cannot allocate budget or repair/retry a claim.
+The shared runner enforces the total10operations/20inferences/10nativeeffects and
+retains an unknown operation's active slot.
+
+The exact claim includes schema_version1, UUIDrun_id/claim_id/operation_id,
+client_nonce,review_digest,surface,reserved_at_ms,
+`limits:{inferences:2,native_effects:1,operation_seconds:180,inference_seconds:60}`
+and claim_sha256 (SHA256 of canonical sorted UTF8 JSON without claim_sha256).
+Drivers validate it after review and again before the outgoing decision, and
+retain it with before-send evidence. Timeout or mismatch leaves approval unsent
+and the original once-lock/reference intact. Do not clear that lock or create
+another operation to bypass a failed phase. Prepare-only phases need no budget
+claim because they never approve or start an effect.
+
 This initial bundle replaces `completed` with `selection` (exact catalog_revision,
 member_id,model_profile_id,tool,arguments) and `expected_review` containing exact
 principal/member/model_profile/tool_call. The actual UI creates its own nonce and

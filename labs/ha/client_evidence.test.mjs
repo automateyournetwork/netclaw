@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import os from 'node:os';import path from 'node:path';
 import {execFileSync} from 'node:child_process';
-import {canonical,privateFile,privateDirectory,writeArtifact,claimOriginal,assertExactReview,assertOriginal,unchangedCounters,sha256,loadQualification,verifyEnvelope} from './client_evidence.mjs';
+import {canonical,privateFile,privateDirectory,writeArtifact,claimOriginal,assertExactReview,assertOriginal,unchangedCounters,sha256,loadQualification,verifyEnvelope,readBudgetClaim,awaitBudgetClaim} from './client_evidence.mjs';
 import {runBrowser} from './client_qualification.mjs';
 const golden=JSON.parse(fs.readFileSync(new URL('../../tests/fixtures/ha-179/cluster-golden.json',import.meta.url)));
 const setup=t=>{const directory=fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'r08-harness-source-')));fs.chmodSync(directory,0o700);t.after(()=>fs.rmSync(directory,{recursive:true,force:true}));return directory;};
@@ -44,4 +44,29 @@ test('native qualification module import cannot activate an extension or launch 
  const {createRequire}=await import('node:module'),require=createRequire(import.meta.url);
  runInNewContext(source,{exports:module.exports,require:name=>name==='vscode'?{extensions:{getExtension(){activated++;throw Error('unexpected activation');}}}:require(name)});
  assert.equal(typeof module.exports.run,'function');assert.equal(activated,0);
+});
+
+function budgetFixture(t) {
+ const dir=setup(t),now=Date.now(),operation={operation_id:'00000000-0000-4000-8000-000000000001',client_nonce:'original-native-nonce',review_digest:'b'.repeat(64)};
+ const context={budget_started_at_ms:now,config:{surface:'browser',phase:'original_once',budget_run_id:'00000000-0000-4000-8000-000000000002',budget_claim_file:path.join(dir,'claim.json'),budget_wait_ms:200}};
+ const body={schema_version:1,run_id:context.config.budget_run_id,claim_id:'00000000-0000-4000-8000-000000000003',...operation,surface:'hud',limits:{inferences:2,native_effects:1,operation_seconds:180,inference_seconds:60},reserved_at_ms:now};
+ const signed=value=>({...value,claim_sha256:sha256(canonical(value))});
+ return {dir,context,operation,body,signed};
+}
+test('native approval waits for exact shared-budget reservation without allocating one',async t=>{
+ const {dir,context,operation,body,signed}=budgetFixture(t),claim=signed(body);
+ const pending=awaitBudgetClaim(context,operation);assert.equal(fs.existsSync(context.config.budget_claim_file),false);
+ setTimeout(()=>writeArtifact(dir,'claim.json',claim),10);assert.deepEqual(await pending,claim);assert.deepEqual(readBudgetClaim(context,operation),claim);
+});
+test('shared-budget binding, hash, freshness and exact per-operation limits fail closed',t=>{
+ const {context,operation,body,signed}=budgetFixture(t);
+ const changed=[{operation_id:'00000000-0000-4000-8000-000000000004'},{run_id:'00000000-0000-4000-8000-000000000004'},{client_nonce:'replacement'},
+  {review_digest:'c'.repeat(64)},{surface:'vscode'},{limits:{...body.limits,native_effects:2}},{reserved_at_ms:0},{extra:true}];
+ for(const mutation of changed){fs.writeFileSync(context.config.budget_claim_file,JSON.stringify(signed({...body,...mutation})),{mode:0o600});assert.throws(()=>readBudgetClaim(context,operation));}
+ fs.writeFileSync(context.config.budget_claim_file,JSON.stringify({...signed(body),claim_sha256:'0'.repeat(64)}));assert.throws(()=>readBudgetClaim(context,operation),/hash changed/);
+});
+test('missing or malformed reservation leaves approval unsent and creates no reservation',async t=>{
+ const {dir,context,operation}=budgetFixture(t);context.config.budget_wait_ms=10;
+ await assert.rejects(awaitBudgetClaim(context,operation),/approval remains unsent/);assert.deepEqual(fs.readdirSync(dir),[]);
+ writeArtifact(dir,'claim.json',{});await assert.rejects(awaitBudgetClaim(context,operation));assert.deepEqual(fs.readdirSync(dir),['claim.json']);
 });

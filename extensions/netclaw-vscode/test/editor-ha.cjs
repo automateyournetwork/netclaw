@@ -23,7 +23,7 @@ exports.run=async()=>{
    if(method!=='GET'){
     assert.equal(original,true,'Recovery phase must not mutate');const body=JSON.parse(init.body);
     if(u.pathname==='/api/hud/operations'&&!prepareSent){assert.deepEqual(Object.fromEntries(Object.entries(body).filter(([k])=>k!=='client_nonce')),bundle.selection);prepareSent=true;prepareNonce=body.client_nonce;report.artifacts.push(h.writeArtifact(out,run+'-before-prepare.json',body));}
-    else if(decisionReady&&!decisionSent&&u.pathname==='/api/hud/operations/'+prepared.operation_id+'/decision'){assert.deepEqual(body,{revision:prepared.revision,review_digest:prepared.review_digest,decision:'approve'});decisionSent=true;report.artifacts.push(h.writeArtifact(out,run+'-before-decision.json',{operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,...body,decision_sent:true}));}
+    else if(decisionReady&&!decisionSent&&u.pathname==='/api/hud/operations/'+prepared.operation_id+'/decision'){assert.deepEqual(h.readBudgetClaim(context,prepared),report.budget_claim);assert.deepEqual(body,{revision:prepared.revision,review_digest:prepared.review_digest,decision:'approve'});decisionSent=true;report.artifacts.push(h.writeArtifact(out,run+'-before-decision.json',{operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,...body,decision_sent:true,budget_claim:report.budget_claim}));}
     else throw Error('Unexpected or repeated mutation refused');
    }
    assert.equal(init.redirect,'error');
@@ -66,9 +66,10 @@ exports.run=async()=>{
    assert.equal(prepared.review_digest,display.review_digest);assert.deepEqual(prepared.review,display.review);h.assertExactReview(prepared,context);
    report.artifacts.push(h.writeArtifact(out,run+'-original-review.json',prepared));
    if(config.phase==='prepare_review'){report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce};report.acceptance_complete=false;report.checks.push('Actual Code originated pending exact review; no decision sent');report.complete=true;return;}
+   report.budget_claim=await h.awaitBudgetClaim(context,prepared);h.assertExactReview(prepared,context);report.artifacts.push(h.writeArtifact(out,run+'-budget-claim.json',report.budget_claim));
    await review.click();
    const approve=page.getByRole('button',{name:'Approve once',exact:true});await approve.waitFor({state:'visible'});const text=await page.locator('.monaco-dialog-box').innerText();assert.ok(text.includes(prepared.operation_id)&&text.includes(prepared.review_digest));report.artifacts.push(h.writeArtifact(out,run+'-exact-native-review.png',await page.screenshot()));
-   decisionReady=true;await approve.click();try{report.operation=await pending;}catch(error){report.decision_error=String(error.message||error);report.outcome_unknown=!error.status;if(error.status)throw error;}
+   assert.deepEqual(h.readBudgetClaim(context,prepared),report.budget_claim);decisionReady=true;await approve.click();try{report.operation=await pending;}catch(error){report.decision_error=String(error.message||error);report.outcome_unknown=!error.status;if(error.status)throw error;}
    assert.equal(prepareSent,true);assert.equal(decisionSent,true);report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,decision_sent:true};report.acceptance_complete=false;
    report.checks.push('Actual Code prepared and approved the complete exact original review once; identifiers persisted before sending; signed-result acceptance remains a later phase');
   }else{

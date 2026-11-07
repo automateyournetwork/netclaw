@@ -6,6 +6,8 @@ import { createHash, X509Certificate, verify } from 'node:crypto';
 import { clusterCanonical, verifyClusterDescriptor, clusterReviewMatches } from '../../ui/netclaw-visual/src/shared/cluster-binding.js';
 export const sha256 = bytes => createHash('sha256').update(bytes).digest('hex');
 export const canonical = clusterCanonical;
+const UUID=/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+const BUDGET_LIMITS={inferences:2,native_effects:1,operation_seconds:180,inference_seconds:60};
 export function privateFile(file, limit = 4 * 1024 * 1024) {
   assert.ok(path.isAbsolute(file), 'Absolute private path required');
   const s = fs.lstatSync(file);
@@ -54,7 +56,12 @@ export async function loadQualification(configFile, surface) {
     for(const k of ['principal','member','model_profile','tool_call'])assert.ok(bundle.expected_review[k]);
     assert.deepEqual(bundle.expected_review.principal,bundle.principal);
     assert.ok(path.isAbsolute(config.once_file));privateDirectory(path.dirname(config.once_file));
-    return {config,bundle,node,counters_sha256:sha256(privateFile(config.counter_file))};
+    if(config.phase==='original_once'){
+      assert.match(config.budget_run_id,UUID);assert.ok(path.isAbsolute(config.budget_claim_file));privateDirectory(path.dirname(config.budget_claim_file));
+      assert.equal(fs.existsSync(config.budget_claim_file),false,'Budget claim file must be absent before the actual UI prepare');
+      assert.ok(Number.isSafeInteger(config.budget_wait_ms??60000)&&(config.budget_wait_ms??60000)>0&&(config.budget_wait_ms??60000)<=120000);
+    }
+    return {config,bundle,node,counters_sha256:sha256(privateFile(config.counter_file)),budget_started_at_ms:Date.now()};
   }
   validateReference(bundle.completed,bundle.descriptor,bundle.principal);
   const completed=bundle.completed,receipt=verifyEnvelope(completed.result_envelope,completed.member_certificate,'netclaw.execution.result.v2');
@@ -88,4 +95,27 @@ export function assertExactReview(operation, context) {
  assert.ok(clusterReviewMatches(context.bundle.descriptor,operation.review,context.bundle.principal));
  assert.equal(operation.attempt_count,0);assert.equal(operation.may_have_executed,false);
  assert.equal(operation.review.limits.max_tool_calls,1);assert.ok(operation.review.limits.max_inference_calls<=2);assert.ok(operation.review.limits.expires_at_ms>Date.now());
+}
+
+export function readBudgetClaim(context, operation) {
+ const {config}=context;assert.equal(config.phase,'original_once');
+ const claim=JSON.parse(privateFile(config.budget_claim_file,16384));
+ assert.deepEqual(Object.keys(claim).sort(),['schema_version','run_id','claim_id','operation_id','client_nonce','review_digest','surface','limits','reserved_at_ms','claim_sha256'].sort());
+ assert.equal(claim.schema_version,1);assert.match(claim.run_id,UUID);assert.match(claim.claim_id,UUID);assert.match(claim.operation_id,UUID);
+ assert.equal(claim.run_id,config.budget_run_id);assert.equal(claim.operation_id,operation.operation_id);assert.equal(claim.client_nonce,operation.client_nonce);assert.equal(claim.review_digest,operation.review_digest);
+ assert.equal(claim.surface,{browser:'hud',editor:'vscode'}[config.surface]);assert.deepEqual(claim.limits,BUDGET_LIMITS);
+ assert.ok(Number.isSafeInteger(claim.reserved_at_ms)&&claim.reserved_at_ms>=context.budget_started_at_ms-250&&claim.reserved_at_ms<=Date.now()+250,'Budget reservation must belong to this native prepare');
+ const {claim_sha256,...body}=claim;assert.equal(claim_sha256,sha256(canonical(body)),'Budget claim hash changed');
+ return claim;
+}
+
+export async function awaitBudgetClaim(context, operation) {
+ const deadline=Date.now()+(context.config.budget_wait_ms??60000);
+ while(!fs.existsSync(context.config.budget_claim_file)){
+   assert.ok(Date.now()<deadline,'No coordinator budget claim arrived; approval remains unsent');
+   await new Promise(resolve=>setTimeout(resolve,Math.min(100,Math.max(1,deadline-Date.now()))));
+ }
+ // A malformed or mismatched file fails immediately. Never allocate, replace,
+ // repair or retry a claim; the coordinator owns the shared cumulative budget.
+ return readBudgetClaim(context,operation);
 }

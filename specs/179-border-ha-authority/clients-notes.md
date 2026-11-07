@@ -122,3 +122,15 @@ These are controlled temporary stdio fixtures, not actual native workload, REAL
 or T034 fixture acceptance. Root owns protected_mcp/Docker/admission integration
 and the production-callback regression checks. No model/provider/device call or
 native browser/editor qualification ran in this lane.
+
+## Shared REAL budget claim integration
+
+The browser/editor original-once drivers now wait for a coordinator-owned private
+budget claim after actual native preparation. They validate the exact run,
+operation, nonce, review, surface, claim hash and per-operation limits, retain the
+claim in evidence, and recheck it before the approve tap and outgoing decision.
+The coordinator must reserve and claim_send in the shared REAL budget before
+atomically publishing the claim file. Clients cannot allocate/retry it. Missing
+or invalid claims leave approval unsent and preserve the once-lock/original IDs.
+Nine source helper tests and native driver syntax checks pass; no native launch
+or REAL effect was performed by this lane.

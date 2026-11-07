@@ -1,6 +1,6 @@
 /** Actual browser recovery driver. Runs only on explicit CLI invocation with private REAL inputs. */
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';import {pathToFileURL} from 'node:url';
-import {loadQualification,writeArtifact,assertOriginal,unchangedCounters,canonical,sha256,claimOriginal,assertExactReview} from './client_evidence.mjs';
+import {loadQualification,writeArtifact,assertOriginal,unchangedCounters,canonical,sha256,claimOriginal,assertExactReview,awaitBudgetClaim,readBudgetClaim} from './client_evidence.mjs';
 import {verifyClusterRuntime,clusterCanDecide,clusterStatusText} from '../../ui/netclaw-visual/src/shared/cluster-binding.js';
 export async function runBrowser(configFile) {
  const context=await loadQualification(configFile,'browser'),{config,bundle,node}=context;
@@ -21,7 +21,7 @@ export async function runBrowser(configFile) {
     if(original&&u.origin===config.origin&&r.method()==='POST'){
       const body=r.postDataJSON();
       if(u.pathname==='/api/hud/operations'&&!prepareSent){assert.deepEqual(Object.fromEntries(Object.entries(body).filter(([k])=>k!=='client_nonce')),bundle.selection);prepareSent=true;report.artifacts.push(writeArtifact(out,run+'-before-prepare.json',body));report.requests.push({method:'POST',path:u.pathname,client_nonce:body.client_nonce});return route.continue();}
-      if(decisionReady&&!decisionSent&&u.pathname==='/api/hud/operations/'+prepared.operation_id+'/decision'){assert.deepEqual(body,{revision:prepared.revision,review_digest:prepared.review_digest,decision:'approve'});decisionSent=true;report.artifacts.push(writeArtifact(out,run+'-before-decision.json',{operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,...body,decision_sent:true}));report.requests.push({method:'POST',path:u.pathname});return route.continue();}
+      if(decisionReady&&!decisionSent&&u.pathname==='/api/hud/operations/'+prepared.operation_id+'/decision'){assert.deepEqual(readBudgetClaim(context,prepared),report.budget_claim);assert.deepEqual(body,{revision:prepared.revision,review_digest:prepared.review_digest,decision:'approve'});decisionSent=true;report.artifacts.push(writeArtifact(out,run+'-before-decision.json',{operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,...body,decision_sent:true,budget_claim:report.budget_claim}));report.requests.push({method:'POST',path:u.pathname});return route.continue();}
     }
     if(!origins.has(u.origin)||r.method()!=='GET'){report.requests.push({method:r.method(),path:u.pathname,blocked:true});return route.abort('blockedbyclient');}report.requests.push({method:r.method(),origin:u.origin,path:u.pathname});return route.continue();});
   page.on('response',async response=>{try{const u=new URL(response.url());if(original&&u.pathname==='/api/hud/operations'&&response.request().method()==='POST'&&response.ok())prepared=await response.json();else if(expected&&u.pathname==='/api/hud/operations/'+expected.reference.operation_id&&response.ok())observed=await response.json();}catch{}});
@@ -39,8 +39,9 @@ export async function runBrowser(configFile) {
     await page.getByRole('button',{name:'Prepare review',exact:true}).click();await page.getByRole('button',{name:'Approve once',exact:true}).waitFor();
     assert.ok(prepared);assertExactReview(prepared,context);report.artifacts.push(writeArtifact(out,run+'-original-review.json',prepared));report.artifacts.push(writeArtifact(out,run+'-review.png',await page.screenshot({fullPage:true})));
     if(config.phase==='prepare_review'){report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce};report.acceptance_complete=false;report.checks.push('Actual browser originated one pending review; no decision sent');report.complete=true;return report;}
+    report.budget_claim=await awaitBudgetClaim(context,prepared);assertExactReview(prepared,context);report.artifacts.push(writeArtifact(out,run+'-budget-claim.json',report.budget_claim));
     const confirmation=page.waitForResponse(r=>new URL(r.url()).pathname==='/api/hud/operations/'+prepared.operation_id+'/decision',{timeout:40000}).then(async r=>({status:r.status(),operation:await r.json()})).catch(()=>({outcome_unknown:true}));
-    decisionReady=true;await page.getByRole('button',{name:'Approve once',exact:true}).click();report.confirmation=await confirmation;
+    assert.deepEqual(readBudgetClaim(context,prepared),report.budget_claim);decisionReady=true;await page.getByRole('button',{name:'Approve once',exact:true}).click();report.confirmation=await confirmation;
     assert.equal(prepareSent,true);assert.equal(decisionSent,true);assert.ok(report.requests.every(r=>!r.blocked));if(report.confirmation.status)assert.equal(report.confirmation.status,200,'Original decision was refused; preserve the one-shot state');report.reference={operation_id:prepared.operation_id,client_nonce:prepared.client_nonce,decision_sent:true};report.acceptance_complete=false;report.checks.push('Actual browser originated one prepare and one exact approval; original IDs persisted before network; REAL result correlation remains required');report.complete=true;
     return report;
   }
