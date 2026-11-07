@@ -170,7 +170,25 @@ class Evidence:
 
 def source_digest():
     root = Path(__file__).resolve().parents[2]
-    files = sorted((root / 'mcp-servers/protocol-mcp/bgp/federation/ha').glob('*.py'))
+    files = sorted((root / 'mcp-servers/protocol-mcp/bgp/federation').rglob('*.py'))
     files += sorted((root / 'labs/ha').glob('*.py'))
     return hashlib.sha256(json.dumps({str(p.relative_to(root)): hashlib.sha256(p.read_bytes()).hexdigest()
                                      for p in files}, sort_keys=True).encode()).hexdigest()
+
+
+async def owned_call(function, *args, **kwargs):
+    """Do not let cancellation hide a still-running owned mutation thread.
+
+    The underlying command has its own finite deadline. Inspection/cleanup starts
+    only after that bounded call has settled; an HTTP/subprocess timeout remains
+    an unknown outcome and is never resent here.
+    """
+    task = asyncio.create_task(asyncio.to_thread(function, *args, **kwargs))
+    try:
+        return await asyncio.shield(task)
+    except asyncio.CancelledError:
+        try:
+            await asyncio.shield(task)
+        except Exception:
+            pass
+        raise

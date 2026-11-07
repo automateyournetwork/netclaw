@@ -26,7 +26,7 @@ from bgp.federation.ha.node import ClusterNode
 from bgp.federation.ha.recovery import export_snapshot
 from bgp.federation.ha.store import EtcdStore
 from .etcd_lab import EtcdLab, private, command
-from .faults import ByteProxy, Evidence, source_digest
+from .faults import ByteProxy, Evidence, source_digest, owned_call
 from .qualify import eventually
 
 SOURCE = contextvars.ContextVar('r08_fixture_source', default=None)
@@ -46,6 +46,8 @@ class MatrixHarness:
         self.manifest = verify_manifest((identity / 'manifest.json').read_bytes(), root, expected_key_id=c.key_id(root))
         self.evidence = Evidence(evidence, {'source_sha256': source_digest(),
             'manifest_sha256': c.sha256(self.manifest.value), 'actual_etcd': True,
+            'voter_image': lab.document['image'], 'bounds': lab.document['bounds'],
+            'voter_container_ids': json.loads((lab.root / 'container-ids.json').read_text()),
             'actual_ncfed_cluster': True, 'actual_in2n_member': False,
             'raft_peer_partition_qualified': False,
             'network_scope': 'border-quorum-and-ncfed-byte-paths'}, required=rows)
@@ -197,6 +199,7 @@ class MatrixHarness:
     async def heal(self):
         await asyncio.gather(*(p.reset() for p in self.proxies))
         await self.leader()
+        await eventually(self.mesh)
 
     async def network_row(self, name):
         old = await self.leader(); index = self.index(old)
@@ -209,8 +212,9 @@ class MatrixHarness:
             if name == 'delay-300ms':
                 if self.raft_proxy: await asyncio.to_thread(self.lab.configure, delay_ms=150)
                 for proxy in self.proxies: proxy.policy(delay_ms=150)
-                probes.append(await self.probe(operation, old, 'model'))
-                probes.append(await self.probe(operation, old, 'tool'))
+                ingress = next(node for node in self.nodes if node is not old)
+                probes.append(await self.probe(operation, ingress, 'model'))
+                probes.append(await self.probe(operation, ingress, 'tool'))
             else:
                 orientation = name.split('-', 1)[1] if name.startswith('asymmetric-') else 'both'
                 indices = list(range(3)) if name == 'threeway' else [index]
@@ -233,7 +237,8 @@ class MatrixHarness:
                     successor = await self.leader(excluded=(index,))
                     if successor is old: raise AssertionError('isolated_old_authority_survived')
                     majority = await self.prepare(successor)
-                    probes.append(await self.probe(majority, successor, 'model'))
+                    ingress = next(node for number, node in enumerate(self.nodes) if number != index and node is not successor)
+                    probes.append(await self.probe(majority, ingress, 'model'))
             observed = self.observations()
             for observed_proxy in observed:
                 for direction in ('request', 'response'):
@@ -260,7 +265,8 @@ class MatrixHarness:
             if self.raft_proxy: await asyncio.to_thread(self.lab.configure)
             await self.heal()
         positive = await self.prepare()
-        await self.probe(positive, await self.leader(), 'model')
+        current = await self.leader()
+        await self.probe(positive, next(node for node in self.nodes if node is not current), 'model')
 
     async def freshness_row(self, name):
         node = await self.leader(); operation = await self.prepare(node)
@@ -463,11 +469,17 @@ class MatrixHarness:
             successor = await self.leader(excluded=(index,))
             detection = time.monotonic() - started
             if successor.authority.epoch <= old_epoch: raise AssertionError('epoch_not_increased')
-            await self.probe(operation, target, 'model', denied=True)
+            request, _ = operation['journal'].begin(operation['context'], 'model', 1, 'e'*64)
+            try:
+                await asyncio.to_thread(target.ledger.admit, request, operation['member'])
+                raise AssertionError('old_epoch_admitted')
+            except HAError as exc:
+                if exc.code not in ('stale_authority', 'not_leader'): raise
+                refusal = exc.code
             observations.append({'kind': 'actual-ncfed-service-loss', 'node_id': target.node_id,
                 'old_epoch': old_epoch, 'new_epoch': successor.authority.epoch,
                 'successor': successor.node_id, 'failure_to_new_authority_s': round(detection, 3),
-                'os_process_killed': False})
+                'os_process_killed': False, 'old_epoch_refusal': refusal})
             self.nodes[index] = self.new_node(index); await self.start_node(index)
             await eventually(self.mesh)
         self.evidence.row('leader-loss-each-node', passed=True, effects_before=before,
@@ -478,7 +490,7 @@ class MatrixHarness:
         before, paused = self.counters(), []
         try:
             for index in (0, 1):
-                await asyncio.to_thread(self.lab.fault, index, 'pause', self.evidence.path)
+                await owned_call(self.lab.fault, index, 'pause', self.evidence.path)
                 paused.append(index)
             observations = await asyncio.to_thread(self.lab.inspect_owned)
             probes = [await self.probe(operation, current, kind, denied=True) for kind in ('model', 'tool')]
@@ -491,7 +503,7 @@ class MatrixHarness:
             observed = await asyncio.to_thread(self.lab.inspect_owned)
             for index, row in enumerate(observed):
                 if row['State']['Paused']:
-                    await asyncio.to_thread(self.lab.fault, index, 'unpause', self.evidence.path)
+                    await owned_call(self.lab.fault, index, 'unpause', self.evidence.path)
             await self.leader()
 
     async def full_restart(self):
@@ -513,7 +525,7 @@ class MatrixHarness:
         await asyncio.gather(*(n.close() for n in self.nodes))
         # Pending bounded store calls finish before actual voter shutdown.
         await asyncio.sleep(7)
-        observed = await asyncio.to_thread(OwnedVoterRestart(self.lab, self.evidence.path, snapshot_file).execute)
+        observed = await owned_call(OwnedVoterRestart(self.lab, self.evidence.path, snapshot_file).execute)
         async def quorum_back():
             return (await asyncio.to_thread(self.stores[0].read, 'control'))[0] is not None
         await eventually(quorum_back, 40)
