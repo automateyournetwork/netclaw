@@ -12,11 +12,12 @@ class EffectScope:
 
     def check(self, kind):
         check(self.active and kind == self.kind and not self.handed_off, 'admission_scope_invalid', 403)
-        self.freshness()
+        return self.freshness()
 
     def handoff(self, kind):
-        self.check(kind)
+        remaining = self.check(kind)
         self.handed_off = True
+        return remaining
 
 
 def scope(kind):

@@ -134,3 +134,33 @@ atomically publishing the claim file. Clients cannot allocate/retry it. Missing
 or invalid claims leave approval unsent and preserve the once-lock/original IDs.
 Nine source helper tests and native driver syntax checks pass; no native launch
 or REAL effect was performed by this lane.
+
+## Model helper final HTTP handoff
+
+The follow-up review identified another scheduling gap inside the Docker helper
+after stdin delivery but before urllib initiated the guard request. Root delegated
+the narrow HA helper to this lane. `ha/model_transport.py` leaves standalone and
+DefenseClaw unchanged. Its pinned python source connects only to the existing
+guard loopback endpoint, emits READY and records local monotonic/wall clocks. The
+host passes its consumed permit's remaining integer milliseconds minus250ms;
+the helper's entire READY-to-send interval must fit that remainder, with at most
+250ms wall/monotonic divergence. Linux uses CLOCK_BOOTTIME to include suspend.
+The clocks need not share an epoch because READY precedes the host write. This
+conservatively double-counts transfer time and cannot extend the original permit.
+
+After complete HTTP serialization, the helper checks freshness immediately before
+one nonblocking socket send. Partial/blocked writes remain unknown and never retry.
+A total ITIMER_REAL deadline bounds response completion even if a peer trickles
+bytes. The host bounds its owned Docker-client lifetime; it does not claim that
+killing that client cancels an already dispatched inference. Queued stdin cannot
+become a later effect because the recipient's final clock gate rejects it.
+
+The API is `ha_model_forward(executor,payload,request,guard_url)->bytes`; root keeps
+binding validation/inspect_model and strict response validation, and changes
+MemberAdmission.fresh to return floored remaining milliseconds. EffectScope now
+returns that value from check/handoff. Fifteen controlled helper/pipe tests pass,
+including final-clock discontinuities, delayed startup/input, partial/blocked HTTP,
+hard trickle-response deadline and cancellation cleanup. Related tests pass110/110.
+Only temporary controlled stdio/HTTP fixtures ran: no Docker command, actual guard,
+provider/model or client qualification was launched. Production integration and
+actual fixture/REAL gates remain the coordinator's responsibility.
