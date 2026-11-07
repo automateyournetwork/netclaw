@@ -32,7 +32,7 @@ EXTRA = {
     'owner-prepare': {'client_nonce'}, 'owner-decide': {'operation_id','revision','review_digest'},
     'owner-reconcile': {'operation_id'}, 'member-row': {'operation_id'},
     'arm-loss': {'operation_id','fault'}, 'capture': {'context','via_node_id'},
-    'consume-held': set(), 'wire-role': {'via_node_id','method'},
+    'consume-held': set(), 'tls-rejections':set(), 'wire-role': {'via_node_id','method'},
 }
 MEMBER = {'member-row','arm-loss','capture','consume-held','wire-role'}
 MUTATIONS = base.MUTATIONS | {'owner-prepare','owner-decide','owner-reconcile','arm-loss','capture','consume-held','wire-role'}
@@ -83,8 +83,8 @@ async def control(config,method,params=None):
 class Worker(base.Worker):
     def __init__(self,config):
         super().__init__(config)
-        self.operations=None;self.loss=None;self.held=[];self.proof_observations=[]
-        for name in ('audit','wire-loss'):
+        self.operations=None;self.loss=None;self.held=[];self.proof_observations=[];self.tls_context_original=None;self.tls_audit_failed=False
+        for name in ('audit','wire-loss','tls-rejections'):
             (self.home/name).mkdir(mode=0o700,exist_ok=True);owned_directory(self.home/name)
 
     def audit(self,event,record):
@@ -102,6 +102,11 @@ class Worker(base.Worker):
         return value
 
     async def start(self):
+        if self.config['role']=='border':
+            from bgp.federation import exporter_tls
+            self.tls_context_original=exporter_tls._context
+            exporter_tls._context=audited_tls_context(self.tls_context_original,self.home/'tls-rejections',
+                lambda:setattr(self,'tls_audit_failed',True))
         await super().start()
         if self.config['role']=='border':
             from bgp.federation.ha.border import ClusterBorderOperations
@@ -177,6 +182,9 @@ class Worker(base.Worker):
                     wire_losses=[decode(read_private(p)) for p in sorted((self.home/'wire-loss').glob('*.json'))],
                     has_consensus_credentials='store' in self.config,has_network_listener=self.listener is not None)
             return value
+        if method=='tls-rejections':
+            need(not self.tls_audit_failed,'tls_observer_failed')
+            return [decode(read_private(p)) for p in sorted((self.home/'tls-rejections').glob('*.json'))]
         if method.startswith('owner-'):
             context={'access_mode':'open-lab','installation_id':self.operations.identity['installation_id'],**self.manifest.audience}
             if method=='owner-prepare':
@@ -264,6 +272,9 @@ class Worker(base.Worker):
     async def close(self):
         if self.config['role']=='member' and self.operations:await self.operations.close()
         await super().close()
+        if self.tls_context_original is not None:
+            from bgp.federation import exporter_tls
+            exporter_tls._context=self.tls_context_original
 
 
 async def worker_main(config_file):
@@ -510,23 +521,83 @@ async def bad_hello(manifest,endpoint,ca,binding,key,*,fault,old_proof=None):
         else:writer.close();await writer.wait_closed()
 
 
+AUTH_TLS_ALERTS=frozenset({'TLSV1_ALERT_UNKNOWN_CA','TLSV1_ALERT_ACCESS_DENIED',
+    'SSLV3_ALERT_BAD_CERTIFICATE','SSLV3_ALERT_UNSUPPORTED_CERTIFICATE',
+    'TLSV1_ALERT_CERTIFICATE_UNKNOWN','TLSV13_ALERT_CERTIFICATE_REQUIRED'})
+VERIFY_ERRORS=frozenset({18,19,20,21,27,28})  # OpenSSL untrusted/invalid issuer purpose.
+
+
+def audited_tls_context(original,directory,on_error):
+    """Observe production verification without changing its bool(ok) decision.
+
+    The frozen exporter factory's callback is exactly bool(ok). We preserve its
+    verification mode, CA set, certificates, protocol and the same return value.
+    Only fresh failed leaf-verification observations are recorded. No success or
+    failure is manufactured from an uninformative connection close.
+    """
+    def factory(**options):
+        context=original(**options)
+        if options.get('require_peer'):
+            def verify(connection,certificate,error,depth,ok):
+                if not ok and depth==0:
+                    from OpenSSL import crypto
+                    try:
+                        rows=list(directory.iterdir());need(len(rows)<64,'tls_observation_capacity')
+                        private(directory/f'{len(rows):03d}.json',{'class':'FIXTURE',
+                            'certificate_sha256':hashlib.sha256(crypto.dump_certificate(crypto.FILETYPE_ASN1,certificate)).hexdigest(),
+                            'verify_error':error,'depth':depth,'accepted':False,'observed_monotonic_ns':time.monotonic_ns()})
+                    except BaseException:
+                        on_error();raise
+                return bool(ok)
+            context.set_verify(context.get_verify_mode(),verify)
+        return context
+    return factory
+
+
+def verify_receiver_rejection(before,after,certificate):
+    from cryptography import x509
+    from cryptography.hazmat.primitives import serialization
+    expected=hashlib.sha256(x509.load_pem_x509_certificate(certificate.encode()).public_bytes(serialization.Encoding.DER)).hexdigest()
+    need(after[:len(before)]==before,'receiver_tls_observation_changed')
+    matched=[row for row in after[len(before):] if row['certificate_sha256']==expected
+        and row['verify_error'] in VERIFY_ERRORS and row['accepted'] is False and row['depth']==0]
+    need(matched,'receiver_certificate_rejection_not_observed')
+    return matched
+
+
+def peer_auth_alert(error):
+    """Require an actual peer-auth TLS alert, never a connect/reset/timeout."""
+    seen=set();pending=[error]
+    while pending:
+        value=pending.pop()
+        if id(value) in seen:continue
+        seen.add(id(value))
+        if isinstance(value,ssl.SSLError) and getattr(value,'reason',None) in AUTH_TLS_ALERTS:
+            return value.reason
+        for nested in (getattr(value,'__cause__',None),getattr(value,'__context__',None),*getattr(value,'args',())):
+            if isinstance(nested,BaseException):pending.append(nested)
+    raise ValueError('credential_refusal_not_observed')
+
+
 async def rejected_cluster_tls(endpoint,ca,certificate,key):
     from bgp.federation import exporter_tls
     writer=None
     try:
         reader,writer=await exporter_tls.open_connection(endpoint['host'],endpoint['port'],ca_file=ca,
-            server_hostname=endpoint['server_name'],cert_file=certificate,key_file=key)
-        # TLS1.3 can surface the server's client-certificate alert on first read.
+            server_hostname=endpoint['server_name'],cert_file=certificate,key_file=key,handshake_timeout=4)
         value=await asyncio.wait_for(reader.read(1),4)
         need(not value,'untrusted_cluster_client_received_preamble')
-        return {'refused':True,'observation':'connection_closed_before_cluster_preamble'}
-    except (ssl.SSLError,ConnectionError,OSError) as exc:
-        return {'refused':True,'observation':type(exc).__name__}
+        return {'client_observation':'connection_closed_before_cluster_preamble'}
+    except (ConnectionRefusedError,TimeoutError):raise
+    except (ssl.SSLError,ConnectionResetError,ConnectionError) as exc:
+        # This is only the client-side observation. The caller MUST correlate
+        # a new exact failed receiver certificate-verification event below.
+        return {'client_observation':type(exc).__name__}
     finally:
         if writer:
             writer.close()
             try:await writer.wait_closed()
-            except (ssl.SSLError,ConnectionError,OSError):pass
+            except (ssl.SSLError,ConnectionError):pass
 
 
 def etcd_denied(url,ca,certificate,key):
@@ -536,10 +607,42 @@ def etcd_denied(url,ca,certificate,key):
     try:
         with httpx.Client(verify=context,trust_env=False,timeout=4) as client:
             response=client.post(url+'/v3/kv/range',json={'key':base64.b64encode(b'/netclaw/ha/').decode()})
-            need(response.status_code in (400,401,403),'untrusted_consensus_client_reached_read')
-            return {'refused':True,'observation':'http-rejection','status':response.status_code}
+            need(response.status_code in (400,401,403) and len(response.content)<=4096,'untrusted_consensus_client_reached_read')
+            body=response.json()
+            expected={'etcdserver: user name is empty','etcdserver: authentication failed, invalid user ID or password',
+                      'etcdserver: permission denied','etcdserver: invalid auth token'}
+            need(isinstance(body,dict) and body.get('error') in expected
+                 and body.get('code') in (3,7,16),'credential_refusal_not_observed')
+            return {'refused':True,'observation':'etcd-auth-rejection','status':response.status_code,
+                    'code':body['code'],'reason':body['error']}
     except (httpx.ConnectError,httpx.ReadError) as exc:
-        return {'refused':True,'observation':type(exc).__name__}
+        return {'refused':True,'observation':'peer-tls-auth-alert','reason':peer_auth_alert(exc)}
+
+
+async def positive_cluster(fixture,node):
+    from bgp.federation import exporter_tls
+    other=next(n for n in fixture.manifest.nodes if n['node_id']!=node['node_id'])
+    index=next(i for i,n in enumerate(fixture.manifest.nodes) if n['node_id']==other['node_id'])
+    endpoint=node['endpoints']['cluster']
+    _,writer=await exporter_tls.open_connection(endpoint['host'],endpoint['port'],
+        ca_file=fixture.configs['member']['transport_ca'],server_hostname=endpoint['server_name'],
+        cert_file=str(fixture.lab.root/f'cluster-transport/node{index}.crt'),
+        key_file=str(fixture.lab.root/f'cluster-transport/node{index}.key'),handshake_timeout=4)
+    need(writer.get_extra_info('tls_profile')=='ncfed-cluster-mtls-v1','positive_cluster_tls_failed')
+    writer.close();await writer.wait_closed()
+    return {'surface':'cluster-mtls','node_id':node['node_id'],'valid_owned_certificate_handshake':True,
+            'observed_monotonic_ns':time.monotonic_ns()}
+
+
+async def positive_etcd(fixture,index,port):
+    positive=fixture.lab.store(index)
+    try:
+        positive.endpoints=[f'https://127.0.0.1:{port}'];positive._index=0
+        observed=await asyncio.to_thread(positive.read,'control')
+        need(observed[0] is not None,'positive_consensus_control_missing')
+        return {'surface':'private-etcd','port':port,'positive_control_revision':observed[1],
+                'observed_monotonic_ns':time.monotonic_ns()}
+    finally:positive.close()
 
 
 async def topology_row(fixture):
@@ -560,41 +663,33 @@ async def topology_row(fixture):
     rows=[]
     controls=[]
     for node in fixture.manifest.nodes:
-        from bgp.federation import exporter_tls
-        other=next(n for n in fixture.manifest.nodes if n['node_id']!=node['node_id'])
-        index=next(i for i,n in enumerate(fixture.manifest.nodes) if n['node_id']==other['node_id'])
-        endpoint=node['endpoints']['cluster']
-        _,writer=await exporter_tls.open_connection(endpoint['host'],endpoint['port'],ca_file=config['transport_ca'],
-            server_hostname=endpoint['server_name'],cert_file=str(fixture.lab.root/f'cluster-transport/node{index}.crt'),
-            key_file=str(fixture.lab.root/f'cluster-transport/node{index}.key'))
-        need(writer.get_extra_info('tls_profile')=='ncfed-cluster-mtls-v1','positive_cluster_tls_failed')
-        controls.append({'surface':'cluster-mtls','node_id':node['node_id'],'valid_owned_certificate_handshake':True})
-        writer.close();await writer.wait_closed()
+        controls.append(dict(await positive_cluster(fixture,node),phase='before'))
+        target=next(name for name,record in fixture.records.items() if record.get('node_id')==node['node_id'])
         for role,binding,certificate,key,certificate_file,key_file in identities:
+            before=await fixture.call(target,'tls-rejections')
             rejected=await rejected_cluster_tls(node['endpoints']['cluster'],config['transport_ca'],certificate_file,key_file)
-            rows.append({'surface':'cluster-mtls','role':role,'node_id':node['node_id'],**rejected})
+            after=await fixture.call(target,'tls-rejections')
+            proofs=verify_receiver_rejection(before,after,certificate)
+            rows.append({'surface':'cluster-mtls','role':role,'node_id':node['node_id'],
+                'receiver_refused':True,'receiver_verification':proofs,**rejected})
             if role!='member':
                 result=await bad_hello(fixture.manifest,node['endpoints']['in2n'],config['transport_ca'],binding,key,fault='not-enrolled')
                 rows.append({'surface':'in2n-membership','role':role,'node_id':node['node_id'],**result})
         for method in ('n2n/cluster/status','n2n/tools/call','execution/admin'):
             result=await fixture.call('member','wire-role',{'via_node_id':node['node_id'],'method':method})
             rows.append({'surface':'in2n-method-role',**result})
+        controls.append(dict(await positive_cluster(fixture,node),phase='after'))
     selected=fixture.manifest.nodes[0]['endpoints']['in2n'];role,binding,certificate,key,certificate_file,key_file=identities[0]
     for fault in ('wrong-role','replay'):
         prior=await bad_hello(fixture.manifest,selected,config['transport_ca'],binding,key,fault='capture') if fault=='replay' else None
         result=await bad_hello(fixture.manifest,selected,config['transport_ca'],binding,key,fault=fault,old_proof=prior)
         rows.append({'surface':'in2n-transcript',**result})
     for index,port in enumerate(fixture.lab.document['ports']):
-        positive=fixture.lab.store(index)
-        try:
-            positive.endpoints=[f'https://127.0.0.1:{port}'];positive._index=0
-            before=await asyncio.to_thread(positive.read,'control')
-            need(before[0] is not None,'positive_consensus_control_missing')
-        finally:positive.close()
-        controls.append({'surface':'private-etcd','port':port,'positive_control_revision':before[1]})
+        controls.append(dict(await positive_etcd(fixture,index,port),phase='before'))
         for role,_,_,_,certificate_file,key_file in identities:
             result=await asyncio.to_thread(etcd_denied,f'https://127.0.0.1:{port}',str(fixture.lab.root/'pki/client-ca.crt'),certificate_file,key_file)
             rows.append({'surface':'private-etcd-mtls','role':role,'port':port,**result})
+        controls.append(dict(await positive_etcd(fixture,index,port),phase='after'))
     store=fixture.lab.store(0)
     try:
         for surface,path_name,body in [('etcd-outside-prefix','/v3/kv/range',{'key':base64.b64encode(b'/unowned/').decode()}),

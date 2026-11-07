@@ -27,7 +27,7 @@ an unknown original.
 
 | Row | Actual exercised path and observations |
 |---|---|
-| Topology/trust | Actual member attaches outbound to all three Borders. Fresh member, independent-organization and unenrolled certificates fail each cluster mTLS endpoint and each private etcd listener. Each owned target first has a positive TLS or scoped etcd control. Unenrolled/external keys fail actual iN2N hello; an enrolled key with wrong role or a proof replayed onto another TLS transcript fails hello. Authenticated member sends forbidden methods over the actual channel, bypassing only its caller-side allowlist, and observes the receiver refusal. Scoped Border etcd credentials fail outside-prefix and administration reads. Exact member PID has no TCP listener or consensus credentials. |
+| Topology/trust | Actual member attaches outbound to all three Borders. Fresh member, independent-organization and unenrolled certificates fail each cluster mTLS endpoint and each private etcd listener. Each owned target has positive TLS or scoped etcd controls before and after its negatives. Every cluster negative requires a new matching receiver leaf-certificate verification failure; etcd requires an explicit peer authentication TLS alert or exact auth error payload. Refused connections, resets, timeouts and generic HTTP400 cannot qualify a row. Unenrolled/external keys fail actual iN2N hello; an enrolled key with wrong role or a proof replayed onto another TLS transcript fails hello. Authenticated member sends forbidden methods over the actual channel, bypassing only its caller-side allowlist, and observes the receiver refusal. Scoped Border etcd credentials fail outside-prefix and administration reads. Exact member PID has no TCP listener or consensus credentials. |
 | Lost result reply | Production MemberOperations creates a signed controlled result and retains it. After the actual authenticated result RPC, the one-shot hook closes the channel after production result lookup but before the reply write. Original Border has no accepted result. Exact leader is killed; successor performs production reconcile over a surviving iN2N attachment, accepts the same signed result, delivers its ACK and records delivery. |
 | Lost ACK delivery | A second production controlled result is accepted. The one-shot hook closes the actual authenticated ACK RPC after receiver delivery but before calling production acknowledge/persistence. Original cluster ACK remains committed; member ACK remains absent. Exact leader is killed. Successor reconcile reuses the original signed result and original committed ACK, and the member persists it. |
 | Paused old leader / unaware member | Member captures actual committed model1/tool1 proofs while they are fresh. Exact leader receives SIGSTOP; `ps` records stopped state and the same PID/start/command identity. Other Borders observe a higher authority epoch. The member has received no additional authority proof and rejects both old proofs by its production freshness gate. Exact process resumes; one model2 admission succeeds with a higher-epoch proof. Original operation is marked unknown, retaining its claims/capacity. |
@@ -55,3 +55,11 @@ These measurements do not retroactively supply missing timestamps in older rows.
 all original receipts, journals, source/launch/control claims, failures, RPC loss
 observations and counters before stopping the three exact owned voters. Preserve
 earlier failed fixtures and do not report T034 complete from source tests alone.
+
+The Border worker's TLS verification observer is qualification instrumentation.
+It retains the frozen production callback's exact `bool(ok)` result, verification
+mode and CA configuration. Only failed leaf certificate hashes, OpenSSL error
+codes and monotonic timestamps are written privately. Every negative correlates
+a new receiver event with that attempt; old events cannot qualify a later test.
+Observer/storage failures latch a fixture failure. The production TLS module is
+not edited, and the observer is restored when the worker closes.

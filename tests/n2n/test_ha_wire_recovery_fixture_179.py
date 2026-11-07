@@ -154,3 +154,84 @@ def test_no_import_or_parser_path_runs_a_process(monkeypatch):
     monkeypatch.setattr(fixture.subprocess,'run',refused)
     monkeypatch.setattr(asyncio,'create_subprocess_exec',refused)
     with pytest.raises(ValueError):fixture.main(['run'])
+
+
+@pytest.mark.asyncio
+async def test_unavailable_cluster_listener_does_not_qualify_authentication(monkeypatch):
+    from bgp.federation import exporter_tls
+    async def refused(*args,**kwargs):raise ConnectionRefusedError('no listener')
+    monkeypatch.setattr(exporter_tls,'open_connection',refused)
+    with pytest.raises(ConnectionRefusedError):
+        await fixture.rejected_cluster_tls({'host':'127.0.0.1','port':1,'server_name':'localhost'},'ca','cert','key')
+
+
+def test_unavailable_etcd_listener_and_generic_http400_do_not_qualify_authentication(monkeypatch):
+    import httpx
+    context=SimpleNamespace(minimum_version=None,load_cert_chain=lambda *args:None)
+    monkeypatch.setattr(fixture.ssl,'create_default_context',lambda **kwargs:context)
+    class Client:
+        answer=None
+        def __init__(self,**kwargs):pass
+        def __enter__(self):return self
+        def __exit__(self,*args):pass
+        def post(self,*args,**kwargs):
+            if isinstance(self.answer,Exception):raise self.answer
+            return self.answer
+    monkeypatch.setattr(httpx,'Client',Client)
+    Client.answer=httpx.ConnectError('connection refused')
+    Client.answer.__cause__=ConnectionRefusedError('unavailable')
+    with pytest.raises(ValueError,match='credential_refusal_not_observed'):
+        fixture.etcd_denied('https://127.0.0.1:1','ca','cert','key')
+    Client.answer=httpx.Response(400,json={'error':'invalid request','code':3})
+    with pytest.raises(ValueError,match='credential_refusal_not_observed'):
+        fixture.etcd_denied('https://127.0.0.1:1','ca','cert','key')
+    Client.answer=httpx.Response(403,json={'error':'etcdserver: permission denied','code':7})
+    assert fixture.etcd_denied('https://127.0.0.1:1','ca','cert','key')['reason']=='etcdserver: permission denied'
+
+
+def test_only_nested_peer_authentication_tls_alert_qualifies():
+    import ssl
+    import httpx
+    alert=ssl.SSLError('peer rejected client certificate');alert.reason='TLSV1_ALERT_UNKNOWN_CA'
+    wrapped=httpx.ReadError('TLS read');wrapped.__cause__=alert
+    assert fixture.peer_auth_alert(wrapped)=='TLSV1_ALERT_UNKNOWN_CA'
+    for error in (ssl.SSLError('TLS stream truncated'),ConnectionResetError(),TimeoutError(),ConnectionRefusedError()):
+        with pytest.raises(ValueError,match='credential_refusal_not_observed'):fixture.peer_auth_alert(error)
+
+
+def test_tls_observer_preserves_decision_and_requires_fresh_exact_receiver_event(tmp_path):
+    from bgp.federation.certs import create_self_signed
+    from OpenSSL import crypto
+    cert,_=create_self_signed('controlled-tls-observer')
+    leaf=crypto.load_certificate(crypto.FILETYPE_PEM,cert)
+    tmp_path.chmod(0o700);errors=[]
+    class Context:
+        callback=None
+        def get_verify_mode(self):return 3
+        def set_verify(self,mode,callback):assert mode==3;self.callback=callback
+    ctx=Context();factory=fixture.audited_tls_context(lambda **kwargs:ctx,tmp_path,lambda:errors.append(True))
+    assert factory(require_peer=True) is ctx
+    assert ctx.callback(None,leaf,0,0,True) is True and not list(tmp_path.iterdir())
+    assert ctx.callback(None,leaf,18,0,False) is False
+    after=[fixture.decode(fixture.read_private(p)) for p in sorted(tmp_path.iterdir())]
+    assert len(fixture.verify_receiver_rejection([],after,cert))==1 and errors==[]
+    with pytest.raises(ValueError,match='receiver_certificate_rejection_not_observed'):
+        fixture.verify_receiver_rejection(after,after,cert)
+    other,_=create_self_signed('other-client')
+    with pytest.raises(ValueError,match='receiver_certificate_rejection_not_observed'):
+        fixture.verify_receiver_rejection([],after,other)
+
+
+def test_tls_observer_storage_failure_is_latched_and_never_qualifies(tmp_path,monkeypatch):
+    from bgp.federation.certs import create_self_signed
+    from OpenSSL import crypto
+    cert,_=create_self_signed('controlled-tls-observer')
+    leaf=crypto.load_certificate(crypto.FILETYPE_PEM,cert);errors=[];tmp_path.chmod(0o700)
+    class Context:
+        def get_verify_mode(self):return 3
+        def set_verify(self,mode,callback):self.callback=callback
+    ctx=Context();fixture.audited_tls_context(lambda **kwargs:ctx,tmp_path,lambda:errors.append(True))(require_peer=True)
+    def failed(*args):raise OSError('controlled disk failure')
+    monkeypatch.setattr(fixture,'private',failed)
+    with pytest.raises(OSError):ctx.callback(None,leaf,18,0,False)
+    assert errors==[True] and not list(tmp_path.iterdir())
