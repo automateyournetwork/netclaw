@@ -135,3 +135,49 @@ Actual iN2N multiattachment, topology-role negatives, real-profile runner death,
 complete Border/member OS-process restart, HUD, native VS Code and native Mobile
 remain separate mandatory qualification rows. None is waived by this fixture
 source or by the explicit scope flags in its outputs.
+
+## Measured latency safety, distinct from service availability
+
+The historical combined `delay-300ms` row remains a strict healthy-forwarding
+expectation. Its recorded `matrix-network-02` failure is retained: the production
+member gate returned `admission_expired` before the controlled callback. It is not
+rewritten as a pass. The subsequent explicitly named measurement row is:
+
+```text
+python -m labs.ha.matrix --fixture /private/owned-fixture --evidence /private/new-latency-evidence --row latency-safety-300ms
+```
+
+This row measures three scopes separately: NCFED cluster links only, Border-to-etcd
+HTTPS links only, and those two scopes combined. Each proxy adds 150ms per received
+byte chunk in each direction, giving a nominal300ms path round trip; this is an
+observed byte-relay fault model rather than a claim of exact WAN packet latency.
+Raft peer delay remains zero for these three scopes and is explicitly recorded.
+The actual proxy-fronted Raft partition rows remain separate evidence.
+
+Both model and tool admission gates run in every scope. A probe qualifies only if
+its actual callback counter increments exactly once, or if it returns precisely
+`admission_expired`/`no_quorum` with unchanged counters. Transport ambiguity,
+unexpected errors and unexplained effects fail the row. Every scope must then
+heal and complete a distinct new operation through a follower; expired/unknown
+operations are never retried or cleared. The three-second freshness rule remains
+unchanged. `service_availability_qualified=false` and `r09_ready=false` are explicit.
+
+Every probe writes `probe-NNN.json`, even on failure, with elapsed response/effect/
+refusal timing, the freshness bound, operation/ingress identity, exact counters,
+and read/write request durations/revisions. Timing instrumentation records no
+request bodies, credentials, tokens or outputs. Samples include concurrent renewal
+traffic and are labeled accordingly; they must not be summed as if all requests
+were causally part of one admission.
+
+Source analysis explains the limit without assuming connection warmup: the warm
+forwarded path currently performs approximately ten sequential quorum round trips
+(route lookup, channel pre/send checks, handler precheck, operation lookup,
+transaction snapshot/commit, handler post/send checks and caller final check).
+Ten300ms round trips plus a300ms NCFED path already exceed three seconds before
+storage, scheduling and cryptographic overhead. SC-005 requires measured detection,
+election and service-recovery behavior, and the plan explicitly makes no
+zero-interruption promise. Safe refusal can qualify safety under latency while
+healthy300ms service remains unsupported for that path. R09 planning must address
+this measured sequential-round-trip cost before claiming multi-region service;
+blindly extending freshness or dropping atomic membership/principal/leader checks
+is not a qualified fix.

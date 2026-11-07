@@ -26,14 +26,15 @@ from bgp.federation.ha.node import ClusterNode
 from bgp.federation.ha.recovery import export_snapshot
 from bgp.federation.ha.store import EtcdStore
 from .etcd_lab import EtcdLab, private, command
-from .faults import ByteProxy, Evidence, source_digest, owned_call, failure_details
+from .faults import ByteProxy, Evidence, source_digest, owned_call, failure_details, trace_store_requests, latency_outcome
 from .qualify import eventually
 
 SOURCE = contextvars.ContextVar('r08_fixture_source', default=None)
 NETWORK_ROWS = ('minority', 'asymmetric-request', 'asymmetric-response', 'threeway', 'delay-300ms')
 LOCAL_ROWS = ('stale-member', 'clock-forward', 'clock-backward', 'clock-suspend',
               'unknown-commit', 'lost-result', 'lost-ack', 'record-capacity', 'nospace', 'retired-return')
-ALL_ROWS = ('leader-loss-each-node', 'quorum-loss-two-voters', *NETWORK_ROWS, *LOCAL_ROWS, 'full-restart')
+ALL_ROWS = ('leader-loss-each-node', 'quorum-loss-two-voters', *NETWORK_ROWS,
+            'latency-safety-300ms', *LOCAL_ROWS, 'full-restart')
 REFUSALS = (HAError, RpcError, ConnectionError, asyncio.TimeoutError)
 
 
@@ -54,6 +55,7 @@ class MatrixHarness:
         self.nodes, self.stores, self.proxies, self.quorum, self.links = [], [], [], {}, {}
         self.original_open = exporter_tls.open_connection
         self.effects, self.operations, self.case = [], [], 'startup'
+        self.http_timings, self.probe_sequence = [], 0
         self.raft_proxy = hasattr(lab, 'configure') and hasattr(lab, 'observe')
         if (lab.root / 'proxy-owned.json').exists() and not self.raft_proxy:
             raise ValueError('raft_topology_requires_proxy_image')
@@ -76,6 +78,7 @@ class MatrixHarness:
         self.lab.inspect_owned()  # Exact labels, immutable IDs and image first.
         for source in range(3):
             store = self.lab.store(source)
+            trace_store_requests(store, self.manifest.nodes[source]['node_id'], self.http_timings)
             endpoints = []
             for target in range(3):
                 proxy = await ByteProxy(f'border{source}-voter{target}', '127.0.0.1',
@@ -164,21 +167,46 @@ class MatrixHarness:
     async def send(self, operation, node, request):
         return await node.route('n2n/cluster/admission', {'request': request, 'member': operation['member']})
 
-    async def probe(self, operation, node, kind, *, denied=False, ordinal=1):
-        before = self.counters()
+    async def probe(self, operation, node, kind, *, denied=False, ordinal=1, bounded_latency=False):
+        before, began = self.counters(), time.monotonic()
+        sequence = self.probe_sequence; self.probe_sequence += 1
+        offset = len(self.http_timings)
+        measured = {'kind': kind, 'outcome': 'unknown', 'code': None,
+                    'case': self.case, 'operation_id': operation['row']['operation_id'],
+                    'ingress_node_id': node.node_id, 'admission_bound_ms': self.manifest.limits['admission_ms']}
         async def invoke():
             if len(self.effects) >= 64: raise RuntimeError('fixture_effect_bound')
+            measured['effect_started_elapsed_ms'] = round((time.monotonic()-began)*1000, 3)
             self.effects.append(kind)
             return {'controlled_fixture': True}
+        async def send(request):
+            result = await self.send(operation, node, request)
+            measured['reply_received_elapsed_ms'] = round((time.monotonic()-began)*1000, 3)
+            measured['claim_revision'] = result.get('payload', {}).get('commit_revision')
+            return result
         try:
-            await operation['journal'].run(operation['context'], kind, ordinal, c.sha256({'kind': kind}),
-                lambda req: self.send(operation, node, req), invoke)
-        except REFUSALS as exc:
-            if not denied: raise
-            if before != self.counters(): raise AssertionError('refused_gate_invoked_callback')
-            return {'kind': kind, 'outcome': 'refused', 'code': getattr(exc, 'code', type(exc).__name__)}
-        if denied: raise AssertionError('fault_admitted_callback')
-        return {'kind': kind, 'outcome': 'admitted'}
+            try:
+                await operation['journal'].run(operation['context'], kind, ordinal, c.sha256({'kind': kind}), send, invoke)
+            except REFUSALS as exc:
+                code = getattr(exc, 'code', type(exc).__name__)
+                if isinstance(exc, RpcError) and exc.message in ('admission_expired', 'no_quorum'):
+                    code = exc.message
+                measured.update(outcome='refused', code=code)
+                if before != self.counters(): raise AssertionError('refused_gate_invoked_callback')
+                if not denied and not (bounded_latency and code in ('admission_expired', 'no_quorum')):
+                    raise
+                return measured
+            measured['outcome'] = 'admitted'
+            if denied: raise AssertionError('fault_admitted_callback')
+            return measured
+        finally:
+            measured.update(elapsed_ms=round((time.monotonic()-began)*1000, 3),
+                effects_before=before, effects_after=self.counters(),
+                http_samples_complete=len(self.http_timings) < 32768,
+                includes_concurrent_control_traffic=True,
+                http_timings=[{**sample, 'relative_started_ms': round((sample['started_monotonic']-began)*1000, 3)}
+                              for sample in self.http_timings[offset:]])
+            private(self.evidence.path / f'probe-{sequence:03d}.json', measured)
 
     def observations(self):
         return [p.observation() for p in self.proxies]
@@ -268,6 +296,39 @@ class MatrixHarness:
         positive = await self.prepare()
         current = await self.leader()
         await self.probe(positive, next(node for node in self.nodes if node is not current), 'model')
+
+    async def latency_safety(self):
+        overall_before, scopes, observations = self.counters(), [], []
+        for scope in ('cluster-only', 'quorum-only', 'combined'):
+            current = await self.leader(); operation = await self.prepare(current)
+            ingress = next(node for node in self.nodes if node is not current)
+            scope_probes = []
+            try:
+                selected = []
+                if scope in ('cluster-only', 'combined'): selected.extend(self.links.values())
+                if scope in ('quorum-only', 'combined'): selected.extend(self.quorum.values())
+                for proxy in selected: proxy.policy(delay_ms=150)
+                for kind in ('model', 'tool'):
+                    before = self.counters()
+                    probe = await self.probe(operation, ingress, kind, bounded_latency=True)
+                    scope_probes.append({**probe, 'support': latency_outcome(probe, before, self.counters())})
+                observations.extend(proxy.observation() for proxy in selected)
+            finally:
+                await self.heal()
+            # Recovery means a new explicit operation succeeds after healing;
+            # the expired/unknown operation is never resubmitted or reset.
+            positive = await self.prepare()
+            leader = await self.leader()
+            healed = await self.probe(positive, next(node for node in self.nodes if node is not leader), 'model')
+            scopes.append({'scope': scope, 'qualification_target': 'safety-under-latency',
+                'nominal_path_rtt_ms': 300, 'direction_chunk_delay_ms': 150, 'raft_peer_delay_ms': 0,
+                'probes': scope_probes, 'healed_positive_control': healed,
+                'healthy_positive_supported': all(probe['support'] == 'supported-positive' for probe in scope_probes)})
+        self.evidence.row('latency-safety-300ms', passed=True, effects_before=overall_before,
+            effects_after=self.counters(), observations=observations, scopes=scopes,
+            qualification_target='safety-under-latency', service_availability_qualified=False,
+            r09_ready=False, admission_bound_ms=self.manifest.limits['admission_ms'],
+            finding='Success and fail-closed expiry are measured separately; no300msservice-availability claim.')
 
     async def freshness_row(self, name):
         node = await self.leader(); operation = await self.prepare(node)
@@ -596,6 +657,7 @@ class MatrixHarness:
         if row == 'leader-loss-each-node': return await self.leader_loss_each()
         if row == 'quorum-loss-two-voters': return await self.quorum_loss()
         if row == 'full-restart': return await self.full_restart()
+        if row == 'latency-safety-300ms': return await self.latency_safety()
         if row in NETWORK_ROWS: return await self.network_row(row)
         if row in ('stale-member', 'clock-forward', 'clock-backward', 'clock-suspend'): return await self.freshness_row(row)
         if row == 'unknown-commit': return await self.unknown_commit()
@@ -611,7 +673,7 @@ async def run(lab, evidence, rows):
     try:
         await harness.start()
         for row in rows:
-            await asyncio.wait_for(harness.run_row(row), 180 if row in ('leader-loss-each-node', 'full-restart') else 90)
+            await asyncio.wait_for(harness.run_row(row), 180 if row in ('leader-loss-each-node', 'full-restart', 'latency-safety-300ms') else 90)
     except BaseException as exc:
         harness.evidence.fail(harness.case, exc)
         raise

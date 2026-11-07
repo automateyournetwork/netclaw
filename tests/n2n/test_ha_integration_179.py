@@ -301,3 +301,28 @@ def test_fresh_cluster_identity_has_distinct_keys_pinned_audience_and_loopback_e
     with pytest.raises(FileExistsError): lab.prepare_cluster_identity()
     assert (identity/'manifest.json').read_bytes() == envelope
     assert all(path.stat().st_mode & 0o077 == 0 for directory in (identity, transport) for path in directory.iterdir())
+
+
+@pytest.mark.parametrize('code', ['admission_expired', 'no_quorum'])
+def test_latency_safety_requires_exact_bounded_refusal_and_zero_added_effects(code):
+    from labs.ha.faults import latency_outcome
+    before = {'fixture_model': 1, 'fixture_tool': 2}
+    probe = {'kind': 'model', 'outcome': 'refused', 'code': code}
+    assert latency_outcome(probe, before, dict(before)) == 'bounded-safe-refusal'
+    with pytest.raises(AssertionError): latency_outcome(probe, before, dict(before, fixture_model=2))
+    with pytest.raises(AssertionError): latency_outcome(dict(probe, code='transport_unknown'), before, dict(before))
+    assert latency_outcome({'kind': 'model', 'outcome': 'admitted'}, before, dict(before, fixture_model=2)) == 'supported-positive'
+
+
+def test_request_timing_instrumentation_preserves_results_without_recording_secrets():
+    from labs.ha.faults import trace_store_requests
+    class Store:
+        def _request(self, path, body, **options):
+            assert body['password'] == 'never-record-this'
+            return {'header': {'revision': '9'}, 'token': 'never-record-token'}
+    store, timings = Store(), []
+    trace_store_requests(store, 'node-one', timings)
+    result = store._request('/v3/auth/authenticate', {'password': 'never-record-this'}, read_only=True)
+    assert result['token'] == 'never-record-token'
+    assert timings[0]['revision'] == '9' and timings[0]['elapsed_ms'] >= 0
+    assert 'never-record' not in json.dumps(timings)

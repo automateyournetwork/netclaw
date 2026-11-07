@@ -14,7 +14,7 @@ import traceback
 from .etcd_lab import private
 
 ROWS = ('minority', 'asymmetric-request', 'asymmetric-response', 'threeway', 'delay-300ms',
-        'stale-member', 'clock-forward', 'clock-backward', 'clock-suspend', 'unknown-commit',
+        'latency-safety-300ms', 'stale-member', 'clock-forward', 'clock-backward', 'clock-suspend', 'unknown-commit',
         'lost-result', 'lost-ack', 'record-capacity', 'nospace', 'full-restart',
         'retired-return', 'fenced-restore')
 
@@ -211,7 +211,7 @@ _FIXTURE_FAILURES = frozenset({
     'epoch_not_increased', 'old_epoch_admitted', 'restart_durable_state_changed', 'member_incarnation_reused',
     'new_id_bypassed_unknown_reservation', 'restart_ack_changed', 'fixture_effect_bound',
     'restart_export_required', 'restart_baseline_not_running', 'restart_identity_changed',
-    'restart_stop_not_verified', 'restart_start_not_verified', 'fixture_cleanup_incomplete',
+    'restart_stop_not_verified', 'restart_start_not_verified', 'fixture_cleanup_incomplete', 'latency_effect_counter_mismatch', 'latency_safety_not_established',
 })
 
 
@@ -231,3 +231,38 @@ def failure_details(exc):
     return {'error_type': type(exc).__name__, 'code': code,
             'message': message if message in _FIXTURE_FAILURES else (code if code is not None else 'private_error_redacted'),
             'frames': frames}
+
+
+def trace_store_requests(store, source, records):
+    """Instrument timings only; never persist request bodies/authentication data."""
+    original = store._request
+    def request(path, body, **options):
+        began = time.monotonic()
+        result, error = None, None
+        try:
+            result = original(path, body, **options)
+            return result
+        except BaseException as exc:
+            error = failure_details(exc)
+            raise
+        finally:
+            revision = result.get('header', {}).get('revision') if isinstance(result, dict) else None
+            if len(records) < 32768:
+                records.append({'source_node': source, 'path': path, 'started_monotonic': began,
+                    'elapsed_ms': round((time.monotonic()-began)*1000, 3),
+                    'read_only': options.get('read_only', False), 'revision': revision,
+                    'error_code': error['code'] if error else None})
+    store._request = request
+
+
+def latency_outcome(probe, before, after):
+    """Safety acceptance is distinct from healthy service availability."""
+    if probe['outcome'] == 'admitted':
+        expected = dict(before)
+        expected['fixture_' + probe['kind']] += 1
+        if after != expected: raise AssertionError('latency_effect_counter_mismatch')
+        return 'supported-positive'
+    if (probe['outcome'] == 'refused' and probe.get('code') in ('admission_expired', 'no_quorum')
+            and before == after):
+        return 'bounded-safe-refusal'
+    raise AssertionError('latency_safety_not_established')
