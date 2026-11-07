@@ -199,4 +199,3 @@ test('VM Security without a source says so instead of showing an empty result', 
   await until(() => button() && !button().disabled); button().click();
   await until(() => f.body().includes('No VM Security source is configured'));
 });
-
