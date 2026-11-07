@@ -1,5 +1,9 @@
 # R07 acceptance and source integration
 
+Source PR: [#334](https://github.com/automateyournetwork/netclaw/pull/334).
+Its final checks/merge record and private closeout receipt are authoritative for
+the merged commit; the source document itself precedes that merge.
+
 The owner accepted the completed R07/Spec178 evidence and recovery targets on
 2026-11-07 and requested commit, PR, merge, completed-branch deletion and return
 to main. All31tasks are closed. This supersedes the source-integration hold only;
