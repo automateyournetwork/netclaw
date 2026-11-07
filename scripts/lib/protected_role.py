@@ -212,7 +212,7 @@ def validate_ha_profile(cfg, profile, home, root):
          'ha_required_marker_mismatch')
     sources = document(cfg['source_manifest'])['files']
     need({'mcp-servers/protocol-mcp/bgp/federation/ha/' + name for name in
-          ('factory.py','config.py','authority.py','channel.py','internal.py','member.py','border.py','operations.py','admission.py','store.py','effect.py','mcp_transport.py')}
+          ('factory.py','config.py','authority.py','channel.py','internal.py','member.py','border.py','operations.py','admission.py','store.py','effect.py','mcp_transport.py','model_transport.py')}
          <= sources.keys(), 'ha_source_incomplete')
     if cfg['role'] == 'border':
         nodes = [node for node in value['nodes'] if node['node_id'] == config['node_id']]

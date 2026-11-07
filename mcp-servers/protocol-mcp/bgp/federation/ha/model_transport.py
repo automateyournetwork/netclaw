@@ -116,7 +116,8 @@ async def ha_model_forward(executor, payload, request, guard_url):
     """
     permit = scope('model')
     from ..protected_docker import _public_bytes, _docker_host
-    check(os.name == 'posix' and guard_url == 'http://127.0.0.1:4000', 'ha_runtime_unqualified', 503)
+    check(os.name == 'posix' and guard_url == 'docker-exec://' + executor.ollama['model_container_id']
+          + '/127.0.0.1:4000', 'ha_runtime_unqualified', 503)
     if (_public_bytes(executor.docker_config/'config.json') != b'{}'
             or _docker_host(executor.config['docker_host']) != executor.docker_host):
         raise RuntimeRefused('native_docker_configuration_changed')

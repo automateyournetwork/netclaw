@@ -613,7 +613,7 @@ class DockerExecutor:
         except _ollama.OllamaRefused as exc:
             raise RuntimeRefused(exc.code) from None
 
-    async def command(self, *args, timeout=60, input_data=None, before_input=None):
+    async def command(self, *args, timeout=60, input_data=None):
         if _public_bytes(self.docker_config / "config.json") != b"{}":
             raise RuntimeRefused("native_docker_configuration_changed")
         if _docker_host(self.config["docker_host"]) != self.docker_host:
@@ -636,7 +636,6 @@ class DockerExecutor:
                 if input_data is not None:
                     if not isinstance(input_data, bytes) or len(input_data) > 1048576:
                         raise RuntimeRefused('docker_input_bound')
-                    if before_input is not None: before_input()
                     process.stdin.write(input_data)
                     await process.stdin.drain()
                     process.stdin.close()
@@ -675,15 +674,12 @@ class DockerExecutor:
             remaining = (payload['limits']['expires_at_ms']-int(time.time()*1000))/1000
             deadline = min(remaining, payload['limits']['inference_timeout_ms']/1000)
             if deadline <= 0: raise RuntimeRefused('approval_expired')
-            handoff = None
             if 'cluster' in payload:
-                from .ha.effect import scope
-                permit = scope('model')
-                handoff = lambda: permit.handoff('model')
+                from .ha.model_transport import ha_model_forward
+                return strict_inference_json(await ha_model_forward(self, payload, request, guard_url))
             raw = await self.command('exec', '--interactive', '--user', str(self.ollama['guard_uid']),
                 self.ollama['model_container_id'], 'python3', '-c', _OLLAMA_GUARD_REQUEST,
-                input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline,
-                **({'before_input': handoff} if handoff is not None else {}))
+                input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline)
             return strict_inference_json(raw)
         guard_headers = {"X-DC-Auth": self.guard_token, "Content-Type": "application/json"}
         async with httpx.AsyncClient(trust_env=False, follow_redirects=False,

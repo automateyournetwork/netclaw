@@ -203,7 +203,12 @@ async def invoke_mcp(config, arguments, operation_root, *, ha_required=False, ha
                     need(len(selected)==1 and sha(selected[0].input_schema)==config['input_schema_sha256'],'mcp_schema_changed')
                     schema_evidence = {'tool':config['tool'],'inputSchema':selected[0].input_schema}
                     private_write(operation_root/'mcp-schema.json',canonical(schema_evidence))
-                    private_write(operation_root/'mcp-call.json',canonical({'tool':config['tool'],'arguments':arguments,'dispatched_at_ms':int(time.time()*1000)}))
+                    intent = {'tool':config['tool'], 'arguments':arguments}
+                    if ha_required:
+                        intent.update(state='intent_prepared', prepared_at_ms=int(time.time()*1000))
+                    else:
+                        intent['dispatched_at_ms'] = int(time.time()*1000)
+                    private_write(operation_root/'mcp-call.json',canonical(intent))
                     async def call():
                         nonlocal called
                         called = True

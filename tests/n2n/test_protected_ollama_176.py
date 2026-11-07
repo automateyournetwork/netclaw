@@ -63,6 +63,16 @@ def test_profile_cannot_silently_widen_or_replace_model(tmp_path,key,value):
     with pytest.raises(ollama.OllamaRefused):ollama.validate_profile(selected)
 
 
+@pytest.mark.parametrize('name,accepted', [('netclaw-r08-owned-model',True),
+    ('netclaw-r05-owned-model',True),('netclaw-r09-unqualified-model',False),
+    ('netclaw-r08-',False),('foreign-r08-model',False)])
+def test_r08_owned_namespace_is_explicit_and_narrow(tmp_path,name,accepted):
+    selected=profile(tmp_path);selected['model_container']=name
+    if accepted:assert ollama.validate_profile(selected)==selected
+    else:
+        with pytest.raises(ollama.OllamaRefused,match='ollama_container_unowned'):ollama.validate_profile(selected)
+
+
 def test_runner_latch_blocks_new_operation_after_timeout_and_restart(tmp_path):
     path=tmp_path/'runner.sqlite';revision='a'*64
     latch=ollama.RunnerLatch(path,revision)

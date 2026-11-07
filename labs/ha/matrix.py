@@ -405,7 +405,7 @@ class MatrixHarness:
             for row in alarms.get('alarms', []):
                 if row.get('alarm') in ('NOSPACE', 1):
                     await asyncio.to_thread(admin._request, '/v3/maintenance/alarm',
-                        {'action': 'DEACTIVATE', 'memberID': str(row['memberID']), 'alarm': 'NOSPACE'})
+                        {'action': 'DEACTIVATE', 'memberID': str(row.get('memberID', '0')), 'alarm': 'NOSPACE'})
             restored = await asyncio.to_thread(admin._request, '/v3/maintenance/alarm', {'action': 'GET'}, read_only=True)
             private(self.evidence.path / 'nospace-restored.json', restored)
             if restored.get('alarms'): raise AssertionError('nospace_cleanup_failed')

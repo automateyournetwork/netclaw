@@ -87,12 +87,12 @@ async def test_controlled_model_helper_never_retries_or_sends_stale_http(tmp_pat
     admitted = EffectScope('model',fresh); token = CURRENT.set(admitted)
     try:
         if fault == 'none':
-            assert json.loads(await ha_model_forward(executor,payload,{'fixture':'input'},'http://127.0.0.1:4000')) == {'controlled':True}
+            assert json.loads(await ha_model_forward(executor,payload,{'fixture':'input'},'docker-exec://fixture/127.0.0.1:4000')) == {'controlled':True}
             assert captured[0][1] == {'fixture':'input'} and admitted.handed_off
             assert len(captured)==1 and len(launches)==1
         else:
             with pytest.raises((RuntimeUnknown,HAError)):
-                await ha_model_forward(executor,payload,{'fixture':'input'},'http://127.0.0.1:4000')
+                await ha_model_forward(executor,payload,{'fixture':'input'},'docker-exec://fixture/127.0.0.1:4000')
             assert not captured and len(launches)==1
             assert admitted.handed_off is (fault != 'expired_host')
     finally:
@@ -102,7 +102,7 @@ async def test_controlled_model_helper_never_retries_or_sends_stale_http(tmp_pat
 @pytest.mark.asyncio
 async def test_model_transport_requires_live_scope_before_child_launch(tmp_path):
     with pytest.raises(HAError,match='ha_runtime_unqualified'):
-        await ha_model_forward(None,{}, {},'http://127.0.0.1:4000')
+        await ha_model_forward(None,{}, {},'docker-exec://fixture/127.0.0.1:4000')
 
 
 @pytest.mark.asyncio
@@ -152,7 +152,7 @@ async def test_model_cancellation_reaps_owned_client_and_sends_no_input(tmp_path
     payload={'limits':{'expires_at_ms':int(time.time()*1000)+5000,'inference_timeout_ms':3000}}
     admitted=EffectScope('model',lambda:3000);token=CURRENT.set(admitted)
     try:
-        task=asyncio.create_task(ha_model_forward(executor,payload,{},'http://127.0.0.1:4000'))
+        task=asyncio.create_task(ha_model_forward(executor,payload,{},'docker-exec://fixture/127.0.0.1:4000'))
         await asyncio.wait_for(launched.wait(),1);task.cancel()
         with pytest.raises(asyncio.CancelledError):await asyncio.wait_for(task,1)
         assert process.returncode is not None and not admitted.handed_off

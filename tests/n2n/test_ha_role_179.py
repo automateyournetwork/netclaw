@@ -40,7 +40,7 @@ def ha_role(selected):
     # Non-executing closed source fixture for the stdlib preflight only.
     for directory in [source, *[p for p in source.rglob('*') if p.is_dir()]]: directory.chmod(0o755)
     pinned = json.loads(Path(cfg['source_manifest']).read_text())
-    for name in ('factory.py','config.py','authority.py','channel.py','internal.py','member.py','border.py','operations.py','admission.py','store.py','effect.py','mcp_transport.py'):
+    for name in ('factory.py','config.py','authority.py','channel.py','internal.py','member.py','border.py','operations.py','admission.py','store.py','effect.py','mcp_transport.py','model_transport.py'):
         path = source/'mcp-servers/protocol-mcp/bgp/federation/ha'/name
         path.parent.mkdir(exist_ok=True); path.write_bytes(b'# controlled non-executing source fixture\n'); path.chmod(0o444)
         pinned['files'][str(path.relative_to(source))] = hashlib.sha256(path.read_bytes()).hexdigest()

@@ -92,7 +92,7 @@ def validate_profile(value):
          value['runner_manifest_sha256'] == RUNNER_MANIFESTS[value['architecture']], 'ollama_artifact_unqualified')
     need(isinstance(value['model_image'], str) and value['model_image'].startswith('sha256:'), 'ollama_image_unpinned')
     sha(value['model_image'][7:]); sha(value['model_container_id']); sha(value['confinement_sha256'])
-    need(isinstance(value['model_container'], str) and re.fullmatch(r'netclaw-r05-[a-z0-9][a-z0-9_.-]{0,110}', value['model_container']), 'ollama_container_unowned')
+    need(isinstance(value['model_container'], str) and re.fullmatch(r'netclaw-r(?:05|08)-[a-z0-9][a-z0-9_.-]{0,110}', value['model_container']), 'ollama_container_unowned')
     for key in ('model_store', 'confinement_file'):
         path = value[key]
         need(isinstance(path, str) and 0 < len(path) <= 4096 and '\x00' not in path and ',' not in path
