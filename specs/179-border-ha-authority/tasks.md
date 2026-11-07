@@ -26,7 +26,7 @@ quorum authority;leader loss permits distinct fresh work while old work is retai
 
 - [x] T011 [US1] Write actual NCFED cluster handshake/forwarding and multiattachment tests in tests/n2n/test_ha_channels_179.py (FR-003/004/011/026).
 - [x] T012 [US1] Implement separately enrolled NCFED ClusterChannel with exact transcript/role/method checks in mcp-servers/protocol-mcp/bgp/federation/ha/channel.py (FR-011/012/026).
-- [ ] T013 [US1] Integrate cluster lifecycle and node-keyed outbound iN2N attachments in federation/service.py,internal_security.py and bgp-daemon-v2.py (FR-003/004/023).
+- [x] T013 [US1] Integrate cluster lifecycle and node-keyed outbound iN2N attachments in federation/service.py,internal_security.py and bgp-daemon-v2.py (FR-003/004/023).
 - [x] T014 [US1] Add explicit protectedv2 cluster review/approval/result/ACK and stable principal audience in federation/protected_contract.py with tests/n2n/test_ha_execution_contract_179.py (FR-001/003/008/010).
 - [x] T015 [US1] Implement quorum-wide review/nonce/approval/revocation and exact dispatch ownership plus narrow follower forwarding in federation/ha/operations.py,protected_service.py (FR-003/008/009/010).
 - [x] T016 [US1] Recover original signed member result/ACK through surviving nodes without redispatch in federation/protected_service.py,protected_store.py and tests/n2n/test_ha_results_179.py (FR-008/009/010).
@@ -38,8 +38,8 @@ unknowns and resource fences remain across IDs and leader changes.
 
 - [x] T017 [US2] Write claim/freshness/pause/clock/unknown/runner exclusion tests in tests/n2n/test_ha_admission_179.py (FR-005/006/007/009).
 - [x] T018 [US2] Implement member nonce/incarnation/monotonic receipt consumption and durable journal in federation/ha/admission.py (FR-005/006/007/009).
-- [ ] T019 [US2] Bind quorum admission into actual ScopedInference and Docker/executor construction in federation/protected_runtime.py,protected_docker.py,protected_ollama.py (FR-005/006/009/023).
-- [ ] T020 [US2] Bind fresh tool admission at the native effect boundary and block legacy/unqualified paths in federation/protected_service.py,service.py and scripts/lib/protected_role.py (FR-005/006/009/023).
+- [x] T019 [US2] Bind quorum admission into actual ScopedInference and Docker/executor construction in federation/protected_runtime.py,protected_docker.py,protected_ollama.py (FR-005/006/009/023).
+- [x] T020 [US2] Bind fresh tool admission at the native effect boundary and block legacy/unqualified paths in federation/protected_service.py,service.py and scripts/lib/protected_role.py (FR-005/006/009/023).
 - [ ] T021 [US2] Run actual3voter/NCFED minority/asymmetric/threeway/delay/stale/clock/quota fault suite from labs/ha/qualify.py and tests/n2n/test_ha_integration_179.py (FR-002/005/006/007/009/013/020;SC-001/002).
 
 ## Phase 5 — US3: Lifecycle and recovery
@@ -50,7 +50,7 @@ or unfreeze work missing from a stale snapshot.
 - [x] T022 [US3] Write restart/retirement/restore-evidence-gap tests in tests/n2n/test_ha_recovery_179.py (FR-008/009/014/015).
 - [x] T023 [US3] Implement majority-gated drain/retire/re-enroll and safe voter changes in federation/ha/lifecycle.py (FR-014).
 - [x] T024 [US3] Implement trusted owned-process isolation receipts,export/fenced restore and one-use activation in scripts/lib/ha_cluster.py and federation/ha/recovery.py (FR-015/022).
-- [ ] T025 [US3] Run actual fullrestart/retiredreturn/fencedrestore/storagegap fixtures in labs/ha/recovery_lab.py and record specs/179-border-ha-authority/verification.md (FR-015/020/021;SC-001/002).
+- [x] T025 [US3] Run actual fullrestart/retiredreturn/fencedrestore/storagegap fixtures in labs/ha/recovery_lab.py and record specs/179-border-ha-authority/verification.md (FR-015/020/021;SC-001/002).
 
 ## Phase 6 — US4: Operating clients
 
@@ -58,13 +58,13 @@ Independent test: actual browser/editor/Mobile retain cluster identity,exact pen
 review/sent markers and original result while node or authority changes.
 
 - [x] T026 [US4] Add cross-language standalone/cluster/negative golden descriptors in tests/fixtures/ha-179 and client contract tests (FR-016/017/018/019).
-- [ ] T027 [US4] Implement shared cluster device enrollment/revocation and retained-key hello in federation/mobile_enrollment.py,edge.py and tests/n2n/test_ha_edge_179.py (FR-018/019).
+- [x] T027 [US4] Implement shared cluster device enrollment/revocation and retained-key hello in federation/mobile_enrollment.py,edge.py and tests/n2n/test_ha_edge_179.py (FR-018/019).
 - [x] T028 [US4] Implement cluster descriptor/typed status/forwarding in ui/netclaw-visual/src/hud-server/protected-{server,client,operations}.js (FR-003/016/019).
 - [x] T029 [US4] Implement HUD cluster audiences,status and stale-review/original-result recovery in src/shared/protected-* and dashboard operation views with tests (FR-016/019).
 - [x] T030 [US4] Implement VSCode cluster profile/endpoint manifest and CAS selection in extensions/netclaw-vscode/src/state/profiles.ts,connection/connect.ts,client/owner.ts (FR-017/019).
 - [x] T031 [US4] Implement VSCode authority display,native exact review and original-reference recovery in extensions/netclaw-vscode/src/views/owner.ts,client/combined.ts with tests (FR-017/019).
-- [ ] T032 [US4] Implement Mobile cluster enrollment,retained-key alternate endpoint and secure reference scope in mobile/netclaw-mobile/lib/ncfed/ and cloud/owner_client.dart with tests (FR-018/019).
-- [ ] T033 [US4] Implement Mobile authority/quorum/stale-review flows in mobile/netclaw-mobile/lib/screens/ and reconnect wiring with tests (FR-018/019).
+- [x] T032 [US4] Implement Mobile cluster enrollment,retained-key alternate endpoint and secure reference scope in mobile/netclaw-mobile/lib/ncfed/ and cloud/owner_client.dart with tests (FR-018/019).
+- [x] T033 [US4] Implement Mobile authority/quorum/stale-review flows in mobile/netclaw-mobile/lib/screens/ and reconnect wiring with tests (FR-018/019).
 
 ## Phase 7 — Fixture gate and real-runtime qualification
 
@@ -79,8 +79,8 @@ review/sent markers and original result while node or authority changes.
 
 ## Phase 8 — Coherence and closeout
 
-- [ ] T042 Complete private setup/status/lifecycle CLI and scoped installer/config declarations in scripts/ha-cluster.py,scripts/lib/install-steps.sh,installer catalog and .env.example (FR-024).
-- [ ] T043 Reconcile all artifact touchpoints and unchanged component counts;maintainer-only documentation in SOUL.md,TOOLS.md,protocol/n2n documentation and specs/179-border-ha-authority/coherence.md (FR-023/024/025/026).
+- [x] T042 Complete private setup/status/lifecycle CLI and scoped installer/config declarations in scripts/ha-cluster.py,scripts/lib/install-steps.sh,installer catalog and .env.example (FR-024).
+- [x] T043 Reconcile all artifact touchpoints and unchanged component counts;maintainer-only documentation in SOUL.md,TOOLS.md,protocol/n2n documentation and specs/179-border-ha-authority/coherence.md (FR-023/024/025/026).
 - [ ] T044 Run affected full federation/HUD/editor/Flutter/build/analyzer/SDD/catalog/registration checks and review final source;record verification.md (FR-023/024;SC-006).
 - [ ] T045 Write operator runbooks and exact row-to-artifact evidence matrix retaining every limitation/failure in specs/179-border-ha-authority/runbook.md,verification.md (FR-020/021/024;SC-001–006).
 - [ ] T046 Export/hash consistent private evidence and verify exact owned local cleanup,retained authority and retirement preservation in private receipts and verification.md (FR-022;SC-006).
@@ -133,3 +133,18 @@ actual browser/editor acceptance remains T038/T039. Shared Mobile enrollment
 and service wiring are under integrated verification; native Mobile remains open.
 The combined targeted Python batch passes235tests. These are source/controlled
 verification results, not REAL model/native execution or completed R08.
+
+## Integrated source completion — 2026-11-07
+
+T013/T019/T020/T027 now close their implementation scope with the actual service,
+profile3 launch, cluster edge and final model/MCP handoff paths integrated.
+The coordinator's full federation suite passes1998tests,5existing skips; later
+setup/role/export/process checks pass110tests and56subtests. These source gates
+include real OS-pipe/TLS checks but do not replace REAL runtime qualification.
+T032/T033 close Mobile implementation after integrated525tests and clean analyzer;
+T040 still requires actual native simulator journeys. T042/T043 close private
+setup safeguards and maintainer/catalog coherence with the recorded source
+checks in coherence.md. HUD build and editor TypeScript checks pass. All actual
+fixture/REAL/native, evidence/cleanup and owner-acceptance tasks stay open until
+their own complete evidence is recorded. Process fixture cleanup failures remain
+explicit in verification.md and cannot be hidden by these source checkboxes.

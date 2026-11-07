@@ -140,3 +140,42 @@ reported overall success despite those cleanup exit codes. Keep that evidence
 qualification limit; corrected source must propagate cleanup failure and prove
 graceful shutdown separately. All exact owned worker exits/sockets and the final
 six-container stop are independently recorded. No signed REAL result is implied.
+
+## Fenced restore and corrected shutdown
+
+`fenced-restore-fixture-01` completes all actual phases on source d3ed8c3c and
+reviewed plan b79584f4671e7a69b8ba546d6ba9e8c278eafe85895b6fa76c1ecddab0b6f5b3.
+Its dedicated original generation has exactly one member. Trusted host capture
+records all three live voter IDs, three Border processes and the member process.
+Operation A completes with controlled signed output and released reservations;
+the stale snapshot is revision10. Later operation B consumes model1 and becomes
+unknown at revision15; B, its committed claim and current reservations are absent
+or obsolete in the stale snapshot. Later evidence is exported separately.
+
+All four original worker processes then exit0 with their exact owned sockets
+removed. This supplies actual corrected graceful shutdown proof without erasing
+the earlier process-fixture-01 failure. All three original voters are stopped,
+disconnected and restart-disabled before the replacement three start. No more
+than three R08 voters run concurrently. The offline enrollment signer stays out
+of replacement runtimes; node/install/key identities and generation change.
+
+Fresh actual host isolation receipt2c08f0c5-556a-4b25-9197-c41968535cbd authorizes
+installation/activation. Inactive campaign refuses recovery_fenced. After status
+authority activates,15restored records match expected transformations and fresh
+prepare/model/tool admission all refuse recovery_fenced with capacity_frozen.
+Missing later evidence is not recreated or claimed recovered. Three controlled
+callbacks;zero model/native calls. Replacement voters are exported and stopped
+under their separate exact-owned retirement receipt. T025 fixture scope closes;
+REAL restore remains T037. T021/T034 still require the independently identified
+paused-leader and actual iN2N result/ACK loss/trust follow-up.
+
+## Integrated checks
+
+The coordinator's full federation suite passes1998tests with5existing skips and
+104warnings in115.72s. Later setup/role/export/process checks pass110tests and
+56subtests. Corrected restore/process integration passes31tests. HUD538tests,
+editor211tests with3existing skips, editor TypeScript/build and HUD Vite build
+pass. Mobile525tests and analyzer pass. Native binaries and real app journeys
+remain separate. Fresh R08 model/guard logging now pins complete non-rotating
+Docker logs; private guard ingress logs still require stopped-runner completeness
+checks. A reserved inference row is never an actual send counter.
