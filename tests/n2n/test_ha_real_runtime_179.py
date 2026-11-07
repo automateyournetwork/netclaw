@@ -6,6 +6,7 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sqlite3
 import sys
 from types import SimpleNamespace
 import uuid
@@ -177,3 +178,115 @@ def test_help_performs_no_runtime_import_or_action():
     result = subprocess.run([sys.executable, '-S', '-B', '-m', 'labs.ha.real_runtime', '--help'],
                             cwd=SOURCE, capture_output=True, timeout=5)
     assert result.returncode == 0 and b'export-operation' in result.stdout
+
+
+def evidence_run(tmp_path):
+    value = budget(tmp_path)
+    run = Rehearsal.__new__(Rehearsal)
+    run.root, run.budget, run.source = value.root, value, SOURCE
+    run.plan = {'run_id': value.run_id, 'source_sha256': 'c' * 64}
+    runtime = value.root / 'homes/member/netclaw-federation/runtime'
+    runtime.mkdir(parents=True, mode=0o700)
+    for parent in runtime.parents:
+        if parent == value.root: break
+        parent.chmod(0o700)
+    claim = reserve(value); value.claim_send(claim, surface='runner')
+    write_new(value.root / 'claim.json', claim)
+    path = runtime / 'inference.sqlite'
+    write_new(path, b'')
+    with sqlite3.connect(path) as db:
+        db.execute('CREATE TABLE protected_inference(operation_id TEXT, ordinal INTEGER, state TEXT, request_sha256 TEXT, response_sha256 TEXT)')
+        db.execute('INSERT INTO protected_inference VALUES(?,1,?,?,NULL)', (claim['operation_id'], 'claimed', 'd' * 64))
+    return run, claim, runtime
+
+
+def test_claimed_inference_and_native_intent_are_not_actual_call_counters(tmp_path):
+    from labs.ha.real_evidence import execution_evidence
+    run, claim, runtime = evidence_run(tmp_path)
+    tool = runtime / claim['operation_id'] / 'tool'; tool.mkdir(parents=True, mode=0o700)
+    tool.parent.chmod(0o700)
+    write_new(tool / 'mcp-call.json', {'state': 'intent_prepared', 'tool': 'subnet_calculator'})
+    observed = execution_evidence(run.root, claim['operation_id'])
+    assert observed['inference_claims']['total'] == 1
+    assert observed['inference_claims']['finished_responses'] == 0
+    assert observed['actual_effect_totals'] == {'model_forwards': None, 'native_handoffs': None}
+    assert observed['operation_artifacts']['tool/mcp-call.json']['value']['state'] == 'intent_prepared'
+    assert observed['independent_counter_artifacts']['model']['available'] is False
+
+
+def test_unknown_export_survives_missing_ack_and_quorum_without_releasing_slot(tmp_path):
+    run, claim, runtime = evidence_run(tmp_path)
+    run._consensus_evidence = lambda: {'available': False, 'reason': 'no_quorum'}
+    destination = run.root / 'unknown-export'
+    result = run.export_unknown(run.root / 'claim.json', destination)
+    packet = json.loads((destination / 'packet.json').read_bytes())
+    assert result['successful_native_workload'] is False
+    assert packet['original_ids'] == {k: claim[k] for k in ('operation_id', 'client_nonce', 'review_digest')}
+    assert packet['result_available'] is False and packet['ack_available'] is False
+    assert packet['actual_effect_totals'] == {'model_forwards': None, 'native_handoffs': None}
+    assert packet['globally_consistent_snapshot'] is False and packet['full_matrix_qualified'] is False
+    assert json.loads((destination / 'execution-evidence.json').read_bytes())['journals']['inference']['available'] is True
+    assert run.budget.snapshot()['reservations'][0]['state'] == 'unknown'
+    with pytest.raises(RehearsalRefused, match='unresolved'):
+        reserve(run.budget, 'mobile')
+
+
+def test_unknown_export_retains_consensus_claims_and_rejects_wrong_operation(tmp_path):
+    run, claim, runtime = evidence_run(tmp_path)
+    row = {'operation_id': claim['operation_id'], 'client_nonce': claim['client_nonce'],
+           'review_digest': claim['review_digest'], 'attempt_id': identity(), 'state': 'outcome_unknown',
+           'approval': None, 'ack': None}
+    records = {'operations/' + claim['operation_id']: {'value': row, 'mod_revision': 7},
+               'resources/held': {'value': {'state': 'reserved', 'operation_id': claim['operation_id']}, 'mod_revision': 7},
+               'claims/' + claim['operation_id'] + '/model1': {'value': {'state': 'committed'}, 'mod_revision': 8}}
+    run._consensus_evidence = lambda: {'available': True, 'snapshot': {'records': records}}
+    run.export_unknown(run.root / 'claim.json', run.root / 'snapshot-export')
+    assert json.loads((run.root / 'snapshot-export/consensus-evidence.json').read_bytes())['snapshot']['records'] == records
+    row['operation_id'] = identity()
+    with pytest.raises(RehearsalRefused, match='original_operation_mismatch'):
+        run.export_unknown(run.root / 'claim.json', run.root / 'bad-export')
+    assert run.budget.snapshot()['reservations'][0]['state'] == 'unknown'
+
+
+def test_counter_observations_are_copied_but_do_not_assert_measured_totals(tmp_path):
+    from labs.ha.real_evidence import execution_evidence
+    run, claim, _ = evidence_run(tmp_path)
+    directory = private_directory(run.root / 'counter-observations', create=True)
+    # Even plausible caller-provided values are observations, not proof of sends.
+    write_new(directory / 'model.json', {'actual_calls': 0, 'at_ms': 1})
+    observed = execution_evidence(run.root, claim['operation_id'])
+    artifact = observed['independent_counter_artifacts']['model']
+    assert artifact['available'] is True and artifact['value']['actual_calls'] == 0
+    assert artifact['interpretation'] == 'unverified_observation'
+    assert observed['actual_effect_totals']['model_forwards'] is None
+
+
+def test_evidence_reads_committed_wal_rows_without_changing_execution_state(tmp_path):
+    from labs.ha.real_evidence import execution_evidence
+    run, claim, runtime = evidence_run(tmp_path)
+    db = sqlite3.connect(runtime / 'inference.sqlite')
+    try:
+        db.execute('PRAGMA journal_mode=WAL')
+        db.execute("UPDATE protected_inference SET state='finished',response_sha256=?", ('e' * 64,))
+        db.commit()
+        db.execute('BEGIN IMMEDIATE')
+        db.execute("UPDATE protected_inference SET state='uncommitted-change'")
+        observed = execution_evidence(run.root, claim['operation_id'])
+        assert observed['inference_claims']['finished_responses'] == 1
+        assert observed['actual_effect_totals']['model_forwards'] is None
+        assert db.execute('SELECT state FROM protected_inference').fetchone()[0] == 'uncommitted-change'
+        db.rollback()
+        assert db.execute('SELECT state FROM protected_inference').fetchone()[0] == 'finished'
+    finally:
+        db.close()
+
+
+def test_unknown_export_failure_does_not_release_budget(tmp_path):
+    from labs.ha.real_evidence import execution_evidence
+    run, claim, runtime = evidence_run(tmp_path)
+    directory = private_directory(run.root / 'counter-observations', create=True)
+    (directory / 'model.json').symlink_to(run.root / 'claim.json')
+    with pytest.raises(RehearsalRefused, match='private_path_required'):
+        run.export_unknown(run.root / 'claim.json', run.root / 'refused-export')
+    assert run.budget.snapshot()['reservations'][0]['state'] == 'unknown'
+    assert not (run.root / 'refused-export').exists()

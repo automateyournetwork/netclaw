@@ -58,9 +58,14 @@ After preparation, the explicit phases are:
    it never prepares or approves. There is no automatic retry or new-ID recovery.
 7. `export-operation --claim-file ... --destination <fresh-private-dir>` verifies
    original approval, member result, successor ACK, current durable member ACK,
-   measured inference/native artifacts and actual referenced GAIT commits. It
-   exports originals and counters, then settles only successful fully finished
-   work. Failed/unknown evidence is retained with its budget slot occupied.
+   completed inference/native artifacts and actual referenced GAIT commits. It
+   exports originals and clearly named inference claims, then settles only
+   successful fully finished work. Signed terminal failures keep their slot.
+   `export-unknown --claim-file ... --destination <fresh-private-dir>` handles a
+   missing result or ACK. It records the original claim, local member/admission/
+   inference/runner journals, bounded native artifacts, available linearizable
+   consensus snapshot and owned-process observations. Missing quorum/evidence is
+   explicit; it never releases the slot, verifies isolation, or invents a receipt.
 8. `stop-role` uses the production PID/start-time/source ownership check and
    stops only that recorded daemon. Export before cleanup. Model/voter container
    stop/removal and network retirement stay with the coordinator's reviewed
@@ -71,6 +76,25 @@ inferences and 10 native effects, one active operation, 180 seconds per operatio
 and 60 seconds per inference. Each reservation permanently consumes the full
 2-inference/1-effect allowance, including failed approvals. Unknowns retain the
 single active slot; destructive/unknown negatives and restore belong last.
+
+An inference journal row is created before quorum admission and provider send;
+native effect claims and `mcp-call.json` intents also precede the final pipe
+handoff. They bound attempts but cannot prove exact real effect counts. Packets
+therefore use `inference_claims` and `observed_total_inference_claims`; exact
+`actual_effect_totals` remain null unless independently established outside this
+exporter. Before/after actual guard/model/native observations may be saved by the
+coordinator under private `counter-observations/{guard,model,native}.json`.
+Exports hash and retain these files verbatim, explicitly unverified. A caller's
+asserted `actual_calls:0` is never promoted into evidence of zero effects. Missing
+artifacts stay unavailable, never zero; successful native responses supply
+completion evidence. Correlate actual owned runtime observations separately.
+
+Each journal snapshot is transactionally consistent, including committed WAL
+rows. Journals, consensus and files are observed separately, so unresolved exports
+explicitly deny global snapshot consistency and successful workload qualification.
+Stop/isolation and exact consistent recovery exports remain separately required.
+Unknown exports retain original envelopes as unverified raw evidence; only the
+successful `export-operation` path verifies signatures and settles the budget.
 
 For HUD/Code, the actual client first writes its original-review artifact and
 waits at most 120 seconds. The coordinator uses `publish-claim --review-file ...

@@ -517,8 +517,8 @@ class Rehearsal:
     def export_operation(self, claim_file, destination):
         """Verify the original signatures and measured native artifacts, then settle.
 
-        Failed/unknown outcomes can be exported, but do not release the budget's
-        single active slot. No terminal label or caller-supplied counter can do so.
+        Signed terminal failures can be exported, but do not release the budget's
+        single active slot. Missing results/ACKs use export_unknown instead.
         """
         pin_protocol_source(self.source)
         from .etcd_lab import EtcdLab
@@ -590,6 +590,9 @@ class Rehearsal:
                  and native['tool_evidence']['native_result_sha256'] == c.sha256(artifacts['tool/native-mcp-result.json'])
                  and not artifacts.get('cleanup.json', {}).get('unresolved', ['missing']), 'real_native_evidence_incomplete')
         export = private_directory(destination, create=True)
+        from .real_evidence import execution_evidence
+        counters = execution_evidence(self.root, claim['operation_id'])
+        write_new(export / 'execution-evidence.json', counters)
         for name, value in {'original-approval.json': row['approval'], 'original-member-result.json': native['receipt'],
                             'successor-ack.json': row['ack'], 'cluster-ledger.json': row, 'member-ledger.json': native,
                             'measured-artifacts.json': artifacts}.items(): write_new(export / name, value)
@@ -618,9 +621,10 @@ class Rehearsal:
         packet = {'schema_version': 1, 'class': 'REAL', 'run_id': self.plan['run_id'], 'claim': claim,
                   'source_sha256': self.plan['source_sha256'], 'receipt_sha256': receipt_digest,
                   'original_issuer_node_id': issuer['node_id'], 'ack_node_id': accepting_node['node_id'],
-                  'etcd_revision': revision, 'measured_inferences': [list(r) for r in calls],
+                  'etcd_revision': revision, 'inference_claims': [list(r) for r in calls],
                   'claimed_native_effects': native['effect_claimed'], 'finished_native_effects': native['effect_finished'],
-                  'observed_total_inferences': total_inferences, 'gait': gait, 'successful_native_workload': finished,
+                  'observed_total_inference_claims': total_inferences, 'gait': gait, 'successful_native_workload': finished,
+                  'actual_effect_totals': counters['actual_effect_totals'],
                   'full_matrix_qualified': False}
         write_new(export / 'packet.json', packet)
         if finished:
@@ -628,6 +632,76 @@ class Rehearsal:
         else: self.budget.unknown(claim['claim_id'])
         write_new(export / 'budget-after.json', self.budget.snapshot())
         return {'packet_file': str(export / 'packet.json'), 'receipt_sha256': receipt_digest, 'successful_native_workload': finished}
+
+    def _consensus_evidence(self):
+        from .etcd_lab import EtcdLab
+        from bgp.federation import protected_contract as c
+        from bgp.federation.ha.config import HAError, verify_manifest
+        from bgp.federation.ha.recovery import export_snapshot
+        lab = EtcdLab(self.root / 'voters').load()
+        identity = lab.root / 'cluster-identity'
+        anchor = read_private(identity / 'root.crt').decode()
+        manifest = verify_manifest(read_private(identity / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
+        store = lab.store(0)
+        try:
+            return {'available': True, 'snapshot': export_snapshot(store, manifest),
+                    'consistency': 'single_linearizable_prefix_read'}
+        except HAError as exc:
+            return {'available': False, 'reason': exc.code}
+        finally:
+            store.close()
+
+    def export_unknown(self, claim_file, destination):
+        """Retain unresolved evidence without requiring or inventing result/ACK.
+
+        This is not successful reconciliation. The one active budget slot stays
+        unknown even if export fails. No execution or consensus mutation occurs.
+        """
+        pin_protocol_source(self.source)
+        from .real_evidence import execution_evidence, observation, table_rows
+        claim = json.loads(read_private(claim_file))
+        validate_claim(claim, operation_id=claim['operation_id'], client_nonce=claim['client_nonce'],
+            review_digest=claim['review_digest'], surface=claim['surface'], run_id=self.plan['run_id'])
+        reservations = [r for r in self.budget.snapshot()['reservations'] if r['claim'] == claim]
+        need(len(reservations) == 1 and reservations[0]['state'] in ('send_claimed', 'unknown'), 'budget_claim_not_sent')
+        self.budget.unknown(claim['claim_id'])
+        evidence = execution_evidence(self.root, claim['operation_id'])
+        consensus = self._consensus_evidence()
+        records = consensus.get('snapshot', {}).get('records', {})
+        row = records.get('operations/' + claim['operation_id'], {}).get('value')
+        if row is not None:
+            need(all(row[k] == claim[k] for k in ('operation_id', 'client_nonce', 'review_digest')), 'original_operation_mismatch')
+        local = table_rows(evidence['journals']['member'], 'protected_operation')
+        member_rows = [r for r in local if r.get('side') == 'member' and r['operation_id'] == claim['operation_id']] if local is not None else []
+        need(len(member_rows) <= 1, 'ambiguous_original_operation')
+        native = member_rows[0] if member_rows else None
+        if native is not None:
+            need(native['review_digest'] == claim['review_digest'], 'original_operation_mismatch')
+            if row is not None:
+                need(native['attempt_id'] == row['attempt_id'] and native['approval_digest'] == row['approval_digest'], 'original_operation_mismatch')
+        export = private_directory(destination, create=True)
+        files = {'original-claim.json': claim, 'consensus-evidence.json': consensus,
+                 'execution-evidence.json': evidence, 'original-member-record.json': native,
+                 'original-cluster-record.json': row, 'budget-after.json': self.budget.snapshot(),
+                 'saved-review-observation.json': observation(self.root / ('review-' + claim['operation_id'] + '.json'))}
+        # Preserve owned daemon/model observations as observations, never proof
+        # that a named PID/container is currently stopped or isolated.
+        files['owned-observations.json'] = {name: observation(self.root / name) for name in
+            ('model/owned.json', 'model/stop-receipt.json', 'border0-spawn.json', 'border1-spawn.json',
+             'border2-spawn.json', 'member-spawn.json', 'homes/member/netclaw-federation/daemon.json',
+             'homes/member/netclaw-federation/member-daemon-status.json')}
+        for name, value in files.items(): write_new(export / name, value)
+        packet = {'schema_version': 1, 'class': 'REAL', 'evidence_kind': 'unresolved_operation_snapshot',
+            'run_id': self.plan['run_id'], 'source_sha256': self.plan['source_sha256'],
+            'original_ids': {k: claim[k] for k in ('operation_id', 'client_nonce', 'review_digest')},
+            'attempt_id': row.get('attempt_id') if row else native.get('attempt_id') if native else None,
+            'result_available': bool(native and native.get('receipt')), 'ack_available': bool(row and row.get('ack')),
+            'original_envelopes_verified': False, 'consensus_available': consensus['available'],
+            'actual_effect_totals': evidence['actual_effect_totals'], 'globally_consistent_snapshot': False,
+            'budget_state': 'unknown', 'successful_native_workload': False, 'full_matrix_qualified': False,
+            'artifact_sha256': {name: digest(value) for name, value in files.items()}}
+        write_new(export / 'packet.json', packet)
+        return {'packet_file': str(export / 'packet.json'), 'successful_native_workload': False, 'budget_state': 'unknown'}
 
     def stop_role(self, name):
         cfg, environment = self.validate_role(name)
@@ -645,7 +719,7 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command', required=True)
     sub = commands.add_parser('prepare'); sub.add_argument('--plan', required=True)
     for name in ('model-start', 'coordination-start', 'materialize', 'start-role', 'stop-role', 'review', 'approve',
-                 'publish-claim', 'export-operation', 'attachments', 'budget', 'observe'):
+                 'publish-claim', 'export-operation', 'export-unknown', 'attachments', 'budget', 'observe'):
         sub = commands.add_parser(name); sub.add_argument('--root', required=True)
         if name in ('start-role', 'stop-role'): sub.add_argument('--role', choices=('border0', 'border1', 'border2', 'member'), required=True)
         if name in ('review', 'approve', 'observe'): sub.add_argument('--node', choices=('border0', 'border1', 'border2'), required=True)
@@ -653,7 +727,7 @@ def main(argv=None):
         if name == 'publish-claim':
             sub.add_argument('--surface', choices=('hud', 'vscode', 'mobile'), required=True); sub.add_argument('--destination', required=True)
         if name == 'observe': sub.add_argument('--operation-id', required=True)
-        if name == 'export-operation': sub.add_argument('--claim-file', required=True); sub.add_argument('--destination', required=True)
+        if name in ('export-operation', 'export-unknown'): sub.add_argument('--claim-file', required=True); sub.add_argument('--destination', required=True)
     args = parser.parse_args(argv)
     if args.command == 'prepare': result = prepare(args.plan)
     else:
@@ -667,6 +741,7 @@ def main(argv=None):
         elif args.command == 'approve': result = run.approve_once(args.node, args.review_file)
         elif args.command == 'publish-claim': result = run.publish_claim(args.review_file, args.surface, args.destination)
         elif args.command == 'export-operation': result = run.export_operation(args.claim_file, args.destination)
+        elif args.command == 'export-unknown': result = run.export_unknown(args.claim_file, args.destination)
         elif args.command == 'attachments': result = run.attachment_status()
         elif args.command == 'observe':
             uuid_value(args.operation_id)
