@@ -17,7 +17,7 @@ import sys
 import tempfile
 
 ROOT = Path(__file__).resolve().parents[2]
-SERVICE_REVISION = 'b468b4de06a2179156da247ffcb71eb5ce9acf62'  # byrn-baker/convergence-platform v0.1.1
+SERVICE_REVISION = '1e7900f0bf500178672c4ac124ad9c44373a9d1c'  # byrn-baker/convergence-platform v0.1.2
 
 
 def execute(args, **kwargs):

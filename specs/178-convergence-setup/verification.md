@@ -5,11 +5,10 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
 
 ## Service (convergence-platform)
 
-- `v0.1.0` (`40c179a`) and `v0.1.1` (`b468b4d`, same code plus the release-workflow fix).
-  Its CI on both: setup/cluster/chart tests, service and agent tests, API Node tests.
-  `v0.1.1` published `ghcr.io/byrn-baker/convergence-api:0.1.1` and
-  `convergence-ids-ingest:0.1.1` (amd64, arm64); both pull anonymously. `v0.1.0`'s image
-  job failed (wrong build context) and published nothing; its notes say so.
+- Pinned release `v0.1.2` (`1e7900f`). Its CI passed (setup/cluster/chart tests, service
+  and agent tests, API Node tests) and published `ghcr.io/byrn-baker/convergence-api:0.1.2`
+  and `convergence-ids-ingest:0.1.2` (amd64, arm64). Earlier: `v0.1.0` (`40c179a`, image
+  job failed, nothing published) and `v0.1.1` (`b468b4d`, first published images).
 - Docker trial from the release on the VM: `setup.py prepare/run`, `verify.py --canary`
   11/11, synthetic flow demo retained and returned.
 - New K3s cluster on Proxmox VE: `proxmox.py plan/apply` created VMIDs 7000–7002 (3
@@ -19,6 +18,24 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
   Convergence from the repository: Synced/Healthy after a chart fix (Grafana volume claim
   template kind); `verify.py --canary` 13/13. `destroy` removed only the three tagged VMs;
   the read-only deploy key was removed afterwards.
+- Full-stack qualification on a rebuilt three-node test cluster and the VM, from the new
+  repository only (fixes went into `v0.1.2`):
+  - plain Helm install with the public images, `verify.py --canary` 13/13;
+  - Alertmanager -> alert receiver -> case; real Suricata (canary signature) -> shipper ->
+    IDS ingest -> case, Loki and VictoriaLogs; host heartbeat agent reporting;
+  - device syslog (UDP and TCP) and SNMP with the right device name and site, after
+    fixing NodePort source-address rewriting and a dropped same-number TCP port;
+  - a second release prepared with `k3s.py --receiver-url`: Alertmanager in the cluster
+    reached the receiver (installed by `setup/receiver.py`) with the mounted token;
+  - NetClaw investigations wired by the service's `setup/netclaw.py` (DefenseClaw scanned
+    its `alert-triage` skill CLEAN): admitted test alerts went alert -> case -> restricted
+    `alert` agent -> `case_get`/Prometheus/`case_update` -> resolved, with cited evidence;
+    an operator "Need more" re-investigation answered the feedback and escalated where
+    evidence was missing; the API reached the receiver for JEV (not enabled: no key);
+    `remove` restored the previous OpenClaw config and a re-`apply` worked again.
+  Fixes found on the way: first-boot package lock in the cluster build, the install guard
+  mistaking the IDS volume for release data, `.env` git-ignore, receiver unit paths, and
+  silent hourly investigation-budget trips.
 
 ## NetClaw
 
@@ -36,8 +53,8 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
   the CI workflow) on the VM against the pinned release: isolated install, repeat install,
   viewer scope; demo and host flow evidence through the real API, store, MCP and HUD in
   Chromium; VM Security through MCP and the browser (synthetic findings in demo mode,
-  `not_configured` in host mode). Result: PASS against `v0.1.1` (`b468b4d`), demo and
-  host; earlier PASS against `v0.1.0`. The first VM run only lacked Chromium's system
+  `not_configured` in host mode). Result: PASS against `v0.1.2` (`1e7900f`, a fresh clone
+  of the tag), demo and host; earlier PASS against `v0.1.1` and `v0.1.0`. The first VM run only lacked Chromium's system
   libraries, which CI installs with `--with-deps`.
 - Catalog: `build-catalog.py --check`, `check-catalog-metadata.py`, new links
   (`check-catalog-links.py --base-ref`) PASS. `reconcile-mcp.py`: catalog, dependencies,
@@ -50,11 +67,12 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
   the answers, read the release's procedures and helpers and wrote a cluster spec and
   ordered commands with every step labelled read-only, local or infrastructure-changing.
   That spec passed `proxmox.py check` and a live read-only `plan` (three clean creates);
-  it was not applied.
+  it was not applied. The `v0.1.2` skill text (pin plus the optional investigations row)
+  also scanned CLEAN.
 
 ## Not verified
 
-macOS and WSL2; Hermes; the plain Helm install on an existing cluster (service tests
-only); a live Proxmox VE VM Security source end to end through NetClaw (the service's own
-tests and its operator's deployment cover the observer); a NetClaw run with shell enabled
-that executes the cluster path itself.
+macOS and WSL2; Hermes; a live Proxmox VE VM Security source end to end through NetClaw
+(the service's own tests and its operator's deployment cover the observer); a NetClaw run
+with shell enabled that executes the cluster path itself; JEV reviews with a provider key;
+IP context with a provider token; a real switch mirror feeding the IDS sensor.

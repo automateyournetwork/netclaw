@@ -29,15 +29,15 @@ Proxmox and Kubernetes are not prerequisites for the demo or host path.
 ## Compatible service and installation
 
 The tested service is
-[`byrn-baker/convergence-platform` release `v0.1.1`](https://github.com/byrn-baker/convergence-platform/tree/v0.1.1).
+[`byrn-baker/convergence-platform` release `v0.1.2`](https://github.com/byrn-baker/convergence-platform/tree/v0.1.2).
 VM Security needs that release or later. There is no assumed stable versioned API:
 an incompatible response is reported as a compatibility error instead of being
 rendered as evidence.
 
-For a new service, follow its [Linux home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/home-lab.md),
+For a new service, follow its [Linux home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/home-lab.md),
 or let the [`convergence-setup` skill](#set-up-convergence-with-netclaw) do it.
 Use a separate checkout and private bundle. It shows an equipment-free Docker demo,
-then an explicit host exporter. The service's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/k3s.md)
+then an explicit host exporter. The service's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/k3s.md)
 is the persistent deployment option. Deployment, retention, upgrades and backups
 remain service responsibilities. Keep demo and real observations in separate sites
 and bundles. The core service trial collects no flows unless a source is selected.
@@ -179,7 +179,7 @@ The section loads only when opened. To try it without a hypervisor, prepare the
 service's Docker bundle with `--vm-security-demo` (or set `api.env.VM_SECURITY_DEMO: "1"`
 in Helm values): the view then shows a labelled **Synthetic demonstration**. A live
 source needs the service's Proxmox VE observer; see its
-[VM Security guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/vm-security.md).
+[VM Security guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/vm-security.md).
 The same viewer key and site are used; there is no new setting. Guest heartbeats,
 firewall and IDS summaries stay in the service.
 

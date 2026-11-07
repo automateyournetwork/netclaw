@@ -18,14 +18,14 @@ It owns the services, charts, cluster tooling and setup helpers. This skill inst
 **pinned release** of it and follows that release's own procedures, so the commands
 always match the code they run. NetClaw never imports or operates the service itself.
 
-**Tested release: `v0.1.1`.** Use it unless the user asks for another; say so if they do.
+**Tested release: `v0.1.2`.** Use it unless the user asks for another; say so if they do.
 
 ## 1. Get the release
 
 Ask where to keep it (default `~/convergence`). Never clone into the NetClaw checkout.
 
 ```bash
-git clone --branch v0.1.1 https://github.com/byrn-baker/convergence-platform.git ~/convergence
+git clone --branch v0.1.2 https://github.com/byrn-baker/convergence-platform.git ~/convergence
 ```
 
 An existing checkout is fine if `git describe --tags` names the release. Every helper
@@ -47,6 +47,9 @@ ask the user to put them in a private file (mode 600) and tell you the path.
   a host interface, or the labelled demonstrations only.
 - **Access.** How the user reaches dashboards and the API: this machine only, a LAN,
   or an existing authenticated proxy.
+- **Alerts.** Alerts become cases through the alert receiver on this host. Ask whether
+  NetClaw should also investigate admitted cases automatically. It is off by default;
+  the release's procedure adds a restricted agent and opens alert rules one at a time.
 
 For a new cluster, the release's `docs/convergence/setup/cluster.md` lists the
 Proxmox questions (node, template, storage, bridge/VLAN, VMID range and name prefix,
@@ -67,6 +70,7 @@ release's procedure for the chosen path:
 | Docker trial | `docs/convergence/setup/docker.md` |
 | Existing K3s (Helm or Argo CD) | `docs/convergence/setup/k3s.md` |
 | New K3s cluster on Proxmox VE (+ Argo CD) | `docs/convergence/setup/cluster.md`, then `k3s.md` |
+| Alert receiver and NetClaw investigations (optional) | `docs/convergence/setup/netclaw.md` |
 | Optional telemetry, IDS, flows, JEV | `docs/convergence/setup/integrations.md`, only the selected sections |
 
 Read-only steps (`check`, `plan`, `preflight`, `verify`) can run freely. Steps that

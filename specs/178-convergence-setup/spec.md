@@ -32,7 +32,7 @@ tooling to build a K3s cluster on Proxmox VE.
    and follows the release's own procedures for a Docker trial, an existing K3s cluster
    (Helm or Argo CD), or a new K3s cluster on Proxmox VE.
 4. P2: upstream's Convergence docs, catalog and integration test pin the release
-   (`v0.1.1`) instead of the fork commit.
+   (`v0.1.2`) instead of the fork commit.
 
 ## Boundaries
 

@@ -8,7 +8,7 @@ credentials or a capture interface. The demo generates its own labeled traffic.
 There are two installations: Docker runs the external Convergence service; Node
 and Python run NetClaw/OpenClaw. They use separate checkouts and private state.
 A model account is needed only for the final chat. For a persistent service,
-use the external project's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/k3s.md).
+use the external project's [K3s guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/k3s.md).
 
 This is a procedure, not a declaration that every step or platform has passed.
 Read the [fresh Linux qualification record](../specs/163-convergence-linux-qualification/qualification.md)
@@ -68,7 +68,7 @@ The reader's tested service is the convergence-platform release below.
 Choose new checkout and bundle directories; do not reuse a production bundle.
 
 ```bash
-git clone --branch v0.1.1 https://github.com/byrn-baker/convergence-platform.git "$HOME/convergence-service"
+git clone --branch v0.1.2 https://github.com/byrn-baker/convergence-platform.git "$HOME/convergence-service"
 cd "$HOME/convergence-service"
 
 bundle="$HOME/.local/share/convergence/flow-demo"
@@ -83,7 +83,7 @@ python3 "$helper" prepare --output "$bundle" \
 The helper generates private configuration and credentials in the bundle. Choose
 unused ports if these conflict. Flow port 2055 must be free for both UDP and TCP;
 the generated trial endpoints stay on loopback. The external
-[Docker guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/docker.md)
+[Docker guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/docker.md)
 describes all port options and service prerequisites.
 
 Before starting, create a random API key in your password manager. Open the
@@ -271,7 +271,7 @@ python3 setup/setup.py run \
 ```
 
 This retains the bundle and data volumes. Back them up privately if keeping the
-trial. The [home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.1/docs/convergence/home-lab.md)
+trial. The [home-lab guide](https://github.com/byrn-baker/convergence-platform/blob/v0.1.2/docs/convergence/home-lab.md)
 explains the separate, explicit host-interface capture path. This synthetic
 walkthrough does not qualify physical capture, IDS, K3s, Hermes, macOS or Windows.
 The optional HUD has its own installation and access requirements; follow

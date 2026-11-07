@@ -1,6 +1,6 @@
 # Research
 
-- **Service contract** (convergence-platform `v0.1.1`, `b468b4d`; same code as `v0.1.0`):
+- **Service contract** (convergence-platform `v0.1.2`, `1e7900f`; the VM Security contract is unchanged since `v0.1.0`):
   `GET /api/security/vms` returns the assessment from `src/lib/vmSecurity.js` plus a
   `hostTelemetry` block. v0.1.0 adds `synthetic` (top level) and `kind` per source
   (`proxmox` or `synthetic`); `VM_SECURITY_DEMO=1` serves a synthetic assessment that

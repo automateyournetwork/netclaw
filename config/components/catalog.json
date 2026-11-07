@@ -29224,7 +29224,7 @@
       "title": "convergence-setup",
       "description": "Set up Convergence, the separately operated network observability service, on the user's own infrastructure. Asks only for what it cannot discover, shows the plan before changing anything, then builds a local Docker trial, installs into an existing K3s cluster (Helm or Argo CD), or builds a new K3s cluster on Proxmox VE first. Verifies each layer and connects NetClaw's read-only Convergence view. Use for installing or extending Convergence; use convergence-observations to read its data.",
       "path": "workspace/skills/convergence-setup/SKILL.md",
-      "sha256": "8f778b970d79f43853f920e3c237e71d22b7d9f3ca0893cbb6b90ed80782c99f",
+      "sha256": "9c1fbc4774d5bbfd380a4bbe028bbfd2e34fa7bd7445d0ea32b4fa0a88efb752",
       "components": [],
       "servers": [],
       "availability": "supported",

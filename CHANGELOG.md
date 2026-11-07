@@ -8,7 +8,7 @@ Spec [178-convergence-setup](specs/178-convergence-setup/spec.md). See [release 
 
 - New `convergence-setup` skill: installs Convergence from a pinned convergence-platform release as a Docker trial, on an existing K3s cluster (Helm or Argo CD), or on a new K3s cluster on Proxmox VE, after showing the plan and getting approval.
 - `convergence_vm_security` and a HUD VM Security section: advisory VM findings with coverage, from the scope accepted in proposal 176; a labelled synthetic source lets you try it without a hypervisor.
-- Convergence docs, catalog and integration test pin convergence-platform `v0.1.1` instead of the fork commit.
+- Convergence docs, catalog and integration test pin convergence-platform `v0.1.2` instead of the fork commit.
 
 ## [1.18.7] - 2026-11-06
 
