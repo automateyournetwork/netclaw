@@ -23,10 +23,11 @@ import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
 MAX_REQUEST, MAX_RESPONSE = 65536, 4 * 1024 * 1024
-MUTATIONS = frozenset(('enroll', 'prepare', 'dispatch', 'unknown', 'admit'))
+MUTATIONS = frozenset(('enroll', 'prepare', 'dispatch', 'unknown', 'admit', 'accept-fixture-result'))
 PARAMETERS = {'status': set(), 'enroll': set(), 'prepare': {'client_nonce'},
     'dispatch': {'operation_id'}, 'unknown': {'operation_id'}, 'get': {'operation_id'},
-    'snapshot': set(), 'admit': {'context', 'kind', 'ordinal', 'mode', 'via_node_id'}}
+    'snapshot': set(), 'admit': {'context', 'kind', 'ordinal', 'mode', 'via_node_id'},
+    'accept-fixture-result': {'operation_id', 'envelope'}}
 
 
 def need(condition, code):
@@ -93,6 +94,11 @@ def validate_request(raw, config):
     need(method in allowed and isinstance(params, dict) and set(params) == PARAMETERS[method], 'control_method_refused')
     if 'operation_id' in params: need(str(uuid.UUID(params['operation_id'])) == params['operation_id'], 'control_operation_id')
     if method == 'prepare': need(isinstance(params['client_nonce'], str) and 1 <= len(params['client_nonce']) <= 120, 'control_nonce')
+    if method == 'accept-fixture-result':
+        need(isinstance(params['envelope'], dict), 'controlled_result_required')
+        payload = params['envelope'].get('payload', {})
+        need(isinstance(payload, dict) and payload.get('output') == {
+            'class': 'FIXTURE', 'controlled_process_result': params['operation_id']}, 'controlled_result_required')
     if method == 'admit':
         need(str(uuid.UUID(params['via_node_id'])) == params['via_node_id'], 'control_ingress')
         need(params['mode'] in ('complete', 'hold') and params['kind'] in ('model', 'tool')
@@ -216,6 +222,14 @@ class Worker:
         if method == 'dispatch': return await asyncio.to_thread(self.node.ledger.dispatch, params['operation_id'])
         if method == 'unknown': return await asyncio.to_thread(self.node.ledger.mark_unknown, params['operation_id'])
         if method == 'get': return await asyncio.to_thread(self.node.ledger.lookup, operation_id=params['operation_id'])
+        if method == 'accept-fixture-result':
+            row = await asyncio.to_thread(self.node.ledger.lookup, operation_id=params['operation_id'])
+            need(row is not None and row['review']['model_profile']['profile_id'] == 'controlled-process-fixture',
+                 'controlled_result_required')
+            # Real production signature/binding/ACK validation; only this private
+            # fixture protocol can submit an explicitly controlled result.
+            return await asyncio.to_thread(self.node.ledger.accept_result, params['operation_id'], params['envelope'],
+                private_key=self.node.private_key, audit_ref='controlled-process-fixture-audit')
         if method == 'snapshot':
             from bgp.federation.ha.recovery import export_snapshot
             return await asyncio.to_thread(export_snapshot, self.store, self.manifest)

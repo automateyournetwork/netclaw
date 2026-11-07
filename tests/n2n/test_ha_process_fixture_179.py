@@ -144,3 +144,14 @@ async def test_unexpected_worker_exit_is_a_cleanup_failure_not_complete(tmp_path
     result=fixture.decode(fixture.read_private(harness.path/'owned-process-cleanup.json'))
     assert result['passed'] is False and result['processes'][0]['expected_returncode']==0
     assert not (harness.path/'complete.json').exists()
+
+
+def test_controlled_result_is_border_only_and_requires_explicit_fixture_output(tmp_path):
+    config,request=setup(tmp_path,'border')
+    op=str(uuid.uuid4());request.update(method='accept-fixture-result',params={'operation_id':op,
+        'envelope':{'payload':{'output':{'class':'FIXTURE','controlled_process_result':op}}}})
+    assert fixture.validate_request(fixture.encode(request),config)==request
+    config['role']='member'
+    with pytest.raises(ValueError,match='control_method_refused'):fixture.validate_request(fixture.encode(request),config)
+    config['role']='border';request['params']['envelope']['payload']['output']['class']='REAL'
+    with pytest.raises(ValueError,match='controlled_result_required'):fixture.validate_request(fixture.encode(request),config)

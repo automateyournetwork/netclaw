@@ -191,3 +191,25 @@ before their listener wait. Unexpected worker exit or forced cleanup now writes
 passed:false and raises, preventing complete.json. Two targeted source tests
 verify shutdown ordering and failure propagation; actual graceful cleanup is a
 separate required coordinator check, not inferred from these source tests.
+
+### Actual fenced-restore driver source
+
+Added coordinator-only `labs/ha/fenced_restore_fixture.py` and its phase/evidence
+contract. Offline preparation creates fresh old/direct3 and replacement/direct3
+sets, with a three-running-voter cap, fresh generation/node/install/key identities
+and the same offline anchor. Actual phases use the existing production process
+workers, live seven-subject HostIsolation capture, a completed controlled A/stale
+snapshot followed by B's later unknown admission/reservation gap, ownership-checked
+zero-exit graceful shutdown, stopped/disconnected old voters, and a fresh host
+receipt issued only after replacement readiness. Production install/activate and
+inactive/active global-capacity fence checks remain mandatory. Every phase has an
+exclusive durable claim; source/Python/key changes and phase retries are refused.
+The tiny Border-only fixture result command is unavailable to member controls and
+requires explicit FIXTURE output plus normal production result signature/binding
+validation. Original process fixture run behavior is otherwise unchanged.
+
+Source tests exercise offline fresh trust, input drift, phase ordering/single-use,
+global voter bounds, and actual OperationLedger record shapes for the stale gap.
+They launch no Docker, ClusterNode/member worker or native provider. No actual
+restore or graceful cleanup acceptance is claimed by this lane. Root performs
+all live phases and retains process-fixture-01's historical cleanup failures.
