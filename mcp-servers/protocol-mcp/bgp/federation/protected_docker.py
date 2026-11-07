@@ -332,6 +332,8 @@ def compact_summary_tool(broker, tool):
 
 def inspect_guard(container, *, image, home, env_file, payload, config_sha256, policy_manifest_sha256, running=False, ollama=None):
     config, host = container["Config"], container["HostConfig"]
+    if 'cluster' in payload and host.get('LogConfig') != {'Type':'json-file', 'Config':{'max-size':'-1'}}:
+        raise RuntimeRefused('guard_log_rotation_unqualified')
     expected_args = ["--home", "/guard", "--config-sha256", config_sha256,
                      "--policy-manifest-sha256", policy_manifest_sha256]
     if ollama is not None: expected_args += ["--provider", "ollama"]
@@ -557,6 +559,7 @@ class DockerExecutor:
         await self.command("create", "--name", name, "--network", guard_network, "--read-only",
              "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
              "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+             *(['--log-driver', 'json-file', '--log-opt', 'max-size=-1'] if 'cluster' in payload else []),
              "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
              "--mount", f"type=bind,src={home},dst=/guard",
              "--mount", f"type=bind,src={config['env_file']},dst=/guard/guard.env,readonly",

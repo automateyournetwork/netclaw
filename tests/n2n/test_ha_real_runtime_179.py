@@ -102,6 +102,9 @@ def test_model_owner_labels_are_explicit_and_keep_standalone_default(tmp_path):
     assert model.owner_labels(args) == ['--label', 'netclaw.spec=179', '--label', 'netclaw.owner=netclaw-r08-test']
     argv = model.create_model_args(model.selected_profile(args), 'owned', owner=179, owner_name=args.owner_name)
     assert 'netclaw.spec=179' in argv and 'netclaw.owner=netclaw-r08-test' in argv
+    assert argv[argv.index('--log-driver') + 1] == 'json-file'
+    assert argv[argv.index('--log-opt') + 1] == 'max-size=-1'
+    assert '--log-driver' not in model.create_model_args(model.selected_profile(args), 'owned')
     row = {'Name': '/netclaw-r08-test-model', 'Image': args.image, 'Id': 'b' * 64,
            'Config': {'Labels': {'netclaw.spec': '179', 'netclaw.owner': 'another-owned-run'}}}
     with pytest.raises(model.QualificationRefused):

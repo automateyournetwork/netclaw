@@ -102,6 +102,7 @@ def create_model_args(profile, network, *, owner=176, owner_name=None):
         '--pids-limit', '256', '--memory', '2048m', '--memory-swap', '2048m',
         '--cpus', str(bound['model_cpu_millicores']//1000), '--label', 'netclaw.spec='+str(owner),
         *(['--label', 'netclaw.owner='+owner_name] if owner_name else []),
+        *(['--log-driver', 'json-file', '--log-opt', 'max-size=-1'] if owner == 179 else []),
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
         '--mount', 'type=bind,src='+profile['model_store']+',dst=/models,readonly',
         *[item for key,value in model.model_environment(profile).items() for item in ('--env', key+'='+value)],
@@ -280,6 +281,9 @@ def inspect(args):
     owner_labels(args)
     container=docker.inspect(profile['model_container_id'])
     owned_container(container,profile['model_image'],profile['model_container'],profile['model_container_id'],owner=owner_spec(args),owner_name=manifest.get('owner_name'))
+    if owner_spec(args) == 179:
+        need(container['HostConfig'].get('LogConfig') == {'Type':'json-file', 'Config':{'max-size':'-1'}},
+             'owned_log_rotation_unqualified')
     networks=container['NetworkSettings']['Networks'];need(len(networks)==1,'model_network_changed')
     network=json.loads(docker.call('network','inspect',next(iter(networks))))[0]
     need(network.get('Internal') is True and not network.get('EnableIPv6'),'model_network_not_internal')
