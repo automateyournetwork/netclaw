@@ -546,7 +546,86 @@ def _passes_date_filters(meta: Dict[str, Any], filters: Optional[Dict[str, Any]]
     return True
 
 
+_SNAPSHOT_ALIASES = frozenset({"investigations", "snapshots", "cases"})
+_ALL_ALIASES = frozenset({"all", "*"})
+_NO_SNAPSHOTS = "No investigation snapshots are indexed."
+
+
+def _collection_alias(collection: Any) -> Optional[str]:
+    """Return snapshots, all, or None. None means search that collection name literally."""
+    if not isinstance(collection, str):
+        return None
+    token = collection.strip()
+    if token in _SNAPSHOT_ALIASES:
+        return "snapshots"
+    if token in _ALL_ALIASES:
+        return "all"
+    return None
+
+
+def _ready_snapshot_collections() -> list:
+    """Ready investigation snapshots, in registry order, each collection once."""
+    names = []
+    seen = set()
+    for row in registry.list_documents():
+        if row.get("kind") != "snapshot" or row.get("ingest_status") != "ready":
+            continue
+        name = row.get("collection")
+        if not name or name in seen:
+            continue
+        seen.add(name)
+        names.append(name)
+    return names
+
+
+def _empty_corpus(
+    query: str,
+    collection: str,
+    filters: Optional[Dict[str, Any]],
+    k: int,
+    round: Optional[int],
+    sub_query_id: Optional[str],
+    message: str,
+) -> Dict[str, Any]:
+    registry.log_retrieval(query, collection, filters, k, [], [], 0, 0, round, sub_query_id)
+    return success_response(
+        {
+            "results": [],
+            "corpus_empty": True,
+            "collection": collection,
+            "latency_ms": 0,
+            "message": message,
+        }
+    )
+
+
+def _candidate_matches(candidate: Dict[str, Any], filters: Optional[Dict[str, Any]]) -> bool:
+    if not _passes_date_filters(candidate["metadata"], filters):
+        return False
+    if not filters:
+        return True
+    return all(
+        candidate["metadata"].get(key) == filters[key]
+        for key in ("doc_type", "document_id", "title")
+        if filters.get(key)
+    )
+
+
 def _do_search(
+    query: str,
+    k: int = 5,
+    collection: str = "documents",
+    filters: Optional[Dict[str, Any]] = None,
+    round: Optional[int] = None,
+    sub_query_id: Optional[str] = None,
+) -> Dict[str, Any]:
+    kind = _collection_alias(collection)
+    if kind is None:
+        return _search_one(query, k, collection, filters, round, sub_query_id)
+    return _search_aliased(query, k, collection, filters, round, sub_query_id, kind)
+
+
+def _search_one(
     query: str,
     k: int = 5,
     collection: str = "documents",
@@ -622,6 +701,127 @@ def _do_search(
     )
 
 
+def _search_aliased(
+    query: str,
+    k: int,
+    collection: str,
+    filters: Optional[Dict[str, Any]],
+    round: Optional[int],
+    sub_query_id: Optional[str],
+    kind: str,
+) -> Dict[str, Any]:
+    """Search every ready snapshot, or documents plus those snapshots.
+
+    A missing or unreadable snapshot collection is skipped. The document corpus
+    still fails closed when its index cannot be read. Hits are merged by score.
+    """
+    start = time.monotonic()
+    snapshots = _ready_snapshot_collections()
+    if kind == "snapshots":
+        names = snapshots
+        if not names:
+            return _empty_corpus(
+                query, collection, filters, k, round, sub_query_id, _NO_SNAPSHOTS
+            )
+    else:
+        names = []
+        seen = set()
+        for name in (config.DOCUMENTS_COLLECTION, *snapshots):
+            if name and name not in seen:
+                seen.add(name)
+                names.append(name)
+
+    readable = []
+    for name in names:
+        try:
+            count = chroma.count(name)
+        except Exception:
+            if kind == "all" and name == config.DOCUMENTS_COLLECTION:
+                return error_response(
+                    "STORAGE_UNAVAILABLE",
+                    "Cannot read the collection index; corpus contents are unknown.",
+                )
+            log.warning("skipping unreadable snapshot collection %s", name)
+            continue
+        if count > 0:
+            readable.append(name)
+
+    if not readable:
+        message = (
+            _NO_SNAPSHOTS
+            if kind == "snapshots"
+            else f"Collection '{collection}' is empty — nothing indexed yet."
+        )
+        return _empty_corpus(query, collection, filters, k, round, sub_query_id, message)
+
+    try:
+        query_embedding = embedder.embed_query(query)
+    except ModelsNotCachedError as exc:
+        return error_response("MODELS_NOT_CACHED", str(exc))
+
+    candidates = []
+    for name in readable:
+        try:
+            hits = hybrid_retrieve(
+                chroma, bm25, name, query, query_embedding, where=_chroma_where(filters)
+            )
+        except Exception:
+            if kind == "all" and name == config.DOCUMENTS_COLLECTION:
+                raise
+            log.warning("skipping unreadable snapshot collection %s", name)
+            continue
+        for hit in hits:
+            copied = dict(hit)
+            copied["metadata"] = dict(copied.get("metadata") or {})
+            copied["_searched_collection"] = name
+            candidates.append(copied)
+
+    candidates = [c for c in candidates if _candidate_matches(c, filters)]
+    # Score the combined set, then keep the caller's top k. Passthrough rerank
+    # does not sort, so the merge orders by score here.
+    scored = reranker.rerank(
+        query, candidates, max(k, len(candidates)), config.RELEVANCE_FLOOR
+    )
+    scored.sort(key=lambda c: (-c["score"], str(c.get("chunk_id"))))
+    top = scored[:k]
+
+    results = []
+    for c in top:
+        hit = {
+            "chunk_id": c["chunk_id"],
+            "text": c["text"],
+            "metadata": c["metadata"],
+            "score": c["score"],
+        }
+        result = _result_from_hit(hit, c["low_confidence"])
+        source = c.get("_searched_collection")
+        if source and "collection" not in result:
+            result["collection"] = source
+        results.append(result)
+
+    latency_ms = int((time.monotonic() - start) * 1000)
+    registry.log_retrieval(
+        query,
+        collection,
+        filters,
+        k,
+        [r["chunk_id"] for r in results],
+        [r["score"] for r in results],
+        latency_ms,
+        sum(1 for r in results if r["low_confidence"]),
+        round,
+        sub_query_id,
+    )
+    return success_response(
+        {
+            "results": results,
+            "corpus_empty": False,
+            "collection": collection,
+            "latency_ms": latency_ms,
+        }
+    )
+
+
 @_task_tool
 def rag_search(
     query: str,
@@ -632,6 +832,15 @@ def rag_search(
     sub_query_id: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Search the knowledge base. Returns top-k chunks with citation metadata.
+
+    collection:
+      documents (default), or any other name — that collection only.
+      investigations, snapshots, or cases — every ready investigation snapshot,
+      merged by score. Each hit includes its source collection.
+      all or * — the document corpus plus those snapshots.
+    When no investigation snapshots are indexed, the snapshot aliases return an
+    empty corpus and say so. A missing or unreadable snapshot collection is skipped.
+
     Filters: doc_type, document_id, title, ingested_after, ingested_before.
     Results below the relevance floor are flagged low_confidence, never dropped."""
     return _do_search(query, k, collection, filters, round, sub_query_id)

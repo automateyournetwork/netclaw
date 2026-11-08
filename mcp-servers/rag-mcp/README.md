@@ -11,7 +11,7 @@ Fully **offline, free, local** document knowledge base for NetClaw (Feature 062)
 | `rag_ingest` | Ingest a document file on disk | `file_path`, `doc_type` (vendor\|standard\|customer\|install-guide\|other), `title?`, `version?`, `source?` |
 | `rag_ingest_base64` | Ingest a base64-encoded file (Slack attachment path) | `filename`, `content_base64`, `doc_type?`, `title?` |
 | `rag_ingest_url` | Two-phase URL ingestion with crawl-scope gate | `url`, `mode` (preview\|ingest), `include_linked?`, `scope_token?` |
-| `rag_search` | Hybrid search: dense + BM25 → RRF fusion → local rerank | `query`, `k=5`, `collection`, `filters?` (doc_type/document_id/title/date range), `round?`, `sub_query_id?` |
+| `rag_search` | Hybrid search: dense + BM25 → RRF fusion → local rerank. `investigations` / `snapshots` / `cases` search every ready snapshot; `all` / `*` adds the document corpus; any other name is that collection only | `query`, `k=5`, `collection`, `filters?` (doc_type/document_id/title/date range), `round?`, `sub_query_id?` |
 | `rag_list` | All documents + snapshots (separate) with full metadata | `kind` (documents\|snapshots\|all) |
 | `rag_stats` | Corpus totals + rolling retrieval telemetry | — |
 | `rag_update_metadata` | Edit doc_type / title / version | `document_id`, fields |
@@ -43,6 +43,8 @@ Structure-aware: heading boundaries first, then paragraphs, 400–800 tokens (em
 ## Snapshots
 
 `rag_snapshot` is the ONLY sanctioned RAG use of live data — explicit human request + scope confirmation, never automatic. Content passes a secret scrubber (Cisco type 5/7/8/9, enable/user secrets, SNMP communities, TACACS/RADIUS keys, routing auth keys, pre-shared keys, Juniper `$9$`, adjacent usernames → `<REDACTED:type>`, per-type counts with explicit zeros) before vectorization into a new `snapshot_<label>_<ISO8601>` collection. Retrieval from snapshots always includes `age_human` staleness ("captured 2026-07-16 14:02 UTC — 31 days ago"); snapshots older than `RAG_SNAPSHOT_WARN_DAYS` (90) are flagged stale, never auto-deleted.
+
+`rag_search` does not treat `investigations` as a literal collection name. `investigations`, `snapshots`, and `cases` search every registry row with `kind=snapshot`, `ingest_status=ready`, and a collection, then merge by score and return the top `k`. Each hit includes the source collection. `all` and `*` search `documents` plus those snapshots. Any other collection name is searched literally. When no investigation snapshots are indexed, the snapshot aliases return the usual empty-corpus shape and say so. A missing or unreadable snapshot collection is skipped.
 
 ## Environment variables (no credentials)
 

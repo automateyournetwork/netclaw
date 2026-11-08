@@ -94,9 +94,15 @@ the result is *lost* to you. Async delegation is the only path that survives:
 
 - `n2n_delegate(peer, target_name, input_text)` — submits the task, returns a
   `task_id` in ~2 seconds while the peer runs it in the background.
-- `n2n_task_status(task_id)` — poll progress (short call).
-- `n2n_task_result(task_id)` — fetch the result when `completed`; it is captured
-  and retained even if the channel dropped or a daemon restarted mid-build.
+- `n2n_task_wait(task_id)` — poll `GET /n2n/tasks/{task_id}` until the state is
+  terminal (`completed`, `failed`, `cancelled`, `outcome_unknown`, `interrupted`)
+  or this call's slice ends. One `working` status is not a reason to stop. When
+  the result says `still_running`, call `n2n_task_wait` again with the same
+  `task_id`.
+- `n2n_task_status(task_id)` — one short progress read.
+- `n2n_task_result(task_id)` — fetch the result once the state is terminal; it
+  is captured and retained even if the channel dropped or a daemon restarted
+  mid-build.
 - `n2n_task_cancel(task_id)` — stop it.
 
 Use `n2n_chat` ONLY for short conversational questions ("why is your OSPF area 0
@@ -163,9 +169,10 @@ time") — for a one-off question, use `n2n_knowledge_query` instead.
    the other. The peer operator grants it explicitly
    (`n2n_grant(peer, "knowledge_replica", collection_id)`).
 3. `n2n_replicate(peer, collection_id)` triggers the copy and returns a
-   `task_id` **immediately** — it does not block. Poll with the existing
-   `n2n_task_status(task_id)` / fetch with `n2n_task_result(task_id)`, same as
-   any other delegated task, until `state` is `completed` or `failed`.
+   `task_id` **immediately** — it does not block. Call `n2n_task_wait(task_id)`
+   until the state is terminal, then `n2n_task_result(task_id)`. A
+   `still_running` result means call `n2n_task_wait` again with the same
+   `task_id`.
 4. Once complete, the replica is queryable through your own local RAG exactly
    like a locally-authored collection — no further federated round trip
    needed. It is visibly marked with its source peer/collection/timestamp in
@@ -209,8 +216,10 @@ Claw**, with the others as tightly-scoped **Member Claws**.
 2. Bring up the member (its own install); it dials the Border and enrolls.
 3. `n2n_member_list` / `n2n_member_health` — see scope, state, quarantine alerts.
 4. `n2n_route("recreate my lab", target_hint="cml-lab-lifecycle")` — the Border
-   picks the right member and delegates (async; poll with `n2n_task_status` /
-   `n2n_task_result`). `netclaw risk route "…"` from the CLI does the same.
+   picks the right member and delegates. Then `n2n_task_wait(task_id)` until
+   the state is terminal, and `n2n_task_result(task_id)` for the output. Call
+   `n2n_task_wait` again with the same `task_id` when the result says
+   `still_running`. `netclaw risk route "…"` from the CLI does the same.
 5. `n2n_member_remove(member_id)` — unpin + refuse reconnect (confirm first).
 
 Profiles are derived from the installed catalog by `scripts/in2n-profiles.py`
@@ -301,7 +310,7 @@ US1 capability: `n2n_status`, `n2n_consent`, `n2n_kill`, `n2n_peer_capabilities`
 `n2n_compare_capabilities`, `n2n_set_visibility`. US2 invocation: `n2n_grant`,
 `n2n_revoke_grant`, `n2n_list_grants`, `n2n_invoke`, `n2n_approvals`,
 `n2n_approve`, `n2n_deny`, `n2n_audit`, `n2n_config`. US3 chat: `n2n_chat`.
-053 reliability/ergonomics: `n2n_delegate`, `n2n_task_status`,
+053 reliability/ergonomics: `n2n_delegate`, `n2n_task_wait`, `n2n_task_status`,
 `n2n_task_result`, `n2n_task_cancel`, `n2n_health`, `n2n_connect`, `n2n_trust`.
 056 iN2N (risk): `n2n_risk_status`, `n2n_member_list`, `n2n_member_health`,
 `n2n_member_add`, `n2n_enroll_token`, `n2n_member_remove`, `n2n_route`.

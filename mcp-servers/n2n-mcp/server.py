@@ -17,8 +17,10 @@ Provides operator-facing tools for claw-to-claw federation:
 All calls proxy to the local bgp-daemon-v2 HTTP API (default http://127.0.0.1:8179).
 """
 
+import asyncio
 import json
 import os
+import time
 from typing import Optional
 
 import httpx
@@ -27,6 +29,28 @@ from fastmcp import FastMCP
 BGP_DAEMON_API = os.environ.get("BGP_DAEMON_API", "http://127.0.0.1:8179")
 
 mcp = FastMCP("n2n-mcp")
+
+# Stored terminal states in bgp/federation/tasks.py. `submitted` and `working`
+# are still open. `unknown` is a missing-task response, not a stored state.
+_TERMINAL_TASK_STATES = frozenset({
+    "completed", "failed", "cancelled", "outcome_unknown", "interrupted",
+})
+_TASK_WAIT_HINT = "still working — call n2n_task_wait again with the same task_id"
+
+
+def _task_payload_state(payload):
+    """Read state from the payload's state field only. Do not infer it from other text."""
+    if not isinstance(payload, dict):
+        return None
+    state = payload.get("state")
+    return state if isinstance(state, str) else None
+
+
+def _clamp_task_wait(timeout_seconds, poll_interval_seconds):
+    """Keep one wait slice under typical MCP client timeouts (~60s)."""
+    timeout = 45 if timeout_seconds is None else int(timeout_seconds)
+    interval = 5.0 if poll_interval_seconds is None else float(poll_interval_seconds)
+    return max(10, min(timeout, 50)), max(2.0, min(interval, 15.0))
 
 
 def _gcf_dumps(data) -> str:
@@ -480,8 +504,9 @@ async def n2n_delegate(peer: str, target_name: str, input_text: str = "",
 
     Use this (not chat) for multi-minute work like "recreate my CML lab" — it
     submits the task and returns a task_id immediately; the peer runs it in the
-    background. Poll with n2n_task_status / fetch with n2n_task_result. This
-    survives ngrok resets that would drop a synchronous call.
+    background. Call n2n_task_wait until the state is terminal, then fetch with
+    n2n_task_result. n2n_task_status is one short read. This survives ngrok
+    resets that would drop a synchronous call.
 
     Args:
         peer: peer identity (e.g. 'as65007-7.7.7.7')
@@ -499,6 +524,52 @@ async def n2n_task_status(task_id: str) -> str:
     """Check a delegated task's state (submitted/working/completed/failed/
     cancelled) and progress. Short call."""
     return _gcf_dumps(await _get(f"/n2n/tasks/{task_id}"))
+
+
+@mcp.tool()
+async def n2n_task_wait(
+    task_id: str,
+    timeout_seconds: int = 45,
+    poll_interval_seconds: float = 5.0,
+) -> str:
+    """Wait until a delegated task is terminal, or this call's slice ends.
+
+    Use this after n2n_route or n2n_delegate. One n2n_task_status result of
+    working is not a reason to give up. Each slice is clamped to 10–50 seconds
+    (MCP clients often time out near 60s) and the poll interval to 2–15 seconds.
+
+    Terminal states are completed, failed, cancelled, outcome_unknown, and
+    interrupted. The state is taken only from the payload's state field.
+
+    When the slice ends first, the last payload adds still_running true and a
+    hint to call n2n_task_wait again with the same task_id. Fetch the output
+    with n2n_task_result once the state is terminal.
+
+    Args:
+        task_id: from n2n_route or n2n_delegate
+        timeout_seconds: max wait for this call (default 45, clamped to 10–50)
+        poll_interval_seconds: pause between GET /n2n/tasks/{task_id} (default 5, clamped to 2–15)
+    """
+    timeout, interval = _clamp_task_wait(timeout_seconds, poll_interval_seconds)
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            payload = await _get(f"/n2n/tasks/{task_id}")
+        except Exception as exc:
+            return _gcf_dumps({"task_id": task_id, "state": "error", "error": str(exc)})
+        if _task_payload_state(payload) in _TERMINAL_TASK_STATES:
+            return _gcf_dumps(payload)
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            if isinstance(payload, dict):
+                body = dict(payload)
+            else:
+                body = {"task_id": task_id}
+            body["still_running"] = True
+            body["hint"] = _TASK_WAIT_HINT
+            body.setdefault("task_id", task_id)
+            return _gcf_dumps(body)
+        await asyncio.sleep(min(interval, remaining))
 
 
 @mcp.tool()
@@ -748,8 +819,9 @@ async def n2n_member_remove(member_id: str) -> str:
 @mcp.tool()
 async def n2n_route(request_text: str, target_hint: Optional[str] = None) -> str:
     """Ask the Border to route a task-shaped request to the member that owns the
-    capability, and delegate it (async). Returns a task_id — poll with
-    n2n_task_status / n2n_task_result. Reports plainly if no member can do it.
+    capability, and delegate it (async). Returns a task_id. Call n2n_task_wait
+    until the state is terminal, then n2n_task_result. Reports plainly if no
+    member can do it.
 
     Args:
         request_text: the operator's request
