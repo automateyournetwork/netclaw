@@ -69,8 +69,9 @@ def test_renewal_keeps_the_hub_key_and_extends_validity(tmp_path, monkeypatch):
 
 def test_rotation_renews_the_hub_on_its_schedule(tmp_path):
     import asyncio
-    from bgp.federation.service import FederationService
+
     from bgp.federation.rotation import RotationManager
+    from bgp.federation.service import FederationService
     svc = FederationService(local_as=65001, router_id='4.4.4.4', display_name='fixture',
                             manager=FederationManager(base_dir=str(tmp_path)))
     try:
@@ -124,6 +125,7 @@ def test_renewal_writes_files_safely(tmp_path):
 
 def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
     import threading
+
     from bgp.federation.protected_contract import key_id
     manager, risk = _border(tmp_path)
     try:
@@ -134,7 +136,7 @@ def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
             try:
                 for _ in range(5):
                     risk.hub_credential(renew=True)
-            except Exception as exc:  # pragma: no cover - reported below
+            except Exception as exc:  # noqa: BLE001 - a thread must report any failure
                 errors.append(exc)
         threads = [threading.Thread(target=renew) for _ in range(4)]
         for t in threads:
@@ -142,7 +144,7 @@ def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
         for t in threads:
             t.join()
         assert not errors
-        cert, key = risk.hub_credential()
+        cert, _ = risk.hub_credential()
         assert key_id(cert) == key_id(first_cert)
         nonce = b'after-concurrent-renewal'
         attestation = risk.attest_hub(nonce)
@@ -152,8 +154,8 @@ def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
 
 
 def test_member_does_not_register_a_hub(tmp_path):
-    from bgp.federation.service import FederationService
     from bgp.federation.rotation import RotationManager
+    from bgp.federation.service import FederationService
     svc = FederationService(local_as=65001, router_id='4.4.4.4', display_name='fixture',
                             manager=FederationManager(base_dir=str(tmp_path)))
     try:
