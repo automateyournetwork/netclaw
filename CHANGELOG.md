@@ -2,6 +2,12 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.18.8] - 2026-11-08
+
+- The Border renews its hub credential under the same risk CA and key: on the rotation schedule, and within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.
+
+Spec [180-hub-credential-renewal](specs/180-hub-credential-renewal/spec.md). See [release notes](docs/releases/1.18.8.md).
+
 ## [1.18.7] - 2026-11-06
 
 Spec [177-defenseclaw-sidecar-identity](specs/177-defenseclaw-sidecar-identity/spec.md). See [release notes](docs/releases/1.18.7.md).
