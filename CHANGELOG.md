@@ -2,19 +2,19 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
-Spec [180-hub-credential-renewal](specs/180-hub-credential-renewal/spec.md). See [release notes](docs/releases/1.18.8.md).
-## [1.19.0] - 2026-11-06
+## [1.19.1] - 2026-11-08
+
+- The Border renews its hub credential under the same risk CA and key: on the rotation schedule when `N2N_CERT_MODE` is on, and in every mode within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.
+
+Spec [180-hub-credential-renewal](specs/180-hub-credential-renewal/spec.md). See [release notes](docs/releases/1.19.1.md).
+
+## [1.19.0] - 2026-11-08
 
 Spec [179-convergence-setup](specs/179-convergence-setup/spec.md). See [release notes](docs/releases/1.19.0.md).
 
 - New `convergence-setup` skill: installs Convergence from a pinned convergence-platform release as a Docker trial, on an existing K3s cluster (Helm or Argo CD), or on a new K3s cluster on Proxmox VE, after showing the plan and getting approval.
 - `convergence_vm_security` and a HUD VM Security section: advisory VM findings with coverage, from the scope accepted in proposal 176; a labelled synthetic source lets you try it without a hypervisor.
-- Convergence docs, catalog and integration test pin convergence-platform `v0.1.2` instead of the fork commit.
-
-## [1.18.8] - 2026-11-08
-
-- The Border renews its hub credential under the same risk CA and key: on the rotation schedule when `N2N_CERT_MODE` is on, and in every mode within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.
-
+- Convergence docs, catalog and integration test pin convergence-platform `v0.1.5` instead of the fork commit.
 
 ## [1.18.7] - 2026-11-06
 
