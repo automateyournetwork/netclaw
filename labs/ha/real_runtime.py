@@ -484,8 +484,24 @@ class Rehearsal:
                 'revision': review['revision'], 'review_digest': claim['review_digest'], 'decision': 'approve'})
             write_new(self.root / ('approval-' + claim['operation_id'] + '.json'), dto)
             return {'claim': claim, 'operation': dto}
+        except BaseException as error:
+            evidence = self._pre_dispatch_refusal_evidence(node, claim) if (
+                isinstance(error, RehearsalRefused) and str(error) == 'operator_refused') else None
+            if evidence: self.budget.refused(claim, evidence_sha256=evidence)
+            else: self.budget.unknown(claim['claim_id'])
+            raise
+
+    def _pre_dispatch_refusal_evidence(self, node, claim):
+        """Only a definitive operator refusal followed by an independent status read proving the
+        original review was never dispatched may release the active slot. Any doubt stays unknown."""
+        try:
+            dto = self.operator(node, 'status', {'auth_context': self.context(node), 'operation_id': claim['operation_id']})
+            if (dto.get('state') == 'review_pending' and dto.get('attempt_count') == 0
+                    and dto.get('may_have_executed') is False and dto.get('reconciliation_required') is False):
+                return hashlib.sha256(canonical({'node': node, 'status': dto})).hexdigest()
         except BaseException:
-            self.budget.unknown(claim['claim_id']); raise
+            return None
+        return None
 
     def validate_review(self, review):
         uuid_value(review['operation_id']); sha_value(review['review_digest'])

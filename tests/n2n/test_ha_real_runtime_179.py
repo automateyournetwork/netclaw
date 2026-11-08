@@ -293,3 +293,38 @@ def test_unknown_export_failure_does_not_release_budget(tmp_path):
         run.export_unknown(run.root / 'claim.json', run.root / 'refused-export')
     assert run.budget.snapshot()['reservations'][0]['state'] == 'unknown'
     assert not (run.root / 'refused-export').exists()
+
+
+def _approve_with(tmp_path, operator):
+    value = budget(tmp_path); run = Rehearsal.__new__(Rehearsal); run.root = value.root; run.budget = value
+    run.validate_review = lambda _: None; run.context = lambda _: {}; run.operator = operator
+    review = {'operation_id': identity(), 'client_nonce': identity(), 'review_digest': 'a' * 64, 'revision': 1}
+    path = value.root / 'review.json'; write_new(path, review)
+    return value, run, path
+
+
+def test_definitive_refusal_proven_pre_dispatch_releases_slot_but_still_counts(tmp_path):
+    def operator(node, method, params):
+        if method == 'decision': raise RehearsalRefused('operator_refused')
+        return {'state': 'review_pending', 'attempt_count': 0, 'may_have_executed': False, 'reconciliation_required': False}
+    value, run, path = _approve_with(tmp_path, operator)
+    with pytest.raises(RehearsalRefused): run.approve_once('border0', path)
+    row = value.snapshot()['reservations'][0]
+    assert row['state'] == 'settled' and row['actual_inferences'] == 0 and row['actual_native_effects'] == 0
+    assert value.snapshot()['reserved']['operations'] == 1
+    reserve(value, 'runner')  # the active slot is free again, the first reservation still counted
+
+
+@pytest.mark.parametrize('failure', ['timeout', 'dispatched', 'status_unreadable', 'may_have_executed'])
+def test_doubtful_refusal_stays_unknown(tmp_path, failure):
+    def operator(node, method, params):
+        if method == 'decision': raise (TimeoutError('lost') if failure == 'timeout' else RehearsalRefused('operator_refused'))
+        if failure == 'status_unreadable': raise RehearsalRefused('operator_refused')
+        state = {'state': 'review_pending', 'attempt_count': 0, 'may_have_executed': False, 'reconciliation_required': False}
+        if failure == 'dispatched': state.update(state='dispatch_claimed', attempt_count=1)
+        if failure == 'may_have_executed': state.update(may_have_executed=True)
+        return state
+    value, run, path = _approve_with(tmp_path, operator)
+    with pytest.raises((TimeoutError, RehearsalRefused)): run.approve_once('border0', path)
+    assert value.snapshot()['reservations'][0]['state'] == 'unknown'
+    with pytest.raises(RehearsalRefused, match='unresolved'): reserve(value, 'runner')

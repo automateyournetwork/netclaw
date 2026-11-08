@@ -200,6 +200,19 @@ class Budget:
             db.execute("UPDATE reservation SET state='unknown' WHERE claim_id=?", (claim_id,))
             self._event(db, claim_id, 'unknown', {'slot_retained': True})
 
+    def refused(self, claim, *, evidence_sha256):
+        """Terminal state for a definitive pre-dispatch refusal proven by an independent
+        status read. The reservation still counts in full; only the active slot is released.
+        Callers must have verified review_pending, attempt_count 0 and may_have_executed false."""
+        sha_value(evidence_sha256)
+        with self.connection() as db:
+            row = db.execute('SELECT claim_json,state FROM reservation WHERE claim_id=?', (claim['claim_id'],)).fetchone()
+            need(row and json.loads(row[0]) == claim and row[1] == 'send_claimed', 'invalid_budget_transition')
+            db.execute("UPDATE reservation SET state='settled',receipt_sha256=?,actual_inferences=0,actual_native_effects=0 WHERE claim_id=?",
+                       (evidence_sha256, claim['claim_id']))
+            self._event(db, claim['claim_id'], 'refused_pre_dispatch', {'evidence_sha256': evidence_sha256,
+                                                                       'counted_in_full': True})
+
     def settle(self, claim, *, receipt_sha256, inferences, native_effects):
         """Called only after the runner verifies the original result+ACK packet."""
         sha_value(receipt_sha256)

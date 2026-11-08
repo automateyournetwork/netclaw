@@ -313,3 +313,14 @@ mcp-portability checks exit 0. `scripts/reconcile-mcp.py` exits 1 on this machin
 clean `main` checkout (gitignored local `humanrail-mcp-server` pin finding plus modules missing
 from the interpreter), so it is not caused by this branch. Summary:
 `t044-final.json` in the session scratchpad.
+
+## Owner decision: Option 2 (2026-11-08)
+
+The owner chose Option 2: a new, explicitly capped REAL work package to close the nine
+fixture-only matrix rows and two partials. New cumulative cap for this package: at most 10
+further approved operations / 20 claimed inferences / 10 native effects, in addition to the
+10 already spent in runs 07-09 (nothing is reset; the three held `unknown` slots stay spent).
+Unknown-producing scenarios run last and at most one per run. A pre-dispatch *refusal* may
+release the run's active slot only when an independent status read proves no dispatch
+(`review_pending`, `attempt_count` 0, `may_have_executed` false) and the independent model
+counter is unchanged; anything else remains `unknown`. The reservation always still counts.
