@@ -372,3 +372,17 @@ evidence-proven pre-dispatch refusals; launcher tolerance of the macOS exec env 
 observer; `export-unknown` accepting a member killed before its attempt claim (one-line helper, tested).
 See `evidence-matrix.md` for per-row evidence and `acceptance.md` for the limits.
 
+
+## Final state after Option 2 (2026-11-08)
+
+Merged `origin/main` twice (PRs #335-#337, then #338 spec 181 / 1.20.0); conflicts were limited to
+generated/catalog hashes and were resolved by regenerating (`scripts/build-catalog.py --check` and
+`check-catalog-metadata.py` pass; the merged `n2n-federation` skill hash was recomputed from the file).
+Suites on the final merged tree: tests/n2n 2156 passed / 5 skipped; setup/installer/reconcile/
+convergence 296 passed / 32 skipped; HUD 544 passed; labs/ha node tests 43 passed; inventory,
+catalog-links, catalog-metadata, mcp-portability and catalog `--check` exit 0. Editor (211) and
+Mobile (525 + clean analyzer) are unchanged by #338 and keep their earlier green results.
+Cleanup: no owned container, network, listener or R08 process remains (the last 24 leftover
+operation-sandbox containers and 8 networks were inspect-saved to `cleanup-final2/` and removed by
+exact label); unrelated containers untouched. Private evidence is retained, not deleted:
+`evidence-manifest-final.json` hashes 98,192 files / 9.4 GB (sha256 cc2282ed96c1...0d40).
