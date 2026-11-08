@@ -21,7 +21,7 @@ from .protected_mcp import (invoke_mcp, validate_binding as validate_mcp_binding
 
 from .protected_runtime import (ExactToolBroker, InferenceFence, RuntimeRefused,
                                 RuntimeUnknown, ScopedInference, canonical,
-                                invoke_pyats, private_directory, private_write)
+                                invoke_pyats, private_directory, private_write, sha)
 
 
 
@@ -332,6 +332,8 @@ def compact_summary_tool(broker, tool):
 
 def inspect_guard(container, *, image, home, env_file, payload, config_sha256, policy_manifest_sha256, running=False, ollama=None):
     config, host = container["Config"], container["HostConfig"]
+    if 'cluster' in payload and host.get('LogConfig') != {'Type':'json-file', 'Config':{'max-file':'1'}}:
+        raise RuntimeRefused('guard_log_rotation_unqualified')
     expected_args = ["--home", "/guard", "--config-sha256", config_sha256,
                      "--policy-manifest-sha256", policy_manifest_sha256]
     if ollama is not None: expected_args += ["--provider", "ollama"]
@@ -556,7 +558,8 @@ class DockerExecutor:
         provider_args = ['--provider', 'ollama'] if self.ollama else []
         await self.command("create", "--name", name, "--network", guard_network, "--read-only",
              "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+             "--pids-limit", "128", "--memory", "768m", "--cpus", "1", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+             *(['--log-driver', 'json-file', '--log-opt', 'max-file=1'] if 'cluster' in payload else []),
              "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m",
              "--mount", f"type=bind,src={home},dst=/guard",
              "--mount", f"type=bind,src={config['env_file']},dst=/guard/guard.env,readonly",
@@ -674,6 +677,9 @@ class DockerExecutor:
             remaining = (payload['limits']['expires_at_ms']-int(time.time()*1000))/1000
             deadline = min(remaining, payload['limits']['inference_timeout_ms']/1000)
             if deadline <= 0: raise RuntimeRefused('approval_expired')
+            if 'cluster' in payload:
+                from .ha.model_transport import ha_model_forward
+                return strict_inference_json(await ha_model_forward(self, payload, request, guard_url))
             raw = await self.command('exec', '--interactive', '--user', str(self.ollama['guard_uid']),
                 self.ollama['model_container_id'], 'python3', '-c', _OLLAMA_GUARD_REQUEST,
                 input_data=canonical({'request': request, 'guard_token': self.guard_token, 'timeout_seconds': deadline}), timeout=deadline)
@@ -693,7 +699,11 @@ class DockerExecutor:
                         raise RuntimeUnknown("guard_response_bound")
                 return json.loads(output)
 
-    async def run(self, payload, gate):
+    async def run(self, payload, gate, *, ha_admission=None):
+        from .protected_runtime import validate_ha_gate
+        validate_ha_gate(payload, ha_admission)
+        if ha_admission is not None and not self.ollama:
+            raise RuntimeRefused('ha_runtime_unqualified')
         from mcp.server.mcpserver import MCPServer
         from starlette.responses import JSONResponse, Response
         import uvicorn
@@ -708,7 +718,7 @@ class DockerExecutor:
         agent_files = private_directory(operation_root / "agent")
         token = secrets.token_urlsafe(32)
         suffix = hashlib.sha256(operation_id.encode()).hexdigest()[:20]
-        prefix = ("netclaw-r05-" if self.ollama else "netclaw-r02-") + suffix
+        prefix = ("netclaw-r08-" if 'cluster' in payload else "netclaw-r05-" if self.ollama else "netclaw-r02-") + suffix
         network, relay, agent = prefix + "-net", prefix + "-relay", prefix + "-agent"
         harness = payload["model_profile"]["runtime_kind"]
         if harness == "openclaw":
@@ -732,9 +742,13 @@ class DockerExecutor:
             remaining = (payload["limits"]["expires_at_ms"] - int(time.time() * 1000)) / 1000
             try:
                 async with asyncio.timeout(min(remaining, payload["limits"]["tool_timeout_ms"] / 1000)):
-                    if "mcp" in self.config:
-                        return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool")
-                    return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                    async def native():
+                        if "mcp" in self.config:
+                            return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool",
+                                **({'ha_required': True, 'ha_admission': lambda call:
+                                    ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
+                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                    return await native()
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc
 
@@ -747,7 +761,7 @@ class DockerExecutor:
                                   tool_finished=lambda: broker.evidence is not None,
                                   request_adapter=local_request if self.ollama else None,
                                   response_validator=(lambda response, ordinal: _ollama.validate_response(response, ordinal, payload)) if self.ollama else None,
-                                  runner_latch=self.runner_latch)
+                                  runner_latch=self.runner_latch, ha_admission=ha_admission)
         mcp = MCPServer("Approved NetClaw operation", version="171")
 
         async def pyats_run_show_command(device_name: str, command: str, timeout: int, retries: int) -> dict:
@@ -857,11 +871,11 @@ class DockerExecutor:
                 subnet = str(ipaddress.IPv4Network((int(self.pool.network_address) + offset * 16, 28)))
                 await self.command("network", "create", "--internal", "--opt",
                      "com.docker.network.bridge.gateway_mode_ipv4=isolated", "--subnet", subnet,
-                     "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171", network)
+                     "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171", network)
                 # Relay alone has a second network to the fixed host endpoint.
                 await self.command("create", "--name", relay, "--network", relay_network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
-                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+                     "--pids-limit", "64", "--memory", "128m", "--cpus", "0.5", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      *relay_args, self.config["relay_image"])
                 if not unix_relay:
                     await self.command("network", "connect", "--alias", relay, network, relay)
@@ -880,7 +894,7 @@ class DockerExecutor:
                 await self.command("create", "--name", agent, "--network", network, "--read-only",
                      "--cap-drop", "ALL", "--security-opt", "no-new-privileges", "--user", str(os.getuid()),
                      "--pids-limit", "256", "--memory", "1536m" if self.ollama else "4g",
-                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
+                     *(["--memory-swap", "1536m"] if self.ollama else []), "--cpus", "2", "--label", "netclaw.spec=179" if "cluster" in payload else "netclaw.spec=176" if self.ollama else "netclaw.spec=171",
                      "--tmpfs", f"/home/agent:rw,noexec,nosuid,size=128m,uid={os.getuid()},gid={os.getgid()},mode=700",
                      "--tmpfs", "/tmp:rw,noexec,nosuid,size=128m", "--mount",
                      f"type=bind,src={agent_files},dst=/run/netclaw,readonly",

@@ -24,6 +24,19 @@ public class EdgeIdentityPlugin: NSObject, FlutterPlugin {
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
         switch call.method {
+        case "publicCrypto":
+            guard let args = call.arguments as? [String: Any],
+                  let data = args["data"] as? FlutterStandardTypedData else {
+                result(FlutterError(code: "BAD_ARGS", message: "missing public data", details: nil))
+                return
+            }
+            do {
+                result(try ClusterPublicCrypto.run(data: data.data,
+                    spki: (args["spki"] as? FlutterStandardTypedData)?.data,
+                    signature: (args["signature"] as? FlutterStandardTypedData)?.data))
+            } catch {
+                result(FlutterError(code: "CLUSTER_VERIFY_ERROR", message: "Invalid public signature", details: nil))
+            }
         case "ensureKeyPair":
             do { result(try ensureKeyPairPem()) }
             catch { result(FlutterError(code: "EDGE_IDENTITY_ERROR", message: "\(error)", details: nil)) }

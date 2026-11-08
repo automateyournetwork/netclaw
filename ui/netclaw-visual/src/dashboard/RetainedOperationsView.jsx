@@ -1,10 +1,12 @@
+import { clusterAudience, clusterReviewMatches, clusterCanAdmit, clusterCanDecide } from '../shared/cluster-binding.js';
 import OperationResultEvidence from './OperationResultEvidence.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { operationIdentifier, operationReferences, operationSelection, verifiedResultSummary, REFERENCE_CAPACITY, removableOperation } from '../shared/protected-operation-references.js';
 
 const json = value => JSON.stringify(value, null, 2);
-export default function RetainedOperationsView({ api, principal, installationId }) {
-  const store = useMemo(() => operationReferences(installationId), [installationId]);
+export default function RetainedOperationsView({ api, principal, installationId, cluster }) {
+  const audience = cluster ? clusterAudience(cluster, principal) : installationId;
+  const store = useMemo(() => operationReferences(audience), [audience]);
   const [references, setReferences] = useState([]), [records, setRecords] = useState({}), [selectedNonce, setSelectedNonce] = useState(null);
   const [catalog, setCatalog] = useState(null), [memberIndex, setMemberIndex] = useState(0), [profileIndex, setProfileIndex] = useState(0), [toolIndex, setToolIndex] = useState(0);
   const [error, setError] = useState(''), [busy, setBusy] = useState(false), [storageError, setStorageError] = useState(false), [recoverId, setRecoverId] = useState(''), [recoverKind, setRecoverKind] = useState('operation_id'), [clock, setClock] = useState(Date.now);
@@ -13,6 +15,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
   const update = (nonce, patch) => { recordRef.current = { ...recordRef.current, [nonce]: { ...recordRef.current[nonce], ...patch } }; setRecords(recordRef.current); };
   const retain = (value, expected) => {
     if (!value || !operationIdentifier(value.client_nonce) || !operationIdentifier(value.operation_id) || expected?.client_nonce && expected.client_nonce !== value.client_nonce || expected?.operation_id && expected.operation_id !== value.operation_id) throw Error('Operation identity changed. Nothing was resent.');
+    if (cluster && !clusterReviewMatches(api.clusterBinding || cluster, value.review, principal)) throw Error('The operation belongs to another cluster, issuer or operator.');
     retainRefs(store.put(value)); update(value.client_nonce, { operation: value, uncertain: false, error: '' });
     return value.client_nonce;
   };
@@ -54,7 +57,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
     return !retainedSelection || retainedSelection === selection;
   });
   const prepare = () => {
-    if (locked.current || storageError || !member || !profile || !tool || !selection || unresolvedSelection || refs.current.length >= REFERENCE_CAPACITY) return;
+    if (locked.current || !clusterCanAdmit(cluster) || storageError || !member || !profile || !tool || !selection || unresolvedSelection || refs.current.length >= REFERENCE_CAPACITY) return;
     const ref = { client_nonce: crypto.randomUUID() };
     try { retainRefs(store.put(ref)); setSelectedNonce(ref.client_nonce); }
     catch (failure) { setStorageError(true); setError(failure.message); return; }
@@ -65,7 +68,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
     const id = recoverId;
     if (refs.current.length >= REFERENCE_CAPACITY && !refs.current.some(ref => ref.operation_id === id)) { setError('Retained operation capacity reached. Remove a resolved reference first.'); return; }
     locked.current = true; setBusy(true); setError('');
-    try { const expected = { [recoverKind]: id }; const value = await api.status(expected); if (value?.review?.border?.installation_id !== installationId || value?.review?.principal?.issuer !== principal.issuer || value?.review?.principal?.subject !== principal.subject) throw Error('The recovered operation belongs to a different Border or operator.'); if (alive.current) { setSelectedNonce(retain({ ...value, decision_sent: true, revoke_sent: true }, expected)); setRecoverId(''); } }
+    try { const expected = { [recoverKind]: id }; const value = await api.status(expected); if ((cluster ? !clusterReviewMatches(cluster, value?.review, principal) : value?.review?.border?.installation_id !== installationId) || value?.review?.principal?.issuer !== principal.issuer || value?.review?.principal?.subject !== principal.subject) throw Error('The recovered operation belongs to a different Border or operator.'); if (alive.current) { setSelectedNonce(retain({ ...value, decision_sent: true, revoke_sent: true }, expected)); setRecoverId(''); } }
     catch (failure) { if (alive.current) setError(failure.message); }
     finally { locked.current = false; if (alive.current) setBusy(false); }
   };
@@ -79,7 +82,7 @@ export default function RetainedOperationsView({ api, principal, installationId 
         <label>Model profile<select value={profileIndex} onChange={event => setProfileIndex(Number(event.target.value))}>{member.model_profiles.map((value, index) => <option key={value.profile_id} value={index}>{value.profile_id} · {value.runtime_kind} · {value.provider} / {value.model}</option>)}</select></label>
         <label>Read-only call<select value={toolIndex} onChange={event => setToolIndex(Number(event.target.value))}>{member.tools.map((value, index) => <option key={index} value={index}>{value.tool} · {value.device_ref}</option>)}</select></label>
         {tool && <pre aria-label="Candidate arguments">{json(tool.arguments)}</pre>}
-        <button className="primary" disabled={busy || storageError || !profile || !tool || !selection || unresolvedSelection || references.length >= REFERENCE_CAPACITY} onClick={prepare}>Prepare review</button>
+        <button className="primary" disabled={busy || !clusterCanAdmit(cluster) || storageError || !profile || !tool || !selection || unresolvedSelection || references.length >= REFERENCE_CAPACITY} onClick={prepare}>Prepare review</button>
         {unresolvedSelection && <p>Recover the existing unresolved operation for this selection before preparing another.</p>}
       </div>}
       {references.length >= REFERENCE_CAPACITY && <p>All {REFERENCE_CAPACITY} retained slots are occupied. Explicitly remove a resolved reference before preparing another; unresolved references are preserved.</p>}
@@ -92,14 +95,17 @@ export default function RetainedOperationsView({ api, principal, installationId 
       <form onSubmit={recover}><label>Reference type<select aria-label="Recovery reference type" value={recoverKind} onChange={e => setRecoverKind(e.target.value)}><option value="operation_id">Operation ID</option><option value="client_nonce">Client nonce</option></select></label><label>Recover retained reference<input value={recoverId} onChange={event => setRecoverId(event.target.value)} autoComplete="off" spellCheck="false" maxLength={200}/></label><button disabled={busy || storageError || !operationIdentifier(recoverId)}>Recover existing operation</button></form><p>Imported references recover status only. They cannot resend a decision or revocation.</p>
     </section>
     {reference && <section className="panel" aria-label="Selected operation"><h2>Operation {operation?.state || 'awaiting confirmation'}</h2><dl className="facts"><div><dt>Operation</dt><dd>{reference.operation_id || 'Recovering from client nonce'}</dd></div><div><dt>Client nonce</dt><dd>{reference.client_nonce}</dd></div><div><dt>Recorded attempts</dt><dd>{operation?.attempt_count ?? 'Not confirmed'}</dd></div></dl>
+      {operation?.observation?.kind === 'retained' && <p role="status">Retained status last observed {new Date(operation.observation.observed_at_ms).toISOString()}. Current authority is unavailable ({operation.observation.reason}). This historical result cannot authorize a new decision or reconciliation.</p>}
       {current?.error && <p role="alert">{current.error}</p>}
       {(current?.uncertain || operation?.reconciliation_required) && <p role="status">This operation may have been accepted or executed. Recover this same identity; nothing is automatically retried.</p>}
-      <div className="protected-actions"><button disabled={busy} onClick={() => run(reference, () => api.status(reference))}>Check status</button>{reference.operation_id && <button disabled={busy} onClick={() => run(reference, () => api.reconcile(reference.operation_id))}>Reconcile existing operation</button>}</div>
+      <div className="protected-actions"><button disabled={busy} onClick={() => run(reference, () => api.status(reference))}>Check status</button>{reference.operation_id && <button disabled={busy || operation?.observation?.kind === 'retained'} onClick={() => run(reference, () => api.reconcile(reference.operation_id))}>Reconcile existing operation</button>}</div>
       {operation?.review && <><h3>Immutable approval review</h3><dl className="facts"><div><dt>Review digest</dt><dd>{operation.review_digest}</dd></div><div><dt>Revision</dt><dd>{operation.revision}</dd></div><div><dt>Review operator</dt><dd>{operation.review.principal.display_name}</dd></div><div><dt>Review expires</dt><dd>{Number.isSafeInteger(expires) ? new Date(expires).toISOString() : 'Unavailable'}</dd></div></dl><pre aria-label="Immutable operation review">{json(operation.review)}</pre>
+        {cluster && !clusterCanDecide(cluster, operation) && <p role="status">This review cannot authorize new work under the current authority. Recover the same operation; no decision is resent.</p>}
         {!(expires > clock) && <p>This review has expired. It cannot authorize execution.</p>}
-        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={reference.decision_sent || !actions.includes(decision) || decision === 'approve' && !(expires > clock)} onClick={() => run(reference, () => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true, false, 'decision')}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}{actions.includes('revoke') && <button disabled={busy || reference.revoke_sent} onClick={() => run(reference, () => api.revoke(reference.operation_id), true, false, 'revoke')}>Revoke remaining authority</button>}</div>
+        <div className="protected-actions">{['approve', 'deny'].map(decision => <button key={decision} className={decision === 'approve' ? 'primary' : ''} disabled={!clusterCanDecide(cluster, operation) || reference.decision_sent || !actions.includes(decision) || decision === 'approve' && !(expires > clock)} onClick={() => run(reference, () => api.decision(reference.operation_id, { revision: operation.revision, review_digest: operation.review_digest, decision }), true, false, 'decision')}>{decision === 'approve' ? 'Approve once' : 'Deny'}</button>)}{actions.includes('revoke') && <button disabled={busy || reference.revoke_sent} onClick={() => run(reference, () => api.revoke(reference.operation_id), true, false, 'revoke')}>Revoke remaining authority</button>}</div>
       </>}
       {operation?.approval && <><h3>Recorded approval</h3><pre>{json(operation.approval)}</pre></>}
+      {operation?.result_reference && !operation.result && <section aria-label="Original result reference"><h3>Original result retained</h3><p>The original signed artifact is currently unavailable. This reference does not authorize another execution.</p><pre>{json(operation.result_reference)}</pre></section>}
       {operation?.result && <><h3>Execution evidence</h3><dl className="facts"><div><dt>Signature and bindings verified</dt><dd>{operation.result.verified === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>Border acknowledgement durably stored</dt><dd>{operation.result.durable_ack === true ? 'Yes' : 'Not confirmed'}</dd></div><div><dt>ACK delivery</dt><dd>{operation.result.ack_delivery_pending ? 'Pending reconciliation' : 'No pending delivery reported'}</dd></div><div><dt>Result digest</dt><dd>{operation.result.digest || 'Not reported'}</dd></div></dl><OperationResultEvidence operation={operation}/></>}
       {operation?.error_code && <p>Recorded outcome: {operation.error_code}</p>}
       {removableOperation(operation) && !current?.uncertain && <button disabled={busy} onClick={() => { try { retainRefs(store.remove(operation)); setSelectedNonce(null); } catch (failure) { setError(failure.message); } }}>Remove resolved reference</button>}

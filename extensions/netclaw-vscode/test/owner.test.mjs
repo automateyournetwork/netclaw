@@ -354,6 +354,44 @@ async function nativeModules() {
   } }] });
   return import(pathToFileURL(file).href);
 }
+
+const haGolden = JSON.parse(fs.readFileSync(new URL('../../../tests/fixtures/ha-179/cluster-golden.json', import.meta.url), 'utf8'));
+const haRuntime = cluster => ({installationId:cluster.installation_id,kind:'openclaw',role:'border',readiness:{ready:true},capabilities:{protectedProfile:true,protectedOperations:true,protectedProduction:true},access:{mode:'open-lab',principal:haGolden.principal},cluster});
+test('R08 explicit anchor and signed alternative-node CAS preserve cluster references and refuse rollback', async () => {
+  const {Profiles}=await nativeModules(), store=storage(), profiles=new Profiles(store), a=haGolden.descriptors[0], b=haGolden.descriptors[1];
+  const origin=d=>d.manifest.manifest.nodes.find(n=>n.node_id===d.node_id).endpoints.https;
+  await assert.rejects(profiles.saveCloud('HA',origin(a),a.installation_id,haRuntime(a)), /onboarding/);
+  const original=await profiles.saveCloud('HA',origin(a),a.installation_id,haRuntime(a),a.anchor_key_id);
+  const client=new OwnerClient(origin(a),a.installation_id,undefined,undefined,'open-lab',original.cluster);client.access=haRuntime(a).access;
+  const key=client.referenceKey, refs=[{client_nonce:'original-nonce',operation_id:'original-operation',decision_sent:true}];await store.update(key,refs);
+  const moved=await profiles.replaceCloudEndpoint(original,origin(b),haRuntime(b));
+  assert.equal(moved.id,original.id);assert.notEqual(moved.installationId,original.installationId);
+  const successor=new OwnerClient(origin(b),b.installation_id,undefined,undefined,'open-lab',moved.cluster);successor.access=haRuntime(b).access;
+  assert.equal(successor.referenceKey,key);assert.deepEqual(new OwnerOperations(successor,store).references(),refs);
+  await assert.rejects(profiles.replaceCloudEndpoint(original,origin(b),haRuntime(b)), /changed/);
+  const wrong=clone(a);wrong.generation='aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';await assert.rejects(profiles.replaceCloudEndpoint(moved,origin(a),haRuntime(wrong)), /cluster/);
+  await profiles.updateCluster(moved,{descriptor:haGolden.updated_descriptor,pin:moved.cluster.pin});
+  await assert.rejects(profiles.replaceCloudEndpoint(profiles.list()[0],origin(a),haRuntime(a)), /stale_manifest/);
+  assert.deepEqual(store.get(key,[]),refs);client.close();successor.close();
+});
+test('R08 successor recovers original issuer, blocks stale epoch/no quorum, preserves sent marker without retry', async t => {
+  const {verifyClusterRuntime}=await load('src/client/cluster.ts'), a=haGolden.descriptors[0], b=clone(haGolden.descriptors[1]), origin=b.manifest.manifest.nodes[1].endpoints.https;
+  const binding=await verifyClusterRuntime(haRuntime(b),{acceptedAnchor:b.anchor_key_id,origin});
+  const client=new OwnerClient(origin,b.installation_id,undefined,undefined,'open-lab',binding), calls=[], saved=storage();t.after(()=>client.close());
+  const issuer=a.manifest.manifest.nodes[0], op=operation('ha-nonce',haGolden.principal);op.review.border={installation_id:issuer.installation_id,key_id:issuer.key_id};op.review.cluster={cluster_id:a.cluster_id,generation:a.generation,manifest_revision:1,issuer_node_id:a.node_id,authority_epoch:7};op.review_digest=createHash('sha256').update(ownerCanonical(op.review)).digest('hex');
+  const original=globalThis.fetch;t.after(()=>globalThis.fetch=original);
+  globalThis.fetch=async(url,init)=>{const route=new URL(url).pathname;calls.push({route,init});assert.equal(init.redirect,'error');assert.equal(init.headers['X-NetClaw-Installation'],b.installation_id);assert.equal(init.headers['X-NetClaw-Cluster-ID'],a.cluster_id);assert.equal(init.headers['X-NetClaw-Cluster-Generation'],a.generation);assert.equal(init.headers.Cookie,undefined);return new Response(JSON.stringify(route==='/api/runtime'?haRuntime(b):op),{headers:{'Content-Type':'application/json'}});};
+  await client.connect();const ops=new OwnerOperations(client,saved);await saved.update(client.referenceKey,[{client_nonce:op.client_nonce,operation_id:op.operation_id}]);
+  assert.equal((await ops.recover(ops.references()[0])).review.border.installation_id,a.installation_id);
+  b.authority.epoch=8;await assert.rejects(ops.decide(op,'approve'),/Authority changed/);assert.equal(ops.references()[0].decision_sent,undefined);
+  b.authority={state:'no_quorum',leader_node_id:null,epoch:null,observed_at_ms:Date.now()};await assert.rejects(client.prepare({client_nonce:'never-sent'}),/Quorum/);
+  op.result_reference={result_digest:'a'.repeat(64),accepting_node_id:a.node_id};assert.deepEqual((await ops.recover(ops.references()[0])).result_reference,op.result_reference);
+  assert.equal(calls.filter(c=>c.init.method!=='GET').length,0);
+  b.authority=clone(a.authority);b.authority.state='follower';await client.connect();
+  globalThis.fetch=async(url,init)=>{const route=new URL(url).pathname;calls.push({route,init});if(init.method==='POST')throw Error('lost');return new Response(JSON.stringify(route==='/api/runtime'?haRuntime(b):op),{headers:{'Content-Type':'application/json'}});};
+  await assert.rejects(ops.decide(op,'approve'),/not confirmed/);assert.equal(ops.references()[0].decision_sent,true);await assert.rejects(ops.decide(op,'approve'),/already submitted/);
+  assert.equal(calls.filter(c=>c.init.method==='POST').length,1);
+});
 test('native confirmation stays compact while binding the complete immutable review document', async () => {
   const { ownerDecisionDetail } = await nativeModules(), op = operation('view-test');
   const detail = ownerDecisionDetail(ORIGIN, ID, op);

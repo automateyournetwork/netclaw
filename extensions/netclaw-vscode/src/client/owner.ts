@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { Runtime, Json } from "./hud";
+import { ClusterBinding, verifyClusterRuntime, clusterReferencesKey, clusterReviewMatches, clusterCanAdmit, clusterCanDecide, clusterError } from "./cluster";
 
 export const ownerIdentifier = (v: unknown): v is string => typeof v === "string" && /^[A-Za-z0-9_.:-]{1,200}$/.test(v);
 export const installationIdentifier = (v: unknown): v is string => typeof v === "string" && /^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/.test(v);
@@ -43,7 +44,7 @@ function cloudRuntime(r: Json, expectedId: string) {
   cloudExecutionMode(r);
 }
 /** First connection pins the identity advertised by this exact trusted HTTPS origin. */
-export async function discoverCloudBorder(origin: string): Promise<Runtime> {
+export async function discoverCloudBorder(origin: string, clusterPin?: Json): Promise<Runtime> {
   const base = ownerOrigin(origin), controller = new AbortController(), timer = setTimeout(() => controller.abort(), 35000);
   try {
     const response = await fetch(base + "/api/runtime", { method: "GET", headers: { Accept: "application/json" }, redirect: "error", cache: "no-store", signal: controller.signal });
@@ -54,6 +55,8 @@ export async function discoverCloudBorder(origin: string): Promise<Runtime> {
     const r = JSON.parse(Buffer.concat(chunks).toString("utf8"));
     if (!object(r) || !installationIdentifier(r.installationId)) throw Error();
     cloudRuntime(r, r.installationId); labAccess(r.access);
+    if (r.cluster) await verifyClusterRuntime(r, { origin: base, ...(clusterPin ? {pin:clusterPin} : {acceptedAnchor:r.cluster.anchor_key_id}) });
+    else if (clusterPin) throw Error("Cluster discovery missing");
     return r as Runtime;
   } catch { throw new OwnerError("This HTTPS address did not advertise an available open-lab cloud Border. Check the address and server mode."); }
   finally { clearTimeout(timer); }
@@ -67,6 +70,10 @@ export class OwnerClient {
   readonly base: string;
   readonly cookieName: string;
   runtime?: Runtime;
+  cluster?: ClusterBinding;
+  get referenceKey() { return this.cluster && this.principal ? clusterReferencesKey(this.cluster.descriptor, this.principal) : ownerReferencesKey(this.base, this.expectedId); }
+  reviewMatches(review: Json) { return this.cluster ? clusterReviewMatches(this.cluster.descriptor, review) && this.reviewPrincipalMatches(review.principal) : review?.border?.installation_id === this.expectedId; }
+  canDecide(operation: Json) { return clusterCanDecide(this.cluster?.descriptor, operation); }
   sessionState?: OwnerSession;
   access?: LabAccess;
   get openLab() { return this.access?.mode === "open-lab"; }
@@ -79,7 +86,8 @@ export class OwnerClient {
   private pending = new Set<AbortController>();
   private current() { if (this.closed) throw new OwnerError("Cloud connection closed. Recover the same operation after reconnecting."); }
   assertOpen() { this.current(); }
-  constructor(origin: string, readonly expectedId: string, private saveCookie: (value: string) => Promise<void> = async () => {}, private sessionLost: () => void = () => {}, private requiredAccess?: "open-lab") {
+  constructor(origin: string, readonly expectedId: string, private saveCookie: (value: string) => Promise<void> = async () => {}, private sessionLost: () => void = () => {}, private requiredAccess?: "open-lab", cluster?: ClusterBinding, private saveCluster: (value: ClusterBinding) => Promise<void> = async () => {}) {
+    this.cluster = cluster;
     this.base = ownerOrigin(origin);
     if (!installationIdentifier(expectedId)) throw Error("Supply the expected Border installation UUID from its operator.");
     this.cookieName = "__Host-nc_owner_" + expectedId;
@@ -101,6 +109,11 @@ export class OwnerClient {
     this.current();
     try {
       cloudRuntime(r, this.expectedId);
+      if (r.cluster || this.cluster) {
+        if (!this.cluster) throw Error("Explicitly trust the cluster enrollment anchor in a new connection before proceeding.");
+        const binding = await verifyClusterRuntime(r, {pin:this.cluster.pin,origin:this.base});
+        await this.saveCluster(binding); this.current(); this.cluster = binding;
+      }
       if (this.runtime && cloudExecutionMode(this.runtime) !== cloudExecutionMode(r)) throw Error("The cloud Border execution mode changed. Review a new connection.");
       if (r.access !== undefined) {
         this.access = labAccess(r.access);
@@ -171,10 +184,13 @@ export class OwnerClient {
   }
   private async request(route: string, method = "GET", body?: Json, bootstrap = false): Promise<Json> {
     this.current();
+    if (this.cluster && route.includes("/operations/combined")) throw new OwnerError("Combined operations are unavailable for this HA cluster.");
+    if (this.cluster && method !== "GET" && !route.endsWith("/reconcile") && !clusterCanAdmit(this.cluster.descriptor)) throw new OwnerError("Quorum or execution authority is unavailable. Recover the same operation; nothing was sent.");
     const controller = new AbortController(); this.pending.add(controller);
     const timer = setTimeout(() => controller.abort(), 35000);
     try {
       const headers: Record<string, string> = { Accept: "application/json", "X-NetClaw-Installation": this.expectedId };
+      if (this.cluster) { headers["X-NetClaw-Cluster-ID"] = this.cluster.pin.cluster_id; headers["X-NetClaw-Cluster-Generation"] = this.cluster.pin.generation; }
       if (!this.openLab && this.cookie && route !== "/api/runtime") headers.Cookie = this.cookie;
       if (method !== "GET") {
         headers.Origin = this.base; headers["Content-Type"] = "application/json";
@@ -200,10 +216,10 @@ export class OwnerClient {
       if (!response.ok) {
         if (response.status === 401 || response.status === 409 && data.code === "installation_changed") await this.forget();
         const notSubmitted = ["/api/hud/operations", "/api/hud/operations/combined"].includes(route) && method === "POST" && data.admission === "not_submitted";
-        throw new OwnerError(response.status === 401 ? (this.openLab ? "The lab Border refused this request. Check its server mode and recover the same operation." : "Owner session expired or was revoked. Sign in again to recover existing work.") :
+        throw new OwnerError(clusterError(data.code) || (response.status === 401 ? (this.openLab ? "The lab Border refused this request. Check its server mode and recover the same operation." : "Owner session expired or was revoked. Sign in again to recover existing work.") :
           response.status === 409 && data.code === "installation_changed" ? "Border identity changed. Disconnect and review the destination." :
           notSubmitted ? "The review was rejected before submission. Nothing executed." :
-          `The Border refused this request (HTTP ${response.status}). Check the same operation before continuing; nothing was resent.`, response.status, notSubmitted);
+          `The Border refused this request (HTTP ${response.status}). Check the same operation before continuing; nothing was resent.`), response.status, notSubmitted);
       }
       const cookies = response.headers.getSetCookie();
       if (cookies.length) {
@@ -289,7 +305,7 @@ export class OwnerOperations {
   private busy = false;
   private readonly key: string;
   constructor(readonly client: OwnerClient, private storage: OwnerStorage) {
-    this.key = ownerReferencesKey(client.base, client.expectedId);
+    this.key = client.referenceKey;
   }
   references(): OperationReference[] {
     const rows = this.storage.get<OperationReference[]>(this.key, []);
@@ -308,7 +324,7 @@ export class OwnerOperations {
   }
   private async accept(ref: OperationReference, op: Json, historical = false) {
     if (!ownerIdentifier(op.operation_id) || op.client_nonce !== ref.client_nonce || ref.operation_id && op.operation_id !== ref.operation_id ||
-      op.review?.border?.installation_id !== this.client.expectedId || !this.client.operationsReady ||
+      !this.client.reviewMatches(op.review) || !this.client.operationsReady ||
       !(historical && this.client.openLab) && !this.client.reviewPrincipalMatches(op.review?.principal)) throw Error("Returned operation does not belong to this operator and Border. Nothing was resent.");
     reviewText(op);
     await this.put({ ...ref, operation_id: op.operation_id });
@@ -358,6 +374,7 @@ export class OwnerOperations {
       if (this.client.openLab && !this.client.reviewPrincipalMatches(current.review?.principal)) throw Error("Historical operation reviews are recovery-only. No new decision was sent.");
       if (reviewText(current) !== reviewText(reviewed) || current.state !== "review_pending" || !current.allowed_actions?.includes(decision)) throw Error("The operation review changed or is no longer available. Recover and review it again.");
       if (decision === "approve" && !unexpiredReview(current)) throw Error("This review expired. Recover and deny it; no approval was sent.");
+      if (!this.client.canDecide(current)) throw Error("Authority changed or quorum is unavailable. This review is recovery-only; no decision was sent.");
       await this.put({ ...ref, decision_sent: true });
       return this.accept({ ...ref, decision_sent: true }, await this.client.decision(current.operation_id, current.revision, current.review_digest, decision, current.review.limits.expires_at_ms));
     });

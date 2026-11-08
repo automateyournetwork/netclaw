@@ -1,11 +1,13 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:flutter/foundation.dart';
 import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import 'edge_identity.dart';
+import 'cluster_trust.dart';
 import 'enrollment_qr_payload.dart';
 import 'protected_device_descriptor.dart';
 
@@ -107,22 +109,148 @@ class EdgeClient implements EdgeRpcSource {
   String? enrollFingerprint;
   Map<String, dynamic> border = {};
   ProtectedDeviceDescriptor? protectedDevice;
+  ClusterBinding? clusterBinding;
+  String? clusterMemberId;
 
-  void _rememberBorder(
+  Future<void> _rememberBorder(
     Map<String, dynamic> result,
     EnrollmentQrPayload payload,
-  ) {
+  ) async {
+    final generation = _connectionGeneration;
+    final channel = _channel;
     final value = result['border'];
     final next = value is Map<String, dynamic> ? value : <String, dynamic>{};
-    protectedDevice = ProtectedDeviceDescriptor.fromBorder(next, payload);
+    if (payload.clusterPin != null) {
+      final preflight = clusterBinding;
+      if (preflight == null) {
+        throw const FormatException('Cluster discovery required');
+      }
+      final verified = await ClusterBinding.verify(
+        next['cluster'],
+        preflight.pin,
+        origin: preflight.origin,
+        installationId: payload.installationId!,
+        nodeId: payload.clusterNodeId,
+      );
+      if (_closed ||
+          generation != _connectionGeneration ||
+          !identical(channel, _channel)) {
+        throw StateError('Cluster reconnect was superseded');
+      }
+      clusterBinding = verified;
+    } else if (next.containsKey('cluster')) {
+      throw const FormatException('Cluster onboarding requires explicit pins');
+    }
+    protectedDevice = ProtectedDeviceDescriptor.fromBorder(
+      next,
+      payload,
+      cluster: clusterBinding,
+    );
     border = next;
   }
 
-  EdgeClient._(
-    this._channel,
-    this.identity, {
-    this._testDial,
-  }) {
+  static Future<ClusterBinding?> _clusterPreflight(
+    EnrollmentQrPayload payload,
+  ) async {
+    if (payload.clusterPin == null) return null;
+    final origin = Uri(
+      scheme: 'https',
+      host: payload.clawDomain,
+      port: payload.borderPort,
+    ).origin;
+    final binding = await ClusterBinding.verify(
+      await fetchClusterDescriptor(origin),
+      payload.clusterPin!,
+      origin: origin,
+      installationId: payload.installationId!,
+      nodeId: payload.clusterNodeId,
+    );
+    if (binding.websocketUri != payload.websocketUri || !binding.available) {
+      throw const FormatException('Cluster endpoint has no current authority');
+    }
+    return binding;
+  }
+
+  static Future<Uint8List> _handshakeProof(
+    EnrollmentQrPayload payload,
+    Map<String, dynamic> challenge,
+    String memberId,
+    String purpose,
+  ) async {
+    if (payload.clusterPin == null) {
+      return hexDecode(challenge['nonce'] as String);
+    }
+    final pin = payload.clusterPin!;
+    if (challenge.length != 7 ||
+        challenge['schema_version'] != 1 ||
+        challenge['cluster_id'] != pin.clusterId ||
+        challenge['generation'] != pin.generation ||
+        challenge['node_id'] != payload.clusterNodeId ||
+        challenge['installation_id'] != payload.installationId ||
+        challenge['nonce'] is! String ||
+        !RegExp(r'^[a-f0-9]{64}$').hasMatch(challenge['nonce']) ||
+        challenge['expires_at_ms'] is! int ||
+        challenge['expires_at_ms'] <= DateTime.now().millisecondsSinceEpoch ||
+        challenge['expires_at_ms'] >
+            DateTime.now().millisecondsSinceEpoch + 31000) {
+      throw const FormatException('Cluster challenge changed');
+    }
+    final tokenHash = purpose == 'enroll'
+        ? (await publicCrypto(
+            Uint8List.fromList(utf8.encode(payload.enrollmentToken)),
+          ))['sha256']
+        : null;
+    return Uint8List.fromList([
+      ...utf8.encode('netclaw.ncfed.ha/device-proof/v1\u0000'),
+      ...clusterCanonical({
+        'challenge': challenge,
+        'member_id': memberId,
+        'purpose': purpose,
+        'token_sha256': tokenHash,
+      }),
+    ]);
+  }
+
+  Future<Map<String, dynamic>> signedDeviceRequest(
+    String method,
+    Map<String, dynamic> params,
+  ) async {
+    final cluster = clusterBinding, device = protectedDevice;
+    if (cluster == null ||
+        device?.enrollmentGeneration == null ||
+        clusterMemberId == null ||
+        isClosed) {
+      throw const FormatException('Current cluster device required');
+    }
+    final bytes = List.generate(16, (_) => Random.secure().nextInt(256));
+    bytes[6] = (bytes[6] & 15) | 64;
+    bytes[8] = (bytes[8] & 63) | 128;
+    final hex = hexEncode(Uint8List.fromList(bytes));
+    final requestId =
+        '${hex.substring(0, 8)}-${hex.substring(8, 12)}-${hex.substring(12, 16)}-${hex.substring(16, 20)}-${hex.substring(20)}';
+    final proof = <String, dynamic>{
+      'schema_version': 1,
+      'cluster_id': cluster.pin.clusterId,
+      'generation': cluster.pin.generation,
+      'member_id': clusterMemberId,
+      'enrollment_generation': device!.enrollmentGeneration,
+      'request_id': requestId,
+      'method': method,
+      'params_sha256': (await publicCrypto(clusterCanonical(params)))['sha256'],
+    };
+    final signature = await identity.sign(
+      Uint8List.fromList([
+        ...utf8.encode('netclaw.ncfed.ha/device-request/v1\u0000'),
+        ...clusterCanonical(proof),
+      ]),
+    );
+    if (isClosed || clusterBinding != cluster || protectedDevice != device) {
+      throw StateError('Device connection changed');
+    }
+    return {...proof, 'signature': hexEncode(signature)};
+  }
+
+  EdgeClient._(this._channel, this.identity, {this._testDial}) {
     _listen();
   }
 
@@ -162,8 +290,10 @@ class EdgeClient implements EdgeRpcSource {
       },
       onDone: () {
         if (current()) {
-          _failAll('onDone closeCode=${origin.closeCode} closeReason=${origin.closeReason} '
-              '(${DateTime.now().toIso8601String()})');
+          _failAll(
+            'onDone closeCode=${origin.closeCode} closeReason=${origin.closeReason} '
+            '(${DateTime.now().toIso8601String()})',
+          );
         }
       },
     );
@@ -207,6 +337,12 @@ class EdgeClient implements EdgeRpcSource {
   }) async {
     verifyClawDomainBeforeDial(payload);
     final generation = ++_connectionGeneration;
+    final verifiedCluster = await _clusterPreflight(payload);
+    if (generation != _connectionGeneration) {
+      throw StateError("Reconnect superseded");
+    }
+    clusterBinding = verifiedCluster;
+    clusterMemberId = memberId;
     final uri = payload.websocketUri;
     debugPrint(
       '[edge-diag] socket connect requested (reconnectInPlace) ${DateTime.now().toIso8601String()}',
@@ -238,17 +374,19 @@ class EdgeClient implements EdgeRpcSource {
     // the old socket is already gone. Suppress on the Future itself.
     previous.sink.close().catchError((Object _) {});
 
-    final challenge = Completer<Uint8List>();
+    final challenge = Completer<Map<String, dynamic>>();
     _connectionWaiters.add(challenge);
     on('n2n/edge/challenge', (params) {
       if (!challenge.isCompleted) {
-        challenge.complete(hexDecode(params['nonce'] as String));
+        challenge.complete(params);
       }
       return <String, dynamic>{};
     });
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
-      final signature = await identity.sign(nonce);
+      final signature = await identity.sign(
+        await _handshakeProof(payload, nonce, memberId, 'hello'),
+      );
       if (generation != _connectionGeneration || _closed) {
         throw EdgeClientException(
           'connection_error',
@@ -268,7 +406,7 @@ class EdgeClient implements EdgeRpcSource {
           'Reconnect was superseded',
         );
       }
-      _rememberBorder(result, payload);
+      await _rememberBorder(result, payload);
       enrollFingerprint = keyFingerprint;
     } catch (e) {
       if (generation == _connectionGeneration && identical(channel, _channel)) {
@@ -288,7 +426,9 @@ class EdgeClient implements EdgeRpcSource {
     if (raw is! String || raw.length > 4 * 1024 * 1024) {
       throw const FormatException('Invalid RPC size');
     }
-    final msg = jsonDecode(raw) as Map<String, dynamic>;
+    final msg =
+        (clusterBinding == null ? jsonDecode(raw) : clusterDecode(raw))
+            as Map<String, dynamic>;
     if (msg.containsKey('method')) {
       final method = msg['method'] as String;
       final params =
@@ -410,6 +550,7 @@ class EdgeClient implements EdgeRpcSource {
     String? displayName,
   }) async {
     verifyClawDomainBeforeDial(payload);
+    final verifiedCluster = await _clusterPreflight(payload);
     final uri = payload.websocketUri;
     // Standard TLS hostname verification (against the platform's public CA
     // trust store) happens automatically here — a mismatched/untrusted
@@ -423,21 +564,26 @@ class EdgeClient implements EdgeRpcSource {
       pingInterval: _clientPingInterval,
     );
     final client = EdgeClient._(channel, identity);
+    client.clusterBinding = verifiedCluster;
+    client.clusterMemberId = memberId;
 
-    final challenge = Completer<Uint8List>();
+    final challenge = Completer<Map<String, dynamic>>();
     client._connectionWaiters.add(challenge);
     client.on('n2n/edge/challenge', (params) {
       if (!challenge.isCompleted) {
-        challenge.complete(hexDecode(params['nonce'] as String));
+        challenge.complete(params);
       }
       return <String, dynamic>{};
     });
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
       final certPem = await identity.certificatePem();
-      final signature = await identity.sign(nonce);
+      final signature = await identity.sign(
+        await _handshakeProof(payload, nonce, memberId, 'enroll'),
+      );
       final result = await client.call('in2n/enroll', {
         'token': payload.enrollmentToken,
+        if (payload.clusterPin != null) 'client_nonce': payload.clientNonce,
         if (payload.installationId != null)
           'installation_id': payload.installationId,
         'member_id': memberId,
@@ -446,7 +592,7 @@ class EdgeClient implements EdgeRpcSource {
         'runtime_kind': runtimeKind,
         'display_name': ?displayName,
       });
-      client._rememberBorder(result, payload);
+      await client._rememberBorder(result, payload);
       client.enrollFingerprint = result['enroll_fingerprint'] as String?;
       return client;
     } catch (_) {
@@ -469,6 +615,7 @@ class EdgeClient implements EdgeRpcSource {
     required EdgeIdentity identity,
   }) async {
     verifyClawDomainBeforeDial(payload);
+    final verifiedCluster = await _clusterPreflight(payload);
     final uri = payload.websocketUri;
     debugPrint(
       '[edge-diag] socket connect requested (reconnect) ${DateTime.now().toIso8601String()}',
@@ -478,18 +625,22 @@ class EdgeClient implements EdgeRpcSource {
       pingInterval: _clientPingInterval,
     );
     final client = EdgeClient._(channel, identity);
+    client.clusterBinding = verifiedCluster;
+    client.clusterMemberId = memberId;
 
-    final challenge = Completer<Uint8List>();
+    final challenge = Completer<Map<String, dynamic>>();
     client._connectionWaiters.add(challenge);
     client.on('n2n/edge/challenge', (params) {
       if (!challenge.isCompleted) {
-        challenge.complete(hexDecode(params['nonce'] as String));
+        challenge.complete(params);
       }
       return <String, dynamic>{};
     });
     try {
       final nonce = await challenge.future.timeout(const Duration(seconds: 10));
-      final signature = await identity.sign(nonce);
+      final signature = await identity.sign(
+        await _handshakeProof(payload, nonce, memberId, 'hello'),
+      );
       final result = await client.call('in2n/hello', {
         'member_id': memberId,
         if (payload.installationId != null)
@@ -497,7 +648,7 @@ class EdgeClient implements EdgeRpcSource {
         'key_fingerprint': keyFingerprint,
         'signature': hexEncode(signature),
       });
-      client._rememberBorder(result, payload);
+      await client._rememberBorder(result, payload);
       client.enrollFingerprint = keyFingerprint;
       return client;
     } catch (_) {

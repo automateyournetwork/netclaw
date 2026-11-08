@@ -1,3 +1,4 @@
+import { clusterCanAdmit, clusterCanDecide, clusterErrorMessage, clusterReviewMatches, clusterAudience } from './cluster-binding.js';
 import { validOperationReference, cleanOperationReference, mergeOperationReference } from './protected-operation-references.js';
 /** Session authority remains in memory; browser persistence holds identifiers only. */
 export function isOpenLabAccess(access) {
@@ -8,12 +9,15 @@ export function isOpenLabAccess(access) {
     && /^[a-f0-9]{8}-[a-f0-9]{4}-5[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/.test(p.subject)
     && Array.isArray(p.roles) && p.roles.length === 1 && p.roles[0] === 'lab-operator';
 }
-export function createProtectedOperationsApi(installationId, onSessionLost = () => {}, access) {
+export function createProtectedOperationsApi(installationId, onSessionLost = () => {}, access, initialCluster) {
+  let cluster = initialCluster;
   if (access !== undefined && !isOpenLabAccess(access)) throw Error('Unsupported protected access mode.');
   const openLab = isOpenLabAccess(access);
   let csrf = null;
   const request = async (path, method = 'GET', body, bootstrap = false) => {
-    const headers = { 'X-NetClaw-Installation': installationId };
+    const headers = { 'X-NetClaw-Installation': installationId, ...(cluster ? { 'X-NetClaw-Cluster-ID': cluster.cluster_id, 'X-NetClaw-Cluster-Generation': cluster.generation } : {}) };
+    if (cluster && method !== 'GET' && !path.endsWith('/reconcile') && !clusterCanAdmit(cluster)) throw Object.assign(Error(clusterErrorMessage('no_quorum')), { code: 'no_quorum' });
+    if (cluster && path.includes('/combined')) throw Error('Combined execution is unavailable for this cluster.');
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (openLab && path === '/api/hud/owner/session') throw Error('Owner sessions are unavailable in this open lab.');
     if (bootstrap) headers['X-NetClaw-Owner-Bootstrap'] = '1';
@@ -28,7 +32,7 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     if (!response.ok) {
       if (response.status === 401 || response.status === 409 && value.code === 'installation_changed') { csrf = null; onSessionLost(); }
       const prepareNotSubmitted = ['/api/hud/operations', '/api/hud/operations/combined'].includes(path) && method === 'POST' && value.admission === 'not_submitted';
-      const message = prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 && !openLab ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check the configured HUD origin and access mode.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.';
+      const message = clusterErrorMessage(value.code) || (prepareNotSubmitted ? 'The review was rejected before submission. Nothing was executed.' : response.status === 401 && !openLab ? 'Your owner session expired. Sign in again to recover this operation.' : response.status === 403 ? 'The request was refused. Check the configured HUD origin and access mode.' : response.status === 404 ? 'No owned operation was found. Nothing was resent.' : response.status === 429 ? 'Too many sign-in attempts. Wait one minute before trying again.' : 'The request was not confirmed. Check the same operation’s status before continuing.');
       throw Object.assign(Error(message), { status: response.status, code: value.code, uncertain: response.status >= 500, prepareNotSubmitted });
     }
     return value;
@@ -40,6 +44,12 @@ export function createProtectedOperationsApi(installationId, onSessionLost = () 
     return publicState;
   };
   return {
+    get clusterBinding() { return cluster; },
+    get referenceAudience() { return cluster ? clusterAudience(cluster, access.principal) : installationId; },
+    setCluster(value) { if (!cluster || value.cluster_id !== cluster.cluster_id || value.generation !== cluster.generation || value.anchor_key_id !== cluster.anchor_key_id || value.manifest_revision < cluster.manifest_revision) throw Error('Cluster identity changed.'); cluster = value; },
+    cluster: () => request('/api/hud/cluster'),
+    reviewMatches: review => cluster ? clusterReviewMatches(cluster, review, access.principal) : review?.border?.installation_id === installationId,
+    canDecide: operation => clusterCanDecide(cluster, operation),
     inspect: async () => retainSession(await request('/api/hud/owner/session')),
     login: async ticket => retainSession(await request('/api/hud/owner/session', 'POST', { ticket }, true)),
     logout: async () => { try { return await request('/api/hud/owner/session', 'DELETE', {}); } finally { csrf = null; onSessionLost(); } },

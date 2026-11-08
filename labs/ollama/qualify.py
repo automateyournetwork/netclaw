@@ -30,6 +30,20 @@ SERVICE_PORTS = [4000, 4001, 11434, 18970, 49171]
 LABEL = 'netclaw.spec=176'
 
 
+def owner_spec(args):
+    value = getattr(args, 'owner_spec', 176)
+    need(type(value) is int and value in (176, 179), 'owner_spec_refused')
+    return value
+
+
+def owner_labels(args):
+    spec = owner_spec(args)
+    name = getattr(args, 'owner_name', None)
+    need(name is None or isinstance(name, str) and re.fullmatch(r'netclaw-r08-[a-z0-9_.-]+', name), 'owner_name_refused')
+    need(spec != 179 or name is not None, 'owner_name_required')
+    return ['--label', 'netclaw.spec=' + str(spec)] + (['--label', 'netclaw.owner=' + name] if name else [])
+
+
 class QualificationRefused(ValueError): pass
 
 
@@ -80,12 +94,15 @@ def selected_profile(args):
         'confinement_file':str(Path(args.state_dir).absolute()/'confinement.json'), 'confinement_sha256':'0'*64}
 
 
-def create_model_args(profile, network):
+def create_model_args(profile, network, *, owner=176, owner_name=None):
+    need(type(owner) is int and owner in (176, 179), 'owner_spec_refused')
     bound = model.limits(profile)
     return ['create', '--name', profile['model_container'], '--network', network, '--read-only',
         '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--user', str(profile['model_uid']),
         '--pids-limit', '256', '--memory', '2048m', '--memory-swap', '2048m',
-        '--cpus', str(bound['model_cpu_millicores']//1000), '--label', LABEL,
+        '--cpus', str(bound['model_cpu_millicores']//1000), '--label', 'netclaw.spec='+str(owner),
+        *(['--label', 'netclaw.owner='+owner_name] if owner_name else []),
+        *(['--log-driver', 'json-file', '--log-opt', 'max-file=1'] if owner == 179 else []),
         '--tmpfs', '/tmp:rw,noexec,nosuid,size=128m',
         '--mount', 'type=bind,src='+profile['model_store']+',dst=/models,readonly',
         *[item for key,value in model.model_environment(profile).items() for item in ('--env', key+'='+value)],
@@ -157,9 +174,10 @@ with http.server.HTTPServer(('0.0.0.0',4000),Handler) as server:
 '''
 
 
-def owned_container(inspected, image, name, identity=None):
+def owned_container(inspected, image, name, identity=None, *, owner=176, owner_name=None):
     need(inspected.get('Name')=='/'+name and inspected.get('Image')==image
-         and inspected.get('Config',{}).get('Labels',{}).get('netclaw.spec')=='176'
+         and inspected.get('Config',{}).get('Labels',{}).get('netclaw.spec')==str(owner)
+         and (owner_name is None or inspected.get('Config',{}).get('Labels',{}).get('netclaw.owner')==owner_name)
          and (identity is None or inspected.get('Id')==identity), 'owned_container_changed')
     return inspected['Id']
 
@@ -167,21 +185,23 @@ def owned_container(inspected, image, name, identity=None):
 def prepare(args):
     os.umask(0o077)
     profile=selected_profile(args);model.validate_profile(profile)
+    spec=owner_spec(args); labels=owner_labels(args)
+    need(re.fullmatch('netclaw-r'+('08' if spec==179 else '05')+'-[a-z0-9_.-]+',args.name),'owned_name_refused')
     need(args.guard_uid==os.getuid(),'guard_uid_must_be_operator')
     model.verify_store(profile)
     state=Path(args.state_dir).absolute();need(state==state.resolve() and state.parent.is_dir(),'state_path_invalid')
     state.mkdir(mode=0o700,exist_ok=False)
     docker=Docker(args,state,fresh=True);network=args.name+'-net'
-    manifest={'schema_version':1,'image':args.image,'model_name':args.name,'model_id':None,
+    manifest={'schema_version':1,'owner_spec':spec,'owner_name':getattr(args,'owner_name',None),'image':args.image,'model_name':args.name,'model_id':None,
         'network_name':network,'network_id':None,'probe_name':args.name+'-peer','probe_id':None,'state':'preparing'}
     write(state/'owned.json',manifest)
     try:
         # Name uniqueness is enforced by Docker; no existing object is changed.
         subnet='198.19.'+str(int(hashlib.sha256(args.name.encode()).hexdigest()[:2],16))+'.0/28'
-        network_id=docker.call('network','create','--internal','--subnet',subnet,'--label',LABEL,network).decode().strip()
+        network_id=docker.call('network','create','--internal','--subnet',subnet,*labels,network).decode().strip()
         need(re.fullmatch('[a-f0-9]{64}',network_id),'network_identity_unknown')
         manifest['network_id']=network_id;write(state/'owned.json',manifest)
-        container_id=docker.call(*create_model_args(profile,network)).decode().strip()
+        container_id=docker.call(*create_model_args(profile,network,owner=spec,owner_name=manifest['owner_name'])).decode().strip()
         need(re.fullmatch('[a-f0-9]{64}',container_id),'container_identity_unknown')
         manifest['model_id']=profile['model_container_id']=container_id;write(state/'owned.json',manifest)
         docker.call('start',container_id)
@@ -206,7 +226,7 @@ def prepare(args):
             same_namespace[role]={'uid':uid,'probe':result,'scope':'role stand-in UID in the owned model namespace'}
         own_denied=docker.python(container_id,args.model_uid,DENIED_PROBE)
         need(own_denied=={'denied':True},'model_uid_api_bypass')
-        inspected=docker.inspect(container_id);owned_container(inspected,args.image,args.name,container_id)
+        inspected=docker.inspect(container_id);owned_container(inspected,args.image,args.name,container_id,owner=spec,owner_name=manifest['owner_name'])
         need(not inspected['HostConfig'].get('PortBindings') and not any(inspected['NetworkSettings'].get('Ports',{}).values()),'model_or_guard_port_published')
         address=inspected['NetworkSettings']['Networks'][network]['IPAddress'];ipaddress.IPv4Address(address)
         nonce=secrets.token_hex(16)
@@ -219,7 +239,7 @@ def prepare(args):
         need(control,'guard_namespace_positive_control_failed')
         peer_id=docker.call('create','--name',manifest['probe_name'],'--network',network,'--read-only',
             '--cap-drop','ALL','--security-opt','no-new-privileges','--user',str(candidate),
-            '--pids-limit','32','--memory','64m','--memory-swap','64m','--cpus','0.5','--label',LABEL,
+            '--pids-limit','32','--memory','64m','--memory-swap','64m','--cpus','0.5',*labels,
             '--entrypoint','python3',args.image,'-c',PEER_PROBE,address,nonce).decode().strip()
         need(re.fullmatch('[a-f0-9]{64}',peer_id),'peer_identity_unknown')
         manifest['probe_id']=peer_id;write(state/'owned.json',manifest)
@@ -256,8 +276,14 @@ def prepare(args):
 def inspect(args):
     state=model.private_path(args.state_dir,directory=True);docker=Docker(args,state)
     profile=json.loads(model.private_path(state/'profile.json').read_bytes());model.verify_store(profile)
+    manifest=json.loads(model.private_path(state/'owned.json').read_bytes())
+    need(manifest.get('owner_spec',176)==owner_spec(args) and manifest.get('owner_name')==getattr(args,'owner_name',None),'owned_spec_changed')
+    owner_labels(args)
     container=docker.inspect(profile['model_container_id'])
-    owned_container(container,profile['model_image'],profile['model_container'],profile['model_container_id'])
+    owned_container(container,profile['model_image'],profile['model_container'],profile['model_container_id'],owner=owner_spec(args),owner_name=manifest.get('owner_name'))
+    if owner_spec(args) == 179:
+        need(container['HostConfig'].get('LogConfig') == {'Type':'json-file', 'Config':{'max-file':'1'}},
+             'owned_log_rotation_unqualified')
     networks=container['NetworkSettings']['Networks'];need(len(networks)==1,'model_network_changed')
     network=json.loads(docker.call('network','inspect',next(iter(networks))))[0]
     need(network.get('Internal') is True and not network.get('EnableIPv6'),'model_network_not_internal')
@@ -271,12 +297,14 @@ def inspect(args):
 def stop(args):
     state=model.private_path(args.state_dir,directory=True);docker=Docker(args,state)
     path=model.private_path(state/'owned.json');manifest=json.loads(path.read_bytes())
-    need(manifest.get('schema_version')==1 and re.fullmatch('netclaw-r05-[a-z0-9_.-]+',manifest.get('model_name','')),'owned_manifest_invalid')
+    spec=owner_spec(args);owner_labels(args)
+    need(manifest.get('schema_version')==1 and manifest.get('owner_spec',176)==spec and manifest.get('owner_name')==getattr(args,'owner_name',None) and
+         re.fullmatch('netclaw-r'+('08' if spec==179 else '05')+'-[a-z0-9_.-]+',manifest.get('model_name','')),'owned_manifest_invalid')
     stopped=[]
     for name_key,id_key in (('probe_name','probe_id'),('model_name','model_id')):
         identity=manifest.get(id_key)
         if identity is None:continue
-        inspected=docker.inspect(identity);owned_container(inspected,manifest['image'],manifest[name_key],identity)
+        inspected=docker.inspect(identity);owned_container(inspected,manifest['image'],manifest[name_key],identity,owner=spec,owner_name=manifest.get('owner_name'))
         if inspected['State'].get('Running'):docker.call('stop','--time','8',identity,timeout=15)
         need(docker.inspect(identity)['State'].get('Running') is False,'owned_stop_unknown');stopped.append(identity)
     receipt={'schema_version':1,'stopped_container_ids':stopped,'network_retained':manifest.get('network_id'),
@@ -288,6 +316,8 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__);commands=parser.add_subparsers(dest='action',required=True)
     for action in ('prepare','inspect','stop'):
         sub=commands.add_parser(action);sub.add_argument('--docker',required=True);sub.add_argument('--docker-host',required=True);sub.add_argument('--state-dir',required=True)
+        sub.add_argument('--owner-spec',type=int,choices=(176,179),default=176)
+        sub.add_argument('--owner-name')
         if action=='prepare':
             sub.add_argument('--image',required=True);sub.add_argument('--model-store',required=True);sub.add_argument('--name',required=True)
             sub.add_argument('--family',type=int,choices=(4,6),required=True);sub.add_argument('--guard-uid',type=int,required=True);sub.add_argument('--model-uid',type=int,required=True)

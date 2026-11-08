@@ -37,6 +37,27 @@ class MainActivity : FlutterFragmentActivity() {
                 try {
                     val alias = call.argument<String>("alias") ?: "ncfed_edge_identity"
                     when (call.method) {
+                        "publicCrypto" -> {
+                            val data = call.argument<ByteArray>("data") ?: throw IllegalArgumentException()
+                            val spki = call.argument<ByteArray>("spki")
+                            val signature = call.argument<ByteArray>("signature")
+                            require(data.size <= 131072 && (spki?.size ?: 0) <= 1024 && (signature?.size ?: 0) <= 200)
+                            fun hash(bytes: ByteArray) = java.security.MessageDigest.getInstance("SHA-256")
+                                .digest(bytes).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+                            val answer = mutableMapOf<String, Any>("sha256" to hash(data))
+                            if (spki != null) {
+                                val key = java.security.KeyFactory.getInstance("EC")
+                                    .generatePublic(java.security.spec.X509EncodedKeySpec(spki))
+                                answer["key_id"] = hash(spki)
+                                if (signature != null) {
+                                    val verifier = Signature.getInstance("SHA256withECDSA")
+                                    verifier.initVerify(key)
+                                    verifier.update(data)
+                                    answer["verified"] = verifier.verify(signature)
+                                }
+                            }
+                            result.success(answer)
+                        }
                         "ensureKeyPair" -> result.success(ensureKeyPair(alias))
                         "publicKeyFingerprint" -> {
                             ensureKeyPair(alias)

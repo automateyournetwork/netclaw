@@ -1,0 +1,77 @@
+# R08 row-to-artifact evidence matrix (T037/T045)
+
+2026-11-08. Private evidence root: `~/.local/share/netclaw/roadmap-r08-20261107/` (all paths
+below are relative to it). REAL = the actual guard/model/native profile with its own counters.
+FIXTURE = actual authenticated quorum/NCFED transport with controlled effects.
+`qualification-matrix.md` says no row may be waived by calling it "applicable", so rows with
+no REAL evidence are listed as **gaps**, not as passed.
+
+REAL budget: the original 10-operation cap was spent in real-run-07, -08 and -09 (7 settled, 3
+held `unknown`). The owner then lifted the cap for the Option 2 closure runs (real-run-10 to -18,
+each with its own ledger; deliberate unknown-producing scenarios ran last and one per run). Nothing
+was reset. The model access log is the independent counter (2 POSTs per completed operation,
+none for an unknown).
+
+## Matrix
+
+| Row | FIXTURE evidence | REAL evidence | Status |
+|---|---|---|---|
+| Leader loss | core-03; process-fixture-01 (SIGKILL each Border) | run-07 op1-3 then leader border2 SIGKILL: op3 `completed` unchanged, op4 distinct on survivor (`real-run-07/export-op4-leaderloss-border1`, `leader-loss-01/`); run-08 `leader-loss-08/`, `-08b/`; run-09 `leader-loss-09/`, `-09b/` | **REAL pass** |
+| Minority partition | matrix-raft-network-01 | run-11 (`real-run-11`, proxied topology): leader border0 cut from etcd, majority elected border2 (epoch 6->17), approve through the isolated old leader refused pre-dispatch (`refused_pre_dispatch`, status `review_pending`/attempt 0 on border2, `no_quorum` on border0), model POSTs unchanged, one distinct majority operation c8203715 completed once; heal | **REAL pass** (etcd-path cut; `ncfed_cluster_channel_cut:false`) |
+| Asymmetric partition | matrix-raft-network-01 (both orientations) | run-11: request-direction cut on border2 (border0 elected epoch 28, border2 `no_quorum`, approve refused pre-dispatch, majority op a990bcd5 once) and response-direction cut on border0 (lease lapsed, border2 elected epoch 39, approve refused pre-dispatch); counters unchanged on refusals | **REAL pass** (directed etcd cuts; no NCFED-channel cut) |
+| Three-way partition | matrix-raft-network-01 | run-11: all three Borders cut, all `no_quorum`, new review failed, completed baseline status still readable, approve via leader refused pre-dispatch, model POSTs unchanged; heal, border0 elected epoch 44, recovery op 8431c700 completed | **REAL pass** |
+| Stale leader / member | wire-recovery-02 paused-leader-unaware-member (real SIGSTOP) | stale-review witnesses across an authority change on HUD (`browser-08`), VS Code (`e09`) and iOS (`stale-review.json`) with unchanged counters; PLUS run-16 (`real-run-16`) guard level: member holds the real committed admission claim (epoch 6, commit revision 18) at the dispatch boundary, leader border2 SIGKILLed, border1 elected epoch 20, hold released after 40 s, delayed old claim reached the real member gate: admission row `unknown` with NULL proof, runner latch `uncertain` 6 ms after release, model POSTs 2->2 (none for the faulted op), no new claim from the new leader, no replay, budget `unknown` retained | **REAL pass** with a disclosed evidence gap: this scenario records only `claim-held`/`claim-released`, so the literal refusal code (`admission_expired`) is not in the evidence; the refusal is shown indirectly (claim age ~40 s vs `admission_ms` 3000, NULL proof, latch). The refusal is the freshness bound, not an epoch comparison |
+| Quorum loss | matrix-raft-recovery-02 | run-07 `negatives/quorum-loss`, `quorum-loss-status`: approve refused, model POSTs unchanged at 8, existing status readable, reconcile refused until heal; no_quorum witnesses: HUD (`browser-05`), VS Code (`e06`), iOS (`evidence/no-quorum.json`) | **REAL pass** (iOS fault witness ran ~1 s after the pause: weak) |
+| Clock uncertainty | matrix-recovery-01 (+1 s, -1 s, +4 s advance, delayed receipt) | run-15 (`real-run-15`): member via the qualification launcher with `clock-wall-step` (wall +1500 ms vs `admission_ms` 3000 / `clock_uncertainty_ms` 250) on the real admission gate: fault recorded 12:16:08, gate refused `clock_uncertain` before forward/invoke, model POSTs 2->2 (none for the faulted op), no `protected_effect`/`protected_result`, member row `outcome_unknown`, runner latch `uncertain`, budget `unknown` retained, no replay; baseline op settled first | **REAL pass** (forward wall step only; backward/monotonic/suspend variants remain fixture-only: each would need its own run) |
+| Unknown consensus commit | matrix-recovery-01 | run-17 (`real-run-17`): RECOVERED variant: real etcd commit (claim `model1` and decision at revision 10), reply dropped client-side, product re-read the committed claim, operation 1ebbe6d4 completed once, no second admit, model POSTs 0->2, `successful_native_workload:true`. UNRESOLVED variant: commit at revision 20 (claim `committed`), reply and recovery read dropped (`recovery-read-refused`), operation 0d60ab8a stayed `member_admitted`, member admission `unknown`/NULL proof, no dispatch, no model POST (2->2), budget `unknown` retained, a new-ID approval was refused by the runner (no claim, counters unchanged) | **REAL pass** (drop is client-side after a real commit, not a byte-level reply drop; Borders ran under the qualification launcher; native effect count not independently observed) |
+| Lost result / ACK | wire-recovery-02 (RPC delivery-boundary faults, successor reconcile) | run-13 (`real-run-13`): member run through the qualification launcher with `result-and-ack-loss`; result reply dropped 12:06:26 and ACK delivery dropped 12:06:31 (both claim files present), operation cfa69373 completed, original result/ACK digests equal the dropped ones, receipt 3e094b59 identical, member ack_pending 0, cluster ack_delivered true, model POSTs 0->2 exactly (no replay), `successful_native_workload:true` | **REAL pass** |
+| Member / runner unknown | process-fixture-01 | run-09 `member-kill-09/`: member SIGKILL 0.55 s after approve returned (`admitted`, `attempt_id` null, `effect_claimed` 0), restart does not replay, op stays `dispatch_claimed`, model POSTs stay 4, budget `unknown` retained; run-08 VS Code attempt `export-unknown-vscode` (admission `unknown`, runner latch `uncertain`, `effect_outcome_unknown`) | **REAL pass** (death occurred before the attempt/effect claim; death after an effect claim is fixture-only) |
+| Full restart | matrix-raft-recovery-02; process-fixture-01 | run-09 `full-restart-09/`: all 3 voters stopped/started, Border and member relaunched; both completed operations still `acknowledged` with receipt digests identical to the exported packets; unknown unchanged; model POSTs 4 | **REAL pass** (only border0 restarted: border1/border2 had been killed earlier) |
+| Retired node returns | matrix-retire-01 | run-10: durable `drain`+`retire` of border1, old-key relaunch refused at start with `HAError: node_retired` (never opened its operator port); no approve was attempted through it; cluster record `state: retired`, revocation revision 1 (no free-text reason) | **REAL pass** (limits noted) |
+| Fenced restore | fenced-restore-fixture-01 | run-18 (`real-run-18`, `voters_dir: old-voters`): A completed and settled; stale snapshot at revision 14 after A; B approved then member SIGKILLed 0.00005 s after approve returned (B `dispatch_claimed`, budget `unknown`); old generation stopped and isolated (3 voters, 7 captured subjects); new generation created from the STALE snapshot (B absent; later state revision 17; 2 resource keys changed; `missing_evidence_recovered:false`); inactive campaign refused `recovery_fenced`; after status-only activation `capacity_frozen:true` and fresh prepare/model/tool admission all refused `recovery_fenced`; B and its claim/reservation not recreated; original unknown record and reservation retained in `export-B`; model POSTs 2->2; restore consumed 0 reservations, 0 model calls, 0 native calls; no new-generation Border or member started | **REAL pass** (isolation receipt is host-owned, signer on the same account; Phase 2 operator attempt on the new generation not run; stock `export-unknown` needed a one-line fix, now committed) |
+| Capacity / storage | matrix-recovery-01, matrix-raft-recovery-02 (actual NOSPACE) | run-10: real etcd NOSPACE (HTTP 429, alarm on all members), approve refused pre-dispatch (`refused_pre_dispatch`), completed work readable, POSTs 2->2, heal (compact/defrag/clear alarm), recovery op completed | **REAL pass** |
+| Topology / trust | wire-recovery-02 (cluster mTLS + etcd negatives with receiver events, hello refusals, forbidden methods) | run-14 (`real-run-14/trust-negatives/trust-negatives.json`, receiver-side `border-trust-observer`): cluster mTLS 12/12 refused with matching receiver verify-failure records (positive controls before/after), etcd 15/15 explicit TLS alerts, iN2N hello refusals 9/9 `member_not_enrolled` and 6/6 wrong-role/replayed-proof `attachment_proof_mismatch`, forbidden methods 15/15 `attachment_method_refused`, scoped etcd credentials 12/12 refused outside prefix/admin, member PID has no listener and no etcd connection or credentials; model counter 0->0. An earlier uninstrumented attempt (run-13 `trust-negatives/`) could not qualify and is retained | **REAL pass** (observer is self-reported by the process under test, corroborated by client-side TLS alerts) |
+| HUD | n/a | `real-run-08-clients/evidence/browser-02..08`: original_once (real op c263dbe8, `export-hud-op`), original_result, authority, no_quorum, stale_review; Chrome profile-scoped CA, strict TLS | **REAL pass** except same-tab `cold_recovery` (original tab sessionStorage no longer existed) |
+| VS Code G12 | n/a | `real-run-09-clients/evidence/` e01..e09: operation fddfce96 (`export-vscode-op`), original_result, endpoint_recovery, cold_recovery, authority, no_quorum, stale_review; Code 1.109, same original result, zero extra model calls | **REAL pass** |
+| Mobile G13 | n/a | `real-run-09-clients/ios/`: HUD-route enrollment in cluster mode, operation d728e6b0 (`export-mobile-op`), select-node to border0, background/resume, cold terminate/relaunch, authority capture, no-quorum, stale-review; recovery binary rebuilt with a test-timing fix | **REAL pass** (authority "witness" is a capture, not a native phase) |
+
+Totals over 18 rows after the Option 2 closure runs: **18 REAL pass**, each with the limits
+stated in its row (consolidated in `acceptance.md`). Fixture evidence is retained alongside.
+
+## REAL operation ledger
+
+| Run | Operation | Surface | Outcome | Evidence |
+|---|---|---|---|---|
+| 07 | 11e23617 | runner via border0 | settled | `real-run-07/export-op1` |
+| 07 | ab17e684 | runner via border1 | settled | `export-op2-border1` |
+| 07 | 28125f6a | runner via border2 | settled | `export-op3-border2` |
+| 07 | f5c5663e | runner via border1 after leader SIGKILL | settled | `export-op4-leaderloss-border1` |
+| 07 | 2f13f31b | runner, approval refused under quorum loss | **unknown** (never dispatched) | `negatives/quorum-loss` |
+| 08 | c263dbe8 | HUD via border2 | settled | `real-run-08/export-hud-op` |
+| 08 | aeb2b0b1 | VS Code via border1 | **unknown** (member admission `unknown`) | `real-run-08/export-unknown-vscode` |
+| 09 | fddfce96 | VS Code via border0 | settled | `real-run-09/export-vscode-op` |
+| 09 | d728e6b0 | iOS via border2 | settled | `real-run-09/export-mobile-op` |
+| 09 | 4e41a309 | runner, member SIGKILL after dispatch | **unknown** (retained, no replay) | `real-run-09/member-kill-09` |
+
+Settled 7, unknown 3, total 10. Earlier attempts (real-run-01..06) failed before any operation
+and spent nothing; each directory keeps its `FAILED.txt`.
+
+## Deviations the reviewer should weigh
+
+1. **Ordering errors by the implementing agent.** The run-07 quorum-loss negative ran before
+   the positives were done and left an unknown slot that blocked that run. The run-08 VS Code
+   attempt ran while a parallel agent was doing heavy Xcode/Flutter builds; its admission
+   ended `unknown`. That cause is likely but unproven (no explicit error was logged).
+2. **Owner continuation.** After run-07 the owner chose to continue in a fresh run with the
+   combined cap held at 10 (`verification.md`). No counter was reset.
+3. **Self-attested gate.** `real-fixture-gate-NN.json` was generated by the implementing agent
+   from the fixture evidence; this is why T048 needs an independent owner review.
+4. **Drivers ran from the repo, not the frozen copy.** The browser/editor drivers are client
+   tooling; the runner and all production roles ran from the frozen, hash-checked source.
+5. **Harness and product fixes found during REAL work** (all committed with tests where
+   applicable): Docker `max-size=-1` log option; HA member factory executor guards; HUD
+   mobile-enrollment cluster-mode contract and auth context; HUD driver label locators;
+   editor test races; iOS harness Keychain entitlements; recovery test timing.
+6. **Unmeasured / unqualified:** pure election time (the measured values include 2 s polling),
+   300 ms RTT availability (it refuses beyond the 3 s admission window), host clock steps,
+   WAN/regions (R09), physical iPhone/Android, Windows/WSL, other model profiles.

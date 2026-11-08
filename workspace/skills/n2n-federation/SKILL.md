@@ -14,6 +14,16 @@ either machine.
 Uses the `n2n-mcp` server, which proxies the mesh daemon's `/n2n/*` API. The
 daemon must run with `N2N_ENABLED=true`.
 
+Maintainer R08/Spec179 scope: an HA-required home uses its signed cluster manifest
+and private protected profile. Do not rerun standalone Risk setup, remove the
+marker, replace a selected node with an untrusted endpoint, or replay an operation
+to recover it. Members require fresh quorum authority for each protected model or
+native tool handoff; cached status and transport reconnection grant no execution
+permission. Inspect the same original operation and retain unknown send state.
+Private cluster lifecycle is operator-only; ordinary eN2N/iN2N tools do not obtain
+etcd credentials or bypass admission. REAL/native qualification and R09 geography
+remain separate evidence gates. See `specs/179-border-ha-authority/coherence.md`.
+
 ## When to use
 
 - An operator asks about a peer NetClaw's capabilities ("what can Byrn's claw

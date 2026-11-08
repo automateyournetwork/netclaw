@@ -2,6 +2,7 @@ import 'edge_client.dart';
 import 'edge_identity.dart';
 import 'enrollment_qr_payload.dart';
 import 'enrollment_store.dart';
+import 'cluster_trust.dart';
 
 typedef RetainedDeviceReconnect =
     Future<EdgeClient> Function(
@@ -36,6 +37,7 @@ Future<StoredEnrollment> replaceEnrollmentPort({
   bool Function()? isCurrent,
 }) async {
   if (expected.pending ||
+      expected.clusterPin != null ||
       expected.installationId == null ||
       expected.endpointRevision < 0 ||
       expected.endpointRevision >= 2147483647 ||
@@ -86,6 +88,112 @@ Future<StoredEnrollment> replaceEnrollmentPort({
       throw const FormatException('Retained Border identity changed');
     }
     if (isCurrent?.call() == false) throw StateError('Recovery was suspended');
+    await store.replaceEndpoint(expected, replacement, isCurrent: isCurrent);
+    return replacement;
+  } finally {
+    await probe?.close();
+  }
+}
+
+/// Verify the retained signed manifest before showing or selecting alternatives.
+Future<ClusterBinding> retainedCluster(
+  StoredEnrollment expected, {
+  PublicCrypto crypto = publicCrypto,
+}) async {
+  if (expected.clusterPin == null ||
+      expected.clusterDescriptor == null ||
+      expected.protectedOrigin == null ||
+      expected.installationId == null) {
+    throw const FormatException('Retained cluster manifest required');
+  }
+  return ClusterBinding.verify(
+    expected.clusterDescriptor,
+    expected.clusterPin!,
+    origin: expected.protectedOrigin!,
+    installationId: expected.installationId!,
+    nodeId: expected.clusterNodeId,
+    crypto: crypto,
+  );
+}
+
+/// Explicit selection among at most three verified manifest endpoints. Only a
+/// retained-key hello is sent; pending approvals and saved references stay put.
+Future<StoredEnrollment> replaceClusterEndpoint({
+  required EnrollmentStore store,
+  required StoredEnrollment expected,
+  required String nodeId,
+  EdgeIdentity identity = const EdgeIdentity(),
+  RetainedDeviceReconnect reconnect = EdgeClient.reconnect,
+  PublicCrypto crypto = publicCrypto,
+  bool Function()? isCurrent,
+}) async {
+  if (expected.pending ||
+      expected.deviceSubject == null ||
+      expected.enrollmentGeneration == null ||
+      expected.endpointRevision < 0 ||
+      expected.endpointRevision >= 2147483647 ||
+      expected.clusterNodeId == nodeId) {
+    throw const FormatException('Confirmed cluster identity required');
+  }
+  final trusted = await retainedCluster(expected, crypto: crypto);
+  final target = trusted.node(nodeId),
+      rawUri = Uri.parse(trusted.node(nodeId)['endpoints']['wss']);
+  final uri = rawUri.replace(port: rawUri.hasPort ? rawUri.port : 443);
+  final origin = Uri.parse(target['endpoints']['https']).origin;
+  if (uri.replace(scheme: 'https', path: '').origin != origin ||
+      await identity.publicKeyFingerprint() != expected.keyFingerprint) {
+    throw const FormatException('Cluster endpoint or retained key changed');
+  }
+  if (isCurrent?.call() == false) throw StateError('Recovery suspended');
+  final payload = EnrollmentQrPayload(
+    borderHost: uri.host,
+    borderPort: uri.port,
+    clawDomain: uri.host,
+    enrollmentToken: '',
+    wsPath: uri.path,
+    installationId: target['installation_id'],
+    expectedDeviceSubject: expected.deviceSubject,
+    expectedEnrollmentGeneration: expected.enrollmentGeneration,
+    clusterPin: trusted.pin,
+    clusterNodeId: nodeId,
+  );
+  EdgeClient? probe;
+  try {
+    probe = await reconnect(
+      payload,
+      memberId: expected.memberId,
+      keyFingerprint: expected.keyFingerprint,
+      identity: identity,
+    );
+    final device = probe.protectedDevice, cluster = probe.clusterBinding;
+    if (probe.isClosed ||
+        probe.enrollFingerprint != expected.keyFingerprint ||
+        device == null ||
+        cluster == null ||
+        !cluster.pin.sameAudience(trusted.pin) ||
+        cluster.pin.revision < trusted.pin.revision ||
+        cluster.nodeId != nodeId ||
+        device.principal['subject'] != expected.deviceSubject ||
+        device.enrollmentGeneration != expected.enrollmentGeneration ||
+        device.origin != origin) {
+      throw const FormatException('Cluster device identity changed');
+    }
+    final replacement = StoredEnrollment(
+      memberId: expected.memberId,
+      keyFingerprint: expected.keyFingerprint,
+      borderHost: uri.host,
+      borderPort: uri.port,
+      clawDomain: uri.host,
+      wsPath: uri.path,
+      installationId: cluster.installationId,
+      deviceSubject: expected.deviceSubject,
+      protectedOrigin: device.origin,
+      endpointRevision: expected.endpointRevision + 1,
+      clusterPin: cluster.pin,
+      clusterNodeId: cluster.nodeId,
+      clusterDescriptor: cluster.descriptor,
+      enrollmentGeneration: expected.enrollmentGeneration,
+    );
     await store.replaceEndpoint(expected, replacement, isCurrent: isCurrent);
     return replacement;
   } finally {

@@ -161,10 +161,13 @@ class InferenceFence:
 class ScopedInference:
     """No routing/authentication header from the agent reaches DefenseClaw."""
     def __init__(self, payload, token, fence, forward, *, tool_finished=lambda: False,
-                 clock_ms=lambda: int(time.time() * 1000), request_adapter=None, response_validator=None, runner_latch=None):
+                 clock_ms=lambda: int(time.time() * 1000), request_adapter=None, response_validator=None, runner_latch=None,
+                 ha_admission=None):
+        validate_ha_gate(payload, ha_admission)
         self.payload, self.token, self.fence, self.forward = payload, token, fence, forward
         self.tool_finished, self.clock_ms = tool_finished, clock_ms
         self.request_adapter, self.response_validator, self.runner_latch = request_adapter, response_validator, runner_latch
+        self.ha_admission = ha_admission
 
     async def invoke(self, method, path, headers, body):
         if method != "POST" or path != "/v1/chat/completions":
@@ -214,7 +217,10 @@ class ScopedInference:
             # Only the fixed trusted callback supplies guard URL and credential.
             remaining = (self.payload["limits"]["expires_at_ms"] - self.clock_ms()) / 1000
             async with asyncio.timeout(min(remaining, self.payload["limits"]["inference_timeout_ms"] / 1000)):
-                response = await self.forward(request)
+                if self.ha_admission is not None:
+                    response = await self.ha_admission('model', ordinal, sha(request), lambda: self.forward(request))
+                else:
+                    response = await self.forward(request)
             if not isinstance(response, dict) or len(canonical(response)) > 1024 * 1024:
                 raise RuntimeUnknown("inference_response_bound")
             if self.response_validator is not None:
@@ -227,6 +233,17 @@ class ScopedInference:
                 try: self.runner_latch.uncertain(reservation)
                 except Exception: pass  # A failed durable transition stays non-idle; never release it.
             raise RuntimeUnknown("inference_outcome_unknown") from exc
+
+
+def validate_ha_gate(payload, admission):
+    """Explicit HA payloads cannot enter any legacy unbound execution path."""
+    if 'cluster' in payload:
+        from .protected_contract import validate_cluster_binding
+        validate_cluster_binding(payload['cluster'])
+        if not callable(admission):
+            raise RuntimeRefused('ha_runtime_unqualified')
+    elif admission is not None:
+        raise RuntimeRefused('ha_payload_required')
 
 
 class ExactToolBroker:

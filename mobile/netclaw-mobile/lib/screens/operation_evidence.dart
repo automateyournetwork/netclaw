@@ -93,6 +93,13 @@ class OperationEvidence extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (operation['result']?['verified'] != true) {
+      if (operation['result_reference'] is Map) {
+        return Text(
+          'A signed result reference is retained (${operation['result_reference']['digest']}). '
+          'The original artifact is unavailable here. Reconcile this operation to retrieve it; no execution is repeated.',
+          key: const ValueKey('cluster-result-reference'),
+        );
+      }
       return const SizedBox.shrink();
     }
     final value = operationEvidence(operation);

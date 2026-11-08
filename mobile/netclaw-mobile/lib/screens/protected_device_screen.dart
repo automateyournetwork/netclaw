@@ -32,9 +32,11 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
   bool _starting = true;
   String? _error;
   Future<void>? _connecting;
+  late StoredEnrollment _retained;
   @override
   void initState() {
     super.initState();
+    _retained = widget.enrollment;
     _client = protectedDeviceClient(widget.edge, store: widget.store);
     widget.edge.onDisconnected = () {
       _client.suspend();
@@ -48,10 +50,34 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
     final task = () async {
       if (widget.edge.isClosed) {
         await widget.edge.reconnectInPlace(
-          widget.enrollment.toPayload(),
-          memberId: widget.enrollment.memberId,
-          keyFingerprint: widget.enrollment.keyFingerprint,
+          _retained.toPayload(),
+          memberId: _retained.memberId,
+          keyFingerprint: _retained.keyFingerprint,
         );
+        final cluster = widget.edge.clusterBinding;
+        if (cluster != null &&
+            _retained.clusterPin != null &&
+            cluster.pin.revision > _retained.clusterPin!.revision) {
+          final store =
+              widget.enrollmentStore ??
+              EnrollmentStore(await getApplicationDocumentsDirectory());
+          final next = StoredEnrollment.fromJson({
+            ..._retained.toJson(),
+            'cluster_pin': cluster.pin.toJson(),
+            'cluster_descriptor': cluster.descriptor,
+          });
+          try {
+            await store.replaceEndpoint(
+              _retained,
+              next,
+              isCurrent: () => mounted && !widget.edge.isClosed,
+            );
+          } catch (_) {
+            await widget.edge.close();
+            rethrow;
+          }
+          _retained = next;
+        }
       }
     }();
     _connecting = task;
@@ -128,7 +154,11 @@ class _ProtectedDeviceScreenState extends State<ProtectedDeviceScreen> {
               ),
               TextButton(
                 onPressed: _recoverConnection,
-                child: const Text('Change connection port'),
+                child: Text(
+                  widget.enrollment.clusterPin != null
+                      ? 'Select trusted cluster Border'
+                      : 'Change connection port',
+                ),
               ),
             ],
           ),

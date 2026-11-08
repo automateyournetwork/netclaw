@@ -265,6 +265,24 @@ def guard_inspect(config, payload, home):
             {"Type": "bind", "Destination": "/guard/guard.env", "Source": config["guard"]["env_file"], "RW": False}]}
 
 
+@pytest.mark.parametrize('log_config', [None, {'Type': 'json-file', 'Config': {}},
+    {'Type': 'json-file', 'Config': {'max-size': '1m'}}, {'Type': 'none', 'Config': {'max-file': '1'}},
+    {'Type': 'json-file', 'Config': {'max-file': '1'}}])
+def test_ha_guard_requires_explicit_complete_log_retention(bound, log_config):
+    config, payload, root = bound
+    payload = dict(payload, cluster={})  # Test this inspection branch, not contract verification.
+    inspected = guard_inspect(config, payload, root / 'guard')
+    inspected['HostConfig']['LogConfig'] = log_config
+    kwargs = dict(image=config['guard']['image'], home=root / 'guard', env_file=config['guard']['env_file'],
+        payload=payload, config_sha256=config['guard']['config_sha256'],
+        policy_manifest_sha256=config['guard']['policy_manifest_sha256'], running=True)
+    if log_config == {'Type': 'json-file', 'Config': {'max-file': '1'}}:
+        assert docker.inspect_guard(inspected, **kwargs) == 'http://127.0.0.1:12345'
+    else:
+        with pytest.raises(runtime.RuntimeRefused, match='guard_log_rotation_unqualified'):
+            docker.inspect_guard(inspected, **kwargs)
+
+
 @pytest.mark.parametrize("mutation", ["none", "public", "provider_env", "extra_mount", "privileged", "memory", "cmd", "image", "host_network", "wrong_home"])
 def test_guard_inspection_matches_fixed_owned_launch(bound, mutation):
     config, payload, root = bound

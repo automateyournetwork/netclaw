@@ -72,6 +72,7 @@ export function mountProtectedOperations(app, { installation, config = protected
     if (openLab && req.path === SESSION) return res.status(404).json({ code: 'protected_route_unavailable' });
     if (!config.enabled) return res.status(404).json({ code: 'protected_operations_disabled', error: 'Protected operations are unavailable.' });
     if (!headerOnce(req, 'X-NetClaw-Installation') || req.headers['x-netclaw-installation'] !== installation.installationId) return res.status(409).json({ code: 'installation_changed', error: 'Reload the selected installation.' });
+    if (config.cluster && (!headerOnce(req, 'X-NetClaw-Cluster-ID') || !headerOnce(req, 'X-NetClaw-Cluster-Generation') || req.headers['x-netclaw-cluster-id'] !== config.cluster.cluster_id || req.headers['x-netclaw-cluster-generation'] !== config.cluster.generation)) return res.status(409).json({ code: 'cluster_changed' });
     const origin = req.headers.origin;
     if (req.headers['sec-fetch-site'] === 'cross-site' || origin !== undefined && (!headerOnce(req, 'Origin') || !config.origins.includes(origin)) || !['GET', 'HEAD'].includes(req.method) && origin === undefined) return res.status(403).json({ code: 'origin_refused', error: 'The configured HUD origin is required.' });
     next();
@@ -120,7 +121,8 @@ export function mountProtectedOperations(app, { installation, config = protected
     setCookie(res, '', 0); res.json({ authenticated: false });
   }));
   const operation = (method, parameters) => wrap(async (req, res) => {
-    const params = parameters(req), auth = openLab ? { auth_context: { access_mode: 'open-lab', installation_id: installation.installationId } } : await authenticate(req);
+    if (config.cluster && method.startsWith('combined_')) throw new ProtectedError('cluster_combined_unavailable', 403);
+    const params = parameters(req), auth = openLab ? { auth_context: { access_mode: 'open-lab', installation_id: installation.installationId, ...(config.cluster ? { cluster_id: config.cluster.cluster_id, generation: config.cluster.generation } : {}) } } : await authenticate(req);
     // Once the bridge is called, even an error may follow durable admission.
     // Only this process's refusal before that boundary permits draft discard.
     if (['prepare', 'combined_prepare'].includes(method)) req[prepareForwarded] = true;
@@ -128,6 +130,7 @@ export function mountProtectedOperations(app, { installation, config = protected
     if (!openLab) await session(auth.raw); // Revoked/expired sessions cannot receive late private output.
     res.json(result);
   });
+  if (config.cluster) router.get('/api/hud/cluster', operation('cluster.info', req => { noQuery(req); return {}; }));
   router.get(`${OPERATIONS}/catalog`, operation('catalog', req => { noQuery(req); return {}; }));
   router.post(`${OPERATIONS}/combined`, operation('combined_prepare', req => {
     noQuery(req); const body = req.body;
@@ -171,6 +174,6 @@ export function mountProtectedOperations(app, { installation, config = protected
     res.status(status).json({ code, ...(notSubmitted ? { admission: 'not_submitted' } : {}), error: status === 401 ? 'Owner session expired or is unavailable. Sign in again.' : status === 503 ? 'Status is unavailable. The operation may have been accepted; check the same operation before continuing.' : 'The protected request was refused.' });
   });
   // Must precede express.json and the legacy conversation cookie rewrite.
-  app.use((req, res, next) => req.path === SESSION || req.path === OPERATIONS || req.path.startsWith(OPERATIONS + '/') ? router(req, res, next) : next());
+  app.use((req, res, next) => req.path === '/api/hud/cluster' || req.path === SESSION || req.path === OPERATIONS || req.path.startsWith(OPERATIONS + '/') ? router(req, res, next) : next());
   return { enabled: config.enabled, cookieName };
 }

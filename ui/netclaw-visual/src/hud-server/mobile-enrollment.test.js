@@ -25,3 +25,14 @@ test('ordinary cloud issuance uses exact HTTPS origin without protected auth_con
  assert.equal((await f.request('','POST',{client_nonce:nonce,replace_client_nonce:null},{Origin:'https://another-border.example'})).status,403);
  assert.equal(f.calls.length,2);
 });
+
+test('cluster mode sends cluster identity in the auth context and accepts the Border cluster descriptor',async t=>{
+ const cluster={cluster_id:'33333333-3333-4333-8333-333333333333',generation:'44444444-4444-4444-8444-444444444444'};
+ const f=await fixture(t,{cluster});
+ f.state.result={...info,mode:'cluster',cluster:{installation_id:id,...cluster}};
+ const response=await f.request();assert.equal(response.status,200);
+ assert.equal((await response.json()).mode,'cluster');
+ assert.deepEqual(f.calls.at(-1).params.auth_context,{access_mode:'open-lab',installation_id:id,cluster_id:cluster.cluster_id,generation:cluster.generation});
+ f.state.result={...info,mode:'cluster',cluster:{installation_id:'55555555-5555-4555-8555-555555555555',...cluster}};
+ assert.notEqual((await f.request()).status,200);
+});

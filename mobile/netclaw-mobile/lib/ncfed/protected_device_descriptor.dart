@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'enrollment_qr_payload.dart';
+import 'cluster_trust.dart';
 
 const protectedDeviceMethods = [
   'n2n/edge/operations/catalog',
@@ -21,16 +22,21 @@ class ProtectedDeviceDescriptor {
   final String installationId;
   final String origin;
   final Map<String, dynamic> principal;
+  final ClusterBinding? cluster;
+  final String? enrollmentGeneration;
   const ProtectedDeviceDescriptor(
     this.installationId,
     this.origin,
-    this.principal,
-  );
+    this.principal, {
+    this.cluster,
+    this.enrollmentGeneration,
+  });
 
   static ProtectedDeviceDescriptor? fromBorder(
     Map<String, dynamic> border,
-    EnrollmentQrPayload payload,
-  ) {
+    EnrollmentQrPayload payload, {
+    ClusterBinding? cluster,
+  }) {
     final capabilities = border['capabilities'];
     final descriptor = capabilities is Map
         ? capabilities['protected_operations']
@@ -52,6 +58,20 @@ class ProtectedDeviceDescriptor {
     final principal = descriptor['principal'];
     final origin = descriptor['origin'];
     final uri = origin is String ? Uri.tryParse(origin) : null;
+    if ((payload.clusterPin == null) != (cluster == null) ||
+        cluster != null &&
+            (cluster.origin != origin ||
+                cluster.installationId != payload.installationId ||
+                cluster.nodeId != payload.clusterNodeId ||
+                !cluster.pin.sameAudience(payload.clusterPin!) ||
+                !clusterUuid(descriptor['enrollment_generation']) ||
+                payload.expectedEnrollmentGeneration != null &&
+                    descriptor['enrollment_generation'] !=
+                        payload.expectedEnrollmentGeneration ||
+                jsonEncode(descriptor['methods']) !=
+                    jsonEncode(protectedDeviceMethods))) {
+      throw const FormatException('Cluster device authority changed');
+    }
     if (descriptor['schema'] != 1 ||
         payload.installationId == null ||
         border['installation_id'] != payload.installationId ||
@@ -87,6 +107,8 @@ class ProtectedDeviceDescriptor {
       payload.installationId!,
       origin as String,
       Map<String, dynamic>.unmodifiable(principal),
+      cluster: cluster,
+      enrollmentGeneration: descriptor['enrollment_generation'] as String?,
     );
   }
 }

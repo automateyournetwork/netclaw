@@ -8,6 +8,18 @@
 
 ## Preferences
 
+- R08 execution direction (2026-11-07): drive R08 to100% through full SDD, after
+  the joint R08/R09 strategy review. Owner explicitly reaffirmed that HA remains
+  grounded in NCFED. R08 source and isolated local qualification are authorized;
+  R09/cloud activation and roadmap publication remain separate. Three implementation
+  agents are an optional pending choice;planning research agents are skill-authorized.
+
+- R08/R09 strategy direction (2026-11-07): evaluate the saved R07 handoff before
+  starting Spec179. Assess Border HA and three-region multi-Border NCFED/iN2N/eN2N
+  as one architecture, use established HA approaches, and explain what each spec
+  achieves. This requests analysis and recommendations, not implementation or
+  infrastructure activation; no design choice is yet recorded as accepted.
+
 - R07 direction (2026-11-06): start Spec178 using the saved handoff and drive to
   100%. Use full SDD and the saved coordinator/three-agent separate-worktree
   delegation; credit applicable prior recovery evidence and close actual gaps.

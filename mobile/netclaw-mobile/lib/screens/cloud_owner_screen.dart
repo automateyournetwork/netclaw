@@ -226,9 +226,16 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                           : 'Protected read-only operations. Enrolled Chat, voice, camera, watch and local service controls belong to your separate edge profile.',
                     ),
                     const SizedBox(height: 16),
+                    if (client?.authorityMessage != null)
+                      Text(
+                        client!.authorityMessage!,
+                        key: const ValueKey('cluster-authority'),
+                      ),
                     if (widget.onRecoverConnection != null)
                       _button(
-                        'Change connection port',
+                        client?.clusterMode == true
+                            ? 'Select trusted cluster Border'
+                            : 'Change connection port',
                         widget.onRecoverConnection!,
                       ),
                     if (_busy) const LinearProgressIndicator(),
@@ -416,7 +423,9 @@ class _CloudOwnerScreenState extends State<CloudOwnerScreen>
                               ),
                             _button(
                               'Prepare review',
-                              models.isNotEmpty && tools.isNotEmpty
+                              client.canPrepare &&
+                                      models.isNotEmpty &&
+                                      tools.isNotEmpty
                                   ? () => _run(
                                       () => client.prepare(
                                         _member,

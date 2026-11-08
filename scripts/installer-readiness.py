@@ -20,6 +20,8 @@ import urllib.request
 from urllib.parse import urlsplit, urlunsplit
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT / 'scripts/lib'))
+from ha_setup_guard import require_standalone_home
 
 
 def load(name):
@@ -274,6 +276,12 @@ def main():
     args = parser.parse_args()
     if not 0 < args.timeout <= 120:
         parser.error('timeout must be >0 and <=120 seconds')
+    try:
+        require_standalone_home(args.runtime_root.parent)
+        require_standalone_home(args.config.parent)
+    except (ValueError, OSError):
+        print('Readiness refused: protected HA homes require private cluster status and qualification evidence.', file=sys.stderr)
+        return 1
     env = launcher.environment({**os.environ,'NETCLAW_RUNTIME_ROOT':str(args.runtime_root),
         'NETCLAW_RUNTIME_ENV':str(args.runtime_root.parent/'.env')})
     try:

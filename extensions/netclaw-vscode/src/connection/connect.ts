@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { HudClient, Runtime, Json } from "../client/hud";
 import { ConnectionProfile, hostContext } from "../state/profiles";
 import { OwnerClient, OwnerError, cloudExecutionMode, ownerCanonical } from "../client/owner";
+import type { ClusterBinding } from "../client/cluster";
 import { remoteHudFeatures } from "../client/remote-hud";
 export type Identity = Runtime & { harness: { type: "openclaw" | "hermes" } };
 
@@ -32,7 +33,7 @@ export class Connection implements vscode.Disposable {
     string,
     { id: string; name: string; content: string; size: number }
   >();
-  constructor(private readonly secrets: vscode.SecretStorage) {}
+  constructor(private readonly secrets: vscode.SecretStorage, private saveCluster: (p: ConnectionProfile, c: ClusterBinding) => Promise<void> = async () => {}) {}
   get generation() {
     return this.serial;
   }
@@ -55,7 +56,12 @@ export class Connection implements vscode.Disposable {
       const key = "owner-session." + createHash("sha256").update(`${profile.context}|${profile.url}|${profile.installationId}`).digest("hex");
       const client = new OwnerClient(profile.url, profile.installationId, async cookie => {
         if (cookie) await this.secrets.store(key, cookie); else await this.secrets.delete(key);
-      }, () => this.changed.fire(), profile.access);
+      }, () => this.changed.fire(), profile.access, profile.cluster, async cluster => {
+        if (this.serial !== generation) throw Error("Connection changed during cluster verification.");
+        await this.saveCluster(profile, cluster);
+        profile = {...profile, cluster};
+        if (this.profile?.id === profile.id) this.profile = profile;
+      });
       let hud: HudClient | undefined;
       try {
         const runtime = await client.connect();

@@ -157,10 +157,14 @@ def skill_context(config):
         + raw.decode('utf-8','strict'))
 
 
-async def invoke_mcp(config, arguments, operation_root):
+async def invoke_mcp(config, arguments, operation_root, *, ha_required=False, ha_admission=None):
     """One official MCP tools/call; no direct HTTP replacement or automatic replay."""
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
+    if ha_required:
+        need(callable(ha_admission), 'ha_runtime_unqualified')
+        from .ha.mcp_transport import ha_stdio_client
+        stdio_client = ha_stdio_client
     validate_binding(config, arguments=arguments)
     operation_root = private_directory(operation_root)
     frozen = private_directory(operation_root/'source')
@@ -199,9 +203,20 @@ async def invoke_mcp(config, arguments, operation_root):
                     need(len(selected)==1 and sha(selected[0].input_schema)==config['input_schema_sha256'],'mcp_schema_changed')
                     schema_evidence = {'tool':config['tool'],'inputSchema':selected[0].input_schema}
                     private_write(operation_root/'mcp-schema.json',canonical(schema_evidence))
-                    private_write(operation_root/'mcp-call.json',canonical({'tool':config['tool'],'arguments':arguments,'dispatched_at_ms':int(time.time()*1000)}))
-                    called = True
-                    response = await session.call_tool(config['tool'],arguments,read_timeout_seconds=30)
+                    intent = {'tool':config['tool'], 'arguments':arguments}
+                    if ha_required:
+                        intent.update(state='intent_prepared', prepared_at_ms=int(time.time()*1000))
+                    else:
+                        intent['dispatched_at_ms'] = int(time.time()*1000)
+                    private_write(operation_root/'mcp-call.json',canonical(intent))
+                    async def call():
+                        nonlocal called
+                        called = True
+                        return await session.call_tool(config['tool'],arguments,read_timeout_seconds=30)
+                    # Process construction, initialization and schema verification
+                    # precede the fresh challenge. The HA transport rechecks the
+                    # consumed scope at the synchronous stdin-byte handoff.
+                    response = await ha_admission(call) if ha_required else await call()
                     captured_at_ms = int(time.time()*1000)
                     if response.is_error: raise RuntimeUnknown('mcp_read_failed_or_unknown')
                     output = response.structured_content

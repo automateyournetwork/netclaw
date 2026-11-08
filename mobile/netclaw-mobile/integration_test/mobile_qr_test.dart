@@ -16,6 +16,7 @@ import 'package:netclaw_mobile/screens/cloud_owner_screen.dart';
 import 'package:netclaw_mobile/screens/chat_screen.dart';
 import 'package:netclaw_mobile/ncfed/conversation_store.dart';
 import 'package:netclaw_mobile/ncfed/edge_ask_client.dart';
+import 'package:netclaw_mobile/ncfed/cluster_trust.dart';
 
 dynamic ordered(dynamic x) => x is Map
     ? {
@@ -185,6 +186,21 @@ void main() {
         saved != null && client.enrollFingerprint == saved!.keyFingerprint,
         'Retained identity mismatch',
       );
+      if (config['cluster_id'] != null) {
+        require(
+          client.clusterBinding != null &&
+              saved!.clusterPin != null &&
+              saved!.clusterPin!.clusterId == config['cluster_id'] &&
+              saved!.clusterPin!.generation == config['generation'] &&
+              saved!.clusterPin!.anchorKeyId == config['anchor_key_id'] &&
+              saved!.clusterNodeId == client.clusterBinding!.nodeId &&
+              saved!.deviceSubject ==
+                  client.protectedDevice?.principal['subject'] &&
+              saved!.enrollmentGeneration ==
+                  client.protectedDevice?.enrollmentGeneration,
+          'Reviewed cluster enrollment changed',
+        );
+      }
       if (config['installation_id'] != null) {
         require(
           client.border['installation_id'] == config['installation_id'],
@@ -296,6 +312,64 @@ void main() {
             'Exact reviewed operation mismatch',
           );
           if (phase == 'approve') {
+            if (operations.clusterMode) {
+              final claim = config['budget_claim'];
+              const fields = {
+                'schema_version',
+                'run_id',
+                'claim_id',
+                'operation_id',
+                'client_nonce',
+                'review_digest',
+                'surface',
+                'limits',
+                'reserved_at_ms',
+                'claim_sha256',
+              };
+              require(
+                claim is Map<String, dynamic> &&
+                    claim.keys.toSet().containsAll(fields) &&
+                    claim.length == fields.length &&
+                    claim['schema_version'] == 1 &&
+                    clusterUuid(claim['run_id']) &&
+                    claim['run_id'] == config['run_id'] &&
+                    clusterUuid(claim['claim_id']) &&
+                    claim['surface'] == 'mobile' &&
+                    claim['operation_id'] == op!['operation_id'] &&
+                    claim['client_nonce'] == op['client_nonce'] &&
+                    claim['review_digest'] == op['review_digest'] &&
+                    claim['reserved_at_ms'] is int &&
+                    claim['reserved_at_ms'] > 0 &&
+                    jsonEncode(ordered(claim['limits'])) ==
+                        jsonEncode(
+                          ordered({
+                            'inferences': 2,
+                            'native_effects': 1,
+                            'operation_seconds': 180,
+                            'inference_seconds': 60,
+                          }),
+                        ),
+                'Exact shared REAL budget claim required before native approval',
+              );
+              await tester.runAsync(() async {
+                final body = Map<String, dynamic>.from(claim as Map)
+                  ..remove('claim_sha256');
+                final hashed = await publicCrypto(clusterCanonical(body));
+                require(
+                  hashed['sha256'] == claim['claim_sha256'],
+                  'Shared REAL budget claim changed',
+                );
+                final once = File(
+                  '${profileDir.path}/r08-approve-${claim['claim_id']}.json',
+                );
+                require(
+                  !await once.exists(),
+                  'Native approval was already claimed',
+                );
+                await once.create(exclusive: true);
+                await once.writeAsString(jsonEncode(claim), flush: true);
+              });
+            }
             final checkbox = find.byKey(
               const ValueKey('cloud-review-confirmation'),
             );
@@ -850,7 +924,10 @@ void main() {
           'Native outbound receipt attribution is missing',
         );
         require(
-          find.textContaining('External sources · untrusted peer responses').evaluate().isNotEmpty,
+          find
+              .textContaining('External sources · untrusted peer responses')
+              .evaluate()
+              .isNotEmpty,
           'Production Chat did not display external source',
         );
         externalTurn = turn.toJson();
@@ -928,10 +1005,29 @@ void main() {
         client.enrollFingerprint == saved!.keyFingerprint,
         'Reconnect changed identity',
       );
+      if (saved!.clusterPin != null) {
+        require(
+          client.clusterBinding!.pin.sameAudience(saved!.clusterPin!) &&
+              client.clusterBinding!.pin.revision >=
+                  saved!.clusterPin!.revision &&
+              client.protectedDevice!.principal['subject'] ==
+                  saved!.deviceSubject &&
+              client.protectedDevice!.enrollmentGeneration ==
+                  saved!.enrollmentGeneration,
+          'Cluster reconnect changed device authority',
+        );
+      }
       binding.reportData = {
         'r04b_evidence': {
           'phase': phase,
           'profile': profileName,
+          if (saved!.clusterPin != null)
+            'cluster_classification':
+                'NATIVE_REQUIRES_REAL_BACKEND_CORRELATION',
+          if (saved!.clusterPin != null)
+            'backend_record': config['backend_record'],
+          if (saved!.clusterPin != null && phase == 'approve')
+            'budget_claim': config['budget_claim'],
           'enrollment': saved!.toJson(),
           'border': client.border,
           'decoder': decoder,

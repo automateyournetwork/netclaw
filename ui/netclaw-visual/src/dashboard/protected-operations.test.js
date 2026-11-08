@@ -1,5 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { webcrypto } from 'node:crypto';
 import { build } from 'esbuild';
 import { JSDOM } from 'jsdom';
 
@@ -11,9 +13,10 @@ const args = { device_name: 'fixture-router', command: 'show version', timeout: 
 const catalog = { revision: 'catalog-1', members: [{ member: { member_id: 'onprem-fixture', key_id: 'member-key', installation_id: ID }, model_profiles: [{ profile_id: 'sonnet-fixture', provider: 'anthropic', model: 'fixture-model' }], tools: [{ tool: 'pyats_run_show_command', arguments: args, device_ref: 'fixture-router' }] }] };
 function operation(nonce, changes = {}) { return { operation_id: 'operation-171', client_nonce: nonce, revision: 1, state: 'review_pending', review_digest: 'd'.repeat(64), attempt_count: 0, may_have_executed: false, reconciliation_required: false, review: { principal, border: { identity: 'fixture-border', installation_id: ID }, member: catalog.members[0].member, model_profile: catalog.members[0].model_profiles[0], tool_call: { tool: 'pyats_run_show_command', arguments: args, arguments_sha256: 'a'.repeat(64) }, limits: { expires_at_ms: Date.now() + 600000, max_tool_calls: 1, max_inference_calls: 2 } }, allowed_actions: ['approve', 'deny'], ...changes }; }
 async function until(predicate) { const end = Date.now() + 3000; while (!predicate()) { if (Date.now() > end) assert.fail('UI condition did not become ready'); await new Promise(resolve => setTimeout(resolve, 5)); } }
-async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false, access } = {}) {
-  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost:3000', runScripts: 'outside-only', pretendToBeVisual: true }), w = dom.window, calls = [];
-  const props = { enabled, installationId: ID, retainMultiple, access }; let signedIn = authenticated;
+async function setup(t, handler = () => {}, { enabled = true, authenticated = true, saved, retainMultiple = false, access, cluster, installationId = ID, origin = 'http://localhost:3000' } = {}) {
+  const dom = new JSDOM('<div id="root"></div>', { url: origin, runScripts: 'outside-only', pretendToBeVisual: true }), w = dom.window, calls = [];
+  Object.defineProperty(w,'crypto',{value:webcrypto}); w.TextEncoder=TextEncoder; w.TextDecoder=TextDecoder; w.structuredClone=structuredClone;
+  const props = { enabled, installationId, retainMultiple, access, cluster }; let signedIn = authenticated;
   if (saved) w.sessionStorage.setItem(`netclaw.protected.${ID}.${Array.isArray(saved) ? 'operations.v2' : 'operation'}`, JSON.stringify(saved));
   const session = () => ({ authenticated: true, principal, csrf_token: 'csrf-private-fixture', expires_ms: Date.now() + 3600000, installation_id: ID });
   w.fetch = async (url, options = {}) => {
@@ -423,4 +426,28 @@ test('legacy resolved review explicitly clears sent marker before preparing a ne
   f.button('Prepare review').click(); await until(() => f.body().includes('resolved-2'));
   const next = JSON.parse(f.w.sessionStorage.getItem(`netclaw.protected.${ID}.operation`)); assert.notEqual(next.client_nonce, previous.client_nonce); assert.equal(next.decision_sent, undefined); assert.equal(f.button('Approve once').disabled, false);
   assert.equal(f.calls.filter(call => call.url.endsWith('/decision')).length, 1); assert.equal(sequence, 2);
+});
+
+const haGolden=JSON.parse(fs.readFileSync(new URL('../../../../tests/fixtures/ha-179/cluster-golden.json',import.meta.url),'utf8'));
+test('R08 browser requires explicit anchor before operations and old issuer status survives authority change without reapproval', async t=>{
+ const a=haGolden.descriptors[0],b=structuredClone(haGolden.descriptors[1]);let current;
+ const options={cluster:b,installationId:b.installation_id,origin:b.manifest.manifest.nodes[1].endpoints.https,access:{mode:'open-lab',principal:haGolden.principal}};
+ const f=await setup(t,(url,o)=>{
+  if(url==='/api/hud/cluster')return b;
+  if(url==='/api/hud/operations'&&o.method==='POST'){
+   current=operation(o.body.client_nonce);current.review.principal=haGolden.principal;current.review.border={installation_id:a.installation_id,key_id:a.manifest.manifest.nodes[0].key_id};current.review.cluster={cluster_id:a.cluster_id,generation:a.generation,manifest_revision:1,issuer_node_id:a.node_id,authority_epoch:7};return current;
+  }
+  if(url==='/api/hud/operations/operation-171')return current;
+ },options);
+ await until(()=>f.button('Trust cluster')&&!f.button('Trust cluster').disabled);assert.equal(f.calls.length,0);
+ f.button('Trust cluster').click();await until(()=>f.button('Prepare review')&&!f.button('Prepare review').disabled);f.button('Prepare review').click();await until(()=>f.button('Approve once')&&!f.button('Approve once').disabled);
+ const post=f.calls.find(c=>c.method==='POST');assert.equal(post.headers['X-NetClaw-Installation'],b.installation_id);assert.equal(post.headers['X-NetClaw-Cluster-ID'],a.cluster_id);assert.equal(post.headers['X-NetClaw-Cluster-Generation'],a.generation);
+ const newer=structuredClone(b);newer.authority.epoch=8;current.result_reference={result_digest:'a'.repeat(64),accepting_node_id:a.node_id};current.observation={kind:'retained',observed_at_ms:Date.now()-1000,reason:'no_quorum'};
+ f.w.remount({...f.props,cluster:newer});await until(()=>f.body().includes('Original result retained'));assert.equal(f.button('Approve once').disabled,true);assert.match(f.body(),/cannot authorize new work/);assert.match(f.body(),/Retained status last observed/);assert.equal(f.button('Reconcile existing operation').disabled,true);
+ assert.equal(f.calls.filter(c=>c.method==='POST').length,1);assert.equal(f.w.localStorage.length,0);assert.ok([...Array(f.w.sessionStorage.length)].some((_,i)=>f.w.sessionStorage.key(i).includes('cluster.')));
+});
+test('R08 browser verified no-quorum observation stops new prepare but retains explicit endpoint and status recovery',async t=>{
+ const c=haGolden.no_quorum;
+ const f=await setup(t,(url)=>url==='/api/hud/cluster'?c:undefined,{cluster:c,installationId:c.installation_id,origin:c.manifest.manifest.nodes.find(n=>n.node_id===c.node_id).endpoints.https,access:{mode:'open-lab',principal:haGolden.principal}});
+ await until(()=>f.button('Trust cluster')&&!f.button('Trust cluster').disabled);f.button('Trust cluster').click();await until(()=>f.button('Prepare review'));assert.equal(f.button('Prepare review').disabled,true);assert.match(f.body(),/Quorum is unavailable/);assert.equal(f.w.document.querySelectorAll('a').length,3);assert.equal(f.calls.filter(c=>c.method==='POST').length,0);
 });

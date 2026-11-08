@@ -1,5 +1,7 @@
 import OperationResultEvidence from './OperationResultEvidence.jsx';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import ClusterTrustGate, { ClusterStatus } from './ClusterTrustGate.jsx';
+import { verifyClusterDescriptor } from '../shared/cluster-binding.js';
 import OwnerSessionGate from './OwnerSessionGate.jsx';
 import CombinedOperationsView from './CombinedOperationsView.jsx';
 import RetainedOperationsView from './RetainedOperationsView.jsx';
@@ -98,12 +100,26 @@ function Operations({ api, principal, installationId }) {
   </>;
 }
 
-function OpenLabOperations({ installationId, access, View }) {
-  const api = useMemo(() => createProtectedOperationsApi(installationId, () => {}, access), [installationId, access]);
-  return <><section className="panel"><h2>Open lab</h2><p>{access.principal.display_name}. No sign-in is used for this development pilot.</p></section><CombinedOperationsView api={api} principal={access.principal} installationId={installationId}/><View api={api} principal={access.principal} installationId={installationId}/></>;
+function OpenLabOperations({ installationId, access, View, cluster }) {
+  const [activeCluster, setActiveCluster] = useState(cluster), [clusterError, setClusterError] = useState('');
+  const api = useMemo(() => createProtectedOperationsApi(installationId, () => {}, access, cluster), [installationId, access, cluster?.cluster_id, cluster?.generation]);
+  useEffect(() => {
+    if (!cluster) return;
+    let alive = true;
+    const refresh = async () => { try {
+      const stored = JSON.parse(sessionStorage.getItem(`netclaw.cluster.${cluster.cluster_id}.pin.v1`));
+      const value = await api.cluster(), checked = await verifyClusterDescriptor(value, { pin: stored, origin: location.origin, installationId });
+      if (!alive) return;
+      sessionStorage.setItem(`netclaw.cluster.${cluster.cluster_id}.pin.v1`, JSON.stringify(checked.pin));
+      api.setCluster(checked.descriptor); setActiveCluster(checked.descriptor); setClusterError('');
+    } catch (error) { if (alive) { const failed = { ...api.clusterBinding, authority: { state: 'no_quorum', leader_node_id: null, epoch: null, observed_at_ms: Date.now() } }; api.setCluster(failed); setActiveCluster(failed); setClusterError(error.message); } } };
+    const timer = setInterval(refresh, 5000); return () => { alive = false; clearInterval(timer); };
+  }, [api, installationId, cluster?.cluster_id]);
+  return <><section className="panel"><h2>Open lab</h2><p>{access.principal.display_name}. No sign-in is used for this development pilot.</p></section><ClusterStatus cluster={activeCluster}/>{clusterError && <p role="alert">Cluster status is unavailable: {clusterError}</p>}{!cluster && <CombinedOperationsView api={api} principal={access.principal} installationId={installationId}/>}<View api={api} principal={access.principal} installationId={installationId} cluster={activeCluster}/></>;
 }
-export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false, access }) {
-  const View = retainMultiple ? RetainedOperationsView : Operations;
+export default function ApprovedOperationsView({ enabled, installationId, retainMultiple = false, access, cluster }) {
+  const View = retainMultiple || cluster ? RetainedOperationsView : Operations;
+  if (enabled && cluster && isOpenLabAccess(access)) return <ClusterTrustGate cluster={cluster} installationId={installationId} principal={access.principal}>{verified => <OpenLabOperations key={installationId} installationId={installationId} access={access} View={View} cluster={verified}/>}</ClusterTrustGate>;
   if (enabled && access !== undefined) return isOpenLabAccess(access) ? <OpenLabOperations key={installationId} installationId={installationId} access={access} View={View}/> : <p role="alert">Unsupported protected access mode.</p>;
   return <OwnerSessionGate key={installationId} enabled={enabled} installationId={installationId}>{({ api, session }) => <React.Fragment key={installationId + session.principal.subject}><CombinedOperationsView api={api} principal={session.principal} installationId={installationId}/><View api={api} principal={session.principal} installationId={installationId}/></React.Fragment>}</OwnerSessionGate>;
 }

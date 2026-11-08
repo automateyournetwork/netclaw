@@ -349,6 +349,10 @@ class _EnrollmentGateState extends State<EnrollmentGate> {
         deviceSubject: client.protectedDevice?.principal['subject'] as String?,
         endpointRevision: stored.endpointRevision,
         protectedOrigin: client.protectedDevice?.origin,
+        clusterPin: client.clusterBinding?.pin,
+        clusterNodeId: client.clusterBinding?.nodeId,
+        clusterDescriptor: client.clusterBinding?.descriptor,
+        enrollmentGeneration: client.protectedDevice?.enrollmentGeneration,
       );
       await store.replaceEndpoint(stored, confirmed, isCurrent: current);
       if (!mounted || generation != _loadGeneration) {

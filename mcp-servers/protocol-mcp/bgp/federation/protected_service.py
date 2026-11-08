@@ -33,6 +33,7 @@ class ProtectedOperations:
         self.store = ProtectedStore(manager.db_path)
         self.audit_writer = audit_writer or self._audit_default
         self.workers = set()
+        self.approval_schema, self.result_schema, self.ack_schema = APPROVAL, RESULT, ACK
         self.failure_recovery_lock = asyncio.Lock()
         self.bridge = None
         from .protected_calculator import CombinedCoordinator
@@ -209,7 +210,7 @@ class ProtectedOperations:
         if params['decision'] == 'approve':
             draft = dict(row['review'], approval_id=str(uuid.uuid4()), operation_id=row['operation_id'],
                          nonce=secrets.token_urlsafe(32), issued_at_ms=self.now(), review_sha256=row['review_digest'])
-            audit_row = dict(row, approval_id=draft['approval_id'], approval_digest=digest(APPROVAL, draft))
+            audit_row = dict(row, approval_id=draft['approval_id'], approval_digest=digest(self.approval_schema, draft))
         audit_ref = self._audit('protected_approval' if draft else 'protected_denial', audit_row)
         with self._owner(params['auth_context']) as principal:
             row = self._owned(params['operation_id'], principal)
@@ -224,10 +225,10 @@ class ProtectedOperations:
             self._trust(row['review']['member']); self._trust(self.identity)
             payload = draft
             require(payload['issued_at_ms'] <= self.now(), 'clock_rollback', 403)
-            approval = self.signer(APPROVAL, payload)
-            verify(approval, row['trust_snapshot']['border'], APPROVAL)
+            approval = self.signer(self.approval_schema, payload)
+            verify(approval, row['trust_snapshot']['border'], self.approval_schema)
             row = self.store.transition('border', row['operation_id'], 'review_pending', state='approved',
-                                       approval=approval, approval_digest=digest(APPROVAL, payload), approval_nonce=payload['nonce'],
+                                       approval=approval, approval_digest=digest(self.approval_schema, payload), approval_nonce=payload['nonce'],
                                        approval_id=payload['approval_id'], audit_refs={'approval': audit_ref})
         dispatch_ref = self._audit('protected_dispatch', row)
         with self._owner(params['auth_context']) as principal:
@@ -293,13 +294,13 @@ class ProtectedOperations:
             return self._view(self._owned(row['operation_id'], principal, historical=True), principal)
 
     def _accept_result(self, row, envelope):
-        p = verify(envelope, row['trust_snapshot']['member'], RESULT)
+        p = verify(envelope, row['trust_snapshot']['member'], self.result_schema)
         a = row['approval']['payload']
         require(all(p[k] == a[k] for k in ('operation_id', 'approval_id', 'principal', 'border', 'member', 'model_profile')), 'result_binding_mismatch', 409)
         require(p['approval_sha256'] == row['approval_digest'] and p['tool_call_sha256'] == sha256(a['tool_call']), 'result_binding_mismatch', 409)
         require(row['attempt_id'] in (None, p['attempt_id']), 'attempt_conflict', 409)
         require(len(encode(p['output'])) <= a['limits']['max_output_bytes'], 'output_too_large')
-        rd = digest(RESULT, p)
+        rd = digest(self.result_schema, p)
         if row['receipt_digest'] is not None:
             require(row['receipt_digest'] == rd, 'receipt_conflict', 409)
             return row
@@ -308,8 +309,8 @@ class ProtectedOperations:
         ack_payload = {'ack_id': str(uuid.uuid4()), 'operation_id': p['operation_id'], 'approval_id': p['approval_id'],
                        'attempt_id': p['attempt_id'], 'receipt_id': p['receipt_id'], 'receipt_sha256': rd,
                        'border': p['border'], 'member': p['member'], 'accepted_at_ms': self.now(), 'audit_ref': audit_ref}
-        ack = self.signer(ACK, ack_payload)
-        verify(ack, row['trust_snapshot']['border'], ACK)
+        ack = self.signer(self.ack_schema, ack_payload)
+        verify(ack, row['trust_snapshot']['border'], self.ack_schema)
         state = {'succeeded': 'completed', 'failed': 'failed', 'refused': 'refused'}[p['outcome']]
         # Receipt and its ACK are one FULL synchronous transaction before completion.
         try:
@@ -340,20 +341,20 @@ class ProtectedOperations:
         claimed = envelope['payload'].get('border')
         self._channel(channel, claimed)
         cert = self._trust(claimed)
-        payload = verify(envelope, cert, APPROVAL)
+        payload = verify(envelope, cert, self.approval_schema)
         try:
             return await self._admit_payload(channel, envelope, payload, cert)
         except ProtectedError as exc:
             # Only a cryptographically verified payload can supply an audit principal.
             refused = {'operation_id': payload['operation_id'], 'review': review_from_payload(payload),
-                       'approval_id': payload['approval_id'], 'approval_digest': digest(APPROVAL, payload)}
+                       'approval_id': payload['approval_id'], 'approval_digest': digest(self.approval_schema, payload)}
             self._audit('protected_admission_refused', refused, outcome='refused',
                         effect_status='not_started', error_code=exc.code)
             raise
 
     async def _admit_payload(self, channel, envelope, payload, cert):
         require(payload['member'] == self.identity, 'foreign_member', 403)
-        approval_digest = digest(APPROVAL, payload)
+        approval_digest = digest(self.approval_schema, payload)
         old = self.store.get('member', payload['operation_id'])
         if old:
             require(old['approval_digest'] == approval_digest, 'operation_conflict', 409)
@@ -438,12 +439,12 @@ class ProtectedOperations:
         envelope = params['ack']
         require(isinstance(envelope, dict) and isinstance(envelope.get('payload'), dict))
         row = self._member_lookup(channel, envelope['payload'].get('operation_id'))
-        p = verify(envelope, row['trust_snapshot']['border'], ACK)
+        p = verify(envelope, row['trust_snapshot']['border'], self.ack_schema)
         require(row['receipt'] is not None, 'result_not_ready', 409)
         receipt = row['receipt']['payload']
         require(all(p[k] == receipt[k] for k in ('operation_id', 'approval_id', 'attempt_id', 'receipt_id', 'border', 'member')) and p['receipt_sha256'] == row['receipt_digest'], 'ack_binding_mismatch', 409)
         if row['ack']:
-            require(digest(ACK, row['ack']['payload']) == digest(ACK, p), 'ack_conflict', 409)
+            require(digest(self.ack_schema, row['ack']['payload']) == digest(self.ack_schema, p), 'ack_conflict', 409)
         else:
             row = self.store.transition('member', row['operation_id'], 'result_ready', state='acknowledged', ack=envelope)
         return self._member_dto(row)
@@ -463,10 +464,24 @@ class ProtectedOperations:
         authorization = self.store.authorize_effect(row['operation_id'], dict(params))
         return dict(authorization, authorized=True)
 
+    def _execution_attempt(self, row):
+        return str(uuid.uuid4())
+
+    def _execution_channel(self, channel):
+        return channel
+
+    async def _authorize_native(self, channel, binding):
+        authorization = await channel.call('execution/effect-authorize', binding)
+        require(authorization == dict(binding, authorized=True), 'effect_not_authorized', 403)
+        return authorization
+
+    async def _run_guarded(self, row, payload, gate):
+        return await self.executor.run(payload, gate)
+
     async def _execute(self, operation_id, channel):
         row = self.store.get('member', operation_id)
         try:
-            attempt_id = str(uuid.uuid4())
+            attempt_id = self._execution_attempt(row)
             dispatch = self._audit('protected_executor', dict(row, attempt_id=attempt_id))
             row = self.store.claim_executor(operation_id, self.now(), attempt_id=attempt_id)
             row = self.store.transition('member', operation_id, 'executor_claimed', audit_refs={'approval': row['approval_digest'], 'dispatch': dispatch})
@@ -477,14 +492,14 @@ class ProtectedOperations:
                 require(proposed_tool_call == payload['tool_call'], 'tool_call_changed', 403)
                 require(not retained['called'], 'effect_already_claimed', 409)
                 retained['called'] = True
-                self._channel(channel, payload['border'])
+                effect_channel = self._execution_channel(channel)
+                self._channel(effect_channel, payload['border'])
                 await self._check_catalog(payload)
                 require(payload['issued_at_ms'] <= self.now() < payload['limits']['expires_at_ms'], 'approval_expired', 403)
                 binding = {'operation_id': operation_id, 'approval_digest': row['approval_digest'],
                            'attempt_id': row['attempt_id'], 'tool_call_digest': sha256(payload['tool_call'])}
-                authorization = await channel.call('execution/effect-authorize', binding)
-                require(authorization == dict(binding, authorized=True), 'effect_not_authorized', 403)
-                self._channel(channel, payload['border'])
+                authorization = await self._authorize_native(effect_channel, binding)
+                self._channel(effect_channel, payload['border'])
                 require(self.now() < payload['limits']['expires_at_ms'], 'approval_expired', 403)
                 effect_ref = self._audit('protected_effect', row)
                 self.store.claim_effect(operation_id, authorization)
@@ -496,7 +511,7 @@ class ProtectedOperations:
                 self.store.transition('member', operation_id, 'effect_claimed', tool_evidence=evidence, effect_finished=1)
                 return evidence
             try:
-                result = await self.executor.run(payload, gate)
+                result = await self._run_guarded(row, payload, gate)
                 require(isinstance(result, dict) and set(result) == {'output', 'tool_evidence', 'usage', 'effective_model_profile'}, 'invalid_executor_result')
                 require(result['effective_model_profile'] == payload['model_profile'], 'effective_profile_mismatch')
                 require(result['tool_evidence'] == retained['evidence'], 'tool_evidence_mismatch')
@@ -541,11 +556,13 @@ class ProtectedOperations:
                    'outcome': outcome, 'effect_status': terminal['effect_status'], 'output': output,
                    'output_sha256': sha256(output), 'tool_evidence_sha256': sha256(terminal['tool_evidence']),
                    'usage': terminal['usage'], 'audit_refs': dict(row['audit_refs'], result=audit), 'error_code': error}
-        envelope = self.signer(RESULT, receipt)
-        verify(envelope, row['trust_snapshot']['member'], RESULT)
+        if self.result_schema.endswith('.v2'):
+            receipt['cluster'] = payload['cluster']
+        envelope = self.signer(self.result_schema, receipt)
+        verify(envelope, row['trust_snapshot']['member'], self.result_schema)
         try:
             self.store.transition('member', row['operation_id'], 'audit_pending', state='result_ready', receipt=envelope,
-                                  receipt_digest=digest(RESULT, receipt), audit_refs=receipt['audit_refs'], error_code=error)
+                                  receipt_digest=digest(self.result_schema, receipt), audit_refs=receipt['audit_refs'], error_code=error)
         except ProtectedError as exc:
             current = self.store.get('member', row['operation_id'])
             if exc.code != 'state_conflict' or current['receipt'] is None:
@@ -611,13 +628,16 @@ class OperatorBridge:
             method, params = body['method'], body['params']
             require(isinstance(params, dict))
             require(not self.service.open_lab or not method.startswith('owner.'), 'method_refused', 404)
-            if method in ('mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status'):
+            if method == 'cluster.info':
+                require(hasattr(self.service, 'cluster_info'), 'cluster_unavailable', 404)
+                result = await self.service.cluster_info(params)
+            elif method in ('mobile.enrollment.info', 'mobile.enrollment.issue', 'mobile.enrollment.status'):
                 require(self.service.open_lab, 'owner_issuance_unqualified', 403)
                 require('auth_context' in params, 'lab_context_refused', 403)
                 with self.service._owner(params['auth_context']):
                     args = {key: value for key, value in params.items() if key != 'auth_context'}
                     issuer = self.service.mobile_enrollment
-                    result = getattr(issuer, method.rsplit('.', 1)[1])(args)
+                    result = await maybe_await(getattr(issuer, method.rsplit('.', 1)[1])(args))
             elif method == 'owner.login':
                 exact(params, 'ticket'); result = self.service.owner.login(params['ticket'])
             elif method == 'owner.session':
@@ -643,11 +663,21 @@ def validate_profile(config, *, role=None, identity=None):
     require(isinstance(config, dict), 'protected_profile_invalid')
     selected_role = config.get('role')
     require(selected_role in ('border', 'member'), 'unsupported_role')
-    exact(config, ('schemaVersion role identity' + (' access' if 'access' in config else '')) if selected_role == 'border'
-          else 'schemaVersion role identity catalog runtime border')
+    ha = type(config.get('schemaVersion')) is int and config['schemaVersion'] == 2
+    if ha:
+        exact(config, 'schemaVersion role identity access ha' if selected_role == 'border'
+              else 'schemaVersion role identity catalog runtime ha')
+        exact(config['ha'], 'config_file config_sha256')
+        path = config['ha']['config_file']
+        require(isinstance(path, str) and 0 < len(path) <= 4096 and '\x00' not in path
+                and Path(path).is_absolute(), 'protected_profile_invalid')
+        digest_field(config['ha']['config_sha256'])
+    else:
+        exact(config, ('schemaVersion role identity' + (' access' if 'access' in config else '')) if selected_role == 'border'
+              else 'schemaVersion role identity catalog runtime border')
     if 'access' in config:
         validate_access(config['access'])
-    require(type(config['schemaVersion']) is int and config['schemaVersion'] == 1, 'protected_profile_invalid')
+    require(type(config['schemaVersion']) is int and config['schemaVersion'] in (1, 2), 'protected_profile_invalid')
     validate_binding(config['identity'], selected_role)
     if role is not None:
         require(selected_role == role and config['identity'] == identity, 'local_authority_changed', 403)
@@ -659,6 +689,11 @@ def from_service(service):
     runtime, risk = service.runtime, service.risk
     require(runtime.installation is not None, 'installation_uninitialized', 503)
     config = validate_profile(decode(private_file(runtime.state / 'protected-profile.json')))
+    if config['schemaVersion'] == 2:
+        from .ha.factory import from_service as from_ha_service
+        return from_ha_service(service, config)
+    from .ha.config import require_ha
+    require_ha(runtime.state, None)
     original_profile = encode(config)
     role = config.get('role'); require(role in ('border', 'member'), 'unsupported_role')
     require((role == 'border') == risk.is_border(), 'role_mismatch', 503)

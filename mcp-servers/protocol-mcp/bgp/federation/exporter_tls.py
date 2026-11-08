@@ -10,7 +10,7 @@ import inspect
 import ipaddress
 import ssl
 
-from OpenSSL import SSL
+from OpenSSL import SSL, crypto
 from service_identity.pyopenssl import verify_hostname, verify_ip_address
 
 MAX_PENDING = 17 * 1024 * 1024  # 16 MiB NCFED message plus frame headers.
@@ -19,28 +19,33 @@ MAX_CIPHERTEXT_CALLBACK = 512 * 1024
 CHUNK = 16384
 
 
-def _context(*, cert_file=None, key_file=None, ca_file=None):
+def _context(*, cert_file=None, key_file=None, ca_file=None, require_peer=False):
     ctx = SSL.Context(SSL.TLS_METHOD)
     ctx.set_min_proto_version(SSL.TLS1_3_VERSION)
     ctx.set_max_proto_version(SSL.TLS1_3_VERSION)
+    if bool(cert_file) != bool(key_file):
+        raise ValueError('certificate and private key must be provided together')
     if cert_file:
         ctx.use_certificate_chain_file(cert_file)
         ctx.use_privatekey_file(key_file)
         ctx.check_privatekey()
-    else:
+    if require_peer:
         if not ca_file:
-            raise ValueError('strict TLS requires an explicit CA')
+            raise ValueError('strict peer verification requires an explicit CA')
         ctx.load_verify_locations(ca_file)
-        ctx.set_verify(SSL.VERIFY_PEER, lambda conn, cert, errno, depth, ok: bool(ok))
+        ctx.set_verify(SSL.VERIFY_PEER | SSL.VERIFY_FAIL_IF_NO_PEER_CERT,
+                       lambda conn, cert, errno, depth, ok: bool(ok))
     return ctx
 
 
 class _TLSStream(asyncio.Protocol):
-    def __init__(self, context, *, server_hostname=None, callback=None, handshake_timeout=10):
+    def __init__(self, context, *, server_hostname=None, callback=None, handshake_timeout=10,
+                 profile='in2n-tls-exporter-v1'):
         self.loop = asyncio.get_running_loop()
         self.connection = SSL.Connection(context, None)
         self.server_hostname = server_hostname
         self.callback = callback
+        self.profile = profile
         self.transport = None
         self.ready = self.loop.create_future()
         self.closed = self.loop.create_future()
@@ -291,15 +296,21 @@ class _TLSStream(asyncio.Protocol):
         if name == 'tls_version':
             return 'TLSv1.3' if self.handshaken else None
         if name == 'tls_profile':
-            return 'in2n-tls-exporter-v1'
+            return self.profile
+        if name == 'tls_peer_certificate':
+            certificate = self.connection.get_peer_certificate() if self.handshaken else None
+            return crypto.dump_certificate(crypto.FILETYPE_ASN1, certificate) if certificate else None
         if name == 'ssl_object':
             return None
         return self.transport.get_extra_info(name, default) if self.transport else default
 
 
-async def open_connection(host, port, *, ca_file, server_hostname, handshake_timeout=10):
-    protocol = _TLSStream(_context(ca_file=ca_file), server_hostname=server_hostname,
-                          handshake_timeout=handshake_timeout)
+async def open_connection(host, port, *, ca_file, server_hostname, handshake_timeout=10,
+                          cert_file=None, key_file=None):
+    protocol = _TLSStream(_context(ca_file=ca_file, cert_file=cert_file, key_file=key_file,
+                                   require_peer=True), server_hostname=server_hostname,
+                          handshake_timeout=handshake_timeout,
+                          profile='ncfed-cluster-mtls-v1' if cert_file else 'in2n-tls-exporter-v1')
     try:
         await asyncio.wait_for(asyncio.get_running_loop().create_connection(
             lambda: protocol, host, port), handshake_timeout)
@@ -312,8 +323,39 @@ async def open_connection(host, port, *, ca_file, server_hostname, handshake_tim
         raise
 
 
-async def start_server(callback, host, port, *, cert_file, key_file, handshake_timeout=10):
-    context = _context(cert_file=cert_file, key_file=key_file)
-    return await asyncio.get_running_loop().create_server(
-        lambda: _TLSStream(context, callback=callback, handshake_timeout=handshake_timeout),
-        host, port)
+class _OwnedServer:
+    """Opt-in listener ownership includes authenticated and pending connections."""
+    def __init__(self, server, streams):
+        self.server, self.streams, self.tasks = server, streams, set()
+
+    def __getattr__(self, name):
+        return getattr(self.server, name)
+
+    def close(self):
+        self.server.close()
+        for stream in list(self.streams):
+            task = stream.admission_task
+            if task is not None and not task.done():
+                self.tasks.add(task); task.cancel()
+            stream.abort()
+
+    async def wait_closed(self):
+        await self.server.wait_closed()
+        if self.tasks:
+            await asyncio.gather(*self.tasks, return_exceptions=True)
+
+
+async def start_server(callback, host, port, *, cert_file, key_file, handshake_timeout=10,
+                       peer_ca_file=None, close_clients=False):
+    context = _context(cert_file=cert_file, key_file=key_file, ca_file=peer_ca_file,
+                       require_peer=peer_ca_file is not None)
+    streams = set()
+    def protocol():
+        stream = _TLSStream(context, callback=callback, handshake_timeout=handshake_timeout,
+                           profile='ncfed-cluster-mtls-v1' if peer_ca_file else 'in2n-tls-exporter-v1')
+        if close_clients:
+            streams.add(stream)
+            stream.closed.add_done_callback(lambda _: streams.discard(stream))
+        return stream
+    server = await asyncio.get_running_loop().create_server(protocol, host, port)
+    return _OwnedServer(server, streams) if close_clients else server

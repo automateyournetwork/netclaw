@@ -17,6 +17,11 @@ log_warn()  { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error() { echo -e "${RED}[ERROR]${NC} $1"; }
 log_step()  { echo -e "${CYAN}[STEP]${NC} $1"; }
 
+require_standalone_setup_home() {
+    local guard="$(cd -P "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/ha_setup_guard.py"
+    python3 -B "$guard" --home "$RUNTIME_HOME"
+}
+
 check_command() {
     if command -v "$1" &> /dev/null; then
         log_info "$1 found: $(command -v "$1")"

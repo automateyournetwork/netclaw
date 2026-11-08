@@ -187,12 +187,57 @@ _FIXED = {'N2N_ENABLED': 'true', 'N2N_PROTECTED_OPERATIONS': '1',
           'PYTHONDONTWRITEBYTECODE': '1', 'PYTHONNOUSERSITE': '1', 'PYTHONSAFEPATH': '1'}
 
 
+def validate_ha_profile(cfg, profile, home, root):
+    """Stdlib launch preflight; runtime verifies manifest signatures before bind.
+
+    HA has its own private role configuration. It cannot pass a standalone wire
+    registry or silently reuse a one-Border enrollment.
+    """
+    exact(profile['ha'], 'config_file config_sha256')
+    raw = private_bytes(path(profile['ha']['config_file'])); hashed(raw, profile['ha']['config_sha256'])
+    config = json.loads(raw, object_pairs_hook=pairs)
+    fields = 'schema_version role manifest_file anchor_certificate_file anchor_key_id transport_ca_file'
+    fields += ' node_id transport_certificate_file private_key_file etcd' if cfg['role'] == 'border' else ' certificate_file private_key_file'
+    exact(config, fields)
+    need(type(config['schema_version']) is int and config['schema_version'] == 1
+         and config['role'] == cfg['role'], 'ha_configuration_invalid')
+    for key, value in config.items():
+        if key.endswith('_file'): private_bytes(path(value))
+    manifest = document(config['manifest_file'])
+    exact(manifest, 'schema manifest signature')
+    need(manifest['schema'] == 'netclaw.ncfed.cluster-manifest.v1', 'ha_manifest_invalid')
+    value = manifest['manifest']
+    marker = document(home / 'netclaw-federation/ha-required.json')
+    need(marker == {'schema_version': 1, 'cluster_id': value['cluster_id'], 'generation': value['generation']},
+         'ha_required_marker_mismatch')
+    sources = document(cfg['source_manifest'])['files']
+    need({'mcp-servers/protocol-mcp/bgp/federation/ha/' + name for name in
+          ('factory.py','config.py','authority.py','channel.py','internal.py','member.py','border.py','operations.py','admission.py','store.py','effect.py','mcp_transport.py','model_transport.py')}
+         <= sources.keys(), 'ha_source_incomplete')
+    if cfg['role'] == 'border':
+        nodes = [node for node in value['nodes'] if node['node_id'] == config['node_id']]
+        need(len(nodes) == 1 and nodes[0]['installation_id'] == cfg['installation_id']
+             and nodes[0]['key_id'] == profile['identity']['key_id']
+             and nodes[0]['endpoints']['https'] == cfg['origin'], 'ha_node_mismatch')
+        exact(config['etcd'], 'endpoints ca_file certificate_file private_key_file username password_file')
+        for key, item in config['etcd'].items():
+            if key.endswith('_file'): private_bytes(path(item))
+    else:
+        need(cfg['origin'] is None and isinstance(value['nodes'], list) and len(value['nodes']) == 3,
+             'ha_outbound_topology_required')
+    return config
+
+
 def validate(contract_path):
     contract_path = path(str(contract_path)); cfg = document(contract_path)
     fields = 'schemaVersion installation_id role runtime_kind control_only home source_root python python_sha256 python_env python_env_manifest python_env_manifest_sha256 source_manifest source_manifest_sha256 profile_sha256 registry registry_sha256 origin environment'
-    member = cfg.get('role') == 'member' and type(cfg.get('schemaVersion')) is int and cfg['schemaVersion'] == 2
+    ha = type(cfg.get('schemaVersion')) is int and cfg['schemaVersion'] == 3
+    if ha:
+        fields = fields.replace(' registry registry_sha256', '')
+        need(cfg.get('role') in ('border', 'member'), 'role_schema_invalid')
+    member = cfg.get('role') == 'member' and type(cfg.get('schemaVersion')) is int and cfg['schemaVersion'] in (2, 3)
     exact(cfg, fields + (' guard_token_file' if member else ''))
-    if not member:
+    if not member and not ha:
         need(type(cfg['schemaVersion']) is int and cfg['schemaVersion'] == 1, 'role_schema_invalid')
         need(cfg['role'] == 'border', 'cloud_member_activation_unqualified')
     need(cfg['control_only'] is (not member), 'control_only_required')
@@ -212,26 +257,33 @@ def validate(contract_path):
     need(owner == {'schemaVersion': 1, 'installationId': cfg['installation_id'], 'kind': cfg['runtime_kind'], 'home': str(home)}, 'owner_mismatch')
     raw = private_bytes(home / 'netclaw-federation/protected-profile.json'); hashed(raw, cfg['profile_sha256'])
     profile = json.loads(raw, object_pairs_hook=pairs)
-    fields = 'schemaVersion role identity' if cfg['role'] == 'border' else 'schemaVersion role identity catalog runtime border'
+    fields = 'schemaVersion role identity' if cfg['role'] == 'border' else 'schemaVersion role identity catalog runtime' + ('' if ha else ' border')
+    if ha: fields += ' ha'
     if not member and 'access' in profile:
         fields += ' access'
         need(profile['access'] == {'mode': 'open-lab'}, 'profile_access_invalid')
     exact(profile, fields)
-    need(type(profile['schemaVersion']) is int and profile['schemaVersion'] == 1
+    need(type(profile['schemaVersion']) is int and profile['schemaVersion'] == (2 if ha else 1)
          and profile['role'] == cfg['role'] and profile.get('identity', {}).get('installation_id') == cfg['installation_id'], 'profile_mismatch')
     binding = profile['identity']
     exact(binding, 'installation_id member_id key_id enrollment_generation' if member else 'installation_id identity key_id authority_generation')
     need(all(isinstance(v, str) and 0 < len(v) <= 200 and not any(ord(c) < 32 for c in v)
              for v in binding.values()) and re.fullmatch('[a-f0-9]{64}', binding['key_id']), 'identity_invalid')
-    registry_path = path(cfg['registry'])
-    need(registry_path.is_relative_to(home), 'registry_outside_home')
-    registry_raw = private_bytes(registry_path); hashed(registry_raw, cfg['registry_sha256'])
-    registry = json.loads(registry_raw, object_pairs_hook=pairs)
-    validate_registry(registry, cfg['installation_id'], root)
-    need(registry.get('schemaVersion') == 2 and registry.get('installationId') == cfg['installation_id'], 'registry_mismatch')
-    entries = registry.get('entries')
-    need(isinstance(entries, list), 'registry_invalid')
-    if cfg['role'] == 'border':
+    if ha:
+        need(member or profile.get('access') == {'mode': 'open-lab'}, 'ha_access_unqualified')
+        validate_ha_profile(cfg, profile, home, root)
+        entries = []
+    else:
+        need(not (home / 'netclaw-federation/ha-required.json').exists(), 'ha_downgrade_refused')
+        registry_path = path(cfg['registry'])
+        need(registry_path.is_relative_to(home), 'registry_outside_home')
+        registry_raw = private_bytes(registry_path); hashed(registry_raw, cfg['registry_sha256'])
+        registry = json.loads(registry_raw, object_pairs_hook=pairs)
+        validate_registry(registry, cfg['installation_id'], root)
+        need(registry.get('schemaVersion') == 2 and registry.get('installationId') == cfg['installation_id'], 'registry_mismatch')
+        entries = registry.get('entries')
+        need(isinstance(entries, list), 'registry_invalid')
+    if cfg['role'] == 'border' and not ha:
         need(len(entries) == 2 and {e.get('service') for e in entries} == {'in2n', 'en2n'}, 'border_listeners_required')
         need(all(e.get('direction') == 'listen' and e.get('transport') == 'direct_tcp' for e in entries), 'direct_listeners_required')
         for entry in entries:
@@ -248,7 +300,7 @@ def validate(contract_path):
         config_path = home / 'openclaw.json'
         if config_path.exists():
             need(document(config_path) == {'netclaw': {'controlOnly': True}}, 'border_harness_config_refused')
-    else:
+    elif not ha:
         need(cfg['origin'] is None and len(entries) == 1 and entries[0].get('service') == 'in2n'
              and entries[0].get('direction') == 'dial' and entries[0].get('transport') == 'direct_tcp', 'member_outbound_only_required')
         border = profile['border']
@@ -258,6 +310,7 @@ def validate(contract_path):
         need(entries[0]['application_identity'] == border['identity'], 'member_border_identity_mismatch')
         enrollment = document(home / 'n2n/keys/protected/enrollment.json')
         need(all(enrollment.get(k) == binding[k] for k in ('installation_id', 'member_id', 'enrollment_generation')), 'member_enrollment_mismatch')
+    if member:
         capability = path(cfg['guard_token_file'])
         need(capability == home / 'netclaw-federation/guard-capability', 'member_guard_path_refused')
         guard_token = private_bytes(capability, 256).decode('ascii').strip()
@@ -282,15 +335,22 @@ def validate(contract_path):
     environment = {'HOME': str(home), 'PATH': '/usr/bin:/bin', 'LANG': 'C.UTF-8', **_FIXED, **env,
                    'NETCLAW_RUNTIME': cfg['runtime_kind'], 'NETCLAW_INSTALLATION_ID': cfg['installation_id'],
                    'N2N_BASE_DIR': str(home / 'n2n'), 'N2N_ROLE': cfg['role'], 'N2N_RISK_NAME': row[1],
-                   'N2N_ENABLED_STACKS': 'in2n', 'N2N_ENDPOINT_REGISTRY': str(registry_path),
+                   'N2N_ENABLED_STACKS': 'in2n',
                    'N2N_GAIT_DIR': str(home / 'n2n/gait'), 'NETCLAW_PROTECTED_ROLE_CONTRACT': str(contract_path)}
+    if not ha: environment['N2N_ENDPOINT_REGISTRY'] = str(registry_path)
+    if cfg['role'] == 'border' and ha:
+        config_path = home / 'openclaw.json'
+        need(config_path.exists() and document(config_path) == {'netclaw': {'controlOnly': True}}, 'border_harness_config_refused')
     if cfg['role'] == 'border' and 'N2N_EDGE_WS_PORT' in env:
         environment['NETCLAW_MOBILE_ORIGIN'] = cfg['origin']
     if cfg['role'] == 'member':
         need(isinstance(row[3], str) and row[3] == binding['member_id'] and row[2] == 'in2n', 'member_identity_required')
         environment['N2N_MEMBER_ID'] = row[3]
-        environment['N2N_BORDER_REGISTRY_ID'] = entries[0]['id']
-        environment['NETCLAW_R04_GUARD_TOKEN'] = guard_token
+        if not ha: environment['N2N_BORDER_REGISTRY_ID'] = entries[0]['id']
+        token_env = profile['runtime'].get('guard_token_env') if ha else 'NETCLAW_R04_GUARD_TOKEN'
+        need(isinstance(token_env, str) and re.fullmatch('NETCLAW_[A-Z0-9_]+', token_env)
+             and token_env not in environment and token_env not in ('NETCLAW_RUNTIME', 'NETCLAW_INSTALLATION_ID'), 'guard_token_environment_invalid')
+        environment[token_env] = guard_token
     if cfg['runtime_kind'] == 'openclaw':
         environment.update(OPENCLAW_HOME=str(home), OPENCLAW_STATE_DIR=str(home), OPENCLAW_CONFIG_PATH=str(home / 'openclaw.json'))
     else:

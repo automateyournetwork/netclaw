@@ -96,6 +96,9 @@ Future<EnrollmentOutcome> attemptEnrollmentFromQr(
           clawDomain: payload.clawDomain,
           wsPath: payload.wsPath,
           installationId: payload.installationId,
+          clusterPin: payload.clusterPin,
+          clusterNodeId: payload.clusterNodeId,
+          clientNonce: payload.clientNonce,
           pending: true,
         ),
       );
@@ -124,6 +127,10 @@ Future<EnrollmentOutcome> attemptEnrollmentFromQr(
             deviceSubject:
                 client.protectedDevice?.principal['subject'] as String?,
             protectedOrigin: client.protectedDevice?.origin,
+            clusterPin: client.clusterBinding?.pin,
+            clusterNodeId: client.clusterBinding?.nodeId,
+            clusterDescriptor: client.clusterBinding?.descriptor,
+            enrollmentGeneration: client.protectedDevice?.enrollmentGeneration,
           ),
         );
       }
@@ -139,15 +146,19 @@ Future<EnrollmentOutcome> attemptEnrollmentFromQr(
   } on EdgeClientException catch (e) {
     if (submitted) {
       final proof = e.data;
-      if (store != null && proof?['admission'] == 'not_enrolled' &&
-          proof?['code'] == 'enrollment_refused' && proof?['status'] == 400 &&
+      if (store != null &&
+          proof?['admission'] == 'not_enrolled' &&
+          proof?['code'] == 'enrollment_refused' &&
+          proof?['status'] == 400 &&
           proof?['member_id'] == memberId &&
           proof?['key_fingerprint'] == preparedFingerprint) {
         final retained = await store.load();
-        if (retained?.pending == true && retained?.memberId == memberId &&
+        if (retained?.pending == true &&
+            retained?.memberId == memberId &&
             retained?.keyFingerprint == preparedFingerprint) {
           await store.clear();
-          return EnrollmentFailure('This enrollment code expired or was already used. Generate a new QR code and scan it.',
+          return EnrollmentFailure(
+            'This enrollment code expired or was already used. Generate a new QR code and scan it.',
           );
         }
       }

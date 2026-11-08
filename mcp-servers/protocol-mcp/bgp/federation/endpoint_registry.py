@@ -25,6 +25,28 @@ LISTEN = {'bind_host', 'bind_port', 'cert_file', 'key_file'}
 audit = logging.getLogger('n2n.audit')
 
 
+def validate_cluster_endpoint(entry):
+    """Separate R08 direct/mTLS profile; not an iN2N/eN2N registry entry.
+
+    Application trust comes from the verified cluster manifest. This validates
+    only the explicit local transport inputs; it confers no cluster enrollment.
+    Legacy registry schemas deliberately continue to reject this service.
+    """
+    fields = {'profile', 'transport', 'routing_host', 'routing_port', 'tls_server_name',
+              'ca_file', 'cert_file', 'key_file'}
+    if not isinstance(entry, dict) or set(entry) != fields:
+        raise ValueError('exact cluster endpoint fields required')
+    if entry['profile'] != 'ncfed-cluster-mtls-v1' or entry['transport'] != 'direct_tcp':
+        raise ValueError('cluster requires direct mutual TLS profile')
+    if not _host(entry['routing_host']) or not _host(entry['tls_server_name']) or not _port(entry['routing_port']):
+        raise ValueError('explicit cluster route and independent TLS name required')
+    for field in ('ca_file', 'cert_file', 'key_file'):
+        value = entry[field]
+        if not isinstance(value, str) or '\x00' in value or len(value) > 4096 or not Path(value).is_absolute():
+            raise ValueError('absolute local cluster certificate reference required')
+    return entry
+
+
 def _text(value, pattern, limit=253):
     return isinstance(value, str) and 0 < len(value) <= limit and re.fullmatch(pattern, value) is not None
 

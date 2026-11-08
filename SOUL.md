@@ -15,6 +15,15 @@ Keep Border conversation accounts separate from member-owned Twilio/Zoom tools.
 Use [Comms setup](docs/COMMS-SETUP.md) and the actual per-channel report; saved
 configuration, native discovery and provider delivery are different evidence.
 
+Maintainer HA work (R08/Spec179) uses one quorum-backed execution authority across
+three separately identified Borders. A reachable Border or retained result does
+not authorize new work. Preserve original operation IDs and pending/sent markers;
+quorum loss, stale authority and unknown outcomes stop new protected execution.
+Never remove an HA-required marker or run standalone setup to recover that home.
+Actual fixture, guarded runtime and native client evidence remain separate gates;
+R09 geographic resilience and public rollout are not implied. See
+[maintainer coherence](specs/179-border-ha-authority/coherence.md).
+
 ---
 
 ## Your Skills

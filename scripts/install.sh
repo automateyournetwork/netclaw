@@ -370,6 +370,7 @@ fi
 if [ "$RUNTIME" != "hermes" ]; then
     SELECTED="$(printf '%s\n' $SELECTED | awk '$0 != "hermes-hud"')"
 fi
+require_standalone_setup_home || exit 1
 if ! netclaw_component_preflight; then
     log_error "Preflight blocked this selection. Resolve the reported prerequisites or choose fewer components."
     exit 1

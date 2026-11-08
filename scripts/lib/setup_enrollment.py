@@ -13,6 +13,7 @@ import sqlite3
 import sys
 from setup_schema import loads
 from setup_state import Conflict,guarded_read
+from ha_setup_guard import require_standalone_home
 
 
 def materialize_remote_transport(runtime, bundle, registry_path, *, expected_revision):
@@ -22,6 +23,7 @@ def materialize_remote_transport(runtime, bundle, registry_path, *, expected_rev
     remote installation workflow. An interrupted import is inspected, never
     silently converted into a replacement identity or enrollment token.
     """
+    require_standalone_home(runtime.home)
     from bgp.federation.endpoint_registry import Registry, import_bundle
     runtime.fence()
     registry = Registry(registry_path, runtime.installation)
@@ -38,6 +40,7 @@ def materialize_remote_transport(runtime, bundle, registry_path, *, expected_rev
 def binding(record):
     for claw in (record['border'],record['claw']):
         home=Path(claw['runtimeHome'])
+        require_standalone_home(home)
         owner=loads(guarded_read(home/'.netclaw-setup-owner.json',16384,private=True))
         if owner!={'schema':1,'runId':record['runId'],'installationId':claw['id'],'planHash':record['planHash']}:
             raise Conflict('risk_home_not_owned')
@@ -86,6 +89,7 @@ def materialize(record):
     from bgp.federation.runtime import Runtime
     def manager(value):
         home=Path(value['runtimeHome']);identity=loads(guarded_read(home/'netclaw-hud/installation.json'))['installationId']
+        require_standalone_home(home)
         Runtime(value['harness'],home,home/('config.yaml' if value['harness']=='hermes' else 'openclaw.json'),identity).fence(initialize=True)
         return FederationManager(base_dir=str(home/'n2n'))
     border_manager=manager(border);member_manager=None

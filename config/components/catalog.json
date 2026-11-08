@@ -15772,7 +15772,7 @@
           "owned-source",
           "download"
         ],
-        "reason": "dedicated-risk-adapter"
+        "reason": "Dedicated Risk adapter; existing HA-required homes refuse standalone setup and require the private cluster workflow."
       },
       "servers": [
         "n2n-mcp"
@@ -26389,7 +26389,7 @@
       "title": "n2n-federation",
       "description": "Federate your NetClaw with other NetClaw operators over the BGP mesh — exchange capability inventories and ask your claw what a peer can do. (US1; remote invocation and chat land in later phases.)",
       "path": "workspace/skills/n2n-federation/SKILL.md",
-      "sha256": "4b6b5fc552ad4c690b683c14bb7e4ff5d64458e6733f2d2e3ed385d9b117e453",
+      "sha256": "2ade74caa8f36bf8d68b2d91f5551e996a4815637caed018874bb42769714c2b",
       "components": [
         "n2n"
       ],
@@ -27085,7 +27085,7 @@
       "title": "protocol-participation",
       "description": "Live BGP and OSPF control-plane participation — NetClaw itself acts as a protocol speaker: peer with real routers, inject/withdraw routes, query its own RIB/LSDB, adjust metrics, GRE tunnel status. Use when injecting or withdrawing BGP routes, checking the state of NetClaw's own BGP peering, querying its own OSPF LSDB, or testing route advertisement in a lab. This does not query an existing device's routing table — for that, use `pyats-routing` (Cisco) or `pyats-junos-routing` (Juniper) instead.",
       "path": "workspace/skills/protocol-participation/SKILL.md",
-      "sha256": "99d6ef44218b3bb0772ee3066876602e120c5fc39b4b765cba9055735530cc4c",
+      "sha256": "29c1d37f2803878b6928a5d6f42e992f88dc86a5ea3135b949d63815f033a9fa",
       "components": [
         "protocol"
       ],
