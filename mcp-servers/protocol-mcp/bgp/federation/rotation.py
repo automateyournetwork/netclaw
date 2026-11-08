@@ -75,7 +75,7 @@ class RotationManager:
                 self._validate_successor(cred, new_cert)
                 self.register("risk-ca", subject, new_cert, issuer="self")
             elif kind == "hub":
-                new_cert, _ = self.risk.hub_credential()
+                new_cert, _ = self.risk.hub_credential(renew=True)
                 self._validate_successor(cred, new_cert)
                 self.register("hub", subject, new_cert, issuer="risk-ca")
             elif kind == "host-pinned":

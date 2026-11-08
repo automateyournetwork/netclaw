@@ -29,3 +29,60 @@ def test_expired_hub_reconnects_under_existing_anchor(tmp_path, monkeypatch):
         assert risk.hub_credential()[0] == attestation['hub_cert']
     finally:
         manager.close()
+
+
+def _border(tmp_path):
+    manager = FederationManager(base_dir=str(tmp_path))
+    risk = RiskManager(manager)
+    risk.set_role('border', risk_name='test-risk')
+    return manager, risk
+
+
+def test_valid_hub_credential_is_not_reissued(tmp_path):
+    manager, risk = _border(tmp_path)
+    try:
+        first = risk.hub_credential()
+        assert risk.hub_credential() == first
+    finally:
+        manager.close()
+
+
+def test_renewal_keeps_the_hub_key_and_extends_validity(tmp_path, monkeypatch):
+    from bgp.federation.protected_contract import key_id
+    manager, risk = _border(tmp_path)
+    try:
+        anchor, ca_key = risk.ensure_risk_ca()
+        now = certs._now_utc()
+        with monkeypatch.context() as patch:
+            patch.setattr(certs, '_now_utc', lambda: now - datetime.timedelta(days=85))
+            old_cert, old_key = certs.issue_cert(anchor, ca_key, 'test-risk/border')
+        directory = risk.keys_dir / 'risk-ca'
+        (directory / 'hub.crt').write_text(old_cert)
+        certs._write_secret(directory / 'hub.key', old_key)
+        new_cert, new_key = risk.hub_credential()
+        assert new_cert != old_cert
+        assert key_id(new_cert) == key_id(old_cert) and new_key == old_key
+        assert certs.cert_not_after(new_cert) > certs.cert_not_after(old_cert)
+    finally:
+        manager.close()
+
+
+def test_rotation_renews_the_hub_on_its_schedule(tmp_path):
+    import asyncio
+    from bgp.federation.service import FederationService
+    from bgp.federation.rotation import RotationManager
+    svc = FederationService(local_as=65001, router_id='4.4.4.4', display_name='fixture',
+                            manager=FederationManager(base_dir=str(tmp_path)))
+    try:
+        svc.risk.set_role('border', risk_name='test-risk')
+        cert, _ = svc.risk.hub_credential()
+        rot = RotationManager(svc)
+        rot.register('hub', 'test-risk/border', cert, issuer='risk-ca')
+        cred = svc.manager.list_credentials()[0]
+        assert asyncio.run(rot.renew_one(cred)) is True
+        renewed, _ = svc.risk.hub_credential()
+        assert renewed != cert and certs.key_fingerprint(renewed) == certs.key_fingerprint(cert)
+        active = [c for c in svc.manager.list_credentials() if c['state'] != 'retired']
+        assert len(active) == 1 and active[0]['cert_pem'] == renewed
+    finally:
+        svc.manager.close()

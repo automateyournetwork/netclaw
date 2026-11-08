@@ -16,7 +16,7 @@ def setup(tmp_path):
 def test_unchanged_certificate_is_not_renewed_or_retired(tmp_path,monkeypatch,kind):
     svc,rot=setup(tmp_path);pem,key=certs.create_self_signed('fixture')
     if kind=='risk-ca':monkeypatch.setattr(svc.risk,'ensure_risk_ca',lambda:(pem,key))
-    elif kind=='hub':monkeypatch.setattr(svc.risk,'hub_credential',lambda:(pem,key))
+    elif kind=='hub':monkeypatch.setattr(svc.risk,'hub_credential',lambda **kw:(pem,key))
     else:
         async def renew(*args):return pem
         monkeypatch.setattr(acme,'renew',renew)

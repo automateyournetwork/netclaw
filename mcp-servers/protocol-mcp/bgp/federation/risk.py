@@ -200,22 +200,26 @@ class RiskManager:
         p = self.keys_dir / "risk-ca-anchor.pem"
         return p.read_text() if p.exists() else None
 
-    def hub_credential(self):
+    def hub_credential(self, renew: bool = False):
         """The Border's CA-signed hub credential (cert + key), created once.
-        Returns (hub_cert_pem, hub_key_pem)."""
+        Reissued under the same CA and key when ``renew`` is set (the rotation
+        schedule) or within 7 days of expiry. Returns (hub_cert_pem, hub_key_pem)."""
         from . import certs
         cad = self.keys_dir / "risk-ca"
         hcrt, hkey = cad / "hub.crt", cad / "hub.key"
+        current_key = None
         if hcrt.exists() and hkey.exists():
             existing = hcrt.read_text()
             renew_before = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
-            if certs.cert_not_after(existing) > renew_before:
+            if not renew and certs.cert_not_after(existing) > renew_before:
                 return existing, hkey.read_text()
+            # Keep the key: identities that pin the hub key id stay valid.
+            current_key = hkey.read_text()
             logger.info("Renewing expiring hub credential under the existing risk CA")
         ca_cert, ca_key = self.ensure_risk_ca()
         risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
         hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",
-                                             san=f"{risk_name}/border")
+                                             san=f"{risk_name}/border", key_pem=current_key)
         hcrt.write_text(hub_cert)
         certs._write_secret(hkey, hub_key)
         return hub_cert, hub_key
