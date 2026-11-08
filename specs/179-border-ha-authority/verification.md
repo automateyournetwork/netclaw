@@ -324,3 +324,21 @@ Unknown-producing scenarios run last and at most one per run. A pre-dispatch *re
 release the run's active slot only when an independent status read proves no dispatch
 (`review_pending`, `attempt_count` 0, `may_have_executed` false) and the independent model
 counter is unchanged; anything else remains `unknown`. The reservation always still counts.
+
+## Integration with main and owner decision update (2026-11-08)
+
+`origin/main` (Byrn's PRs #335 convergence setup, #336 hub credential renewal, #337 release 1.19.1
+repair) was merged into this branch (`9fbd0e13`) before any further REAL work so the new evidence
+matches the integrated source. One conflict (generated catalog hash in `scripts/lib/catalog.sh`)
+was resolved by regenerating it with `scripts/build-catalog.py` (`--check` passes). After the merge:
+tests/n2n 2062 passed / 5 skipped; inventory, catalog-links, catalog-metadata and mcp-portability
+checks exit 0. Overlapping files with this branch were `mcp-servers/protocol-mcp/bgp-daemon-v2.py`,
+`config/components/catalog.json`, `scripts/lib/catalog.sh`, `SOUL.md`, `TOOLS.md`.
+Naming collision to resolve with maintainers: main now has `specs/179-convergence-setup` and this
+branch has `specs/179-border-ha-authority` (same spec number).
+
+Owner decision (supersedes the 10-operation cap in the Option 2 note above): the owner explicitly
+said to ignore the budget and run the nine REAL tests. The cumulative cap for this package is
+lifted by the owner. Retained controls: one active operation at a time, a fresh per-run budget
+ledger, every run's evidence exported before anything is removed, unknowns never reset, and no
+deletion of private evidence until acceptance.
