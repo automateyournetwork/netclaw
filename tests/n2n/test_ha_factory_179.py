@@ -29,3 +29,14 @@ def test_private_config_hash_mismatch_fails_before_dependency_construction(tmp_p
     path = tmp_path/'configuration.json'; path.write_bytes(b'{}'); path.chmod(0o600)
     with pytest.raises(HAError, match='ha_configuration_changed'):
         load_configuration({'config_file': str(path), 'config_sha256': '0'*64}, role='border')
+
+
+def test_member_factory_tolerates_executor_without_catalog_hook_or_close():
+    # The real R08 member profile resolves to a plain DockerExecutor, which has
+    # neither validate_catalog nor close; protected_service already guards both.
+    import inspect
+    from bgp.federation.ha import factory
+    source = inspect.getsource(factory.from_service)
+    assert "hasattr(executor, 'validate_catalog')" in source
+    assert "hasattr(executor, 'close')" in source
+    assert "\n            executor.close()" not in source

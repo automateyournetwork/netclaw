@@ -188,12 +188,17 @@ def from_service(service, profile):
         check(profile['catalog']['member'] == identity, 'catalog_identity_mismatch', 403)
         executor = build_executor(profile['runtime'], manager=service.manager)
         try:
-            executor.validate_catalog(profile['catalog'], runtime_config=profile['runtime'])
+            if hasattr(executor, 'validate_catalog'):
+                executor.validate_catalog(profile['catalog'], runtime_config=profile['runtime'])
             async def current_attachment(): current()
             attachments = MemberAttachments(manifest, identity, private_key, ca_file=config['transport_ca_file'],
                                              handlers={}, current=current_attachment)
             def catalog():
-                current(); executor.validate_catalog(profile['catalog'], runtime_config=profile['runtime'])
+                current()
+                if hasattr(executor, 'validate_catalog'):
+                    executor.validate_catalog(profile['catalog'], runtime_config=profile['runtime'])
+                else:
+                    c.validate_catalog_entry(profile['catalog'])
                 return profile['catalog']
             operations = ClusterMemberOperations(service.manager, manifest=manifest, identity=identity,
                 certificate=certificate, private_key=private_key, attachments=attachments,
@@ -205,7 +210,8 @@ def from_service(service, profile):
             adapter.attachments = attachments
             service.border_channels = attachments.channels
         except BaseException:
-            executor.close()
+            if hasattr(executor, 'close'):
+                executor.close()
             raise
     operations.config = profile
     adapter.operations = operations
