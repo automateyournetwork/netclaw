@@ -20,13 +20,23 @@ Users teach NetClaw by uploading documents (Slack attachment, HUD Knowledge pane
 | `rag_ingest` | A document file on disk should be learned |
 | `rag_ingest_base64` | A Slack attachment should be learned (decode → ingest) |
 | `rag_ingest_url` | The user asks to ingest a web page (ALWAYS preview scope first) |
-| `rag_search` | Question concerns vendor procedures, customer standards, install steps, or ingested content |
+| `rag_search` | Question concerns vendor procedures, customer standards, install steps, ingested content, or a prior investigation snapshot |
 | `rag_list` | User asks what the knowledge base contains |
 | `rag_stats` | User asks about corpus size/health or retrieval telemetry |
 | `rag_update_metadata` | Fix a document's doc_type/title/version |
 | `rag_delete` | User asks to remove a document (CONFIRM with the user first) |
 | `rag_reindex` | Chunking/embedding config changed (CONFIRM with the user first) |
 | `rag_snapshot` | User EXPLICITLY asks to store live output for later comparison (confirm scope first — never automatic) |
+
+### `rag_search` collections
+
+- `documents` (the default) and any other name search that one collection.
+- `investigations`, `snapshots`, and `cases` search the newest ready investigation snapshots (`kind=snapshot`, `ingest_status=ready`; at most `RAG_INVESTIGATION_MAX_COLLECTIONS`, default 50, by ingest time). `collections_skipped` > 0 means older matching snapshots were not searched: narrow with `ingested_before` / `ingested_after` (applied before the cap) or search a collection by name. Hits are merged by rerank score. With reranking off they are merged by rank within each collection, so a weak collection's top hit can sit beside a strong one's. The top `k` are returned, and each hit includes the source `collection`.
+- `all` and `*` search the document corpus plus those snapshots.
+- When no investigation snapshots are indexed, the snapshot aliases return an empty corpus and say so. A snapshot collection that is missing or unreadable is skipped; if none can be read, the result is `STORAGE_UNAVAILABLE` — say the history could not be read, not that there is none.
+- `ingested_after` / `ingested_before` filter on when content was indexed (`ingest_ts`), for snapshots too. They do not filter on a snapshot's `capture_ts`; check `capture_ts` / `age_human` on each hit when the capture date matters.
+
+Use `investigations` when an alert or case asks what a prior investigation already recorded. Use `documents` for vendor procedures and standards. Show snapshot staleness (`age_human` / `staleness_notice`) whenever a hit came from a snapshot.
 
 ## The Four Knowledge Sources (routing rules)
 

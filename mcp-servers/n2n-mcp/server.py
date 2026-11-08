@@ -17,8 +17,10 @@ Provides operator-facing tools for claw-to-claw federation:
 All calls proxy to the local bgp-daemon-v2 HTTP API (default http://127.0.0.1:8179).
 """
 
+import asyncio
 import json
 import os
+import time
 from typing import Optional
 
 import httpx
@@ -27,6 +29,59 @@ from fastmcp import FastMCP
 BGP_DAEMON_API = os.environ.get("BGP_DAEMON_API", "http://127.0.0.1:8179")
 
 mcp = FastMCP("n2n-mcp")
+
+# Stored terminal states in bgp/federation/tasks.py. `submitted` and `working`
+# are still open. `unknown` is a missing-task response, not a stored state.
+_TERMINAL_TASK_STATES = frozenset({
+    "completed", "failed", "cancelled", "outcome_unknown", "interrupted",
+})
+_TASK_WAIT_HINT = "still working — call n2n_task_wait again with the same task_id"
+_TASK_NOT_FOUND_HINT = (
+    "task not found (missing, purged, or not yours) — waiting again will not help"
+)
+_TASK_ERROR_HINT = (
+    "could not read the task status — call n2n_task_wait again with the same task_id"
+)
+
+
+def _task_payload_state(payload):
+    """Read state from the payload's state field only. Do not infer it from other text."""
+    if not isinstance(payload, dict):
+        return None
+    state = payload.get("state")
+    return state if isinstance(state, str) else None
+
+
+def _task_not_found(payload, task_id):
+    """Payload for a task the daemon or peer cannot report on.
+
+    That is an HTTP 404 from the daemon (`{"error": "unknown task"}`) or a
+    peer's `state: unknown`. The original fields are kept; `not_found` and a
+    hint are added, and `still_running` is not.
+    """
+    body = dict(payload) if isinstance(payload, dict) else {}
+    body.setdefault("task_id", task_id)
+    body["not_found"] = True
+    body["hint"] = _TASK_NOT_FOUND_HINT
+    return body
+
+
+def _task_read_error(payload, task_id, status, message):
+    """A status read that failed but may succeed later: state error, no not_found."""
+    body = {"task_id": task_id, "state": "error", "http_status": status}
+    detail = payload.get("error") if isinstance(payload, dict) else None
+    body["error"] = detail if isinstance(detail, str) and detail else message
+    if payload is not None:
+        body["response"] = payload
+    body["hint"] = _TASK_ERROR_HINT
+    return body
+
+
+def _clamp_task_wait(timeout_seconds, poll_interval_seconds):
+    """Keep one wait slice under typical MCP client timeouts (~60s)."""
+    timeout = 45 if timeout_seconds is None else int(timeout_seconds)
+    interval = 5.0 if poll_interval_seconds is None else float(poll_interval_seconds)
+    return max(10, min(timeout, 50)), max(2.0, min(interval, 15.0))
 
 
 def _gcf_dumps(data) -> str:
@@ -60,6 +115,31 @@ async def _get(path: str, params: Optional[dict] = None) -> dict:
     async with httpx.AsyncClient(base_url=BGP_DAEMON_API, timeout=30) as c:
         r = await c.get(path, params=params)
         return r.json()
+
+
+async def _get_with_status(path: str):
+    """GET for n2n_task_wait: (HTTP status, JSON body or None).
+
+    Unlike _get, the status code is kept so a 404 is not confused with a 5xx.
+    The scoped broker answers 200 with the effect's result or raises on its own
+    refusals (403/409); those come back as their status here.
+    """
+    if os.environ.get('NETCLAW_FEDERATION_SCOPED') == '1':
+        try:
+            return 200, await _scoped('GET', path, None)
+        except httpx.HTTPStatusError as exc:
+            try:
+                body = exc.response.json()
+            except ValueError:
+                body = None
+            return exc.response.status_code, body
+    async with httpx.AsyncClient(base_url=BGP_DAEMON_API, timeout=30) as c:
+        r = await c.get(path)
+        try:
+            body = r.json()
+        except ValueError:
+            body = None
+        return r.status_code, body
 
 
 async def _post(path: str, body: Optional[dict] = None) -> dict:
@@ -480,8 +560,9 @@ async def n2n_delegate(peer: str, target_name: str, input_text: str = "",
 
     Use this (not chat) for multi-minute work like "recreate my CML lab" — it
     submits the task and returns a task_id immediately; the peer runs it in the
-    background. Poll with n2n_task_status / fetch with n2n_task_result. This
-    survives ngrok resets that would drop a synchronous call.
+    background. Call n2n_task_wait until the state is terminal, then fetch with
+    n2n_task_result. n2n_task_status is one short read. This survives ngrok
+    resets that would drop a synchronous call.
 
     Args:
         peer: peer identity (e.g. 'as65007-7.7.7.7')
@@ -499,6 +580,70 @@ async def n2n_task_status(task_id: str) -> str:
     """Check a delegated task's state (submitted/working/completed/failed/
     cancelled) and progress. Short call."""
     return _gcf_dumps(await _get(f"/n2n/tasks/{task_id}"))
+
+
+@mcp.tool()
+async def n2n_task_wait(
+    task_id: str,
+    timeout_seconds: int = 45,
+    poll_interval_seconds: float = 5.0,
+) -> str:
+    """Wait until a delegated task is terminal, or this call's slice ends.
+
+    Use this after n2n_route or n2n_delegate. One n2n_task_status result of
+    working is not a reason to give up. Each slice is clamped to 10–50 seconds
+    (MCP clients often time out near 60s) and the poll interval to 2–15 seconds.
+
+    Terminal states are completed, failed, cancelled, outcome_unknown, and
+    interrupted. The state is taken only from the payload's state field.
+
+    A task that cannot be found returns at once with not_found true and no
+    still_running: an HTTP 404 from the daemon ({"error": "unknown task"}) or
+    a peer's state "unknown". Do not call n2n_task_wait again for it.
+
+    Any other failed read returns at once with state "error", http_status, and
+    no not_found: a non-2xx status (5xx, scoped refusal), a body without a
+    string state, or a transport error. Those may clear, so the caller can call
+    n2n_task_wait again.
+
+    When the slice ends first, the last payload adds still_running true and a
+    hint to call n2n_task_wait again with the same task_id. Fetch the output
+    with n2n_task_result once the state is terminal.
+
+    Args:
+        task_id: from n2n_route or n2n_delegate
+        timeout_seconds: max wait for this call (default 45, clamped to 10–50)
+        poll_interval_seconds: pause between GET /n2n/tasks/{task_id} (default 5, clamped to 2–15)
+    """
+    timeout, interval = _clamp_task_wait(timeout_seconds, poll_interval_seconds)
+    deadline = time.monotonic() + timeout
+    while True:
+        try:
+            status, payload = await _get_with_status(f"/n2n/tasks/{task_id}")
+        except Exception as exc:
+            return _gcf_dumps({"task_id": task_id, "state": "error", "error": str(exc)})
+        state = _task_payload_state(payload)
+        if status == 404 or state == "unknown":
+            return _gcf_dumps(_task_not_found(payload, task_id))
+        if not 200 <= status < 300:
+            return _gcf_dumps(_task_read_error(payload, task_id, status, f"HTTP {status}"))
+        if state in _TERMINAL_TASK_STATES:
+            return _gcf_dumps(payload)
+        if state is None:
+            return _gcf_dumps(_task_read_error(
+                payload, task_id, status, "task status response has no string state"
+            ))
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            if isinstance(payload, dict):
+                body = dict(payload)
+            else:
+                body = {"task_id": task_id}
+            body["still_running"] = True
+            body["hint"] = _TASK_WAIT_HINT
+            body.setdefault("task_id", task_id)
+            return _gcf_dumps(body)
+        await asyncio.sleep(min(interval, remaining))
 
 
 @mcp.tool()
@@ -748,8 +893,9 @@ async def n2n_member_remove(member_id: str) -> str:
 @mcp.tool()
 async def n2n_route(request_text: str, target_hint: Optional[str] = None) -> str:
     """Ask the Border to route a task-shaped request to the member that owns the
-    capability, and delegate it (async). Returns a task_id — poll with
-    n2n_task_status / n2n_task_result. Reports plainly if no member can do it.
+    capability, and delegate it (async). Returns a task_id. Call n2n_task_wait
+    until the state is terminal, then n2n_task_result. Reports plainly if no
+    member can do it.
 
     Args:
         request_text: the operator's request

@@ -2,6 +2,13 @@
 
 NetClaw source releases use `1.x.y`. Feature specs increment the minor version and reset the patch; fixes, documentation and maintenance increment the patch. Every release records its numbered specs. Component and mobile distribution versions are independent.
 
+## [1.20.0] - 2026-11-08
+
+- `n2n_task_wait`: wait for a delegated task (50 s slices, `still_running`/`not_found`/retryable `error`); the `n2n-federation` skill uses it when available.
+- `rag_search(collection="investigations" | "all")` searches past investigation snapshots, with date filters before a newest-first cap and searched/skipped counts.
+
+Spec [181-convergence-investigation-tools](specs/181-convergence-investigation-tools/spec.md). See [release notes](docs/releases/1.20.0.md).
+
 ## [1.19.1] - 2026-11-08
 
 - The Border renews its hub credential under the same risk CA and key: on the rotation schedule when `N2N_CERT_MODE` is on, and in every mode within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.

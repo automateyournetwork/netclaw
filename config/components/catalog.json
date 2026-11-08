@@ -26389,7 +26389,7 @@
       "title": "n2n-federation",
       "description": "Federate your NetClaw with other NetClaw operators over the BGP mesh — exchange capability inventories and ask your claw what a peer can do. (US1; remote invocation and chat land in later phases.)",
       "path": "workspace/skills/n2n-federation/SKILL.md",
-      "sha256": "4f0ef371fe386afa6631bf01a4098752bd852c963e4bc6ae67e4478a9a31f5b7",
+      "sha256": "4b6b5fc552ad4c690b683c14bb7e4ff5d64458e6733f2d2e3ed385d9b117e453",
       "components": [
         "n2n"
       ],
@@ -27645,7 +27645,7 @@
       "title": "rag",
       "description": "Ingest user-selected documents and retrieve cited procedures, standards, and design evidence from the local RAG knowledge base. Use for document questions, corpus management, or explicitly requested snapshots.",
       "path": "workspace/skills/rag/SKILL.md",
-      "sha256": "60dfcb39c503432ce9b442aaa695deb93c592e2233fcfbe06ce60b5cfcc35b2b",
+      "sha256": "9116ba370913998f88a56de303b6c1a60fe872a8a2fc23c7883ae20e3159a980",
       "components": [
         "rag-mcp"
       ],

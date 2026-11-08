@@ -32,6 +32,10 @@ class Reranker:
             self._failed = True
         return self._model
 
+    def uses_model(self) -> bool:
+        """True when rerank() scores with the cross-encoder; False in passthrough."""
+        return self.enabled and self._load() is not None
+
     def rerank(
         self, query: str, candidates: List[Dict], k: int, relevance_floor: float
     ) -> List[Dict]:
