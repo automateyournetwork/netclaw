@@ -357,3 +357,18 @@ node (nothing listening) and the cluster record holds `state: retired` + revocat
 no free-text reason. Model access log saved before container removal (`real-run-10/model-access.log`).
 Partition proxies cannot cut NCFED Border-to-Border channels without a production seam (signed
 manifest endpoints), so REAL partitions cut each Border's etcd path (`ncfed_cluster_channel_cut:false`).
+
+## Option 2 closure runs (2026-11-08): all 18 rows REAL
+
+Runs (each with its own ledger, model access log saved before removal, evidence exported before
+retirement, only exact owned resources removed): run-10 capacity + retired node; run-11 partitions
+(minority, both asymmetric orientations, three-way) on a proxied etcd topology; run-13 lost result/ACK
+(`result-and-ack-loss`); run-14 live trust negatives with a receiver-side observer; run-15 clock wall-step;
+run-16 stale-leader held claim; run-17 unknown consensus commit (recovered + unresolved); run-18 fenced
+restore (`voters_dir: old-voters`, stale snapshot revision 14, new generation stayed `recovery_fenced`/
+`capacity_frozen`, 0 reservations, 0 model calls). run-12 was aborted before any Border started
+(launcher env refusal; fixed, retained). Product/harness fixes found: Budget `refused` state for
+evidence-proven pre-dispatch refusals; launcher tolerance of the macOS exec env key; Border trust
+observer; `export-unknown` accepting a member killed before its attempt claim (one-line helper, tested).
+See `evidence-matrix.md` for per-row evidence and `acceptance.md` for the limits.
+

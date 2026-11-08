@@ -71,7 +71,7 @@ review/sent markers and original result while node or authority changes.
 - [X] T034 Independently review complete fixture matrix and source gates before REAL work;record specs/179-border-ha-authority/fixture-gate.md (FR-020/021;SC-001/002).
 - [X] T035 Freeze fresh NetClaw/OpenClaw/DefenseClaw/Ollama/nativeMCP source/image/profile/resource packet in labs/ha and private qualification manifest (FR-020/022).
 - [X] T036 Run actual bounded guarded native workload via each Border and leader-loss recovery in labs/ha/real_runtime.py;record signed evidence/counters (FR-005/010/020/021;SC-001/002/003).
-- [ ] T037 Run all REAL model/tool admission negatives,unknown/restart/resultACK/restore cases from qualification-matrix.md;record cumulative counters and every failure in private evidence (FR-005–015/020/021;SC-001/002/003).
+- [X] T037 Run all REAL model/tool admission negatives,unknown/restart/resultACK/restore cases from qualification-matrix.md;record cumulative counters and every failure in private evidence (FR-005–015/020/021;SC-001/002/003).
 - [X] T038 Run actual browser HUD authority/quorum/staleapproval/original-result journeys tied to REAL signed records via labs/ha/client_qualification.mjs (FR-016/019/020;SC-004).
 - [X] T039 Run actual isolated MacCode1.109 G12 failover/recovery tied to REAL signed records via extensions/netclaw-vscode/scripts/cloud-editor.mjs and owned harness (FR-017/019/020;SC-004).
 - [X] T040 Run actual nativeiOSsimulator G13 enrollment/background/cold/failover tied to REAL signed records via mobile integration_test and owned harness (FR-018/019/020;SC-004).
