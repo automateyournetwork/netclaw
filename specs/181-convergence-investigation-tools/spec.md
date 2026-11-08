@@ -1,6 +1,6 @@
 # Spec 181: Convergence investigation tools
 
-Created 2026-11-08; branch `181-convergence-investigation-tools`, on 1.19.0; status:
+Created 2026-11-08; branch `181-convergence-investigation-tools`, on 1.19.1; status:
 implementation and verification.
 
 Convergence (set up by the `convergence-setup` skill) needs two capabilities that
@@ -18,7 +18,7 @@ extra behaviour.
 ## Requirements
 
 - FR-001: `n2n_task_wait(task_id, timeout_seconds=45, poll_interval_seconds=5.0)`
-  polls `GET /n2n/tasks/{task_id}` with the same `_get` as `n2n_task_status` until
+  polls the same `GET /n2n/tasks/{task_id}` as `n2n_task_status` (keeping the HTTP status) until
   the payload's `state` is terminal or this call's slice ends.
 - FR-002: Clamp `timeout_seconds` to 10–50 and `poll_interval_seconds` to 2–15.
   Terminal states are the stored states `completed`, `failed`, `cancelled`,
