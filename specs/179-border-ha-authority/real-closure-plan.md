@@ -29,3 +29,31 @@ cut/heal/delay and observed byte counters; (B) qualification-only instrumentatio
 clock input, reply-drop, delivery faults) as separate modules that never enter product paths;
 (C) cluster driver for capacity + retired rows. Every source change needs a new frozen packet and
 fixture gate; machine must be idle during approvals.
+
+## ⚠ R09 RELEASE GATE: client builds MUST be updated for multi-region HA Borders
+
+Owner instruction (2026-11-08): at the R09 checkpoint (three-region / multi-region deployment of
+these HA Borders) the **VS Code extension, the Mobile app and the HUD/Border source builds WILL need
+a published update**. This is a hard gate, not a nice-to-have. Until those builds ship, do not
+announce, enable or document multi-region HA as available to end users.
+
+What must be true before R09 is called released (verify each; none is done by R08):
+1. **VS Code extension** (source version now 1.6.1, `extensions/netclaw-vscode`): a build that includes
+   the cluster-aware paths proven in R08 (signed-manifest pinning, native endpoint replacement,
+   retained-reference recovery, no-quorum/stale-review states) AND the multi-region additions R09
+   defines (region-aware endpoint lists, failover UX). Bump the version, build, publish through the
+   owner-approved channel, and check the marketplace-installed version against source.
+2. **Mobile app** (source 1.0.4+7, `mobile/netclaw-mobile`): same, including enrollment against a
+   multi-region cluster descriptor, `select-node` across regions, and background/cold recovery. Needs
+   an owner-approved TestFlight/App Store submission; App Store review time is outside our control.
+3. **HUD / Border source** (main is at 1.19.1 after PRs #335-#337; this branch's HUD fixes include the
+   cluster-mode mobile-enrollment contract fix): ship the refreshed HUD build with the Border release
+   so every Border serves the fixed enrollment route.
+4. Re-run the client journeys of `evidence-matrix.md` (HUD, VS Code, iOS) against the **published**
+   builds on the multi-region topology, not against repo checkouts.
+5. Owner approval for every outward-facing release step; nothing is published, pushed live or
+   announced by an agent without it.
+
+Known R08 facts to carry into R09: no extension or app product code changed in R08 except the HUD
+enrollment fix; the shipped client versions were not verified against source during R08; R08 used a
+single-host loopback topology (no WAN, no regions, no public DNS/TLS).
