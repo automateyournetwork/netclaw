@@ -125,6 +125,12 @@ void main() {
         () =>
             find.byType(DropdownButtonFormField<String>).evaluate().isNotEmpty,
       );
+      // The retained manifest verifies through real (non-fake-async) platform
+      // futures; give them real time so the dropdown has its items.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(seconds: 3)),
+      );
+      await tester.pump();
       await tester.tap(find.byType(DropdownButtonFormField<String>));
       await tester.pumpAndSettle();
       await tester.tap(find.text(target['endpoints']['https']).last);
