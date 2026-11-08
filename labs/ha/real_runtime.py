@@ -65,6 +65,16 @@ def pin_protocol_source(source):
     sys.path.insert(0, str(directory))
 
 
+def member_matches_cluster_attempt(native, row):
+    """A member killed between admission and its attempt claim has no local attempt id yet.
+
+    That absence is accepted (the approval digest must still match); a present but different
+    attempt id is still a mismatch.
+    """
+    return (native['attempt_id'] in (None, row['attempt_id'])
+            and native['approval_digest'] == row['approval_digest'])
+
+
 def validate_plan(plan):
     fields = {'schema_version', 'root', 'run_id', 'name', 'source_root', 'source_files', 'source_sha256',
               'fixture_gate_file', 'fixture_gate_sha256', 'template_file', 'template_sha256',
@@ -765,7 +775,7 @@ class Rehearsal:
         if native is not None:
             need(native['review_digest'] == claim['review_digest'], 'original_operation_mismatch')
             if row is not None:
-                need(native['attempt_id'] == row['attempt_id'] and native['approval_digest'] == row['approval_digest'], 'original_operation_mismatch')
+                need(member_matches_cluster_attempt(native, row), 'original_operation_mismatch')
         export = private_directory(destination, create=True)
         files = {'original-claim.json': claim, 'consensus-evidence.json': consensus,
                  'execution-evidence.json': evidence, 'original-member-record.json': native,

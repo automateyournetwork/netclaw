@@ -375,3 +375,12 @@ def test_voters_dir_is_optional_default_off_private_and_validated(tmp_path):
                 'new-voters', 'proxies', 'x' * 40, 7, None):
         with pytest.raises(RehearsalRefused, match='invalid_voters_dir'):
             validate_plan(dict(plan, voters_dir=bad))
+
+
+def test_member_without_attempt_after_early_kill_matches_cluster_row_but_different_attempt_does_not():
+    from labs.ha.real_runtime import member_matches_cluster_attempt as match
+    row = {'attempt_id': identity(), 'approval_digest': 'a' * 64}
+    assert match({'attempt_id': None, 'approval_digest': 'a' * 64}, row)
+    assert match({'attempt_id': row['attempt_id'], 'approval_digest': 'a' * 64}, row)
+    assert not match({'attempt_id': identity(), 'approval_digest': 'a' * 64}, row)
+    assert not match({'attempt_id': None, 'approval_digest': 'b' * 64}, row)
