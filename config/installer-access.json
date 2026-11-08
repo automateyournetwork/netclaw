@@ -236,7 +236,8 @@
       "required_env": [],
       "expected_tools": [
         "convergence_flow_summary",
-        "convergence_flow_evidence"
+        "convergence_flow_evidence",
+        "convergence_vm_security"
       ]
     }
   }

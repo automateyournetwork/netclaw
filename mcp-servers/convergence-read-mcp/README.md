@@ -8,13 +8,17 @@ Install this component in its own Python environment through NetClaw setup.
 |---|---|---|
 | `convergence_flow_summary` | `range`: 15m/1h/6h/24h; optional `exporter` | Site-scoped retained rankings, exact observation window, coverage and limits |
 | `convergence_flow_evidence` | IP `address`, ISO `start`/`end` with timezone, optional `exporter` | Latest 100 retained matching records involving that IP as source or destination |
+| `convergence_vm_security` | none | Advisory VM findings (possible port scan, network sweep, protected network contact) for the last five minutes, with per-source coverage; guest heartbeats are not returned |
 
-Both tools return `{ok:true,data:...}` or `{ok:false,error:{code,message}}`.
+All tools return `{ok:true,data:...}` or `{ok:false,error:{code,message}}`.
 Errors distinguish `disabled`, `not_configured`, `invalid_argument`, `unauthorized`,
 `unavailable`, `timeout` and `compatibility`. A successful summary can itself have
 `status: active`, `empty` or `not_configured`. Failed reads are never fresh zeroes.
 Unknown fields are discarded; required fields, site, exporters and windows are
 validated before presentation. Credentials and backend error bodies are not returned.
+VM Security requires the `synthetic` and per-source `kind` fields of convergence-platform
+v0.1.1 or later; an older service is reported as `compatibility`. Demonstration data is
+always labelled `synthetic: true`.
 
 ## Private configuration
 
@@ -33,8 +37,8 @@ configure the final trusted origin. Each read has a 20-second total transport
 budget and a 1 MiB body limit. Encoded response bodies are refused; the client
 requests `Accept-Encoding: identity`. No raw URL, site, token or query is a tool input.
 
-The API compatibility target is the public Convergence fork revision
-[`f54bafca82f339d8573c55c53795fa05bd9dd843`](https://github.com/byrn-baker/netclaw-convergence/tree/f54bafca82f339d8573c55c53795fa05bd9dd843).
+The API compatibility target is the convergence-platform release
+[`v0.1.1`](https://github.com/byrn-baker/convergence-platform/tree/v0.1.1).
 This is an exact tested contract, not a promise of an independently versioned API.
 [Connection and external setup guidance](../../docs/CONVERGENCE.md) explains the
 Linux Docker demonstration, K3s deployment links and current qualification limits.

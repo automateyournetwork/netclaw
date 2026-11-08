@@ -669,8 +669,8 @@
     [
       "convergence-read",
       "Observability & Telemetry",
-      "Convergence flow evidence",
-      "Optional retained flow rankings and same-window evidence (2 read-only tools)"
+      "Convergence evidence",
+      "Optional retained flow rankings, same-window evidence and advisory VM Security findings (3 read-only tools)"
     ]
   ],
   "profiles": {
@@ -981,6 +981,7 @@
     "cml-topology-builder",
     "comfyui-topology-viz",
     "convergence-observations",
+    "convergence-setup",
     "datadog-apm",
     "datadog-incidents",
     "datadog-logs",

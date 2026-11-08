@@ -6,14 +6,14 @@ import { mcpCommand } from '../security/command.js';
 
 const messages = Object.freeze({
   disabled: 'Convergence is disabled.', not_configured: 'Convergence connection settings are incomplete.',
-  invalid_argument: 'Choose a supported flow window, address and exporter.',
+  invalid_argument: 'Choose a supported flow window, address and exporter; VM Security takes no arguments.',
   unauthorized: 'Convergence access was denied.', unavailable: 'Convergence is unavailable.',
   timeout: 'Convergence did not respond before the deadline.', compatibility: 'The Convergence response is incompatible.',
 });
 const statuses = { disabled: 409, not_configured: 409, invalid_argument: 400, unauthorized: 403, unavailable: 503, timeout: 504, compatibility: 502 };
 const fail = (code = 'unavailable') => ({ ok: false, error: { code, message: messages[code] || messages.unavailable } });
 export const convergenceEnabled = env => env.CONVERGENCE_ENABLED === 'true';
-const tools = Object.freeze({ summary: 'convergence_flow_summary', evidence: 'convergence_flow_evidence' });
+const tools = Object.freeze({ summary: 'convergence_flow_summary', evidence: 'convergence_flow_evidence', vmSecurity: 'convergence_vm_security' });
 
 // Same launcher and isolated interpreter as the native MCP registration. No shell,
 // browser-selected command, arbitrary HTTP path or second API client is involved.
@@ -41,6 +41,10 @@ export function createConvergenceReader(root, getEnvironment, execute = execFile
 }
 
 export function flowArguments(kind, query = {}) {
+  if (kind === 'vmSecurity') {
+    if (Object.keys(query).length) throw Error();
+    return {};
+  }
   const names = kind === 'summary' ? ['range', 'exporter'] : ['address', 'start', 'end', 'exporter'];
   if (Object.keys(query).some(k => !names.includes(k)) || Object.values(query).some(v => typeof v !== 'string' || v.length > 128)) throw Error();
   const result = { ...query };
@@ -92,4 +96,5 @@ export function mountConvergence(app, { bindings, getEnv, allowedRequest = () =>
   app.get('/api/hud/convergence/status', route('status'));
   app.get('/api/hud/convergence/flows', route('summary'));
   app.get('/api/hud/convergence/flows/records', route('evidence'));
+  app.get('/api/hud/convergence/vm-security', route('vmSecurity'));
 }

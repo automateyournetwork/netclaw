@@ -1,0 +1,379 @@
+{
+ "generated_at": 1793988324,
+ "hostTelemetry": {
+  "agents": [],
+  "status": "not_configured"
+ },
+ "site": "lab",
+ "sources": [
+  {
+   "coverage": {
+    "allowlisted_tuple_count": 0,
+    "capture_drops_recent_delta": 0,
+    "capture_drops_total": 0,
+    "counter_delta_seconds": 240,
+    "events_discarded_recent_delta": 0,
+    "events_discarded_total": 0,
+    "excluded_identity_events": 0,
+    "fresh": true,
+    "history_count": 420,
+    "history_limited": false,
+    "inventory_ok": true,
+    "limitations": [
+     "Synthetic demonstration data: no virtual machine traffic was observed.",
+     "Packet metadata is sampled; counts describe the retained sample only."
+    ],
+    "max_snapshot_gap_seconds": 30,
+    "metadata_cap_reached": false,
+    "metadata_count": 180,
+    "missing_uuid_vm_count": 0,
+    "packet_capture_ok": true,
+    "policy_configured": true,
+    "sampled": true,
+    "snapshot_count": 9,
+    "snapshot_span_seconds": 240
+   },
+   "findings": [
+    {
+     "caveat": "Synthetic demonstration finding; no real traffic was observed.",
+     "evidence": {
+      "destination_ip": "198.51.100.20",
+      "destination_port": null,
+      "examples": [
+       {
+        "dst_ip": "198.51.100.20",
+        "dst_port": 22,
+        "ifindex": 101,
+        "observed_at": 1793988114,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.11",
+        "src_port": 40000,
+        "tap": "tap101i0"
+       },
+       {
+        "dst_ip": "198.51.100.20",
+        "dst_port": 23,
+        "ifindex": 101,
+        "observed_at": 1793988144,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.11",
+        "src_port": 40001,
+        "tap": "tap101i0"
+       },
+       {
+        "dst_ip": "198.51.100.20",
+        "dst_port": 80,
+        "ifindex": 101,
+        "observed_at": 1793988174,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.11",
+        "src_port": 40002,
+        "tap": "tap101i0"
+       },
+       {
+        "dst_ip": "198.51.100.20",
+        "dst_port": 443,
+        "ifindex": 101,
+        "observed_at": 1793988204,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.11",
+        "src_port": 40003,
+        "tap": "tap101i0"
+       },
+       {
+        "dst_ip": "198.51.100.20",
+        "dst_port": 3389,
+        "ifindex": 101,
+        "observed_at": 1793988234,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.11",
+        "src_port": 40004,
+        "tap": "tap101i0"
+       }
+      ],
+      "unique_destination_ips": 1,
+      "unique_destination_ports": 48,
+      "unique_tcp_five_tuples": 48
+     },
+     "first_seen": 1793988084,
+     "id": "d0000000000000000001",
+     "kind": "port_scan",
+     "last_seen": 1793988294,
+     "severity": "review",
+     "vm_id": 101,
+     "vm_uuid": "00000000-0000-4000-8000-000000000101"
+    },
+    {
+     "caveat": "Synthetic demonstration finding; no real traffic was observed.",
+     "evidence": {
+      "destination_ip": null,
+      "destination_port": 445,
+      "examples": [
+       {
+        "dst_ip": "198.51.100.1",
+        "dst_port": 445,
+        "ifindex": 102,
+        "observed_at": 1793988114,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.12",
+        "src_port": 40000,
+        "tap": "tap102i0"
+       },
+       {
+        "dst_ip": "198.51.100.2",
+        "dst_port": 445,
+        "ifindex": 102,
+        "observed_at": 1793988144,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.12",
+        "src_port": 40001,
+        "tap": "tap102i0"
+       },
+       {
+        "dst_ip": "198.51.100.3",
+        "dst_port": 445,
+        "ifindex": 102,
+        "observed_at": 1793988174,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.12",
+        "src_port": 40002,
+        "tap": "tap102i0"
+       },
+       {
+        "dst_ip": "198.51.100.4",
+        "dst_port": 445,
+        "ifindex": 102,
+        "observed_at": 1793988204,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.12",
+        "src_port": 40003,
+        "tap": "tap102i0"
+       },
+       {
+        "dst_ip": "198.51.100.5",
+        "dst_port": 445,
+        "ifindex": 102,
+        "observed_at": 1793988234,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.12",
+        "src_port": 40004,
+        "tap": "tap102i0"
+       }
+      ],
+      "unique_destination_ips": 64,
+      "unique_destination_ports": 1,
+      "unique_tcp_five_tuples": 64
+     },
+     "first_seen": 1793988084,
+     "id": "d0000000000000000002",
+     "kind": "network_sweep",
+     "last_seen": 1793988294,
+     "severity": "review",
+     "vm_id": 102,
+     "vm_uuid": "00000000-0000-4000-8000-000000000102"
+    },
+    {
+     "caveat": "Synthetic demonstration finding; no real traffic was observed.",
+     "evidence": {
+      "destination_ip": "203.0.113.10",
+      "destination_port": 5432,
+      "examples": [
+       {
+        "dst_ip": "203.0.113.10",
+        "dst_port": 5432,
+        "ifindex": 103,
+        "observed_at": 1793988114,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.13",
+        "src_port": 40000,
+        "tap": "tap103i0"
+       },
+       {
+        "dst_ip": "203.0.113.10",
+        "dst_port": 5432,
+        "ifindex": 103,
+        "observed_at": 1793988144,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.13",
+        "src_port": 40001,
+        "tap": "tap103i0"
+       },
+       {
+        "dst_ip": "203.0.113.10",
+        "dst_port": 5432,
+        "ifindex": 103,
+        "observed_at": 1793988174,
+        "protocol": "tcp",
+        "src_ip": "192.0.2.13",
+        "src_port": 40002,
+        "tap": "tap103i0"
+       }
+      ],
+      "unique_destination_ips": 1,
+      "unique_destination_ports": 1,
+      "unique_tcp_five_tuples": 3
+     },
+     "first_seen": 1793988084,
+     "id": "d0000000000000000003",
+     "kind": "protected_network_contact",
+     "last_seen": 1793988294,
+     "severity": "review",
+     "vm_id": 103,
+     "vm_uuid": "00000000-0000-4000-8000-000000000103"
+    }
+   ],
+   "id": "demo-hypervisor",
+   "kind": "synthetic",
+   "last_contact": 1793988319,
+   "node": "demo-node-1",
+   "observed_at": 1793988319,
+   "site": "lab",
+   "status": "reporting",
+   "summary": {
+    "affected_vm_count": 3,
+    "assessment": "review",
+    "finding_count": 3,
+    "findings_truncated": false
+   },
+   "vms": [
+    {
+     "capture_state": "observing",
+     "finding_count": 1,
+     "nics": [
+      {
+       "capture_state": "observing",
+       "ifindex": 101,
+       "name": "net0",
+       "tap": "tap101i0"
+      }
+     ],
+     "power_state": "running",
+     "vm_id": 101,
+     "vm_uuid": "00000000-0000-4000-8000-000000000101"
+    },
+    {
+     "capture_state": "observing",
+     "finding_count": 1,
+     "nics": [
+      {
+       "capture_state": "observing",
+       "ifindex": 102,
+       "name": "net0",
+       "tap": "tap102i0"
+      }
+     ],
+     "power_state": "running",
+     "vm_id": 102,
+     "vm_uuid": "00000000-0000-4000-8000-000000000102"
+    },
+    {
+     "capture_state": "observing",
+     "finding_count": 1,
+     "nics": [
+      {
+       "capture_state": "observing",
+       "ifindex": 103,
+       "name": "net0",
+       "tap": "tap103i0"
+      }
+     ],
+     "power_state": "running",
+     "vm_id": 103,
+     "vm_uuid": "00000000-0000-4000-8000-000000000103"
+    },
+    {
+     "capture_state": "observing",
+     "finding_count": 0,
+     "nics": [
+      {
+       "capture_state": "observing",
+       "ifindex": 104,
+       "name": "net0",
+       "tap": "tap104i0"
+      }
+     ],
+     "power_state": "running",
+     "vm_id": 104,
+     "vm_uuid": "00000000-0000-4000-8000-000000000104"
+    },
+    {
+     "capture_state": "stopped",
+     "finding_count": 0,
+     "nics": [
+      {
+       "capture_state": "absent",
+       "ifindex": null,
+       "name": "net0",
+       "tap": "tap105i0"
+      }
+     ],
+     "power_state": "stopped",
+     "vm_id": 105,
+     "vm_uuid": "00000000-0000-4000-8000-000000000105"
+    }
+   ]
+  },
+  {
+   "coverage": {
+    "allowlisted_tuple_count": 0,
+    "capture_drops_recent_delta": null,
+    "capture_drops_total": null,
+    "counter_delta_seconds": null,
+    "events_discarded_recent_delta": null,
+    "events_discarded_total": null,
+    "excluded_identity_events": 0,
+    "fresh": false,
+    "history_count": 0,
+    "history_limited": false,
+    "inventory_ok": false,
+    "limitations": [
+     "Synthetic demonstration data: no virtual machine traffic was observed.",
+     "No snapshot in the last five minutes; current activity is unknown."
+    ],
+    "max_snapshot_gap_seconds": null,
+    "metadata_cap_reached": false,
+    "metadata_count": 0,
+    "missing_uuid_vm_count": 0,
+    "packet_capture_ok": false,
+    "policy_configured": false,
+    "sampled": true,
+    "snapshot_count": 0,
+    "snapshot_span_seconds": 0
+   },
+   "findings": [],
+   "id": "demo-stale-hypervisor",
+   "kind": "synthetic",
+   "last_contact": 1793987424,
+   "node": "demo-node-2",
+   "observed_at": 1793987424,
+   "site": "lab",
+   "status": "stale",
+   "summary": {
+    "affected_vm_count": 0,
+    "assessment": "insufficient_evidence",
+    "finding_count": 0,
+    "findings_truncated": false
+   },
+   "vms": [
+    {
+     "capture_state": "unavailable",
+     "finding_count": 0,
+     "nics": [
+      {
+       "capture_state": "error",
+       "ifindex": null,
+       "name": "net0",
+       "tap": "tap201i0"
+      }
+     ],
+     "power_state": "unknown",
+     "vm_id": 201,
+     "vm_uuid": "00000000-0000-4000-8000-000000000201"
+    }
+   ]
+  }
+ ],
+ "status": "configured",
+ "synthetic": true,
+ "window_seconds": 300
+}

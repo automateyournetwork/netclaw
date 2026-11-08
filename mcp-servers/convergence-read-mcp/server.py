@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Optional, read-only Convergence flow evidence over MCP stdio."""
+"""Optional, read-only Convergence flow evidence and VM Security findings over MCP stdio."""
 from fastmcp import FastMCP
 from client import ConvergenceClient, ReadError, Settings, error_result
 
@@ -39,6 +39,22 @@ async def convergence_flow_evidence(address: str, start: str, end: str, exporter
     """
     try:
         return await configured_client().evidence(address, start, end, exporter)
+    except ReadError as error:
+        return error_result(error.code)
+
+
+@mcp.tool(annotations={"readOnlyHint": True, "destructiveHint": False, "idempotentHint": True})
+async def convergence_vm_security() -> dict:
+    """Read advisory VM Security findings for the fixed configured site (last 5 minutes).
+
+    Patterns are port_scan, network_sweep and protected_network_contact, each a
+    possible pattern for review, never proof of attack or compromise. Report the
+    coverage with every finding. no_patterns_observed is not "safe";
+    insufficient_evidence means the source cannot support either statement.
+    synthetic=true marks demonstration data, never real observations.
+    """
+    try:
+        return await configured_client().vm_security()
     except ReadError as error:
         return error_result(error.code)
 

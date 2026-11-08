@@ -184,6 +184,156 @@ def validate_evidence(value, settings, address, start, end, exporter):
     return result
 
 
+VM_PATTERNS = ("port_scan", "network_sweep", "protected_network_contact")
+UUID = re.compile(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}")
+
+
+def count(value, maximum=None, nullable=False):
+    if nullable and value is None:
+        return None
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0 or (maximum is not None and value > maximum):
+        raise ReadError("compatibility")
+    return value
+
+def flag(value):
+    if not isinstance(value, bool):
+        raise ReadError("compatibility")
+    return value
+
+def choice(value, allowed):
+    if value not in allowed:
+        raise ReadError("compatibility")
+    return value
+
+def vm_coverage(value):
+    value = obj(value)
+    result = {key: flag(value.get(key)) for key in ("fresh", "inventory_ok", "packet_capture_ok", "history_limited",
+                                                     "metadata_cap_reached", "policy_configured")}
+    if value.get("sampled") is not True:
+        raise ReadError("compatibility")
+    result["sampled"] = True
+    for key in ("capture_drops_total", "capture_drops_recent_delta", "events_discarded_total", "events_discarded_recent_delta"):
+        result[key] = count(value.get(key), nullable=True)
+    for key in ("snapshot_count", "history_count", "missing_uuid_vm_count", "excluded_identity_events",
+                "metadata_count", "allowlisted_tuple_count"):
+        result[key] = count(value.get(key))
+    result["counter_delta_seconds"] = number(value.get("counter_delta_seconds"), nullable=True)
+    result["snapshot_span_seconds"] = number(value.get("snapshot_span_seconds"))
+    result["max_snapshot_gap_seconds"] = number(value.get("max_snapshot_gap_seconds"), nullable=True)
+    result["limitations"] = [text(line, 512) for line in array(value.get("limitations"), 96)]
+    return result
+
+def vm_inventory(value, nic_budget):
+    vm = obj(value)
+    uuid = vm.get("vm_uuid")
+    if uuid is not None and not (isinstance(uuid, str) and UUID.fullmatch(uuid)):
+        raise ReadError("compatibility")
+    vm_id = count(vm.get("vm_id"))
+    if not vm_id:
+        raise ReadError("compatibility")
+    nics = []
+    for nic in array(vm.get("nics"), nic_budget):
+        nic = obj(nic)
+        name, tap = nic.get("name"), nic.get("tap")
+        if not (isinstance(name, str) and re.fullmatch(r"net\d{1,3}", name)) or tap != f"tap{vm_id}i{name[3:]}":
+            raise ReadError("compatibility")
+        index = count(nic.get("ifindex"), nullable=True)
+        nics.append({"name": name, "tap": tap, "ifindex": index,
+                     "capture_state": choice(nic.get("capture_state"), ("observing", "unsupported", "absent", "error"))})
+    if len({nic["name"] for nic in nics}) != len(nics):
+        raise ReadError("compatibility")
+    return {"vm_id": vm_id, "vm_uuid": uuid,
+            "power_state": choice(vm.get("power_state"), ("running", "stopped", "unknown")),
+            "capture_state": choice(vm.get("capture_state"), ("observing", "partial", "unavailable", "stopped")),
+            "finding_count": count(vm.get("finding_count")), "nics": nics}
+
+def vm_finding(value, vms):
+    finding = obj(value)
+    if not (isinstance(finding.get("id"), str) and re.fullmatch(r"[0-9a-f]{20}", finding["id"])):
+        raise ReadError("compatibility")
+    kind = choice(finding.get("kind"), VM_PATTERNS)
+    choice(finding.get("severity"), ("review",))
+    vm = vms.get((finding.get("vm_id"), finding.get("vm_uuid")))
+    first, last = number(finding.get("first_seen")), number(finding.get("last_seen"))
+    if vm is None or vm["vm_uuid"] is None or first > last:
+        raise ReadError("compatibility")
+    evidence = obj(finding.get("evidence"))
+    result = {"unique_tcp_five_tuples": count(evidence.get("unique_tcp_five_tuples")),
+              "unique_destination_ports": count(evidence.get("unique_destination_ports"), 65536),
+              "unique_destination_ips": count(evidence.get("unique_destination_ips")),
+              "destination_ip": None if evidence.get("destination_ip") is None else ip(evidence["destination_ip"]),
+              "destination_port": count(evidence.get("destination_port"), 65535, nullable=True)}
+    if (kind == "port_scan" and result["unique_destination_ports"] < 20) or (
+            kind == "network_sweep" and result["unique_destination_ips"] < 20):
+        raise ReadError("compatibility")
+    taps = {(nic["tap"], nic["ifindex"]) for nic in vm["nics"]}
+    examples = []
+    for row in array(evidence.get("examples"), 5):
+        row = obj(row)
+        protocol = choice(row.get("protocol"), ("tcp", "udp", "icmp", "icmpv6"))
+        ports = [count(row.get(key), 65535, nullable=True) for key in ("src_port", "dst_port")]
+        when = number(row.get("observed_at"))
+        if ((None in ports) != (protocol not in ("tcp", "udp")) or (row.get("tap"), row.get("ifindex")) not in taps
+                or not first <= when <= last):
+            raise ReadError("compatibility")
+        examples.append({"src_ip": ip(row.get("src_ip")), "dst_ip": ip(row.get("dst_ip")), "src_port": ports[0],
+                         "dst_port": ports[1], "protocol": protocol, "tap": row["tap"], "ifindex": row["ifindex"],
+                         "observed_at": when})
+    result["examples"] = examples
+    return {"id": finding["id"], "kind": kind, "severity": "review", "vm_id": vm["vm_id"], "vm_uuid": vm["vm_uuid"],
+            "first_seen": first, "last_seen": last, "caveat": text(finding.get("caveat"), 512), "evidence": result}
+
+def vm_source(value, settings, synthetic):
+    source = obj(value)
+    if source.get("site", settings.site) != settings.site:
+        raise ReadError("compatibility")
+    kind = choice(source.get("kind"), ("synthetic",) if synthetic else ("proxmox",))
+    budget = 1024
+    vms = {}
+    for row in array(source.get("vms"), 256):
+        vm = vm_inventory(row, budget)
+        budget -= len(vm["nics"])
+        if vm["vm_id"] in {key[0] for key in vms}:
+            raise ReadError("compatibility")
+        vms[(vm["vm_id"], vm["vm_uuid"])] = vm
+    summary = obj(source.get("summary"))
+    summary = {"finding_count": count(summary.get("finding_count")), "affected_vm_count": count(summary.get("affected_vm_count")),
+               "findings_truncated": flag(summary.get("findings_truncated")),
+               "assessment": choice(summary.get("assessment"), ("review", "no_patterns_observed", "insufficient_evidence"))}
+    findings = [vm_finding(row, vms) for row in array(source.get("findings"), 100)]
+    if (len({f["id"] for f in findings}) != len(findings) or summary["finding_count"] < len(findings)
+            or summary["affected_vm_count"] > len(vms)
+            or (not summary["findings_truncated"] and summary["finding_count"] != len(findings))
+            or sum(vm["finding_count"] for vm in vms.values()) != summary["finding_count"]):
+        raise ReadError("compatibility")
+    return {"id": text(source.get("id"), 512), "node": text(source.get("node"), 512), "kind": kind,
+            "status": choice(source.get("status"), ("reporting", "stale", "unknown")),
+            "last_contact": number(source.get("last_contact"), nullable=True),
+            "observed_at": number(source.get("observed_at"), nullable=True),
+            "coverage": vm_coverage(source.get("coverage")), "summary": summary,
+            "findings": findings, "vms": list(vms.values())}
+
+def validate_vm_security(value, settings):
+    """The service's VM Security assessment, without its guest-heartbeat block."""
+    value = obj(value)
+    status = choice(value.get("status"), ("configured", "not_configured", "unavailable"))
+    if status == "unavailable":
+        raise ReadError("unavailable")
+    sources = array(value.get("sources"), 256)
+    if status == "not_configured":
+        if sources:
+            raise ReadError("compatibility")
+        return {"site": settings.site, "status": status, "sources": []}
+    if value.get("site") != settings.site or value.get("window_seconds") != 300:
+        raise ReadError("compatibility")
+    synthetic = flag(value.get("synthetic"))
+    projected = [vm_source(row, settings, synthetic) for row in sources]
+    if len({s["id"] for s in projected}) != len(projected) or len({s["node"] for s in projected}) != len(projected):
+        raise ReadError("compatibility")
+    return {"site": settings.site, "status": status, "synthetic": synthetic,
+            "generated_at": number(value.get("generated_at")), "window_seconds": 300, "sources": projected}
+
+
 class ConvergenceClient:
     def __init__(self, settings: Settings, transport=None):
         self.settings = settings
@@ -270,3 +420,7 @@ class ConvergenceClient:
             params["exporter"] = exporter
         return await self._request("/api/flows/records", params,
             lambda value: validate_evidence(value, self.settings, address, start, end, exporter))
+
+    async def vm_security(self):
+        return await self._request("/api/security/vms", {},
+            lambda value: validate_vm_security(value, self.settings))
