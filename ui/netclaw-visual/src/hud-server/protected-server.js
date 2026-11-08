@@ -103,7 +103,7 @@ export function createProtectedServer(config, { client = config.mode === 'ordina
   });
   if (!ordinary) mountProtectedOperations(app, { installation: config.installation, config: { enabled: true, secure: true, exactRoutes: true, access: config.access, cluster: config.cluster, contentSecurityPolicy: csp, origins: [config.origin] }, client });
   mountMobileEnrollment(app, { installation: config.installation, client,
-    config: { enabled: config.access?.mode === 'open-lab', origins: [config.origin],
+    config: { enabled: config.access?.mode === 'open-lab', origins: [config.origin], ...(config.cluster ? { cluster: config.cluster } : {}),
               access: ordinary ? undefined : config.access, reason: 'owner_issuance_unqualified' } });
   if (remote) app.use(async (req, res, next) => { if (!await remote.handle(req, res)) next(); });
   app.use((req, res) => {

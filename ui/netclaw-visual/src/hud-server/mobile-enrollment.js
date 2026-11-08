@@ -23,7 +23,7 @@ export function mountMobileEnrollment(app, { installation, client, config = {} }
   });
   router.use(express.text({type:'application/json',limit:'2kb'}));
   const wrap = fn => (req,res,next) => Promise.resolve(fn(req,res)).catch(next);
-  const authority = () => ({installation_id:installation.installationId, ...(config.access?.mode === 'open-lab' ? {auth_context:{access_mode:'open-lab',installation_id:installation.installationId}} : {})});
+  const authority = () => ({installation_id:installation.installationId, ...(config.access?.mode === 'open-lab' ? {auth_context:{access_mode:'open-lab',installation_id:installation.installationId,...(config.cluster ? {cluster_id:config.cluster.cluster_id,generation:config.cluster.generation} : {})}} : {})});
   router.get(BASE, wrap(async (_req,res) => {
     const value = await client.call('mobile.enrollment.info',authority());
     res.json(enrollmentInfo(value,installation.installationId));
