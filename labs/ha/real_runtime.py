@@ -69,8 +69,9 @@ def validate_plan(plan):
     fields = {'schema_version', 'root', 'run_id', 'name', 'source_root', 'source_files', 'source_sha256',
               'fixture_gate_file', 'fixture_gate_sha256', 'template_file', 'template_sha256',
               'python', 'ports', 'guard_token_variable'}
-    need(isinstance(plan, dict) and set(plan) == fields and type(plan['schema_version']) is int
-         and plan['schema_version'] == 1, 'invalid_real_plan')
+    # `topology`/`proxy_ports` are optional and default-off: a plan without them is the direct topology.
+    need(isinstance(plan, dict) and set(plan) in (fields, fields | {'topology'}, fields | {'topology', 'proxy_ports'})
+         and type(plan['schema_version']) is int and plan['schema_version'] == 1, 'invalid_real_plan')
     uuid_value(plan['run_id'])
     need(isinstance(plan['name'], str) and re.fullmatch('netclaw-r08-[a-z0-9-]{6,48}', plan['name']), 'invalid_owned_name')
     for key in ('root', 'source_root', 'fixture_gate_file', 'template_file'):
@@ -96,8 +97,29 @@ def validate_plan(plan):
         need(isinstance(values, list) and len(values) == (4 if key == 'api' else 3)
              and all(type(p) is int and 1024 <= p <= 65535 for p in values), 'invalid_ports')
         flat.extend(values)
+    flat.extend(proxy_port_list(plan))
     need(len(set(flat)) == len(flat), 'duplicate_port')
     return plan
+
+
+def proxy_port_list(plan):
+    """Validated owned proxy listener ports (empty for the default direct topology).
+
+    `proxied` fronts each Border's etcd client path only: `proxy_ports.etcd[i][k]` is
+    Border i's own loopback listener for voter k. The NCFED `endpoints.cluster` stays
+    direct: the node binds and dials the same signed address, so it cannot be interposed.
+    """
+    topology = plan.get('topology', 'direct')
+    need(topology in ('direct', 'proxied'), 'invalid_topology')
+    if topology == 'direct':
+        need('proxy_ports' not in plan, 'invalid_topology')
+        return []
+    ports = plan.get('proxy_ports')
+    need(isinstance(ports, dict) and set(ports) == {'etcd'} and isinstance(ports['etcd'], list)
+         and len(ports['etcd']) == 3 and all(isinstance(row, list) and len(row) == 3 for row in ports['etcd']), 'invalid_proxy_ports')
+    flat = [port for row in ports['etcd'] for port in row]
+    need(all(type(p) is int and 1024 <= p <= 65535 for p in flat), 'invalid_proxy_ports')
+    return flat
 
 
 def verify_fixture_gate(plan):
@@ -203,7 +225,7 @@ def prepare(plan_file):
     write_new(root / 'tool-template.json', template['tool'])
     from .etcd_lab import EtcdLab
     lab = EtcdLab(root / 'voters').prepare()
-    need(not set(lab.document['ports']) & {port for ports in plan['ports'].values() for port in ports},
+    need(not set(lab.document['ports']) & ({port for ports in plan['ports'].values() for port in ports} | set(proxy_port_list(plan))),
          'voter_runtime_port_collision')
     prepare_identity(plan, root, lab)
     write_new(root / 'prepared.json', {'schema_version': 1, 'run_id': plan['run_id'],
@@ -286,6 +308,13 @@ class Rehearsal:
         manifest = verify_manifest(read_private(identity / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
         credential = json.loads(read_private(self.root / 'voters/credentials.json'))
         voter = json.loads(read_private(self.root / 'voters/owned.json'))
+        proxied = self.plan.get('topology') == 'proxied'
+        if proxied:
+            # One owned control directory; spec binds each Border's listener to a real voter client port.
+            from .real_proxies import init_control
+            init_control(self.root / 'proxies', {'schema_version': 1, 'owner': self.plan['name'], 'forwarders': [
+                {'name': f'b{i}-v{k}', 'listen_port': self.plan['proxy_ports']['etcd'][i][k], 'target_port': voter['ports'][k]}
+                for i in range(3) for k in range(3)]})
         homes = private_directory(self.root / 'homes', create=True)
         contracts = private_directory(self.root / 'contracts', create=True)
         member_cert = read_private(identity / 'member.crt').decode()
@@ -327,7 +356,8 @@ class Rehearsal:
                 pki = self.root / 'voters/pki'
                 config.update(node_id=manifest.nodes[i]['node_id'], transport_certificate_file=str(transport / f'node{i}.crt'),
                     private_key_file=str(transport / f'node{i}.key'), etcd={
-                    'endpoints': [f'https://127.0.0.1:{port}' for port in voter['ports']],
+                    'endpoints': [f'https://127.0.0.1:{port}' for port in
+                                  (self.plan['proxy_ports']['etcd'][i] if proxied else voter['ports'])],
                     'ca_file': str(pki / 'client-ca.crt'), 'certificate_file': str(pki / f'border{i}.crt'),
                     'private_key_file': str(pki / f'border{i}.key'), 'username': name, 'password_file': str(state / 'etcd-password')})
                 profile = {'schemaVersion': 2, 'role': role, 'identity': binding, 'access': {'mode': 'open-lab'}}

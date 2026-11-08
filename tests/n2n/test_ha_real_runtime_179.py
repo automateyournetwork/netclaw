@@ -328,3 +328,20 @@ def test_doubtful_refusal_stays_unknown(tmp_path, failure):
     with pytest.raises((TimeoutError, RehearsalRefused)): run.approve_once('border0', path)
     assert value.snapshot()['reservations'][0]['state'] == 'unknown'
     with pytest.raises(RehearsalRefused, match='unresolved'): reserve(value, 'runner')
+
+
+def test_proxy_topology_is_optional_default_off_and_exactly_bounded(tmp_path):
+    tmp_path.chmod(0o700); plan = fixture_plan(tmp_path)
+    validate_plan(copy.deepcopy(plan))                                   # default path unchanged
+    direct = dict(plan, topology='direct'); validate_plan(direct)
+    proxied = dict(plan, topology='proxied', proxy_ports={'etcd': [[32000, 32001, 32002], [32003, 32004, 32005], [32006, 32007, 32008]]})
+    validate_plan(proxied)
+    bad = [dict(direct, proxy_ports=proxied['proxy_ports']), dict(plan, topology='mesh'), dict(plan, proxy_ports=proxied['proxy_ports']),
+           dict(plan, topology='proxied'),
+           dict(proxied, proxy_ports={'etcd': [[32000, 32001, 32002]] * 3}),                       # duplicates
+           dict(proxied, proxy_ports={'etcd': [[31000, 32001, 32002], [32003, 32004, 32005], [32006, 32007, 32008]]}),  # collides with plan port
+           dict(proxied, proxy_ports={'etcd': [[32000, 32001, 32002], [32003, 32004, 32005]]}),
+           dict(proxied, proxy_ports={'etcd': [[80, 32001, 32002], [32003, 32004, 32005], [32006, 32007, 32008]]}),
+           dict(proxied, proxy_ports={'etcd': proxied['proxy_ports']['etcd'], 'cluster': [[32010] * 3] * 3})]
+    for value in bad:
+        with pytest.raises(RehearsalRefused): validate_plan(copy.deepcopy(value))
