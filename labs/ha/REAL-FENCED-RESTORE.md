@@ -148,14 +148,19 @@ The fixture restores into a second voter set without starting any Border or memb
 enrollment private key in the new set; the host signer lives only in `restore/host`). The gates are production
 `Authority`/`OperationLedger` code, so no new-generation role processes are needed to qualify this row.
 
+`voters_dir` indirection (implemented, default off). `labs/ha/real_runtime.py` plans accept an optional `voters_dir`: one
+lowercase single-component name (`[a-z][a-z0-9-]{0,31}`, not `.`/`..`/hidden, not a reserved run-root directory such as
+`source`, `restore`, `homes`, `contracts`, `proxies`, `new-voters`) that resolves to a private directory inside the run root.
+Absent, it is `<root>/voters` and behaviour is unchanged. `voters_path(plan, root)` is the single resolver; `Rehearsal.voters`
+replaces the hard-coded path in `prepare` (EtcdLab), `materialize` (identity, transport, credentials.json, owned.json, pki),
+`start_coordination`, `context`, `validate_review`, `export_operation` and `_consensus_evidence`. `real_restore.Restore.old_lab`
+uses the same resolver so the old generation is whatever the plan names; the new generation stays at `restore/new-voters`.
+The plan is the reviewed, hash-bound input of every claim, so the choice is recorded with the run.
+
 Optional Phase 2 (NOT implemented; needs owner decision): start new-generation Borders/member and attempt an operator-level
-approval. It cannot use this run root's budget (slot held), and the runner assumes ONE generation per run root. If
-wanted, the additive, default-off change to `labs/ha/real_runtime.py` is a `self.voters = self.root / (plan.get('voters_dir') or 'voters')`
-indirection replacing the hard-coded `'voters'` in exactly these places: `prepare` (EtcdLab), `prepare_identity` (via `lab`),
-`materialize` (identity, transport, credentials.json, owned.json, pki, proxy etcd ports), `start_coordination`, `context`,
-`validate_review`, `export_operation`, `_consensus_evidence`, plus `homes/` and `contracts/` becoming per-generation, and
-`start_role`/`validate_role`/`operator` path roots. `plan` validation would also need the second generation's ports. That is a
-frozen-source-visible change; not made here.
+approval. It cannot use this run root's budget (slot held), and the runner still assumes ONE generation per run root:
+`homes/`, `contracts/` and the `start_role`/`validate_role`/`operator` path roots are not yet per-generation, and plan
+validation would need the second generation's ports. That is a frozen-source-visible change; not made here.
 
 ## 4. Risks and limits
 

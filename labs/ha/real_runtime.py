@@ -69,10 +69,15 @@ def validate_plan(plan):
     fields = {'schema_version', 'root', 'run_id', 'name', 'source_root', 'source_files', 'source_sha256',
               'fixture_gate_file', 'fixture_gate_sha256', 'template_file', 'template_sha256',
               'python', 'ports', 'guard_token_variable'}
+    # `voters_dir` is optional and default-off: absent means the single-generation `<root>/voters` layout.
     # `topology`/`proxy_ports` are optional and default-off: a plan without them is the direct topology.
-    need(isinstance(plan, dict) and set(plan) in (fields, fields | {'topology'}, fields | {'topology', 'proxy_ports'})
+    optional = {k for k in ('topology', 'proxy_ports', 'voters_dir') if isinstance(plan, dict) and k in plan}
+    need(isinstance(plan, dict) and set(plan) - fields == optional and fields <= set(plan)
+         and optional in (set(), {'topology'}, {'topology', 'proxy_ports'}, {'voters_dir'}, {'topology', 'voters_dir'},
+                          {'topology', 'proxy_ports', 'voters_dir'})
          and type(plan['schema_version']) is int and plan['schema_version'] == 1, 'invalid_real_plan')
     uuid_value(plan['run_id'])
+    voters_path(plan, plan['root'])
     need(isinstance(plan['name'], str) and re.fullmatch('netclaw-r08-[a-z0-9-]{6,48}', plan['name']), 'invalid_owned_name')
     for key in ('root', 'source_root', 'fixture_gate_file', 'template_file'):
         p = Path(plan[key]); need(p.is_absolute() and p == p.resolve(), 'absolute_owned_path_required')
@@ -100,6 +105,19 @@ def validate_plan(plan):
     flat.extend(proxy_port_list(plan))
     need(len(set(flat)) == len(flat), 'duplicate_port')
     return plan
+
+
+RESERVED_VOTERS_DIRS = frozenset({'source', 'restore', 'homes', 'contracts', 'artifacts', 'model', 'proxies', 'evidence',
+                                  'budget', 'host', 'isolation', 'new-voters'})
+
+
+def voters_path(plan, root):
+    """Voter directory for this generation: `<root>/voters` unless the plan names another private
+    single-component directory inside the run root (a second generation's voters). Default unchanged."""
+    name = plan.get('voters_dir', 'voters') if isinstance(plan, dict) else None
+    need(isinstance(name, str) and re.fullmatch('[a-z][a-z0-9-]{0,31}', name) and name not in RESERVED_VOTERS_DIRS
+         and not name.startswith('.'), 'invalid_voters_dir')
+    return Path(root) / name
 
 
 def proxy_port_list(plan):
@@ -224,7 +242,7 @@ def prepare(plan_file):
     write_new(root / 'runtime-template.json', runtime)
     write_new(root / 'tool-template.json', template['tool'])
     from .etcd_lab import EtcdLab
-    lab = EtcdLab(root / 'voters').prepare()
+    lab = EtcdLab(voters_path(plan, root)).prepare()
     need(not set(lab.document['ports']) & ({port for ports in plan['ports'].values() for port in ports} | set(proxy_port_list(plan))),
          'voter_runtime_port_collision')
     prepare_identity(plan, root, lab)
@@ -267,6 +285,7 @@ class Rehearsal:
         self.root = private_directory(root)
         self.plan = validate_plan(json.loads(read_private(self.root / 'reviewed-plan.json', 8 * 1024 * 1024)))
         need(str(self.root) == self.plan['root'], 'run_root_changed')
+        self.voters = voters_path(self.plan, self.root)
         self.budget = Budget(self.root, run_id=self.plan['run_id'])
         self.source = self.root / 'source'
         need(Path(__file__).resolve() == self.source / 'labs/ha/real_runtime.py', 'run_frozen_source_required')
@@ -303,11 +322,11 @@ class Rehearsal:
         runtime['ollama'] = json.loads(read_private(self.root / 'model/profile.json'))
         bindings = revision_bindings(runtime)
         runtime['model_profile'].update({k: bindings[k] for k in ('guard_policy_sha256', 'profile_revision')})
-        identity = self.root / 'voters/cluster-identity'; transport = self.root / 'voters/cluster-transport'
+        identity = self.voters / 'cluster-identity'; transport = self.voters / 'cluster-transport'
         anchor = read_private(identity / 'root.crt').decode()
         manifest = verify_manifest(read_private(identity / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
-        credential = json.loads(read_private(self.root / 'voters/credentials.json'))
-        voter = json.loads(read_private(self.root / 'voters/owned.json'))
+        credential = json.loads(read_private(self.voters / 'credentials.json'))
+        voter = json.loads(read_private(self.voters / 'owned.json'))
         proxied = self.plan.get('topology') == 'proxied'
         if proxied:
             # One owned control directory; spec binds each Border's listener to a real voter client port.
@@ -353,7 +372,7 @@ class Rehearsal:
                 profile = {'schemaVersion': 2, 'role': role, 'identity': binding, 'catalog': catalog, 'runtime': runtime}
             else:
                 write_new(state / 'etcd-password', credential[name].encode())
-                pki = self.root / 'voters/pki'
+                pki = self.voters / 'pki'
                 config.update(node_id=manifest.nodes[i]['node_id'], transport_certificate_file=str(transport / f'node{i}.crt'),
                     private_key_file=str(transport / f'node{i}.key'), etcd={
                     'endpoints': [f'https://127.0.0.1:{port}' for port in
@@ -410,7 +429,7 @@ class Rehearsal:
         verify_fixture_gate(self.plan)
         member = json.loads(read_private(self.root / 'member.json'))
         write_new(self.root / 'coordination-start.claim.json', {'run_id': self.plan['run_id']})
-        lab = EtcdLab(self.root / 'voters').load(); lab.start()
+        lab = EtcdLab(self.voters).load(); lab.start()
         identity = lab.root / 'cluster-identity'
         anchor = read_private(identity / 'root.crt').decode()
         manifest = verify_manifest(read_private(identity / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
@@ -490,7 +509,7 @@ class Rehearsal:
 
     def context(self, node):
         profile = json.loads(read_private(self.root / 'homes' / node / 'netclaw-federation/protected-profile.json'))
-        manifest = json.loads(read_private(self.root / 'voters/cluster-identity/manifest.json'))['manifest']
+        manifest = json.loads(read_private(self.voters / 'cluster-identity/manifest.json'))['manifest']
         return {'access_mode': 'open-lab', 'installation_id': profile['identity']['installation_id'],
                 'cluster_id': manifest['cluster_id'], 'generation': manifest['generation']}
 
@@ -561,7 +580,7 @@ class Rehearsal:
              and 'approve' in review['allowed_actions'] and type(review['revision']) is int and review['revision'] > 0,
              'original_pending_review_required')
         profile = json.loads(read_private(self.root / 'homes/member/netclaw-federation/protected-profile.json'))
-        manifest = json.loads(read_private(self.root / 'voters/cluster-identity/manifest.json'))['manifest']
+        manifest = json.loads(read_private(self.voters / 'cluster-identity/manifest.json'))['manifest']
         value = review['review']; limits = value['limits']
         need(value['member'] == profile['identity'] and value['model_profile'] == profile['catalog']['model_profiles'][0]
              and value['tool_call'] == {k: v for k, v in profile['catalog']['tools'][0].items() if k != 'limits'}
@@ -599,7 +618,7 @@ class Rehearsal:
             review_digest=claim['review_digest'], surface=claim['surface'], run_id=self.plan['run_id'])
         reservation = [r for r in self.budget.snapshot()['reservations'] if r['claim'] == claim]
         need(len(reservation) == 1 and reservation[0]['state'] in ('send_claimed', 'unknown'), 'budget_claim_not_sent')
-        lab = EtcdLab(self.root / 'voters').load(); store = lab.store(0)
+        lab = EtcdLab(self.voters).load(); store = lab.store(0)
         try: row, revision = store.read(operation_key(claim['operation_id']))
         finally: store.close()
         need(row and row['client_nonce'] == claim['client_nonce'] and row['review_digest'] == claim['review_digest']
@@ -706,7 +725,7 @@ class Rehearsal:
         from bgp.federation import protected_contract as c
         from bgp.federation.ha.config import HAError, verify_manifest
         from bgp.federation.ha.recovery import export_snapshot
-        lab = EtcdLab(self.root / 'voters').load()
+        lab = EtcdLab(self.voters).load()
         identity = lab.root / 'cluster-identity'
         anchor = read_private(identity / 'root.crt').decode()
         manifest = verify_manifest(read_private(identity / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))

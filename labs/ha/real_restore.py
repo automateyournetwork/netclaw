@@ -169,7 +169,8 @@ class Restore:
 
     def old_lab(self):
         from .etcd_lab import EtcdLab
-        return EtcdLab(self.root / 'voters').load()
+        from .real_runtime import voters_path
+        return EtcdLab(voters_path(self.plan, self.root)).load()
 
     def new_lab(self):
         from .etcd_lab import EtcdLab

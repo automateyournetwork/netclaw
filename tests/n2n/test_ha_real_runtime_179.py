@@ -363,3 +363,15 @@ def test_export_instrument_copies_with_hashes_and_refuses_missing_dir(tmp_path):
     d = value.root / 'instrument'; d.mkdir(mode=0o700); write_new(d / 'a.json', {'k': 1})
     result = run.export_instrument(tmp_path / 'out1')
     assert result['exported'] == 1 and (tmp_path / 'out1' / 'instrument-manifest.json').exists()
+
+
+def test_voters_dir_is_optional_default_off_private_and_validated(tmp_path):
+    from labs.ha.real_runtime import voters_path
+    tmp_path.chmod(0o700); plan = fixture_plan(tmp_path)
+    assert voters_path(validate_plan(copy.deepcopy(plan)), tmp_path) == tmp_path / 'voters'   # default unchanged
+    assert voters_path(validate_plan(dict(plan, voters_dir='voters')), tmp_path) == tmp_path / 'voters'
+    assert voters_path(validate_plan(dict(plan, voters_dir='voters-gen2')), tmp_path) == tmp_path / 'voters-gen2'
+    for bad in ('', '.', '..', '../voters', 'a/b', '/abs', '.hidden', 'Voters', 'restore', 'source', 'homes', 'contracts',
+                'new-voters', 'proxies', 'x' * 40, 7, None):
+        with pytest.raises(RehearsalRefused, match='invalid_voters_dir'):
+            validate_plan(dict(plan, voters_dir=bad))
