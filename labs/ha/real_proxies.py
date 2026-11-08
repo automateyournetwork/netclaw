@@ -357,7 +357,14 @@ def stop(control):
     need(not (control / 'stopped.json').exists(), 'proxy_already_stopped')
     pid = record['pid']
     need(process_start(pid) == record['start'], 'owned_process_changed')
-    command = subprocess.run(['ps', '-o', 'command=', '-p', str(pid)], capture_output=True, text=True, timeout=5).stdout
+    cmdline = Path('/proc') / str(pid) / 'cmdline'
+    if cmdline.exists():  # Linux: untruncated argv (ps output is width-limited without a tty)
+        try:
+            command = cmdline.read_bytes().replace(b'\0', b' ').decode(errors='replace')
+        except OSError:
+            command = ''
+    else:
+        command = subprocess.run(['ps', '-ww', '-o', 'command=', '-p', str(pid)], capture_output=True, text=True, timeout=5).stdout
     need(str(control) in command and 'real_proxies.py' in command, 'owned_process_changed')
     os.kill(pid, signal.SIGTERM)
     deadline = time.monotonic() + 10
