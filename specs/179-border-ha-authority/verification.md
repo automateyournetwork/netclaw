@@ -342,3 +342,18 @@ said to ignore the budget and run the nine REAL tests. The cumulative cap for th
 lifted by the owner. Retained controls: one active operation at a time, a fresh per-run budget
 ledger, every run's evidence exported before anything is removed, unknowns never reset, and no
 deletion of private evidence until acceptance.
+
+## REAL closure rows completed so far (real-run-10)
+
+Capacity/storage: real etcd NOSPACE (quota fill to HTTP 429 "database space exceeded", alarm on all
+members), approval refused pre-dispatch (status proven `review_pending`/attempt 0 on all three
+Borders; reservation `refused_pre_dispatch`, slot released, still counted), existing completed work
+readable, model POSTs unchanged (2 -> 2), heal (delete scratch range, compact, defrag, clear alarm),
+recovery operation completed (2 -> 4). Retired node returns: all Borders stopped, lease expired,
+`ha-cluster.py drain` + `retire --acquire-authority` of border1 (revocation revision 1), old-key
+border1 relaunch refused at process start with `HAError: node_retired` (never opened its operator
+port), model POSTs unchanged (4 -> 4). Limitation: no approve was attempted through the retired
+node (nothing listening) and the cluster record holds `state: retired` + revocation revision only,
+no free-text reason. Model access log saved before container removal (`real-run-10/model-access.log`).
+Partition proxies cannot cut NCFED Border-to-Border channels without a production seam (signed
+manifest endpoints), so REAL partitions cut each Border's etcd path (`ncfed_cluster_channel_cut:false`).
