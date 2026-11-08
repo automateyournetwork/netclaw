@@ -5,4 +5,5 @@
 - [x] T003 Keep the hub key on renewal (`issue_cert(key_pem=...)`).
 - [x] T004 Rotation schedule renews the hub credential explicitly.
 - [x] T005 Tests: expired hub re-attests, valid credential unchanged, key id kept and validity extended, rotation renews in place.
-- [x] T006 Release metadata.
+- [x] T006 Serialize renewal and write files atomically (review finding).
+- [x] T007 Release metadata.

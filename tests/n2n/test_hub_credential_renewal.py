@@ -86,3 +86,64 @@ def test_rotation_renews_the_hub_on_its_schedule(tmp_path):
         assert len(active) == 1 and active[0]['cert_pem'] == renewed
     finally:
         svc.manager.close()
+
+
+def test_thirty_days_left_is_not_renewed_on_demand(tmp_path, monkeypatch):
+    manager, risk = _border(tmp_path)
+    try:
+        anchor, ca_key = risk.ensure_risk_ca()
+        now = certs._now_utc()
+        with monkeypatch.context() as patch:
+            patch.setattr(certs, '_now_utc', lambda: now - datetime.timedelta(days=60))
+            cert, key = certs.issue_cert(anchor, ca_key, 'test-risk/border')
+        directory = risk.keys_dir / 'risk-ca'
+        (directory / 'hub.crt').write_text(cert)
+        certs._write_secret(directory / 'hub.key', key)
+        assert risk.hub_credential() == (cert, key)
+        renewed, _ = risk.hub_credential(renew=True)
+        assert renewed != cert
+    finally:
+        manager.close()
+
+
+def test_renewal_writes_files_safely(tmp_path):
+    import stat
+    manager, risk = _border(tmp_path)
+    try:
+        risk.hub_credential()
+        risk.hub_credential(renew=True)
+        directory = risk.keys_dir / 'risk-ca'
+        assert stat.S_IMODE((directory / 'hub.key').stat().st_mode) == 0o600
+        assert stat.S_IMODE((directory / 'hub.crt').stat().st_mode) == 0o644
+        assert not [p for p in directory.iterdir() if p.name.startswith('.credential-')]
+    finally:
+        manager.close()
+
+
+def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
+    import threading
+    from bgp.federation.protected_contract import key_id
+    manager, risk = _border(tmp_path)
+    try:
+        first_cert, _ = risk.hub_credential()
+        errors = []
+
+        def renew():
+            try:
+                for _ in range(5):
+                    risk.hub_credential(renew=True)
+            except Exception as exc:  # pragma: no cover - reported below
+                errors.append(exc)
+        threads = [threading.Thread(target=renew) for _ in range(4)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+        assert not errors
+        cert, key = risk.hub_credential()
+        assert key_id(cert) == key_id(first_cert)
+        nonce = b'after-concurrent-renewal'
+        attestation = risk.attest_hub(nonce)
+        assert RiskManager.verify_hub_attestation(attestation, risk.risk_ca_pem(), nonce, 'test-risk')
+    finally:
+        manager.close()

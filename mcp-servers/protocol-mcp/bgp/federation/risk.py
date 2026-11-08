@@ -204,8 +204,16 @@ class RiskManager:
         """The Border's CA-signed hub credential (cert + key), created once.
         Reissued under the same CA and key when ``renew`` is set (the rotation
         schedule) or within 7 days of expiry. Returns (hub_cert_pem, hub_key_pem)."""
+        import fcntl
         from . import certs
+        self.ensure_risk_ca()  # creates risk-ca/ with its usual permissions; idempotent
         cad = self.keys_dir / "risk-ca"
+        # The daemon, rotation and install scripts all call this; renew one at a time.
+        with open(cad / ".hub.lock", "a") as lock:
+            fcntl.flock(lock, fcntl.LOCK_EX)
+            return self._hub_credential_locked(certs, cad, renew)
+
+    def _hub_credential_locked(self, certs, cad, renew):
         hcrt, hkey = cad / "hub.crt", cad / "hub.key"
         current_key = None
         if hcrt.exists() and hkey.exists():
@@ -220,8 +228,8 @@ class RiskManager:
         risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
         hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",
                                              san=f"{risk_name}/border", key_pem=current_key)
-        hcrt.write_text(hub_cert)
         certs._write_secret(hkey, hub_key)
+        certs._write_secret(hcrt, hub_cert, mode=0o644)  # atomic: readers never see a partial file
         return hub_cert, hub_key
 
     def attest_hub(self, member_nonce: bytes) -> Optional[dict]:

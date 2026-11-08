@@ -28,6 +28,20 @@ once (90 days, `certs.issue_cert`) and afterwards returns `hub.crt` whatever its
   renewed the next time it is used (hub attestation).
 - FR-005: A hub certificate that is not due is returned unchanged.
 
+- FR-006: Renewal is serialized across processes (daemon, rotation, install scripts)
+  and replaces `hub.crt` and `hub.key` atomically.
+
+## Known behaviour
+
+- A member stores the hub certificate when its channel opens and checks that copy's
+  validity. A channel that stays open across the old certificate's expiry closes then,
+  and the member re-dials (`in2n-member.py`, within about 10 s) and receives the
+  renewed certificate. With renewal at 2/3 of life this happens at most once per cycle.
+- Protected operations (spec 172) compare the hub key id, not the certificate's
+  validity, so they keep working across a renewal because the key is kept.
+- A renewal that fails marks the registry row failed and the schedule does not retry
+  it (pre-existing rotation behaviour); the 7-day on-demand renewal still applies.
+
 ## Out of scope
 
 Rotating the hub key or the risk CA itself; member leaf certificates.

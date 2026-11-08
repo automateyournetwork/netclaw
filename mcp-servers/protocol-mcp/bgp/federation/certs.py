@@ -71,7 +71,7 @@ def _chmod(path: Path, mode: int) -> None:
         pass  # best-effort on filesystems without POSIX perms (e.g. some mounts)
 
 
-def _write_secret(path: Path, data: str) -> None:
+def _write_secret(path: Path, data: str, mode: int = 0o600) -> None:
     if path.is_symlink() or (path.exists() and not stat.S_ISREG(path.stat().st_mode)):
         raise ValueError("Credential path must be a regular file")
     fd, temporary = tempfile.mkstemp(prefix=".credential-", dir=path.parent)
@@ -80,7 +80,7 @@ def _write_secret(path: Path, data: str) -> None:
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.chmod(temporary, 0o600)
+        os.chmod(temporary, mode)
         os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
