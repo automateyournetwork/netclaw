@@ -71,7 +71,7 @@ def _chmod(path: Path, mode: int) -> None:
         pass  # best-effort on filesystems without POSIX perms (e.g. some mounts)
 
 
-def _write_secret(path: Path, data: str) -> None:
+def _write_secret(path: Path, data: str, mode: int = 0o600) -> None:
     if path.is_symlink() or (path.exists() and not stat.S_ISREG(path.stat().st_mode)):
         raise ValueError("Credential path must be a regular file")
     fd, temporary = tempfile.mkstemp(prefix=".credential-", dir=path.parent)
@@ -80,7 +80,7 @@ def _write_secret(path: Path, data: str) -> None:
             stream.write(data)
             stream.flush()
             os.fsync(stream.fileno())
-        os.chmod(temporary, 0o600)
+        os.chmod(temporary, mode)
         os.replace(temporary, path)
     finally:
         if os.path.exists(temporary):
@@ -168,12 +168,15 @@ def create_risk_ca(risk_name: str, days: int = 730) -> Tuple[str, str]:
 
 def issue_cert(ca_cert_pem: str, ca_key_pem: str, subject_cn: str,
                san: Optional[str] = None, days: int = 90,
-               server: bool = True, client: bool = True) -> Tuple[str, str]:
+               server: bool = True, client: bool = True,
+               key_pem: Optional[str] = None) -> Tuple[str, str]:
     """Issue a leaf (member or hub) signed by the risk CA (FR-009/010).
-    Returns (cert_pem, key_pem). SAN defaults to subject_cn."""
+    Returns (cert_pem, key_pem). SAN defaults to subject_cn. ``key_pem`` reissues
+    for an existing key (renewal keeps the key id); otherwise a new key is made."""
     ca_cert = x509.load_pem_x509_certificate(ca_cert_pem.encode())
     ca_key = serialization.load_pem_private_key(ca_key_pem.encode(), password=None)
-    leaf_key = generate_keypair()
+    leaf_key = (serialization.load_pem_private_key(key_pem.encode(), password=None)
+                if key_pem is not None else generate_keypair())
     now = _now_utc()
     ekus = []
     if server:
