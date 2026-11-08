@@ -99,3 +99,20 @@ export async function verifyClusterRuntime(runtime, options) {
  const result=await verifyClusterDescriptor(runtime.cluster,{...options,installationId:runtime.installationId});
  check(clusterCanonical(runtime.access.principal)===clusterCanonical(await clusterLabPrincipal(result.descriptor.cluster_id)),'cluster_principal_changed');return result;
 }
+// Spec 182 region display. Display-only: never selects, trusts or pins an endpoint (contracts/region-display.md).
+const REGION_LABELS = {nne1:'Montreal',ew1:'Belgium',ase1:'Singapore'};
+export function regionLabel(endpointOrHost) {
+ let host=String(endpointOrHost??'');try{host=new URL(host).hostname;}catch{}
+ const m=/^(nne1|ew1|ase1)-[0-9a-f]{6}\.automateyournetwork\.com$/.exec(host);
+ return m?REGION_LABELS[m[1]]:'Unknown region';
+}
+export function clusterNodeRegion(cluster, nodeId) {
+ const node=cluster?.manifest?.manifest?.nodes?.find(n=>n.node_id===nodeId);
+ return node?regionLabel(node.endpoints?.https):'Unknown region';
+}
+export function clusterFailoverNotice(cluster) {
+ const a=cluster?.authority;if(!a)return '';
+ if(['leader','follower'].includes(a.state)&&a.leader_node_id&&a.leader_node_id!==cluster.node_id)return `Forwarding to the ${clusterNodeRegion(cluster,a.leader_node_id)} authority.`;
+ if(a.state==='no_quorum')return 'No quorum: new protected work is stopped. Select another enrolled endpoint explicitly.';
+ return '';
+}
