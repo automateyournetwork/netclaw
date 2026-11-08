@@ -18,14 +18,14 @@ It owns the services, charts, cluster tooling and setup helpers. This skill inst
 **pinned release** of it and follows that release's own procedures, so the commands
 always match the code they run. NetClaw never imports or operates the service itself.
 
-**Tested release: `v0.1.2`.** Use it unless the user asks for another; say so if they do.
+**Tested release: `v0.1.5`.** Use it unless the user asks for another; say so if they do.
 
 ## 1. Get the release
 
 Ask where to keep it (default `~/convergence`). Never clone into the NetClaw checkout.
 
 ```bash
-git clone --branch v0.1.2 https://github.com/byrn-baker/convergence-platform.git ~/convergence
+git clone --branch v0.1.5 https://github.com/byrn-baker/convergence-platform.git ~/convergence
 ```
 
 An existing checkout is fine if `git describe --tags` names the release. Every helper
