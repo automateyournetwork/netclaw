@@ -301,3 +301,15 @@ local); nothing in this effort stopped, rescheduled or modified them. Unrelated 
 equinix-explorer-mcp, equinix-mcp, pyats-mcp and gateway5 remained running throughout.
 **Not exercised:** HUD same-tab `cold_recovery`; see also the 9 fixture-only matrix rows.
 
+
+## Final checks on HEAD 7f75b12f (T044)
+
+Reviewed Python + Node 24.19, machine idle: tests/n2n 2048 passed / 5 skipped; installer, setup
+and reconcile suites 260 passed / 32 skipped; HUD 539 passed and Vite build ok (HUD closure
+inventory unchanged: 705 files, 5,314,095 bytes); editor 211 passed / 3 skipped, tsc ok
+(`dist/extension.cjs` sha256 8132a4a0...458a unchanged, build.mjs not run); labs/ha node tests 43
+passed; Mobile 525 passed and analyzer clean; inventory, catalog-links, catalog-metadata and
+mcp-portability checks exit 0. `scripts/reconcile-mcp.py` exits 1 on this machine and also on a
+clean `main` checkout (gitignored local `humanrail-mcp-server` pin finding plus modules missing
+from the interpreter), so it is not caused by this branch. Summary:
+`t044-final.json` in the session scratchpad.

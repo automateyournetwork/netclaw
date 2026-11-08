@@ -75,16 +75,16 @@ review/sent markers and original result while node or authority changes.
 - [X] T038 Run actual browser HUD authority/quorum/staleapproval/original-result journeys tied to REAL signed records via labs/ha/client_qualification.mjs (FR-016/019/020;SC-004).
 - [X] T039 Run actual isolated MacCode1.109 G12 failover/recovery tied to REAL signed records via extensions/netclaw-vscode/scripts/cloud-editor.mjs and owned harness (FR-017/019/020;SC-004).
 - [X] T040 Run actual nativeiOSsimulator G13 enrollment/background/cold/failover tied to REAL signed records via mobile integration_test and owned harness (FR-018/019/020;SC-004).
-- [ ] T041 Record detection/election/recovery and network/storage/clock/resource measurements in specs/179-border-ha-authority/measurements.md (FR-007/020/021;SC-005).
+- [X] T041 Record detection/election/recovery and network/storage/clock/resource measurements in specs/179-border-ha-authority/measurements.md (FR-007/020/021;SC-005).
 
 ## Phase 8 — Coherence and closeout
 
 - [x] T042 Complete private setup/status/lifecycle CLI and scoped installer/config declarations in scripts/ha-cluster.py,scripts/lib/install-steps.sh,installer catalog and .env.example (FR-024).
 - [x] T043 Reconcile all artifact touchpoints and unchanged component counts;maintainer-only documentation in SOUL.md,TOOLS.md,protocol/n2n documentation and specs/179-border-ha-authority/coherence.md (FR-023/024/025/026).
-- [ ] T044 Run affected full federation/HUD/editor/Flutter/build/analyzer/SDD/catalog/registration checks and review final source;record verification.md (FR-023/024;SC-006).
-- [ ] T045 Write operator runbooks and exact row-to-artifact evidence matrix retaining every limitation/failure in specs/179-border-ha-authority/runbook.md,verification.md (FR-020/021/024;SC-001–006).
-- [ ] T046 Export/hash consistent private evidence and verify exact owned local cleanup,retained authority and retirement preservation in private receipts and verification.md (FR-022;SC-006).
-- [ ] T047 Complete daily memory/GAIT audit,maintainer completion summary and clear-safe resume in memory/2026-11-07.md and specs/179-border-ha-authority/resume.md (FR-024/025;SC-006).
+- [X] T044 Run affected full federation/HUD/editor/Flutter/build/analyzer/SDD/catalog/registration checks and review final source;record verification.md (FR-023/024;SC-006).
+- [X] T045 Write operator runbooks and exact row-to-artifact evidence matrix retaining every limitation/failure in specs/179-border-ha-authority/runbook.md,verification.md (FR-020/021/024;SC-001–006).
+- [X] T046 Export/hash consistent private evidence and verify exact owned local cleanup,retained authority and retirement preservation in private receipts and verification.md (FR-022;SC-006).
+- [X] T047 Complete daily memory/GAIT audit,maintainer completion summary and clear-safe resume in memory/2026-11-07.md and specs/179-border-ha-authority/resume.md (FR-024/025;SC-006).
 - [ ] T048 Present completed technical/measurement acceptance packet and record actual owner review before R09 in specs/179-border-ha-authority/acceptance.md (SC-006).
 
 ## Dependencies and parallel opportunities
