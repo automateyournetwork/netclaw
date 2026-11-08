@@ -265,3 +265,39 @@ no explicit error logged). Qualification continues in a fresh run within the rem
 Keychain key (-34018). Rebuild with entitlements in progress. Product finding: in cluster mode the
 HUD route `/api/hud/mobile/enrollment` rejects the Border's `cluster` payload (`invalid_contract`);
 enrollment tokens were issued through the Border operator bridge instead.
+
+## real-run-09, closeout and cleanup (T038-T041, T046)
+
+**VS Code 1.109** (run-09, border0 follower after leader border1 SIGKILL, border2 elected epoch 8):
+operation fddfce96 completed and settled; original_result, endpoint_recovery (border2),
+cold_recovery (same profile), authority, no_quorum (voters 1,2 paused/unpaused) and stale_review
+(fresh pending review, authority changed to border0 epoch 73) complete; model POSTs unchanged.
+**iOS** (fresh erased simulator, run CA only, entitlement-rebuilt harness): HUD route enrollment in
+cluster mode worked (proves the contract fix), operation d728e6b0 completed and settled; select-node
+to border0, background/resume, cold terminate/relaunch with preserved key/subject/operation,
+no-quorum and stale-review complete; counters unchanged. Two retained test-timing failures were
+fixed in `integration_test/cluster_recovery_test.dart` (recovery binary rebuilt).
+**Member-kill negative**: member SIGKILL 0.55 s after approve (member row `admitted`, no attempt,
+no effect); restart did not replay; budget `unknown` retained; model POSTs stayed 4.
+**Full restart**: all voters stopped/started, border0 and member relaunched; both completed
+operations remain `acknowledged` with receipt digests identical to the exported packets.
+REAL budget total 10/10 (7 settled, 3 unknown); see `evidence-matrix.md` for row status.
+
+**Cleanup (T046).** Only exact owned resources: 68 stopped containers (label netclaw.spec=179, all
+exited; `docker inspect` saved in `cleanup-final/containers-before.json`) and 14 owned networks
+removed; no owned container, network, listener or R08 process remains; the four unrelated
+running containers are untouched. Simulator 'NetClaw R08 Qualification 08' is shut down (kept,
+with its run-scoped CA trust). Evidence manifest: `evidence-manifest.json` in the private root,
+92,889 files / 6.6 GB hashed (sha256 of the manifest file 644429783060...6d24), excluding public
+model blob copies, build outputs, frozen source copies and node_modules.
+**Omission:** the model containers' access logs (the independent POST counter source) were
+removed with the containers before being exported. Persisted POST counts exist only as the
+per-phase `counters/*.json` exports of runs 08 and 09 plus GAIT journals and signed packets; the
+run-07 counts (8 POSTs for 4 operations, unchanged under quorum loss) were observed live and are
+not backed by a retained log.
+**Retirement preservation.** The R05 and R06 retirement jobs ran at their original scheduled
+times (launchd `runs = 1`, exit 0; the R05 owner model container stopped at 2026-11-07 14:36
+local); nothing in this effort stopped, rescheduled or modified them. Unrelated containers
+equinix-explorer-mcp, equinix-mcp, pyats-mcp and gateway5 remained running throughout.
+**Not exercised:** HUD same-tab `cold_recovery`; see also the 9 fixture-only matrix rows.
+
