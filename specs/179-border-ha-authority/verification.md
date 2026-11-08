@@ -235,3 +235,33 @@ completed + 1 retained unknown, op5 2f13f31b, never dispatched). real-run-08 is 
 by the operator to at most 5 further approvals, so the combined total never exceeds 10
 operations / 20 claimed inferences / 10 native effects. real-run-07's unknown slot stays
 spent and is not reset. Unknown-producing negatives run last.
+
+## real-run-08: HUD journey, VS Code attempt, second unknown slot
+
+Frozen source 1,018 files (base map + HUD production closure). Same runtime shape as run-07.
+Cumulative REAL accounting after run-08: run-07 5 operations (4 settled, 1 unknown) + run-08
+2 (1 settled, 1 unknown) = 7 of 10. No cumulative counter was reset.
+
+**HUD (browser, Chrome 156 profile-scoped CA trust, strict TLS)** via leader border2:
+original_once complete -> operation c263dbe8 completed, exported with `successful_native_workload:true`
+(model access log 2 POSTs, matching the journal). original_result complete (signed result/ACK
+verified in the real HUD). Leader SIGKILL (border2): new authority in ~12s (epoch 17). authority
+witness at border0 complete. no_quorum (two voters paused) complete. prepare_review + leader SIGKILL
+(border1) + stale_review: first stale_review run failed because authority had not yet changed
+(retained); rerun after election (epoch 29) complete. Model counter stayed 2 through every
+recovery phase. Retained harness failures: attempt 1 of original_once failed before any POST
+(driver `getByLabel` exact match on label-wrapped selects; fixed in labs/ha/client_qualification.mjs).
+Not exercised: browser same-tab `cold_recovery` (original tab sessionStorage no longer exists).
+
+**VS Code 1.109 (G12)**: attempt 1 failed before any decision (test race, fixed in
+extensions/netclaw-vscode/test/editor-ha.cjs). Attempt 2 sent one approval via border1 (leader,
+epoch 17) at ~10:45:20; member admission for the model call ended `unknown` (runner latch
+`uncertain`, `effect_outcome_unknown`), no model POST, no result. The budget slot is retained
+unknown; run-08 was retired without further operations. Likely contributor: concurrent heavy
+Xcode/Flutter builds from a parallel agent against the 3-second admission window (not proven;
+no explicit error logged). Qualification continues in a fresh run within the remaining 3 operations.
+
+**iOS (G13)**: enrollment blocked on the simulator: the ad-hoc signed harness cannot create its
+Keychain key (-34018). Rebuild with entitlements in progress. Product finding: in cluster mode the
+HUD route `/api/hud/mobile/enrollment` rejects the Border's `cluster` payload (`invalid_contract`);
+enrollment tokens were issued through the Border operator bridge instead.

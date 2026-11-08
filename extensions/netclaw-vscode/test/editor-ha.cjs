@@ -60,7 +60,7 @@ exports.run=async()=>{
    const index=choices.findIndex(v=>h.canonical(v)===h.canonical(bundle.selection));assert.ok(index>=0);
    const pending=api.ownerWorkflow.prepare();await page.locator('.quick-input-list .monaco-list-row').nth(index).click();
    const review=page.getByRole('button',{name:'Review decision',exact:true});await review.waitFor({state:'visible'});
-   const document=vscode.workspace.textDocuments.find(d=>d.uri.scheme==='netclaw-owner'&&d.getText().includes('review_digest'));assert.ok(document);const display=JSON.parse(document.getText());
+   let document;for(let i=0;i<100&&!document;i++){document=vscode.workspace.textDocuments.find(d=>d.uri.scheme==='netclaw-owner'&&d.getText().includes('review_digest'));if(!document)await new Promise(r=>setTimeout(r,100));}assert.ok(document);const display=JSON.parse(document.getText());
    // Fetch original status once to bind state/counters in addition to the displayed immutable review.
    prepared=await api.connection.owner.status({operation_id:display.operation_id,client_nonce:prepareNonce});
    assert.equal(prepared.review_digest,display.review_digest);assert.deepEqual(prepared.review,display.review);h.assertExactReview(prepared,context);
