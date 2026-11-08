@@ -103,3 +103,28 @@ test('expired session and configuration disable during read fail closed', async 
   const state = f.bindings.read(f.owner); state.expires = Date.now() - 1; f.bindings.save(f.owner, state);
   response = await fetch(route, { headers: f.headers }); assert.equal(response.status, 401); assert.equal(f.calls.length, 1);
 });
+
+test('VM Security route takes no arguments and uses the same session, origin and site checks', async t => {
+  const f = await fixture(t, async () => ({ ok: true, data: { site: 'fixture', status: 'not_configured', sources: [] } }));
+  const route = f.url + '/api/hud/convergence/vm-security';
+  assert.equal((await fetch(route)).status, 401);
+  const cross = await new Promise((resolve, reject) => { const req = http.get(route, { headers: { ...f.headers, origin: 'https://evil.example' } }, res => { res.resume(); resolve(res.statusCode); }); req.on('error', reject); });
+  assert.equal(cross, 403);
+  assert.equal(f.calls.length, 0);
+  const ok = await fetch(route, { headers: f.headers });
+  assert.equal(ok.status, 200);
+  assert.deepEqual(f.calls.at(-1), ['vmSecurity', {}]);
+  for (const query of ['?site=other', '?url=https://evil.example', '?path=/api/cases']) {
+    assert.equal((await fetch(route + query, { headers: f.headers })).status, 400);
+  }
+  assert.equal(f.calls.length, 1);
+  assert.throws(() => flowArguments('vmSecurity', { site: 'other' }));
+  assert.deepEqual(flowArguments('vmSecurity', {}), {});
+});
+
+test('VM Security responses for another site are rejected', async t => {
+  const f = await fixture(t, async () => ({ ok: true, data: { site: 'other', status: 'configured', sources: [] } }));
+  const response = await fetch(f.url + '/api/hud/convergence/vm-security', { headers: f.headers });
+  assert.equal(response.status, 502);
+  assert.equal((await response.json()).error.code, 'compatibility');
+});

@@ -1,7 +1,7 @@
 ---
 name: convergence-observations
-description: Inspect retained Convergence traffic rankings and same-window flow evidence for a configured site. Use for top talkers or supporting flow records; not packet capture, IDS verdicts, service deployment or case mutation.
-version: 1.2.1
+description: Inspect retained Convergence traffic rankings, same-window flow evidence and advisory VM Security findings for a configured site. Use for top talkers, supporting flow records or VMs flagged for review; not packet capture, IDS verdicts, service deployment or case mutation.
+version: 1.3.0
 license: Apache-2.0
 tags: [convergence, flows, evidence, read-only]
 ---
@@ -9,7 +9,7 @@ tags: [convergence, flows, evidence, read-only]
 # Convergence observations
 
 Use the optional `convergence-read-mcp` stdio server. Its only tools are
-`convergence_flow_summary` and `convergence_flow_evidence`; it never starts an
+`convergence_flow_summary`, `convergence_flow_evidence` and `convergence_vm_security`; it never starts an
 investigation or changes devices. For Convergence retrieval, use the installed
 native tools. If tools are deferred, discover them with the runtime tool search
 and inspect their parameter schemas. If discovery fails, report the tools as
@@ -20,7 +20,7 @@ or capture traffic to complete a Convergence observation.
 In an internal Risk, return this evidence to the Border Claw; it owns investigation
 planning and correlation. In standalone NetClaw, the same claw performs both roles.
 The Border may use other available, authorized read-only tools or members for IDS,
-firewall, DNS or identity evidence. This source's two-tool boundary does not restrict
+firewall, DNS or identity evidence. This source's read-only boundary does not restrict
 that broader investigation. A denied Convergence read remains denied; another client
 is not a workaround. Discover capabilities rather than assuming they are installed:
 before reporting a source as missing, search tools and Risk members by capability
@@ -75,6 +75,23 @@ not permission to search the filesystem for configuration or credentials.
    - Absence from retained records is not evidence that traffic, a protocol or a
      lookup never happened. API scrape, probe or receipt-time data does not establish
      flow collector liveness, outage or freshness; say what those sources measured.
+
+VM Security (`convergence_vm_security`, no arguments) returns advisory findings for the
+last five minutes from a hypervisor-side observer:
+
+- Patterns are `port_scan`, `network_sweep` and `protected_network_contact`, all with
+  severity `review`. Call them "possible port scanning", "possible network sweep" and
+  "protected network contact". They are not proof of attack, compromise, delivered
+  packets or a successful connection. Source addresses are observed claims, not
+  ownership; a VM is identified by its id and UUID, not by who uses it.
+- Quote the source's `assessment`: `review`, `no_patterns_observed` (no pattern in the
+  sampled, covered traffic, never "safe") or `insufficient_evidence` (current activity
+  unknown). Report coverage with it: sampling, capture drops or discarded events
+  (`null` means unknown, not zero), snapshot gaps, VMs without a UUID, stopped or
+  unobserved VMs, a truncated finding list, and the listed limitations.
+- `synthetic: true` (sources of kind `synthetic`) is demonstration data: say so first
+  and draw no conclusion about real VMs. `status: not_configured` means there is no
+  source for the site, not that the VMs are clean.
 
 Completion: provide the observation, exact evidence window, source coverage and
 limits, or the specific unavailable state. Every factual claim must be traceable to
