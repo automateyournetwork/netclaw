@@ -226,3 +226,12 @@ all further reservations (`unresolved_operation_retained`). Budget used: 5/10 op
 10/20 claimed inferences (actual model POSTs: 8). It is not reset. Remaining REAL rows
 that need a new approval (and HUD/Code/Mobile journeys, T038-T040) are blocked pending an
 owner decision on how to account for this.
+
+## Owner decision on the retained unknown slot (2026-11-08)
+
+The owner chose continuation: a fresh run (real-run-08) may continue REAL work with
+the cumulative R08 cap unchanged at 10 approved operations. real-run-07 used 5 (4
+completed + 1 retained unknown, op5 2f13f31b, never dispatched). real-run-08 is limited
+by the operator to at most 5 further approvals, so the combined total never exceeds 10
+operations / 20 claimed inferences / 10 native effects. real-run-07's unknown slot stays
+spent and is not reset. Unknown-producing negatives run last.
