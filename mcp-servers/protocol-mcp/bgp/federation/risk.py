@@ -200,20 +200,43 @@ class RiskManager:
         p = self.keys_dir / "risk-ca-anchor.pem"
         return p.read_text() if p.exists() else None
 
-    def hub_credential(self):
+    def hub_credential(self, renew: bool = False):
         """The Border's CA-signed hub credential (cert + key), created once.
-        Returns (hub_cert_pem, hub_key_pem)."""
+        Reissued under the same CA and key when ``renew`` is set (the rotation
+        schedule) or within 7 days of expiry. Returns (hub_cert_pem, hub_key_pem)."""
+        import fcntl
         from . import certs
         cad = self.keys_dir / "risk-ca"
         hcrt, hkey = cad / "hub.crt", cad / "hub.key"
-        if hcrt.exists() and hkey.exists():
-            return hcrt.read_text(), hkey.read_text()
+        seen = hcrt.read_text() if (hcrt.exists() and hkey.exists()) else None
+        if seen is not None and not renew:
+            renew_before = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
+            if certs.cert_not_after(seen) > renew_before:
+                return seen, hkey.read_text()
+        self.ensure_risk_ca()  # creates risk-ca/ as before; idempotent
+        # The daemon, rotation and install scripts can all renew; one at a time.
+        fd = os.open(cad / ".hub.lock", os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            now = hcrt.read_text() if (hcrt.exists() and hkey.exists()) else None
+            if now is not None and now != seen:
+                return now, hkey.read_text()  # another process renewed while we waited
+            return self._issue_hub_credential(certs, cad)
+        finally:
+            os.close(fd)
+
+    def _issue_hub_credential(self, certs, cad):
+        hcrt, hkey = cad / "hub.crt", cad / "hub.key"
+        # Keep the key: identities that pin the hub key id stay valid.
+        current_key = hkey.read_text() if (hcrt.exists() and hkey.exists()) else None
+        if current_key:
+            logger.info("Renewing hub credential under the existing risk CA and key")
         ca_cert, ca_key = self.ensure_risk_ca()
         risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
         hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",
-                                             san=f"{risk_name}/border")
-        hcrt.write_text(hub_cert)
+                                             san=f"{risk_name}/border", key_pem=current_key)
         certs._write_secret(hkey, hub_key)
+        certs._write_secret(hcrt, hub_cert, mode=0o644)  # atomic: readers never see a partial file
         return hub_cert, hub_key
 
     def attest_hub(self, member_nonce: bytes) -> Optional[dict]:

@@ -88,6 +88,21 @@ try {
   const authHeaders = { cookie: `nc_hud=${cookie.value}`, 'X-NetClaw-Installation': installation.installationId };
   assert.equal((await fetch(url + '/api/hud/convergence/flows', { headers: { ...authHeaders, origin: 'https://evil.example' } })).status, 403);
   assert.equal((await fetch(url + '/api/hud/convergence/flows', { headers: { ...authHeaders, 'X-NetClaw-Installation': 'wrong' } })).status, 401);
+  // VM Security: the demo bundle serves the labelled synthetic assessment; the host bundle has no source.
+  const vmResponse = page.waitForResponse(response => new URL(response.url()).pathname === '/api/hud/convergence/vm-security');
+  await page.getByRole('button', { name: 'Show VM Security' }).click();
+  const vm = await (await vmResponse).json();
+  assert.equal(vm.ok, true); assert.equal(vm.data.site, env.CONVERGENCE_SITE);
+  if (summary.data.coverage.mode === 'demo') {
+    assert.equal(vm.data.synthetic, true);
+    assert.deepEqual(vm.data.sources[0].findings.map(f => f.kind), ['port_scan', 'network_sweep', 'protected_network_contact']);
+    await page.getByText('Synthetic demonstration.', { exact: false }).waitFor();
+    await page.getByText('Possible port scanning', { exact: true }).waitFor();
+  } else {
+    assert.equal(vm.data.status, 'not_configured');
+    await page.getByText('No VM Security source is configured', { exact: false }).waitFor();
+  }
+  assert.ok(!JSON.stringify(vm).includes(env.CONVERGENCE_API_TOKEN));
   await page.screenshot({ path: path.join(directory, 'convergence-' + summary.data.coverage.mode + '.png'), fullPage: true });
   bindings.revoke(cookie.value);
   assert.equal((await fetch(url + '/api/hud/convergence/flows', { headers: authHeaders })).status, 401);

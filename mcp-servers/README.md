@@ -194,4 +194,4 @@ persistent daily/task budgets and exact scoped private disclosure consent. No de
 
 ## Convergence read-only connector
 
-[convergence-read-mcp](convergence-read-mcp/README.md) provides two fixed-site retained flow tools over stdio. Install the optional `convergence-read` component; [connection guide](../docs/CONVERGENCE.md). It operates no collection or storage services.
+[convergence-read-mcp](convergence-read-mcp/README.md) provides three fixed-site read-only tools over stdio: retained flow summary and evidence, and advisory VM Security findings. Install the optional `convergence-read` component; [connection guide](../docs/CONVERGENCE.md). It operates no collection or storage services.

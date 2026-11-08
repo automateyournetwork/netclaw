@@ -113,9 +113,9 @@ configuration, authentication, transport and message delivery retain separate re
 - Zoom RTMS MCP       → ZOOM_CLIENT_ID, ZOOM_CLIENT_SECRET, ZOOM_ACCOUNT_ID, ZOOM_RTMS_WEBHOOK_SECRET, N2N_ZOOM_CHANNEL_PORT, N2N_ZOOM_CHANNEL_SECRET (see docs/ZOOM-MEETING-INTELLIGENCE.md, spec 118)
 ```
 
-## Convergence flow evidence
+## Convergence evidence
 
-Optional `convergence-read-mcp`: `convergence_flow_summary` and `convergence_flow_evidence`. Fixed site/exporters, private viewer key and explicit enablement; see [connection guide](docs/CONVERGENCE.md). The OpenClaw `convergence` member supplies evidence to the Border for authorized correlation. No collection, case mutation or automated investigation.
+Optional `convergence-read-mcp`: `convergence_flow_summary`, `convergence_flow_evidence` and `convergence_vm_security` (advisory VM findings with coverage; review only, never a verdict). Fixed site/exporters, private viewer key and explicit enablement; see [connection guide](docs/CONVERGENCE.md). The OpenClaw `convergence` member supplies evidence to the Border for authorized correlation. No collection, case mutation or automated investigation.
 
 ## Detailed Per-Integration Notes
 
