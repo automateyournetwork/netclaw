@@ -43,6 +43,8 @@ MAX_DOC_PAGES = _env_int("RAG_MAX_DOC_PAGES", 1000)
 CRAWL_MAX_PAGES = _env_int("RAG_CRAWL_MAX_PAGES", 30)
 SNAPSHOT_WARN_DAYS = _env_int("RAG_SNAPSHOT_WARN_DAYS", 90)
 MAX_ROUNDS = _env_int("RAG_MAX_ROUNDS", 3)
+# Newest ready snapshot collections one alias search fans out to (spec 181).
+INVESTIGATION_MAX_COLLECTIONS = max(1, _env_int("RAG_INVESTIGATION_MAX_COLLECTIONS", 50))
 
 DB_PATH = DATA_DIR / "rag.db"
 CHROMA_DIR = DATA_DIR / "chroma"
