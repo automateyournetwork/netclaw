@@ -72,9 +72,9 @@ review/sent markers and original result while node or authority changes.
 - [X] T035 Freeze fresh NetClaw/OpenClaw/DefenseClaw/Ollama/nativeMCP source/image/profile/resource packet in labs/ha and private qualification manifest (FR-020/022).
 - [X] T036 Run actual bounded guarded native workload via each Border and leader-loss recovery in labs/ha/real_runtime.py;record signed evidence/counters (FR-005/010/020/021;SC-001/002/003).
 - [ ] T037 Run all REAL model/tool admission negatives,unknown/restart/resultACK/restore cases from qualification-matrix.md;record cumulative counters and every failure in private evidence (FR-005–015/020/021;SC-001/002/003).
-- [ ] T038 Run actual browser HUD authority/quorum/staleapproval/original-result journeys tied to REAL signed records via labs/ha/client_qualification.mjs (FR-016/019/020;SC-004).
-- [ ] T039 Run actual isolated MacCode1.109 G12 failover/recovery tied to REAL signed records via extensions/netclaw-vscode/scripts/cloud-editor.mjs and owned harness (FR-017/019/020;SC-004).
-- [ ] T040 Run actual nativeiOSsimulator G13 enrollment/background/cold/failover tied to REAL signed records via mobile integration_test and owned harness (FR-018/019/020;SC-004).
+- [X] T038 Run actual browser HUD authority/quorum/staleapproval/original-result journeys tied to REAL signed records via labs/ha/client_qualification.mjs (FR-016/019/020;SC-004).
+- [X] T039 Run actual isolated MacCode1.109 G12 failover/recovery tied to REAL signed records via extensions/netclaw-vscode/scripts/cloud-editor.mjs and owned harness (FR-017/019/020;SC-004).
+- [X] T040 Run actual nativeiOSsimulator G13 enrollment/background/cold/failover tied to REAL signed records via mobile integration_test and owned harness (FR-018/019/020;SC-004).
 - [ ] T041 Record detection/election/recovery and network/storage/clock/resource measurements in specs/179-border-ha-authority/measurements.md (FR-007/020/021;SC-005).
 
 ## Phase 8 — Coherence and closeout
@@ -148,3 +148,7 @@ checks in coherence.md. HUD build and editor TypeScript checks pass. All actual
 fixture/REAL/native, evidence/cleanup and owner-acceptance tasks stay open until
 their own complete evidence is recorded. Process fixture cleanup failures remain
 explicit in verification.md and cannot be hidden by these source checkboxes.
+
+<!-- 2026-11-08 status: T037 stays open: 9 matrix rows are fixture-only and 2 partial (see
+evidence-matrix.md); the REAL budget (10/10) is spent. T038-T040 close with the stated limits
+(HUD same-tab cold_recovery not exercised). T048 requires the actual owner review. -->

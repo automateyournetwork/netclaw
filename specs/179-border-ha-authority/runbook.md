@@ -87,3 +87,20 @@ consumes its reserved allowance; unknowns retain the sole active slot. Export
 before cleanup. Stop/remove only exact listed R08-owned resources after their
 identity and preserved evidence are verified; preserve retained owner homes,
 retirement schedules and unrelated resources. End with memory and the GAIT log.
+
+## R08 operator notes from the REAL runs (2026-11-08)
+
+- Never run an approval-refusal or unknown-producing negative before the required positives:
+  an `unknown` reservation keeps the single active slot and the budget then refuses every later
+  reservation (`unresolved_operation_retained`). Run those negatives last.
+- Keep the machine idle during approvals. Admission proofs must arrive inside the signed
+  manifest's `admission_ms` (3 s); heavy builds/simulator boots can push a proof out and the
+  operation ends `unknown` (fail closed, no replay).
+- A role restarted by hand must reuse the exact owned argv from `<role>-spawn.json` and write
+  its own log; `start-role` claims are one-shot.
+- HUD ingress self-stops after 30 minutes; `NETCLAW_INGRESS_LIFETIME_S` (60-5400) extends it for
+  long client journeys. Never delete a serve claim.
+- Mobile enrollment tokens live 120 s: issue only after the app waits for its config. In cluster
+  mode the HUD route `/api/hud/mobile/enrollment` now works (contract + auth-context fix).
+- The review lifetime is about 180 s; prepare a stale-review pending review immediately before
+  the authority change, and only run the stale phase after the new authority is observed.
