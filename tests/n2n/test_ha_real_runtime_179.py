@@ -345,3 +345,21 @@ def test_proxy_topology_is_optional_default_off_and_exactly_bounded(tmp_path):
            dict(proxied, proxy_ports={'etcd': proxied['proxy_ports']['etcd'], 'cluster': [[32010] * 3] * 3})]
     for value in bad:
         with pytest.raises(RehearsalRefused): validate_plan(copy.deepcopy(value))
+
+
+def test_instrument_flag_is_scoped_to_private_instrument_dir_and_matching_role(tmp_path):
+    value = budget(tmp_path); run = Rehearsal.__new__(Rehearsal); run.root = value.root; run.budget = value
+    run.validate_role = lambda name: None; run.plan = {'run_id': identity(), 'python': {'executable': '/bin/true'}}; run.source = value.root / 'source'
+    (value.root / 'instrument').mkdir(mode=0o700)
+    outside = value.root / 'other.json'; write_new(outside, {'role_name': 'member'})
+    with pytest.raises(RehearsalRefused, match='instrument_config_scope'): run.start_role('member', str(outside))
+    wrong = value.root / 'instrument' / 'x.json'; write_new(wrong, {'role_name': 'border0'})
+    with pytest.raises(RehearsalRefused, match='instrument_role_mismatch'): run.start_role('member', str(wrong))
+
+
+def test_export_instrument_copies_with_hashes_and_refuses_missing_dir(tmp_path):
+    value = budget(tmp_path); run = Rehearsal.__new__(Rehearsal); run.root = value.root; run.budget = value
+    with pytest.raises(RehearsalRefused, match='no_instrument_directory'): run.export_instrument(tmp_path / 'out0')
+    d = value.root / 'instrument'; d.mkdir(mode=0o700); write_new(d / 'a.json', {'k': 1})
+    result = run.export_instrument(tmp_path / 'out1')
+    assert result['exported'] == 1 and (tmp_path / 'out1' / 'instrument-manifest.json').exists()

@@ -426,14 +426,24 @@ class Rehearsal:
             return record
         finally: store.close()
 
-    def start_role(self, name):
+    def start_role(self, name, instrument_config=None):
         self.validate_role(name)
+        launcher = 'scripts/protected-role.py'; extra = []; claim_value = {'run_id': self.plan['run_id'], 'role': name, 'at_ms': int(time.time() * 1000)}
+        if instrument_config is not None:
+            # Qualification-only: the instrumented launcher is used only when this flag names a private
+            # config inside <root>/instrument whose role_name matches. Default runs never load it.
+            cfg = Path(instrument_config)
+            need(cfg.is_absolute() and cfg.parent == self.root / 'instrument' and cfg.name.endswith('.json'), 'instrument_config_scope')
+            document = json.loads(read_private(cfg))
+            need(document.get('role_name') == name, 'instrument_role_mismatch')
+            launcher = 'labs/ha/real_role_launcher.py'; extra = ['--instrument-config', str(cfg)]
+            claim_value['instrument_config'] = str(cfg)
         claim = self.root / (name + '-start.claim.json')
-        write_new(claim, {'run_id': self.plan['run_id'], 'role': name, 'at_ms': int(time.time() * 1000)})
+        write_new(claim, claim_value)
         log = self.root / (name + '-daemon.log')
         fd = os.open(log, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW, 0o600)
-        argv = [self.plan['python']['executable'], '-I', '-B', str(self.source / 'scripts/protected-role.py'),
-                '--contract', str(self.root / 'contracts' / (name + '.json')), 'run']
+        argv = [self.plan['python']['executable'], '-I', '-B', str(self.source / launcher),
+                '--contract', str(self.root / 'contracts' / (name + '.json')), *extra, 'run']
         try:
             with os.fdopen(fd, 'wb') as stream:
                 process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=stream, stderr=stream,
@@ -442,6 +452,18 @@ class Rehearsal:
             write_new(self.root / (name + '-start.unknown.json'), {'state': 'outcome_unknown'}); raise
         write_new(self.root / (name + '-spawn.json'), {'pid': process.pid, 'argv': argv})
         return {'spawned_pid': process.pid, 'ready': False}
+
+    def export_instrument(self, destination):
+        """Copy the private instrument directory (configs, claims, injection evidence) with hashes."""
+        source = self.root / 'instrument'
+        need(source.is_dir(), 'no_instrument_directory')
+        target = private_directory(destination, create=True); manifest = {}
+        for path in sorted(p for p in source.rglob('*') if p.is_file() and not p.is_symlink()):
+            relative = path.relative_to(source); raw = read_private(path, 16 * 1024 * 1024)
+            out = target / relative; out.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
+            write_new(out, raw); manifest[str(relative)] = hashlib.sha256(raw).hexdigest()
+        write_new(target / 'instrument-manifest.json', {'schema_version': 1, 'files': manifest})
+        return {'exported': len(manifest), 'destination': str(target)}
 
     def operator(self, node, method, params):
         need(node in ('border0', 'border1', 'border2') and method in ('catalog', 'prepare', 'decision', 'status', 'reconcile', 'cluster.info'),
@@ -765,9 +787,11 @@ def main(argv=None):
     commands = parser.add_subparsers(dest='command', required=True)
     sub = commands.add_parser('prepare'); sub.add_argument('--plan', required=True)
     for name in ('model-start', 'coordination-start', 'materialize', 'start-role', 'stop-role', 'review', 'approve',
-                 'publish-claim', 'export-operation', 'export-unknown', 'attachments', 'budget', 'observe'):
+                 'publish-claim', 'export-operation', 'export-unknown', 'export-instrument', 'attachments', 'budget', 'observe'):
         sub = commands.add_parser(name); sub.add_argument('--root', required=True)
         if name in ('start-role', 'stop-role'): sub.add_argument('--role', choices=('border0', 'border1', 'border2', 'member'), required=True)
+        if name == 'start-role': sub.add_argument('--instrument-config')
+        if name == 'export-instrument': sub.add_argument('--destination', required=True)
         if name in ('review', 'approve', 'observe'): sub.add_argument('--node', choices=('border0', 'border1', 'border2'), required=True)
         if name in ('approve', 'publish-claim'): sub.add_argument('--review-file', required=True)
         if name == 'publish-claim':
@@ -781,7 +805,8 @@ def main(argv=None):
         if args.command == 'model-start': result = run.start_model()
         elif args.command == 'coordination-start': result = run.start_coordination()
         elif args.command == 'materialize': result = run.materialize()
-        elif args.command == 'start-role': result = run.start_role(args.role)
+        elif args.command == 'start-role': result = run.start_role(args.role, args.instrument_config)
+        elif args.command == 'export-instrument': result = run.export_instrument(args.destination)
         elif args.command == 'stop-role': result = run.stop_role(args.role)
         elif args.command == 'review': result = run.prepare_review(args.node)
         elif args.command == 'approve': result = run.approve_once(args.node, args.review_file)
