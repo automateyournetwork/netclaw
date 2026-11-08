@@ -5,7 +5,15 @@ production mode) and one Proxmox VE node. No credentials are recorded here.
 
 ## Service (convergence-platform)
 
-- Pinned release `v0.1.2` (`1e7900f`). Its CI passed (setup/cluster/chart tests, service
+- Pinned release `v0.1.5` (`6615be3`), re-pinned from `v0.1.2` on 2026-11-08. Changes since
+  `v0.1.2` are in the alert receiver (NetClaw paths via `NETCLAW_DIR`, RAG calls in NetClaw's
+  own runtime, log redaction of webhook tokens and URL credentials) and docs; the API and
+  service contract the read connector uses are unchanged. Its CI passed. The real integration
+  below passed against it on the VM: demo and host flow evidence, isolated repeat install,
+  viewer scope, and the Dashboard/Canvas handoff (all PASS, `serviceRevision` `6615be3`). The
+  receiver, case MCP and NetClaw investigation path from `v0.1.3`-`v0.1.5` have run on the
+  author's production host since 2026-11-07.
+- Previously pinned release `v0.1.2` (`1e7900f`). Its CI passed (setup/cluster/chart tests, service
   and agent tests, API Node tests) and published `ghcr.io/byrn-baker/convergence-api:0.1.2`
   and `convergence-ids-ingest:0.1.2` (amd64, arm64). Earlier: `v0.1.0` (`40c179a`, image
   job failed, nothing published) and `v0.1.1` (`b468b4d`, first published images).
