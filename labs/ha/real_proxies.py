@@ -98,7 +98,8 @@ def process_start(pid):
     stat = Path('/proc') / str(pid) / 'stat'
     if stat.exists():  # Linux: stable clock-tick start time (ps lstart can drift by a second)
         try:
-            return 'ticks:' + stat.read_text().rsplit(')', 1)[1].split()[19]
+            fields = stat.read_text().rsplit(')', 1)[1].split()
+            return None if fields[0] == 'Z' else 'ticks:' + fields[19]  # zombie = already stopped
         except (OSError, IndexError):
             return None
     result = subprocess.run(['ps', '-o', 'lstart=', '-p', str(pid)], capture_output=True, text=True, timeout=5)
