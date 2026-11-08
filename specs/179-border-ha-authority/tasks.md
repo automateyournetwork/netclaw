@@ -85,7 +85,7 @@ review/sent markers and original result while node or authority changes.
 - [X] T045 Write operator runbooks and exact row-to-artifact evidence matrix retaining every limitation/failure in specs/179-border-ha-authority/runbook.md,verification.md (FR-020/021/024;SC-001–006).
 - [X] T046 Export/hash consistent private evidence and verify exact owned local cleanup,retained authority and retirement preservation in private receipts and verification.md (FR-022;SC-006).
 - [X] T047 Complete daily memory/GAIT audit,maintainer completion summary and clear-safe resume in memory/2026-11-07.md and specs/179-border-ha-authority/resume.md (FR-024/025;SC-006).
-- [ ] T048 Present completed technical/measurement acceptance packet and record actual owner review before R09 in specs/179-border-ha-authority/acceptance.md (SC-006).
+- [X] T048 Present completed technical/measurement acceptance packet and record actual owner review before R09 in specs/179-border-ha-authority/acceptance.md (SC-006).
 
 ## Dependencies and parallel opportunities
 

@@ -1,8 +1,7 @@
-# Spec 179 acceptance packet (T048): AWAITING OWNER REVIEW
+# Spec 179 acceptance packet (T048): ACCEPTED WITH LIMITS (2026-11-08)
 
-Updated 2026-11-08 after the Option 2 closure runs. **No owner review has been recorded.** Do not
-treat this document as acceptance. R09 (multi-region) must not start until the owner records a
-decision below, and the R09 release gate at the end of this file applies.
+Updated 2026-11-08 after the Option 2 closure runs. **Owner review recorded below (ACCEPT WITH LIMITS).** R09 (multi-region) may start; the R09 release
+gate at the end of this file applies.
 
 ## What passed
 - Source + fixture: full authority/admission/ledger/recovery implementation and the fixture matrix.
@@ -49,8 +48,11 @@ decision below, and the R09 release gate at the end of this file applies.
 4. Confirm R09 may start (subject to the R09 release gate below).
 
 ## Owner review record
-Reviewer: ____________  Date: ____________  Decision: ACCEPT / ACCEPT WITH LIMITS / REJECT
-Notes:
+Reviewer: John Capobianco (owner)  Date: 2026-11-08  Decision: ACCEPT WITH LIMITS
+Notes: Recorded by the implementing agent from the owner's in-session statement ("1 - signed") after
+the owner reviewed this packet; the limits listed above are accepted as documented. Owner confirmed
+the VS Code, Mobile and HUD builds are required but only after multi-region is implemented (R09
+release gate below); no builds were published for R08. Spec 179 is HA-complete and R09 may start.
 
 ## ⚠ R09 RELEASE GATE: client builds MUST be updated for multi-region HA Borders
 
