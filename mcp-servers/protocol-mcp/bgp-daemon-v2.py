@@ -1246,6 +1246,10 @@ async def _start_cert_lifecycle(fed):
         rot.register(kind, subject, cert_pem, issuer=("ACME" if kind == "acme" else "self"))
     except Exception as e:
         logger.warning("cert lifecycle init: %s", e)
+    try:
+        rot.register_hub()  # Border: renew the hub credential at 2/3 of its life (spec 180)
+    except Exception as e:
+        logger.warning("cert lifecycle hub registration: %s", e)
     interval = int(os.environ.get("N2N_CERT_RENEW_CHECK_S", "3600"))
     while True:
         try:

@@ -75,10 +75,12 @@ def test_rotation_renews_the_hub_on_its_schedule(tmp_path):
                             manager=FederationManager(base_dir=str(tmp_path)))
     try:
         svc.risk.set_role('border', risk_name='test-risk')
-        cert, _ = svc.risk.hub_credential()
         rot = RotationManager(svc)
-        rot.register('hub', 'test-risk/border', cert, issuer='risk-ca')
+        assert rot.register_hub() is True
+        cert, _ = svc.risk.hub_credential()
         cred = svc.manager.list_credentials()[0]
+        assert cred['kind'] == 'hub' and cred['subject_identity'] == 'test-risk/border'
+        assert cred['renew_after'] < cred['not_after']
         assert asyncio.run(rot.renew_one(cred)) is True
         renewed, _ = svc.risk.hub_credential()
         assert renewed != cert and certs.key_fingerprint(renewed) == certs.key_fingerprint(cert)
@@ -145,5 +147,35 @@ def test_concurrent_renewals_leave_a_matching_pair(tmp_path):
         nonce = b'after-concurrent-renewal'
         attestation = risk.attest_hub(nonce)
         assert RiskManager.verify_hub_attestation(attestation, risk.risk_ca_pem(), nonce, 'test-risk')
+    finally:
+        manager.close()
+
+
+def test_member_does_not_register_a_hub(tmp_path):
+    from bgp.federation.service import FederationService
+    from bgp.federation.rotation import RotationManager
+    svc = FederationService(local_as=65001, router_id='4.4.4.4', display_name='fixture',
+                            manager=FederationManager(base_dir=str(tmp_path)))
+    try:
+        assert RotationManager(svc).register_hub() is False
+        assert svc.manager.list_credentials() == []
+    finally:
+        svc.manager.close()
+
+
+def test_reading_a_valid_credential_needs_no_write_access(tmp_path):
+    import os
+    manager, risk = _border(tmp_path)
+    try:
+        first = risk.hub_credential()
+        directory = risk.keys_dir / 'risk-ca'
+        lock = directory / '.hub.lock'
+        if lock.exists():
+            lock.unlink()
+        os.chmod(directory, 0o500)
+        try:
+            assert risk.hub_credential() == first
+        finally:
+            os.chmod(directory, 0o700)
     finally:
         manager.close()

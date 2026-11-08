@@ -206,24 +206,31 @@ class RiskManager:
         schedule) or within 7 days of expiry. Returns (hub_cert_pem, hub_key_pem)."""
         import fcntl
         from . import certs
-        self.ensure_risk_ca()  # creates risk-ca/ with its usual permissions; idempotent
         cad = self.keys_dir / "risk-ca"
-        # The daemon, rotation and install scripts all call this; renew one at a time.
-        with open(cad / ".hub.lock", "a") as lock:
-            fcntl.flock(lock, fcntl.LOCK_EX)
-            return self._hub_credential_locked(certs, cad, renew)
-
-    def _hub_credential_locked(self, certs, cad, renew):
         hcrt, hkey = cad / "hub.crt", cad / "hub.key"
-        current_key = None
-        if hcrt.exists() and hkey.exists():
-            existing = hcrt.read_text()
+        seen = hcrt.read_text() if (hcrt.exists() and hkey.exists()) else None
+        if seen is not None and not renew:
             renew_before = datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(days=7)
-            if not renew and certs.cert_not_after(existing) > renew_before:
-                return existing, hkey.read_text()
-            # Keep the key: identities that pin the hub key id stay valid.
-            current_key = hkey.read_text()
-            logger.info("Renewing expiring hub credential under the existing risk CA")
+            if certs.cert_not_after(seen) > renew_before:
+                return seen, hkey.read_text()
+        self.ensure_risk_ca()  # creates risk-ca/ as before; idempotent
+        # The daemon, rotation and install scripts can all renew; one at a time.
+        fd = os.open(cad / ".hub.lock", os.O_RDWR | os.O_CREAT | getattr(os, "O_NOFOLLOW", 0), 0o600)
+        try:
+            fcntl.flock(fd, fcntl.LOCK_EX)
+            now = hcrt.read_text() if (hcrt.exists() and hkey.exists()) else None
+            if now is not None and now != seen:
+                return now, hkey.read_text()  # another process renewed while we waited
+            return self._issue_hub_credential(certs, cad)
+        finally:
+            os.close(fd)
+
+    def _issue_hub_credential(self, certs, cad):
+        hcrt, hkey = cad / "hub.crt", cad / "hub.key"
+        # Keep the key: identities that pin the hub key id stay valid.
+        current_key = hkey.read_text() if (hcrt.exists() and hkey.exists()) else None
+        if current_key:
+            logger.info("Renewing hub credential under the existing risk CA and key")
         ca_cert, ca_key = self.ensure_risk_ca()
         risk_name = (self.get_risk() or {}).get("risk_name") or "risk"
         hub_cert, hub_key = certs.issue_cert(ca_cert, ca_key, f"{risk_name}/border",

@@ -48,6 +48,16 @@ class RotationManager:
             issuer=issuer, not_before=_iso(nb), not_after=_iso(na), renew_after=_iso(ra),
             cert_pem=cert_pem, key_path=key_path)
 
+    def register_hub(self) -> bool:
+        """On a Border, put the hub credential on the renewal schedule."""
+        risk = self.risk
+        if not risk.is_border():
+            return False
+        cert_pem, _ = risk.hub_credential()
+        name = (risk.get_risk() or {}).get("risk_name") or "risk"
+        self.register("hub", f"{name}/border", cert_pem, issuer="risk-ca")
+        return True
+
     # ---- renewal ------------------------------------------------------
 
     def due(self, now: Optional[datetime.datetime] = None) -> list:

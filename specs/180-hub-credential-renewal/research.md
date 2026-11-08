@@ -4,6 +4,8 @@
   issued for 90 days (`certs.issue_cert(days=90)`).
 - Members verify `attest_hub` against the pinned risk CA (`verify_hub_attestation`),
   which rejects an expired leaf. The anchor does not need to change, only the leaf.
+- The daemon's certificate lifecycle (`_start_cert_lifecycle`, only with
+  `N2N_CERT_MODE` on) registered the host or ACME credential but never the hub.
 - `RotationManager.renew_one` (spec 060) renews kind `hub` by calling
   `hub_credential()` and refuses an unchanged certificate (`_validate_successor`), so
   the scheduled renewal could never succeed. It renews at

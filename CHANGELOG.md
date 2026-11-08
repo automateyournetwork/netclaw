@@ -4,7 +4,7 @@ NetClaw source releases use `1.x.y`. Feature specs increment the minor version a
 
 ## [1.18.8] - 2026-11-08
 
-- The Border renews its hub credential under the same risk CA and key: on the rotation schedule, and within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.
+- The Border renews its hub credential under the same risk CA and key: on the rotation schedule when `N2N_CERT_MODE` is on, and in every mode within 7 days of expiry when a member asks for attestation. Before, members rejected a Border running past the certificate's 90 days.
 
 Spec [180-hub-credential-renewal](specs/180-hub-credential-renewal/spec.md). See [release notes](docs/releases/1.18.8.md).
 

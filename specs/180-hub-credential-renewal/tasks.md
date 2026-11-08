@@ -6,4 +6,5 @@
 - [x] T004 Rotation schedule renews the hub credential explicitly.
 - [x] T005 Tests: expired hub re-attests, valid credential unchanged, key id kept and validity extended, rotation renews in place.
 - [x] T006 Serialize renewal and write files atomically (review finding).
-- [x] T007 Release metadata.
+- [x] T007 Register the hub with the rotation schedule at startup (review finding).
+- [x] T008 Release metadata.
