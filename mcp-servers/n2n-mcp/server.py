@@ -39,6 +39,9 @@ _TASK_WAIT_HINT = "still working — call n2n_task_wait again with the same task
 _TASK_NOT_FOUND_HINT = (
     "task not found (missing, purged, or not yours) — waiting again will not help"
 )
+_TASK_ERROR_HINT = (
+    "could not read the task status — call n2n_task_wait again with the same task_id"
+)
 
 
 def _task_payload_state(payload):
@@ -52,14 +55,25 @@ def _task_payload_state(payload):
 def _task_not_found(payload, task_id):
     """Payload for a task the daemon or peer cannot report on.
 
-    That is the daemon's 404 body (an `error` and no `state`), a peer's
-    `state: unknown`, or any payload without a string `state`. The original
-    fields are kept; `not_found` and a hint are added, and `still_running` is not.
+    That is an HTTP 404 from the daemon (`{"error": "unknown task"}`) or a
+    peer's `state: unknown`. The original fields are kept; `not_found` and a
+    hint are added, and `still_running` is not.
     """
     body = dict(payload) if isinstance(payload, dict) else {}
     body.setdefault("task_id", task_id)
     body["not_found"] = True
     body["hint"] = _TASK_NOT_FOUND_HINT
+    return body
+
+
+def _task_read_error(payload, task_id, status, message):
+    """A status read that failed but may succeed later: state error, no not_found."""
+    body = {"task_id": task_id, "state": "error", "http_status": status}
+    detail = payload.get("error") if isinstance(payload, dict) else None
+    body["error"] = detail if isinstance(detail, str) and detail else message
+    if payload is not None:
+        body["response"] = payload
+    body["hint"] = _TASK_ERROR_HINT
     return body
 
 
@@ -101,6 +115,31 @@ async def _get(path: str, params: Optional[dict] = None) -> dict:
     async with httpx.AsyncClient(base_url=BGP_DAEMON_API, timeout=30) as c:
         r = await c.get(path, params=params)
         return r.json()
+
+
+async def _get_with_status(path: str):
+    """GET for n2n_task_wait: (HTTP status, JSON body or None).
+
+    Unlike _get, the status code is kept so a 404 is not confused with a 5xx.
+    The scoped broker answers 200 with the effect's result or raises on its own
+    refusals (403/409); those come back as their status here.
+    """
+    if os.environ.get('NETCLAW_FEDERATION_SCOPED') == '1':
+        try:
+            return 200, await _scoped('GET', path, None)
+        except httpx.HTTPStatusError as exc:
+            try:
+                body = exc.response.json()
+            except ValueError:
+                body = None
+            return exc.response.status_code, body
+    async with httpx.AsyncClient(base_url=BGP_DAEMON_API, timeout=30) as c:
+        r = await c.get(path)
+        try:
+            body = r.json()
+        except ValueError:
+            body = None
+        return r.status_code, body
 
 
 async def _post(path: str, body: Optional[dict] = None) -> dict:
@@ -559,9 +598,13 @@ async def n2n_task_wait(
     interrupted. The state is taken only from the payload's state field.
 
     A task that cannot be found returns at once with not_found true and no
-    still_running: the daemon's 404 body ({"error": "unknown task"}), a
-    peer's state "unknown", or a payload without a string state. Do not call
-    n2n_task_wait again for it.
+    still_running: an HTTP 404 from the daemon ({"error": "unknown task"}) or
+    a peer's state "unknown". Do not call n2n_task_wait again for it.
+
+    Any other failed read returns at once with state "error", http_status, and
+    no not_found: a non-2xx status (5xx, scoped refusal), a body without a
+    string state, or a transport error. Those may clear, so the caller can call
+    n2n_task_wait again.
 
     When the slice ends first, the last payload adds still_running true and a
     hint to call n2n_task_wait again with the same task_id. Fetch the output
@@ -576,14 +619,20 @@ async def n2n_task_wait(
     deadline = time.monotonic() + timeout
     while True:
         try:
-            payload = await _get(f"/n2n/tasks/{task_id}")
+            status, payload = await _get_with_status(f"/n2n/tasks/{task_id}")
         except Exception as exc:
             return _gcf_dumps({"task_id": task_id, "state": "error", "error": str(exc)})
         state = _task_payload_state(payload)
+        if status == 404 or state == "unknown":
+            return _gcf_dumps(_task_not_found(payload, task_id))
+        if not 200 <= status < 300:
+            return _gcf_dumps(_task_read_error(payload, task_id, status, f"HTTP {status}"))
         if state in _TERMINAL_TASK_STATES:
             return _gcf_dumps(payload)
-        if state is None or state == "unknown":
-            return _gcf_dumps(_task_not_found(payload, task_id))
+        if state is None:
+            return _gcf_dumps(_task_read_error(
+                payload, task_id, status, "task status response has no string state"
+            ))
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             if isinstance(payload, dict):

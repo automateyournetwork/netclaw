@@ -17,8 +17,11 @@
   but return `STORAGE_UNAVAILABLE` when none can be read. A documents index
   failure on `all` / `*` (count or retrieve) returns `STORAGE_UNAVAILABLE` with
   the existing message. Log `<alias> -> <collections searched>`.
-- `n2n_task_wait` returns `not_found: true` at once for a 404 body, `state:
-  unknown`, or a payload with no string `state`.
+- `n2n_task_wait` reads the status code through `_get_with_status`. HTTP 404 or
+  `state: unknown` returns `not_found: true` at once; any other non-2xx, or a
+  body with no string `state`, returns `state: error` with `http_status`.
+- Date filters select snapshot rows before the cap; alias responses count
+  `collections_searched` and `collections_skipped`.
 - Document the aliases in the `rag_search` docstring, `mcp-servers/rag-mcp/README.md`,
   and `workspace/skills/rag/SKILL.md`.
 - Append the new `server.py` sha256 to the Hermes `sourceHashes` list only.

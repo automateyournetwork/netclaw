@@ -1,6 +1,7 @@
 """Collection aliases for investigation snapshots. Fakes only; no model download."""
 
 import importlib
+import logging
 from pathlib import Path
 
 import pytest
@@ -304,7 +305,7 @@ def test_all_alias_documents_retrieve_failure_is_storage_unavailable(server, mon
     assert "secret-doc-index" not in str(response)
 
 
-def test_fan_out_is_capped_to_the_newest_collections(server, monkeypatch):
+def test_fan_out_is_capped_to_the_newest_collections(server, monkeypatch, caplog):
     # Registry order is ingest_ts DESC, so the first rows are the newest.
     rows = _two_snapshot_rows("snapshot_new", "snapshot_mid", "snapshot_old")
     counts = {"snapshot_new": 1, "snapshot_mid": 1, "snapshot_old": 1}
@@ -312,11 +313,96 @@ def test_fan_out_is_capped_to_the_newest_collections(server, monkeypatch):
     counts["documents"] = 0
     seen = _install(server, monkeypatch, rows, counts, hits)
     monkeypatch.setattr(server.config, "INVESTIGATION_MAX_COLLECTIONS", 2)
-    server._do_search("x", k=5, collection="investigations")
+    with caplog.at_level(logging.WARNING, logger=server.log.name):
+        capped = server._do_search("x", k=5, collection="investigations")
     assert seen["retrieve"] == ["snapshot_new", "snapshot_mid"]
-    server._do_search("x", k=5, collection="all")
+    assert capped["data"]["collections_searched"] == 2
+    assert capped["data"]["collections_skipped"] == 1
+    assert any(
+        "searching the newest 2 of 3 snapshot collections" in r.getMessage()
+        for r in caplog.records
+    )
+    every = server._do_search("x", k=5, collection="all")
     assert seen["retrieve"][2:] == ["snapshot_new", "snapshot_mid"]
     assert "snapshot_old" not in seen["retrieve"]
+    # documents is counted 0, so it is not searched; the cap only counts snapshots.
+    assert every["data"]["collections_searched"] == 2
+    assert every["data"]["collections_skipped"] == 1
+
+
+def test_uncapped_search_reports_zero_skipped(server, monkeypatch, caplog):
+    rows = _two_snapshot_rows("snapshot_a", "snapshot_b")
+    hits = {
+        "snapshot_a": [_hit("a1", "alpha", 0.4, "snapshot_a")],
+        "snapshot_b": [_hit("b1", "beta", 0.8, "snapshot_b")],
+    }
+    _install(server, monkeypatch, rows, {"snapshot_a": 1, "snapshot_b": 1}, hits)
+    with caplog.at_level(logging.WARNING, logger=server.log.name):
+        response = server._do_search("x", collection="investigations")
+    assert response["data"]["collections_searched"] == 2
+    assert response["data"]["collections_skipped"] == 0
+    assert not any("searching the newest" in r.getMessage() for r in caplog.records)
+
+
+def _dated_rows(count):
+    # Newest first, like registry.list_documents(): snapshot_1 is the newest.
+    return [
+        {
+            "kind": "snapshot",
+            "ingest_status": "ready",
+            "collection": f"snapshot_{i}",
+            "ingest_ts": f"2026-{1 + (count - i) // 28:02d}-{1 + (count - i) % 28:02d}T00:00:00Z",
+        }
+        for i in range(1, count + 1)
+    ]
+
+
+def test_date_filters_select_snapshots_before_the_cap(server, monkeypatch):
+    rows = _dated_rows(60)
+    by_name = {row["collection"]: row["ingest_ts"] for row in rows}
+    hits = {
+        name: [_hit(name + "-h", name, 0.5, name, ingest_ts=ts)] for name, ts in by_name.items()
+    }
+    seen = _install(server, monkeypatch, rows, {name: 1 for name in by_name}, hits)
+    monkeypatch.setattr(server.config, "INVESTIGATION_MAX_COLLECTIONS", 50)
+    cutoff = by_name["snapshot_55"]
+    response = server._do_search(
+        "x", k=20, collection="investigations", filters={"ingested_before": cutoff}
+    )
+    matching = [f"snapshot_{i}" for i in range(55, 61)]
+    assert seen["retrieve"] == matching
+    assert sorted(hit["collection"] for hit in response["data"]["results"]) == sorted(matching)
+    assert response["data"]["collections_searched"] == 6
+    assert response["data"]["collections_skipped"] == 0
+
+
+def test_date_filters_apply_before_the_cap_and_the_cap_still_holds(server, monkeypatch):
+    rows = _dated_rows(60)
+    by_name = {row["collection"]: row["ingest_ts"] for row in rows}
+    hits = {
+        name: [_hit(name + "-h", name, 0.5, name, ingest_ts=ts)] for name, ts in by_name.items()
+    }
+    seen = _install(server, monkeypatch, rows, {name: 1 for name in by_name}, hits)
+    monkeypatch.setattr(server.config, "INVESTIGATION_MAX_COLLECTIONS", 3)
+    response = server._do_search(
+        "x", k=20, collection="cases", filters={"ingested_before": by_name["snapshot_55"]}
+    )
+    assert seen["retrieve"] == ["snapshot_55", "snapshot_56", "snapshot_57"]
+    assert response["data"]["collections_searched"] == 3
+    assert response["data"]["collections_skipped"] == 3
+
+
+def test_no_snapshot_in_the_date_range_says_so(server, monkeypatch):
+    rows = _dated_rows(3)
+    seen = _install(server, monkeypatch, rows, {}, {})
+    response = server._do_search(
+        "x", collection="investigations", filters={"ingested_after": "2027-01-01"}
+    )
+    assert response["data"]["corpus_empty"] is True
+    assert response["data"]["message"] == (
+        "No investigation snapshots were ingested in the requested date range."
+    )
+    assert seen["retrieve"] == []
 
 
 def test_each_collection_is_pre_trimmed_to_twice_k(server, monkeypatch):
@@ -349,7 +435,9 @@ def test_retrieval_log_records_the_collections_searched(server, monkeypatch):
 
 
 def test_date_filters_apply_through_aliases_on_ingest_ts(server, monkeypatch):
-    rows = _two_snapshot_rows("snapshot_a", "snapshot_b")
+    rows = _two_snapshot_rows("snapshot_b", "snapshot_a")
+    rows[0]["ingest_ts"] = "2026-11-02T00:00:00Z"
+    rows[1]["ingest_ts"] = "2026-01-05T00:00:00Z"
     hits = {
         "snapshot_a": [_hit(
             "a_old", "old", 0.9, "snapshot_a",

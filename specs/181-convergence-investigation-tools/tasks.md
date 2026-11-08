@@ -20,3 +20,10 @@
 - [x] T015 Log the collections searched; document that alias date filters use `ingest_ts`.
 - [x] T016 n2n-federation skill: `n2n_task_wait` when available, else poll `n2n_task_status` every 5–15 s.
 - [x] T017 Tests for each of the above, plus date filters through aliases. Replace this branch's Hermes digest.
+
+## Review round 2
+
+- [x] T018 Apply `ingested_after` / `ingested_before` to registry snapshot rows before the cap.
+- [x] T019 Report `collections_searched` and `collections_skipped` on alias responses; test them and the warning.
+- [x] T020 `n2n_task_wait`: only HTTP 404 or `state: unknown` is not found; other non-2xx is a retryable `state: error` with `http_status`.
+- [x] T021 Document rank-based passthrough merging and the cap × 2k rerank load.

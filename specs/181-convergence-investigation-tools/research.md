@@ -27,8 +27,16 @@
   sorting by `rrf_score` interleaves collections by fused rank; passthrough keeps
   that order. `Reranker.uses_model()` tells the two modes apart. `_result_from_hit` does not emit `collection`; alias hits add
   the collection that was searched, not a metadata value.
-- The fork also added an `any` alias, changed the literal empty message, and added
-  `collections_searched`. Those stay out.
+- The fork also added an `any` alias and changed the literal empty message.
+  Those stay out. Review round 2 asked for `collections_searched` and
+  `collections_skipped` as counts on alias responses, so the cap is visible.
+- `_get` returns `r.json()` and drops the status, so a 5xx `{"error": ...}` looked
+  like a 404 to round 1's wait (review round 2). The scoped broker
+  (`bgp/federation/execution.py`) answers 200, 403, or 409 and never 404, and
+  `_scoped` raises `HTTPStatusError` on non-2xx, so a 404 can only come from the
+  daemon directly.
+- Registry rows and their chunks share `ingest_ts`, so filtering rows before the
+  cap agrees with the chunk post-filter.
 - `config/hermes-hud-tool-policy.json` is a reviewed Hermes subset. `n2n_task_cancel`
   is already absent, and `operator_policy.py` matches that subset. Adding
   `n2n_task_wait` there would advertise a tool `validate_operator` refuses. The live

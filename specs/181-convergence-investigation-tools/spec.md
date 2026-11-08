@@ -31,21 +31,35 @@ extra behaviour.
   first, add `still_running: true` and a hint to call `n2n_task_wait` again with
   the same `task_id`. Do not invent or overwrite `state`. If `_get` raises, return
   `{task_id, state: "error", error}`.
-- FR-003a: A task that cannot be found returns at once, without waiting and
-  without `still_running`: the daemon's 404 body `{"error": "unknown task"}`
-  (`_get` does not raise on non-2xx), a peer's `state: "unknown"`, or any payload
-  without a string `state`. The payload is returned with `not_found: true`, a
-  hint not to wait again, and `task_id` filled in when absent. Otherwise a
-  coordinator would call `n2n_task_wait` forever on a purged task.
+- FR-003a: `n2n_task_wait` reads the HTTP status through its own
+  `_get_with_status`; `_get`, `n2n_task_status`, and `n2n_task_result` are
+  unchanged. Only an HTTP 404 (the daemon's `{"error": "unknown task"}`) or
+  `state: "unknown"` means not found: return at once, without `still_running`,
+  with `not_found: true`, a hint not to wait again, and `task_id` filled in when
+  absent. Otherwise a coordinator would call `n2n_task_wait` forever on a purged
+  task.
+- FR-003b: Any other non-2xx (5xx, a scoped broker refusal) and a 2xx body
+  without a string `state` return at once as `{task_id, state: "error",
+  http_status, error, response?, hint}` with no `not_found`, so the caller can
+  call `n2n_task_wait` again. `error` is the body's `error` string when present,
+  else `HTTP <status>` or a no-state message.
 - FR-004: `rag_search` collection tokens `investigations`, `snapshots`, and `cases`
   (exact after strip, case-sensitive) search every registry row with
   `kind='snapshot'`, `ingest_status='ready'`, and a truthy collection. Dedupe in
-  registry order (`ingest_ts DESC`), keep the newest
+  registry order (`ingest_ts DESC`), apply `ingested_after` / `ingested_before`
+  to each row's `ingest_ts`, then keep the newest
   `RAG_INVESTIGATION_MAX_COLLECTIONS` (default 50), and pass at most `2k` fused
-  candidates per collection to the reranker. With the cross-encoder on, merge by
+  candidates per collection to the reranker. The success data adds
+  `collections_searched` and `collections_skipped` (matching snapshots left out
+  by the cap) as counts; the cap is also logged. With the cross-encoder on, one
+  search reranks up to cap × 2k candidates (500 at the defaults with `k=5`).
+  When ready snapshots exist but none is in the date range, the empty-corpus
+  message says so. With the cross-encoder on, merge by
   its score. In passthrough (`RAG_RERANK_ENABLED=0` or the model unavailable) the
   score is the dense cosine and BM25-only hits score 0.0, so merge on the
-  per-collection RRF score instead. Return the caller's top `k`. Each alias hit
+  per-collection RRF score instead. RRF is rank-based, so passthrough
+  interleaves collections by rank (every top hit scores 2/61 when both legs rank
+  it first), not by match strength. Return the caller's top `k`. Each alias hit
   carries the collection that was searched.
 - FR-005: `all` and `*` search `documents` plus those snapshot collections. Any
   other value, including `Investigations`, stays a literal collection search with

@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 
+import httpx
 import pytest
 
 SERVER = Path(__file__).resolve().parents[2] / "mcp-servers" / "n2n-mcp" / "server.py"
@@ -45,16 +46,23 @@ def n2n(n2n_module, monkeypatch):
 
 
 def _patch_get(module, monkeypatch, payloads):
+    """Each item is a body (HTTP 200), a (status, body) tuple, or an exception."""
     calls = []
 
-    async def fake_get(path, params=None):
+    async def fake_get(path):
         calls.append(path)
         item = payloads[len(calls) - 1]
         if isinstance(item, Exception):
             raise item
-        return item
+        if isinstance(item, tuple):
+            return item
+        return 200, item
 
-    monkeypatch.setattr(module, "_get", fake_get)
+    async def refuse(*_args, **_kwargs):
+        raise AssertionError("n2n_task_wait must read the status code, not _get")
+
+    monkeypatch.setattr(module, "_get_with_status", fake_get)
+    monkeypatch.setattr(module, "_get", refuse)
     return calls
 
 
@@ -138,11 +146,10 @@ def test_free_text_does_not_count_as_terminal(n2n, monkeypatch):
     assert clock.sleeps == [10.0]
 
 
-def test_daemon_404_body_returns_not_found_at_once(n2n, monkeypatch):
-    # bgp-daemon-v2 answers a missing or purged task with 404 {"error": "unknown task"};
-    # _get does not raise on non-2xx, so this body is what the wait sees.
+def test_daemon_404_returns_not_found_at_once(n2n, monkeypatch):
+    # bgp-daemon-v2 answers a missing or purged task with 404 {"error": "unknown task"}.
     module, clock = n2n
-    calls = _patch_get(module, monkeypatch, [{"error": "unknown task"}])
+    calls = _patch_get(module, monkeypatch, [(404, {"error": "unknown task"})])
     body = _run(module, "gone-1")
     assert body["not_found"] is True
     assert body["task_id"] == "gone-1"
@@ -165,22 +172,57 @@ def test_peer_state_unknown_returns_not_found_at_once(n2n, monkeypatch):
     assert clock.sleeps == []
 
 
+@pytest.mark.parametrize("status", [500, 502, 503, 403, 409])
+def test_non_2xx_other_than_404_is_a_retryable_error(n2n, monkeypatch, status):
+    module, clock = n2n
+    _patch_get(module, monkeypatch, [(status, {"error": "daemon busy"})])
+    body = _run(module, "t")
+    assert body["state"] == "error"
+    assert body["http_status"] == status
+    assert body["error"] == "daemon busy"
+    assert body["task_id"] == "t"
+    assert body["hint"] == module._TASK_ERROR_HINT
+    assert "not_found" not in body
+    assert "still_running" not in body
+    assert clock.sleeps == []
+
+
+def test_non_2xx_without_a_json_body_reports_the_status(n2n, monkeypatch):
+    module, _clock = n2n
+    _patch_get(module, monkeypatch, [(500, None)])
+    body = _run(module, "t")
+    assert body == {
+        "task_id": "t", "state": "error", "http_status": 500,
+        "error": "HTTP 500", "hint": module._TASK_ERROR_HINT,
+    }
+
+
+def test_404_with_state_unknown_is_not_found_too(n2n, monkeypatch):
+    module, _clock = n2n
+    _patch_get(module, monkeypatch, [(404, {"task_id": "t", "state": "unknown"})])
+    body = _run(module, "t")
+    assert body["not_found"] is True
+    assert body["state"] == "unknown"
+
+
 @pytest.mark.parametrize("payload", [
+    {"error": "unknown task"},
     {"task_id": "t", "state": {"status": "completed"}},
     {"task_id": "t", "state": None},
     {"task_id": "t", "progress": "1/2"},
     ["not", "a", "dict"],
 ])
-def test_payload_without_string_state_returns_not_found_at_once(n2n, monkeypatch, payload):
+def test_2xx_without_string_state_is_a_retryable_error(n2n, monkeypatch, payload):
     module, clock = n2n
     _patch_get(module, monkeypatch, [payload])
     body = _run(module, "t")
-    assert body["not_found"] is True
+    assert body["state"] == "error"
+    assert body["http_status"] == 200
+    assert body["response"] == payload
     assert body["task_id"] == "t"
+    assert "not_found" not in body
     assert "still_running" not in body
     assert clock.sleeps == []
-    if isinstance(payload, dict) and "state" in payload:
-        assert body["state"] == payload["state"]
 
 
 def test_error_beside_an_open_state_keeps_waiting(n2n, monkeypatch):
@@ -191,6 +233,65 @@ def test_error_beside_an_open_state_keeps_waiting(n2n, monkeypatch):
     ])
     body = _run(module, "t")
     assert body == {"task_id": "t", "state": "completed"}
+
+
+def _mock_daemon(module, monkeypatch, status, body):
+    real_client = httpx.AsyncClient
+
+    def handler(request):
+        assert request.url.path == "/n2n/tasks/t"
+        if body is None:
+            return httpx.Response(status, text="<html>bad gateway</html>")
+        return httpx.Response(status, json=body)
+
+    def client(**kwargs):
+        kwargs.pop("timeout", None)
+        return real_client(transport=httpx.MockTransport(handler), **kwargs)
+
+    monkeypatch.delenv("NETCLAW_FEDERATION_SCOPED", raising=False)
+    monkeypatch.setattr(module.httpx, "AsyncClient", client)
+
+
+@pytest.mark.parametrize("status,body,expected", [
+    (404, {"error": "unknown task"}, "not_found"),
+    (500, {"error": "database is locked"}, "error"),
+    (502, None, "error"),
+])
+def test_status_code_is_read_from_the_daemon_response(n2n_module, monkeypatch, status, body, expected):
+    monkeypatch.setenv("NETCLAW_FEDERATION_JSON", "1")
+    _mock_daemon(n2n_module, monkeypatch, status, body)
+    got = json.loads(asyncio.run(n2n_module.n2n_task_wait("t")))
+    if expected == "not_found":
+        assert got["not_found"] is True
+        assert got["error"] == "unknown task"
+        assert "still_running" not in got
+    else:
+        assert got["state"] == "error"
+        assert got["http_status"] == status
+        assert "not_found" not in got
+
+
+def test_task_status_and_result_still_use_get(n2n_module, monkeypatch):
+    monkeypatch.setenv("NETCLAW_FEDERATION_JSON", "1")
+    _mock_daemon(n2n_module, monkeypatch, 404, {"error": "unknown task"})
+    assert json.loads(asyncio.run(n2n_module.n2n_task_status("t"))) == {"error": "unknown task"}
+
+
+def test_scoped_refusal_is_a_retryable_error(n2n, monkeypatch):
+    module, _clock = n2n
+    request = httpx.Request("POST", "http://127.0.0.1:1/effect")
+    response = httpx.Response(403, json={"error": "execution refused"}, request=request)
+
+    async def refuse(method, path, body):
+        raise httpx.HTTPStatusError("refused", request=request, response=response)
+
+    monkeypatch.setenv("NETCLAW_FEDERATION_SCOPED", "1")
+    monkeypatch.setattr(module, "_scoped", refuse)
+    body = _run(module, "t")
+    assert body["state"] == "error"
+    assert body["http_status"] == 403
+    assert body["error"] == "execution refused"
+    assert "not_found" not in body
 
 
 def test_get_error_returns_error_payload(n2n, monkeypatch):

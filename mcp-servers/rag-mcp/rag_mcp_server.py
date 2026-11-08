@@ -549,6 +549,7 @@ def _passes_date_filters(meta: Dict[str, Any], filters: Optional[Dict[str, Any]]
 _SNAPSHOT_ALIASES = frozenset({"investigations", "snapshots", "cases"})
 _ALL_ALIASES = frozenset({"all", "*"})
 _NO_SNAPSHOTS = "No investigation snapshots are indexed."
+_NO_SNAPSHOTS_IN_RANGE = "No investigation snapshots were ingested in the requested date range."
 
 
 def _collection_alias(collection: Any) -> Optional[str]:
@@ -563,12 +564,21 @@ def _collection_alias(collection: Any) -> Optional[str]:
     return None
 
 
-def _ready_snapshot_collections() -> list:
-    """Ready investigation snapshots, in registry order, each collection once."""
+def _ready_snapshot_collections(
+    rows: list, filters: Optional[Dict[str, Any]] = None
+) -> list:
+    """Ready investigation snapshots, in registry order, each collection once.
+
+    ingested_after / ingested_before are applied to the registry row's
+    ingest_ts here, before any cap, so older matching snapshots are reachable.
+    Chunks carry the same ingest_ts, so the chunk post-filter agrees.
+    """
     names = []
     seen = set()
-    for row in registry.list_documents():
+    for row in rows:
         if row.get("kind") != "snapshot" or row.get("ingest_status") != "ready":
+            continue
+        if not _passes_date_filters(row, filters):
             continue
         name = row.get("collection")
         if not name or name in seen:
@@ -726,14 +736,26 @@ def _search_aliased(
     collection is unreadable the result is STORAGE_UNAVAILABLE, not an empty
     corpus. The document corpus always fails closed on `all` / `*`.
 
-    Merge order: with the cross-encoder on, by its score. In passthrough the
-    score is the dense cosine, which is 0.0 for BM25-only hits, so hits are
-    merged on the fused (RRF) rank instead and exact-match hits are kept.
+    The ingested_* date filters select snapshot collections from the registry
+    before the cap, so the cap counts only snapshots in the requested range.
+    The response reports collections_searched and collections_skipped (left
+    out by the cap) as counts.
+
+    Merge order: with the cross-encoder on, by its score; one search then
+    reranks up to cap x 2k candidates (500 at the defaults with k=5) on CPU.
+    In passthrough the score is the dense cosine, which is 0.0 for BM25-only
+    hits, so hits are merged on the fused (RRF) score instead. RRF is
+    rank-based and every collection uses the same k=60 and depth, so the
+    merge interleaves collections by rank, not by how strong each match is:
+    a collection's top hit scores 2/61 when both legs rank it first, whether
+    that collection matches the query well or barely at all.
     """
     start = time.monotonic()
-    snapshots = _ready_snapshot_collections()
+    rows = registry.list_documents()
+    snapshots = _ready_snapshot_collections(rows, filters)
     cap = config.INVESTIGATION_MAX_COLLECTIONS
-    if len(snapshots) > cap:
+    skipped = max(0, len(snapshots) - cap)
+    if skipped:
         log.warning(
             "alias %s: searching the newest %d of %d snapshot collections",
             collection, cap, len(snapshots),
@@ -742,8 +764,16 @@ def _search_aliased(
     if kind == "snapshots":
         names = snapshots
         if not names:
+            dated = bool(filters) and bool(
+                filters.get("ingested_after") or filters.get("ingested_before")
+            )
+            message = (
+                _NO_SNAPSHOTS_IN_RANGE
+                if dated and _ready_snapshot_collections(rows)
+                else _NO_SNAPSHOTS
+            )
             return _empty_corpus(
-                query, collection, filters, k, round, sub_query_id, _NO_SNAPSHOTS
+                query, collection, filters, k, round, sub_query_id, message
             )
     else:
         names = []
@@ -868,6 +898,8 @@ def _search_aliased(
             "corpus_empty": False,
             "collection": collection,
             "latency_ms": latency_ms,
+            "collections_searched": len(searched),
+            "collections_skipped": skipped,
         }
     )
 
@@ -886,9 +918,10 @@ def rag_search(
     collection:
       documents (default), or any other name — that collection only.
       investigations, snapshots, or cases — the newest ready investigation
-      snapshots (at most RAG_INVESTIGATION_MAX_COLLECTIONS, default 50), merged
-      by rerank score, or by fused rank when reranking is off. Each hit
-      includes its source collection.
+      snapshots (at most RAG_INVESTIGATION_MAX_COLLECTIONS, default 50, after
+      the date filters), merged by rerank score, or by per-collection rank
+      when reranking is off. Each hit includes its source collection, and the
+      response counts collections_searched and collections_skipped (over the cap).
       all or * — the document corpus plus those snapshots.
     When no investigation snapshots are indexed, the snapshot aliases return an
     empty corpus and say so. A missing or unreadable snapshot collection is
@@ -896,7 +929,8 @@ def rag_search(
 
     Filters: doc_type, document_id, title, ingested_after, ingested_before.
     The date filters compare ingest_ts (when content was indexed), also for
-    snapshots, not a snapshot's capture_ts.
+    snapshots, not a snapshot's capture_ts. On the aliases they also pick
+    which snapshot collections count toward the cap.
     Results below the relevance floor are flagged low_confidence, never dropped."""
     return _do_search(query, k, collection, filters, round, sub_query_id)
 
