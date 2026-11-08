@@ -38,12 +38,14 @@ once (90 days, `certs.issue_cert`) and afterwards returns `hub.crt` whatever its
 - A member stores the hub certificate when its channel opens and checks that copy's
   validity. A channel that stays open across the old certificate's expiry closes then,
   and the member re-dials (`in2n-member.py`, within about 10 s) and receives the
-  renewed certificate. With the schedule on, this happens at most once per renewal;
-  without it, renewal happens within the last 7 days, when the member re-attests anyway.
+  renewed certificate. With the schedule on, this happens at most once per renewal.
+  Without it, a channel open across the expiry drops then and the member's reconnect
+  triggers the renewal and receives the new certificate.
 - Protected operations (spec 172) compare the hub key id, not the certificate's
   validity, so they keep working across a renewal because the key is kept.
-- A renewal that fails marks the registry row failed and the schedule does not retry
-  it (pre-existing rotation behaviour); the 7-day on-demand renewal still applies.
+- A renewal that fails marks the registry row failed; `register_hub()` marks it active
+  again at the next daemon start, so it is retried then. The 7-day on-demand renewal
+  applies in the meantime.
 
 ## Out of scope
 
