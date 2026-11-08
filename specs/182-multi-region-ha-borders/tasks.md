@@ -18,33 +18,33 @@ Format: `- [ ] T### [P?] [US?] description with file path`. `[P]` = parallelizab
 ## Phase 1: Setup (offline, no cloud)
 
 - [ ] T001 Commit specs/182-multi-region-ha-borders and `.specify/feature.json` on branch `182-multi-region-ha-borders` (after owner OK to commit; no push)
-- [ ] T002 [P] Create `tests/n2n/test_ha_multiregion_182.py` skeleton and confirm it runs under `python3.10 -m pytest`
-- [ ] T003 [P] Create `scripts/ha-rtt-estimate.py` printing the estimated RTT table (research D2) and the admission budget `N x RTT`, marked `source=estimate`
-- [ ] T004 [P] Inventory read-only the current GCP state to `specs/182-multi-region-ha-borders/inventory-before.md` (old VM, 2 IPs, firewall rules, quotas for e2-medium in the 3 regions) using `gcloud ... list/describe` only
+- [x] T002 [P] Create `tests/n2n/test_ha_multiregion_182.py` skeleton and confirm it runs under `python3.10 -m pytest`
+- [x] T003 [P] Create `scripts/ha-rtt-estimate.py` printing the estimated RTT table (research D2) and the admission budget `N x RTT`, marked `source=estimate`
+- [x] T004 [P] Inventory read-only the current GCP state to `specs/182-multi-region-ha-borders/inventory-before.md` (old VM, 2 IPs, firewall rules, quotas for e2-medium in the 3 regions) using `gcloud ... list/describe` only
 - [ ] T005 [P] Check local prerequisites and record in `specs/182-multi-region-ha-borders/inventory-before.md`: gcloud auth, docker, node, python3.10, flutter, `lego` presence (install `lego` locally only if the owner agrees)
 
 ## Phase 2: Foundational (blocks all stories)
 
 ### 2a. Cost, ownership and cloud script (no billing until G1)
 
-- [ ] T006 Write `scripts/ha-gcp-multiregion.py` with `plan` (read-only describe, prints creates), `apply` (idempotent describe-before-create, refuses without `--confirm-cost` and an `owner_confirmed_at` record), `status` and `teardown --list` (label `netclaw-spec=182`; deletion needs a second explicit flag). All resources named `nc182-*` with label `netclaw-spec=182`
-- [ ] T007 [P] Write `scripts/ha-cost-estimate.py` reading the plan from T006, printing line items and failing (exit 1) above $300 (tests in `tests/n2n/test_ha_multiregion_182.py`)
+- [x] T006 Write `scripts/ha-gcp-multiregion.py` with `plan` (read-only describe, prints creates), `apply` (idempotent describe-before-create, refuses without `--confirm-cost` and an `owner_confirmed_at` record), `status` and `teardown --list` (label `netclaw-spec=182`; deletion needs a second explicit flag). All resources named `nc182-*` with label `netclaw-spec=182`
+- [x] T007 [P] Write `scripts/ha-cost-estimate.py` reading the plan from T006, printing line items and failing (exit 1) above $300 (tests in `tests/n2n/test_ha_multiregion_182.py`)
 - [ ] T008 [P] Add a billing budget alert (50/80/100% of $300) step to `scripts/ha-gcp-multiregion.py` (`gcloud billing budgets`), plan-only until G1
-- [ ] T009 Define the network plan in `scripts/ha-gcp-multiregion.py`: VPC `nc182-r09`, 3 regional subnets plus one NetBox/member subnet if needed, static IPv4 per Border, firewall: Border-to-Border cluster/etcd/NCFED only between the 3 /32s, public 443 and the iN2N port, IAP ssh only, no 0.0.0.0/0 ssh/rdp (FR-022)
-- [ ] T010 [P] Test: plan output has exactly 3 Borders in the 3 regions, every resource labelled, no world-open ssh/rdp, estimate <= $300 (`tests/n2n/test_ha_multiregion_182.py`)
+- [x] T009 Define the network plan in `scripts/ha-gcp-multiregion.py`: VPC `nc182-r09`, 3 regional subnets plus one NetBox/member subnet if needed, static IPv4 per Border, firewall: Border-to-Border cluster/etcd/NCFED only between the 3 /32s, public 443 and the iN2N port, IAP ssh only, no 0.0.0.0/0 ssh/rdp (FR-022)
+- [x] T010 [P] Test: plan output has exactly 3 Borders in the 3 regions, every resource labelled, no world-open ssh/rdp, estimate <= $300 (`tests/n2n/test_ha_multiregion_182.py`)
 
 ### 2b. DNS and certificates (GoDaddy, automateyournetwork.com)
 
-- [ ] T011 Write `scripts/ha-dns-godaddy.py` with `plan` (GET only; verifies the zone, lists existing records, computes `<code>-<id6>.automateyournetwork.com` names) and `apply --apply` (A records, TTL 600, refuses existing names with another target or non-matching patterns; never prints the token) per `contracts/dns-naming.md`
-- [ ] T012 [P] Test the name generator and refusal rules offline with a stub HTTP server (`tests/n2n/test_ha_multiregion_182.py`)
-- [ ] T013 (OWNER) Provide the GoDaddy Personal Access Token in `~/.openclaw/.env` as `GODADDY_PAT` plus `N2N_ACME_DNS_PROVIDER` and `N2N_CLAW_DOMAIN` (not pasted into chat); then run `scripts/ha-dns-godaddy.py plan` and record the result
+- [x] T011 Write `scripts/ha-dns-godaddy.py` with `plan` (GET only; verifies the zone, lists existing records, computes `<code>-<id6>.automateyournetwork.com` names) and `apply --apply` (A records, TTL 600, refuses existing names with another target or non-matching patterns; never prints the token) per `contracts/dns-naming.md`
+- [x] T012 [P] Test the name generator and refusal rules offline with a stub HTTP server (`tests/n2n/test_ha_multiregion_182.py`)
+- [x] T013 (OWNER, done: GODADDY_PAT in ~/.openclaw/.env, GET plan verified) Provide the GoDaddy Personal Access Token in `~/.openclaw/.env` as `GODADDY_PAT` plus `N2N_ACME_DNS_PROVIDER` and `N2N_CLAW_DOMAIN` (not pasted into chat); then run `scripts/ha-dns-godaddy.py plan` and record the result
 - [ ] T014 [P] Document the certificate path (lego DNS-01 via `scripts/lib/godaddy-acme-hook.sh`, spec 060 quickstart B.1) for each Border in `specs/182-multi-region-ha-borders/quickstart.md`
 
 ### 2c. Hosted foundation-model transport (no Ollama on Borders)
 
-- [ ] T015 Write a design note `specs/182-multi-region-ha-borders/model-transport.md`: how a Sonnet 5.5 (`claude-sonnet-5-5`) transport preserves DefenseClaw guard inspection, admission freshness, the independent model-request counter and `no result fabricated on uncertainty`, replacing `docker-exec://` and `127.0.0.1:11434` assumptions in `mcp-servers/protocol-mcp/bgp/federation/ha/model_transport.py`
-- [ ] T016 Read `mcp-servers/protocol-mcp/bgp/federation/ha/{model_transport,config,factory,effect}.py` and `tests/n2n/test_ha_model_transport_179.py` and record the exact coupling points (Ollama executor fields) in `model-transport.md`
-- [ ] T017 [P] Add failing tests for the hosted transport (guard in path, API key never logged or stored in the manifest, request counted independently, timeout leaves the operation `unknown` not retried) in `tests/n2n/test_ha_model_transport_182.py`
+- [x] T015 Write a design note `specs/182-multi-region-ha-borders/model-transport.md`: how a Sonnet 5.5 (`claude-sonnet-5-5`) transport preserves DefenseClaw guard inspection, admission freshness, the independent model-request counter and `no result fabricated on uncertainty`, replacing `docker-exec://` and `127.0.0.1:11434` assumptions in `mcp-servers/protocol-mcp/bgp/federation/ha/model_transport.py`
+- [x] T016 Read `mcp-servers/protocol-mcp/bgp/federation/ha/{model_transport,config,factory,effect}.py` and `tests/n2n/test_ha_model_transport_179.py` and record the exact coupling points (Ollama executor fields) in `model-transport.md`
+- [x] T017 [P] Add failing tests for the hosted transport (guard in path, API key never logged or stored in the manifest, request counted independently, timeout leaves the operation `unknown` not retried) in `tests/n2n/test_ha_model_transport_182.py`
 - [ ] T018 Implement the hosted-model transport as a new module `mcp-servers/protocol-mcp/bgp/federation/ha/hosted_model_transport.py`, selected by config, leaving the Ollama path unchanged (Constitution XV)
 - [ ] T019 Wire the transport into `mcp-servers/protocol-mcp/bgp/federation/ha/factory.py` behind an explicit setting; add egress-to-API requirement and the key variable name to `.env.example`
 - [ ] T020 [P] Run the HA contract and transport suites on python3.10 and the Linux contract env (`tests/n2n/test_ha_contract_179.py`, `tests/n2n/test_ha_model_transport_179.py`, new 182 tests) and record results in `specs/182-multi-region-ha-borders/verification.md`
@@ -52,10 +52,10 @@ Format: `- [ ] T### [P?] [US?] description with file path`. `[P]` = parallelizab
 
 ### 2d. Client and HUD region display (offline)
 
-- [ ] T022 [P] Implement the region-label parser per `contracts/region-display.md` in `ui/netclaw-visual/src/shared/cluster-binding.js` (display only; no trust change) with a unit test beside the existing HUD tests
-- [ ] T023 [P] Implement the same parser in `extensions/netclaw-vscode/src/client/cluster.ts` with a unit test
-- [ ] T024 [P] Implement the same parser in `mobile/netclaw-mobile/lib/ncfed/endpoint_recovery.dart` with a Dart test
-- [ ] T025 Verify no signed-manifest validator changed (diff `config.py`, `cluster-binding.js`, `cluster_trust.dart`, extension validator) and record in `verification.md`
+- [x] T022 [P] Implement the region-label parser per `contracts/region-display.md` in `ui/netclaw-visual/src/shared/cluster-binding.js` (display only; no trust change) with a unit test beside the existing HUD tests
+- [x] T023 [P] Implement the same parser in `extensions/netclaw-vscode/src/client/cluster.ts` with a unit test
+- [x] T024 [P] Implement the same parser in `mobile/netclaw-mobile/lib/ncfed/endpoint_recovery.dart` with a Dart test
+- [x] T025 Verify no signed-manifest validator changed (diff `config.py`, `cluster-binding.js`, `cluster_trust.dart`, extension validator) and record in `verification.md`
 
 **Checkpoint**: source, scripts and tests ready; nothing billed.
 
@@ -79,12 +79,12 @@ Format: `- [ ] T### [P?] [US?] description with file path`. `[P]` = parallelizab
 - [ ] T030 [US1] `scripts/ha-dns-godaddy.py apply --apply`: create the three A records pointing at the Border static IPs; verify with `dig` (no pipe-read exit codes)
 - [ ] T031 [US1] Issue a lego DNS-01 certificate per Border name (GoDaddy hook); verify chain and expiry; store private keys `0600` on each VM only
 - [ ] T032 [US1] Package the branch source as a tarball and copy to each VM via IAP `gcloud compute scp` (no git push needed); install Docker/Node/Python deps per Border
-- [ ] T033 [US1] Measure real inter-region RTT between all Border pairs (p50/p95 over 5 min) with a read-only probe; write `specs/182-multi-region-ha-borders/measurements.md` (`source=measured`); update `scripts/ha-rtt-estimate.py` output
+- [x] T033 [US1] Measure real inter-region RTT between all Border pairs (p50/p95 over 5 min) with a read-only probe; write `specs/182-multi-region-ha-borders/measurements.md` (`source=measured`); update `scripts/ha-rtt-estimate.py` output
 - [ ] T034 [US1] Decide leader placement and `admission_ms` from T033 (NA or EU leader; manifest bound 100-10000), record the justification; if measurements do not fit even at 10000 ms, STOP and bring the owner options (FR-010)
 - [ ] T035 [US1] Generate the cluster identity and signed manifest for generation 1 with the three DNS names (offline anchor), per `docs`/`scripts/ha-cluster.py --help`; keep the anchor off the VMs
 - [ ] T036 [US1] Bootstrap the 3-voter etcd across regions and start each Border with its identity, key, TLS and hosted-model transport; verify `scripts/ha-cluster.py status` from each Border shows one authority and quorum
 - [ ] T037 [US1] Move the etcd leader to the chosen region (`etcdctl move-leader`) and confirm stability for 10 minutes
-- [ ] T038 [P] [US1] HUD update: show per-Border region label, role (leader/follower/no_quorum) and failover notice in `ui/netclaw-visual/src` using T022's parser; `npm test` and `vite build` for the branch
+- [x] T038 [P] [US1] HUD update: show per-Border region label, role (leader/follower/no_quorum) and failover notice in `ui/netclaw-visual/src` using T022's parser; `npm test` and `vite build` for the branch
 - [ ] T039 [US1] Deploy the built HUD to each Border (HUD served by the Border over its DNS name; extend ingress lifetime with `NETCLAW_INGRESS_LIFETIME_S` for the demo) and confirm all three HUD URLs load over verified TLS
 - [ ] T040 [P] [US1] VS Code: show region, role, and failover state for added Borders in `extensions/netclaw-vscode/src` (using T023); `npm test`, typecheck and build a local `.vsix` (NOT published)
 - [ ] T041 [US1] Install the local `.vsix` in the owner's VS Code (owner OK) and verify add-by-DNS for all three names; refuse test: add a name not in the signed manifest and confirm refusal with the reason
