@@ -48,7 +48,11 @@ SCENARIOS = {
     'result-and-ack-loss': ('member', set(), {}),  # both, independently one-shot, on the same armed operation
     'unknown-commit-recovered': ('border', {'kind'}, {'kind': 'model'}),
     'unknown-commit-unresolved': ('border', {'kind'}, {'kind': 'model'}),
+    # Record-only receiver observer (no fault, no arm): failed peer-certificate verification and the exact
+    # production iN2N hello refusal, so unauthenticated-client negatives can be correlated with the receiver.
+    'border-trust-observer': ('border', set(), {}),
 }
+OBSERVER_LIMIT = 256
 
 
 class InstrumentRefused(ValueError):
@@ -198,7 +202,9 @@ def check_qualification(contract_path, config_path, *, source_root, validator=No
     need(Path(cfg['home']) == root / 'homes' / config['role_name'] and Path(cfg['source_root']) == source_root,
          'contract_not_run_local')
     if environ is not None:
-        need(dict(environ) == dict(environment), 'ambient_environment_refused')
+        # macOS injects exactly this one key into every exec'd process; it is not caller-supplied.
+        ambient = {k: v for k, v in dict(environ).items() if k != '__CF_USER_TEXT_ENCODING' or k in environment}
+        need(ambient == dict(environment), 'ambient_environment_refused')
     return config, cfg, environment
 
 
@@ -299,7 +305,12 @@ class Instrument:
         self.patches = []
 
     def install(self, *, MemberAdmission=None, MemberAttachments=None, ClusterMemberOperations=None,
-                EtcdStore=None, HAError=None):
+                EtcdStore=None, HAError=None, exporter_tls=None, AttachmentChannel=None):
+        if self.scenario == 'border-trust-observer':
+            self._trust(exporter_tls=exporter_tls, AttachmentChannel=AttachmentChannel)
+            self.record('installed', None, patched=[f'{o.__name__}.{n}' for o, n, _, _ in self.patches],
+                        source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), parameters=self.params)
+            return self
         targets = {'clock-wall-step': self._clock, 'clock-monotonic-step': self._clock,
                    'stale-leader-held-claim': self._stale, 'result-reply-loss': self._result,
                    'ack-delivery-loss': self._ack, 'unknown-commit-recovered': self._commit,
@@ -313,6 +324,56 @@ class Instrument:
         self.record('installed', None, patched=[f'{o.__name__}.{n}' for o, n, _, _ in self.patches],
                     source_sha256=hashlib.sha256(Path(__file__).read_bytes()).hexdigest(), parameters=self.params)
         return self
+
+    # -- border-trust-observer ------------------------------------------------------------------------
+    def _observe(self, phase, **details):
+        """Bounded, never raises into the product: an evidence failure only latches `observer_failed`."""
+        try:
+            self.observed = getattr(self, 'observed', 0) + 1
+            if self.observed > OBSERVER_LIMIT:
+                raise OSError('observer_capacity')
+            self.record(phase, None, **details)
+        except (OSError, ValueError):
+            self.observer_failed = True
+
+    def _trust(self, *, exporter_tls, AttachmentChannel):
+        need(exporter_tls is not None and AttachmentChannel is not None, 'observer_targets_missing')
+        instrument, original_context, original_init = self, exporter_tls._context, AttachmentChannel.__init__
+
+        def context(**options):
+            ctx = original_context(**options)
+            if options.get('require_peer'):
+                def verify(connection, certificate, error, depth, ok):
+                    if not ok and depth == 0:
+                        try:
+                            from OpenSSL import crypto
+                            digest = hashlib.sha256(crypto.dump_certificate(crypto.FILETYPE_ASN1, certificate)).hexdigest()
+                        except Exception:  # noqa: BLE001 - observation only
+                            digest = None
+                        instrument._observe('tls-verify-failed', certificate_sha256=digest, verify_error=error, depth=depth)
+                    return bool(ok)  # the frozen production decision, unchanged
+                ctx.set_verify(ctx.get_verify_mode(), verify)
+            return ctx
+
+        def init(channel, *args, **options):
+            handlers = options.get('handlers', {})
+            if options.get('is_border_side') and 'in2n/hello' in handlers:
+                hello = handlers['in2n/hello']
+                async def observed(ch, params):
+                    try:
+                        return await hello(ch, params)
+                    except Exception as exc:
+                        proof = params.get('proof') if isinstance(params, dict) else None
+                        instrument._observe('in2n-hello-refused', params_sha256=sha(params), proof_sha256=sha(proof),
+                                            error_code=getattr(exc, 'code', None), error_type=type(exc).__name__,
+                                            trusted=getattr(ch, 'trusted', None),
+                                            tls_profile=ch.writer.get_extra_info('tls_profile'))
+                        raise
+                options = dict(options, handlers=dict(handlers, **{'in2n/hello': observed}))
+            original_init(channel, *args, **options)
+
+        self._patch(exporter_tls, '_context', context)
+        self._patch(AttachmentChannel, '__init__', init)
 
     # -- (a) clock uncertainty ------------------------------------------------------------------------
     def _clock(self, *, MemberAdmission, **_):
@@ -463,11 +524,13 @@ class Instrument:
 def load_production():
     from bgp.federation.ha.admission import MemberAdmission
     from bgp.federation.ha.config import HAError
-    from bgp.federation.ha.internal import MemberAttachments
+    from bgp.federation import exporter_tls
+    from bgp.federation.ha.internal import AttachmentChannel, MemberAttachments
     from bgp.federation.ha.member import ClusterMemberOperations
     from bgp.federation.ha.store import EtcdStore
     return dict(MemberAdmission=MemberAdmission, MemberAttachments=MemberAttachments,
-                ClusterMemberOperations=ClusterMemberOperations, EtcdStore=EtcdStore, HAError=HAError)
+                ClusterMemberOperations=ClusterMemberOperations, EtcdStore=EtcdStore, HAError=HAError,
+                exporter_tls=exporter_tls, AttachmentChannel=AttachmentChannel)
 
 
 def arm(config_path, operation_id):

@@ -438,6 +438,10 @@ def test_plan_binding_and_ambient_environment_are_enforced(tmp_path):
     real.check_qualification(root / 'contracts/member.json', config_file, environ={'A': '1'}, **kw)
     with pytest.raises(real.InstrumentRefused, match='ambient_environment_refused'):
         real.check_qualification(root / 'contracts/member.json', config_file, environ={'A': '1', 'PYTHONPATH': '/x'}, **kw)
+    # macOS exec adds exactly this key; nothing else is tolerated.
+    real.check_qualification(root / 'contracts/member.json', config_file, environ={'A': '1', '__CF_USER_TEXT_ENCODING': '0x1F7:0x0:0x0'}, **kw)
+    with pytest.raises(real.InstrumentRefused, match='ambient_environment_refused'):
+        real.check_qualification(root / 'contracts/member.json', config_file, environ={'A': '1', '__CF_USER_TEXT_ENCODING': 'x', 'B': '2'}, **kw)
     plan = root / 'reviewed-plan.json'
     value = json.loads(plan.read_text()); value['run_id'] = str(uuid.uuid4()); plan.write_bytes(real.canonical(value))
     with pytest.raises(real.InstrumentRefused, match='run_plan_mismatch'):
@@ -480,3 +484,45 @@ async def test_combined_result_and_ack_loss_are_independent_one_shots(tmp_path):
     finally:
         instrument.uninstall()
     assert sorted(p.name for p in instrument.directory.glob('claim-*')) == ['claim-ack-delivery-loss.json', 'claim-result-reply-loss.json']
+
+
+def test_border_trust_observer_records_only_and_preserves_production_decisions(tmp_path):
+    import types
+    ctxs = []
+    class Ctx:
+        def __init__(self): self.callback = None
+        def get_verify_mode(self): return 3
+        def set_verify(self, mode, callback): self.callback = callback
+    def original_context(**options):
+        ctx = Ctx(); ctxs.append(ctx); return ctx
+    module = types.SimpleNamespace(__name__='exporter_tls', _context=original_context)
+    class Writer:
+        def get_extra_info(self, name): return 'in2n-tls-exporter-v1'
+    class Channel:
+        inits = []
+        def __init__(self, *args, **options): Channel.inits.append(options); self.trusted = False; self.writer = Writer()
+    class Refused(Exception): code = 'member_not_enrolled'
+    async def hello(ch, params): raise Refused('x')
+    instrument, root, _ = start(tmp_path, 'border-trust-observer', armed=None)
+    instrument.install(exporter_tls=module, AttachmentChannel=Channel)
+    try:
+        ctx = module._context(require_peer=True)
+        assert ctx.callback(None, None, 20, 0, False) is False and ctx.callback(None, None, 0, 0, True) is True
+        assert ctx.callback(None, None, 20, 1, False) is False  # non-leaf failures are not recorded
+        assert module._context(require_peer=False).callback is None
+        Channel(handlers={'in2n/hello': hello}, is_border_side=True)
+        wrapped = Channel.inits[-1]['handlers']['in2n/hello']
+        channel = Channel(); channel.trusted = False
+        with pytest.raises(Refused):
+            asyncio.run(wrapped(channel, {'proof': {'a': 1}, 'member': 'm'}))
+        Channel(handlers={'in2n/hello': hello}, is_border_side=False)
+        assert Channel.inits[-1]['handlers']['in2n/hello'] is hello  # member side untouched
+        found = evidence(instrument)
+        assert sorted(f['phase'] for f in found) == ['in2n-hello-refused', 'installed', 'tls-verify-failed']
+        refusal = next(f for f in found if f['phase'] == 'in2n-hello-refused')['details']
+        assert refusal['error_code'] == 'member_not_enrolled' and refusal['trusted'] is False
+        assert next(f for f in found if f['phase'] == 'tls-verify-failed')['details']['verify_error'] == 20
+        assert not (instrument.directory / 'claim-border-trust-observer.json').exists()  # never a fault, never armed
+    finally:
+        instrument.uninstall()
+    assert module._context is original_context and Channel.__init__.__qualname__.endswith('Channel.__init__')
