@@ -12,7 +12,7 @@ exports.run=async()=>{
  const report={schema_version:1,classification:'REAL',surface:'editor',phase:config.phase,source_commit:config.source_commit,editor:vscode.version,extension:extension.packageJSON.version,record_sha256:config.record_sha256,complete:false,checks:[],requests:[],artifacts:[]};
  const {chromium}=require(process.env.NETCLAW_TEST_PLAYWRIGHT),browser=await chromium.connectOverCDP('http://127.0.0.1:'+process.env.NETCLAW_TEST_CDP_PORT);
  const page=browser.contexts().flatMap(c=>c.pages()).find(p=>p.url().includes('workbench'));assert.ok(page);page.setDefaultTimeout(20000);
- const quick=()=>page.locator('.quick-input-widget input').first(),select=async text=>{const row=page.locator('.quick-input-list .monaco-list-row').filter({hasText:text});assert.equal(await row.count(),1);await row.click();};
+ const quick=()=>page.locator('.quick-input-widget input').first(),select=async text=>{const row=page.locator('.quick-input-list .monaco-list-row').filter({hasText:text});await row.first().waitFor({state:'visible'});assert.equal(await row.count(),1);await row.click();};
  const original=['original_once','prepare_review'].includes(config.phase);let prepareNonce,prepared,decisionReady=false,prepareSent=false,decisionSent=false;
  const originalFetch=globalThis.fetch;
  // Observe and fence the same native transport; never synthesize a response or relax TLS.
