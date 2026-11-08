@@ -6,9 +6,11 @@
   `submitted`, `working`, `completed`, `failed`, `cancelled`, `outcome_unknown`,
   and `interrupted`. `recover()` sets `interrupted`. `result()` treats it as final.
   The retention sweep includes it with the other terminals. `unknown` is only the
-  lookup-miss response, so a missing task is not a reason for `n2n_task_wait` to stop.
-- The daemon GET for a missing task returns `{"error": "unknown task"}` and `_get`
-  does not raise. A body with no `state` is therefore not terminal and the slice runs out.
+  lookup-miss response (`status()` also returns it for a task the caller does not own).
+- The daemon GET for a missing task returns 404 `{"error": "unknown task"}` and `_get`
+  does not raise. Review round 1: waiting out the slice on that body, or on
+  `state: unknown`, returned `still_running` for a task that will never appear, so a
+  coordinator looped forever. Both now return at once with `not_found: true`.
 - A fork of `n2n_task_wait` guessed terminal from `status` and `result` text and
   treated `canceled` and `error` as terminal. This spec does not. State is an exact
   string match on `payload["state"]` only.
@@ -17,9 +19,13 @@
   `chroma.count` on a never-created name returns 0 (get_or_create), so the literal
   empty path stays on `chroma.count`. Integration tests that touch `~/.openclaw/rag`
   are not part of this check.
-- The reranker passthrough keeps input order and dense score. Merging after a full
-  rerank, then sorting by `(-score, chunk_id)`, is what makes a later collection's
-  higher score win. `_result_from_hit` does not emit `collection`; alias hits add
+- The reranker passthrough keeps input order and dense score. With the
+  cross-encoder on, merging after a full rerank and sorting by `(-score, chunk_id)`
+  makes a later collection's higher score win. In passthrough, `hybrid.py` gives
+  BM25-only hits `dense_score` 0.0, so a score sort would drop exact-match hits
+  (review round 1). Each collection's RRF uses the same `k=60` and leg depth, so
+  sorting by `rrf_score` interleaves collections by fused rank; passthrough keeps
+  that order. `Reranker.uses_model()` tells the two modes apart. `_result_from_hit` does not emit `collection`; alias hits add
   the collection that was searched, not a metadata value.
 - The fork also added an `any` alias, changed the literal empty message, and added
   `collections_searched`. Those stay out.

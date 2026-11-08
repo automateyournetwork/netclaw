@@ -36,6 +36,9 @@ _TERMINAL_TASK_STATES = frozenset({
     "completed", "failed", "cancelled", "outcome_unknown", "interrupted",
 })
 _TASK_WAIT_HINT = "still working — call n2n_task_wait again with the same task_id"
+_TASK_NOT_FOUND_HINT = (
+    "task not found (missing, purged, or not yours) — waiting again will not help"
+)
 
 
 def _task_payload_state(payload):
@@ -44,6 +47,20 @@ def _task_payload_state(payload):
         return None
     state = payload.get("state")
     return state if isinstance(state, str) else None
+
+
+def _task_not_found(payload, task_id):
+    """Payload for a task the daemon or peer cannot report on.
+
+    That is the daemon's 404 body (an `error` and no `state`), a peer's
+    `state: unknown`, or any payload without a string `state`. The original
+    fields are kept; `not_found` and a hint are added, and `still_running` is not.
+    """
+    body = dict(payload) if isinstance(payload, dict) else {}
+    body.setdefault("task_id", task_id)
+    body["not_found"] = True
+    body["hint"] = _TASK_NOT_FOUND_HINT
+    return body
 
 
 def _clamp_task_wait(timeout_seconds, poll_interval_seconds):
@@ -541,6 +558,11 @@ async def n2n_task_wait(
     Terminal states are completed, failed, cancelled, outcome_unknown, and
     interrupted. The state is taken only from the payload's state field.
 
+    A task that cannot be found returns at once with not_found true and no
+    still_running: the daemon's 404 body ({"error": "unknown task"}), a
+    peer's state "unknown", or a payload without a string state. Do not call
+    n2n_task_wait again for it.
+
     When the slice ends first, the last payload adds still_running true and a
     hint to call n2n_task_wait again with the same task_id. Fetch the output
     with n2n_task_result once the state is terminal.
@@ -557,8 +579,11 @@ async def n2n_task_wait(
             payload = await _get(f"/n2n/tasks/{task_id}")
         except Exception as exc:
             return _gcf_dumps({"task_id": task_id, "state": "error", "error": str(exc)})
-        if _task_payload_state(payload) in _TERMINAL_TASK_STATES:
+        state = _task_payload_state(payload)
+        if state in _TERMINAL_TASK_STATES:
             return _gcf_dumps(payload)
+        if state is None or state == "unknown":
+            return _gcf_dumps(_task_not_found(payload, task_id))
         remaining = deadline - time.monotonic()
         if remaining <= 0:
             if isinstance(payload, dict):

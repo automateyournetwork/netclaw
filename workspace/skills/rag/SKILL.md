@@ -31,9 +31,10 @@ Users teach NetClaw by uploading documents (Slack attachment, HUD Knowledge pane
 ### `rag_search` collections
 
 - `documents` (the default) and any other name search that one collection.
-- `investigations`, `snapshots`, and `cases` search every ready investigation snapshot (`kind=snapshot`, `ingest_status=ready`). Hits from those collections are merged by score. The top `k` are returned, and each hit includes the source `collection`.
+- `investigations`, `snapshots`, and `cases` search the newest ready investigation snapshots (`kind=snapshot`, `ingest_status=ready`; at most `RAG_INVESTIGATION_MAX_COLLECTIONS`, default 50, by ingest time). To reach an older snapshot, search its collection name. Hits are merged by rerank score (by fused rank when reranking is off). The top `k` are returned, and each hit includes the source `collection`.
 - `all` and `*` search the document corpus plus those snapshots.
-- When no investigation snapshots are indexed, the snapshot aliases return an empty corpus and say so. A snapshot collection that is missing or unreadable is skipped.
+- When no investigation snapshots are indexed, the snapshot aliases return an empty corpus and say so. A snapshot collection that is missing or unreadable is skipped; if none can be read, the result is `STORAGE_UNAVAILABLE` — say the history could not be read, not that there is none.
+- `ingested_after` / `ingested_before` filter on when content was indexed (`ingest_ts`), for snapshots too. They do not filter on a snapshot's `capture_ts`; check `capture_ts` / `age_human` on each hit when the capture date matters.
 
 Use `investigations` when an alert or case asks what a prior investigation already recorded. Use `documents` for vendor procedures and standards. Show snapshot staleness (`age_human` / `staleness_notice`) whenever a hit came from a snapshot.
 

@@ -11,9 +11,14 @@
 - In `mcp-servers/rag-mcp/rag_mcp_server.py`, keep the current literal search as
   `_search_one`. `_do_search` sends `investigations` / `snapshots` / `cases` and
   `all` / `*` to `_search_aliased`. Ready snapshot collections come from the
-  registry. Merge by score after reranking the full candidate set. Skip an
-  unreadable snapshot. A documents index failure on `all` / `*` returns
-  `STORAGE_UNAVAILABLE` with the existing message.
+  registry, newest first, capped at `RAG_INVESTIGATION_MAX_COLLECTIONS`, with at
+  most `2k` candidates per collection. Merge by score after reranking with the
+  cross-encoder; merge on RRF score in passthrough. Skip an unreadable snapshot,
+  but return `STORAGE_UNAVAILABLE` when none can be read. A documents index
+  failure on `all` / `*` (count or retrieve) returns `STORAGE_UNAVAILABLE` with
+  the existing message. Log `<alias> -> <collections searched>`.
+- `n2n_task_wait` returns `not_found: true` at once for a 404 body, `state:
+  unknown`, or a payload with no string `state`.
 - Document the aliases in the `rag_search` docstring, `mcp-servers/rag-mcp/README.md`,
   and `workspace/skills/rag/SKILL.md`.
 - Append the new `server.py` sha256 to the Hermes `sourceHashes` list only.

@@ -44,7 +44,7 @@ Structure-aware: heading boundaries first, then paragraphs, 400–800 tokens (em
 
 `rag_snapshot` is the ONLY sanctioned RAG use of live data — explicit human request + scope confirmation, never automatic. Content passes a secret scrubber (Cisco type 5/7/8/9, enable/user secrets, SNMP communities, TACACS/RADIUS keys, routing auth keys, pre-shared keys, Juniper `$9$`, adjacent usernames → `<REDACTED:type>`, per-type counts with explicit zeros) before vectorization into a new `snapshot_<label>_<ISO8601>` collection. Retrieval from snapshots always includes `age_human` staleness ("captured 2026-07-16 14:02 UTC — 31 days ago"); snapshots older than `RAG_SNAPSHOT_WARN_DAYS` (90) are flagged stale, never auto-deleted.
 
-`rag_search` does not treat `investigations` as a literal collection name. `investigations`, `snapshots`, and `cases` search every registry row with `kind=snapshot`, `ingest_status=ready`, and a collection, then merge by score and return the top `k`. Each hit includes the source collection. `all` and `*` search `documents` plus those snapshots. Any other collection name is searched literally. When no investigation snapshots are indexed, the snapshot aliases return the usual empty-corpus shape and say so. A missing or unreadable snapshot collection is skipped.
+`rag_search` does not treat `investigations` as a literal collection name. `investigations`, `snapshots`, and `cases` search registry rows with `kind=snapshot`, `ingest_status=ready`, and a collection — the newest `RAG_INVESTIGATION_MAX_COLLECTIONS` (50) of them by `ingest_ts`; older snapshots are not searched by the alias, so name one literally to reach it. At most `2k` fused candidates per collection go to the reranker. Hits are merged by rerank score, or by fused (RRF) rank when reranking is off (passthrough scores are dense cosine, and BM25-only exact matches would otherwise sink), and the top `k` are returned. Each hit includes the source collection. `all` and `*` search `documents` plus those snapshots. Any other collection name is searched literally. When no investigation snapshots are indexed, the snapshot aliases return the usual empty-corpus shape and say so. A missing or unreadable snapshot collection is skipped; when none can be read, or `documents` cannot be read on `all` / `*`, the result is `STORAGE_UNAVAILABLE`. The retrieval log records the alias and the collections searched (`investigations -> snapshot_a,snapshot_b`). `ingested_after` / `ingested_before` compare each chunk's `ingest_ts` (when it was indexed), for snapshots too — not the snapshot's `capture_ts`.
 
 ## Environment variables (no credentials)
 
@@ -59,6 +59,7 @@ Structure-aware: heading boundaries first, then paragraphs, 400–800 tokens (em
 | `RAG_CRAWL_MAX_PAGES` | `30` | Depth-1 preview bound |
 | `RAG_SNAPSHOT_WARN_DAYS` | `90` | Staleness warning |
 | `RAG_MAX_ROUNDS` | `3` | Retrieval rounds per sub-query |
+| `RAG_INVESTIGATION_MAX_COLLECTIONS` | `50` | Newest snapshot collections one alias search covers |
 
 ## Storage layout
 

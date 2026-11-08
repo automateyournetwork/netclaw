@@ -99,7 +99,7 @@ def test_working_then_completed(n2n, monkeypatch):
     assert calls == ["/n2n/tasks/t", "/n2n/tasks/t"]
 
 
-@pytest.mark.parametrize("state", ["working", "submitted", "unknown"])
+@pytest.mark.parametrize("state", ["working", "submitted"])
 def test_open_state_ends_the_slice_with_still_running(n2n, monkeypatch, state):
     module, clock = n2n
     calls = _patch_get(module, monkeypatch, [
@@ -138,15 +138,59 @@ def test_free_text_does_not_count_as_terminal(n2n, monkeypatch):
     assert clock.sleeps == [10.0]
 
 
-def test_non_string_state_is_not_terminal(n2n, monkeypatch):
+def test_daemon_404_body_returns_not_found_at_once(n2n, monkeypatch):
+    # bgp-daemon-v2 answers a missing or purged task with 404 {"error": "unknown task"};
+    # _get does not raise on non-2xx, so this body is what the wait sees.
+    module, clock = n2n
+    calls = _patch_get(module, monkeypatch, [{"error": "unknown task"}])
+    body = _run(module, "gone-1")
+    assert body["not_found"] is True
+    assert body["task_id"] == "gone-1"
+    assert body["error"] == "unknown task"
+    assert body["hint"] == module._TASK_NOT_FOUND_HINT
+    assert "still_running" not in body
+    assert "state" not in body
+    assert clock.sleeps == []
+    assert calls == ["/n2n/tasks/gone-1"]
+
+
+def test_peer_state_unknown_returns_not_found_at_once(n2n, monkeypatch):
+    # tasks.py status() answers {"task_id", "state": "unknown"} for a missing or unowned task.
+    module, clock = n2n
+    _patch_get(module, monkeypatch, [{"task_id": "t", "state": "unknown"}])
+    body = _run(module, "t")
+    assert body["state"] == "unknown"
+    assert body["not_found"] is True
+    assert "still_running" not in body
+    assert clock.sleeps == []
+
+
+@pytest.mark.parametrize("payload", [
+    {"task_id": "t", "state": {"status": "completed"}},
+    {"task_id": "t", "state": None},
+    {"task_id": "t", "progress": "1/2"},
+    ["not", "a", "dict"],
+])
+def test_payload_without_string_state_returns_not_found_at_once(n2n, monkeypatch, payload):
+    module, clock = n2n
+    _patch_get(module, monkeypatch, [payload])
+    body = _run(module, "t")
+    assert body["not_found"] is True
+    assert body["task_id"] == "t"
+    assert "still_running" not in body
+    assert clock.sleeps == []
+    if isinstance(payload, dict) and "state" in payload:
+        assert body["state"] == payload["state"]
+
+
+def test_error_beside_an_open_state_keeps_waiting(n2n, monkeypatch):
     module, _clock = n2n
     _patch_get(module, monkeypatch, [
-        {"task_id": "t", "state": {"status": "completed"}},
-        {"task_id": "t", "state": {"status": "completed"}},
+        {"task_id": "t", "state": "working", "error": "transient"},
+        {"task_id": "t", "state": "completed"},
     ])
-    body = _run(module, "t", timeout_seconds=10, poll_interval_seconds=15)
-    assert body["state"] == {"status": "completed"}
-    assert body["still_running"] is True
+    body = _run(module, "t")
+    assert body == {"task_id": "t", "state": "completed"}
 
 
 def test_get_error_returns_error_payload(n2n, monkeypatch):
