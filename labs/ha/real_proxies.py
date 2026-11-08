@@ -95,6 +95,12 @@ def replace_private(path, value):
 
 def process_start(pid):
     """Kernel-reported start time; with the pid it identifies one process incarnation."""
+    stat = Path('/proc') / str(pid) / 'stat'
+    if stat.exists():  # Linux: stable clock-tick start time (ps lstart can drift by a second)
+        try:
+            return 'ticks:' + stat.read_text().rsplit(')', 1)[1].split()[19]
+        except (OSError, IndexError):
+            return None
     result = subprocess.run(['ps', '-o', 'lstart=', '-p', str(pid)], capture_output=True, text=True, timeout=5)
     return ' '.join(result.stdout.split()) if result.returncode == 0 else None
 
