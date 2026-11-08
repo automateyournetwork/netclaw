@@ -164,7 +164,8 @@ export async function serve(root,name) {
     }
     writeNew(path.join(directory,'listening-'+name+'.json'),{...identity,at_ms:Date.now(),execution_ready:false});
     process.once('SIGTERM',stop);process.once('SIGINT',stop);
-    const timer=setTimeout(stop,30*60*1000);timer.unref();
+    const lifetimeSeconds=Number(process.env.NETCLAW_INGRESS_LIFETIME_S||1800);if(!Number.isInteger(lifetimeSeconds)||lifetimeSeconds<60||lifetimeSeconds>5400)throw Error('invalid_ingress_lifetime');
+    const timer=setTimeout(stop,lifetimeSeconds*1000);timer.unref();
     await Promise.all(listeners.map(server=>once(server,'close')));clearTimeout(timer);
     writeNew(path.join(directory,'stopped-'+name+'.json'),{...identity,at_ms:Date.now()});
   } catch(error){stop();throw error;}

@@ -86,7 +86,7 @@ claims its selected Border, reads only that Border's private runtime descriptor
 and HTTPS key, binds its one reviewed loopback HTTPS port, and records its
 PID/origin/installation. It does not
 launch Python, Docker, a provider, browser, Code or simulator. It stops its own
-listeners after30minutes or SIGTERM/SIGINT; each listener has32connections,
+listeners after30minutes (override with `NETCLAW_INGRESS_LIFETIME_S`, 60-5400 seconds) or SIGTERM/SIGINT; each listener has32connections,
 16KiBheaders,30sHTTP requests,5sWSS handshakes and16MiB total per WSS connection.
 The120sWSS idle bound permits ordinary protocol heartbeats. Never remove a serve
 claim to repair uncertain startup; preserve it and inspect exact owned sockets.
