@@ -92,3 +92,24 @@ refusal (after the executor unwrap fix) and the Border/other members were unaffe
 ## pyATS member (source/tests only so far)
 HA effect admission added around the pyATS call, optional private credential_file, hosted+pyats runtime shape, pyats flavor in r09_member (see pyats-member.md);
 CML lab NetClaw-Full-Topo is started with R1 reachable on 192.168.2.201:22. Not yet run live.
+
+## RESULT (gen4, 2026-11-09): all three member kinds complete real operations through all three Borders
+Members (Mac, outbound over iN2N, attached to all three Borders): `mac-subnet` (qwen3:0.6b, native calculator), `netbox` (hosted Sonnet 4.6, demo.netbox.dev),
+`pyats` (hosted Sonnet 4.6, pyATS 25.2 against CML lab NetClaw-Full-Topo, R1 192.168.2.201). Every row below completed with a durable ACK:
+| tool | via Montreal | via Belgium | via Singapore |
+|---|---|---|---|
+| subnet_calculator 192.0.2.0/26 (62 usable, bcast .63, independently verified) | yes | yes | yes |
+| netbox_get_object_by_id dcim.device 27 (dmi01-akron-pdu01, DM-Akron, AP7901) | yes | yes | yes |
+| pyats_run_show_command R1 `show version` (IOS 17.18.2, uptime 4 d) | yes | yes | yes |
+R1 SSH host key (TOFU from the LAN scan): SHA256:8LjcWvuxSbB8SW/Mt+jC0O+4/WKt6CvfByU0GX6KUX8.
+## Findings that needed product-side changes (all flagged for owner review; qualified code touched)
+1. NetBox hosted: guard API port; executor refusal unwrap (hosted path only); hosted request bound 13 KB -> 128 KiB (NetBox skill is 18.6 KB); guard config now from the
+   qualified R04A Anthropic file (derived Ollama-shaped config was blocked by DefenseClaw: provider "" unsupported).
+2. pyATS: HA effect admission added around the pyATS call; optional private credential_file; hosted+pyats runtime shape.
+3. Border catalog: members asked concurrently (ha/border.py) and the follower->leader forward timeout raised 5 s -> 15 s (ha/node.py). Before: with 3 members the far follower
+   (Singapore) answered 503 (leader catalog ~4 s + WAN > 5 s). After: Montreal 3.1 s, Belgium ~3.7 s, Singapore ~5.9 s catalog with 3 members.
+4. Model-handoff admission window: member accepts only 250 < admission_ms - elapsed <= 3000; signed admission_ms 4500 works for Montreal-led admission (~3 s observed); other
+   leader placements can fall outside it. Region isolation: a 2-of-3 quorum between the far regions cannot admit (degraded, not available).
+## Not claimed
+Spend limits/egress filtering on the hosted guard; Anthropic key at /etc/nc182/provider.env on each VM (delete at teardown); HUD is open-lab (anyone with a Border URL can use Chat);
+Ollama-path ExceptionGroup wrapping unchanged; Mobile and published VS Code/HUD builds NOT released (release gate stands); teardown not started (owner request + exact resource list needed).
