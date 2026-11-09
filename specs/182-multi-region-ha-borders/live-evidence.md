@@ -40,3 +40,14 @@ Names: nne1-3d69b5 / ew1-f37491 / ase1-11d078 .automateyournetwork.com. Mac memb
 `subnet_calculator 192.0.2.0/26` entered via Montreal (completed in 38.7 s incl. polling, 2 inference calls, 1 tool call, independent verification,
 durable ACK), via Belgium (completed, durable ACK) and via Singapore (completed, durable ACK); each: 62 usable, broadcast 192.0.2.63. Window theory
 confirmed: gen1 6000 / gen2 6000 / gen3 3000 each stranded one operation; gen4 4500 stranded none (3 of 3).
+
+## Gen4 failure tests so far
+- Montreal Border process stopped (its etcd voter stayed up): leader moved to **Singapore** in ~20 s (epoch 8 -> 34), not Belgium. Leader election does not
+  prefer a low-latency region. Montreal restarted and rejoined as follower. To restore a good leader the Singapore Border was stepped down; Belgium took
+  leadership in ~22 s (epoch 36); Montreal and Singapore follow. No operation was run while Singapore led (kept for the degraded test).
+- With Belgium leading, an operation entering via Singapore: model call 1 and the tool call finished, model call 2's admission was recorded `unknown`
+  (member runner latch `uncertain`), the Border resolved it as `failed` (`executor_failed`, durable ACK, may_have_executed true). Per the elapsed-window
+  rule above, the likely cause is the admission elapsed time (member challenge -> Border commit) falling outside [admission_ms-3000, admission_ms-250)
+  for the Belgium-led topology; not proven. The member latch stays `uncertain` (not reset). Further operations need a verified recovery or a replacement member.
+- Product consequence: the member model handoff accepts a 2.75 s wide elapsed window regardless of admission_ms. WAN admission jitter across regions can
+  exceed that, so leader placement changes admission reliability. This needs a product change (decouple the helper budget from the admission window) to be robust.
