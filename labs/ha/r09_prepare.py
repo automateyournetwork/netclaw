@@ -34,9 +34,12 @@ VM_STATE = '/var/lib/nc182'
 VM_SOURCE = '/opt/nc182/source'
 VM_VENV = '/opt/nc182/venv'
 PORTS = {'cluster': 7443, 'in2n': 7444, 'https': 443, 'edge': 8444, 'api': 8179, 'bgp': 1179}
-# admission_ms MUST be <= 3000: ha/model_transport.py refuses a model handoff when remaining > 3000 ms
-# (remaining = admission_ms - elapsed), so a larger window makes every fast handoff fail (live finding, gen1/gen2).
-LIMITS = {'leader_lease_s': 15, 'renewal_s': 5, 'admission_ms': 3000,
+# admission_ms: the admission clock starts at the member's challenge (ha/admission.py begin) and so includes the
+# member->Border round trip plus the leader's cross-region etcd commit (~3 s observed here). The member's model handoff
+# (ha/model_transport.py) then requires 250 < admission_ms - elapsed <= 3000, so the accepted elapsed window is
+# [admission_ms-3000, admission_ms-250). Live finding: 6000 failed fast handoffs (<3 s), 3000 failed slow ones (>2.75 s).
+# 4500 accepts 1.5 s .. 4.25 s, centred on the observed ~3 s.
+LIMITS = {'leader_lease_s': 15, 'renewal_s': 5, 'admission_ms': 4500,
           'clock_uncertainty_ms': 250, 'max_operations': 1024, 'max_members': 32}
 ETCD_HEARTBEAT_MS, ETCD_ELECTION_MS = 500, 5000
 SOURCE_ROOTS = ('mcp-servers/protocol-mcp',)

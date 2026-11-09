@@ -27,3 +27,10 @@ at 6000 a fast handoff leaves >3000 ms and is refused (the 2 slower handoffs tha
 (the second stranded operation entered via Montreal). Remedy: sign `admission_ms` 3000 (the R08 qualified value) in a fresh generation (gen3);
 the leader stays in Montreal so quorum round trips stay ~106 ms. Consequence to measure and report: with Montreal lost, a Belgium-led state
 has Belgium-Singapore quorum (~330 ms) and may refuse admissions (R08 refused at 300 ms); that is a degraded mode, not a claim of availability.
+
+## Correction (gen3): admission_ms 3000 also strands; the real constraint is a window, not a ceiling
+Gen3 (admission_ms 3000) stranded the first operation too. The agent log shows the member relay returning `403 inference_refused` right after
+the model handoff check. Reading `ha/admission.py`: the admission clock starts at the member's own `begin()` (challenge) and includes the
+member->Border network trip and the leader's cross-region etcd commit. `ha/model_transport.py` then needs `250 < admission_ms - elapsed <= 3000`.
+So the accepted elapsed window is `[admission_ms-3000, admission_ms-250)`: 6000 -> [3000,5750) failed every handoff under 3 s (the passes were
+>=3 s); 3000 -> [0,2750) failed every handoff over 2.75 s. Observed elapsed is ~3 s. Gen4 signs 4500 -> [1500,4250).
