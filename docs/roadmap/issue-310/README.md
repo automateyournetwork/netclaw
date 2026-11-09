@@ -66,6 +66,8 @@ The next milestones remain unchanged:
 | [R07](briefs/R07-recovery-gate.md) | Safe restart/outage/revocation/lost-reply/duplicate recovery without replay; required before multi-region work |
 | [R08](briefs/R08-border-ha-authority.md) | Exactly one execution authority, stale-leader refusal and no new protected execution without quorum; fixture and real-runtime evidence |
 | [R09](briefs/R09-gcp-multi-region.md) | Three-region GCP mesh across Americas/Europe/Asia-Pacific; four members attach to all three; single-region loss preserves service without replay |
+| [R09A](briefs/R09A-gcp-openshell-defenseclaw.md) | GCP Borders and HA mesh run inside OpenShell sandboxes with DefenseClaw guardrails; two Borders in one region is an acceptable validation topology (spec 183) |
+| [R09B](briefs/R09B-gcp-completeness-survey.md) | Survey of other GCP capabilities (load balancing, edge protection, secrets, logging, identity, networking) that make the deployment more complete; decide what to adopt |
 | [R10](briefs/R10-azure-single-region.md) | Azure Border, hosted-model NetBox and Ollama workloads with on-prem attachments, isolation, recovery, cost and teardown evidence |
 
 No next-stage implementation or cloud operation is started by this closeout.
@@ -408,7 +410,9 @@ personal memory and shared knowledge work in R15–R20.
 | R07 | Single-region recovery and tunnel lifecycle gate | gate | R03–R06, including R04a |
 | R08 | Border HA authority and protected quorum transport | prerequisite for 4 | R07 |
 | R09 | GCP multi-region: three meshed Borders | 4 | R08 |
-| R10 | Azure single region | 5 | R09 |
+| R09A | GCP Borders and HA mesh inside OpenShell and DefenseClaw (substep 1 of 2 before Azure) | 4 | R09 |
+| R09B | GCP completeness survey: load balancers, edge protection and other GCP services (substep 2 of 2 before Azure) | 4 | R09A |
+| R10 | Azure single region | 5 | R09B |
 | R11 | Azure multi-region | 5 | R10 |
 | R12 | AWS single region | 6 | R09 (may run beside R10) |
 | R13 | AWS multi-region | 6 | R12 |
