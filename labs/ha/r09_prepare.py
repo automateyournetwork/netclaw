@@ -34,7 +34,9 @@ VM_STATE = '/var/lib/nc182'
 VM_SOURCE = '/opt/nc182/source'
 VM_VENV = '/opt/nc182/venv'
 PORTS = {'cluster': 7443, 'in2n': 7444, 'https': 443, 'edge': 8444, 'api': 8179, 'bgp': 1179}
-LIMITS = {'leader_lease_s': 15, 'renewal_s': 5, 'admission_ms': 6000,
+# admission_ms MUST be <= 3000: ha/model_transport.py refuses a model handoff when remaining > 3000 ms
+# (remaining = admission_ms - elapsed), so a larger window makes every fast handoff fail (live finding, gen1/gen2).
+LIMITS = {'leader_lease_s': 15, 'renewal_s': 5, 'admission_ms': 3000,
           'clock_uncertainty_ms': 250, 'max_operations': 1024, 'max_members': 32}
 ETCD_HEARTBEAT_MS, ETCD_ELECTION_MS = 500, 5000
 SOURCE_ROOTS = ('mcp-servers/protocol-mcp',)

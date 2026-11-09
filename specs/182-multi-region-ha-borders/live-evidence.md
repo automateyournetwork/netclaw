@@ -18,3 +18,12 @@ native subnet calculator) attached outbound to all three over iN2N (`attachments
 - NetBox, pyATS, CML members (new engineering; see members-plan.md). Hosted-model profile still unqualified.
 - Firewall partitions, Border-to-Border NCFED cut, clock steps, fenced-restore phase 2.
 - Any operation after the Singapore unknown.
+
+## Finding: admission_ms must be <= 3000 (gen1 Singapore unknown and gen2 Montreal unknown explained)
+Both stranded operations show the member's first inference `claimed`, then refused, runner latch `uncertain`, and a Border state of
+`member_admitted`. Cause: `ha/model_transport.py` requires `CLOCK_ALLOWANCE_MS < remaining <= 3000` at the model handoff and its in-container
+helper hard-codes a 3000 ms budget, while `ha/admission.py` computes `remaining = admission_ms - elapsed`. With the signed `admission_ms`
+at 6000 a fast handoff leaves >3000 ms and is refused (the 2 slower handoffs that passed happened to cross 3 s). This was NOT region-specific
+(the second stranded operation entered via Montreal). Remedy: sign `admission_ms` 3000 (the R08 qualified value) in a fresh generation (gen3);
+the leader stays in Montreal so quorum round trips stay ~106 ms. Consequence to measure and report: with Montreal lost, a Belgium-led state
+has Belgium-Singapore quorum (~330 ms) and may refuse admissions (R08 refused at 300 ms); that is a degraded mode, not a claim of availability.
