@@ -48,7 +48,7 @@ After=network-online.target
 [Service]
 Type=oneshot
 RemainAfterExit=yes
-ExecStart=/bin/sh -c 'iptables -C OUTPUT -d 169.254.169.254 -m owner --uid-owner $WS_USER -j REJECT 2>/dev/null || iptables -I OUTPUT -d 169.254.169.254 -m owner --uid-owner $WS_USER -j REJECT'
+ExecStart=/bin/sh -c 'iptables -C OUTPUT -d 169.254.169.254 -m owner --uid-owner $WS_USER -j REJECT 2>/dev/null || iptables -I OUTPUT -d 169.254.169.254 -m owner --uid-owner $WS_USER -j REJECT; for proto in udp tcp; do iptables -C OUTPUT -d 169.254.169.254 -p \$proto --dport 53 -m owner --uid-owner $WS_USER -j ACCEPT 2>/dev/null || iptables -I OUTPUT 1 -d 169.254.169.254 -p \$proto --dport 53 -m owner --uid-owner $WS_USER -j ACCEPT; done'
 [Install]
 WantedBy=multi-user.target
 UNIT

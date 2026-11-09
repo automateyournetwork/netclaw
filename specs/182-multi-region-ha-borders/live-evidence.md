@@ -59,3 +59,12 @@ confirmed: gen1 6000 / gen2 6000 / gen3 3000 each stranded one operation; gen4 4
   etcd and authority stayed up (leader Montreal epoch 64 unchanged, observed from both Borders). An operation entering via Singapore was refused with HTTP 503
   before anything was sent to the member (fail-closed, no approval consumed). The cut was removed by exact-spec delete (0 rules remain on both hosts).
   Note: a first probe mis-ran because I shadowed the `cut` command in my shell; the rules were in place and the probe was re-run correctly.
+
+## Full workspace on the HA Borders (owner decision: open access for this short-lived deployment, Sonnet 4.6 on qualified OpenClaw 2026.7.1-2)
+Each Border now runs the protected edge plus a workspace backend (`nc182-wshud` upstream on loopback, `nc182-gateway`) under a separate UID. `/api/runtime`
+advertises label "NetClaw Border" and features overview, chat, canvas, members, peers, skills, runtime, tokenomics, documentation, reference, logs, operations
+(no rag). Four rollout failures were fixed on the way: render output dir, the `conversation-home/` path, missing `scripts/runtime-selection.mjs` in the pack,
+stale backend tree skipped by the idempotent install. Two product-config gaps found live: OpenClaw `gateway.http.endpoints.chatCompletions.enabled` must be true
+(render template fixed), and the metadata-server REJECT for the conversation UID also blocked DNS (GCE resolves via 169.254.169.254), now ACCEPT udp/tcp 53 only.
+A real Chat turn through the Montreal HUD edge to Anthropic Sonnet 4.6 completed ("Border chat is working.", 7.4 s). The Anthropic key sits at /etc/nc182/provider.env
+(root 0600) on each VM and must be deleted at teardown; the HUD is unauthenticated open-lab, so anyone with a Border URL can spend that key via Chat.

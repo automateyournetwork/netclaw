@@ -94,6 +94,7 @@ def openclaw_config(*, model, gateway_port=18789):
     need(isinstance(model, str) and MODEL_ID.match(model), 'invalid_model')
     need(isinstance(gateway_port, int) and 1024 <= gateway_port <= 65535, 'invalid_gateway_port')
     return {'gateway': {'mode': 'local', 'port': gateway_port, 'bind': 'loopback',
+                        'http': {'endpoints': {'chatCompletions': {'enabled': True}}},
                         'auth': {'mode': 'token', 'token': '${OPENCLAW_GATEWAY_TOKEN}'}},
             'agents': {'defaults': {'workspace': '__CONVERSATION_HOME__/workspace',
                                     'model': {'primary': model}}}}
