@@ -331,9 +331,11 @@ async def test_expired_operation_and_bad_token_refuse_before_connecting():
 
 @pytest.mark.asyncio
 async def test_request_size_bound():
+    from bgp.federation.ha.hosted_model_transport import MAX_REQUEST
     async with Guard() as guard:
+        # The reviewed skill context alone is ~18.6 KB, so the bound is far above the old 13 KB; just over it is refused.
         with pytest.raises(HAError, match='model_request_bound'):
-            await forward(guard.url, request={'messages': ['x' * 20000]})
+            await forward(guard.url, request={'messages': ['x' * (MAX_REQUEST + 1)]})
     assert guard.connections == 0
 
 

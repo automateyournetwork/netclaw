@@ -182,17 +182,19 @@ class ClusterBorderOperations:
 
     async def _local_catalog(self, params):
         c.exact(params, 'auth_context')
-        entries = []
-        for channel in list(self.member_channels.values()):
+        async def one(channel):
             binding = getattr(channel, 'protected_peer_binding', None)
-            if binding is None: continue
+            if binding is None: return None
             try:
                 entry = await self._send(binding, 'execution/catalog', {})
                 c.validate_catalog_entry(entry)
                 check(entry['member'] == binding, 'catalog_identity_mismatch', 403)
-                entries.append(entry)
+                return entry
             except Exception:
-                continue
+                return None
+        # Members are asked concurrently: sequential asks made the catalog latency grow with the member count and the
+        # WAN distance (3 members: ~4 s at the leader, ~7 s at the far follower, which exceeded its budget).
+        entries = [e for e in await asyncio.gather(*(one(ch) for ch in list(self.member_channels.values()))) if e is not None]
         entries.sort(key=lambda e: e['member']['member_id'])
         check(len({e['member']['member_id'] for e in entries}) == len(entries), 'ambiguous_catalog', 409)
         return {'revision': c.sha256(entries), 'members': entries, 'capabilities': ['cluster_execution_v2'],
