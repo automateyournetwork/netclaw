@@ -96,6 +96,9 @@ def main():
                     'anchor_key_id': node_info['anchor_key_id']},
         'tls': {'cert_file': str(tls / 'fullchain.pem'), 'chain_file': None, 'key_file': str(tls / 'key.pem')},
         'state_dir': str(hud_state)}
+    workspace = STATE / 'workspace/workspace.json'
+    if workspace.exists():  # full workspace enabled: pinned edge copy written by scripts/ha-r09-vm-workspace.sh
+        data['workspace'] = {'path': str(workspace)}
     (hud_state / 'input.json').write_text(json.dumps(data, sort_keys=True, separators=(',', ':')))
     for directory, dirs, names in os.walk(STATE):
         os.chown(directory, user.pw_uid, user.pw_gid); os.chmod(directory, 0o700)

@@ -8,7 +8,7 @@ import {execFileSync} from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import {once} from 'node:events';
-import {validateUpgrade,verifyTls,verifySource,loadOwned,parseOrigin,readInput,readIngress,nodeQualified,canonical,createFront,frontCheck,FRONT_LIMITS} from './hud_ingress_r09.mjs';
+import {validateUpgrade,verifyTls,verifySource,loadOwned,parseOrigin,readInput,readIngress,nodeQualified,canonical,createFront,frontCheck,FRONT_LIMITS,frontTimeout} from './hud_ingress_r09.mjs';
 
 const hash=raw=>crypto.createHash('sha256').update(raw).digest('hex');
 const temp=()=>fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(),'netclaw-r09-ingress-')));
@@ -205,6 +205,34 @@ test('ingress configuration is exact: unknown, missing or malformed fields are r
     input.source_manifest_file=f.config.source_manifest.path;input.tls={cert_file:f.config.tls.cert_file,chain_file:null,key_file:f.config.tls.key_file};
     assert.equal(readInput(write(input)).origin,f.config.origin);
   } finally {f.cleanup();}
+});
+
+test('workspace is an optional pinned entry: absent keeps the exact shape, present must be an absolute path pin',()=>{
+  const f=frozen();
+  try {
+    const write=value=>{const file=path.join(f.state,'ingress-ws-'+crypto.randomUUID()+'.json');fs.writeFileSync(file,JSON.stringify(value),{mode:0o600});return file;};
+    const withPin={...f.config,workspace:{path:path.join(f.state,'workspace.json'),sha256:'c'.repeat(64)}};
+    assert.equal(readIngress(write(withPin)).workspace.sha256,'c'.repeat(64));
+    assert.throws(()=>readIngress(write({...withPin,workspace:{path:'relative',sha256:'c'.repeat(64)}})),/invalid_workspace_pin/);
+    assert.throws(()=>readIngress(write({...withPin,workspace:{path:withPin.workspace.path,sha256:'bad'}})),/invalid_workspace_pin/);
+    assert.throws(()=>readIngress(write({...withPin,workspace:{path:withPin.workspace.path,sha256:'c'.repeat(64),extra:1}})),/invalid_workspace_pin/);
+    const input={...f.config};for(const k of ['schema_version','assets','hud','source_manifest','node_sha256'])delete input[k];
+    input.source_manifest_file=f.config.source_manifest.path;input.tls={cert_file:f.config.tls.cert_file,chain_file:null,key_file:f.config.tls.key_file};
+    assert.equal(readInput(write({...input,workspace:{path:withPin.workspace.path}})).workspace.path,withPin.workspace.path);
+    assert.throws(()=>readInput(write({...input,workspace:{path:'relative'}})),/invalid_workspace_input/);
+    assert.throws(()=>readInput(write({...input,workspace:{path:withPin.workspace.path,sha256:'c'.repeat(64)}})),/invalid_workspace_input/);
+  } finally {f.cleanup();}
+});
+
+test('loopback hop idle timeout: long chat turns are not cut at 30 s, protected routes keep the short bound',()=>{
+  assert.equal(frontTimeout('POST','/api/chat'),600000);
+  assert.equal(frontTimeout('POST','/api/n2n/chat'),330000);
+  assert.equal(frontTimeout('POST','/api/chat/conversations/abc.1:2/open'),135000);
+  assert.equal(frontTimeout('GET','/api/hud/logs?q=x'),90000);
+  assert.equal(frontTimeout('GET','/api/n2n'),90000);
+  for(const route of ['/api/runtime','/api/hud/operations','/api/hud/operations/catalog','/api/hud/owner/session','/api/hud/mobile/enrollment','/api/hud/cluster','/'])
+    assert.equal(frontTimeout('GET',route),FRONT_LIMITS.requestMs,route);
+  assert.equal(frontTimeout('GET','/api/chat'),90000,'only the POST turn gets the long bound');
 });
 
 // ---- public front + loopback proxy -------------------------------------------------------

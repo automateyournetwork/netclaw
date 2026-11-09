@@ -51,3 +51,11 @@ confirmed: gen1 6000 / gen2 6000 / gen3 3000 each stranded one operation; gen4 4
   for the Belgium-led topology; not proven. The member latch stays `uncertain` (not reset). Further operations need a verified recovery or a replacement member.
 - Product consequence: the member model handoff accepts a 2.75 s wide elapsed window regardless of admission_ms. WAN admission jitter across regions can
   exceed that, so leader placement changes admission reliability. This needs a product change (decouple the helper budget from the admission window) to be robust.
+
+## Gen4b: replacement member and Border-to-Border NCFED cut (closes R08 limit 1 on a real network)
+- The stuck member was retired (archived, never reset) and a replacement `nc182-r09/mac-subnet-bb3c50` was enrolled in a ~30 s Border pause and attached to
+  all three Borders; Montreal led again (epoch 64) and a real operation via Montreal completed (durable ACK, 62 usable / broadcast 192.0.2.63).
+- Real Border-to-Border NCFED cut: host firewall rules (tagged `nc182-cut`) dropped TCP 7443 between Singapore and Montreal in both directions, mid-flow.
+  etcd and authority stayed up (leader Montreal epoch 64 unchanged, observed from both Borders). An operation entering via Singapore was refused with HTTP 503
+  before anything was sent to the member (fail-closed, no approval consumed). The cut was removed by exact-spec delete (0 rules remain on both hosts).
+  Note: a first probe mis-ran because I shadowed the `cut` command in my shell; the rules were in place and the probe was re-run correctly.

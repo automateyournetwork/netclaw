@@ -67,6 +67,7 @@ export function nodeQualified(version=process.versions.node) {
 }
 
 const INPUT_FIELDS='origin bind port installation_id home source_root source_manifest_file dist edge_ws_port manifest_file anchor_certificate_file anchor_key_id cluster tls state_dir';
+const WORKSPACE_FIELD=' workspace';
 const INGRESS_FIELDS='schema_version origin bind port installation_id home source_root dist edge_ws_port manifest_file anchor_certificate_file anchor_key_id cluster tls state_dir assets hud source_manifest node_sha256';
 
 /** Origin is `https://<dns-name>` with an optional explicit port only for tests; no userinfo/path. */
@@ -92,16 +93,17 @@ function validateShape(config,keys,tlsKeys,pinKeys) {
 
 export function readInput(file) {
   const input=json(file,64*1024);
-  validateShape(input,INPUT_FIELDS,'cert_file chain_file key_file');
+  validateShape(input,'workspace' in input?INPUT_FIELDS+WORKSPACE_FIELD:INPUT_FIELDS,'cert_file chain_file key_file');
+  if('workspace' in input)need(exact(input.workspace,'path')&&absolute(input.workspace.path),'invalid_workspace_input');
   need(absolute(input.source_manifest_file)&&absolute(input.tls.cert_file)&&absolute(input.tls.key_file)&&(input.tls.chain_file===null||absolute(input.tls.chain_file)),'absolute_path_required');
   return input;
 }
 
 export function readIngress(file) {
   const config=json(file,64*1024);
-  validateShape(config,INGRESS_FIELDS,'cert_file cert_sha256 chain_file chain_sha256 key_file key_sha256');
+  validateShape(config,'workspace' in config?INGRESS_FIELDS+WORKSPACE_FIELD:INGRESS_FIELDS,'cert_file cert_sha256 chain_file chain_sha256 key_file key_sha256');
   need(config.schema_version===1,'ingress_config_invalid');
-  for(const [name,value] of [['assets',config.assets],['hud',config.hud],['source_manifest',config.source_manifest]]) {
+  for(const [name,value] of [['assets',config.assets],['hud',config.hud],['source_manifest',config.source_manifest],...('workspace' in config?[['workspace',config.workspace]]:[])]) {
     need(exact(value,'path sha256')&&absolute(value.path)&&sha(value.sha256),'invalid_'+name+'_pin');
   }
   const t=config.tls;
@@ -161,8 +163,8 @@ export function verifyTls(certRaw,keyRaw,chainRaw,hostname,now=Date.now()) {
 
 async function production(config) {return import(pathToFileURL(path.join(config.source_root,'ui/netclaw-visual/src/hud-server/protected-server.js')).href);}
 
-function hudConfig(input,assets) {
-  return {schemaVersion:1,installationId:input.installation_id,home:input.home,kind:'openclaw',origin:input.origin,host:'127.0.0.1',port:input.port,dist:input.dist,manifest:assets.path,manifestSha256:assets.sha256,access:{mode:'open-lab'}};
+function hudConfig(input,assets,workspace=null) {
+  return {schemaVersion:1,installationId:input.installation_id,home:input.home,kind:'openclaw',origin:input.origin,host:'127.0.0.1',port:input.port,dist:input.dist,manifest:assets.path,manifestSha256:assets.sha256,access:{mode:'open-lab'},...(workspace?{workspace:{path:workspace.path,sha256:workspace.sha256}}:{})};
 }
 
 /** Load and verify one Border's complete private binding. Starts nothing. */
@@ -175,9 +177,10 @@ export async function loadOwned(config,{checkRunning=true,now=Date.now()}={}) {
   const hudRaw=pinned(config.hud.path,config.hud.sha256);
   const {readProtectedServerConfig}=await production(config);
   const hud=readProtectedServerConfig(config.hud.path);
-  const expected=hudConfig(config,config.assets);
+  const expected=hudConfig(config,config.assets,config.workspace||null);
   need(canonical(strictJson(hudRaw.toString('utf8')))===canonical(expected),'hud_config_changed');
-  need(hud.dist===config.dist&&hud.manifest===config.assets.path&&hud.manifestSha256===config.assets.sha256&&!hud.workspace,'production_assets_changed');
+  need(hud.dist===config.dist&&hud.manifest===config.assets.path&&hud.manifestSha256===config.assets.sha256&&Boolean(hud.workspace)===Boolean(config.workspace),'production_assets_changed');
+  if(config.workspace)need(hud.workspace.upstream&&new URL(hud.workspace.upstream).port!==String(config.port),'workspace_loop');
   const {hostname}=parseOrigin(config.origin);
   const certificate=pinned(config.tls.cert_file,config.tls.cert_sha256,false,64*1024);
   const chain=config.tls.chain_file?pinned(config.tls.chain_file,config.tls.chain_sha256,false,64*1024):null;
@@ -202,11 +205,12 @@ export async function prepare(inputFile) {
   const assets=buildProtectedManifest(input.dist),assetsFile=path.join(state,'assets.json');
   writeNew(assetsFile,assets);
   const assetsPin={path:assetsFile,sha256:hash(Buffer.from(canonical(assets)))};
-  const hudFile=path.join(state,'hud.json'),hud=hudConfig(input,assetsPin);
+  const wsPin=input.workspace?{path:input.workspace.path,sha256:hash(boundedFile(input.workspace.path,65536,true))}:null;
+  const hudFile=path.join(state,'hud.json'),hud=hudConfig(input,assetsPin,wsPin);
   writeNew(hudFile,hud);
   const t=input.tls;
   const config={schema_version:1,...Object.fromEntries(Object.keys(input).filter(k=>!['source_manifest_file','tls'].includes(k)).map(k=>[k,input[k]])),
-    assets:assetsPin,hud:{path:hudFile,sha256:hash(Buffer.from(canonical(hud)))},
+    ...(wsPin?{workspace:wsPin}:{}),assets:assetsPin,hud:{path:hudFile,sha256:hash(Buffer.from(canonical(hud)))},
     source_manifest:{path:input.source_manifest_file,sha256:hash(boundedFile(input.source_manifest_file,8*1024*1024,true))},
     node_sha256:hash(boundedFile(fs.realpathSync(process.execPath),256*1024*1024)),
     tls:{cert_file:t.cert_file,cert_sha256:hash(boundedFile(t.cert_file,64*1024)),chain_file:t.chain_file,chain_sha256:t.chain_file?hash(boundedFile(t.chain_file,64*1024)):null,
@@ -254,6 +258,16 @@ export function bridgeUpgrade(request,socket,head,row,sockets) {
  */
 const HOP_BY_HOP=new Set(['connection','keep-alive','proxy-authenticate','proxy-authorization','proxy-connection','te','trailer','transfer-encoding','upgrade']);
 export const FRONT_LIMITS=Object.freeze({body:1024*1024,url:4096,headers:100,requestMs:30000});
+/** Idle timeout of the loopback hop; mirrors the product remoteHudTimeout so long workspace calls are not cut at 30 s.
+ *  Protected-operation, owner, enrollment and cluster routes keep the short bound. */
+export function frontTimeout(method,url) {
+  const target=String(url).split('?')[0];
+  if(method==='POST'&&target==='/api/chat')return 600000;
+  if(method==='POST'&&target==='/api/n2n/chat')return 330000;
+  if(method==='POST'&&/^\/api\/chat\/conversations\/[A-Za-z0-9_.:-]{1,128}\/open$/.test(target))return 135000;
+  const short=target==='/api/runtime'||/^\/api\/hud\/(operations|owner|mobile|cluster)(\/|$)/.test(target);
+  return target.startsWith('/api/')&&!short?90000:FRONT_LIMITS.requestMs;
+}
 const refuse=(res,status,code)=>{if(res.headersSent){res.destroy();return;}const body=JSON.stringify({code});res.writeHead(status,{'Content-Type':'application/json; charset=utf-8','Content-Length':Buffer.byteLength(body),'Cache-Control':'no-store','X-Content-Type-Options':'nosniff','Connection':'close'});res.end(body);};
 
 /** Returns null when the request may proceed, else {status, code}. */
@@ -283,7 +297,7 @@ export function proxyRequest(req,res,config,upstreamPort) {
   }
   headers.host=new URL(config.origin).host;
   headers.connection='close';
-  const upstream=http.request({host:'127.0.0.1',port:upstreamPort,method:req.method,path:req.url,headers,agent:false,timeout:FRONT_LIMITS.requestMs,maxHeaderSize:16384});
+  const upstream=http.request({host:'127.0.0.1',port:upstreamPort,method:req.method,path:req.url,headers,agent:false,timeout:frontTimeout(req.method,req.url),maxHeaderSize:16384});
   const fail=()=>{upstream.destroy();refuse(res,502,'protected_service_unavailable');};
   upstream.once('timeout',fail);upstream.once('error',fail);
   res.once('close',()=>upstream.destroy());
