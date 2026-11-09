@@ -34,3 +34,9 @@ the model handoff check. Reading `ha/admission.py`: the admission clock starts a
 member->Border network trip and the leader's cross-region etcd commit. `ha/model_transport.py` then needs `250 < admission_ms - elapsed <= 3000`.
 So the accepted elapsed window is `[admission_ms-3000, admission_ms-250)`: 6000 -> [3000,5750) failed every handoff under 3 s (the passes were
 >=3 s); 3000 -> [0,2750) failed every handoff over 2.75 s. Observed elapsed is ~3 s. Gen4 signs 4500 -> [1500,4250).
+
+## Gen4 (admission_ms 4500): all three entry Borders complete real operations
+Names: nne1-3d69b5 / ew1-f37491 / ase1-11d078 .automateyournetwork.com. Mac member `nc182-r09/mac-subnet-899eb3` attached to all three (attachments 3).
+`subnet_calculator 192.0.2.0/26` entered via Montreal (completed in 38.7 s incl. polling, 2 inference calls, 1 tool call, independent verification,
+durable ACK), via Belgium (completed, durable ACK) and via Singapore (completed, durable ACK); each: 62 usable, broadcast 192.0.2.63. Window theory
+confirmed: gen1 6000 / gen2 6000 / gen3 3000 each stranded one operation; gen4 4500 stranded none (3 of 3).
