@@ -41,6 +41,11 @@ _PYATS_FIELDS = {"python", "upstream", "upstream_sha256", "source_sha256", "adap
                  "testbed_sha256", "known_hosts", "known_hosts_sha256", "endpoint_sha256", "credential_env"}
 
 _MCP_RUNTIME_FIELDS = (_RUNTIME_FIELDS - {'pyats'}) | {'mcp', 'relay_transport'}
+# Spec 182: the exact reviewed pyATS read can also run as an HA member on the hosted model profile. It keeps the pyats
+# field set of the qualified R02 runtime and adds only `hosted` (no `mcp`, no `ollama`). A pyats config may add one
+# optional `credential_file` (see protected_runtime.pyats_credentials); the original field set stays valid unchanged.
+_PYATS_HOSTED_FIELDS = _RUNTIME_FIELDS | {'hosted'}
+_PYATS_OPTIONAL_FIELDS = {'credential_file'}
 
 _INFERENCE_REFUSAL_CODES = frozenset('''inference_route_refused inference_capability_refused approval_expired
 inference_request_bound inference_model_changed inference_fields_refused ambiguous_inference_token_limit
@@ -50,7 +55,8 @@ ollama_tool_history_changed ollama_invented_tool_output ollama_unverified_tool_o
 ollama_tool_arguments_invalid ollama_duplicate_tool_argument ollama_nonfinite_tool_argument
 ollama_tool_family_changed ollama_approval_profile_changed ollama_caller_reasoning_refused
 ollama_tool_schema_changed ollama_messages_invalid ollama_conversation_changed ollama_request_context_bound
-ollama_runner_recovery_required runner_recovery_required'''.split())
+ollama_runner_recovery_required runner_recovery_required
+hosted_guard_binding_invalid hosted_profile_invalid model_guard_unavailable provider_fence_unavailable provider_fence_unreadable admission_expired'''.split())
 
 
 def record_inference_refusal(operation_root, code):
@@ -74,6 +80,10 @@ def _single_protected_error(group):
 def validate_runtime_fields(config):
     fields = set(config)
     if fields == _RUNTIME_FIELDS:
+        return 'pyats'
+    if fields == _PYATS_HOSTED_FIELDS:
+        try: _hosted.validate_profile(config['hosted'])
+        except _hosted.HostedRefused as exc: raise RuntimeRefused(exc.code) from None
         return 'pyats'
     if fields in (_MCP_RUNTIME_FIELDS, _MCP_RUNTIME_FIELDS | {'ollama'}, _MCP_RUNTIME_FIELDS | {'hosted'}) and config.get('relay_transport') in ('unix', 'tcp'):
         if 'hosted' in config:
@@ -215,8 +225,13 @@ def tool_contract_digest(pyats):
     This is a tool contract revision, not merely a hash of JSON property names.
     Inventory and resolved endpoint retain their separate signed fields.
     """
-    if not isinstance(pyats, dict) or set(pyats) != _PYATS_FIELDS:
+    if not isinstance(pyats, dict) or set(pyats) - _PYATS_OPTIONAL_FIELDS != _PYATS_FIELDS:
         raise RuntimeRefused("pyats_configuration_fields_refused")
+    if 'credential_file' in pyats:
+        credential_file = pyats['credential_file']
+        if (not isinstance(credential_file, str) or not Path(credential_file).is_absolute()
+                or Path(credential_file).name != 'pyats-credential' or '\x00' in credential_file or len(credential_file) > 1024):
+            raise RuntimeRefused("unsafe_credential_file")
     sources = pyats["source_sha256"]; adapters = pyats["adapter_sha256"]
     if (set(sources) != {"pyats_mcp_server.py", "pyats_testbed_builder.py", "pyats_tasks.py"}
             or set(adapters) != {"protected-tool-broker.py", "lib/protected_pyats.py"}):
@@ -236,7 +251,8 @@ def tool_contract_digest(pyats):
         "enforced_policy": {"command": "show version", "retries": 1, "timeout_min": 1, "timeout_max": 120,
                             "execute_once": True, "parse_captured_output": True, "exact_raw_arguments": True},
         "upstream_sha256": pyats["upstream_sha256"], "source_sha256": sources, "adapter_sha256": adapters,
-        "native_python": _native_identity(pyats["python"], python=True), "credential_env": sorted(credentials)})
+        "native_python": _native_identity(pyats["python"], python=True), "credential_env": sorted(credentials),
+        **({"credential_file": pyats["credential_file"]} if "credential_file" in pyats else {})})
 
 
 def revision_bindings(config):
@@ -794,7 +810,9 @@ class DockerExecutor:
                             return await invoke_mcp(self.config["mcp"], arguments, operation_root / "tool",
                                 **({'ha_required': True, 'ha_admission': lambda call:
                                     ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
-                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool")
+                        return await invoke_pyats(self.config["pyats"], arguments, operation_root / "tool",
+                            **({'ha_required': True, 'ha_admission': lambda call:
+                                ha_admission('tool', 1, sha(payload['tool_call']), call)} if 'cluster' in payload else {}))
                     return await native()
             except TimeoutError as exc:
                 raise RuntimeUnknown("tool_outcome_unknown") from exc

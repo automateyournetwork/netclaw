@@ -340,3 +340,12 @@ def test_hosted_guard_management_port_matches_the_health_probe():
     from labs.ha import r09_member as builder
     assert builder.HOSTED_GUARD_API_PORT == port == 4001
     assert docker.guard_health_probe({'any': 'ollama'}).count('18970') == 1  # the Ollama probe is unchanged
+
+
+def test_hosted_request_bound_fits_the_reviewed_netbox_skill_context():
+    """Live finding (gen4): the reviewed netbox-reconcile skill context is ~18.6 KB; a 13 KB hosted bound made every
+    NetBox model call fail pre-connect with model_request_bound (HTTP 503), the agent retried, and the fence refused."""
+    import importlib
+    module = importlib.import_module('bgp.federation.ha.hosted_model_transport')
+    assert module.MAX_REQUEST >= 65536
+    assert module.MAX_REQUEST <= 1024 * 1024

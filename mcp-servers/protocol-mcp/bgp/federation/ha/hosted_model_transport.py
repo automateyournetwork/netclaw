@@ -22,7 +22,9 @@ from ..protected_runtime import RuntimeRefused, RuntimeUnknown, canonical
 from .config import check
 from .effect import scope
 
-MAX_REQUEST = 13312
+# Hosted requests carry the reviewed skill context (the NetBox skill alone is ~18.6 KB), so the Ollama-sized 13 KB bound does
+# not apply here; the layer above already bounds a request at 1 MiB.
+MAX_REQUEST = 131072
 MAX_RESPONSE = 1048576
 MAX_HEADER = 16384
 CLOCK_ALLOWANCE_MS = 250

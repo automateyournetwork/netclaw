@@ -25,6 +25,14 @@ NetBox flavor (hosted Sonnet via the DefenseClaw guard + the exact reviewed NetB
   NETBOX_TOKEN=... ANTHROPIC_API_KEY=... r09_member.py artifacts --root R [--netbox-url URL]   (secrets from the
         environment only, written 0600 to guard.env / the credential file, never printed, logged or stored in state)
   r09_member.py materialize / validate --root R        (no model namespace and no qualify.py for this flavor)
+pyATS flavor (hosted Sonnet via the guard + the exact reviewed `show version` of ONE IOS-XE IOL device, e.g. a CML node; spec 182):
+  r09_member.py identity --root R --flavor pyats ; freeze ; python-env           (freeze also pins the broker + adapter scripts)
+  r09_member.py pyats-env --root R [--env VENV] [--device R1]    verify + record the R02 pyATS env (25.2, mcp 2.x, pinned Unicon digest)
+  ANTHROPIC_API_KEY=... r09_member.py artifacts --root R [--pyats-testbed TB] [--known-hosts-file KH]   (device credentials are read from
+        the owner testbed and written 0600 to artifacts/pyats-credential; the strict host key is scanned unless a file is given)
+  r09_member.py materialize / validate --root R
+  The pyats flavor's artifacts/materialize/validate import the tool-contract schema, which needs the mcp SDK: run them with the
+  member's own 3.12 environment python (R04A venv), not the 3.10 builder venv.
 Files whose raw bytes the launcher pins (ha-config, profile, manifests, contract) are written in canonical
 JSON and digested over those exact bytes. All *_file paths are absolute, canonical, symlink-free.
 """
@@ -63,7 +71,19 @@ TOOL_LIMITS = {'inference_timeout_ms': 60000, 'tool_timeout_ms': 30000, 'max_inf
                'max_tool_calls': 1, 'max_output_bytes': 262144}
 GUARD_ENV_VARIABLE = 'DEFENSECLAW_GATEWAY_TOKEN'
 GUARD_TOKEN_ENV = 'NETCLAW_R09_GUARD_TOKEN'
-FLAVORS = ('ollama', 'netbox')
+FLAVORS = ('ollama', 'netbox', 'pyats')
+# pyATS flavor (spec 182): the exact reviewed `show version` read of ONE IOS-XE IOL device (a CML node on the owner's LAN) over
+# strict-host-key SSH, as an HA member on the same hosted Sonnet profile. The pinned pyATS/genie/unicon 25.2 environment is
+# the R02 runtime already on this Mac; the effect runs behind the same HA effect admission as the other tools.
+R02_PYATS_RUNTIME = HOME / '.local/share/netclaw/roadmap-r02-r05-20261102/pyats-runtime'
+PYATS_UPSTREAM_FILES = ('pyats_mcp_server.py', 'pyats_testbed_builder.py', 'pyats_tasks.py')
+PYATS_CLOSURE_EXTRA = ('scripts/protected-tool-broker.py', 'scripts/lib/protected_pyats.py')  # read from <source>/scripts by invoke_pyats
+PYATS_DEFAULT_TESTBED = REPO / 'testbed/testbed.yaml'
+PYATS_DEVICE = 'R1'
+PYATS_ARGUMENTS = {'device_name': PYATS_DEVICE, 'command': 'show version', 'timeout': 30, 'retries': 1}
+PYATS_CREDENTIAL_NAMES = ('PYATS_R02_USERNAME', 'PYATS_R02_PASSWORD', 'PYATS_R02_ENABLE_PASSWORD')
+PYATS_TOOL_LIMITS = dict(TOOL_LIMITS, tool_timeout_ms=120000)  # SSH login + one command through an IOL node, with margin
+PYATS_SSH_PREFIX = '-F /dev/null -o GlobalKnownHostsFile=/dev/null -o StrictHostKeyChecking=yes -o UserKnownHostsFile='
 # NetBox flavor. The MCP server pins fastmcp<3 (mcp 1.x), so it needs its own immutable env, separate from the
 # member env that runs mcp 2.x. Tool arguments are the single exact reviewed read; id 27 exists on demo.netbox.dev.
 NETBOX_MCP_REQUIREMENTS = ['fastmcp>=2.14.0,<3', 'requests>=2.31.0', 'httpx>=0.28.1', 'pydantic>=2.0',
@@ -213,7 +233,7 @@ def save_state(root, state):
     os.replace(tmp, path)
 
 
-def closure_files():
+def closure_files(flavor=None):
     files = {}
     for base in SOURCE_TREES:
         for path in sorted((REPO / base).rglob('*')):
@@ -221,7 +241,7 @@ def closure_files():
             if (path.is_file() and not path.is_symlink() and not any(p in SKIP_DIRS for p in relative.parts)
                     and not path.name.endswith(SKIP_SUFFIX) and path.name != 'pytest.ini'):
                 files[str(relative)] = path
-    for name in SOURCE_EXTRA:
+    for name in SOURCE_EXTRA + (PYATS_CLOSURE_EXTRA if flavor == 'pyats' else ()):
         need((REPO / name).is_file(), 'closure_file_missing:' + name)
         files[name] = REPO / name
     return files
@@ -257,7 +277,7 @@ def cmd_identity(args):
     flavor = getattr(args, 'flavor', 'ollama')
     need(flavor in FLAVORS, 'flavor_refused')
     binding = {'installation_id': str(uuid.uuid4()),
-               'member_id': ('nc182-r09/netbox-' if flavor == 'netbox' else 'nc182-r09/mac-subnet-') + suffix,
+               'member_id': {'netbox': 'nc182-r09/netbox-', 'pyats': 'nc182-r09/pyats-'}.get(flavor, 'nc182-r09/mac-subnet-') + suffix,
                'key_id': c.key_id(certificate), 'enrollment_generation': str(uuid.uuid4())}
     c.validate_binding(binding, 'member')
     need(all(binding['installation_id'] != n['installation_id'] and binding['key_id'] != n['key_id']
@@ -277,7 +297,7 @@ def cmd_identity(args):
 def cmd_freeze(args):
     root, state = load_state(args.root)
     need(not (root / 'source').exists(), 'source_already_frozen')
-    files = closure_files()
+    files = closure_files(state.get('flavor'))
     need(1 <= len(files) <= 20000 and sum(p.stat().st_size for p in files.values()) <= 64 * 1024 * 1024, 'source_bound')
     manifest = {'schemaVersion': 1, 'files': {name: sha(path.read_bytes()) for name, path in files.items()}}
     destination = private_dir(root / 'source')
@@ -509,11 +529,185 @@ def artifacts_netbox(root, state, args):
             'model_namespace': 'none (hosted flavor): do not run qualify.py'}
 
 
+
+# ------------------------------------------------------------------------------------------- pyats env
+_PYATS_ENV_CHECK = """import importlib.metadata as m, importlib.util, json, sys
+sys.path.insert(0, sys.argv[1])
+import protected_pyats as p
+for name, want in p.NATIVE_VERSIONS.items():
+    assert m.version(name) == want, name
+from mcp.server.mcpserver import MCPServer  # the broker child serves with the mcp 2.x server
+p.validate_native_policy({'devices': {sys.argv[2]: {'os': 'iosxe', 'platform': 'iol'}}}, sys.argv[2])
+print('pyats-env-ok')
+"""
+
+
+def cmd_pyats_env(args):
+    """Record the immutable R02 pyATS environment after proving it matches the pinned Unicon source digest."""
+    root, state = load_state(args.root)
+    need(state.get('flavor') == 'pyats', 'pyats_flavor_required')
+    need(not (root / 'pyats-env.json').exists(), 'pyats_env_already_recorded')
+    # The R02 runtime path is a symlink to its generation directory; the product requires canonical, symlink-free paths.
+    env = Path(args.env or R02_PYATS_RUNTIME).resolve()
+    need(env.is_absolute() and env.is_dir(), 'pyats_env_path_not_a_directory')
+    python = env / 'bin/python'
+    need(python.exists() and os.access(python, os.X_OK), 'pyats_env_python_missing')
+    config = (env / 'pyvenv.cfg').read_text()
+    need(re.search(r'^include-system-site-packages\s*=\s*false\s*$', config, re.M | re.I), 'pyats_env_system_site_refused')
+    resolved = python.resolve()
+    need(not resolved.stat().st_mode & 0o022 and resolved.stat().st_uid in (0, os.getuid()), 'pyats_env_python_writable')
+    upstream = env / 'upstream'
+    sources = {}
+    for name in PYATS_UPSTREAM_FILES:
+        path = upstream / name
+        need(path.is_file() and not path.is_symlink() and not path.stat().st_mode & 0o022, 'pyats_upstream_missing:' + name)
+        sources[name] = sha(path.read_bytes())
+    done = subprocess.run([str(python), '-I', '-B', '-c', _PYATS_ENV_CHECK, str(REPO / 'scripts/lib'), args.device],
+                          capture_output=True, text=True, timeout=180, env={'PATH': '/usr/bin:/bin', 'HOME': str(root)})
+    need(done.returncode == 0 and done.stdout.strip() == 'pyats-env-ok', 'pyats_env_unqualified:' + done.stderr.strip()[-240:])
+    record = {'python': str(python), 'environment': str(env), 'python_sha256': sha(resolved.read_bytes()),
+              'upstream': str(upstream / 'pyats_mcp_server.py'), 'source_sha256': sources,
+              'upstream_sha256': sources['pyats_mcp_server.py'], 'native_policy': 'pass', 'device': args.device}
+    write_private(root / 'pyats-env.json', record)
+    state['steps'].append('pyats-env')
+    save_state(root, state)
+    return record
+
+
+def read_testbed_credentials(path, device):
+    """(document, username, password, enable) from the owner's testbed; values never leave this function except
+    into the 0600 credential file. Refuses a testbed that does not carry the three reviewed credentials."""
+    import yaml
+    document = yaml.safe_load(Path(path).read_text())
+    need(isinstance(document, dict) and device in (document.get('devices') or {}), 'pyats_device_missing:' + device)
+    credentials = (document.get('testbed') or {}).get('credentials') or {}
+    try:
+        username, password = credentials['default']['username'], credentials['default']['password']
+        enable = credentials['enable']['password']
+    except (KeyError, TypeError):
+        raise MemberRefused('refused:pyats_testbed_credentials_missing') from None
+    for value in (username, password, enable):
+        need(isinstance(value, str) and value and value.isascii() and '\n' not in value and '\r' not in value
+             and not any(ord(ch) < 32 for ch in value), 'pyats_credential_shape')
+    return document, username, password, enable
+
+
+def device_endpoint(document, device):
+    connections = document['devices'][device].get('connections') or {}
+    names = [n for n in connections if n != 'defaults']
+    need(len(names) == 1 and isinstance(connections[names[0]], dict), 'pyats_single_connection_required')
+    connection = connections[names[0]]
+    need(connection.get('protocol') == 'ssh' and connection.get('ip'), 'pyats_ssh_connection_required')
+    import ipaddress
+    host = str(ipaddress.ip_address(str(connection['ip'])))
+    port = int(connection.get('port', 22))
+    need(1 <= port <= 65535, 'pyats_port')
+    return host, port
+
+
+def scan_known_hosts(host, port):
+    done = subprocess.run(['ssh-keyscan', '-T', '8', '-p', str(port), '-t', 'rsa,ecdsa,ed25519', host],
+                          capture_output=True, text=True, timeout=60)
+    lines = [line for line in done.stdout.splitlines() if line and not line.startswith('#')]
+    need(lines, 'pyats_host_key_scan_empty')
+    return ('\n'.join(lines) + '\n').encode()
+
+
+def artifacts_pyats(root, state, args):
+    for step in ('freeze', 'python-env', 'pyats-env'):
+        need(step in state['steps'], step + '_first')
+    use_source(root)
+    from bgp.federation import protected_hosted as hosted
+    from bgp.federation import protected_docker  # import before the profile script: keeps one source closure
+    pyats_adapter = load_module('r09_protected_pyats', root / 'source/scripts/lib/protected_pyats.py')
+    template = json.loads(Path(args.template or R05 / 'runtime-template.json').read_text())
+    runtime = copy.deepcopy(template['runtime'])
+    model = args.hosted_model
+    need(model in hosted.ALLOWED_MODELS, 'hosted_model_refused')
+    need(model == hosted.GUARD_IMAGE_MODEL or args.guard_image, 'model_needs_rebuilt_guard_image:pass --guard-image sha256:<new digest>')
+    if args.guard_image:
+        need(re.fullmatch('sha256:[0-9a-f]{64}', args.guard_image), 'guard_image_digest_shape')
+        runtime['guard']['image'] = args.guard_image
+    hosted.validate_profile(hosted_profile(model))
+    provider_key = secret_from_environment(PROVIDER_KEY_ENV)
+    env_record = json.loads(read_private(root / 'pyats-env.json'))
+    device = env_record['device']
+    source_testbed = Path(args.pyats_testbed or PYATS_DEFAULT_TESTBED)
+    need(source_testbed.is_file(), 'pyats_testbed_missing')
+    document, username, password, enable = read_testbed_credentials(source_testbed, device)
+    need(provider_key not in (username, password, enable), 'provider_key_shape')
+    host, port = device_endpoint(document, device)
+    artifacts = private_dir(root / 'artifacts')
+    # Guard (hosted): derived public config pinned by hash; the provider key reaches only guard.env.
+    guard_raw = hosted_guard_config(Path(runtime['guard']['config_file']).read_bytes(), model)
+    need(provider_key.encode() not in guard_raw, 'provider_key_in_guard_config')
+    guard_sha = write_private(artifacts / 'guard-config.yaml', guard_raw)
+    os.chmod(artifacts / 'guard-config.yaml', 0o400)
+    token = secrets.token_urlsafe(32)
+    need(re.fullmatch('[A-Za-z0-9_-]{43}', token) and token != provider_key, 'guard_token_shape')
+    write_hosted_guard_env(artifacts / 'guard.env', provider_key, token)
+    write_private(artifacts / 'guard-capability', token.encode())
+    # Strict host key policy: a pre-scanned file (--known-hosts-file) or a scan of the device now; pinned by hash.
+    known_raw = Path(args.known_hosts_file).read_bytes() if args.known_hosts_file else scan_known_hosts(host, port)
+    need(known_raw.strip() and len(known_raw) <= 16384 and b'\0' not in known_raw, 'pyats_known_hosts_shape')
+    known_hosts = artifacts / 'known_hosts'
+    known_sha = write_private(known_hosts, known_raw)
+    # The reviewed minimal testbed: credential references only (the values go to the 0600 credential file).
+    connections = {'defaults': {'class': 'unicon.Unicon'},
+                   'ssh': {'protocol': 'ssh', 'ip': host, 'port': port, 'ssh_options': PYATS_SSH_PREFIX + str(known_hosts)}}
+    reviewed = {'testbed': {'name': 'r09-pyats-member', 'credentials': {
+                    'default': {'username': '%ENV{PYATS_R02_USERNAME}', 'password': '%ENV{PYATS_R02_PASSWORD}'},
+                    'enable': {'password': '%ENV{PYATS_R02_ENABLE_PASSWORD}'}}},
+                'devices': {device: {'os': 'iosxe', 'platform': 'iol', 'type': 'router', 'connections': connections}}}
+    import yaml
+    testbed_raw = yaml.safe_dump(reviewed, sort_keys=False).encode()
+    testbed_sha = write_private(artifacts / 'testbed.yaml', testbed_raw)
+    from types import SimpleNamespace
+    pyats_adapter.validate_document(reviewed, device)  # the adapter's own gate, before anything is signed
+    endpoint = pyats_adapter.endpoint_identity(device, SimpleNamespace(os='iosxe', connections=connections))
+    endpoint_sha = sha(json.dumps(endpoint, sort_keys=True, separators=(',', ':')).encode())
+    credential = artifacts / 'pyats-credential'
+    write_private(credential, ('PYATS_R02_USERNAME=%s\nPYATS_R02_PASSWORD=%s\nPYATS_R02_ENABLE_PASSWORD=%s\n'
+                               % (username, password, enable)).encode())
+    frozen_scripts = root / 'source/scripts'
+    pyats = {'python': env_record['python'], 'upstream': env_record['upstream'], 'upstream_sha256': env_record['upstream_sha256'],
+             'source_sha256': env_record['source_sha256'],
+             'adapter_sha256': {'protected-tool-broker.py': sha((frozen_scripts / 'protected-tool-broker.py').read_bytes()),
+                                'lib/protected_pyats.py': sha((frozen_scripts / 'lib/protected_pyats.py').read_bytes())},
+             'testbed': str(artifacts / 'testbed.yaml'), 'testbed_sha256': testbed_sha,
+             'known_hosts': str(known_hosts), 'known_hosts_sha256': known_sha, 'endpoint_sha256': endpoint_sha,
+             'credential_env': sorted(PYATS_CREDENTIAL_NAMES), 'credential_file': str(credential)}
+    home = root / 'home'
+    for key in ('ollama', 'mcp', 'relay_transport'):
+        runtime.pop(key, None)
+    runtime.update(state_dir=str(home / 'netclaw-federation/runtime'), guard_token_env=GUARD_TOKEN_ENV,
+                   hosted=hosted_profile(model), pyats=pyats)
+    runtime['guard'].update(config_file=str(artifacts / 'guard-config.yaml'), env_file=str(artifacts / 'guard.env'),
+                            config_sha256=guard_sha)
+    runtime['model_profile'] = {'provider': 'anthropic', 'model': model, 'runtime_kind': 'openclaw',
+                                'runtime_version': HARNESS_VERSION, 'profile_id': hosted.profile_id(hosted_profile(model)),
+                                'guard_policy_sha256': '0' * 64, 'profile_revision': '0' * 64}
+    protected_docker.validate_runtime_fields(runtime)  # exact field set + hosted profile now
+    write_private(root / 'runtime-template.json', runtime)
+    state['hosted_model'] = model
+    state['pyats_device'] = {'name': device, 'host': host, 'port': port}
+    state['steps'].append('artifacts')
+    save_state(root, state)
+    return {'artifacts': str(artifacts), 'device': {'name': device, 'host': host, 'port': port, 'os': 'iosxe', 'platform': 'iol'},
+            'hosted_model': model, 'guard_config_sha256': guard_sha, 'testbed_sha256': testbed_sha,
+            'endpoint_sha256': endpoint_sha, 'known_hosts_sha256': known_sha,
+            'secrets': 'device credentials from the owner testbed and the provider key written 0600 to artifacts/pyats-credential '
+                       'and artifacts/guard.env; not printed or stored in state',
+            'model_namespace': 'none (hosted flavor): do not run qualify.py'}
+
+
 # ---------------------------------------------------------------------------------------------- artifacts
 def cmd_artifacts(args):
     root, state = load_state(args.root)
     if state.get('flavor') == 'netbox':
         return artifacts_netbox(root, state, args)
+    if state.get('flavor') == 'pyats':
+        return artifacts_pyats(root, state, args)
     need('freeze' in state['steps'], 'freeze_first')
     use_source(root)
     from bgp.federation import protected_ollama as model
@@ -572,10 +766,12 @@ def cmd_artifacts(args):
 # -------------------------------------------------------------------------------------------- materialize
 def cmd_materialize(args):
     root, state = load_state(args.root)
-    netbox = state.get('flavor') == 'netbox'
-    for step in ('identity', 'freeze', 'python-env', 'artifacts') + (('netbox-env',) if netbox else ()):
+    flavor = state.get('flavor', 'ollama')
+    netbox, pyats = flavor == 'netbox', flavor == 'pyats'
+    hosted_flavor = netbox or pyats
+    for step in ('identity', 'freeze', 'python-env', 'artifacts') + (('netbox-env',) if netbox else ()) + (('pyats-env',) if pyats else ()):
         need(step in state['steps'], step + '_first')
-    if not netbox:
+    if not hosted_flavor:
         need((root / 'model/profile.json').exists(), 'model_profile_missing:run the qualify.py prepare command first')
     need(not (root / 'home').exists(), 'home_already_materialized')
     use_source(root)
@@ -589,18 +785,25 @@ def cmd_materialize(args):
     manifest = verify_manifest(read_private(cluster / 'manifest.json'), anchor, expected_key_id=c.key_id(anchor))
     binding = state['binding']
     runtime = json.loads(read_private(root / 'runtime-template.json'))
-    if not netbox:
+    if not hosted_flavor:
         runtime['ollama'] = json.loads(read_private(root / 'model/profile.json'))
     bindings = revision_bindings(runtime)
     runtime['model_profile'].update({k: bindings[k] for k in ('guard_policy_sha256', 'profile_revision')})
     validate_runtime_fields(runtime)
-    arguments = dict(NETBOX_ARGUMENTS) if netbox else {'cidr': '192.0.2.0/26'}
-    tool = {'tool': 'netbox_get_object_by_id' if netbox else 'subnet_calculator',
-            'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
-            'arguments_sha256': sha(canonical(arguments)),
-            'device_ref': 'dcim.device:%d' % arguments['object_id'] if netbox else '192.0.2.0/26',
-            'inventory_revision': runtime['mcp']['selection_sha256'], 'endpoint_sha256': runtime['mcp']['endpoint_sha256'],
-            'limits': dict(TOOL_LIMITS)}
+    if pyats:
+        arguments = dict(PYATS_ARGUMENTS, device_name=state['pyats_device']['name'])
+        tool = {'tool': 'pyats_run_show_command', 'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
+                'arguments_sha256': sha(canonical(arguments)), 'device_ref': arguments['device_name'],
+                'inventory_revision': runtime['pyats']['testbed_sha256'], 'endpoint_sha256': runtime['pyats']['endpoint_sha256'],
+                'limits': dict(PYATS_TOOL_LIMITS)}
+    else:
+        arguments = dict(NETBOX_ARGUMENTS) if netbox else {'cidr': '192.0.2.0/26'}
+        tool = {'tool': 'netbox_get_object_by_id' if netbox else 'subnet_calculator',
+                'tool_schema_sha256': bindings['tool_schema_sha256'], 'arguments': arguments,
+                'arguments_sha256': sha(canonical(arguments)),
+                'device_ref': 'dcim.device:%d' % arguments['object_id'] if netbox else '192.0.2.0/26',
+                'inventory_revision': runtime['mcp']['selection_sha256'], 'endpoint_sha256': runtime['mcp']['endpoint_sha256'],
+                'limits': dict(TOOL_LIMITS)}
     catalog = {'member': binding, 'model_profiles': [runtime['model_profile']], 'tools': [tool]}
     c.validate_catalog_entry(catalog)
     home = private_dir(root / 'home')
@@ -637,10 +840,10 @@ def cmd_materialize(args):
                 'source_manifest': str(root / 'source-manifest.json'),
                 'source_manifest_sha256': state['source_manifest_sha256'], 'profile_sha256': profile_sha,
                 'origin': None, 'guard_token_file': str(federation / 'guard-capability'),
-                'environment': {'NETCLAW_LOCAL_AS': '65190' if netbox else '65189',
-                                'NETCLAW_ROUTER_ID': '127.0.0.10' if netbox else '127.0.0.9',
-                                'N2N_DISPLAY_NAME': 'R09 NetBox member' if netbox else 'R09 Mac member',
-                                'BGP_API_PORT': '18190' if netbox else '18189', 'N2N_INVENTORY_REFRESH_S': '0'}}
+                'environment': {'NETCLAW_LOCAL_AS': '65191' if pyats else '65190' if netbox else '65189',
+                                'NETCLAW_ROUTER_ID': '127.0.0.11' if pyats else '127.0.0.10' if netbox else '127.0.0.9',
+                                'N2N_DISPLAY_NAME': 'R09 pyATS member' if pyats else 'R09 NetBox member' if netbox else 'R09 Mac member',
+                                'BGP_API_PORT': '18191' if pyats else '18190' if netbox else '18189', 'N2N_INVENTORY_REFRESH_S': '0'}}
     write_private(root / 'contract.json', contract)
     state['steps'].append('materialize')
     save_state(root, state)
@@ -667,6 +870,10 @@ def cmd_validate(args):
                    'bgp.federation.protected_hosted, bgp.federation.ha.hosted_model_transport, bgp.federation.protected_mcp'
                    if state.get('flavor') == 'netbox' else
                    'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
+                   'bgp.federation.protected_runtime, bgp.federation.protected_hosted, bgp.federation.ha.hosted_model_transport, '
+                   'bgp.federation.ha.mcp_transport'
+                   if state.get('flavor') == 'pyats' else
+                   'bgp.federation.ha.factory, bgp.federation.ha.member, bgp.federation.protected_docker, '
                    'bgp.federation.protected_ollama, bgp.federation.protected_mcp')
         code = ("import sys; sys.path.insert(0, %r); import %s; print('closure-ok')"
                 % (str(root / 'source/mcp-servers/protocol-mcp'), modules))
@@ -676,6 +883,17 @@ def cmd_validate(args):
 
 
 def cmd_plan(args):
+    if getattr(args, 'flavor', 'ollama') == 'pyats':
+        return {'order': [
+            {'who': 'builder', 'step': 'identity --flavor pyats, freeze (adds the broker and adapter scripts), python-env (offline)'},
+            {'who': 'builder', 'step': 'pyats-env: verify the R02 pyATS environment (versions 25.2, mcp 2.x, pinned Unicon digest) and record it'},
+            {'who': 'owner', 'step': 'CML: lab NetClaw-Full-Topo started with R1 (IOS-XE IOL, SSH reachable from this Mac); '
+                                     'source ~/netclaw/.env for ANTHROPIC_API_KEY then artifacts (reads device credentials from the owner testbed, '
+                                     'scans the strict host key, writes 0600 files, prints no value)'},
+            {'who': 'builder', 'step': 'materialize, validate'},
+            {'who': 'parent', 'step': 'ENROLL: stop 3 Borders, wait for lease expiry, one-shot enroll_member with identity/member.json, restart Montreal first'},
+            {'who': 'owner', 'step': 'start the member with the production launcher on the Mac'},
+            {'who': 'parent', 'step': 'verify 3 attachments, then prepare/approve pyats_run_show_command R1 `show version` from the HUD or VS Code'}]}
     if getattr(args, 'flavor', 'ollama') == 'netbox':
         return {'order': [
             {'who': 'builder', 'step': 'identity --flavor netbox, freeze, python-env (offline)'},
@@ -702,7 +920,7 @@ def main(argv=None):
     sub = parser.add_subparsers(dest='action', required=True)
     plan = sub.add_parser('plan')
     plan.add_argument('--flavor', choices=FLAVORS, default='ollama')
-    for name in ('identity', 'freeze', 'python-env', 'netbox-env', 'artifacts', 'materialize', 'validate'):
+    for name in ('identity', 'freeze', 'python-env', 'netbox-env', 'pyats-env', 'artifacts', 'materialize', 'validate'):
         p = sub.add_parser(name)
         p.add_argument('--root', required=True)
         if name == 'identity':
@@ -711,6 +929,9 @@ def main(argv=None):
             p.add_argument('--flavor', choices=FLAVORS, default='ollama')
         if name == 'netbox-env':
             p.add_argument('--env'); p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
+        if name == 'pyats-env':
+            p.add_argument('--env', help='immutable pyATS venv (default: the R02 runtime on this Mac)')
+            p.add_argument('--device', default=PYATS_DEVICE)
         if name == 'python-env':
             p.add_argument('--env'); p.add_argument('--env-manifest')
             p.add_argument('--build', action='store_true'); p.add_argument('--yes-network', action='store_true')
@@ -719,11 +940,13 @@ def main(argv=None):
             p.add_argument('--netbox-url', help='https origin (default: $NETBOX_URL); NetBox flavor only')
             p.add_argument('--hosted-model', default=HOSTED_MODEL, help='NetBox flavor; default is the model the existing guard image pins')
             p.add_argument('--guard-image', help='sha256 digest of a rebuilt guard image (required for any other model)')
+            p.add_argument('--pyats-testbed', help='owner testbed with the device and reviewed credentials (default: repo testbed/testbed.yaml); pyATS flavor')
+            p.add_argument('--known-hosts-file', help='pre-scanned known_hosts for the device (default: ssh-keyscan now); pyATS flavor')
         if name == 'validate':
             p.add_argument('--skip-import-check', action='store_true')
     args = parser.parse_args(argv)
     command = {'plan': cmd_plan, 'identity': cmd_identity, 'freeze': cmd_freeze, 'python-env': cmd_python_env,
-               'netbox-env': cmd_netbox_env, 'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
+               'netbox-env': cmd_netbox_env, 'pyats-env': cmd_pyats_env, 'artifacts': cmd_artifacts, 'materialize': cmd_materialize, 'validate': cmd_validate}[args.action]
     print(json.dumps(command(args), indent=2, sort_keys=True))
 
 

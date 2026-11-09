@@ -81,3 +81,14 @@ config (18970) did not match the health probe (4001), so `start_guard` gave up w
 ExceptionGroup, was recorded `outcome_unknown` and no result was returned. Fixed: r09_member writes api_port 4001; protected_docker unwraps a lone
 RuntimeRefused/RuntimeUnknown on the hosted path. The same wrapping exists on the Ollama path (unchanged, needs owner review) and probably explains why earlier
 refusals surfaced as `outcome_unknown` instead of a signed refusal.
+
+## NetBox hosted member, live debugging (gen4)
+Four real attempts, each peeled one layer: (1) guard api_port 4001 mismatch + silent executor failure (fixed); (2) a signed refusal `agent_produced_no_tool_evidence`
+whose real cause was the hosted transport's 13 KB request bound vs the 18.6 KB reviewed NetBox skill context (raised to 128 KiB, hosted path only); the agent then
+retried and the inference fence refused with `inference_spent_or_unreconciled`; (3) the request now reaches the guard (admission finished) but DefenseClaw answers
+`provider "" is not supported ... traffic blocked` because the hosted guard config was derived from the Ollama config instead of the qualified Anthropic one
+(R04a cloud-plan guard-config.yaml); fix in progress. Border behaviour was correct throughout: every failure came back as a signed, durably acknowledged
+refusal (after the executor unwrap fix) and the Border/other members were unaffected.
+## pyATS member (source/tests only so far)
+HA effect admission added around the pyATS call, optional private credential_file, hosted+pyats runtime shape, pyats flavor in r09_member (see pyats-member.md);
+CML lab NetClaw-Full-Topo is started with R1 reachable on 192.168.2.201:22. Not yet run live.
