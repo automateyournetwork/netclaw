@@ -113,3 +113,11 @@ R1 SSH host key (TOFU from the LAN scan): SHA256:8LjcWvuxSbB8SW/Mt+jC0O+4/WKt6Cv
 ## Not claimed
 Spend limits/egress filtering on the hosted guard; Anthropic key at /etc/nc182/provider.env on each VM (delete at teardown); HUD is open-lab (anyone with a Border URL can use Chat);
 Ollama-path ExceptionGroup wrapping unchanged; Mobile and published VS Code/HUD builds NOT released (release gate stands); teardown not started (owner request + exact resource list needed).
+
+## Teardown (2026-11-09, on the owner's instruction after the G2 screenshot)
+Deleted by exact name, then verified empty: GCP project netclaw-506315 — 3 spec-182 VMs + boot disks, 3 static IPs, 3 firewall rules, network nc182-r09 + 3 subnets;
+and (owner's explicit choice) the old standalone VM netclaw-r01-20261101 with its disk, 2 reserved IPs, 3 firewall rules, subnet and network (project now has only
+the default network). GoDaddy: the 12 spec-182 A records (nne1/ew1/ase1-<id6>); other records untouched. This Mac: member processes, 82 `netclaw-r08-*` containers and 28
+networks (all created 2026-11-09, label netclaw.spec=179), all `~/.local/share/netclaw/r09-*` directories incl. the gen1-gen4 evidence archives, the build worktree,
+temp files. The Anthropic key on the VMs went with the VMs. Not touched: equinix-*, pyats-mcp, gateway5 containers; the Anthropic/NetBox/GoDaddy values in the
+owner's .env files (the owner may rotate them); the lego binary; the nested mcp-servers/netbox-mcp-server clone. The repo docs are now the only record.
