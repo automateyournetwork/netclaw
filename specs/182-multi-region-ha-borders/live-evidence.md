@@ -68,3 +68,16 @@ stale backend tree skipped by the idempotent install. Two product-config gaps fo
 (render template fixed), and the metadata-server REJECT for the conversation UID also blocked DNS (GCE resolves via 169.254.169.254), now ACCEPT udp/tcp 53 only.
 A real Chat turn through the Montreal HUD edge to Anthropic Sonnet 4.6 completed ("Border chat is working.", 7.4 s). The Anthropic key sits at /etc/nc182/provider.env
 (root 0600) on each VM and must be deleted at teardown; the HUD is unauthenticated open-lab, so anyone with a Border URL can spend that key via Chat.
+
+## Region isolation and degraded quorum (real, host firewall cut of TCP 2379/2380/7443)
+- Montreal isolated from Belgium and Singapore on the cluster plane (client ports left up): Montreal reported `no_quorum` (epoch unknown, no leadership claim);
+  Belgium and Singapore elected Belgium at epoch 90 in ~30 s. Healed (0 rules left): Montreal rejoined as a follower of Belgium, no reclaim, no split.
+- A real operation entering via Belgium during the cut (quorum = Belgium+Singapore, ~330 ms): `dispatch_claimed`, the member's first model admission recorded
+  `unknown`, runner latch `uncertain`. So a 2-of-3 quorum across the two far regions cannot complete an admission inside the signed window, as R08 predicted at
+  300 ms. This is a degraded mode, NOT an availability claim; it also leaves the member latched.
+## NetBox hosted member: first live attempt failed, diagnosed, fixed in source
+Member `nc182-r09/netbox-09d4c8` attached (3 attachments). First operation stuck at `dispatch_claimed`: the hosted guard's management API port in the derived
+config (18970) did not match the health probe (4001), so `start_guard` gave up with `guard_not_ready` before any admission; the refusal left through an anyio
+ExceptionGroup, was recorded `outcome_unknown` and no result was returned. Fixed: r09_member writes api_port 4001; protected_docker unwraps a lone
+RuntimeRefused/RuntimeUnknown on the hosted path. The same wrapping exists on the Ollama path (unchanged, needs owner review) and probably explains why earlier
+refusals surfaced as `outcome_unknown` instead of a signed refusal.

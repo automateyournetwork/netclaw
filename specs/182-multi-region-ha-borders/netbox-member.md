@@ -77,3 +77,19 @@ $PY -m labs.ha.r09_member validate    --root $M                       # expect r
 # After the run: read_provider_fence(<member runtime>/<operation_id>) for the independent count; compare the NetBox object's
 # last_updated before/after (a read changes nothing).
 ```
+
+## Live finding 1 (hosted NetBox member, gen4): two causes, both fixed in source
+
+Symptom: Border stuck at `dispatch_claimed`, member `protected_executor` then silence, `ha-admission.sqlite3` empty, `cleanup.json` lists only the guard.
+1. **Wrong guard management port.** `protected_docker.guard_health_probe(None)` (every non-Ollama guard) queries the guard's management API on
+   **4001**. The hosted guard config was derived from the R05 Ollama DefenseClaw config whose `gateway.api_port` is **18970** (the Ollama probe
+   port). Every probe was refused, `start_guard` gave up after 40 tries (~15 s) with `guard_not_ready`, before any relay/agent container, model or
+   tool admission existed. Evidence: guard `config.yaml` has `api_port: 18970`, no `qualified-health.json`, timing 13:28:54 -> 13:29:09.
+   Fix: the builder rewrites `gateway.api_port` to 4001 (`HOSTED_GUARD_API_PORT`); a test pins it to the probe's port.
+2. **Silence on executor failure (product gap).** `run()` raised the refusal inside `async with mcp.session_manager.run()`, an anyio task group, so
+   it left as an `ExceptionGroup`. `ProtectedOperations._execute` then saw a non-`ProtectedError`, recorded `outcome_unknown`
+   (`effect_outcome_unknown`) and sent no result although the effect was never claimed (member store: effect_claimed 0). Reproduced in the member
+   env (Python 3.12, mcp 2.x). Fix, hosted path only: re-raise the lone `RuntimeRefused`/`RuntimeUnknown` from a single-member group
+   (`_single_protected_error`), so an unclaimed effect becomes a signed refusal and an unknown stays unknown.
+   NOT changed: the Ollama path has the same wrapping and was therefore also silent on refusals (it likely explains the earlier stranded
+   operations whose member state was `outcome_unknown`). Extending the fix to Ollama needs your review of a qualified path.

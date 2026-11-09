@@ -280,6 +280,8 @@ def test_hosted_guard_config_satisfies_the_guard_runners_own_verifier(tmp_path):
     derived = m.hosted_guard_config(OLLAMA_GUARD_CONFIG.encode(), guard_model)
     text = derived.decode()
     assert 'ollama' not in text and 'qwen' not in text and FAKE_PROVIDER_KEY not in text
+    import yaml
+    assert yaml.safe_load(derived)['gateway']['api_port'] == m.HOSTED_GUARD_API_PORT == 4001
     # The guard image pins this model; the builder default must equal it.
     assert m.HOSTED_MODEL == guard_model
     home = tmp_path.resolve() / 'guardhome'

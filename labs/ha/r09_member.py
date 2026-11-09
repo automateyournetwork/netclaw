@@ -76,6 +76,9 @@ PROVIDER_KEY_ENV = 'ANTHROPIC_API_KEY'
 NETBOX_TOKEN_ENV = 'NETBOX_TOKEN'
 NETBOX_URL_ENV = 'NETBOX_URL'
 HARNESS_VERSION = '2026.7.1-2'
+# protected_docker.guard_health_probe(None) (every non-Ollama guard) queries the guard's management API on this port.
+# The R05 DefenseClaw config the hosted config is derived from uses 18970 (the Ollama probe port), so it is rewritten.
+HOSTED_GUARD_API_PORT = 4001
 
 
 class MemberRefused(SystemExit):
@@ -168,6 +171,8 @@ def hosted_guard_config(raw_config, model):
     config['guardrail']['llm'] = dict(route)
     config['guardrail']['model'] = 'anthropic/' + model
     config['guardrail']['model_name'] = model
+    need(isinstance(config.get('gateway'), dict), 'guard_config_shape')
+    config['gateway']['api_port'] = HOSTED_GUARD_API_PORT
     need(config.get('data_dir') == '/guard', 'guard_data_dir')
     return yaml.safe_dump(config, sort_keys=True, default_flow_style=False).encode()
 

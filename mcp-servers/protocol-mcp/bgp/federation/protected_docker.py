@@ -62,6 +62,15 @@ def record_inference_refusal(operation_root, code):
         'code': code if isinstance(code, str) and code in _INFERENCE_REFUSAL_CODES else 'inference_refused'}))
 
 
+def _single_protected_error(group):
+    """The lone RuntimeRefused/RuntimeUnknown inside an (Base)ExceptionGroup, else None. Nothing else is unwrapped."""
+    inner = getattr(group, 'exceptions', None)
+    if (type(group).__name__ in ('ExceptionGroup', 'BaseExceptionGroup') and isinstance(inner, tuple) and len(inner) == 1
+            and isinstance(inner[0], (RuntimeRefused, RuntimeUnknown))):
+        return inner[0]
+    return None
+
+
 def validate_runtime_fields(config):
     fields = set(config)
     if fields == _RUNTIME_FIELDS:
@@ -989,6 +998,16 @@ class DockerExecutor:
                         "usage": {"inference_calls": self.fence.count(operation_id),
                                   "tool_calls": 1, "provider_usage": "unavailable", **local_usage},
                         "effective_model_profile": payload["model_profile"]}
+        except BaseException as group:
+            # `mcp.session_manager.run()` is an anyio task group: a refusal raised in its body leaves as an
+            # ExceptionGroup, which the member then cannot classify (not a ProtectedError), so it recorded
+            # `outcome_unknown` and sent no result even though no effect was ever claimed (live finding, hosted
+            # NetBox member: guard_not_ready). Hosted only: re-raise the single reviewed Protected* error unchanged so
+            # the member's existing rules apply (an unclaimed effect becomes a signed refusal; an unknown stays unknown).
+            single = _single_protected_error(group) if getattr(self, 'hosted', None) is not None else None
+            if single is not None:
+                raise single from None
+            raise
         finally:
             # No retries or new containers after interruption. Keep named stopped
             # containers, private evidence and claims for inspection/reconciliation.

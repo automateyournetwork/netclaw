@@ -4,13 +4,18 @@ No Anthropic, NetBox, Docker or guard process; loopback test servers and temp fi
 rule relaxation and its negatives, the hosted freshness window and the independent counter reader. They do not
 qualify the hosted guard path (see specs/182-multi-region-ha-borders/model-transport.md and netbox-member.md).
 """
+import asyncio
 import copy
 import hashlib
 import json
 import os
 import sqlite3
+import sys
 import time
 import uuid
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 
 import pytest
 
@@ -273,3 +278,65 @@ def test_provider_fence_reader_is_read_only_and_fails_closed(tmp_path):
     before = (tmp_path / 'guard/provider.sqlite').read_bytes()
     assert transport.read_provider_fence(tmp_path)['upstream_attempts'] == 2
     assert (tmp_path / 'guard/provider.sqlite').read_bytes() == before
+
+
+# ---- live finding: a hosted refusal inside the MCP session manager must stay a refusal --------------------
+
+def _make_group(name, errors):
+    """Faithful stand-in on every Python: the code keys on the type name and the `exceptions` tuple only."""
+    cls = type(name, (BaseException,), {})
+    value = cls('group')
+    value.exceptions = tuple(errors)
+    return value
+
+
+def test_single_protected_error_is_unwrapped():
+    from bgp.federation.protected_runtime import RuntimeUnknown
+    refusal, unknown = RuntimeRefused('guard_not_ready'), RuntimeUnknown('model_handoff_unknown')
+    assert docker._single_protected_error(_make_group('ExceptionGroup', [refusal])) is refusal
+    assert docker._single_protected_error(_make_group('BaseExceptionGroup', [unknown])) is unknown
+
+
+@pytest.mark.parametrize('group', [
+    _make_group('ExceptionGroup', [RuntimeRefused('a'), RuntimeRefused('b')]),   # more than one member: ambiguous
+    _make_group('ExceptionGroup', [ValueError('x')]),                            # not a reviewed Protected* error
+    _make_group('ExceptionGroup', []),
+    _make_group('SomethingElse', [RuntimeRefused('a')]),                         # not a group type
+    RuntimeRefused('plain'), ValueError('plain'), KeyboardInterrupt()])
+def test_nothing_else_is_unwrapped(group):
+    assert docker._single_protected_error(group) is None
+
+
+def test_unwrapping_is_wired_for_the_hosted_path_only():
+    import inspect
+    source = inspect.getsource(docker.DockerExecutor.run)
+    assert "_single_protected_error(group) if getattr(self, 'hosted', None) is not None else None" in source
+    assert source.index('except BaseException as group') < source.index('finally:\n            # No retries')
+
+
+def test_real_task_group_wraps_a_refusal_and_the_helper_restores_it():
+    pytest.importorskip('mcp.server.mcpserver')
+    from mcp.server.mcpserver import MCPServer
+    server = MCPServer('x')
+    server.streamable_http_app(json_response=True, stateless_http=True)
+
+    async def body():
+        try:
+            async with server.session_manager.run():
+                raise RuntimeRefused('guard_not_ready')
+        except BaseException as caught:
+            return caught
+    caught = asyncio.run(body())
+    assert not isinstance(caught, RuntimeRefused)          # the wrapping that made the member go silent
+    restored = docker._single_protected_error(caught)
+    assert isinstance(restored, RuntimeRefused) and restored.code == 'guard_not_ready'
+
+
+def test_hosted_guard_management_port_matches_the_health_probe():
+    """guard_health_probe() for every non-Ollama guard queries one fixed port; the derived config must serve it."""
+    import re
+    probe = docker.guard_health_probe(None)
+    port = int(re.search(r'127\.0\.0\.1:(\d+)/health', probe).group(1))
+    from labs.ha import r09_member as builder
+    assert builder.HOSTED_GUARD_API_PORT == port == 4001
+    assert docker.guard_health_probe({'any': 'ollama'}).count('18970') == 1  # the Ollama probe is unchanged
