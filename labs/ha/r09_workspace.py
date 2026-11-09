@@ -34,7 +34,8 @@ FEATURES = ('overview', 'chat', 'canvas', 'rag', 'members', 'peers', 'skills', '
 # Features that work on a VM without extra services. `rag` needs rag-mcp (torch/chroma) and is left out by default.
 DEFAULT_FEATURES = ('overview', 'chat', 'canvas', 'members', 'peers', 'skills', 'runtime', 'tokenomics',
                     'documentation', 'reference', 'logs', 'operations')
-SOURCE_PATHS = ('ui/netclaw-visual', 'docs', 'workspace', 'config', 'SOUL.md', 'IDENTITY.md', 'scripts/mcp-call.py')
+SOURCE_PATHS = ('ui/netclaw-visual', 'docs', 'workspace', 'config', 'SOUL.md', 'IDENTITY.md', 'scripts/mcp-call.py',
+               'scripts/runtime-selection.mjs', 'scripts/gait-stdio.py', 'scripts/in2n-services.py', 'scripts/component-launch.py')
 SOURCE_SKIP = ('ui/netclaw-visual/test', 'ui/netclaw-visual/node_modules', 'ui/netclaw-visual/deploy',
                'ui/netclaw-visual/integration')
 UUID = re.compile(r'^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$')
