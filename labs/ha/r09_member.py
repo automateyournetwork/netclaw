@@ -171,30 +171,42 @@ def hosted_profile(model=HOSTED_MODEL):
             **HOSTED_LIMITS}
 
 
+# The Anthropic Sonnet 4.6 DefenseClaw guard configuration that was qualified for the hosted member (R04A cloud plan,
+# config_version 9). Its hash is the one that directory's manifest.json pins. A config derived from the Ollama config
+# was refused by the real guard (`provider "" is not supported by DefenseClaw guardrail`): it lacked llm_role
+# judge_and_agent, the llm/api_key_env/forward_custom_headers shape, gateway.fleet_mode/token_env and ai_discovery,
+# and set allow_empty_providers/allow_unknown_llm_domains false. So hosted flavors use the qualified file verbatim.
+QUALIFIED_GUARD_CONFIG = HOME / '.local/share/netclaw/roadmap-r04a-20261103/cloud-plan/member-inputs/guard-config.yaml'
+QUALIFIED_GUARD_CONFIG_SHA256 = '1fdc7ab50a660051a1f5283eec65ff3d947f05b6518602157d8e455a8f7fa26b'
+QUALIFIED_GUARD_MODEL = 'claude-sonnet-4-6'
+
+
+def load_qualified_guard_config(path=None):
+    path = Path(path or QUALIFIED_GUARD_CONFIG)
+    need(path.is_file(), 'qualified_guard_config_missing:' + str(path))
+    raw = path.read_bytes()
+    need(sha(raw) == QUALIFIED_GUARD_CONFIG_SHA256, 'qualified_guard_config_changed')
+    return raw
+
+
 def hosted_guard_config(raw_config, model):
-    """Derive the hosted guard configuration from the pinned public R05 DefenseClaw config.
+    """The hosted guard configuration: the qualified Anthropic file, unchanged unless a different model is requested.
 
     protected-guard.py (hosted mode) demands: every `base_url` is the loopback provider fence, every `api_key_env` is
-    DEFENSECLAW_LLM_KEY, every `model:` is anthropic/<pinned model>, `data_dir` is /guard, no inline key and
-    `forward_custom_headers` false. The real key is never in this file: it reaches only guard.env.
-    Not exercised against the real DefenseClaw gateway here: a rejected config fails at guard start, before any call."""
-    try:
-        import yaml
-    except ImportError:
-        raise MemberRefused('refused:pyyaml_required_for_hosted_guard_config') from None
-    config = yaml.safe_load(raw_config)
-    need(isinstance(config, dict) and isinstance(config.get('guardrail'), dict) and isinstance(config.get('llm'), dict),
-         'guard_config_shape')
-    route = {'api_key_env': 'DEFENSECLAW_LLM_KEY', 'base_url': 'http://127.0.0.1:18888',
-             'forward_custom_headers': False, 'model': 'anthropic/' + model}
-    config['llm'] = dict(route)
-    config['guardrail']['llm'] = dict(route)
-    config['guardrail']['model'] = 'anthropic/' + model
-    config['guardrail']['model_name'] = model
-    need(isinstance(config.get('gateway'), dict), 'guard_config_shape')
-    config['gateway']['api_port'] = HOSTED_GUARD_API_PORT
-    need(config.get('data_dir') == '/guard', 'guard_data_dir')
-    return yaml.safe_dump(config, sort_keys=True, default_flow_style=False).encode()
+    DEFENSECLAW_LLM_KEY, every `model:` is anthropic/<model the guard image pins>, `data_dir` is /guard, no inline key
+    and `forward_custom_headers` false; protected_docker.guard_health_probe(None) needs gateway.api_port 4001. All hold
+    in the qualified file, so it is returned byte for byte for its own model (config_sha256 then equals the qualified
+    pin). Only the model string is substituted for another model, which also needs a rebuilt guard image. The real
+    key is never in this file: it reaches only guard.env."""
+    need(isinstance(raw_config, bytes) and b'api_key:' not in raw_config, 'guard_config_shape')
+    text = raw_config.decode('utf-8', 'strict')
+    need(text.count('anthropic/' + QUALIFIED_GUARD_MODEL) == 3, 'guard_config_model_shape')
+    if model != QUALIFIED_GUARD_MODEL:
+        text = text.replace('anthropic/' + QUALIFIED_GUARD_MODEL, 'anthropic/' + model)
+    for required in ('data_dir: /guard\n', '  llm_role: judge_and_agent\n', '  api_port: %d\n' % HOSTED_GUARD_API_PORT,
+                     '  fleet_mode: disabled\n', '  token_env: DEFENSECLAW_GATEWAY_TOKEN\n', '  base_url: http://127.0.0.1:18888\n'):
+        need(required in text, 'guard_config_shape')
+    return text.encode()
 
 
 _ROLE = []
@@ -474,7 +486,7 @@ def artifacts_netbox(root, state, args):
     env_python = json.loads(read_private(root / 'netbox-env.json'))
     artifacts = private_dir(root / 'artifacts')
     # Guard: derived public config pinned by hash; secrets only in guard.env (read-only mount, guard process only).
-    guard_raw = hosted_guard_config(Path(runtime['guard']['config_file']).read_bytes(), model)
+    guard_raw = hosted_guard_config(load_qualified_guard_config(), model)
     need(provider_key.encode() not in guard_raw, 'provider_key_in_guard_config')
     guard_sha = write_private(artifacts / 'guard-config.yaml', guard_raw)
     os.chmod(artifacts / 'guard-config.yaml', 0o400)
@@ -639,7 +651,7 @@ def artifacts_pyats(root, state, args):
     host, port = device_endpoint(document, device)
     artifacts = private_dir(root / 'artifacts')
     # Guard (hosted): derived public config pinned by hash; the provider key reaches only guard.env.
-    guard_raw = hosted_guard_config(Path(runtime['guard']['config_file']).read_bytes(), model)
+    guard_raw = hosted_guard_config(load_qualified_guard_config(), model)
     need(provider_key.encode() not in guard_raw, 'provider_key_in_guard_config')
     guard_sha = write_private(artifacts / 'guard-config.yaml', guard_raw)
     os.chmod(artifacts / 'guard-config.yaml', 0o400)

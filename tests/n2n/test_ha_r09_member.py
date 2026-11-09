@@ -273,23 +273,44 @@ def test_secret_from_environment_names_the_variable_and_never_the_value():
         assert 'SECRET_NAME' in str(caught.value) and (value is None or value not in str(caught.value) or value == '')
 
 
+qualified_only = pytest.mark.skipif(not m.QUALIFIED_GUARD_CONFIG.is_file(), reason='R04A qualified guard config not present')
+
+
+@qualified_only
+def test_hosted_guard_config_is_the_qualified_anthropic_file_verbatim():
+    yaml = pytest.importorskip('yaml')
+    raw = m.load_qualified_guard_config()
+    derived = m.hosted_guard_config(raw, m.QUALIFIED_GUARD_MODEL)
+    assert derived == raw and m.sha(derived) == m.QUALIFIED_GUARD_CONFIG_SHA256
+    config = yaml.safe_load(derived)
+    guardrail = config['guardrail']
+    # The shape the real guard accepted; the Ollama-derived config lacked these and was answered with
+    # `provider "" is not supported by DefenseClaw guardrail - traffic blocked`.
+    assert guardrail['llm_role'] == 'judge_and_agent'
+    assert guardrail.get('allow_empty_providers') is not False and guardrail.get('allow_unknown_llm_domains') is not False
+    route = {'model': 'anthropic/claude-sonnet-4-6', 'api_key_env': 'DEFENSECLAW_LLM_KEY',
+             'base_url': 'http://127.0.0.1:18888', 'forward_custom_headers': False}
+    assert config['llm'] == route and guardrail['llm'] == route
+    assert guardrail['model'] == 'anthropic/claude-sonnet-4-6' and guardrail['api_key_env'] == 'DEFENSECLAW_LLM_KEY'
+    assert guardrail['mode'] == 'action' and guardrail['connector'] == 'openclaw' and guardrail['port'] == 4000
+    assert config['gateway'] == {'api_bind': '127.0.0.1', 'api_port': m.HOSTED_GUARD_API_PORT, 'fleet_mode': 'disabled',
+                                 'token_env': 'DEFENSECLAW_GATEWAY_TOKEN'} and m.HOSTED_GUARD_API_PORT == 4001
+    assert config['ai_discovery'] == {'enabled': False} and config['data_dir'] == '/guard'
+    text = derived.decode()
+    assert 'ollama' not in text and 'qwen' not in text and FAKE_PROVIDER_KEY not in text and 'api_key:' not in text
+
+
+@qualified_only
 def test_hosted_guard_config_satisfies_the_guard_runners_own_verifier(tmp_path):
-    pytest.importorskip('yaml')
     guard = guard_module()
     from protected_provider import MODEL as guard_model
-    derived = m.hosted_guard_config(OLLAMA_GUARD_CONFIG.encode(), guard_model)
-    text = derived.decode()
-    assert 'ollama' not in text and 'qwen' not in text and FAKE_PROVIDER_KEY not in text
-    import yaml
-    assert yaml.safe_load(derived)['gateway']['api_port'] == m.HOSTED_GUARD_API_PORT == 4001
-    # The guard image pins this model; the builder default must equal it.
-    assert m.HOSTED_MODEL == guard_model
+    raw = m.hosted_guard_config(m.load_qualified_guard_config(), guard_model)
+    assert m.QUALIFIED_GUARD_MODEL == m.HOSTED_MODEL == guard_model  # the guard image pins this model
     home = tmp_path.resolve() / 'guardhome'
     home.mkdir(mode=0o700)
-    raw = text.replace('data_dir: /guard', 'data_dir: ' + str(home)).encode()
+    raw = raw.replace(b'data_dir: /guard', b'data_dir: ' + str(home).encode())  # the verifier checks the real home path
     m.write_private(home / 'config.yaml', raw)
     assert guard.verify_config(home, m.sha(raw), FAKE_PROVIDER_KEY) == m.sha(raw)
-    # Any other model, an inline key or a missing fence is refused by the same verifier.
     for broken in (raw.replace(b'base_url: http://127.0.0.1:18888', b'base_url: https://api.anthropic.com'),
                    raw.replace(b'api_key_env: DEFENSECLAW_LLM_KEY', b'api_key_env: ANTHROPIC_API_KEY'),
                    raw.replace(b'anthropic/' + guard_model.encode(), b'anthropic/claude-sonnet-5-5')):
@@ -299,6 +320,28 @@ def test_hosted_guard_config_satisfies_the_guard_runners_own_verifier(tmp_path):
         m.write_private(other / 'config.yaml', broken)
         with pytest.raises(Exception):
             guard.verify_config(other, m.sha(broken), FAKE_PROVIDER_KEY)
+
+
+@qualified_only
+def test_qualified_guard_config_is_pinned_and_other_models_only_swap_the_model_string(tmp_path):
+    raw = m.load_qualified_guard_config()
+    other = m.hosted_guard_config(raw, 'claude-sonnet-5-5')
+    assert other == raw.replace(b'anthropic/claude-sonnet-4-6', b'anthropic/claude-sonnet-5-5') and other != raw
+    tampered = tmp_path / 'guard-config.yaml'
+    tampered.write_bytes(raw + b'# changed\n')
+    with pytest.raises(m.MemberRefused, match='qualified_guard_config_changed'):
+        m.load_qualified_guard_config(tampered)
+    with pytest.raises(m.MemberRefused, match='qualified_guard_config_missing'):
+        m.load_qualified_guard_config(tmp_path / 'absent.yaml')
+
+
+def test_the_ollama_derived_config_shape_can_never_be_selected():
+    """The config shape the real guard answered with `provider "" is not supported` is refused by construction."""
+    with pytest.raises(m.MemberRefused, match='guard_config_model_shape'):
+        m.hosted_guard_config(OLLAMA_GUARD_CONFIG.encode(), m.HOSTED_MODEL)
+    for broken in (b'api_key: inline\n', b'not yaml but has anthropic/claude-sonnet-4-6 x3'):
+        with pytest.raises(m.MemberRefused):
+            m.hosted_guard_config(broken, m.HOSTED_MODEL)
 
 
 def test_hosted_guard_env_matches_the_guard_loader_and_stays_private(tmp_path):

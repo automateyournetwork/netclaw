@@ -93,3 +93,13 @@ Symptom: Border stuck at `dispatch_claimed`, member `protected_executor` then si
    (`_single_protected_error`), so an unclaimed effect becomes a signed refusal and an unknown stays unknown.
    NOT changed: the Ollama path has the same wrapping and was therefore also silent on refusals (it likely explains the earlier stranded
    operations whose member state was `outcome_unknown`). Extending the fix to Ollama needs your review of a qualified path.
+
+## Live finding 2: hosted guard config must be the qualified Anthropic file (fixed)
+The real guard answered `finish_reason content_filter: provider "" is not supported by DefenseClaw guardrail - traffic blocked` because the config
+derived from the Ollama config lacked `llm_role: judge_and_agent`, the llm/api_key_env/forward_custom_headers shape, `gateway.fleet_mode/token_env`
+and `ai_discovery`, and set `allow_empty_providers`/`allow_unknown_llm_domains` false. `r09_member.py` (netbox and pyats flavors) now loads the
+qualified file `roadmap-r04a-20261103/cloud-plan/member-inputs/guard-config.yaml`, refuses it unless its sha256 is
+`1fdc7ab5...fa26b` (the hash that directory's manifest.json pins), and uses it byte for byte for `claude-sonnet-4-6` (only the model string is
+swapped for another model, which also needs a rebuilt guard image). `gateway.api_port` is 4001, matching the health probe. Policy pinning:
+the R04A `official-policy-manifest.json` hash is `0c9ad2c8...` = the R05 template's `policy_manifest_sha256`, so the pin is unchanged;
+`guard_policy_sha256` is recomputed from the new `config_sha256` at materialize. `protected_hosted.py` references no config values.
